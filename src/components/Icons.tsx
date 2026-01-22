@@ -1,0 +1,263 @@
+
+import React from 'react';
+import { useTheme } from '../ThemeContext.tsx';
+import { IconProps } from '../types.ts';
+
+// Import Icon Packs
+import * as LucideIcons from 'lucide-react';
+import * as TablerIcons from '@tabler/icons-react';
+import * as PhosphorIcons from '@phosphor-icons/react';
+
+// Map generic names to specific library names
+const ICON_MAP: Record<string, { lucide: string, phosphor: string, tabler: string }> = {
+    // Navigation & General
+    Dashboard: { lucide: 'LayoutDashboard', phosphor: 'SquaresFour', tabler: 'IconLayoutDashboard' },
+    CreditCard: { lucide: 'CreditCard', phosphor: 'CreditCard', tabler: 'IconCreditCard' },
+    Target: { lucide: 'Target', phosphor: 'Target', tabler: 'IconTarget' },
+    Report: { lucide: 'FileBarChart', phosphor: 'ChartBar', tabler: 'IconReportAnalytics' },
+    ShoppingBag: { lucide: 'ShoppingBag', phosphor: 'ShoppingBag', tabler: 'IconShoppingBag' },
+    Settings: { lucide: 'Settings', phosphor: 'Gear', tabler: 'IconSettings' },
+    Logout: { lucide: 'LogOut', phosphor: 'SignOut', tabler: 'IconLogout' },
+    Bell: { lucide: 'Bell', phosphor: 'Bell', tabler: 'IconBell' },
+    Envelope: { lucide: 'Mail', phosphor: 'Envelope', tabler: 'IconMail' },
+    Sun: { lucide: 'Sun', phosphor: 'Sun', tabler: 'IconSun' },
+    Moon: { lucide: 'Moon', phosphor: 'Moon', tabler: 'IconMoon' },
+    Hamburger: { lucide: 'Menu', phosphor: 'List', tabler: 'IconMenu2' },
+    Wallet: { lucide: 'Wallet', phosphor: 'Wallet', tabler: 'IconWallet' },
+    ArrowUp: { lucide: 'ArrowUp', phosphor: 'ArrowUp', tabler: 'IconArrowUp' },
+    ArrowDown: { lucide: 'ArrowDown', phosphor: 'ArrowDown', tabler: 'IconArrowDown' },
+    Plus: { lucide: 'Plus', phosphor: 'Plus', tabler: 'IconPlus' },
+    Close: { lucide: 'X', phosphor: 'X', tabler: 'IconX' },
+    Back: { lucide: 'ArrowLeft', phosphor: 'ArrowLeft', tabler: 'IconArrowLeft' },
+    Edit: { lucide: 'Pencil', phosphor: 'PencilSimple', tabler: 'IconPencil' },
+    Delete: { lucide: 'Trash2', phosphor: 'Trash', tabler: 'IconTrash' },
+    Warning: { lucide: 'AlertTriangle', phosphor: 'Warning', tabler: 'IconAlertTriangle' },
+    Search: { lucide: 'Search', phosphor: 'MagnifyingGlass', tabler: 'IconSearch' },
+    ChevronLeft: { lucide: 'ChevronLeft', phosphor: 'CaretLeft', tabler: 'IconChevronLeft' },
+    ChevronRight: { lucide: 'ChevronRight', phosphor: 'CaretRight', tabler: 'IconChevronRight' },
+    
+    // UI Elements
+    Grid: { lucide: 'LayoutGrid', phosphor: 'SquaresFour', tabler: 'IconLayoutGrid' },
+    List: { lucide: 'List', phosphor: 'List', tabler: 'IconList' },
+    Filter: { lucide: 'Filter', phosphor: 'Funnel', tabler: 'IconFilter' },
+    Calendar: { lucide: 'Calendar', phosphor: 'Calendar', tabler: 'IconCalendar' },
+    Clock: { lucide: 'Clock', phosphor: 'Clock', tabler: 'IconClock' },
+    History: { lucide: 'History', phosphor: 'ClockCounterClockwise', tabler: 'IconHistory' },
+    Check: { lucide: 'Check', phosphor: 'Check', tabler: 'IconCheck' },
+    Users: { lucide: 'Users', phosphor: 'Users', tabler: 'IconUsers' },
+    Share: { lucide: 'Share2', phosphor: 'ShareNetwork', tabler: 'IconShare' },
+    Link: { lucide: 'Link', phosphor: 'Link', tabler: 'IconLink' },
+    Copy: { lucide: 'Copy', phosphor: 'Copy', tabler: 'IconCopy' },
+    Login: { lucide: 'LogIn', phosphor: 'SignIn', tabler: 'IconLogin' },
+    Repeat: { lucide: 'Repeat', phosphor: 'Repeat', tabler: 'IconRepeat' },
+    Refresh: { lucide: 'RefreshCw', phosphor: 'ArrowsClockwise', tabler: 'IconRefresh' },
+    Bolt: { lucide: 'Zap', phosphor: 'Lightning', tabler: 'IconBolt' },
+    
+    // Charts & Trends
+    ChartBar: { lucide: 'BarChart3', phosphor: 'ChartBar', tabler: 'IconChartBar' },
+    PieChart: { lucide: 'PieChart', phosphor: 'ChartPie', tabler: 'IconChartPie' },
+    LineChart: { lucide: 'LineChart', phosphor: 'ChartLine', tabler: 'IconChartLine' },
+    DoughnutChart: { lucide: 'PieChart', phosphor: 'ChartDonut', tabler: 'IconChartDonut' }, 
+    TrendingUp: { lucide: 'TrendingUp', phosphor: 'TrendUp', tabler: 'IconTrendingUp' },
+    
+    // Sorting
+    SortUp: { lucide: 'ChevronUp', phosphor: 'CaretUp', tabler: 'IconChevronUp' },
+    SortDown: { lucide: 'ChevronDown', phosphor: 'CaretDown', tabler: 'IconChevronDown' },
+
+    // Personalization UI
+    Palette: { lucide: 'Palette', phosphor: 'Palette', tabler: 'IconPalette' },
+    Layout: { lucide: 'Layout', phosphor: 'Layout', tabler: 'IconLayout' },
+    Volume2: { lucide: 'Volume2', phosphor: 'SpeakerHigh', tabler: 'IconVolume' },
+    Sparkles: { lucide: 'Sparkles', phosphor: 'Sparkle', tabler: 'IconSparkles' },
+    Monitor: { lucide: 'Monitor', phosphor: 'Monitor', tabler: 'IconDeviceDesktop' },
+    RotateCcw: { lucide: 'RotateCcw', phosphor: 'ArrowCounterClockwise', tabler: 'IconRotate' },
+    Shapes: { lucide: 'Shapes', phosphor: 'Shapes', tabler: 'IconShapes' },
+    
+    // Credit Card Specific
+    Wifi: { lucide: 'Wifi', phosphor: 'WifiHigh', tabler: 'IconWifi' },
+    LayoutGrid: { lucide: 'LayoutGrid', phosphor: 'SquaresFour', tabler: 'IconLayoutGrid' },
+    
+    // Goals / Categories
+    ShieldCheck: { lucide: 'ShieldCheck', phosphor: 'ShieldCheck', tabler: 'IconShieldCheck' },
+    Plane: { lucide: 'Plane', phosphor: 'Airplane', tabler: 'IconPlane' },
+    DeviceLaptop: { lucide: 'Laptop', phosphor: 'Laptop', tabler: 'IconDeviceLaptop' },
+    Car: { lucide: 'Car', phosphor: 'Car', tabler: 'IconCar' },
+    Home: { lucide: 'Home', phosphor: 'House', tabler: 'IconHome' },
+    GraduationCap: { lucide: 'GraduationCap', phosphor: 'Student', tabler: 'IconSchool' },
+    Trophy: { lucide: 'Trophy', phosphor: 'Trophy', tabler: 'IconTrophy' },
+    PiggyBank: { lucide: 'PiggyBank', phosphor: 'PiggyBank', tabler: 'IconPigMoney' },
+    PlayerPlay: { lucide: 'Play', phosphor: 'Play', tabler: 'IconPlayerPlay' },
+    PlayerPause: { lucide: 'Pause', phosphor: 'Pause', tabler: 'IconPlayerPause' },
+};
+
+// Fallback Icon (Simple Box)
+const FallbackIcon: React.FC<{ size?: number; className?: string } & any> = ({ size = 20, className, ...props }) => (
+    <svg 
+        width={size} 
+        height={size} 
+        viewBox="0 0 24 24" 
+        fill="none" 
+        stroke="currentColor" 
+        strokeWidth="2" 
+        strokeLinecap="round" 
+        strokeLinejoin="round"
+        className={className}
+        style={{ opacity: 0.5 }}
+        {...props}
+    >
+        <rect x="3" y="3" width="18" height="18" rx="2" ry="2" strokeDasharray="4 4" />
+        <path d="M9 9l6 6m0-6l-6 6" />
+    </svg>
+);
+
+// Helper to reliably get the icon component from a module
+const getIconFromSet = (iconSet: any, iconName: string) => {
+    if (!iconSet) return null;
+    if (iconSet[iconName]) return iconSet[iconName];
+    if (iconSet.default && iconSet.default[iconName]) return iconSet.default[iconName];
+    if (iconSet.default && iconSet.default.icons && iconSet.default.icons[iconName]) {
+        return iconSet.default.icons[iconName];
+    }
+    return null;
+};
+
+const AppIcon: React.FC<{ name: string } & IconProps> = ({ name, className, ...props }) => {
+    const { theme } = useTheme();
+    const pack = theme?.icons?.pack || 'lucide';
+    const size = theme?.icons?.size || 20;
+    const strokeWidth = theme?.icons?.strokeWidth || 2;
+
+    const mapping = ICON_MAP[name];
+
+    if (!mapping) {
+        return <FallbackIcon size={size} className={className} {...props} />;
+    }
+
+    let IconSet: any;
+    let iconSpecificName: string;
+
+    switch (pack) {
+        case 'phosphor':
+            IconSet = PhosphorIcons;
+            iconSpecificName = mapping.phosphor;
+            break;
+        case 'tabler':
+            IconSet = TablerIcons;
+            iconSpecificName = mapping.tabler;
+            break;
+        case 'lucide':
+        default:
+            IconSet = LucideIcons;
+            iconSpecificName = mapping.lucide;
+            break;
+    }
+
+    const IconComponent = getIconFromSet(IconSet, iconSpecificName);
+
+    if (!IconComponent) {
+        if (pack === 'lucide') {
+            const FallbackComp = getIconFromSet(TablerIcons, mapping.tabler);
+            if (FallbackComp) {
+                return <FallbackComp className={className} size={size} stroke={strokeWidth} {...props} />;
+            }
+        }
+        return <FallbackIcon size={size} className={className} {...props} />;
+    }
+
+    const phosphorWeight = strokeWidth <= 1.5 ? 'light' : strokeWidth >= 2.5 ? 'bold' : 'regular';
+
+    return (
+        <IconComponent
+            className={className}
+            size={size} 
+            strokeWidth={strokeWidth}
+            weight={pack === 'phosphor' ? phosphorWeight : undefined}
+            stroke={pack === 'tabler' ? strokeWidth : undefined}
+            {...props}
+        />
+    );
+};
+
+export const DynamicIcon: React.FC<{ name: string; className?: string; size?: number; color?: string; title?: string }> = ({ name, className, size, color, ...props }) => {
+    if (!name) return null;
+    const iconName = name.startsWith('Icon') ? name : `Icon${name}`;
+    const IconComponent = getIconFromSet(TablerIcons, iconName);
+    if (!IconComponent) return <AppIcon name={name} className={className} {...props} />;
+    return <IconComponent size={size || 24} className={className} stroke={2} color={color || 'currentColor'} {...props} />;
+};
+
+export const getAllTablerIconKeys = () => {
+    const keys = new Set<string>();
+    Object.keys(TablerIcons).forEach(key => { if (key.startsWith('Icon')) keys.add(key); });
+    // @ts-ignore
+    if (TablerIcons.default) {
+        // @ts-ignore
+        Object.keys(TablerIcons.default).forEach(key => { if (key.startsWith('Icon')) keys.add(key); });
+    }
+    return Array.from(keys);
+};
+
+// --- Export Wrappers ---
+export const DashboardIcon: React.FC<IconProps> = (props) => <AppIcon name="Dashboard" {...props} />;
+export const CreditCardIcon: React.FC<IconProps> = (props) => <AppIcon name="CreditCard" {...props} />;
+export const TargetIcon: React.FC<IconProps> = (props) => <AppIcon name="Target" {...props} />;
+export const ReportIcon: React.FC<IconProps> = (props) => <AppIcon name="Report" {...props} />;
+export const ShoppingBagIcon: React.FC<IconProps> = (props) => <AppIcon name="ShoppingBag" {...props} />;
+export const SettingsIcon: React.FC<IconProps> = (props) => <AppIcon name="Settings" {...props} />;
+export const LogoutIcon: React.FC<IconProps> = (props) => <AppIcon name="Logout" {...props} />;
+export const BellIcon: React.FC<IconProps> = (props) => <AppIcon name="Bell" {...props} />;
+export const EnvelopeIcon: React.FC<IconProps> = (props) => <AppIcon name="Envelope" {...props} />;
+export const SunIcon: React.FC<IconProps> = (props) => <AppIcon name="Sun" {...props} />;
+export const MoonIcon: React.FC<IconProps> = (props) => <AppIcon name="Moon" {...props} />;
+export const HamburgerIcon: React.FC<IconProps> = (props) => <AppIcon name="Hamburger" {...props} />;
+export const WalletIcon: React.FC<IconProps> = (props) => <AppIcon name="Wallet" {...props} />;
+export const ArrowUpIcon: React.FC<IconProps> = (props) => <AppIcon name="ArrowUp" {...props} />;
+export const ArrowDownIcon: React.FC<IconProps> = (props) => <AppIcon name="ArrowDown" {...props} />;
+export const ChartBarIcon: React.FC<IconProps> = (props) => <AppIcon name="ChartBar" {...props} />;
+export const PieChartIcon: React.FC<IconProps> = (props) => <AppIcon name="PieChart" {...props} />;
+export const BarChartIcon: React.FC<IconProps> = (props) => <AppIcon name="ChartBar" {...props} />;
+export const LineChartIcon: React.FC<IconProps> = (props) => <AppIcon name="LineChart" {...props} />;
+export const DoughnutChartIcon: React.FC<IconProps> = (props) => <AppIcon name="DoughnutChart" {...props} />;
+export const PlusIcon: React.FC<IconProps> = (props) => <AppIcon name="Plus" {...props} />;
+export const CloseIcon: React.FC<IconProps> = (props) => <AppIcon name="Close" {...props} />;
+export const BackIcon: React.FC<IconProps> = (props) => <AppIcon name="Back" {...props} />;
+export const EditIcon: React.FC<IconProps> = (props) => <AppIcon name="Edit" {...props} />;
+export const DeleteIcon: React.FC<IconProps> = (props) => <AppIcon name="Delete" {...props} />;
+export const WarningIcon: React.FC<IconProps> = (props) => <AppIcon name="Warning" {...props} />;
+export const SortUpIcon: React.FC<IconProps> = (props) => <AppIcon name="SortUp" {...props} />;
+export const SortDownIcon: React.FC<IconProps> = (props) => <AppIcon name="SortDown" {...props} />;
+export const ChevronLeftIcon: React.FC<IconProps> = (props) => <AppIcon name="ChevronLeft" {...props} />;
+export const ChevronRightIcon: React.FC<IconProps> = (props) => <AppIcon name="ChevronRight" {...props} />;
+export const SearchIcon: React.FC<IconProps> = (props) => <AppIcon name="Search" {...props} />;
+export const CheckIcon: React.FC<IconProps> = (props) => <AppIcon name="Check" {...props} />;
+export const FilterIcon: React.FC<IconProps> = (props) => <AppIcon name="Filter" {...props} />;
+export const TrendingUpIcon: React.FC<IconProps> = (props) => <AppIcon name="TrendingUp" {...props} />;
+export const ClockIcon: React.FC<IconProps> = (props) => <AppIcon name="Clock" {...props} />;
+export const HistoryIcon: React.FC<IconProps> = (props) => <AppIcon name="History" {...props} />;
+export const UsersIcon: React.FC<IconProps> = (props) => <AppIcon name="Users" {...props} />;
+export const PaletteIcon: React.FC<IconProps> = (props) => <AppIcon name="Palette" {...props} />;
+export const LayoutIcon: React.FC<IconProps> = (props) => <AppIcon name="Layout" {...props} />;
+export const VolumeIcon: React.FC<IconProps> = (props) => <AppIcon name="Volume2" {...props} />;
+export const SparklesIcon: React.FC<IconProps> = (props) => <AppIcon name="Sparkles" {...props} />;
+export const MonitorIcon: React.FC<IconProps> = (props) => <AppIcon name="Monitor" {...props} />;
+export const RotateCcwIcon: React.FC<IconProps> = (props) => <AppIcon name="RotateCcw" {...props} />;
+export const ShapesIcon: React.FC<IconProps> = (props) => <AppIcon name="Shapes" {...props} />;
+export const WifiIcon: React.FC<IconProps> = (props) => <AppIcon name="Wifi" {...props} />;
+export const LayoutGridIcon: React.FC<IconProps> = (props) => <AppIcon name="LayoutGrid" {...props} />;
+export const ListIcon: React.FC<IconProps> = (props) => <AppIcon name="List" {...props} />;
+export const ShieldCheckIcon: React.FC<IconProps> = (props) => <AppIcon name="ShieldCheck" {...props} />;
+export const PlaneIcon: React.FC<IconProps> = (props) => <AppIcon name="Plane" {...props} />;
+export const LaptopIcon: React.FC<IconProps> = (props) => <AppIcon name="DeviceLaptop" {...props} />;
+export const CarIcon: React.FC<IconProps> = (props) => <AppIcon name="Car" {...props} />;
+export const HomeIcon: React.FC<IconProps> = (props) => <AppIcon name="Home" {...props} />;
+export const GraduationCapIcon: React.FC<IconProps> = (props) => <AppIcon name="GraduationCap" {...props} />;
+export const TrophyIcon: React.FC<IconProps> = (props) => <AppIcon name="Trophy" {...props} />;
+export const PiggyBankIcon: React.FC<IconProps> = (props) => <AppIcon name="PiggyBank" {...props} />;
+export const ShareIcon: React.FC<IconProps> = (props) => <AppIcon name="Share" {...props} />;
+export const LinkIcon: React.FC<IconProps> = (props) => <AppIcon name="Link" {...props} />;
+export const CopyIcon: React.FC<IconProps> = (props) => <AppIcon name="Copy" {...props} />;
+export const LoginIcon: React.FC<IconProps> = (props) => <AppIcon name="Login" {...props} />;
+export const RepeatIcon: React.FC<IconProps> = (props) => <AppIcon name="Repeat" {...props} />;
+export const RefreshIcon: React.FC<IconProps> = (props) => <AppIcon name="Refresh" {...props} />;
+export const CalendarIcon: React.FC<IconProps> = (props) => <AppIcon name="Calendar" {...props} />;
+export const BoltIcon: React.FC<IconProps> = (props) => <AppIcon name="Bolt" {...props} />;
