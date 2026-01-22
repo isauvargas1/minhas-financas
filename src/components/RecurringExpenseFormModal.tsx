@@ -4,7 +4,7 @@ import { RecurringExpense, RecurringExpenseType, RecurringBillingPeriod, Recurri
 import { CreditCard, EntityItem } from '../types.ts';
 import { useSplitGroups } from '../modules/split-bills/hooks.ts';
 import { CloseIcon, SearchIcon, DynamicIcon, CreditCardIcon, UsersIcon, BoltIcon, PaletteIcon, getAllTablerIconKeys, BuildingIcon, BriefcaseIcon } from './Icons.tsx';
-import { useWorkspace } from '../WorkspaceContext.tsx';
+import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
 
 interface RecurringExpenseFormModalProps {
     isOpen: boolean;

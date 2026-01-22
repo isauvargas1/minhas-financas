@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { SplitGroup, SplitParticipant, SplitGroupInvite } from '../types.ts';
 import { useSplitGroupInvites, useCreateInvite, useDeleteSplitGroup, useLeaveSplitGroup } from '../modules/split-bills/hooks.ts';
 import { CloseIcon, UsersIcon, LinkIcon, CopyIcon, ShareIcon, DeleteIcon, WarningIcon, LogoutIcon } from './Icons.tsx';
-import { useTheme } from '../ThemeContext.tsx';
+import { useTheme } from '../contexts/ThemeContext.tsx';
 
 interface SplitGroupSettingsModalProps {
     isOpen: boolean;

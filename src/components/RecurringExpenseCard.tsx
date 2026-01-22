@@ -3,7 +3,7 @@ import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { RecurringExpense } from '../modules/recurring-expenses/types.ts';
 import { DynamicIcon, CalendarIcon, CreditCardIcon, UsersIcon, BoltIcon, WarningIcon } from './Icons.tsx';
-import { useTheme } from '../ThemeContext.tsx';
+import { useTheme } from '../contexts/ThemeContext.tsx';
 import { projectOccurrences } from '../modules/recurring-expenses/logic.ts';
 
 interface RecurringExpenseCardProps {

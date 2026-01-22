@@ -3,14 +3,14 @@ import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { useSplitGroup, useSplitBills, useSplitParticipants, useSplitGroupShares, useCreateSplitBill, useUpdateSplitShare, useUpdateSplitBill, useDeleteSplitBill, useUpdateSplitGroup, useUpdateSplitBillStatus } from '../modules/split-bills/hooks.ts';
 import { BackIcon, PlusIcon, DynamicIcon, SettingsIcon, ListIcon, ChartBarIcon, UsersIcon, EditIcon, CheckIcon, WarningIcon } from './Icons.tsx';
-import { useTheme } from '../ThemeContext.tsx';
+import { useTheme } from '../contexts/ThemeContext.tsx';
 import { Transaction, CreditCard, SplitBill, SplitShare, SplitGroup } from '../types.ts';
 import SplitBillFormModal from './SplitBillFormModal.tsx';
 import SplitBillDetailsModal from './SplitBillDetailsModal.tsx';
 import SplitGroupCharts from './SplitGroupCharts.tsx';
 import SplitGroupSettingsModal from './SplitGroupSettingsModal.tsx';
 import SplitGroupFormModal from './SplitGroupFormModal.tsx';
-import { useWorkspace } from '../WorkspaceContext.tsx';
+import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
 
 interface SplitGroupDetailsViewProps {
     groupId: string;

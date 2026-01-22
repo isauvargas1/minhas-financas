@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useAcceptInvite } from '../modules/split-bills/hooks.ts';
 import { CloseIcon, LoginIcon } from './Icons.tsx';
-import { useTheme } from '../ThemeContext.tsx';
+import { useTheme } from '../contexts/ThemeContext.tsx';
 
 interface JoinGroupModalProps {
     isOpen: boolean;

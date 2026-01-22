@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Loan, LoanType, LoanInterestType, LoanInterestBasis, PJCounterpartyType, PJLoanClassification } from '../modules/loans/types.ts';
 // Fix: Added DynamicIcon to the imports
 import { CloseIcon, HandshakeIcon, BuildingIcon, UsersIcon, BriefcaseIcon, CoinsIcon, DynamicIcon } from './Icons.tsx';
-import { useWorkspace } from '../WorkspaceContext.tsx';
+import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
 import { generatePJAmortizationPlan } from '../modules/loans/pj-logic.ts';
 
 interface PJLoanFormModalProps {

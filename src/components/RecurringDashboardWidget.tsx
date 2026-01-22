@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { useRecurringExpenses } from '../modules/recurring-expenses/hooks.ts';
 import { RepeatIcon, WarningIcon } from './Icons.tsx';
-import { useTheme } from '../ThemeContext.tsx';
+import { useTheme } from '../contexts/ThemeContext.tsx';
 
 const RecurringDashboardWidget: React.FC = () => {
     const { data: expenses, isLoading } = useRecurringExpenses();

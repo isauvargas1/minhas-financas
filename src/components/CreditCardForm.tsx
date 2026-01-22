@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { CreditCard } from '../types.ts';
 import { CloseIcon, UsersIcon, BriefcaseIcon, BoltIcon, CreditCardIcon } from './Icons.tsx';
-import { useWorkspace } from '../WorkspaceContext.tsx';
+import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
 
 interface CreditCardFormProps {
     isOpen: boolean;

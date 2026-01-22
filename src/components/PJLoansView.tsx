@@ -6,8 +6,8 @@ import { Loan, LoanType, LoanStatus } from '../modules/loans/types.ts';
 import { HandshakeIcon, PlusIcon, SearchIcon, FilterIcon, LayoutGridIcon, ListIcon, WarningIcon, TrendingUpIcon, ArrowDownIcon, BriefcaseIcon } from './Icons.tsx';
 import PJLoanCard from './PJLoanCard.tsx';
 import PJLoanFormModal from './PJLoanFormModal.tsx';
-import { useTheme } from '../ThemeContext.tsx';
-import { useWorkspace } from '../WorkspaceContext.tsx';
+import { useTheme } from '../contexts/ThemeContext.tsx';
+import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
 
 interface PJLoansViewProps {
     onSelectLoan: (loan: Loan) => void;

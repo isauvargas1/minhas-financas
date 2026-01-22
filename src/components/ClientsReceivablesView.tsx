@@ -3,7 +3,7 @@ import React, { useState, useMemo } from 'react';
 import { useClients, useCreateClient, useUpdateClient, useDeleteClient, useReceivables, useCreateReceivable, useUpdateReceivableStatus, useDeleteReceivable } from '../modules/clients/hooks.ts';
 import { Client, Receivable } from '../modules/clients/types.ts';
 import { UsersIcon, FileInvoiceIcon, PlusIcon, SearchIcon, EditIcon, DeleteIcon, CheckIcon, WarningIcon, CurrencyDollarIcon } from './Icons.tsx';
-import { useTheme } from '../ThemeContext.tsx';
+import { useTheme } from '../contexts/ThemeContext.tsx';
 import ClientFormModal from './ClientFormModal.tsx';
 import ReceivableFormModal from './ReceivableFormModal.tsx';
 

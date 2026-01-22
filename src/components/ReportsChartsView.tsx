@@ -6,8 +6,8 @@ import {
 } from 'recharts';
 import { FinancialReportSnapshot } from '../modules/reports/types.ts';
 import { EntityItem } from '../types.ts';
-import { useTheme } from '../ThemeContext.tsx';
-import { useWorkspace } from '../WorkspaceContext.tsx';
+import { useTheme } from '../contexts/ThemeContext.tsx';
+import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
 
 interface ReportsChartsViewProps {
     snapshot?: FinancialReportSnapshot;

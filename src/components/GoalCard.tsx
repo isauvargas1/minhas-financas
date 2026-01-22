@@ -4,12 +4,12 @@ import { Goal, Transaction } from '../types.ts';
 import { 
     CheckIcon, WarningIcon, DynamicIcon, TrendingUpIcon, ClockIcon, WifiIcon
 } from './Icons.tsx';
-import { useTheme } from '../ThemeContext.tsx';
+import { useTheme } from '../contexts/ThemeContext.tsx';
 import { motion } from 'framer-motion';
 // @ts-ignore
 import confetti from 'canvas-confetti';
 import { calculateBusinessGoalProgress, getGoalPaceStatus } from '../modules/goals/logic.ts';
-import { useWorkspace } from '../WorkspaceContext.tsx';
+import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
 
 interface GoalCardProps {
     goal: Goal;

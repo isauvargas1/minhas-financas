@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { CloseIcon, WarningIcon } from './Icons.tsx';
-import { useTheme } from '../ThemeContext.tsx';
+import { useTheme } from '../contexts/ThemeContext.tsx';
 
 interface ConfirmationModalProps {
     isOpen: boolean;

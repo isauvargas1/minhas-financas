@@ -8,7 +8,7 @@ import {
     BriefcaseIcon, PiggyBankIcon, WarningIcon, CheckIcon, DynamicIcon
 } from './Icons.tsx';
 import ReportsAlertsPanel from './ReportsAlertsPanel.tsx';
-import { useWorkspace } from '../WorkspaceContext.tsx';
+import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
 
 interface ReportsOverviewProps {
     snapshot?: FinancialReportSnapshot;

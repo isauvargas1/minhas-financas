@@ -11,7 +11,7 @@ import {
 import { 
     useUnreadMessagesCount 
 } from '../modules/messages/hooks.ts';
-import { useWorkspace } from '../WorkspaceContext.tsx';
+import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
 
 interface HeaderProps {
     onToggleSidebar: () => void;

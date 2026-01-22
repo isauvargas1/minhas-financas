@@ -4,7 +4,7 @@ import { EntityItem, Workspace } from '../types.ts';
 import { PlusIcon, EditIcon, DeleteIcon, SearchIcon, SortUpIcon, SortDownIcon, CloseIcon, WarningIcon, BackIcon, BriefcaseIcon, BuildingIcon, BellIcon, PaletteIcon } from './Icons.tsx';
 import * as TablerIcons from '@tabler/icons-react';
 import PersonalizationView from './PersonalizationView.tsx';
-import { useWorkspace } from '../WorkspaceContext.tsx';
+import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
 import { useUpdateWorkspace } from '../modules/workspaces/hooks.ts';
 
 interface SettingsViewProps {

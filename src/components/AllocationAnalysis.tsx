@@ -9,7 +9,7 @@ import {
     CheckIcon, InfoIcon, SettingsIcon, CloseIcon, 
     ArrowUpIcon, ArrowDownIcon, ListIcon, WalletIcon 
 } from './Icons.tsx';
-import { useTheme } from '../ThemeContext.tsx';
+import { useTheme } from '../contexts/ThemeContext.tsx';
 import { useCreateNotification } from '../modules/notifications/hooks.ts';
 
 interface AllocationAnalysisProps {

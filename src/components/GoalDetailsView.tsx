@@ -6,11 +6,11 @@ import {
     TrendingUpIcon, ClockIcon, HistoryIcon, PlusIcon, 
     DynamicIcon, PiggyBankIcon, BriefcaseIcon, BuildingIcon
 } from './Icons.tsx';
-import { useTheme } from '../ThemeContext.tsx';
+import { useTheme } from '../contexts/ThemeContext.tsx';
 import { motion } from 'framer-motion';
 // @ts-ignore
 import confetti from 'canvas-confetti';
-import { useWorkspace } from '../WorkspaceContext.tsx';
+import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
 import { calculateBusinessGoalProgress, getGoalPaceStatus, getPeriodDates } from '../modules/goals/logic.ts';
 
 interface GoalDetailsViewProps {

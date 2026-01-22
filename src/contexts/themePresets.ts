@@ -1,5 +1,5 @@
 
-import { AppTheme, ThemeSounds, ThemeGoals, ThemeSplitGroups } from './types.ts';
+import { AppTheme, ThemeSounds, ThemeGoals, ThemeSplitGroups } from '../types.ts';
 
 const defaultIcons = {
     pack: 'lucide' as const,

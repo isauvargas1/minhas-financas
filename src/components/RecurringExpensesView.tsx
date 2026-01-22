@@ -4,12 +4,12 @@ import { motion } from 'framer-motion';
 import { useRecurringExpenses, useCreateRecurringExpense, useUpdateRecurringExpense } from '../modules/recurring-expenses/hooks.ts';
 import { RecurringExpense } from '../modules/recurring-expenses/types.ts';
 import { RepeatIcon, PlusIcon, SearchIcon, FilterIcon, LayoutGridIcon, ListIcon, CreditCardIcon, DynamicIcon, FileInvoiceIcon } from './Icons.tsx';
-import { useTheme } from '../ThemeContext.tsx';
+import { useTheme } from '../contexts/ThemeContext.tsx';
 import RecurringExpenseCard from './RecurringExpenseCard.tsx';
 import RecurringExpenseList from './RecurringExpenseList.tsx';
 import RecurringExpenseFormModal from './RecurringExpenseFormModal.tsx';
 import { CreditCard, EntityItem, Transaction } from '../types.ts';
-import { useWorkspace } from '../WorkspaceContext.tsx';
+import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
 
 interface RecurringExpensesViewProps {
     onSelectExpense: (id: string) => void;

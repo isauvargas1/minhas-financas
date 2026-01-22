@@ -2,8 +2,8 @@
 import React, { useState } from 'react';
 import { Transaction, Goal, CreditCard, EntityItem } from '../types.ts';
 import { ReportIcon, DashboardIcon, ChartBarIcon, SparklesIcon } from './Icons.tsx';
-import { useTheme } from '../ThemeContext.tsx';
-import { useWorkspace } from '../WorkspaceContext.tsx';
+import { useTheme } from '../contexts/ThemeContext.tsx';
+import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
 import { useFinancialReportSnapshot } from '../modules/reports/hooks.ts';
 import { useReceivables, useClients } from '../modules/clients/hooks.ts';
 import { ReportTimeRange } from '../modules/reports/types.ts';

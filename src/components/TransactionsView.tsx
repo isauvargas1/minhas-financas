@@ -3,7 +3,7 @@ import React, { useState, useMemo } from 'react';
 import { Transaction, TransactionType, Goal } from '../types.ts';
 import { transactionTypeColors } from '../constants.ts';
 import { PlusIcon, BackIcon, EditIcon, DeleteIcon, SortUpIcon, SortDownIcon, TargetIcon } from './Icons.tsx';
-import { useWorkspace } from '../WorkspaceContext.tsx';
+import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
 import AllocationAnalysis from './AllocationAnalysis.tsx';
 import BusinessAllocationAnalysis from './BusinessAllocationAnalysis.tsx';
 

@@ -1,8 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { Workspace } from './modules/workspaces/types';
-import { listWorkspaces, createWorkspace } from './modules/workspaces/api';
+import { Workspace } from '../modules/workspaces/types';
+import { listWorkspaces, createWorkspace } from '../modules/workspaces/api';
 import { useTheme } from './ThemeContext';
-import { useAuth } from './src/contexts/AuthContext';
+import { useAuth } from './AuthContext';
 
 interface WorkspaceContextValue {
     workspaces: Workspace[];

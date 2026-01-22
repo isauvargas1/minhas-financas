@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { CloseIcon, SearchIcon, CheckIcon } from './Icons.tsx';
-import { useTheme } from '../ThemeContext.tsx';
+import { useTheme } from '../contexts/ThemeContext.tsx';
 import { useCreateConversation, useSearchUsers } from '../modules/messages/hooks.ts';
 import { ChatUser } from '../modules/messages/types.ts';
 

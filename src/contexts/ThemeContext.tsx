@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
-import { AppTheme, SoundKey } from './types.ts';
+import { AppTheme, SoundKey } from '../types.ts';
 import { defaultLightTheme, defaultDarkTheme } from './themePresets.ts';
 import { Howl } from 'howler';
 

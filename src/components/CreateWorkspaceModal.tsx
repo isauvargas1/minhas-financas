@@ -2,8 +2,8 @@
 import React, { useState } from 'react';
 import { CloseIcon, BriefcaseIcon } from './Icons.tsx';
 import { useCreateWorkspace } from '../modules/workspaces/hooks.ts';
-import { useWorkspace } from '../WorkspaceContext.tsx';
-import { useTheme } from '../ThemeContext.tsx';
+import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
+import { useTheme } from '../contexts/ThemeContext.tsx';
 
 interface CreateWorkspaceModalProps {
     isOpen: boolean;

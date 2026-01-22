@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useChatThreads, useThreadMessages, useSendMessage, useMarkThreadAsRead } from '../modules/messages/hooks.ts';
 import { ChatThread, ChatMessage } from '../modules/messages/types.ts';
 import { CloseIcon, DynamicIcon, SearchIcon, ArrowUpIcon, UsersIcon, ChevronLeftIcon, MessageCirclePlusIcon } from './Icons.tsx';
-import { useTheme } from '../ThemeContext.tsx';
+import { useTheme } from '../contexts/ThemeContext.tsx';
 import NewConversationModal from './NewConversationModal.tsx';
 
 interface MessagesPanelProps {

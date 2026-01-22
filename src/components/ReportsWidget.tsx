@@ -3,7 +3,7 @@ import React from 'react';
 import { useFinancialReportSnapshot } from '../modules/reports/hooks.ts';
 import { Transaction, Goal, CreditCard } from '../types.ts';
 import { ReportIcon, WarningIcon, ChevronRightIcon, CheckIcon } from './Icons.tsx';
-import { useTheme } from '../ThemeContext.tsx';
+import { useTheme } from '../contexts/ThemeContext.tsx';
 
 interface ReportsWidgetProps {
     transactions: Transaction[];

@@ -9,7 +9,7 @@ import {
     serverTimestamp,
     getDoc
 } from 'firebase/firestore';
-import { db } from '@/src/lib/firebase';
+import { db } from "@/lib/firebase";
 import { Workspace } from './types';
 
 const COLLECTION_NAME = 'workspaces';

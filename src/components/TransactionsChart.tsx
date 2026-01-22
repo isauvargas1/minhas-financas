@@ -3,7 +3,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { ResponsiveContainer, PieChart, Pie, BarChart, Bar, LineChart, Line, Cell, XAxis, YAxis, Tooltip, Legend } from 'recharts';
 import { Transaction, TransactionType } from '../types.ts';
 import { PieChartIcon, BarChartIcon, LineChartIcon, DoughnutChartIcon } from './Icons.tsx';
-import { useTheme } from '../ThemeContext.tsx';
+import { useTheme } from '../contexts/ThemeContext.tsx';
 
 interface TransactionsChartProps {
     transactions: Transaction[];

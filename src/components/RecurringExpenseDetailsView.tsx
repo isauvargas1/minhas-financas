@@ -4,11 +4,11 @@ import { motion } from 'framer-motion';
 import { useRecurringExpense, useRecurringOccurrences, useSaveOccurrence, useUpdateRecurringExpense } from '../modules/recurring-expenses/hooks.ts';
 import { useSplitParticipants, useCreateSplitBill } from '../modules/split-bills/hooks.ts';
 import { BackIcon, DynamicIcon, CalendarIcon, WarningIcon, TrendingUpIcon, BuildingIcon, BriefcaseIcon, FileInvoiceIcon } from './Icons.tsx';
-import { useTheme } from '../ThemeContext.tsx';
+import { useTheme } from '../contexts/ThemeContext.tsx';
 import { RecurringStatus, RecurringOccurrence, RecurringAdjustment } from '../modules/recurring-expenses/types.ts';
 import { SplitBill, SplitShare } from '../types.ts';
 import { Transaction } from '../types.ts';
-import { useWorkspace } from '../WorkspaceContext.tsx';
+import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
 
 interface RecurringExpenseDetailsViewProps {
     expenseId: string;

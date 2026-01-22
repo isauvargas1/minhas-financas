@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { SplitGroup, SplitGroupType } from '../types.ts';
 import { CloseIcon, SearchIcon, DynamicIcon, getAllTablerIconKeys } from './Icons.tsx';
-import { useWorkspace } from '../WorkspaceContext.tsx';
+import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
 
 interface SplitGroupFormModalProps {
     isOpen: boolean;

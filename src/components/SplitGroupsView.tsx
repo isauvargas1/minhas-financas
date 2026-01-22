@@ -3,13 +3,13 @@ import React, { useState, useMemo } from 'react';
 import { useSplitGroups, useCreateSplitGroup, useUpdateSplitGroup, useDeleteSplitGroup } from '../modules/split-bills/hooks.ts';
 import { SplitGroup } from '../types.ts';
 import { PlusIcon, SearchIcon, LayoutGridIcon, ListIcon, FilterIcon, LoginIcon, UsersIcon, FileInvoiceIcon } from './Icons.tsx';
-import { useTheme } from '../ThemeContext.tsx';
+import { useTheme } from '../contexts/ThemeContext.tsx';
 import SplitGroupCard from './SplitGroupCard.tsx';
 import SplitGroupList from './SplitGroupList.tsx';
 import SplitGroupFormModal from './SplitGroupFormModal.tsx';
 import JoinGroupModal from './JoinGroupModal.tsx';
 import ConfirmationModal from './ConfirmationModal.tsx';
-import { useWorkspace } from '../WorkspaceContext.tsx';
+import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
 
 interface SplitGroupsViewProps {
     onSelectGroup: (groupId: string) => void;

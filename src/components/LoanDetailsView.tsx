@@ -5,8 +5,8 @@ import { useLoan, useLoanMovements, useUpdateLoan, useCreateMovement, useDeleteL
 import { Loan, LoanMovement, LoanStatus } from '../modules/loans/types.ts';
 // Added HandshakeIcon to the imports below
 import { BackIcon, DynamicIcon, HistoryIcon, CoinsIcon, PlusIcon, CalendarIcon, WarningIcon, EditIcon, DeleteIcon, CheckIcon, HandshakeIcon } from './Icons.tsx';
-import { useTheme } from '../ThemeContext.tsx';
-import { useWorkspace } from '../WorkspaceContext.tsx';
+import { useTheme } from '../contexts/ThemeContext.tsx';
+import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
 import LoanMovementModal from './LoanMovementModal.tsx';
 import ConfirmationModal from './ConfirmationModal.tsx';
 

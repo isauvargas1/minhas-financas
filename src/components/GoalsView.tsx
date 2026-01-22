@@ -3,7 +3,7 @@ import React, { useState, useMemo } from 'react';
 import { Goal, Transaction } from '../types.ts';
 import GoalCard from './GoalCard.tsx';
 import { PlusIcon, LayoutGridIcon, ListIcon, SearchIcon } from './Icons.tsx';
-import { useWorkspace } from '../WorkspaceContext.tsx';
+import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
 
 interface GoalsViewProps {
     goals: Goal[];

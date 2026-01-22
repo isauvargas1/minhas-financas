@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { useTheme } from '../ThemeContext.tsx';
+import { useTheme } from '../contexts/ThemeContext.tsx';
 import { IconProps } from '../types.ts';
 
 // Import Icon Packs

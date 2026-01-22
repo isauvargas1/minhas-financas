@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { DashboardIcon, CreditCardIcon, TargetIcon, ReportIcon, SettingsIcon, LogoutIcon, UsersIcon, RepeatIcon, BriefcaseIcon, TrendingUpIcon, FileInvoiceIcon, ChartBarIcon, HandshakeIcon } from './Icons.tsx';
-import { useWorkspace } from '../WorkspaceContext.tsx';
+import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
 
 interface SidebarProps {
     isExpanded: boolean;

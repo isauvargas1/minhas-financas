@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { SplitGroup } from '../types.ts';
 import { useSplitBills, useSplitGroupShares, useSplitParticipants } from '../modules/split-bills/hooks.ts';
 import { DynamicIcon, UsersIcon, EditIcon, DeleteIcon } from './Icons.tsx';
-import { useTheme } from '../ThemeContext.tsx';
+import { useTheme } from '../contexts/ThemeContext.tsx';
 
 interface SplitGroupCardProps {
     group: SplitGroup;

@@ -3,7 +3,7 @@ import React, { useState, FormEvent, useEffect, useRef } from 'react';
 import { Transaction, TransactionType, CreditCard, EntityItem, TransactionModalProps, Goal } from '../types.ts';
 // Added DynamicIcon to the imports below to fix the error on line 603
 import { CloseIcon, TargetIcon, BriefcaseIcon, BuildingIcon, SparklesIcon, MicrophoneIcon, DynamicIcon } from './Icons.tsx';
-import { useWorkspace } from '../WorkspaceContext.tsx';
+import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
 import { GoogleGenAI, Type } from "@google/genai";
 
 interface ExtendedTransactionModalProps extends TransactionModalProps {

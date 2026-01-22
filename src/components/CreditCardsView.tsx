@@ -4,7 +4,7 @@ import { CreditCard, Transaction } from '../types.ts';
 import CreditCard3D from './CreditCard3D.tsx';
 import CreditCardForm from './CreditCardForm.tsx';
 import { PlusIcon, SearchIcon, EditIcon, DeleteIcon, CloseIcon, LayoutGridIcon, ListIcon, ChartBarIcon, UsersIcon, BuildingIcon } from './Icons.tsx';
-import { useWorkspace } from '../WorkspaceContext.tsx';
+import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as ReTooltip } from 'recharts';
 
 interface CreditCardsViewProps {

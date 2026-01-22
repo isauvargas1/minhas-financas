@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { useTheme, SOUND_LIBRARY } from '../ThemeContext.tsx';
+import { useTheme, SOUND_LIBRARY } from '../contexts/ThemeContext.tsx';
 import { 
     BackIcon, MoonIcon, SunIcon, DashboardIcon, WalletIcon, CreditCardIcon, SettingsIcon,
     PaletteIcon, LayoutIcon, VolumeIcon, SparklesIcon, MonitorIcon, RotateCcwIcon, ShapesIcon,
@@ -11,7 +11,7 @@ import Sidebar from './Sidebar.tsx';
 import Header from './Header.tsx';
 import TransactionsChart from './TransactionsChart.tsx';
 import RecentTransactions from './RecentTransactions.tsx';
-import { PRESET_THEMES } from '../themePresets.ts';
+import { PRESET_THEMES } from '../contexts/themePresets.ts';
 import { SoundKey, ThemeColors, Transaction } from '../types.ts';
 import { Howl } from 'howler';
 

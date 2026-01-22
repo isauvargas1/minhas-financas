@@ -3,7 +3,7 @@ import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Loan } from '../modules/loans/types.ts';
 import { BriefcaseIcon, BuildingIcon, WarningIcon, DynamicIcon } from './Icons.tsx';
-import { useTheme } from '../ThemeContext.tsx';
+import { useTheme } from '../contexts/ThemeContext.tsx';
 import { getPJLoanClassificationLabel } from '../modules/loans/pj-logic.ts';
 
 interface PJLoanCardProps {

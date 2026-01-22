@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useFinanceAIChat } from '../modules/reports/hooks.ts';
 import { FinancialReportSnapshot } from '../modules/reports/types.ts';
 import { SparklesIcon, ArrowUpIcon, RefreshIcon, WarningIcon } from './Icons.tsx';
-import { useWorkspace } from '../WorkspaceContext.tsx';
+import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
 
 interface ReportsAIChatProps {
     snapshot: FinancialReportSnapshot;
