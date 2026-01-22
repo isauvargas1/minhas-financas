@@ -1,46 +1,46 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { ThemeProvider, useTheme } from './ThemeContext.tsx';
-import { WorkspaceProvider, useWorkspace } from './WorkspaceContext.tsx';
-import Sidebar from './components/Sidebar.tsx';
-import Header from './components/Header.tsx';
-import SummaryCard from './components/SummaryCard.tsx';
-import TransactionsChart from './components/TransactionsChart.tsx';
-import RecentTransactions from './components/RecentTransactions.tsx';
-import TransactionModal from './components/TransactionModal.tsx';
-import Notification from './components/Notification.tsx';
-import TransactionsView from './components/TransactionsView.tsx';
-import ConfirmationModal from './components/ConfirmationModal.tsx';
-import SettingsView from './components/SettingsView.tsx';
-import CreditCardsView from './components/CreditCardsView.tsx';
-import PersonalizationView from './components/PersonalizationView.tsx';
-import GoalsView from './components/GoalsView.tsx';
-import GoalDetailsView from './components/GoalDetailsView.tsx';
-import GoalFormModal from './components/GoalFormModal.tsx';
-import SplitGroupsView from './components/SplitGroupsView.tsx';
-import SplitGroupDetailsView from './components/SplitGroupDetailsView.tsx';
-import RecurringExpensesView from './components/RecurringExpensesView.tsx';
-import RecurringExpenseDetailsView from './components/RecurringExpenseDetailsView.tsx';
-import RecurringDashboardWidget from './components/RecurringDashboardWidget.tsx';
-import ReportsView from './components/ReportsView.tsx';
-import ReportsWidget from './components/ReportsWidget.tsx';
-import ClientsReceivablesView from './components/ClientsReceivablesView.tsx';
-import LoansView from './components/LoansView.tsx';
-import LoanDetailsView from './components/LoanDetailsView.tsx';
-import PJLoansView from './components/PJLoansView.tsx';
-import PJLoanDetailsView from './components/PJLoanDetailsView.tsx';
-import { initialTransactions, initialProductsServices, initialExpenseTypes, initialCategoriesSettings, initialPaymentTypes, initialIncomeTypes, initialWallets, initialCreditCards, initialGoals } from './constants.ts';
-import { Transaction, TransactionType, SummaryData, EntityItem, CreditCard, Goal, Loan } from './types.ts';
-import { WalletIcon, ArrowUpIcon, ArrowDownIcon, ChartBarIcon } from './components/Icons.tsx';
+import { ThemeProvider, useTheme } from '../ThemeContext.tsx';
+import { WorkspaceProvider, useWorkspace } from '../WorkspaceContext.tsx';
+import Sidebar from '../components/Sidebar.tsx';
+import Header from '../components/Header.tsx';
+import SummaryCard from '../components/SummaryCard.tsx';
+import TransactionsChart from '../components/TransactionsChart.tsx';
+import RecentTransactions from '../components/RecentTransactions.tsx';
+import TransactionModal from '../components/TransactionModal.tsx';
+import Notification from '../components/Notification.tsx';
+import TransactionsView from '../components/TransactionsView.tsx';
+import ConfirmationModal from '../components/ConfirmationModal.tsx';
+import SettingsView from '../components/SettingsView.tsx';
+import CreditCardsView from '../components/CreditCardsView.tsx';
+import PersonalizationView from '../components/PersonalizationView.tsx';
+import GoalsView from '../components/GoalsView.tsx';
+import GoalDetailsView from '../components/GoalDetailsView.tsx';
+import GoalFormModal from '../components/GoalFormModal.tsx';
+import SplitGroupsView from '../components/SplitGroupsView.tsx';
+import SplitGroupDetailsView from '../components/SplitGroupDetailsView.tsx';
+import RecurringExpensesView from '../components/RecurringExpensesView.tsx';
+import RecurringExpenseDetailsView from '../components/RecurringExpenseDetailsView.tsx';
+import RecurringDashboardWidget from '../components/RecurringDashboardWidget.tsx';
+import ReportsView from '../components/ReportsView.tsx';
+import ReportsWidget from '../components/ReportsWidget.tsx';
+import ClientsReceivablesView from '../components/ClientsReceivablesView.tsx';
+import LoansView from '../components/LoansView.tsx';
+import LoanDetailsView from '../components/LoanDetailsView.tsx';
+import PJLoansView from '../components/PJLoansView.tsx';
+import PJLoanDetailsView from '../components/PJLoanDetailsView.tsx';
+import { initialTransactions, initialProductsServices, initialExpenseTypes, initialCategoriesSettings, initialPaymentTypes, initialIncomeTypes, initialWallets, initialCreditCards, initialGoals } from '../constants.ts';
+import { Transaction, TransactionType, SummaryData, EntityItem, CreditCard, Goal, Loan } from '../types.ts';
+import { WalletIcon, ArrowUpIcon, ArrowDownIcon, ChartBarIcon } from '../components/Icons.tsx';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useCreateNotification } from './modules/notifications/hooks.ts';
-import { AuthProvider, useAuth } from './src/contexts/AuthContext';
+import { useCreateNotification } from '../modules/notifications/hooks.ts';
+import { AuthProvider, useAuth } from './contexts/AuthContext.tsx';
 import { 
     useTransactions, 
     useCreateTransaction, 
     useUpdateTransaction, 
     useDeleteTransaction 
-} from './src/modules/transactions/hooks';
-import { LoginView } from './src/components/auth/LoginView.tsx';
+} from './modules/transactions/hooks.ts';
+import { LoginView } from './components/LoginView.tsx';
 
 const queryClient = new QueryClient({
     defaultOptions: {
