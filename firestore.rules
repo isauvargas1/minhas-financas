@@ -68,8 +68,9 @@ service cloud.firestore {
     }
 
     // Bloqueio padrão
-    match /{document=**} {
-      allow read, write: if false;
-    }
+    match /users/{userId}/workspaces/{workspaceId} {
+  allow read, write: if signedIn() && request.auth.uid == userId;
+}
+
   }
 }

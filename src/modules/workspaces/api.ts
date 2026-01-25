@@ -19,43 +19,35 @@ const COLLECTION_NAME = 'workspaces';
 
 // 1. Listagem baseada em Membership (A grande mudança)
 export const listWorkspaces = async (userId: string): Promise<Workspace[]> => {
-    try {
-        const q = query(
-            collectionGroup(db, 'members'), 
-            where('uid', '==', userId)
-        );
-        
-        const querySnapshot = await getDocs(q);
-        
-        // [CORREÇÃO] Explicitamos que a Promise retorna Workspace | null
-        const promises = querySnapshot.docs.map(async (memberDoc): Promise<Workspace | null> => {
-            const workspaceRef = memberDoc.ref.parent.parent; 
-            if (workspaceRef) {
-                const wsSnap = await getDoc(workspaceRef);
-                if (wsSnap.exists()) {
-                    const wsData = wsSnap.data();
-                    
-                    // Retornamos como Workspace para alinhar os tipos
-                    return { 
-                        id: wsSnap.id,
-                        ...wsData,
-                        myRole: memberDoc.data().role
-                    } as Workspace; 
-                }
-            }
-            return null;
-        });
+  try {
+    const membershipsRef = collection(db, "users", userId, "workspaces");
+    const membershipsSnap = await getDocs(membershipsRef);
 
-        const results = await Promise.all(promises);
-        
-        // Agora o filtro funciona porque 'results' é (Workspace | null)[]
-        return results.filter((w): w is Workspace => w !== null);
+    const promises = membershipsSnap.docs.map(async (m): Promise<Workspace | null> => {
+      const data = m.data() as { workspaceId?: string; role?: WorkspaceRole };
+      const workspaceId = data.workspaceId || m.id;
+      const role = data.role;
 
-    } catch (error) {
-        console.error("Erro ao listar workspaces:", error);
-        throw error;
-    }
+      const wsRef = doc(db, COLLECTION_NAME, workspaceId);
+      const wsSnap = await getDoc(wsRef);
+
+      if (!wsSnap.exists()) return null;
+
+      return {
+        id: wsSnap.id,
+        ...(wsSnap.data() as Omit<Workspace, "id">),
+        myRole: role
+      } as Workspace;
+    });
+
+    const results = await Promise.all(promises);
+    return results.filter((w): w is Workspace => w !== null);
+  } catch (error) {
+    console.error("Erro ao listar workspaces:", error);
+    throw error;
+  }
 };
+
 
 // 2. Criação Ajustada (Cria workspace + First Member)
 export const createWorkspace = async (
@@ -67,37 +59,42 @@ export const createWorkspace = async (
 
         // 1. Cria o documento PAI (Workspace) com o ownerId
         // Isso satisfaz a regra 'isWorkspaceOwner' que criamos
-        const docRef = await addDoc(collection(db, COLLECTION_NAME), {
-            ...workspaceData,
-            createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp()
-        });
+                const ownerUid = (workspaceData as any).ownerId;
 
-        console.log("Workspace criado com ID:", docRef.id);
+        const workspaceRef = doc(collection(db, COLLECTION_NAME));
 
-        const ownerUid = (workspaceData as any).ownerId; 
+        const workspacePayload = {
+          ...workspaceData,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        };
+
+        await setDoc(workspaceRef, workspacePayload);
 
         if (ownerUid) {
-            // 2. Cria o registro de MEMBRO
-            // Agora permitido pela regra: (request.auth.uid == memberId && isWorkspaceOwner)
-            console.log("Criando registro de membro para:", ownerUid);
-            await setDoc(doc(db, COLLECTION_NAME, docRef.id, "members", ownerUid), {
-                uid: ownerUid,
-                email: userEmail,
-                role: "owner",
-                joinedAt: serverTimestamp(),
-                displayName: "Owner" 
-            });
-            console.log("Membro criado com sucesso.");
+          await setDoc(doc(db, COLLECTION_NAME, workspaceRef.id, "members", ownerUid), {
+            uid: ownerUid,
+            email: userEmail,
+            role: "owner",
+            joinedAt: serverTimestamp(),
+            displayName: "Owner"
+          });
+
+          await setDoc(doc(db, "users", ownerUid, "workspaces", workspaceRef.id), {
+            workspaceId: workspaceRef.id,
+            role: "owner",
+            createdAt: serverTimestamp()
+          });
         }
 
         return {
-            id: docRef.id,
-            ...workspaceData,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            myRole: 'owner'
+          id: workspaceRef.id,
+          ...workspaceData,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          myRole: "owner"
         };
+
     } catch (error) {
         console.error("ERRO CRÍTICO ao criar workspace:", error);
         throw error;
