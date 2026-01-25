@@ -60,27 +60,35 @@ export const listWorkspaces = async (userId: string): Promise<Workspace[]> => {
 // 2. Criação Ajustada (Cria workspace + First Member)
 export const createWorkspace = async (
     workspaceData: Omit<Workspace, 'id' | 'createdAt' | 'updatedAt'>, 
-    userEmail: string // Precisamos do email agora para o perfil do membro
+    userEmail: string 
 ): Promise<Workspace> => {
     try {
-        // Cria o documento do Workspace
+        console.log("Iniciando criação do workspace...");
+
+        // 1. Cria o documento PAI (Workspace) com o ownerId
+        // Isso satisfaz a regra 'isWorkspaceOwner' que criamos
         const docRef = await addDoc(collection(db, COLLECTION_NAME), {
             ...workspaceData,
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp()
         });
 
-        const ownerUid = (workspaceData as any).ownerId; // Garantido pelo hook/context
+        console.log("Workspace criado com ID:", docRef.id);
+
+        const ownerUid = (workspaceData as any).ownerId; 
 
         if (ownerUid) {
-            // Cria o membership do Owner com dados ricos
+            // 2. Cria o registro de MEMBRO
+            // Agora permitido pela regra: (request.auth.uid == memberId && isWorkspaceOwner)
+            console.log("Criando registro de membro para:", ownerUid);
             await setDoc(doc(db, COLLECTION_NAME, docRef.id, "members", ownerUid), {
                 uid: ownerUid,
                 email: userEmail,
                 role: "owner",
                 joinedAt: serverTimestamp(),
-                displayName: "Owner" // Pode vir do Auth Profile depois
+                displayName: "Owner" 
             });
+            console.log("Membro criado com sucesso.");
         }
 
         return {
@@ -91,7 +99,7 @@ export const createWorkspace = async (
             myRole: 'owner'
         };
     } catch (error) {
-        console.error("Erro ao criar workspace:", error);
+        console.error("ERRO CRÍTICO ao criar workspace:", error);
         throw error;
     }
 };
