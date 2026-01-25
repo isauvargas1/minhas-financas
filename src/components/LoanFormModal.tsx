@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Loan, LoanType, LoanInterestType } from '../modules/loans/types.ts';
 import { CloseIcon, HandshakeIcon, UsersIcon, CalendarIcon, CoinsIcon } from './Icons.tsx';
-import { useWorkspace } from '../WorkspaceContext.tsx';
+import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
 import { generateInstallmentPlan } from '../modules/loans/logic.ts';
 
 interface LoanFormModalProps {

@@ -7,8 +7,8 @@ import { Loan, LoanType, LoanStatus } from '../modules/loans/types.ts';
 import { HandshakeIcon, PlusIcon, SearchIcon, FilterIcon, LayoutGridIcon, ListIcon, WarningIcon, TrendingUpIcon, ArrowDownIcon } from './Icons.tsx';
 import LoanCard from './LoanCard.tsx';
 import LoanFormModal from './LoanFormModal.tsx';
-import { useTheme } from '../ThemeContext.tsx';
-import { useWorkspace } from '../WorkspaceContext.tsx';
+import { useTheme } from '../contexts/ThemeContext.tsx';
+import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
 
 interface LoansViewProps {
     onSelectLoan: (loan: Loan) => void;

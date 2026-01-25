@@ -1,16 +1,18 @@
-import { 
-    collection, 
-    query, 
-    where, 
-    getDocs, 
-    addDoc, 
-    doc, 
-    updateDoc, 
-    serverTimestamp,
-    getDoc
-} from 'firebase/firestore';
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  addDoc,
+  doc,
+  updateDoc,
+  serverTimestamp,
+  getDoc,
+  setDoc,              
+} from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Workspace } from './types';
+
 
 const COLLECTION_NAME = 'workspaces';
 
@@ -44,6 +46,16 @@ export const createWorkspace = async (workspaceData: Omit<Workspace, 'id' | 'cre
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp()
         });
+
+       // ✅ cria o membership do criador como owner (MVP)
+const ownerUid = (workspaceData as any).ownerId || (workspaceData as any).userId;
+if (ownerUid) {
+  await setDoc(doc(db, COLLECTION_NAME, docRef.id, "members", ownerUid), {
+    role: "owner",
+    createdAt: serverTimestamp(),
+  });
+}
+ 
 
         // Retorna o objeto completo com o ID gerado
         return {

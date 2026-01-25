@@ -1,0 +1,67 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    // Dono do workspace pelo próprio documento (funciona bem em LIST/QUERY)
+    function isWorkspaceOwnerDoc() {
+      return signedIn()
+        && (
+          resource.data.userId == request.auth.uid
+          || resource.data.ownerId == request.auth.uid
+        );
+    }
+
+    // Dono do workspace lendo pelo documento pai (para subcoleções)
+    function isWorkspaceOwner(workspaceId) {
+      return signedIn()
+        && (
+          get(/databases/$(database)/documents/workspaces/$(workspaceId)).data.userId == request.auth.uid
+          || get(/databases/$(database)/documents/workspaces/$(workspaceId)).data.ownerId == request.auth.uid
+        );
+    }
+
+    match /workspaces/{workspaceId} {
+
+      // ✅ IMPORTANTE: read baseado em resource.data (permite list/query)
+      allow read: if isWorkspaceOwnerDoc();
+
+      // create precisa ter userId ou ownerId = uid
+      allow create: if signedIn()
+        && (
+          request.resource.data.userId == request.auth.uid
+          || request.resource.data.ownerId == request.auth.uid
+        );
+
+      allow update, delete: if isWorkspaceOwnerDoc();
+
+      // members
+      match /members/{uid} {
+        allow read, create, update, delete: if isWorkspaceOwner(workspaceId);
+      }
+
+      // transactions
+      match /transactions/{transactionId} {
+        allow read: if isWorkspaceOwner(workspaceId);
+
+        allow create: if isWorkspaceOwner(workspaceId)
+          && request.resource.data.userId == request.auth.uid;
+
+        allow update, delete: if isWorkspaceOwner(workspaceId)
+          && resource.data.userId == request.auth.uid;
+      }
+
+      // fallback para próximos módulos dentro do workspace
+      match /{subCollection}/{docId} {
+        allow read, write: if isWorkspaceOwner(workspaceId);
+      }
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

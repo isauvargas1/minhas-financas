@@ -2,7 +2,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as api from './api.ts';
 import { ChatThread } from './types.ts';
-import { useWorkspace } from '../../WorkspaceContext.tsx';
+import { useWorkspace } from '../../contexts/WorkspaceContext.tsx';
 
 const keys = {
     threads: (ws: string) => ['chatThreads', ws],
@@ -85,6 +85,7 @@ export const useSearchUsers = (query: string) => {
     return useQuery({
         queryKey: keys.users(query),
         queryFn: () => api.searchUsers(query),
-        keepPreviousData: true,
+        placeholderData: (prev) => prev,
+
     });
 };

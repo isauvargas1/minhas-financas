@@ -1,49 +1,78 @@
-import { 
-    collection, 
-    query, 
-    where, 
-    getDocs, 
-    addDoc, 
-    deleteDoc,
-    doc, 
-    updateDoc, 
-    orderBy
-} from 'firebase/firestore';
-import { db } from '../../lib/firebase';
-import { Transaction } from '../../../types';
+import {
+  collection,
+  query,
+  getDocs,
+  addDoc,
+  deleteDoc,
+  doc,
+  updateDoc,
+  orderBy,
+  serverTimestamp,
+} from "firebase/firestore";
 
-const COLLECTION = 'transactions';
+import { db } from "../../lib/firebase";
+import type { Transaction } from "../../types";
 
-export const getTransactions = async (workspaceId: string): Promise<Transaction[]> => {
-    // Busca transações vinculadas ao Workspace atual
-    const q = query(
-        collection(db, COLLECTION),
-        where('workspaceId', '==', workspaceId),
-        // Ordenação idealmente requer índice composto no Firestore, 
-        // se der erro de índice, remova o orderBy temporariamente ou crie o índice no link que aparecerá no console
-        // orderBy('date', 'desc') 
-    );
+const txCol = (workspaceId: string) =>
+  collection(db, "workspaces", workspaceId, "transactions");
 
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({
-        id: doc.id, // O ID agora é string (do Firestore)
-        ...doc.data()
-    } as unknown as Transaction));
+const stripUndefined = <T extends Record<string, any>>(obj: T): Partial<T> => {
+  const out: Partial<T> = {};
+  for (const k of Object.keys(obj) as (keyof T)[]) {
+    const v = obj[k];
+    if (v !== undefined) out[k] = v;
+  }
+  return out;
 };
 
-export const createTransaction = async (transaction: Omit<Transaction, 'id'>): Promise<Transaction> => {
-    const docRef = await addDoc(collection(db, COLLECTION), transaction);
-    return { id: docRef.id, ...transaction } as unknown as Transaction;
+export const getTransactions = async (
+  workspaceId: string
+): Promise<Transaction[]> => {
+  const q = query(txCol(workspaceId), orderBy("createdAt", "desc"));
+  const snapshot = await getDocs(q);
+
+  return snapshot.docs.map((d) => ({
+    id: d.id,
+    ...(d.data() as Omit<Transaction, "id">),
+  }));
 };
 
-export const updateTransaction = async (transaction: Transaction): Promise<void> => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { id, ...data } = transaction; // Remove ID do payload
-    const docRef = doc(db, COLLECTION, String(id));
-    await updateDoc(docRef, data);
+export const createTransaction = async (
+  workspaceId: string,
+  transaction: Omit<Transaction, "id">
+): Promise<Transaction> => {
+  const docRef = await addDoc(
+    txCol(workspaceId),
+    stripUndefined({
+      ...transaction,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    })
+  );
+
+  return { id: docRef.id, ...transaction } as Transaction;
 };
 
-export const deleteTransaction = async (id: string | number): Promise<void> => {
-    const docRef = doc(db, COLLECTION, String(id));
-    await deleteDoc(docRef);
+export const updateTransaction = async (
+  workspaceId: string,
+  transaction: Transaction
+): Promise<void> => {
+  const { id, ...data } = transaction;
+
+  const docRef = doc(db, "workspaces", workspaceId, "transactions", String(id));
+  await updateDoc(
+    docRef,
+    stripUndefined({
+      ...data,
+      updatedAt: serverTimestamp(),
+    })
+  );
+};
+
+export const deleteTransaction = async (
+  workspaceId: string,
+  id: string | number
+): Promise<void> => {
+  const docRef = doc(db, "workspaces", workspaceId, "transactions", String(id));
+  await deleteDoc(docRef);
 };

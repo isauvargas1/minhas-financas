@@ -2,7 +2,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as api from './api.ts';
 import { RecurringExpense, RecurringOccurrence, RecurringStatus } from './types.ts';
-import { useWorkspace } from '../../WorkspaceContext.tsx';
+import { useWorkspace } from '../../contexts/WorkspaceContext.tsx';
 
 export const keys = {
     all: (ws: string) => ['recurringExpenses', ws],

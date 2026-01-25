@@ -85,7 +85,9 @@ const queryClient = new QueryClient({
 const AppContent: React.FC = () => {
     // Hooks de Contexto
     const { theme, toggleMode, playSound } = useTheme();
-    const { activeWorkspace, isLoading } = useWorkspace(); 
+    const { activeWorkspace, isLoading } = useWorkspace();
+    const workspaceId = activeWorkspace?.id ?? "";
+
     
     // Hooks de Estado
     const [isSidebarExpanded, setIsSidebarExpanded] = useState<boolean>(false);
@@ -94,13 +96,12 @@ const AppContent: React.FC = () => {
     // --- LÓGICA CONECTADA AO FIRESTORE ---
     const { user } = useAuth();
     
-    // 1. Busca Transações Reais
-    const { data: transactionsData, isLoading: isTransactionsLoading } = useTransactions(activeWorkspace.id);
-    
-    // 2. Mutations
-    const createTxMutation = useCreateTransaction(activeWorkspace.id);
-    const updateTxMutation = useUpdateTransaction(activeWorkspace.id);
-    const deleteTxMutation = useDeleteTransaction(activeWorkspace.id);
+const { data: transactionsData, isLoading: isTransactionsLoading } = useTransactions(workspaceId);
+
+const createTxMutation = useCreateTransaction(workspaceId);
+const updateTxMutation = useUpdateTransaction(workspaceId);
+const deleteTxMutation = useDeleteTransaction(workspaceId);
+
 
     // 3. Define a lista de transações (vinda do banco)
     const transactions = useMemo(() => transactionsData || [], [transactionsData]);
@@ -160,12 +161,11 @@ const AppContent: React.FC = () => {
     const handleAddTransaction = async (newTransaction: Omit<Transaction, 'id'>) => {
         if (!user) return;
         try {
-            await createTxMutation.mutateAsync({
-                ...newTransaction,
-                userId: user.uid,
-                profileId: activeWorkspace.id,
-                workspaceId: activeWorkspace.id
-            });
+           await createTxMutation.mutateAsync({
+  ...newTransaction,
+  userId: user.uid,
+  profileId: workspaceId
+});
             
             // Lógica local para atualizar Metas visualmente (Investimentos)
             if (newTransaction.type === 'investimento' && newTransaction.goalId) {
@@ -185,13 +185,13 @@ const AppContent: React.FC = () => {
         try {
             // Salva em paralelo (Batch logic simplificada)
             await Promise.all(newTransactions.map(t => 
-                createTxMutation.mutateAsync({
-                    ...t,
-                    userId: user.uid,
-                    profileId: activeWorkspace.id,
-                    workspaceId: activeWorkspace.id
-                })
-            ));
+  createTxMutation.mutateAsync({
+    ...t,
+    userId: user.uid,
+    profileId: workspaceId
+  })
+));
+
             showNotification(`${newTransactions.length} geradas!`);
             playSound('success');
         } catch (error) {

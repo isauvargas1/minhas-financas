@@ -2,7 +2,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as api from './api.ts';
 import { Client, Receivable } from './types.ts';
-import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
+import { useWorkspace } from "../../contexts/WorkspaceContext";
+
 
 export const keys = {
     clients: (ws: string) => ['pjClients', ws],

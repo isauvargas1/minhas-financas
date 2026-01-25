@@ -19,12 +19,12 @@ const LOADING_WORKSPACE: Workspace = {
     id: 'loading', 
     name: 'Carregando...', 
     userId: '', 
-    ownerId: '', // Campo obrigatório adicionado
     type: 'PF', 
     themeColor: '#4f46e5',
     createdAt: '',
     updatedAt: ''
 };
+
 
 export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const { user } = useAuth(); // Integração com Auth
@@ -46,13 +46,12 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children 
             if (list.length === 0) {
                 console.log("Novo usuário detectado. Criando workspace padrão...");
                 const defaultWorkspace = await createWorkspace({
-                    name: 'Meu Espaço Pessoal',
-                    type: 'PF',
-                    ownerId: user.uid,
-                    userId: user.uid,
-                    themeColor: '#4f46e5',
-                    currency: 'BRL'
-                });
+    name: 'Meu Espaço Pessoal',
+    type: 'PF',
+    userId: user.uid,
+    themeColor: '#4f46e5'
+});
+
                 list = [defaultWorkspace];
             }
 

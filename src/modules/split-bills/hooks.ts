@@ -2,7 +2,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as api from './api.ts';
 import { SplitBill, SplitParticipant, SplitShare } from '../../types.ts';
-import { useWorkspace } from '../../WorkspaceContext.tsx';
+import { useWorkspace } from '../../contexts/WorkspaceContext.tsx';
 
 // Keys for caching (Workspace dependent)
 export const keys = {

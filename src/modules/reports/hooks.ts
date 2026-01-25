@@ -4,7 +4,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import * as api from './api.ts';
 import { Transaction, Goal, CreditCard } from '../../types.ts';
 import { ReportTimeRange, FinancialReportSnapshot } from './types.ts';
-import { useWorkspace } from '../../WorkspaceContext.tsx';
+import { useWorkspace } from '../../contexts/WorkspaceContext.tsx';
 import { Receivable, Client } from '../clients/types.ts';
 
 // Keys for React Query cache management
