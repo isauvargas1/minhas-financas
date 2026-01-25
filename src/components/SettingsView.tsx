@@ -1,9 +1,14 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { EntityItem, Workspace } from '../types.ts';
-import { PlusIcon, EditIcon, DeleteIcon, SearchIcon, SortUpIcon, SortDownIcon, CloseIcon, WarningIcon, BackIcon, BriefcaseIcon, BuildingIcon, BellIcon, PaletteIcon } from './Icons.tsx';
+import { 
+    PlusIcon, EditIcon, DeleteIcon, SearchIcon, SortUpIcon, SortDownIcon, 
+    CloseIcon, WarningIcon, BackIcon, BriefcaseIcon, BuildingIcon, BellIcon, 
+    PaletteIcon, UsersIcon
+} from './Icons.tsx';
 import * as TablerIcons from '@tabler/icons-react';
 import PersonalizationView from './PersonalizationView.tsx';
+import MembersManagerModal from './MembersManagerModal.tsx';
 import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
 import { useUpdateWorkspace } from '../modules/workspaces/hooks.ts';
 
@@ -59,6 +64,9 @@ const SettingsView: React.FC<SettingsViewProps> = ({ data, onUpdate }) => {
     const { activeWorkspace, reloadWorkspaces } = useWorkspace();
     const updateWorkspaceMutation = useUpdateWorkspace();
     const isPJ = activeWorkspace.type === 'PJ';
+
+    const [isMembersModalOpen, setIsMembersModalOpen] = useState(false);
+    const canManageMembers = ['owner', 'admin'].includes(activeWorkspace.myRole || '');
 
     const [viewMode, setViewMode] = useState<ViewMode>('main');
     const [activeTab, setActiveTab] = useState<SettingsKey>('productsServices');
@@ -304,6 +312,21 @@ const SettingsView: React.FC<SettingsViewProps> = ({ data, onUpdate }) => {
                         </button>
                     )}
 
+
+                    {canManageMembers && (
+                         <button 
+                            onClick={() => setIsMembersModalOpen(true)}
+                            className="bg-surface p-6 rounded-xl shadow-md border border-transparent hover:border-blue-500 transition-all group text-left"
+                        >
+                            <div className="w-12 h-12 rounded-lg bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                                <UsersIcon className="w-6 h-6" />
+                            </div>
+                            <h3 className="text-lg font-bold text-on-surface mb-2">Membros da Equipe</h3>
+                            <p className="text-sm text-muted mb-4">Convide pessoas, gerencie permissões e acessos.</p>
+                            <div className="flex items-center text-blue-600 font-bold text-sm">Gerenciar <span className="ml-1">→</span></div>
+                        </button>
+                    )}
+
                     <button onClick={() => setViewMode('cadastros')} className="bg-surface p-6 rounded-xl shadow-md border border-transparent hover:border-indigo-500 transition-all group text-left">
                         <div className="w-12 h-12 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                              <TablerIcons.IconDatabase size={24} />
@@ -322,6 +345,9 @@ const SettingsView: React.FC<SettingsViewProps> = ({ data, onUpdate }) => {
                         <div className="flex items-center text-pink-600 font-bold text-sm">Acessar <span className="ml-1">→</span></div>
                     </button>
                 </div>
+                {isMembersModalOpen && (
+                    <MembersManagerModal onClose={() => setIsMembersModalOpen(false)} />
+                )}
             </div>
         );
     }

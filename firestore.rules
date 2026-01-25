@@ -2,61 +2,57 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // Auxiliares
     function signedIn() {
       return request.auth != null;
     }
 
-    // Dono do workspace pelo próprio documento (funciona bem em LIST/QUERY)
-    function isWorkspaceOwnerDoc() {
-      return signedIn()
-        && (
-          resource.data.userId == request.auth.uid
-          || resource.data.ownerId == request.auth.uid
-        );
+    // Verifica papel na subcoleção members
+    function getMemberRole(workspaceId) {
+       return get(/databases/$(database)/documents/workspaces/$(workspaceId)/members/$(request.auth.uid)).data.role;
     }
 
-    // Dono do workspace lendo pelo documento pai (para subcoleções)
-    function isWorkspaceOwner(workspaceId) {
-      return signedIn()
-        && (
-          get(/databases/$(database)/documents/workspaces/$(workspaceId)).data.userId == request.auth.uid
-          || get(/databases/$(database)/documents/workspaces/$(workspaceId)).data.ownerId == request.auth.uid
-        );
+    // Verifica se é membro (para acesso geral ao workspace)
+    function isMember(workspaceId) {
+      return signedIn() && exists(/databases/$(database)/documents/workspaces/$(workspaceId)/members/$(request.auth.uid));
     }
+
+    // Verifica permissões específicas
+    function hasRole(workspaceId, roles) {
+      return isMember(workspaceId) && getMemberRole(workspaceId) in roles;
+    }
+
+    // --- REGRAS DAS COLEÇÕES ---
 
     match /workspaces/{workspaceId} {
+      // Leitura do Workspace pai
+      allow read: if isMember(workspaceId);
+      
+      // Apenas Admin/Owner editam dados do workspace
+      allow update: if hasRole(workspaceId, ['owner', 'admin']);
+      
+      // Criação livre
+      allow create: if signedIn(); 
 
-      // ✅ IMPORTANTE: read baseado em resource.data (permite list/query)
-      allow read: if isWorkspaceOwnerDoc();
-
-      // create precisa ter userId ou ownerId = uid
-      allow create: if signedIn()
-        && (
-          request.resource.data.userId == request.auth.uid
-          || request.resource.data.ownerId == request.auth.uid
-        );
-
-      allow update, delete: if isWorkspaceOwnerDoc();
-
-      // members
-      match /members/{uid} {
-        allow read, create, update, delete: if isWorkspaceOwner(workspaceId);
+      // --- SUBCOLEÇÃO MEMBERS (O CORAÇÃO DO SISTEMA) ---
+      match /members/{memberId} {
+        // [CORREÇÃO AQUI]: Adicionamos "resource.data.uid == request.auth.uid"
+        // Isso permite que a query "Meus Workspaces" funcione globalmente sem travar.
+        allow read: if resource.data.uid == request.auth.uid || isMember(workspaceId);
+        
+        // Apenas Owner/Admin gerenciam membros
+        allow write: if hasRole(workspaceId, ['owner', 'admin']);
       }
 
-      // transactions
+      // Demais subcoleções
       match /transactions/{transactionId} {
-        allow read: if isWorkspaceOwner(workspaceId);
-
-        allow create: if isWorkspaceOwner(workspaceId)
-          && request.resource.data.userId == request.auth.uid;
-
-        allow update, delete: if isWorkspaceOwner(workspaceId)
-          && resource.data.userId == request.auth.uid;
+        allow read: if isMember(workspaceId);
+        allow write: if hasRole(workspaceId, ['owner', 'admin', 'member']);
       }
-
-      // fallback para próximos módulos dentro do workspace
+      
       match /{subCollection}/{docId} {
-        allow read, write: if isWorkspaceOwner(workspaceId);
+        allow read: if isMember(workspaceId);
+        allow write: if hasRole(workspaceId, ['owner', 'admin', 'member']);
       }
     }
 

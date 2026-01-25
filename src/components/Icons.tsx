@@ -288,3 +288,4 @@ export const BuildingIcon: React.FC<IconProps> = (props) => <AppIcon name="Build
 export const CurrencyDollarIcon: React.FC<IconProps> = (props) => <AppIcon name="CurrencyDollar" {...props} />;
 // Added InfoIcon export to fix error in AllocationAnalysis.tsx
 export const InfoIcon: React.FC<IconProps> = (props) => <AppIcon name="Info" {...props} />;
+export const UserPlusIcon: React.FC<IconProps> = (props) => <AppIcon name="UserPlus" {...props} />;

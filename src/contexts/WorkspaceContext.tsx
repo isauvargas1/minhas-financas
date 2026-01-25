@@ -17,8 +17,7 @@ const WorkspaceContext = createContext<WorkspaceContextValue | undefined>(undefi
 // Fallback visual com ownerId para satisfazer o TypeScript
 const LOADING_WORKSPACE: Workspace = { 
     id: 'loading', 
-    name: 'Carregando...', 
-    userId: '', 
+    name: 'Carregando...',
     type: 'PF', 
     themeColor: '#4f46e5',
     createdAt: '',
@@ -27,7 +26,7 @@ const LOADING_WORKSPACE: Workspace = {
 
 
 export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    const { user } = useAuth(); // Integração com Auth
+    const { user } = useAuth();
     const { updateTheme, theme } = useTheme();
     
     const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
@@ -39,18 +38,17 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children 
 
         setIsLoading(true);
         try {
-            // Busca workspaces reais do usuário no Firestore
             let list = await listWorkspaces(user.uid);
 
-            // ONBOARDING AUTOMÁTICO: Se não existir, cria o primeiro
             if (list.length === 0) {
                 console.log("Novo usuário detectado. Criando workspace padrão...");
+                // [CORREÇÃO 2] Passamos o email do usuário como segundo argumento
                 const defaultWorkspace = await createWorkspace({
-    name: 'Meu Espaço Pessoal',
-    type: 'PF',
-    userId: user.uid,
-    themeColor: '#4f46e5'
-});
+                    name: 'Meu Espaço Pessoal',
+                    type: 'PF',
+                    ownerId: user.uid, 
+                    themeColor: '#4f46e5'
+                }, user.email || 'usuario-sem-email@sistema'); 
 
                 list = [defaultWorkspace];
             }
