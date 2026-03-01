@@ -17,6 +17,9 @@ import {
     SplitGroup, SplitBill, SplitParticipant, SplitShare,
     SplitGroupInvite, SplitBillPaymentStatus, SplitParticipantRole
 } from '../../types';
+import { httpsCallable } from 'firebase/functions';
+import { functions } from '../../lib/firebase';
+
 
 // Coleções
 const GROUPS_COLL = 'split_groups';
@@ -61,34 +64,41 @@ export const getSplitGroup = async (groupId: string, workspaceId?: string): Prom
     return snap.exists() ? ({ id: snap.id, ...snap.data() } as SplitGroup) : undefined;
 };
 
-export const createSplitGroup = async (group: SplitGroup, workspaceId?: string): Promise<SplitGroup> => {
-    if (!workspaceId) throw new Error("Workspace ID obrigatório");
+export const createSplitGroup = async (group: Omit<SplitGroup, 'id' | 'dataCriacao'>, workspaceId: string): Promise<string> => {
+  const { auth } = await import('../../lib/firebase');
+  const userId = auth.currentUser?.uid;
+  const userName = auth.currentUser?.displayName || 'Dono';
 
-    const batch = writeBatch(db);
+  if (!userId) throw new Error("Usuário não autenticado");
 
-    // 1. Cria Grupo
-    const groupRef = doc(collection(db, 'workspaces', workspaceId, GROUPS_COLL));
-    const { id: _, ...groupData } = group;
-    
-    batch.set(groupRef, cleanPayload({
-        ...groupData,
-        dataCriacao: new Date().toISOString()
+  // Usamos uma transação para garantir que o grupo E o participante sejam criados juntos
+  return await runTransaction(db, async (transaction) => {
+    const groupRef = doc(collection(db, 'workspaces', workspaceId, 'split_groups'));
+    const participantRef = doc(collection(db, 'workspaces', workspaceId, 'split_participants'));
+
+    const newGroup = {
+      ...group,
+      id: groupRef.id,
+      dataCriacao: new Date().toISOString(),
+      ativo: true
+    };
+
+    // 1. Cria o grupo
+    transaction.set(groupRef, cleanPayload(newGroup));
+
+    // 2. Cria o registro do dono (VOCÊ) na coleção de participantes
+    transaction.set(participantRef, cleanPayload({
+      id: participantRef.id,
+      groupId: groupRef.id,
+      userId: userId, // Campo essencial para a Cloud Function te achar
+      nomeExibicao: userName,
+      papel: 'dono',
+      corIdentidade: '#6366f1',
+      avatarEmojiOpcional: '👑'
     }));
 
-    // 2. Adiciona Criador como Dono
-    const ownerRef = doc(collection(db, 'workspaces', workspaceId, PARTICIPANTS_COLL));
-    const owner: Omit<SplitParticipant, 'id'> = {
-        groupId: groupRef.id,
-        nomeExibicao: 'Você', // Poderia pegar do user profile
-        papel: 'dono',
-        corIdentidade: group.corPrincipal || '#6366f1',
-        avatarEmojiOpcional: '👤'
-    };
-    batch.set(ownerRef, cleanPayload(owner));
-
-    await batch.commit();
-
-    return { id: groupRef.id, ...group } as SplitGroup;
+    return groupRef.id;
+  });
 };
 
 export const updateSplitGroup = async (group: SplitGroup, workspaceId?: string): Promise<SplitGroup> => {
@@ -279,20 +289,29 @@ export const updateSplitShare = async (share: SplitShare, workspaceId?: string):
 
 // --- INVITES ---
 
-export const createSplitGroupInvite = async (groupId: string, role: 'participante' | 'visualizador', workspaceId?: string): Promise<SplitGroupInvite> => {
-    if (!workspaceId) throw new Error("Workspace ID");
+export const createSplitGroupInvite = async (
+    groupId: string, 
+    role: 'participante' | 'visualizador', 
+    workspaceId?: string
+): Promise<{ success: boolean; inviteId: string; code: string }> => {
+    if (!workspaceId) throw new Error("Workspace ID é obrigatório");
 
-    const code = Math.random().toString(36).substring(2, 8).toUpperCase();
-    const invite: Omit<SplitGroupInvite, 'id'> = {
-        groupId,
-        codigoConvite: code,
-        papelSugerido: role,
-        status: 'pendente',
-        expiraEm: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
-    };
+    try {
+        // Aponta para a função exata que acabámos de criar no backend
+        const createInviteFn = httpsCallable(functions, 'createSplitGroupInvite');
+        
+        // Passa o payload (exatamente como o nosso Zod schema espera no backend)
+        const result = await createInviteFn({
+            groupId,
+            role,
+            workspaceId
+        });
 
-    const ref = await addDoc(collection(db, 'workspaces', workspaceId, INVITES_COLL), cleanPayload(invite));
-    return { id: ref.id, ...invite } as SplitGroupInvite;
+        return result.data as { success: boolean; inviteId: string; code: string };
+    } catch (error: any) {
+        console.error("Erro ao gerar convite via Cloud Function:", error);
+        throw new Error(error.message || "Não foi possível gerar o convite.");
+    }
 };
 
 export const listSplitGroupInvites = async (groupId: string, workspaceId?: string): Promise<SplitGroupInvite[]> => {
@@ -318,37 +337,40 @@ export const getInviteByCode = async (code: string, workspaceId?: string): Promi
     return { id: snap.docs[0].id, ...snap.docs[0].data() } as SplitGroupInvite;
 };
 
-export const acceptInvite = async (code: string, userName: string, workspaceId?: string): Promise<{ success: boolean; groupId?: string; message?: string }> => {
+export const acceptInvite = async (
+    code: string, 
+    userName: string, 
+    workspaceId?: string
+): Promise<{ success: boolean; groupId?: string; message?: string }> => {
+    
     if (!workspaceId) return { success: false, message: 'Workspace inválido' };
 
-    return await runTransaction(db, async (transaction) => {
-        // 1. Busca convite
-        const inviteRef = query(collection(db, 'workspaces', workspaceId, INVITES_COLL), where('codigoConvite', '==', code));
-        const inviteSnap = await getDocs(inviteRef);
+    try {
+        // Aponta para a função segura no backend
+        const acceptInviteFn = httpsCallable(functions, 'acceptSplitGroupInvite');
         
-        if (inviteSnap.empty) return { success: false, message: 'Código inválido.' };
-        const inviteDoc = inviteSnap.docs[0];
-        const invite = inviteDoc.data() as SplitGroupInvite;
+        // Envia apenas os dados (Payload)
+        const result = await acceptInviteFn({
+            code,
+            userName,
+            workspaceId
+        });
         
-        if (invite.status !== 'pendente') return { success: false, message: 'Convite expirado.' };
-
-        // 2. Verifica se já está no grupo
-        const partsRef = collection(db, 'workspaces', workspaceId, PARTICIPANTS_COLL);
-        const partsQ = query(partsRef, where('groupId', '==', invite.groupId), where('nomeExibicao', '==', userName));
-        const partsSnap = await getDocs(partsQ);
-
-        if (!partsSnap.empty) return { success: false, message: 'Você já está neste grupo.' };
-
-        // 3. Adiciona participante
-        const newPartRef = doc(partsRef);
-        transaction.set(newPartRef, cleanPayload({
-            groupId: invite.groupId,
-            nomeExibicao: userName,
-            papel: invite.papelSugerido,
-            corIdentidade: '#' + Math.floor(Math.random()*16777215).toString(16),
-            avatarEmojiOpcional: '👋'
-        }));
-
-        return { success: true, groupId: invite.groupId };
-    });
+        // Recebe a confirmação e o ID do grupo que o backend retornou
+        const data = result.data as { success: boolean; groupId: string };
+        
+        return { 
+            success: data.success, 
+            groupId: data.groupId 
+        };
+        
+    } catch (error: any) {
+        console.error("Erro ao aceitar convite via Cloud Function:", error);
+        
+        // O Firebase Functions retorna a mensagem de erro que definimos no backend (ex: "Este convite já expirou.")
+        return { 
+            success: false, 
+            message: error.message || "Não foi possível aceitar o convite." 
+        };
+    }
 };

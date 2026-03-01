@@ -4,6 +4,7 @@ import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import { getFunctions } from 'firebase/functions';
 
+
 /**
  * Configuração do Firebase utilizando variáveis de ambiente do Vite.
  * O prefixo VITE_ expõe as variáveis para o cliente (browser).

@@ -7,12 +7,12 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Verifica se o usuário já é membro (usado para ler dados internos)
+    // Verifica se o usuário já é membro do workspace
     function isMember(workspaceId) {
       return signedIn() && exists(/databases/$(database)/documents/workspaces/$(workspaceId)/members/$(request.auth.uid));
     }
 
-    // Busca o papel (role) do usuário
+    // Busca o papel (role) do usuário no workspace
     function getRole(workspaceId) {
       return get(/databases/$(database)/documents/workspaces/$(workspaceId)/members/$(request.auth.uid)).data.role;
     }
@@ -22,92 +22,70 @@ service cloud.firestore {
       return isMember(workspaceId) && getRole(workspaceId) in roles;
     }
 
-    // Verifica se o usuário é o DONO do Workspace (checa o documento pai)
-    // Essencial para o primeiro acesso (criação do membro owner)
+    // Verifica se o usuário é o dono original do documento do Workspace
     function isWorkspaceOwner(workspaceId) {
       return signedIn() && get(/databases/$(database)/documents/workspaces/$(workspaceId)).data.ownerId == request.auth.uid;
     }
 
-    // --- REGRAS DE NEGÓCIO ---
+    // --- REGRAS POR COLEÇÃO ---
 
     match /workspaces/{workspaceId} {
-      // Criação livre, leitura/edição restrita
+      // Regras do documento principal do Workspace
       allow create: if signedIn();
       allow read: if isMember(workspaceId);
       allow update: if hasRole(workspaceId, ['owner', 'admin']);
-      
-      // SUBCOLEÇÃO MEMBERS
-      match /members/{memberId} {
-        
-        // LEITURA (Correção para listWorkspaces):
-        // Separamos em duas regras. Se QUALQUER UMA for verdade, libera.
-        
-        // Regra 1: Permite query global "Meus Workspaces" (onde uid == auth.uid)
-        allow read: if resource.data.uid == request.auth.uid;
-        
-        // Regra 2: Permite ver colegas se já estiver dentro do workspace
-        allow read: if isMember(workspaceId);
 
-        // ESCRITA (Correção para createWorkspace - REINSERIDA):
-        // 1. Admin/Owner podem gerenciar.
-        // 2. O PRÓPRIO DONO pode se adicionar como membro se o workspace disser que ele é o dono.
+      // Subcoleção de Membros
+      match /members/{memberId} {
+        // Permite listar os próprios workspaces e ver colegas se já for membro
+        allow read: if (signedIn() && resource.data.uid == request.auth.uid) || isMember(workspaceId);
+        
+        // Permite escrita para admins ou para o dono se auto-adicionar na criação
         allow write: if hasRole(workspaceId, ['owner', 'admin']) 
                      || (request.auth.uid == memberId && isWorkspaceOwner(workspaceId));
       }
 
-      // Demais subcoleções
+      // Transações (Módulo Principal)
       match /transactions/{docId} {
         allow read: if isMember(workspaceId);
         allow write: if hasRole(workspaceId, ['owner', 'admin', 'member']);
       }
 
-      // --- EXCEÇÃO TEMPORÁRIA PARA MIGRAÇÃO (Recurring Expenses) ---
-      // Como ainda não migramos a coleção 'members', liberamos o acesso
-      // a este módulo para qualquer usuário autenticado por enquanto.
-      match /recurring_expenses/{docId} {
-        allow read, write: if signedIn();
-      }
-      match /recurring_occurrences/{docId} {
-        allow read, write: if signedIn();
-      }
-
-      match /credit_cards/{docId} {
-        allow read, write: if signedIn();
-      }
-
-      match /goals/{docId} {
-        allow read, write: if signedIn();
-      }
-
-      match /loans/{docId} {
-        allow read, write: if signedIn();
-      }
-      match /loan_movements/{docId} {
-        allow read, write: if signedIn();
-      }
-
-      match /split_groups/{docId} { allow read, write: if signedIn(); }
-      match /split_participants/{docId} { allow read, write: if signedIn(); }
-      match /split_bills/{docId} { allow read, write: if signedIn(); }
-      match /split_shares/{docId} { allow read, write: if signedIn(); }
-      match /split_invites/{docId} { allow read, write: if signedIn(); }
-
+      // --- MÓDULOS EM TRANSIÇÃO DE SEGURANÇA ---
+      // Liberados para qualquer usuário logado enquanto finalizamos a migração total
+      match /recurring_expenses/{docId} { allow read, write: if signedIn(); }
+      match /recurring_occurrences/{docId} { allow read, write: if signedIn(); }
+      match /credit_cards/{docId} { allow read, write: if signedIn(); }
+      match /goals/{docId} { allow read, write: if signedIn(); }
+      match /loans/{docId} { allow read, write: if signedIn(); }
+      match /loan_movements/{docId} { allow read, write: if signedIn(); }
       match /clients/{docId} { allow read, write: if signedIn(); }
       match /receivables/{docId} { allow read, write: if signedIn(); }
       match /notifications/{docId} { allow read, write: if signedIn(); }
 
-  
+      // --- MÓDULO DE RATEIOS (Split Bills) ---
+      match /split_groups/{docId} { allow read, write: if signedIn(); }
+      match /split_participants/{docId} { allow read, write: if signedIn(); }
+      match /split_bills/{docId} { allow read, write: if signedIn(); }
+      match /split_shares/{docId} { allow read, write: if signedIn(); }
       
+      // 🔒 SEGURANÇA MÁXIMA: Leitura liberada, mas escrita BLOQUEADA para o frontend.
+      // Somente as Cloud Functions (Admin SDK) conseguem gravar aqui.
+      match /split_invites/{docId} { 
+        allow read: if signedIn(); 
+        allow write: if false; 
+      }
+
+      // Regra genérica para qualquer outra subcoleção dentro de um workspace
       match /{subCollection}/{docId} {
         allow read: if isMember(workspaceId);
         allow write: if hasRole(workspaceId, ['owner', 'admin', 'member']);
       }
     }
 
-    // Bloqueio padrão
+    // Regra para mapeamento de Workspaces do Usuário (Legado/Auxiliar)
     match /users/{userId}/workspaces/{workspaceId} {
-  allow read, write: if signedIn() && request.auth.uid == userId;
-}
-
+      allow read, write: if signedIn() && request.auth.uid == userId;
+    }
   }
 }
