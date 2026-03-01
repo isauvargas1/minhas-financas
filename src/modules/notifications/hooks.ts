@@ -54,3 +54,28 @@ export const useDeleteNotification = () => {
         onSuccess: () => queryClient.invalidateQueries({ queryKey: KEYS.all(activeWorkspace.id) })
     });
 };
+
+// Adicionado para compatibilidade com o Header
+export const useArchiveNotification = () => {
+    const { activeWorkspace } = useWorkspace();
+    const queryClient = useQueryClient();
+    
+    return useMutation({
+        // Para simplificar, estamos tratando "arquivar" como "deletar" da caixa de entrada
+        mutationFn: (id: string) => deleteNotification(id, activeWorkspace.id),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: KEYS.all(activeWorkspace.id) });
+        }
+    });
+};
+
+// Adicionado para compatibilidade com o nome esperado pelo Header
+export const useMarkAllNotificationsAsRead = useMarkAllAsRead;
+// Adicionado para compatibilidade com o nome esperado pelo Header
+export const useMarkNotificationAsRead = useMarkAsRead;
+
+// Adicionado para calcular a quantidade de notificações não lidas para o Header
+export const useUnreadNotificationCount = () => {
+    const { data: notifications = [] } = useNotifications();
+    return notifications.filter(n => !n.read).length;
+};
