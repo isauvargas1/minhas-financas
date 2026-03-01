@@ -1,22 +1,27 @@
-
 export interface Client {
-  id: string;
-  workspaceId: string;
-  name: string;
-  email?: string;
-  phone?: string;
-  document?: string; // CPF or CNPJ
-  notes?: string;
-  createdAt: string;
+    id: string; // MUDAR DE NUMBER PARA STRING
+    name: string;
+    cnpj?: string;
+    email?: string;
+    phone?: string;
+    address?: string;
+    description?: string;
+    status: 'active' | 'inactive';
+    createdAt: string;
+    updatedAt: string;
 }
 
 export interface Receivable {
-  id: string;
-  workspaceId: string;
-  clientId: string;
-  description: string;
-  amount: number;
-  dueDate: string;
-  status: 'pendente' | 'recebido' | 'atrasado' | 'cancelado';
-  createdAt: string;
+    id: string; // MUDAR DE NUMBER PARA STRING
+    clientId: string; // MUDAR DE NUMBER PARA STRING
+    description: string;
+    value: number;
+    dueDate: string;
+    status: 'pending' | 'paid' | 'overdue' | 'cancelled';
+    issueDate: string;
+    paymentDate?: string;
+    invoiceUrl?: string;
+    category?: string;
+    createdAt: string;
+    updatedAt: string;
 }

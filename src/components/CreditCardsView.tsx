@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { CreditCard, Transaction } from '../types.ts';
 import CreditCard3D from './CreditCard3D.tsx';
@@ -6,24 +5,34 @@ import CreditCardForm from './CreditCardForm.tsx';
 import { PlusIcon, SearchIcon, EditIcon, DeleteIcon, CloseIcon, LayoutGridIcon, ListIcon, ChartBarIcon, UsersIcon, BuildingIcon } from './Icons.tsx';
 import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as ReTooltip } from 'recharts';
+import { useCreditCards, useCreateCreditCard, useUpdateCreditCard, useDeleteCreditCard } from '../modules/credit-cards/hooks';
+import { useTheme } from '../contexts/ThemeContext.tsx'; // Opcional: para feedback sonoro
 
 interface CreditCardsViewProps {
-    cards: CreditCard[];
-    transactions: Transaction[];
-    onAddCard: (card: CreditCard) => void;
-    onUpdateCard: (card: CreditCard) => void;
-    onDeleteCard: (cardId: number) => void;
+    // cards e handlers removidos pois agora são gerenciados internamente via hooks
+    transactions: Transaction[]; // Mantido para cálculo de limites
 }
 
-const CreditCardsView: React.FC<CreditCardsViewProps> = ({ cards, transactions, onAddCard, onUpdateCard, onDeleteCard }) => {
+const CreditCardsView: React.FC<CreditCardsViewProps> = ({ transactions }) => {
+    // --- HOOKS DO FIRESTORE ---
+    const { data: cardsData, isLoading } = useCreditCards();
+    const createMutation = useCreateCreditCard();
+    const updateMutation = useUpdateCreditCard();
+    const deleteMutation = useDeleteCreditCard();
+    
+    // Fallback para array vazio enquanto carrega ou se der erro
+    const cards = cardsData || [];
+
+    const { activeWorkspace } = useWorkspace();
+    const isPJ = activeWorkspace.type === 'PJ';
+    const { playSound } = useTheme();
+
+    // --- STATE LOCAL ---
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
     const [searchQuery, setSearchQuery] = useState('');
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [cardToEdit, setCardToEdit] = useState<CreditCard | null>(null);
-    const [selectedCardId, setSelectedCardId] = useState<number | null>(null);
-    
-    const { activeWorkspace } = useWorkspace();
-    const isPJ = activeWorkspace.type === 'PJ';
+    const [selectedCardId, setSelectedCardId] = useState<string | null>(null); // Alterado para string
 
     // Filter cards
     const filteredCards = useMemo(() => {
@@ -34,8 +43,9 @@ const CreditCardsView: React.FC<CreditCardsViewProps> = ({ cards, transactions, 
     }, [cards, searchQuery]);
 
     const getCardLimits = (card: CreditCard) => {
+        // Nota: transactions.cardId também deve ser string agora
         const usedLimit = transactions
-            .filter(t => (t.type === 'despesa' || t.type === 'parcelado') && t.cardId === card.id)
+            .filter(t => (t.type === 'despesa' || t.type === 'parcelado') && String(t.cardId) === String(card.id))
             .reduce((sum, t) => sum + t.value, 0);
 
         return {
@@ -48,7 +58,7 @@ const CreditCardsView: React.FC<CreditCardsViewProps> = ({ cards, transactions, 
     const cardReport = useMemo(() => {
         if (!selectedCardId || !isPJ) return null;
         
-        const cardTransactions = transactions.filter(t => t.cardId === selectedCardId);
+        const cardTransactions = transactions.filter(t => String(t.cardId) === String(selectedCardId));
         
         const byCategory: Record<string, number> = {};
         const bySupplier: Record<string, number> = {};
@@ -69,28 +79,49 @@ const CreditCardsView: React.FC<CreditCardsViewProps> = ({ cards, transactions, 
         return { categoryData, topSuppliers };
     }, [selectedCardId, transactions, isPJ]);
 
+    // --- HANDLERS ---
+
     const handleEdit = (card: CreditCard) => {
         setCardToEdit(card);
         setIsFormOpen(true);
         setSelectedCardId(null);
     };
 
-    const handleDelete = (id: number) => {
+    const handleDelete = (id: string) => { // Alterado para string
         if (confirm('Tem certeza que deseja excluir este cartão?')) {
-            onDeleteCard(id);
+            deleteMutation.mutate(id);
+            playSound('success'); // Feedback
             setSelectedCardId(null);
         }
     };
 
     const handleSave = (card: CreditCard) => {
-        if (cardToEdit) onUpdateCard(card);
-        else onAddCard(card);
+        // card vindo do Form. Se tiver ID numérico antigo, o form precisa lidar ou aqui convertemos
+        // Mas assumindo que o form retorna o objeto completo
+        
+        if (cardToEdit) {
+            updateMutation.mutate({ id: card.id, data: card });
+        } else {
+            // Remove o ID temporário que o frontend possa ter gerado, pois o Firestore cria um novo
+            const { id, ...newCardData } = card; 
+            createMutation.mutate(newCardData as any);
+        }
+        
+        playSound('success');
         setIsFormOpen(false);
         setCardToEdit(null);
     };
 
     const selectedCard = cards.find(c => c.id === selectedCardId);
     const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
+
+    if (isLoading) {
+        return (
+            <div className="flex items-center justify-center h-full">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+            </div>
+        );
+    }
 
     return (
         <div className="h-full flex flex-col animate-fade-in">
@@ -134,6 +165,12 @@ const CreditCardsView: React.FC<CreditCardsViewProps> = ({ cards, transactions, 
                     {filteredCards.map(card => (
                         <CreditCard3D key={card.id} card={card} mode={viewMode} limits={getCardLimits(card)} onClick={() => setSelectedCardId(card.id)} />
                     ))}
+                    
+                    {filteredCards.length === 0 && (
+                        <div className="col-span-full text-center py-10 text-gray-400">
+                            Nenhum cartão encontrado.
+                        </div>
+                    )}
                 </div>
             </div>
 

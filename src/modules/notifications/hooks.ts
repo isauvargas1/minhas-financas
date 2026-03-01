@@ -1,67 +1,56 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import * as api from './api.ts';
-import { useWorkspace } from '../../contexts/WorkspaceContext.tsx';
+import { listNotifications, createNotification, markAsRead, markAllAsRead, deleteNotification } from './api';
+import { useWorkspace } from '../../contexts/WorkspaceContext';
+import { AppNotification } from '../../types';
 
-const keys = {
-    all: (ws: string) => ['notifications', ws],
+const KEYS = {
+    all: (ws: string) => ['notifications', ws]
 };
 
 export const useNotifications = () => {
     const { activeWorkspace } = useWorkspace();
     return useQuery({
-        queryKey: keys.all(activeWorkspace.id),
-        queryFn: () => api.getNotifications(activeWorkspace.id),
-        staleTime: 1000 * 60,
-        enabled: !!activeWorkspace.id
+        queryKey: KEYS.all(activeWorkspace.id),
+        queryFn: () => listNotifications(activeWorkspace.id),
+        enabled: !!activeWorkspace.id,
+        refetchInterval: 30000, // Atualiza a cada 30s para ver se tem novidade
     });
 };
 
-export const useUnreadNotificationCount = () => {
-    const { data } = useNotifications();
-    return data?.filter(n => n.status === 'unread').length || 0;
-};
-
+// Hook para gerar notificações de dentro do sistema
 export const useCreateNotification = () => {
     const { activeWorkspace } = useWorkspace();
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (data: any) => api.createNotification(data, activeWorkspace.id),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: keys.all(activeWorkspace.id) });
-        }
+        mutationFn: (data: Omit<AppNotification, 'id' | 'read' | 'createdAt'>) => 
+            createNotification(data, activeWorkspace.id),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: KEYS.all(activeWorkspace.id) })
     });
 };
 
-export const useMarkNotificationAsRead = () => {
+export const useMarkAsRead = () => {
     const { activeWorkspace } = useWorkspace();
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (id: string) => api.markNotificationAsRead(id, activeWorkspace.id),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: keys.all(activeWorkspace.id) });
-        }
+        mutationFn: (id: string) => markAsRead(id, activeWorkspace.id),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: KEYS.all(activeWorkspace.id) })
     });
 };
 
-export const useMarkAllNotificationsAsRead = () => {
+export const useMarkAllAsRead = () => {
     const { activeWorkspace } = useWorkspace();
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: () => api.markAllNotificationsAsRead(activeWorkspace.id),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: keys.all(activeWorkspace.id) });
-        }
+        mutationFn: (ids: string[]) => markAllAsRead(ids, activeWorkspace.id),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: KEYS.all(activeWorkspace.id) })
     });
 };
 
-export const useArchiveNotification = () => {
+export const useDeleteNotification = () => {
     const { activeWorkspace } = useWorkspace();
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (id: string) => api.archiveNotification(id, activeWorkspace.id),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: keys.all(activeWorkspace.id) });
-        }
+        mutationFn: (id: string) => deleteNotification(id, activeWorkspace.id),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: KEYS.all(activeWorkspace.id) })
     });
 };

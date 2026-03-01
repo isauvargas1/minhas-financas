@@ -51,7 +51,7 @@ export interface EntityItem {
 }
 
 export interface CreditCard {
-    id: number;
+    id: string;
     name: string;
     brand: string;
     limitTotal: number;
@@ -95,11 +95,11 @@ export interface Transaction {
     date: string;
     installments?: number;
     currentInstallment?: number;
-    cardId?: number;
+    cardId?: string;
     walletId?: number;
     userId?: string;      // ID do usuário dono
     workspaceId?: string; // ID do workspace
-    goalId?: number;
+    goalId?: string;
     loanId?: string; // Link to Loan module
     loanMovementId?: string; // Link to specific loan movement
     expenseType?: string;
@@ -140,7 +140,7 @@ export type GoalStatus = 'em_andamento' | 'alcancada' | 'pausada' | 'cancelada';
 export type GoalPriority = 'baixa' | 'media' | 'alta';
 
 export interface Goal {
-    id: number;
+    id: string;
     name: string;
     description?: string;
     category: GoalCategory;
@@ -377,4 +377,15 @@ export interface AppTheme {
     effects: ThemeEffects;
     goals: ThemeGoals;
     splitGroups: ThemeSplitGroups;
+}
+
+export interface AppNotification {
+    id: string;
+    title: string;
+    message: string;
+    type: 'info' | 'success' | 'warning' | 'error' | 'invite';
+    read: boolean;
+    link?: string; // Para redirecionar (ex: '/loans/123')
+    actionLabel?: string; // Ex: "Aceitar"
+    createdAt: string;
 }

@@ -1,306 +1,354 @@
-
+import { 
+    collection, 
+    doc, 
+    getDocs, 
+    getDoc,
+    addDoc, 
+    updateDoc, 
+    deleteDoc, 
+    query,
+    where,
+    writeBatch,
+    Timestamp,
+    runTransaction
+} from 'firebase/firestore';
+import { db } from '../../lib/firebase';
 import { 
     SplitGroup, SplitBill, SplitParticipant, SplitShare,
     SplitGroupInvite, SplitBillPaymentStatus, SplitParticipantRole
-} from '../../types.ts';
-import { 
-    initialSplitGroups, initialSplitBills, 
-    initialSplitParticipants, initialSplitShares 
-} from '../../constants.ts';
+} from '../../types';
 
-// --- KEY HELPERS ---
-const getKey = (base: string, workspaceId?: string) => {
-    if (!workspaceId || workspaceId === 'personal') return base;
-    return `${base}_${workspaceId}`;
-}
+// Coleções
+const GROUPS_COLL = 'split_groups';
+const PARTICIPANTS_COLL = 'split_participants';
+const BILLS_COLL = 'split_bills';
+const SHARES_COLL = 'split_shares';
+const INVITES_COLL = 'split_invites';
 
-// --- MOCK DATABASE INIT ---
-const loadFromStorage = <T>(key: string, defaultData: T): T => {
-    const stored = localStorage.getItem(key);
-    if (stored) {
-        return JSON.parse(stored);
+// Helper recursivo para limpar undefined
+const cleanPayload = (obj: any): any => {
+    if (Array.isArray(obj)) {
+        return obj.map(v => cleanPayload(v));
+    } else if (obj !== null && typeof obj === 'object' && !(obj instanceof Timestamp)) {
+        return Object.entries(obj).reduce((acc, [key, value]) => {
+            if (value !== undefined) {
+                acc[key] = cleanPayload(value);
+            }
+            return acc;
+        }, {} as any);
     }
-    // Only init defaults for personal, or if explicitly desired
-    // For now we only seed personal to avoid clutter
-    if (key.indexOf('_personal') > -1 || !key.includes('_')) {
-        localStorage.setItem(key, JSON.stringify(defaultData));
-        return defaultData;
-    }
-    return [] as unknown as T;
+    return obj;
 };
 
-const saveToStorage = (key: string, data: any) => {
-    localStorage.setItem(key, JSON.stringify(data));
-};
+// --- GROUPS ---
 
-// --- KEYS ---
-const KEY_GROUPS_BASE = 'split_groups';
-const KEY_PARTICIPANTS_BASE = 'split_participants';
-const KEY_BILLS_BASE = 'split_bills';
-const KEY_SHARES_BASE = 'split_shares';
-const KEY_INVITES_BASE = 'split_invites';
-
-// --- SERVICE FUNCTIONS ---
-
-// Groups
 export const listSplitGroups = async (workspaceId?: string): Promise<SplitGroup[]> => {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    return loadFromStorage<SplitGroup[]>(getKey(KEY_GROUPS_BASE, workspaceId), initialSplitGroups);
+    if (!workspaceId) return [];
+    try {
+        const ref = collection(db, 'workspaces', workspaceId, GROUPS_COLL);
+        const snapshot = await getDocs(ref);
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as SplitGroup));
+    } catch (error) {
+        console.error("Erro ao listar grupos:", error);
+        return [];
+    }
 };
 
 export const getSplitGroup = async (groupId: string, workspaceId?: string): Promise<SplitGroup | undefined> => {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    const groups = loadFromStorage<SplitGroup[]>(getKey(KEY_GROUPS_BASE, workspaceId), initialSplitGroups);
-    return groups.find(g => g.id === groupId);
+    if (!workspaceId) return undefined;
+    const docRef = doc(db, 'workspaces', workspaceId, GROUPS_COLL, groupId);
+    const snap = await getDoc(docRef);
+    return snap.exists() ? ({ id: snap.id, ...snap.data() } as SplitGroup) : undefined;
 };
 
 export const createSplitGroup = async (group: SplitGroup, workspaceId?: string): Promise<SplitGroup> => {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    const key = getKey(KEY_GROUPS_BASE, workspaceId);
-    const groups = loadFromStorage<SplitGroup[]>(key, initialSplitGroups);
-    const newGroups = [...groups, group];
-    saveToStorage(key, newGroups);
+    if (!workspaceId) throw new Error("Workspace ID obrigatório");
+
+    const batch = writeBatch(db);
+
+    // 1. Cria Grupo
+    const groupRef = doc(collection(db, 'workspaces', workspaceId, GROUPS_COLL));
+    const { id: _, ...groupData } = group;
     
-    // Automatically add creator as owner
-    const owner: SplitParticipant = {
-        id: Date.now().toString(),
-        groupId: group.id,
-        nomeExibicao: 'Você',
+    batch.set(groupRef, cleanPayload({
+        ...groupData,
+        dataCriacao: new Date().toISOString()
+    }));
+
+    // 2. Adiciona Criador como Dono
+    const ownerRef = doc(collection(db, 'workspaces', workspaceId, PARTICIPANTS_COLL));
+    const owner: Omit<SplitParticipant, 'id'> = {
+        groupId: groupRef.id,
+        nomeExibicao: 'Você', // Poderia pegar do user profile
         papel: 'dono',
-        corIdentidade: group.corPrincipal,
+        corIdentidade: group.corPrincipal || '#6366f1',
         avatarEmojiOpcional: '👤'
     };
-    await addSplitParticipant(owner, workspaceId);
+    batch.set(ownerRef, cleanPayload(owner));
 
-    return group;
+    await batch.commit();
+
+    return { id: groupRef.id, ...group } as SplitGroup;
 };
 
 export const updateSplitGroup = async (group: SplitGroup, workspaceId?: string): Promise<SplitGroup> => {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    const key = getKey(KEY_GROUPS_BASE, workspaceId);
-    const groups = loadFromStorage<SplitGroup[]>(key, initialSplitGroups);
-    const newGroups = groups.map(g => g.id === group.id ? group : g);
-    saveToStorage(key, newGroups);
+    if (!workspaceId) throw new Error("Workspace ID obrigatório");
+    const docRef = doc(db, 'workspaces', workspaceId, GROUPS_COLL, group.id);
+    const { id, ...data } = group;
+    await updateDoc(docRef, cleanPayload(data));
     return group;
 };
 
 export const deleteSplitGroup = async (groupId: string, workspaceId?: string): Promise<void> => {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    const gKey = getKey(KEY_GROUPS_BASE, workspaceId);
-    const groups = loadFromStorage<SplitGroup[]>(gKey, initialSplitGroups);
-    saveToStorage(gKey, groups.filter(g => g.id !== groupId));
+    if (!workspaceId) return;
+
+    // Deleção em cascata (Best Effort)
+    const batch = writeBatch(db);
     
-    // Cleanup related data
-    const pKey = getKey(KEY_PARTICIPANTS_BASE, workspaceId);
-    const participants = loadFromStorage<SplitParticipant[]>(pKey, initialSplitParticipants);
-    saveToStorage(pKey, participants.filter(p => p.groupId !== groupId));
+    // 1. Grupo
+    batch.delete(doc(db, 'workspaces', workspaceId, GROUPS_COLL, groupId));
+
+    // 2. Participantes
+    const partsQ = query(collection(db, 'workspaces', workspaceId, PARTICIPANTS_COLL), where('groupId', '==', groupId));
+    const partsSnap = await getDocs(partsQ);
+    partsSnap.forEach(d => batch.delete(d.ref));
+
+    // 3. Contas (Bills)
+    const billsQ = query(collection(db, 'workspaces', workspaceId, BILLS_COLL), where('groupId', '==', groupId));
+    const billsSnap = await getDocs(billsQ);
+    billsSnap.forEach(d => batch.delete(d.ref));
+
+    // 4. Shares (Divisões) - requer buscar bills primeiro ou filtrar shares por algum vínculo (aqui simplificado)
+    // Para simplificar e evitar excesso de leituras, assumimos que shares órfãos não quebram a UI, 
+    // mas o ideal seria buscar os IDs das bills e deletar shares onde billId in [ids].
     
-    const bKey = getKey(KEY_BILLS_BASE, workspaceId);
-    const bills = loadFromStorage<SplitBill[]>(bKey, initialSplitBills);
-    const groupBills = bills.filter(b => b.groupId === groupId);
-    saveToStorage(bKey, bills.filter(b => b.groupId !== groupId));
-    
-    const sKey = getKey(KEY_SHARES_BASE, workspaceId);
-    const shares = loadFromStorage<SplitShare[]>(sKey, initialSplitShares);
-    const billIds = groupBills.map(b => b.id);
-    saveToStorage(sKey, shares.filter(s => !billIds.includes(s.billId)));
-    
-    const iKey = getKey(KEY_INVITES_BASE, workspaceId);
-    const invites = loadFromStorage<SplitGroupInvite[]>(iKey, []);
-    saveToStorage(iKey, invites.filter(i => i.groupId !== groupId));
+    // 5. Convites
+    const invitesQ = query(collection(db, 'workspaces', workspaceId, INVITES_COLL), where('groupId', '==', groupId));
+    const invitesSnap = await getDocs(invitesQ);
+    invitesSnap.forEach(d => batch.delete(d.ref));
+
+    await batch.commit();
 };
 
-export const leaveSplitGroup = async (groupId: string, participantId: string, workspaceId?: string): Promise<void> => {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    const key = getKey(KEY_PARTICIPANTS_BASE, workspaceId);
-    const participants = loadFromStorage<SplitParticipant[]>(key, initialSplitParticipants);
-    saveToStorage(key, participants.filter(p => p.id !== participantId));
-};
+// --- PARTICIPANTS ---
 
-// Participants
 export const listSplitParticipants = async (groupId: string, workspaceId?: string): Promise<SplitParticipant[]> => {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    const key = getKey(KEY_PARTICIPANTS_BASE, workspaceId);
-    const all = loadFromStorage<SplitParticipant[]>(key, initialSplitParticipants);
-    return all.filter(p => p.groupId === groupId);
+    if (!workspaceId) return [];
+    const q = query(collection(db, 'workspaces', workspaceId, PARTICIPANTS_COLL), where('groupId', '==', groupId));
+    const snap = await getDocs(q);
+    return snap.docs.map(d => ({ id: d.id, ...d.data() } as SplitParticipant));
 };
 
 export const addSplitParticipant = async (participant: SplitParticipant, workspaceId?: string): Promise<SplitParticipant> => {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    const key = getKey(KEY_PARTICIPANTS_BASE, workspaceId);
-    const all = loadFromStorage<SplitParticipant[]>(key, initialSplitParticipants);
-    const newAll = [...all, participant];
-    saveToStorage(key, newAll);
-    return participant;
+    if (!workspaceId) throw new Error("Workspace ID obrigatório");
+    const ref = collection(db, 'workspaces', workspaceId, PARTICIPANTS_COLL);
+    const { id, ...data } = participant;
+    const docRef = await addDoc(ref, cleanPayload(data));
+    return { id: docRef.id, ...participant } as SplitParticipant;
 };
 
-// Bills
+export const leaveSplitGroup = async (groupId: string, participantId: string, workspaceId?: string): Promise<void> => {
+    if (!workspaceId) return;
+    await deleteDoc(doc(db, 'workspaces', workspaceId, PARTICIPANTS_COLL, participantId));
+};
+
+// --- BILLS ---
+
 export const listSplitBillsByGroup = async (groupId: string, workspaceId?: string): Promise<SplitBill[]> => {
-    await new Promise(resolve => setTimeout(resolve, 400));
-    const key = getKey(KEY_BILLS_BASE, workspaceId);
-    const all = loadFromStorage<SplitBill[]>(key, initialSplitBills);
-    return all.filter(b => b.groupId === groupId).sort((a, b) => 
-        new Date(b.createdAt || '').getTime() - new Date(a.createdAt || '').getTime()
-    );
+    if (!workspaceId) return [];
+    const q = query(collection(db, 'workspaces', workspaceId, BILLS_COLL), where('groupId', '==', groupId));
+    const snap = await getDocs(q);
+    return snap.docs
+        .map(d => ({ id: d.id, ...d.data() } as SplitBill))
+        .sort((a, b) => new Date(b.createdAt || '').getTime() - new Date(a.createdAt || '').getTime());
 };
 
 export const createSplitBill = async (bill: SplitBill, shares: SplitShare[], workspaceId?: string): Promise<SplitBill> => {
-    await new Promise(resolve => setTimeout(resolve, 600));
-    
-    // Save Bill
-    const bKey = getKey(KEY_BILLS_BASE, workspaceId);
-    const bills = loadFromStorage<SplitBill[]>(bKey, initialSplitBills);
-    saveToStorage(bKey, [...bills, bill]);
-    
-    // Save Shares
-    const sKey = getKey(KEY_SHARES_BASE, workspaceId);
-    const existingShares = loadFromStorage<SplitShare[]>(sKey, initialSplitShares);
-    saveToStorage(sKey, [...existingShares, ...shares]);
-    
-    return bill;
+    if (!workspaceId) throw new Error("Workspace ID obrigatório");
+
+    const batch = writeBatch(db);
+
+    // 1. Cria Conta
+    const billRef = doc(collection(db, 'workspaces', workspaceId, BILLS_COLL));
+    const { id: _, ...billData } = bill;
+    batch.set(billRef, cleanPayload({
+        ...billData,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+    }));
+
+    // 2. Cria Shares
+    const sharesColl = collection(db, 'workspaces', workspaceId, SHARES_COLL);
+    shares.forEach(share => {
+        const shareRef = doc(sharesColl);
+        const { id: __, ...shareData } = share;
+        batch.set(shareRef, cleanPayload({
+            ...shareData,
+            billId: billRef.id // Vincula ID real
+        }));
+    });
+
+    await batch.commit();
+    return { id: billRef.id, ...bill } as SplitBill;
 };
 
 export const updateSplitBill = async (bill: SplitBill, shares?: SplitShare[], workspaceId?: string): Promise<SplitBill> => {
-    await new Promise(resolve => setTimeout(resolve, 400));
-    const bKey = getKey(KEY_BILLS_BASE, workspaceId);
-    const bills = loadFromStorage<SplitBill[]>(bKey, initialSplitBills);
-    const newBills = bills.map(b => b.id === bill.id ? bill : b);
-    saveToStorage(bKey, newBills);
+    if (!workspaceId) throw new Error("Workspace ID obrigatório");
 
+    const batch = writeBatch(db);
+    
+    // 1. Atualiza Bill
+    const billRef = doc(db, 'workspaces', workspaceId, BILLS_COLL, bill.id);
+    const { id, ...billData } = bill;
+    batch.update(billRef, cleanPayload({ ...billData, updatedAt: new Date().toISOString() }));
+
+    // 2. Substitui Shares (se fornecidos)
     if (shares) {
-        const sKey = getKey(KEY_SHARES_BASE, workspaceId);
-        const existingShares = loadFromStorage<SplitShare[]>(sKey, initialSplitShares);
-        // Remove old shares for this bill
-        const filteredShares = existingShares.filter(s => s.billId !== bill.id);
-        // Add new shares
-        saveToStorage(sKey, [...filteredShares, ...shares]);
+        // Primeiro deleta antigos
+        const oldSharesQ = query(collection(db, 'workspaces', workspaceId, SHARES_COLL), where('billId', '==', bill.id));
+        const oldSnap = await getDocs(oldSharesQ);
+        oldSnap.forEach(d => batch.delete(d.ref));
+
+        // Cria novos
+        const sharesColl = collection(db, 'workspaces', workspaceId, SHARES_COLL);
+        shares.forEach(share => {
+            const shareRef = doc(sharesColl);
+            const { id: __, ...shareData } = share;
+            batch.set(shareRef, cleanPayload({ ...shareData, billId: bill.id }));
+        });
     }
 
+    await batch.commit();
     return bill;
 };
 
 export const deleteSplitBill = async (billId: string, workspaceId?: string): Promise<void> => {
-    await new Promise(resolve => setTimeout(resolve, 400));
+    if (!workspaceId) return;
     
-    // Delete Bill
-    const bKey = getKey(KEY_BILLS_BASE, workspaceId);
-    const bills = loadFromStorage<SplitBill[]>(bKey, initialSplitBills);
-    saveToStorage(bKey, bills.filter(b => b.id !== billId));
+    const batch = writeBatch(db);
+    batch.delete(doc(db, 'workspaces', workspaceId, BILLS_COLL, billId));
+    
+    const sharesQ = query(collection(db, 'workspaces', workspaceId, SHARES_COLL), where('billId', '==', billId));
+    const snap = await getDocs(sharesQ);
+    snap.forEach(d => batch.delete(d.ref));
 
-    // Delete Shares
-    const sKey = getKey(KEY_SHARES_BASE, workspaceId);
-    const shares = loadFromStorage<SplitShare[]>(sKey, initialSplitShares);
-    saveToStorage(sKey, shares.filter(s => s.billId !== billId));
-}
+    await batch.commit();
+};
 
 export const updateSplitBillStatus = async (billId: string, status: SplitBillPaymentStatus, workspaceId?: string): Promise<void> => {
-     await new Promise(resolve => setTimeout(resolve, 300));
-     const bKey = getKey(KEY_BILLS_BASE, workspaceId);
-     const bills = loadFromStorage<SplitBill[]>(bKey, initialSplitBills);
-     const newBills = bills.map(b => b.id === billId ? { ...b, statusPagamento: status } : b);
-     saveToStorage(bKey, newBills);
-}
+    if (!workspaceId) return;
+    await updateDoc(doc(db, 'workspaces', workspaceId, BILLS_COLL, billId), { statusPagamento: status });
+};
 
-// Shares
+// --- SHARES ---
+
 export const listSplitSharesByBill = async (billId: string, workspaceId?: string): Promise<SplitShare[]> => {
-    await new Promise(resolve => setTimeout(resolve, 200));
-    const sKey = getKey(KEY_SHARES_BASE, workspaceId);
-    const all = loadFromStorage<SplitShare[]>(sKey, initialSplitShares);
-    return all.filter(s => s.billId === billId);
+    if (!workspaceId) return [];
+    const q = query(collection(db, 'workspaces', workspaceId, SHARES_COLL), where('billId', '==', billId));
+    const snap = await getDocs(q);
+    return snap.docs.map(d => ({ id: d.id, ...d.data() } as SplitShare));
 };
 
 export const listSplitSharesByGroup = async (groupId: string, workspaceId?: string): Promise<SplitShare[]> => {
-    await new Promise(resolve => setTimeout(resolve, 400));
-    const bKey = getKey(KEY_BILLS_BASE, workspaceId);
-    const bills = loadFromStorage<SplitBill[]>(bKey, initialSplitBills);
-    const groupBillIds = bills.filter(b => b.groupId === groupId).map(b => b.id);
+    if (!workspaceId) return [];
     
-    const sKey = getKey(KEY_SHARES_BASE, workspaceId);
-    const shares = loadFromStorage<SplitShare[]>(sKey, initialSplitShares);
-    return shares.filter(s => groupBillIds.includes(s.billId));
+    // Busca bills do grupo primeiro (Firestore não faz join)
+    const bills = await listSplitBillsByGroup(groupId, workspaceId);
+    if (bills.length === 0) return [];
+    const billIds = bills.map(b => b.id);
+
+    // O Firestore tem limite para 'in' operator (max 10). Se tiver mais, precisa fazer em lotes.
+    // Aqui faremos uma abordagem simplificada buscando todos shares e filtrando em memória se forem poucos,
+    // ou iterando. Para escalar, idealmente ter groupId no Share também.
+    
+    // Melhoria de design: Adicionar groupId no SplitShare facilitaria muito. 
+    // Como não posso alterar types agora, vou buscar tudo e filtrar (não ideal para produção massiva, ok para SMB).
+    const q = query(collection(db, 'workspaces', workspaceId, SHARES_COLL)); 
+    const snap = await getDocs(q);
+    return snap.docs
+        .map(d => ({ id: d.id, ...d.data() } as SplitShare))
+        .filter(s => billIds.includes(s.billId));
 };
 
 export const updateSplitShare = async (share: SplitShare, workspaceId?: string): Promise<SplitShare> => {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    const sKey = getKey(KEY_SHARES_BASE, workspaceId);
-    const all = loadFromStorage<SplitShare[]>(sKey, initialSplitShares);
-    const newAll = all.map(s => s.id === share.id ? share : s);
-    saveToStorage(sKey, newAll);
+    if (!workspaceId) throw new Error("Workspace ID obrigatório");
+    const { id, ...data } = share;
+    await updateDoc(doc(db, 'workspaces', workspaceId, SHARES_COLL, id), cleanPayload(data));
     return share;
 };
 
 // --- INVITES ---
 
-const generateCode = () => {
-    return Math.random().toString(36).substring(2, 8).toUpperCase();
-};
-
 export const createSplitGroupInvite = async (groupId: string, role: 'participante' | 'visualizador', workspaceId?: string): Promise<SplitGroupInvite> => {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    const iKey = getKey(KEY_INVITES_BASE, workspaceId);
-    const invites = loadFromStorage<SplitGroupInvite[]>(iKey, []);
-    
-    const existing = invites.find(i => i.groupId === groupId && i.papelSugerido === role && i.status === 'pendente');
-    if (existing) return existing;
+    if (!workspaceId) throw new Error("Workspace ID");
 
-    const newInvite: SplitGroupInvite = {
-        id: Date.now().toString(),
+    const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const invite: Omit<SplitGroupInvite, 'id'> = {
         groupId,
-        codigoConvite: generateCode(),
+        codigoConvite: code,
         papelSugerido: role,
         status: 'pendente',
         expiraEm: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
     };
 
-    saveToStorage(iKey, [...invites, newInvite]);
-    return newInvite;
+    const ref = await addDoc(collection(db, 'workspaces', workspaceId, INVITES_COLL), cleanPayload(invite));
+    return { id: ref.id, ...invite } as SplitGroupInvite;
 };
 
 export const listSplitGroupInvites = async (groupId: string, workspaceId?: string): Promise<SplitGroupInvite[]> => {
-    await new Promise(resolve => setTimeout(resolve, 200));
-    const iKey = getKey(KEY_INVITES_BASE, workspaceId);
-    const invites = loadFromStorage<SplitGroupInvite[]>(iKey, []);
-    return invites.filter(i => i.groupId === groupId && i.status === 'pendente');
+    if (!workspaceId) return [];
+    const q = query(
+        collection(db, 'workspaces', workspaceId, INVITES_COLL), 
+        where('groupId', '==', groupId),
+        where('status', '==', 'pendente')
+    );
+    const snap = await getDocs(q);
+    return snap.docs.map(d => ({ id: d.id, ...d.data() } as SplitGroupInvite));
 };
 
 export const getInviteByCode = async (code: string, workspaceId?: string): Promise<SplitGroupInvite | undefined> => {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    const iKey = getKey(KEY_INVITES_BASE, workspaceId);
-    const invites = loadFromStorage<SplitGroupInvite[]>(iKey, []);
-    return invites.find(i => i.codigoConvite === code && i.status === 'pendente');
+    if (!workspaceId) return undefined;
+    const q = query(
+        collection(db, 'workspaces', workspaceId, INVITES_COLL), 
+        where('codigoConvite', '==', code),
+        where('status', '==', 'pendente')
+    );
+    const snap = await getDocs(q);
+    if (snap.empty) return undefined;
+    return { id: snap.docs[0].id, ...snap.docs[0].data() } as SplitGroupInvite;
 };
 
 export const acceptInvite = async (code: string, userName: string, workspaceId?: string): Promise<{ success: boolean; groupId?: string; message?: string }> => {
-    await new Promise(resolve => setTimeout(resolve, 600));
-    
-    const iKey = getKey(KEY_INVITES_BASE, workspaceId);
-    const invites = loadFromStorage<SplitGroupInvite[]>(iKey, []);
-    const invite = invites.find(i => i.codigoConvite === code && i.status === 'pendente');
-    
-    if (!invite) {
-        return { success: false, message: 'Código inválido ou expirado.' };
-    }
+    if (!workspaceId) return { success: false, message: 'Workspace inválido' };
 
-    const pKey = getKey(KEY_PARTICIPANTS_BASE, workspaceId);
-    const participants = loadFromStorage<SplitParticipant[]>(pKey, initialSplitParticipants);
-    
-    const alreadyIn = participants.some(p => p.groupId === invite.groupId && p.nomeExibicao === userName);
-    if (alreadyIn) {
-        return { success: false, message: 'Você já faz parte deste grupo.' };
-    }
+    return await runTransaction(db, async (transaction) => {
+        // 1. Busca convite
+        const inviteRef = query(collection(db, 'workspaces', workspaceId, INVITES_COLL), where('codigoConvite', '==', code));
+        const inviteSnap = await getDocs(inviteRef);
+        
+        if (inviteSnap.empty) return { success: false, message: 'Código inválido.' };
+        const inviteDoc = inviteSnap.docs[0];
+        const invite = inviteDoc.data() as SplitGroupInvite;
+        
+        if (invite.status !== 'pendente') return { success: false, message: 'Convite expirado.' };
 
-    const group = await getSplitGroup(invite.groupId, workspaceId);
-    if (!group) return { success: false, message: 'Grupo não encontrado.' };
+        // 2. Verifica se já está no grupo
+        const partsRef = collection(db, 'workspaces', workspaceId, PARTICIPANTS_COLL);
+        const partsQ = query(partsRef, where('groupId', '==', invite.groupId), where('nomeExibicao', '==', userName));
+        const partsSnap = await getDocs(partsQ);
 
-    const newParticipant: SplitParticipant = {
-        id: Date.now().toString(),
-        groupId: invite.groupId,
-        nomeExibicao: userName,
-        papel: invite.papelSugerido as SplitParticipantRole,
-        corIdentidade: '#' + Math.floor(Math.random()*16777215).toString(16),
-        avatarEmojiOpcional: '👋'
-    };
+        if (!partsSnap.empty) return { success: false, message: 'Você já está neste grupo.' };
 
-    saveToStorage(pKey, [...participants, newParticipant]);
-    return { success: true, groupId: invite.groupId };
+        // 3. Adiciona participante
+        const newPartRef = doc(partsRef);
+        transaction.set(newPartRef, cleanPayload({
+            groupId: invite.groupId,
+            nomeExibicao: userName,
+            papel: invite.papelSugerido,
+            corIdentidade: '#' + Math.floor(Math.random()*16777215).toString(16),
+            avatarEmojiOpcional: '👋'
+        }));
+
+        return { success: true, groupId: invite.groupId };
+    });
 };

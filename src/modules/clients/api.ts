@@ -1,91 +1,145 @@
+import { 
+    collection, 
+    doc, 
+    getDocs, 
+    getDoc,
+    addDoc, 
+    updateDoc, 
+    deleteDoc, 
+    query,
+    where,
+    writeBatch,
+    Timestamp 
+} from 'firebase/firestore';
+import { db } from '../../lib/firebase';
+import { Client, Receivable } from './types';
 
-import { Client, Receivable } from './types.ts';
+const CLIENTS_COLL = 'clients';
+const RECEIVABLES_COLL = 'receivables';
 
-const KEY_CLIENTS = 'pj_clients';
-const KEY_RECEIVABLES = 'pj_receivables';
-
-const getKey = (base: string, workspaceId: string) => `${base}_${workspaceId}`;
-
-const loadFromStorage = <T>(key: string): T[] => {
-    const stored = localStorage.getItem(key);
-    return stored ? JSON.parse(stored) : [];
-};
-
-const saveToStorage = (key: string, data: any) => {
-    localStorage.setItem(key, JSON.stringify(data));
+// Helper recursivo para limpar undefined
+const cleanPayload = (obj: any): any => {
+    if (Array.isArray(obj)) {
+        return obj.map(v => cleanPayload(v));
+    } else if (obj !== null && typeof obj === 'object' && !(obj instanceof Timestamp)) {
+        return Object.entries(obj).reduce((acc, [key, value]) => {
+            if (value !== undefined) {
+                acc[key] = cleanPayload(value);
+            }
+            return acc;
+        }, {} as any);
+    }
+    return obj;
 };
 
 // --- CLIENTS ---
 
-export const listClients = async (workspaceId: string): Promise<Client[]> => {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    return loadFromStorage<Client>(getKey(KEY_CLIENTS, workspaceId));
+export const listClients = async (workspaceId?: string): Promise<Client[]> => {
+    if (!workspaceId) return [];
+    try {
+        const ref = collection(db, 'workspaces', workspaceId, CLIENTS_COLL);
+        const snapshot = await getDocs(ref);
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Client));
+    } catch (error) {
+        console.error("Erro ao listar clientes:", error);
+        return [];
+    }
 };
 
-export const createClient = async (client: Omit<Client, 'id' | 'createdAt'>): Promise<Client> => {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    const key = getKey(KEY_CLIENTS, client.workspaceId);
-    const clients = loadFromStorage<Client>(key);
-    
-    const newClient: Client = {
+export const createClient = async (client: Omit<Client, 'id'>, workspaceId?: string): Promise<Client> => {
+    if (!workspaceId) throw new Error("Workspace ID obrigatório");
+
+    const ref = collection(db, 'workspaces', workspaceId, CLIENTS_COLL);
+    const payload = cleanPayload({
         ...client,
-        id: Date.now().toString(),
-        createdAt: new Date().toISOString()
-    };
-    
-    saveToStorage(key, [newClient, ...clients]);
-    return newClient;
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+    });
+
+    const docRef = await addDoc(ref, payload);
+    return { id: docRef.id, ...client } as Client;
 };
 
-export const updateClient = async (client: Client): Promise<Client> => {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    const key = getKey(KEY_CLIENTS, client.workspaceId);
-    const clients = loadFromStorage<Client>(key);
-    const updated = clients.map(c => c.id === client.id ? client : c);
-    saveToStorage(key, updated);
+export const updateClient = async (client: Client, workspaceId?: string): Promise<Client> => {
+    if (!workspaceId) throw new Error("Workspace ID obrigatório");
+
+    const docRef = doc(db, 'workspaces', workspaceId, CLIENTS_COLL, client.id);
+    const { id, ...data } = client;
+    
+    const payload = cleanPayload({
+        ...data,
+        updatedAt: new Date().toISOString()
+    });
+
+    await updateDoc(docRef, payload);
     return client;
 };
 
-export const deleteClient = async (clientId: string, workspaceId: string): Promise<void> => {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    const key = getKey(KEY_CLIENTS, workspaceId);
-    const clients = loadFromStorage<Client>(key);
-    saveToStorage(key, clients.filter(c => c.id !== clientId));
+export const deleteClient = async (clientId: string, workspaceId?: string): Promise<void> => {
+    if (!workspaceId) return;
+
+    // Delete Client
+    await deleteDoc(doc(db, 'workspaces', workspaceId, CLIENTS_COLL, clientId));
+
+    // Optional: Delete related receivables (Best effort cleanup)
+    const q = query(collection(db, 'workspaces', workspaceId, RECEIVABLES_COLL), where('clientId', '==', clientId));
+    const snapshot = await getDocs(q);
+    const batch = writeBatch(db);
+    snapshot.forEach(d => batch.delete(d.ref));
+    await batch.commit();
 };
 
 // --- RECEIVABLES ---
 
-export const listReceivables = async (workspaceId: string): Promise<Receivable[]> => {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    return loadFromStorage<Receivable>(getKey(KEY_RECEIVABLES, workspaceId));
+export const listReceivables = async (workspaceId?: string): Promise<Receivable[]> => {
+    if (!workspaceId) return [];
+    try {
+        const ref = collection(db, 'workspaces', workspaceId, RECEIVABLES_COLL);
+        const snapshot = await getDocs(ref);
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Receivable));
+    } catch (error) {
+        console.error("Erro ao listar recebíveis:", error);
+        return [];
+    }
 };
 
-export const createReceivable = async (receivable: Omit<Receivable, 'id' | 'createdAt'>): Promise<Receivable> => {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    const key = getKey(KEY_RECEIVABLES, receivable.workspaceId);
-    const receivables = loadFromStorage<Receivable>(key);
-    
-    const newReceivable: Receivable = {
+export const listReceivablesByClient = async (clientId: string, workspaceId?: string): Promise<Receivable[]> => {
+    if (!workspaceId) return [];
+    const q = query(collection(db, 'workspaces', workspaceId, RECEIVABLES_COLL), where('clientId', '==', clientId));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Receivable));
+};
+
+export const createReceivable = async (receivable: Omit<Receivable, 'id'>, workspaceId?: string): Promise<Receivable> => {
+    if (!workspaceId) throw new Error("Workspace ID obrigatório");
+
+    const ref = collection(db, 'workspaces', workspaceId, RECEIVABLES_COLL);
+    const payload = cleanPayload({
         ...receivable,
-        id: Date.now().toString(),
-        createdAt: new Date().toISOString()
-    };
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+    });
+
+    const docRef = await addDoc(ref, payload);
+    return { id: docRef.id, ...receivable } as Receivable;
+};
+
+export const updateReceivable = async (receivable: Receivable, workspaceId?: string): Promise<Receivable> => {
+    if (!workspaceId) throw new Error("Workspace ID obrigatório");
+
+    const docRef = doc(db, 'workspaces', workspaceId, RECEIVABLES_COLL, receivable.id);
+    const { id, ...data } = receivable;
     
-    saveToStorage(key, [newReceivable, ...receivables]);
-    return newReceivable;
+    const payload = cleanPayload({
+        ...data,
+        updatedAt: new Date().toISOString()
+    });
+
+    await updateDoc(docRef, payload);
+    return receivable;
 };
 
-export const updateReceivableStatus = async (id: string, status: Receivable['status'], workspaceId: string): Promise<void> => {
-    await new Promise(resolve => setTimeout(resolve, 200));
-    const key = getKey(KEY_RECEIVABLES, workspaceId);
-    const receivables = loadFromStorage<Receivable>(key);
-    const updated = receivables.map(r => r.id === id ? { ...r, status } : r);
-    saveToStorage(key, updated);
-};
-
-export const deleteReceivable = async (id: string, workspaceId: string): Promise<void> => {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    const key = getKey(KEY_RECEIVABLES, workspaceId);
-    const receivables = loadFromStorage<Receivable>(key);
-    saveToStorage(key, receivables.filter(r => r.id !== id));
+export const deleteReceivable = async (id: string, workspaceId?: string): Promise<void> => {
+    if (!workspaceId) return;
+    await deleteDoc(doc(db, 'workspaces', workspaceId, RECEIVABLES_COLL, id));
 };

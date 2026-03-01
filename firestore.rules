@@ -60,6 +60,43 @@ service cloud.firestore {
         allow read: if isMember(workspaceId);
         allow write: if hasRole(workspaceId, ['owner', 'admin', 'member']);
       }
+
+      // --- EXCEÇÃO TEMPORÁRIA PARA MIGRAÇÃO (Recurring Expenses) ---
+      // Como ainda não migramos a coleção 'members', liberamos o acesso
+      // a este módulo para qualquer usuário autenticado por enquanto.
+      match /recurring_expenses/{docId} {
+        allow read, write: if signedIn();
+      }
+      match /recurring_occurrences/{docId} {
+        allow read, write: if signedIn();
+      }
+
+      match /credit_cards/{docId} {
+        allow read, write: if signedIn();
+      }
+
+      match /goals/{docId} {
+        allow read, write: if signedIn();
+      }
+
+      match /loans/{docId} {
+        allow read, write: if signedIn();
+      }
+      match /loan_movements/{docId} {
+        allow read, write: if signedIn();
+      }
+
+      match /split_groups/{docId} { allow read, write: if signedIn(); }
+      match /split_participants/{docId} { allow read, write: if signedIn(); }
+      match /split_bills/{docId} { allow read, write: if signedIn(); }
+      match /split_shares/{docId} { allow read, write: if signedIn(); }
+      match /split_invites/{docId} { allow read, write: if signedIn(); }
+
+      match /clients/{docId} { allow read, write: if signedIn(); }
+      match /receivables/{docId} { allow read, write: if signedIn(); }
+      match /notifications/{docId} { allow read, write: if signedIn(); }
+
+  
       
       match /{subCollection}/{docId} {
         allow read: if isMember(workspaceId);

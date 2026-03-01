@@ -4,6 +4,7 @@ import { BellIcon, EnvelopeIcon, SunIcon, MoonIcon, HamburgerIcon, ChevronLeftIc
 import NotificationsPanel from './NotificationsPanel.tsx';
 import MessagesPanel from './MessagesPanel.tsx';
 import CreateWorkspaceModal from './CreateWorkspaceModal.tsx';
+import NotificationBell from './NotificationBell';
 import { 
     useNotifications, useUnreadNotificationCount, useMarkAllNotificationsAsRead, 
     useMarkNotificationAsRead, useArchiveNotification 

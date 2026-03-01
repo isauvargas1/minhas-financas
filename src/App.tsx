@@ -1,8 +1,6 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
-
+import React, { useState, useEffect, useMemo } from "react";
 import { ThemeProvider, useTheme } from "./contexts/ThemeContext";
 import { WorkspaceProvider, useWorkspace } from "./contexts/WorkspaceContext";
-
 import Sidebar from "./components/Sidebar";
 import Header from "./components/Header";
 import SummaryCard from "./components/SummaryCard";
@@ -30,6 +28,7 @@ import LoansView from "./components/LoansView";
 import LoanDetailsView from "./components/LoanDetailsView";
 import PJLoansView from "./components/PJLoansView";
 import PJLoanDetailsView from "./components/PJLoanDetailsView";
+import { useGoals, useCreateGoal, useUpdateGoal, useDeleteGoal } from "./modules/goals/hooks";
 
 import {
   initialTransactions,
@@ -39,39 +38,31 @@ import {
   initialPaymentTypes,
   initialIncomeTypes,
   initialWallets,
-  initialCreditCards,
   initialGoals,
 } from "./constants";
 
 import type {
   Transaction,
-  TransactionType,
   SummaryData,
   EntityItem,
-  CreditCard,
   Goal,
 } from "./types";
 
-// ✅ Corrige o erro do "Loan" mesmo se o re-export do types der problema:
-import type { Loan } from "./modules/loans/types";
-
 import { WalletIcon, ArrowUpIcon, ArrowDownIcon, ChartBarIcon } from "./components/Icons";
-
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useCreateNotification } from "./modules/notifications/hooks";
-
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { LoginView } from "./components/auth/LoginView";
 
+// --- HOOKS MIGRADOS ---
 import {
   useTransactions,
   useCreateTransaction,
   useUpdateTransaction,
   useDeleteTransaction,
 } from "./modules/transactions/hooks";
-
-import { LoginView } from "./components/auth/LoginView";
-
-
+import { useCreditCards } from "./modules/credit-cards/hooks";
+// ----------------------
 
 const queryClient = new QueryClient({
     defaultOptions: {
@@ -83,33 +74,39 @@ const queryClient = new QueryClient({
 });
 
 const AppContent: React.FC = () => {
-    // Hooks de Contexto
     const { theme, toggleMode, playSound } = useTheme();
     const { activeWorkspace, isLoading } = useWorkspace();
     const workspaceId = activeWorkspace?.id ?? "";
-
-    
-    // Hooks de Estado
-    const [isSidebarExpanded, setIsSidebarExpanded] = useState<boolean>(false);
-    const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
-    
-    // --- LÓGICA CONECTADA AO FIRESTORE ---
     const { user } = useAuth();
     
-const { data: transactionsData, isLoading: isTransactionsLoading } = useTransactions(workspaceId);
+    // Estados de UI
+    const [isSidebarExpanded, setIsSidebarExpanded] = useState<boolean>(false);
+    const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+    const [notification, setNotification] = useState<{ message: string; visible: boolean }>({ message: '', visible: false });
+    const [view, setView] = useState<'dashboard' | 'receita' | 'despesa' | 'investimento' | 'settings' | 'cards' | 'personalizacao' | 'goals' | 'goal_details' | 'shared_expenses' | 'split_group_details' | 'recurring' | 'recurring_details' | 'reports' | 'clients_receivables' | 'loans' | 'loan_details'>('dashboard');
+    const [isConfirmationOpen, setIsConfirmationOpen] = useState(false);
+    const [currentDate, setCurrentDate] = useState(new Date());
 
-const createTxMutation = useCreateTransaction(workspaceId);
-const updateTxMutation = useUpdateTransaction(workspaceId);
-const deleteTxMutation = useDeleteTransaction(workspaceId);
-
-
-    // 3. Define a lista de transações (vinda do banco)
+    // --- INTEGRACAO COM FIRESTORE (HOOKS) ---
+    
+    // 1. Transações
+    const { data: transactionsData } = useTransactions(workspaceId);
+    const createTxMutation = useCreateTransaction(workspaceId);
+    const updateTxMutation = useUpdateTransaction(workspaceId);
+    const deleteTxMutation = useDeleteTransaction(workspaceId);
     const transactions = useMemo(() => transactionsData || [], [transactionsData]);
 
-    // Outros estados locais (Goals, Cards, Settings) ainda mockados por enquanto
-    const [allGoals, setAllGoals] = useState<Goal[]>(initialGoals.map(g => ({ ...g, profileId: 'personal' })));
-    const [allCreditCards, setAllCreditCards] = useState<CreditCard[]>(initialCreditCards.map(c => ({ ...c, profileId: 'personal' })));
-    
+    // 2. Cartões de Crédito (MIGRADO)
+    const { data: creditCardsData } = useCreditCards();
+    const creditCards = useMemo(() => creditCardsData || [], [creditCardsData]);
+
+    // Estados locais (ainda não migrados)
+    // --- GOALS (MIGRADO) ---
+    const { data: goalsData } = useGoals();
+    const createGoalMutation = useCreateGoal();
+    const updateGoalMutation = useUpdateGoal();
+    const deleteGoalMutation = useDeleteGoal();
+    const goals = useMemo(() => goalsData || [], [goalsData]);
     const [productsServices, setProductsServices] = useState<EntityItem[]>(initialProductsServices);
     const [expenseTypes, setExpenseTypes] = useState<EntityItem[]>(initialExpenseTypes);
     const [categories, setCategories] = useState<EntityItem[]>(initialCategoriesSettings);
@@ -118,14 +115,17 @@ const deleteTxMutation = useDeleteTransaction(workspaceId);
     const [allWallets, setAllWallets] = useState<EntityItem[]>(initialWallets.map(w => ({ ...w, profileId: 'personal' })));
     const [costCenters, setCostCenters] = useState<EntityItem[]>([]);
 
-    const [notification, setNotification] = useState<{ message: string; visible: boolean }>({ message: '', visible: false });
-    const [view, setView] = useState<'dashboard' | 'receita' | 'despesa' | 'investimento' | 'settings' | 'cards' | 'personalizacao' | 'goals' | 'goal_details' | 'shared_expenses' | 'split_group_details' | 'recurring' | 'recurring_details' | 'reports' | 'clients_receivables' | 'loans' | 'loan_details'>('dashboard');
     const [transactionToEdit, setTransactionToEdit] = useState<Transaction | null>(null);
     const [transactionToDelete, setTransactionToDelete] = useState<Transaction | null>(null);
-    const [isConfirmationOpen, setIsConfirmationOpen] = useState(false);
-    const [currentDate, setCurrentDate] = useState(new Date());
-
     const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
+
+    useEffect(() => {
+        if (selectedGoal) {
+            const fresh = goals.find(g => g.id === selectedGoal.id);
+            if (fresh) setSelectedGoal(fresh);
+        }
+    }, [goals, selectedGoal]);
+
     const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
     const [goalToEdit, setGoalToEdit] = useState<Goal | null>(null);
     const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
@@ -134,9 +134,8 @@ const deleteTxMutation = useDeleteTransaction(workspaceId);
 
     const createNotification = useCreateNotification();
 
-    // Filtros de memória para itens que ainda são locais
-    const goals = useMemo(() => allGoals.filter(g => (g.profileId || 'personal') === activeWorkspace.id), [allGoals, activeWorkspace.id]);
-    const creditCards = useMemo(() => allCreditCards.filter(c => (c.profileId || 'personal') === activeWorkspace.id), [allCreditCards, activeWorkspace.id]);
+    // Filtros de memória para itens locais
+    
     const wallets = useMemo(() => allWallets.filter(w => (w.profileId || 'personal') === activeWorkspace.id), [allWallets, activeWorkspace.id]);
 
     const showNotification = (message: string) => {
@@ -156,26 +155,34 @@ const deleteTxMutation = useDeleteTransaction(workspaceId);
         setView('split_group_details');
     };
 
-    // --- HANDLERS CONECTADOS AO FIRESTORE ---
-
+    // --- HANDLERS TRANSAÇÕES ---
     const handleAddTransaction = async (newTransaction: Omit<Transaction, 'id'>) => {
         if (!user) return;
         try {
-           await createTxMutation.mutateAsync({
-  ...newTransaction,
-  userId: user.uid,
-  profileId: workspaceId
-});
-            
-            // Lógica local para atualizar Metas visualmente (Investimentos)
-            if (newTransaction.type === 'investimento' && newTransaction.goalId) {
-                setAllGoals(allGoals.map(g => g.id === newTransaction.goalId ? { ...g, currentAmount: g.currentAmount + newTransaction.value } : g));
-            }
-            
-            showNotification('Transação salva!');
-            playSound('success');
+           // 1. Cria a transação no Firestore
+           await createTxMutation.mutateAsync({ 
+               ...newTransaction, 
+               userId: user.uid, 
+               profileId: workspaceId 
+           });
+           
+           // 2. Se for investimento ligado a uma meta, atualiza o saldo da meta
+           if (newTransaction.type === 'investimento' && newTransaction.goalId) {
+               const targetGoal = goals.find(g => g.id === newTransaction.goalId);
+               if (targetGoal) {
+                   const newAmount = (targetGoal.currentAmount || 0) + newTransaction.value;
+                   await updateGoalMutation.mutateAsync({ 
+                       id: targetGoal.id, 
+                       data: { currentAmount: newAmount } 
+                   });
+               }
+           }
+           
+           showNotification('Transação salva!');
+           playSound('success');
         } catch (error) {
-            console.error(error);
+            // CORREÇÃO: Tratamento de erro real em vez de "..."
+            console.error("Erro ao salvar transação:", error);
             showNotification('Erro ao salvar.');
         }
     };
@@ -183,15 +190,7 @@ const deleteTxMutation = useDeleteTransaction(workspaceId);
     const handleAddTransactions = async (newTransactions: Omit<Transaction, 'id'>[]) => {
         if (!user) return;
         try {
-            // Salva em paralelo (Batch logic simplificada)
-            await Promise.all(newTransactions.map(t => 
-  createTxMutation.mutateAsync({
-    ...t,
-    userId: user.uid,
-    profileId: workspaceId
-  })
-));
-
+            await Promise.all(newTransactions.map(t => createTxMutation.mutateAsync({ ...t, userId: user.uid, profileId: workspaceId })));
             showNotification(`${newTransactions.length} geradas!`);
             playSound('success');
         } catch (error) {
@@ -228,8 +227,6 @@ const deleteTxMutation = useDeleteTransaction(workspaceId);
         }
     };
 
-    // --- FIM DOS HANDLERS FIRESTORE ---
-
     const handleSettingsUpdate = (key: string, newData: EntityItem[]) => {
         if (key === 'wallets') {
             const other = allWallets.filter(w => (w.profileId || 'personal') !== activeWorkspace.id);
@@ -249,18 +246,42 @@ const deleteTxMutation = useDeleteTransaction(workspaceId);
         playSound('success');
     };
 
-    const handleSaveGoal = (goal: Goal) => {
-        const gWithProfile = { ...goal, profileId: activeWorkspace.id };
-        if (allGoals.some(g => g.id === goal.id)) setAllGoals(allGoals.map(g => g.id === goal.id ? gWithProfile : g));
-        else setAllGoals([...allGoals, gWithProfile]);
-        showNotification('Meta salva!');
-        playSound('success');
-    };
+    const handleSaveGoal = async (goal: Goal) => {
+    try {
+      if (goalToEdit) {
+        // Modo Edição: ID já existe
+        await updateGoalMutation.mutateAsync({ 
+            id: goal.id, // O ID agora é string
+            data: goal 
+        });
+      } else {
+        // Modo Criação: Remove ID temporário se houver
+        const { id, ...newGoal } = goal;
+        await createGoalMutation.mutateAsync(newGoal);
+      }
+      showNotification('Meta salva com sucesso!');
+      playSound('success');
+      setIsGoalModalOpen(false); // Fecha o modal
+    } catch (e) {
+      console.error(e);
+      showNotification('Erro ao salvar meta.');
+    }
+  };
 
-    const handleDeleteGoal = (id: number) => {
-        setAllGoals(allGoals.filter(g => g.id !== id));
-        showNotification('Meta removida!');
-    };
+  const handleDeleteGoal = async (id: string) => {
+    if (confirm('Tem certeza que deseja excluir esta meta?')) {
+        try {
+            await deleteGoalMutation.mutateAsync(id);
+            showNotification('Meta removida!');
+            playSound('success');
+            // Se estiver na tela de detalhes, volta para lista
+            if (view === 'goal_details') setView('goals');
+        } catch (e) {
+            console.error(e);
+            showNotification('Erro ao excluir meta.');
+        }
+    }
+  };
 
     const currentMonthTransactions = useMemo(() => transactions.filter(t => {
         const d = new Date(t.date);
@@ -305,12 +326,29 @@ const deleteTxMutation = useDeleteTransaction(workspaceId);
                 )}
 
                 {view === 'reports' && <ReportsView transactions={transactions} goals={goals} creditCards={creditCards} categories={categories} />}
-                {view === 'goals' && <GoalsView goals={goals} transactions={transactions} onDeleteGoal={handleDeleteGoal} onSelectGoal={g => { setSelectedGoal(g); setView('goal_details'); }} onOpenGoalModal={g => { setGoalToEdit(g || null); setIsGoalModalOpen(true); }} />}
-                {view === 'goal_details' && selectedGoal && <GoalDetailsView goal={selectedGoal} transactions={transactions} onBack={() => setView('goals')} onEdit={g => { setGoalToEdit(g); setIsGoalModalOpen(true); }} onLink={() => {}} onDelete={handleDeleteGoal} onUpdateStatus={(g, s) => setAllGoals(allGoals.map(x => x.id === g.id ? { ...x, status: s } : x))} onAddInvestment={() => setIsModalOpen(true)} />}
-                
+                {view === 'goals' && (
+                <GoalsView 
+                            transactions={transactions} 
+                            onSelectGoal={(g) => { setSelectedGoal(g); setView('goal_details'); }} 
+                            onOpenGoalModal={(g) => { setGoalToEdit(g || null); setIsGoalModalOpen(true); }} 
+                        />
+                    )}
+                    {view === 'goal_details' && selectedGoal && (
+                    <GoalDetailsView 
+                        goal={selectedGoal} 
+                        transactions={transactions} 
+                        onBack={() => setView('goals')} 
+                        onEdit={g => { setGoalToEdit(g); setIsGoalModalOpen(true); }} 
+                        onLink={() => {}} 
+                        onDelete={handleDeleteGoal} 
+                        onAddInvestment={() => setIsModalOpen(true)} 
+                    />
+                    )}                
                 {(view === 'receita' || view === 'despesa' || view === 'investimento') && <TransactionsView viewType={view} transactions={currentMonthTransactions.filter(t => view === 'despesa' ? t.type === 'despesa' || t.type === 'parcelado' : t.type === view)} onBack={() => setView('dashboard')} onAddTransaction={() => setIsModalOpen(true)} onEditTransaction={t => { setTransactionToEdit(t); setIsModalOpen(true); }} onDeleteTransaction={confirmDeleteTransaction} goals={goals} />}
                 {view === 'settings' && <SettingsView data={{ productsServices, expenseTypes, categories, paymentTypes, incomeTypes, wallets, costCenters }} onUpdate={handleSettingsUpdate} />}
-                {view === 'cards' && <CreditCardsView cards={creditCards} transactions={transactions} onAddCard={c => setAllCreditCards([...allCreditCards, { ...c, profileId: activeWorkspace.id }])} onUpdateCard={c => setAllCreditCards(allCreditCards.map(x => x.id === c.id ? c : x))} onDeleteCard={id => setAllCreditCards(allCreditCards.filter(x => x.id !== id))} />}
+                
+                {view === 'cards' && <CreditCardsView transactions={transactions} />}
+
                 {view === 'personalizacao' && <PersonalizationView onBack={() => setView('settings')} />}
                 {view === 'shared_expenses' && <SplitGroupsView onSelectGroup={id => { setSelectedGroupId(id); setView('split_group_details'); }} onCreateGroup={() => {}} />}
                 {view === 'split_group_details' && selectedGroupId && <SplitGroupDetailsView groupId={selectedGroupId} onBack={() => setView('shared_expenses')} onAddTransaction={handleAddTransaction} onAddTransactions={handleAddTransactions} creditCards={creditCards} />}
@@ -345,27 +383,13 @@ const deleteTxMutation = useDeleteTransaction(workspaceId);
     );
 };
 
-// Componente de proteção de rota (Auth Guard)
-
 const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { user, loading } = useAuth();
-
-    if (loading) {
-        return (
-            <div className="flex h-screen items-center justify-center bg-gray-50">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
-            </div>
-        );
-    }
-
-    if (!user) {
-        return <LoginView />;
-    }
-
+    if (loading) return <div className="flex h-screen items-center justify-center bg-gray-50"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div></div>;
+    if (!user) return <LoginView />;
     return <>{children}</>;
 };
 
-// Componente App atualizado
 const App: React.FC = () => (
     <QueryClientProvider client={queryClient}>
         <AuthProvider>

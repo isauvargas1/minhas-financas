@@ -1,96 +1,156 @@
-
+import { 
+    collection, 
+    doc, 
+    getDocs, 
+    getDoc,
+    addDoc, 
+    updateDoc, 
+    deleteDoc, 
+    setDoc,
+    query, 
+    where,
+    Timestamp 
+} from 'firebase/firestore';
+import { db } from '../../lib/firebase';
 import { RecurringExpense, RecurringOccurrence, RecurringStatus } from './types.ts';
-import { initialRecurringExpenses } from '../../constants.ts';
 import { projectOccurrences } from './logic.ts';
 
-const KEY_RECURRING = 'recurring_expenses';
-const KEY_OCCURRENCES = 'recurring_occurrences_override'; // Salva apenas exceções (pagos, alterados)
+const EXPENSES_COLL = 'recurring_expenses';
+const OCCURRENCES_COLL = 'recurring_occurrences';
 
 // --- HELPERS ---
-const getStorageKey = (base: string, workspaceId?: string) => {
-    if (!workspaceId || workspaceId === 'personal') return base;
-    return `${base}_${workspaceId}`;
+
+// Remove campos undefined do objeto, pois o Firestore Web SDK não aceita undefined
+const cleanPayload = (obj: any) => {
+    return Object.entries(obj).reduce((acc, [key, value]) => {
+        if (value !== undefined) {
+            acc[key] = value;
+        }
+        return acc;
+    }, {} as any);
 };
 
-const loadFromStorage = <T>(key: string, defaultData: T): T => {
-    const stored = localStorage.getItem(key);
-    if (stored) {
-        return JSON.parse(stored);
-    }
-    // Only init defaults for personal, or if the key is the base key
-    if (key === KEY_RECURRING) {
-        localStorage.setItem(key, JSON.stringify(defaultData));
-        return defaultData;
-    }
-    return [] as unknown as T;
+const toDateString = (val: any): string => {
+    if (!val) return '';
+    if (val instanceof Timestamp) return val.toDate().toISOString().split('T')[0];
+    if (typeof val === 'string') return val.split('T')[0];
+    return '';
 };
 
-const saveToStorage = (key: string, data: any) => {
-    localStorage.setItem(key, JSON.stringify(data));
+const mapExpenseFromFirestore = (docSnap: any): RecurringExpense => {
+    const data = docSnap.data();
+    return {
+        ...data,
+        id: docSnap.id,
+        // Garante que datas voltem como string YYYY-MM-DD
+        dataInicio: toDateString(data.dataInicio) || new Date().toISOString().split('T')[0],
+        dataFim: toDateString(data.dataFim) || undefined,
+        
+        createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : new Date().toISOString(),
+        updatedAt: data.updatedAt instanceof Timestamp ? data.updatedAt.toDate().toISOString() : new Date().toISOString(),
+        
+        // Garante que campos opcionais nulos virem undefined se necessário (opcional, mas bom para consistência)
+        anexoNome: data.anexoNome || undefined,
+        fornecedor: data.fornecedor || undefined,
+    } as RecurringExpense;
+};
+
+const mapOccurrenceFromFirestore = (docSnap: any): RecurringOccurrence => {
+    const data = docSnap.data();
+    return {
+        ...data,
+        id: docSnap.id,
+        dataPrevista: toDateString(data.dataPrevista),
+        createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : data.createdAt,
+        updatedAt: data.updatedAt instanceof Timestamp ? data.updatedAt.toDate().toISOString() : data.updatedAt,
+    } as RecurringOccurrence;
 };
 
 // --- API FUNCTIONS ---
 
-// 1. CRUD Despesas Recorrentes
-
 export const listRecurringExpenses = async (workspaceId?: string): Promise<RecurringExpense[]> => {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    const key = getStorageKey(KEY_RECURRING, workspaceId);
-    return loadFromStorage<RecurringExpense[]>(key, initialRecurringExpenses);
+    if (!workspaceId || workspaceId === 'loading') return [];
+
+    try {
+        const ref = collection(db, 'workspaces', workspaceId, EXPENSES_COLL);
+        const snapshot = await getDocs(ref);
+        return snapshot.docs.map(mapExpenseFromFirestore);
+    } catch (error) {
+        console.error("Erro ao listar despesas recorrentes:", error);
+        return [];
+    }
 };
 
 export const getRecurringExpense = async (id: string, workspaceId?: string): Promise<RecurringExpense | undefined> => {
-    await new Promise(resolve => setTimeout(resolve, 200));
-    const key = getStorageKey(KEY_RECURRING, workspaceId);
-    const all = loadFromStorage<RecurringExpense[]>(key, initialRecurringExpenses);
-    return all.find(e => e.id === id);
+    if (!workspaceId) return undefined;
+
+    const docRef = doc(db, 'workspaces', workspaceId, EXPENSES_COLL, id);
+    const docSnap = await getDoc(docRef);
+
+    if (!docSnap.exists()) return undefined;
+    return mapExpenseFromFirestore(docSnap);
 };
 
 export const createRecurringExpense = async (expense: RecurringExpense, workspaceId?: string): Promise<RecurringExpense> => {
-    await new Promise(resolve => setTimeout(resolve, 400));
-    const key = getStorageKey(KEY_RECURRING, workspaceId);
-    const all = loadFromStorage<RecurringExpense[]>(key, initialRecurringExpenses);
+    if (!workspaceId) throw new Error("Workspace ID obrigatório");
+
+    const ref = collection(db, 'workspaces', workspaceId, EXPENSES_COLL);
     
-    const newExpense = {
+    // 1. Converte Datas para Timestamp
+    // 2. Remove ID (Firestore gera)
+    // 3. Remove undefined (cleanPayload)
+    const { id, ...rest } = expense;
+    
+    const rawData = {
+        ...rest,
+        dataInicio: expense.dataInicio ? Timestamp.fromDate(new Date(expense.dataInicio)) : null,
+        dataFim: expense.dataFim ? Timestamp.fromDate(new Date(expense.dataFim)) : null,
+        dataReajuste: expense.dataReajuste ? expense.dataReajuste : null, // String direta ou null
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now()
+    };
+
+    const payload = cleanPayload(rawData);
+    
+    const docRef = await addDoc(ref, payload);
+    
+    return {
         ...expense,
+        id: docRef.id,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
     };
-    
-    const newAll = [...all, newExpense];
-    saveToStorage(key, newAll);
-    return newExpense;
 };
 
 export const updateRecurringExpense = async (id: string, data: Partial<RecurringExpense>, workspaceId?: string): Promise<RecurringExpense> => {
-    await new Promise(resolve => setTimeout(resolve, 400));
-    const key = getStorageKey(KEY_RECURRING, workspaceId);
-    const all = loadFromStorage<RecurringExpense[]>(key, initialRecurringExpenses);
-    
-    const index = all.findIndex(e => e.id === id);
-    if (index === -1) throw new Error("Expense not found");
+    if (!workspaceId) throw new Error("Workspace ID obrigatório");
 
-    const updated = { ...all[index], ...data, updatedAt: new Date().toISOString() };
-    all[index] = updated;
+    const docRef = doc(db, 'workspaces', workspaceId, EXPENSES_COLL, id);
     
-    saveToStorage(key, all);
-    return updated;
+    const rawData: any = { ...data, updatedAt: Timestamp.now() };
+    
+    if (data.dataInicio) rawData.dataInicio = Timestamp.fromDate(new Date(data.dataInicio));
+    if (data.dataFim) rawData.dataFim = Timestamp.fromDate(new Date(data.dataFim));
+
+    // Remove undefined antes do update
+    const payload = cleanPayload(rawData);
+
+    await updateDoc(docRef, payload);
+
+    return { id, ...data } as RecurringExpense; 
 };
 
 export const deleteRecurringExpense = async (id: string, workspaceId?: string): Promise<void> => {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    const key = getStorageKey(KEY_RECURRING, workspaceId);
-    const all = loadFromStorage<RecurringExpense[]>(key, initialRecurringExpenses);
-    saveToStorage(key, all.filter(e => e.id !== id));
+    if (!workspaceId) return;
+    const docRef = doc(db, 'workspaces', workspaceId, EXPENSES_COLL, id);
+    await deleteDoc(docRef);
 };
-
-// 2. Gestão de Status
 
 export const updateRecurringStatus = async (id: string, status: RecurringStatus, workspaceId?: string): Promise<void> => {
     await updateRecurringExpense(id, { status }, workspaceId);
 };
 
-// 3. Ocorrências (Instances)
+// --- OCORRÊNCIAS ---
 
 export const listRecurringOccurrences = async (
     start: Date, 
@@ -98,13 +158,18 @@ export const listRecurringOccurrences = async (
     workspaceId?: string,
     statusFilter?: RecurringStatus
 ): Promise<RecurringOccurrence[]> => {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    const recKey = getStorageKey(KEY_RECURRING, workspaceId);
-    const occKey = getStorageKey(KEY_OCCURRENCES, workspaceId);
+    if (!workspaceId || workspaceId === 'loading') return [];
 
-    const expenses = loadFromStorage<RecurringExpense[]>(recKey, initialRecurringExpenses);
-    const overrides = loadFromStorage<RecurringOccurrence[]>(occKey, []);
+    const expenses = await listRecurringExpenses(workspaceId);
+    
+    const occRef = collection(db, 'workspaces', workspaceId, OCCURRENCES_COLL);
+    const q = query(
+        occRef, 
+        where('dataPrevista', '>=', Timestamp.fromDate(start)),
+        where('dataPrevista', '<=', Timestamp.fromDate(end))
+    );
+    const overridesSnap = await getDocs(q);
+    const overrides = overridesSnap.docs.map(mapOccurrenceFromFirestore);
 
     let allOccurrences: RecurringOccurrence[] = [];
 
@@ -121,9 +186,7 @@ export const listRecurringOccurrences = async (
 
         const merged = projected.map(proj => {
             const saved = overrides.find(o => o.id === proj.id);
-            if (saved) {
-                return saved;
-            }
+            if (saved) return saved;
             return proj;
         });
 
@@ -134,20 +197,20 @@ export const listRecurringOccurrences = async (
 };
 
 export const saveOccurrence = async (occurrence: RecurringOccurrence, workspaceId?: string): Promise<RecurringOccurrence> => {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    const key = getStorageKey(KEY_OCCURRENCES, workspaceId);
-    const overrides = loadFromStorage<RecurringOccurrence[]>(key, []);
+    if (!workspaceId) throw new Error("Workspace ID obrigatório");
+
+    const docRef = doc(db, 'workspaces', workspaceId, OCCURRENCES_COLL, occurrence.id);
     
-    const index = overrides.findIndex(o => o.id === occurrence.id);
-    let newOverrides;
+    const rawData = {
+        ...occurrence,
+        dataPrevista: Timestamp.fromDate(new Date(occurrence.dataPrevista)),
+        createdAt: occurrence.createdAt ? Timestamp.fromDate(new Date(occurrence.createdAt)) : Timestamp.now(),
+        updatedAt: Timestamp.now()
+    };
+
+    const payload = cleanPayload(rawData);
+
+    await setDoc(docRef, payload, { merge: true });
     
-    if (index >= 0) {
-        newOverrides = [...overrides];
-        newOverrides[index] = { ...occurrence, updatedAt: new Date().toISOString() };
-    } else {
-        newOverrides = [...overrides, { ...occurrence, createdAt: new Date().toISOString() }];
-    }
-    
-    saveToStorage(key, newOverrides);
     return occurrence;
 };

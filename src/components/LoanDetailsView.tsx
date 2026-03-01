@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { useLoan, useLoanMovements, useUpdateLoan, useCreateMovement, useDeleteLoan } from '../modules/loans/hooks.ts';
+import { useLoan, useLoanMovements, useCreateMovement, useDeleteLoan } from '../modules/loans/hooks.ts';
 import { Loan, LoanMovement, LoanStatus } from '../modules/loans/types.ts';
 // Added HandshakeIcon to the imports below
 import { BackIcon, DynamicIcon, HistoryIcon, CoinsIcon, PlusIcon, CalendarIcon, WarningIcon, EditIcon, DeleteIcon, CheckIcon, HandshakeIcon } from './Icons.tsx';
@@ -19,7 +19,6 @@ interface LoanDetailsViewProps {
 const LoanDetailsView: React.FC<LoanDetailsViewProps> = ({ loanId, onBack, onAddTransaction }) => {
     const { data: loan, isLoading } = useLoan(loanId);
     const { data: movements } = useLoanMovements(loanId);
-    const updateLoanMutation = useUpdateLoan();
     const deleteLoanMutation = useDeleteLoan();
     const createMovementMutation = useCreateMovement();
     
@@ -40,6 +39,8 @@ const LoanDetailsView: React.FC<LoanDetailsViewProps> = ({ loanId, onBack, onAdd
 
     const handleAddMovement = (amount: number, date: string, description: string, isFullSettlement: boolean) => {
         const movementId = Date.now().toString();
+        
+        // 1. Constrói o objeto de movimentação
         const newMovement: LoanMovement = {
             id: movementId,
             loanId: loan.id,
@@ -50,7 +51,8 @@ const LoanDetailsView: React.FC<LoanDetailsViewProps> = ({ loanId, onBack, onAdd
             createdAt: new Date().toISOString()
         };
 
-        // Create Transaction
+        // 2. (Opcional) Cria a transação no fluxo de caixa global
+        // Isso mantém o registro financeiro, mas não afeta o saldo do empréstimo (que é isolado)
         const tType = loan.type === 'lend' ? 'receita' : 'despesa';
         const category = loan.type === 'lend' ? 'Recuperação de Empréstimo' : 'Pagamento de Empréstimo';
         
@@ -66,20 +68,13 @@ const LoanDetailsView: React.FC<LoanDetailsViewProps> = ({ loanId, onBack, onAdd
             profileId: activeWorkspace.id
         });
 
-        const newTotal = loan.totalPaidReceived + amount;
-        const newBalance = Math.max(0, loan.currentBalance - amount);
-        const newStatus: LoanStatus = (isFullSettlement || newBalance <= 0) ? 'paid' : loan.status;
-
-        createMovementMutation.mutate(newMovement);
-        updateLoanMutation.mutate({
-            ...loan,
-            totalPaidReceived: newTotal,
-            currentBalance: newBalance,
-            status: newStatus,
-            updatedAt: new Date().toISOString()
+        // 3. Envia para a API (que vai atualizar o saldo e o histórico automaticamente)
+        createMovementMutation.mutate(newMovement, {
+            onSuccess: () => {
+                playSound('success');
+                setIsMovementModalOpen(false);
+            }
         });
-        
-        playSound('success');
     };
 
     const handleDelete = () => {

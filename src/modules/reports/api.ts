@@ -1,10 +1,9 @@
-
 import { 
     FinancialReportSnapshot, 
     ReportTimeRange, 
     FinanceAIAnswer, 
     FinancialAlert 
-} from './types.ts';
+} from './types';
 import { 
     calculateKPIs, 
     calculateCashFlow, 
@@ -13,12 +12,13 @@ import {
     generateAlerts,
     calculateTopClients,
     calculateReceivablesStatus 
-} from './logic.ts';
-import { Transaction, Goal, CreditCard, Loan } from '../../types.ts';
-import { GoogleGenAI } from "@google/genai";
-import { Workspace } from '../workspaces/types.ts';
-import { Receivable, Client } from '../clients/types.ts';
-import { listLoans } from '../loans/api.ts';
+} from './logic';
+import { Transaction, Goal, CreditCard, Loan } from '../../types';
+// CORRECTED IMPORT
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import { Workspace } from '../workspaces/types';
+import { Receivable, Client } from '../clients/types';
+import { listLoans } from '../loans/api';
 
 export const getFinancialReportSnapshot = async (
     transactions: Transaction[],
@@ -30,21 +30,24 @@ export const getFinancialReportSnapshot = async (
     clients?: Client[]
 ): Promise<FinancialReportSnapshot> => {
     
+    // Simulate network delay (optional)
     await new Promise(resolve => setTimeout(resolve, 600));
 
     // Load loans for context if workspace exists
     let loans: Loan[] = [];
     if (workspace?.id) {
-        loans = await listLoans(workspace.id);
+        try {
+            loans = await listLoans(workspace.id);
+        } catch (error) {
+            console.error("Error fetching loans:", error);
+        }
     }
 
-    // Fix: Removed creditCards argument to match the signature in logic.ts (expected 2-5 arguments)
     const kpis = calculateKPIs(transactions, range, workspace, receivables, loans);
     const cashFlow = calculateCashFlow(transactions);
     const expenseCategories = calculateCategoryBreakdown(transactions, range);
     const debtProfile = calculateDebtProfile(transactions, creditCards);
     
-    // Fix: Removed goals, transactions, and loans arguments to match the signature in logic.ts (expected 2-4 arguments)
     const alerts = generateAlerts(kpis, debtProfile, workspace, receivables);
 
     let topClients = undefined;
@@ -89,72 +92,85 @@ export const askFinanceAI = async (
     contextSnapshot: FinancialReportSnapshot
 ): Promise<FinanceAIAnswer> => {
     
-    const apiKey = process.env.API_KEY;
+    // Use VITE_ prefix for Vite environment variables if applicable, or fallback to process.env
+    const apiKey = import.meta.env?.VITE_GOOGLE_AI_KEY || process.env.API_KEY;
+    
     if (!apiKey) {
-        throw new Error("API Key not found.");
+        console.warn("API Key not found. Please set VITE_GOOGLE_AI_KEY in .env");
+        return {
+            id: Date.now().toString(),
+            answer: "Erro de configuração: Chave da IA não encontrada. Verifique suas variáveis de ambiente.",
+            createdAt: new Date().toISOString()
+        };
     }
 
-    const ai = new GoogleGenAI({ apiKey });
-    const isPJ = contextSnapshot.kpis.some(k => k.id === 'kpi-net-profit');
-    
-    const kpiSummary = contextSnapshot.kpis.map(k => `${k.label}: ${k.formattedValue}`).join('; ');
-    const topCategories = contextSnapshot.expenseCategories.slice(0, 5).map(c => `${c.categoryName} (${c.percentageOfTotal.toFixed(1)}%)`).join(', ');
-    const alertsSummary = contextSnapshot.alerts.map(a => `[${a.severity.toUpperCase()}] ${a.title}: ${a.message}`).join('\n');
-    
-    const revenueVal = contextSnapshot.kpis.find(k => k.id === 'kpi-gross-revenue')?.value || 0;
-    const profitVal = contextSnapshot.kpis.find(k => k.id === 'kpi-net-profit')?.value || 0;
-    const debtVal = contextSnapshot.kpis.find(k => k.id === 'kpi-debt-total')?.value || 0;
-    const finExpVal = contextSnapshot.kpis.find(k => k.id === 'kpi-financial-exp')?.value || 0;
-
-    const systemPrompt = `
-        Contexto do Sistema:
-        Você é uma IA integrada a um painel financeiro empresarial.
-        
-        ${isPJ ? `
-        --- MODO CONSULTOR ESTRATÉGICO (PJ) ---
-        Persona: CFO Virtual sênior focado em eficiência operacional e liquidez.
-        
-        Dados Financeiros da Empresa (Período: ${contextSnapshot.periodLabel}):
-        - KPIs Principais: ${kpiSummary}
-        - Endividamento Bancário Atual: R$ ${debtVal.toFixed(2)}
-        - Despesas Financeiras (Juros Pagos): R$ ${finExpVal.toFixed(2)}
-        - Maiores Saídas de Caixa: ${topCategories}
-        - Alertas Críticos: ${alertsSummary || 'Estabilidade operacional detectada.'}
-
-        Instruções de Análise PJ:
-        1. Avalie se o lucro é suficiente para cobrir os juros da dívida.
-        2. Analise a sustentabilidade do fluxo de caixa frente ao endividamento.
-        3. Sugira estratégias de redução de alavancagem se o custo financeiro ultrapassar 5% da receita bruta.
-        4. Fale sobre ROI, EBITDA, Liquidez Corrente e Alavancagem Financeira.
-        ` : `
-        --- MODO FINANÇAS PESSOAIS (PF) ---
-        Persona: Consultor financeiro pessoal amigável.
-        Resumo: ${kpiSummary}
-        Alertas: ${alertsSummary || 'Nenhum.'}
-        `}
-
-        Pergunta do Usuário: "${question}"
-        
-        Responda em Markdown profissional. Use bullets para recomendações.
-    `;
-
     try {
-        const response = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
-            contents: question,
-            config: {
-                systemInstruction: systemPrompt,
-                temperature: 0.6,
-            }
-        });
+        // CORRECTED INITIALIZATION
+        const genAI = new GoogleGenerativeAI(apiKey);
+        const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
+
+        const isPJ = contextSnapshot.kpis.some(k => k.id === 'kpi-net-profit');
+        
+        const kpiSummary = contextSnapshot.kpis.map(k => `${k.label}: ${k.formattedValue}`).join('; ');
+        const topCategories = contextSnapshot.expenseCategories.slice(0, 5).map(c => `${c.categoryName} (${c.percentageOfTotal.toFixed(1)}%)`).join(', ');
+        const alertsSummary = contextSnapshot.alerts.map(a => `[${a.severity.toUpperCase()}] ${a.title}: ${a.message}`).join('\n');
+        
+        const debtVal = contextSnapshot.kpis.find(k => k.id === 'kpi-debt-total')?.value || 0;
+        const finExpVal = contextSnapshot.kpis.find(k => k.id === 'kpi-financial-exp')?.value || 0;
+
+        const systemPrompt = `
+            Contexto do Sistema:
+            Você é uma IA integrada a um painel financeiro empresarial.
+            
+            ${isPJ ? `
+            --- MODO CONSULTOR ESTRATÉGICO (PJ) ---
+            Persona: CFO Virtual sênior focado em eficiência operacional e liquidez.
+            
+            Dados Financeiros da Empresa (Período: ${contextSnapshot.periodLabel}):
+            - KPIs Principais: ${kpiSummary}
+            - Endividamento Bancário Atual: R$ ${debtVal.toFixed(2)}
+            - Despesas Financeiras (Juros Pagos): R$ ${finExpVal.toFixed(2)}
+            - Maiores Saídas de Caixa: ${topCategories}
+            - Alertas Críticos: ${alertsSummary || 'Estabilidade operacional detectada.'}
+
+            Instruções de Análise PJ:
+            1. Avalie se o lucro é suficiente para cobrir os juros da dívida.
+            2. Analise a sustentabilidade do fluxo de caixa frente ao endividamento.
+            3. Sugira estratégias de redução de alavancagem se o custo financeiro ultrapassar 5% da receita bruta.
+            4. Fale sobre ROI, EBITDA, Liquidez Corrente e Alavancagem Financeira.
+            ` : `
+            --- MODO FINANÇAS PESSOAIS (PF) ---
+            Persona: Consultor financeiro pessoal amigável.
+            Resumo: ${kpiSummary}
+            Alertas: ${alertsSummary || 'Nenhum.'}
+            `}
+
+            Pergunta do Usuário: "${question}"
+            
+            Responda em Markdown profissional. Use bullets para recomendações.
+        `;
+
+        const result = await model.generateContent([systemPrompt]); // Assuming question is part of the flow or separate
+        // To include the user question explicitly if needed by the prompt logic:
+        // const result = await model.generateContent([systemPrompt, question]); 
+        
+        // Note: The prompt construction above embeds the question, so sending just systemPrompt string is fine if it contains everything.
+        
+        const response = await result.response;
+        const text = response.text();
 
         return {
             id: Date.now().toString(),
-            answer: response.text || "Não foi possível processar a análise.",
+            answer: text || "Não foi possível processar a análise.",
             createdAt: new Date().toISOString()
         };
     } catch (error) {
-        throw new Error("Falha na consulta IA.");
+        console.error("AI Error:", error);
+        return {
+            id: Date.now().toString(),
+            answer: "Desculpe, ocorreu um erro ao consultar a IA. Tente novamente mais tarde.",
+            createdAt: new Date().toISOString()
+        };
     }
 };
 

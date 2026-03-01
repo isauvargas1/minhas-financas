@@ -1,36 +1,41 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import * as api from './api.ts';
-import { SplitBill, SplitParticipant, SplitShare } from '../../types.ts';
-import { useWorkspace } from '../../contexts/WorkspaceContext.tsx';
+import { 
+    listSplitGroups, getSplitGroup, createSplitGroup, updateSplitGroup, deleteSplitGroup, leaveSplitGroup,
+    listSplitParticipants, addSplitParticipant,
+    listSplitBillsByGroup, createSplitBill, updateSplitBill, deleteSplitBill, updateSplitBillStatus,
+    listSplitSharesByBill, listSplitSharesByGroup, updateSplitShare,
+    createSplitGroupInvite, listSplitGroupInvites, getInviteByCode, acceptInvite
+} from './api';
+import { SplitGroup, SplitBill, SplitParticipant, SplitShare } from '../../types';
+import { useWorkspace } from '../../contexts/WorkspaceContext';
 
-// Keys for caching (Workspace dependent)
-export const keys = {
-    groups: (ws: string) => ['splitGroups', ws],
-    group: (id: string, ws: string) => ['splitGroup', id, ws],
-    participants: (groupId: string, ws: string) => ['splitParticipants', groupId, ws],
-    bills: (groupId: string, ws: string) => ['splitBills', groupId, ws],
-    shares: (billId: string, ws: string) => ['splitShares', billId, ws],
-    groupShares: (groupId: string, ws: string) => ['splitGroupShares', groupId, ws],
-    invites: (groupId: string, ws: string) => ['splitGroupInvites', groupId, ws]
+export const KEYS = {
+    groups: (ws: string) => ['split_groups', ws],
+    group: (ws: string, id: string) => ['split_group', ws, id],
+    participants: (ws: string, groupId: string) => ['split_participants', ws, groupId],
+    bills: (ws: string, groupId: string) => ['split_bills', ws, groupId],
+    shares: (ws: string, billId: string) => ['split_shares', ws, billId],
+    groupShares: (ws: string, groupId: string) => ['split_group_shares', ws, groupId],
+    invites: (ws: string, groupId: string) => ['split_invites', ws, groupId],
 };
 
-// --- GROUPS HOOKS ---
+// --- GROUPS ---
+
 export const useSplitGroups = () => {
     const { activeWorkspace } = useWorkspace();
     return useQuery({
-        queryKey: keys.groups(activeWorkspace.id),
-        queryFn: () => api.listSplitGroups(activeWorkspace.id),
+        queryKey: KEYS.groups(activeWorkspace.id),
+        queryFn: () => listSplitGroups(activeWorkspace.id),
         enabled: !!activeWorkspace.id
     });
 };
 
-export const useSplitGroup = (groupId: string) => {
+export const useSplitGroup = (groupId: string | undefined) => {
     const { activeWorkspace } = useWorkspace();
     return useQuery({
-        queryKey: keys.group(groupId, activeWorkspace.id),
-        queryFn: () => api.getSplitGroup(groupId, activeWorkspace.id),
-        enabled: !!groupId && !!activeWorkspace.id
+        queryKey: KEYS.group(activeWorkspace.id, groupId || ''),
+        queryFn: () => getSplitGroup(groupId!, activeWorkspace.id),
+        enabled: !!activeWorkspace.id && !!groupId
     });
 };
 
@@ -38,10 +43,8 @@ export const useCreateSplitGroup = () => {
     const { activeWorkspace } = useWorkspace();
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (group: any) => api.createSplitGroup(group, activeWorkspace.id),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: keys.groups(activeWorkspace.id) });
-        }
+        mutationFn: (group: SplitGroup) => createSplitGroup(group, activeWorkspace.id),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: KEYS.groups(activeWorkspace.id) })
     });
 };
 
@@ -49,11 +52,8 @@ export const useUpdateSplitGroup = () => {
     const { activeWorkspace } = useWorkspace();
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (group: any) => api.updateSplitGroup(group, activeWorkspace.id),
-        onSuccess: (data) => {
-            queryClient.invalidateQueries({ queryKey: keys.groups(activeWorkspace.id) });
-            queryClient.invalidateQueries({ queryKey: keys.group(data.id, activeWorkspace.id) });
-        }
+        mutationFn: (group: SplitGroup) => updateSplitGroup(group, activeWorkspace.id),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: KEYS.groups(activeWorkspace.id) })
     });
 };
 
@@ -61,33 +61,19 @@ export const useDeleteSplitGroup = () => {
     const { activeWorkspace } = useWorkspace();
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (groupId: string) => api.deleteSplitGroup(groupId, activeWorkspace.id),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: keys.groups(activeWorkspace.id) });
-        }
+        mutationFn: (groupId: string) => deleteSplitGroup(groupId, activeWorkspace.id),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: KEYS.groups(activeWorkspace.id) })
     });
 };
 
-export const useLeaveSplitGroup = () => {
-    const { activeWorkspace } = useWorkspace();
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: ({ groupId, participantId }: { groupId: string; participantId: string }) => 
-            api.leaveSplitGroup(groupId, participantId, activeWorkspace.id),
-        onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: keys.groups(activeWorkspace.id) });
-            queryClient.invalidateQueries({ queryKey: keys.participants(variables.groupId, activeWorkspace.id) });
-        }
-    });
-};
+// --- PARTICIPANTS ---
 
-// --- PARTICIPANTS HOOKS ---
 export const useSplitParticipants = (groupId: string) => {
     const { activeWorkspace } = useWorkspace();
     return useQuery({
-        queryKey: keys.participants(groupId, activeWorkspace.id),
-        queryFn: () => api.listSplitParticipants(groupId, activeWorkspace.id),
-        enabled: !!groupId && !!activeWorkspace.id
+        queryKey: KEYS.participants(activeWorkspace.id, groupId),
+        queryFn: () => listSplitParticipants(groupId, activeWorkspace.id),
+        enabled: !!activeWorkspace.id && !!groupId
     });
 };
 
@@ -95,20 +81,31 @@ export const useAddSplitParticipant = () => {
     const { activeWorkspace } = useWorkspace();
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (p: SplitParticipant) => api.addSplitParticipant(p, activeWorkspace.id),
-        onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: keys.participants(variables.groupId, activeWorkspace.id) });
+        mutationFn: (p: SplitParticipant) => addSplitParticipant(p, activeWorkspace.id),
+        onSuccess: (_, variables) => queryClient.invalidateQueries({ queryKey: KEYS.participants(activeWorkspace.id, variables.groupId) })
+    });
+};
+
+export const useLeaveSplitGroup = () => {
+    const { activeWorkspace } = useWorkspace();
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (data: { groupId: string; participantId: string }) => 
+            leaveSplitGroup(data.groupId, data.participantId, activeWorkspace.id),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: KEYS.groups(activeWorkspace.id) });
         }
     });
 };
 
-// --- BILLS HOOKS ---
+// --- BILLS ---
+
 export const useSplitBills = (groupId: string) => {
     const { activeWorkspace } = useWorkspace();
     return useQuery({
-        queryKey: keys.bills(groupId, activeWorkspace.id),
-        queryFn: () => api.listSplitBillsByGroup(groupId, activeWorkspace.id),
-        enabled: !!groupId && !!activeWorkspace.id
+        queryKey: KEYS.bills(activeWorkspace.id, groupId),
+        queryFn: () => listSplitBillsByGroup(groupId, activeWorkspace.id),
+        enabled: !!activeWorkspace.id && !!groupId
     });
 };
 
@@ -116,11 +113,10 @@ export const useCreateSplitBill = () => {
     const { activeWorkspace } = useWorkspace();
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: ({ bill, shares }: { bill: SplitBill; shares: SplitShare[] }) => 
-            api.createSplitBill(bill, shares, activeWorkspace.id),
+        mutationFn: (data: { bill: SplitBill; shares: SplitShare[] }) => createSplitBill(data.bill, data.shares, activeWorkspace.id),
         onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: keys.bills(variables.bill.groupId, activeWorkspace.id) });
-            queryClient.invalidateQueries({ queryKey: keys.groupShares(variables.bill.groupId, activeWorkspace.id) });
+            queryClient.invalidateQueries({ queryKey: KEYS.bills(activeWorkspace.id, variables.bill.groupId) });
+            queryClient.invalidateQueries({ queryKey: KEYS.groupShares(activeWorkspace.id, variables.bill.groupId) });
         }
     });
 };
@@ -129,11 +125,10 @@ export const useUpdateSplitBill = () => {
     const { activeWorkspace } = useWorkspace();
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: ({ bill, shares }: { bill: SplitBill; shares?: SplitShare[] }) => 
-            api.updateSplitBill(bill, shares, activeWorkspace.id),
-        onSuccess: (data) => {
-            queryClient.invalidateQueries({ queryKey: keys.bills(data.groupId, activeWorkspace.id) });
-            queryClient.invalidateQueries({ queryKey: keys.groupShares(data.groupId, activeWorkspace.id) });
+        mutationFn: (data: { bill: SplitBill; shares?: SplitShare[] }) => updateSplitBill(data.bill, data.shares, activeWorkspace.id),
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({ queryKey: KEYS.bills(activeWorkspace.id, variables.bill.groupId) });
+            queryClient.invalidateQueries({ queryKey: KEYS.shares(activeWorkspace.id, variables.bill.id) });
         }
     });
 };
@@ -142,11 +137,9 @@ export const useDeleteSplitBill = () => {
     const { activeWorkspace } = useWorkspace();
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: ({ billId, groupId }: { billId: string; groupId: string }) => 
-            api.deleteSplitBill(billId, activeWorkspace.id),
+        mutationFn: (data: { billId: string; groupId: string }) => deleteSplitBill(data.billId, activeWorkspace.id),
         onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: keys.bills(variables.groupId, activeWorkspace.id) });
-            queryClient.invalidateQueries({ queryKey: keys.groupShares(variables.groupId, activeWorkspace.id) });
+            queryClient.invalidateQueries({ queryKey: KEYS.bills(activeWorkspace.id, variables.groupId) });
         }
     });
 };
@@ -155,78 +148,64 @@ export const useUpdateSplitBillStatus = () => {
     const { activeWorkspace } = useWorkspace();
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: ({ billId, status, groupId }: { billId: string; status: any; groupId: string }) => 
-            api.updateSplitBillStatus(billId, status, activeWorkspace.id),
-        onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: keys.bills(variables.groupId, activeWorkspace.id) });
-        }
+        mutationFn: (data: { billId: string; status: any; groupId: string }) => updateSplitBillStatus(data.billId, data.status, activeWorkspace.id),
+        onSuccess: (_, variables) => queryClient.invalidateQueries({ queryKey: KEYS.bills(activeWorkspace.id, variables.groupId) })
     });
 };
 
-// --- SHARES HOOKS ---
+// --- SHARES ---
+
 export const useSplitShares = (billId: string) => {
     const { activeWorkspace } = useWorkspace();
     return useQuery({
-        queryKey: keys.shares(billId, activeWorkspace.id),
-        queryFn: () => api.listSplitSharesByBill(billId, activeWorkspace.id),
-        enabled: !!billId && !!activeWorkspace.id
+        queryKey: KEYS.shares(activeWorkspace.id, billId),
+        queryFn: () => listSplitSharesByBill(billId, activeWorkspace.id),
+        enabled: !!activeWorkspace.id && !!billId
     });
 };
 
 export const useSplitGroupShares = (groupId: string) => {
     const { activeWorkspace } = useWorkspace();
     return useQuery({
-        queryKey: keys.groupShares(groupId, activeWorkspace.id),
-        queryFn: () => api.listSplitSharesByGroup(groupId, activeWorkspace.id),
-        enabled: !!groupId && !!activeWorkspace.id
+        queryKey: KEYS.groupShares(activeWorkspace.id, groupId),
+        queryFn: () => listSplitSharesByGroup(groupId, activeWorkspace.id),
+        enabled: !!activeWorkspace.id && !!groupId
     });
-}
+};
 
 export const useUpdateSplitShare = () => {
     const { activeWorkspace } = useWorkspace();
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (share: SplitShare) => api.updateSplitShare(share, activeWorkspace.id),
-        onSuccess: (data) => {
-            queryClient.invalidateQueries({ queryKey: keys.shares(data.billId, activeWorkspace.id) });
-            queryClient.invalidateQueries({ queryKey: ['splitGroupShares'] }); // fuzzy
-        }
+        mutationFn: (share: SplitShare) => updateSplitShare(share, activeWorkspace.id),
+        onSuccess: (_, variables) => queryClient.invalidateQueries({ queryKey: KEYS.shares(activeWorkspace.id, variables.billId) })
     });
 };
 
-// --- INVITES HOOKS ---
-export const useSplitGroupInvites = (groupId: string) => {
-    const { activeWorkspace } = useWorkspace();
-    return useQuery({
-        queryKey: keys.invites(groupId, activeWorkspace.id),
-        queryFn: () => api.listSplitGroupInvites(groupId, activeWorkspace.id),
-        enabled: !!groupId && !!activeWorkspace.id
-    });
-};
+// --- INVITES ---
 
-export const useCreateInvite = () => {
+export const useCreateSplitGroupInvite = () => {
     const { activeWorkspace } = useWorkspace();
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: ({ groupId, role }: { groupId: string; role: 'participante' | 'visualizador' }) => 
-            api.createSplitGroupInvite(groupId, role, activeWorkspace.id),
-        onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: keys.invites(variables.groupId, activeWorkspace.id) });
-        }
+        mutationFn: (data: { groupId: string; role: 'participante' | 'visualizador' }) => 
+            createSplitGroupInvite(data.groupId, data.role, activeWorkspace.id),
+        onSuccess: (_, variables) => queryClient.invalidateQueries({ queryKey: KEYS.invites(activeWorkspace.id, variables.groupId) })
+    });
+};
+
+export const useSplitGroupInvites = (groupId: string) => {
+    const { activeWorkspace } = useWorkspace();
+    return useQuery({
+        queryKey: KEYS.invites(activeWorkspace.id, groupId),
+        queryFn: () => listSplitGroupInvites(groupId, activeWorkspace.id),
+        enabled: !!activeWorkspace.id && !!groupId
     });
 };
 
 export const useAcceptInvite = () => {
     const { activeWorkspace } = useWorkspace();
-    const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: ({ code, userName }: { code: string; userName: string }) => 
-            api.acceptInvite(code, userName, activeWorkspace.id),
-        onSuccess: (data) => {
-            if (data.success && data.groupId) {
-                queryClient.invalidateQueries({ queryKey: keys.groups(activeWorkspace.id) });
-                queryClient.invalidateQueries({ queryKey: keys.participants(data.groupId, activeWorkspace.id) });
-            }
-        }
+        mutationFn: (data: { code: string; userName: string }) => acceptInvite(data.code, data.userName, activeWorkspace.id)
     });
 };

@@ -4,22 +4,34 @@ import { Goal, Transaction } from '../types.ts';
 import GoalCard from './GoalCard.tsx';
 import { PlusIcon, LayoutGridIcon, ListIcon, SearchIcon } from './Icons.tsx';
 import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
+import { useGoals } from '../modules/goals/hooks';
 
 interface GoalsViewProps {
-    goals: Goal[];
-    onDeleteGoal: (id: number) => void; 
     transactions: Transaction[];
     onSelectGoal: (goal: Goal) => void;
     onOpenGoalModal: (goal?: Goal) => void;
 }
 
 const GoalsView: React.FC<GoalsViewProps> = ({ 
-    goals, onDeleteGoal, transactions, onSelectGoal, onOpenGoalModal 
+    transactions, onSelectGoal, onOpenGoalModal 
 }) => {
+    const { data: goalsData, isLoading } = useGoals();
+    const goals = goalsData || []; // Garante que a variável 'goals' exista para o resto do código funcionar
+
     const [viewMode, setViewMode] = useState<'card' | 'list'>('card');
     const [searchQuery, setSearchQuery] = useState('');
     const { activeWorkspace } = useWorkspace();
     const isPJ = activeWorkspace.type === 'PJ';
+
+
+    
+    if (isLoading) {
+        return (
+            <div className="flex items-center justify-center h-full">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+            </div>
+        );
+    }
 
     // Filter & Sort State
     const [filterStatus, setFilterStatus] = useState<string>('all');
