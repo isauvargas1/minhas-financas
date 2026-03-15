@@ -1,7 +1,11 @@
 
 import React from 'react';
-import { DashboardIcon, CreditCardIcon, TargetIcon, ReportIcon, SettingsIcon, LogoutIcon, UsersIcon, RepeatIcon, BriefcaseIcon, TrendingUpIcon, FileInvoiceIcon, ChartBarIcon, HandshakeIcon } from './Icons.tsx';
+import { DashboardIcon, CreditCardIcon, TargetIcon, ReportIcon, SettingsIcon, 
+LogoutIcon, UsersIcon, RepeatIcon, BriefcaseIcon, TrendingUpIcon, FileInvoiceIcon, 
+ChartBarIcon, HandshakeIcon } from './Icons.tsx';
 import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
+import { useAuth } from '../contexts/AuthContext';
+import { ShieldCheck } from 'lucide-react';
 
 interface SidebarProps {
     isExpanded: boolean;
@@ -12,6 +16,7 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ isExpanded, setExpanded, onNavigate, currentView }) => {
     const { activeWorkspace } = useWorkspace();
+    const { user } = useAuth();
     const isPJ = activeWorkspace.type === 'PJ';
     
     const menuItems = [
@@ -54,6 +59,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isExpanded, setExpanded, onNavigate, 
             text: isPJ ? 'Relatórios Empresariais' : 'Relatórios', 
             id: 'reports' 
         },
+        {
+            icon: <TrendingUpIcon />, // Pode usar outro ícone se preferir, como o CrownIcon se existir
+            text: 'Meu Plano',
+            id: 'planos'
+        },
         { 
             icon: <SettingsIcon />, 
             text: 'Configurações', 
@@ -76,8 +86,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isExpanded, setExpanded, onNavigate, 
                 </span>
             </div>
             
-            <nav className="flex-1 py-4">
-                <ul>
+            <nav className="flex-1 py-4 overflow-y-auto overflow-x-hidden">
+                <ul className="flex flex-col h-full">
                     {menuItems.map((item) => (
                         <li key={item.id}>
                             <a 
@@ -87,6 +97,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isExpanded, setExpanded, onNavigate, 
                                     onNavigate(item.id);
                                 }}
                                 className={`flex items-center py-3 px-5 border-l-4 hover:bg-background transition-colors ${currentView === item.id ? 'border-primary bg-primary/10 text-primary' : 'border-transparent text-muted'}`}
+                                title={!isExpanded ? item.text : ''}
                             >
                                 <div className={`flex-shrink-0 ${currentView === item.id ? 'text-primary' : ''}`}>{item.icon}</div>
                                 <span className={`ml-4 whitespace-nowrap transition-opacity duration-200 ${isExpanded ? 'opacity-100' : 'opacity-0'}`}>
@@ -95,6 +106,28 @@ const Sidebar: React.FC<SidebarProps> = ({ isExpanded, setExpanded, onNavigate, 
                             </a>
                         </li>
                     ))}
+
+                    {/* --- BOTÃO SECRETO DO ADMIN --- */}
+                    {user?.isAdmin && (
+                        <li className="mt-auto pt-4 mb-2 border-t border-border mx-2">
+                            <button
+                                onClick={() => onNavigate('admin')}
+                                className={`w-full flex items-center py-3 px-3 rounded-lg transition-all duration-200
+                                    ${currentView === 'admin' 
+                                        ? 'bg-purple-600 text-white shadow-md' 
+                                        : 'text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20'}
+                                `}
+                                title={!isExpanded ? 'Painel Admin' : ''}
+                            >
+                                <div className="flex-shrink-0 flex items-center justify-center w-6 h-6">
+                                    <ShieldCheck className="w-5 h-5" strokeWidth={2} />
+                                </div>
+                                <span className={`ml-4 font-medium whitespace-nowrap transition-opacity duration-200 ${isExpanded ? 'opacity-100' : 'opacity-0'}`}>
+                                    Painel Admin
+                                </span>
+                            </button>
+                        </li>
+                    )}
                 </ul>
             </nav>
             

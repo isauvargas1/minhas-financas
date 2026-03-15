@@ -12,7 +12,7 @@ export const PLANS = {
   PRO: {
     id: 'pro',
     name: 'Pro',
-    priceId: 'price_XXXXXX', // ID do Stripe
+    priceId: 'price_1TAyyCJvdLQmRJDshibLb4QF', // COLOQUE O ID REAL AQUI
     limits: {
       workspaces: 5,
       members: 10,
@@ -23,9 +23,9 @@ export const PLANS = {
   BUSINESS: {
     id: 'business',
     name: 'Business',
-    priceId: 'price_YYYYYY', // ID do Stripe
+    priceId: 'price_1TAyyCJvdLQmRJDshibLb4QF', // COLOQUE O ID REAL AQUI
     limits: {
-      workspaces: 999, // Ilimitado
+      workspaces: 999,
       members: 999,
       transactionsMonth: 99999,
       splitGroups: 999

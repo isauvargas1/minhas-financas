@@ -29,16 +29,17 @@ import LoanDetailsView from "./components/LoanDetailsView";
 import PJLoansView from "./components/PJLoansView";
 import PJLoanDetailsView from "./components/PJLoanDetailsView";
 import { useGoals, useCreateGoal, useUpdateGoal, useDeleteGoal } from "./modules/goals/hooks";
+import { AdminDashboard } from './components/AdminDashboard';
+import { PricingTable } from './modules/billing/components/PricingTable';
+import { BillingSuccessModal } from './modules/billing/components/BillingSuccessModal';
 
 import {
-  initialTransactions,
   initialProductsServices,
   initialExpenseTypes,
   initialCategoriesSettings,
   initialPaymentTypes,
   initialIncomeTypes,
   initialWallets,
-  initialGoals,
 } from "./constants";
 
 import type {
@@ -83,8 +84,7 @@ const AppContent: React.FC = () => {
     const [isSidebarExpanded, setIsSidebarExpanded] = useState<boolean>(false);
     const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
     const [notification, setNotification] = useState<{ message: string; visible: boolean }>({ message: '', visible: false });
-    const [view, setView] = useState<'dashboard' | 'receita' | 'despesa' | 'investimento' | 'settings' | 'cards' | 'personalizacao' | 'goals' | 'goal_details' | 'shared_expenses' | 'split_group_details' | 'recurring' | 'recurring_details' | 'reports' | 'clients_receivables' | 'loans' | 'loan_details'>('dashboard');
-    const [isConfirmationOpen, setIsConfirmationOpen] = useState(false);
+    const [view, setView] = useState<'dashboard' | 'receita' | 'despesa' | 'investimento' | 'settings' | 'cards' | 'personalizacao' | 'goals' | 'goal_details' | 'shared_expenses' | 'split_group_details' | 'recurring' | 'recurring_details' | 'reports' | 'clients_receivables' | 'loans' | 'loan_details' | 'admin' | 'planos'>('dashboard');    const [isConfirmationOpen, setIsConfirmationOpen] = useState(false);
     const [currentDate, setCurrentDate] = useState(new Date());
 
     // --- INTEGRACAO COM FIRESTORE (HOOKS) ---
@@ -372,6 +372,8 @@ const AppContent: React.FC = () => {
                 
                 {view === 'loans' && activeWorkspace.type === 'PF' && <LoansView onSelectLoan={(l) => { setSelectedLoanId(l.id); setView('loan_details'); }} onAddTransaction={handleAddTransaction} />}
                 {view === 'loan_details' && selectedLoanId && activeWorkspace.type === 'PF' && <LoanDetailsView loanId={selectedLoanId} onBack={() => setView('loans')} onAddTransaction={handleAddTransaction} />}
+                {view === 'admin' && user?.isAdmin && <AdminDashboard />}
+                {view === 'planos' && <PricingTable />}
 
             </main>
 
@@ -395,6 +397,7 @@ const App: React.FC = () => (
         <AuthProvider>
             <ThemeProvider>
                 <WorkspaceProvider>
+                    <BillingSuccessModal />
                     <AuthGuard>
                         <AppContent />
                     </AuthGuard>

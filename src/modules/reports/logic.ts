@@ -118,8 +118,8 @@ function buildBusinessKPIs(
     const profitMargin = grossRevenue > 0 ? (netProfit / grossRevenue) * 100 : 0;
 
     const totalReceivable = receivables
-        .filter(r => r.status === 'pendente' || r.status === 'atrasado')
-        .reduce((sum, r) => sum + r.amount, 0);
+        .filter(r => r.status === 'pending' || r.status === 'overdue')
+        .reduce((sum, r) => sum + (r.value || 0), 0);
     
     const totalLiabilities = loans.filter(l => l.type === 'borrow' && l.status !== 'paid').reduce((a, b) => a + b.currentBalance, 0);
 
@@ -248,29 +248,29 @@ export const calculateTopClients = (receivables: Receivable[], clients: Client[]
     const byClient: Record<string, number> = {};
     let total = 0;
     receivables.forEach(r => {
-        byClient[r.clientId] = (byClient[r.clientId] || 0) + r.amount;
-        total += r.amount;
+        byClient[r.clientId] = (byClient[r.clientId] || 0) + (r.value || 0);
+        total += (r.value || 0);
     });
     return Object.entries(byClient)
-        .map(([id, amount]) => ({
+        .map(([id, value]) => ({
             clientId: id,
             clientName: clients.find(c => c.id === id)?.name || 'Cliente',
-            totalValue: amount,
-            percentage: total > 0 ? (amount / total) * 100 : 0
+            totalValue: value,
+            percentage: total > 0 ? (value / total) * 100 : 0
         }))
         .sort((a, b) => b.totalValue - a.totalValue).slice(0, 5);
 };
 
 export const calculateReceivablesStatus = (receivables: Receivable[]): ReceivableStatusMetric[] => {
     const map: Record<string, { count: number, total: number, color: string }> = {
-        'pendente': { count: 0, total: 0, color: '#f59e0b' },
-        'recebido': { count: 0, total: 0, color: '#10b981' },
-        'atrasado': { count: 0, total: 0, color: '#ef4444' }
+        'pending': { count: 0, total: 0, color: '#f59e0b' },
+        'paid': { count: 0, total: 0, color: '#10b981' },
+        'overdue': { count: 0, total: 0, color: '#ef4444' }
     };
     receivables.forEach(r => {
         if (map[r.status]) {
             map[r.status].count++;
-            map[r.status].total += r.amount;
+            map[r.status].total += (r.value || 0);
         }
     });
     return Object.entries(map).map(([k, v]) => ({ status: k, count: v.count, totalValue: v.total, color: v.color }));
@@ -290,7 +290,7 @@ export const generateAlerts = (
         if (profitKPI && profitKPI.value < 0) {
             alerts.push({ id: 'a1', title: 'Fluxo Negativo', message: 'Despesas superaram as receitas no período.', severity: 'critical', createdAt: now });
         }
-        const overdue = receivables?.filter(r => r.status === 'atrasado').length || 0;
+        const overdue = receivables?.filter(r => r.status === 'overdue').length || 0;
         if (overdue > 0) {
             alerts.push({ id: 'a2', title: 'Inadimplência', message: `Existem ${overdue} faturas de clientes em atraso.`, severity: 'warning', createdAt: now });
         }

@@ -105,12 +105,16 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
             setCostCenter(transactionToEdit.costCenter || '');
 
         } else {
+            // Limpa tudo para uma Nova Transação
             const initialTab = defaultType || 'receita';
             setActiveTab(initialTab);
             setDescription('');
             setValue('');
-            setDate(new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).toISOString().split('T')[0]);
-            setPurchaseDate(new Date().toISOString().split('T')[0]);
+            
+            
+            setDate(''); 
+            setPurchaseDate(''); 
+            
             setInstallments('2');
             setIsPaid(true); 
             setIsDeposited(true);
@@ -120,13 +124,13 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
             if (defaultGoalId) setSelectedGoalId(String(defaultGoalId));
             else setSelectedGoalId('');
             
-            const catOptions = settingsCategories.filter(c => c.type === initialTab);
-            setCategory(catOptions.length > 0 ? catOptions[0].name : '');
-            setExpenseType(expenseTypes.length > 0 ? expenseTypes[0].name : '');
-            setIncomeType(incomeTypes.length > 0 ? incomeTypes[0].name : '');
-            setPaymentMethod(paymentTypes.length > 0 ? paymentTypes[0].name : '');
-            setSelectedCardId(creditCards.length > 0 ? String(creditCards[0].id) : '');
-            setWalletId(wallets.length > 0 ? String(wallets[0].id) : '');
+           
+            setCategory('');
+            setExpenseType('');
+            setIncomeType('');
+            setPaymentMethod('');
+            setSelectedCardId('');
+            setWalletId('');
             setValueType('total');
         }
     }, [isOpen, transactionToEdit, defaultType, isEditing, currentDate, creditCards, wallets, settingsCategories, expenseTypes, paymentTypes, incomeTypes, defaultGoalId]);

@@ -12,3 +12,6 @@ export * from "./callables/splitGroups";
 export * from "./crons/recurring";
 
 export * from "./callables/billing";
+
+// Webhooks (Recebem avisos de serviços externos)
+export * from "./webhooks/stripe";

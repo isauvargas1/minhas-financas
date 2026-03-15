@@ -2,6 +2,8 @@ import React, { useState, useMemo } from 'react';
 import { Transaction, TransactionType } from '../types.ts';
 import { transactionTypeColors } from '../constants.ts';
 import { PlusIcon, SortUpIcon, SortDownIcon } from './Icons.tsx';
+// NOVO IMPORT
+import { usePlan } from '../hooks/usePlan.ts';
 
 interface RecentTransactionsProps {
     transactions: Transaction[];
@@ -14,6 +16,23 @@ const RecentTransactions: React.FC<RecentTransactionsProps> = ({ transactions, o
     const [filter, setFilter] = useState<TransactionType | 'todas'>('todas');
     const [sortConfig, setSortConfig] = useState<{ key: SortableKeys; direction: 'ascending' | 'descending' }>({ key: 'date', direction: 'descending' });
 
+    // --- LÓGICA DE LIMITES DE PLANO ---
+    const { checkLimit, userPlan } = usePlan();
+    
+    // Conta quantas transações existem no mês atual
+    const transactionsThisMonth = useMemo(() => {
+        const today = new Date();
+        const currentMonth = today.getMonth();
+        const currentYear = today.getFullYear();
+        
+        return transactions.filter(t => {
+            const tDate = new Date(t.date + 'T00:00:00');
+            return tDate.getMonth() === currentMonth && tDate.getFullYear() === currentYear;
+        }).length;
+    }, [transactions]);
+
+    const canCreateTransaction = checkLimit('transactionsMonth', transactionsThisMonth);
+    // ----------------------------------
 
     const filteredTransactions = useMemo(() => {
         if (filter === 'todas') {
@@ -50,19 +69,15 @@ const RecentTransactions: React.FC<RecentTransactionsProps> = ({ transactions, o
     };
 
     const getSortIcon = (key: SortableKeys) => {
-        if (sortConfig.key !== key) {
-            return null;
-        }
-        if (sortConfig.direction === 'ascending') {
-            return <SortUpIcon className="h-4 w-4 ml-1" />;
-        }
+        if (sortConfig.key !== key) return null;
+        if (sortConfig.direction === 'ascending') return <SortUpIcon className="h-4 w-4 ml-1" />;
         return <SortDownIcon className="h-4 w-4 ml-1" />;
     };
 
     const formatCurrency = (value: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
     
     const formatDate = (dateString: string) => {
-        const date = new Date(dateString + 'T00:00:00'); // Ensure correct date parsing
+        const date = new Date(dateString + 'T00:00:00');
         return date.toLocaleDateString('pt-BR');
     }
     
@@ -75,13 +90,30 @@ const RecentTransactions: React.FC<RecentTransactionsProps> = ({ transactions, o
 
     return (
         <div className="bg-white dark:bg-dark-100 rounded-xl shadow-md p-6 h-full">
-            <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
                 <h2 className="text-xl font-bold text-gray-800 dark:text-white">Transações Recentes</h2>
                 <div className="flex items-center space-x-3">
-                    <button onClick={onNewTransaction} className="bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-700 dark:hover:bg-indigo-800 text-white font-medium py-2 px-4 rounded-lg flex items-center shadow-md transition-colors duration-200 whitespace-nowrap">
-                        <PlusIcon className="mr-2" />
-                        Nova Transação
-                    </button>
+                    
+                    <div className="flex flex-col items-end">
+                        <button 
+                            onClick={onNewTransaction} 
+                            disabled={!canCreateTransaction}
+                            className={`font-medium py-2 px-4 rounded-lg flex items-center shadow-md transition-colors duration-200 whitespace-nowrap ${
+                                canCreateTransaction 
+                                ? 'bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-700 dark:hover:bg-indigo-800 text-white cursor-pointer' 
+                                : 'bg-gray-300 dark:bg-gray-700 text-gray-500 cursor-not-allowed'
+                            }`}
+                        >
+                            <PlusIcon className="mr-2" />
+                            Nova Transação
+                        </button>
+                        
+                        {!canCreateTransaction && (
+                            <span className="text-[10px] text-amber-600 mt-1 absolute -bottom-4">
+                                Limite mensal atingido. <a href="/planos" className="underline font-bold">Upgrade!</a>
+                            </span>
+                        )}
+                    </div>
                     
                     <select 
                         value={filter}

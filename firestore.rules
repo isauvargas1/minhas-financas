@@ -84,8 +84,14 @@ service cloud.firestore {
     }
 
     // Regra para mapeamento de Workspaces do Usuário (Legado/Auxiliar)
-    match /users/{userId}/workspaces/{workspaceId} {
+    // Regra para o documento do Usuário e suas subcoleções
+    match /users/{userId} {
+      // Permite que o usuário leia/escreva no próprio documento (onde está o isAdmin)
       allow read, write: if signedIn() && request.auth.uid == userId;
+
+      match /workspaces/{workspaceId} {
+        allow read, write: if signedIn() && request.auth.uid == userId;
+      }
     }
   }
 }

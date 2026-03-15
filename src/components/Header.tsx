@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { BellIcon, EnvelopeIcon, SunIcon, MoonIcon, HamburgerIcon, ChevronLeftIcon, ChevronRightIcon, SearchIcon, CheckIcon, UsersIcon, BuildingIcon, BriefcaseIcon, PlusIcon, LogoutIcon } from './Icons.tsx';
 import NotificationsPanel from './NotificationsPanel.tsx';
@@ -13,6 +12,8 @@ import {
     useUnreadMessagesCount 
 } from '../modules/messages/hooks.ts';
 import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
+// NOVO IMPORT: Hook que verifica os limites do plano
+import { usePlan } from '../hooks/usePlan.ts'; 
 
 interface HeaderProps {
     onToggleSidebar: () => void;
@@ -30,6 +31,8 @@ const Header: React.FC<HeaderProps> = ({
     currentDate, onCurrentDateChange, onNavigate, onOpenSplitGroup 
 }) => {
     const { activeWorkspace, workspaces, switchWorkspace } = useWorkspace();
+    // Usa o detetive de planos
+    const { checkLimit, userPlan } = usePlan();
     
     const [isPickerOpen, setIsPickerOpen] = useState(false);
     const [pickerYear, setPickerYear] = useState(currentDate.getFullYear());
@@ -43,43 +46,31 @@ const Header: React.FC<HeaderProps> = ({
     const [isCreateWorkspaceModalOpen, setIsCreateWorkspaceModalOpen] = useState(false);
     
     // --- Data Hooks ---
-    // Notifications
     const { data: notifications } = useNotifications();
     const unreadNotifications = useUnreadNotificationCount();
     const markAllNotifications = useMarkAllNotificationsAsRead();
     const markNotification = useMarkNotificationAsRead();
     const archiveNotification = useArchiveNotification();
-
-    // Messages
     const unreadMessages = useUnreadMessagesCount();
+
+    // VERIFICA O LIMITE (Se tem menos workspaces do que o limite do plano permite)
+    const canCreateWorkspace = checkLimit('workspaces', workspaces.length);
 
     const formattedDate = currentDate.toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
     const capitalizedDate = formattedDate.charAt(0).toUpperCase() + formattedDate.slice(1);
 
-    const goToPreviousMonth = () => {
-        onCurrentDateChange(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
-    };
-
-    const goToNextMonth = () => {
-        onCurrentDateChange(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
-    };
+    const goToPreviousMonth = () => onCurrentDateChange(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
+    const goToNextMonth = () => onCurrentDateChange(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
+    const goToToday = () => onCurrentDateChange(new Date());
     
-    const goToToday = () => {
-        onCurrentDateChange(new Date());
-    };
-    
-    // Click Outside Handlers
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (pickerRef.current && !pickerRef.current.contains(event.target as Node)) {
                 setIsPickerOpen(false);
             }
-            // Panels are handled by the backdrop overlay
         };
         document.addEventListener("mousedown", handleClickOutside);
-        return () => {
-            document.removeEventListener("mousedown", handleClickOutside);
-        };
+        return () => document.removeEventListener("mousedown", handleClickOutside);
     }, [pickerRef]);
 
     const handleDateSelect = () => {
@@ -95,28 +86,18 @@ const Header: React.FC<HeaderProps> = ({
         setIsPickerOpen(true);
     };
 
-    // --- Actions ---
     const toggleNotifications = () => {
-        if (!isNotificationsOpen) {
-            setIsMessagesOpen(false); // Close messages if opening notifications
-            setIsUserMenuOpen(false);
-        }
+        if (!isNotificationsOpen) { setIsMessagesOpen(false); setIsUserMenuOpen(false); }
         setIsNotificationsOpen(!isNotificationsOpen);
     };
 
     const toggleMessages = () => {
-        if (!isMessagesOpen) {
-            setIsNotificationsOpen(false); // Close notifications if opening messages
-            setIsUserMenuOpen(false);
-        }
+        if (!isMessagesOpen) { setIsNotificationsOpen(false); setIsUserMenuOpen(false); }
         setIsMessagesOpen(!isMessagesOpen);
     };
 
     const toggleUserMenu = () => {
-        if (!isUserMenuOpen) {
-            setIsNotificationsOpen(false);
-            setIsMessagesOpen(false);
-        }
+        if (!isUserMenuOpen) { setIsNotificationsOpen(false); setIsMessagesOpen(false); }
         setIsUserMenuOpen(!isUserMenuOpen);
     };
 
@@ -134,7 +115,6 @@ const Header: React.FC<HeaderProps> = ({
     const iconButtonActive = "bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-400";
     const iconButtonInactive = "bg-surface text-muted hover:bg-gray-100 dark:hover:bg-dark-200 hover:text-on-surface";
 
-    // Badge styling reused for consistency
     const Badge = ({ count }: { count: number }) => (
         <span className="absolute top-0 right-0 flex h-4 w-4 -translate-y-1 translate-x-1 items-center justify-center rounded-full bg-red-500 ring-2 ring-background text-[10px] font-bold text-white shadow-sm animate-scale-in">
             {count > 9 ? '9+' : count}
@@ -143,7 +123,6 @@ const Header: React.FC<HeaderProps> = ({
 
     return (
         <header className="mb-8 relative z-30">
-            {/* Backdrop for Panels */}
             {(isNotificationsOpen || isMessagesOpen || isUserMenuOpen) && (
                 <div 
                     className="fixed inset-0 z-30 bg-transparent" 
@@ -192,7 +171,6 @@ const Header: React.FC<HeaderProps> = ({
                                         value={pickerMonth} 
                                         onChange={(e) => setPickerMonth(parseInt(e.target.value))}
                                         className="flex-1 border border-border bg-background text-on-surface rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                                        aria-label="Selecionar Mês"
                                     >
                                         {months.map((month, index) => (
                                             <option key={month} value={index}>{month}</option>
@@ -203,8 +181,6 @@ const Header: React.FC<HeaderProps> = ({
                                         value={pickerYear}
                                         onChange={(e) => setPickerYear(parseInt(e.target.value) || new Date().getFullYear())}
                                         className="w-24 border border-border bg-background text-on-surface rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                                        placeholder="Ano"
-                                        aria-label="Digitar Ano"
                                     />
                                 </div>
                                 <button onClick={handleDateSelect} className="mt-4 w-full bg-primary hover:bg-primary/90 text-white font-medium py-2 px-4 rounded-lg transition-colors shadow-sm">
@@ -219,13 +195,11 @@ const Header: React.FC<HeaderProps> = ({
                 </div>
                 
                 <div className="flex items-center gap-3 relative">
-                    {/* NOTIFICATIONS BUTTON */}
+                    {/* NOTIFICATIONS */}
                     <div className="relative">
                         <button 
                             onClick={toggleNotifications}
                             className={`${iconButtonBaseClass} ${isNotificationsOpen ? iconButtonActive : iconButtonInactive}`}
-                            aria-label="Notificações"
-                            title="Centro de Notificações"
                         >
                             <BellIcon className="w-5 h-5" />
                             {unreadNotifications > 0 && <Badge count={unreadNotifications} />}
@@ -234,7 +208,10 @@ const Header: React.FC<HeaderProps> = ({
                             <NotificationsPanel 
                                 notifications={notifications} 
                                 onClose={() => setIsNotificationsOpen(false)}
-                                onMarkAllRead={() => markAllNotifications.mutate()}
+                                onMarkAllRead={() => {
+                                        const unreadIds = notifications.filter(n => !n.read).map(n => n.id);
+                                        if (unreadIds.length > 0) markAllNotifications.mutate(unreadIds);
+                                    }}
                                 onMarkAsRead={(id) => markNotification.mutate(id)}
                                 onDelete={(id) => archiveNotification.mutate(id)}
                                 onNavigate={onNavigate}
@@ -242,13 +219,11 @@ const Header: React.FC<HeaderProps> = ({
                         )}
                     </div>
                     
-                    {/* MESSAGES BUTTON */}
+                    {/* MESSAGES */}
                     <div className="relative">
                         <button 
                             onClick={toggleMessages}
                             className={`${iconButtonBaseClass} ${isMessagesOpen ? iconButtonActive : iconButtonInactive}`}
-                            aria-label="Mensagens"
-                            title="Centro de Mensagens"
                         >
                             <EnvelopeIcon className="w-5 h-5" />
                             {unreadMessages > 0 && <Badge count={unreadMessages} />}
@@ -271,8 +246,6 @@ const Header: React.FC<HeaderProps> = ({
                     <button 
                         onClick={onToggleDarkMode} 
                         className={`${iconButtonBaseClass} ${iconButtonInactive}`}
-                        aria-label="Alternar modo escuro"
-                        title={isDarkMode ? "Ativar modo claro" : "Ativar modo escuro"}
                     >
                         {isDarkMode ? <SunIcon className="w-5 h-5" /> : <MoonIcon className="w-5 h-5" />}
                     </button>
@@ -288,9 +261,6 @@ const Header: React.FC<HeaderProps> = ({
                                     <span className="text-[9px] bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300 px-1.5 py-px rounded font-bold uppercase tracking-wider mb-px border border-teal-200 dark:border-teal-800">
                                         EMPRESA
                                     </span>
-                                    <span className="text-[9px] text-muted truncate max-w-[120px]">
-                                        {activeWorkspace.name}
-                                    </span>
                                 </div>
                             ) : (
                                 <span className="text-[10px] bg-indigo-50 text-indigo-600 dark:bg-indigo-900/20 dark:text-indigo-300 px-2 py-0.5 rounded font-bold uppercase tracking-wider border border-indigo-100 dark:border-indigo-800">
@@ -305,67 +275,42 @@ const Header: React.FC<HeaderProps> = ({
                             {activeWorkspace.type === 'PJ' ? 'PJ' : 'U'}
                         </div>
 
-                        {/* USER MENU / WORKSPACE SWITCHER */}
+                        {/* USER MENU */}
                         {isUserMenuOpen && (
                             <div className="absolute top-full right-0 mt-3 w-72 bg-surface rounded-card shadow-2xl border border-border z-50 overflow-hidden animate-fade-in-fast flex flex-col">
-                                
-                                {/* User Info Header */}
                                 <div className="p-4 bg-background/50 border-b border-border flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg">
-                                        U
-                                    </div>
+                                    <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg">U</div>
                                     <div>
-                                        <p className="font-bold text-sm text-on-surface">Usuário Principal</p>
-                                        <p className="text-xs text-muted">usuario@exemplo.com</p>
+                                        <p className="font-bold text-sm text-on-surface">Minha Conta</p>
+                                        <p className="text-xs text-indigo-600 font-semibold">{userPlan.name}</p>
                                     </div>
                                 </div>
 
-                                {/* Workspaces List */}
                                 <div className="p-2 border-b border-border max-h-[200px] overflow-y-auto custom-scrollbar">
                                     <p className="px-2 py-1.5 text-[10px] font-bold text-muted uppercase tracking-wider">Perfis Financeiros</p>
                                     
-                                    {/* Personal Workspace (Fixed Logic) */}
                                     {workspaces.filter(ws => ws.type === 'PF').map(ws => (
-                                        <button
-                                            key={ws.id}
-                                            onClick={() => handleSwitchWorkspace(ws.id)}
-                                            className={`w-full flex items-center justify-between p-2 rounded-lg transition-colors text-sm mb-1 ${
-                                                activeWorkspace.id === ws.id 
-                                                    ? 'bg-primary/10 text-primary font-medium' 
-                                                    : 'text-on-surface hover:bg-background'
-                                            }`}
-                                        >
+                                        <button key={ws.id} onClick={() => handleSwitchWorkspace(ws.id)} className={`w-full flex items-center justify-between p-2 rounded-lg transition-colors text-sm mb-1 ${activeWorkspace.id === ws.id ? 'bg-primary/10 text-primary font-medium' : 'text-on-surface hover:bg-background'}`}>
                                             <div className="flex items-center gap-3">
                                                 <div className={`p-1.5 rounded-md ${activeWorkspace.id === ws.id ? 'bg-primary text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'}`}>
                                                     <UsersIcon className="w-4 h-4" />
                                                 </div>
                                                 <div className="text-left">
                                                     <span className="block leading-none">Pessoal</span>
-                                                    <span className="text-[10px] opacity-70 font-normal">Finanças pessoais</span>
                                                 </div>
                                             </div>
                                             {activeWorkspace.id === ws.id && <CheckIcon className="w-4 h-4" />}
                                         </button>
                                     ))}
 
-                                    {/* Business Workspaces */}
                                     {workspaces.filter(ws => ws.type === 'PJ').map(ws => (
-                                        <button
-                                            key={ws.id}
-                                            onClick={() => handleSwitchWorkspace(ws.id)}
-                                            className={`w-full flex items-center justify-between p-2 rounded-lg transition-colors text-sm mb-1 ${
-                                                activeWorkspace.id === ws.id 
-                                                    ? 'bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-400 font-medium' 
-                                                    : 'text-on-surface hover:bg-background'
-                                            }`}
-                                        >
+                                        <button key={ws.id} onClick={() => handleSwitchWorkspace(ws.id)} className={`w-full flex items-center justify-between p-2 rounded-lg transition-colors text-sm mb-1 ${activeWorkspace.id === ws.id ? 'bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-400 font-medium' : 'text-on-surface hover:bg-background'}`}>
                                             <div className="flex items-center gap-3">
                                                 <div className={`p-1.5 rounded-md ${activeWorkspace.id === ws.id ? 'bg-teal-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'}`}>
                                                     <BriefcaseIcon className="w-4 h-4" />
                                                 </div>
                                                 <div className="text-left">
                                                     <span className="block leading-none">{ws.name}</span>
-                                                    <span className="text-[10px] opacity-70 font-normal">Empresa</span>
                                                 </div>
                                             </div>
                                             {activeWorkspace.id === ws.id && <CheckIcon className="w-4 h-4" />}
@@ -373,21 +318,48 @@ const Header: React.FC<HeaderProps> = ({
                                     ))}
                                 </div>
 
-                                {/* Actions */}
+                                {/* Actions - COM A CATRACA APLICADA */}
                                 <div className="p-2 bg-background/30">
+                                    <div className="mb-2">
+                                        <button 
+                                            onClick={() => {
+                                                if (canCreateWorkspace) {
+                                                    setIsUserMenuOpen(false);
+                                                    setIsCreateWorkspaceModalOpen(true);
+                                                }
+                                            }}
+                                            disabled={!canCreateWorkspace}
+                                            className={`w-full flex items-center gap-2 p-2 text-sm rounded-lg transition-colors font-medium ${
+                                                canCreateWorkspace 
+                                                    ? 'text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/10 cursor-pointer' 
+                                                    : 'text-gray-400 bg-gray-100 dark:bg-gray-800 cursor-not-allowed'
+                                            }`}
+                                        >
+                                            <PlusIcon className="w-4 h-4" />
+                                            Adicionar empresa
+                                        </button>
+                                        
+                                        {!canCreateWorkspace && (
+                                            <div className="mt-1 ml-2 text-xs text-amber-600 flex items-center">
+                                                Limite de {userPlan.limits.workspaces} atingido. 
+                                                <span 
+                                                    onClick={() => {
+                                                        if (onNavigate) {
+                                                            onNavigate('planos');
+                                                            setIsUserMenuOpen(false);
+                                                        }
+                                                    }}
+                                                    className="ml-1 underline cursor-pointer hover:text-amber-800"
+                                                >
+                                                    Upgrade!
+                                                </span>
+                                            </div>
+                                        )}
+                                    </div>
+                                    
                                     <button 
-                                        onClick={() => {
-                                            setIsUserMenuOpen(false);
-                                            setIsCreateWorkspaceModalOpen(true);
-                                        }}
-                                        className="w-full flex items-center gap-2 p-2 text-sm text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/10 rounded-lg transition-colors font-medium"
-                                    >
-                                        <PlusIcon className="w-4 h-4" />
-                                        Adicionar empresa
-                                    </button>
-                                    <button 
-                                        onClick={() => {/* Logout logic */ setIsUserMenuOpen(false); }}
-                                        className="w-full flex items-center gap-2 p-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-lg transition-colors mt-1"
+                                        onClick={() => { setIsUserMenuOpen(false); }}
+                                        className="w-full flex items-center gap-2 p-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-lg transition-colors"
                                     >
                                         <LogoutIcon className="w-4 h-4" />
                                         Sair
@@ -405,30 +377,12 @@ const Header: React.FC<HeaderProps> = ({
             />
 
             <style>{`
-                @keyframes scale-in {
-                    from { transform: scale(0) translate(25%, -25%); opacity: 0; }
-                    to { transform: scale(1) translate(25%, -25%); opacity: 1; }
-                }
-                .animate-scale-in {
-                    animation: scale-in 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-                }
-                @keyframes fade-in-fast {
-                    from { opacity: 0; transform: translateY(-5px); }
-                    to { opacity: 1; transform: translateY(0); }
-                }
-                .animate-fade-in-fast {
-                    animation: fade-in-fast 0.2s ease-out forwards;
-                }
-                 .custom-scrollbar::-webkit-scrollbar {
-                    width: 4px;
-                }
-                .custom-scrollbar::-webkit-scrollbar-track {
-                    background: transparent;
-                }
-                .custom-scrollbar::-webkit-scrollbar-thumb {
-                    background-color: var(--color-border);
-                    border-radius: 20px;
-                }
+                @keyframes scale-in { from { transform: scale(0) translate(25%, -25%); opacity: 0; } to { transform: scale(1) translate(25%, -25%); opacity: 1; } }
+                .animate-scale-in { animation: scale-in 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+                @keyframes fade-in-fast { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+                .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+                .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+                .custom-scrollbar::-webkit-scrollbar-thumb { background-color: var(--color-border); border-radius: 20px; }
             `}</style>
         </header>
     );

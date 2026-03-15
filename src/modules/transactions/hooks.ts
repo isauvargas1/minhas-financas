@@ -23,7 +23,7 @@ export const useCreateTransaction = (workspaceId: string) => {
     mutationFn: (newTransaction: Omit<Transaction, "id">) =>
       createTransaction(workspaceId, newTransaction),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["transactions", workspaceId] });
+      return queryClient.invalidateQueries({ queryKey: ["transactions"] });
     },
   });
 };
@@ -35,7 +35,7 @@ export const useUpdateTransaction = (workspaceId: string) => {
     mutationFn: (transaction: Transaction) =>
       updateTransaction(workspaceId, transaction),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["transactions", workspaceId] });
+      return queryClient.invalidateQueries({ queryKey: ["transactions"] });
     },
   });
 };
@@ -46,7 +46,7 @@ export const useDeleteTransaction = (workspaceId: string) => {
   return useMutation({
     mutationFn: (id: string | number) => deleteTransaction(workspaceId, id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["transactions", workspaceId] });
+      return queryClient.invalidateQueries({ queryKey: ["transactions"] });
     },
   });
 };

@@ -1,15 +1,25 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { 
-    User, 
     GoogleAuthProvider, 
     signInWithPopup, 
     signOut, 
     onAuthStateChanged 
 } from 'firebase/auth';
-import { auth } from '../lib/firebase';
+import { doc, getDoc } from 'firebase/firestore'; // IMPORT ADICIONADO
+import { auth, db } from '../lib/firebase'; // IMPORT ATUALIZADO (adicionado o db)
 
+// 1. Criamos um tipo customizado que inclui o isAdmin
+export interface AppUser {
+    uid: string;
+    email: string | null;
+    displayName: string | null;
+    photoURL: string | null;
+    isAdmin?: boolean;
+}
+
+// 2. Atualizamos o Contexto para usar o AppUser no lugar do User padrão do Firebase
 interface AuthContextType {
-    user: User | null;
+    user: AppUser | null;
     loading: boolean;
     signInWithGoogle: () => Promise<void>;
     logout: () => Promise<void>;
@@ -18,15 +28,42 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    const [user, setUser] = useState<User | null>(null);
+    // 3. O estado agora armazena o AppUser
+    const [user, setUser] = useState<AppUser | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         // Escuta mudanças na autenticação em tempo real
-        const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-            setUser(currentUser);
+        const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+            if (currentUser) {
+                let isAdmin = false;
+                
+                try {
+                    // Busca no Firestore para ver se o usuário é o Super Admin
+                    const userDocRef = doc(db, 'users', currentUser.uid);
+                    const userDocSnap = await getDoc(userDocRef);
+                    
+                    if (userDocSnap.exists() && userDocSnap.data().isAdmin === true) {
+                        isAdmin = true;
+                    }
+                } catch (error) {
+                    console.error("Erro ao verificar status de admin:", error);
+                }
+
+                // Monta o usuário completo e salva no estado global
+                setUser({
+                    uid: currentUser.uid,
+                    email: currentUser.email,
+                    displayName: currentUser.displayName,
+                    photoURL: currentUser.photoURL,
+                    isAdmin: isAdmin
+                });
+            } else {
+                setUser(null);
+            }
             setLoading(false);
         });
+
         return () => unsubscribe();
     }, []);
 

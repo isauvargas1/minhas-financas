@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { useSplitGroups, useCreateSplitGroup, useUpdateSplitGroup, useDeleteSplitGroup } from '../modules/split-bills/hooks.ts';
 import { SplitGroup } from '../types.ts';
@@ -10,6 +9,8 @@ import SplitGroupFormModal from './SplitGroupFormModal.tsx';
 import JoinGroupModal from './JoinGroupModal.tsx';
 import ConfirmationModal from './ConfirmationModal.tsx';
 import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
+// NOVO IMPORT: Hook que verifica os limites do plano
+import { usePlan } from '../hooks/usePlan.ts'; 
 
 interface SplitGroupsViewProps {
     onSelectGroup: (groupId: string) => void;
@@ -24,6 +25,12 @@ const SplitGroupsView: React.FC<SplitGroupsViewProps> = ({ onSelectGroup }) => {
     const { playSound } = useTheme();
     const { activeWorkspace } = useWorkspace();
     const isPJ = activeWorkspace.type === 'PJ';
+    
+    // Usa o detetive de planos
+    const { checkLimit, userPlan } = usePlan();
+    
+    // VERIFICA O LIMITE (Compara quantos grupos existem com o limite do plano)
+    const canCreateGroup = groups ? checkLimit('splitGroups', groups.length) : true;
     
     const [searchQuery, setSearchQuery] = useState('');
     const [viewMode, setViewMode] = useState<'card' | 'list'>('card');
@@ -76,6 +83,7 @@ const SplitGroupsView: React.FC<SplitGroupsViewProps> = ({ onSelectGroup }) => {
     };
 
     const openCreateModal = () => {
+        if (!canCreateGroup) return; // Segurança extra
         setGroupToEdit(null);
         setIsCreateModalOpen(true);
         playSound('click');
@@ -98,6 +106,16 @@ const SplitGroupsView: React.FC<SplitGroupsViewProps> = ({ onSelectGroup }) => {
                     <p className="text-sm text-gray-500 dark:text-gray-400">
                         {isPJ ? 'Gerencie centros de custo e reembolsos' : 'Organize despesas compartilhadas em grupos'}
                     </p>
+                    
+                    {/* AVISO DE LIMITE ATINGIDO */}
+                    {!canCreateGroup && (
+                        <div className="mt-2 text-xs font-medium text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 px-3 py-1.5 rounded-lg inline-flex items-center">
+                            Atingiu o limite de {userPlan.limits.splitGroups} grupos do seu plano.
+                            <a href="/planos" className="ml-2 font-bold underline hover:text-amber-800 dark:hover:text-amber-300 cursor-pointer">
+                                Fazer Upgrade
+                            </a>
+                        </div>
+                    )}
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3 w-full xl:w-auto">
@@ -169,7 +187,12 @@ const SplitGroupsView: React.FC<SplitGroupsViewProps> = ({ onSelectGroup }) => {
                         </button>
                         <button 
                             onClick={openCreateModal}
-                            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center shadow-md transition-colors whitespace-nowrap"
+                            disabled={!canCreateGroup}
+                            className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center shadow-md transition-colors whitespace-nowrap ${
+                                canCreateGroup 
+                                    ? 'bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer' 
+                                    : 'bg-gray-300 dark:bg-gray-700 text-gray-500 cursor-not-allowed'
+                            }`}
                         >
                             <PlusIcon className="mr-2 h-4 w-4" />
                             {isPJ ? (businessTab === 'rateio' ? 'Novo Rateio' : 'Novo Reembolso') : 'Novo Grupo'}
@@ -228,7 +251,15 @@ const SplitGroupsView: React.FC<SplitGroupsViewProps> = ({ onSelectGroup }) => {
                         <div className="text-center py-20 bg-gray-50 dark:bg-dark-200/50 rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-700">
                             <p className="text-gray-500 dark:text-gray-400">Nenhum registro encontrado.</p>
                             <div className="mt-4 flex gap-3 justify-center">
-                                <button onClick={openCreateModal} className="text-indigo-600 dark:text-indigo-400 font-medium hover:underline">
+                                <button 
+                                    onClick={openCreateModal} 
+                                    disabled={!canCreateGroup}
+                                    className={`font-medium ${
+                                        canCreateGroup 
+                                            ? 'text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer' 
+                                            : 'text-gray-400 cursor-not-allowed'
+                                    }`}
+                                >
                                     Criar novo
                                 </button>
                             </div>

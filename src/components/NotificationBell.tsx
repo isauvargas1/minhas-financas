@@ -1,8 +1,27 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { BellIcon, CheckIcon, TrashIcon } from './Icons';
-import { useNotifications, useMarkAsRead, useMarkAllAsRead, useDeleteNotification } from '../modules/notifications/hooks';
-import { formatDistanceToNow } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+// Corrigido: Trocamos TrashIcon por DeleteIcon
+import { BellIcon, CheckIcon, DeleteIcon } from './Icons.tsx'; 
+import { useNotifications, useMarkAsRead, useMarkAllAsRead, useDeleteNotification } from '../modules/notifications/hooks.ts';
+
+// Nova função nativa para substituir o date-fns!
+const timeAgo = (dateInput: string | Date) => {
+    const date = new Date(dateInput);
+    const now = new Date();
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+    if (diffInSeconds < 60) return 'agora mesmo';
+    
+    const diffInMinutes = Math.floor(diffInSeconds / 60);
+    if (diffInMinutes < 60) return `há ${diffInMinutes} min`;
+    
+    const diffInHours = Math.floor(diffInMinutes / 60);
+    if (diffInHours < 24) return `há ${diffInHours} h`;
+    
+    const diffInDays = Math.floor(diffInHours / 24);
+    if (diffInDays < 30) return `há ${diffInDays} dias`;
+    
+    return date.toLocaleDateString('pt-BR');
+};
 
 const NotificationBell: React.FC = () => {
     const [isOpen, setIsOpen] = useState(false);
@@ -81,7 +100,8 @@ const NotificationBell: React.FC = () => {
                                                     {n.title}
                                                 </p>
                                                 <span className="text-[10px] text-gray-400 shrink-0 ml-2">
-                                                    {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true, locale: ptBR })}
+                                                    {/* Usando a nossa função nativa */}
+                                                    {timeAgo(n.createdAt)}
                                                 </span>
                                             </div>
                                             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
@@ -102,7 +122,8 @@ const NotificationBell: React.FC = () => {
                                                     onClick={() => deleteMutation.mutate(n.id)}
                                                     className="text-[10px] text-gray-400 hover:text-red-500 flex items-center gap-1"
                                                 >
-                                                    <TrashIcon className="w-3 h-3" /> Remover
+                                                    {/* Usando DeleteIcon em vez de TrashIcon */}
+                                                    <DeleteIcon className="w-3 h-3" /> Remover
                                                 </button>
                                             </div>
                                         </div>
