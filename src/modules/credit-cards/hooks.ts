@@ -12,7 +12,7 @@ export const useCreditCards = () => {
     return useQuery({
         queryKey: KEYS.all(activeWorkspace.id),
         queryFn: () => listCreditCards(activeWorkspace.id),
-        enabled: !!activeWorkspace.id
+        enabled: !!activeWorkspace.id && activeWorkspace.id !== 'loading'
     });
 };
 

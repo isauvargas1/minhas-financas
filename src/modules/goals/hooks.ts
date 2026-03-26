@@ -12,7 +12,7 @@ export const useGoals = () => {
     return useQuery({
         queryKey: KEYS.all(activeWorkspace.id),
         queryFn: () => listGoals(activeWorkspace.id),
-        enabled: !!activeWorkspace.id
+        enabled: !!activeWorkspace.id && activeWorkspace.id !== 'loading'
     });
 };
 

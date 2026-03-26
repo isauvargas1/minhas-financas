@@ -1,5 +1,5 @@
 
-import React, { useState, FormEvent, useEffect, useRef } from 'react';
+import React, { useState, FormEvent, useEffect, useRef, useMemo } from 'react';
 import { Transaction, TransactionType, CreditCard, EntityItem, TransactionModalProps, Goal } from '../types.ts';
 // Added DynamicIcon to the imports below to fix the error on line 603
 import { CloseIcon, TargetIcon, BriefcaseIcon, BuildingIcon, SparklesIcon, MicrophoneIcon, DynamicIcon } from './Icons.tsx';
@@ -18,7 +18,8 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
     onAddTransactions,
     onUpdateTransaction, 
     transactionToEdit, 
-    defaultType, 
+    defaultType,
+    allowedTypes = null,
     currentDate,
     creditCards = [],
     productsServices = [],
@@ -36,6 +37,21 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
     
     const isEditing = !!transactionToEdit;
     const [activeTab, setActiveTab] = useState<TransactionType>('receita');
+    const resolvedAllowedTypes = useMemo<TransactionType[]>(() => {
+    if (isEditing && transactionToEdit) {
+        return [transactionToEdit.type];
+    }
+
+    if (allowedTypes && allowedTypes.length > 0) {
+        return allowedTypes;
+    }
+
+    if (defaultType) {
+        return [defaultType];
+    }
+
+    return ['receita', 'despesa', 'investimento', 'parcelado'];
+}, [allowedTypes, defaultType, isEditing, transactionToEdit]);
     
     // State for form fields
     const [description, setDescription] = useState('');
@@ -106,7 +122,7 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
 
         } else {
             // Limpa tudo para uma Nova Transação
-            const initialTab = defaultType || 'receita';
+            const initialTab = resolvedAllowedTypes[0] || defaultType || 'receita';
             setActiveTab(initialTab);
             setDescription('');
             setValue('');
@@ -133,13 +149,30 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
             setWalletId('');
             setValueType('total');
         }
-    }, [isOpen, transactionToEdit, defaultType, isEditing, currentDate, creditCards, wallets, settingsCategories, expenseTypes, paymentTypes, incomeTypes, defaultGoalId]);
+    }, [
+    isOpen,
+    transactionToEdit,
+    defaultType,
+    allowedTypes,
+    isEditing,
+    currentDate,
+    creditCards,
+    wallets,
+    settingsCategories,
+    expenseTypes,
+    paymentTypes,
+    incomeTypes,
+    defaultGoalId,
+    resolvedAllowedTypes
+]);
 
     const handleTabChange = (newTab: TransactionType) => {
-        setActiveTab(newTab);
-        const catOptions = settingsCategories.filter(c => c.type === newTab);
-        setCategory(catOptions.length > 0 ? catOptions[0].name : '');
-    };
+    if (!resolvedAllowedTypes.includes(newTab)) return;
+
+    setActiveTab(newTab);
+    const catOptions = settingsCategories.filter(c => c.type === newTab);
+    setCategory(catOptions.length > 0 ? catOptions[0].name : '');
+};
 
     // --- AI LOGIC: Common Form Pre-filler ---
     const applyAIData = (data: any) => {
@@ -359,10 +392,10 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
         };
         
         if (activeTab === 'parcelado') {
-            transactionData.installments = parseInt(installments);
-            transactionData.currentInstallment = isEditing ? transactionToEdit.currentInstallment : 1;
-            if(selectedCardId) transactionData.cardId = parseInt(selectedCardId);
-        }
+    transactionData.installments = parseInt(installments, 10);
+    transactionData.currentInstallment = isEditing ? transactionToEdit.currentInstallment : 1;
+    if (selectedCardId) transactionData.cardId = selectedCardId;
+}
 
         if (activeTab === 'despesa') {
             transactionData.expenseType = expenseType;
@@ -373,9 +406,9 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
         if (activeTab === 'receita') transactionData.incomeType = incomeType;
 
         if (activeTab === 'investimento') {
-            if(walletId) transactionData.walletId = parseInt(walletId);
+            if (walletId) transactionData.walletId = Number(walletId);
             transactionData.isPaid = isDeposited;
-            if (selectedGoalId) transactionData.goalId = parseInt(selectedGoalId);
+            if (selectedGoalId) transactionData.goalId = selectedGoalId;
             else transactionData.goalId = undefined;
         }
         
@@ -624,16 +657,51 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
                     </div>
                 )}
                 
-                {!isEditing && !defaultType && (
-                    <div className="border-b border-gray-200 dark:border-gray-700">
-                        <div className="flex">
-                            <button onClick={() => handleTabChange('receita')} className={tabClasses('receita')} disabled={isEditing}>Receita</button>
-                            <button onClick={() => handleTabChange('despesa')} className={tabClasses('despesa')} disabled={isEditing}>Despesa</button>
-                            <button onClick={() => handleTabChange('investimento')} className={tabClasses('investimento')} disabled={isEditing}>Investimento</button>
-                            <button onClick={() => handleTabChange('parcelado')} className={tabClasses('parcelado')} disabled={isEditing}>Parcelado</button>
+                {!isEditing && resolvedAllowedTypes.length > 1 && (
+                        <div className="border-b border-gray-200 dark:border-gray-700">
+                            <div className="flex">
+                                {resolvedAllowedTypes.includes('receita') && (
+                                    <button
+                                        onClick={() => handleTabChange('receita')}
+                                        className={tabClasses('receita')}
+                                        type="button"
+                                    >
+                                        Receita
+                                    </button>
+                                )}
+
+                                {resolvedAllowedTypes.includes('despesa') && (
+                                    <button
+                                        onClick={() => handleTabChange('despesa')}
+                                        className={tabClasses('despesa')}
+                                        type="button"
+                                    >
+                                        Despesa
+                                    </button>
+                                )}
+
+                                {resolvedAllowedTypes.includes('investimento') && (
+                                    <button
+                                        onClick={() => handleTabChange('investimento')}
+                                        className={tabClasses('investimento')}
+                                        type="button"
+                                    >
+                                        Investimento
+                                    </button>
+                                )}
+
+                                {resolvedAllowedTypes.includes('parcelado') && (
+                                    <button
+                                        onClick={() => handleTabChange('parcelado')}
+                                        className={tabClasses('parcelado')}
+                                        type="button"
+                                    >
+                                        Parcelado
+                                    </button>
+                                )}
+                            </div>
                         </div>
-                    </div>
-                )}
+                    )}
                 
                 <div className="p-6">
                     <form onSubmit={handleSubmit}>

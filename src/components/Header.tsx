@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { BellIcon, EnvelopeIcon, SunIcon, MoonIcon, HamburgerIcon, ChevronLeftIcon, ChevronRightIcon, SearchIcon, CheckIcon, UsersIcon, BuildingIcon, BriefcaseIcon, PlusIcon, LogoutIcon } from './Icons.tsx';
+import { BellIcon, EnvelopeIcon, SunIcon, MoonIcon, HamburgerIcon, ChevronLeftIcon, ChevronRightIcon, SearchIcon, CheckIcon, UsersIcon, BuildingIcon, BriefcaseIcon, PlusIcon } from './Icons.tsx';
 import NotificationsPanel from './NotificationsPanel.tsx';
 import MessagesPanel from './MessagesPanel.tsx';
 import CreateWorkspaceModal from './CreateWorkspaceModal.tsx';
@@ -356,14 +356,7 @@ const Header: React.FC<HeaderProps> = ({
                                             </div>
                                         )}
                                     </div>
-                                    
-                                    <button 
-                                        onClick={() => { setIsUserMenuOpen(false); }}
-                                        className="w-full flex items-center gap-2 p-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-lg transition-colors"
-                                    >
-                                        <LogoutIcon className="w-4 h-4" />
-                                        Sair
-                                    </button>
+                                
                                 </div>
                             </div>
                         )}

@@ -3,6 +3,28 @@ import * as admin from "firebase-admin";
 
 const db = admin.firestore();
 
+const getSignedBalanceValue = (data?: admin.firestore.DocumentData) => {
+  if (!data) return 0;
+  const numericValue = Number(data.value || 0);
+
+  if (data.type === "despesa" || data.type === "parcelado") {
+    return -numericValue;
+  }
+
+  return numericValue;
+};
+
+const getGoalContribution = (data?: admin.firestore.DocumentData) => {
+  if (!data || data.type !== "investimento" || !data.goalId) {
+    return null;
+  }
+
+  return {
+    goalId: String(data.goalId),
+    value: Number(data.value || 0),
+  };
+};
+
 export const onTransactionWrite = onDocumentWritten(
   "workspaces/{workspaceId}/transactions/{transactionId}",
   async (event) => {
@@ -19,26 +41,16 @@ export const onTransactionWrite = onDocumentWritten(
 
     let action: "CREATE" | "UPDATE" | "DELETE" = "UPDATE";
     let logMessage = "";
-    let valueDiff = 0;
 
     if (!event.data.before.exists && afterData) {
       action = "CREATE";
       logMessage = `Transação "${afterData.description}" criada.`;
-      valueDiff = afterData.type === "despesa" ?
-        -afterData.value : afterData.value;
     } else if (!event.data.after.exists && beforeData) {
       action = "DELETE";
       logMessage = `Transação "${beforeData.description}" excluída.`;
-      valueDiff = beforeData.type === "despesa" ?
-        beforeData.value : -beforeData.value;
     } else if (beforeData && afterData) {
       action = "UPDATE";
       logMessage = `Transação "${afterData.description}" atualizada.`;
-      const beforeVal = beforeData.type === "despesa" ?
-        -beforeData.value : beforeData.value;
-      const afterVal = afterData.type === "despesa" ?
-        -afterData.value : afterData.value;
-      valueDiff = afterVal - beforeVal;
     }
 
     const userId = afterData?.userId || beforeData?.userId || "sistema";
@@ -48,28 +60,53 @@ export const onTransactionWrite = onDocumentWritten(
       id: logDoc.id,
       entity: "transaction",
       entityId: transactionId,
-      action: action,
-      userId: userId,
+      action,
+      userId,
       description: logMessage,
       timestamp: admin.firestore.FieldValue.serverTimestamp(),
       details: {
         before: beforeData || null,
         after: afterData || null,
+        balanceBefore: getSignedBalanceValue(beforeData),
+        balanceAfter: getSignedBalanceValue(afterData),
       },
     });
 
-    const goalId = afterData?.goalId || beforeData?.goalId;
-    if (goalId) {
+    const goalAdjustments = new Map<string, number>();
+    const beforeGoal = getGoalContribution(beforeData);
+    const afterGoal = getGoalContribution(afterData);
+
+    if (beforeGoal) {
+      goalAdjustments.set(
+        beforeGoal.goalId,
+        (goalAdjustments.get(beforeGoal.goalId) ?? 0) - beforeGoal.value,
+      );
+    }
+
+    if (afterGoal) {
+      goalAdjustments.set(
+        afterGoal.goalId,
+        (goalAdjustments.get(afterGoal.goalId) ?? 0) + afterGoal.value,
+      );
+    }
+
+    for (const [goalId, diff] of goalAdjustments.entries()) {
+      if (diff === 0) continue;
+
       const goalRef = db.doc(`workspaces/${workspaceId}/goals/${goalId}`);
-      if (valueDiff !== 0) {
-        batch.update(goalRef, {
-          currentAmount: admin.firestore.FieldValue.increment(valueDiff),
-          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-        });
+      const goalSnap = await goalRef.get();
+
+      if (!goalSnap.exists) {
+        continue;
       }
+
+      batch.update(goalRef, {
+        currentAmount: admin.firestore.FieldValue.increment(diff),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
     }
 
     await batch.commit();
     console.log(`[${action}] Workspace ${workspaceId} atualizado.`);
-  }
+  },
 );

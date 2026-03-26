@@ -2,91 +2,177 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // --- FUNÇÕES AUXILIARES ---
     function signedIn() {
       return request.auth != null;
     }
 
-    // Verifica se o usuário já é membro do workspace
     function isMember(workspaceId) {
-      return signedIn() && exists(/databases/$(database)/documents/workspaces/$(workspaceId)/members/$(request.auth.uid));
+      return signedIn() &&
+        exists(/databases/$(database)/documents/workspaces/$(workspaceId)/members/$(request.auth.uid));
     }
 
-    // Busca o papel (role) do usuário no workspace
     function getRole(workspaceId) {
       return get(/databases/$(database)/documents/workspaces/$(workspaceId)/members/$(request.auth.uid)).data.role;
     }
 
-    // Verifica permissões de Admin/Owner
     function hasRole(workspaceId, roles) {
       return isMember(workspaceId) && getRole(workspaceId) in roles;
     }
 
-    // Verifica se o usuário é o dono original do documento do Workspace
-    function isWorkspaceOwner(workspaceId) {
-      return signedIn() && get(/databases/$(database)/documents/workspaces/$(workspaceId)).data.ownerId == request.auth.uid;
+    // Para subcoleções: lê o ownerId do documento pai
+    function isWorkspaceOwnerByParent(workspaceId) {
+  return signedIn() &&
+    get(/databases/$(database)/documents/workspaces/$(workspaceId)).data.ownerId == request.auth.uid;
+}
+
+    function isDateOnlyString(value) {
+      return value is string && value.matches('^\\d{4}-\\d{2}-\\d{2}$');
     }
 
-    // --- REGRAS POR COLEÇÃO ---
+    function isValidTransactionType(value) {
+      return value in ['receita', 'despesa', 'investimento', 'parcelado'];
+    }
+
+    function isCommonValidTransactionPayload(data, workspaceId) {
+      return isValidTransactionType(data.type)
+        && data.description is string
+        && data.description.size() > 0
+        && data.category is string
+        && data.category.size() > 0
+        && (data.value is int || data.value is float)
+        && data.value > 0
+        && isDateOnlyString(data.date)
+        && data.userId is string
+        && data.userId.size() > 0
+        && (!data.keys().hasAny(['workspaceId']) || data.workspaceId == workspaceId)
+        && (!data.keys().hasAny(['cardId']) || data.cardId is string)
+        && (!data.keys().hasAny(['goalId']) || data.goalId is string)
+        && (!data.keys().hasAny(['walletId']) || data.walletId is int || data.walletId is float)
+        && (!data.keys().hasAny(['profileId']) || data.profileId is string)
+        && (!data.keys().hasAny(['expenseType']) || data.expenseType is string)
+        && (!data.keys().hasAny(['incomeType']) || data.incomeType is string)
+        && (!data.keys().hasAny(['paymentMethod']) || data.paymentMethod is string)
+        && (!data.keys().hasAny(['isPaid']) || data.isPaid is bool)
+        && (!data.keys().hasAny(['supplier']) || data.supplier is string)
+        && (!data.keys().hasAny(['costCenter']) || data.costCenter is string)
+        && (!data.keys().hasAny(['installments']) || (data.installments is int && data.installments > 0))
+        && (!data.keys().hasAny(['currentInstallment']) || (data.currentInstallment is int && data.currentInstallment > 0));
+    }
+
+    function isMemberTransactionOwner(workspaceId, data) {
+      return hasRole(workspaceId, ['member']) && data.userId == request.auth.uid;
+    }
 
     match /workspaces/{workspaceId} {
-      // Regras do documento principal do Workspace
-      allow create: if signedIn();
-      allow read: if isMember(workspaceId);
-      allow update: if hasRole(workspaceId, ['owner', 'admin']);
+  allow create: if signedIn();
+  allow read: if isMember(workspaceId) || (signedIn() && resource.data.ownerId == request.auth.uid);
+  allow update: if hasRole(workspaceId, ['owner', 'admin']) || (signedIn() && resource.data.ownerId == request.auth.uid);
 
-      // Subcoleção de Membros
       match /members/{memberId} {
-        // Permite listar os próprios workspaces e ver colegas se já for membro
-        allow read: if (signedIn() && resource.data.uid == request.auth.uid) || isMember(workspaceId);
-        
-        // Permite escrita para admins ou para o dono se auto-adicionar na criação
-        allow write: if hasRole(workspaceId, ['owner', 'admin']) 
-                     || (request.auth.uid == memberId && isWorkspaceOwner(workspaceId));
+        allow read: if
+          (signedIn() && resource.data.uid == request.auth.uid) ||
+          isMember(workspaceId) ||
+          isWorkspaceOwnerByParent(workspaceId);
+
+        allow write: if
+          hasRole(workspaceId, ['owner', 'admin']) ||
+          isWorkspaceOwnerByParent(workspaceId) ||
+          (request.auth.uid == memberId && isWorkspaceOwnerByParent(workspaceId));
       }
 
-      // Transações (Módulo Principal)
       match /transactions/{docId} {
-        allow read: if isMember(workspaceId);
-        allow write: if hasRole(workspaceId, ['owner', 'admin', 'member']);
+        allow read: if isMember(workspaceId) || isWorkspaceOwnerByParent(workspaceId);
+
+        allow create: if
+          (hasRole(workspaceId, ['owner', 'admin', 'member']) || isWorkspaceOwnerByParent(workspaceId)) &&
+          isCommonValidTransactionPayload(request.resource.data, workspaceId) &&
+          request.resource.data.userId == request.auth.uid;
+
+        allow update: if
+          (
+            (hasRole(workspaceId, ['owner', 'admin']) || isWorkspaceOwnerByParent(workspaceId)) &&
+            isCommonValidTransactionPayload(request.resource.data, workspaceId) &&
+            request.resource.data.userId == resource.data.userId
+          ) ||
+          (
+            isMemberTransactionOwner(workspaceId, resource.data) &&
+            isCommonValidTransactionPayload(request.resource.data, workspaceId) &&
+            request.resource.data.userId == request.auth.uid &&
+            request.resource.data.userId == resource.data.userId
+          );
+
+        allow delete: if
+          hasRole(workspaceId, ['owner', 'admin']) ||
+          isWorkspaceOwnerByParent(workspaceId) ||
+          isMemberTransactionOwner(workspaceId, resource.data);
       }
 
-      // --- MÓDULOS EM TRANSIÇÃO DE SEGURANÇA ---
-      // Liberados para qualquer usuário logado enquanto finalizamos a migração total
-      match /recurring_expenses/{docId} { allow read, write: if signedIn(); }
-      match /recurring_occurrences/{docId} { allow read, write: if signedIn(); }
-      match /credit_cards/{docId} { allow read, write: if signedIn(); }
-      match /goals/{docId} { allow read, write: if signedIn(); }
-      match /loans/{docId} { allow read, write: if signedIn(); }
-      match /loan_movements/{docId} { allow read, write: if signedIn(); }
-      match /clients/{docId} { allow read, write: if signedIn(); }
-      match /receivables/{docId} { allow read, write: if signedIn(); }
-      match /notifications/{docId} { allow read, write: if signedIn(); }
-
-      // --- MÓDULO DE RATEIOS (Split Bills) ---
-      match /split_groups/{docId} { allow read, write: if signedIn(); }
-      match /split_participants/{docId} { allow read, write: if signedIn(); }
-      match /split_bills/{docId} { allow read, write: if signedIn(); }
-      match /split_shares/{docId} { allow read, write: if signedIn(); }
-      
-      // 🔒 SEGURANÇA MÁXIMA: Leitura liberada, mas escrita BLOQUEADA para o frontend.
-      // Somente as Cloud Functions (Admin SDK) conseguem gravar aqui.
-      match /split_invites/{docId} { 
-        allow read: if signedIn(); 
-        allow write: if false; 
+      match /recurring_expenses/{docId} {
+        allow read, write: if signedIn();
       }
 
-      // Regra genérica para qualquer outra subcoleção dentro de um workspace
+      match /recurring_occurrences/{docId} {
+        allow read, write: if signedIn();
+      }
+
+      match /credit_cards/{docId} {
+        allow read: if isMember(workspaceId) || isWorkspaceOwnerByParent(workspaceId);
+        allow write: if hasRole(workspaceId, ['owner', 'admin', 'member']) || isWorkspaceOwnerByParent(workspaceId);
+      }
+
+      match /goals/{docId} {
+        allow read: if isMember(workspaceId) || isWorkspaceOwnerByParent(workspaceId);
+        allow write: if hasRole(workspaceId, ['owner', 'admin', 'member']) || isWorkspaceOwnerByParent(workspaceId);
+      }
+
+      match /loans/{docId} {
+        allow read, write: if signedIn();
+      }
+
+      match /loan_movements/{docId} {
+        allow read, write: if signedIn();
+      }
+
+      match /clients/{docId} {
+        allow read, write: if signedIn();
+      }
+
+      match /receivables/{docId} {
+        allow read, write: if signedIn();
+      }
+
+      match /notifications/{docId} {
+        allow read, write: if signedIn();
+      }
+
+      match /split_groups/{docId} {
+        allow read, write: if signedIn();
+      }
+
+      match /split_participants/{docId} {
+        allow read, write: if signedIn();
+      }
+
+      match /split_bills/{docId} {
+        allow read, write: if signedIn();
+      }
+
+      match /split_shares/{docId} {
+        allow read, write: if signedIn();
+      }
+
+      match /split_invites/{docId} {
+        allow read: if signedIn();
+        allow write: if false;
+      }
+
       match /{subCollection}/{docId} {
-        allow read: if isMember(workspaceId);
-        allow write: if hasRole(workspaceId, ['owner', 'admin', 'member']);
+        allow read: if isMember(workspaceId) || isWorkspaceOwnerByParent(workspaceId);
+        allow write: if hasRole(workspaceId, ['owner', 'admin', 'member']) || isWorkspaceOwnerByParent(workspaceId);
       }
     }
 
-    // Regra para mapeamento de Workspaces do Usuário (Legado/Auxiliar)
-    // Regra para o documento do Usuário e suas subcoleções
     match /users/{userId} {
-      // Permite que o usuário leia/escreva no próprio documento (onde está o isAdmin)
       allow read, write: if signedIn() && request.auth.uid == userId;
 
       match /workspaces/{workspaceId} {

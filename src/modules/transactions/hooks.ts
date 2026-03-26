@@ -1,18 +1,33 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  getTransactions,
   createTransaction,
-  updateTransaction,
+  createTransactionsBatch,
   deleteTransaction,
+  getTransactions,
+  updateTransaction
 } from "./api";
 import type { Transaction } from "../../types";
 
+const transactionKey = (workspaceId: string) => ["transactions", workspaceId] as const;
+const goalKey = (workspaceId: string) => ["goals", workspaceId] as const;
+const isWorkspaceReady = (workspaceId: string) => !!workspaceId && workspaceId !== "loading";
+
+const invalidateTransactionDependents = async (
+  queryClient: ReturnType<typeof useQueryClient>,
+  workspaceId: string
+) => {
+  await Promise.all([
+    queryClient.invalidateQueries({ queryKey: transactionKey(workspaceId) }),
+    queryClient.invalidateQueries({ queryKey: goalKey(workspaceId) })
+  ]);
+};
+
 export const useTransactions = (workspaceId: string) => {
   return useQuery({
-    queryKey: ["transactions", workspaceId],
+    queryKey: transactionKey(workspaceId),
     queryFn: () => getTransactions(workspaceId),
-    enabled: !!workspaceId,
-    staleTime: 1000 * 60 * 5,
+    enabled: isWorkspaceReady(workspaceId),
+    staleTime: 1000 * 60 * 5
   });
 };
 
@@ -22,9 +37,21 @@ export const useCreateTransaction = (workspaceId: string) => {
   return useMutation({
     mutationFn: (newTransaction: Omit<Transaction, "id">) =>
       createTransaction(workspaceId, newTransaction),
-    onSuccess: () => {
-      return queryClient.invalidateQueries({ queryKey: ["transactions"] });
-    },
+    onSuccess: async () => {
+      await invalidateTransactionDependents(queryClient, workspaceId);
+    }
+  });
+};
+
+export const useCreateTransactionsBatch = (workspaceId: string) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (newTransactions: Omit<Transaction, "id">[]) =>
+      createTransactionsBatch(workspaceId, newTransactions),
+    onSuccess: async () => {
+      await invalidateTransactionDependents(queryClient, workspaceId);
+    }
   });
 };
 
@@ -34,9 +61,9 @@ export const useUpdateTransaction = (workspaceId: string) => {
   return useMutation({
     mutationFn: (transaction: Transaction) =>
       updateTransaction(workspaceId, transaction),
-    onSuccess: () => {
-      return queryClient.invalidateQueries({ queryKey: ["transactions"] });
-    },
+    onSuccess: async () => {
+      await invalidateTransactionDependents(queryClient, workspaceId);
+    }
   });
 };
 
@@ -45,8 +72,8 @@ export const useDeleteTransaction = (workspaceId: string) => {
 
   return useMutation({
     mutationFn: (id: string | number) => deleteTransaction(workspaceId, id),
-    onSuccess: () => {
-      return queryClient.invalidateQueries({ queryKey: ["transactions"] });
-    },
+    onSuccess: async () => {
+      await invalidateTransactionDependents(queryClient, workspaceId);
+    }
   });
 };

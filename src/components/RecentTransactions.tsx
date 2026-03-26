@@ -4,6 +4,7 @@ import { transactionTypeColors } from '../constants.ts';
 import { PlusIcon, SortUpIcon, SortDownIcon } from './Icons.tsx';
 // NOVO IMPORT
 import { usePlan } from '../hooks/usePlan.ts';
+import { formatDateBR, isSameMonthYear } from '../utils/date.ts';
 
 interface RecentTransactionsProps {
     transactions: Transaction[];
@@ -12,24 +13,30 @@ interface RecentTransactionsProps {
 
 type SortableKeys = 'description' | 'category' | 'date' | 'value';
 
+const getHeaderAlignClass = (align: 'left' | 'right' | 'center') => {
+    if (align === 'right') return 'text-right';
+    if (align === 'center') return 'text-center';
+    return 'text-left';
+};
+
+const getButtonAlignClass = (align: 'left' | 'right' | 'center') => {
+    if (align === 'right') return 'w-full justify-end';
+    if (align === 'center') return 'w-full justify-center';
+    return 'w-full justify-start';
+};
+
 const RecentTransactions: React.FC<RecentTransactionsProps> = ({ transactions, onNewTransaction }) => {
     const [filter, setFilter] = useState<TransactionType | 'todas'>('todas');
     const [sortConfig, setSortConfig] = useState<{ key: SortableKeys; direction: 'ascending' | 'descending' }>({ key: 'date', direction: 'descending' });
 
     // --- LÓGICA DE LIMITES DE PLANO ---
-    const { checkLimit, userPlan } = usePlan();
+    const { checkLimit } = usePlan();
     
     // Conta quantas transações existem no mês atual
     const transactionsThisMonth = useMemo(() => {
-        const today = new Date();
-        const currentMonth = today.getMonth();
-        const currentYear = today.getFullYear();
-        
-        return transactions.filter(t => {
-            const tDate = new Date(t.date + 'T00:00:00');
-            return tDate.getMonth() === currentMonth && tDate.getFullYear() === currentYear;
-        }).length;
-    }, [transactions]);
+    const today = new Date();
+    return transactions.filter((transaction) => isSameMonthYear(transaction.date, today)).length;
+}, [transactions]);
 
     const canCreateTransaction = checkLimit('transactionsMonth', transactionsThisMonth);
     // ----------------------------------
@@ -76,17 +83,14 @@ const RecentTransactions: React.FC<RecentTransactionsProps> = ({ transactions, o
 
     const formatCurrency = (value: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
     
-    const formatDate = (dateString: string) => {
-        const date = new Date(dateString + 'T00:00:00');
-        return date.toLocaleDateString('pt-BR');
-    }
+    const formatDate = (dateString: string) => formatDateBR(dateString);
     
-    const tableHeaders: { key: SortableKeys, label: string, align: 'left' | 'right' }[] = [
-        { key: 'description', label: 'Descrição', align: 'left'},
-        { key: 'category', label: 'Categoria', align: 'left'},
-        { key: 'date', label: 'Data', align: 'left'},
-        { key: 'value', label: 'Valor', align: 'right'},
-    ];
+    const tableHeaders: { key: SortableKeys, label: string, align: 'left' | 'right' | 'center' }[] = [
+    { key: 'description', label: 'Descrição', align: 'left' },
+    { key: 'category', label: 'Categoria', align: 'left' },
+    { key: 'date', label: 'Data', align: 'left' },
+    { key: 'value', label: 'Valor', align: 'center' },
+];
 
     return (
         <div className="bg-white dark:bg-dark-100 rounded-xl shadow-md p-6 h-full">
@@ -133,8 +137,14 @@ const RecentTransactions: React.FC<RecentTransactionsProps> = ({ transactions, o
                     <thead>
                         <tr className="border-b border-gray-200 dark:border-gray-700">
                             {tableHeaders.map(({ key, label, align }) => (
-                                <th key={key} className={`text-${align} py-3 px-4 text-gray-500 dark:text-gray-400 font-medium`}>
-                                    <button onClick={() => requestSort(key)} className="flex items-center hover:text-gray-700 dark:hover:text-gray-200 transition-colors">
+                                <th
+                                    key={key}
+                                    className={`${getHeaderAlignClass(align)} py-3 px-4 text-gray-500 dark:text-gray-400 font-medium`}
+                                >
+                                    <button
+                                        onClick={() => requestSort(key)}
+                                        className={`flex items-center ${getButtonAlignClass(align)} hover:text-gray-700 dark:hover:text-gray-200 transition-colors`}
+                                    >
                                         {label}
                                         {getSortIcon(key)}
                                     </button>
@@ -151,7 +161,7 @@ const RecentTransactions: React.FC<RecentTransactionsProps> = ({ transactions, o
                                 </td>
                                 <td className="py-4 px-4 text-gray-600 dark:text-gray-300">{t.category}</td>
                                 <td className="py-4 px-4 text-gray-600 dark:text-gray-300">{formatDate(t.date)}</td>
-                                <td className={`py-4 px-4 text-right font-medium ${transactionTypeColors[t.type] || ''}`}>
+                                <td className={`py-4 px-4 text-center font-medium ${transactionTypeColors[t.type] || ''}`}>
                                     {t.type === 'receita' ? '+' : '-'} {formatCurrency(t.value)}
                                 </td>
                             </tr>

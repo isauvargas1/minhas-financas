@@ -44,12 +44,14 @@ import {
 
 import type {
   Transaction,
+  TransactionType,
   SummaryData,
   EntityItem,
   Goal,
 } from "./types";
 
 import { WalletIcon, ArrowUpIcon, ArrowDownIcon, ChartBarIcon } from "./components/Icons";
+import { isSameMonthYear } from "./utils/date";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useCreateNotification } from "./modules/notifications/hooks";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
@@ -59,9 +61,11 @@ import { LoginView } from "./components/auth/LoginView";
 import {
   useTransactions,
   useCreateTransaction,
+  useCreateTransactionsBatch,
   useUpdateTransaction,
   useDeleteTransaction,
 } from "./modules/transactions/hooks";
+
 import { useCreditCards } from "./modules/credit-cards/hooks";
 // ----------------------
 
@@ -83,15 +87,56 @@ const AppContent: React.FC = () => {
     // Estados de UI
     const [isSidebarExpanded, setIsSidebarExpanded] = useState<boolean>(false);
     const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+    const [transactionModalDefaultType, setTransactionModalDefaultType] = useState<TransactionType | null>(null);
+    const [transactionModalAllowedTypes, setTransactionModalAllowedTypes] = useState<TransactionType[] | null>(null);
     const [notification, setNotification] = useState<{ message: string; visible: boolean }>({ message: '', visible: false });
     const [view, setView] = useState<'dashboard' | 'receita' | 'despesa' | 'investimento' | 'settings' | 'cards' | 'personalizacao' | 'goals' | 'goal_details' | 'shared_expenses' | 'split_group_details' | 'recurring' | 'recurring_details' | 'reports' | 'clients_receivables' | 'loans' | 'loan_details' | 'admin' | 'planos'>('dashboard');    const [isConfirmationOpen, setIsConfirmationOpen] = useState(false);
     const [currentDate, setCurrentDate] = useState(new Date());
+
+    const openFullTransactionModal = () => {
+  setTransactionToEdit(null);
+  setTransactionModalDefaultType(null);
+  setTransactionModalAllowedTypes(null);
+  setIsModalOpen(true);
+};
+
+const openScopedTransactionModal = (viewType: 'receita' | 'despesa' | 'investimento') => {
+  setTransactionToEdit(null);
+
+  if (viewType === 'receita') {
+    setTransactionModalDefaultType('receita');
+    setTransactionModalAllowedTypes(['receita']);
+  } else if (viewType === 'despesa') {
+    setTransactionModalDefaultType('despesa');
+    setTransactionModalAllowedTypes(['despesa', 'parcelado']);
+  } else {
+    setTransactionModalDefaultType('investimento');
+    setTransactionModalAllowedTypes(['investimento']);
+  }
+
+  setIsModalOpen(true);
+};
+
+const openEditTransactionModal = (transaction: Transaction) => {
+  setTransactionToEdit(transaction);
+  setTransactionModalDefaultType(transaction.type);
+  setTransactionModalAllowedTypes([transaction.type]);
+  setIsModalOpen(true);
+};
+
+const closeTransactionModal = () => {
+  setIsModalOpen(false);
+  setTransactionToEdit(null);
+  setTransactionModalDefaultType(null);
+  setTransactionModalAllowedTypes(null);
+};
 
     // --- INTEGRACAO COM FIRESTORE (HOOKS) ---
     
     // 1. Transações
     const { data: transactionsData } = useTransactions(workspaceId);
     const createTxMutation = useCreateTransaction(workspaceId);
+    const createTxBatchMutation = useCreateTransactionsBatch(workspaceId);
     const updateTxMutation = useUpdateTransaction(workspaceId);
     const deleteTxMutation = useDeleteTransaction(workspaceId);
     const transactions = useMemo(() => transactionsData || [], [transactionsData]);
@@ -157,58 +202,60 @@ const AppContent: React.FC = () => {
 
     // --- HANDLERS TRANSAÇÕES ---
     const handleAddTransaction = async (newTransaction: Omit<Transaction, 'id'>) => {
-        if (!user) return;
-        try {
-           // 1. Cria a transação no Firestore
-           await createTxMutation.mutateAsync({ 
-               ...newTransaction, 
-               userId: user.uid, 
-               profileId: workspaceId 
-           });
-           
-           // 2. Se for investimento ligado a uma meta, atualiza o saldo da meta
-           if (newTransaction.type === 'investimento' && newTransaction.goalId) {
-               const targetGoal = goals.find(g => g.id === newTransaction.goalId);
-               if (targetGoal) {
-                   const newAmount = (targetGoal.currentAmount || 0) + newTransaction.value;
-                   await updateGoalMutation.mutateAsync({ 
-                       id: targetGoal.id, 
-                       data: { currentAmount: newAmount } 
-                   });
-               }
-           }
-           
-           showNotification('Transação salva!');
-           playSound('success');
-        } catch (error) {
-            // CORREÇÃO: Tratamento de erro real em vez de "..."
-            console.error("Erro ao salvar transação:", error);
-            showNotification('Erro ao salvar.');
-        }
-    };
+    if (!user) return;
+
+    try {
+        await createTxMutation.mutateAsync({
+            ...newTransaction,
+            userId: user.uid,
+            workspaceId,
+            profileId: workspaceId
+        });
+
+        showNotification('Transação salva!');
+        playSound('success');
+    } catch (error) {
+        console.error("Erro ao salvar transação:", error);
+        showNotification('Erro ao salvar.');
+    }
+};
 
     const handleAddTransactions = async (newTransactions: Omit<Transaction, 'id'>[]) => {
-        if (!user) return;
-        try {
-            await Promise.all(newTransactions.map(t => createTxMutation.mutateAsync({ ...t, userId: user.uid, profileId: workspaceId })));
-            showNotification(`${newTransactions.length} geradas!`);
-            playSound('success');
-        } catch (error) {
-            console.error(error);
-            showNotification('Erro na geração em massa.');
-        }
-    };
+    if (!user) return;
+
+    try {
+        await createTxBatchMutation.mutateAsync(
+            newTransactions.map((transaction) => ({
+                ...transaction,
+                userId: user.uid,
+                workspaceId,
+                profileId: workspaceId
+            }))
+        );
+
+        showNotification(`${newTransactions.length} geradas!`);
+        playSound('success');
+    } catch (error) {
+        console.error("Erro na geração em massa:", error);
+        showNotification('Erro na geração em massa.');
+    }
+};
 
     const handleUpdateTransaction = async (updated: Transaction) => {
-        try {
-            await updateTxMutation.mutateAsync(updated);
-            showNotification('Atualizado!');
-            playSound('success');
-        } catch (error) {
-            console.error(error);
-            showNotification('Erro ao atualizar.');
-        }
-    };
+    try {
+        await updateTxMutation.mutateAsync({
+            ...updated,
+            workspaceId,
+            profileId: updated.profileId ?? workspaceId
+        });
+
+        showNotification('Atualizado!');
+        playSound('success');
+    } catch (error) {
+        console.error(error);
+        showNotification('Erro ao atualizar.');
+    }
+};
 
     const confirmDeleteTransaction = (t: Transaction) => { setTransactionToDelete(t); setIsConfirmationOpen(true); };
 
@@ -283,11 +330,10 @@ const AppContent: React.FC = () => {
     }
   };
 
-    const currentMonthTransactions = useMemo(() => transactions.filter(t => {
-        const d = new Date(t.date);
-        const adj = new Date(d.getTime() + d.getTimezoneOffset() * 60000);
-        return adj.getMonth() === currentDate.getMonth() && adj.getFullYear() === currentDate.getFullYear();
-    }), [transactions, currentDate]);
+    const currentMonthTransactions = useMemo(
+    () => transactions.filter((transaction) => isSameMonthYear(transaction.date, currentDate)),
+    [transactions, currentDate]
+);
 
     const summaryData: SummaryData = useMemo(() => {
         const inc = currentMonthTransactions.filter(t => t.type === 'receita').reduce((a, t) => a + t.value, 0);
@@ -320,7 +366,7 @@ const AppContent: React.FC = () => {
                                     <ReportsWidget transactions={transactions} goals={goals} creditCards={creditCards} onNavigate={() => handleNavigate('reports')} />
                                 </div>
                             </div>
-                            <RecentTransactions transactions={transactions} onNewTransaction={() => setIsModalOpen(true)} />
+                            <RecentTransactions transactions={transactions} onNewTransaction={openFullTransactionModal} />
                         </div>
                     </div>
                 )}
@@ -344,7 +390,19 @@ const AppContent: React.FC = () => {
                         onAddInvestment={() => setIsModalOpen(true)} 
                     />
                     )}                
-                {(view === 'receita' || view === 'despesa' || view === 'investimento') && <TransactionsView viewType={view} transactions={currentMonthTransactions.filter(t => view === 'despesa' ? t.type === 'despesa' || t.type === 'parcelado' : t.type === view)} onBack={() => setView('dashboard')} onAddTransaction={() => setIsModalOpen(true)} onEditTransaction={t => { setTransactionToEdit(t); setIsModalOpen(true); }} onDeleteTransaction={confirmDeleteTransaction} goals={goals} />}
+                {(view === 'receita' || view === 'despesa' || view === 'investimento') && <TransactionsView
+                            viewType={view}
+                            transactions={currentMonthTransactions.filter(t =>
+                                view === 'despesa'
+                                ? t.type === 'despesa' || t.type === 'parcelado'
+                                : t.type === view
+                            )}
+                            onBack={() => setView('dashboard')}
+                            onAddTransaction={() => openScopedTransactionModal(view)}
+                            onEditTransaction={openEditTransactionModal}
+                            onDeleteTransaction={confirmDeleteTransaction}
+                            goals={goals}
+                            />}
                 {view === 'settings' && <SettingsView data={{ productsServices, expenseTypes, categories, paymentTypes, incomeTypes, wallets, costCenters }} onUpdate={handleSettingsUpdate} />}
                 
                 {view === 'cards' && <CreditCardsView transactions={transactions} />}
@@ -377,7 +435,25 @@ const AppContent: React.FC = () => {
 
             </main>
 
-            <TransactionModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onAddTransaction={handleAddTransaction} onAddTransactions={handleAddTransactions} onUpdateTransaction={handleUpdateTransaction} transactionToEdit={transactionToEdit} defaultType={null} currentDate={currentDate} creditCards={creditCards} productsServices={productsServices} settingsCategories={categories} wallets={wallets} expenseTypes={expenseTypes} paymentTypes={paymentTypes} incomeTypes={incomeTypes} goals={goals} />
+            <TransactionModal
+                isOpen={isModalOpen}
+                onClose={closeTransactionModal}
+                onAddTransaction={handleAddTransaction}
+                onAddTransactions={handleAddTransactions}
+                onUpdateTransaction={handleUpdateTransaction}
+                transactionToEdit={transactionToEdit}
+                defaultType={transactionModalDefaultType}
+                allowedTypes={transactionModalAllowedTypes}
+                currentDate={currentDate}
+                creditCards={creditCards}
+                productsServices={productsServices}
+                settingsCategories={categories}
+                wallets={wallets}
+                expenseTypes={expenseTypes}
+                paymentTypes={paymentTypes}
+                incomeTypes={incomeTypes}
+                goals={goals}
+                />
             <ConfirmationModal isOpen={isConfirmationOpen} onClose={() => setIsConfirmationOpen(false)} onConfirm={handleDeleteTransaction} title="Excluir" message="Excluir permanentemente?" />
             <GoalFormModal isOpen={isGoalModalOpen} onClose={() => setIsGoalModalOpen(false)} onSave={handleSaveGoal} goalToEdit={goalToEdit} wallets={wallets} transactions={transactions} />
             <Notification message={notification.message} isVisible={notification.visible} />
