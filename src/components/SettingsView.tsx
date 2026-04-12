@@ -82,9 +82,20 @@ const getAllIconKeys = () => {
     return Array.from(keys);
 };
 
+const getModalPortalRoot = (): HTMLElement => {
+    let root = document.getElementById('__modal_portal_root');
+    if (!root) {
+        root = document.createElement('div');
+        root.setAttribute('id', '__modal_portal_root');
+        // Anexa ao <html>, não ao <body>, para escapar de transforms aplicados ao body
+        document.documentElement.appendChild(root);
+    }
+    return root;
+};
+
 const renderInPortal = (children: React.ReactNode) => {
     if (typeof document === 'undefined') return null;
-    return createPortal(children, document.body);
+    return createPortal(children, getModalPortalRoot());
 };
 
 const SettingsView: React.FC<SettingsViewProps> = () => {
@@ -148,28 +159,24 @@ const SettingsView: React.FC<SettingsViewProps> = () => {
         }
     );
 
+    const shouldLockScroll = isModalOpen || itemToDelete !== null || isMembersModalOpen;
+
     useEffect(() => {
-    const shouldLockScroll = isModalOpen || !!itemToDelete || isMembersModalOpen;
+    if (!shouldLockScroll) return; // Não aplica lock → não registra cleanup
 
-    const previousOverflow = document.body.style.overflow;
-    const previousPaddingRight = document.body.style.paddingRight;
+    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
 
-    if (shouldLockScroll) {
-        const scrollbarWidth =
-            window.innerWidth - document.documentElement.clientWidth;
-
-        document.body.style.overflow = 'hidden';
-
-        if (scrollbarWidth > 0) {
-            document.body.style.paddingRight = `${scrollbarWidth}px`;
-        }
+    document.body.style.overflow = 'hidden';
+    if (scrollbarWidth > 0) {
+        document.body.style.paddingRight = `${scrollbarWidth}px`;
     }
 
     return () => {
-        document.body.style.overflow = previousOverflow;
-        document.body.style.paddingRight = previousPaddingRight;
+        // Cleanup só roda quando o lock foi de fato aplicado
+        document.body.style.overflow = '';
+        document.body.style.paddingRight = '';
     };
-}, [isModalOpen, itemToDelete, isMembersModalOpen]);
+    }, [shouldLockScroll]);
 
     useEffect(() => {
         if (viewMode === 'workspace') {
@@ -854,338 +861,336 @@ const SettingsView: React.FC<SettingsViewProps> = () => {
             </div>
 
             {isModalOpen &&
-    renderInPortal(
-        <div
-            className="fixed inset-0 z-[1000] bg-black/70 backdrop-blur-[2px] overflow-y-auto overscroll-contain"
-            onClick={closeModal}
-        >
-            <div className="min-h-screen flex items-center justify-center p-4 md:p-6">
-                <div
-                    className="my-auto bg-surface rounded-2xl shadow-lg w-full max-w-3xl animate-scale-in flex flex-col max-h-[calc(100vh-2rem)] md:max-h-[calc(100vh-3rem)] border border-border overflow-hidden"
-                    onClick={(e) => e.stopPropagation()}
-                >
-                    <div className="flex justify-between items-center p-5 border-b border-border">
-                        <div>
-                            <h3 className="text-lg font-bold text-on-surface">
-                                {modalMode === 'edit' ? 'Editar cadastro' : 'Novo cadastro'}
-                            </h3>
-                            <p className="text-sm text-muted mt-1">
-                                {activeSection?.title}
-                                {selectedItem?.transactionSubtype
-                                    ? ` • ${selectedItem.transactionSubtype}`
-                                    : activeSection?.supportsTransactionSubtype
-                                    ? ` • ${transactionSubtype}`
-                                    : ''}
-                            </p>
-                        </div>
-                        <button
+                renderInPortal(
+                    <div
+                            style={{ position: 'fixed', inset: 0, zIndex: 1000 }}
+                            className="bg-black/70 backdrop-blur-[2px] flex items-center justify-center p-4 md:p-6"
                             onClick={closeModal}
-                            className="text-muted hover:text-on-surface"
                         >
-                            <CloseIcon />
-                        </button>
-                    </div>
-
-                    <form onSubmit={handleSaveCatalog} className="flex flex-col min-h-0">
-                        <div className="p-5 md:p-6 overflow-y-auto overflow-x-hidden space-y-6 min-w-0">
-                            <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] gap-6 min-w-0">
-                                <div className="space-y-5 min-w-0">
-                                    <div>
-                                        <label className="block text-sm font-medium text-on-surface mb-1.5">
-                                            Nome do cadastro
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={itemName}
-                                            onChange={(e) => setItemName(e.target.value)}
-                                            className="w-full bg-background border border-border rounded-xl px-4 py-3 text-on-surface focus:ring-2 focus:ring-primary outline-none"
-                                            placeholder="Ex.: Cartão corporativo, Fornecedor A, Alimentação..."
-                                            required
-                                        />
-                                    </div>
-
-                                    {activeSection?.supportsTransactionSubtype && (
-                                        <div>
-                                            <label className="block text-sm font-medium text-on-surface mb-2">
-                                                Tipo de transação
-                                            </label>
-                                            <div className="flex flex-wrap gap-2">
-                                                {CATEGORY_SUBTYPE_OPTIONS.map((subtype) => {
-                                                    const isActive = transactionSubtype === subtype.key;
-                                                    const isDisabled = modalMode === 'edit';
-                                                    return (
-                                                        <button
-                                                            key={subtype.key}
-                                                            type="button"
-                                                            disabled={isDisabled}
-                                                            onClick={() =>
-                                                                !isDisabled &&
-                                                                setTransactionSubtype(subtype.key)
-                                                            }
-                                                            className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                                                                isActive
-                                                                    ? 'bg-primary/10 text-primary ring-1 ring-primary/20'
-                                                                    : 'text-muted hover:bg-background'
-                                                            } ${
-                                                                isDisabled
-                                                                    ? 'opacity-70 cursor-not-allowed'
-                                                                    : ''
-                                                            }`}
-                                                        >
-                                                            {subtype.label}
-                                                        </button>
-                                                    );
-                                                })}
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    <div>
-                                        <label className="block text-sm font-medium text-on-surface mb-2">
-                                            Status
-                                        </label>
-                                        <div className="flex gap-2">
-                                            <button
-                                                type="button"
-                                                onClick={() => setItemStatus('active')}
-                                                className={`px-4 py-2 rounded-xl border text-sm font-medium transition-colors ${
-                                                    itemStatus === 'active'
-                                                        ? 'border-green-200 bg-green-50 text-green-700'
-                                                        : 'border-border text-on-surface hover:bg-background'
-                                                }`}
-                                            >
-                                                Ativo
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => setItemStatus('inactive')}
-                                                className={`px-4 py-2 rounded-xl border text-sm font-medium transition-colors ${
-                                                    itemStatus === 'inactive'
-                                                        ? 'border-amber-200 bg-amber-50 text-amber-700'
-                                                        : 'border-border text-on-surface hover:bg-background'
-                                                }`}
-                                            >
-                                                Inativo
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    <div className="rounded-2xl border border-border bg-background p-4">
-                                        <p className="text-xs font-bold uppercase tracking-wide text-muted mb-3">
-                                            Pré-visualização
-                                        </p>
-
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-14 h-14 rounded-2xl bg-surface border border-border flex items-center justify-center">
-                                                {itemIcon ? (
-                                                    renderIcon(itemIcon, itemColor, itemStroke, 28)
-                                                ) : (
-                                                    <TablerIcons.IconShape
-                                                        size={24}
-                                                        className="text-muted"
-                                                    />
-                                                )}
-                                            </div>
-                                            <div className="min-w-0">
-                                                <p className="font-bold text-on-surface truncate">
-                                                    {itemName || 'Novo item do catálogo'}
-                                                </p>
-                                                <p className="text-sm text-muted">
-                                                    {activeSection?.shortTitle}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
+                        <div
+                            className="bg-surface rounded-2xl shadow-lg w-full max-w-3xl animate-scale-in flex flex-col max-h-[90vh] border border-border overflow-hidden"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div className="flex justify-between items-center p-5 border-b border-border shrink-0">
+                                <div>
+                                    <h3 className="text-lg font-bold text-on-surface">
+                                        {modalMode === 'edit' ? 'Editar cadastro' : 'Novo cadastro'}
+                                    </h3>
+                                    <p className="text-sm text-muted mt-1">
+                                        {activeSection?.title}
+                                        {selectedItem?.transactionSubtype
+                                            ? ` • ${selectedItem.transactionSubtype}`
+                                            : activeSection?.supportsTransactionSubtype
+                                            ? ` • ${transactionSubtype}`
+                                            : ''}
+                                    </p>
                                 </div>
+                                <button
+                                    onClick={closeModal}
+                                    className="text-muted hover:text-on-surface"
+                                >
+                                    <CloseIcon />
+                                </button>
+                            </div>
 
-                                <div className="space-y-4 min-w-0">
-                                    <div className="rounded-2xl border border-border bg-background p-4">
-                                        <div className="flex items-center justify-between gap-3 mb-3">
-                                            <label className="text-sm font-medium text-on-surface">
-                                                Ícone
-                                            </label>
-                                            {itemIcon && (
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setItemIcon('')}
-                                                    className="text-xs font-bold text-red-600 hover:text-red-700"
-                                                >
-                                                    Remover ícone
-                                                </button>
-                                            )}
-                                        </div>
-
-                                        <div className="space-y-3">
-                                            <div className="relative">
+                            <form onSubmit={handleSaveCatalog} className="flex flex-col min-h-0">
+                                <div className="p-5 md:p-6 overflow-y-auto overflow-x-hidden space-y-6 min-w-0">
+                                    <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] gap-6 min-w-0">
+                                        <div className="space-y-5 min-w-0">
+                                            <div>
+                                                <label className="block text-sm font-medium text-on-surface mb-1.5">
+                                                    Nome do cadastro
+                                                </label>
                                                 <input
                                                     type="text"
-                                                    value={iconSearch}
-                                                    onChange={(e) => setIconSearch(e.target.value)}
-                                                    placeholder="Buscar ícone"
-                                                    className="w-full pl-10 pr-4 py-2.5 border border-border rounded-xl bg-surface text-on-surface focus:outline-none focus:ring-2 focus:ring-primary"
+                                                    value={itemName}
+                                                    onChange={(e) => setItemName(e.target.value)}
+                                                    className="w-full bg-background border border-border rounded-xl px-4 py-3 text-on-surface focus:ring-2 focus:ring-primary outline-none"
+                                                    placeholder="Ex.: Cartão corporativo, Fornecedor A, Alimentação..."
+                                                    required
                                                 />
-                                                <div className="absolute left-3 top-2.5 text-muted">
-                                                    <SearchIcon className="h-5 w-5" />
+                                            </div>
+
+                                            {activeSection?.supportsTransactionSubtype && (
+                                                <div>
+                                                    <label className="block text-sm font-medium text-on-surface mb-2">
+                                                        Tipo de transação
+                                                    </label>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {CATEGORY_SUBTYPE_OPTIONS.map((subtype) => {
+                                                            const isActive = transactionSubtype === subtype.key;
+                                                            const isDisabled = modalMode === 'edit';
+                                                            return (
+                                                                <button
+                                                                    key={subtype.key}
+                                                                    type="button"
+                                                                    disabled={isDisabled}
+                                                                    onClick={() =>
+                                                                        !isDisabled &&
+                                                                        setTransactionSubtype(subtype.key)
+                                                                    }
+                                                                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                                                                        isActive
+                                                                            ? 'bg-primary/10 text-primary ring-1 ring-primary/20'
+                                                                            : 'text-muted hover:bg-background'
+                                                                    } ${
+                                                                        isDisabled
+                                                                            ? 'opacity-70 cursor-not-allowed'
+                                                                            : ''
+                                                                    }`}
+                                                                >
+                                                                    {subtype.label}
+                                                                </button>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            <div>
+                                                <label className="block text-sm font-medium text-on-surface mb-2">
+                                                    Status
+                                                </label>
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setItemStatus('active')}
+                                                        className={`px-4 py-2 rounded-xl border text-sm font-medium transition-colors ${
+                                                            itemStatus === 'active'
+                                                                ? 'border-green-200 bg-green-50 text-green-700'
+                                                                : 'border-border text-on-surface hover:bg-background'
+                                                        }`}
+                                                    >
+                                                        Ativo
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setItemStatus('inactive')}
+                                                        className={`px-4 py-2 rounded-xl border text-sm font-medium transition-colors ${
+                                                            itemStatus === 'inactive'
+                                                                ? 'border-amber-200 bg-amber-50 text-amber-700'
+                                                                : 'border-border text-on-surface hover:bg-background'
+                                                        }`}
+                                                    >
+                                                        Inativo
+                                                    </button>
                                                 </div>
                                             </div>
 
-                                            <div className="flex flex-wrap gap-2">
-                                                {ICON_CATEGORIES.map((category) => (
-                                                    <button
-                                                        key={category.label}
-                                                        type="button"
-                                                        onClick={() => setSelectedIconCategory(category.label)}
-                                                        className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all ${
-                                                            selectedIconCategory === category.label
-                                                                ? 'bg-primary/10 text-primary ring-1 ring-primary/20'
-                                                                : 'bg-surface text-muted hover:bg-white/60'
-                                                        }`}
-                                                    >
-                                                        {category.label}
-                                                    </button>
-                                                ))}
-                                            </div>
+                                            <div className="rounded-2xl border border-border bg-background p-4">
+                                                <p className="text-xs font-bold uppercase tracking-wide text-muted mb-3">
+                                                    Pré-visualização
+                                                </p>
 
-                                            <div className="grid grid-cols-6 sm:grid-cols-7 gap-2 max-h-64 overflow-y-auto hide-scrollbar p-1">
-                                                {filteredIcons
-                                                    .slice(0, visibleIconCount)
-                                                    .map((key) => (
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-14 h-14 rounded-2xl bg-surface border border-border flex items-center justify-center">
+                                                        {itemIcon ? (
+                                                            renderIcon(itemIcon, itemColor, itemStroke, 28)
+                                                        ) : (
+                                                            <TablerIcons.IconShape
+                                                                size={24}
+                                                                className="text-muted"
+                                                            />
+                                                        )}
+                                                    </div>
+                                                    <div className="min-w-0">
+                                                        <p className="font-bold text-on-surface truncate">
+                                                            {itemName || 'Novo item do catálogo'}
+                                                        </p>
+                                                        <p className="text-sm text-muted">
+                                                            {activeSection?.shortTitle}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-4 min-w-0">
+                                            <div className="rounded-2xl border border-border bg-background p-4">
+                                                <div className="flex items-center justify-between gap-3 mb-3">
+                                                    <label className="text-sm font-medium text-on-surface">
+                                                        Ícone
+                                                    </label>
+                                                    {itemIcon && (
                                                         <button
-                                                            key={key}
                                                             type="button"
-                                                            onClick={() => setItemIcon(key)}
-                                                            className={`aspect-square rounded-xl flex items-center justify-center border transition-all ${
-                                                                itemIcon === key
-                                                                    ? 'border-primary bg-primary/10'
-                                                                    : 'border-transparent hover:border-border hover:bg-surface'
-                                                            }`}
+                                                            onClick={() => setItemIcon('')}
+                                                            className="text-xs font-bold text-red-600 hover:text-red-700"
                                                         >
-                                                            {renderIcon(
-                                                                key,
-                                                                itemIcon === key ? itemColor : '#6b7280',
-                                                                itemIcon === key ? itemStroke : 2,
-                                                                20
-                                                            )}
+                                                            Remover ícone
                                                         </button>
-                                                    ))}
+                                                    )}
+                                                </div>
+
+                                                <div className="space-y-3">
+                                                    <div className="relative">
+                                                        <input
+                                                            type="text"
+                                                            value={iconSearch}
+                                                            onChange={(e) => setIconSearch(e.target.value)}
+                                                            placeholder="Buscar ícone"
+                                                            className="w-full pl-10 pr-4 py-2.5 border border-border rounded-xl bg-surface text-on-surface focus:outline-none focus:ring-2 focus:ring-primary"
+                                                        />
+                                                        <div className="absolute left-3 top-2.5 text-muted">
+                                                            <SearchIcon className="h-5 w-5" />
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {ICON_CATEGORIES.map((category) => (
+                                                            <button
+                                                                key={category.label}
+                                                                type="button"
+                                                                onClick={() => setSelectedIconCategory(category.label)}
+                                                                className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all ${
+                                                                    selectedIconCategory === category.label
+                                                                        ? 'bg-primary/10 text-primary ring-1 ring-primary/20'
+                                                                        : 'bg-surface text-muted hover:bg-white/60'
+                                                                }`}
+                                                            >
+                                                                {category.label}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+
+                                                    <div className="grid grid-cols-6 sm:grid-cols-7 gap-2 max-h-64 overflow-y-auto hide-scrollbar p-1">
+                                                        {filteredIcons
+                                                            .slice(0, visibleIconCount)
+                                                            .map((key) => (
+                                                                <button
+                                                                    key={key}
+                                                                    type="button"
+                                                                    onClick={() => setItemIcon(key)}
+                                                                    className={`aspect-square rounded-xl flex items-center justify-center border transition-all ${
+                                                                        itemIcon === key
+                                                                            ? 'border-primary bg-primary/10'
+                                                                            : 'border-transparent hover:border-border hover:bg-surface'
+                                                                    }`}
+                                                                >
+                                                                    {renderIcon(
+                                                                        key,
+                                                                        itemIcon === key ? itemColor : '#6b7280',
+                                                                        itemIcon === key ? itemStroke : 2,
+                                                                        20
+                                                                    )}
+                                                                </button>
+                                                            ))}
+                                                    </div>
+
+                                                    {visibleIconCount < filteredIcons.length && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                setVisibleIconCount((prev) => prev + 48)
+                                                            }
+                                                            className="w-full py-2 rounded-xl border border-border text-sm font-medium text-on-surface hover:bg-surface transition-colors"
+                                                        >
+                                                            Mostrar mais ícones
+                                                        </button>
+                                                    )}
+                                                </div>
                                             </div>
 
-                                            {visibleIconCount < filteredIcons.length && (
-                                                <button
-                                                    type="button"
-                                                    onClick={() =>
-                                                        setVisibleIconCount((prev) => prev + 48)
-                                                    }
-                                                    className="w-full py-2 rounded-xl border border-border text-sm font-medium text-on-surface hover:bg-surface transition-colors"
-                                                >
-                                                    Mostrar mais ícones
-                                                </button>
+                                            {itemIcon && (
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div>
+                                                        <label className="block text-xs font-bold text-muted uppercase mb-1.5">
+                                                            Cor
+                                                        </label>
+                                                        <input
+                                                            type="color"
+                                                            value={itemColor}
+                                                            onChange={(e) => setItemColor(e.target.value)}
+                                                            className="w-full h-11 rounded-lg cursor-pointer p-1 bg-background"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-xs font-bold text-muted uppercase mb-1.5">
+                                                            Traço
+                                                        </label>
+                                                        <input
+                                                            type="number"
+                                                            step="0.5"
+                                                            min="1"
+                                                            max="4"
+                                                            value={itemStroke}
+                                                            onChange={(e) =>
+                                                                setItemStroke(parseFloat(e.target.value))
+                                                            }
+                                                            className="w-full bg-background border border-border rounded-lg px-4 py-2.5 text-on-surface"
+                                                        />
+                                                    </div>
+                                                </div>
                                             )}
                                         </div>
                                     </div>
+                                </div>
 
-                                    {itemIcon && (
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div>
-                                                <label className="block text-xs font-bold text-muted uppercase mb-1.5">
-                                                    Cor
-                                                </label>
-                                                <input
-                                                    type="color"
-                                                    value={itemColor}
-                                                    onChange={(e) => setItemColor(e.target.value)}
-                                                    className="w-full h-11 rounded-lg cursor-pointer p-1 bg-background"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-xs font-bold text-muted uppercase mb-1.5">
-                                                    Traço
-                                                </label>
-                                                <input
-                                                    type="number"
-                                                    step="0.5"
-                                                    min="1"
-                                                    max="4"
-                                                    value={itemStroke}
-                                                    onChange={(e) =>
-                                                        setItemStroke(parseFloat(e.target.value))
-                                                    }
-                                                    className="w-full bg-background border border-border rounded-lg px-4 py-2.5 text-on-surface"
-                                                />
-                                            </div>
-                                        </div>
-                                    )}
+                                <div className="p-5 border-t border-border flex flex-col-reverse sm:flex-row justify-end gap-3 shrink-0">
+                                    <button
+                                        type="button"
+                                        onClick={closeModal}
+                                        className="px-4 py-2.5 bg-background border border-border text-on-surface rounded-xl font-medium"
+                                    >
+                                        Cancelar
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        className="px-6 py-2.5 bg-primary text-white rounded-xl font-bold shadow-md disabled:opacity-60"
+                                        disabled={isLoading}
+                                    >
+                                        {modalMode === 'edit' ? 'Salvar alterações' : 'Criar cadastro'}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )}
+
+            {itemToDelete &&
+                renderInPortal(
+                    <div
+                            style={{ position: 'fixed', inset: 0, zIndex: 1000 }}
+                            className="bg-black/70 backdrop-blur-[2px] flex items-center justify-center p-4 md:p-6"
+                            onClick={() => setItemToDelete(null)}
+                        >
+                        <div
+                            className="bg-surface rounded-2xl shadow-lg w-full max-w-md animate-scale-in border border-border overflow-hidden max-h-[90vh] flex flex-col"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div className="p-6 overflow-y-auto">
+                                <div className="w-12 h-12 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center mb-4">
+                                    <WarningIcon className="h-6 w-6" />
+                                </div>
+
+                                <h3 className="text-lg font-bold text-on-surface">
+                                    Excluir cadastro
+                                </h3>
+                                <p className="text-sm text-muted mt-2">
+                                    Tem certeza que deseja excluir <strong>{itemToDelete.name}</strong>?
+                                    Esta ação também libera a chave de unicidade desse item.
+                                </p>
+
+                                <div className="mt-6 flex flex-col-reverse sm:flex-row justify-end gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => setItemToDelete(null)}
+                                        className="px-4 py-2.5 bg-background border border-border text-on-surface rounded-xl font-medium"
+                                    >
+                                        Cancelar
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={handleConfirmDelete}
+                                        className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold"
+                                    >
+                                        Excluir item
+                                    </button>
                                 </div>
                             </div>
                         </div>
-
-                        <div className="p-5 border-t border-border flex flex-col-reverse sm:flex-row justify-end gap-3">
-                            <button
-                                type="button"
-                                onClick={closeModal}
-                                className="px-4 py-2.5 bg-background border border-border text-on-surface rounded-xl font-medium"
-                            >
-                                Cancelar
-                            </button>
-                            <button
-                                type="submit"
-                                className="px-6 py-2.5 bg-primary text-white rounded-xl font-bold shadow-md disabled:opacity-60"
-                                disabled={isLoading}
-                            >
-                                {modalMode === 'edit' ? 'Salvar alterações' : 'Criar cadastro'}
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    )}
-
-            {itemToDelete &&
-    renderInPortal(
-        <div
-            className="fixed inset-0 z-[1000] bg-black/70 backdrop-blur-[2px] overflow-y-auto overscroll-contain"
-            onClick={() => setItemToDelete(null)}
-        >
-            <div className="min-h-screen flex items-center justify-center p-4 md:p-6">
-                <div
-                    className="my-auto bg-surface rounded-2xl shadow-lg w-full max-w-md animate-scale-in border border-border overflow-hidden"
-                    onClick={(e) => e.stopPropagation()}
-                >
-                    <div className="p-6">
-                        <div className="w-12 h-12 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center mb-4">
-                            <WarningIcon className="h-6 w-6" />
-                        </div>
-
-                        <h3 className="text-lg font-bold text-on-surface">
-                            Excluir cadastro
-                        </h3>
-                        <p className="text-sm text-muted mt-2">
-                            Tem certeza que deseja excluir <strong>{itemToDelete.name}</strong>?
-                            Esta ação também libera a chave de unicidade desse item.
-                        </p>
-
-                        <div className="mt-6 flex flex-col-reverse sm:flex-row justify-end gap-3">
-                            <button
-                                type="button"
-                                onClick={() => setItemToDelete(null)}
-                                className="px-4 py-2.5 bg-background border border-border text-on-surface rounded-xl font-medium"
-                            >
-                                Cancelar
-                            </button>
-                            <button
-                                type="button"
-                                onClick={handleConfirmDelete}
-                                className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold"
-                            >
-                                Excluir item
-                            </button>
-                        </div>
                     </div>
-                </div>
-            </div>
-        </div>
-    )}
+                )}
 
             {isMembersModalOpen && (
                 <MembersManagerModal onClose={() => setIsMembersModalOpen(false)} />
