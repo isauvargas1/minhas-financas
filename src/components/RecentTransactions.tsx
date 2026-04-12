@@ -2,9 +2,11 @@ import React, { useState, useMemo } from 'react';
 import { Transaction, TransactionType } from '../types.ts';
 import { transactionTypeColors } from '../constants.ts';
 import { PlusIcon, SortUpIcon, SortDownIcon } from './Icons.tsx';
-// NOVO IMPORT
+import CatalogVisualChip from './CatalogVisualChip.tsx';
 import { usePlan } from '../hooks/usePlan.ts';
 import { formatDateBR, isSameMonthYear } from '../utils/date.ts';
+import { useSettingsCatalog } from '../modules/settings-catalog/hooks.ts';
+import { resolveTransactionVisuals } from '../modules/settings-catalog/display.ts';
 
 interface RecentTransactionsProps {
     transactions: Transaction[];
@@ -31,6 +33,8 @@ const RecentTransactions: React.FC<RecentTransactionsProps> = ({ transactions, o
 
     // --- LÓGICA DE LIMITES DE PLANO ---
     const { checkLimit } = usePlan();
+    const catalogQuery = useSettingsCatalog({ includeInactive: true });
+    const catalogItems = catalogQuery.data ?? [];
     
     // Conta quantas transações existem no mês atual
     const transactionsThisMonth = useMemo(() => {
@@ -153,19 +157,52 @@ const RecentTransactions: React.FC<RecentTransactionsProps> = ({ transactions, o
                         </tr>
                     </thead>
                     <tbody>
-                        {sortedTransactions.slice(0, 9).map(t => (
-                            <tr key={t.id} className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-dark-200 transition-colors duration-200">
-                                <td className="py-4 px-4 text-gray-800 dark:text-gray-200">
-                                    {t.description}
-                                    {t.type === 'parcelado' && ` (${t.currentInstallment}/${t.installments})`}
-                                </td>
-                                <td className="py-4 px-4 text-gray-600 dark:text-gray-300">{t.category}</td>
-                                <td className="py-4 px-4 text-gray-600 dark:text-gray-300">{formatDate(t.date)}</td>
-                                <td className={`py-4 px-4 text-center font-medium ${transactionTypeColors[t.type] || ''}`}>
-                                    {t.type === 'receita' ? '+' : '-'} {formatCurrency(t.value)}
-                                </td>
-                            </tr>
-                        ))}
+                        {sortedTransactions.slice(0, 9).map((t) => {
+    const visuals = resolveTransactionVisuals({
+        transaction: t,
+        catalogItems,
+    });
+
+    return (
+        <tr key={t.id} className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-dark-200 transition-colors duration-200">
+            <td className="py-4 px-4 text-gray-800 dark:text-gray-200">
+                <div className="flex flex-col gap-1">
+                    {(t.type === 'despesa' || t.type === 'parcelado') && (
+                        <CatalogVisualChip
+                            visual={visuals.productService}
+                            fallbackLabel={t.description}
+                                                />
+                                            )}
+
+                                            {t.type === 'receita' || t.type === 'investimento' ? (
+                                                <span>{t.description}</span>
+                                            ) : null}
+
+                                            {t.type === 'parcelado' && (
+                                                <span className="text-xs text-purple-600 dark:text-purple-300 font-medium">
+                                                    Parcela {t.currentInstallment}/{t.installments}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </td>
+
+                                    <td className="py-4 px-4 text-gray-600 dark:text-gray-300">
+                                        <CatalogVisualChip
+                                            visual={visuals.category}
+                                            fallbackLabel={t.category}
+                                        />
+                                    </td>
+
+                                    <td className="py-4 px-4 text-gray-600 dark:text-gray-300">
+                                        {formatDate(t.date)}
+                                    </td>
+
+                                    <td className={`py-4 px-4 text-center font-medium ${transactionTypeColors[t.type] || ''}`}>
+                                        {t.type === 'receita' ? '+' : '-'} {formatCurrency(t.value)}
+                                    </td>
+                                </tr>
+                            );
+                        })}
                     </tbody>
                 </table>
             </div>

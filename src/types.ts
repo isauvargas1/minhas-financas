@@ -1,10 +1,13 @@
 
-import React from 'react';
+import type { ReactNode } from 'react';
 export * from './modules/recurring-expenses/types.ts';
 export * from './modules/reports/types.ts';
 export * from './modules/notifications/types.ts';
 export * from './modules/messages/types.ts';
 export * from './modules/loans/types.ts';
+export * from './modules/settings-catalog/types.ts';
+export * from './modules/settings-catalog/types.ts';
+export * from './modules/settings-catalog/display.ts';
 
 export type WorkspaceType = 'PF' | 'PJ';
 
@@ -86,6 +89,33 @@ export interface SettingsData {
     costCenters: EntityItem[];
 }
 
+export interface TransactionCatalogVisualSnapshot {
+    group:
+        | 'product_service'
+        | 'expense_type'
+        | 'category'
+        | 'payment_method'
+        | 'income_type'
+        | 'wallet'
+        | 'cost_center';
+    label: string;
+    normalizedLabel: string;
+    icon?: string;
+    color?: string;
+    stroke?: number;
+    transactionSubtype?: TransactionType;
+}
+
+export interface TransactionDisplaySnapshots {
+    categorySnapshot?: TransactionCatalogVisualSnapshot;
+    expenseTypeSnapshot?: TransactionCatalogVisualSnapshot;
+    incomeTypeSnapshot?: TransactionCatalogVisualSnapshot;
+    paymentMethodSnapshot?: TransactionCatalogVisualSnapshot;
+    productServiceSnapshot?: TransactionCatalogVisualSnapshot;
+    walletSnapshot?: TransactionCatalogVisualSnapshot;
+    costCenterSnapshot?: TransactionCatalogVisualSnapshot;
+}
+
 export interface Transaction {
     id: number | string;
     type: TransactionType;
@@ -109,6 +139,7 @@ export interface Transaction {
     profileId?: string;
     supplier?: string;
     costCenter?: string;
+    displaySnapshots?: TransactionDisplaySnapshots;
 }
 
 // --- GOALS MODULE TYPES ---
@@ -278,7 +309,7 @@ export interface SummaryCardProps {
     title: string;
     value: number;
     trend: string;
-    icon: React.ReactNode;
+    icon: ReactNode;
     color: 'blue' | 'green' | 'red' | 'indigo' | 'purple';
     isClickable?: boolean;
     onClick?: () => void;
@@ -306,6 +337,8 @@ export interface TransactionModalProps {
     expenseTypes?: EntityItem[];
     paymentTypes?: EntityItem[];
     incomeTypes?: EntityItem[];
+    allowedTypes?: TransactionType[] | null;
+    costCenters?: EntityItem[];
     onAddProductService?: (name: string) => void;
 }
 

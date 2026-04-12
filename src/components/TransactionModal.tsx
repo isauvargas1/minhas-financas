@@ -1,9 +1,21 @@
 
 import React, { useState, FormEvent, useEffect, useRef, useMemo } from 'react';
-import { Transaction, TransactionType, CreditCard, EntityItem, TransactionModalProps, Goal } from '../types.ts';
-// Added DynamicIcon to the imports below to fix the error on line 603
+import {
+    Transaction,
+    TransactionType,
+    CreditCard,
+    EntityItem,
+    TransactionModalProps,
+    Goal,
+    TransactionDisplaySnapshots,
+    TransactionCatalogVisualSnapshot,
+} from '../types.ts';
 import { CloseIcon, TargetIcon, BriefcaseIcon, BuildingIcon, SparklesIcon, MicrophoneIcon, DynamicIcon } from './Icons.tsx';
+import CatalogCombobox from './CatalogCombobox.tsx';
 import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
+import { useTransactionCatalogOptions } from '../modules/settings-catalog/useTransactionCatalogOptions.ts';
+import { useCreateSettingsCatalogItem } from '../modules/settings-catalog/hooks.ts';
+import { normalizeSettingsCatalogName } from '../modules/settings-catalog/utils.ts';
 import { GoogleGenAI, Type } from "@google/genai";
 
 interface ExtendedTransactionModalProps extends TransactionModalProps {
@@ -28,12 +40,15 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
     expenseTypes = [],
     paymentTypes = [],
     incomeTypes = [],
+    costCenters = [],
     goals = [],
     defaultGoalId = null, 
     onAddProductService
 }) => {
     const { activeWorkspace } = useWorkspace();
     const isPJ = activeWorkspace.type === 'PJ';
+    const createCatalogItemMutation = useCreateSettingsCatalogItem();
+   
     
     const isEditing = !!transactionToEdit;
     const [activeTab, setActiveTab] = useState<TransactionType>('receita');
@@ -82,6 +97,235 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
     const [supplier, setSupplier] = useState('');
     const [costCenter, setCostCenter] = useState('');
 
+        
+
+    const buildNameOptions = (
+        items: EntityItem[] = [],
+        selectedValue?: string
+    ) => {
+        const names = items.map((item) => item.name);
+
+        if (
+            selectedValue &&
+            selectedValue.trim() &&
+            !names.some(
+                (name) => name.trim().toLowerCase() === selectedValue.trim().toLowerCase()
+            )
+        ) {
+            return [selectedValue, ...names];
+        }
+
+        return names;
+    };
+
+    const effectiveTransactionType = isEditing && transactionToEdit
+        ? transactionToEdit.type
+        : activeTab;
+
+    const {
+        options: catalogOptions,
+        isLoading: isCatalogLoading,
+    } = useTransactionCatalogOptions(effectiveTransactionType);
+
+    const mergedProductsServices = useMemo(
+    () => catalogOptions.productsServices,
+    [catalogOptions.productsServices]
+);
+
+const mergedSettingsCategories = useMemo(
+    () => catalogOptions.settingsCategories,
+    [catalogOptions.settingsCategories]
+);
+
+const mergedWallets = useMemo(
+    () => catalogOptions.wallets,
+    [catalogOptions.wallets]
+);
+
+const mergedExpenseTypes = useMemo(
+    () => catalogOptions.expenseTypes,
+    [catalogOptions.expenseTypes]
+);
+
+const mergedPaymentTypes = useMemo(
+    () => catalogOptions.paymentTypes,
+    [catalogOptions.paymentTypes]
+);
+
+const mergedIncomeTypes = useMemo(
+    () => catalogOptions.incomeTypes,
+    [catalogOptions.incomeTypes]
+);
+
+const mergedCostCenters = useMemo(
+    () => catalogOptions.costCenters,
+    [catalogOptions.costCenters]
+);
+
+const ensureProductServiceValue = async (rawValue: string) => {
+    const trimmed = rawValue.trim();
+
+    if (!trimmed) return '';
+
+    const normalized = normalizeSettingsCatalogName(trimmed);
+
+    const existing = mergedProductsServices.find(
+        (item) => normalizeSettingsCatalogName(item.name) === normalized
+    );
+
+    if (existing) {
+        return existing.name;
+    }
+
+    try {
+        const created = await createCatalogItemMutation.mutateAsync({
+            group: 'product_service',
+            name: trimmed,
+            workspaceScope: 'both',
+            status: 'active',
+        });
+
+        return created.name;
+    } catch (error) {
+        const message =
+            error instanceof Error ? error.message.toLowerCase() : '';
+
+        const duplicateError =
+            message.includes('já existe') ||
+            message.includes('duplicate');
+
+        if (duplicateError) {
+            const fallbackExisting = mergedProductsServices.find(
+                (item) => normalizeSettingsCatalogName(item.name) === normalized
+            );
+
+            return fallbackExisting?.name || trimmed;
+        }
+
+        throw error;
+    }
+};
+
+const buildSnapshotFromEntityItem = (
+    group: TransactionCatalogVisualSnapshot['group'],
+    item?: EntityItem,
+): TransactionCatalogVisualSnapshot | undefined => {
+    if (!item?.name) return undefined;
+
+    return {
+        group,
+        label: item.name,
+        normalizedLabel: normalizeSettingsCatalogName(item.name),
+        icon: item.icon,
+        color: item.iconColor,
+        stroke: item.iconStroke,
+        transactionSubtype: item.type as TransactionType | undefined,
+    };
+};
+
+const findEntityByName = (
+    items: EntityItem[],
+    label?: string,
+    type?: TransactionType,
+) => {
+    if (!label?.trim()) return undefined;
+
+    const normalized = normalizeSettingsCatalogName(label);
+
+    return items.find((item) => {
+        if (normalizeSettingsCatalogName(item.name) !== normalized) return false;
+
+        if (type && item.type) {
+            return item.type === type;
+        }
+
+        return true;
+    });
+};
+
+const buildDisplaySnapshots = (
+    resolvedDescription: string,
+): TransactionDisplaySnapshots => {
+    const categoryItem = findEntityByName(
+        mergedSettingsCategories,
+        category,
+        activeTab,
+    );
+
+    const expenseTypeItem = findEntityByName(
+        mergedExpenseTypes,
+        expenseType,
+    );
+
+    const incomeTypeItem = findEntityByName(
+        mergedIncomeTypes,
+        incomeType,
+    );
+
+    const paymentMethodItem = findEntityByName(
+        mergedPaymentTypes,
+        paymentMethod,
+    );
+
+    const productServiceItem = findEntityByName(
+        mergedProductsServices,
+        resolvedDescription,
+    );
+
+    const costCenterItem = findEntityByName(
+        mergedCostCenters,
+        costCenter,
+    );
+
+    const walletItem = mergedWallets.find(
+        (item) => String(item.id) === walletId,
+    );
+
+    return {
+        categorySnapshot: buildSnapshotFromEntityItem('category', categoryItem),
+        expenseTypeSnapshot: buildSnapshotFromEntityItem(
+            'expense_type',
+            expenseTypeItem,
+        ),
+        incomeTypeSnapshot: buildSnapshotFromEntityItem(
+            'income_type',
+            incomeTypeItem,
+        ),
+        paymentMethodSnapshot: buildSnapshotFromEntityItem(
+            'payment_method',
+            paymentMethodItem,
+        ),
+        productServiceSnapshot: buildSnapshotFromEntityItem(
+            'product_service',
+            productServiceItem,
+        ),
+        walletSnapshot: buildSnapshotFromEntityItem('wallet', walletItem),
+        costCenterSnapshot: buildSnapshotFromEntityItem(
+            'cost_center',
+            costCenterItem,
+        ),
+    };
+};
+
+    const walletOptions = useMemo(() => {
+        const options = mergedWallets.map((wallet) => ({
+            value: String(wallet.id),
+            label: wallet.name,
+        }));
+
+        if (walletId && !options.some((option) => option.value === walletId)) {
+            options.unshift({
+                value: walletId,
+                label: `Carteira legada (ID ${walletId})`,
+            });
+        }
+
+        return options;
+    }, [mergedWallets, walletId]);
+
+    
+
+
     // AI States
     const [isAILoading, setIsAILoading] = useState(false);
     const [aiStatus, setAIStatus] = useState<string | null>(null);
@@ -89,9 +333,11 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
     const fileInputRef = useRef<HTMLInputElement>(null);
     const recognitionRef = useRef<any>(null);
 
+    
+
     // Helper to get category options filtered by active tab type
-    const getCategoryOptions = (type: TransactionType) => {
-        return settingsCategories.filter(c => c.type === type);
+        const getCategoryOptions = (type: TransactionType) => {
+        return mergedSettingsCategories.filter((c) => c.type === type);
     };
 
     useEffect(() => {
@@ -166,13 +412,27 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
     resolvedAllowedTypes
 ]);
 
-    const handleTabChange = (newTab: TransactionType) => {
-    if (!resolvedAllowedTypes.includes(newTab)) return;
+        const handleTabChange = (newTab: TransactionType) => {
+        if (!resolvedAllowedTypes.includes(newTab)) return;
 
-    setActiveTab(newTab);
-    const catOptions = settingsCategories.filter(c => c.type === newTab);
-    setCategory(catOptions.length > 0 ? catOptions[0].name : '');
-};
+        setActiveTab(newTab);
+
+        const catOptions = getCategoryOptions(newTab);
+        setCategory(catOptions.length > 0 ? catOptions[0].name : '');
+
+        if (newTab !== 'despesa') {
+            setExpenseType('');
+            setPaymentMethod('');
+        }
+
+        if (newTab !== 'receita') {
+            setIncomeType('');
+        }
+
+        if (newTab !== 'investimento') {
+            setWalletId('');
+        }
+    };
 
     // --- AI LOGIC: Common Form Pre-filler ---
     const applyAIData = (data: any) => {
@@ -187,10 +447,11 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
         if (data.installments) setInstallments(String(data.installments));
         if (data.supplier) setSupplier(data.supplier);
         if (data.costCenter) setCostCenter(data.costCenter);
-        if (data.category) {
-            // Check if extracted category exists in options
-            const options = settingsCategories.filter(c => c.type === (data.type || activeTab));
-            const exists = options.find(o => o.name.toLowerCase().includes(data.category.toLowerCase()));
+                if (data.category) {
+            const options = getCategoryOptions(data.type || activeTab);
+            const exists = options.find((o) =>
+                o.name.toLowerCase().includes(String(data.category).toLowerCase())
+            );
             if (exists) setCategory(exists.name);
         }
     };
@@ -331,12 +592,17 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
 
     if (!isOpen) return null;
 
-    const handleSubmit = (e: FormEvent) => {
-        e.preventDefault();
-        
-        if ((activeTab === 'despesa' || activeTab === 'parcelado') && description.trim() !== '') {
-            if (onAddProductService) onAddProductService(description.trim());
-        }
+   const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+
+    let resolvedDescription = description;
+
+    if (activeTab === 'despesa' || activeTab === 'parcelado') {
+        resolvedDescription = await ensureProductServiceValue(description);
+        setDescription(resolvedDescription);
+    }
+
+    const displaySnapshots = buildDisplaySnapshots(resolvedDescription);
 
         if (activeTab === 'parcelado' && !isEditing && onAddTransactions) {
             const card = creditCards.find(c => String(c.id) === selectedCardId);
@@ -363,7 +629,8 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
 
                 newTransactions.push({
                     type: 'parcelado',
-                    description,
+                    displaySnapshots,
+                    description: resolvedDescription,
                     category,
                     value: currentVal,
                     date: dueDate.toISOString().split('T')[0],
@@ -383,12 +650,13 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
 
         const transactionData: any = {
             type: activeTab,
-            description,
+            description: resolvedDescription,
             category,
             value: parseFloat(value),
             date,
             supplier: isPJ ? supplier : undefined,
-            costCenter: isPJ ? costCenter : undefined
+            costCenter: isPJ ? costCenter : undefined,
+            displaySnapshots,
         };
         
         if (activeTab === 'parcelado') {
@@ -447,23 +715,61 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
     
     const commonInputClasses = `w-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-dark-200 text-gray-800 dark:text-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 ${inputFocusRingColor[activeTab]}`;
     
-    const renderPJFields = () => {
-        if (!isPJ || (activeTab !== 'despesa' && activeTab !== 'parcelado')) return null;
+        const renderPJFields = () => {
+        if (!isPJ) return null;
+
+        const showSupplier = activeTab === 'despesa' || activeTab === 'parcelado';
+
         return (
             <div className="bg-indigo-50 dark:bg-indigo-900/10 p-4 rounded-xl border border-indigo-100 dark:border-indigo-900/30 grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                 <div className="sm:col-span-2 text-xs font-bold text-indigo-700 dark:text-indigo-400 uppercase tracking-wider flex items-center gap-2">
                     <BriefcaseIcon className="w-3 h-3" /> Dados Empresariais
                 </div>
-                <div>
-                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 uppercase">Fornecedor</label>
-                    <div className="relative">
-                        <input type="text" value={supplier} onChange={e => setSupplier(e.target.value)} className={`${commonInputClasses} pl-9`} placeholder="Ex: AWS, Google, Mercado..." />
-                        <BuildingIcon className="absolute left-3 top-2.5 w-4 h-4 text-indigo-400" />
+
+                {showSupplier && (
+                    <div>
+                        <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 uppercase">
+                            Fornecedor
+                        </label>
+                        <div className="relative">
+                            <input
+                                type="text"
+                                value={supplier}
+                                onChange={e => setSupplier(e.target.value)}
+                                className={`${commonInputClasses} pl-9`}
+                                placeholder="Ex: AWS, Google, Mercado..."
+                            />
+                            <BuildingIcon className="absolute left-3 top-2.5 w-4 h-4 text-indigo-400" />
+                        </div>
                     </div>
-                </div>
-                <div>
-                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 uppercase">Centro de Custo / Projeto</label>
-                    <input type="text" value={costCenter} onChange={e => setCostCenter(e.target.value)} className={commonInputClasses} placeholder="Ex: Projeto Alpha, Marketing..." />
+                )}
+
+                <div className={showSupplier ? '' : 'sm:col-span-2'}>
+                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 uppercase">
+                        Centro de Custo / Projeto
+                    </label>
+                    <input
+                        list="cost-centers-list"
+                        type="text"
+                        value={costCenter}
+                        onChange={e => setCostCenter(e.target.value)}
+                        className={commonInputClasses}
+                        placeholder={
+                            mergedCostCenters.length > 0
+                                ? 'Selecione ou digite...'
+                                : 'Ex: Projeto Alpha, Marketing...'
+                        }
+                    />
+                    <datalist id="cost-centers-list">
+                        {mergedCostCenters.map((center) => (
+                            <option key={center.id} value={center.name} />
+                        ))}
+                    </datalist>
+                    {isCatalogLoading && (
+                        <p className="mt-1 text-[11px] text-indigo-500">
+                            Atualizando centros de custo do catálogo...
+                        </p>
+                    )}
                 </div>
             </div>
         );
@@ -483,11 +789,18 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
                             {creditCards.filter(c => c.status === 'active').map(card => (<option key={card.id} value={card.id}>{card.name} (Fecha dia {card.closingDay})</option>))}
                         </select>
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Produto / Serviço <span className="text-red-500">*</span></label>
-                        <input list="products-list-parcelado" type="text" value={description} onChange={e => setDescription(e.target.value)} className={commonInputClasses} placeholder="Busque ou digite..." required />
-                         <datalist id="products-list-parcelado">{productsServices.map(item => (<option key={item.id} value={item.name} />))}</datalist>
-                    </div>
+                    <CatalogCombobox
+                            label="Produto / Serviço"
+                            required
+                            value={description}
+                            options={mergedProductsServices}
+                            placeholder="Busque, selecione ou digite um novo item..."
+                            loading={isCatalogLoading || createCatalogItemMutation.isPending}
+                            inputClassName={commonInputClasses}
+                            helperText="Use o mesmo campo para buscar, selecionar ou criar."
+                            onValueChange={setDescription}
+                            onCommitValue={ensureProductServiceValue}
+                        />
                     <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Categoria <span className="text-red-500">*</span></label>
                         <select value={category} onChange={e => setCategory(e.target.value)} className={commonInputClasses} required>
@@ -518,43 +831,155 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
             );
         }
 
-        if (activeTab === 'receita') {
-            return (
-                <>
-                    <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tipo de Receita <span className="text-red-500">*</span></label><select value={incomeType} onChange={e => setIncomeType(e.target.value)} className={commonInputClasses} required><option value="">Selecione...</option>{incomeTypes.map(type => <option key={type.id} value={type.name}>{type.name}</option>)}</select></div>
-                    <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Categoria <span className="text-red-500">*</span></label><select value={category} onChange={e => setCategory(e.target.value)} className={commonInputClasses} required><option value="">Selecione...</option>{currentCategoryOptions.map(cat => <option key={cat.id} value={cat.name}>{cat.name}</option>)}</select></div>
-                    <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Valor (R$) <span className="text-red-500">*</span></label><input type="number" value={value} onChange={e => setValue(e.target.value)} step="0.01" min="0.01" className={commonInputClasses} required /></div>
-                    <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Origem/Descrição <span className="text-red-500">*</span></label><input type="text" value={description} onChange={e => setDescription(e.target.value)} className={commonInputClasses} placeholder="Ex: Cliente XYZ, Reembolso Empresa..." required /></div>
-                    <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Data de Recebimento <span className="text-red-500">*</span></label><input type="date" value={date} onChange={e => setDate(e.target.value)} className={commonInputClasses} required /></div>
-                </>
-            );
-        }
+                if (activeTab === 'receita') {
+            const incomeTypeOptions = buildNameOptions(mergedIncomeTypes, incomeType);
+            const categoryOptions = buildNameOptions(getCategoryOptions(activeTab), category);
 
-        if (activeTab === 'despesa') {
             return (
                 <>
                     {renderPJFields()}
-                    <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tipo de Despesa <span className="text-red-500">*</span></label><select value={expenseType} onChange={e => setExpenseType(e.target.value)} className={commonInputClasses} required><option value="">Selecione...</option>{expenseTypes.map(t => <option key={t.id} value={t.name}>{t.name}</option>)}</select></div>
-                    <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Categoria <span className="text-red-500">*</span></label><select value={category} onChange={e => setCategory(e.target.value)} className={commonInputClasses} required><option value="">Selecione...</option>{currentCategoryOptions.map(cat => <option key={cat.id} value={cat.name}>{cat.name}</option>)}</select></div>
-                    <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Produto/Serviço <span className="text-red-500">*</span></label><input list="products-list-despesa" type="text" value={description} onChange={e => setDescription(e.target.value)} className={commonInputClasses} placeholder="Ex: Conta de Luz, Manutenção..." required /><datalist id="products-list-despesa">{productsServices.map(item => (<option key={item.id} value={item.name} />))}</datalist></div>
-                    <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Valor (R$) <span className="text-red-500">*</span></label><input type="number" value={value} onChange={e => setValue(e.target.value)} step="0.01" min="0.01" className={commonInputClasses} required /></div>
-                    <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Forma de Pagamento <span className="text-red-500">*</span></label><select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)} className={commonInputClasses} required><option value="">Selecione...</option>{paymentTypes.map(m => <option key={m.id} value={m.name}>{m.name}</option>)}</select></div>
-                    <div className="bg-gray-50 dark:bg-dark-200 p-3 rounded-lg border border-gray-200 dark:border-gray-700"><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Essa despesa já foi paga?</label><div className="flex gap-4 mb-3"><label className="flex items-center cursor-pointer"><input type="radio" name="isPaid" checked={isPaid === true} onChange={() => setIsPaid(true)} className="mr-2 text-red-600 focus:ring-red-500" /><span className="text-gray-700 dark:text-gray-300">Sim</span></label><label className="flex items-center cursor-pointer"><input type="radio" name="isPaid" checked={isPaid === false} onChange={() => setIsPaid(false)} className="mr-2 text-red-600 focus:ring-red-500" /><span className="text-gray-700 dark:text-gray-300">Não</span></label></div><div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 animate-fade-in">{isPaid ? 'Quando foi pago?' : 'Quando deve ser pago?'} <span className="text-red-500">*</span></label><input type="date" value={date} onChange={e => setDate(e.target.value)} className={commonInputClasses} required /></div></div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Tipo de Receita <span className="text-red-500">*</span>
+                        </label>
+                        <select value={incomeType} onChange={e => setIncomeType(e.target.value)} className={commonInputClasses} required>
+                            <option value="">Selecione...</option>
+                            {incomeTypeOptions.map((name) => (
+                                <option key={name} value={name}>{name}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Categoria <span className="text-red-500">*</span></label>
+                        <select value={category} onChange={e => setCategory(e.target.value)} className={commonInputClasses} required>
+                            <option value="">Selecione...</option>
+                            {buildNameOptions(getCategoryOptions(activeTab), category).map(name => (
+                                <option key={name} value={name}>{name}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Valor (R$) <span className="text-red-500">*</span>
+                        </label>
+                        <input type="number" value={value} onChange={e => setValue(e.target.value)} step="0.01" min="0.01" className={commonInputClasses} required />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Origem/Descrição <span className="text-red-500">*</span>
+                        </label>
+                        <input type="text" value={description} onChange={e => setDescription(e.target.value)} className={commonInputClasses} placeholder="Ex: Cliente XYZ, Reembolso Empresa..." required />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Data de Recebimento <span className="text-red-500">*</span>
+                        </label>
+                        <input type="date" value={date} onChange={e => setDate(e.target.value)} className={commonInputClasses} required />
+                    </div>
                 </>
             );
         }
 
-        if (activeTab === 'investimento') {
+                if (activeTab === 'despesa') {
+            const expenseTypeOptions = buildNameOptions(mergedExpenseTypes, expenseType);
+            const paymentTypeOptions = buildNameOptions(mergedPaymentTypes, paymentMethod);
+            const categoryOptions = buildNameOptions(getCategoryOptions(activeTab), category);
+
             return (
                 <>
+                    {renderPJFields()}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Tipo de Despesa <span className="text-red-500">*</span>
+                        </label>
+                        <select value={expenseType} onChange={e => setExpenseType(e.target.value)} className={commonInputClasses} required>
+                            <option value="">Selecione...</option>
+                            {expenseTypeOptions.map((name) => (
+                                <option key={name} value={name}>{name}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Categoria <span className="text-red-500">*</span>
+                        </label>
+                        <select value={category} onChange={e => setCategory(e.target.value)} className={commonInputClasses} required>
+                            <option value="">Selecione...</option>
+                            {categoryOptions.map((name) => (
+                                <option key={name} value={name}>{name}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <CatalogCombobox
+                            label="Produto/Serviço"
+                            required
+                            value={description}
+                            options={mergedProductsServices}
+                            placeholder="Ex: Conta de Luz, Manutenção..."
+                            loading={isCatalogLoading || createCatalogItemMutation.isPending}
+                            inputClassName={commonInputClasses}
+                            helperText="Digite para buscar, selecionar ou criar automaticamente."
+                            onValueChange={setDescription}
+                            onCommitValue={ensureProductServiceValue}
+                        />
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Valor (R$) <span className="text-red-500">*</span>
+                        </label>
+                        <input type="number" value={value} onChange={e => setValue(e.target.value)} step="0.01" min="0.01" className={commonInputClasses} required />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Forma de Pagamento <span className="text-red-500">*</span>
+                        </label>
+                        <select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)} className={commonInputClasses} required>
+                            <option value="">Selecione...</option>
+                            {paymentTypeOptions.map((name) => (
+                                <option key={name} value={name}>{name}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div className="bg-gray-50 dark:bg-dark-200 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Essa despesa já foi paga?
+                        </label>
+                        <div className="flex gap-4 mb-3">
+                            <label className="flex items-center cursor-pointer">
+                                <input type="radio" name="isPaid" checked={isPaid === true} onChange={() => setIsPaid(true)} className="mr-2 text-red-600 focus:ring-red-500" />
+                                <span className="text-gray-700 dark:text-gray-300">Sim</span>
+                            </label>
+                            <label className="flex items-center cursor-pointer">
+                                <input type="radio" name="isPaid" checked={isPaid === false} onChange={() => setIsPaid(false)} className="mr-2 text-red-600 focus:ring-red-500" />
+                                <span className="text-gray-700 dark:text-gray-300">Não</span>
+                            </label>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 animate-fade-in">
+                                {isPaid ? 'Quando foi pago?' : 'Quando deve ser pago?'} <span className="text-red-500">*</span>
+                            </label>
+                            <input type="date" value={date} onChange={e => setDate(e.target.value)} className={commonInputClasses} required />
+                        </div>
+                    </div>
+                </>
+            );
+        }
+
+                if (activeTab === 'investimento') {
+            const categoryOptions = buildNameOptions(getCategoryOptions(activeTab), category);
+
+            return (
+                <>
+                    {renderPJFields()}
                     <div className="bg-indigo-50 dark:bg-indigo-900/20 p-3 rounded-lg border border-indigo-100 dark:border-indigo-800 mb-4 animate-fade-in">
                         <div className="flex items-center gap-2 mb-2">
                             <TargetIcon className="text-indigo-500 h-4 w-4" />
-                            <label className="block text-sm font-bold text-indigo-700 dark:text-indigo-300">Vincular a uma Meta?</label>
+                            <label className="block text-sm font-bold text-indigo-700 dark:text-indigo-300">
+                                Vincular a uma Meta?
+                            </label>
                         </div>
-                        <select 
-                            value={selectedGoalId} 
-                            onChange={e => setSelectedGoalId(e.target.value)} 
+                        <select
+                            value={selectedGoalId}
+                            onChange={e => setSelectedGoalId(e.target.value)}
                             className="w-full border border-indigo-200 dark:border-indigo-700 bg-white dark:bg-dark-100 text-gray-800 dark:text-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                         >
                             <option value="">Sem Meta (Investimento Geral)</option>
@@ -567,39 +992,61 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Selecione a Carteira <span className="text-red-500">*</span></label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Selecione a Carteira <span className="text-red-500">*</span>
+                        </label>
                         <select value={walletId} onChange={e => setWalletId(e.target.value)} className={commonInputClasses} required>
                             <option value="">Selecione...</option>
-                            {wallets.map(wallet => (<option key={wallet.id} value={wallet.id}>{wallet.name}</option>))}
+                            {walletOptions.map((wallet) => (
+                                <option key={wallet.value} value={wallet.value}>{wallet.label}</option>
+                            ))}
                         </select>
                     </div>
 
-                     <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Descrição <span className="text-red-500">*</span></label>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Descrição <span className="text-red-500">*</span>
+                        </label>
                         <input type="text" value={description} onChange={e => setDescription(e.target.value)} className={commonInputClasses} placeholder="Ex: Aporte Mensal" required />
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Categoria <span className="text-red-500">*</span></label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Categoria <span className="text-red-500">*</span>
+                        </label>
                         <select value={category} onChange={e => setCategory(e.target.value)} className={commonInputClasses} required>
                             <option value="">Selecione...</option>
-                            {currentCategoryOptions.map(cat => <option key={cat.id} value={cat.name}>{cat.name}</option>)}
+                            {categoryOptions.map((name) => (
+                                <option key={name} value={name}>{name}</option>
+                            ))}
                         </select>
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Valor Investido (R$) <span className="text-red-500">*</span></label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Valor Investido (R$) <span className="text-red-500">*</span>
+                        </label>
                         <input type="number" value={value} onChange={e => setValue(e.target.value)} step="0.01" min="0.01" className={commonInputClasses} required />
                     </div>
 
                     <div className="bg-gray-50 dark:bg-dark-200 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Esse valor já foi depositado?</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Esse valor já foi depositado?
+                        </label>
                         <div className="flex gap-4 mb-3">
-                            <label className="flex items-center cursor-pointer"><input type="radio" name="isDeposited" checked={isDeposited === true} onChange={() => setIsDeposited(true)} className="mr-2 text-blue-600 focus:ring-blue-500" /><span className="text-gray-700 dark:text-gray-300">Sim</span></label>
-                            <label className="flex items-center cursor-pointer"><input type="radio" name="isDeposited" checked={isDeposited === false} onChange={() => setIsDeposited(false)} className="mr-2 text-blue-600 focus:ring-blue-500" /><span className="text-gray-700 dark:text-gray-300">Não</span></label>
+                            <label className="flex items-center cursor-pointer">
+                                <input type="radio" name="isDeposited" checked={isDeposited === true} onChange={() => setIsDeposited(true)} className="mr-2 text-blue-600 focus:ring-blue-500" />
+                                <span className="text-gray-700 dark:text-gray-300">Sim</span>
+                            </label>
+                            <label className="flex items-center cursor-pointer">
+                                <input type="radio" name="isDeposited" checked={isDeposited === false} onChange={() => setIsDeposited(false)} className="mr-2 text-blue-600 focus:ring-blue-500" />
+                                <span className="text-gray-700 dark:text-gray-300">Não</span>
+                            </label>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 animate-fade-in">{isDeposited ? 'Quando foi depositado?' : 'Quando deve ser depositado?'} <span className="text-red-500">*</span></label>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 animate-fade-in">
+                                {isDeposited ? 'Quando foi depositado?' : 'Quando deve ser depositado?'} <span className="text-red-500">*</span>
+                            </label>
                             <input type="date" value={date} onChange={e => setDate(e.target.value)} className={commonInputClasses} required />
                         </div>
                     </div>
@@ -702,6 +1149,12 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
                             </div>
                         </div>
                     )}
+
+                    {isCatalogLoading && (
+                    <div className="px-6 pt-4 text-xs font-medium text-indigo-600 dark:text-indigo-300">
+                        Atualizando cadastros do workspace...
+                    </div>
+                )}
                 
                 <div className="p-6">
                     <form onSubmit={handleSubmit}>

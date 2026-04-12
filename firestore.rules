@@ -21,9 +21,9 @@ service cloud.firestore {
 
     // Para subcoleções: lê o ownerId do documento pai
     function isWorkspaceOwnerByParent(workspaceId) {
-  return signedIn() &&
-    get(/databases/$(database)/documents/workspaces/$(workspaceId)).data.ownerId == request.auth.uid;
-}
+      return signedIn() &&
+        get(/databases/$(database)/documents/workspaces/$(workspaceId)).data.ownerId == request.auth.uid;
+    }
 
     function isDateOnlyString(value) {
       return value is string && value.matches('^\\d{4}-\\d{2}-\\d{2}$');
@@ -63,10 +63,158 @@ service cloud.firestore {
       return hasRole(workspaceId, ['member']) && data.userId == request.auth.uid;
     }
 
+    function canManageWorkspaceCatalog(workspaceId) {
+      return hasRole(workspaceId, ['owner', 'admin']) || isWorkspaceOwnerByParent(workspaceId);
+    }
+
+    function isValidCatalogGroup(value) {
+      return value in [
+        'product_service',
+        'expense_type',
+        'category',
+        'payment_method',
+        'income_type',
+        'wallet',
+        'cost_center'
+      ];
+    }
+
+    function isValidCatalogStatus(value) {
+      return value in ['active', 'inactive'];
+    }
+
+    function isValidCatalogWorkspaceScope(value) {
+      return value in ['PF', 'PJ', 'both'];
+    }
+
+    function isValidCatalogColor(value) {
+      return value is string && value.matches('^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$');
+    }
+
+    function hasOnlyCatalogKeys(data) {
+      return data.keys().hasOnly([
+        'workspaceId',
+        'group',
+        'name',
+        'normalizedName',
+        'dedupeKey',
+        'workspaceScope',
+        'transactionSubtype',
+        'icon',
+        'color',
+        'stroke',
+        'sortOrder',
+        'status',
+        'createdBy',
+        'updatedBy',
+        'createdAt',
+        'updatedAt'
+      ]);
+    }
+
+    function isCatalogSubtypeConsistent(data) {
+      return (
+        (data.group == 'category' &&
+          data.keys().hasAny(['transactionSubtype']) &&
+          isValidTransactionType(data.transactionSubtype)
+        ) ||
+        (data.group != 'category' &&
+          !data.keys().hasAny(['transactionSubtype'])
+        )
+      );
+    }
+
+    function isCatalogWorkspaceScopeConsistent(data) {
+      return (
+        (data.group == 'cost_center' && data.workspaceScope == 'PJ') ||
+        (data.group != 'cost_center' && data.workspaceScope == 'both')
+      );
+    }
+
+    function isValidCatalogPayload(data, workspaceId) {
+      return hasOnlyCatalogKeys(data)
+        && data.workspaceId == workspaceId
+        && isValidCatalogGroup(data.group)
+        && data.name is string
+        && data.name.size() > 0
+        && data.name.size() <= 120
+        && data.normalizedName is string
+        && data.normalizedName.size() > 0
+        && data.dedupeKey is string
+        && data.dedupeKey.size() > 0
+        && isValidCatalogWorkspaceScope(data.workspaceScope)
+        && isCatalogWorkspaceScopeConsistent(data)
+        && isCatalogSubtypeConsistent(data)
+        && (!data.keys().hasAny(['icon']) || data.icon is string)
+        && (!data.keys().hasAny(['color']) || isValidCatalogColor(data.color))
+        && (!data.keys().hasAny(['stroke']) || ((data.stroke is int || data.stroke is float) && data.stroke >= 1 && data.stroke <= 4))
+        && (data.sortOrder is int || data.sortOrder is float)
+        && isValidCatalogStatus(data.status)
+        && data.createdBy is string
+        && data.createdBy.size() > 0
+        && data.updatedBy is string
+        && data.updatedBy.size() > 0
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidCatalogCreate(data, workspaceId) {
+      return canManageWorkspaceCatalog(workspaceId)
+        && isValidCatalogPayload(data, workspaceId)
+        && data.createdBy == request.auth.uid
+        && data.updatedBy == request.auth.uid;
+    }
+
+    function isValidCatalogUpdate(data, previous, workspaceId) {
+      return canManageWorkspaceCatalog(workspaceId)
+        && isValidCatalogPayload(data, workspaceId)
+        && data.workspaceId == previous.workspaceId
+        && data.group == previous.group
+        && data.workspaceScope == previous.workspaceScope
+        && data.createdBy == previous.createdBy
+        && data.createdAt == previous.createdAt
+        && (
+          (!previous.keys().hasAny(['transactionSubtype']) && !data.keys().hasAny(['transactionSubtype'])) ||
+          (previous.keys().hasAny(['transactionSubtype']) && data.transactionSubtype == previous.transactionSubtype)
+        )
+        && data.updatedBy == request.auth.uid;
+    }
+
+    function hasOnlyCatalogUniqueKeys(data) {
+      return data.keys().hasOnly([
+        'dedupeKey',
+        'catalogItemId',
+        'workspaceId',
+        'group',
+        'normalizedName',
+        'createdBy',
+        'updatedBy',
+        'createdAt',
+        'updatedAt'
+      ]);
+    }
+
+    function isValidCatalogUniquePayload(data, workspaceId, dedupeKey) {
+      return hasOnlyCatalogUniqueKeys(data)
+        && data.dedupeKey == dedupeKey
+        && data.workspaceId == workspaceId
+        && data.catalogItemId is string
+        && data.catalogItemId.size() > 0
+        && isValidCatalogGroup(data.group)
+        && data.normalizedName is string
+        && data.normalizedName.size() > 0
+        && data.createdBy is string
+        && data.createdBy.size() > 0
+        && data.updatedBy is string
+        && data.updatedBy.size() > 0
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
     match /workspaces/{workspaceId} {
-  allow create: if signedIn();
-  allow read: if isMember(workspaceId) || (signedIn() && resource.data.ownerId == request.auth.uid);
-  allow update: if hasRole(workspaceId, ['owner', 'admin']) || (signedIn() && resource.data.ownerId == request.auth.uid);
+      allow create: if signedIn();
+      allow read: if isMember(workspaceId) || (signedIn() && resource.data.ownerId == request.auth.uid);
+      allow update: if hasRole(workspaceId, ['owner', 'admin']) || (signedIn() && resource.data.ownerId == request.auth.uid);
 
       match /members/{memberId} {
         allow read: if
@@ -166,9 +314,41 @@ service cloud.firestore {
         allow write: if false;
       }
 
+      match /settings_catalog/{docId} {
+        allow read: if isMember(workspaceId) || isWorkspaceOwnerByParent(workspaceId);
+
+        allow create: if isValidCatalogCreate(request.resource.data, workspaceId);
+
+        allow update: if isValidCatalogUpdate(
+          request.resource.data,
+          resource.data,
+          workspaceId
+        );
+
+        allow delete: if canManageWorkspaceCatalog(workspaceId);
+      }
+
+      match /settings_catalog_uniques/{dedupeKey} {
+        allow read: if isMember(workspaceId) || isWorkspaceOwnerByParent(workspaceId);
+
+        allow create: if
+          canManageWorkspaceCatalog(workspaceId) &&
+          isValidCatalogUniquePayload(request.resource.data, workspaceId, dedupeKey) &&
+          request.resource.data.createdBy == request.auth.uid &&
+          request.resource.data.updatedBy == request.auth.uid;
+
+        allow update: if
+          canManageWorkspaceCatalog(workspaceId) &&
+          isValidCatalogUniquePayload(request.resource.data, workspaceId, dedupeKey) &&
+          request.resource.data.createdBy == resource.data.createdBy &&
+          request.resource.data.updatedBy == request.auth.uid;
+
+        allow delete: if canManageWorkspaceCatalog(workspaceId);
+      }
+
       match /{subCollection}/{docId} {
         allow read: if isMember(workspaceId) || isWorkspaceOwnerByParent(workspaceId);
-        allow write: if hasRole(workspaceId, ['owner', 'admin', 'member']) || isWorkspaceOwnerByParent(workspaceId);
+        allow write: if hasRole(workspaceId, ['owner', 'admin']) || isWorkspaceOwnerByParent(workspaceId);
       }
     }
 

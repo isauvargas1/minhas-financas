@@ -17,6 +17,9 @@ import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
 import AllocationAnalysis from './AllocationAnalysis.tsx';
 import BusinessAllocationAnalysis from './BusinessAllocationAnalysis.tsx';
 import { usePlan } from '../hooks/usePlan.ts';
+import CatalogVisualChip from './CatalogVisualChip.tsx';
+import { useSettingsCatalog } from '../modules/settings-catalog/hooks.ts';
+import { resolveTransactionVisuals } from '../modules/settings-catalog/display.ts';
 
 interface TransactionsViewProps {
     viewType: 'receita' | 'despesa' | 'investimento';
@@ -86,6 +89,9 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({
     const { activeWorkspace } = useWorkspace();
     const isPF = activeWorkspace.type === 'PF';
     const isPJ = activeWorkspace.type === 'PJ';
+
+    const catalogQuery = useSettingsCatalog({ includeInactive: true });
+    const catalogItems = catalogQuery.data ?? [];
 
     const { checkLimit, userPlan } = usePlan();
 
@@ -664,27 +670,35 @@ const filteredTransactions = useMemo(() => {
                             </thead>
 
                             <tbody>
-                                {sortedTransactions.map((transaction) => (
-                                    <tr
-                                        key={transaction.id}
-                                        className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50/80 dark:hover:bg-dark-200/80 transition-colors duration-200"
-                                    >
+                                {sortedTransactions.map((transaction) => {
+                                        const visuals = resolveTransactionVisuals({
+                                            transaction,
+                                            catalogItems,
+                                        });
+
+                                        return (
+                                            <tr
+                                                key={transaction.id}
+                                                className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50/80 dark:hover:bg-dark-200/80 transition-colors duration-200"
+                                            >
                                         {viewType === 'receita' ? (
                                             <>
                                                 <td className="py-4 px-4 text-gray-600 dark:text-gray-300">
                                                     {transaction.incomeType ? (
-                                                        <span className="inline-flex rounded-full bg-green-50 dark:bg-green-900/20 px-2.5 py-1 text-xs font-semibold text-green-700 dark:text-green-400">
-                                                            {transaction.incomeType}
-                                                        </span>
+                                                        <CatalogVisualChip
+                                                            visual={visuals.incomeType}
+                                                            fallbackLabel={transaction.incomeType}
+                                                        />
                                                     ) : (
                                                         '-'
                                                     )}
                                                 </td>
 
                                                 <td className="py-4 px-4 text-gray-600 dark:text-gray-300">
-                                                    <span className="inline-flex rounded-full bg-gray-100 dark:bg-dark-200 px-2.5 py-1 text-xs font-medium text-gray-700 dark:text-gray-300">
-                                                        {transaction.category}
-                                                    </span>
+                                                    <CatalogVisualChip
+                                                        visual={visuals.category}
+                                                        fallbackLabel={transaction.category}
+                                                    />
                                                 </td>
 
                                                 <td className="py-4 px-4 text-gray-800 dark:text-gray-200">
@@ -743,57 +757,69 @@ const filteredTransactions = useMemo(() => {
                                             <>
                                                 <td className="py-4 px-4 text-gray-800 dark:text-gray-200">
                                                     <div className="max-w-[280px]">
-                                                        <div className="font-semibold truncate">
-                                                            {transaction.description}
-                                                        </div>
+                                                        {(transaction.type === 'despesa' || transaction.type === 'parcelado') ? (
+                                                            <CatalogVisualChip
+                                                                visual={visuals.productService}
+                                                                fallbackLabel={transaction.description}
+                                                            />
+                                                        ) : (
+                                                            <div className="font-semibold truncate">
+                                                                {transaction.description}
+                                                            </div>
+                                                        )}
 
                                                         <div className="mt-1 flex flex-wrap items-center gap-2">
-                                                            {transaction.type ===
-                                                                'parcelado' && (
+                                                            {transaction.type === 'parcelado' && (
                                                                 <span className="inline-flex rounded-full bg-purple-100 dark:bg-purple-900/30 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-purple-700 dark:text-purple-300">
-                                                                    Parcela{' '}
-                                                                    {
-                                                                        transaction.currentInstallment
-                                                                    }
-                                                                    /
-                                                                    {
-                                                                        transaction.installments
-                                                                    }
+                                                                    Parcela {transaction.currentInstallment}/{transaction.installments}
                                                                 </span>
                                                             )}
 
-                                                            {transaction.goalId &&
-                                                                viewType ===
-                                                                    'investimento' && (
-                                                                    <span className="inline-flex rounded-full bg-indigo-100 dark:bg-indigo-900/30 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-indigo-800 dark:text-indigo-300">
-                                                                        Meta vinculada
-                                                                    </span>
-                                                                )}
+                                                            {transaction.goalId && viewType === 'investimento' && (
+                                                                <span className="inline-flex rounded-full bg-indigo-100 dark:bg-indigo-900/30 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-indigo-800 dark:text-indigo-300">
+                                                                    Meta vinculada
+                                                                </span>
+                                                            )}
                                                         </div>
                                                     </div>
                                                 </td>
 
                                                 <td className="py-4 px-4 text-gray-600 dark:text-gray-300">
-                                                    <span className="inline-flex rounded-full bg-gray-100 dark:bg-dark-200 px-2.5 py-1 text-xs font-medium text-gray-700 dark:text-gray-300">
-                                                        {transaction.category}
-                                                    </span>
-                                                </td>
+                                                        <CatalogVisualChip
+                                                            visual={visuals.category}
+                                                            fallbackLabel={transaction.category}
+                                                        />
+                                                    </td>
 
                                                 {viewType === 'despesa' && (
                                                     <>
                                                         <td className="py-4 px-4 text-gray-600 dark:text-gray-300">
-                                                            {transaction.expenseType ||
-                                                                (transaction.type ===
-                                                                'parcelado'
-                                                                    ? 'Parcelamento'
-                                                                    : '-')}
+                                                            {transaction.expenseType || transaction.type === 'parcelado' ? (
+                                                                <CatalogVisualChip
+                                                                    visual={visuals.expenseType}
+                                                                    fallbackLabel={
+                                                                        transaction.type === 'parcelado'
+                                                                            ? 'Parcelamento'
+                                                                            : transaction.expenseType
+                                                                    }
+                                                                />
+                                                            ) : (
+                                                                '-'
+                                                            )}
                                                         </td>
 
                                                         <td className="py-4 px-4 text-gray-600 dark:text-gray-300">
-                                                            {transaction.paymentMethod ||
-                                                                (transaction.cardId
-                                                                    ? 'Cartão de Crédito'
-                                                                    : '-')}
+                                                            {transaction.paymentMethod || transaction.cardId ? (
+                                                                <CatalogVisualChip
+                                                                    visual={visuals.paymentMethod}
+                                                                    fallbackLabel={
+                                                                        transaction.paymentMethod ||
+                                                                        (transaction.cardId ? 'Cartão de Crédito' : '')
+                                                                    }
+                                                                />
+                                                            ) : (
+                                                                '-'
+                                                            )}
                                                         </td>
 
                                                         <td className="py-4 px-4 text-center">
@@ -867,7 +893,7 @@ const filteredTransactions = useMemo(() => {
                                             </>
                                         )}
                                     </tr>
-                                ))}
+                                ); })}
 
                                 {sortedTransactions.length === 0 && (
                                     <tr>
