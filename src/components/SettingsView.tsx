@@ -36,15 +36,19 @@ interface SettingsViewProps {
 }
 
 type ViewMode = 'main' | 'cadastros' | 'personalizacao' | 'workspace';
+type CatalogViewMode = 'cards' | 'list';
+type CatalogSortField = 'name' | 'icon' | 'status' | 'transactionSubtype' | 'sortOrder';
+type CatalogSortDirection = 'asc' | 'desc';
 
 const CATEGORY_SUBTYPE_OPTIONS: Array<{
     key: SettingsCatalogTransactionSubtype;
     label: string;
+    icon: React.ComponentType<any>;
 }> = [
-    { key: 'receita', label: 'Receitas' },
-    { key: 'despesa', label: 'Despesas' },
-    { key: 'investimento', label: 'Investimentos' },
-    { key: 'parcelado', label: 'Parcelados' },
+    { key: 'receita', label: 'Receitas', icon: TablerIcons.IconTrendingUp },
+    { key: 'despesa', label: 'Despesas', icon: TablerIcons.IconTrendingDown },
+    { key: 'investimento', label: 'Investimentos', icon: TablerIcons.IconChartBar },
+    { key: 'parcelado', label: 'Parcelados', icon: TablerIcons.IconCreditCard },
 ];
 
 const ICON_CATEGORIES = [
@@ -55,6 +59,55 @@ const ICON_CATEGORIES = [
     { label: 'Dispositivos', term: 'device phone laptop desktop cpu' },
     { label: 'Casa', term: 'home building tool hammer kitchen' },
 ];
+
+const SECTION_SIDEBAR_META: Record<
+    string,
+    {
+        icon: React.ComponentType<{ className?: string; size?: number }>;
+        shortDescription: string;
+    }
+> = {
+    Produtos: {
+        icon: TablerIcons.IconPackage,
+        shortDescription: 'Itens e serviços recorrentes.',
+    },
+    Despesas: {
+        icon: TablerIcons.IconReceipt2,
+        shortDescription: 'Gastos e classificações.',
+    },
+    Categorias: {
+        icon: TablerIcons.IconTags,
+        shortDescription: 'Organização por tipo.',
+    },
+    Pagamentos: {
+        icon: TablerIcons.IconCreditCard,
+        shortDescription: 'Métodos de pagamento.',
+    },
+    Receitas: {
+        icon: TablerIcons.IconTrendingUp,
+        shortDescription: 'Entradas e fontes.',
+    },
+    Carteiras: {
+        icon: TablerIcons.IconWallet,
+        shortDescription: 'Contas e reservas.',
+    },
+};
+
+const getSectionSidebarMeta = (shortTitle?: string) => {
+    if (!shortTitle) {
+        return {
+            icon: TablerIcons.IconDatabase,
+            shortDescription: 'Catálogo do workspace.',
+        };
+    }
+
+    return (
+        SECTION_SIDEBAR_META[shortTitle] || {
+            icon: TablerIcons.IconDatabase,
+            shortDescription: 'Catálogo do workspace.',
+        }
+    );
+};
 
 const getIconComponent = (iconName: string) => {
     const possibleNames = [iconName, `Icon${iconName}`];
@@ -84,12 +137,13 @@ const getAllIconKeys = () => {
 
 const getModalPortalRoot = (): HTMLElement => {
     let root = document.getElementById('__modal_portal_root');
+
     if (!root) {
         root = document.createElement('div');
         root.setAttribute('id', '__modal_portal_root');
-        // Anexa ao <html>, não ao <body>, para escapar de transforms aplicados ao body
-        document.documentElement.appendChild(root);
+        document.body.appendChild(root);
     }
+
     return root;
 };
 
@@ -107,6 +161,9 @@ const SettingsView: React.FC<SettingsViewProps> = () => {
     const canManageMembers = ['owner', 'admin'].includes(activeWorkspace.myRole || '');
 
     const [viewMode, setViewMode] = useState<ViewMode>('main');
+    const [catalogViewMode, setCatalogViewMode] = useState<CatalogViewMode>('cards');
+    const [sortField, setSortField] = useState<CatalogSortField>('sortOrder');
+    const [sortDirection, setSortDirection] = useState<CatalogSortDirection>('asc');
 
     const {
         sections,
@@ -245,6 +302,67 @@ const SettingsView: React.FC<SettingsViewProps> = () => {
             return matchesCategory && matchesSearch;
         });
     }, [allIconKeys, iconSearch, selectedIconCategory]);
+
+    const toggleSort = (field: CatalogSortField) => {
+    if (sortField === field) {
+        setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+        return;
+    }
+
+    setSortField(field);
+    setSortDirection('asc');
+};
+
+const getSortIndicator = (field: CatalogSortField) => {
+    if (sortField !== field) return '↕';
+    return sortDirection === 'asc' ? '↑' : '↓';
+};
+
+const sortedItems = useMemo(() => {
+    const clonedItems = [...items];
+
+    const normalizeText = (value?: string | null) => (value || '').toLowerCase().trim();
+
+    clonedItems.sort((a, b) => {
+        let comparison = 0;
+
+        switch (sortField) {
+            case 'name':
+                comparison = normalizeText(a.name).localeCompare(normalizeText(b.name), 'pt-BR');
+                break;
+
+            case 'icon':
+                comparison = normalizeText(a.icon).localeCompare(normalizeText(b.icon), 'pt-BR');
+                break;
+
+            case 'status':
+                comparison = normalizeText(a.status).localeCompare(normalizeText(b.status), 'pt-BR');
+                break;
+
+            case 'transactionSubtype':
+                comparison = normalizeText(a.transactionSubtype).localeCompare(
+                    normalizeText(b.transactionSubtype),
+                    'pt-BR'
+                );
+                break;
+
+            case 'sortOrder':
+                comparison = (a.sortOrder ?? 0) - (b.sortOrder ?? 0);
+                break;
+
+            default:
+                comparison = 0;
+        }
+
+        if (comparison === 0) {
+            comparison = normalizeText(a.name).localeCompare(normalizeText(b.name), 'pt-BR');
+        }
+
+        return sortDirection === 'asc' ? comparison : -comparison;
+    });
+
+    return clonedItems;
+}, [items, sortField, sortDirection]);
 
     const queryErrorMessage =
         error instanceof Error
@@ -564,7 +682,7 @@ const SettingsView: React.FC<SettingsViewProps> = () => {
     }
 
     return (
-        <div className="flex flex-col h-full animate-fade-in">
+        <div className="flex flex-col animate-fade-in">
             <div className="flex flex-col gap-4 mb-6 flex-shrink-0">
                 <div className="flex items-center gap-4">
                     <button
@@ -581,71 +699,168 @@ const SettingsView: React.FC<SettingsViewProps> = () => {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div className="bg-surface border border-border rounded-xl p-4">
-                        <p className="text-xs font-bold uppercase tracking-wide text-muted">
-                            Total
-                        </p>
-                        <p className="text-2xl font-bold text-on-surface mt-1">{stats.total}</p>
-                    </div>
-                    <div className="bg-surface border border-border rounded-xl p-4">
-                        <p className="text-xs font-bold uppercase tracking-wide text-muted">
-                            Ativos
-                        </p>
-                        <p className="text-2xl font-bold text-green-600 mt-1">{stats.active}</p>
-                    </div>
-                    <div className="bg-surface border border-border rounded-xl p-4">
-                        <p className="text-xs font-bold uppercase tracking-wide text-muted">
-                            Inativos
-                        </p>
-                        <p className="text-2xl font-bold text-amber-600 mt-1">{stats.inactive}</p>
-                    </div>
-                </div>
+               
+
+           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div className="group relative overflow-hidden rounded-2xl border border-border bg-surface p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/20 hover:shadow-[0_14px_28px_rgba(2,6,23,0.16)]">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(99,102,241,0.10),transparent_34%)]" />
+        <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-primary/70 to-transparent" />
+
+        <div className="relative flex items-start justify-between gap-4">
+            <div>
+                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-muted">
+                    Total
+                </p>
+                <p className="mt-3 text-3xl font-black tracking-tight text-on-surface">
+                    {stats.total}
+                </p>
+                <p className="mt-1 text-xs text-muted">
+                    Itens cadastrados
+                </p>
             </div>
 
-            <div className="flex flex-col xl:flex-row gap-6 flex-1 min-h-0">
-                <aside className="w-full xl:w-72 bg-surface rounded-xl shadow-md p-4 border border-border flex-shrink-0">
-                    <div className="mb-4">
-                        <p className="text-xs font-bold uppercase tracking-wide text-muted mb-1">
-                            Seções
-                        </p>
-                        <h3 className="text-lg font-bold text-on-surface">
-                            Catálogo administrativo
-                        </h3>
-                    </div>
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-primary/15 bg-primary/10 text-primary transition-transform duration-200 group-hover:scale-105">
+                <TablerIcons.IconDatabase size={20} />
+            </div>
+        </div>
+    </div>
 
-                    <div className="flex xl:flex-col gap-2 overflow-x-auto xl:overflow-visible pb-1">
-                        {sections.map((section) => {
-                            const isActive = activeSectionKey === section.key;
-                            return (
-                                <button
-                                    key={section.key}
-                                    onClick={() => {
-                                        setActiveSectionKey(section.key);
-                                        setSearch('');
-                                        clearFeedback();
-                                    }}
-                                    className={`min-w-fit xl:min-w-0 text-left px-4 py-3 rounded-xl transition-all border ${
+    <div className="group relative overflow-hidden rounded-2xl border border-border bg-surface p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-emerald-400/20 hover:shadow-[0_14px_28px_rgba(2,6,23,0.16)]">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.10),transparent_34%)]" />
+        <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-emerald-400/70 to-transparent" />
+
+        <div className="relative flex items-start justify-between gap-4">
+            <div>
+                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-muted">
+                    Ativos
+                </p>
+                <p className="mt-3 text-3xl font-black tracking-tight text-on-surface">
+                    {stats.active}
+                </p>
+                <p className="mt-1 text-xs text-muted">
+                    Em uso no catálogo
+                </p>
+            </div>
+
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-emerald-400/15 bg-emerald-400/10 text-emerald-400 transition-transform duration-200 group-hover:scale-105">
+                <TablerIcons.IconCircleCheck size={20} />
+            </div>
+        </div>
+    </div>
+
+    <div className="group relative overflow-hidden rounded-2xl border border-border bg-surface p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-amber-400/20 hover:shadow-[0_14px_28px_rgba(2,6,23,0.16)]">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(245,158,11,0.10),transparent_34%)]" />
+        <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-amber-400/70 to-transparent" />
+
+        <div className="relative flex items-start justify-between gap-4">
+            <div>
+                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-muted">
+                    Inativos
+                </p>
+                <p className="mt-3 text-3xl font-black tracking-tight text-on-surface">
+                    {stats.inactive}
+                </p>
+                <p className="mt-1 text-xs text-muted">
+                    Ocultos ou pausados
+                </p>
+            </div>
+
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-amber-400/15 bg-amber-400/10 text-amber-400 transition-transform duration-200 group-hover:scale-105">
+                <TablerIcons.IconAlertTriangle size={20} />
+            </div>
+        </div>
+    </div>
+</div>
+
+        </div>
+
+            <div className="flex flex-col xl:flex-row items-start gap-6">
+           <aside className="w-full xl:w-80 xl:self-start bg-surface rounded-2xl shadow-md p-4 border border-border flex-shrink-0 overflow-hidden">
+    <div className="mb-4 pb-4 border-b border-border">
+        <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-[11px] font-bold uppercase tracking-wide mb-3">
+            <TablerIcons.IconLayoutGrid size={14} />
+            Seções
+        </div>
+
+        <div className="flex items-start gap-3">
+            <div className="w-11 h-11 rounded-2xl bg-primary/12 text-primary flex items-center justify-center shrink-0">
+                <TablerIcons.IconDatabase size={22} />
+            </div>
+
+            <div>
+                <h3 className="text-lg font-bold text-on-surface leading-tight">
+                    Catálogo administrativo
+                </h3>
+                <p className="text-xs text-muted mt-1">
+                    Estrutura principal dos cadastros.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div className="flex xl:flex-col gap-3 overflow-x-auto overflow-y-hidden xl:overflow-visible pb-1">
+        {sections.map((section) => {
+            const isActive = activeSectionKey === section.key;
+            const sidebarMeta = getSectionSidebarMeta(section.shortTitle);
+            const SectionIcon = sidebarMeta.icon;
+
+            return (
+                <button
+                    key={section.key}
+                    onClick={() => {
+                        setActiveSectionKey(section.key);
+                        setSearch('');
+                        clearFeedback();
+                    }}
+                    className={`group min-w-fit xl:min-w-0 text-left rounded-2xl transition-all border p-3.5 ${
+                        isActive
+                            ? 'bg-primary text-white border-primary shadow-[0_10px_30px_rgba(99,102,241,0.28)]'
+                            : 'bg-background text-on-surface border-border hover:border-primary/30 hover:bg-surface'
+                    }`}
+                >
+                    <div className="flex items-start gap-3">
+                        <div
+                            className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 transition-colors ${
+                                isActive
+                                    ? 'bg-white/14 text-white'
+                                    : 'bg-surface text-primary border border-border group-hover:border-primary/20'
+                            }`}
+                        >
+                            <SectionIcon size={20} />
+                        </div>
+
+                        <div className="min-w-0 flex-1">
+                            <div className="flex items-center justify-between gap-3">
+                                <span className="text-sm font-bold truncate">
+                                    {section.shortTitle}
+                                </span>
+
+                                <TablerIcons.IconChevronRight
+                                    size={16}
+                                    className={`shrink-0 transition-transform ${
                                         isActive
-                                            ? 'bg-primary text-white border-primary shadow-md'
-                                            : 'bg-background text-on-surface border-border hover:border-primary/30'
+                                            ? 'text-white/80'
+                                            : 'text-muted group-hover:text-primary group-hover:translate-x-0.5'
                                     }`}
-                                >
-                                    <div className="text-sm font-bold">{section.shortTitle}</div>
-                                    <div
-                                        className={`text-xs mt-1 ${
-                                            isActive ? 'text-white/80' : 'text-muted'
-                                        }`}
-                                    >
-                                        {section.description}
-                                    </div>
-                                </button>
-                            );
-                        })}
-                    </div>
-                </aside>
+                                />
+                            </div>
 
-                <section className="flex-1 bg-surface rounded-xl shadow-md border border-border min-h-[560px] flex flex-col">
+                            <p
+                                className={`text-xs mt-1.5 leading-relaxed line-clamp-2 ${
+                                    isActive ? 'text-white/80' : 'text-muted'
+                                }`}
+                            >
+                                {sidebarMeta.shortDescription}
+                            </p>
+                        </div>
+                    </div>
+                </button>
+            );
+        })}
+    </div>
+</aside>
+
+                <section className="min-w-0 flex-1 xl:self-start bg-surface rounded-xl shadow-md border border-border min-h-[560px] flex flex-col overflow-hidden">
                     <div className="p-5 md:p-6 border-b border-border">
                         <div className="flex flex-col gap-4">
                             <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
@@ -658,13 +873,40 @@ const SettingsView: React.FC<SettingsViewProps> = () => {
                                     </p>
                                 </div>
 
-                                <button
-                                    onClick={openCreateModal}
-                                    className="inline-flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-white rounded-xl px-4 py-2.5 font-bold shadow-md transition-colors"
-                                >
-                                    <PlusIcon />
-                                    Novo cadastro
-                                </button>
+                                <div className="flex flex-col sm:flex-row gap-3">
+                                    <div className="inline-flex items-center rounded-xl border border-border bg-background p-1 shadow-sm">
+                                        <button
+                                            type="button"
+                                            onClick={() => setCatalogViewMode('cards')}
+                                            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                                                catalogViewMode === 'cards'
+                                                    ? 'bg-primary text-white shadow-sm'
+                                                    : 'text-on-surface hover:bg-surface'
+                                            }`}
+                                        >
+                                            Cards
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setCatalogViewMode('list')}
+                                            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                                                catalogViewMode === 'list'
+                                                    ? 'bg-primary text-white shadow-sm'
+                                                    : 'text-on-surface hover:bg-surface'
+                                            }`}
+                                        >
+                                            Lista
+                                        </button>
+                                    </div>
+
+                                    <button
+                                        onClick={openCreateModal}
+                                        className="inline-flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-white rounded-xl px-4 py-2.5 font-bold shadow-md transition-colors"
+                                    >
+                                        <PlusIcon />
+                                        Novo cadastro
+                                    </button>
+                                </div>
                             </div>
 
                             <div className="flex flex-col lg:flex-row gap-3">
@@ -693,22 +935,37 @@ const SettingsView: React.FC<SettingsViewProps> = () => {
                             </div>
 
                             {activeSection?.supportsTransactionSubtype && (
-                                <div className="flex gap-2 overflow-x-auto pb-1">
-                                    {CATEGORY_SUBTYPE_OPTIONS.map((subtype) => (
-                                        <button
-                                            key={subtype.key}
-                                            onClick={() => setTransactionSubtype(subtype.key)}
-                                            className={`px-4 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap ${
-                                                transactionSubtype === subtype.key
-                                                    ? 'bg-primary/10 text-primary ring-1 ring-primary/20'
-                                                    : 'text-muted hover:bg-background'
-                                            }`}
-                                        >
-                                            {subtype.label}
+    <div className="rounded-2xl border border-border bg-background/70 p-2">
+        <div className="flex gap-2 overflow-x-auto px-0.5 py-0.5">
+            {CATEGORY_SUBTYPE_OPTIONS.map((subtype) => {
+                const isActive = transactionSubtype === subtype.key;
+                const SubtypeIcon = subtype.icon;
+
+                return (
+                    <button
+                        key={subtype.key}
+                        onClick={() => setTransactionSubtype(subtype.key)}
+                        className={`group inline-flex items-center gap-2 rounded-full border px-4 py-2.5 text-sm font-semibold whitespace-nowrap transition-all duration-200 ${
+                            isActive
+                                ? 'border-primary/40 bg-[linear-gradient(135deg,rgba(99,102,241,0.24),rgba(99,102,241,0.08))] text-primary shadow-[0_8px_24px_rgba(99,102,241,0.16)]'
+                                : 'border-transparent text-muted hover:border-border hover:bg-surface hover:text-on-surface'
+                        }`}
+                    >
+                                            <SubtypeIcon
+                                                size={16}
+                                                className={
+                                                    isActive
+                                                        ? 'text-primary'
+                                                        : 'text-muted transition-colors group-hover:text-on-surface'
+                                                }
+                                            />
+                                            <span>{subtype.label}</span>
                                         </button>
-                                    ))}
-                                </div>
-                            )}
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
                         </div>
                     </div>
 
@@ -781,79 +1038,231 @@ const SettingsView: React.FC<SettingsViewProps> = () => {
                                     </div>
                                 )}
 
-                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                                    {items.map((item) => (
-                                        <article
-                                            key={item.id}
-                                            className="rounded-2xl border border-border bg-background p-4 hover:border-primary/30 hover:shadow-md transition-all"
-                                        >
-                                            <div className="flex items-start gap-4">
-                                                <div className="w-12 h-12 rounded-xl bg-surface border border-border flex items-center justify-center shrink-0">
-                                                    {item.icon ? (
-                                                        renderIcon(
-                                                            item.icon,
-                                                            item.color,
-                                                            item.stroke,
-                                                            24
-                                                        )
-                                                    ) : (
-                                                        <TablerIcons.IconShape
-                                                            size={22}
-                                                            className="text-muted"
-                                                        />
-                                                    )}
-                                                </div>
-
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="flex flex-wrap items-center gap-2">
-                                                        <h4 className="font-bold text-on-surface truncate">
-                                                            {item.name}
-                                                        </h4>
-                                                        <span
-                                                            className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold ${
-                                                                item.status === 'active'
-                                                                    ? 'bg-green-100 text-green-700'
-                                                                    : 'bg-amber-100 text-amber-700'
-                                                            }`}
-                                                        >
-                                                            {item.status === 'active'
-                                                                ? 'Ativo'
-                                                                : 'Inativo'}
-                                                        </span>
-
-                                                        {item.transactionSubtype && (
-                                                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-primary/10 text-primary">
-                                                                {item.transactionSubtype}
-                                                            </span>
+                                {catalogViewMode === 'cards' ? (
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                        {sortedItems.map((item) => (
+                                            <article
+                                                key={item.id}
+                                                className="rounded-2xl border border-border bg-background p-4 hover:border-primary/30 hover:shadow-md transition-all"
+                                            >
+                                                <div className="flex items-start gap-4">
+                                                    <div className="w-12 h-12 rounded-xl bg-surface border border-border flex items-center justify-center shrink-0">
+                                                        {item.icon ? (
+                                                            renderIcon(
+                                                                item.icon,
+                                                                item.color,
+                                                                item.stroke,
+                                                                24
+                                                            )
+                                                        ) : (
+                                                            <TablerIcons.IconShape
+                                                                size={22}
+                                                                className="text-muted"
+                                                            />
                                                         )}
                                                     </div>
 
-                                                    <div className="mt-2 text-xs text-muted space-y-1">
-                                                        <p>Grupo: {activeSection?.shortTitle}</p>
-                                                        <p>Ordenação: {item.sortOrder}</p>
-                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex flex-wrap items-center gap-2">
+                                                            <h4 className="font-bold text-on-surface truncate">
+                                                                {item.name}
+                                                            </h4>
+                                                            <span
+                                                                className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold ${
+                                                                    item.status === 'active'
+                                                                        ? 'bg-green-100 text-green-700'
+                                                                        : 'bg-amber-100 text-amber-700'
+                                                                }`}
+                                                            >
+                                                                {item.status === 'active'
+                                                                    ? 'Ativo'
+                                                                    : 'Inativo'}
+                                                            </span>
 
-                                                    <div className="mt-4 flex items-center gap-2">
-                                                        <button
-                                                            onClick={() => openEditModal(item)}
-                                                            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-border hover:bg-surface text-sm font-medium text-on-surface transition-colors"
-                                                        >
-                                                            <EditIcon className="h-4 w-4" />
-                                                            Editar
-                                                        </button>
-                                                        <button
-                                                            onClick={() => setItemToDelete(item)}
-                                                            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-red-200 hover:bg-red-50 text-sm font-medium text-red-600 transition-colors"
-                                                        >
-                                                            <DeleteIcon className="h-4 w-4" />
-                                                            Excluir
-                                                        </button>
+                                                            {item.transactionSubtype && (
+                                                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-primary/10 text-primary">
+                                                                    {item.transactionSubtype}
+                                                                </span>
+                                                            )}
+                                                        </div>
+
+                                                        <div className="mt-2 text-xs text-muted space-y-1">
+                                                            <p>Grupo: {activeSection?.shortTitle}</p>
+                                                            <p>Ordenação: {item.sortOrder}</p>
+                                                        </div>
+
+                                                        <div className="mt-4 flex items-center gap-2">
+                                                            <button
+                                                                onClick={() => openEditModal(item)}
+                                                                className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-border hover:bg-surface text-sm font-medium text-on-surface transition-colors"
+                                                            >
+                                                                <EditIcon className="h-4 w-4" />
+                                                                Editar
+                                                            </button>
+                                                            <button
+                                                                onClick={() => setItemToDelete(item)}
+                                                                className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-red-200 hover:bg-red-50 text-sm font-medium text-red-600 transition-colors"
+                                                            >
+                                                                <DeleteIcon className="h-4 w-4" />
+                                                                Excluir
+                                                            </button>
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        </article>
-                                    ))}
-                                </div>
+                                            </article>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="rounded-2xl border border-border bg-background overflow-hidden">
+                                        <div className="overflow-x-auto">
+                                            <table className="min-w-full">
+                                                <thead className="bg-surface/80 border-b border-border">
+                                                    <tr>
+                                                        <th className="px-4 py-3 text-left">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => toggleSort('name')}
+                                                                className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-muted hover:text-on-surface transition-colors"
+                                                            >
+                                                                Nome
+                                                                <span className="text-[11px]">{getSortIndicator('name')}</span>
+                                                            </button>
+                                                        </th>
+
+                                                        <th className="px-4 py-3 text-left">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => toggleSort('icon')}
+                                                                className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-muted hover:text-on-surface transition-colors"
+                                                            >
+                                                                Ícone
+                                                                <span className="text-[11px]">{getSortIndicator('icon')}</span>
+                                                            </button>
+                                                        </th>
+
+                                                        <th className="px-4 py-3 text-left">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => toggleSort('status')}
+                                                                className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-muted hover:text-on-surface transition-colors"
+                                                            >
+                                                                Status
+                                                                <span className="text-[11px]">{getSortIndicator('status')}</span>
+                                                            </button>
+                                                        </th>
+
+                                                        <th className="px-4 py-3 text-left">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => toggleSort('transactionSubtype')}
+                                                                className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-muted hover:text-on-surface transition-colors"
+                                                            >
+                                                                Tipo
+                                                                <span className="text-[11px]">{getSortIndicator('transactionSubtype')}</span>
+                                                            </button>
+                                                        </th>
+
+                                                        <th className="px-4 py-3 text-left">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => toggleSort('sortOrder')}
+                                                                className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-muted hover:text-on-surface transition-colors"
+                                                            >
+                                                                Ordenação
+                                                                <span className="text-[11px]">{getSortIndicator('sortOrder')}</span>
+                                                            </button>
+                                                        </th>
+
+                                                        <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-wide text-muted">
+                                                            Ações
+                                                        </th>
+                                                    </tr>
+                                                </thead>
+
+                                                <tbody className="divide-y divide-border">
+                                                    {sortedItems.map((item) => (
+                                                        <tr
+                                                            key={item.id}
+                                                            className="hover:bg-surface/60 transition-colors"
+                                                        >
+                                                            <td className="px-4 py-3 min-w-[220px]">
+                                                                <div className="min-w-0">
+                                                                    <p className="font-semibold text-on-surface truncate">
+                                                                        {item.name}
+                                                                    </p>
+                                                                    <p className="text-xs text-muted mt-0.5">
+                                                                        {activeSection?.shortTitle}
+                                                                    </p>
+                                                                </div>
+                                                            </td>
+
+                                                            <td className="px-4 py-3">
+                                                                <div className="w-10 h-10 rounded-xl bg-surface border border-border flex items-center justify-center">
+                                                                    {item.icon ? (
+                                                                        renderIcon(item.icon, item.color, item.stroke, 20)
+                                                                    ) : (
+                                                                        <TablerIcons.IconShape
+                                                                            size={18}
+                                                                            className="text-muted"
+                                                                        />
+                                                                    )}
+                                                                </div>
+                                                            </td>
+
+                                                            <td className="px-4 py-3">
+                                                                <span
+                                                                    className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold ${
+                                                                        item.status === 'active'
+                                                                            ? 'bg-green-100 text-green-700'
+                                                                            : 'bg-amber-100 text-amber-700'
+                                                                    }`}
+                                                                >
+                                                                    {item.status === 'active' ? 'Ativo' : 'Inativo'}
+                                                                </span>
+                                                            </td>
+
+                                                            <td className="px-4 py-3">
+                                                                {item.transactionSubtype ? (
+                                                                    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-primary/10 text-primary">
+                                                                        {item.transactionSubtype}
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="text-sm text-muted">—</span>
+                                                                )}
+                                                            </td>
+
+                                                            <td className="px-4 py-3">
+                                                                <span className="text-sm font-semibold text-on-surface tabular-nums">
+                                                                    {item.sortOrder}
+                                                                </span>
+                                                            </td>
+
+                                                            <td className="px-4 py-3">
+                                                                <div className="flex items-center justify-end gap-2">
+                                                                    <button
+                                                                        onClick={() => openEditModal(item)}
+                                                                        className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-border hover:bg-surface text-sm font-medium text-on-surface transition-colors"
+                                                                    >
+                                                                        <EditIcon className="h-4 w-4" />
+                                                                        Editar
+                                                                    </button>
+
+                                                                    <button
+                                                                        onClick={() => setItemToDelete(item)}
+                                                                        className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-red-200 hover:bg-red-50 text-sm font-medium text-red-600 transition-colors"
+                                                                    >
+                                                                        <DeleteIcon className="h-4 w-4" />
+                                                                        Excluir
+                                                                    </button>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>
@@ -861,342 +1270,360 @@ const SettingsView: React.FC<SettingsViewProps> = () => {
             </div>
 
             {isModalOpen &&
-                renderInPortal(
-                    <div
-                            style={{ position: 'fixed', inset: 0, zIndex: 1000 }}
-                            className="bg-black/70 backdrop-blur-[2px] flex items-center justify-center p-4 md:p-6"
+    renderInPortal(
+        <div
+            className="fixed inset-0 z-[1000] bg-black/70 backdrop-blur-[2px] overflow-y-auto overscroll-contain"
+            onClick={closeModal}
+        >
+            <div className="min-h-full w-full flex items-center justify-center p-4 md:p-6">
+                <div
+                    className="bg-surface rounded-2xl shadow-lg w-full max-w-3xl animate-settings-modal-in flex flex-col max-h-[calc(100dvh-2rem)] md:max-h-[calc(100dvh-3rem)] border border-border overflow-hidden my-auto"
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    <div className="flex justify-between items-center p-5 border-b border-border shrink-0">
+                        <div>
+                            <h3 className="text-lg font-bold text-on-surface">
+                                {modalMode === 'edit' ? 'Editar cadastro' : 'Novo cadastro'}
+                            </h3>
+                            <p className="text-sm text-muted mt-1">
+                                {activeSection?.title}
+                                {selectedItem?.transactionSubtype
+                                    ? ` • ${selectedItem.transactionSubtype}`
+                                    : activeSection?.supportsTransactionSubtype
+                                    ? ` • ${transactionSubtype}`
+                                    : ''}
+                            </p>
+                        </div>
+                        <button
                             onClick={closeModal}
+                            className="text-muted hover:text-on-surface"
                         >
-                        <div
-                            className="bg-surface rounded-2xl shadow-lg w-full max-w-3xl animate-scale-in flex flex-col max-h-[90vh] border border-border overflow-hidden"
-                            onClick={(e) => e.stopPropagation()}
-                        >
-                            <div className="flex justify-between items-center p-5 border-b border-border shrink-0">
-                                <div>
-                                    <h3 className="text-lg font-bold text-on-surface">
-                                        {modalMode === 'edit' ? 'Editar cadastro' : 'Novo cadastro'}
-                                    </h3>
-                                    <p className="text-sm text-muted mt-1">
-                                        {activeSection?.title}
-                                        {selectedItem?.transactionSubtype
-                                            ? ` • ${selectedItem.transactionSubtype}`
-                                            : activeSection?.supportsTransactionSubtype
-                                            ? ` • ${transactionSubtype}`
-                                            : ''}
-                                    </p>
-                                </div>
-                                <button
-                                    onClick={closeModal}
-                                    className="text-muted hover:text-on-surface"
-                                >
-                                    <CloseIcon />
-                                </button>
-                            </div>
+                            <CloseIcon />
+                        </button>
+                    </div>
 
-                            <form onSubmit={handleSaveCatalog} className="flex flex-col min-h-0">
-                                <div className="p-5 md:p-6 overflow-y-auto overflow-x-hidden space-y-6 min-w-0">
-                                    <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] gap-6 min-w-0">
-                                        <div className="space-y-5 min-w-0">
-                                            <div>
-                                                <label className="block text-sm font-medium text-on-surface mb-1.5">
-                                                    Nome do cadastro
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    value={itemName}
-                                                    onChange={(e) => setItemName(e.target.value)}
-                                                    className="w-full bg-background border border-border rounded-xl px-4 py-3 text-on-surface focus:ring-2 focus:ring-primary outline-none"
-                                                    placeholder="Ex.: Cartão corporativo, Fornecedor A, Alimentação..."
-                                                    required
-                                                />
-                                            </div>
+                    <form onSubmit={handleSaveCatalog} className="flex flex-col min-h-0">
+                        <div className="p-5 md:p-6 overflow-y-auto overflow-x-hidden space-y-6 min-w-0">
+                            <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] gap-6 min-w-0">
+                                <div className="space-y-5 min-w-0">
+                                    <div>
+                                        <label className="block text-sm font-medium text-on-surface mb-1.5">
+                                            Nome do cadastro
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={itemName}
+                                            onChange={(e) => setItemName(e.target.value)}
+                                            className="w-full bg-background border border-border rounded-xl px-4 py-3 text-on-surface focus:ring-2 focus:ring-primary outline-none"
+                                            placeholder="Ex.: Cartão corporativo, Fornecedor A, Alimentação..."
+                                            required
+                                        />
+                                    </div>
 
-                                            {activeSection?.supportsTransactionSubtype && (
-                                                <div>
-                                                    <label className="block text-sm font-medium text-on-surface mb-2">
-                                                        Tipo de transação
-                                                    </label>
-                                                    <div className="flex flex-wrap gap-2">
-                                                        {CATEGORY_SUBTYPE_OPTIONS.map((subtype) => {
-                                                            const isActive = transactionSubtype === subtype.key;
-                                                            const isDisabled = modalMode === 'edit';
-                                                            return (
-                                                                <button
-                                                                    key={subtype.key}
-                                                                    type="button"
-                                                                    disabled={isDisabled}
-                                                                    onClick={() =>
-                                                                        !isDisabled &&
-                                                                        setTransactionSubtype(subtype.key)
-                                                                    }
-                                                                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                                                                        isActive
-                                                                            ? 'bg-primary/10 text-primary ring-1 ring-primary/20'
-                                                                            : 'text-muted hover:bg-background'
-                                                                    } ${
-                                                                        isDisabled
-                                                                            ? 'opacity-70 cursor-not-allowed'
-                                                                            : ''
-                                                                    }`}
-                                                                >
-                                                                    {subtype.label}
-                                                                </button>
-                                                            );
-                                                        })}
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            <div>
-                                                <label className="block text-sm font-medium text-on-surface mb-2">
-                                                    Status
-                                                </label>
-                                                <div className="flex gap-2">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setItemStatus('active')}
-                                                        className={`px-4 py-2 rounded-xl border text-sm font-medium transition-colors ${
-                                                            itemStatus === 'active'
-                                                                ? 'border-green-200 bg-green-50 text-green-700'
-                                                                : 'border-border text-on-surface hover:bg-background'
-                                                        }`}
-                                                    >
-                                                        Ativo
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setItemStatus('inactive')}
-                                                        className={`px-4 py-2 rounded-xl border text-sm font-medium transition-colors ${
-                                                            itemStatus === 'inactive'
-                                                                ? 'border-amber-200 bg-amber-50 text-amber-700'
-                                                                : 'border-border text-on-surface hover:bg-background'
-                                                        }`}
-                                                    >
-                                                        Inativo
-                                                    </button>
-                                                </div>
-                                            </div>
-
-                                            <div className="rounded-2xl border border-border bg-background p-4">
-                                                <p className="text-xs font-bold uppercase tracking-wide text-muted mb-3">
-                                                    Pré-visualização
-                                                </p>
-
-                                                <div className="flex items-center gap-4">
-                                                    <div className="w-14 h-14 rounded-2xl bg-surface border border-border flex items-center justify-center">
-                                                        {itemIcon ? (
-                                                            renderIcon(itemIcon, itemColor, itemStroke, 28)
-                                                        ) : (
-                                                            <TablerIcons.IconShape
-                                                                size={24}
-                                                                className="text-muted"
-                                                            />
-                                                        )}
-                                                    </div>
-                                                    <div className="min-w-0">
-                                                        <p className="font-bold text-on-surface truncate">
-                                                            {itemName || 'Novo item do catálogo'}
-                                                        </p>
-                                                        <p className="text-sm text-muted">
-                                                            {activeSection?.shortTitle}
-                                                        </p>
-                                                    </div>
-                                                </div>
+                                    {activeSection?.supportsTransactionSubtype && (
+                                        <div>
+                                            <label className="block text-sm font-medium text-on-surface mb-2">
+                                                Tipo de transação
+                                            </label>
+                                            <div className="flex flex-wrap gap-2">
+                                                {CATEGORY_SUBTYPE_OPTIONS.map((subtype) => {
+                                                    const isActive = transactionSubtype === subtype.key;
+                                                    const isDisabled = modalMode === 'edit';
+                                                    return (
+                                                        <button
+                                                            key={subtype.key}
+                                                            type="button"
+                                                            disabled={isDisabled}
+                                                            onClick={() =>
+                                                                !isDisabled &&
+                                                                setTransactionSubtype(subtype.key)
+                                                            }
+                                                            className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                                                                isActive
+                                                                    ? 'bg-primary/10 text-primary ring-1 ring-primary/20'
+                                                                    : 'text-muted hover:bg-background'
+                                                            } ${
+                                                                isDisabled
+                                                                    ? 'opacity-70 cursor-not-allowed'
+                                                                    : ''
+                                                            }`}
+                                                        >
+                                                            {subtype.label}
+                                                        </button>
+                                                    );
+                                                })}
                                             </div>
                                         </div>
+                                    )}
 
-                                        <div className="space-y-4 min-w-0">
-                                            <div className="rounded-2xl border border-border bg-background p-4">
-                                                <div className="flex items-center justify-between gap-3 mb-3">
-                                                    <label className="text-sm font-medium text-on-surface">
-                                                        Ícone
-                                                    </label>
-                                                    {itemIcon && (
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => setItemIcon('')}
-                                                            className="text-xs font-bold text-red-600 hover:text-red-700"
-                                                        >
-                                                            Remover ícone
-                                                        </button>
-                                                    )}
-                                                </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-on-surface mb-2">
+                                            Status
+                                        </label>
+                                        <div className="flex gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => setItemStatus('active')}
+                                                className={`px-4 py-2 rounded-xl border text-sm font-medium transition-colors ${
+                                                    itemStatus === 'active'
+                                                        ? 'border-green-200 bg-green-50 text-green-700'
+                                                        : 'border-border text-on-surface hover:bg-background'
+                                                }`}
+                                            >
+                                                Ativo
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setItemStatus('inactive')}
+                                                className={`px-4 py-2 rounded-xl border text-sm font-medium transition-colors ${
+                                                    itemStatus === 'inactive'
+                                                        ? 'border-amber-200 bg-amber-50 text-amber-700'
+                                                        : 'border-border text-on-surface hover:bg-background'
+                                                }`}
+                                            >
+                                                Inativo
+                                            </button>
+                                        </div>
+                                    </div>
 
-                                                <div className="space-y-3">
-                                                    <div className="relative">
-                                                        <input
-                                                            type="text"
-                                                            value={iconSearch}
-                                                            onChange={(e) => setIconSearch(e.target.value)}
-                                                            placeholder="Buscar ícone"
-                                                            className="w-full pl-10 pr-4 py-2.5 border border-border rounded-xl bg-surface text-on-surface focus:outline-none focus:ring-2 focus:ring-primary"
-                                                        />
-                                                        <div className="absolute left-3 top-2.5 text-muted">
-                                                            <SearchIcon className="h-5 w-5" />
-                                                        </div>
-                                                    </div>
+                                    <div className="rounded-2xl border border-border bg-background p-4">
+                                        <p className="text-xs font-bold uppercase tracking-wide text-muted mb-3">
+                                            Pré-visualização
+                                        </p>
 
-                                                    <div className="flex flex-wrap gap-2">
-                                                        {ICON_CATEGORIES.map((category) => (
-                                                            <button
-                                                                key={category.label}
-                                                                type="button"
-                                                                onClick={() => setSelectedIconCategory(category.label)}
-                                                                className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all ${
-                                                                    selectedIconCategory === category.label
-                                                                        ? 'bg-primary/10 text-primary ring-1 ring-primary/20'
-                                                                        : 'bg-surface text-muted hover:bg-white/60'
-                                                                }`}
-                                                            >
-                                                                {category.label}
-                                                            </button>
-                                                        ))}
-                                                    </div>
-
-                                                    <div className="grid grid-cols-6 sm:grid-cols-7 gap-2 max-h-64 overflow-y-auto hide-scrollbar p-1">
-                                                        {filteredIcons
-                                                            .slice(0, visibleIconCount)
-                                                            .map((key) => (
-                                                                <button
-                                                                    key={key}
-                                                                    type="button"
-                                                                    onClick={() => setItemIcon(key)}
-                                                                    className={`aspect-square rounded-xl flex items-center justify-center border transition-all ${
-                                                                        itemIcon === key
-                                                                            ? 'border-primary bg-primary/10'
-                                                                            : 'border-transparent hover:border-border hover:bg-surface'
-                                                                    }`}
-                                                                >
-                                                                    {renderIcon(
-                                                                        key,
-                                                                        itemIcon === key ? itemColor : '#6b7280',
-                                                                        itemIcon === key ? itemStroke : 2,
-                                                                        20
-                                                                    )}
-                                                                </button>
-                                                            ))}
-                                                    </div>
-
-                                                    {visibleIconCount < filteredIcons.length && (
-                                                        <button
-                                                            type="button"
-                                                            onClick={() =>
-                                                                setVisibleIconCount((prev) => prev + 48)
-                                                            }
-                                                            className="w-full py-2 rounded-xl border border-border text-sm font-medium text-on-surface hover:bg-surface transition-colors"
-                                                        >
-                                                            Mostrar mais ícones
-                                                        </button>
-                                                    )}
-                                                </div>
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-14 h-14 rounded-2xl bg-surface border border-border flex items-center justify-center">
+                                                {itemIcon ? (
+                                                    renderIcon(itemIcon, itemColor, itemStroke, 28)
+                                                ) : (
+                                                    <TablerIcons.IconShape
+                                                        size={24}
+                                                        className="text-muted"
+                                                    />
+                                                )}
                                             </div>
-
-                                            {itemIcon && (
-                                                <div className="grid grid-cols-2 gap-4">
-                                                    <div>
-                                                        <label className="block text-xs font-bold text-muted uppercase mb-1.5">
-                                                            Cor
-                                                        </label>
-                                                        <input
-                                                            type="color"
-                                                            value={itemColor}
-                                                            onChange={(e) => setItemColor(e.target.value)}
-                                                            className="w-full h-11 rounded-lg cursor-pointer p-1 bg-background"
-                                                        />
-                                                    </div>
-                                                    <div>
-                                                        <label className="block text-xs font-bold text-muted uppercase mb-1.5">
-                                                            Traço
-                                                        </label>
-                                                        <input
-                                                            type="number"
-                                                            step="0.5"
-                                                            min="1"
-                                                            max="4"
-                                                            value={itemStroke}
-                                                            onChange={(e) =>
-                                                                setItemStroke(parseFloat(e.target.value))
-                                                            }
-                                                            className="w-full bg-background border border-border rounded-lg px-4 py-2.5 text-on-surface"
-                                                        />
-                                                    </div>
-                                                </div>
-                                            )}
+                                            <div className="min-w-0">
+                                                <p className="font-bold text-on-surface truncate">
+                                                    {itemName || 'Novo item do catálogo'}
+                                                </p>
+                                                <p className="text-sm text-muted">
+                                                    {activeSection?.shortTitle}
+                                                </p>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div className="p-5 border-t border-border flex flex-col-reverse sm:flex-row justify-end gap-3 shrink-0">
-                                    <button
-                                        type="button"
-                                        onClick={closeModal}
-                                        className="px-4 py-2.5 bg-background border border-border text-on-surface rounded-xl font-medium"
-                                    >
-                                        Cancelar
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        className="px-6 py-2.5 bg-primary text-white rounded-xl font-bold shadow-md disabled:opacity-60"
-                                        disabled={isLoading}
-                                    >
-                                        {modalMode === 'edit' ? 'Salvar alterações' : 'Criar cadastro'}
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                )}
+                                <div className="space-y-4 min-w-0">
+                                    <div className="rounded-2xl border border-border bg-background p-4">
+                                        <div className="flex items-center justify-between gap-3 mb-3">
+                                            <label className="text-sm font-medium text-on-surface">
+                                                Ícone
+                                            </label>
+                                            {itemIcon && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setItemIcon('')}
+                                                    className="text-xs font-bold text-red-600 hover:text-red-700"
+                                                >
+                                                    Remover ícone
+                                                </button>
+                                            )}
+                                        </div>
 
-            {itemToDelete &&
-                renderInPortal(
-                    <div
-                            style={{ position: 'fixed', inset: 0, zIndex: 1000 }}
-                            className="bg-black/70 backdrop-blur-[2px] flex items-center justify-center p-4 md:p-6"
-                            onClick={() => setItemToDelete(null)}
-                        >
-                        <div
-                            className="bg-surface rounded-2xl shadow-lg w-full max-w-md animate-scale-in border border-border overflow-hidden max-h-[90vh] flex flex-col"
-                            onClick={(e) => e.stopPropagation()}
-                        >
-                            <div className="p-6 overflow-y-auto">
-                                <div className="w-12 h-12 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center mb-4">
-                                    <WarningIcon className="h-6 w-6" />
-                                </div>
+                                        <div className="space-y-3">
+                                            <div className="relative">
+                                                <input
+                                                    type="text"
+                                                    value={iconSearch}
+                                                    onChange={(e) => setIconSearch(e.target.value)}
+                                                    placeholder="Buscar ícone"
+                                                    className="w-full pl-10 pr-4 py-2.5 border border-border rounded-xl bg-surface text-on-surface focus:outline-none focus:ring-2 focus:ring-primary"
+                                                />
+                                                <div className="absolute left-3 top-2.5 text-muted">
+                                                    <SearchIcon className="h-5 w-5" />
+                                                </div>
+                                            </div>
 
-                                <h3 className="text-lg font-bold text-on-surface">
-                                    Excluir cadastro
-                                </h3>
-                                <p className="text-sm text-muted mt-2">
-                                    Tem certeza que deseja excluir <strong>{itemToDelete.name}</strong>?
-                                    Esta ação também libera a chave de unicidade desse item.
-                                </p>
+                                            <div className="flex flex-wrap gap-2">
+                                                {ICON_CATEGORIES.map((category) => (
+                                                    <button
+                                                        key={category.label}
+                                                        type="button"
+                                                        onClick={() => setSelectedIconCategory(category.label)}
+                                                        className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all ${
+                                                            selectedIconCategory === category.label
+                                                                ? 'bg-primary/10 text-primary ring-1 ring-primary/20'
+                                                                : 'bg-surface text-muted hover:bg-white/60'
+                                                        }`}
+                                                    >
+                                                        {category.label}
+                                                    </button>
+                                                ))}
+                                            </div>
 
-                                <div className="mt-6 flex flex-col-reverse sm:flex-row justify-end gap-3">
-                                    <button
-                                        type="button"
-                                        onClick={() => setItemToDelete(null)}
-                                        className="px-4 py-2.5 bg-background border border-border text-on-surface rounded-xl font-medium"
-                                    >
-                                        Cancelar
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={handleConfirmDelete}
-                                        className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold"
-                                    >
-                                        Excluir item
-                                    </button>
+                                            <div className="grid grid-cols-6 sm:grid-cols-7 gap-2 max-h-64 overflow-y-auto hide-scrollbar p-1">
+                                                {filteredIcons
+                                                    .slice(0, visibleIconCount)
+                                                    .map((key) => (
+                                                        <button
+                                                            key={key}
+                                                            type="button"
+                                                            onClick={() => setItemIcon(key)}
+                                                            className={`aspect-square rounded-xl flex items-center justify-center border transition-all ${
+                                                                itemIcon === key
+                                                                    ? 'border-primary bg-primary/10'
+                                                                    : 'border-transparent hover:border-border hover:bg-surface'
+                                                            }`}
+                                                        >
+                                                            {renderIcon(
+                                                                key,
+                                                                itemIcon === key ? itemColor : '#6b7280',
+                                                                itemIcon === key ? itemStroke : 2,
+                                                                20
+                                                            )}
+                                                        </button>
+                                                    ))}
+                                            </div>
+
+                                            {visibleIconCount < filteredIcons.length && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        setVisibleIconCount((prev) => prev + 48)
+                                                    }
+                                                    className="w-full py-2 rounded-xl border border-border text-sm font-medium text-on-surface hover:bg-surface transition-colors"
+                                                >
+                                                    Mostrar mais ícones
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {itemIcon && (
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="block text-xs font-bold text-muted uppercase mb-1.5">
+                                                    Cor
+                                                </label>
+                                                <input
+                                                    type="color"
+                                                    value={itemColor}
+                                                    onChange={(e) => setItemColor(e.target.value)}
+                                                    className="w-full h-11 rounded-lg cursor-pointer p-1 bg-background"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-bold text-muted uppercase mb-1.5">
+                                                    Traço
+                                                </label>
+                                                <input
+                                                    type="number"
+                                                    step="0.5"
+                                                    min="1"
+                                                    max="4"
+                                                    value={itemStroke}
+                                                    onChange={(e) =>
+                                                        setItemStroke(parseFloat(e.target.value))
+                                                    }
+                                                    className="w-full bg-background border border-border rounded-lg px-4 py-2.5 text-on-surface"
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
-                    </div>
-                )}
 
-            {isMembersModalOpen && (
-                <MembersManagerModal onClose={() => setIsMembersModalOpen(false)} />
-            )}
+                        <div className="p-5 border-t border-border flex flex-col-reverse sm:flex-row justify-end gap-3 shrink-0">
+                            <button
+                                type="button"
+                                onClick={closeModal}
+                                className="px-4 py-2.5 bg-background border border-border text-on-surface rounded-xl font-medium"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                type="submit"
+                                className="px-6 py-2.5 bg-primary text-white rounded-xl font-bold shadow-md disabled:opacity-60"
+                                disabled={isLoading}
+                            >
+                                {modalMode === 'edit' ? 'Salvar alterações' : 'Criar cadastro'}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </div>
-    );
+    )}
+
+{itemToDelete &&
+    renderInPortal(
+        <div
+            className="fixed inset-0 z-[1000] bg-black/70 backdrop-blur-[2px] overflow-y-auto overscroll-contain"
+            onClick={() => setItemToDelete(null)}
+        >
+            <div className="min-h-full w-full flex items-center justify-center p-4 md:p-6">
+                <div
+                    className="bg-surface rounded-2xl shadow-lg w-full max-w-md animate-settings-modal-in border border-border overflow-hidden max-h-[calc(100dvh-2rem)] md:max-h-[calc(100dvh-3rem)] flex flex-col my-auto"
+                >
+                    <div className="p-6 overflow-y-auto">
+                        <div className="w-12 h-12 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center mb-4">
+                            <WarningIcon className="h-6 w-6" />
+                        </div>
+
+                        <h3 className="text-lg font-bold text-on-surface">
+                            Excluir cadastro
+                        </h3>
+                        <p className="text-sm text-muted mt-2">
+                            Tem certeza que deseja excluir <strong>{itemToDelete.name}</strong>?
+                            Esta ação também libera a chave de unicidade desse item.
+                        </p>
+
+                        <div className="mt-6 flex flex-col-reverse sm:flex-row justify-end gap-3">
+                            <button
+                                type="button"
+                                onClick={() => setItemToDelete(null)}
+                                className="px-4 py-2.5 bg-background border border-border text-on-surface rounded-xl font-medium"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleConfirmDelete}
+                                className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold"
+                            >
+                                Excluir item
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <style>{`
+    @keyframes settings-modal-in {
+        from {
+            transform: scale(0.96);
+            opacity: 0;
+        }
+        to {
+            transform: scale(1);
+            opacity: 1;
+        }
+    }
+
+    .animate-settings-modal-in {
+        animation: settings-modal-in 0.18s ease-out forwards;
+    }
+`}</style>
+        </div>
+    )}
+
+{isMembersModalOpen && (
+    <MembersManagerModal onClose={() => setIsMembersModalOpen(false)} />
+)}
+</div>
+);
 };
 
 export default SettingsView;

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { BellIcon, EnvelopeIcon, SunIcon, MoonIcon, HamburgerIcon, ChevronLeftIcon, ChevronRightIcon, SearchIcon, CheckIcon, UsersIcon, BuildingIcon, BriefcaseIcon, PlusIcon } from './Icons.tsx';
 import NotificationsPanel from './NotificationsPanel.tsx';
 import MessagesPanel from './MessagesPanel.tsx';
@@ -14,6 +14,7 @@ import {
 import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
 // NOVO IMPORT: Hook que verifica os limites do plano
 import { usePlan } from '../hooks/usePlan.ts'; 
+import type { AppNotification, NotificationItem, NotificationType } from '../types.ts';
 
 interface HeaderProps {
     onToggleSidebar: () => void;
@@ -115,8 +116,37 @@ const Header: React.FC<HeaderProps> = ({
     const iconButtonActive = "bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-400";
     const iconButtonInactive = "bg-surface text-muted hover:bg-gray-100 dark:hover:bg-dark-200 hover:text-on-surface";
 
+    const mapNotificationType = (type: AppNotification['type']): NotificationType => {
+    switch (type) {
+        case 'warning':
+            return 'alertaFinanceiro';
+        case 'success':
+            return 'meta';
+        case 'invite':
+            return 'divisaoDespesas';
+        case 'error':
+            return 'sistema';
+        case 'info':
+        default:
+            return 'outro';
+    }
+};
+
+const normalizedNotifications = useMemo<NotificationItem[]>(() => {
+    return (notifications ?? []).map((notification) => ({
+        id: notification.id,
+        title: notification.title,
+        message: notification.message,
+        createdAt: notification.createdAt,
+        actionLabel: notification.actionLabel,
+        actionRoute: notification.link,
+        status: notification.read ? 'read' : 'unread',
+        type: mapNotificationType(notification.type),
+    }));
+}, [notifications]);
+
     const Badge = ({ count }: { count: number }) => (
-        <span className="absolute top-0 right-0 flex h-4 w-4 -translate-y-1 translate-x-1 items-center justify-center rounded-full bg-red-500 ring-2 ring-background text-[10px] font-bold text-white shadow-sm animate-scale-in">
+        <span className="absolute top-0 right-0 flex h-4 w-4 -translate-y-1 translate-x-1 items-center justify-center rounded-full bg-red-500 ring-2 ring-background text-[10px] font-bold text-white shadow-sm animate-header-badge-scale-in">
             {count > 9 ? '9+' : count}
         </span>
     );
@@ -206,8 +236,8 @@ const Header: React.FC<HeaderProps> = ({
                         </button>
                         {isNotificationsOpen && notifications && (
                             <NotificationsPanel 
-                                notifications={notifications} 
-                                onClose={() => setIsNotificationsOpen(false)}
+                                    notifications={normalizedNotifications}
+                                    onClose={() => setIsNotificationsOpen(false)}
                                 onMarkAllRead={() => {
                                         const unreadIds = notifications.filter(n => !n.read).map(n => n.id);
                                         if (unreadIds.length > 0) markAllNotifications.mutate(unreadIds);
@@ -370,13 +400,24 @@ const Header: React.FC<HeaderProps> = ({
             />
 
             <style>{`
-                @keyframes scale-in { from { transform: scale(0) translate(25%, -25%); opacity: 0; } to { transform: scale(1) translate(25%, -25%); opacity: 1; } }
-                .animate-scale-in { animation: scale-in 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
-                @keyframes fade-in-fast { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
-                .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-                .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-                .custom-scrollbar::-webkit-scrollbar-thumb { background-color: var(--color-border); border-radius: 20px; }
-            `}</style>
+    @keyframes header-badge-scale-in {
+        from { transform: scale(0) translate(25%, -25%); opacity: 0; }
+        to { transform: scale(1) translate(25%, -25%); opacity: 1; }
+    }
+
+    .animate-header-badge-scale-in {
+        animation: header-badge-scale-in 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    }
+
+    @keyframes fade-in-fast {
+        from { opacity: 0; transform: translateY(-5px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background-color: var(--color-border); border-radius: 20px; }
+`}</style>
         </header>
     );
 };
