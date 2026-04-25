@@ -13,5 +13,5 @@
   "compileOnSave": true,
   "include": [
     "src"
-  ]
+, "../src/modules/credit-cards/persistence/index.ts"  ]
 }
