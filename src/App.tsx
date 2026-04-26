@@ -34,20 +34,21 @@ import { PricingTable } from './modules/billing/components/PricingTable';
 import { BillingSuccessModal } from './modules/billing/components/BillingSuccessModal';
 
 import {
-  initialProductsServices,
-  initialExpenseTypes,
-  initialCategoriesSettings,
-  initialPaymentTypes,
-  initialIncomeTypes,
-  initialWallets,
+    initialProductsServices,
+    initialExpenseTypes,
+    initialCategoriesSettings,
+    initialPaymentTypes,
+    initialIncomeTypes,
+    initialWallets,
 } from "./constants";
 
 import type {
-  Transaction,
-  TransactionType,
-  SummaryData,
-  EntityItem,
-  Goal,
+    Transaction,
+    TransactionType,
+    SummaryData,
+    EntityItem,
+    Goal,
+    CreditCardPurchaseModalInput
 } from "./types";
 
 import { WalletIcon, ArrowUpIcon, ArrowDownIcon, ChartBarIcon } from "./components/Icons";
@@ -59,14 +60,23 @@ import { LoginView } from "./components/auth/LoginView";
 
 // --- HOOKS MIGRADOS ---
 import {
-  useTransactions,
-  useCreateTransaction,
-  useCreateTransactionsBatch,
-  useUpdateTransaction,
-  useDeleteTransaction,
+    useTransactions,
+    useCreateTransaction,
+    useCreateTransactionsBatch,
+    useUpdateTransaction,
+    useDeleteTransaction,
 } from "./modules/transactions/hooks";
 
-import { useCreditCards } from "./modules/credit-cards/hooks";
+import {
+    useCreditCards,
+    useCreateCreditCardPurchaseDomain,
+} from "./modules/credit-cards/hooks";
+
+import {
+    filterTransactionsForCreditCardCompatibility,
+    isCreditCardInvoiceCompatibleTransaction,
+    useCreditCardInvoiceTransactionProjections,
+} from "./modules/credit-cards/compatibility";
 // ----------------------
 
 const queryClient = new QueryClient({
@@ -83,63 +93,78 @@ const AppContent: React.FC = () => {
     const { activeWorkspace, isLoading } = useWorkspace();
     const workspaceId = activeWorkspace?.id ?? "";
     const { user } = useAuth();
-    
+
     // Estados de UI
     const [isSidebarExpanded, setIsSidebarExpanded] = useState<boolean>(false);
     const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
     const [transactionModalDefaultType, setTransactionModalDefaultType] = useState<TransactionType | null>(null);
     const [transactionModalAllowedTypes, setTransactionModalAllowedTypes] = useState<TransactionType[] | null>(null);
     const [notification, setNotification] = useState<{ message: string; visible: boolean }>({ message: '', visible: false });
-    const [view, setView] = useState<'dashboard' | 'receita' | 'despesa' | 'investimento' | 'settings' | 'cards' | 'personalizacao' | 'goals' | 'goal_details' | 'shared_expenses' | 'split_group_details' | 'recurring' | 'recurring_details' | 'reports' | 'clients_receivables' | 'loans' | 'loan_details' | 'admin' | 'planos'>('dashboard');    const [isConfirmationOpen, setIsConfirmationOpen] = useState(false);
+    const [view, setView] = useState<'dashboard' | 'receita' | 'despesa' | 'investimento' | 'settings' | 'cards' | 'personalizacao' | 'goals' | 'goal_details' | 'shared_expenses' | 'split_group_details' | 'recurring' | 'recurring_details' | 'reports' | 'clients_receivables' | 'loans' | 'loan_details' | 'admin' | 'planos'>('dashboard'); const [isConfirmationOpen, setIsConfirmationOpen] = useState(false);
     const [currentDate, setCurrentDate] = useState(new Date());
 
     const openFullTransactionModal = () => {
-  setTransactionToEdit(null);
-  setTransactionModalDefaultType(null);
-  setTransactionModalAllowedTypes(null);
-  setIsModalOpen(true);
-};
+        setTransactionToEdit(null);
+        setTransactionModalDefaultType(null);
+        setTransactionModalAllowedTypes(null);
+        setIsModalOpen(true);
+    };
 
-const openScopedTransactionModal = (viewType: 'receita' | 'despesa' | 'investimento') => {
-  setTransactionToEdit(null);
+    const openScopedTransactionModal = (viewType: 'receita' | 'despesa' | 'investimento') => {
+        setTransactionToEdit(null);
 
-  if (viewType === 'receita') {
-    setTransactionModalDefaultType('receita');
-    setTransactionModalAllowedTypes(['receita']);
-  } else if (viewType === 'despesa') {
-    setTransactionModalDefaultType('despesa');
-    setTransactionModalAllowedTypes(['despesa', 'parcelado']);
-  } else {
-    setTransactionModalDefaultType('investimento');
-    setTransactionModalAllowedTypes(['investimento']);
-  }
+        if (viewType === 'receita') {
+            setTransactionModalDefaultType('receita');
+            setTransactionModalAllowedTypes(['receita']);
+        } else if (viewType === 'despesa') {
+            setTransactionModalDefaultType('despesa');
+            setTransactionModalAllowedTypes(['despesa', 'parcelado']);
+        } else {
+            setTransactionModalDefaultType('investimento');
+            setTransactionModalAllowedTypes(['investimento']);
+        }
 
-  setIsModalOpen(true);
-};
+        setIsModalOpen(true);
+    };
 
-const openEditTransactionModal = (transaction: Transaction) => {
-  setTransactionToEdit(transaction);
-  setTransactionModalDefaultType(transaction.type);
-  setTransactionModalAllowedTypes([transaction.type]);
-  setIsModalOpen(true);
-};
+    const openEditTransactionModal = (transaction: Transaction) => {
+        if (isCreditCardInvoiceCompatibleTransaction(transaction)) {
+            showNotification('Faturas de cartão devem ser alteradas pela tela de cartão/fatura.');
+            return;
+        }
 
-const closeTransactionModal = () => {
-  setIsModalOpen(false);
-  setTransactionToEdit(null);
-  setTransactionModalDefaultType(null);
-  setTransactionModalAllowedTypes(null);
-};
+        setTransactionToEdit(transaction);
+        setTransactionModalDefaultType(transaction.type);
+        setTransactionModalAllowedTypes([transaction.type]);
+        setIsModalOpen(true);
+    };
+
+    const closeTransactionModal = () => {
+        setIsModalOpen(false);
+        setTransactionToEdit(null);
+        setTransactionModalDefaultType(null);
+        setTransactionModalAllowedTypes(null);
+    };
 
     // --- INTEGRACAO COM FIRESTORE (HOOKS) ---
-    
+
     // 1. Transações
     const { data: transactionsData } = useTransactions(workspaceId);
     const createTxMutation = useCreateTransaction(workspaceId);
     const createTxBatchMutation = useCreateTransactionsBatch(workspaceId);
     const updateTxMutation = useUpdateTransaction(workspaceId);
     const deleteTxMutation = useDeleteTransaction(workspaceId);
+    const createCreditCardPurchaseMutation = useCreateCreditCardPurchaseDomain();
     const transactions = useMemo(() => transactionsData || [], [transactionsData]);
+
+    const {
+        data: creditCardInvoiceTransactionProjectionsData,
+    } = useCreditCardInvoiceTransactionProjections(workspaceId);
+
+    const creditCardInvoiceTransactionProjections = useMemo(
+        () => creditCardInvoiceTransactionProjectionsData || [],
+        [creditCardInvoiceTransactionProjectionsData],
+    );
 
     // 2. Cartões de Crédito (MIGRADO)
     const { data: creditCardsData } = useCreditCards();
@@ -180,7 +205,7 @@ const closeTransactionModal = () => {
     const createNotification = useCreateNotification();
 
     // Filtros de memória para itens locais
-    
+
     const wallets = useMemo(() => allWallets.filter(w => (w.profileId || 'personal') === activeWorkspace.id), [allWallets, activeWorkspace.id]);
 
     const showNotification = (message: string) => {
@@ -202,75 +227,134 @@ const closeTransactionModal = () => {
 
     // --- HANDLERS TRANSAÇÕES ---
     const handleAddTransaction = async (newTransaction: Omit<Transaction, 'id'>) => {
-    if (!user) return;
+        if (!user) return;
 
-    try {
-        await createTxMutation.mutateAsync({
-            ...newTransaction,
-            userId: user.uid,
-            workspaceId,
-            profileId: workspaceId
-        });
-
-        showNotification('Transação salva!');
-        playSound('success');
-    } catch (error) {
-        console.error("Erro ao salvar transação:", error);
-        showNotification('Erro ao salvar.');
-    }
-};
-
-    const handleAddTransactions = async (newTransactions: Omit<Transaction, 'id'>[]) => {
-    if (!user) return;
-
-    try {
-        await createTxBatchMutation.mutateAsync(
-            newTransactions.map((transaction) => ({
-                ...transaction,
+        try {
+            await createTxMutation.mutateAsync({
+                ...newTransaction,
                 userId: user.uid,
                 workspaceId,
                 profileId: workspaceId
-            }))
-        );
+            });
 
-        showNotification(`${newTransactions.length} geradas!`);
-        playSound('success');
-    } catch (error) {
-        console.error("Erro na geração em massa:", error);
-        showNotification('Erro na geração em massa.');
-    }
-};
+            showNotification('Transação salva!');
+            playSound('success');
+        } catch (error) {
+            console.error("Erro ao salvar transação:", error);
+            showNotification('Erro ao salvar.');
+        }
+    };
+
+    const handleAddTransactions = async (newTransactions: Omit<Transaction, 'id'>[]) => {
+        if (!user) return;
+
+        try {
+            await createTxBatchMutation.mutateAsync(
+                newTransactions.map((transaction) => ({
+                    ...transaction,
+                    userId: user.uid,
+                    workspaceId,
+                    profileId: workspaceId
+                }))
+            );
+
+            showNotification(`${newTransactions.length} geradas!`);
+            playSound('success');
+        } catch (error) {
+            console.error("Erro na geração em massa:", error);
+            showNotification('Erro na geração em massa.');
+        }
+    };
+
+    const handleAddCreditCardPurchase = async (purchase: CreditCardPurchaseModalInput) => {
+        if (!user) return;
+
+        try {
+            const result = await createCreditCardPurchaseMutation.mutateAsync(purchase);
+
+            showNotification(`${result.installmentIds.length} parcela(s) geradas na fatura!`);
+            playSound('success');
+        } catch (error) {
+            const firebaseError = error as {
+                message?: string;
+                code?: string;
+                details?: unknown;
+            };
+
+            const issues = (
+                firebaseError.details as { issues?: Array<{ path?: unknown[]; message?: string; code?: string }> } | undefined
+            )?.issues ?? [];
+
+            console.error('Erro ao criar compra no cartão:', {
+                message: firebaseError.message,
+                code: firebaseError.code,
+                details: firebaseError.details,
+                issues,
+                purchase,
+            });
+
+            console.table(
+                issues.map((issue) => ({
+                    path: issue.path?.join('.') ?? '',
+                    message: issue.message ?? '',
+                    code: issue.code ?? '',
+                })),
+            );
+
+            showNotification('Erro ao criar compra no cartão.');
+        }
+    };
 
     const handleUpdateTransaction = async (updated: Transaction) => {
-    try {
-        await updateTxMutation.mutateAsync({
-            ...updated,
-            workspaceId,
-            profileId: updated.profileId ?? workspaceId
-        });
+        if (isCreditCardInvoiceCompatibleTransaction(updated)) {
+            showNotification('Fatura de cartão não pode ser atualizada como transação comum.');
+            return;
+        }
 
-        showNotification('Atualizado!');
-        playSound('success');
-    } catch (error) {
-        console.error(error);
-        showNotification('Erro ao atualizar.');
-    }
-};
+        try {
+            await updateTxMutation.mutateAsync({
+                ...updated,
+                workspaceId,
+                profileId: updated.profileId ?? workspaceId
+            });
 
-    const confirmDeleteTransaction = (t: Transaction) => { setTransactionToDelete(t); setIsConfirmationOpen(true); };
+            showNotification('Atualizado!');
+            playSound('success');
+        } catch (error) {
+            console.error(error);
+            showNotification('Erro ao atualizar.');
+        }
+    };
+
+    const confirmDeleteTransaction = (t: Transaction) => {
+        if (isCreditCardInvoiceCompatibleTransaction(t)) {
+            showNotification('Fatura de cartão não pode ser excluída como transação comum.');
+            return;
+        }
+
+        setTransactionToDelete(t);
+        setIsConfirmationOpen(true);
+    };
 
     const handleDeleteTransaction = async () => {
-        if (transactionToDelete) {
-            try {
-                await deleteTxMutation.mutateAsync(transactionToDelete.id);
-                setTransactionToDelete(null);
-                setIsConfirmationOpen(false);
-                showNotification('Excluído!');
-                playSound('success');
-            } catch (error) {
-                console.error(error);
-                showNotification('Erro ao excluir.');
-            }
+        if (!transactionToDelete) return;
+
+        if (isCreditCardInvoiceCompatibleTransaction(transactionToDelete)) {
+            showNotification('Fatura de cartão não pode ser excluída como transação comum.');
+            setTransactionToDelete(null);
+            setIsConfirmationOpen(false);
+            return;
+        }
+
+        try {
+            await deleteTxMutation.mutateAsync(transactionToDelete.id);
+            setTransactionToDelete(null);
+            setIsConfirmationOpen(false);
+            showNotification('Excluído!');
+            playSound('success');
+        } catch (error) {
+            console.error(error);
+            showNotification('Erro ao excluir.');
         }
     };
 
@@ -281,7 +365,7 @@ const closeTransactionModal = () => {
         } else if (key === 'costCenters') {
             setCostCenters(newData);
         } else {
-            switch(key) {
+            switch (key) {
                 case 'productsServices': setProductsServices(newData); break;
                 case 'expenseTypes': setExpenseTypes(newData); break;
                 case 'categories': setCategories(newData); break;
@@ -294,46 +378,69 @@ const closeTransactionModal = () => {
     };
 
     const handleSaveGoal = async (goal: Goal) => {
-    try {
-      if (goalToEdit) {
-        // Modo Edição: ID já existe
-        await updateGoalMutation.mutateAsync({ 
-            id: goal.id, // O ID agora é string
-            data: goal 
-        });
-      } else {
-        // Modo Criação: Remove ID temporário se houver
-        const { id, ...newGoal } = goal;
-        await createGoalMutation.mutateAsync(newGoal);
-      }
-      showNotification('Meta salva com sucesso!');
-      playSound('success');
-      setIsGoalModalOpen(false); // Fecha o modal
-    } catch (e) {
-      console.error(e);
-      showNotification('Erro ao salvar meta.');
-    }
-  };
-
-  const handleDeleteGoal = async (id: string) => {
-    if (confirm('Tem certeza que deseja excluir esta meta?')) {
         try {
-            await deleteGoalMutation.mutateAsync(id);
-            showNotification('Meta removida!');
+            if (goalToEdit) {
+                // Modo Edição: ID já existe
+                await updateGoalMutation.mutateAsync({
+                    id: goal.id, // O ID agora é string
+                    data: goal
+                });
+            } else {
+                // Modo Criação: Remove ID temporário se houver
+                const { id, ...newGoal } = goal;
+                await createGoalMutation.mutateAsync(newGoal);
+            }
+            showNotification('Meta salva com sucesso!');
             playSound('success');
-            // Se estiver na tela de detalhes, volta para lista
-            if (view === 'goal_details') setView('goals');
+            setIsGoalModalOpen(false); // Fecha o modal
         } catch (e) {
             console.error(e);
-            showNotification('Erro ao excluir meta.');
+            showNotification('Erro ao salvar meta.');
         }
-    }
-  };
+    };
+
+    const handleDeleteGoal = async (id: string) => {
+        if (confirm('Tem certeza que deseja excluir esta meta?')) {
+            try {
+                await deleteGoalMutation.mutateAsync(id);
+                showNotification('Meta removida!');
+                playSound('success');
+                // Se estiver na tela de detalhes, volta para lista
+                if (view === 'goal_details') setView('goals');
+            } catch (e) {
+                console.error(e);
+                showNotification('Erro ao excluir meta.');
+            }
+        }
+    };
+
+    const compatibleExpenseTransactions = useMemo(() => {
+        const compatibleLegacyTransactions = filterTransactionsForCreditCardCompatibility(
+            transactions,
+            {
+                hideLegacyCardInstallments: true,
+                hideCreditCardInvoicePaymentCashTransactions: true,
+            },
+        );
+
+        return [
+            ...compatibleLegacyTransactions,
+            ...creditCardInvoiceTransactionProjections,
+        ].sort((left, right) => right.date.localeCompare(left.date));
+    }, [transactions, creditCardInvoiceTransactionProjections]);
 
     const currentMonthTransactions = useMemo(
-    () => transactions.filter((transaction) => isSameMonthYear(transaction.date, currentDate)),
-    [transactions, currentDate]
-);
+        () => transactions.filter((transaction) => isSameMonthYear(transaction.date, currentDate)),
+        [transactions, currentDate]
+    );
+
+    const currentMonthCompatibleExpenseTransactions = useMemo(
+        () =>
+            compatibleExpenseTransactions.filter((transaction) =>
+                isSameMonthYear(transaction.date, currentDate),
+            ),
+        [compatibleExpenseTransactions, currentDate],
+    );
 
     const summaryData: SummaryData = useMemo(() => {
         const inc = currentMonthTransactions.filter(t => t.type === 'receita').reduce((a, t) => a + t.value, 0);
@@ -349,7 +456,7 @@ const closeTransactionModal = () => {
             <Sidebar isExpanded={isSidebarExpanded} setExpanded={setIsSidebarExpanded} onNavigate={handleNavigate} currentView={view} />
             <main className="flex-1 p-4 lg:p-8 overflow-x-hidden">
                 <Header onToggleSidebar={() => setIsSidebarExpanded(!isSidebarExpanded)} isSidebarExpanded={isSidebarExpanded} onToggleDarkMode={toggleMode} isDarkMode={theme.mode === 'dark'} currentDate={currentDate} onCurrentDateChange={setCurrentDate} onNavigate={handleNavigate} onOpenSplitGroup={handleOpenSplitGroup} />
-                
+
                 {view === 'dashboard' && (
                     <div className="flex flex-col gap-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
@@ -373,61 +480,63 @@ const closeTransactionModal = () => {
 
                 {view === 'reports' && <ReportsView transactions={transactions} goals={goals} creditCards={creditCards} categories={categories} />}
                 {view === 'goals' && (
-                <GoalsView 
-                            transactions={transactions} 
-                            onSelectGoal={(g) => { setSelectedGoal(g); setView('goal_details'); }} 
-                            onOpenGoalModal={(g) => { setGoalToEdit(g || null); setIsGoalModalOpen(true); }} 
-                        />
-                    )}
-                    {view === 'goal_details' && selectedGoal && (
-                    <GoalDetailsView 
-                        goal={selectedGoal} 
-                        transactions={transactions} 
-                        onBack={() => setView('goals')} 
-                        onEdit={g => { setGoalToEdit(g); setIsGoalModalOpen(true); }} 
-                        onLink={() => {}} 
-                        onDelete={handleDeleteGoal} 
-                        onAddInvestment={() => setIsModalOpen(true)} 
+                    <GoalsView
+                        transactions={transactions}
+                        onSelectGoal={(g) => { setSelectedGoal(g); setView('goal_details'); }}
+                        onOpenGoalModal={(g) => { setGoalToEdit(g || null); setIsGoalModalOpen(true); }}
                     />
-                    )}                
+                )}
+                {view === 'goal_details' && selectedGoal && (
+                    <GoalDetailsView
+                        goal={selectedGoal}
+                        transactions={transactions}
+                        onBack={() => setView('goals')}
+                        onEdit={g => { setGoalToEdit(g); setIsGoalModalOpen(true); }}
+                        onLink={() => { }}
+                        onDelete={handleDeleteGoal}
+                        onAddInvestment={() => setIsModalOpen(true)}
+                    />
+                )}
                 {(view === 'receita' || view === 'despesa' || view === 'investimento') && <TransactionsView
-                            viewType={view}
-                            transactions={currentMonthTransactions.filter(t =>
-                                view === 'despesa'
-                                ? t.type === 'despesa' || t.type === 'parcelado'
-                                : t.type === view
-                            )}
-                            onBack={() => setView('dashboard')}
-                            onAddTransaction={() => openScopedTransactionModal(view)}
-                            onEditTransaction={openEditTransactionModal}
-                            onDeleteTransaction={confirmDeleteTransaction}
-                            goals={goals}
-                            />}
+                    viewType={view}
+                    transactions={
+                        view === 'despesa'
+                            ? currentMonthCompatibleExpenseTransactions.filter(
+                                t => t.type === 'despesa' || t.type === 'parcelado',
+                            )
+                            : currentMonthTransactions.filter(t => t.type === view)
+                    }
+                    onBack={() => setView('dashboard')}
+                    onAddTransaction={() => openScopedTransactionModal(view)}
+                    onEditTransaction={openEditTransactionModal}
+                    onDeleteTransaction={confirmDeleteTransaction}
+                    goals={goals}
+                />}
                 {view === 'settings' && <SettingsView data={{ productsServices, expenseTypes, categories, paymentTypes, incomeTypes, wallets, costCenters }} onUpdate={handleSettingsUpdate} />}
-                
+
                 {view === 'cards' && <CreditCardsView transactions={transactions} />}
 
                 {view === 'personalizacao' && <PersonalizationView onBack={() => setView('settings')} />}
-                {view === 'shared_expenses' && <SplitGroupsView onSelectGroup={id => { setSelectedGroupId(id); setView('split_group_details'); }} onCreateGroup={() => {}} />}
+                {view === 'shared_expenses' && <SplitGroupsView onSelectGroup={id => { setSelectedGroupId(id); setView('split_group_details'); }} onCreateGroup={() => { }} />}
                 {view === 'split_group_details' && selectedGroupId && <SplitGroupDetailsView groupId={selectedGroupId} onBack={() => setView('shared_expenses')} onAddTransaction={handleAddTransaction} onAddTransactions={handleAddTransactions} creditCards={creditCards} />}
                 {view === 'recurring' && <RecurringExpensesView onSelectExpense={id => { setSelectedRecurringExpenseId(id); setView('recurring_details'); }} creditCards={creditCards} categories={categories} onAddTransaction={handleAddTransaction} />}
                 {view === 'recurring_details' && selectedRecurringExpenseId && <RecurringExpenseDetailsView expenseId={selectedRecurringExpenseId} onBack={() => setView('recurring')} onAddTransaction={handleAddTransaction} />}
                 {view === 'clients_receivables' && activeWorkspace.type === 'PJ' && <ClientsReceivablesView />}
-                
+
                 {view === 'loans' && activeWorkspace.type === 'PJ' && (
-                    <PJLoansView 
-                        onSelectLoan={(l) => { setSelectedLoanId(l.id); setView('loan_details'); }} 
-                        onAddTransaction={handleAddTransaction} 
+                    <PJLoansView
+                        onSelectLoan={(l) => { setSelectedLoanId(l.id); setView('loan_details'); }}
+                        onAddTransaction={handleAddTransaction}
                     />
                 )}
                 {view === 'loan_details' && selectedLoanId && activeWorkspace.type === 'PJ' && (
-                    <PJLoanDetailsView 
-                        loanId={selectedLoanId} 
-                        onBack={() => setView('loans')} 
-                        onAddTransaction={handleAddTransaction} 
+                    <PJLoanDetailsView
+                        loanId={selectedLoanId}
+                        onBack={() => setView('loans')}
+                        onAddTransaction={handleAddTransaction}
                     />
                 )}
-                
+
                 {view === 'loans' && activeWorkspace.type === 'PF' && <LoansView onSelectLoan={(l) => { setSelectedLoanId(l.id); setView('loan_details'); }} onAddTransaction={handleAddTransaction} />}
                 {view === 'loan_details' && selectedLoanId && activeWorkspace.type === 'PF' && <LoanDetailsView loanId={selectedLoanId} onBack={() => setView('loans')} onAddTransaction={handleAddTransaction} />}
                 {view === 'admin' && user?.isAdmin && <AdminDashboard />}
@@ -440,6 +549,7 @@ const closeTransactionModal = () => {
                 onClose={closeTransactionModal}
                 onAddTransaction={handleAddTransaction}
                 onAddTransactions={handleAddTransactions}
+                onAddCreditCardPurchase={handleAddCreditCardPurchase}
                 onUpdateTransaction={handleUpdateTransaction}
                 transactionToEdit={transactionToEdit}
                 defaultType={transactionModalDefaultType}
@@ -453,7 +563,7 @@ const closeTransactionModal = () => {
                 paymentTypes={paymentTypes}
                 incomeTypes={incomeTypes}
                 goals={goals}
-                />
+            />
             <ConfirmationModal isOpen={isConfirmationOpen} onClose={() => setIsConfirmationOpen(false)} onConfirm={handleDeleteTransaction} title="Excluir" message="Excluir permanentemente?" />
             <GoalFormModal isOpen={isGoalModalOpen} onClose={() => setIsGoalModalOpen(false)} onSave={handleSaveGoal} goalToEdit={goalToEdit} wallets={wallets} transactions={transactions} />
             <Notification message={notification.message} isVisible={notification.visible} />

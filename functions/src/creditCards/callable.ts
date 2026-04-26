@@ -26,13 +26,17 @@ export interface CreditCardCallableExecutionContext<TPayload> {
   plan: CreditCardBackendWritePlan;
 }
 
+type CallableAllowedWorkspaceRole = Extract<
+  CreditCardBackendRole,
+  WorkspaceMemberRole
+>;
+
 const isWorkspaceMemberRole = (
   role: CreditCardBackendRole
-): role is WorkspaceMemberRole =>
+): role is CallableAllowedWorkspaceRole =>
   role === "owner" ||
   role === "admin" ||
-  role === "member" ||
-  role === "viewer";
+  role === "member";
 
 export const parseCallablePayload = <TPayload>(
   schema: z.ZodType<TPayload>,

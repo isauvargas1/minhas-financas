@@ -300,16 +300,18 @@ export const listCreditCardInvoiceViewsByStatus = async (
   return mapDocs<CreditCardInvoiceProjection>(snapshot);
 };
 
-export const listCreditCardInvoiceViewsByCard = async (
+export const listCreditCardInvoiceViewsForExpenseCompatibility = async (
   workspaceId: string,
-  cardId: string,
   options: CreditCardQueryLimitOptions = {}
 ): Promise<CreditCardInvoiceProjection[]> => {
   const snapshot = await getDocs(
     query(
       creditCardInvoiceViewsCollectionRef(workspaceId),
       ...withOptionalLimit(
-        [where('cardId', '==', cardId), orderBy('competenceMonth', 'desc')],
+        [
+          where('status', 'in', ['open', 'closed', 'partial_paid', 'paid', 'overdue']),
+          orderBy('dueDate', 'asc'),
+        ],
         options.limit
       )
     )

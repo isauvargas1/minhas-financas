@@ -1,5 +1,9 @@
 import type { ReactNode } from 'react';
-import type { CreditCardBillingCycleStatus } from './modules/credit-cards/domain/types.ts';
+import type {
+    CompetenceMonth,
+    CreditCardBillingCycleStatus,
+    CreditCardInvoiceStatus,
+} from './modules/credit-cards/domain/types.ts';
 
 export * from './modules/credit-cards/domain/types.ts';
 export * from './modules/recurring-expenses/types.ts';
@@ -130,6 +134,15 @@ export interface TransactionDisplaySnapshots {
     costCenterSnapshot?: TransactionCatalogVisualSnapshot;
 }
 
+export interface TransactionCreditCardCompatibility {
+    source: 'credit_card_invoice';
+    invoiceId: string;
+    cardId: string;
+    competenceMonth: CompetenceMonth;
+    invoiceStatus: CreditCardInvoiceStatus;
+    isProjection: true;
+}
+
 export interface Transaction {
     id: number | string;
     type: TransactionType;
@@ -141,11 +154,11 @@ export interface Transaction {
     currentInstallment?: number;
     cardId?: string;
     walletId?: number;
-    userId?: string;      // ID do usuário dono
-    workspaceId?: string; // ID do workspace
+    userId?: string;
+    workspaceId?: string;
     goalId?: string;
-    loanId?: string; // Link to Loan module
-    loanMovementId?: string; // Link to specific loan movement
+    loanId?: string;
+    loanMovementId?: string;
     expenseType?: string;
     incomeType?: string;
     paymentMethod?: string;
@@ -153,6 +166,10 @@ export interface Transaction {
     profileId?: string;
     supplier?: string;
     costCenter?: string;
+    source?: string;
+    creditCardInvoiceId?: string;
+    creditCardInvoicePaymentId?: string;
+    creditCardCompatibility?: TransactionCreditCardCompatibility;
     displaySnapshots?: TransactionDisplaySnapshots;
 }
 
@@ -335,11 +352,30 @@ export interface IconProps {
     [key: string]: any;
 }
 
+export interface CreditCardPurchaseModalInput {
+    cardId: string;
+    description: string;
+    categorySnapshot: {
+        label: string;
+        normalizedLabel?: string;
+    };
+    supplier?: string;
+    costCenter?: string;
+    purchaseDate: string;
+    totalAmount: number;
+    installmentsCount: number;
+    amountType: 'total' | 'installment';
+    source: 'manual';
+    idempotencyKey: string;
+    correlationId?: string;
+}
+
 export interface TransactionModalProps {
     isOpen: boolean;
     onClose: () => void;
     onAddTransaction: (transaction: Omit<Transaction, 'id'>) => void;
     onAddTransactions?: (transactions: Omit<Transaction, 'id'>[]) => void;
+    onAddCreditCardPurchase?: (purchase: CreditCardPurchaseModalInput) => Promise<void> | void;
     onUpdateTransaction: (transaction: Transaction) => void;
     transactionToEdit?: Transaction | null;
     defaultType?: TransactionType | null;

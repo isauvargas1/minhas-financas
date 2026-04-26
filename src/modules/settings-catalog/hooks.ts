@@ -6,64 +6,73 @@ import {
   createSettingsCatalogItem,
   deleteSettingsCatalogItem,
   listSettingsCatalog,
-  updateSettingsCatalogItem
+  updateSettingsCatalogItem,
 } from './api';
 import { filterSettingsCatalogItems } from './utils';
 import type {
   SettingsCatalogCreateInput,
   SettingsCatalogGroup,
   SettingsCatalogListFilters,
-  SettingsCatalogUpdateInput
+  SettingsCatalogUpdateInput,
 } from './types';
 
 export const SETTINGS_CATALOG_KEYS = {
   root: ['settingsCatalog'] as const,
   workspace: (workspaceId: string) => ['settingsCatalog', workspaceId] as const,
-  list: (workspaceId: string) => ['settingsCatalog', workspaceId, 'list'] as const
+  list: (workspaceId: string) => ['settingsCatalog', workspaceId, 'list'] as const,
 };
+
+const isWorkspaceReady = (workspaceId?: string): workspaceId is string =>
+  Boolean(workspaceId) && workspaceId !== 'loading';
 
 const invalidateSettingsCatalogCache = async (
   queryClient: ReturnType<typeof useQueryClient>,
-  workspaceId?: string
+  workspaceId?: string,
 ) => {
   if (!isWorkspaceReady(workspaceId)) return;
 
   await queryClient.cancelQueries({
-    queryKey: SETTINGS_CATALOG_KEYS.workspace(workspaceId)
+    queryKey: SETTINGS_CATALOG_KEYS.workspace(workspaceId),
   });
 
   await queryClient.invalidateQueries({
     queryKey: SETTINGS_CATALOG_KEYS.workspace(workspaceId),
-    refetchType: 'active'
+    refetchType: 'active',
   });
 };
 
-const isWorkspaceReady = (workspaceId?: string) =>
-  !!workspaceId && workspaceId !== 'loading';
-
 export const useSettingsCatalog = (
-  filters: SettingsCatalogListFilters = {}
+  filters: SettingsCatalogListFilters = {},
 ) => {
   const { activeWorkspace } = useWorkspace();
+  const workspaceId = activeWorkspace?.id;
 
   return useQuery({
-  queryKey: SETTINGS_CATALOG_KEYS.list(activeWorkspace.id),
-  queryFn: () => listSettingsCatalog(activeWorkspace.id),
-  enabled: isWorkspaceReady(activeWorkspace.id),
-  staleTime: 1000 * 60 * 5,
-  retry: 1,
-  refetchOnWindowFocus: false,
-  select: (items) => filterSettingsCatalogItems(items, filters)
-});
+    queryKey: isWorkspaceReady(workspaceId)
+      ? SETTINGS_CATALOG_KEYS.list(workspaceId)
+      : SETTINGS_CATALOG_KEYS.root,
+    queryFn: () => {
+      if (!isWorkspaceReady(workspaceId)) {
+        return Promise.resolve([]);
+      }
+
+      return listSettingsCatalog(workspaceId);
+    },
+    enabled: isWorkspaceReady(workspaceId),
+    staleTime: 1000 * 60 * 5,
+    retry: 1,
+    refetchOnWindowFocus: false,
+    select: (items) => filterSettingsCatalogItems(items, filters),
+  });
 };
 
 export const useSettingsCatalogGroup = (
   group: SettingsCatalogGroup,
-  filters: Omit<SettingsCatalogListFilters, 'group'> = {}
+  filters: Omit<SettingsCatalogListFilters, 'group'> = {},
 ) => {
   return useSettingsCatalog({
     ...filters,
-    group
+    group,
   });
 };
 
@@ -73,13 +82,16 @@ export const useCreateSettingsCatalogItem = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (input: SettingsCatalogCreateInput) =>
-      createSettingsCatalogItem(input, activeWorkspace.id, user?.uid),
+    mutationFn: (input: SettingsCatalogCreateInput) => {
+      if (!isWorkspaceReady(activeWorkspace?.id)) {
+        return Promise.reject(new Error('Workspace ativo não encontrado.'));
+      }
+
+      return createSettingsCatalogItem(input, activeWorkspace.id, user?.uid);
+    },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: SETTINGS_CATALOG_KEYS.all(activeWorkspace.id)
-      });
-    }
+      await invalidateSettingsCatalogCache(queryClient, activeWorkspace?.id);
+    },
   });
 };
 
@@ -91,17 +103,20 @@ export const useUpdateSettingsCatalogItem = () => {
   return useMutation({
     mutationFn: ({
       id,
-      data
+      data,
     }: {
       id: string;
       data: SettingsCatalogUpdateInput;
-    }) =>
-      updateSettingsCatalogItem(id, data, activeWorkspace.id, user?.uid),
+    }) => {
+      if (!isWorkspaceReady(activeWorkspace?.id)) {
+        return Promise.reject(new Error('Workspace ativo não encontrado.'));
+      }
+
+      return updateSettingsCatalogItem(id, data, activeWorkspace.id, user?.uid);
+    },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: SETTINGS_CATALOG_KEYS.all(activeWorkspace.id)
-      });
-    }
+      await invalidateSettingsCatalogCache(queryClient, activeWorkspace?.id);
+    },
   });
 };
 
@@ -110,12 +125,15 @@ export const useDeleteSettingsCatalogItem = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: string) =>
-      deleteSettingsCatalogItem(id, activeWorkspace.id),
+    mutationFn: (id: string) => {
+      if (!isWorkspaceReady(activeWorkspace?.id)) {
+        return Promise.reject(new Error('Workspace ativo não encontrado.'));
+      }
+
+      return deleteSettingsCatalogItem(id, activeWorkspace.id);
+    },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: SETTINGS_CATALOG_KEYS.all(activeWorkspace.id)
-      });
-    }
+      await invalidateSettingsCatalogCache(queryClient, activeWorkspace?.id);
+    },
   });
 };

@@ -797,9 +797,35 @@ A função:
 - registra evento financeiro de reconciliação;
 - respeita idempotência.
 
-## Próxima subfase
+## Subfase 3.17 — Teste controlado de rebuildCardInvoicesForCard
 
-`Subfase 3.17 — Teste controlado de rebuildCardInvoicesForCard`
+### Status
+
+Implementada como teste manual de serviço backend.
+
+### Arquivo criado
+
+`functions/src/creditCards/manualRebuildInvoicesTest.ts`
+
+### O que o teste valida
+
+O teste manual:
+
+- cria workspace de teste;
+- cria membro owner;
+- cria cartão ativo;
+- cria snapshot de limite;
+- cria compra de R$ 1.200,00 em 3 parcelas;
+- corrompe a primeira fatura;
+- corrompe a projeção da primeira fatura;
+- corrompe o vínculo/status/vencimento da primeira parcela;
+- executa `rebuildCardInvoicesForCard`;
+- executa novamente com a mesma `idempotencyKey`;
+- valida replay idempotente;
+- valida 3 faturas reconstruídas;
+- valida `invoice_views`;
+- valida parcela religada à fatura correta;
+- valida evento financeiro `reconciliation_warning`.
 
 ## Subfase 3.18 — Implementação backend de updateCreditCardPurchase
 

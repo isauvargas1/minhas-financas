@@ -23,13 +23,14 @@ interface ExtendedTransactionModalProps extends TransactionModalProps {
     defaultGoalId?: number | null;
 }
 
-const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({ 
-    isOpen, 
-    onClose, 
-    onAddTransaction, 
+const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
+    isOpen,
+    onClose,
+    onAddTransaction,
     onAddTransactions,
-    onUpdateTransaction, 
-    transactionToEdit, 
+    onAddCreditCardPurchase,
+    onUpdateTransaction,
+    transactionToEdit,
     defaultType,
     allowedTypes = null,
     currentDate,
@@ -42,39 +43,39 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
     incomeTypes = [],
     costCenters = [],
     goals = [],
-    defaultGoalId = null, 
+    defaultGoalId = null,
     onAddProductService
 }) => {
     const { activeWorkspace } = useWorkspace();
     const isPJ = activeWorkspace.type === 'PJ';
     const createCatalogItemMutation = useCreateSettingsCatalogItem();
-   
-    
+
+
     const isEditing = !!transactionToEdit;
     const [activeTab, setActiveTab] = useState<TransactionType>('receita');
     const resolvedAllowedTypes = useMemo<TransactionType[]>(() => {
-    if (isEditing && transactionToEdit) {
-        return [transactionToEdit.type];
-    }
+        if (isEditing && transactionToEdit) {
+            return [transactionToEdit.type];
+        }
 
-    if (allowedTypes && allowedTypes.length > 0) {
-        return allowedTypes;
-    }
+        if (allowedTypes && allowedTypes.length > 0) {
+            return allowedTypes;
+        }
 
-    if (defaultType) {
-        return [defaultType];
-    }
+        if (defaultType) {
+            return [defaultType];
+        }
 
-    return ['receita', 'despesa', 'investimento', 'parcelado'];
-}, [allowedTypes, defaultType, isEditing, transactionToEdit]);
-    
+        return ['receita', 'despesa', 'investimento', 'parcelado'];
+    }, [allowedTypes, defaultType, isEditing, transactionToEdit]);
+
     // State for form fields
     const [description, setDescription] = useState('');
     const [category, setCategory] = useState('');
     const [value, setValue] = useState('');
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
     const [installments, setInstallments] = useState('2');
-    
+
     // New States for Expense Logic
     const [expenseType, setExpenseType] = useState('');
     const [paymentMethod, setPaymentMethod] = useState('');
@@ -91,13 +92,13 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
     // New States for Investment Logic
     const [walletId, setWalletId] = useState('');
     const [isDeposited, setIsDeposited] = useState(true);
-    const [selectedGoalId, setSelectedGoalId] = useState<string>(''); 
+    const [selectedGoalId, setSelectedGoalId] = useState<string>('');
 
     // PJ Specific State
     const [supplier, setSupplier] = useState('');
     const [costCenter, setCostCenter] = useState('');
 
-        
+
 
     const buildNameOptions = (
         items: EntityItem[] = [],
@@ -128,184 +129,184 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
     } = useTransactionCatalogOptions(effectiveTransactionType);
 
     const mergedProductsServices = useMemo(
-    () => catalogOptions.productsServices,
-    [catalogOptions.productsServices]
-);
-
-const mergedSettingsCategories = useMemo(
-    () => catalogOptions.settingsCategories,
-    [catalogOptions.settingsCategories]
-);
-
-const mergedWallets = useMemo(
-    () => catalogOptions.wallets,
-    [catalogOptions.wallets]
-);
-
-const mergedExpenseTypes = useMemo(
-    () => catalogOptions.expenseTypes,
-    [catalogOptions.expenseTypes]
-);
-
-const mergedPaymentTypes = useMemo(
-    () => catalogOptions.paymentTypes,
-    [catalogOptions.paymentTypes]
-);
-
-const mergedIncomeTypes = useMemo(
-    () => catalogOptions.incomeTypes,
-    [catalogOptions.incomeTypes]
-);
-
-const mergedCostCenters = useMemo(
-    () => catalogOptions.costCenters,
-    [catalogOptions.costCenters]
-);
-
-const ensureProductServiceValue = async (rawValue: string) => {
-    const trimmed = rawValue.trim();
-
-    if (!trimmed) return '';
-
-    const normalized = normalizeSettingsCatalogName(trimmed);
-
-    const existing = mergedProductsServices.find(
-        (item) => normalizeSettingsCatalogName(item.name) === normalized
+        () => catalogOptions.productsServices,
+        [catalogOptions.productsServices]
     );
 
-    if (existing) {
-        return existing.name;
-    }
+    const mergedSettingsCategories = useMemo(
+        () => catalogOptions.settingsCategories,
+        [catalogOptions.settingsCategories]
+    );
 
-    try {
-        const created = await createCatalogItemMutation.mutateAsync({
-            group: 'product_service',
-            name: trimmed,
-            workspaceScope: 'both',
-            status: 'active',
+    const mergedWallets = useMemo(
+        () => catalogOptions.wallets,
+        [catalogOptions.wallets]
+    );
+
+    const mergedExpenseTypes = useMemo(
+        () => catalogOptions.expenseTypes,
+        [catalogOptions.expenseTypes]
+    );
+
+    const mergedPaymentTypes = useMemo(
+        () => catalogOptions.paymentTypes,
+        [catalogOptions.paymentTypes]
+    );
+
+    const mergedIncomeTypes = useMemo(
+        () => catalogOptions.incomeTypes,
+        [catalogOptions.incomeTypes]
+    );
+
+    const mergedCostCenters = useMemo(
+        () => catalogOptions.costCenters,
+        [catalogOptions.costCenters]
+    );
+
+    const ensureProductServiceValue = async (rawValue: string) => {
+        const trimmed = rawValue.trim();
+
+        if (!trimmed) return '';
+
+        const normalized = normalizeSettingsCatalogName(trimmed);
+
+        const existing = mergedProductsServices.find(
+            (item) => normalizeSettingsCatalogName(item.name) === normalized
+        );
+
+        if (existing) {
+            return existing.name;
+        }
+
+        try {
+            const created = await createCatalogItemMutation.mutateAsync({
+                group: 'product_service',
+                name: trimmed,
+                workspaceScope: 'both',
+                status: 'active',
+            });
+
+            return created.name;
+        } catch (error) {
+            const message =
+                error instanceof Error ? error.message.toLowerCase() : '';
+
+            const duplicateError =
+                message.includes('já existe') ||
+                message.includes('duplicate');
+
+            if (duplicateError) {
+                const fallbackExisting = mergedProductsServices.find(
+                    (item) => normalizeSettingsCatalogName(item.name) === normalized
+                );
+
+                return fallbackExisting?.name || trimmed;
+            }
+
+            throw error;
+        }
+    };
+
+    const buildSnapshotFromEntityItem = (
+        group: TransactionCatalogVisualSnapshot['group'],
+        item?: EntityItem,
+    ): TransactionCatalogVisualSnapshot | undefined => {
+        if (!item?.name) return undefined;
+
+        return {
+            group,
+            label: item.name,
+            normalizedLabel: normalizeSettingsCatalogName(item.name),
+            icon: item.icon,
+            color: item.iconColor,
+            stroke: item.iconStroke,
+            transactionSubtype: item.type as TransactionType | undefined,
+        };
+    };
+
+    const findEntityByName = (
+        items: EntityItem[],
+        label?: string,
+        type?: TransactionType,
+    ) => {
+        if (!label?.trim()) return undefined;
+
+        const normalized = normalizeSettingsCatalogName(label);
+
+        return items.find((item) => {
+            if (normalizeSettingsCatalogName(item.name) !== normalized) return false;
+
+            if (type && item.type) {
+                return item.type === type;
+            }
+
+            return true;
         });
-
-        return created.name;
-    } catch (error) {
-        const message =
-            error instanceof Error ? error.message.toLowerCase() : '';
-
-        const duplicateError =
-            message.includes('já existe') ||
-            message.includes('duplicate');
-
-        if (duplicateError) {
-            const fallbackExisting = mergedProductsServices.find(
-                (item) => normalizeSettingsCatalogName(item.name) === normalized
-            );
-
-            return fallbackExisting?.name || trimmed;
-        }
-
-        throw error;
-    }
-};
-
-const buildSnapshotFromEntityItem = (
-    group: TransactionCatalogVisualSnapshot['group'],
-    item?: EntityItem,
-): TransactionCatalogVisualSnapshot | undefined => {
-    if (!item?.name) return undefined;
-
-    return {
-        group,
-        label: item.name,
-        normalizedLabel: normalizeSettingsCatalogName(item.name),
-        icon: item.icon,
-        color: item.iconColor,
-        stroke: item.iconStroke,
-        transactionSubtype: item.type as TransactionType | undefined,
     };
-};
 
-const findEntityByName = (
-    items: EntityItem[],
-    label?: string,
-    type?: TransactionType,
-) => {
-    if (!label?.trim()) return undefined;
+    const buildDisplaySnapshots = (
+        resolvedDescription: string,
+    ): TransactionDisplaySnapshots => {
+        const categoryItem = findEntityByName(
+            mergedSettingsCategories,
+            category,
+            activeTab,
+        );
 
-    const normalized = normalizeSettingsCatalogName(label);
+        const expenseTypeItem = findEntityByName(
+            mergedExpenseTypes,
+            expenseType,
+        );
 
-    return items.find((item) => {
-        if (normalizeSettingsCatalogName(item.name) !== normalized) return false;
+        const incomeTypeItem = findEntityByName(
+            mergedIncomeTypes,
+            incomeType,
+        );
 
-        if (type && item.type) {
-            return item.type === type;
-        }
+        const paymentMethodItem = findEntityByName(
+            mergedPaymentTypes,
+            paymentMethod,
+        );
 
-        return true;
-    });
-};
+        const productServiceItem = findEntityByName(
+            mergedProductsServices,
+            resolvedDescription,
+        );
 
-const buildDisplaySnapshots = (
-    resolvedDescription: string,
-): TransactionDisplaySnapshots => {
-    const categoryItem = findEntityByName(
-        mergedSettingsCategories,
-        category,
-        activeTab,
-    );
+        const costCenterItem = findEntityByName(
+            mergedCostCenters,
+            costCenter,
+        );
 
-    const expenseTypeItem = findEntityByName(
-        mergedExpenseTypes,
-        expenseType,
-    );
+        const walletItem = mergedWallets.find(
+            (item) => String(item.id) === walletId,
+        );
 
-    const incomeTypeItem = findEntityByName(
-        mergedIncomeTypes,
-        incomeType,
-    );
-
-    const paymentMethodItem = findEntityByName(
-        mergedPaymentTypes,
-        paymentMethod,
-    );
-
-    const productServiceItem = findEntityByName(
-        mergedProductsServices,
-        resolvedDescription,
-    );
-
-    const costCenterItem = findEntityByName(
-        mergedCostCenters,
-        costCenter,
-    );
-
-    const walletItem = mergedWallets.find(
-        (item) => String(item.id) === walletId,
-    );
-
-    return {
-        categorySnapshot: buildSnapshotFromEntityItem('category', categoryItem),
-        expenseTypeSnapshot: buildSnapshotFromEntityItem(
-            'expense_type',
-            expenseTypeItem,
-        ),
-        incomeTypeSnapshot: buildSnapshotFromEntityItem(
-            'income_type',
-            incomeTypeItem,
-        ),
-        paymentMethodSnapshot: buildSnapshotFromEntityItem(
-            'payment_method',
-            paymentMethodItem,
-        ),
-        productServiceSnapshot: buildSnapshotFromEntityItem(
-            'product_service',
-            productServiceItem,
-        ),
-        walletSnapshot: buildSnapshotFromEntityItem('wallet', walletItem),
-        costCenterSnapshot: buildSnapshotFromEntityItem(
-            'cost_center',
-            costCenterItem,
-        ),
+        return {
+            categorySnapshot: buildSnapshotFromEntityItem('category', categoryItem),
+            expenseTypeSnapshot: buildSnapshotFromEntityItem(
+                'expense_type',
+                expenseTypeItem,
+            ),
+            incomeTypeSnapshot: buildSnapshotFromEntityItem(
+                'income_type',
+                incomeTypeItem,
+            ),
+            paymentMethodSnapshot: buildSnapshotFromEntityItem(
+                'payment_method',
+                paymentMethodItem,
+            ),
+            productServiceSnapshot: buildSnapshotFromEntityItem(
+                'product_service',
+                productServiceItem,
+            ),
+            walletSnapshot: buildSnapshotFromEntityItem('wallet', walletItem),
+            costCenterSnapshot: buildSnapshotFromEntityItem(
+                'cost_center',
+                costCenterItem,
+            ),
+        };
     };
-};
 
     const walletOptions = useMemo(() => {
         const options = mergedWallets.map((wallet) => ({
@@ -323,7 +324,7 @@ const buildDisplaySnapshots = (
         return options;
     }, [mergedWallets, walletId]);
 
-    
+
 
 
     // AI States
@@ -333,10 +334,10 @@ const buildDisplaySnapshots = (
     const fileInputRef = useRef<HTMLInputElement>(null);
     const recognitionRef = useRef<any>(null);
 
-    
+
 
     // Helper to get category options filtered by active tab type
-        const getCategoryOptions = (type: TransactionType) => {
+    const getCategoryOptions = (type: TransactionType) => {
         return mergedSettingsCategories.filter((c) => c.type === type);
     };
 
@@ -361,7 +362,7 @@ const buildDisplaySnapshots = (
             if (transactionToEdit.walletId) setWalletId(String(transactionToEdit.walletId));
             if (transactionToEdit.goalId) setSelectedGoalId(String(transactionToEdit.goalId));
             else setSelectedGoalId('');
-            
+
             // Set PJ Fields
             setSupplier(transactionToEdit.supplier || '');
             setCostCenter(transactionToEdit.costCenter || '');
@@ -372,21 +373,21 @@ const buildDisplaySnapshots = (
             setActiveTab(initialTab);
             setDescription('');
             setValue('');
-            
-            
-            setDate(''); 
-            setPurchaseDate(''); 
-            
+
+
+            setDate('');
+            setPurchaseDate('');
+
             setInstallments('2');
-            setIsPaid(true); 
+            setIsPaid(true);
             setIsDeposited(true);
             setSupplier('');
             setCostCenter('');
-            
+
             if (defaultGoalId) setSelectedGoalId(String(defaultGoalId));
             else setSelectedGoalId('');
-            
-           
+
+
             setCategory('');
             setExpenseType('');
             setIncomeType('');
@@ -396,23 +397,23 @@ const buildDisplaySnapshots = (
             setValueType('total');
         }
     }, [
-    isOpen,
-    transactionToEdit,
-    defaultType,
-    allowedTypes,
-    isEditing,
-    currentDate,
-    creditCards,
-    wallets,
-    settingsCategories,
-    expenseTypes,
-    paymentTypes,
-    incomeTypes,
-    defaultGoalId,
-    resolvedAllowedTypes
-]);
+        isOpen,
+        transactionToEdit,
+        defaultType,
+        allowedTypes,
+        isEditing,
+        currentDate,
+        creditCards,
+        wallets,
+        settingsCategories,
+        expenseTypes,
+        paymentTypes,
+        incomeTypes,
+        defaultGoalId,
+        resolvedAllowedTypes
+    ]);
 
-        const handleTabChange = (newTab: TransactionType) => {
+    const handleTabChange = (newTab: TransactionType) => {
         if (!resolvedAllowedTypes.includes(newTab)) return;
 
         setActiveTab(newTab);
@@ -447,7 +448,7 @@ const buildDisplaySnapshots = (
         if (data.installments) setInstallments(String(data.installments));
         if (data.supplier) setSupplier(data.supplier);
         if (data.costCenter) setCostCenter(data.costCenter);
-                if (data.category) {
+        if (data.category) {
             const options = getCategoryOptions(data.type || activeTab);
             const exists = options.find((o) =>
                 o.name.toLowerCase().includes(String(data.category).toLowerCase())
@@ -469,7 +470,7 @@ const buildDisplaySnapshots = (
             reader.onload = async () => {
                 const base64Data = (reader.result as string).split(',')[1];
                 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-                
+
                 const response = await ai.models.generateContent({
                     model: 'gemini-3-flash-preview',
                     contents: {
@@ -592,60 +593,112 @@ const buildDisplaySnapshots = (
 
     if (!isOpen) return null;
 
-   const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
+    const buildCreditCardPurchaseIdempotencyKey = (): string => {
+        const randomPart = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
 
-    let resolvedDescription = description;
+        return `manual-credit-card-purchase-${randomPart}`;
+    };
 
-    if (activeTab === 'despesa' || activeTab === 'parcelado') {
-        resolvedDescription = await ensureProductServiceValue(description);
-        setDescription(resolvedDescription);
-    }
+    const handleSubmit = async (e: FormEvent) => {
+        e.preventDefault();
 
-    const displaySnapshots = buildDisplaySnapshots(resolvedDescription);
+        let resolvedDescription = description;
 
-        if (activeTab === 'parcelado' && !isEditing && onAddTransactions) {
+        if (activeTab === 'despesa' || activeTab === 'parcelado') {
+            resolvedDescription = await ensureProductServiceValue(description);
+            setDescription(resolvedDescription);
+        }
+
+        const displaySnapshots = buildDisplaySnapshots(resolvedDescription);
+
+        if (activeTab === 'parcelado' && !isEditing) {
             const card = creditCards.find(c => String(c.id) === selectedCardId);
+
             if (!card) {
                 alert("Selecione um cartão válido.");
                 return;
             }
 
-            const totalInstallments = parseInt(installments);
+            const totalInstallments = parseInt(installments, 10);
             const inputVal = parseFloat(value);
-            let finalTotal = valueType === 'total' ? inputVal : inputVal * totalInstallments;
-            let installmentValue = valueType === 'total' ? parseFloat((inputVal / totalInstallments).toFixed(2)) : inputVal;
 
-            const pDate = new Date(purchaseDate);
-            let startMonthOffset = pDate.getDate() > card.closingDay ? 1 : 0;
-
-            const newTransactions: Omit<Transaction, 'id'>[] = [];
-            let remainder = valueType === 'total' ? parseFloat((finalTotal - (installmentValue * totalInstallments)).toFixed(2)) : 0;
-
-            for (let i = 0; i < totalInstallments; i++) {
-                const isLast = i === totalInstallments - 1;
-                const currentVal = isLast ? parseFloat((installmentValue + remainder).toFixed(2)) : installmentValue;
-                const dueDate = new Date(pDate.getFullYear(), pDate.getMonth() + startMonthOffset + i, card.dueDay);
-
-                newTransactions.push({
-                    type: 'parcelado',
-                    displaySnapshots,
-                    description: resolvedDescription,
-                    category,
-                    value: currentVal,
-                    date: dueDate.toISOString().split('T')[0],
-                    installments: totalInstallments,
-                    currentInstallment: i + 1,
-                    cardId: card.id,
-                    isPaid: false,
-                    supplier: isPJ ? supplier : undefined,
-                    costCenter: isPJ ? costCenter : undefined
-                });
+            if (!Number.isFinite(totalInstallments) || totalInstallments < 1) {
+                alert("Informe uma quantidade válida de parcelas.");
+                return;
             }
 
-            onAddTransactions(newTransactions);
-            onClose();
-            return;
+            if (!Number.isFinite(inputVal) || inputVal <= 0) {
+                alert("Informe um valor válido para a compra.");
+                return;
+            }
+
+            if (onAddCreditCardPurchase) {
+                await onAddCreditCardPurchase({
+                    cardId: String(card.id),
+                    description: resolvedDescription,
+                    categorySnapshot: {
+                        label: category || 'Sem categoria',
+                        normalizedLabel: (category || 'Sem categoria').trim().toLowerCase(),
+                    },
+                    supplier: isPJ ? supplier : undefined,
+                    costCenter: isPJ ? costCenter : undefined,
+                    purchaseDate,
+                    totalAmount: inputVal,
+                    installmentsCount: totalInstallments,
+                    amountType: valueType,
+                    source: 'manual',
+                    idempotencyKey: buildCreditCardPurchaseIdempotencyKey(),
+                    correlationId: 'transaction-modal-credit-card-purchase',
+                });
+
+                onClose();
+                return;
+            }
+
+            if (onAddTransactions) {
+                const finalTotal = valueType === 'total' ? inputVal : inputVal * totalInstallments;
+                const installmentValue = valueType === 'total'
+                    ? parseFloat((inputVal / totalInstallments).toFixed(2))
+                    : inputVal;
+
+                const pDate = new Date(purchaseDate);
+                const startMonthOffset = pDate.getDate() > card.closingDay ? 1 : 0;
+                const newTransactions: Omit<Transaction, 'id'>[] = [];
+                const remainder = valueType === 'total'
+                    ? parseFloat((finalTotal - (installmentValue * totalInstallments)).toFixed(2))
+                    : 0;
+
+                for (let i = 0; i < totalInstallments; i++) {
+                    const isLast = i === totalInstallments - 1;
+                    const currentVal = isLast
+                        ? parseFloat((installmentValue + remainder).toFixed(2))
+                        : installmentValue;
+                    const dueDate = new Date(
+                        pDate.getFullYear(),
+                        pDate.getMonth() + startMonthOffset + i,
+                        card.dueDay
+                    );
+
+                    newTransactions.push({
+                        type: 'parcelado',
+                        displaySnapshots,
+                        description: resolvedDescription,
+                        category,
+                        value: currentVal,
+                        date: dueDate.toISOString().split('T')[0],
+                        installments: totalInstallments,
+                        currentInstallment: i + 1,
+                        cardId: card.id,
+                        isPaid: false,
+                        supplier: isPJ ? supplier : undefined,
+                        costCenter: isPJ ? costCenter : undefined
+                    });
+                }
+
+                onAddTransactions(newTransactions);
+                onClose();
+                return;
+            }
         }
 
         const transactionData: any = {
@@ -658,12 +711,12 @@ const buildDisplaySnapshots = (
             costCenter: isPJ ? costCenter : undefined,
             displaySnapshots,
         };
-        
+
         if (activeTab === 'parcelado') {
-    transactionData.installments = parseInt(installments, 10);
-    transactionData.currentInstallment = isEditing ? transactionToEdit.currentInstallment : 1;
-    if (selectedCardId) transactionData.cardId = selectedCardId;
-}
+            transactionData.installments = parseInt(installments, 10);
+            transactionData.currentInstallment = isEditing ? transactionToEdit.currentInstallment : 1;
+            if (selectedCardId) transactionData.cardId = selectedCardId;
+        }
 
         if (activeTab === 'despesa') {
             transactionData.expenseType = expenseType;
@@ -679,17 +732,17 @@ const buildDisplaySnapshots = (
             if (selectedGoalId) transactionData.goalId = selectedGoalId;
             else transactionData.goalId = undefined;
         }
-        
+
         if (isEditing) onUpdateTransaction({ ...transactionToEdit, ...transactionData });
         else onAddTransaction(transactionData as Omit<Transaction, 'id'>);
-        
+
         onClose();
     };
 
     const tabClasses = (tabType: TransactionType) => {
         const base = "tab-button flex-1 py-3 px-2 font-medium text-center focus:outline-none transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed";
         if (activeTab === tabType) {
-            switch(tabType) {
+            switch (tabType) {
                 case 'receita': return `${base} text-green-600 dark:text-green-400 border-b-2 border-green-600 dark:border-green-400`;
                 case 'despesa': return `${base} text-red-600 dark:text-red-400 border-b-2 border-red-600 dark:border-red-400`;
                 case 'investimento': return `${base} text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400`;
@@ -698,24 +751,24 @@ const buildDisplaySnapshots = (
         }
         return `${base} text-gray-500 dark:text-gray-400 border-b-2 border-transparent`;
     };
-    
+
     const inputFocusRingColor = {
         receita: 'focus:ring-green-500',
         despesa: 'focus:ring-red-500',
         investimento: 'focus:ring-blue-500',
         parcelado: 'focus:ring-purple-500'
     };
-    
+
     const buttonClasses = {
         receita: 'bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800',
         despesa: 'bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800',
         investimento: 'bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800',
         parcelado: 'bg-purple-600 hover:bg-purple-700 dark:bg-purple-700 dark:hover:bg-purple-800'
     };
-    
+
     const commonInputClasses = `w-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-dark-200 text-gray-800 dark:text-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 ${inputFocusRingColor[activeTab]}`;
-    
-        const renderPJFields = () => {
+
+    const renderPJFields = () => {
         if (!isPJ) return null;
 
         const showSupplier = activeTab === 'despesa' || activeTab === 'parcelado';
@@ -790,17 +843,17 @@ const buildDisplaySnapshots = (
                         </select>
                     </div>
                     <CatalogCombobox
-                            label="Produto / Serviço"
-                            required
-                            value={description}
-                            options={mergedProductsServices}
-                            placeholder="Busque, selecione ou digite um novo item..."
-                            loading={isCatalogLoading || createCatalogItemMutation.isPending}
-                            inputClassName={commonInputClasses}
-                            helperText="Use o mesmo campo para buscar, selecionar ou criar."
-                            onValueChange={setDescription}
-                            onCommitValue={ensureProductServiceValue}
-                        />
+                        label="Produto / Serviço"
+                        required
+                        value={description}
+                        options={mergedProductsServices}
+                        placeholder="Busque, selecione ou digite um novo item..."
+                        loading={isCatalogLoading || createCatalogItemMutation.isPending}
+                        inputClassName={commonInputClasses}
+                        helperText="Use o mesmo campo para buscar, selecionar ou criar."
+                        onValueChange={setDescription}
+                        onCommitValue={ensureProductServiceValue}
+                    />
                     <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Categoria <span className="text-red-500">*</span></label>
                         <select value={category} onChange={e => setCategory(e.target.value)} className={commonInputClasses} required>
@@ -831,7 +884,7 @@ const buildDisplaySnapshots = (
             );
         }
 
-                if (activeTab === 'receita') {
+        if (activeTab === 'receita') {
             const incomeTypeOptions = buildNameOptions(mergedIncomeTypes, incomeType);
             const categoryOptions = buildNameOptions(getCategoryOptions(activeTab), category);
 
@@ -880,7 +933,7 @@ const buildDisplaySnapshots = (
             );
         }
 
-                if (activeTab === 'despesa') {
+        if (activeTab === 'despesa') {
             const expenseTypeOptions = buildNameOptions(mergedExpenseTypes, expenseType);
             const paymentTypeOptions = buildNameOptions(mergedPaymentTypes, paymentMethod);
             const categoryOptions = buildNameOptions(getCategoryOptions(activeTab), category);
@@ -911,17 +964,17 @@ const buildDisplaySnapshots = (
                         </select>
                     </div>
                     <CatalogCombobox
-                            label="Produto/Serviço"
-                            required
-                            value={description}
-                            options={mergedProductsServices}
-                            placeholder="Ex: Conta de Luz, Manutenção..."
-                            loading={isCatalogLoading || createCatalogItemMutation.isPending}
-                            inputClassName={commonInputClasses}
-                            helperText="Digite para buscar, selecionar ou criar automaticamente."
-                            onValueChange={setDescription}
-                            onCommitValue={ensureProductServiceValue}
-                        />
+                        label="Produto/Serviço"
+                        required
+                        value={description}
+                        options={mergedProductsServices}
+                        placeholder="Ex: Conta de Luz, Manutenção..."
+                        loading={isCatalogLoading || createCatalogItemMutation.isPending}
+                        inputClassName={commonInputClasses}
+                        helperText="Digite para buscar, selecionar ou criar automaticamente."
+                        onValueChange={setDescription}
+                        onCommitValue={ensureProductServiceValue}
+                    />
                     <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                             Valor (R$) <span className="text-red-500">*</span>
@@ -964,7 +1017,7 @@ const buildDisplaySnapshots = (
             );
         }
 
-                if (activeTab === 'investimento') {
+        if (activeTab === 'investimento') {
             const categoryOptions = buildNameOptions(getCategoryOptions(activeTab), category);
 
             return (
@@ -985,7 +1038,7 @@ const buildDisplaySnapshots = (
                             <option value="">Sem Meta (Investimento Geral)</option>
                             {goals.filter(g => g.status === 'em_andamento').map(goal => (
                                 <option key={goal.id} value={goal.id}>
-                                    {goal.visual.emoji} {goal.name} ({Math.round(Math.min(100, (goal.currentAmount/goal.targetAmount)*100))}%)
+                                    {goal.visual.emoji} {goal.name} ({Math.round(Math.min(100, (goal.currentAmount / goal.targetAmount) * 100))}%)
                                 </option>
                             ))}
                         </select>
@@ -1063,7 +1116,7 @@ const buildDisplaySnapshots = (
                 <div className="flex justify-between items-center p-6 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-dark-100 z-10">
                     <h3 className="text-xl font-bold text-gray-800 dark:text-white">{isEditing ? 'Editar Transação' : 'Nova Transação'}</h3>
                     <button onClick={onClose} className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
-                       <CloseIcon />
+                        <CloseIcon />
                     </button>
                 </div>
 
@@ -1080,14 +1133,14 @@ const buildDisplaySnapshots = (
                             )}
                         </div>
                         <div className="flex gap-2">
-                            <button 
+                            <button
                                 onClick={() => fileInputRef.current?.click()}
                                 disabled={isAILoading}
                                 className="flex-1 bg-white dark:bg-dark-200 border border-indigo-200 dark:border-indigo-800 p-2 rounded-lg flex items-center justify-center gap-2 text-xs font-medium text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-colors"
                             >
                                 <DynamicIcon name="FileInvoice" size={14} /> Escanear Comprovante
                             </button>
-                            <button 
+                            <button
                                 onClick={handleVoiceEntry}
                                 disabled={isAILoading}
                                 className={`flex-1 border p-2 rounded-lg flex items-center justify-center gap-2 text-xs font-medium transition-all ${isRecording ? 'bg-red-100 border-red-300 text-red-700 animate-pulse' : 'bg-white dark:bg-dark-200 border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/40'}`}
@@ -1097,65 +1150,65 @@ const buildDisplaySnapshots = (
                         </div>
                         <input type="file" ref={fileInputRef} className="hidden" accept="image/*,application/pdf" onChange={handleFileUpload} />
                         {isAILoading && (
-                             <div className="h-1 bg-indigo-200 dark:bg-indigo-800 rounded-full overflow-hidden">
+                            <div className="h-1 bg-indigo-200 dark:bg-indigo-800 rounded-full overflow-hidden">
                                 <div className="h-full bg-indigo-600 w-1/3 animate-[shimmer_1.5s_infinite]"></div>
-                             </div>
+                            </div>
                         )}
                     </div>
                 )}
-                
+
                 {!isEditing && resolvedAllowedTypes.length > 1 && (
-                        <div className="border-b border-gray-200 dark:border-gray-700">
-                            <div className="flex">
-                                {resolvedAllowedTypes.includes('receita') && (
-                                    <button
-                                        onClick={() => handleTabChange('receita')}
-                                        className={tabClasses('receita')}
-                                        type="button"
-                                    >
-                                        Receita
-                                    </button>
-                                )}
+                    <div className="border-b border-gray-200 dark:border-gray-700">
+                        <div className="flex">
+                            {resolvedAllowedTypes.includes('receita') && (
+                                <button
+                                    onClick={() => handleTabChange('receita')}
+                                    className={tabClasses('receita')}
+                                    type="button"
+                                >
+                                    Receita
+                                </button>
+                            )}
 
-                                {resolvedAllowedTypes.includes('despesa') && (
-                                    <button
-                                        onClick={() => handleTabChange('despesa')}
-                                        className={tabClasses('despesa')}
-                                        type="button"
-                                    >
-                                        Despesa
-                                    </button>
-                                )}
+                            {resolvedAllowedTypes.includes('despesa') && (
+                                <button
+                                    onClick={() => handleTabChange('despesa')}
+                                    className={tabClasses('despesa')}
+                                    type="button"
+                                >
+                                    Despesa
+                                </button>
+                            )}
 
-                                {resolvedAllowedTypes.includes('investimento') && (
-                                    <button
-                                        onClick={() => handleTabChange('investimento')}
-                                        className={tabClasses('investimento')}
-                                        type="button"
-                                    >
-                                        Investimento
-                                    </button>
-                                )}
+                            {resolvedAllowedTypes.includes('investimento') && (
+                                <button
+                                    onClick={() => handleTabChange('investimento')}
+                                    className={tabClasses('investimento')}
+                                    type="button"
+                                >
+                                    Investimento
+                                </button>
+                            )}
 
-                                {resolvedAllowedTypes.includes('parcelado') && (
-                                    <button
-                                        onClick={() => handleTabChange('parcelado')}
-                                        className={tabClasses('parcelado')}
-                                        type="button"
-                                    >
-                                        Parcelado
-                                    </button>
-                                )}
-                            </div>
+                            {resolvedAllowedTypes.includes('parcelado') && (
+                                <button
+                                    onClick={() => handleTabChange('parcelado')}
+                                    className={tabClasses('parcelado')}
+                                    type="button"
+                                >
+                                    Parcelado
+                                </button>
+                            )}
                         </div>
-                    )}
+                    </div>
+                )}
 
-                    {isCatalogLoading && (
+                {isCatalogLoading && (
                     <div className="px-6 pt-4 text-xs font-medium text-indigo-600 dark:text-indigo-300">
                         Atualizando cadastros do workspace...
                     </div>
                 )}
-                
+
                 <div className="p-6">
                     <form onSubmit={handleSubmit}>
                         <div className="space-y-4">
@@ -1169,7 +1222,7 @@ const buildDisplaySnapshots = (
                     </form>
                 </div>
             </div>
-             <style>{`
+            <style>{`
                 @keyframes shimmer {
                     0% { transform: translateX(-100%); }
                     100% { transform: translateX(200%); }

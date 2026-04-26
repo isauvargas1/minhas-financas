@@ -426,12 +426,20 @@ export const executeRebuildCardInvoicesForCard = async (
     const paymentSnapshots = await Promise.all(
       paymentQueries.map((paymentQuery) => transaction.get(paymentQuery))
     );
-    const payments = paymentSnapshots.flatMap((paymentSnapshot) =>
-      paymentSnapshot.docs.map((documentSnapshot) => ({
+    
+   const payments = paymentSnapshots.reduce<PaymentData[]>(
+  (accumulator, paymentSnapshot) => {
+    accumulator.push(
+      ...paymentSnapshot.docs.map((documentSnapshot) => ({
         id: documentSnapshot.id,
         ...documentSnapshot.data(),
-      }))
-    ) as PaymentData[];
+      }) as PaymentData)
+    );
+
+    return accumulator;
+  },
+  []
+);
 
     const idempotency = await reserveIdempotencyKey(transaction, {
       workspaceId,

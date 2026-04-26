@@ -20,6 +20,7 @@ import { usePlan } from '../hooks/usePlan.ts';
 import CatalogVisualChip from './CatalogVisualChip.tsx';
 import { useSettingsCatalog } from '../modules/settings-catalog/hooks.ts';
 import { resolveTransactionVisuals } from '../modules/settings-catalog/display.ts';
+import { isCreditCardInvoiceCompatibleTransaction } from '../modules/credit-cards/compatibility';
 
 interface TransactionsViewProps {
     viewType: 'receita' | 'despesa' | 'investimento';
@@ -41,7 +42,7 @@ type SortableKeys =
     | 'paymentMethod'
     | 'isPaid';
 
-    
+
 
 type ColumnAlignment = 'left' | 'right' | 'center';
 
@@ -101,6 +102,10 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({
         const currentYear = today.getFullYear();
 
         return transactions.filter((transaction) => {
+            if (isCreditCardInvoiceCompatibleTransaction(transaction)) {
+                return false;
+            }
+
             const date = new Date(`${transaction.date}T12:00:00`);
             return (
                 !Number.isNaN(date.getTime()) &&
@@ -134,111 +139,111 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({
     };
 
     const goalNameById = useMemo<Record<string, string>>(() => {
-    return goals.reduce<Record<string, string>>((acc, goal) => {
-        acc[goal.id] = goal.name;
-        return acc;
-    }, {});
-}, [goals]);
+        return goals.reduce<Record<string, string>>((acc, goal) => {
+            acc[goal.id] = goal.name;
+            return acc;
+        }, {});
+    }, [goals]);
 
-const categoryOptions = useMemo<string[]>(() => {
-    return Array.from(
-        new Set<string>(
-            transactions
-                .map((transaction) => transaction.category)
-                .filter((value): value is string => Boolean(value)),
-        ),
-    ).sort((a: string, b: string) => a.localeCompare(b, 'pt-BR'));
-}, [transactions]);
+    const categoryOptions = useMemo<string[]>(() => {
+        return Array.from(
+            new Set<string>(
+                transactions
+                    .map((transaction) => transaction.category)
+                    .filter((value): value is string => Boolean(value)),
+            ),
+        ).sort((a: string, b: string) => a.localeCompare(b, 'pt-BR'));
+    }, [transactions]);
 
-const secondaryFilterLabel =
-    viewType === 'receita'
-        ? 'Tipo de receita'
-        : viewType === 'despesa'
-          ? 'Tipo de despesa'
-          : 'Meta';
+    const secondaryFilterLabel =
+        viewType === 'receita'
+            ? 'Tipo de receita'
+            : viewType === 'despesa'
+                ? 'Tipo de despesa'
+                : 'Meta';
 
-const getSecondaryFilterValue = (transaction: Transaction): string => {
-    if (viewType === 'receita') {
-        return transaction.incomeType || '';
-    }
+    const getSecondaryFilterValue = (transaction: Transaction): string => {
+        if (viewType === 'receita') {
+            return transaction.incomeType || '';
+        }
 
-    if (viewType === 'despesa') {
-        return transaction.type === 'parcelado'
-            ? 'Parcelamento'
-            : transaction.expenseType || '';
-    }
+        if (viewType === 'despesa') {
+            return transaction.type === 'parcelado'
+                ? 'Parcelamento'
+                : transaction.expenseType || '';
+        }
 
-    return transaction.goalId
-        ? goalNameById[transaction.goalId] || 'Meta removida'
-        : 'Sem meta';
-};
+        return transaction.goalId
+            ? goalNameById[transaction.goalId] || 'Meta removida'
+            : 'Sem meta';
+    };
 
-const secondaryOptions = useMemo<string[]>(() => {
-    return Array.from(
-        new Set<string>(
-            transactions
-                .map((transaction) => getSecondaryFilterValue(transaction))
-                .filter((value): value is string => Boolean(value)),
-        ),
-    ).sort((a: string, b: string) => a.localeCompare(b, 'pt-BR'));
-}, [transactions, viewType, goalNameById]);
+    const secondaryOptions = useMemo<string[]>(() => {
+        return Array.from(
+            new Set<string>(
+                transactions
+                    .map((transaction) => getSecondaryFilterValue(transaction))
+                    .filter((value): value is string => Boolean(value)),
+            ),
+        ).sort((a: string, b: string) => a.localeCompare(b, 'pt-BR'));
+    }, [transactions, viewType, goalNameById]);
 
-const filteredTransactions = useMemo(() => {
-    const normalizedSearch = normalizeText(searchTerm);
+    const filteredTransactions = useMemo(() => {
+        const normalizedSearch = normalizeText(searchTerm);
 
-    return transactions.filter((transaction) => {
-        const searchableFields = [
-            transaction.description,
-            transaction.category,
-            transaction.date,
-            transaction.incomeType,
-            transaction.expenseType,
-            transaction.paymentMethod || (transaction.cardId ? 'Cartão de Crédito' : ''),
-            getSecondaryFilterValue(transaction),
-            transaction.type === 'parcelado' ? 'Parcelamento' : '',
-            transaction.isPaid
-                ? viewType === 'investimento'
-                    ? 'Depositado'
-                    : 'Pago'
-                : 'Pendente',
-        ];
+        return transactions.filter((transaction) => {
+            const searchableFields = [
+                transaction.description,
+                transaction.category,
+                transaction.date,
+                transaction.incomeType,
+                transaction.expenseType,
+                transaction.paymentMethod || (transaction.cardId ? 'Cartão de Crédito' : ''),
+                getSecondaryFilterValue(transaction),
+                transaction.type === 'parcelado' ? 'Parcelamento' : '',
+                transaction.isPaid
+                    ? viewType === 'investimento'
+                        ? 'Depositado'
+                        : 'Pago'
+                    : 'Pendente',
+            ];
 
-        const matchesSearch =
-            !normalizedSearch ||
-            searchableFields.some((value) =>
-                normalizeText(value).includes(normalizedSearch),
+            const matchesSearch =
+                !normalizedSearch ||
+                searchableFields.some((value) =>
+                    normalizeText(value).includes(normalizedSearch),
+                );
+
+            const matchesCategory =
+                categoryFilter === 'todas' || transaction.category === categoryFilter;
+
+            const matchesSecondary =
+                secondaryFilter === 'todas' ||
+                getSecondaryFilterValue(transaction) === secondaryFilter;
+
+            const matchesPaymentStatus =
+                viewType === 'receita' ||
+                paymentStatusFilter === 'todos' ||
+                (paymentStatusFilter === 'paid'
+                    ? Boolean(transaction.isPaid)
+                    : !transaction.isPaid);
+
+            return (
+                matchesSearch &&
+                matchesCategory &&
+                matchesSecondary &&
+                matchesPaymentStatus
             );
-
-        const matchesCategory =
-            categoryFilter === 'todas' || transaction.category === categoryFilter;
-
-        const matchesSecondary =
-            secondaryFilter === 'todas' ||
-            getSecondaryFilterValue(transaction) === secondaryFilter;
-
-        const matchesPaymentStatus =
-            viewType === 'receita' ||
-            paymentStatusFilter === 'todos' ||
-            (paymentStatusFilter === 'paid'
-                ? Boolean(transaction.isPaid)
-                : !transaction.isPaid);
-
-        return (
-            matchesSearch &&
-            matchesCategory &&
-            matchesSecondary &&
-            matchesPaymentStatus
-        );
-    });
-}, [
-    transactions,
-    searchTerm,
-    categoryFilter,
-    secondaryFilter,
-    paymentStatusFilter,
-    viewType,
-    goalNameById,
-]);
+        });
+    }, [
+        transactions,
+        searchTerm,
+        categoryFilter,
+        secondaryFilter,
+        paymentStatusFilter,
+        viewType,
+        goalNameById,
+    ]);
 
     const sortedTransactions = useMemo(() => {
         const sortableItems = [...filteredTransactions];
@@ -263,7 +268,7 @@ const filteredTransactions = useMemo(() => {
                 case 'paymentMethod':
                     return normalizeText(
                         transaction.paymentMethod ||
-                            (transaction.cardId ? 'Cartão de Crédito' : ''),
+                        (transaction.cardId ? 'Cartão de Crédito' : ''),
                     );
                 case 'isPaid':
                     return transaction.isPaid ? 1 : 0;
@@ -391,7 +396,7 @@ const filteredTransactions = useMemo(() => {
                 { key: 'incomeType', label: 'Tipo de Receita', align: 'left' },
                 { key: 'category', label: 'Categoria', align: 'left' },
                 { key: 'description', label: 'Origem/Descrição', align: 'left' },
-                { key: 'value', label: 'Valor (R$)', align: 'center'},
+                { key: 'value', label: 'Valor (R$)', align: 'center' },
                 { key: 'date', label: 'Data', align: 'center' },
             ];
         }
@@ -502,11 +507,10 @@ const filteredTransactions = useMemo(() => {
                         <button
                             onClick={onAddTransaction}
                             disabled={!canCreateTransaction}
-                            className={`font-medium py-2 px-4 rounded-lg flex items-center shadow-md transition-colors duration-200 whitespace-nowrap ${
-                                canCreateTransaction
-                                    ? 'bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-700 dark:hover:bg-indigo-800 text-white cursor-pointer'
-                                    : 'bg-gray-300 dark:bg-gray-700 text-gray-500 cursor-not-allowed'
-                            }`}
+                            className={`font-medium py-2 px-4 rounded-lg flex items-center shadow-md transition-colors duration-200 whitespace-nowrap ${canCreateTransaction
+                                ? 'bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-700 dark:hover:bg-indigo-800 text-white cursor-pointer'
+                                : 'bg-gray-300 dark:bg-gray-700 text-gray-500 cursor-not-allowed'
+                                }`}
                         >
                             <PlusIcon className="mr-2 h-4 w-4" />
                             Nova Transação
@@ -654,9 +658,9 @@ const filteredTransactions = useMemo(() => {
                                     {tableHeaders.map(({ key, label, align }) => (
                                         <th key={key} className={`${getHeaderAlignClass(align)} py-3 px-4 text-gray-500 dark:text-gray-400 font-medium whitespace-nowrap`}>
                                             <button
-                                                        onClick={() => requestSort(key)}
-                                                        className={`flex items-center ${getButtonAlignClass(align)} hover:text-gray-700 dark:hover:text-gray-200 transition-colors`}
-                                                    >
+                                                onClick={() => requestSort(key)}
+                                                className={`flex items-center ${getButtonAlignClass(align)} hover:text-gray-700 dark:hover:text-gray-200 transition-colors`}
+                                            >
                                                 {label}
                                                 {getSortIcon(key)}
                                             </button>
@@ -671,161 +675,180 @@ const filteredTransactions = useMemo(() => {
 
                             <tbody>
                                 {sortedTransactions.map((transaction) => {
-                                        const visuals = resolveTransactionVisuals({
-                                            transaction,
-                                            catalogItems,
-                                        });
+                                    const visuals = resolveTransactionVisuals({
+                                        transaction,
+                                        catalogItems,
+                                    });
+                                    const isCreditCardInvoiceProjection = isCreditCardInvoiceCompatibleTransaction(transaction);
 
-                                        return (
-                                            <tr
-                                                key={transaction.id}
-                                                className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50/80 dark:hover:bg-dark-200/80 transition-colors duration-200"
-                                            >
-                                        {viewType === 'receita' ? (
-                                            <>
-                                                <td className="py-4 px-4 text-gray-600 dark:text-gray-300">
-                                                    {transaction.incomeType ? (
-                                                        <CatalogVisualChip
-                                                            visual={visuals.incomeType}
-                                                            fallbackLabel={transaction.incomeType}
-                                                        />
-                                                    ) : (
-                                                        '-'
-                                                    )}
-                                                </td>
-
-                                                <td className="py-4 px-4 text-gray-600 dark:text-gray-300">
-                                                    <CatalogVisualChip
-                                                        visual={visuals.category}
-                                                        fallbackLabel={transaction.category}
-                                                    />
-                                                </td>
-
-                                                <td className="py-4 px-4 text-gray-800 dark:text-gray-200">
-                                                    <div className="max-w-[280px]">
-                                                        <div className="font-semibold truncate">
-                                                            {transaction.description}
-                                                        </div>
-                                                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                                            Receita registrada
-                                                        </div>
-                                                    </div>
-                                                </td>
-
-                                                <td
-                                                    className={`py-4 px-4 text-center font-semibold whitespace-nowrap ${
-                                                        transactionTypeColors[
-                                                            transaction.type
-                                                        ] || ''
-                                                    }`}
-                                                >
-                                                    + {formatCurrency(transaction.value)}
-                                                </td>
-
-                                                <td className="py-4 px-4 text-center text-gray-600 dark:text-gray-300 whitespace-nowrap">
-                                                    {formatDate(transaction.date)}
-                                                </td>
-
-                                                <td className="py-4 px-4 text-center">
-                                                    <div className="flex items-center justify-center gap-2">
-                                                        <button
-                                                            onClick={() =>
-                                                                onEditTransaction(
-                                                                    transaction,
-                                                                )
-                                                            }
-                                                            className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-full transition-colors"
-                                                            aria-label="Editar"
-                                                        >
-                                                            <EditIcon />
-                                                        </button>
-                                                        <button
-                                                            onClick={() =>
-                                                                onDeleteTransaction(
-                                                                    transaction,
-                                                                )
-                                                            }
-                                                            className="p-2 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-full transition-colors"
-                                                            aria-label="Deletar"
-                                                        >
-                                                            <DeleteIcon />
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <td className="py-4 px-4 text-gray-800 dark:text-gray-200">
-                                                    <div className="max-w-[280px]">
-                                                        {(transaction.type === 'despesa' || transaction.type === 'parcelado') ? (
+                                    return (
+                                        <tr
+                                            key={transaction.id}
+                                            className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50/80 dark:hover:bg-dark-200/80 transition-colors duration-200"
+                                        >
+                                            {viewType === 'receita' ? (
+                                                <>
+                                                    <td className="py-4 px-4 text-gray-600 dark:text-gray-300">
+                                                        {transaction.incomeType ? (
                                                             <CatalogVisualChip
-                                                                visual={visuals.productService}
-                                                                fallbackLabel={transaction.description}
+                                                                visual={visuals.incomeType}
+                                                                fallbackLabel={transaction.incomeType}
                                                             />
                                                         ) : (
-                                                            <div className="font-semibold truncate">
-                                                                {transaction.description}
-                                                            </div>
+                                                            '-'
                                                         )}
+                                                    </td>
 
-                                                        <div className="mt-1 flex flex-wrap items-center gap-2">
-                                                            {transaction.type === 'parcelado' && (
-                                                                <span className="inline-flex rounded-full bg-purple-100 dark:bg-purple-900/30 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-purple-700 dark:text-purple-300">
-                                                                    Parcela {transaction.currentInstallment}/{transaction.installments}
-                                                                </span>
-                                                            )}
-
-                                                            {transaction.goalId && viewType === 'investimento' && (
-                                                                <span className="inline-flex rounded-full bg-indigo-100 dark:bg-indigo-900/30 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-indigo-800 dark:text-indigo-300">
-                                                                    Meta vinculada
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                </td>
-
-                                                <td className="py-4 px-4 text-gray-600 dark:text-gray-300">
+                                                    <td className="py-4 px-4 text-gray-600 dark:text-gray-300">
                                                         <CatalogVisualChip
                                                             visual={visuals.category}
                                                             fallbackLabel={transaction.category}
                                                         />
                                                     </td>
 
-                                                {viewType === 'despesa' && (
-                                                    <>
-                                                        <td className="py-4 px-4 text-gray-600 dark:text-gray-300">
-                                                            {transaction.expenseType || transaction.type === 'parcelado' ? (
+                                                    <td className="py-4 px-4 text-gray-800 dark:text-gray-200">
+                                                        <div className="max-w-[280px]">
+                                                            <div className="font-semibold truncate">
+                                                                {transaction.description}
+                                                            </div>
+                                                            <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                                                Receita registrada
+                                                            </div>
+                                                        </div>
+                                                    </td>
+
+                                                    <td
+                                                        className={`py-4 px-4 text-center font-semibold whitespace-nowrap ${transactionTypeColors[
+                                                            transaction.type
+                                                        ] || ''
+                                                            }`}
+                                                    >
+                                                        + {formatCurrency(transaction.value)}
+                                                    </td>
+
+                                                    <td className="py-4 px-4 text-center text-gray-600 dark:text-gray-300 whitespace-nowrap">
+                                                        {formatDate(transaction.date)}
+                                                    </td>
+
+                                                    <td className="py-4 px-4 text-center">
+                                                        <div className="flex items-center justify-center gap-2">
+                                                            <button
+                                                                onClick={() =>
+                                                                    onEditTransaction(
+                                                                        transaction,
+                                                                    )
+                                                                }
+                                                                className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-full transition-colors"
+                                                                aria-label="Editar"
+                                                            >
+                                                                <EditIcon />
+                                                            </button>
+                                                            <button
+                                                                onClick={() =>
+                                                                    onDeleteTransaction(
+                                                                        transaction,
+                                                                    )
+                                                                }
+                                                                className="p-2 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-full transition-colors"
+                                                                aria-label="Deletar"
+                                                            >
+                                                                <DeleteIcon />
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <td className="py-4 px-4 text-gray-800 dark:text-gray-200">
+                                                        <div className="max-w-[280px]">
+                                                            {(transaction.type === 'despesa' || transaction.type === 'parcelado') ? (
                                                                 <CatalogVisualChip
-                                                                    visual={visuals.expenseType}
-                                                                    fallbackLabel={
-                                                                        transaction.type === 'parcelado'
-                                                                            ? 'Parcelamento'
-                                                                            : transaction.expenseType
-                                                                    }
+                                                                    visual={visuals.productService}
+                                                                    fallbackLabel={transaction.description}
                                                                 />
                                                             ) : (
-                                                                '-'
+                                                                <div className="font-semibold truncate">
+                                                                    {transaction.description}
+                                                                </div>
                                                             )}
-                                                        </td>
 
-                                                        <td className="py-4 px-4 text-gray-600 dark:text-gray-300">
-                                                            {transaction.paymentMethod || transaction.cardId ? (
-                                                                <CatalogVisualChip
-                                                                    visual={visuals.paymentMethod}
-                                                                    fallbackLabel={
-                                                                        transaction.paymentMethod ||
-                                                                        (transaction.cardId ? 'Cartão de Crédito' : '')
-                                                                    }
-                                                                />
-                                                            ) : (
-                                                                '-'
-                                                            )}
-                                                        </td>
+                                                            <div className="mt-1 flex flex-wrap items-center gap-2">
+                                                                {isCreditCardInvoiceProjection ? (
+                                                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-bold bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300">
+                                                                        FATURA
+                                                                    </span>
+                                                                ) : transaction.type === 'parcelado' ? (
+                                                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-bold bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300">
+                                                                        PARCELA {transaction.currentInstallment}/{transaction.installments}
+                                                                    </span>
+                                                                ) : null}
 
+                                                                {transaction.goalId && viewType === 'investimento' && (
+                                                                    <span className="inline-flex rounded-full bg-indigo-100 dark:bg-indigo-900/30 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-indigo-800 dark:text-indigo-300">
+                                                                        Meta vinculada
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </td>
+
+                                                    <td className="py-4 px-4 text-gray-600 dark:text-gray-300">
+                                                        <CatalogVisualChip
+                                                            visual={visuals.category}
+                                                            fallbackLabel={transaction.category}
+                                                        />
+                                                    </td>
+
+                                                    {viewType === 'despesa' && (
+                                                        <>
+                                                            <td className="py-4 px-4 text-gray-600 dark:text-gray-300">
+                                                                {transaction.expenseType || transaction.type === 'parcelado' ? (
+                                                                    <CatalogVisualChip
+                                                                        visual={visuals.expenseType}
+                                                                        fallbackLabel={
+                                                                            transaction.type === 'parcelado'
+                                                                                ? 'Parcelamento'
+                                                                                : transaction.expenseType
+                                                                        }
+                                                                    />
+                                                                ) : (
+                                                                    '-'
+                                                                )}
+                                                            </td>
+
+                                                            <td className="py-4 px-4 text-gray-600 dark:text-gray-300">
+                                                                {transaction.paymentMethod || transaction.cardId ? (
+                                                                    <CatalogVisualChip
+                                                                        visual={visuals.paymentMethod}
+                                                                        fallbackLabel={
+                                                                            transaction.paymentMethod ||
+                                                                            (transaction.cardId ? 'Cartão de Crédito' : '')
+                                                                        }
+                                                                    />
+                                                                ) : (
+                                                                    '-'
+                                                                )}
+                                                            </td>
+
+                                                            <td className="py-4 px-4 text-center">
+                                                                {transaction.isPaid ? (
+                                                                    <span className="inline-flex rounded-full bg-green-100 dark:bg-green-900/30 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-green-800 dark:text-green-400">
+                                                                        Pago
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="inline-flex rounded-full bg-amber-100 dark:bg-amber-900/30 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-amber-800 dark:text-amber-400">
+                                                                        Pendente
+                                                                    </span>
+                                                                )}
+                                                            </td>
+                                                        </>
+                                                    )}
+
+                                                    {viewType === 'investimento' && (
                                                         <td className="py-4 px-4 text-center">
                                                             {transaction.isPaid ? (
-                                                                <span className="inline-flex rounded-full bg-green-100 dark:bg-green-900/30 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-green-800 dark:text-green-400">
-                                                                    Pago
+                                                                <span className="inline-flex rounded-full bg-blue-100 dark:bg-blue-900/30 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-blue-800 dark:text-blue-400">
+                                                                    Depositado
                                                                 </span>
                                                             ) : (
                                                                 <span className="inline-flex rounded-full bg-amber-100 dark:bg-amber-900/30 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-amber-800 dark:text-amber-400">
@@ -833,67 +856,60 @@ const filteredTransactions = useMemo(() => {
                                                                 </span>
                                                             )}
                                                         </td>
-                                                    </>
-                                                )}
+                                                    )}
 
-                                                {viewType === 'investimento' && (
-                                                    <td className="py-4 px-4 text-center">
-                                                        {transaction.isPaid ? (
-                                                            <span className="inline-flex rounded-full bg-blue-100 dark:bg-blue-900/30 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-blue-800 dark:text-blue-400">
-                                                                Depositado
-                                                            </span>
-                                                        ) : (
-                                                            <span className="inline-flex rounded-full bg-amber-100 dark:bg-amber-900/30 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-amber-800 dark:text-amber-400">
-                                                                Pendente
-                                                            </span>
-                                                        )}
+                                                    <td className="py-4 px-4 text-gray-600 dark:text-gray-300 whitespace-nowrap">
+                                                        {formatDate(transaction.date)}
                                                     </td>
-                                                )}
 
-                                                <td className="py-4 px-4 text-gray-600 dark:text-gray-300 whitespace-nowrap">
-                                                    {formatDate(transaction.date)}
-                                                </td>
-
-                                                <td
-                                                    className={`py-4 px-4 text-center font-semibold whitespace-nowrap ${
-                                                        transactionTypeColors[
+                                                    <td
+                                                        className={`py-4 px-4 text-center font-semibold whitespace-nowrap ${transactionTypeColors[
                                                             transaction.type
                                                         ] || ''
-                                                    }`}
-                                                >
-                                                    - {formatCurrency(transaction.value)}
-                                                </td>
+                                                            }`}
+                                                    >
+                                                        - {formatCurrency(transaction.value)}
+                                                    </td>
 
-                                                <td className="py-4 px-4 text-center">
-                                                    <div className="flex items-center justify-center gap-2">
-                                                        <button
-                                                            onClick={() =>
-                                                                onEditTransaction(
-                                                                    transaction,
-                                                                )
-                                                            }
-                                                            className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-full transition-colors"
-                                                            aria-label="Editar"
-                                                        >
-                                                            <EditIcon />
-                                                        </button>
-                                                        <button
-                                                            onClick={() =>
-                                                                onDeleteTransaction(
-                                                                    transaction,
-                                                                )
-                                                            }
-                                                            className="p-2 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-full transition-colors"
-                                                            aria-label="Deletar"
-                                                        >
-                                                            <DeleteIcon />
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            </>
-                                        )}
-                                    </tr>
-                                ); })}
+                                                    <td className="py-4 px-4 text-center">
+                                                        <div className="flex items-center justify-center gap-2">
+                                                            <button
+                                                                onClick={() => onEditTransaction(transaction)}
+                                                                disabled={isCreditCardInvoiceProjection}
+                                                                className={`p-2 rounded-full transition-colors ${isCreditCardInvoiceProjection
+                                                                    ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
+                                                                    : 'text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30'
+                                                                    }`}
+                                                                aria-label={
+                                                                    isCreditCardInvoiceProjection
+                                                                        ? 'Fatura de cartão não pode ser editada como transação'
+                                                                        : 'Editar'
+                                                                }
+                                                            >
+                                                                <EditIcon />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => onDeleteTransaction(transaction)}
+                                                                disabled={isCreditCardInvoiceProjection}
+                                                                className={`p-2 rounded-full transition-colors ${isCreditCardInvoiceProjection
+                                                                    ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
+                                                                    : 'text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30'
+                                                                    }`}
+                                                                aria-label={
+                                                                    isCreditCardInvoiceProjection
+                                                                        ? 'Fatura de cartão não pode ser excluída como transação'
+                                                                        : 'Deletar'
+                                                                }
+                                                            >
+                                                                <DeleteIcon />
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </>
+                                            )}
+                                        </tr>
+                                    );
+                                })}
 
                                 {sortedTransactions.length === 0 && (
                                     <tr>

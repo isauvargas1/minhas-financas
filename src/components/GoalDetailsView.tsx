@@ -19,9 +19,9 @@ interface GoalDetailsViewProps {
     onBack: () => void;
     onEdit: (goal: Goal) => void;
     onLink: (goal: Goal) => void;
-    onDelete: (goalId: number) => void;
-    onUpdateStatus: (goal: Goal, status: GoalStatus) => void;
-    onAddInvestment: (goalId: number) => void;
+    onDelete: (goalId: string) => void;
+    onUpdateStatus?: (goal: Goal, status: GoalStatus) => void;
+    onAddInvestment: (goalId: string) => void;
 }
 
 const adjustBrightness = (color: string, amount: number) => {
@@ -57,10 +57,10 @@ const GoalDetailsView: React.FC<GoalDetailsViewProps> = ({
         return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
     };
 
-    const handleComplete = () => {
-        confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: [goal.visual.color, '#ffffff'] });
-        onUpdateStatus(goal, 'alcancada');
-    };
+  const handleComplete = () => {
+    confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: [goal.visual.color, '#ffffff'] });
+    onUpdateStatus?.(goal, 'alcancada');
+};
 
     const darkerColor = adjustBrightness(goal.visual.color, -50);
     const gradientStyle = `radial-gradient(circle at top left, rgba(255,255,255,0.2) 0%, transparent 40%), linear-gradient(135deg, ${goal.visual.color} 0%, ${darkerColor} 100%)`;
@@ -156,8 +156,7 @@ const GoalDetailsView: React.FC<GoalDetailsViewProps> = ({
                                  return (
                                      <button
                                          key={option.key}
-                                         onClick={() => { if (option.key === 'alcancada' && !isActive) handleComplete(); else if (!isActive) onUpdateStatus(goal, option.key as GoalStatus); }}
-                                         className={`p-2 rounded-md transition-all flex items-center justify-center gap-2 text-sm font-medium ${activeClass}`}
+onClick={() => { if (option.key === 'alcancada' && !isActive) handleComplete(); else if (!isActive) onUpdateStatus?.(goal, option.key as GoalStatus); }}                                         className={`p-2 rounded-md transition-all flex items-center justify-center gap-2 text-sm font-medium ${activeClass}`}
                                          title={isActive ? option.activeLabel : option.label}
                                      >
                                          <DynamicIcon name={option.icon} size={18} />

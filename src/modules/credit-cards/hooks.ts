@@ -1,5 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { listCreditCards, createCreditCard, updateCreditCard, deleteCreditCard } from './api';
+import {
+    createCreditCardPurchase,
+    type CreateCreditCardPurchaseFrontendInput,
+} from './purchasesApi';
 import { CreditCard } from '../../types';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
 
@@ -50,5 +54,38 @@ export const useDeleteCreditCard = () => {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: KEYS.all(activeWorkspace.id) });
         }
+    });
+};
+
+const isWorkspaceReady = (workspaceId?: string): workspaceId is string =>
+    Boolean(workspaceId) && workspaceId !== 'loading';
+
+export const useCreateCreditCardPurchaseDomain = () => {
+    const { activeWorkspace } = useWorkspace();
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (
+            input: Omit<CreateCreditCardPurchaseFrontendInput, 'workspaceId'>
+        ) => {
+            if (!isWorkspaceReady(activeWorkspace?.id)) {
+                return Promise.reject(new Error('Workspace ativo não encontrado.'));
+            }
+
+            return createCreditCardPurchase({
+                ...input,
+                workspaceId: activeWorkspace.id,
+            });
+        },
+        onSuccess: async () => {
+            if (!isWorkspaceReady(activeWorkspace?.id)) return;
+
+            await Promise.all([
+                queryClient.invalidateQueries({ queryKey: KEYS.all(activeWorkspace.id) }),
+                queryClient.invalidateQueries({
+                    queryKey: ['creditCardInvoiceTransactionProjections', activeWorkspace.id],
+                }),
+            ]);
+        },
     });
 };
