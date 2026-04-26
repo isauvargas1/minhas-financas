@@ -94,7 +94,7 @@ const CreditCardForm: React.FC<CreditCardFormProps> = ({ isOpen, onClose, onSave
     const handleSave = (e: React.FormEvent) => {
         e.preventDefault();
         const newCard: CreditCard = {
-            id: cardToEdit ? cardToEdit.id : Date.now(),
+            id: cardToEdit ? cardToEdit.id : String(Date.now()),
             name,
             brand,
             limitTotal: parseFloat(limitTotal),

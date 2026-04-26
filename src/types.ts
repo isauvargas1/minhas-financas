@@ -1,5 +1,7 @@
-
 import type { ReactNode } from 'react';
+import type { CreditCardBillingCycleStatus } from './modules/credit-cards/domain/types.ts';
+
+export * from './modules/credit-cards/domain/types.ts';
 export * from './modules/recurring-expenses/types.ts';
 export * from './modules/reports/types.ts';
 export * from './modules/notifications/types.ts';
@@ -55,13 +57,21 @@ export interface EntityItem {
 
 export interface CreditCard {
     id: string;
+    workspaceId?: string;
+
     name: string;
     brand: string;
+    status: 'active' | 'blocked' | 'cancelled';
+
     limitTotal: number;
+    limitAvailable?: number;
+    limitUsed?: number;
+
     closingDay: number;
     dueDay: number;
     bestDay?: number;
-    status: 'active' | 'blocked' | 'cancelled';
+    billingCycleStatus?: CreditCardBillingCycleStatus;
+
     observations?: string;
     visual: {
         bgType: 'color' | 'gradient' | 'image';
@@ -73,10 +83,14 @@ export interface CreditCard {
         showBrand: boolean;
         showLogo: boolean;
     };
+
     profileId?: string;
     responsiblePerson?: string;
     recommendedUse?: string;
     defaultCostCenter?: string;
+
+    createdAt?: unknown;
+    updatedAt?: unknown;
 }
 
 export interface SettingsData {

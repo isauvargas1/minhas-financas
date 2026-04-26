@@ -211,6 +211,28 @@ service cloud.firestore {
         && data.updatedAt is timestamp;
     }
 
+    function canReadWorkspaceScopedData(workspaceId) {
+  return isMember(workspaceId) || isWorkspaceOwnerByParent(workspaceId);
+}
+
+function canWriteWorkspaceScopedData(workspaceId) {
+  return hasRole(workspaceId, ['owner', 'admin']) || isWorkspaceOwnerByParent(workspaceId);
+}
+
+function isCreditCardDomainCollection(collectionName) {
+  return collectionName in [
+    'credit_card_purchases',
+    'credit_card_installments',
+    'credit_card_invoices',
+    'credit_card_invoice_payments',
+    'card_limit_ledger',
+    'financial_events',
+    'invoice_views',
+    'card_limit_snapshots',
+    'credit_card_idempotency_keys'
+  ];
+}
+
     match /workspaces/{workspaceId} {
       allow create: if signedIn();
       allow read: if isMember(workspaceId) || (signedIn() && resource.data.ownerId == request.auth.uid);
@@ -267,6 +289,51 @@ service cloud.firestore {
         allow read: if isMember(workspaceId) || isWorkspaceOwnerByParent(workspaceId);
         allow write: if hasRole(workspaceId, ['owner', 'admin', 'member']) || isWorkspaceOwnerByParent(workspaceId);
       }
+
+      match /credit_card_purchases/{docId} {
+  allow read: if canReadWorkspaceScopedData(workspaceId);
+  allow write: if false;
+}
+
+match /credit_card_installments/{docId} {
+  allow read: if canReadWorkspaceScopedData(workspaceId);
+  allow write: if false;
+}
+
+match /credit_card_invoices/{docId} {
+  allow read: if canReadWorkspaceScopedData(workspaceId);
+  allow write: if false;
+}
+
+match /credit_card_invoice_payments/{docId} {
+  allow read: if canReadWorkspaceScopedData(workspaceId);
+  allow write: if false;
+}
+
+match /card_limit_ledger/{docId} {
+  allow read: if canReadWorkspaceScopedData(workspaceId);
+  allow write: if false;
+}
+
+match /financial_events/{docId} {
+  allow read: if canReadWorkspaceScopedData(workspaceId);
+  allow write: if false;
+}
+
+match /invoice_views/{docId} {
+  allow read: if canReadWorkspaceScopedData(workspaceId);
+  allow write: if false;
+}
+
+match /card_limit_snapshots/{docId} {
+  allow read: if canReadWorkspaceScopedData(workspaceId);
+  allow write: if false;
+}
+
+match /credit_card_idempotency_keys/{docId} {
+  allow read: if false;
+  allow write: if false;
+}
 
       match /goals/{docId} {
         allow read: if isMember(workspaceId) || isWorkspaceOwnerByParent(workspaceId);
@@ -347,9 +414,14 @@ service cloud.firestore {
       }
 
       match /{subCollection}/{docId} {
-        allow read: if isMember(workspaceId) || isWorkspaceOwnerByParent(workspaceId);
-        allow write: if hasRole(workspaceId, ['owner', 'admin']) || isWorkspaceOwnerByParent(workspaceId);
-      }
+  allow read: if
+    !isCreditCardDomainCollection(subCollection) &&
+    canReadWorkspaceScopedData(workspaceId);
+
+  allow write: if
+    !isCreditCardDomainCollection(subCollection) &&
+    canWriteWorkspaceScopedData(workspaceId);
+}
     }
 
     match /users/{userId} {
