@@ -12,11 +12,15 @@ import {
     useDeleteCreditCard,
     useOpenCreditCardInvoicesByCard,
     useRegisterCreditCardInvoicePaymentDomain,
+    useReverseCreditCardInvoicePaymentDomain,
     useCreditCardInvoiceInstallments,
     useCreditCardInvoicePayments,
 } from '../modules/credit-cards/hooks';
 import { useTheme } from '../contexts/ThemeContext.tsx';
-import type { CreditCardInvoice } from '../modules/credit-cards/domain/types.ts';
+import type {
+    CreditCardInvoice,
+    CreditCardInvoicePayment,
+} from '../modules/credit-cards/domain/types.ts';
 
 interface CreditCardsViewProps {
     // cards e handlers removidos pois agora são gerenciados internamente via hooks
@@ -26,8 +30,12 @@ interface CreditCardsViewProps {
 
 const CreditCardInvoiceDetailsPanel = ({
     invoiceId,
+    onReversePayment,
+    isReversingPayment,
 }: {
     invoiceId: string;
+    onReversePayment: (payment: CreditCardInvoicePayment) => void;
+    isReversingPayment: boolean;
 }) => {
     const {
         data: installmentsData,
@@ -107,25 +115,47 @@ const CreditCardInvoiceDetailsPanel = ({
                 )}
 
                 <div className="space-y-2">
-                    {payments.map((payment) => (
-                        <div
-                            key={payment.id}
-                            className="flex items-center justify-between gap-3 text-sm bg-white dark:bg-dark-300 rounded-lg p-2"
-                        >
-                            <div>
-                                <p className="font-medium text-gray-700 dark:text-gray-200">
-                                    Pagamento da fatura
-                                </p>
-                                <p className="text-xs text-gray-500 dark:text-gray-400">
-                                    {new Date(`${payment.paymentDate}T12:00:00`).toLocaleDateString('pt-BR')} · {payment.status}
-                                </p>
-                            </div>
+                    {payments.map((payment) => {
+                        const canReversePayment = payment.status === 'posted';
 
-                            <p className="font-bold text-green-600 dark:text-green-300">
-                                {formatCurrency(payment.amount)}
-                            </p>
-                        </div>
-                    ))}
+                        return (
+                            <div
+                                key={payment.id}
+                                className="flex items-center justify-between gap-3 text-sm bg-white dark:bg-dark-300 rounded-lg p-2"
+                            >
+                                <div>
+                                    <p className="font-medium text-gray-700 dark:text-gray-200">
+                                        Pagamento da fatura
+                                    </p>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                                        {new Date(`${payment.paymentDate}T12:00:00`).toLocaleDateString('pt-BR')} · {payment.status}
+                                    </p>
+                                </div>
+
+                                <div className="flex flex-col items-end gap-2">
+                                    <p className="font-bold text-green-600 dark:text-green-300">
+                                        {formatCurrency(payment.amount)}
+                                    </p>
+
+                                    <button
+                                        type="button"
+                                        disabled={!canReversePayment || isReversingPayment}
+                                        onClick={() => onReversePayment(payment)}
+                                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${canReversePayment && !isReversingPayment
+                                            ? 'bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-300 dark:hover:bg-red-900/40'
+                                            : 'bg-gray-100 dark:bg-dark-400 text-gray-400 cursor-not-allowed'
+                                            }`}
+                                    >
+                                        {payment.status === 'reversed'
+                                            ? 'Estornado'
+                                            : isReversingPayment
+                                                ? 'Estornando...'
+                                                : 'Estornar'}
+                                    </button>
+                                </div>
+                            </div>
+                        );
+                    })}
                 </div>
             </div>
         </div>
@@ -139,6 +169,7 @@ const CreditCardsView: React.FC<CreditCardsViewProps> = ({ transactions }) => {
     const updateMutation = useUpdateCreditCard();
     const deleteMutation = useDeleteCreditCard();
     const registerInvoicePaymentMutation = useRegisterCreditCardInvoicePaymentDomain();
+    const reverseInvoicePaymentMutation = useReverseCreditCardInvoicePaymentDomain();
 
     // Fallback para array vazio enquanto carrega ou se der erro
     const cards = cardsData || [];
@@ -238,6 +269,12 @@ const CreditCardsView: React.FC<CreditCardsViewProps> = ({ transactions }) => {
         return `manual-invoice-payment-${randomPart}`;
     };
 
+    const buildInvoicePaymentReversalIdempotencyKey = (): string => {
+        const randomPart = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
+
+        return `manual-invoice-payment-reversal-${randomPart}`;
+    };
+
     const getInvoiceStatusLabel = (status: CreditCardInvoice['status']) => {
         const labels: Record<CreditCardInvoice['status'], string> = {
             open: 'Aberta',
@@ -277,6 +314,35 @@ const CreditCardsView: React.FC<CreditCardsViewProps> = ({ transactions }) => {
         } catch (error) {
             console.error('Erro ao pagar fatura:', error);
             alert('Erro ao pagar fatura.');
+        }
+    };
+
+    const handleReverseInvoicePayment = async (payment: CreditCardInvoicePayment) => {
+        if (payment.status !== 'posted') {
+            return;
+        }
+
+        const confirmed = window.confirm(
+            `Confirmar estorno do pagamento de ${formatCurrency(payment.amount)}?`,
+        );
+
+        if (!confirmed) return;
+
+        try {
+            await reverseInvoicePaymentMutation.mutateAsync({
+                cardId: payment.cardId,
+                invoiceId: payment.invoiceId,
+                paymentId: payment.id,
+                reason: 'Estorno manual pela tela de cartões',
+                reversedAt: getTodayIsoDate(),
+                idempotencyKey: buildInvoicePaymentReversalIdempotencyKey(),
+                correlationId: 'credit-card-view-invoice-payment-reversal',
+            });
+
+            playSound('success');
+        } catch (error) {
+            console.error('Erro ao estornar pagamento da fatura:', error);
+            alert('Erro ao estornar pagamento da fatura.');
         }
     };
 
@@ -423,7 +489,7 @@ const CreditCardsView: React.FC<CreditCardsViewProps> = ({ transactions }) => {
 
                                 {!isLoadingSelectedCardInvoices && selectedCardInvoices.length === 0 && (
                                     <div className="text-sm text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-dark-200 p-3 rounded-lg">
-                                        Nenhuma fatura aberta para este cartão.
+                                        Nenhuma fatura encontrada para este cartão.
                                     </div>
                                 )}
 
@@ -480,9 +546,12 @@ const CreditCardsView: React.FC<CreditCardsViewProps> = ({ transactions }) => {
                                             </button>
 
                                             {expandedInvoiceId === invoice.id && (
-                                                <CreditCardInvoiceDetailsPanel invoiceId={invoice.id} />
+                                                <CreditCardInvoiceDetailsPanel
+                                                    invoiceId={invoice.id}
+                                                    onReversePayment={handleReverseInvoicePayment}
+                                                    isReversingPayment={reverseInvoicePaymentMutation.isPending}
+                                                />
                                             )}
-
                                             <button
                                                 type="button"
                                                 disabled={!canPay || registerInvoicePaymentMutation.isPending}
@@ -492,7 +561,11 @@ const CreditCardsView: React.FC<CreditCardsViewProps> = ({ transactions }) => {
                                                     : 'bg-gray-200 dark:bg-dark-300 text-gray-400 cursor-not-allowed'
                                                     }`}
                                             >
-                                                {registerInvoicePaymentMutation.isPending ? 'Processando...' : 'Pagar fatura'}
+                                                {invoice.status === 'paid'
+                                                    ? 'Fatura paga'
+                                                    : registerInvoicePaymentMutation.isPending
+                                                        ? 'Processando...'
+                                                        : 'Pagar fatura'}
                                             </button>
                                         </div>
                                     );

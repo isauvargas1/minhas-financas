@@ -45,6 +45,47 @@ export const isCreditCardInvoicePaymentCashTransaction = (
   transaction.source === 'credit_card_invoice_payment' ||
   Boolean(transaction.creditCardInvoicePaymentId);
 
+  export const isCreditCardInvoicePaymentReversalCashTransaction = (
+  transaction: Transaction
+): boolean =>
+  transaction.source === 'credit_card_invoice_payment_reversal' ||
+  (
+    Boolean(transaction.creditCardInvoicePaymentId) &&
+    transaction.type === 'receita' &&
+    transaction.description.toLowerCase().includes('estorno')
+  );
+
+const getCreditCardInvoicePaymentPairKey = (
+  transaction: Transaction
+): string | undefined => {
+  if (!isCreditCardInvoicePaymentCashTransaction(transaction)) {
+    return undefined;
+  }
+
+  return transaction.creditCardInvoicePaymentId;
+};
+
+export const filterReversedCreditCardInvoicePaymentCashTransactions = (
+  transactions: Transaction[]
+): Transaction[] => {
+  const reversedPaymentIds = new Set(
+    transactions
+      .filter(isCreditCardInvoicePaymentReversalCashTransaction)
+      .map(getCreditCardInvoicePaymentPairKey)
+      .filter((paymentId): paymentId is string => Boolean(paymentId))
+  );
+
+  if (reversedPaymentIds.size === 0) {
+    return transactions;
+  }
+
+  return transactions.filter((transaction) => {
+    const paymentId = getCreditCardInvoicePaymentPairKey(transaction);
+
+    return !paymentId || !reversedPaymentIds.has(paymentId);
+  });
+};
+
 export const isCreditCardInvoiceCompatibleTransaction = (
   transaction: Transaction
 ): transaction is CreditCardInvoiceCompatibleTransaction =>

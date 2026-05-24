@@ -109,7 +109,7 @@ export const listOpenCreditCardInvoicesByCard = async (
       ...withOptionalLimit(
         [
           where('cardId', '==', cardId),
-          where('status', 'in', ['open', 'closed', 'partial_paid', 'overdue']),
+          where('status', 'in', ['open', 'closed', 'partial_paid', 'paid', 'overdue']),
           orderBy('dueDate', 'asc'),
         ],
         options.limit

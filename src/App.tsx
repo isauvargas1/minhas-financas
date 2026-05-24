@@ -73,6 +73,7 @@ import {
 } from "./modules/credit-cards/hooks";
 
 import {
+    filterReversedCreditCardInvoicePaymentCashTransactions,
     filterTransactionsForCreditCardCompatibility,
     isCreditCardInvoiceCompatibleTransaction,
     useCreditCardInvoiceTransactionProjections,
@@ -267,67 +268,67 @@ const AppContent: React.FC = () => {
     };
 
     const handleAddCreditCardPurchase = async (purchase: CreditCardPurchaseModalInput): Promise<void> => {
-    if (!user) return;
+        if (!user) return;
 
-    try {
-        const result = await createCreditCardPurchaseMutation.mutateAsync(purchase);
+        try {
+            const result = await createCreditCardPurchaseMutation.mutateAsync(purchase);
 
-        showNotification(`${result.installmentIds.length} parcela(s) geradas na fatura!`);
-        playSound('success');
-    } catch (error) {
-        const firebaseError = error as {
-            message?: string;
-            code?: string;
-            details?: unknown;
-        };
+            showNotification(`${result.installmentIds.length} parcela(s) geradas na fatura!`);
+            playSound('success');
+        } catch (error) {
+            const firebaseError = error as {
+                message?: string;
+                code?: string;
+                details?: unknown;
+            };
 
-        const issues = (
-            firebaseError.details as { issues?: Array<{ path?: unknown[]; message?: string; code?: string }> } | undefined
-        )?.issues ?? [];
+            const issues = (
+                firebaseError.details as { issues?: Array<{ path?: unknown[]; message?: string; code?: string }> } | undefined
+            )?.issues ?? [];
 
-        console.error('Erro ao criar compra no cartão:', {
-            message: firebaseError.message,
-            code: firebaseError.code,
-            details: firebaseError.details,
-            issues,
-            purchase,
-        });
+            console.error('Erro ao criar compra no cartão:', {
+                message: firebaseError.message,
+                code: firebaseError.code,
+                details: firebaseError.details,
+                issues,
+                purchase,
+            });
 
-        console.table(
-            issues.map((issue) => ({
-                path: issue.path?.join('.') ?? '',
-                message: issue.message ?? '',
-                code: issue.code ?? '',
-            })),
-        );
-
-        const failedPreconditionDetails = firebaseError.details as
-            | { invoiceId?: string; status?: string }
-            | undefined;
-
-        if (
-            firebaseError.code === 'functions/failed-precondition' &&
-            failedPreconditionDetails?.status &&
-            failedPreconditionDetails.status !== 'open'
-        ) {
-            showNotification(
-                'A data escolhida pertence a uma fatura que não está aberta. Use uma data de fatura aberta ou registre um ajuste.'
+            console.table(
+                issues.map((issue) => ({
+                    path: issue.path?.join('.') ?? '',
+                    message: issue.message ?? '',
+                    code: issue.code ?? '',
+                })),
             );
+
+            const failedPreconditionDetails = firebaseError.details as
+                | { invoiceId?: string; status?: string }
+                | undefined;
+
+            if (
+                firebaseError.code === 'functions/failed-precondition' &&
+                failedPreconditionDetails?.status &&
+                failedPreconditionDetails.status !== 'open'
+            ) {
+                showNotification(
+                    'A data escolhida pertence a uma fatura que não está aberta. Use uma data de fatura aberta ou registre um ajuste.'
+                );
+                return;
+            }
+
+            showNotification('Erro ao criar compra no cartão.');
+        }
+    };
+
+
+    const handleUpdateTransaction = async (updated: Transaction) => {
+        if (isCreditCardInvoiceCompatibleTransaction(updated)) {
+            showNotification('Fatura de cartão não pode ser atualizada como transação comum.');
             return;
         }
 
-        showNotification('Erro ao criar compra no cartão.');
-    }
-};
-            
-
-    const handleUpdateTransaction = async (updated: Transaction) => {
-    if (isCreditCardInvoiceCompatibleTransaction(updated)) {
-        showNotification('Fatura de cartão não pode ser atualizada como transação comum.');
-        return;
-    }
-
-    try {
+        try {
             await updateTxMutation.mutateAsync({
                 ...updated,
                 workspaceId,
@@ -445,6 +446,16 @@ const AppContent: React.FC = () => {
         ].sort((left, right) => right.date.localeCompare(left.date));
     }, [transactions, creditCardInvoiceTransactionProjections]);
 
+    const effectiveCashFlowTransactions = useMemo(
+        () =>
+            filterReversedCreditCardInvoicePaymentCashTransactions(
+                transactions.filter(
+                    (transaction) => !isCreditCardInvoiceCompatibleTransaction(transaction),
+                ),
+            ),
+        [transactions],
+    );
+
     const currentMonthTransactions = useMemo(
         () => transactions.filter((transaction) => isSameMonthYear(transaction.date, currentDate)),
         [transactions, currentDate]
@@ -452,10 +463,10 @@ const AppContent: React.FC = () => {
 
     const currentMonthCashFlowTransactions = useMemo(
         () =>
-            currentMonthTransactions.filter(
-                (transaction) => !isCreditCardInvoiceCompatibleTransaction(transaction),
+            effectiveCashFlowTransactions.filter((transaction) =>
+                isSameMonthYear(transaction.date, currentDate),
             ),
-        [currentMonthTransactions],
+        [effectiveCashFlowTransactions, currentDate],
     );
 
     const currentMonthCompatibleExpenseTransactions = useMemo(

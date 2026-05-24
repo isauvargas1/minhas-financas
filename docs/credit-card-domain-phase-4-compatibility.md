@@ -394,4 +394,199 @@ No detalhe do cartão:
 ### Próxima subfase
 
 `Subfase 4.10 — Preparação para estorno visual de pagamento de fatura`
+## Subfase 4.9.1 — Consolidação do detalhe de fatura
+
+### Status
+
+Concluída como ajuste final da Subfase 4.9.
+
+### Arquivos alterados
+
+- `src/modules/credit-cards/persistence/readApi.ts`
+- `src/components/CreditCardsView.tsx`
+
+### Ajustes aplicados
+
+- faturas pagas passam a continuar visíveis na seção de faturas do cartão;
+- detalhe da fatura deixa de acessar campos inexistentes em `CreditCardInstallment`;
+- mensagem vazia da seção de faturas passa a ser neutra;
+- botão de pagamento passa a exibir `Fatura paga` quando a fatura já estiver quitada.
+
+### Próxima subfase
+
+`Subfase 4.10 — Preparação para estorno visual de pagamento de fatura`
+## Subfase 4.10 — Preparação para estorno visual de pagamento de fatura
+
+### Status
+
+Concluída como integração inicial controlada da UI com `reverseCreditCardInvoicePayment`.
+
+### Arquivos alterados
+
+- `src/modules/credit-cards/invoicePaymentsApi.ts`
+- `src/modules/credit-cards/hooks.ts`
+- `src/components/CreditCardsView.tsx`
+
+### Objetivo
+
+Permitir que o usuário estorne um pagamento de fatura pela tela de cartões, mantendo o backend como fonte da verdade.
+
+### Comportamento implementado
+
+No detalhe da fatura:
+
+- pagamentos registrados aparecem no histórico;
+- pagamentos com status `posted` exibem ação `Estornar`;
+- pagamentos com status `reversed` ficam bloqueados;
+- o estorno chama `reverseCreditCardInvoicePayment`;
+- após sucesso, são invalidados caches de cartões, faturas, pagamentos, itens, projeções e transações.
+
+### O que o backend faz ao estornar
+
+A Cloud Function:
+
+- marca o pagamento como `reversed`;
+- atualiza a fatura;
+- atualiza `invoice_views`;
+- consome novamente o limite no valor estornado;
+- registra ledger;
+- registra evento financeiro;
+- cria transação de reversão de caixa quando aplicável.
+
+### Próxima subfase
+
+`Subfase 4.11 — Validação do estorno e fechamento da Fase 4`
+## Subfase 4.11 — Correção de indicadores após estorno de pagamento de fatura
+
+### Status
+
+Concluída como ajuste de leitura gerencial do dashboard.
+
+### Arquivos alterados
+
+- `src/modules/credit-cards/compatibility/transactionProjection.ts`
+- `src/App.tsx`
+
+### Problema corrigido
+
+Após estornar um pagamento de fatura, o dashboard exibia:
+
+- o pagamento original como despesa;
+- o estorno como receita.
+
+O saldo líquido ficava correto, mas os cards de Receita e Despesa ficavam inflados por lançamentos técnicos.
+
+### Regra aplicada
+
+Quando um pagamento de fatura possui estorno vinculado, o pagamento original e o estorno são removidos da visão gerencial de caixa usada no dashboard.
+
+As transações continuam existindo para histórico e auditoria.
+
+### Comportamento esperado
+
+- pagamento de fatura sem estorno continua entrando como despesa de caixa;
+- pagamento estornado deixa de inflar despesas;
+- estorno deixa de inflar receitas;
+- saldo permanece correto;
+- transações recentes continuam exibindo os eventos para rastreabilidade.
+
+## Subfase 4.12 — Checklist final e fechamento da Fase 4
+
+### Status
+
+Concluída como checklist final de estabilização da compatibilidade entre o modelo legado de `transactions` e o novo domínio oficial de cartão.
+
+### Objetivo
+
+Validar que a transição híbrida funciona sem quebrar o sistema existente.
+
+### Fluxos validados
+
+A Fase 4 passa a considerar como fluxo suportado:
+
+1. criação de compra no cartão pelo `TransactionModal`;
+2. criação de domínio oficial em `credit_card_purchases`;
+3. geração de parcelas em `credit_card_installments`;
+4. geração ou atualização de faturas em `credit_card_invoices`;
+5. geração de projeções em `invoice_views`;
+6. consumo de limite em `card_limit_ledger`;
+7. atualização de limite em `card_limit_snapshots`;
+8. exibição da fatura na tela de despesas;
+9. bloqueio de edição/exclusão da fatura como transação comum;
+10. pagamento da fatura pela tela de cartões;
+11. geração de saída de caixa em `transactions`;
+12. recomposição de limite após pagamento;
+13. exibição do histórico de pagamentos;
+14. estorno de pagamento pela tela de cartões;
+15. reversão de caixa;
+16. ajuste visual do dashboard para não inflar receitas/despesas após estorno.
+
+### Critérios de aceite
+
+A Fase 4 só é considerada aprovada quando:
+
+- `npm run build` conclui sem erro;
+- nova compra de cartão não cria parcelas legadas em `transactions`;
+- compra no cartão consome limite;
+- compra no cartão não reduz caixa;
+- fatura aparece na tela de despesas;
+- fatura é exibida como `FATURA`;
+- fatura não pode ser editada como transação comum;
+- fatura não pode ser excluída como transação comum;
+- pagamento de fatura reduz caixa;
+- pagamento de fatura recompõe limite;
+- pagamento aparece no histórico da fatura;
+- estorno de pagamento reverte caixa;
+- estorno de pagamento consome novamente o limite;
+- dashboard não infla receitas e despesas com pares de pagamento/estorno;
+- transações comuns continuam funcionando;
+- receitas e investimentos continuam funcionando;
+- relatórios e dashboard não quebram, mesmo que ainda não estejam completamente migrados para o novo domínio.
+
+### Modelo híbrido consolidado
+
+Após a Fase 4, o sistema passa a operar com duas camadas:
+
+#### Camada A — Domínio oficial de cartão
+
+- `credit_cards`
+- `credit_card_purchases`
+- `credit_card_installments`
+- `credit_card_invoices`
+- `credit_card_invoice_payments`
+- `card_limit_ledger`
+- `card_limit_snapshots`
+- `invoice_views`
+- `financial_events`
+
+#### Camada B — Compatibilidade com o legado
+
+- despesas comuns continuam em `transactions`;
+- pagamentos de fatura geram `transactions` reais de caixa;
+- faturas aparecem na lista de despesas por projeção;
+- parcelas legadas podem continuar existindo sem serem apagadas;
+- componentes antigos continuam funcionando durante a transição.
+
+### O que fica fora da Fase 4
+
+A Fase 4 não migra completamente:
+
+- relatórios avançados;
+- dashboard analítico completo por competência;
+- edição visual de compra de cartão;
+- ajuste retroativo em fatura paga;
+- seleção de carteira/conta no pagamento de fatura;
+- página dedicada de detalhe de fatura;
+- fechamento automático de faturas;
+- notificações automáticas de vencimento.
+
+Esses itens devem ser tratados nas próximas fases.
+
+### Resultado
+
+Fase 4 considerada tecnicamente concluída após validação manual do checklist e build sem erros.
+
+### Próxima fase recomendada
+
+`Fase 5 — Integração completa de UI, relatórios e experiência operacional de faturas`
 

@@ -97,3 +97,65 @@ export const registerCreditCardInvoicePayment = async (
 
   return result.data;
 };
+export interface ReverseCreditCardInvoicePaymentFrontendInput {
+  workspaceId: string;
+  cardId: string;
+  invoiceId: string;
+  paymentId: string;
+  reason: string;
+  reversedAt: string;
+  idempotencyKey: string;
+  correlationId?: string;
+}
+
+export interface ReverseCreditCardInvoicePaymentFrontendResult {
+  success: true;
+  paymentId: string;
+  invoiceId: string;
+  ledgerEntryId: string;
+  eventId: string;
+  cashReversalTransactionId?: string;
+  invoice: {
+    id: string;
+    status: string;
+    totalAmount: number;
+    paidAmount: number;
+    remainingAmount: number;
+  };
+  limitSnapshot: {
+    cardId: string;
+    limitTotal: number;
+    limitUsed: number;
+    limitAvailable: number;
+  };
+}
+
+const normalizeReverseInvoicePaymentPayload = (
+  payload: ReverseCreditCardInvoicePaymentFrontendInput,
+): ReverseCreditCardInvoicePaymentFrontendInput => ({
+  workspaceId: payload.workspaceId.trim(),
+  cardId: payload.cardId.trim(),
+  invoiceId: payload.invoiceId.trim(),
+  paymentId: payload.paymentId.trim(),
+  reason: payload.reason.trim(),
+  reversedAt: payload.reversedAt,
+  idempotencyKey: payload.idempotencyKey,
+  correlationId: normalizeOptionalString(payload.correlationId),
+});
+
+export const reverseCreditCardInvoicePayment = async (
+  payload: ReverseCreditCardInvoicePaymentFrontendInput,
+): Promise<ReverseCreditCardInvoicePaymentFrontendResult> => {
+  const callable = httpsCallable<
+    ReverseCreditCardInvoicePaymentFrontendInput,
+    ReverseCreditCardInvoicePaymentFrontendResult
+  >(functions, 'reverseCreditCardInvoicePayment');
+
+  const normalizedPayload = stripEmptyOptionalFields(
+    normalizeReverseInvoicePaymentPayload(payload),
+  );
+
+  const result = await callable(normalizedPayload);
+
+  return result.data;
+};

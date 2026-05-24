@@ -6,7 +6,9 @@ import {
 } from './purchasesApi';
 import {
     registerCreditCardInvoicePayment,
+    reverseCreditCardInvoicePayment,
     type RegisterCreditCardInvoicePaymentFrontendInput,
+    type ReverseCreditCardInvoicePaymentFrontendInput,
 } from './invoicePaymentsApi';
 
 import {
@@ -265,5 +267,57 @@ export const useCreditCardInvoicePayments = (
         },
         enabled: isWorkspaceReady(workspaceId) && Boolean(invoiceId),
         staleTime: 1000 * 60 * 2,
+    });
+};
+
+export const useReverseCreditCardInvoicePaymentDomain = () => {
+    const { activeWorkspace } = useWorkspace();
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (
+            input: Omit<ReverseCreditCardInvoicePaymentFrontendInput, 'workspaceId'>
+        ) => {
+            if (!isWorkspaceReady(activeWorkspace?.id)) {
+                return Promise.reject(new Error('Workspace ativo não encontrado.'));
+            }
+
+            return reverseCreditCardInvoicePayment({
+                ...input,
+                workspaceId: activeWorkspace.id,
+            });
+        },
+        onSuccess: async (_result, variables) => {
+            if (!isWorkspaceReady(activeWorkspace?.id)) return;
+
+            await Promise.all([
+                queryClient.invalidateQueries({
+                    queryKey: KEYS.all(activeWorkspace.id),
+                    refetchType: 'active',
+                }),
+                queryClient.invalidateQueries({
+                    queryKey: KEYS.invoicesByCard(activeWorkspace.id, variables.cardId),
+                    refetchType: 'active',
+                }),
+                queryClient.invalidateQueries({
+                    queryKey: KEYS.invoicePayments(activeWorkspace.id, variables.invoiceId),
+                    refetchType: 'active',
+                }),
+                queryClient.invalidateQueries({
+                    queryKey: KEYS.invoiceInstallments(activeWorkspace.id, variables.invoiceId),
+                    refetchType: 'active',
+                }),
+                queryClient.invalidateQueries({
+                    queryKey: CREDIT_CARD_COMPATIBILITY_KEYS.invoiceTransactionProjections(
+                        activeWorkspace.id,
+                    ),
+                    refetchType: 'active',
+                }),
+                queryClient.invalidateQueries({
+                    queryKey: ['transactions', activeWorkspace.id],
+                    refetchType: 'active',
+                }),
+            ]);
+        },
     });
 };
