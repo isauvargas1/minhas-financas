@@ -1,5 +1,10 @@
 
 import { Transaction, Goal, CreditCard, Loan } from '../../types.ts';
+import {
+    filterReversedCreditCardInvoicePaymentCashTransactions,
+    isCreditCardInvoiceCompatibleTransaction,
+    isLegacyCreditCardInstallmentTransaction,
+} from '../credit-cards/compatibility';
 import { Receivable, Client } from '../clients/types.ts';
 import { Workspace } from '../workspaces/types.ts';
 import { 
@@ -15,6 +20,16 @@ import {
 } from './types.ts';
 
 // --- Helpers ---
+
+export const buildCashAccountingTransactions = (
+    transactions: Transaction[],
+): Transaction[] =>
+    filterReversedCreditCardInvoicePaymentCashTransactions(
+        transactions.filter((transaction) =>
+            !isCreditCardInvoiceCompatibleTransaction(transaction) &&
+            !isLegacyCreditCardInstallmentTransaction(transaction)
+        )
+    );
 
 export const filterTransactionsByRange = (transactions: Transaction[], range: ReportTimeRange): Transaction[] => {
     const now = new Date();
@@ -50,8 +65,9 @@ function buildPersonalKPIs(
     transactions: Transaction[], 
     range: ReportTimeRange
 ): FinancialKPI[] {
-    const filtered = filterTransactionsByRange(transactions, range);
-    
+    const cashAccountingTransactions = buildCashAccountingTransactions(transactions);
+    const filtered = filterTransactionsByRange(cashAccountingTransactions, range);
+
     const income = filtered.filter(t => t.type === 'receita').reduce((sum, t) => sum + t.value, 0);
     const expense = filtered.filter(t => t.type === 'despesa' || t.type === 'parcelado').reduce((sum, t) => sum + t.value, 0);
     const investment = filtered.filter(t => t.type === 'investimento').reduce((sum, t) => sum + t.value, 0);
@@ -110,7 +126,8 @@ function buildBusinessKPIs(
     receivables: Receivable[] = [],
     loans: Loan[] = []
 ): FinancialKPI[] {
-    const filtered = filterTransactionsByRange(transactions, range);
+    const cashAccountingTransactions = buildCashAccountingTransactions(transactions);
+    const filtered = filterTransactionsByRange(cashAccountingTransactions, range);
 
     const grossRevenue = filtered.filter(t => t.type === 'receita').reduce((sum, t) => sum + t.value, 0);
     const operationalExpenses = filtered.filter(t => t.type === 'despesa' || t.type === 'parcelado').reduce((sum, t) => sum + t.value, 0);
@@ -176,6 +193,7 @@ export const calculateKPIs = (
 };
 
 export const calculateCashFlow = (transactions: Transaction[]): CashFlowSummary[] => {
+    const cashAccountingTransactions = buildCashAccountingTransactions(transactions);
     const history: Record<string, CashFlowSummary> = {};
     const now = new Date();
     
@@ -186,7 +204,7 @@ export const calculateCashFlow = (transactions: Transaction[]): CashFlowSummary[
         history[key] = { month: key, totalIncome: 0, totalExpenses: 0, netCashFlow: 0, savingsRate: 0 };
     }
 
-    transactions.forEach(t => {
+    cashAccountingTransactions.forEach(t => {
         const key = t.date.slice(0, 7);
         if (history[key]) {
             if (t.type === 'receita') {
@@ -205,7 +223,8 @@ export const calculateCashFlow = (transactions: Transaction[]): CashFlowSummary[
 };
 
 export const calculateCategoryBreakdown = (transactions: Transaction[], range: ReportTimeRange): ExpenseCategoryBreakdown[] => {
-    const filtered = filterTransactionsByRange(transactions, range);
+    const cashAccountingTransactions = buildCashAccountingTransactions(transactions);
+    const filtered = filterTransactionsByRange(cashAccountingTransactions, range);
     const expenses = filtered.filter(t => t.type === 'despesa' || t.type === 'parcelado');
     const totalExpense = expenses.reduce((sum, t) => sum + t.value, 0);
     
@@ -224,20 +243,31 @@ export const calculateCategoryBreakdown = (transactions: Transaction[], range: R
         .sort((a, b) => b.totalAmount - a.totalAmount);
 };
 
-export const calculateDebtProfile = (transactions: Transaction[], creditCards: CreditCard[]): DebtProfile => {
-    let currentCardUsage = 0;
-    const currentMonth = new Date().toISOString().slice(0, 7);
-    
-    transactions.filter(t => t.date.startsWith(currentMonth) && (t.type === 'despesa' || t.type === 'parcelado') && t.cardId).forEach(t => {
-        currentCardUsage += t.value;
-    });
+const getCreditCardUsedLimit = (card: CreditCard): number => {
+    if (typeof card.limitUsed === 'number') {
+        return card.limitUsed;
+    }
 
-    const totalLimit = creditCards.filter(c => c.status === 'active').reduce((sum, c) => sum + c.limitTotal, 0);
+    if (typeof card.limitAvailable === 'number') {
+        return Math.max(card.limitTotal - card.limitAvailable, 0);
+    }
+
+    return 0;
+};
+
+export const calculateDebtProfile = (_transactions: Transaction[], creditCards: CreditCard[]): DebtProfile => {
+    const activeCards = creditCards.filter((card) => card.status === 'active');
+    const currentCardUsage = activeCards.reduce(
+        (sum, card) => sum + getCreditCardUsedLimit(card),
+        0,
+    );
+
+    const totalLimit = activeCards.reduce((sum, card) => sum + card.limitTotal, 0);
     const utilizationRate = totalLimit > 0 ? (currentCardUsage / totalLimit) * 100 : 0;
 
     return {
         totalCreditCardDebt: currentCardUsage,
-        totalLoans: 0, 
+        totalLoans: 0,
         totalInstallments: 0,
         utilizationRate,
         riskLevel: utilizationRate > 80 ? 'critico' : utilizationRate > 60 ? 'alto' : utilizationRate > 30 ? 'moderado' : 'baixo'
