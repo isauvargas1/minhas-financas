@@ -266,52 +266,68 @@ const AppContent: React.FC = () => {
         }
     };
 
-    const handleAddCreditCardPurchase = async (purchase: CreditCardPurchaseModalInput) => {
-        if (!user) return;
+    const handleAddCreditCardPurchase = async (purchase: CreditCardPurchaseModalInput): Promise<void> => {
+    if (!user) return;
 
-        try {
-            const result = await createCreditCardPurchaseMutation.mutateAsync(purchase);
+    try {
+        const result = await createCreditCardPurchaseMutation.mutateAsync(purchase);
 
-            showNotification(`${result.installmentIds.length} parcela(s) geradas na fatura!`);
-            playSound('success');
-        } catch (error) {
-            const firebaseError = error as {
-                message?: string;
-                code?: string;
-                details?: unknown;
-            };
+        showNotification(`${result.installmentIds.length} parcela(s) geradas na fatura!`);
+        playSound('success');
+    } catch (error) {
+        const firebaseError = error as {
+            message?: string;
+            code?: string;
+            details?: unknown;
+        };
 
-            const issues = (
-                firebaseError.details as { issues?: Array<{ path?: unknown[]; message?: string; code?: string }> } | undefined
-            )?.issues ?? [];
+        const issues = (
+            firebaseError.details as { issues?: Array<{ path?: unknown[]; message?: string; code?: string }> } | undefined
+        )?.issues ?? [];
 
-            console.error('Erro ao criar compra no cartão:', {
-                message: firebaseError.message,
-                code: firebaseError.code,
-                details: firebaseError.details,
-                issues,
-                purchase,
-            });
+        console.error('Erro ao criar compra no cartão:', {
+            message: firebaseError.message,
+            code: firebaseError.code,
+            details: firebaseError.details,
+            issues,
+            purchase,
+        });
 
-            console.table(
-                issues.map((issue) => ({
-                    path: issue.path?.join('.') ?? '',
-                    message: issue.message ?? '',
-                    code: issue.code ?? '',
-                })),
+        console.table(
+            issues.map((issue) => ({
+                path: issue.path?.join('.') ?? '',
+                message: issue.message ?? '',
+                code: issue.code ?? '',
+            })),
+        );
+
+        const failedPreconditionDetails = firebaseError.details as
+            | { invoiceId?: string; status?: string }
+            | undefined;
+
+        if (
+            firebaseError.code === 'functions/failed-precondition' &&
+            failedPreconditionDetails?.status &&
+            failedPreconditionDetails.status !== 'open'
+        ) {
+            showNotification(
+                'A data escolhida pertence a uma fatura que não está aberta. Use uma data de fatura aberta ou registre um ajuste.'
             );
-
-            showNotification('Erro ao criar compra no cartão.');
-        }
-    };
-
-    const handleUpdateTransaction = async (updated: Transaction) => {
-        if (isCreditCardInvoiceCompatibleTransaction(updated)) {
-            showNotification('Fatura de cartão não pode ser atualizada como transação comum.');
             return;
         }
 
-        try {
+        showNotification('Erro ao criar compra no cartão.');
+    }
+};
+            
+
+    const handleUpdateTransaction = async (updated: Transaction) => {
+    if (isCreditCardInvoiceCompatibleTransaction(updated)) {
+        showNotification('Fatura de cartão não pode ser atualizada como transação comum.');
+        return;
+    }
+
+    try {
             await updateTxMutation.mutateAsync({
                 ...updated,
                 workspaceId,
@@ -434,6 +450,14 @@ const AppContent: React.FC = () => {
         [transactions, currentDate]
     );
 
+    const currentMonthCashFlowTransactions = useMemo(
+        () =>
+            currentMonthTransactions.filter(
+                (transaction) => !isCreditCardInvoiceCompatibleTransaction(transaction),
+            ),
+        [currentMonthTransactions],
+    );
+
     const currentMonthCompatibleExpenseTransactions = useMemo(
         () =>
             compatibleExpenseTransactions.filter((transaction) =>
@@ -443,11 +467,12 @@ const AppContent: React.FC = () => {
     );
 
     const summaryData: SummaryData = useMemo(() => {
-        const inc = currentMonthTransactions.filter(t => t.type === 'receita').reduce((a, t) => a + t.value, 0);
-        const exp = currentMonthTransactions.filter(t => t.type === 'despesa' || t.type === 'parcelado').reduce((a, t) => a + t.value, 0);
-        const inv = currentMonthTransactions.filter(t => t.type === 'investimento').reduce((a, t) => a + t.value, 0);
+        const inc = currentMonthCashFlowTransactions.filter(t => t.type === 'receita').reduce((a, t) => a + t.value, 0);
+        const exp = currentMonthCashFlowTransactions.filter(t => t.type === 'despesa' || t.type === 'parcelado').reduce((a, t) => a + t.value, 0);
+        const inv = currentMonthCashFlowTransactions.filter(t => t.type === 'investimento').reduce((a, t) => a + t.value, 0);
+
         return { balance: inc - exp - inv, income: inc, expenses: exp, investments: inv };
-    }, [currentMonthTransactions]);
+    }, [currentMonthCashFlowTransactions]);
 
     if (isLoading) return <div className="flex h-screen items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div></div>;
 
@@ -467,7 +492,7 @@ const AppContent: React.FC = () => {
                         </div>
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                             <div className="flex flex-col gap-6">
-                                <TransactionsChart transactions={currentMonthTransactions} />
+                                <TransactionsChart transactions={currentMonthCashFlowTransactions} />
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <RecurringDashboardWidget />
                                     <ReportsWidget transactions={transactions} goals={goals} creditCards={creditCards} onNavigate={() => handleNavigate('reports')} />

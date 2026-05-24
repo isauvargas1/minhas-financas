@@ -2,16 +2,135 @@ import React, { useState, useMemo } from 'react';
 import { CreditCard, Transaction } from '../types.ts';
 import CreditCard3D from './CreditCard3D.tsx';
 import CreditCardForm from './CreditCardForm.tsx';
-import { PlusIcon, SearchIcon, EditIcon, DeleteIcon, CloseIcon, LayoutGridIcon, ListIcon, ChartBarIcon, UsersIcon, BuildingIcon } from './Icons.tsx';
+import { PlusIcon, SearchIcon, EditIcon, DeleteIcon, CloseIcon, LayoutGridIcon, ListIcon, ChartBarIcon, UsersIcon, BuildingIcon, CurrencyDollarIcon } from './Icons.tsx';
 import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as ReTooltip } from 'recharts';
-import { useCreditCards, useCreateCreditCard, useUpdateCreditCard, useDeleteCreditCard } from '../modules/credit-cards/hooks';
-import { useTheme } from '../contexts/ThemeContext.tsx'; // Opcional: para feedback sonoro
+import {
+    useCreditCards,
+    useCreateCreditCard,
+    useUpdateCreditCard,
+    useDeleteCreditCard,
+    useOpenCreditCardInvoicesByCard,
+    useRegisterCreditCardInvoicePaymentDomain,
+    useCreditCardInvoiceInstallments,
+    useCreditCardInvoicePayments,
+} from '../modules/credit-cards/hooks';
+import { useTheme } from '../contexts/ThemeContext.tsx';
+import type { CreditCardInvoice } from '../modules/credit-cards/domain/types.ts';
 
 interface CreditCardsViewProps {
     // cards e handlers removidos pois agora são gerenciados internamente via hooks
     transactions: Transaction[]; // Mantido para cálculo de limites
 }
+
+
+const CreditCardInvoiceDetailsPanel = ({
+    invoiceId,
+}: {
+    invoiceId: string;
+}) => {
+    const {
+        data: installmentsData,
+        isLoading: isLoadingInstallments,
+    } = useCreditCardInvoiceInstallments(invoiceId);
+    const {
+        data: paymentsData,
+        isLoading: isLoadingPayments,
+    } = useCreditCardInvoicePayments(invoiceId);
+
+    const installments = installmentsData || [];
+    const payments = paymentsData || [];
+
+    const formatCurrency = (value: number) =>
+        value.toLocaleString('pt-BR', {
+            style: 'currency',
+            currency: 'BRL',
+        });
+
+    return (
+        <div className="mt-3 border-t border-gray-200 dark:border-gray-700 pt-3 space-y-4">
+            <div>
+                <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-2">
+                    Itens da fatura
+                </p>
+
+                {isLoadingInstallments && (
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                        Carregando itens...
+                    </p>
+                )}
+
+                {!isLoadingInstallments && installments.length === 0 && (
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                        Nenhum item encontrado.
+                    </p>
+                )}
+
+                <div className="space-y-2">
+                    {installments.map((installment) => (
+                        <div
+                            key={installment.id}
+                            className="flex items-center justify-between gap-3 text-sm bg-white dark:bg-dark-300 rounded-lg p-2"
+                        >
+                            <div>
+                                <p className="font-medium text-gray-700 dark:text-gray-200">
+                                    Item da fatura
+                                </p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                    Parcela {installment.installmentNumber}/{installment.installmentsCount}
+                                </p>
+                            </div>
+
+                            <p className="font-bold text-gray-800 dark:text-white">
+                                {formatCurrency(installment.amount)}
+                            </p>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            <div>
+                <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-2">
+                    Pagamentos
+                </p>
+
+                {isLoadingPayments && (
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                        Carregando pagamentos...
+                    </p>
+                )}
+
+                {!isLoadingPayments && payments.length === 0 && (
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                        Nenhum pagamento registrado.
+                    </p>
+                )}
+
+                <div className="space-y-2">
+                    {payments.map((payment) => (
+                        <div
+                            key={payment.id}
+                            className="flex items-center justify-between gap-3 text-sm bg-white dark:bg-dark-300 rounded-lg p-2"
+                        >
+                            <div>
+                                <p className="font-medium text-gray-700 dark:text-gray-200">
+                                    Pagamento da fatura
+                                </p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                    {new Date(`${payment.paymentDate}T12:00:00`).toLocaleDateString('pt-BR')} · {payment.status}
+                                </p>
+                            </div>
+
+                            <p className="font-bold text-green-600 dark:text-green-300">
+                                {formatCurrency(payment.amount)}
+                            </p>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
+};
 
 const CreditCardsView: React.FC<CreditCardsViewProps> = ({ transactions }) => {
     // --- HOOKS DO FIRESTORE ---
@@ -19,7 +138,8 @@ const CreditCardsView: React.FC<CreditCardsViewProps> = ({ transactions }) => {
     const createMutation = useCreateCreditCard();
     const updateMutation = useUpdateCreditCard();
     const deleteMutation = useDeleteCreditCard();
-    
+    const registerInvoicePaymentMutation = useRegisterCreditCardInvoicePaymentDomain();
+
     // Fallback para array vazio enquanto carrega ou se der erro
     const cards = cardsData || [];
 
@@ -32,18 +152,41 @@ const CreditCardsView: React.FC<CreditCardsViewProps> = ({ transactions }) => {
     const [searchQuery, setSearchQuery] = useState('');
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [cardToEdit, setCardToEdit] = useState<CreditCard | null>(null);
-    const [selectedCardId, setSelectedCardId] = useState<string | null>(null); // Alterado para string
+    const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
+    const [expandedInvoiceId, setExpandedInvoiceId] = useState<string | null>(null);
+    const {
+        data: selectedCardInvoicesData,
+        isLoading: isLoadingSelectedCardInvoices,
+    } = useOpenCreditCardInvoicesByCard(selectedCardId);
+
+    const selectedCardInvoices = selectedCardInvoicesData || [];
 
     // Filter cards
     const filteredCards = useMemo(() => {
-        return cards.filter(card => 
-            card.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+        return cards.filter(card =>
+            card.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
             card.brand.toLowerCase().includes(searchQuery.toLowerCase())
         );
     }, [cards, searchQuery]);
 
     const getCardLimits = (card: CreditCard) => {
-        // Nota: transactions.cardId também deve ser string agora
+        const domainLimitUsed = typeof card.limitUsed === 'number'
+            ? card.limitUsed
+            : undefined;
+        const domainLimitAvailable = typeof card.limitAvailable === 'number'
+            ? card.limitAvailable
+            : undefined;
+
+        if (domainLimitUsed !== undefined || domainLimitAvailable !== undefined) {
+            const used = domainLimitUsed ?? Math.max(card.limitTotal - (domainLimitAvailable ?? card.limitTotal), 0);
+            const available = domainLimitAvailable ?? Math.max(card.limitTotal - used, 0);
+
+            return {
+                used,
+                available,
+            };
+        }
+
         const usedLimit = transactions
             .filter(t => (t.type === 'despesa' || t.type === 'parcelado') && String(t.cardId) === String(card.id))
             .reduce((sum, t) => sum + t.value, 0);
@@ -57,12 +200,12 @@ const CreditCardsView: React.FC<CreditCardsViewProps> = ({ transactions }) => {
     // --- PJ REPORTS LOGIC ---
     const cardReport = useMemo(() => {
         if (!selectedCardId || !isPJ) return null;
-        
+
         const cardTransactions = transactions.filter(t => String(t.cardId) === String(selectedCardId));
-        
+
         const byCategory: Record<string, number> = {};
         const bySupplier: Record<string, number> = {};
-        
+
         cardTransactions.forEach(t => {
             const cat = t.category || 'Outros';
             const sup = t.supplier || 'N/A';
@@ -81,6 +224,62 @@ const CreditCardsView: React.FC<CreditCardsViewProps> = ({ transactions }) => {
 
     // --- HANDLERS ---
 
+    const formatCurrency = (value: number) =>
+        value.toLocaleString('pt-BR', {
+            style: 'currency',
+            currency: 'BRL',
+        });
+
+    const getTodayIsoDate = () => new Date().toISOString().split('T')[0];
+
+    const buildInvoicePaymentIdempotencyKey = (): string => {
+        const randomPart = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
+
+        return `manual-invoice-payment-${randomPart}`;
+    };
+
+    const getInvoiceStatusLabel = (status: CreditCardInvoice['status']) => {
+        const labels: Record<CreditCardInvoice['status'], string> = {
+            open: 'Aberta',
+            closed: 'Fechada',
+            partial_paid: 'Parcial',
+            paid: 'Paga',
+            overdue: 'Vencida',
+            cancelled: 'Cancelada',
+        };
+
+        return labels[status];
+    };
+
+    const handlePayInvoice = async (invoice: CreditCardInvoice) => {
+        if (invoice.remainingAmount <= 0 || invoice.status === 'paid') {
+            return;
+        }
+
+        const confirmed = window.confirm(
+            `Confirmar pagamento externo de ${formatCurrency(invoice.remainingAmount)} da fatura ${invoice.competenceMonth}?`,
+        );
+
+        if (!confirmed) return;
+
+        try {
+            await registerInvoicePaymentMutation.mutateAsync({
+                cardId: invoice.cardId,
+                invoiceId: invoice.id,
+                paymentDate: getTodayIsoDate(),
+                amount: invoice.remainingAmount,
+                paymentMethod: 'external',
+                idempotencyKey: buildInvoicePaymentIdempotencyKey(),
+                correlationId: 'credit-card-view-invoice-payment',
+            });
+
+            playSound('success');
+        } catch (error) {
+            console.error('Erro ao pagar fatura:', error);
+            alert('Erro ao pagar fatura.');
+        }
+    };
+
     const handleEdit = (card: CreditCard) => {
         setCardToEdit(card);
         setIsFormOpen(true);
@@ -98,15 +297,15 @@ const CreditCardsView: React.FC<CreditCardsViewProps> = ({ transactions }) => {
     const handleSave = (card: CreditCard) => {
         // card vindo do Form. Se tiver ID numérico antigo, o form precisa lidar ou aqui convertemos
         // Mas assumindo que o form retorna o objeto completo
-        
+
         if (cardToEdit) {
             updateMutation.mutate({ id: card.id, data: card });
         } else {
             // Remove o ID temporário que o frontend possa ter gerado, pois o Firestore cria um novo
-            const { id, ...newCardData } = card; 
+            const { id, ...newCardData } = card;
             createMutation.mutate(newCardData as any);
         }
-        
+
         playSound('success');
         setIsFormOpen(false);
         setCardToEdit(null);
@@ -163,9 +362,12 @@ const CreditCardsView: React.FC<CreditCardsViewProps> = ({ transactions }) => {
             <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
                 <div className={viewMode === 'grid' ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 pb-6" : "space-y-3 pb-6"}>
                     {filteredCards.map(card => (
-                        <CreditCard3D key={card.id} card={card} mode={viewMode} limits={getCardLimits(card)} onClick={() => setSelectedCardId(card.id)} />
+                        <CreditCard3D key={card.id} card={card} mode={viewMode} limits={getCardLimits(card)} onClick={() => {
+                            setSelectedCardId(card.id);
+                            setExpandedInvoiceId(null);
+                        }} />
                     ))}
-                    
+
                     {filteredCards.length === 0 && (
                         <div className="col-span-full text-center py-10 text-gray-400">
                             Nenhum cartão encontrado.
@@ -183,7 +385,7 @@ const CreditCardsView: React.FC<CreditCardsViewProps> = ({ transactions }) => {
                         </div>
 
                         <div className="mb-8 transform scale-90 sm:scale-100 origin-top-center">
-                            <CreditCard3D card={selectedCard} mode="grid" limits={getCardLimits(selectedCard)} onClick={() => {}} />
+                            <CreditCard3D card={selectedCard} mode="grid" limits={getCardLimits(selectedCard)} onClick={() => { }} />
                         </div>
 
                         <div className="space-y-6">
@@ -208,12 +410,101 @@ const CreditCardsView: React.FC<CreditCardsViewProps> = ({ transactions }) => {
                                 )}
                             </div>
 
+                            <div className="space-y-3">
+                                <h4 className="font-bold text-gray-800 dark:text-white flex items-center gap-2 border-b pb-2">
+                                    <CurrencyDollarIcon className="w-4 h-4 text-indigo-600" /> Faturas
+                                </h4>
+
+                                {isLoadingSelectedCardInvoices && (
+                                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                                        Carregando faturas...
+                                    </div>
+                                )}
+
+                                {!isLoadingSelectedCardInvoices && selectedCardInvoices.length === 0 && (
+                                    <div className="text-sm text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-dark-200 p-3 rounded-lg">
+                                        Nenhuma fatura aberta para este cartão.
+                                    </div>
+                                )}
+
+                                {!isLoadingSelectedCardInvoices && selectedCardInvoices.map((invoice) => {
+                                    const canPay = invoice.remainingAmount > 0 &&
+                                        invoice.status !== 'paid' &&
+                                        invoice.status !== 'cancelled';
+
+                                    return (
+                                        <div
+                                            key={invoice.id}
+                                            className="bg-gray-50 dark:bg-dark-200 border border-gray-100 dark:border-gray-700 rounded-xl p-4 space-y-3"
+                                        >
+                                            <div className="flex items-start justify-between gap-3">
+                                                <div>
+                                                    <p className="font-bold text-gray-800 dark:text-white">
+                                                        Fatura {invoice.competenceMonth}
+                                                    </p>
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                                                        Vencimento: {new Date(`${invoice.dueDate}T12:00:00`).toLocaleDateString('pt-BR')}
+                                                    </p>
+                                                </div>
+
+                                                <span className="text-xs font-bold px-2 py-1 rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300">
+                                                    {getInvoiceStatusLabel(invoice.status)}
+                                                </span>
+                                            </div>
+
+                                            <div className="grid grid-cols-3 gap-2 text-xs">
+                                                <div>
+                                                    <p className="text-gray-500 dark:text-gray-400">Total</p>
+                                                    <p className="font-bold">{formatCurrency(invoice.totalAmount)}</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-gray-500 dark:text-gray-400">Pago</p>
+                                                    <p className="font-bold">{formatCurrency(invoice.paidAmount)}</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-gray-500 dark:text-gray-400">Restante</p>
+                                                    <p className="font-bold">{formatCurrency(invoice.remainingAmount)}</p>
+                                                </div>
+                                            </div>
+
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    setExpandedInvoiceId((currentInvoiceId) =>
+                                                        currentInvoiceId === invoice.id ? null : invoice.id,
+                                                    )
+                                                }
+                                                className="w-full py-2 rounded-lg font-bold bg-white dark:bg-dark-300 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-dark-400 transition-all"
+                                            >
+                                                {expandedInvoiceId === invoice.id ? 'Ocultar detalhes' : 'Ver detalhes'}
+                                            </button>
+
+                                            {expandedInvoiceId === invoice.id && (
+                                                <CreditCardInvoiceDetailsPanel invoiceId={invoice.id} />
+                                            )}
+
+                                            <button
+                                                type="button"
+                                                disabled={!canPay || registerInvoicePaymentMutation.isPending}
+                                                onClick={() => handlePayInvoice(invoice)}
+                                                className={`w-full py-2.5 rounded-lg font-bold transition-all ${canPay && !registerInvoicePaymentMutation.isPending
+                                                    ? 'bg-green-600 hover:bg-green-700 text-white shadow-md'
+                                                    : 'bg-gray-200 dark:bg-dark-300 text-gray-400 cursor-not-allowed'
+                                                    }`}
+                                            >
+                                                {registerInvoicePaymentMutation.isPending ? 'Processando...' : 'Pagar fatura'}
+                                            </button>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+
                             {isPJ && cardReport && (
                                 <div className="space-y-4">
                                     <h4 className="font-bold text-gray-800 dark:text-white flex items-center gap-2 border-b pb-2">
                                         <ChartBarIcon className="w-4 h-4 text-indigo-600" /> Relatório do Cartão
                                     </h4>
-                                    
+
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div className="bg-gray-50 dark:bg-dark-200 p-3 rounded-lg border border-gray-100">
                                             <p className="text-[10px] font-bold text-gray-500 uppercase mb-2">Gastos por Categoria</p>
@@ -230,7 +521,7 @@ const CreditCardsView: React.FC<CreditCardsViewProps> = ({ transactions }) => {
                                                 </ResponsiveContainer>
                                             </div>
                                         </div>
-                                        
+
                                         <div className="bg-gray-50 dark:bg-dark-200 p-3 rounded-lg border border-gray-100">
                                             <p className="text-[10px] font-bold text-gray-500 uppercase mb-2">Maiores Fornecedores</p>
                                             <div className="space-y-2">

@@ -7,6 +7,10 @@ import { usePlan } from '../hooks/usePlan.ts';
 import { formatDateBR, isSameMonthYear } from '../utils/date.ts';
 import { useSettingsCatalog } from '../modules/settings-catalog/hooks.ts';
 import { resolveTransactionVisuals } from '../modules/settings-catalog/display.ts';
+import {
+    isCreditCardInvoiceCompatibleTransaction,
+    isCreditCardInvoicePaymentCashTransaction,
+} from '../modules/credit-cards/compatibility';
 
 interface RecentTransactionsProps {
     transactions: Transaction[];
@@ -35,12 +39,16 @@ const RecentTransactions: React.FC<RecentTransactionsProps> = ({ transactions, o
     const { checkLimit } = usePlan();
     const catalogQuery = useSettingsCatalog({ includeInactive: true });
     const catalogItems = catalogQuery.data ?? [];
-    
+
     // Conta quantas transações existem no mês atual
     const transactionsThisMonth = useMemo(() => {
-    const today = new Date();
-    return transactions.filter((transaction) => isSameMonthYear(transaction.date, today)).length;
-}, [transactions]);
+        const today = new Date();
+
+        return transactions.filter((transaction) =>
+            !isCreditCardInvoiceCompatibleTransaction(transaction) &&
+            isSameMonthYear(transaction.date, today)
+        ).length;
+    }, [transactions]);
 
     const canCreateTransaction = checkLimit('transactionsMonth', transactionsThisMonth);
     // ----------------------------------
@@ -86,44 +94,43 @@ const RecentTransactions: React.FC<RecentTransactionsProps> = ({ transactions, o
     };
 
     const formatCurrency = (value: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
-    
+
     const formatDate = (dateString: string) => formatDateBR(dateString);
-    
+
     const tableHeaders: { key: SortableKeys, label: string, align: 'left' | 'right' | 'center' }[] = [
-    { key: 'description', label: 'Descrição', align: 'left' },
-    { key: 'category', label: 'Categoria', align: 'left' },
-    { key: 'date', label: 'Data', align: 'left' },
-    { key: 'value', label: 'Valor', align: 'center' },
-];
+        { key: 'description', label: 'Descrição', align: 'left' },
+        { key: 'category', label: 'Categoria', align: 'left' },
+        { key: 'date', label: 'Data', align: 'left' },
+        { key: 'value', label: 'Valor', align: 'center' },
+    ];
 
     return (
         <div className="bg-white dark:bg-dark-100 rounded-xl shadow-md p-6 h-full">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
                 <h2 className="text-xl font-bold text-gray-800 dark:text-white">Transações Recentes</h2>
                 <div className="flex items-center space-x-3">
-                    
+
                     <div className="flex flex-col items-end">
-                        <button 
-                            onClick={onNewTransaction} 
+                        <button
+                            onClick={onNewTransaction}
                             disabled={!canCreateTransaction}
-                            className={`font-medium py-2 px-4 rounded-lg flex items-center shadow-md transition-colors duration-200 whitespace-nowrap ${
-                                canCreateTransaction 
-                                ? 'bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-700 dark:hover:bg-indigo-800 text-white cursor-pointer' 
-                                : 'bg-gray-300 dark:bg-gray-700 text-gray-500 cursor-not-allowed'
-                            }`}
+                            className={`font-medium py-2 px-4 rounded-lg flex items-center shadow-md transition-colors duration-200 whitespace-nowrap ${canCreateTransaction
+                                    ? 'bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-700 dark:hover:bg-indigo-800 text-white cursor-pointer'
+                                    : 'bg-gray-300 dark:bg-gray-700 text-gray-500 cursor-not-allowed'
+                                }`}
                         >
                             <PlusIcon className="mr-2" />
                             Nova Transação
                         </button>
-                        
+
                         {!canCreateTransaction && (
                             <span className="text-[10px] text-amber-600 mt-1 absolute -bottom-4">
                                 Limite mensal atingido. <a href="/planos" className="underline font-bold">Upgrade!</a>
                             </span>
                         )}
                     </div>
-                    
-                    <select 
+
+                    <select
                         value={filter}
                         onChange={(e) => setFilter(e.target.value as TransactionType | 'todas')}
                         className="border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-200 text-gray-800 dark:text-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -158,19 +165,21 @@ const RecentTransactions: React.FC<RecentTransactionsProps> = ({ transactions, o
                     </thead>
                     <tbody>
                         {sortedTransactions.slice(0, 9).map((t) => {
-    const visuals = resolveTransactionVisuals({
-        transaction: t,
-        catalogItems,
-    });
+                            const visuals = resolveTransactionVisuals({
+                                transaction: t,
+                                catalogItems,
+                            });
+                            const isInvoiceProjection = isCreditCardInvoiceCompatibleTransaction(t);
+                            const isInvoicePayment = isCreditCardInvoicePaymentCashTransaction(t);
 
-    return (
-        <tr key={t.id} className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-dark-200 transition-colors duration-200">
-            <td className="py-4 px-4 text-gray-800 dark:text-gray-200">
-                <div className="flex flex-col gap-1">
-                    {(t.type === 'despesa' || t.type === 'parcelado') && (
-                        <CatalogVisualChip
-                            visual={visuals.productService}
-                            fallbackLabel={t.description}
+                            return (
+                                <tr key={t.id} className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-dark-200 transition-colors duration-200">
+                                    <td className="py-4 px-4 text-gray-800 dark:text-gray-200">
+                                        <div className="flex flex-col gap-1">
+                                            {(t.type === 'despesa' || t.type === 'parcelado') && (
+                                                <CatalogVisualChip
+                                                    visual={visuals.productService}
+                                                    fallbackLabel={t.description}
                                                 />
                                             )}
 
@@ -178,11 +187,19 @@ const RecentTransactions: React.FC<RecentTransactionsProps> = ({ transactions, o
                                                 <span>{t.description}</span>
                                             ) : null}
 
-                                            {t.type === 'parcelado' && (
+                                            {isInvoicePayment ? (
+                                                <span className="text-xs text-green-600 dark:text-green-300 font-medium">
+                                                    Pagamento de fatura
+                                                </span>
+                                            ) : isInvoiceProjection ? (
+                                                <span className="text-xs text-purple-600 dark:text-purple-300 font-medium">
+                                                    Fatura de cartão
+                                                </span>
+                                            ) : t.type === 'parcelado' ? (
                                                 <span className="text-xs text-purple-600 dark:text-purple-300 font-medium">
                                                     Parcela {t.currentInstallment}/{t.installments}
                                                 </span>
-                                            )}
+                                            ) : null}
                                         </div>
                                     </td>
 

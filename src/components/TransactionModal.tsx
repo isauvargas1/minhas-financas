@@ -74,7 +74,7 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
     const [category, setCategory] = useState('');
     const [value, setValue] = useState('');
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-    const [installments, setInstallments] = useState('2');
+    const [installments, setInstallments] = useState('1');
 
     // New States for Expense Logic
     const [expenseType, setExpenseType] = useState('');
@@ -877,6 +877,9 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
                         </div>
                         <div className="mt-3">
                             <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Quantidade de Parcelas</label>
+                            <p className="text-[11px] text-gray-500 dark:text-gray-400 mb-1">
+                                Use 1 para compra à vista no cartão.
+                            </p>
                             <input type="number" value={installments} onChange={e => setInstallments(e.target.value)} min="2" max="60" className={commonInputClasses} required disabled={isEditing} />
                         </div>
                     </div>

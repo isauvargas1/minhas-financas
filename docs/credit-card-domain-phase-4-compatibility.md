@@ -177,3 +177,221 @@ Ainda não foram alterados:
 ### Próxima subfase
 
 `Subfase 4.4 — Bloqueio de edição/exclusão legada para novas projeções e validação visual do fluxo híbrido`
+
+## Subfase 4.4 — Ajuste visual e travas finais para projeções de fatura
+
+### Status
+
+Concluída como ajuste de compatibilidade visual e proteção de operação.
+
+### Arquivos alterados
+
+- `src/components/TransactionsView.tsx`
+- `src/App.tsx`
+
+### Objetivo
+
+Evitar que faturas projetadas sejam apresentadas como parcelas incompletas na lista de despesas e reforçar que projeções de fatura não podem ser excluídas como transações comuns.
+
+### Comportamento implementado
+
+Na tela de despesas:
+
+- projeções de fatura passam a exibir o selo `FATURA`;
+- projeções deixam de exibir `PARCELA /`;
+- exclusão direta de projeções é bloqueada também no handler interno;
+- faturas continuam sendo lidas de `invoice_views`;
+- nenhuma fatura é gravada em `transactions`.
+
+### Próxima subfase
+
+`Subfase 4.5 — Validação de consistência visual e atualização controlada de cache após criação de compra`
+
+## Subfase 4.5 — Consistência de cache e leitura de limite pelo novo domínio
+
+### Status
+
+Concluída como ajuste de consistência visual e cache do fluxo híbrido.
+
+### Arquivos alterados
+
+- `src/modules/credit-cards/persistence/readApi.ts`
+- `src/modules/credit-cards/hooks.ts`
+- `src/components/CreditCardsView.tsx`
+
+### Objetivo
+
+Garantir que, após criar uma compra no cartão pelo novo domínio, a aplicação atualize corretamente:
+
+- projeções de fatura;
+- lista de despesas compatível;
+- limite usado do cartão;
+- limite disponível do cartão.
+
+### Regra aplicada
+
+A tela de cartões passa a preferir `card_limit_snapshots` como fonte de limite usado e limite disponível.
+
+O cálculo legado por `transactions` continua apenas como fallback para cartões antigos sem snapshot.
+
+### Comportamento preservado
+
+Não foram alterados:
+
+- dashboard;
+- relatórios;
+- recorrentes;
+- split bills;
+- pagamento de fatura;
+- edição visual de compra;
+- fluxo legado usado como fallback.
+
+### Próxima subfase
+
+`Subfase 4.6 — Validação visual guiada do fluxo híbrido e checklist de homologação`
+
+## Subfase 4.5 — Consistência de cache e leitura de limite pelo novo domínio
+
+### Status
+
+Concluída como ajuste de consistência visual e cache do fluxo híbrido.
+
+### Arquivos alterados
+
+- `src/modules/credit-cards/persistence/readApi.ts`
+- `src/modules/credit-cards/hooks.ts`
+- `src/components/CreditCardsView.tsx`
+
+### Objetivo
+
+Garantir que, após criar uma compra no cartão pelo novo domínio, a aplicação atualize corretamente:
+
+- projeções de fatura;
+- lista de despesas compatível;
+- limite usado do cartão;
+- limite disponível do cartão.
+
+### Regra aplicada
+
+A tela de cartões passa a preferir `card_limit_snapshots` como fonte de limite usado e limite disponível.
+
+O cálculo legado por `transactions` continua apenas como fallback para cartões antigos sem snapshot.
+
+### Comportamento preservado
+
+Não foram alterados:
+
+- dashboard;
+- relatórios;
+- recorrentes;
+- split bills;
+- pagamento de fatura;
+- edição visual de compra;
+- fluxo legado usado como fallback.
+
+### Próxima subfase
+
+`Subfase 4.6 — Validação visual guiada do fluxo híbrido e checklist de homologação`
+## Subfase 4.6 — Validação visual guiada do fluxo híbrido e checklist de homologação
+
+### Status
+
+Concluída como checklist formal de homologação do fluxo híbrido.
+
+### Objetivo
+
+Validar que o novo domínio de cartão está integrado ao fluxo atual sem quebrar o sistema legado baseado em `transactions`.
+
+### Escopo validado
+
+Esta subfase valida o fluxo:
+
+`TransactionModal → createCreditCardPurchase → novo domínio de cartão → invoice_views → tela de despesas → card_limit_snapshots → tela de cartões`
+
+### Checklist obrigatório
+
+#### 1. Build do frontend
+
+Executar:
+
+```bash
+npm run build
+
+## Subfase 4.8 — Validação do pagamento de fatura e proteção contra dupla contagem
+
+### Status
+
+Concluída como proteção de exibição e separação entre competência de fatura e fluxo de caixa.
+
+### Arquivos alterados
+
+- `src/App.tsx`
+- `src/components/TransactionsView.tsx`
+- `src/components/RecentTransactions.tsx`
+
+### Objetivo
+
+Evitar que a fatura projetada e a transação real de pagamento sejam tratadas como duas despesas equivalentes no mesmo contexto visual.
+
+### Regra aplicada
+
+A tela de despesas trabalha em visão de competência do cartão:
+
+- exibe faturas projetadas vindas de `invoice_views`;
+- oculta transactions de pagamento de fatura;
+- bloqueia edição/exclusão de faturas projetadas.
+
+O dashboard e transações recentes continuam trabalhando em visão de fluxo de caixa:
+
+- exibem a transaction real do pagamento da fatura;
+- o pagamento reduz o saldo/caixa;
+- a fatura projetada não entra no resumo de caixa.
+
+### Separação financeira
+
+- Compra no cartão: consome limite.
+- Fatura: representa obrigação consolidada.
+- Pagamento da fatura: representa saída real de caixa.
+- Projeção de fatura: não é documento real em `transactions`.
+
+### Próxima subfase
+
+`Subfase 4.9 — Preparação para detalhe de fatura e histórico de pagamentos`
+
+## Subfase 4.9 — Preparação para detalhe de fatura e histórico de pagamentos
+
+### Status
+
+Concluída como detalhe inicial de fatura dentro da tela de cartões.
+
+### Arquivos alterados
+
+- `src/modules/credit-cards/persistence/readApi.ts`
+- `src/modules/credit-cards/hooks.ts`
+- `src/components/CreditCardsView.tsx`
+
+### Objetivo
+
+Permitir que o usuário veja a composição de uma fatura e o histórico de pagamentos vinculados a ela, sem usar `transactions` como fonte de verdade do cartão.
+
+### Comportamento implementado
+
+No detalhe do cartão:
+
+- cada fatura possui botão `Ver detalhes`;
+- os detalhes exibem itens da fatura a partir de `credit_card_installments`;
+- os detalhes exibem pagamentos a partir de `credit_card_invoice_payments`;
+- o painel atualiza após pagamento;
+- o pagamento continua passando por `registerCreditCardInvoicePayment`.
+
+### Separação de fontes
+
+- Itens da fatura: `credit_card_installments`;
+- Pagamentos da fatura: `credit_card_invoice_payments`;
+- Saída de caixa: `transactions` com `source: "credit_card_invoice_payment"`;
+- Lista de despesas: projeções de `invoice_views`.
+
+### Próxima subfase
+
+`Subfase 4.10 — Preparação para estorno visual de pagamento de fatura`
+

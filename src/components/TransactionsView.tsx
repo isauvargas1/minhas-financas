@@ -20,7 +20,10 @@ import { usePlan } from '../hooks/usePlan.ts';
 import CatalogVisualChip from './CatalogVisualChip.tsx';
 import { useSettingsCatalog } from '../modules/settings-catalog/hooks.ts';
 import { resolveTransactionVisuals } from '../modules/settings-catalog/display.ts';
-import { isCreditCardInvoiceCompatibleTransaction } from '../modules/credit-cards/compatibility';
+import {
+    isCreditCardInvoiceCompatibleTransaction,
+    isCreditCardInvoicePaymentCashTransaction,
+} from '../modules/credit-cards/compatibility';
 
 interface TransactionsViewProps {
     viewType: 'receita' | 'despesa' | 'investimento';
@@ -191,9 +194,16 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({
     const filteredTransactions = useMemo(() => {
         const normalizedSearch = normalizeText(searchTerm);
 
-        return transactions.filter((transaction) => {
-            const searchableFields = [
-                transaction.description,
+       return transactions.filter((transaction) => {
+    if (
+        viewType === 'despesa' &&
+        isCreditCardInvoicePaymentCashTransaction(transaction)
+    ) {
+        return false;
+    }
+
+    const searchableFields = [
+        transaction.description,
                 transaction.category,
                 transaction.date,
                 transaction.incomeType,

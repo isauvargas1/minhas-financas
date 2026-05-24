@@ -28,6 +28,7 @@ import type {
 import {
   cardLimitLedgerCollectionRef,
   cardLimitSnapshotDocRef,
+  cardLimitSnapshotsCollectionRef,
   creditCardInstallmentsCollectionRef,
   creditCardInvoiceDocRef,
   creditCardInvoicePaymentsCollectionRef,
@@ -86,13 +87,15 @@ export const getCreditCardInvoiceById = async (
   return { ...snapshot.data(), id: snapshot.id } as CreditCardInvoice;
 };
 
-export const getCardLimitSnapshotByCard = async (
-  workspaceId: string,
-  cardId: string
-): Promise<CreditCardLimitSnapshot | null> => {
-  const snapshot = await getDoc(cardLimitSnapshotDocRef(workspaceId, cardId));
-  if (!snapshot.exists()) return null;
-  return { ...snapshot.data(), cardId: snapshot.id } as CreditCardLimitSnapshot;
+export const listCardLimitSnapshotsByWorkspace = async (
+  workspaceId: string
+): Promise<CreditCardLimitSnapshot[]> => {
+  const snapshot = await getDocs(cardLimitSnapshotsCollectionRef(workspaceId));
+
+  return snapshot.docs.map((documentSnapshot) => ({
+    ...documentSnapshot.data(),
+    cardId: documentSnapshot.id,
+  }) as CreditCardLimitSnapshot);
 };
 
 export const listOpenCreditCardInvoicesByCard = async (
