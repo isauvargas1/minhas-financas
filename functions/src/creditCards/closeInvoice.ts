@@ -26,6 +26,10 @@ import {
   reserveIdempotencyKey,
 } from "./idempotency";
 
+import {
+  enqueueCreditCardDomainNotifications,
+} from "./domainNotifications";
+
 export interface CloseCreditCardInvoiceResult {
   success: true;
   invoiceId: string;
@@ -142,7 +146,7 @@ const buildResult = (
 export const executeCloseCreditCardInvoice = async (
   context: CreditCardCallableExecutionContext<CloseCreditCardInvoicePayload>
 ): Promise<CloseCreditCardInvoiceResult | Record<string, unknown>> => {
-  const {payload, auth} = context;
+  const { payload, auth } = context;
   const db = getFirestore();
   const operation = "closeCreditCardInvoice";
 
@@ -166,7 +170,7 @@ export const executeCloseCreditCardInvoice = async (
       throw new CreditCardApplicationError(
         "not_found",
         "Fatura não encontrada.",
-        {invoiceId: payload.invoiceId}
+        { invoiceId: payload.invoiceId }
       );
     }
 
@@ -176,7 +180,7 @@ export const executeCloseCreditCardInvoice = async (
       throw new CreditCardApplicationError(
         "internal",
         "Fatura existente sem dados carregados.",
-        {invoiceId: payload.invoiceId}
+        { invoiceId: payload.invoiceId }
       );
     }
 
@@ -200,7 +204,7 @@ export const executeCloseCreditCardInvoice = async (
       throw new CreditCardApplicationError(
         "domain_precondition_failed",
         "A fatura não pertence ao workspace informado.",
-        {invoiceId: payload.invoiceId}
+        { invoiceId: payload.invoiceId }
       );
     }
 
@@ -208,7 +212,7 @@ export const executeCloseCreditCardInvoice = async (
       throw new CreditCardApplicationError(
         "domain_precondition_failed",
         "A fatura não pertence ao cartão informado.",
-        {invoiceId: payload.invoiceId, cardId: payload.cardId}
+        { invoiceId: payload.invoiceId, cardId: payload.cardId }
       );
     }
 
@@ -216,7 +220,7 @@ export const executeCloseCreditCardInvoice = async (
       throw new CreditCardApplicationError(
         "domain_precondition_failed",
         "Somente faturas abertas podem ser fechadas.",
-        {invoiceId: payload.invoiceId, status: invoiceData.status}
+        { invoiceId: payload.invoiceId, status: invoiceData.status }
       );
     }
 
@@ -230,7 +234,7 @@ export const executeCloseCreditCardInvoice = async (
       throw new CreditCardApplicationError(
         "domain_precondition_failed",
         "Todas as parcelas da fatura precisam pertencer ao mesmo workspace e cartão.",
-        {installmentId: invalidInstallment.id}
+        { installmentId: invalidInstallment.id }
       );
     }
 
@@ -240,7 +244,7 @@ export const executeCloseCreditCardInvoice = async (
       throw new CreditCardApplicationError(
         "domain_precondition_failed",
         "Não é permitido fechar fatura sem itens faturáveis.",
-        {invoiceId: payload.invoiceId}
+        { invoiceId: payload.invoiceId }
       );
     }
 
@@ -295,8 +299,16 @@ export const executeCloseCreditCardInvoice = async (
         remainingAmount,
         updatedAt: serverTimestamp,
       }),
-      {merge: true}
+      { merge: true }
     );
+
+    const eventPayload = {
+      closedAt: payload.closedAt,
+      totalAmount,
+      paidAmount,
+      remainingAmount,
+      itemsCount,
+    };
 
     transaction.set(cardFinancialEventDoc(workspaceId, eventId), toFirestoreData({
       id: eventId,
@@ -304,18 +316,22 @@ export const executeCloseCreditCardInvoice = async (
       cardId: payload.cardId,
       eventType: "invoice_closed",
       invoiceId: payload.invoiceId,
-      payload: {
-        closedAt: payload.closedAt,
-        totalAmount,
-        paidAmount,
-        remainingAmount,
-        itemsCount,
-      },
+      payload: eventPayload,
       correlationId: payload.correlationId,
       idempotencyKey: payload.idempotencyKey,
       createdAt: serverTimestamp,
       actorId: auth.uid,
     }));
+
+    enqueueCreditCardDomainNotifications(transaction, {
+      id: eventId,
+      workspaceId,
+      cardId: payload.cardId,
+      invoiceId: payload.invoiceId,
+      eventType: "invoice_closed",
+      payload: eventPayload,
+      actorId: auth.uid,
+    });
 
     const result = buildResult(
       payload.invoiceId,

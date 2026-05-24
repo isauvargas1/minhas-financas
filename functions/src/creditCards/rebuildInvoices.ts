@@ -28,6 +28,10 @@ import {
   reserveIdempotencyKey,
 } from "./idempotency";
 
+import {
+  enqueueCreditCardDomainNotifications,
+} from "./domainNotifications";
+
 export interface RebuildCardInvoicesForCardResult {
   success: true;
   cardId: string;
@@ -161,7 +165,7 @@ const assertValidBillingDay = (
     throw new CreditCardApplicationError(
       "domain_precondition_failed",
       "O cartão possui regra de ciclo inválida.",
-      {field, value}
+      { field, value }
     );
   }
 
@@ -277,7 +281,7 @@ export const executeRebuildCardInvoicesForCard = async (
     RebuildCardInvoicesForCardPayload
   >
 ): Promise<RebuildCardInvoicesForCardResult | Record<string, unknown>> => {
-  const {payload, auth} = context;
+  const { payload, auth } = context;
   const db = getFirestore();
   const operation = "rebuildCardInvoicesForCard";
 
@@ -307,7 +311,7 @@ export const executeRebuildCardInvoicesForCard = async (
       throw new CreditCardApplicationError(
         "not_found",
         "Cartão não encontrado.",
-        {cardId: payload.cardId}
+        { cardId: payload.cardId }
       );
     }
 
@@ -317,7 +321,7 @@ export const executeRebuildCardInvoicesForCard = async (
       throw new CreditCardApplicationError(
         "internal",
         "Cartão existente sem dados carregados.",
-        {cardId: payload.cardId}
+        { cardId: payload.cardId }
       );
     }
 
@@ -328,7 +332,7 @@ export const executeRebuildCardInvoicesForCard = async (
       throw new CreditCardApplicationError(
         "domain_precondition_failed",
         "O cartão não pertence ao workspace informado.",
-        {cardId: payload.cardId}
+        { cardId: payload.cardId }
       );
     }
 
@@ -378,7 +382,7 @@ export const executeRebuildCardInvoicesForCard = async (
       throw new CreditCardApplicationError(
         "domain_precondition_failed",
         "Existe parcela inválida no escopo de reconstrução.",
-        {installmentId: invalidInstallment.id}
+        { installmentId: invalidInstallment.id }
       );
     }
 
@@ -394,7 +398,7 @@ export const executeRebuildCardInvoicesForCard = async (
       throw new CreditCardApplicationError(
         "domain_precondition_failed",
         "Nenhuma fatura faturável foi gerada para reconstrução.",
-        {cardId: payload.cardId}
+        { cardId: payload.cardId }
       );
     }
 
@@ -426,20 +430,20 @@ export const executeRebuildCardInvoicesForCard = async (
     const paymentSnapshots = await Promise.all(
       paymentQueries.map((paymentQuery) => transaction.get(paymentQuery))
     );
-    
-   const payments = paymentSnapshots.reduce<PaymentData[]>(
-  (accumulator, paymentSnapshot) => {
-    accumulator.push(
-      ...paymentSnapshot.docs.map((documentSnapshot) => ({
-        id: documentSnapshot.id,
-        ...documentSnapshot.data(),
-      }) as PaymentData)
-    );
 
-    return accumulator;
-  },
-  []
-);
+    const payments = paymentSnapshots.reduce<PaymentData[]>(
+      (accumulator, paymentSnapshot) => {
+        accumulator.push(
+          ...paymentSnapshot.docs.map((documentSnapshot) => ({
+            id: documentSnapshot.id,
+            ...documentSnapshot.data(),
+          }) as PaymentData)
+        );
+
+        return accumulator;
+      },
+      []
+    );
 
     const idempotency = await reserveIdempotencyKey(transaction, {
       workspaceId,
@@ -462,7 +466,7 @@ export const executeRebuildCardInvoicesForCard = async (
       throw new CreditCardApplicationError(
         "domain_precondition_failed",
         "Há pagamento inválido no escopo de reconstrução.",
-        {paymentId: invalidPayment.id}
+        { paymentId: invalidPayment.id }
       );
     }
 
@@ -565,7 +569,7 @@ export const executeRebuildCardInvoicesForCard = async (
           rebuiltAt: serverTimestamp,
           updatedAt: serverTimestamp,
         }),
-        {merge: true}
+        { merge: true }
       );
 
       transaction.set(
@@ -582,7 +586,7 @@ export const executeRebuildCardInvoicesForCard = async (
           remainingAmount: invoiceDraft.remainingAmount,
           updatedAt: serverTimestamp,
         }),
-        {merge: true}
+        { merge: true }
       );
 
       rebuiltInvoiceIds.push(invoiceDraft.id);
@@ -607,7 +611,7 @@ export const executeRebuildCardInvoicesForCard = async (
           rebuiltAt: serverTimestamp,
           updatedAt: serverTimestamp,
         }),
-        {merge: true}
+        { merge: true }
       );
 
       transaction.set(
@@ -624,7 +628,7 @@ export const executeRebuildCardInvoicesForCard = async (
           remainingAmount: 0,
           updatedAt: serverTimestamp,
         }),
-        {merge: true}
+        { merge: true }
       );
 
       cancelledInvoiceIds.push(invoice.id);
@@ -632,27 +636,38 @@ export const executeRebuildCardInvoicesForCard = async (
 
     const eventId = `${payload.cardId}_invoices_rebuilt_${Date.now()}`;
 
+    const eventPayload = {
+      operation,
+      reason: payload.reason,
+      fromCompetenceMonth: payload.fromCompetenceMonth,
+      toCompetenceMonth: payload.toCompetenceMonth,
+      inspectedInstallmentsCount: scopedInstallments.length,
+      rebuiltInvoiceIds,
+      cancelledInvoiceIds,
+      updatedInstallmentIds,
+      generatedInvoiceIds: Array.from(invoiceDraftById.keys()),
+    };
+
     transaction.set(cardFinancialEventDoc(workspaceId, eventId), toFirestoreData({
       id: eventId,
       workspaceId,
       cardId: payload.cardId,
       eventType: "reconciliation_warning",
-      payload: {
-        operation,
-        reason: payload.reason,
-        fromCompetenceMonth: payload.fromCompetenceMonth,
-        toCompetenceMonth: payload.toCompetenceMonth,
-        inspectedInstallmentsCount: scopedInstallments.length,
-        rebuiltInvoiceIds,
-        cancelledInvoiceIds,
-        updatedInstallmentIds,
-        generatedInvoiceIds: Array.from(invoiceDraftById.keys()),
-      },
+      payload: eventPayload,
       correlationId: payload.correlationId,
       idempotencyKey: payload.idempotencyKey,
       createdAt: serverTimestamp,
       actorId: auth.uid,
     }));
+
+    enqueueCreditCardDomainNotifications(transaction, {
+      id: eventId,
+      workspaceId,
+      cardId: payload.cardId,
+      eventType: "reconciliation_warning",
+      payload: eventPayload,
+      actorId: auth.uid,
+    });
 
     const result = buildResult(
       payload.cardId,

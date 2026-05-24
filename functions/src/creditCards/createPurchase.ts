@@ -30,6 +30,10 @@ import {
     reserveIdempotencyKey,
 } from "./idempotency";
 
+import {
+    enqueueCreditCardDomainNotifications,
+} from "./domainNotifications";
+
 export interface CreateCreditCardPurchaseResult {
     success: true;
     purchaseId: string;
@@ -690,6 +694,21 @@ export const executeCreateCreditCardPurchase = async (
             updatedAt: serverTimestamp,
         }));
 
+        const limitUtilizationRate = limitTotal > 0 ?
+            normalizeMoney((newLimitUsed / limitTotal) * 100) :
+            0;
+
+        const eventPayload = {
+            description: payload.description,
+            totalAmount: purchaseTotalAmount,
+            installmentsCount: payload.installmentsCount,
+            firstInvoiceCompetence,
+            limitTotal,
+            limitUsed: newLimitUsed,
+            limitAvailable: newLimitAvailable,
+            utilizationRate: limitUtilizationRate,
+        };
+
         transaction.set(cardFinancialEventDoc(workspaceId, eventId), toFirestoreData({
             id: eventId,
             workspaceId,
@@ -697,17 +716,23 @@ export const executeCreateCreditCardPurchase = async (
             eventType: "purchase_created",
             purchaseId,
             ledgerEntryId,
-            payload: {
-                description: payload.description,
-                totalAmount: purchaseTotalAmount,
-                installmentsCount: payload.installmentsCount,
-                firstInvoiceCompetence,
-            },
+            payload: eventPayload,
             correlationId: payload.correlationId,
             idempotencyKey: payload.idempotencyKey,
             createdAt: serverTimestamp,
             actorId: auth.uid,
         }));
+
+        enqueueCreditCardDomainNotifications(transaction, {
+            id: eventId,
+            workspaceId,
+            cardId: payload.cardId,
+            eventType: "purchase_created",
+            purchaseId,
+            ledgerEntryId,
+            payload: eventPayload,
+            actorId: auth.uid,
+        });
 
         const result = buildResult(
             purchaseId,

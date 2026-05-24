@@ -27,6 +27,10 @@ import {
     reserveIdempotencyKey,
 } from "./idempotency";
 
+import {
+    enqueueCreditCardDomainNotifications,
+} from "./domainNotifications";
+
 export interface RegisterCreditCardInvoicePaymentResult {
     success: true;
     paymentId: string;
@@ -415,6 +419,15 @@ export const executeRegisterCreditCardInvoicePayment = async (
             }));
         }
 
+        const eventPayload = {
+            amount: paymentAmount,
+            paymentDate: payload.paymentDate,
+            paymentMethod: payload.paymentMethod,
+            paidAmount: newPaidAmount,
+            remainingAmount: newRemainingAmount,
+            cashTransactionId: cashTransactionRef?.id,
+        };
+
         transaction.set(cardFinancialEventDoc(workspaceId, eventId), toFirestoreData({
             id: eventId,
             workspaceId,
@@ -423,19 +436,24 @@ export const executeRegisterCreditCardInvoicePayment = async (
             invoiceId: payload.invoiceId,
             paymentId,
             ledgerEntryId,
-            payload: {
-                amount: paymentAmount,
-                paymentDate: payload.paymentDate,
-                paymentMethod: payload.paymentMethod,
-                paidAmount: newPaidAmount,
-                remainingAmount: newRemainingAmount,
-                cashTransactionId: cashTransactionRef?.id,
-            },
+            payload: eventPayload,
             correlationId: payload.correlationId,
             idempotencyKey: payload.idempotencyKey,
             createdAt: serverTimestamp,
             actorId: auth.uid,
         }));
+
+        enqueueCreditCardDomainNotifications(transaction, {
+            id: eventId,
+            workspaceId,
+            cardId: payload.cardId,
+            invoiceId: payload.invoiceId,
+            paymentId,
+            ledgerEntryId,
+            eventType: "invoice_payment_posted",
+            payload: eventPayload,
+            actorId: auth.uid,
+        });
 
         const result = buildResult(
             paymentId,

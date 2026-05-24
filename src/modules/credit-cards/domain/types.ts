@@ -76,7 +76,12 @@ export type CardEventType =
   | 'limit_consumed'
   | 'limit_restored'
   | 'legacy_migrated'
-  | 'reconciliation_warning';
+  | 'reconciliation_warning'
+  | 'invoice_due_soon'
+  | 'invoice_overdue'
+  | 'processing_failure'
+  | 'purchase_limit_exceeded'
+
 
 export interface CreditCardCategorySnapshot {
   id?: string;
@@ -159,10 +164,10 @@ export interface CreditCardInvoice extends CreditCardDomainTimestamps {
   itemsCount: number;
 
   paymentStatusDerived:
-    | 'unpaid'
-    | 'partial'
-    | 'paid'
-    | 'overpaid';
+  | 'unpaid'
+  | 'partial'
+  | 'paid'
+  | 'overpaid';
 
   generatedAt?: unknown;
   closedAt?: unknown;

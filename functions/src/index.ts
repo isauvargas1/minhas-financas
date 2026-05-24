@@ -14,5 +14,7 @@ export * from "./callables/billing";
 // Cron Jobs (Tarefas agendadas)
 export * from "./crons/recurring";
 
+export * from "./crons/creditCardInvoices";
+
 // Webhooks (Recebem avisos de serviços externos)
 export * from "./webhooks/stripe";

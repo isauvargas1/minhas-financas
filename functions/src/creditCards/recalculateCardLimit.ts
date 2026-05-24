@@ -26,6 +26,10 @@ import {
   reserveIdempotencyKey,
 } from "./idempotency";
 
+import {
+  enqueueCreditCardDomainNotifications,
+} from "./domainNotifications";
+
 export interface RecalculateCardLimitResult {
   success: true;
   cardId: string;
@@ -120,7 +124,7 @@ const buildResult = (
 export const executeRecalculateCardLimit = async (
   context: CreditCardCallableExecutionContext<RecalculateCardLimitPayload>
 ): Promise<RecalculateCardLimitResult | Record<string, unknown>> => {
-  const {payload, auth} = context;
+  const { payload, auth } = context;
   const db = getFirestore();
   const operation = "recalculateCardLimit";
 
@@ -150,7 +154,7 @@ export const executeRecalculateCardLimit = async (
       throw new CreditCardApplicationError(
         "not_found",
         "Cartão não encontrado.",
-        {cardId: payload.cardId}
+        { cardId: payload.cardId }
       );
     }
 
@@ -160,7 +164,7 @@ export const executeRecalculateCardLimit = async (
       throw new CreditCardApplicationError(
         "internal",
         "Cartão existente sem dados carregados.",
-        {cardId: payload.cardId}
+        { cardId: payload.cardId }
       );
     }
 
@@ -171,7 +175,7 @@ export const executeRecalculateCardLimit = async (
       throw new CreditCardApplicationError(
         "domain_precondition_failed",
         "O cartão não pertence ao workspace informado.",
-        {cardId: payload.cardId}
+        { cardId: payload.cardId }
       );
     }
 
@@ -181,7 +185,7 @@ export const executeRecalculateCardLimit = async (
       throw new CreditCardApplicationError(
         "domain_precondition_failed",
         "O limite total do cartão precisa ser maior que zero.",
-        {cardId: payload.cardId, limitTotal: cardData.limitTotal}
+        { cardId: payload.cardId, limitTotal: cardData.limitTotal }
       );
     }
 
@@ -246,27 +250,38 @@ export const executeRecalculateCardLimit = async (
       updatedAt: serverTimestamp,
     }));
 
+    const eventPayload = {
+      reason: payload.reason,
+      operation,
+      consumedAmount,
+      restoredAmount,
+      rawLimitUsed,
+      recalculatedLimitUsed: limitUsed,
+      recalculatedLimitAvailable: limitAvailable,
+      ledgerEntriesCount: ledgerEntries.length,
+      previousSnapshot,
+    };
+
     transaction.set(cardFinancialEventDoc(workspaceId, eventId), toFirestoreData({
       id: eventId,
       workspaceId,
       cardId: payload.cardId,
       eventType: "reconciliation_warning",
-      payload: {
-        reason: payload.reason,
-        operation,
-        consumedAmount,
-        restoredAmount,
-        rawLimitUsed,
-        recalculatedLimitUsed: limitUsed,
-        recalculatedLimitAvailable: limitAvailable,
-        ledgerEntriesCount: ledgerEntries.length,
-        previousSnapshot,
-      },
+      payload: eventPayload,
       correlationId: payload.correlationId,
       idempotencyKey: payload.idempotencyKey,
       createdAt: serverTimestamp,
       actorId: auth.uid,
     }));
+
+    enqueueCreditCardDomainNotifications(transaction, {
+      id: eventId,
+      workspaceId,
+      cardId: payload.cardId,
+      eventType: "reconciliation_warning",
+      payload: eventPayload,
+      actorId: auth.uid,
+    });
 
     const result = buildResult(
       payload.cardId,

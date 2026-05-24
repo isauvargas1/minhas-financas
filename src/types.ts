@@ -466,9 +466,21 @@ export interface AppNotification {
     id: string;
     title: string;
     message: string;
-    type: 'info' | 'success' | 'warning' | 'error' | 'invite';
+    type: 'info' | 'success' | 'warning' | 'error' | 'invite' | 'credit_card';
     read: boolean;
-    link?: string; // Para redirecionar (ex: '/loans/123')
-    actionLabel?: string; // Ex: "Aceitar"
+    link?: string;
+    actionLabel?: string;
     createdAt: string;
+
+    workspaceId?: string;
+    source?: string;
+    domain?: 'credit_card' | string;
+    domainEventId?: string;
+    domainEventType?: string;
+    cardId?: string;
+    invoiceId?: string;
+    purchaseId?: string;
+    paymentId?: string;
+    ledgerEntryId?: string;
+    actorId?: string;
 }

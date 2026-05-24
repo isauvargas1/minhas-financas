@@ -1,4 +1,4 @@
-import {onCall} from "firebase-functions/v2/https";
+import { onCall } from "firebase-functions/v2/https";
 
 import {
   buildCreditCardCallableContext,
@@ -56,9 +56,23 @@ import {
   toHttpsError,
 } from "./errors";
 
+import type {
+  CreditCardCallableExecutionContext,
+} from "./callable";
+
+import type {
+  CreateCreditCardPurchasePayload,
+} from "./contracts";
+
+import {
+  recordPurchaseLimitExceededEvent,
+} from "./purchaseFailureEvents";
+
 export const createCreditCardPurchase = onCall(async (request) => {
+  let context: CreditCardCallableExecutionContext<CreateCreditCardPurchasePayload> | null = null;
+
   try {
-    const context = await buildCreditCardCallableContext(
+    context = await buildCreditCardCallableContext(
       request,
       createCreditCardPurchasePayloadSchema,
       "createCreditCardPurchase"
@@ -66,6 +80,10 @@ export const createCreditCardPurchase = onCall(async (request) => {
 
     return await executeCreateCreditCardPurchase(context);
   } catch (error) {
+    if (context) {
+      await recordPurchaseLimitExceededEvent(context, error);
+    }
+
     throw toHttpsError(error);
   }
 });

@@ -28,6 +28,10 @@ import {
   reserveIdempotencyKey,
 } from "./idempotency";
 
+import {
+  enqueueCreditCardDomainNotifications,
+} from "./domainNotifications";
+
 export interface ReverseCreditCardInvoicePaymentResult {
   success: true;
   paymentId: string;
@@ -186,7 +190,7 @@ export const executeReverseCreditCardInvoicePayment = async (
     ReverseCreditCardInvoicePaymentPayload
   >
 ): Promise<ReverseCreditCardInvoicePaymentResult | Record<string, unknown>> => {
-  const {payload, auth} = context;
+  const { payload, auth } = context;
   const db = getFirestore();
   const operation = "reverseCreditCardInvoicePayment";
 
@@ -216,7 +220,7 @@ export const executeReverseCreditCardInvoicePayment = async (
       throw new CreditCardApplicationError(
         "not_found",
         "Pagamento de fatura não encontrado.",
-        {paymentId: payload.paymentId}
+        { paymentId: payload.paymentId }
       );
     }
 
@@ -224,7 +228,7 @@ export const executeReverseCreditCardInvoicePayment = async (
       throw new CreditCardApplicationError(
         "not_found",
         "Fatura não encontrada.",
-        {invoiceId: payload.invoiceId}
+        { invoiceId: payload.invoiceId }
       );
     }
 
@@ -232,7 +236,7 @@ export const executeReverseCreditCardInvoicePayment = async (
       throw new CreditCardApplicationError(
         "not_found",
         "Snapshot de limite do cartão não encontrado.",
-        {cardId: payload.cardId}
+        { cardId: payload.cardId }
       );
     }
 
@@ -257,7 +261,7 @@ export const executeReverseCreditCardInvoicePayment = async (
       throw new CreditCardApplicationError(
         "domain_precondition_failed",
         "O pagamento não pertence ao workspace informado.",
-        {paymentId: payload.paymentId}
+        { paymentId: payload.paymentId }
       );
     }
 
@@ -265,7 +269,7 @@ export const executeReverseCreditCardInvoicePayment = async (
       throw new CreditCardApplicationError(
         "domain_precondition_failed",
         "O pagamento não pertence à fatura informada.",
-        {paymentId: payload.paymentId, invoiceId: payload.invoiceId}
+        { paymentId: payload.paymentId, invoiceId: payload.invoiceId }
       );
     }
 
@@ -273,7 +277,7 @@ export const executeReverseCreditCardInvoicePayment = async (
       throw new CreditCardApplicationError(
         "domain_precondition_failed",
         "O pagamento não pertence ao cartão informado.",
-        {paymentId: payload.paymentId, cardId: payload.cardId}
+        { paymentId: payload.paymentId, cardId: payload.cardId }
       );
     }
 
@@ -281,7 +285,7 @@ export const executeReverseCreditCardInvoicePayment = async (
       throw new CreditCardApplicationError(
         "domain_precondition_failed",
         "A fatura não pertence ao workspace informado.",
-        {invoiceId: payload.invoiceId}
+        { invoiceId: payload.invoiceId }
       );
     }
 
@@ -289,7 +293,7 @@ export const executeReverseCreditCardInvoicePayment = async (
       throw new CreditCardApplicationError(
         "domain_precondition_failed",
         "A fatura não pertence ao cartão informado.",
-        {invoiceId: payload.invoiceId, cardId: payload.cardId}
+        { invoiceId: payload.invoiceId, cardId: payload.cardId }
       );
     }
 
@@ -308,7 +312,7 @@ export const executeReverseCreditCardInvoicePayment = async (
       throw new CreditCardApplicationError(
         "domain_precondition_failed",
         "Este pagamento já foi estornado.",
-        {paymentId: payload.paymentId}
+        { paymentId: payload.paymentId }
       );
     }
 
@@ -316,7 +320,7 @@ export const executeReverseCreditCardInvoicePayment = async (
       throw new CreditCardApplicationError(
         "domain_precondition_failed",
         "Somente pagamentos postados podem ser estornados.",
-        {paymentId: payload.paymentId, status: paymentData.status}
+        { paymentId: payload.paymentId, status: paymentData.status }
       );
     }
 
@@ -326,7 +330,7 @@ export const executeReverseCreditCardInvoicePayment = async (
       throw new CreditCardApplicationError(
         "domain_precondition_failed",
         "O pagamento possui valor inválido para estorno.",
-        {paymentId: payload.paymentId, amount: paymentData.amount}
+        { paymentId: payload.paymentId, amount: paymentData.amount }
       );
     }
 
@@ -405,7 +409,7 @@ export const executeReverseCreditCardInvoicePayment = async (
         remainingAmount: newRemainingAmount,
         updatedAt: serverTimestamp,
       }),
-      {merge: true}
+      { merge: true }
     );
 
     transaction.set(cardLimitLedgerDoc(workspaceId, ledgerEntryId), {
@@ -455,6 +459,16 @@ export const executeReverseCreditCardInvoicePayment = async (
       }));
     }
 
+    const eventPayload = {
+      amount: paymentAmount,
+      reversedAt: payload.reversedAt,
+      reason: payload.reason,
+      paidAmount: newPaidAmount,
+      remainingAmount: newRemainingAmount,
+      cashReversalTransactionId: cashReversalTransactionRef?.id,
+      originalCashTransactionId: paymentData.cashTransactionId,
+    };
+
     transaction.set(cardFinancialEventDoc(workspaceId, eventId), toFirestoreData({
       id: eventId,
       workspaceId,
@@ -463,20 +477,24 @@ export const executeReverseCreditCardInvoicePayment = async (
       invoiceId: payload.invoiceId,
       paymentId: payload.paymentId,
       ledgerEntryId,
-      payload: {
-        amount: paymentAmount,
-        reversedAt: payload.reversedAt,
-        reason: payload.reason,
-        paidAmount: newPaidAmount,
-        remainingAmount: newRemainingAmount,
-        cashReversalTransactionId: cashReversalTransactionRef?.id,
-        originalCashTransactionId: paymentData.cashTransactionId,
-      },
+      payload: eventPayload,
       correlationId: payload.correlationId,
       idempotencyKey: payload.idempotencyKey,
       createdAt: serverTimestamp,
       actorId: auth.uid,
     }));
+
+    enqueueCreditCardDomainNotifications(transaction, {
+      id: eventId,
+      workspaceId,
+      cardId: payload.cardId,
+      invoiceId: payload.invoiceId,
+      paymentId: payload.paymentId,
+      ledgerEntryId,
+      eventType: "invoice_payment_reversed",
+      payload: eventPayload,
+      actorId: auth.uid,
+    });
 
     const result = buildResult(
       payload.paymentId,

@@ -116,8 +116,10 @@ const Header: React.FC<HeaderProps> = ({
     const iconButtonActive = "bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-400";
     const iconButtonInactive = "bg-surface text-muted hover:bg-gray-100 dark:hover:bg-dark-200 hover:text-on-surface";
 
-    const mapNotificationType = (type: AppNotification['type']): NotificationType => {
+const mapNotificationType = (type: AppNotification['type']): NotificationType => {
     switch (type) {
+        case 'credit_card':
+            return 'cartaoCredito';
         case 'warning':
             return 'alertaFinanceiro';
         case 'success':
