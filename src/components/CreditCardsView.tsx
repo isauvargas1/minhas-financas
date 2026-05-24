@@ -15,11 +15,14 @@ import {
     useReverseCreditCardInvoicePaymentDomain,
     useCreditCardInvoiceInstallments,
     useCreditCardInvoicePayments,
+    useCreditCardPurchasesByIds,
+    useRecentCreditCardPurchasesByCard,
 } from '../modules/credit-cards/hooks';
 import { useTheme } from '../contexts/ThemeContext.tsx';
 import type {
     CreditCardInvoice,
     CreditCardInvoicePayment,
+    CreditCardPurchase,
 } from '../modules/credit-cards/domain/types.ts';
 
 interface CreditCardsViewProps {
@@ -49,11 +52,63 @@ const CreditCardInvoiceDetailsPanel = ({
     const installments = installmentsData || [];
     const payments = paymentsData || [];
 
+    const purchaseIds = useMemo(
+        () =>
+            Array.from(
+                new Set(
+                    installments
+                        .map((installment) => installment.purchaseId)
+                        .filter((purchaseId): purchaseId is string => Boolean(purchaseId))
+                )
+            ).sort(),
+        [installments]
+    );
+
+    const {
+        data: purchasesData,
+        isLoading: isLoadingPurchases,
+    } = useCreditCardPurchasesByIds(purchaseIds);
+
+    const purchasesById = useMemo(
+        () =>
+            new Map(
+                (purchasesData || []).map((purchase) => [
+                    purchase.id,
+                    purchase,
+                ])
+            ),
+        [purchasesData]
+    );
+
     const formatCurrency = (value: number) =>
         value.toLocaleString('pt-BR', {
             style: 'currency',
             currency: 'BRL',
         });
+
+    const getPurchaseCategoryLabel = (
+        purchase?: CreditCardPurchase
+    ): string | undefined => {
+        const categorySnapshot = purchase?.categorySnapshot as
+            | { label?: unknown }
+            | undefined;
+
+        if (typeof categorySnapshot?.label !== 'string') {
+            return undefined;
+        }
+
+        const label = categorySnapshot.label.trim();
+
+        return label || undefined;
+    };
+
+    const formatPurchaseDate = (purchase?: CreditCardPurchase): string | undefined => {
+        if (!purchase?.purchaseDate) {
+            return undefined;
+        }
+
+        return new Date(`${purchase.purchaseDate}T12:00:00`).toLocaleDateString('pt-BR');
+    };
 
     return (
         <div className="mt-3 border-t border-gray-200 dark:border-gray-700 pt-3 space-y-4">
@@ -75,25 +130,47 @@ const CreditCardInvoiceDetailsPanel = ({
                 )}
 
                 <div className="space-y-2">
-                    {installments.map((installment) => (
-                        <div
-                            key={installment.id}
-                            className="flex items-center justify-between gap-3 text-sm bg-white dark:bg-dark-300 rounded-lg p-2"
-                        >
-                            <div>
-                                <p className="font-medium text-gray-700 dark:text-gray-200">
-                                    Item da fatura
-                                </p>
-                                <p className="text-xs text-gray-500 dark:text-gray-400">
-                                    Parcela {installment.installmentNumber}/{installment.installmentsCount}
+                    {installments.map((installment) => {
+                        const purchase = purchasesById.get(installment.purchaseId);
+                        const categoryLabel = getPurchaseCategoryLabel(purchase);
+                        const purchaseDateLabel = formatPurchaseDate(purchase);
+
+                        return (
+                            <div
+                                key={installment.id}
+                                className="flex items-center justify-between gap-3 text-sm bg-white dark:bg-dark-300 rounded-lg p-2"
+                            >
+                                <div>
+                                    <p className="font-medium text-gray-700 dark:text-gray-200">
+                                        {purchase?.description || 'Item da fatura'}
+                                    </p>
+
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                                        Parcela {installment.installmentNumber}/{installment.installmentsCount}
+                                        {purchaseDateLabel ? ` · Compra em ${purchaseDateLabel}` : ''}
+                                    </p>
+
+                                    {(categoryLabel || purchase?.supplier || purchase?.costCenter) && (
+                                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                                            {[categoryLabel, purchase?.supplier, purchase?.costCenter]
+                                                .filter(Boolean)
+                                                .join(' · ')}
+                                        </p>
+                                    )}
+
+                                    {isLoadingPurchases && (
+                                        <p className="text-xs text-gray-400 dark:text-gray-500">
+                                            Carregando compra original...
+                                        </p>
+                                    )}
+                                </div>
+
+                                <p className="font-bold text-gray-800 dark:text-white">
+                                    {formatCurrency(installment.amount)}
                                 </p>
                             </div>
-
-                            <p className="font-bold text-gray-800 dark:text-white">
-                                {formatCurrency(installment.amount)}
-                            </p>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             </div>
 
@@ -162,6 +239,146 @@ const CreditCardInvoiceDetailsPanel = ({
     );
 };
 
+const CreditCardInvoiceDetailsDrawer = ({
+    invoice,
+    onClose,
+    onPayInvoice,
+    onReversePayment,
+    isPayingInvoice,
+    isReversingPayment,
+}: {
+    invoice: CreditCardInvoice;
+    onClose: () => void;
+    onPayInvoice: (invoice: CreditCardInvoice) => Promise<void> | void;
+    onReversePayment: (payment: CreditCardInvoicePayment) => void;
+    isPayingInvoice: boolean;
+    isReversingPayment: boolean;
+}) => {
+    const formatCurrency = (value: number) =>
+        value.toLocaleString('pt-BR', {
+            style: 'currency',
+            currency: 'BRL',
+        });
+
+    const getInvoiceStatusLabel = (status: CreditCardInvoice['status']) => {
+        const labels: Record<CreditCardInvoice['status'], string> = {
+            open: 'Aberta',
+            closed: 'Fechada',
+            partial_paid: 'Parcial',
+            paid: 'Paga',
+            overdue: 'Vencida',
+            cancelled: 'Cancelada',
+        };
+
+        return labels[status];
+    };
+
+    const canPay = invoice.remainingAmount > 0 &&
+        invoice.status !== 'paid' &&
+        invoice.status !== 'cancelled';
+
+    return (
+        <div className="fixed inset-0 z-50 bg-black/50 flex justify-end" onClick={onClose}>
+            <div
+                className="w-full max-w-2xl bg-white dark:bg-dark-100 h-full shadow-2xl overflow-y-auto animate-slide-in-right"
+                onClick={(event) => event.stopPropagation()}
+            >
+                <div className="sticky top-0 z-10 bg-white dark:bg-dark-100 border-b border-gray-100 dark:border-gray-700 p-6 flex items-start justify-between gap-4">
+                    <div>
+                        <p className="text-xs font-bold uppercase text-indigo-600 dark:text-indigo-400">
+                            Detalhe da fatura
+                        </p>
+                        <h3 className="text-2xl font-bold text-gray-800 dark:text-white">
+                            Fatura {invoice.competenceMonth}
+                        </h3>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                            Vencimento em {new Date(`${invoice.dueDate}T12:00:00`).toLocaleDateString('pt-BR')}
+                        </p>
+                    </div>
+
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-dark-200 text-gray-500"
+                        aria-label="Fechar detalhe da fatura"
+                    >
+                        <CloseIcon className="w-5 h-5" />
+                    </button>
+                </div>
+
+                <div className="p-6 space-y-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="bg-gray-50 dark:bg-dark-200 rounded-xl p-4 border border-gray-100 dark:border-gray-700">
+                            <p className="text-xs text-gray-500 dark:text-gray-400">Competência</p>
+                            <p className="font-bold text-gray-800 dark:text-white">{invoice.competenceMonth}</p>
+                        </div>
+
+                        <div className="bg-gray-50 dark:bg-dark-200 rounded-xl p-4 border border-gray-100 dark:border-gray-700">
+                            <p className="text-xs text-gray-500 dark:text-gray-400">Status</p>
+                            <p className="font-bold text-gray-800 dark:text-white">{getInvoiceStatusLabel(invoice.status)}</p>
+                        </div>
+
+                        <div className="bg-gray-50 dark:bg-dark-200 rounded-xl p-4 border border-gray-100 dark:border-gray-700">
+                            <p className="text-xs text-gray-500 dark:text-gray-400">Fechamento</p>
+                            <p className="font-bold text-gray-800 dark:text-white">
+                                {new Date(`${invoice.closingDate}T12:00:00`).toLocaleDateString('pt-BR')}
+                            </p>
+                        </div>
+
+                        <div className="bg-gray-50 dark:bg-dark-200 rounded-xl p-4 border border-gray-100 dark:border-gray-700">
+                            <p className="text-xs text-gray-500 dark:text-gray-400">Vencimento</p>
+                            <p className="font-bold text-gray-800 dark:text-white">
+                                {new Date(`${invoice.dueDate}T12:00:00`).toLocaleDateString('pt-BR')}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-3">
+                        <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-xl p-4 border border-indigo-100 dark:border-indigo-800">
+                            <p className="text-xs text-indigo-700 dark:text-indigo-300">Total</p>
+                            <p className="font-bold text-gray-800 dark:text-white">{formatCurrency(invoice.totalAmount)}</p>
+                        </div>
+
+                        <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-4 border border-green-100 dark:border-green-800">
+                            <p className="text-xs text-green-700 dark:text-green-300">Pago</p>
+                            <p className="font-bold text-gray-800 dark:text-white">{formatCurrency(invoice.paidAmount)}</p>
+                        </div>
+
+                        <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-4 border border-amber-100 dark:border-amber-800">
+                            <p className="text-xs text-amber-700 dark:text-amber-300">Saldo</p>
+                            <p className="font-bold text-gray-800 dark:text-white">{formatCurrency(invoice.remainingAmount)}</p>
+                        </div>
+                    </div>
+
+                    <CreditCardInvoiceDetailsPanel
+                        invoiceId={invoice.id}
+                        onReversePayment={onReversePayment}
+                        isReversingPayment={isReversingPayment}
+                    />
+
+                    <div className="pt-4 border-t border-gray-100 dark:border-gray-700">
+                        <button
+                            type="button"
+                            disabled={!canPay || isPayingInvoice}
+                            onClick={() => onPayInvoice(invoice)}
+                            className={`w-full py-3 rounded-xl font-bold transition-all ${canPay && !isPayingInvoice
+                                ? 'bg-green-600 hover:bg-green-700 text-white shadow-md'
+                                : 'bg-gray-200 dark:bg-dark-300 text-gray-400 cursor-not-allowed'
+                                }`}
+                        >
+                            {invoice.status === 'paid'
+                                ? 'Fatura paga'
+                                : isPayingInvoice
+                                    ? 'Processando...'
+                                    : 'Pagar fatura'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 const CreditCardsView: React.FC<CreditCardsViewProps> = ({ transactions }) => {
     // --- HOOKS DO FIRESTORE ---
     const { data: cardsData, isLoading } = useCreditCards();
@@ -184,13 +401,19 @@ const CreditCardsView: React.FC<CreditCardsViewProps> = ({ transactions }) => {
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [cardToEdit, setCardToEdit] = useState<CreditCard | null>(null);
     const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
-    const [expandedInvoiceId, setExpandedInvoiceId] = useState<string | null>(null);
+    const [selectedInvoiceForDetails, setSelectedInvoiceForDetails] = useState<CreditCardInvoice | null>(null);
     const {
         data: selectedCardInvoicesData,
         isLoading: isLoadingSelectedCardInvoices,
     } = useOpenCreditCardInvoicesByCard(selectedCardId);
 
+    const {
+        data: selectedCardRecentPurchasesData,
+        isLoading: isLoadingSelectedCardRecentPurchases,
+    } = useRecentCreditCardPurchasesByCard(selectedCardId);
+
     const selectedCardInvoices = selectedCardInvoicesData || [];
+    const selectedCardRecentPurchases = selectedCardRecentPurchasesData || [];
 
     // Filter cards
     const filteredCards = useMemo(() => {
@@ -378,6 +601,56 @@ const CreditCardsView: React.FC<CreditCardsViewProps> = ({ transactions }) => {
     };
 
     const selectedCard = cards.find(c => c.id === selectedCardId);
+
+    const selectedInvoiceForDetailsView = selectedInvoiceForDetails
+        ? selectedCardInvoices.find((invoice) => invoice.id === selectedInvoiceForDetails.id) ?? selectedInvoiceForDetails
+        : null;
+
+    const selectedCardLimitSummary = selectedCard ? getCardLimits(selectedCard) : null;
+    const selectedCardUsagePercent = selectedCard && selectedCard.limitTotal > 0 && selectedCardLimitSummary
+        ? Math.round((selectedCardLimitSummary.used / selectedCard.limitTotal) * 100)
+        : 0;
+
+    const selectedCardUtilizationAlert = selectedCardUsagePercent >= 90
+        ? {
+            title: 'Utilização crítica do limite',
+            description: 'Este cartão já consumiu 90% ou mais do limite disponível.',
+            className: 'border-red-200 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-900/20 dark:text-red-300',
+        }
+        : selectedCardUsagePercent >= 75
+            ? {
+                title: 'Atenção ao limite',
+                description: 'Este cartão já consumiu 75% ou mais do limite disponível.',
+                className: 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-900/20 dark:text-amber-300',
+            }
+            : null;
+
+    const activeSelectedCardInvoices = useMemo(
+        () =>
+            selectedCardInvoices
+                .filter((invoice) => invoice.status !== 'paid' && invoice.status !== 'cancelled')
+                .sort((left, right) => left.dueDate.localeCompare(right.dueDate)),
+        [selectedCardInvoices],
+    );
+
+    const currentSelectedCardInvoice = activeSelectedCardInvoices[0] ?? null;
+    const nextSelectedCardInvoice = activeSelectedCardInvoices[1] ?? null;
+
+    const selectedCardInvoiceHistory = useMemo(
+        () =>
+            selectedCardInvoices
+                .filter((invoice) =>
+                    invoice.id !== currentSelectedCardInvoice?.id &&
+                    invoice.id !== nextSelectedCardInvoice?.id
+                )
+                .sort((left, right) => right.dueDate.localeCompare(left.dueDate)),
+        [
+            selectedCardInvoices,
+            currentSelectedCardInvoice?.id,
+            nextSelectedCardInvoice?.id,
+        ],
+    );
+
     const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
 
     if (isLoading) {
@@ -430,7 +703,7 @@ const CreditCardsView: React.FC<CreditCardsViewProps> = ({ transactions }) => {
                     {filteredCards.map(card => (
                         <CreditCard3D key={card.id} card={card} mode={viewMode} limits={getCardLimits(card)} onClick={() => {
                             setSelectedCardId(card.id);
-                            setExpandedInvoiceId(null);
+                            setSelectedInvoiceForDetails(null);
                         }} />
                     ))}
 
@@ -443,7 +716,13 @@ const CreditCardsView: React.FC<CreditCardsViewProps> = ({ transactions }) => {
             </div>
 
             {selectedCard && (
-                <div className="fixed inset-0 z-40 bg-black/50 flex justify-end transition-opacity" onClick={() => setSelectedCardId(null)}>
+                <div
+                    className="fixed inset-0 z-40 bg-black/50 flex justify-end transition-opacity"
+                    onClick={() => {
+                        setSelectedCardId(null);
+                        setSelectedInvoiceForDetails(null);
+                    }}
+                >
                     <div className="w-full max-w-lg bg-white dark:bg-dark-100 h-full shadow-2xl p-6 overflow-y-auto animate-slide-in-right" onClick={e => e.stopPropagation()}>
                         <div className="flex justify-between items-center mb-6">
                             <h3 className="text-xl font-bold text-gray-800 dark:text-white">Detalhes do Cartão</h3>
@@ -476,6 +755,16 @@ const CreditCardsView: React.FC<CreditCardsViewProps> = ({ transactions }) => {
                                 )}
                             </div>
 
+                            {selectedCardUtilizationAlert && (
+                                <div className={`rounded-xl border p-4 text-sm ${selectedCardUtilizationAlert.className}`}>
+                                    <p className="font-bold">{selectedCardUtilizationAlert.title}</p>
+                                    <p className="mt-1">{selectedCardUtilizationAlert.description}</p>
+                                    <p className="mt-2 font-bold">
+                                        Utilização atual: {selectedCardUsagePercent}%
+                                    </p>
+                                </div>
+                            )}
+
                             <div className="space-y-3">
                                 <h4 className="font-bold text-gray-800 dark:text-white flex items-center gap-2 border-b pb-2">
                                     <CurrencyDollarIcon className="w-4 h-4 text-indigo-600" /> Faturas
@@ -493,121 +782,265 @@ const CreditCardsView: React.FC<CreditCardsViewProps> = ({ transactions }) => {
                                     </div>
                                 )}
 
-                                {!isLoadingSelectedCardInvoices && selectedCardInvoices.map((invoice) => {
-                                    const canPay = invoice.remainingAmount > 0 &&
-                                        invoice.status !== 'paid' &&
-                                        invoice.status !== 'cancelled';
+                                {!isLoadingSelectedCardInvoices && selectedCardInvoices.length > 0 && (
+                                    <div className="space-y-4">
+                                        {currentSelectedCardInvoice && (
+                                            <div className="space-y-2">
+                                                <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">
+                                                    Fatura atual
+                                                </p>
 
-                                    return (
-                                        <div
-                                            key={invoice.id}
-                                            className="bg-gray-50 dark:bg-dark-200 border border-gray-100 dark:border-gray-700 rounded-xl p-4 space-y-3"
-                                        >
-                                            <div className="flex items-start justify-between gap-3">
-                                                <div>
-                                                    <p className="font-bold text-gray-800 dark:text-white">
-                                                        Fatura {invoice.competenceMonth}
-                                                    </p>
-                                                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                                                        Vencimento: {new Date(`${invoice.dueDate}T12:00:00`).toLocaleDateString('pt-BR')}
-                                                    </p>
-                                                </div>
+                                                {(() => {
+                                                    const invoice = currentSelectedCardInvoice;
+                                                    const canPay = invoice.remainingAmount > 0 &&
+                                                        invoice.status !== 'paid' &&
+                                                        invoice.status !== 'cancelled';
 
-                                                <span className="text-xs font-bold px-2 py-1 rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300">
-                                                    {getInvoiceStatusLabel(invoice.status)}
-                                                </span>
+                                                    return (
+                                                        <div
+                                                            key={invoice.id}
+                                                            className="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800 rounded-xl p-4 space-y-3"
+                                                        >
+                                                            <div className="flex items-start justify-between gap-3">
+                                                                <div>
+                                                                    <p className="font-bold text-gray-800 dark:text-white">
+                                                                        Fatura {invoice.competenceMonth}
+                                                                    </p>
+                                                                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                                                                        Vencimento: {new Date(`${invoice.dueDate}T12:00:00`).toLocaleDateString('pt-BR')}
+                                                                    </p>
+                                                                </div>
+
+                                                                <span className="text-xs font-bold px-2 py-1 rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300">
+                                                                    {getInvoiceStatusLabel(invoice.status)}
+                                                                </span>
+                                                            </div>
+
+                                                            <div className="grid grid-cols-3 gap-2 text-xs">
+                                                                <div>
+                                                                    <p className="text-gray-500 dark:text-gray-400">Total</p>
+                                                                    <p className="font-bold">{formatCurrency(invoice.totalAmount)}</p>
+                                                                </div>
+                                                                <div>
+                                                                    <p className="text-gray-500 dark:text-gray-400">Pago</p>
+                                                                    <p className="font-bold">{formatCurrency(invoice.paidAmount)}</p>
+                                                                </div>
+                                                                <div>
+                                                                    <p className="text-gray-500 dark:text-gray-400">Restante</p>
+                                                                    <p className="font-bold">{formatCurrency(invoice.remainingAmount)}</p>
+                                                                </div>
+                                                            </div>
+
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setSelectedInvoiceForDetails(invoice)}
+                                                                className="w-full py-2 rounded-lg font-bold bg-white dark:bg-dark-300 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-dark-400 transition-all"
+                                                            >
+                                                                Ver detalhes da fatura
+                                                            </button>
+
+                                                            <button
+                                                                type="button"
+                                                                disabled={!canPay || registerInvoicePaymentMutation.isPending}
+                                                                onClick={() => handlePayInvoice(invoice)}
+                                                                className={`w-full py-2.5 rounded-lg font-bold transition-all ${canPay && !registerInvoicePaymentMutation.isPending
+                                                                    ? 'bg-green-600 hover:bg-green-700 text-white shadow-md'
+                                                                    : 'bg-gray-200 dark:bg-dark-300 text-gray-400 cursor-not-allowed'
+                                                                    }`}
+                                                            >
+                                                                {invoice.status === 'paid'
+                                                                    ? 'Fatura paga'
+                                                                    : registerInvoicePaymentMutation.isPending
+                                                                        ? 'Processando...'
+                                                                        : 'Pagar fatura'}
+                                                            </button>
+                                                        </div>
+                                                    );
+                                                })()}
                                             </div>
+                                        )}
 
-                                            <div className="grid grid-cols-3 gap-2 text-xs">
-                                                <div>
-                                                    <p className="text-gray-500 dark:text-gray-400">Total</p>
-                                                    <p className="font-bold">{formatCurrency(invoice.totalAmount)}</p>
-                                                </div>
-                                                <div>
-                                                    <p className="text-gray-500 dark:text-gray-400">Pago</p>
-                                                    <p className="font-bold">{formatCurrency(invoice.paidAmount)}</p>
-                                                </div>
-                                                <div>
-                                                    <p className="text-gray-500 dark:text-gray-400">Restante</p>
-                                                    <p className="font-bold">{formatCurrency(invoice.remainingAmount)}</p>
-                                                </div>
+                                        {nextSelectedCardInvoice && (
+                                            <div className="space-y-2">
+                                                <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">
+                                                    Próxima fatura
+                                                </p>
+
+                                                {(() => {
+                                                    const invoice = nextSelectedCardInvoice;
+
+                                                    return (
+                                                        <div
+                                                            key={invoice.id}
+                                                            className="bg-gray-50 dark:bg-dark-200 border border-gray-100 dark:border-gray-700 rounded-xl p-4 space-y-3"
+                                                        >
+                                                            <div className="flex items-start justify-between gap-3">
+                                                                <div>
+                                                                    <p className="font-bold text-gray-800 dark:text-white">
+                                                                        Fatura {invoice.competenceMonth}
+                                                                    </p>
+                                                                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                                                                        Vencimento: {new Date(`${invoice.dueDate}T12:00:00`).toLocaleDateString('pt-BR')}
+                                                                    </p>
+                                                                </div>
+
+                                                                <span className="text-xs font-bold px-2 py-1 rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300">
+                                                                    {getInvoiceStatusLabel(invoice.status)}
+                                                                </span>
+                                                            </div>
+
+                                                            <div className="grid grid-cols-3 gap-2 text-xs">
+                                                                <div>
+                                                                    <p className="text-gray-500 dark:text-gray-400">Total</p>
+                                                                    <p className="font-bold">{formatCurrency(invoice.totalAmount)}</p>
+                                                                </div>
+                                                                <div>
+                                                                    <p className="text-gray-500 dark:text-gray-400">Pago</p>
+                                                                    <p className="font-bold">{formatCurrency(invoice.paidAmount)}</p>
+                                                                </div>
+                                                                <div>
+                                                                    <p className="text-gray-500 dark:text-gray-400">Restante</p>
+                                                                    <p className="font-bold">{formatCurrency(invoice.remainingAmount)}</p>
+                                                                </div>
+                                                            </div>
+
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setSelectedInvoiceForDetails(invoice)}
+                                                                className="w-full py-2 rounded-lg font-bold bg-white dark:bg-dark-300 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-dark-400 transition-all"
+                                                            >
+                                                                Ver detalhes da fatura
+                                                            </button>
+
+                                                        </div>
+                                                    );
+                                                })()}
                                             </div>
+                                        )}
 
-                                            <button
-                                                type="button"
-                                                onClick={() =>
-                                                    setExpandedInvoiceId((currentInvoiceId) =>
-                                                        currentInvoiceId === invoice.id ? null : invoice.id,
-                                                    )
-                                                }
-                                                className="w-full py-2 rounded-lg font-bold bg-white dark:bg-dark-300 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-dark-400 transition-all"
-                                            >
-                                                {expandedInvoiceId === invoice.id ? 'Ocultar detalhes' : 'Ver detalhes'}
-                                            </button>
+                                        {selectedCardInvoiceHistory.length > 0 && (
+                                            <div className="space-y-2">
+                                                <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">
+                                                    Histórico de faturas
+                                                </p>
 
-                                            {expandedInvoiceId === invoice.id && (
-                                                <CreditCardInvoiceDetailsPanel
-                                                    invoiceId={invoice.id}
-                                                    onReversePayment={handleReverseInvoicePayment}
-                                                    isReversingPayment={reverseInvoicePaymentMutation.isPending}
-                                                />
-                                            )}
-                                            <button
-                                                type="button"
-                                                disabled={!canPay || registerInvoicePaymentMutation.isPending}
-                                                onClick={() => handlePayInvoice(invoice)}
-                                                className={`w-full py-2.5 rounded-lg font-bold transition-all ${canPay && !registerInvoicePaymentMutation.isPending
-                                                    ? 'bg-green-600 hover:bg-green-700 text-white shadow-md'
-                                                    : 'bg-gray-200 dark:bg-dark-300 text-gray-400 cursor-not-allowed'
-                                                    }`}
-                                            >
-                                                {invoice.status === 'paid'
-                                                    ? 'Fatura paga'
-                                                    : registerInvoicePaymentMutation.isPending
-                                                        ? 'Processando...'
-                                                        : 'Pagar fatura'}
-                                            </button>
-                                        </div>
-                                    );
-                                })}
+                                                {selectedCardInvoiceHistory.map((invoice) => {
+                                                    const canPay = invoice.remainingAmount > 0 &&
+                                                        invoice.status !== 'paid' &&
+                                                        invoice.status !== 'cancelled';
+
+                                                    return (
+                                                        <div
+                                                            key={invoice.id}
+                                                            className="bg-gray-50 dark:bg-dark-200 border border-gray-100 dark:border-gray-700 rounded-xl p-4 space-y-3"
+                                                        >
+                                                            <div className="flex items-start justify-between gap-3">
+                                                                <div>
+                                                                    <p className="font-bold text-gray-800 dark:text-white">
+                                                                        Fatura {invoice.competenceMonth}
+                                                                    </p>
+                                                                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                                                                        Vencimento: {new Date(`${invoice.dueDate}T12:00:00`).toLocaleDateString('pt-BR')}
+                                                                    </p>
+                                                                </div>
+
+                                                                <span className="text-xs font-bold px-2 py-1 rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300">
+                                                                    {getInvoiceStatusLabel(invoice.status)}
+                                                                </span>
+                                                            </div>
+
+                                                            <div className="grid grid-cols-3 gap-2 text-xs">
+                                                                <div>
+                                                                    <p className="text-gray-500 dark:text-gray-400">Total</p>
+                                                                    <p className="font-bold">{formatCurrency(invoice.totalAmount)}</p>
+                                                                </div>
+                                                                <div>
+                                                                    <p className="text-gray-500 dark:text-gray-400">Pago</p>
+                                                                    <p className="font-bold">{formatCurrency(invoice.paidAmount)}</p>
+                                                                </div>
+                                                                <div>
+                                                                    <p className="text-gray-500 dark:text-gray-400">Restante</p>
+                                                                    <p className="font-bold">{formatCurrency(invoice.remainingAmount)}</p>
+                                                                </div>
+                                                            </div>
+
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setSelectedInvoiceForDetails(invoice)}
+                                                                className="w-full py-2 rounded-lg font-bold bg-white dark:bg-dark-300 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-dark-400 transition-all"
+                                                            >
+                                                                Ver detalhes da fatura
+                                                            </button>
+
+                                                            <button
+                                                                type="button"
+                                                                disabled={!canPay || registerInvoicePaymentMutation.isPending}
+                                                                onClick={() => handlePayInvoice(invoice)}
+                                                                className={`w-full py-2.5 rounded-lg font-bold transition-all ${canPay && !registerInvoicePaymentMutation.isPending
+                                                                    ? 'bg-green-600 hover:bg-green-700 text-white shadow-md'
+                                                                    : 'bg-gray-200 dark:bg-dark-300 text-gray-400 cursor-not-allowed'
+                                                                    }`}
+                                                            >
+                                                                {invoice.status === 'paid'
+                                                                    ? 'Fatura paga'
+                                                                    : registerInvoicePaymentMutation.isPending
+                                                                        ? 'Processando...'
+                                                                        : 'Pagar fatura'}
+                                                            </button>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
 
                             {isPJ && cardReport && (
-                                <div className="space-y-4">
+                                <div className="space-y-3">
                                     <h4 className="font-bold text-gray-800 dark:text-white flex items-center gap-2 border-b pb-2">
-                                        <ChartBarIcon className="w-4 h-4 text-indigo-600" /> Relatório do Cartão
+                                        <ChartBarIcon className="w-4 h-4 text-indigo-600" /> Compras recentes
                                     </h4>
 
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        <div className="bg-gray-50 dark:bg-dark-200 p-3 rounded-lg border border-gray-100">
-                                            <p className="text-[10px] font-bold text-gray-500 uppercase mb-2">Gastos por Categoria</p>
-                                            <div className="h-32">
-                                                <ResponsiveContainer width="100%" height="100%">
-                                                    <PieChart>
-                                                        <Pie data={cardReport.categoryData} innerRadius={25} outerRadius={45} paddingAngle={2} dataKey="value">
-                                                            {cardReport.categoryData.map((_, index) => (
-                                                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                                            ))}
-                                                        </Pie>
-                                                        <ReTooltip contentStyle={{ fontSize: '10px' }} />
-                                                    </PieChart>
-                                                </ResponsiveContainer>
-                                            </div>
+                                    {isLoadingSelectedCardRecentPurchases && (
+                                        <div className="text-sm text-gray-500 dark:text-gray-400">
+                                            Carregando compras recentes...
                                         </div>
+                                    )}
 
-                                        <div className="bg-gray-50 dark:bg-dark-200 p-3 rounded-lg border border-gray-100">
-                                            <p className="text-[10px] font-bold text-gray-500 uppercase mb-2">Maiores Fornecedores</p>
-                                            <div className="space-y-2">
-                                                {cardReport.topSuppliers.map((sup, i) => (
-                                                    <div key={i} className="flex justify-between items-center text-xs">
-                                                        <span className="truncate max-w-[80px] font-medium"><BuildingIcon className="w-2 h-2 inline mr-1" /> {sup.name}</span>
-                                                        <span className="font-bold">R$ {sup.value.toFixed(0)}</span>
-                                                    </div>
-                                                ))}
-                                                {cardReport.topSuppliers.length === 0 && <p className="text-[10px] text-gray-400 italic">Sem fornecedores listados.</p>}
-                                            </div>
+                                    {!isLoadingSelectedCardRecentPurchases && selectedCardRecentPurchases.length === 0 && (
+                                        <div className="text-sm text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-dark-200 p-3 rounded-lg">
+                                            Nenhuma compra recente neste cartão.
                                         </div>
-                                    </div>
+                                    )}
+
+                                    {!isLoadingSelectedCardRecentPurchases && selectedCardRecentPurchases.length > 0 && (
+                                        <div className="space-y-2">
+                                            {selectedCardRecentPurchases.map((purchase) => (
+                                                <div
+                                                    key={purchase.id}
+                                                    className="flex items-center justify-between gap-3 text-sm bg-gray-50 dark:bg-dark-200 border border-gray-100 dark:border-gray-700 rounded-lg p-3"
+                                                >
+                                                    <div>
+                                                        <p className="font-bold text-gray-800 dark:text-white">
+                                                            {purchase.description}
+                                                        </p>
+                                                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                                                            {new Date(`${purchase.purchaseDate}T12:00:00`).toLocaleDateString('pt-BR')}
+                                                            {' · '}
+                                                            {purchase.installmentsCount === 1
+                                                                ? 'À vista no cartão'
+                                                                : `${purchase.installmentsCount} parcelas`}
+                                                        </p>
+                                                    </div>
+
+                                                    <p className="font-bold text-gray-800 dark:text-white">
+                                                        {formatCurrency(purchase.totalAmount)}
+                                                    </p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                             )}
 
@@ -624,8 +1057,16 @@ const CreditCardsView: React.FC<CreditCardsViewProps> = ({ transactions }) => {
                 </div>
             )}
 
-            <CreditCardForm isOpen={isFormOpen} onClose={() => setIsFormOpen(false)} onSave={handleSave} cardToEdit={cardToEdit} />
-
+            {selectedInvoiceForDetailsView && (
+                <CreditCardInvoiceDetailsDrawer
+                    invoice={selectedInvoiceForDetailsView}
+                    onClose={() => setSelectedInvoiceForDetails(null)}
+                    onPayInvoice={handlePayInvoice}
+                    onReversePayment={handleReverseInvoicePayment}
+                    isPayingInvoice={registerInvoicePaymentMutation.isPending}
+                    isReversingPayment={reverseInvoicePaymentMutation.isPending}
+                />
+            )}
             <style>{`
                 @keyframes slide-in-right { from { transform: translateX(100%); } to { transform: translateX(0); } }
                 .animate-slide-in-right { animation: slide-in-right 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }

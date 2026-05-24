@@ -21,6 +21,9 @@ import CatalogVisualChip from './CatalogVisualChip.tsx';
 import { useSettingsCatalog } from '../modules/settings-catalog/hooks.ts';
 import { resolveTransactionVisuals } from '../modules/settings-catalog/display.ts';
 import {
+    getCreditCardInvoiceBadgeClassName,
+    getCreditCardInvoiceBadgeLabel,
+    getCreditCardInvoiceSecondaryText,
     isCreditCardInvoiceCompatibleTransaction,
     isCreditCardInvoicePaymentCashTransaction,
 } from '../modules/credit-cards/compatibility';
@@ -194,16 +197,16 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({
     const filteredTransactions = useMemo(() => {
         const normalizedSearch = normalizeText(searchTerm);
 
-       return transactions.filter((transaction) => {
-    if (
-        viewType === 'despesa' &&
-        isCreditCardInvoicePaymentCashTransaction(transaction)
-    ) {
-        return false;
-    }
+        return transactions.filter((transaction) => {
+            if (
+                viewType === 'despesa' &&
+                isCreditCardInvoicePaymentCashTransaction(transaction)
+            ) {
+                return false;
+            }
 
-    const searchableFields = [
-        transaction.description,
+            const searchableFields = [
+                transaction.description,
                 transaction.category,
                 transaction.date,
                 transaction.incomeType,
@@ -690,6 +693,15 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({
                                         catalogItems,
                                     });
                                     const isCreditCardInvoiceProjection = isCreditCardInvoiceCompatibleTransaction(transaction);
+                                    const creditCardInvoiceBadgeLabel = isCreditCardInvoiceProjection
+                                        ? getCreditCardInvoiceBadgeLabel(transaction.creditCardCompatibility.invoiceStatus)
+                                        : null;
+                                    const creditCardInvoiceBadgeClassName = isCreditCardInvoiceProjection
+                                        ? getCreditCardInvoiceBadgeClassName(transaction.creditCardCompatibility.invoiceStatus)
+                                        : null;
+                                    const creditCardInvoiceSecondaryText = isCreditCardInvoiceProjection
+                                        ? getCreditCardInvoiceSecondaryText(transaction)
+                                        : null;
 
                                     return (
                                         <tr
@@ -782,10 +794,16 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({
                                                                 </div>
                                                             )}
 
+                                                            {creditCardInvoiceSecondaryText && (
+                                                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                                                    {creditCardInvoiceSecondaryText}
+                                                                </p>
+                                                            )}
+
                                                             <div className="mt-1 flex flex-wrap items-center gap-2">
-                                                                {isCreditCardInvoiceProjection ? (
-                                                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-bold bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300">
-                                                                        FATURA
+                                                                {isCreditCardInvoiceProjection && creditCardInvoiceBadgeLabel && creditCardInvoiceBadgeClassName ? (
+                                                                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-bold ${creditCardInvoiceBadgeClassName}`}>
+                                                                        {creditCardInvoiceBadgeLabel}
                                                                     </span>
                                                                 ) : transaction.type === 'parcelado' ? (
                                                                     <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-bold bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300">

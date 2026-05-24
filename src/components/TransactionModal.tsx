@@ -324,6 +324,156 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
         return options;
     }, [mergedWallets, walletId]);
 
+    const normalizeMoney = (amount: number): number =>
+        Math.round((amount + Number.EPSILON) * 100) / 100;
+
+    const formatCurrency = (amount: number): string =>
+        amount.toLocaleString('pt-BR', {
+            style: 'currency',
+            currency: 'BRL',
+        });
+
+    const padDatePart = (value: number): string => String(value).padStart(2, '0');
+
+    const lastDayOfMonth = (year: number, monthIndex: number): number =>
+        new Date(Date.UTC(year, monthIndex + 1, 0)).getUTCDate();
+
+    const parseIsoDateParts = (
+        value: string,
+    ): { year: number; monthIndex: number; day: number } | null => {
+        const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+
+        if (!match) return null;
+
+        const year = Number(match[1]);
+        const month = Number(match[2]);
+        const day = Number(match[3]);
+        const monthIndex = month - 1;
+        const lastDay = lastDayOfMonth(year, monthIndex);
+
+        if (month < 1 || month > 12 || day < 1 || day > lastDay) {
+            return null;
+        }
+
+        return { year, monthIndex, day };
+    };
+
+    const formatCompetenceMonth = (year: number, monthIndex: number): string => {
+        const date = new Date(Date.UTC(year, monthIndex, 1));
+
+        return `${date.getUTCFullYear()}-${padDatePart(date.getUTCMonth() + 1)}`;
+    };
+
+    const addMonthsToCompetence = (
+        competenceMonth: string,
+        months: number,
+    ): string => {
+        const [year, month] = competenceMonth.split('-').map(Number);
+
+        return formatCompetenceMonth(year, month - 1 + months);
+    };
+
+    const formatDateWithSafeDay = (
+        competenceMonth: string,
+        day: number,
+    ): string => {
+        const [year, month] = competenceMonth.split('-').map(Number);
+        const monthIndex = month - 1;
+        const safeDay = Math.min(day, lastDayOfMonth(year, monthIndex));
+
+        return `${year}-${padDatePart(month)}-${padDatePart(safeDay)}`;
+    };
+
+    const calculateFirstInvoiceCompetence = (
+        date: string,
+        closingDay: number,
+    ): string | null => {
+        const parts = parseIsoDateParts(date);
+
+        if (!parts) return null;
+
+        const baseCompetence = formatCompetenceMonth(parts.year, parts.monthIndex);
+
+        return parts.day > closingDay
+            ? addMonthsToCompetence(baseCompetence, 1)
+            : baseCompetence;
+    };
+
+    const getAvailableLimitForCard = (card: CreditCard): number => {
+        if (typeof card.limitAvailable === 'number') {
+            return normalizeMoney(card.limitAvailable);
+        }
+
+        if (typeof card.limitUsed === 'number') {
+            return normalizeMoney(Math.max(card.limitTotal - card.limitUsed, 0));
+        }
+
+        return normalizeMoney(card.limitTotal);
+    };
+
+    const selectedCreditCardForPurchase = useMemo(
+        () => creditCards.find((card) => String(card.id) === selectedCardId),
+        [creditCards, selectedCardId],
+    );
+
+    const creditCardPurchasePreview = useMemo(() => {
+        if (activeTab !== 'parcelado' || !selectedCreditCardForPurchase) {
+            return null;
+        }
+
+        const parsedInstallments = Number.parseInt(installments, 10);
+        const parsedAmount = Number(value);
+
+        if (
+            !Number.isFinite(parsedInstallments) ||
+            parsedInstallments < 1 ||
+            !Number.isFinite(parsedAmount) ||
+            parsedAmount <= 0
+        ) {
+            return null;
+        }
+
+        const totalAmount = normalizeMoney(
+            valueType === 'total'
+                ? parsedAmount
+                : parsedAmount * parsedInstallments,
+        );
+        const installmentAmount = normalizeMoney(totalAmount / parsedInstallments);
+        const firstInvoiceCompetence = calculateFirstInvoiceCompetence(
+            purchaseDate,
+            selectedCreditCardForPurchase.closingDay,
+        );
+
+        if (!firstInvoiceCompetence) {
+            return null;
+        }
+
+        const firstInvoiceDueDate = formatDateWithSafeDay(
+            firstInvoiceCompetence,
+            selectedCreditCardForPurchase.dueDay,
+        );
+        const availableLimit = getAvailableLimitForCard(selectedCreditCardForPurchase);
+        const limitAfterPurchase = normalizeMoney(availableLimit - totalAmount);
+
+        return {
+            totalAmount,
+            installmentAmount,
+            installmentsCount: parsedInstallments,
+            firstInvoiceCompetence,
+            firstInvoiceDueDate,
+            availableLimit,
+            limitAfterPurchase,
+            isLimitInsufficient: limitAfterPurchase < 0,
+        };
+    }, [
+        activeTab,
+        selectedCreditCardForPurchase,
+        installments,
+        value,
+        valueType,
+        purchaseDate,
+    ]);
+
 
 
 
@@ -378,7 +528,7 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
             setDate('');
             setPurchaseDate('');
 
-            setInstallments('2');
+            setInstallments('1');
             setIsPaid(true);
             setIsDeposited(true);
             setSupplier('');
@@ -632,6 +782,18 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
                 return;
             }
 
+            const purchaseTotalAmount = normalizeMoney(
+                valueType === 'total'
+                    ? inputVal
+                    : inputVal * totalInstallments,
+            );
+            const availableLimit = getAvailableLimitForCard(card);
+
+            if (purchaseTotalAmount > availableLimit) {
+                alert("Limite disponível insuficiente para esta compra.");
+                return;
+            }
+
             if (onAddCreditCardPurchase) {
                 await onAddCreditCardPurchase({
                     cardId: String(card.id),
@@ -880,8 +1042,63 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
                             <p className="text-[11px] text-gray-500 dark:text-gray-400 mb-1">
                                 Use 1 para compra à vista no cartão.
                             </p>
-                            <input type="number" value={installments} onChange={e => setInstallments(e.target.value)} min="2" max="60" className={commonInputClasses} required disabled={isEditing} />
+                            <input type="number" value={installments} onChange={e => setInstallments(e.target.value)} min="1" max="60" className={commonInputClasses} required disabled={isEditing} />
                         </div>
+
+                        {creditCardPurchasePreview && (
+                            <div className={`mt-3 rounded-lg border p-3 text-xs ${creditCardPurchasePreview.isLimitInsufficient
+                                ? 'border-red-300 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-300'
+                                : 'border-indigo-200 bg-indigo-50 text-indigo-700 dark:border-indigo-800 dark:bg-indigo-900/20 dark:text-indigo-300'
+                                }`}>
+                                <p className="font-bold mb-2">
+                                    Prévia antes de confirmar
+                                </p>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    <div>
+                                        <p className="opacity-75">Primeira fatura</p>
+                                        <p className="font-bold">{creditCardPurchasePreview.firstInvoiceCompetence}</p>
+                                    </div>
+
+                                    <div>
+                                        <p className="opacity-75">Vencimento previsto</p>
+                                        <p className="font-bold">
+                                            {new Date(`${creditCardPurchasePreview.firstInvoiceDueDate}T12:00:00`).toLocaleDateString('pt-BR')}
+                                        </p>
+                                    </div>
+
+                                    <div>
+                                        <p className="opacity-75">Valor total da compra</p>
+                                        <p className="font-bold">{formatCurrency(creditCardPurchasePreview.totalAmount)}</p>
+                                    </div>
+
+                                    <div>
+                                        <p className="opacity-75">Valor médio da parcela</p>
+                                        <p className="font-bold">
+                                            {formatCurrency(creditCardPurchasePreview.installmentAmount)}
+                                            {' '}
+                                            em {creditCardPurchasePreview.installmentsCount}x
+                                        </p>
+                                    </div>
+
+                                    <div>
+                                        <p className="opacity-75">Limite disponível atual</p>
+                                        <p className="font-bold">{formatCurrency(creditCardPurchasePreview.availableLimit)}</p>
+                                    </div>
+
+                                    <div>
+                                        <p className="opacity-75">Limite após a compra</p>
+                                        <p className="font-bold">{formatCurrency(creditCardPurchasePreview.limitAfterPurchase)}</p>
+                                    </div>
+                                </div>
+
+                                <p className="mt-2 font-medium">
+                                    {creditCardPurchasePreview.isLimitInsufficient
+                                        ? 'Limite insuficiente para esta compra.'
+                                        : 'A compra consome limite agora. O caixa só será afetado no pagamento da fatura.'}
+                                </p>
+                            </div>
+                        )}
                     </div>
                 </>
             );
@@ -1199,7 +1416,7 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
                                     className={tabClasses('parcelado')}
                                     type="button"
                                 >
-                                    Parcelado
+                                    Cartão
                                 </button>
                             )}
                         </div>

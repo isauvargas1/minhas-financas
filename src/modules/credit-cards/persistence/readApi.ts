@@ -1,4 +1,5 @@
 import {
+  documentId,
   getDoc,
   getDocs,
   limit as firestoreLimit,
@@ -245,6 +246,49 @@ export const listCreditCardPurchasesByCard = async (
   );
 
   return mapDocs<CreditCardPurchase>(snapshot);
+};
+
+const chunkArray = <TValue,>(
+  values: TValue[],
+  chunkSize: number
+): TValue[][] => {
+  const chunks: TValue[][] = [];
+
+  for (let index = 0; index < values.length; index += chunkSize) {
+    chunks.push(values.slice(index, index + chunkSize));
+  }
+
+  return chunks;
+};
+
+export const listCreditCardPurchasesByIds = async (
+  workspaceId: string,
+  purchaseIds: string[]
+): Promise<CreditCardPurchase[]> => {
+  const uniquePurchaseIds = Array.from(
+    new Set(purchaseIds.filter((purchaseId) => Boolean(purchaseId)))
+  );
+
+  if (uniquePurchaseIds.length === 0) {
+    return [];
+  }
+
+  const snapshots = await Promise.all(
+    chunkArray(uniquePurchaseIds, 30).map((purchaseIdChunk) =>
+      getDocs(
+        query(
+          creditCardPurchasesCollectionRef(workspaceId),
+          where(documentId(), 'in', purchaseIdChunk)
+        )
+      )
+    )
+  );
+
+  return snapshots.reduce<CreditCardPurchase[]>((accumulator, snapshot) => {
+    accumulator.push(...mapDocs<CreditCardPurchase>(snapshot));
+
+    return accumulator;
+  }, []);
 };
 
 export const listCreditCardInvoicePaymentsByInvoice = async (

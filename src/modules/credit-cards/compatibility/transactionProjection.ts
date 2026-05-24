@@ -91,6 +91,50 @@ export const isCreditCardInvoiceCompatibleTransaction = (
 ): transaction is CreditCardInvoiceCompatibleTransaction =>
   transaction.creditCardCompatibility?.source === 'credit_card_invoice';
 
+  export const getCreditCardInvoiceStatusLabel = (
+  status: CreditCardInvoiceStatus
+): string => {
+  const labels: Record<CreditCardInvoiceStatus, string> = {
+    open: 'Aberta',
+    closed: 'Fechada',
+    partial_paid: 'Parcial',
+    paid: 'Paga',
+    overdue: 'Vencida',
+    cancelled: 'Cancelada',
+  };
+
+  return labels[status];
+};
+
+export const getCreditCardInvoiceBadgeLabel = (
+  status: CreditCardInvoiceStatus
+): string => `Fatura ${getCreditCardInvoiceStatusLabel(status)}`;
+
+export const getCreditCardInvoiceBadgeClassName = (
+  status: CreditCardInvoiceStatus
+): string => {
+  const classNames: Record<CreditCardInvoiceStatus, string> = {
+    open: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300',
+    closed: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
+    partial_paid: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
+    paid: 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300',
+    overdue: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300',
+    cancelled: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300',
+  };
+
+  return classNames[status];
+};
+
+export const getCreditCardInvoiceSecondaryText = (
+  transaction: CreditCardInvoiceCompatibleTransaction
+): string => {
+  const statusLabel = getCreditCardInvoiceStatusLabel(
+    transaction.creditCardCompatibility.invoiceStatus
+  );
+
+  return `Fatura do cartão · ${statusLabel} · Competência ${transaction.creditCardCompatibility.competenceMonth}`;
+};
+
 export const buildCreditCardInvoiceTransactionProjection = (
   invoice: CreditCardInvoiceProjection
 ): CreditCardInvoiceCompatibleTransaction => {

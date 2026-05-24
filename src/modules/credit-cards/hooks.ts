@@ -18,7 +18,9 @@ import {
     listCardLimitSnapshotsByWorkspace,
     listCreditCardInstallmentsByInvoice,
     listCreditCardInvoicePaymentsByInvoice,
+    listCreditCardPurchasesByIds,
     listOpenCreditCardInvoicesByCard,
+    listCreditCardPurchasesByCard,
 } from './persistence/readApi';
 import { CreditCard } from '../../types';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
@@ -28,6 +30,12 @@ export const KEYS = {
     invoicesByCard: (ws: string, cardId: string) => ['creditCardInvoicesByCard', ws, cardId],
     invoiceInstallments: (ws: string, invoiceId: string) => ['creditCardInvoiceInstallments', ws, invoiceId],
     invoicePayments: (ws: string, invoiceId: string) => ['creditCardInvoicePayments', ws, invoiceId],
+    purchasesByIds: (ws: string, purchaseIds: string[]) => [
+        'creditCardPurchasesByIds',
+        ws,
+        ...purchaseIds,
+    ],
+    recentPurchasesByCard: (ws: string, cardId: string) => ['creditCardRecentPurchasesByCard', ws, cardId],
 };
 
 const mergeCardsWithLimitSnapshots = async (
@@ -266,6 +274,54 @@ export const useCreditCardInvoicePayments = (
             return listCreditCardInvoicePaymentsByInvoice(workspaceId, invoiceId);
         },
         enabled: isWorkspaceReady(workspaceId) && Boolean(invoiceId),
+        staleTime: 1000 * 60 * 2,
+    });
+};
+
+export const useRecentCreditCardPurchasesByCard = (
+    cardId?: string | null
+) => {
+    const { activeWorkspace } = useWorkspace();
+    const workspaceId = activeWorkspace?.id;
+
+    return useQuery({
+        queryKey: isWorkspaceReady(workspaceId) && cardId
+            ? KEYS.recentPurchasesByCard(workspaceId, cardId)
+            : ['creditCardRecentPurchasesByCard', 'disabled'],
+        queryFn: () => {
+            if (!isWorkspaceReady(workspaceId) || !cardId) {
+                return Promise.resolve([]);
+            }
+
+            return listCreditCardPurchasesByCard(workspaceId, cardId, {
+                limit: 8,
+                statuses: ['active'],
+            });
+        },
+        enabled: isWorkspaceReady(workspaceId) && Boolean(cardId),
+        staleTime: 1000 * 60 * 2,
+    });
+};
+
+export const useCreditCardPurchasesByIds = (
+    purchaseIds: string[]
+) => {
+    const { activeWorkspace } = useWorkspace();
+    const workspaceId = activeWorkspace?.id;
+    const uniquePurchaseIds = Array.from(new Set(purchaseIds.filter(Boolean))).sort();
+
+    return useQuery({
+        queryKey: isWorkspaceReady(workspaceId) && uniquePurchaseIds.length > 0
+            ? KEYS.purchasesByIds(workspaceId, uniquePurchaseIds)
+            : ['creditCardPurchasesByIds', 'disabled'],
+        queryFn: () => {
+            if (!isWorkspaceReady(workspaceId) || uniquePurchaseIds.length === 0) {
+                return Promise.resolve([]);
+            }
+
+            return listCreditCardPurchasesByIds(workspaceId, uniquePurchaseIds);
+        },
+        enabled: isWorkspaceReady(workspaceId) && uniquePurchaseIds.length > 0,
         staleTime: 1000 * 60 * 2,
     });
 };
