@@ -366,3 +366,71 @@ export const listCreditCardInvoiceViewsForExpenseCompatibility = async (
 
   return mapDocs<CreditCardInvoiceProjection>(snapshot);
 };
+
+export const listCreditCardInvoicesForReports = async (
+  workspaceId: string,
+  options: CreditCardQueryLimitOptions = {}
+): Promise<CreditCardInvoice[]> => {
+  const snapshot = await getDocs(
+    query(
+      creditCardInvoicesCollectionRef(workspaceId),
+      ...withOptionalLimit(
+        [orderBy('dueDate', 'asc')],
+        options.limit
+      )
+    )
+  );
+
+  return mapDocs<CreditCardInvoice>(snapshot);
+};
+
+export const listCreditCardInstallmentsForReports = async (
+  workspaceId: string,
+  options: CreditCardQueryLimitOptions = {}
+): Promise<CreditCardInstallment[]> => {
+  const snapshot = await getDocs(
+    query(
+      creditCardInstallmentsCollectionRef(workspaceId),
+      ...withOptionalLimit(
+        [orderBy('dueDate', 'asc')],
+        options.limit
+      )
+    )
+  );
+
+  return mapDocs<CreditCardInstallment>(snapshot);
+};
+
+export const listCreditCardInvoicePaymentsForReports = async (
+  workspaceId: string,
+  options: CreditCardQueryLimitOptions = {}
+): Promise<CreditCardInvoicePayment[]> => {
+  const snapshot = await getDocs(
+    query(
+      creditCardInvoicePaymentsCollectionRef(workspaceId),
+      ...withOptionalLimit(
+        [orderBy('paymentDate', 'desc')],
+        options.limit
+      )
+    )
+  );
+
+  return mapDocs<CreditCardInvoicePayment>(snapshot);
+};
+
+export const listCreditCardPurchasesForReports = async (
+  workspaceId: string,
+  options: CreditCardQueryLimitOptions = {}
+): Promise<CreditCardPurchase[]> => {
+  const snapshot = await getDocs(
+    query(
+      creditCardPurchasesCollectionRef(workspaceId),
+      ...withOptionalLimit(
+        [orderBy('purchaseDate', 'desc')],
+        options.limit
+      )
+    )
+  );
+
+  return mapDocs<CreditCardPurchase>(snapshot);
+};

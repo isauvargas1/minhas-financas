@@ -1,17 +1,19 @@
-import { 
-    FinancialReportSnapshot, 
-    ReportTimeRange, 
-    FinanceAIAnswer, 
-    FinancialAlert 
+import {
+    FinancialReportSnapshot,
+    ReportTimeRange,
+    FinanceAIAnswer,
+    FinancialAlert,
+    CreditCardReportDomainData,
 } from './types';
-import { 
-    calculateKPIs, 
-    calculateCashFlow, 
-    calculateCategoryBreakdown, 
-    calculateDebtProfile, 
+import {
+    calculateKPIs,
+    calculateCashFlow,
+    calculateCategoryBreakdown,
+    calculateDebtProfile,
     generateAlerts,
     calculateTopClients,
-    calculateReceivablesStatus 
+    calculateReceivablesStatus,
+    calculateCreditCardExpenseReportViews,
 } from './logic';
 import { Transaction, Goal, CreditCard, Loan } from '../../types';
 // CORRECTED IMPORT
@@ -27,9 +29,10 @@ export const getFinancialReportSnapshot = async (
     range: ReportTimeRange = '30d',
     workspace?: Workspace,
     receivables?: Receivable[],
-    clients?: Client[]
+    clients?: Client[],
+    creditCardDomainData?: CreditCardReportDomainData
 ): Promise<FinancialReportSnapshot> => {
-    
+
     // Simulate network delay (optional)
     await new Promise(resolve => setTimeout(resolve, 600));
 
@@ -46,8 +49,18 @@ export const getFinancialReportSnapshot = async (
     const kpis = calculateKPIs(transactions, range, workspace, receivables, loans);
     const cashFlow = calculateCashFlow(transactions);
     const expenseCategories = calculateCategoryBreakdown(transactions, range);
-    const debtProfile = calculateDebtProfile(transactions, creditCards);
-    
+    const debtProfile = calculateDebtProfile(
+        transactions,
+        creditCards,
+        creditCardDomainData
+    );
+
+    const creditCardExpenseReportViews = calculateCreditCardExpenseReportViews(
+    creditCards,
+    creditCardDomainData,
+    range
+);
+
     const alerts = generateAlerts(kpis, debtProfile, workspace, receivables);
 
     let topClients = undefined;
@@ -65,7 +78,9 @@ export const getFinancialReportSnapshot = async (
         cashFlow,
         expenseCategories,
         debtProfile,
-        investmentOverview: undefined, 
+        creditCardIndicators: debtProfile.creditCardIndicators,
+        creditCardExpenseReportViews,
+        investmentOverview: undefined,
         topClients,
         receivablesStatus,
         alerts
@@ -88,13 +103,13 @@ export const markAlertAsRead = async (alertId: string): Promise<void> => {
 };
 
 export const askFinanceAI = async (
-    question: string, 
+    question: string,
     contextSnapshot: FinancialReportSnapshot
 ): Promise<FinanceAIAnswer> => {
-    
+
     // Use VITE_ prefix for Vite environment variables if applicable, or fallback to process.env
     const apiKey = import.meta.env?.VITE_GOOGLE_AI_KEY || process.env.API_KEY;
-    
+
     if (!apiKey) {
         console.warn("API Key not found. Please set VITE_GOOGLE_AI_KEY in .env");
         return {
@@ -110,11 +125,11 @@ export const askFinanceAI = async (
         const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
 
         const isPJ = contextSnapshot.kpis.some(k => k.id === 'kpi-net-profit');
-        
+
         const kpiSummary = contextSnapshot.kpis.map(k => `${k.label}: ${k.formattedValue}`).join('; ');
         const topCategories = contextSnapshot.expenseCategories.slice(0, 5).map(c => `${c.categoryName} (${c.percentageOfTotal.toFixed(1)}%)`).join(', ');
         const alertsSummary = contextSnapshot.alerts.map(a => `[${a.severity.toUpperCase()}] ${a.title}: ${a.message}`).join('\n');
-        
+
         const debtVal = contextSnapshot.kpis.find(k => k.id === 'kpi-debt-total')?.value || 0;
         const finExpVal = contextSnapshot.kpis.find(k => k.id === 'kpi-financial-exp')?.value || 0;
 
@@ -153,9 +168,9 @@ export const askFinanceAI = async (
         const result = await model.generateContent([systemPrompt]); // Assuming question is part of the flow or separate
         // To include the user question explicitly if needed by the prompt logic:
         // const result = await model.generateContent([systemPrompt, question]); 
-        
+
         // Note: The prompt construction above embeds the question, so sending just systemPrompt string is fine if it contains everything.
-        
+
         const response = await result.response;
         const text = response.text();
 

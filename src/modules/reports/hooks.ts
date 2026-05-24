@@ -2,13 +2,25 @@ import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import * as api from './api';
 import { Transaction, Goal, CreditCard } from '../../types';
-import { ReportTimeRange, FinancialReportSnapshot } from './types';
+import {
+    ReportTimeRange,
+    FinancialReportSnapshot,
+    CreditCardReportDomainData,
+} from './types';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
 import { Receivable, Client } from '../clients/types';
+import {
+    listCreditCardInstallmentsForReports,
+    listCreditCardInvoicePaymentsForReports,
+    listCreditCardInvoicesForReports,
+    listCreditCardPurchasesForReports,
+} from '../credit-cards/persistence/readApi';
 
 export const reportKeys = {
     snapshot: (range: string, ws: string) => ['financialReportSnapshot', range, ws],
+    creditCardDomain: (ws: string) => ['financialReportCreditCardDomain', ws],
 };
+
 
 const buildTransactionsVersion = (transactions: Transaction[]): string =>
     transactions
@@ -77,16 +89,51 @@ export const useFinancialReportSnapshot = (
     const { activeWorkspace } = useWorkspace();
 
 
+    const workspaceId = activeWorkspace?.id;
+
+    const creditCardDomainQuery = useQuery({
+        queryKey: workspaceId && workspaceId !== 'loading'
+            ? reportKeys.creditCardDomain(workspaceId)
+            : ['financialReportCreditCardDomain', 'disabled'],
+        queryFn: async (): Promise<CreditCardReportDomainData> => {
+            if (!workspaceId || workspaceId === 'loading') {
+                return EMPTY_CREDIT_CARD_REPORT_DOMAIN_DATA;
+            }
+
+            const [purchases, invoices, installments, payments] = await Promise.all([
+                listCreditCardPurchasesForReports(workspaceId, { limit: 1000 }),
+                listCreditCardInvoicesForReports(workspaceId, { limit: 500 }),
+                listCreditCardInstallmentsForReports(workspaceId, { limit: 1000 }),
+                listCreditCardInvoicePaymentsForReports(workspaceId, { limit: 500 }),
+            ]);
+
+            return {
+                purchases,
+                invoices,
+                installments,
+                payments,
+            };
+        },
+        enabled: Boolean(workspaceId) && workspaceId !== 'loading',
+        staleTime: 1000 * 60 * 2,
+    });
+
+    const creditCardDomainData =
+        creditCardDomainQuery.data ?? EMPTY_CREDIT_CARD_REPORT_DOMAIN_DATA;
+
     const dataVersion = [
         buildTransactionsVersion(transactions),
         buildGoalsVersion(goals),
         buildCreditCardsVersion(creditCards),
         buildReceivablesVersion(receivables),
         buildClientsVersion(clients),
+        buildCreditCardDomainVersion(creditCardDomainData),
     ].join('::');
-    
+
     return useQuery({
-        queryKey: [...reportKeys.snapshot(range, activeWorkspace.id), dataVersion],
+        queryKey: workspaceId && workspaceId !== 'loading'
+            ? [...reportKeys.snapshot(range, workspaceId), dataVersion]
+            : ['financialReportSnapshot', range, 'disabled', dataVersion],
         queryFn: () => api.getFinancialReportSnapshot(
             transactions,
             goals,
@@ -94,12 +141,71 @@ export const useFinancialReportSnapshot = (
             range,
             activeWorkspace,
             receivables,
-            clients
+            clients,
+            creditCardDomainData
         ),
-        enabled: !!activeWorkspace.id,
-        staleTime: 1000 * 60 * 5 // Cache de 5 min
+        enabled: Boolean(workspaceId) && workspaceId !== 'loading' && !creditCardDomainQuery.isLoading,
+        staleTime: 1000 * 60 * 5
     });
 };
+
+const EMPTY_CREDIT_CARD_REPORT_DOMAIN_DATA: CreditCardReportDomainData = {
+    purchases: [],
+    invoices: [],
+    installments: [],
+    payments: [],
+};
+
+const buildCreditCardDomainVersion = (
+    data: CreditCardReportDomainData,
+): string =>
+    [
+
+        data.purchases
+            .map((purchase) => [
+                purchase.id,
+                purchase.cardId,
+                purchase.status,
+                purchase.purchaseDate,
+                purchase.totalAmount,
+                purchase.installmentsCount,
+            ].join(':'))
+            .join('|'),
+
+        data.invoices
+            .map((invoice) => [
+                invoice.id,
+                invoice.cardId,
+                invoice.status,
+                invoice.totalAmount,
+                invoice.paidAmount,
+                invoice.remainingAmount,
+                invoice.dueDate,
+            ].join(':'))
+            .join('|'),
+        data.installments
+            .map((installment) => [
+                installment.id,
+                installment.cardId,
+                installment.purchaseId,
+                installment.invoiceId,
+                installment.status,
+                installment.amount,
+                installment.dueDate,
+                installment.competenceMonth,
+            ].join(':'))
+            .join('|'),
+        data.payments
+            .map((payment) => [
+                payment.id,
+                payment.cardId,
+                payment.invoiceId,
+                payment.status,
+                payment.amount,
+                payment.paymentDate,
+            ].join(':'))
+            .join('|'),
+    ].join('::');
 
 export const useFinancialAlerts = (snapshotData?: FinancialReportSnapshot) => {
     const [readAlertIds, setReadAlertIds] = useState<string[]>([]);

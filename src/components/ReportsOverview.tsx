@@ -2,14 +2,14 @@
 import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { FinancialReportSnapshot } from '../modules/reports/types.ts';
-import { 
-    TrendingUpIcon, WalletIcon, ChartBarIcon, ArrowUpIcon, 
+import {
+    TrendingUpIcon, WalletIcon, ChartBarIcon, ArrowUpIcon,
     ArrowDownIcon, TargetIcon, BuildingIcon, SparklesIcon,
     BriefcaseIcon, PiggyBankIcon, WarningIcon, CheckIcon, DynamicIcon
 } from './Icons.tsx';
 import ReportsAlertsPanel from './ReportsAlertsPanel.tsx';
 import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
-
+const MotionDiv = motion.div as any;
 interface ReportsOverviewProps {
     snapshot?: FinancialReportSnapshot;
     isLoading?: boolean;
@@ -34,7 +34,7 @@ const KPICard: React.FC<{
     bg: string;
     description?: string;
 }> = ({ label, value, trend, icon, color, bg, description }) => (
-    <motion.div 
+    <MotionDiv
         whileHover={{ y: -4 }}
         className="bg-surface rounded-card p-6 border border-border shadow-sm flex flex-col justify-between h-full group transition-all duration-300 hover:shadow-lg relative overflow-hidden"
     >
@@ -43,10 +43,9 @@ const KPICard: React.FC<{
                 {icon}
             </div>
             {trend && trend !== 'stable' && (
-                <div className={`text-[10px] font-bold px-2 py-1 rounded-full flex items-center gap-1 ${
-                    trend === 'up' ? 'bg-green-100 text-green-700 dark:bg-green-900/30' : 'bg-red-100 text-red-700 dark:bg-red-900/30'
-                }`}>
-                    {trend === 'up' ? '↑' : '↓'} 
+                <div className={`text-[10px] font-bold px-2 py-1 rounded-full flex items-center gap-1 ${trend === 'up' ? 'bg-green-100 text-green-700 dark:bg-green-900/30' : 'bg-red-100 text-red-700 dark:bg-red-900/30'
+                    }`}>
+                    {trend === 'up' ? '↑' : '↓'}
                     <span className="uppercase">{trend === 'up' ? 'Alta' : 'Baixa'}</span>
                 </div>
             )}
@@ -56,87 +55,87 @@ const KPICard: React.FC<{
             <h3 className="text-2xl font-black text-on-surface tracking-tight">{value}</h3>
             {description && <p className="text-[10px] text-muted mt-1 font-medium leading-tight">{description}</p>}
         </div>
-        
+
         {/* Decorative element */}
         <div className={`absolute -bottom-4 -right-4 w-24 h-24 rounded-full opacity-[0.03] ${color.replace('text-', 'bg-')} pointer-events-none transition-transform duration-700 group-hover:scale-150`}></div>
-    </motion.div>
+    </MotionDiv>
 );
 
 const ReportsOverview: React.FC<ReportsOverviewProps> = ({ snapshot, isLoading }) => {
     const { activeWorkspace } = useWorkspace();
     const isPJ = activeWorkspace.type === 'PJ';
-    const MotionDiv = motion.div as any;
+    
 
     const kpiData = useMemo(() => {
         if (!snapshot) return [];
         const find = (id: string) => snapshot.kpis.find(k => k.id === id);
-        
+
         if (isPJ) {
             return [
-                { 
-                    label: 'Faturamento', 
-                    id: 'kpi-gross-revenue', 
-                    icon: <BriefcaseIcon className="w-6 h-6" />, 
-                    color: 'text-indigo-600 dark:text-indigo-400', 
-                    bg: 'bg-indigo-50 dark:bg-indigo-900/20' 
+                {
+                    label: 'Faturamento',
+                    id: 'kpi-gross-revenue',
+                    icon: <BriefcaseIcon className="w-6 h-6" />,
+                    color: 'text-indigo-600 dark:text-indigo-400',
+                    bg: 'bg-indigo-50 dark:bg-indigo-900/20'
                 },
-                { 
-                    label: 'Margem Líquida', 
-                    id: 'kpi-profit-margin', 
-                    icon: <TrendingUpIcon className="w-6 h-6" />, 
-                    color: 'text-emerald-600 dark:text-emerald-400', 
-                    bg: 'bg-emerald-50 dark:bg-emerald-900/20' 
+                {
+                    label: 'Margem Líquida',
+                    id: 'kpi-profit-margin',
+                    icon: <TrendingUpIcon className="w-6 h-6" />,
+                    color: 'text-emerald-600 dark:text-emerald-400',
+                    bg: 'bg-emerald-50 dark:bg-emerald-900/20'
                 },
-                { 
-                    label: 'Contas a Receber', 
-                    id: 'kpi-receivables-total', 
-                    icon: <WalletIcon className="w-6 h-6" />, 
-                    color: 'text-blue-600 dark:text-blue-400', 
-                    bg: 'bg-blue-50 dark:bg-blue-900/20' 
+                {
+                    label: 'Contas a Receber',
+                    id: 'kpi-receivables-total',
+                    icon: <WalletIcon className="w-6 h-6" />,
+                    color: 'text-blue-600 dark:text-blue-400',
+                    bg: 'bg-blue-50 dark:bg-blue-900/20'
                 },
-                { 
-                    label: 'Dívida Bancária', 
-                    id: 'kpi-debt-total', 
-                    icon: <BuildingIcon className="w-6 h-6" />, 
-                    color: 'text-red-600 dark:text-red-400', 
-                    bg: 'bg-red-50 dark:bg-red-900/20' 
+                {
+                    label: 'Dívida Bancária',
+                    id: 'kpi-debt-total',
+                    icon: <BuildingIcon className="w-6 h-6" />,
+                    color: 'text-red-600 dark:text-red-400',
+                    bg: 'bg-red-50 dark:bg-red-900/20'
                 }
             ].map(k => ({ ...k, data: find(k.id) }));
         }
 
         return [
-            { 
-                label: 'Receita Total', 
-                id: 'kpi-income', 
-                icon: <ArrowUpIcon className="w-6 h-6" />, 
-                color: 'text-green-600 dark:text-green-400', 
-                bg: 'bg-green-50 dark:bg-green-900/20' 
+            {
+                label: 'Receita Total',
+                id: 'kpi-income',
+                icon: <ArrowUpIcon className="w-6 h-6" />,
+                color: 'text-green-600 dark:text-green-400',
+                bg: 'bg-green-50 dark:bg-green-900/20'
             },
-            { 
-                label: 'Despesa Total', 
-                id: 'kpi-expenses', 
-                icon: <ArrowDownIcon className="w-6 h-6" />, 
-                color: 'text-red-600 dark:text-red-400', 
-                bg: 'bg-red-50 dark:bg-red-900/20' 
+            {
+                label: 'Despesa Total',
+                id: 'kpi-expenses',
+                icon: <ArrowDownIcon className="w-6 h-6" />,
+                color: 'text-red-600 dark:text-red-400',
+                bg: 'bg-red-50 dark:bg-red-900/20'
             },
-            { 
-                label: 'Investimentos', 
-                id: 'kpi-investments', 
-                icon: <ChartBarIcon className="w-6 h-6" />, 
-                color: 'text-blue-600 dark:text-blue-400', 
-                bg: 'bg-blue-50 dark:bg-blue-900/20' 
+            {
+                label: 'Investimentos',
+                id: 'kpi-investments',
+                icon: <ChartBarIcon className="w-6 h-6" />,
+                color: 'text-blue-600 dark:text-blue-400',
+                bg: 'bg-blue-50 dark:bg-blue-900/20'
             },
-            { 
-                label: 'Resultado Líquido', 
-                id: 'kpi-balance', 
-                icon: <PiggyBankIcon className="w-6 h-6" />, 
-                color: 'text-purple-600 dark:text-purple-400', 
-                bg: 'bg-purple-50 dark:bg-purple-900/20' 
+            {
+                label: 'Resultado Líquido',
+                id: 'kpi-balance',
+                icon: <PiggyBankIcon className="w-6 h-6" />,
+                color: 'text-purple-600 dark:text-purple-400',
+                bg: 'bg-purple-50 dark:bg-purple-900/20'
             }
         ].map(k => ({ ...k, data: find(k.id) }));
     }, [snapshot, isPJ]);
 
-    const formatCurrency = (val: number) => 
+    const formatCurrency = (val: number) =>
         new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
 
     const formatDateMonth = (monthStr: string) => {
@@ -144,6 +143,9 @@ const ReportsOverview: React.FC<ReportsOverviewProps> = ({ snapshot, isLoading }
         const date = new Date(parseInt(year), parseInt(month) - 1);
         return date.toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
     };
+
+    const creditCardIndicators = snapshot?.creditCardIndicators ?? [];
+    const hasCreditCardIndicators = creditCardIndicators.length > 0;
 
     if (isLoading || !snapshot) {
         return (
@@ -164,7 +166,7 @@ const ReportsOverview: React.FC<ReportsOverviewProps> = ({ snapshot, isLoading }
             {/* KPI Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {kpiData.map((kpi, index) => (
-                    <KPICard 
+                    <KPICard
                         key={index}
                         label={kpi.label}
                         value={kpi.data?.formattedValue || 'R$ 0,00'}
@@ -176,6 +178,118 @@ const ReportsOverview: React.FC<ReportsOverviewProps> = ({ snapshot, isLoading }
                     />
                 ))}
             </div>
+
+            {hasCreditCardIndicators && (
+                <div className="bg-surface rounded-card border border-border shadow-sm overflow-hidden">
+                    <div className="p-5 border-b border-border bg-background/30">
+                        <h3 className="font-bold text-on-surface flex items-center gap-2">
+                            <WalletIcon className="w-5 h-5 text-primary" />
+                            Indicadores de Cartão de Crédito
+                        </h3>
+                        <p className="text-xs text-muted mt-1">
+                            Visão baseada no domínio oficial de faturas, pagamentos e limite real.
+                        </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4 p-5">
+                        <div className="bg-background rounded-xl border border-border p-4">
+                            <p className="text-xs font-bold text-muted uppercase">Limite usado</p>
+                            <p className="text-xl font-black text-on-surface mt-1">
+                                {formatCurrency(snapshot.debtProfile.totalCreditCardDebt)}
+                            </p>
+                        </div>
+
+                        <div className="bg-background rounded-xl border border-border p-4">
+                            <p className="text-xs font-bold text-muted uppercase">Faturas abertas</p>
+                            <p className="text-xl font-black text-on-surface mt-1">
+                                {formatCurrency(snapshot.debtProfile.creditCardOpenInvoiceBalance)}
+                            </p>
+                        </div>
+
+                        <div className="bg-background rounded-xl border border-border p-4">
+                            <p className="text-xs font-bold text-muted uppercase">Futuro comprometido</p>
+                            <p className="text-xl font-black text-on-surface mt-1">
+                                {formatCurrency(snapshot.debtProfile.creditCardFutureCommittedBalance)}
+                            </p>
+                        </div>
+
+                        <div className="bg-background rounded-xl border border-border p-4">
+                            <p className="text-xs font-bold text-muted uppercase">A vencer em 30 dias</p>
+                            <p className="text-xl font-black text-on-surface mt-1">
+                                {formatCurrency(snapshot.debtProfile.creditCardDueNext30Days)}
+                            </p>
+                        </div>
+
+                        <div className="bg-background rounded-xl border border-border p-4">
+                            <p className="text-xs font-bold text-muted uppercase">Em atraso</p>
+                            <p className={`text-xl font-black mt-1 ${snapshot.debtProfile.creditCardOverdueAmount > 0
+                                ? 'text-red-600'
+                                : 'text-green-600'
+                                }`}>
+                                {formatCurrency(snapshot.debtProfile.creditCardOverdueAmount)}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="overflow-x-auto border-t border-border">
+                        <table className="w-full text-left text-sm">
+                            <thead className="bg-gray-50 dark:bg-dark-300/50 text-muted uppercase text-[10px] font-black tracking-widest">
+                                <tr>
+                                    <th className="px-5 py-4">Cartão</th>
+                                    <th className="px-5 py-4 text-right">Utilização</th>
+                                    <th className="px-5 py-4 text-right">Limite disponível</th>
+                                    <th className="px-5 py-4 text-right">Fatura atual</th>
+                                    <th className="px-5 py-4 text-right">Futuro</th>
+                                    <th className="px-5 py-4 text-right">Atraso</th>
+                                </tr>
+                            </thead>
+
+                            <tbody className="divide-y divide-border">
+                                {creditCardIndicators.map((card) => (
+                                    <tr key={card.cardId} className="hover:bg-background/40 transition-colors">
+                                        <td className="px-5 py-4">
+                                            <p className="font-bold text-on-surface">{card.cardName}</p>
+                                            <p className="text-xs text-muted">
+                                                {card.currentInvoiceDueDate
+                                                    ? `Vencimento atual: ${new Date(`${card.currentInvoiceDueDate}T12:00:00`).toLocaleDateString('pt-BR')}`
+                                                    : 'Sem fatura aberta'}
+                                            </p>
+                                        </td>
+
+                                        <td className="px-5 py-4 text-right">
+                                            <span className={`font-black ${card.utilizationRate >= 90
+                                                ? 'text-red-600'
+                                                : card.utilizationRate >= 75
+                                                    ? 'text-amber-600'
+                                                    : 'text-green-600'
+                                                }`}>
+                                                {card.utilizationRate.toFixed(1)}%
+                                            </span>
+                                        </td>
+
+                                        <td className="px-5 py-4 text-right font-medium text-on-surface">
+                                            {formatCurrency(card.limitAvailable)}
+                                        </td>
+
+                                        <td className="px-5 py-4 text-right font-medium text-on-surface">
+                                            {formatCurrency(card.openInvoiceBalance)}
+                                        </td>
+
+                                        <td className="px-5 py-4 text-right font-medium text-on-surface">
+                                            {formatCurrency(card.futureCommittedBalance)}
+                                        </td>
+
+                                        <td className={`px-5 py-4 text-right font-bold ${card.overdueAmount > 0 ? 'text-red-600' : 'text-green-600'
+                                            }`}>
+                                            {formatCurrency(card.overdueAmount)}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Main Content: Table & Alerts */}
@@ -238,7 +352,7 @@ const ReportsOverview: React.FC<ReportsOverviewProps> = ({ snapshot, isLoading }
                                 </span>
                             </div>
                             <div className="w-full h-2.5 bg-background rounded-full overflow-hidden border border-border/50">
-                                <MotionDiv 
+                                <MotionDiv
                                     initial={{ width: 0 }}
                                     animate={{ width: `${Math.min(100, snapshot.debtProfile.utilizationRate)}%` }}
                                     transition={{ duration: 1.5, ease: "easeOut" }}
@@ -261,7 +375,7 @@ const ReportsOverview: React.FC<ReportsOverviewProps> = ({ snapshot, isLoading }
                                 <SparklesIcon className="w-4 h-4 animate-pulse" /> Insight Financeiro IA
                             </h3>
                             <p className="text-sm text-on-surface/90 leading-relaxed italic font-medium">
-                                {isPJ 
+                                {isPJ
                                     ? "Sua margem líquida atual é de " + (snapshot.kpis.find(k => k.id === 'kpi-profit-margin')?.formattedValue || '0%') + ". No seu setor, margens acima de 15% são consideradas saudáveis para expansão."
                                     : "Sua taxa de poupança está em " + (snapshot.kpis.find(k => k.id === 'kpi-savings')?.value || 0).toFixed(1) + "%. Manter esse ritmo permitirá atingir suas metas de longo prazo antecipadamente."
                                 }

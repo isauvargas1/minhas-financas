@@ -1,29 +1,97 @@
+import type {
+  CreditCardInstallment,
+  CreditCardInvoice,
+  CreditCardInvoicePayment,
+  CreditCardPurchase,
+} from '../credit-cards/domain/types.ts';
 
 export type ReportTimeRange = '7d' | '30d' | '90d' | '12m' | 'ytd' | 'all';
 
 export type ReportType = 'cashflow' | 'category' | 'comparison' | 'heatmap';
 
+export interface CreditCardReportDomainData {
+  purchases: CreditCardPurchase[];
+  invoices: CreditCardInvoice[];
+  installments: CreditCardInstallment[];
+  payments: CreditCardInvoicePayment[];
+}
+
+export interface CreditCardDueBuckets {
+  next7Days: number;
+  next15Days: number;
+  next30Days: number;
+}
+
+export interface CreditCardReportIndicator {
+  cardId: string;
+  cardName: string;
+  status: string;
+
+  limitTotal: number;
+  limitUsed: number;
+  limitAvailable: number;
+  utilizationRate: number;
+
+  openInvoiceBalance: number;
+  futureCommittedBalance: number;
+  overdueAmount: number;
+
+  dueBuckets: CreditCardDueBuckets;
+
+  registeredPaymentsAmount: number;
+  reversedPaymentsAmount: number;
+
+  currentInvoiceId?: string;
+  currentInvoiceDueDate?: string;
+  currentInvoiceStatus?: string;
+}
+
+export interface CreditCardExpenseByPeriodItem {
+  period: string;
+  label: string;
+  amount: number;
+  count: number;
+}
+
+export interface CreditCardExpenseByCardItem {
+  cardId: string;
+  cardName: string;
+  purchaseAmount: number;
+  purchaseCount: number;
+  paidAmount: number;
+  openInvoiceBalance: number;
+  futureCommittedBalance: number;
+  overdueAmount: number;
+  utilizationRate: number;
+}
+
+export interface CreditCardExpenseReportViews {
+  purchaseCompetence: CreditCardExpenseByPeriodItem[];
+  invoicePaymentDate: CreditCardExpenseByPeriodItem[];
+  cardAnalytics: CreditCardExpenseByCardItem[];
+}
+
 export interface ChartDataPoint {
-    label: string;
-    value: number;
-    color?: string;
-    secondaryValue?: number; // For comparisons (e.g., previous period)
+  label: string;
+  value: number;
+  color?: string;
+  secondaryValue?: number; // For comparisons (e.g., previous period)
 }
 
 export interface ReportSummary {
-    totalIncome: number;
-    totalExpense: number;
-    netResult: number;
-    savingsRate: number;
+  totalIncome: number;
+  totalExpense: number;
+  netResult: number;
+  savingsRate: number;
 }
 
 export interface CategoryMetric {
-    id: string;
-    name: string;
-    value: number;
-    percentage: number;
-    color: string;
-    transactionCount: number;
+  id: string;
+  name: string;
+  value: number;
+  percentage: number;
+  color: string;
+  transactionCount: number;
 }
 
 // --- PHASE 2: Domain Models ---
@@ -58,9 +126,24 @@ export interface DebtProfile {
   totalCreditCardDebt: number;
   totalLoans: number;
   totalInstallments: number;
-  utilizationRate: number; // % do limite de cartão utilizado
+  utilizationRate: number;
   riskLevel: 'baixo' | 'moderado' | 'alto' | 'critico';
+
+  creditCardTotalLimit: number;
+  creditCardAvailableLimit: number;
+  creditCardOpenInvoiceBalance: number;
+  creditCardFutureCommittedBalance: number;
+  creditCardOverdueAmount: number;
+  creditCardDueNext7Days: number;
+  creditCardDueNext15Days: number;
+  creditCardDueNext30Days: number;
+  registeredInvoicePaymentsAmount: number;
+  reversedInvoicePaymentsAmount: number;
+
+  creditCardIndicators: CreditCardReportIndicator[];
+
 }
+
 
 export interface InvestmentOverview {
   totalInvested: number;
@@ -75,17 +158,17 @@ export interface InvestmentOverview {
 
 // --- PHASE 4: Business Specifics ---
 export interface ClientMetric {
-    clientId: string;
-    clientName: string;
-    totalValue: number;
-    percentage: number;
+  clientId: string;
+  clientName: string;
+  totalValue: number;
+  percentage: number;
 }
 
 export interface ReceivableStatusMetric {
-    status: string; // 'Em Dia', 'Atrasado', 'Pago'
-    count: number;
-    totalValue: number;
-    color: string;
+  status: string; // 'Em Dia', 'Atrasado', 'Pago'
+  count: number;
+  totalValue: number;
+  color: string;
 }
 
 export type AlertSeverity = 'info' | 'warning' | 'critical';
@@ -101,14 +184,16 @@ export interface FinancialAlert {
 }
 
 export interface FinancialReportSnapshot {
+  creditCardIndicators: CreditCardReportIndicator[];
+  debtProfile: DebtProfile;
   generatedAt: string;
   periodLabel: string; // ex.: "Últimos 30 dias", "Ano de 2025", etc.
   kpis: FinancialKPI[];
   cashFlow: CashFlowSummary[];
   expenseCategories: ExpenseCategoryBreakdown[];
-  debtProfile: DebtProfile;
   investmentOverview?: InvestmentOverview;
-  
+  creditCardExpenseReportViews: CreditCardExpenseReportViews;
+
   // Business Specifics (Optional)
   topClients?: ClientMetric[];
   receivablesStatus?: ReceivableStatusMetric[];
