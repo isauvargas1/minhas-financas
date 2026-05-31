@@ -9,6 +9,10 @@ import type {
 } from "./contracts";
 
 import {
+  recordCreditCardOperationMetric,
+} from "./observability";
+
+import {
   CREDIT_CARD_ADMIN_COLLECTIONS,
   cardFinancialEventDoc,
   cardLimitLedgerDoc,
@@ -29,6 +33,10 @@ import {
   markIdempotencyKeyCompleted,
   reserveIdempotencyKey,
 } from "./idempotency";
+
+import {
+  recordCreditCardAuditLog,
+} from "./auditLogs";
 
 export interface CancelCreditCardPurchaseResult {
   success: true;
@@ -556,6 +564,38 @@ export const executeCancelCreditCardPurchase = async (
       createdAt: serverTimestamp,
       actorId: auth.uid,
     }));
+
+    recordCreditCardAuditLog(transaction, {
+      workspaceId,
+      action: "purchase_cancelled",
+      actorId: auth.uid,
+      entityType: "purchase",
+      entityId: payload.purchaseId,
+      cardId: payload.cardId,
+      purchaseId: payload.purchaseId,
+      ledgerEntryId,
+      domainEventId: eventId,
+      reason: payload.reason,
+      policy: payload.policy,
+      idempotencyKey: payload.idempotencyKey,
+      correlationId: payload.correlationId,
+      details: {
+        restoredAmount,
+        cancelledInstallmentsCount: installments.length,
+        affectedInvoiceIds,
+      },
+    });
+
+    recordCreditCardOperationMetric(transaction, {
+  workspaceId,
+  operation: "purchase_cancelled",
+  actorId: auth.uid,
+  cardId: payload.cardId,
+  purchaseId: payload.purchaseId,
+  amount: restoredAmount,
+  correlationId: payload.correlationId,
+  idempotencyKey: payload.idempotencyKey,
+});
 
     const result = buildResult(
       payload.purchaseId,

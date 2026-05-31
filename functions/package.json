@@ -3,11 +3,15 @@
   "scripts": {
     "lint": "eslint --ext .js,.ts .",
     "build": "tsc",
+    "test:unit": "npm run build && node --test \"lib/**/*.test.js\"",
+    "test:integration": "npm run build && node --test \"lib/**/*.integration.test.js\"",
     "build:watch": "tsc --watch",
     "serve": "npm run build && firebase emulators:start --only functions",
     "shell": "npm run build && firebase functions:shell",
     "start": "npm run shell",
     "deploy": "firebase deploy --only functions",
+    "test:e2e": "playwright test",
+"test:e2e:ui": "playwright test --ui",
     "logs": "firebase functions:log"
   },
   "engines": {

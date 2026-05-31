@@ -7,7 +7,9 @@ export const CREDIT_CARD_ADMIN_COLLECTIONS = {
   invoices: "credit_card_invoices",
   invoicePayments: "credit_card_invoice_payments",
   limitLedger: "card_limit_ledger",
-  financialEvents: "financial_events",
+    financialEvents: "financial_events",
+  auditLogs: "credit_card_audit_logs",
+  operationalMetrics: "credit_card_operational_metrics",
   invoiceViews: "invoice_views",
   limitSnapshots: "card_limit_snapshots",
   idempotencyKeys: "credit_card_idempotency_keys",
@@ -115,6 +117,26 @@ export const cardFinancialEventDoc = (
     workspaceId,
     CREDIT_CARD_ADMIN_COLLECTIONS.financialEvents,
     eventId
+  );
+
+export const creditCardAuditLogDoc = (
+  workspaceId: string,
+  auditLogId: string
+): admin.firestore.DocumentReference =>
+  workspaceCollectionDoc(
+    workspaceId,
+    CREDIT_CARD_ADMIN_COLLECTIONS.auditLogs,
+    auditLogId
+  );
+
+  export const creditCardOperationalMetricDoc = (
+  workspaceId: string,
+  metricId: string
+): admin.firestore.DocumentReference =>
+  workspaceCollectionDoc(
+    workspaceId,
+    CREDIT_CARD_ADMIN_COLLECTIONS.operationalMetrics,
+    metricId
   );
 
 export const creditCardInvoiceViewDoc = (

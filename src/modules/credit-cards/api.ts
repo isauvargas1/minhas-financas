@@ -28,6 +28,23 @@ const cleanPayload = (obj: any): any => {
     return obj;
 };
 
+const sanitizeCreditCardClientPayload = (
+    card: Partial<CreditCard>,
+    workspaceId: string,
+): Partial<CreditCard> => {
+    const {
+        id: _id,
+        limitUsed: _limitUsed,
+        limitAvailable: _limitAvailable,
+        ...safeCard
+    } = card;
+
+    return {
+        ...safeCard,
+        workspaceId,
+    };
+};
+
 export const listCreditCards = async (workspaceId?: string): Promise<CreditCard[]> => {
     if (!workspaceId || workspaceId === 'loading') return [];
 
@@ -52,10 +69,10 @@ export const createCreditCard = async (card: Omit<CreditCard, 'id'>, workspaceId
     
     // Limpa payload recursivamente (incluindo o objeto 'visual')
     const payload = cleanPayload({
-        ...card,
-        createdAt: Timestamp.now(),
-        updatedAt: Timestamp.now()
-    });
+    ...sanitizeCreditCardClientPayload(card, workspaceId),
+    createdAt: Timestamp.now(),
+    updatedAt: Timestamp.now()
+});
 
     const docRef = await addDoc(ref, payload);
 
@@ -67,10 +84,10 @@ export const updateCreditCard = async (id: string, data: Partial<CreditCard>, wo
 
     const docRef = doc(db, 'workspaces', workspaceId, COLLECTION_NAME, id);
     
-    const payload = cleanPayload({
-        ...data,
-        updatedAt: Timestamp.now()
-    });
+   const payload = cleanPayload({
+    ...sanitizeCreditCardClientPayload(data, workspaceId),
+    updatedAt: Timestamp.now()
+});
 
     await updateDoc(docRef, payload);
 

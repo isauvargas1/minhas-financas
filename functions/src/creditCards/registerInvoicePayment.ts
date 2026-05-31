@@ -28,8 +28,16 @@ import {
 } from "./idempotency";
 
 import {
+    recordCreditCardOperationMetric,
+} from "./observability";
+
+import {
     enqueueCreditCardDomainNotifications,
 } from "./domainNotifications";
+
+import {
+    recordCreditCardAuditLog,
+} from "./auditLogs";
 
 export interface RegisterCreditCardInvoicePaymentResult {
     success: true;
@@ -454,6 +462,34 @@ export const executeRegisterCreditCardInvoicePayment = async (
             payload: eventPayload,
             actorId: auth.uid,
         });
+
+        recordCreditCardAuditLog(transaction, {
+            workspaceId,
+            action: "invoice_payment_registered",
+            actorId: auth.uid,
+            entityType: "payment",
+            entityId: paymentId,
+            cardId: payload.cardId,
+            invoiceId: payload.invoiceId,
+            paymentId,
+            ledgerEntryId,
+            domainEventId: eventId,
+            idempotencyKey: payload.idempotencyKey,
+            correlationId: payload.correlationId,
+            details: eventPayload,
+        });
+
+        recordCreditCardOperationMetric(transaction, {
+    workspaceId,
+    operation: "invoice_payment_posted",
+    actorId: auth.uid,
+    cardId: payload.cardId,
+    invoiceId: payload.invoiceId,
+    paymentId,
+    amount: paymentAmount,
+    correlationId: payload.correlationId,
+    idempotencyKey: payload.idempotencyKey,
+});
 
         const result = buildResult(
             paymentId,

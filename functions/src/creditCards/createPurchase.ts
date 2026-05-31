@@ -31,8 +31,16 @@ import {
 } from "./idempotency";
 
 import {
+    recordCreditCardOperationMetric,
+} from "./observability";
+
+import {
     enqueueCreditCardDomainNotifications,
 } from "./domainNotifications";
+
+import {
+    recordCreditCardAuditLog,
+} from "./auditLogs";
 
 export interface CreateCreditCardPurchaseResult {
     success: true;
@@ -62,7 +70,7 @@ interface CreditCardDocumentData {
     bestDay?: number;
 }
 
-interface InvoiceDraft {
+export interface InvoiceDraft {
     id: string;
     competenceMonth: string;
     closingDate: string;
@@ -72,7 +80,7 @@ interface InvoiceDraft {
     installmentIds: string[];
 }
 
-interface InstallmentDraft {
+export interface InstallmentDraft {
     id: string;
     workspaceId: string;
     purchaseId: string;
@@ -227,7 +235,7 @@ const formatDateWithSafeDay = (
     return `${year}-${pad(month)}-${pad(safeDay)}`;
 };
 
-const calculateFirstInvoiceCompetence = (
+export const calculateFirstInvoiceCompetence = (
     purchaseDate: string,
     closingDay: number
 ): string => {
@@ -254,7 +262,7 @@ const resolvePurchaseTotalAmount = (
     return inputAmount;
 };
 
-const calculateInstallmentAmounts = (
+export const calculateInstallmentAmounts = (
     totalAmount: number,
     installmentsCount: number
 ): number[] => {
@@ -296,7 +304,7 @@ const buildInvoiceId = (
     competenceMonth: string
 ): string => `${cardId}_${competenceMonth}`;
 
-const buildPurchaseInstallments = (
+export const buildPurchaseInstallments = (
     workspaceId: string,
     purchaseId: string,
     cardId: string,
@@ -332,7 +340,7 @@ const buildPurchaseInstallments = (
     });
 };
 
-const buildInvoiceDrafts = (
+export const buildInvoiceDrafts = (
     cardId: string,
     installments: InstallmentDraft[],
     closingDay: number,
@@ -733,6 +741,32 @@ export const executeCreateCreditCardPurchase = async (
             payload: eventPayload,
             actorId: auth.uid,
         });
+
+        recordCreditCardAuditLog(transaction, {
+            workspaceId,
+            action: "purchase_created",
+            actorId: auth.uid,
+            entityType: "purchase",
+            entityId: purchaseId,
+            cardId: payload.cardId,
+            purchaseId,
+            ledgerEntryId,
+            domainEventId: eventId,
+            idempotencyKey: payload.idempotencyKey,
+            correlationId: payload.correlationId,
+            details: eventPayload,
+        });
+
+        recordCreditCardOperationMetric(transaction, {
+    workspaceId,
+    operation: "purchase_created",
+    actorId: auth.uid,
+    cardId: payload.cardId,
+    purchaseId,
+    amount: purchaseTotalAmount,
+    correlationId: payload.correlationId,
+    idempotencyKey: payload.idempotencyKey,
+});
 
         const result = buildResult(
             purchaseId,

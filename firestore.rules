@@ -219,6 +219,11 @@ function canWriteWorkspaceScopedData(workspaceId) {
   return hasRole(workspaceId, ['owner', 'admin']) || isWorkspaceOwnerByParent(workspaceId);
 }
 
+function canMemberWriteWorkspaceScopedData(workspaceId) {
+  return hasRole(workspaceId, ['owner', 'admin', 'member']) ||
+    isWorkspaceOwnerByParent(workspaceId);
+}
+
 function isCreditCardDomainCollection(collectionName) {
   return collectionName in [
     'credit_card_purchases',
@@ -226,15 +231,128 @@ function isCreditCardDomainCollection(collectionName) {
     'credit_card_invoices',
     'credit_card_invoice_payments',
     'card_limit_ledger',
-    'financial_events',
+        'financial_events',
+    'credit_card_audit_logs',
+    'credit_card_operational_metrics',
     'invoice_views',
     'card_limit_snapshots',
     'credit_card_idempotency_keys'
   ];
 }
 
+function isValidCreditCardStatus(value) {
+  return value in ['active', 'blocked', 'cancelled'];
+}
+
+function isValidCardBrand(value) {
+  return value is string && value.size() > 0 && value.size() <= 40;
+}
+
+function isValidBillingDay(value) {
+  return value is int && value >= 1 && value <= 31;
+}
+
+function isValidOptionalString(value, maxSize) {
+  return value is string && value.size() <= maxSize;
+}
+
+function isValidCreditCardVisual(visual) {
+  return visual is map
+    && visual.keys().hasOnly([
+      'bgType',
+      'bgColor',
+      'bgGradientColor',
+      'bgImage',
+      'textColor',
+      'showName',
+      'showBrand',
+      'showLogo'
+    ])
+    && visual.bgType in ['color', 'gradient', 'image']
+    && visual.bgColor is string
+    && visual.bgColor.size() > 0
+    && (!visual.keys().hasAny(['bgGradientColor']) || visual.bgGradientColor is string)
+    && (!visual.keys().hasAny(['bgImage']) || visual.bgImage is string)
+    && visual.textColor in ['white', 'black']
+    && visual.showName is bool
+    && visual.showBrand is bool
+    && visual.showLogo is bool;
+}
+
+function hasOnlyCreditCardKeys(data) {
+  return data.keys().hasOnly([
+    'workspaceId',
+    'name',
+    'brand',
+    'status',
+    'limitTotal',
+    'limitUsed',
+    'limitAvailable',
+    'closingDay',
+    'dueDay',
+    'bestDay',
+    'billingCycleStatus',
+    'observations',
+    'visual',
+    'profileId',
+    'responsiblePerson',
+    'recommendedUse',
+    'defaultCostCenter',
+    'createdAt',
+    'updatedAt'
+  ]);
+}
+
+function isValidCreditCardPayload(data, workspaceId) {
+  return hasOnlyCreditCardKeys(data)
+    && data.workspaceId == workspaceId
+    && data.name is string
+    && data.name.size() > 0
+    && data.name.size() <= 80
+    && isValidCardBrand(data.brand)
+    && isValidCreditCardStatus(data.status)
+    && (data.limitTotal is int || data.limitTotal is float)
+    && data.limitTotal > 0
+    && isValidBillingDay(data.closingDay)
+    && isValidBillingDay(data.dueDay)
+    && (!data.keys().hasAny(['bestDay']) || isValidBillingDay(data.bestDay))
+    && (!data.keys().hasAny(['billingCycleStatus']) || data.billingCycleStatus in ['idle', 'open', 'closing', 'closed', 'overdue'])
+    && (!data.keys().hasAny(['observations']) || isValidOptionalString(data.observations, 500))
+    && (!data.keys().hasAny(['profileId']) || isValidOptionalString(data.profileId, 120))
+    && (!data.keys().hasAny(['responsiblePerson']) || isValidOptionalString(data.responsiblePerson, 120))
+    && (!data.keys().hasAny(['recommendedUse']) || isValidOptionalString(data.recommendedUse, 300))
+    && (!data.keys().hasAny(['defaultCostCenter']) || isValidOptionalString(data.defaultCostCenter, 120))
+    && (!data.keys().hasAny(['visual']) || isValidCreditCardVisual(data.visual))
+    && (!data.keys().hasAny(['createdAt']) || data.createdAt is timestamp)
+    && (!data.keys().hasAny(['updatedAt']) || data.updatedAt is timestamp);
+}
+
+function isValidCreditCardCreate(data, workspaceId) {
+  return canWriteWorkspaceScopedData(workspaceId)
+    && isValidCreditCardPayload(data, workspaceId)
+    && data.createdAt is timestamp
+    && data.updatedAt is timestamp
+    && !data.keys().hasAny(['limitUsed'])
+    && !data.keys().hasAny(['limitAvailable']);
+}
+
+function isValidCreditCardUpdate(data, previous, workspaceId) {
+  return canWriteWorkspaceScopedData(workspaceId)
+    && isValidCreditCardPayload(data, workspaceId)
+    && data.workspaceId == previous.workspaceId
+    && (!previous.keys().hasAny(['createdAt']) || data.createdAt == previous.createdAt)
+    && (
+      (!previous.keys().hasAny(['limitUsed']) && !data.keys().hasAny(['limitUsed'])) ||
+      (previous.keys().hasAny(['limitUsed']) && data.limitUsed == previous.limitUsed)
+    )
+    && (
+      (!previous.keys().hasAny(['limitAvailable']) && !data.keys().hasAny(['limitAvailable'])) ||
+      (previous.keys().hasAny(['limitAvailable']) && data.limitAvailable == previous.limitAvailable)
+    );
+}
+
     match /workspaces/{workspaceId} {
-      allow create: if signedIn();
+      allow create: if signedIn() && request.resource.data.ownerId == request.auth.uid;
       allow read: if isMember(workspaceId) || (signedIn() && resource.data.ownerId == request.auth.uid);
       allow update: if hasRole(workspaceId, ['owner', 'admin']) || (signedIn() && resource.data.ownerId == request.auth.uid);
 
@@ -277,18 +395,29 @@ function isCreditCardDomainCollection(collectionName) {
           isMemberTransactionOwner(workspaceId, resource.data);
       }
 
-      match /recurring_expenses/{docId} {
-        allow read, write: if signedIn();
-      }
+     match /recurring_expenses/{docId} {
+  allow read: if canReadWorkspaceScopedData(workspaceId);
+  allow write: if canMemberWriteWorkspaceScopedData(workspaceId);
+}
 
-      match /recurring_occurrences/{docId} {
-        allow read, write: if signedIn();
-      }
+match /recurring_occurrences/{docId} {
+  allow read: if canReadWorkspaceScopedData(workspaceId);
+  allow write: if canMemberWriteWorkspaceScopedData(workspaceId);
+}
 
       match /credit_cards/{docId} {
-        allow read: if isMember(workspaceId) || isWorkspaceOwnerByParent(workspaceId);
-        allow write: if hasRole(workspaceId, ['owner', 'admin', 'member']) || isWorkspaceOwnerByParent(workspaceId);
-      }
+  allow read: if canReadWorkspaceScopedData(workspaceId);
+
+  allow create: if isValidCreditCardCreate(request.resource.data, workspaceId);
+
+  allow update: if isValidCreditCardUpdate(
+    request.resource.data,
+    resource.data,
+    workspaceId
+  );
+
+  allow delete: if canWriteWorkspaceScopedData(workspaceId);
+}
 
       match /credit_card_purchases/{docId} {
   allow read: if canReadWorkspaceScopedData(workspaceId);
@@ -325,6 +454,16 @@ match /invoice_views/{docId} {
   allow write: if false;
 }
 
+match /credit_card_audit_logs/{docId} {
+  allow read: if canWriteWorkspaceScopedData(workspaceId);
+  allow write: if false;
+}
+
+match /credit_card_operational_metrics/{docId} {
+  allow read: if canWriteWorkspaceScopedData(workspaceId);
+  allow write: if false;
+}
+
 match /card_limit_snapshots/{docId} {
   allow read: if canReadWorkspaceScopedData(workspaceId);
   allow write: if false;
@@ -341,45 +480,57 @@ match /credit_card_idempotency_keys/{docId} {
       }
 
       match /loans/{docId} {
-        allow read, write: if signedIn();
-      }
+  allow read: if canReadWorkspaceScopedData(workspaceId);
+  allow write: if canMemberWriteWorkspaceScopedData(workspaceId);
+}
 
-      match /loan_movements/{docId} {
-        allow read, write: if signedIn();
-      }
+match /loan_movements/{docId} {
+  allow read: if canReadWorkspaceScopedData(workspaceId);
+  allow write: if canMemberWriteWorkspaceScopedData(workspaceId);
+}
 
-      match /clients/{docId} {
-        allow read, write: if signedIn();
-      }
+match /clients/{docId} {
+  allow read: if canReadWorkspaceScopedData(workspaceId);
+  allow write: if canMemberWriteWorkspaceScopedData(workspaceId);
+}
 
-      match /receivables/{docId} {
-        allow read, write: if signedIn();
-      }
+match /receivables/{docId} {
+  allow read: if canReadWorkspaceScopedData(workspaceId);
+  allow write: if canMemberWriteWorkspaceScopedData(workspaceId);
+}
 
-      match /notifications/{docId} {
-        allow read, write: if signedIn();
-      }
+match /notifications/{docId} {
+  allow read: if canReadWorkspaceScopedData(workspaceId);
 
-      match /split_groups/{docId} {
-        allow read, write: if signedIn();
-      }
+  allow create: if false;
 
-      match /split_participants/{docId} {
-        allow read, write: if signedIn();
-      }
+  allow update: if
+    canReadWorkspaceScopedData(workspaceId) &&
+    request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']) &&
+    request.resource.data.read is bool;
 
-      match /split_bills/{docId} {
-        allow read, write: if signedIn();
-      }
+  allow delete: if canWriteWorkspaceScopedData(workspaceId);
+}
 
-      match /split_shares/{docId} {
-        allow read, write: if signedIn();
-      }
+match /split_groups/{docId} {
+  allow read: if canReadWorkspaceScopedData(workspaceId);
+  allow write: if canMemberWriteWorkspaceScopedData(workspaceId);
+}
 
-      match /split_invites/{docId} {
-        allow read: if signedIn();
-        allow write: if false;
-      }
+match /split_participants/{docId} {
+  allow read: if canReadWorkspaceScopedData(workspaceId);
+  allow write: if canMemberWriteWorkspaceScopedData(workspaceId);
+}
+
+match /split_bills/{docId} {
+  allow read: if canReadWorkspaceScopedData(workspaceId);
+  allow write: if canMemberWriteWorkspaceScopedData(workspaceId);
+}
+
+match /split_shares/{docId} {
+  allow read: if canReadWorkspaceScopedData(workspaceId);
+  allow write: if canMemberWriteWorkspaceScopedData(workspaceId);
+}
 
       match /settings_catalog/{docId} {
         allow read: if isMember(workspaceId) || isWorkspaceOwnerByParent(workspaceId);
@@ -413,15 +564,13 @@ match /credit_card_idempotency_keys/{docId} {
         allow delete: if canManageWorkspaceCatalog(workspaceId);
       }
 
-      match /{subCollection}/{docId} {
-  allow read: if
-    !isCreditCardDomainCollection(subCollection) &&
-    canReadWorkspaceScopedData(workspaceId);
+          match /{subCollection}/{docId} {
+        allow read: if
+          !isCreditCardDomainCollection(subCollection) &&
+          canReadWorkspaceScopedData(workspaceId);
 
-  allow write: if
-    !isCreditCardDomainCollection(subCollection) &&
-    canWriteWorkspaceScopedData(workspaceId);
-}
+        allow write: if false;
+      }
     }
 
     match /users/{userId} {

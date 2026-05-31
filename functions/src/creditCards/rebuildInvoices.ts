@@ -29,8 +29,16 @@ import {
 } from "./idempotency";
 
 import {
+  recordCreditCardOperationMetric,
+} from "./observability";
+
+import {
   enqueueCreditCardDomainNotifications,
 } from "./domainNotifications";
+
+import {
+  recordCreditCardAuditLog,
+} from "./auditLogs";
 
 export interface RebuildCardInvoicesForCardResult {
   success: true;
@@ -668,6 +676,29 @@ export const executeRebuildCardInvoicesForCard = async (
       payload: eventPayload,
       actorId: auth.uid,
     });
+
+    recordCreditCardAuditLog(transaction, {
+      workspaceId,
+      action: "card_invoices_rebuilt",
+      actorId: auth.uid,
+      entityType: "card",
+      entityId: payload.cardId,
+      cardId: payload.cardId,
+      domainEventId: eventId,
+      reason: payload.reason,
+      idempotencyKey: payload.idempotencyKey,
+      correlationId: payload.correlationId,
+      details: eventPayload,
+    });
+
+    recordCreditCardOperationMetric(transaction, {
+  workspaceId,
+  operation: "card_invoices_rebuilt",
+  actorId: auth.uid,
+  cardId: payload.cardId,
+  correlationId: payload.correlationId,
+  idempotencyKey: payload.idempotencyKey,
+});
 
     const result = buildResult(
       payload.cardId,

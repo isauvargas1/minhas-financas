@@ -29,8 +29,16 @@ import {
 } from "./idempotency";
 
 import {
+  recordCreditCardOperationMetric,
+} from "./observability";
+
+import {
   enqueueCreditCardDomainNotifications,
 } from "./domainNotifications";
+
+import {
+  recordCreditCardAuditLog,
+} from "./auditLogs";
 
 export interface ReverseCreditCardInvoicePaymentResult {
   success: true;
@@ -495,6 +503,35 @@ export const executeReverseCreditCardInvoicePayment = async (
       payload: eventPayload,
       actorId: auth.uid,
     });
+
+    recordCreditCardAuditLog(transaction, {
+      workspaceId,
+      action: "invoice_payment_reversed",
+      actorId: auth.uid,
+      entityType: "payment",
+      entityId: payload.paymentId,
+      cardId: payload.cardId,
+      invoiceId: payload.invoiceId,
+      paymentId: payload.paymentId,
+      ledgerEntryId,
+      domainEventId: eventId,
+      reason: payload.reason,
+      idempotencyKey: payload.idempotencyKey,
+      correlationId: payload.correlationId,
+      details: eventPayload,
+    });
+
+    recordCreditCardOperationMetric(transaction, {
+  workspaceId,
+  operation: "invoice_payment_reversed",
+  actorId: auth.uid,
+  cardId: payload.cardId,
+  invoiceId: payload.invoiceId,
+  paymentId: payload.paymentId,
+  amount: paymentAmount,
+  correlationId: payload.correlationId,
+  idempotencyKey: payload.idempotencyKey,
+});
 
     const result = buildResult(
       payload.paymentId,

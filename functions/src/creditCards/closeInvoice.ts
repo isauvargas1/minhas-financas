@@ -30,6 +30,10 @@ import {
   enqueueCreditCardDomainNotifications,
 } from "./domainNotifications";
 
+import {
+  recordCreditCardAuditLog,
+} from "./auditLogs";
+
 export interface CloseCreditCardInvoiceResult {
   success: true;
   invoiceId: string;
@@ -331,6 +335,20 @@ export const executeCloseCreditCardInvoice = async (
       eventType: "invoice_closed",
       payload: eventPayload,
       actorId: auth.uid,
+    });
+
+    recordCreditCardAuditLog(transaction, {
+      workspaceId,
+      action: "invoice_closed",
+      actorId: auth.uid,
+      entityType: "invoice",
+      entityId: payload.invoiceId,
+      cardId: payload.cardId,
+      invoiceId: payload.invoiceId,
+      domainEventId: eventId,
+      idempotencyKey: payload.idempotencyKey,
+      correlationId: payload.correlationId,
+      details: eventPayload,
     });
 
     const result = buildResult(

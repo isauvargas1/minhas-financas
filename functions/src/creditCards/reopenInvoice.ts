@@ -26,6 +26,10 @@ import {
   reserveIdempotencyKey,
 } from "./idempotency";
 
+import {
+  recordCreditCardAuditLog,
+} from "./auditLogs";
+
 export interface ReopenCreditCardInvoiceResult {
   success: true;
   invoiceId: string;
@@ -288,6 +292,27 @@ export const executeReopenCreditCardInvoice = async (
       createdAt: serverTimestamp,
       actorId: auth.uid,
     }));
+
+    recordCreditCardAuditLog(transaction, {
+      workspaceId,
+      action: "invoice_reopened",
+      actorId: auth.uid,
+      entityType: "invoice",
+      entityId: payload.invoiceId,
+      cardId: payload.cardId,
+      invoiceId: payload.invoiceId,
+      domainEventId: eventId,
+      reason: payload.reason,
+      policy: payload.policy,
+      idempotencyKey: payload.idempotencyKey,
+      correlationId: payload.correlationId,
+      details: {
+        previousStatus: invoiceData.status,
+        totalAmount,
+        paidAmount,
+        remainingAmount,
+      },
+    });
 
     const result = buildResult(
       payload.invoiceId,

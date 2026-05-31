@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { CreditCard, Transaction } from '../types.ts';
 import CreditCard3D from './CreditCard3D.tsx';
 import CreditCardForm from './CreditCardForm.tsx';
@@ -388,6 +388,25 @@ const CreditCardsView: React.FC<CreditCardsViewProps> = ({ transactions }) => {
     const registerInvoicePaymentMutation = useRegisterCreditCardInvoicePaymentDomain();
     const reverseInvoicePaymentMutation = useReverseCreditCardInvoicePaymentDomain();
 
+    const pendingCriticalInvoiceOperationsRef = useRef<Set<string>>(new Set());
+
+const runCriticalInvoiceOperation = async (
+    operationKey: string,
+    operation: () => Promise<void>,
+): Promise<void> => {
+    if (pendingCriticalInvoiceOperationsRef.current.has(operationKey)) {
+        return;
+    }
+
+    pendingCriticalInvoiceOperationsRef.current.add(operationKey);
+
+    try {
+        await operation();
+    } finally {
+        pendingCriticalInvoiceOperationsRef.current.delete(operationKey);
+    }
+};
+
     // Fallback para array vazio enquanto carrega ou se der erro
     const cards = cardsData || [];
 
@@ -512,16 +531,23 @@ const CreditCardsView: React.FC<CreditCardsViewProps> = ({ transactions }) => {
     };
 
     const handlePayInvoice = async (invoice: CreditCardInvoice) => {
-        if (invoice.remainingAmount <= 0 || invoice.status === 'paid') {
-            return;
-        }
+    if (invoice.remainingAmount <= 0 || invoice.status === 'paid') {
+        return;
+    }
 
-        const confirmed = window.confirm(
-            `Confirmar pagamento externo de ${formatCurrency(invoice.remainingAmount)} da fatura ${invoice.competenceMonth}?`,
-        );
+    const operationKey = `invoice-payment:${invoice.id}`;
 
-        if (!confirmed) return;
+    if (pendingCriticalInvoiceOperationsRef.current.has(operationKey)) {
+        return;
+    }
 
+    const confirmed = window.confirm(
+        `Confirmar pagamento externo de ${formatCurrency(invoice.remainingAmount)} da fatura ${invoice.competenceMonth}?`,
+    );
+
+    if (!confirmed) return;
+
+    await runCriticalInvoiceOperation(operationKey, async () => {
         try {
             await registerInvoicePaymentMutation.mutateAsync({
                 cardId: invoice.cardId,
@@ -538,19 +564,27 @@ const CreditCardsView: React.FC<CreditCardsViewProps> = ({ transactions }) => {
             console.error('Erro ao pagar fatura:', error);
             alert('Erro ao pagar fatura.');
         }
-    };
+    });
+};
 
     const handleReverseInvoicePayment = async (payment: CreditCardInvoicePayment) => {
-        if (payment.status !== 'posted') {
-            return;
-        }
+    if (payment.status !== 'posted') {
+        return;
+    }
 
-        const confirmed = window.confirm(
-            `Confirmar estorno do pagamento de ${formatCurrency(payment.amount)}?`,
-        );
+    const operationKey = `invoice-payment-reversal:${payment.id}`;
 
-        if (!confirmed) return;
+    if (pendingCriticalInvoiceOperationsRef.current.has(operationKey)) {
+        return;
+    }
 
+    const confirmed = window.confirm(
+        `Confirmar estorno do pagamento de ${formatCurrency(payment.amount)}?`,
+    );
+
+    if (!confirmed) return;
+
+    await runCriticalInvoiceOperation(operationKey, async () => {
         try {
             await reverseInvoicePaymentMutation.mutateAsync({
                 cardId: payment.cardId,
@@ -567,7 +601,8 @@ const CreditCardsView: React.FC<CreditCardsViewProps> = ({ transactions }) => {
             console.error('Erro ao estornar pagamento da fatura:', error);
             alert('Erro ao estornar pagamento da fatura.');
         }
-    };
+    });
+};
 
     const handleEdit = (card: CreditCard) => {
         setCardToEdit(card);

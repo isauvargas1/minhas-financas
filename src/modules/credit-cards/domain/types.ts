@@ -80,7 +80,7 @@ export type CardEventType =
   | 'invoice_due_soon'
   | 'invoice_overdue'
   | 'processing_failure'
-  | 'purchase_limit_exceeded'
+   | 'purchase_limit_exceeded';
 
 
 export interface CreditCardCategorySnapshot {

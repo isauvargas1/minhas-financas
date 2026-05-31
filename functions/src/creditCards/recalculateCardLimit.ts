@@ -27,8 +27,16 @@ import {
 } from "./idempotency";
 
 import {
+  recordCreditCardOperationMetric,
+} from "./observability";
+
+import {
   enqueueCreditCardDomainNotifications,
 } from "./domainNotifications";
+
+import {
+  recordCreditCardAuditLog,
+} from "./auditLogs";
 
 export interface RecalculateCardLimitResult {
   success: true;
@@ -282,6 +290,30 @@ export const executeRecalculateCardLimit = async (
       payload: eventPayload,
       actorId: auth.uid,
     });
+
+    recordCreditCardAuditLog(transaction, {
+      workspaceId,
+      action: "card_limit_recalculated",
+      actorId: auth.uid,
+      entityType: "card",
+      entityId: payload.cardId,
+      cardId: payload.cardId,
+      domainEventId: eventId,
+      reason: payload.reason,
+      idempotencyKey: payload.idempotencyKey,
+      correlationId: payload.correlationId,
+      details: eventPayload,
+    });
+
+    recordCreditCardOperationMetric(transaction, {
+  workspaceId,
+  operation: "card_limit_recalculated",
+  actorId: auth.uid,
+  cardId: payload.cardId,
+  amount: limitUsed,
+  correlationId: payload.correlationId,
+  idempotencyKey: payload.idempotencyKey,
+});
 
     const result = buildResult(
       payload.cardId,

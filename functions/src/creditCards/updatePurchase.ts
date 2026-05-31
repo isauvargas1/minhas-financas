@@ -30,6 +30,10 @@ import {
   reserveIdempotencyKey,
 } from "./idempotency";
 
+import {
+  recordCreditCardAuditLog,
+} from "./auditLogs";
+
 export interface UpdateCreditCardPurchaseResult {
   success: true;
   purchaseId: string;
@@ -945,6 +949,31 @@ transaction.update(purchaseRef, toFirestoreData({
       createdAt: serverTimestamp,
       actorId: auth.uid,
     }));
+
+    recordCreditCardAuditLog(transaction, {
+      workspaceId,
+      action: "purchase_updated",
+      actorId: auth.uid,
+      entityType: "purchase",
+      entityId: payload.purchaseId,
+      cardId: payload.cardId,
+      purchaseId: payload.purchaseId,
+      ledgerEntryId,
+      domainEventId: eventId,
+      reason: payload.reason,
+      idempotencyKey: payload.idempotencyKey,
+      correlationId: payload.correlationId,
+      details: {
+        previousTotalAmount: currentTotalAmount,
+        nextTotalAmount,
+        deltaAmount,
+        previousInstallmentsCount: currentInstallmentsCount,
+        nextInstallmentsCount,
+        affectedInvoiceIds,
+        updatedInstallmentIds,
+        cancelledInstallmentIds,
+      },
+    });
 
     const result = buildResult(
       payload.purchaseId,
