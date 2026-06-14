@@ -7,6 +7,8 @@ import { useAuth } from './AuthContext';
 interface WorkspaceContextValue {
     workspaces: Workspace[];
     activeWorkspace: Workspace;
+    activeWorkspaceRole: Workspace['myRole'];
+    canManageActiveWorkspace: boolean;
     isLoading: boolean;
     switchWorkspace: (workspaceId: string) => void;
     reloadWorkspaces: () => Promise<void>;
@@ -104,9 +106,16 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children 
         }
     };
 
+    const resolvedActiveWorkspace = activeWorkspace || LOADING_WORKSPACE;
+    const activeWorkspaceRole = resolvedActiveWorkspace.myRole;
+    const canManageActiveWorkspace =
+        activeWorkspaceRole === 'owner' || activeWorkspaceRole === 'admin';
+
     return (
         <WorkspaceContext.Provider value={{ 
-            activeWorkspace: activeWorkspace || LOADING_WORKSPACE, 
+            activeWorkspace: resolvedActiveWorkspace,
+            activeWorkspaceRole,
+            canManageActiveWorkspace,
             workspaces, 
             switchWorkspace, 
             isLoading,

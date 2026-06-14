@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { CreditCard } from '../types.ts';
+import type { CreditCard, CreditCardVisual } from '../types.ts';
 import { CloseIcon, UsersIcon, BriefcaseIcon, BoltIcon, CreditCardIcon } from './Icons.tsx';
 import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
 
@@ -11,12 +11,41 @@ interface CreditCardFormProps {
     cardToEdit?: CreditCard | null;
 }
 
+const buildDefaultCreditCardVisual = (isPJ: boolean): CreditCardVisual => ({
+    bgType: 'color',
+    bgColor: isPJ ? '#0f766e' : '#1e293b',
+    bgGradientColor: '#3b82f6',
+    bgImage: '',
+    textColor: 'white',
+    showName: true,
+    showBrand: true,
+    showLogo: true,
+});
+
+const resolveCreditCardVisual = (
+    visual: CreditCard['visual'],
+    isPJ: boolean,
+): CreditCardVisual => {
+    const defaultVisual = buildDefaultCreditCardVisual(isPJ);
+
+    return {
+        bgType: visual?.bgType ?? defaultVisual.bgType,
+        bgColor: visual?.bgColor ?? defaultVisual.bgColor,
+        bgGradientColor: visual?.bgGradientColor ?? defaultVisual.bgGradientColor,
+        bgImage: visual?.bgImage ?? defaultVisual.bgImage,
+        textColor: visual?.textColor ?? defaultVisual.textColor,
+        showName: visual?.showName ?? defaultVisual.showName,
+        showBrand: visual?.showBrand ?? defaultVisual.showBrand,
+        showLogo: visual?.showLogo ?? defaultVisual.showLogo,
+    };
+};
+
 const CreditCardForm: React.FC<CreditCardFormProps> = ({ isOpen, onClose, onSave, cardToEdit }) => {
     const { activeWorkspace } = useWorkspace();
     const isPJ = activeWorkspace.type === 'PJ';
-    
+
     const [activeTab, setActiveTab] = useState<'financial' | 'visual'>('financial');
-    
+
     // Financial State
     const [name, setName] = useState('');
     const [brand, setBrand] = useState('Visa');
@@ -56,14 +85,16 @@ const CreditCardForm: React.FC<CreditCardFormProps> = ({ isOpen, onClose, onSave
                 setResponsiblePerson(cardToEdit.responsiblePerson || '');
                 setRecommendedUse(cardToEdit.recommendedUse || '');
                 setDefaultCostCenter(cardToEdit.defaultCostCenter || '');
-                setBgType(cardToEdit.visual.bgType);
-                setBgColor(cardToEdit.visual.bgColor);
-                setBgGradientColor(cardToEdit.visual.bgGradientColor || '#3b82f6');
-                setBgImage(cardToEdit.visual.bgImage || '');
-                setTextColor(cardToEdit.visual.textColor);
-                setShowName(cardToEdit.visual.showName);
-                setShowBrand(cardToEdit.visual.showBrand);
-                setShowLogo(cardToEdit.visual.showLogo);
+                const visual = resolveCreditCardVisual(cardToEdit.visual, isPJ);
+
+                setBgType(visual.bgType);
+                setBgColor(visual.bgColor);
+                setBgGradientColor(visual.bgGradientColor || '#3b82f6');
+                setBgImage(visual.bgImage || '');
+                setTextColor(visual.textColor);
+                setShowName(visual.showName);
+                setShowBrand(visual.showBrand);
+                setShowLogo(visual.showLogo);
             } else {
                 setName('');
                 setBrand('Visa');
@@ -76,14 +107,16 @@ const CreditCardForm: React.FC<CreditCardFormProps> = ({ isOpen, onClose, onSave
                 setResponsiblePerson('');
                 setRecommendedUse('');
                 setDefaultCostCenter('');
-                setBgType('color');
-                setBgColor(isPJ ? '#0f766e' : '#1e293b');
-                setBgGradientColor('#3b82f6');
-                setBgImage('');
-                setTextColor('white');
-                setShowName(true);
-                setShowBrand(true);
-                setShowLogo(true);
+                const visual = buildDefaultCreditCardVisual(isPJ);
+
+                setBgType(visual.bgType);
+                setBgColor(visual.bgColor);
+                setBgGradientColor(visual.bgGradientColor || '#3b82f6');
+                setBgImage(visual.bgImage || '');
+                setTextColor(visual.textColor);
+                setShowName(visual.showName);
+                setShowBrand(visual.showBrand);
+                setShowLogo(visual.showLogo);
             }
             setActiveTab('financial');
         }
@@ -149,13 +182,13 @@ const CreditCardForm: React.FC<CreditCardFormProps> = ({ isOpen, onClose, onSave
 
                 {/* Tabs */}
                 <div className="flex border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-dark-200/50">
-                    <button 
+                    <button
                         onClick={() => setActiveTab('financial')}
                         className={`flex-1 py-4 text-sm font-bold uppercase tracking-widest transition-all ${activeTab === 'financial' ? 'text-indigo-600 border-b-2 border-indigo-600 bg-white dark:bg-dark-100' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
                     >
                         Dados Financeiros
                     </button>
-                    <button 
+                    <button
                         onClick={() => setActiveTab('visual')}
                         className={`flex-1 py-4 text-sm font-bold uppercase tracking-widest transition-all ${activeTab === 'visual' ? 'text-indigo-600 border-b-2 border-indigo-600 bg-white dark:bg-dark-100' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
                     >
@@ -291,7 +324,7 @@ const CreditCardForm: React.FC<CreditCardFormProps> = ({ isOpen, onClose, onSave
 
                                 <div className="flex flex-col items-center justify-center pt-4">
                                     <p className="text-[10px] font-bold text-gray-400 uppercase mb-4 tracking-widest">Prévia do Cartão</p>
-                                    <div 
+                                    <div
                                         className="w-full max-w-[320px] aspect-[1.586] rounded-2xl shadow-2xl p-7 relative flex flex-col justify-between overflow-hidden transition-all duration-500 ring-4 ring-black/5"
                                         style={previewStyle()}
                                     >

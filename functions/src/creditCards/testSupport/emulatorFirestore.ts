@@ -6,6 +6,12 @@ export interface SeedCreditCardIntegrationWorkspaceInput {
   cardId: string;
 }
 
+export interface SeedCreditCardIntegrationMemberInput {
+  workspaceId: string;
+  userId: string;
+  role: "owner" | "admin" | "member" | "viewer";
+}
+
 const CREDIT_CARD_TEST_COLLECTIONS = [
   "credit_cards",
   "credit_card_purchases",
@@ -124,4 +130,20 @@ export const seedCreditCardIntegrationWorkspace = async ({
   });
 
   await batch.commit();
+};
+
+export const seedCreditCardIntegrationMember = async ({
+  workspaceId,
+  userId,
+  role,
+}: SeedCreditCardIntegrationMemberInput): Promise<void> => {
+  const db = getIntegrationFirestore();
+  const now = admin.firestore.Timestamp.now();
+
+  await db.doc(`workspaces/${workspaceId}/members/${userId}`).set({
+    uid: userId,
+    role,
+    status: "active",
+    joinedAt: now,
+  });
 };

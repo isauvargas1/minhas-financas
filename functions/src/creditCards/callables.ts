@@ -56,6 +56,14 @@ import {
   toHttpsError,
 } from "./errors";
 
+import {
+  recordCreditCardCallableFailureSafely,
+} from "./observability";
+
+import type {
+  CreditCardBackendWriteOperation,
+} from "./writeStrategy";
+
 import type {
   CreditCardCallableExecutionContext,
 } from "./callable";
@@ -67,6 +75,21 @@ import type {
 import {
   recordPurchaseLimitExceededEvent,
 } from "./purchaseFailureEvents";
+
+const toObservedHttpsError = async (
+  operation: CreditCardBackendWriteOperation,
+  request: {data: unknown; auth?: {uid?: string}},
+  error: unknown
+) => {
+  await recordCreditCardCallableFailureSafely(
+    operation,
+    request.data,
+    request.auth?.uid,
+    error
+  );
+
+  return toHttpsError(error);
+};
 
 export const createCreditCardPurchase = onCall(async (request) => {
   let context: CreditCardCallableExecutionContext<CreateCreditCardPurchasePayload> | null = null;
@@ -84,7 +107,11 @@ export const createCreditCardPurchase = onCall(async (request) => {
       await recordPurchaseLimitExceededEvent(context, error);
     }
 
-    throw toHttpsError(error);
+    throw await toObservedHttpsError(
+      "createCreditCardPurchase",
+      request,
+      error
+    );
   }
 });
 
@@ -98,7 +125,11 @@ export const registerCreditCardInvoicePayment = onCall(async (request) => {
 
     return await executeRegisterCreditCardInvoicePayment(context);
   } catch (error) {
-    throw toHttpsError(error);
+    throw await toObservedHttpsError(
+      "registerCreditCardInvoicePayment",
+      request,
+      error
+    );
   }
 });
 
@@ -112,7 +143,11 @@ export const reverseCreditCardInvoicePayment = onCall(async (request) => {
 
     return await executeReverseCreditCardInvoicePayment(context);
   } catch (error) {
-    throw toHttpsError(error);
+    throw await toObservedHttpsError(
+      "reverseCreditCardInvoicePayment",
+      request,
+      error
+    );
   }
 });
 
@@ -126,7 +161,11 @@ export const cancelCreditCardPurchase = onCall(async (request) => {
 
     return await executeCancelCreditCardPurchase(context);
   } catch (error) {
-    throw toHttpsError(error);
+    throw await toObservedHttpsError(
+      "cancelCreditCardPurchase",
+      request,
+      error
+    );
   }
 });
 
@@ -140,7 +179,11 @@ export const recalculateCardLimit = onCall(async (request) => {
 
     return await executeRecalculateCardLimit(context);
   } catch (error) {
-    throw toHttpsError(error);
+    throw await toObservedHttpsError(
+      "recalculateCardLimit",
+      request,
+      error
+    );
   }
 });
 
@@ -154,7 +197,11 @@ export const closeCreditCardInvoice = onCall(async (request) => {
 
     return await executeCloseCreditCardInvoice(context);
   } catch (error) {
-    throw toHttpsError(error);
+    throw await toObservedHttpsError(
+      "closeCreditCardInvoice",
+      request,
+      error
+    );
   }
 });
 
@@ -168,7 +215,11 @@ export const reopenCreditCardInvoice = onCall(async (request) => {
 
     return await executeReopenCreditCardInvoice(context);
   } catch (error) {
-    throw toHttpsError(error);
+    throw await toObservedHttpsError(
+      "reopenCreditCardInvoice",
+      request,
+      error
+    );
   }
 });
 
@@ -182,7 +233,11 @@ export const rebuildCardInvoicesForCard = onCall(async (request) => {
 
     return await executeRebuildCardInvoicesForCard(context);
   } catch (error) {
-    throw toHttpsError(error);
+    throw await toObservedHttpsError(
+      "rebuildCardInvoicesForCard",
+      request,
+      error
+    );
   }
 });
 
@@ -196,6 +251,10 @@ export const updateCreditCardPurchase = onCall(async (request) => {
 
     return await executeUpdateCreditCardPurchase(context);
   } catch (error) {
-    throw toHttpsError(error);
+    throw await toObservedHttpsError(
+      "updateCreditCardPurchase",
+      request,
+      error
+    );
   }
 });

@@ -10,11 +10,13 @@ import { db } from '../../../lib/firebase';
 import type {
   CardEventLog,
   CardLimitLedger,
+  CreditCardAuditLog,
   CreditCardInstallment,
   CreditCardInvoice,
   CreditCardInvoicePayment,
   CreditCardInvoiceProjection,
   CreditCardLimitSnapshot,
+  CreditCardOperationalMetric,
   CreditCardPurchase,
 } from '../domain/types.ts';
 
@@ -28,6 +30,8 @@ export const CREDIT_CARD_FIRESTORE_COLLECTIONS = {
   invoicePayments: 'credit_card_invoice_payments',
   limitLedger: 'card_limit_ledger',
   financialEvents: 'financial_events',
+  auditLogs: 'credit_card_audit_logs',
+  operationalMetrics: 'credit_card_operational_metrics',
   invoiceViews: 'invoice_views',
   limitSnapshots: 'card_limit_snapshots',
 } as const;
@@ -251,3 +255,23 @@ export const cardLimitSnapshotDocRef = (
     CREDIT_CARD_FIRESTORE_COLLECTIONS.limitSnapshots,
     cardId
   ) as DocumentReference<CreditCardLimitSnapshot>;
+
+  export const creditCardAuditLogsCollectionRef = (
+  workspaceId: string
+): CollectionReference<CreditCardAuditLog> =>
+  collection(
+    db,
+    'workspaces',
+    assertCreditCardWorkspaceId(workspaceId),
+    CREDIT_CARD_FIRESTORE_COLLECTIONS.auditLogs
+  ) as CollectionReference<CreditCardAuditLog>;
+
+export const creditCardOperationalMetricsCollectionRef = (
+  workspaceId: string
+): CollectionReference<CreditCardOperationalMetric> =>
+  collection(
+    db,
+    'workspaces',
+    assertCreditCardWorkspaceId(workspaceId),
+    CREDIT_CARD_FIRESTORE_COLLECTIONS.operationalMetrics
+  ) as CollectionReference<CreditCardOperationalMetric>;

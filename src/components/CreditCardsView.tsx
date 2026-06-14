@@ -17,11 +17,19 @@ import {
     useCreditCardInvoicePayments,
     useCreditCardPurchasesByIds,
     useRecentCreditCardPurchasesByCard,
+    useCancelCreditCardPurchaseDomain,
+    useCloseCreditCardInvoiceDomain,
+    useCreditCardAuditLogsByCard,
+    useCreditCardOperationalMetrics,
+    useRebuildCardInvoicesForCardDomain,
+    useRecalculateCardLimitDomain,
+    useReopenCreditCardInvoiceDomain,
 } from '../modules/credit-cards/hooks';
 import { useTheme } from '../contexts/ThemeContext.tsx';
 import type {
     CreditCardInvoice,
     CreditCardInvoicePayment,
+    CreditCardInvoicePaymentMethod,
     CreditCardPurchase,
 } from '../modules/credit-cards/domain/types.ts';
 
@@ -30,13 +38,31 @@ interface CreditCardsViewProps {
     transactions: Transaction[]; // Mantido para cálculo de limites
 }
 
+type CreditCardInvoicePaymentMode = 'total' | 'partial';
+
+interface CreditCardInvoicePaymentDraft {
+    invoice: CreditCardInvoice;
+    mode: CreditCardInvoicePaymentMode;
+}
+
+interface CreditCardInvoicePaymentSubmitInput {
+    invoice: CreditCardInvoice;
+    amount: number;
+    paymentDate: string;
+    paymentMethod: CreditCardInvoicePaymentMethod;
+}
+
 
 const CreditCardInvoiceDetailsPanel = ({
     invoiceId,
+    canManageCreditCardDomain,
+    onCancelPurchase,
     onReversePayment,
     isReversingPayment,
 }: {
     invoiceId: string;
+    canManageCreditCardDomain: boolean;
+    onCancelPurchase: (purchase: CreditCardPurchase) => void;
     onReversePayment: (payment: CreditCardInvoicePayment) => void;
     isReversingPayment: boolean;
 }) => {
@@ -165,9 +191,21 @@ const CreditCardInvoiceDetailsPanel = ({
                                     )}
                                 </div>
 
-                                <p className="font-bold text-gray-800 dark:text-white">
-                                    {formatCurrency(installment.amount)}
-                                </p>
+                                <div className="flex flex-col items-end gap-2">
+                                    <p className="font-bold text-gray-800 dark:text-white">
+                                        {formatCurrency(installment.amount)}
+                                    </p>
+
+                                    {canManageCreditCardDomain && purchase?.status === 'active' && (
+                                        <button
+                                            type="button"
+                                            onClick={() => onCancelPurchase(purchase)}
+                                            className="px-3 py-1.5 rounded-lg text-xs font-bold bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-300 dark:hover:bg-red-900/40 transition-all"
+                                        >
+                                            Cancelar compra
+                                        </button>
+                                    )}
+                                </div>
                             </div>
                         );
                     })}
@@ -239,20 +277,209 @@ const CreditCardInvoiceDetailsPanel = ({
     );
 };
 
+const CreditCardInvoicePaymentModal = ({
+    draft,
+    onClose,
+    onSubmit,
+    isSubmitting,
+}: {
+    draft: CreditCardInvoicePaymentDraft;
+    onClose: () => void;
+    onSubmit: (input: CreditCardInvoicePaymentSubmitInput) => Promise<void> | void;
+    isSubmitting: boolean;
+}) => {
+    const { invoice, mode } = draft;
+    const [amount, setAmount] = useState(
+        mode === 'total' ? invoice.remainingAmount.toFixed(2) : ''
+    );
+    const [paymentDate, setPaymentDate] = useState(
+        new Date().toISOString().split('T')[0]
+    );
+    const [paymentMethod, setPaymentMethod] = useState<CreditCardInvoicePaymentMethod>('external');
+
+    const formatCurrency = (value: number) =>
+        value.toLocaleString('pt-BR', {
+            style: 'currency',
+            currency: 'BRL',
+        });
+
+    const parsedAmount = Number(amount);
+    const isAmountValid =
+        Number.isFinite(parsedAmount) &&
+        parsedAmount > 0 &&
+        parsedAmount <= invoice.remainingAmount;
+
+    const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+
+        if (!isAmountValid) {
+            alert(`Informe um valor maior que zero e menor ou igual a ${formatCurrency(invoice.remainingAmount)}.`);
+            return;
+        }
+
+        const normalizedAmount = Math.round((parsedAmount + Number.EPSILON) * 100) / 100;
+        const confirmed = window.confirm(
+            `Confirmar pagamento de ${formatCurrency(normalizedAmount)} da fatura ${invoice.competenceMonth}?`
+        );
+
+        if (!confirmed) return;
+
+        await onSubmit({
+            invoice,
+            amount: normalizedAmount,
+            paymentDate,
+            paymentMethod,
+        });
+    };
+
+    return (
+        <div className="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-4" onClick={onClose}>
+            <div
+                className="w-full max-w-md bg-white dark:bg-dark-100 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700 overflow-hidden"
+                onClick={(event) => event.stopPropagation()}
+            >
+                <div className="p-5 border-b border-gray-100 dark:border-gray-700 flex items-start justify-between gap-4">
+                    <div>
+                        <p className="text-xs font-bold uppercase text-indigo-600 dark:text-indigo-400">
+                            Pagamento de fatura
+                        </p>
+                        <h3 className="text-xl font-bold text-gray-800 dark:text-white">
+                            Fatura {invoice.competenceMonth}
+                        </h3>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                            Saldo atual: {formatCurrency(invoice.remainingAmount)}
+                        </p>
+                    </div>
+
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        disabled={isSubmitting}
+                        className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-dark-200 text-gray-500 disabled:opacity-50"
+                        aria-label="Fechar pagamento da fatura"
+                    >
+                        <CloseIcon className="w-5 h-5" />
+                    </button>
+                </div>
+
+                <form onSubmit={handleSubmit} className="p-5 space-y-4">
+                    <div>
+                        <label className="block text-sm font-bold text-gray-700 dark:text-gray-200 mb-1">
+                            Valor a pagar
+                        </label>
+                        <input
+                            type="number"
+                            min="0.01"
+                            step="0.01"
+                            max={invoice.remainingAmount}
+                            value={amount}
+                            onChange={(event) => setAmount(event.target.value)}
+                            className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-200 text-gray-800 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                            placeholder="0,00"
+                            disabled={isSubmitting}
+                            autoFocus={mode === 'partial'}
+                        />
+                        <p className={`text-xs mt-1 ${isAmountValid || !amount ? 'text-gray-500 dark:text-gray-400' : 'text-red-600 dark:text-red-300'}`}>
+                            O valor deve ser maior que zero e não pode ultrapassar o saldo da fatura.
+                        </p>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-bold text-gray-700 dark:text-gray-200 mb-1">
+                            Data do pagamento
+                        </label>
+                        <input
+                            type="date"
+                            value={paymentDate}
+                            onChange={(event) => setPaymentDate(event.target.value)}
+                            className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-200 text-gray-800 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                            disabled={isSubmitting}
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-bold text-gray-700 dark:text-gray-200 mb-1">
+                            Método de pagamento
+                        </label>
+                        <select
+                            value={paymentMethod}
+                            onChange={(event) => setPaymentMethod(event.target.value as CreditCardInvoicePaymentMethod)}
+                            className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-200 text-gray-800 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                            disabled={isSubmitting}
+                        >
+                            <option value="external">Pagamento externo</option>
+                            <option value="manual_adjustment">Ajuste manual</option>
+                        </select>
+                    </div>
+
+                    <div className="bg-gray-50 dark:bg-dark-200 rounded-xl p-4 text-sm space-y-2 border border-gray-100 dark:border-gray-700">
+                        <div className="flex justify-between gap-3">
+                            <span className="text-gray-500 dark:text-gray-400">Total da fatura</span>
+                            <span className="font-bold text-gray-800 dark:text-white">{formatCurrency(invoice.totalAmount)}</span>
+                        </div>
+                        <div className="flex justify-between gap-3">
+                            <span className="text-gray-500 dark:text-gray-400">Já pago</span>
+                            <span className="font-bold text-gray-800 dark:text-white">{formatCurrency(invoice.paidAmount)}</span>
+                        </div>
+                        <div className="flex justify-between gap-3">
+                            <span className="text-gray-500 dark:text-gray-400">Saldo após este pagamento</span>
+                            <span className="font-bold text-gray-800 dark:text-white">
+                                {formatCurrency(Math.max(invoice.remainingAmount - (isAmountValid ? parsedAmount : 0), 0))}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className="flex gap-3 pt-2">
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            disabled={isSubmitting}
+                            className="flex-1 py-3 rounded-xl font-bold border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-dark-200 transition-all disabled:opacity-50"
+                        >
+                            Cancelar
+                        </button>
+
+                        <button
+                            type="submit"
+                            disabled={!isAmountValid || isSubmitting}
+                            className={`flex-1 py-3 rounded-xl font-bold transition-all ${isAmountValid && !isSubmitting
+                                ? 'bg-green-600 hover:bg-green-700 text-white shadow-md'
+                                : 'bg-gray-200 dark:bg-dark-300 text-gray-400 cursor-not-allowed'
+                                }`}
+                        >
+                            {isSubmitting ? 'Processando...' : 'Confirmar pagamento'}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+};
+
 const CreditCardInvoiceDetailsDrawer = ({
     invoice,
     onClose,
-    onPayInvoice,
+    onOpenPayment,
+    canManageCreditCardDomain,
+    onCancelPurchase,
+    onCloseInvoice,
+    onReopenInvoice,
     onReversePayment,
     isPayingInvoice,
     isReversingPayment,
+    isRunningAdminAction,
 }: {
     invoice: CreditCardInvoice;
+    canManageCreditCardDomain: boolean;
+    onCancelPurchase: (purchase: CreditCardPurchase) => void;
     onClose: () => void;
-    onPayInvoice: (invoice: CreditCardInvoice) => Promise<void> | void;
+    onCloseInvoice: (invoice: CreditCardInvoice) => void;
+    onOpenPayment: (invoice: CreditCardInvoice, mode: CreditCardInvoicePaymentMode) => void;
+    onReopenInvoice: (invoice: CreditCardInvoice) => void;
     onReversePayment: (payment: CreditCardInvoicePayment) => void;
     isPayingInvoice: boolean;
     isReversingPayment: boolean;
+    isRunningAdminAction: boolean;
 }) => {
     const formatCurrency = (value: number) =>
         value.toLocaleString('pt-BR', {
@@ -352,16 +579,30 @@ const CreditCardInvoiceDetailsDrawer = ({
 
                     <CreditCardInvoiceDetailsPanel
                         invoiceId={invoice.id}
+                        canManageCreditCardDomain={canManageCreditCardDomain}
+                        onCancelPurchase={onCancelPurchase}
                         onReversePayment={onReversePayment}
                         isReversingPayment={isReversingPayment}
                     />
 
-                    <div className="pt-4 border-t border-gray-100 dark:border-gray-700">
+                    <div className="pt-4 border-t border-gray-100 dark:border-gray-700 grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <button
                             type="button"
                             disabled={!canPay || isPayingInvoice}
-                            onClick={() => onPayInvoice(invoice)}
-                            className={`w-full py-3 rounded-xl font-bold transition-all ${canPay && !isPayingInvoice
+                            onClick={() => onOpenPayment(invoice, 'partial')}
+                            className={`py-3 rounded-xl font-bold transition-all ${canPay && !isPayingInvoice
+                                ? 'bg-white dark:bg-dark-200 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 hover:bg-green-50 dark:hover:bg-green-900/20'
+                                : 'bg-gray-200 dark:bg-dark-300 text-gray-400 cursor-not-allowed'
+                                }`}
+                        >
+                            Pagamento parcial
+                        </button>
+
+                        <button
+                            type="button"
+                            disabled={!canPay || isPayingInvoice}
+                            onClick={() => onOpenPayment(invoice, 'total')}
+                            className={`py-3 rounded-xl font-bold transition-all ${canPay && !isPayingInvoice
                                 ? 'bg-green-600 hover:bg-green-700 text-white shadow-md'
                                 : 'bg-gray-200 dark:bg-dark-300 text-gray-400 cursor-not-allowed'
                                 }`}
@@ -370,9 +611,44 @@ const CreditCardInvoiceDetailsDrawer = ({
                                 ? 'Fatura paga'
                                 : isPayingInvoice
                                     ? 'Processando...'
-                                    : 'Pagar fatura'}
+                                    : 'Pagar total'}
                         </button>
                     </div>
+
+
+                    {canManageCreditCardDomain && (
+                        <div className="pt-4 border-t border-gray-100 dark:border-gray-700 space-y-3">
+                            <p className="text-xs font-bold uppercase text-gray-500 dark:text-gray-400">
+                                Ações administrativas
+                            </p>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <button
+                                    type="button"
+                                    disabled={invoice.status !== 'open' || isRunningAdminAction}
+                                    onClick={() => onCloseInvoice(invoice)}
+                                    className={`py-3 rounded-xl font-bold transition-all ${invoice.status === 'open' && !isRunningAdminAction
+                                        ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-md'
+                                        : 'bg-gray-200 dark:bg-dark-300 text-gray-400 cursor-not-allowed'
+                                        }`}
+                                >
+                                    Fechar fatura
+                                </button>
+
+                                <button
+                                    type="button"
+                                    disabled={invoice.status === 'paid' || invoice.status === 'cancelled' || isRunningAdminAction}
+                                    onClick={() => onReopenInvoice(invoice)}
+                                    className={`py-3 rounded-xl font-bold transition-all ${invoice.status !== 'paid' && invoice.status !== 'cancelled' && !isRunningAdminAction
+                                        ? 'bg-white dark:bg-dark-200 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/20'
+                                        : 'bg-gray-200 dark:bg-dark-300 text-gray-400 cursor-not-allowed'
+                                        }`}
+                                >
+                                    Reabrir fatura
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
@@ -387,30 +663,35 @@ const CreditCardsView: React.FC<CreditCardsViewProps> = ({ transactions }) => {
     const deleteMutation = useDeleteCreditCard();
     const registerInvoicePaymentMutation = useRegisterCreditCardInvoicePaymentDomain();
     const reverseInvoicePaymentMutation = useReverseCreditCardInvoicePaymentDomain();
+    const closeInvoiceMutation = useCloseCreditCardInvoiceDomain();
+    const reopenInvoiceMutation = useReopenCreditCardInvoiceDomain();
+    const cancelPurchaseMutation = useCancelCreditCardPurchaseDomain();
+    const recalculateLimitMutation = useRecalculateCardLimitDomain();
+    const rebuildInvoicesMutation = useRebuildCardInvoicesForCardDomain();
 
     const pendingCriticalInvoiceOperationsRef = useRef<Set<string>>(new Set());
 
-const runCriticalInvoiceOperation = async (
-    operationKey: string,
-    operation: () => Promise<void>,
-): Promise<void> => {
-    if (pendingCriticalInvoiceOperationsRef.current.has(operationKey)) {
-        return;
-    }
+    const runCriticalInvoiceOperation = async (
+        operationKey: string,
+        operation: () => Promise<void>,
+    ): Promise<void> => {
+        if (pendingCriticalInvoiceOperationsRef.current.has(operationKey)) {
+            return;
+        }
 
-    pendingCriticalInvoiceOperationsRef.current.add(operationKey);
+        pendingCriticalInvoiceOperationsRef.current.add(operationKey);
 
-    try {
-        await operation();
-    } finally {
-        pendingCriticalInvoiceOperationsRef.current.delete(operationKey);
-    }
-};
+        try {
+            await operation();
+        } finally {
+            pendingCriticalInvoiceOperationsRef.current.delete(operationKey);
+        }
+    };
 
     // Fallback para array vazio enquanto carrega ou se der erro
     const cards = cardsData || [];
 
-    const { activeWorkspace } = useWorkspace();
+    const { activeWorkspace, canManageActiveWorkspace } = useWorkspace();
     const isPJ = activeWorkspace.type === 'PJ';
     const { playSound } = useTheme();
 
@@ -421,6 +702,7 @@ const runCriticalInvoiceOperation = async (
     const [cardToEdit, setCardToEdit] = useState<CreditCard | null>(null);
     const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
     const [selectedInvoiceForDetails, setSelectedInvoiceForDetails] = useState<CreditCardInvoice | null>(null);
+    const [invoicePaymentDraft, setInvoicePaymentDraft] = useState<CreditCardInvoicePaymentDraft | null>(null);
     const {
         data: selectedCardInvoicesData,
         isLoading: isLoadingSelectedCardInvoices,
@@ -433,6 +715,21 @@ const runCriticalInvoiceOperation = async (
 
     const selectedCardInvoices = selectedCardInvoicesData || [];
     const selectedCardRecentPurchases = selectedCardRecentPurchasesData || [];
+    const {
+        data: selectedCardAuditLogsData,
+        isLoading: isLoadingSelectedCardAuditLogs,
+    } = useCreditCardAuditLogsByCard(
+        canManageActiveWorkspace ? selectedCardId : null,
+        canManageActiveWorkspace
+    );
+
+    const {
+        data: creditCardOperationalMetricsData,
+        isLoading: isLoadingCreditCardOperationalMetrics,
+    } = useCreditCardOperationalMetrics(canManageActiveWorkspace);
+
+    const selectedCardAuditLogs = selectedCardAuditLogsData || [];
+    const creditCardOperationalMetrics = creditCardOperationalMetricsData || [];
 
     // Filter cards
     const filteredCards = useMemo(() => {
@@ -517,6 +814,22 @@ const runCriticalInvoiceOperation = async (
         return `manual-invoice-payment-reversal-${randomPart}`;
     };
 
+    const buildAdminIdempotencyKey = (operation: string): string => {
+        const randomPart = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
+
+        return `credit-card-admin-${operation}-${randomPart}`;
+    };
+
+    const askAdminReason = (message: string): string | null => {
+        const reason = window.prompt(message);
+
+        if (!reason || !reason.trim()) {
+            return null;
+        }
+
+        return reason.trim();
+    };
+
     const getInvoiceStatusLabel = (status: CreditCardInvoice['status']) => {
         const labels: Record<CreditCardInvoice['status'], string> = {
             open: 'Aberta',
@@ -530,79 +843,220 @@ const runCriticalInvoiceOperation = async (
         return labels[status];
     };
 
-    const handlePayInvoice = async (invoice: CreditCardInvoice) => {
-    if (invoice.remainingAmount <= 0 || invoice.status === 'paid') {
-        return;
-    }
-
-    const operationKey = `invoice-payment:${invoice.id}`;
-
-    if (pendingCriticalInvoiceOperationsRef.current.has(operationKey)) {
-        return;
-    }
-
-    const confirmed = window.confirm(
-        `Confirmar pagamento externo de ${formatCurrency(invoice.remainingAmount)} da fatura ${invoice.competenceMonth}?`,
-    );
-
-    if (!confirmed) return;
-
-    await runCriticalInvoiceOperation(operationKey, async () => {
-        try {
-            await registerInvoicePaymentMutation.mutateAsync({
-                cardId: invoice.cardId,
-                invoiceId: invoice.id,
-                paymentDate: getTodayIsoDate(),
-                amount: invoice.remainingAmount,
-                paymentMethod: 'external',
-                idempotencyKey: buildInvoicePaymentIdempotencyKey(),
-                correlationId: 'credit-card-view-invoice-payment',
-            });
-
-            playSound('success');
-        } catch (error) {
-            console.error('Erro ao pagar fatura:', error);
-            alert('Erro ao pagar fatura.');
+    const handleOpenInvoicePayment = (
+        invoice: CreditCardInvoice,
+        mode: CreditCardInvoicePaymentMode,
+    ) => {
+        if (
+            invoice.remainingAmount <= 0 ||
+            invoice.status === 'paid' ||
+            invoice.status === 'cancelled'
+        ) {
+            return;
         }
-    });
-};
+
+        const operationKey = `invoice-payment:${invoice.id}`;
+
+        if (pendingCriticalInvoiceOperationsRef.current.has(operationKey)) {
+            return;
+        }
+
+        setInvoicePaymentDraft({
+            invoice,
+            mode,
+        });
+    };
+
+    const handleSubmitInvoicePayment = async ({
+        invoice,
+        amount,
+        paymentDate,
+        paymentMethod,
+    }: CreditCardInvoicePaymentSubmitInput) => {
+        if (
+            amount <= 0 ||
+            amount > invoice.remainingAmount ||
+            invoice.status === 'paid' ||
+            invoice.status === 'cancelled'
+        ) {
+            alert('Valor de pagamento inválido para esta fatura.');
+            return;
+        }
+
+        const operationKey = `invoice-payment:${invoice.id}`;
+
+        await runCriticalInvoiceOperation(operationKey, async () => {
+            try {
+                await registerInvoicePaymentMutation.mutateAsync({
+                    cardId: invoice.cardId,
+                    invoiceId: invoice.id,
+                    paymentDate,
+                    amount,
+                    paymentMethod,
+                    idempotencyKey: buildInvoicePaymentIdempotencyKey(),
+                    correlationId: 'credit-card-view-invoice-payment',
+                });
+
+                setInvoicePaymentDraft(null);
+                playSound('success');
+            } catch (error) {
+                console.error('Erro ao pagar fatura:', error);
+                alert('Erro ao pagar fatura.');
+            }
+        });
+    };
 
     const handleReverseInvoicePayment = async (payment: CreditCardInvoicePayment) => {
-    if (payment.status !== 'posted') {
-        return;
-    }
+        if (payment.status !== 'posted') {
+            return;
+        }
 
-    const operationKey = `invoice-payment-reversal:${payment.id}`;
+        const operationKey = `invoice-payment-reversal:${payment.id}`;
 
-    if (pendingCriticalInvoiceOperationsRef.current.has(operationKey)) {
-        return;
-    }
+        if (pendingCriticalInvoiceOperationsRef.current.has(operationKey)) {
+            return;
+        }
 
-    const confirmed = window.confirm(
-        `Confirmar estorno do pagamento de ${formatCurrency(payment.amount)}?`,
-    );
+        const confirmed = window.confirm(
+            `Confirmar estorno do pagamento de ${formatCurrency(payment.amount)}?`,
+        );
 
-    if (!confirmed) return;
+        if (!confirmed) return;
 
-    await runCriticalInvoiceOperation(operationKey, async () => {
+        await runCriticalInvoiceOperation(operationKey, async () => {
+            try {
+                await reverseInvoicePaymentMutation.mutateAsync({
+                    cardId: payment.cardId,
+                    invoiceId: payment.invoiceId,
+                    paymentId: payment.id,
+                    reason: 'Estorno manual pela tela de cartões',
+                    reversedAt: getTodayIsoDate(),
+                    idempotencyKey: buildInvoicePaymentReversalIdempotencyKey(),
+                    correlationId: 'credit-card-view-invoice-payment-reversal',
+                });
+
+                playSound('success');
+            } catch (error) {
+                console.error('Erro ao estornar pagamento da fatura:', error);
+                alert('Erro ao estornar pagamento da fatura.');
+            }
+        });
+    };
+
+    const handleCloseInvoice = async (invoice: CreditCardInvoice) => {
+        if (!canManageActiveWorkspace || invoice.status !== 'open') return;
+
+        const confirmed = window.confirm(
+            `Confirmar fechamento manual da fatura ${invoice.competenceMonth}?`
+        );
+
+        if (!confirmed) return;
+
         try {
-            await reverseInvoicePaymentMutation.mutateAsync({
-                cardId: payment.cardId,
-                invoiceId: payment.invoiceId,
-                paymentId: payment.id,
-                reason: 'Estorno manual pela tela de cartões',
-                reversedAt: getTodayIsoDate(),
-                idempotencyKey: buildInvoicePaymentReversalIdempotencyKey(),
-                correlationId: 'credit-card-view-invoice-payment-reversal',
+            await closeInvoiceMutation.mutateAsync({
+                cardId: invoice.cardId,
+                invoiceId: invoice.id,
+                closedAt: getTodayIsoDate(),
+                idempotencyKey: buildAdminIdempotencyKey('close-invoice'),
+                correlationId: 'credit-card-admin-close-invoice',
             });
 
             playSound('success');
         } catch (error) {
-            console.error('Erro ao estornar pagamento da fatura:', error);
-            alert('Erro ao estornar pagamento da fatura.');
+            console.error('Erro ao fechar fatura:', error);
+            alert('Erro ao fechar fatura.');
         }
-    });
-};
+    };
+
+    const handleReopenInvoice = async (invoice: CreditCardInvoice) => {
+        if (!canManageActiveWorkspace || invoice.status === 'paid' || invoice.status === 'cancelled') {
+            return;
+        }
+
+        const reason = askAdminReason('Informe o motivo para reabrir a fatura:');
+        if (!reason) return;
+
+        try {
+            await reopenInvoiceMutation.mutateAsync({
+                cardId: invoice.cardId,
+                invoiceId: invoice.id,
+                reason,
+                policy: 'block_if_paid',
+                idempotencyKey: buildAdminIdempotencyKey('reopen-invoice'),
+                correlationId: 'credit-card-admin-reopen-invoice',
+            });
+
+            playSound('success');
+        } catch (error) {
+            console.error('Erro ao reabrir fatura:', error);
+            alert('Erro ao reabrir fatura.');
+        }
+    };
+
+    const handleCancelPurchase = async (purchase: CreditCardPurchase) => {
+        if (!canManageActiveWorkspace || purchase.status !== 'active') return;
+
+        const reason = askAdminReason(`Informe o motivo para cancelar a compra "${purchase.description}":`);
+        if (!reason) return;
+
+        try {
+            await cancelPurchaseMutation.mutateAsync({
+                cardId: purchase.cardId,
+                purchaseId: purchase.id,
+                reason,
+                policy: 'block_if_invoice_paid',
+                idempotencyKey: buildAdminIdempotencyKey('cancel-purchase'),
+                correlationId: 'credit-card-admin-cancel-purchase',
+            });
+
+            playSound('success');
+        } catch (error) {
+            console.error('Erro ao cancelar compra:', error);
+            alert('Erro ao cancelar compra.');
+        }
+    };
+
+    const handleRecalculateLimit = async (card: CreditCard) => {
+        if (!canManageActiveWorkspace) return;
+
+        const reason = askAdminReason(`Informe o motivo para recalcular o limite do cartão "${card.name}":`);
+        if (!reason) return;
+
+        try {
+            await recalculateLimitMutation.mutateAsync({
+                cardId: card.id,
+                reason,
+                idempotencyKey: buildAdminIdempotencyKey('recalculate-limit'),
+                correlationId: 'credit-card-admin-recalculate-limit',
+            });
+
+            playSound('success');
+        } catch (error) {
+            console.error('Erro ao recalcular limite:', error);
+            alert('Erro ao recalcular limite.');
+        }
+    };
+
+    const handleRebuildInvoices = async (card: CreditCard) => {
+        if (!canManageActiveWorkspace) return;
+
+        const reason = askAdminReason(`Informe o motivo para reconstruir faturas do cartão "${card.name}":`);
+        if (!reason) return;
+
+        try {
+            await rebuildInvoicesMutation.mutateAsync({
+                cardId: card.id,
+                reason,
+                idempotencyKey: buildAdminIdempotencyKey('rebuild-invoices'),
+                correlationId: 'credit-card-admin-rebuild-invoices',
+            });
+
+            playSound('success');
+        } catch (error) {
+            console.error('Erro ao reconstruir faturas:', error);
+            alert('Erro ao reconstruir faturas.');
+        }
+    };
 
     const handleEdit = (card: CreditCard) => {
         setCardToEdit(card);
@@ -877,7 +1331,7 @@ const runCriticalInvoiceOperation = async (
                                                             <button
                                                                 type="button"
                                                                 disabled={!canPay || registerInvoicePaymentMutation.isPending}
-                                                                onClick={() => handlePayInvoice(invoice)}
+                                                                onClick={() => handleOpenInvoicePayment(invoice, 'total')}
                                                                 className={`w-full py-2.5 rounded-lg font-bold transition-all ${canPay && !registerInvoicePaymentMutation.isPending
                                                                     ? 'bg-green-600 hover:bg-green-700 text-white shadow-md'
                                                                     : 'bg-gray-200 dark:bg-dark-300 text-gray-400 cursor-not-allowed'
@@ -887,7 +1341,7 @@ const runCriticalInvoiceOperation = async (
                                                                     ? 'Fatura paga'
                                                                     : registerInvoicePaymentMutation.isPending
                                                                         ? 'Processando...'
-                                                                        : 'Pagar fatura'}
+                                                                        : 'Pagar total'}
                                                             </button>
                                                         </div>
                                                     );
@@ -1010,7 +1464,7 @@ const runCriticalInvoiceOperation = async (
                                                             <button
                                                                 type="button"
                                                                 disabled={!canPay || registerInvoicePaymentMutation.isPending}
-                                                                onClick={() => handlePayInvoice(invoice)}
+                                                                onClick={() => handleOpenInvoicePayment(invoice, 'total')}
                                                                 className={`w-full py-2.5 rounded-lg font-bold transition-all ${canPay && !registerInvoicePaymentMutation.isPending
                                                                     ? 'bg-green-600 hover:bg-green-700 text-white shadow-md'
                                                                     : 'bg-gray-200 dark:bg-dark-300 text-gray-400 cursor-not-allowed'
@@ -1020,7 +1474,7 @@ const runCriticalInvoiceOperation = async (
                                                                     ? 'Fatura paga'
                                                                     : registerInvoicePaymentMutation.isPending
                                                                         ? 'Processando...'
-                                                                        : 'Pagar fatura'}
+                                                                        : 'Pagar total'}
                                                             </button>
                                                         </div>
                                                     );
@@ -1079,6 +1533,114 @@ const runCriticalInvoiceOperation = async (
                                 </div>
                             )}
 
+                            {canManageActiveWorkspace && (
+                                <div className="space-y-3 border-t border-gray-100 dark:border-gray-700 pt-6">
+                                    <h4 className="font-bold text-gray-800 dark:text-white">
+                                        Administração
+                                    </h4>
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        <button
+                                            type="button"
+                                            disabled={recalculateLimitMutation.isPending}
+                                            onClick={() => handleRecalculateLimit(selectedCard)}
+                                            className="py-2.5 rounded-lg font-bold bg-white dark:bg-dark-200 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-dark-300 transition-all disabled:opacity-50"
+                                        >
+                                            Recalcular limite
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            disabled={rebuildInvoicesMutation.isPending}
+                                            onClick={() => handleRebuildInvoices(selectedCard)}
+                                            className="py-2.5 rounded-lg font-bold bg-white dark:bg-dark-200 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-dark-300 transition-all disabled:opacity-50"
+                                        >
+                                            Rebuild de faturas
+                                        </button>
+                                    </div>
+
+                                    <details className="bg-gray-50 dark:bg-dark-200 rounded-xl border border-gray-100 dark:border-gray-700 p-4">
+                                        <summary className="cursor-pointer font-bold text-sm text-gray-700 dark:text-gray-200">
+                                            Audit logs recentes
+                                        </summary>
+
+                                        <div className="mt-3 space-y-2">
+                                            {isLoadingSelectedCardAuditLogs && (
+                                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                                    Carregando auditoria...
+                                                </p>
+                                            )}
+
+                                            {!isLoadingSelectedCardAuditLogs && selectedCardAuditLogs.length === 0 && (
+                                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                                    Nenhum audit log encontrado.
+                                                </p>
+                                            )}
+
+                                            {selectedCardAuditLogs.map((auditLog) => (
+                                                <div
+                                                    key={auditLog.id}
+                                                    className="text-xs bg-white dark:bg-dark-300 rounded-lg p-3 border border-gray-100 dark:border-gray-700"
+                                                >
+                                                    <p className="font-bold text-gray-800 dark:text-white">
+                                                        {auditLog.action}
+                                                    </p>
+                                                    <p className="text-gray-500 dark:text-gray-400">
+                                                        Usuário: {auditLog.actorId || 'N/A'}
+                                                    </p>
+                                                    {auditLog.reason && (
+                                                        <p className="text-gray-500 dark:text-gray-400">
+                                                            Motivo: {auditLog.reason}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </details>
+
+                                    <details className="bg-gray-50 dark:bg-dark-200 rounded-xl border border-gray-100 dark:border-gray-700 p-4">
+                                        <summary className="cursor-pointer font-bold text-sm text-gray-700 dark:text-gray-200">
+                                            Métricas operacionais
+                                        </summary>
+
+                                        <div className="mt-3 space-y-2">
+                                            {isLoadingCreditCardOperationalMetrics && (
+                                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                                    Carregando métricas...
+                                                </p>
+                                            )}
+
+                                            {!isLoadingCreditCardOperationalMetrics && creditCardOperationalMetrics.length === 0 && (
+                                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                                    Nenhuma métrica operacional encontrada.
+                                                </p>
+                                            )}
+
+                                            {creditCardOperationalMetrics
+                                                .filter((metric) => !metric.lastCardId || metric.lastCardId === selectedCard.id)
+                                                .map((metric) => (
+                                                    <div
+                                                        key={metric.id}
+                                                        className="text-xs bg-white dark:bg-dark-300 rounded-lg p-3 border border-gray-100 dark:border-gray-700"
+                                                    >
+                                                        <p className="font-bold text-gray-800 dark:text-white">
+                                                            {metric.operation} · {metric.status}
+                                                        </p>
+                                                        <p className="text-gray-500 dark:text-gray-400">
+                                                            Data: {metric.date} · Ocorrências: {metric.count}
+                                                        </p>
+                                                        {typeof metric.amountTotal === 'number' && (
+                                                            <p className="text-gray-500 dark:text-gray-400">
+                                                                Valor total: {formatCurrency(metric.amountTotal)}
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                        </div>
+                                    </details>
+                                </div>
+                            )}
+
                             <div className="pt-6 border-t border-gray-100 flex gap-3">
                                 <button onClick={() => handleEdit(selectedCard)} className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold shadow-md transition-all flex justify-center items-center gap-2">
                                     <EditIcon className="h-4 w-4" /> Editar
@@ -1095,11 +1657,33 @@ const runCriticalInvoiceOperation = async (
             {selectedInvoiceForDetailsView && (
                 <CreditCardInvoiceDetailsDrawer
                     invoice={selectedInvoiceForDetailsView}
+                    canManageCreditCardDomain={canManageActiveWorkspace}
+                    onCancelPurchase={handleCancelPurchase}
                     onClose={() => setSelectedInvoiceForDetails(null)}
-                    onPayInvoice={handlePayInvoice}
+                    onCloseInvoice={handleCloseInvoice}
+                    onOpenPayment={handleOpenInvoicePayment}
+                    onReopenInvoice={handleReopenInvoice}
                     onReversePayment={handleReverseInvoicePayment}
                     isPayingInvoice={registerInvoicePaymentMutation.isPending}
                     isReversingPayment={reverseInvoicePaymentMutation.isPending}
+                    isRunningAdminAction={
+                        closeInvoiceMutation.isPending ||
+                        reopenInvoiceMutation.isPending ||
+                        cancelPurchaseMutation.isPending
+                    }
+                />
+            )}
+
+            {invoicePaymentDraft && (
+                <CreditCardInvoicePaymentModal
+                    draft={invoicePaymentDraft}
+                    onClose={() => {
+                        if (!registerInvoicePaymentMutation.isPending) {
+                            setInvoicePaymentDraft(null);
+                        }
+                    }}
+                    onSubmit={handleSubmitInvoicePayment}
+                    isSubmitting={registerInvoicePaymentMutation.isPending}
                 />
             )}
             <style>{`

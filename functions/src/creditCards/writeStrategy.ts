@@ -105,9 +105,9 @@ export const CREDIT_CARD_BACKEND_WRITE_PLANS: Record<
     clientDirectWriteAllowed: false,
   },
 
-  cancelCreditCardPurchase: {
+   cancelCreditCardPurchase: {
     operation: "cancelCreditCardPurchase",
-    allowedRoles: ["owner", "admin", "member"],
+    allowedRoles: ["owner", "admin"],
     requiresAuthentication: true,
     requiresWorkspaceMembership: true,
     requiresIdempotencyKey: true,
@@ -173,7 +173,7 @@ export const CREDIT_CARD_BACKEND_WRITE_PLANS: Record<
 
   registerCreditCardInvoicePayment: {
     operation: "registerCreditCardInvoicePayment",
-    allowedRoles: ["owner", "admin", "member"],
+    allowedRoles: ["owner", "admin"],
     requiresAuthentication: true,
     requiresWorkspaceMembership: true,
     requiresIdempotencyKey: true,

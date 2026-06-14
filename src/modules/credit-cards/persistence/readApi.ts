@@ -12,29 +12,33 @@ import {
 } from 'firebase/firestore';
 
 import type {
-  CardLimitLedger,
+    CardLimitLedger,
   CompetenceMonth,
+  CreditCardAuditLog,
   CreditCardInstallment,
   CreditCardInstallmentStatus,
   CreditCardInvoice,
   CreditCardInvoicePayment,
   CreditCardInvoiceProjection,
   CreditCardInvoiceStatus,
-  CreditCardLimitSnapshot,
+   CreditCardLimitSnapshot,
+  CreditCardOperationalMetric,
   CreditCardPurchase,
   CreditCardPurchaseStatus,
   IsoDateString,
 } from '../domain/types.ts';
 
 import {
-  cardLimitLedgerCollectionRef,
+    cardLimitLedgerCollectionRef,
   cardLimitSnapshotDocRef,
   cardLimitSnapshotsCollectionRef,
+  creditCardAuditLogsCollectionRef,
   creditCardInstallmentsCollectionRef,
   creditCardInvoiceDocRef,
   creditCardInvoicePaymentsCollectionRef,
   creditCardInvoicesCollectionRef,
-  creditCardInvoiceViewsCollectionRef,
+   creditCardInvoiceViewsCollectionRef,
+  creditCardOperationalMetricsCollectionRef,
   creditCardPurchasesCollectionRef,
 } from './firestorePaths.ts';
 
@@ -433,4 +437,44 @@ export const listCreditCardPurchasesForReports = async (
   );
 
   return mapDocs<CreditCardPurchase>(snapshot);
+};
+
+export const listCreditCardAuditLogsByCard = async (
+  workspaceId: string,
+  cardId: string,
+  options: CreditCardQueryLimitOptions = {}
+): Promise<CreditCardAuditLog[]> => {
+  const snapshot = await getDocs(
+    query(
+      creditCardAuditLogsCollectionRef(workspaceId),
+      ...withOptionalLimit(
+        [
+          where('cardId', '==', cardId),
+          orderBy('occurredAt', 'desc'),
+        ],
+        options.limit
+      )
+    )
+  );
+
+  return mapDocs<CreditCardAuditLog>(snapshot);
+};
+
+export const listCreditCardOperationalMetrics = async (
+  workspaceId: string,
+  options: CreditCardQueryLimitOptions = {}
+): Promise<CreditCardOperationalMetric[]> => {
+  const snapshot = await getDocs(
+    query(
+      creditCardOperationalMetricsCollectionRef(workspaceId),
+      ...withOptionalLimit(
+        [
+          orderBy('updatedAt', 'desc'),
+        ],
+        options.limit
+      )
+    )
+  );
+
+  return mapDocs<CreditCardOperationalMetric>(snapshot);
 };

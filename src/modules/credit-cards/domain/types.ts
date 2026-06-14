@@ -9,6 +9,26 @@ export type CreditCardBillingCycleStatus =
   | 'closed'
   | 'overdue';
 
+  export type CreditCardVisualBgType =
+  | 'color'
+  | 'gradient'
+  | 'image';
+
+export type CreditCardVisualTextColor =
+  | 'white'
+  | 'black';
+
+export interface CreditCardVisual {
+  bgType: CreditCardVisualBgType;
+  bgColor: string;
+  bgGradientColor?: string;
+  bgImage?: string;
+  textColor: CreditCardVisualTextColor;
+  showName: boolean;
+  showBrand: boolean;
+  showLogo: boolean;
+}
+
 export type CreditCardPurchaseAmountType =
   | 'total'
   | 'installment';
@@ -261,4 +281,63 @@ export interface CreditCardLimitSnapshot {
   limitAvailable: MoneyAmount;
 
   updatedAt: unknown;
+}
+
+export type CreditCardAuditAction =
+  | 'purchase_created'
+  | 'purchase_updated'
+  | 'purchase_cancelled'
+  | 'invoice_closed'
+  | 'invoice_reopened'
+  | 'invoice_payment_registered'
+  | 'invoice_payment_reversed'
+  | 'card_limit_recalculated'
+  | 'card_invoices_rebuilt';
+
+export interface CreditCardAuditLog {
+  id: string;
+  workspaceId: string;
+  action: CreditCardAuditAction;
+  actorId: string;
+  entityType: 'purchase' | 'invoice' | 'payment' | 'card';
+  entityId: string;
+  cardId?: string;
+  invoiceId?: string;
+  purchaseId?: string;
+  paymentId?: string;
+  ledgerEntryId?: string;
+  domainEventId?: string;
+  reason?: string;
+  policy?: string;
+  idempotencyKey?: string;
+  correlationId?: string;
+  details?: Record<string, unknown>;
+  occurredAt?: unknown;
+}
+
+export type CreditCardOperationalMetricOperation =
+  | 'purchase_created'
+  | 'purchase_cancelled'
+  | 'invoice_payment_posted'
+  | 'invoice_payment_reversed'
+  | 'card_invoices_rebuilt'
+  | 'card_limit_recalculated';
+
+export interface CreditCardOperationalMetric {
+  id: string;
+  workspaceId: string;
+  date: string;
+  domain: 'credit_card';
+  operation: CreditCardOperationalMetricOperation;
+  status: 'success' | 'failure';
+  count: number;
+  amountTotal?: number;
+  lastActorId?: string;
+  lastCardId?: string;
+  lastInvoiceId?: string;
+  lastPurchaseId?: string;
+  lastPaymentId?: string;
+  lastCorrelationId?: string;
+  lastIdempotencyKey?: string;
+  updatedAt?: unknown;
 }

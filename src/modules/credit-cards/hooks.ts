@@ -12,6 +12,19 @@ import {
 } from './invoicePaymentsApi';
 
 import {
+    cancelCreditCardPurchase,
+    closeCreditCardInvoice,
+    rebuildCardInvoicesForCard,
+    recalculateCardLimit,
+    reopenCreditCardInvoice,
+    type CancelCreditCardPurchaseFrontendInput,
+    type CloseCreditCardInvoiceFrontendInput,
+    type RebuildCardInvoicesForCardFrontendInput,
+    type RecalculateCardLimitFrontendInput,
+    type ReopenCreditCardInvoiceFrontendInput,
+} from './persistence/callableApi';
+
+import {
     CREDIT_CARD_COMPATIBILITY_KEYS,
 } from './compatibility';
 import {
@@ -21,6 +34,8 @@ import {
     listCreditCardPurchasesByIds,
     listOpenCreditCardInvoicesByCard,
     listCreditCardPurchasesByCard,
+    listCreditCardAuditLogsByCard,
+    listCreditCardOperationalMetrics,
 } from './persistence/readApi';
 import { CreditCard } from '../../types';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
@@ -36,6 +51,8 @@ export const KEYS = {
         ...purchaseIds,
     ],
     recentPurchasesByCard: (ws: string, cardId: string) => ['creditCardRecentPurchasesByCard', ws, cardId],
+        auditLogsByCard: (ws: string, cardId: string) => ['creditCardAuditLogsByCard', ws, cardId],
+    operationalMetrics: (ws: string) => ['creditCardOperationalMetrics', ws],
 };
 
 const mergeCardsWithLimitSnapshots = async (
@@ -150,6 +167,62 @@ export const useCreateCreditCardPurchaseDomain = () => {
             ]);
         },
     });
+};
+
+const invalidateCreditCardDomainQueries = async (
+    queryClient: ReturnType<typeof useQueryClient>,
+    workspaceId: string,
+    cardId?: string,
+    invoiceId?: string
+): Promise<void> => {
+    await Promise.all([
+        queryClient.invalidateQueries({
+            queryKey: KEYS.all(workspaceId),
+            refetchType: 'active',
+        }),
+        cardId
+            ? queryClient.invalidateQueries({
+                queryKey: KEYS.invoicesByCard(workspaceId, cardId),
+                refetchType: 'active',
+            })
+            : Promise.resolve(),
+        invoiceId
+            ? queryClient.invalidateQueries({
+                queryKey: KEYS.invoicePayments(workspaceId, invoiceId),
+                refetchType: 'active',
+            })
+            : Promise.resolve(),
+        invoiceId
+            ? queryClient.invalidateQueries({
+                queryKey: KEYS.invoiceInstallments(workspaceId, invoiceId),
+                refetchType: 'active',
+            })
+            : Promise.resolve(),
+        cardId
+            ? queryClient.invalidateQueries({
+                queryKey: KEYS.recentPurchasesByCard(workspaceId, cardId),
+                refetchType: 'active',
+            })
+            : Promise.resolve(),
+        cardId
+            ? queryClient.invalidateQueries({
+                queryKey: KEYS.auditLogsByCard(workspaceId, cardId),
+                refetchType: 'active',
+            })
+            : Promise.resolve(),
+        queryClient.invalidateQueries({
+            queryKey: KEYS.operationalMetrics(workspaceId),
+            refetchType: 'active',
+        }),
+        queryClient.invalidateQueries({
+            queryKey: CREDIT_CARD_COMPATIBILITY_KEYS.invoiceTransactionProjections(workspaceId),
+            refetchType: 'active',
+        }),
+        queryClient.invalidateQueries({
+            queryKey: ['transactions', workspaceId],
+            refetchType: 'active',
+        }),
+    ]);
 };
 
 export const useOpenCreditCardInvoicesByCard = (cardId?: string | null) => {
@@ -375,5 +448,191 @@ export const useReverseCreditCardInvoicePaymentDomain = () => {
                 }),
             ]);
         },
+    });
+};
+
+export const useCloseCreditCardInvoiceDomain = () => {
+    const { activeWorkspace } = useWorkspace();
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (input: Omit<CloseCreditCardInvoiceFrontendInput, 'workspaceId'>) => {
+            if (!isWorkspaceReady(activeWorkspace?.id)) {
+                return Promise.reject(new Error('Workspace ativo não encontrado.'));
+            }
+
+            return closeCreditCardInvoice({
+                ...input,
+                workspaceId: activeWorkspace.id,
+            });
+        },
+        onSuccess: async (_result, variables) => {
+            if (!isWorkspaceReady(activeWorkspace?.id)) return;
+
+            await invalidateCreditCardDomainQueries(
+                queryClient,
+                activeWorkspace.id,
+                variables.cardId,
+                variables.invoiceId
+            );
+        },
+    });
+};
+
+export const useReopenCreditCardInvoiceDomain = () => {
+    const { activeWorkspace } = useWorkspace();
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (input: Omit<ReopenCreditCardInvoiceFrontendInput, 'workspaceId'>) => {
+            if (!isWorkspaceReady(activeWorkspace?.id)) {
+                return Promise.reject(new Error('Workspace ativo não encontrado.'));
+            }
+
+            return reopenCreditCardInvoice({
+                ...input,
+                workspaceId: activeWorkspace.id,
+            });
+        },
+        onSuccess: async (_result, variables) => {
+            if (!isWorkspaceReady(activeWorkspace?.id)) return;
+
+            await invalidateCreditCardDomainQueries(
+                queryClient,
+                activeWorkspace.id,
+                variables.cardId,
+                variables.invoiceId
+            );
+        },
+    });
+};
+
+export const useCancelCreditCardPurchaseDomain = () => {
+    const { activeWorkspace } = useWorkspace();
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (input: Omit<CancelCreditCardPurchaseFrontendInput, 'workspaceId'>) => {
+            if (!isWorkspaceReady(activeWorkspace?.id)) {
+                return Promise.reject(new Error('Workspace ativo não encontrado.'));
+            }
+
+            return cancelCreditCardPurchase({
+                ...input,
+                workspaceId: activeWorkspace.id,
+            });
+        },
+        onSuccess: async (_result, variables) => {
+            if (!isWorkspaceReady(activeWorkspace?.id)) return;
+
+            await invalidateCreditCardDomainQueries(
+                queryClient,
+                activeWorkspace.id,
+                variables.cardId
+            );
+        },
+    });
+};
+
+export const useRecalculateCardLimitDomain = () => {
+    const { activeWorkspace } = useWorkspace();
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (input: Omit<RecalculateCardLimitFrontendInput, 'workspaceId'>) => {
+            if (!isWorkspaceReady(activeWorkspace?.id)) {
+                return Promise.reject(new Error('Workspace ativo não encontrado.'));
+            }
+
+            return recalculateCardLimit({
+                ...input,
+                workspaceId: activeWorkspace.id,
+            });
+        },
+        onSuccess: async (_result, variables) => {
+            if (!isWorkspaceReady(activeWorkspace?.id)) return;
+
+            await invalidateCreditCardDomainQueries(
+                queryClient,
+                activeWorkspace.id,
+                variables.cardId
+            );
+        },
+    });
+};
+
+export const useRebuildCardInvoicesForCardDomain = () => {
+    const { activeWorkspace } = useWorkspace();
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (input: Omit<RebuildCardInvoicesForCardFrontendInput, 'workspaceId'>) => {
+            if (!isWorkspaceReady(activeWorkspace?.id)) {
+                return Promise.reject(new Error('Workspace ativo não encontrado.'));
+            }
+
+            return rebuildCardInvoicesForCard({
+                ...input,
+                workspaceId: activeWorkspace.id,
+            });
+        },
+        onSuccess: async (_result, variables) => {
+            if (!isWorkspaceReady(activeWorkspace?.id)) return;
+
+            await invalidateCreditCardDomainQueries(
+                queryClient,
+                activeWorkspace.id,
+                variables.cardId
+            );
+        },
+    });
+};
+
+export const useCreditCardAuditLogsByCard = (
+    cardId?: string | null,
+    enabled = true
+) => {
+    const { activeWorkspace } = useWorkspace();
+    const workspaceId = activeWorkspace?.id;
+
+    return useQuery({
+        queryKey: isWorkspaceReady(workspaceId) && cardId
+            ? KEYS.auditLogsByCard(workspaceId, cardId)
+            : ['creditCardAuditLogsByCard', 'disabled'],
+        queryFn: () => {
+            if (!isWorkspaceReady(workspaceId) || !cardId) {
+                return Promise.resolve([]);
+            }
+
+            return listCreditCardAuditLogsByCard(workspaceId, cardId, {
+                limit: 20,
+            });
+        },
+        enabled: enabled && isWorkspaceReady(workspaceId) && Boolean(cardId),
+        staleTime: 1000 * 60,
+    });
+};
+
+export const useCreditCardOperationalMetrics = (
+    enabled = true
+) => {
+    const { activeWorkspace } = useWorkspace();
+    const workspaceId = activeWorkspace?.id;
+
+    return useQuery({
+        queryKey: isWorkspaceReady(workspaceId)
+            ? KEYS.operationalMetrics(workspaceId)
+            : ['creditCardOperationalMetrics', 'disabled'],
+        queryFn: () => {
+            if (!isWorkspaceReady(workspaceId)) {
+                return Promise.resolve([]);
+            }
+
+            return listCreditCardOperationalMetrics(workspaceId, {
+                limit: 20,
+            });
+        },
+        enabled: enabled && isWorkspaceReady(workspaceId),
+        staleTime: 1000 * 60,
     });
 };

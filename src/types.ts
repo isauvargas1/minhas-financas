@@ -3,6 +3,7 @@ import type {
     CompetenceMonth,
     CreditCardBillingCycleStatus,
     CreditCardInvoiceStatus,
+    CreditCardVisual,
 } from './modules/credit-cards/domain/types.ts';
 
 export * from './modules/credit-cards/domain/types.ts';
@@ -25,7 +26,7 @@ export interface Workspace {
     name: string;
     slug?: string;
     cnpj?: string | null;
-    
+
     logoUrl?: string;
     themeColor?: string;
     currency?: string;
@@ -77,16 +78,7 @@ export interface CreditCard {
     billingCycleStatus?: CreditCardBillingCycleStatus;
 
     observations?: string;
-    visual: {
-        bgType: 'color' | 'gradient' | 'image';
-        bgColor: string;
-        bgGradientColor?: string;
-        bgImage?: string;
-        textColor: 'white' | 'black';
-        showName: boolean;
-        showBrand: boolean;
-        showLogo: boolean;
-    };
+    visual?: CreditCardVisual;
 
     profileId?: string;
     responsiblePerson?: string;
@@ -109,13 +101,13 @@ export interface SettingsData {
 
 export interface TransactionCatalogVisualSnapshot {
     group:
-        | 'product_service'
-        | 'expense_type'
-        | 'category'
-        | 'payment_method'
-        | 'income_type'
-        | 'wallet'
-        | 'cost_center';
+    | 'product_service'
+    | 'expense_type'
+    | 'category'
+    | 'payment_method'
+    | 'income_type'
+    | 'wallet'
+    | 'cost_center';
     label: string;
     normalizedLabel: string;
     icon?: string;
@@ -175,7 +167,7 @@ export interface Transaction {
 
 // --- GOALS MODULE TYPES ---
 
-export type GoalCategory = 
+export type GoalCategory =
     | 'reserva_emergencia'
     | 'viagem'
     | 'veiculo'
@@ -185,12 +177,12 @@ export type GoalCategory =
     | 'patrimonio'
     | 'outro';
 
-export type BusinessGoalType = 
-    | 'caixa_minimo' 
-    | 'faturamento' 
-    | 'lucro' 
-    | 'margem' 
-    | 'reducao_custos' 
+export type BusinessGoalType =
+    | 'caixa_minimo'
+    | 'faturamento'
+    | 'lucro'
+    | 'margem'
+    | 'reducao_custos'
     | 'investimento';
 
 export type GoalPeriod = 'mensal' | 'trimestral' | 'semestral' | 'anual' | 'custom';
@@ -208,13 +200,13 @@ export interface Goal {
     category: GoalCategory;
     status: GoalStatus;
     priority: GoalPriority;
-    
+
     targetAmount: number;
     currentAmount: number;
     startDate: string;
     deadline: string;
     horizon: GoalHorizon;
-    
+
     businessType?: BusinessGoalType;
     period?: GoalPeriod;
     costCenter?: string;
@@ -240,93 +232,93 @@ export type SplitBillValueType = 'fixo' | 'variavel';
 export type SplitBillPaymentStatus = 'pendente' | 'parcialmentePago' | 'pago' | 'cancelado' | 'aprovado' | 'solicitado';
 
 export type SplitBillPaymentMethod =
-  | 'dinheiro'
-  | 'pix'
-  | 'transferencia'
-  | 'cartaoCredito'
-  | 'outro';
+    | 'dinheiro'
+    | 'pix'
+    | 'transferencia'
+    | 'cartaoCredito'
+    | 'outro';
 
 export type SplitShareStatus =
-  | 'aPagar'
-  | 'pagoAoPagadorPrincipal'
-  | 'pagoDireto'
-  | 'perdoado';
+    | 'aPagar'
+    | 'pagoAoPagadorPrincipal'
+    | 'pagoDireto'
+    | 'perdoado';
 
 export type SplitParticipantRole =
-  | 'dono'
-  | 'pagadorPrincipal'
-  | 'participante'
-  | 'visualizador';
+    | 'dono'
+    | 'pagadorPrincipal'
+    | 'participante'
+    | 'visualizador';
 
 export interface SplitGroup {
-  id: string;
-  nome: string;
-  tipo: SplitGroupType;
-  descricao?: string;
-  ativo: boolean;
-  dataCriacao: string;
-  dataEncerramento?: string;
-  corPrincipal: string;
-  icone: string;
-  emojiOpcional?: string;
-  imagemCapaOpcional?: string;
-  businessType?: 'rateio' | 'reembolso';
-  profileId?: string;
+    id: string;
+    nome: string;
+    tipo: SplitGroupType;
+    descricao?: string;
+    ativo: boolean;
+    dataCriacao: string;
+    dataEncerramento?: string;
+    corPrincipal: string;
+    icone: string;
+    emojiOpcional?: string;
+    imagemCapaOpcional?: string;
+    businessType?: 'rateio' | 'reembolso';
+    profileId?: string;
 }
 
 export interface SplitParticipant {
-  id: string;
-  groupId: string;
-  userId?: string;
-  convidadoId?: string;
-  nomeExibicao: string;
-  papel: SplitParticipantRole;
-  porcentagemPadrao?: number;
-  corIdentidade: string;
-  avatarEmojiOpcional?: string;
+    id: string;
+    groupId: string;
+    userId?: string;
+    convidadoId?: string;
+    nomeExibicao: string;
+    papel: SplitParticipantRole;
+    porcentagemPadrao?: number;
+    corIdentidade: string;
+    avatarEmojiOpcional?: string;
 }
 
 export interface SplitBill {
-  id: string;
-  groupId: string;
-  descricao: string;
-  categoriaId?: string;
-  categoriaNome?: string;
-  tipoValor: SplitBillValueType;
-  valorPadrao?: number;
-  valorReal?: number;
-  moeda: 'BRL';
-  competencia: string;
-  dataVencimento?: string;
-  statusPagamento: SplitBillPaymentStatus;
-  formaPagamento: SplitBillPaymentMethod;
-  cartaoIdOpcional?: string;
-  despesaIdOpcional?: string;
-  pagadorPrincipalId?: string;
-  createdAt?: string;
-  updatedAt?: string;
-  reimbursementStatus?: 'solicitado' | 'aprovado' | 'pago';
+    id: string;
+    groupId: string;
+    descricao: string;
+    categoriaId?: string;
+    categoriaNome?: string;
+    tipoValor: SplitBillValueType;
+    valorPadrao?: number;
+    valorReal?: number;
+    moeda: 'BRL';
+    competencia: string;
+    dataVencimento?: string;
+    statusPagamento: SplitBillPaymentStatus;
+    formaPagamento: SplitBillPaymentMethod;
+    cartaoIdOpcional?: string;
+    despesaIdOpcional?: string;
+    pagadorPrincipalId?: string;
+    createdAt?: string;
+    updatedAt?: string;
+    reimbursementStatus?: 'solicitado' | 'aprovado' | 'pago';
 }
 
 export interface SplitShare {
-  id: string;
-  billId: string;
-  participantId: string;
-  valorDevido: number;
-  valorPago: number;
-  status: SplitShareStatus;
-  dataUltimoPagamento?: string;
-  observacao?: string;
+    id: string;
+    billId: string;
+    participantId: string;
+    valorDevido: number;
+    valorPago: number;
+    status: SplitShareStatus;
+    dataUltimoPagamento?: string;
+    observacao?: string;
 }
 
 export interface SplitGroupInvite {
-  id: string;
-  groupId: string;
-  codigoConvite: string;
-  papelSugerido: 'participante' | 'visualizador';
-  emailOuIdentificador?: string;
-  expiraEm?: string;
-  status: 'pendente' | 'aceito' | 'expirado' | 'revogado';
+    id: string;
+    groupId: string;
+    codigoConvite: string;
+    papelSugerido: 'participante' | 'visualizador';
+    emailOuIdentificador?: string;
+    expiraEm?: string;
+    status: 'pendente' | 'aceito' | 'expirado' | 'revogado';
 }
 
 export interface SummaryData {
@@ -420,16 +412,16 @@ export interface ThemeLayout {
 export interface ThemeIcons {
     pack: 'lucide' | 'phosphor' | 'tabler';
     size: number;
-    strokeWidth: number; 
+    strokeWidth: number;
 }
 
 export type SoundKey = 'click' | 'success' | 'error' | 'notification';
 
 export interface ThemeSounds {
-  enabled: boolean;
-  volume: number;
-  pack: 'minimal' | 'digital' | 'classic';
-  mapping: Record<SoundKey, string | null>;
+    enabled: boolean;
+    volume: number;
+    pack: 'minimal' | 'digital' | 'classic';
+    mapping: Record<SoundKey, string | null>;
 }
 
 export interface ThemeEffects {
