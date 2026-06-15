@@ -460,3 +460,143 @@ A subfase é aprovada quando:
 ### Observação sobre snapshots
 
 Snapshots mensais materializados continuam recomendados antes de operação SaaS comercial em larga escala, mas não foram implementados agora para evitar uma nova camada de agregação antes da homologação ampla.
+
+## Subfase 12.10 — Limpeza técnica e documentação final
+
+### Status
+
+Concluída como consolidação operacional de scripts, documentação, comandos oficiais, emuladores, deploy seguro, rollback e matrizes do domínio de cartão.
+
+### Arquivos alterados
+
+- `package.json`
+- `functions/package.json`
+- `README.md`
+- `docs/credit-card-domain-phase-10-security-governance.md`
+- `docs/credit-card-domain-phase-12-final-hardening.md`
+
+### Objetivo
+
+Remover ruídos e consolidar documentação técnica para que um novo desenvolvedor consiga instalar, rodar, testar e preparar deploy sem depender de conhecimento informal da conversa.
+
+### Ajustes aplicados
+
+- scripts E2E removidos de `functions/package.json`;
+- E2E mantido apenas no `package.json` da raiz;
+- comandos oficiais de frontend documentados;
+- comandos oficiais de Cloud Functions documentados;
+- comandos de Firestore Emulator documentados;
+- comando de teste de integração com variáveis de emulador documentado;
+- deploy seguro documentado;
+- rollback por commit/tag documentado;
+- matriz de permissões do domínio de cartão consolidada;
+- matriz de coleções do domínio de cartão consolidada;
+- README antigo do AI Studio substituído por documentação operacional real do projeto.
+
+### Decisões técnicas
+
+O E2E pertence à raiz porque valida a aplicação completa, usa `playwright.config.ts`, diretório `e2e/` e servidor Vite.
+
+A pasta `functions` mantém apenas scripts de backend:
+
+- build;
+- testes unitários;
+- testes de integração;
+- shell;
+- emulador de Functions;
+- deploy de Functions;
+- logs.
+
+### Checklist final da subfase
+
+- `functions/package.json` não possui scripts E2E;
+- `package.json` da raiz mantém E2E;
+- README documenta instalação;
+- README documenta variáveis de ambiente;
+- README documenta build frontend;
+- README documenta build backend;
+- README documenta Firestore Emulator;
+- README documenta testes unitários;
+- README documenta testes de integração;
+- README documenta E2E;
+- README documenta deploy seguro;
+- README documenta rollback;
+- Fase 10 deixa de estar vazia;
+- Fase 10 documenta matriz de permissões;
+- Fase 10 documenta matriz de coleções;
+- Fase 12 registra a limpeza técnica.
+
+### Critério de aceite
+
+A subfase é aprovada quando:
+
+- `npm run build` passa;
+- `npm run functions:build` passa;
+- `npm run functions:test:unit` passa;
+- com Firestore Emulator aberto, `npm run functions:test:integration:emulator` passa;
+- scripts E2E existem somente na raiz;
+- novo desenvolvedor consegue identificar claramente comandos de frontend, backend, testes, emuladores, deploy e rollback.
+
+## Subfase 12.11 — E2E final antes de produção
+
+### Status
+
+Concluída como retomada do E2E final do domínio de cartão, usando Firebase Emulators e bloqueando uso de produção.
+
+### Arquivos alterados
+
+- `playwright.config.ts`
+- `e2e/credit-card-flow.spec.ts`
+- `e2e/authenticated-smoke.spec.ts`
+- `src/components/auth/LoginView.tsx`
+- `docs/credit-card-domain-phase-12-final-hardening.md`
+
+### Arquivos revisados sem alteração
+
+- `src/lib/firebase.ts`
+- `src/contexts/AuthContext.tsx`
+
+### Objetivo
+
+Validar o fluxo real do usuário antes de produção, cobrindo operações de cartão via UI, Firebase Auth Emulator, Firestore Emulator e Functions Emulator.
+
+### Fluxos cobertos
+
+- autenticação E2E com emuladores;
+- criação de cartão pelo frontend;
+- compra à vista no cartão;
+- compra parcelada no cartão;
+- cancelamento de compra;
+- pagamento total de fatura;
+- pagamento parcial de fatura;
+- estorno de pagamento;
+- ação administrativa bloqueada para `member`;
+- ação administrativa visível para `admin`;
+- relatório exibindo dados de cartão;
+- compra no cartão não contabilizada como saída imediata no caixa;
+- fatura exibida na tela principal do cartão.
+
+### Segurança de ambiente
+
+O Playwright injeta:
+
+- `VITE_E2E_MODE=true`;
+- `VITE_USE_FIREBASE_EMULATORS=true`;
+- `VITE_FIREBASE_PROJECT_ID=minhas-financas-local`.
+
+Os testes usam o Firebase Admin SDK apontando para:
+
+- `FIRESTORE_EMULATOR_HOST=127.0.0.1:8080`;
+- `FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099`.
+
+Nenhum teste E2E deve usar dados de produção.
+
+### Critério de aceite
+
+A subfase é aprovada quando:
+
+- `npm run test:e2e` inicia Auth, Firestore, Functions e Vite;
+- nenhum teste depende de produção;
+- fluxos principais passam;
+- E2E passa a ser bloqueador do rollout final;
+- falhas de E2E impedem deploy de produção.

@@ -2,8 +2,13 @@ import React from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 
 export const LoginView: React.FC = () => {
-    const { signInWithGoogle, signInForE2E, loading } = useAuth();
+   const { signInWithGoogle, signInForE2E, loading } = useAuth();
     const isE2EMode = import.meta.env.VITE_E2E_MODE === 'true';
+    const e2eSearchParams = typeof window !== 'undefined'
+        ? new URLSearchParams(window.location.search)
+        : null;
+    const e2eEmail = e2eSearchParams?.get('e2eEmail') || undefined;
+    const e2ePassword = e2eSearchParams?.get('e2ePassword') || undefined;
 
     if (loading) return <div className="flex h-screen items-center justify-center bg-gray-50"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div></div>;
 
@@ -34,7 +39,7 @@ export const LoginView: React.FC = () => {
                         <button
                             type="button"
                             data-testid="e2e-login-button"
-                            onClick={() => signInForE2E()}
+                              onClick={() => signInForE2E(e2eEmail, e2ePassword)}
                             className="group relative flex w-full justify-center rounded-md border border-indigo-200 bg-white py-3 px-4 text-sm font-medium text-indigo-700 hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-all"
                         >
                             Entrar em modo E2E

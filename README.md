@@ -1,20 +1,21 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# Minhas Finanças
 
-# Run and deploy your AI Studio app
+Aplicação web de gestão financeira PF/PJ em evolução para SaaS multiusuário, com frontend em React/Vite/TypeScript e backend em Firebase.
 
-This contains everything you need to run your app locally.
+## Stack oficial
 
-View your app in AI Studio: https://ai.studio/apps/drive/1UBLcDhgEkv-w4YIbftWrheyxZ_ycR5pe
+- Frontend: React, Vite e TypeScript
+- Backend: Firebase Authentication, Cloud Firestore e Cloud Functions
+- Estilização: Tailwind CSS
+- Testes E2E: Playwright
+- Deploy atual: Firestore Rules, Firestore Indexes e Cloud Functions
 
-## Run Locally
+> O `firebase.json` atual não possui configuração de Firebase Hosting. O deploy seguro documentado aqui cobre Firestore e Functions.
 
-**Prerequisites:**  Node.js
+## Instalação
 
+Na raiz do projeto:
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+```bash
+npm install
+npm --prefix functions install

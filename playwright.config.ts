@@ -1,6 +1,9 @@
 import { defineConfig, devices } from '@playwright/test';
 
-const baseURL = process.env.E2E_BASE_URL || 'http://127.0.0.1:5173';
+const e2eHost = '127.0.0.1';
+const e2ePort = process.env.E2E_PORT || '5173';
+const baseURL = process.env.E2E_BASE_URL || `http://${e2eHost}:${e2ePort}`;
+const shouldStartFirebaseEmulators = process.env.E2E_START_EMULATORS !== 'false';
 
 const webServerEnv = {
   ...process.env,
@@ -16,11 +19,12 @@ const webServerEnv = {
 
 export default defineConfig({
   testDir: './e2e',
-  timeout: 30_000,
+  timeout: 45_000,
   expect: {
-    timeout: 10_000,
+    timeout: 12_000,
   },
   fullyParallel: false,
+  workers: 1,
   retries: process.env.CI ? 2 : 0,
   reporter: process.env.CI ? [['list'], ['html']] : [['list']],
   use: {
@@ -29,13 +33,31 @@ export default defineConfig({
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
   },
-  webServer: {
-        command: 'npm run dev -- --host 127.0.0.1',
-    env: webServerEnv,
-    url: baseURL,
-    reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
-  },
+  webServer: [
+    ...(shouldStartFirebaseEmulators
+      ? [
+        {
+          command:
+            'npm --prefix functions run build && firebase emulators:start --only auth,firestore,functions --project minhas-financas-local',
+          url: 'http://127.0.0.1:4000',
+          reuseExistingServer: true,
+          timeout: 180_000,
+          stdout: 'pipe' as const,
+          stderr: 'pipe' as const,
+        },
+      ]
+      : []),
+    {
+
+      command: `npm run dev -- --host ${e2eHost} --port ${e2ePort} --strictPort`,
+      env: webServerEnv,
+      url: baseURL,
+      reuseExistingServer: false,
+      timeout: 120_000,
+      stdout: 'pipe' as const,
+      stderr: 'pipe' as const,
+    },
+  ],
   projects: [
     {
       name: 'chromium',
