@@ -7,12 +7,19 @@
 # Test info
 
 - Name: credit-card-flow.spec.ts >> Fluxos E2E do domínio de cartão >> owner executa compra, pagamento, estorno, cancelamento e valida relatórios sem saída imediata
-- Location: e2e/credit-card-flow.spec.ts:363:3
+- Location: e2e/credit-card-flow.spec.ts:471:3
 
 # Error details
 
 ```
-Error: Compra Compra cancelável E2E não foi persistida no domínio de cartão.
+Test timeout of 180000ms exceeded.
+```
+
+```
+Error: locator.click: Test timeout of 180000ms exceeded.
+Call log:
+  - waiting for getByRole('button', { name: /Pagar total/i }).first()
+
 ```
 
 # Page snapshot
@@ -87,373 +94,311 @@ Error: Compra Compra cancelável E2E não foi persistida no domínio de cartão.
         - button "Próximo mês" [ref=e102] [cursor=pointer]:
           - img [ref=e103]
       - generic [ref=e105]:
-        - button [ref=e107] [cursor=pointer]:
+        - button "3" [ref=e107] [cursor=pointer]:
           - img [ref=e108]
-        - button [ref=e112] [cursor=pointer]:
-          - img [ref=e113]
-        - button [ref=e117] [cursor=pointer]:
-          - img [ref=e118]
-        - generic [ref=e120]:
-          - generic [ref=e121] [cursor=pointer]:
-            - generic [ref=e122]: Olá, Usuário
-            - generic [ref=e123]: PESSOAL
-          - generic [ref=e124] [cursor=pointer]: U
-    - generic [ref=e125]:
-      - generic [ref=e126]:
-        - figure [ref=e127]:
-          - generic [ref=e128]:
-            - heading "Saldo Atual" [level=2] [ref=e129]
-            - img [ref=e131]
-          - paragraph [ref=e135]: R$ 0,00
-          - generic [ref=e136]: Mensal
-        - button "Receitas R$ 0,00 Mensal" [ref=e137] [cursor=pointer]:
+          - generic [ref=e111]: "3"
+        - button [ref=e113] [cursor=pointer]:
+          - img [ref=e114]
+        - button [ref=e118] [cursor=pointer]:
+          - img [ref=e119]
+        - generic [ref=e121]:
+          - generic [ref=e122] [cursor=pointer]:
+            - generic [ref=e123]: Olá, Usuário
+            - generic [ref=e124]: PESSOAL
+          - generic [ref=e125] [cursor=pointer]: U
+    - generic [ref=e126]:
+      - generic [ref=e127]:
+        - generic [ref=e128]:
+          - heading "Meus Cartões" [level=2] [ref=e129]
+          - paragraph [ref=e130]: Gerencie seus limites e faturas
+        - generic [ref=e131]:
+          - generic [ref=e132]:
+            - textbox "Buscar..." [ref=e133]
+            - img [ref=e135]
           - generic [ref=e138]:
-            - heading "Receitas" [level=2] [ref=e139]
-            - img [ref=e141]
-          - paragraph [ref=e143]: R$ 0,00
-          - generic [ref=e144]: Mensal
-        - button "Despesas R$ 0,00 Mensal" [ref=e145] [cursor=pointer]:
-          - generic [ref=e146]:
-            - heading "Despesas" [level=2] [ref=e147]
-            - img [ref=e149]
-          - paragraph [ref=e151]: R$ 0,00
-          - generic [ref=e152]: Mensal
-        - button "Investimentos R$ 0,00 Mensal" [ref=e153] [cursor=pointer]:
+            - button [ref=e139] [cursor=pointer]:
+              - img [ref=e140]
+            - button [ref=e145] [cursor=pointer]:
+              - img [ref=e146]
+          - button "Novo Cartão" [ref=e147] [cursor=pointer]:
+            - img [ref=e148]
+            - text: Novo Cartão
+      - generic [ref=e152] [cursor=pointer]:
+        - generic [ref=e153]:
           - generic [ref=e154]:
-            - heading "Investimentos" [level=2] [ref=e155]
+            - generic [ref=e155]: Cartão Fluxo E2E
             - img [ref=e157]
-          - paragraph [ref=e159]: R$ 0,00
-          - generic [ref=e160]: Mensal
-      - generic [ref=e161]:
-        - generic [ref=e162]:
-          - generic [ref=e163]:
-            - generic [ref=e164]:
-              - heading "Distribuição de Despesas" [level=2] [ref=e165]
-              - generic [ref=e166]:
-                - button "Gráfico de Pizza" [ref=e167] [cursor=pointer]:
-                  - img [ref=e168]
-                - button "Gráfico de Barras" [ref=e171] [cursor=pointer]:
-                  - img [ref=e172]
-                - button "Gráfico de Linha" [ref=e174] [cursor=pointer]:
-                  - img [ref=e175]
-                - button "Gráfico de Rosca" [ref=e178] [cursor=pointer]:
-                  - img [ref=e179]
-            - img [ref=e185]
-            - generic [ref=e186]:
-              - generic [ref=e189]: Receitas
-              - generic [ref=e192]: Despesas
-              - generic [ref=e195]: Investimentos
-              - generic [ref=e198]: Parceladas
-          - generic [ref=e200] [cursor=pointer]:
-            - generic [ref=e201]:
-              - generic [ref=e202]:
-                - img [ref=e204]
-                - generic [ref=e207]:
-                  - heading "Diagnóstico" [level=3] [ref=e208]
-                  - paragraph [ref=e209]: Últimos 30 dias
-              - img [ref=e211]
-            - generic [ref=e213]:
-              - generic [ref=e214]:
-                - generic [ref=e215]: Saldo
-                - generic [ref=e216]: R$ 0,00
-              - generic [ref=e217]:
-                - generic [ref=e218]: Poupança
-                - generic [ref=e219]: 0.0%
-            - generic [ref=e220]:
-              - img [ref=e221]
-              - generic [ref=e223]: Saúde financeira estável.
-        - generic [ref=e224]:
-          - generic [ref=e225]:
-            - heading "Transações Recentes" [level=2] [ref=e226]
-            - generic [ref=e227]:
-              - button "Nova Transação" [ref=e229] [cursor=pointer]:
-                - img [ref=e230]
-                - text: Nova Transação
-              - combobox [ref=e231]:
-                - option "Todas" [selected]
-                - option "Receitas"
-                - option "Despesas"
-                - option "Investimentos"
-                - option "Parceladas"
-          - table [ref=e233]:
-            - rowgroup [ref=e234]:
-              - row "Descrição Categoria Data Valor" [ref=e235]:
-                - columnheader "Descrição" [ref=e236]:
-                  - button "Descrição" [ref=e237] [cursor=pointer]
-                - columnheader "Categoria" [ref=e238]:
-                  - button "Categoria" [ref=e239] [cursor=pointer]
-                - columnheader "Data" [ref=e240]:
-                  - button "Data" [ref=e241] [cursor=pointer]:
-                    - text: Data
-                    - img [ref=e242]
-                - columnheader "Valor" [ref=e244]:
-                  - button "Valor" [ref=e245] [cursor=pointer]
-            - rowgroup
-  - generic [ref=e247]:
-    - generic [ref=e248]:
-      - heading "Nova Transação" [level=3] [ref=e249]
-      - button [ref=e250] [cursor=pointer]:
-        - img [ref=e251]
-    - generic [ref=e254]:
-      - generic [ref=e256]:
-        - img [ref=e257]
-        - generic [ref=e259]: Assistente de Preenchimento IA
-      - generic [ref=e260]:
-        - button "Escanear Comprovante" [ref=e261] [cursor=pointer]:
-          - img [ref=e262]
-          - text: Escanear Comprovante
-        - button "Falar Transação" [ref=e265] [cursor=pointer]:
-          - img [ref=e266]
-          - text: Falar Transação
-    - generic [ref=e270]:
-      - button "Receita" [ref=e271] [cursor=pointer]
-      - button "Despesa" [ref=e272] [cursor=pointer]
-      - button "Investimento" [ref=e273] [cursor=pointer]
-      - button "Cartão" [ref=e274] [cursor=pointer]
-    - generic [ref=e276]:
-      - generic [ref=e277]:
-        - generic [ref=e278]:
-          - generic [ref=e279]: Cartão de Crédito *
-          - combobox [ref=e280]:
-            - option "Selecione o cartão..."
-            - option "Cartão Fluxo E2E (Fecha dia 1)" [selected]
-        - generic [ref=e281]:
-          - generic [ref=e282]: Produto / Serviço *
-          - generic [ref=e283]:
-            - generic:
-              - img
-            - combobox "Busque, selecione ou digite um novo item..." [ref=e284]
-            - button "▼" [ref=e285] [cursor=pointer]
-          - paragraph [ref=e286]: Use o mesmo campo para buscar, selecionar ou criar.
-        - generic [ref=e287]:
-          - generic [ref=e288]: Categoria *
-          - combobox [active] [ref=e289]:
-            - option "Selecione..." [selected]
-        - generic [ref=e290]:
-          - generic [ref=e291]: Data da Compra *
-          - textbox [ref=e292]
-        - generic [ref=e293]:
-          - generic [ref=e294]: Tipo de Valor *
-          - generic [ref=e295]:
-            - generic [ref=e296] [cursor=pointer]:
-              - radio "Valor Total da Compra" [checked] [ref=e297]
-              - generic [ref=e298]: Valor Total da Compra
-            - generic [ref=e299] [cursor=pointer]:
-              - radio "Valor da Parcela" [ref=e300]
-              - generic [ref=e301]: Valor da Parcela
-          - generic [ref=e302]:
-            - generic [ref=e303]: Valor Total (R$)
-            - spinbutton [ref=e304]: "50"
-          - generic [ref=e305]:
-            - generic [ref=e306]: Quantidade de Parcelas
-            - paragraph [ref=e307]: Use 1 para compra à vista no cartão.
-            - spinbutton [ref=e308]: "1"
-      - button "Revisar e Adicionar Parcelado" [ref=e310] [cursor=pointer]
+          - generic [ref=e161]:
+            - img [ref=e165]
+            - generic [ref=e169]: "**** **** **** 1234"
+            - generic [ref=e170]:
+              - generic [ref=e171]: Usuario
+              - generic [ref=e172]: Visa
+        - generic [ref=e175]:
+          - generic [ref=e176]:
+            - generic [ref=e177]:
+              - generic [ref=e178]: Limite Total
+              - generic [ref=e179]: R$ 5.000,00
+            - generic [ref=e180]:
+              - generic [ref=e181]: Utilizado
+              - generic [ref=e182]: R$ 400,00
+            - generic [ref=e183]:
+              - generic [ref=e184]: Disponível
+              - generic [ref=e185]: R$ 4.600,00
+          - generic [ref=e188]:
+            - generic [ref=e189]:
+              - generic [ref=e190]: Fechamento
+              - generic [ref=e191]: Dia 1
+            - generic [ref=e192]:
+              - generic [ref=e193]: Melhor Dia
+              - generic [ref=e194]: Dia 2
+      - generic [ref=e196]:
+        - generic [ref=e197]:
+          - heading "Detalhes do Cartão" [level=3] [ref=e198]
+          - button "Fechar detalhes do cartão" [ref=e199] [cursor=pointer]:
+            - img [ref=e200]
+        - generic [ref=e205] [cursor=pointer]:
+          - generic [ref=e206]:
+            - generic [ref=e207]:
+              - generic [ref=e208]: Cartão Fluxo E2E
+              - img [ref=e210]
+            - generic [ref=e214]:
+              - img [ref=e218]
+              - generic [ref=e222]: "**** **** **** 1234"
+              - generic [ref=e223]:
+                - generic [ref=e224]: Usuario
+                - generic [ref=e225]: Visa
+          - generic [ref=e228]:
+            - generic [ref=e229]:
+              - generic [ref=e230]:
+                - generic [ref=e231]: Limite Total
+                - generic [ref=e232]: R$ 5.000,00
+              - generic [ref=e233]:
+                - generic [ref=e234]: Utilizado
+                - generic [ref=e235]: R$ 400,00
+              - generic [ref=e236]:
+                - generic [ref=e237]: Disponível
+                - generic [ref=e238]: R$ 4.600,00
+            - generic [ref=e241]:
+              - generic [ref=e242]:
+                - generic [ref=e243]: Fechamento
+                - generic [ref=e244]: Dia 1
+              - generic [ref=e245]:
+                - generic [ref=e246]: Melhor Dia
+                - generic [ref=e247]: Dia 2
+        - generic [ref=e248]:
+          - generic [ref=e249]:
+            - generic [ref=e251]: Ativo
+            - generic [ref=e252]:
+              - paragraph [ref=e253]: Fechamento
+              - paragraph [ref=e254]: Dia 1
+            - generic [ref=e255]:
+              - paragraph [ref=e256]: Vencimento
+              - paragraph [ref=e257]: Dia 10
+          - generic [ref=e258]:
+            - heading "Faturas" [level=4] [ref=e259]:
+              - img [ref=e260]
+              - text: Faturas
+            - generic [ref=e262]: Nenhuma fatura encontrada para este cartão.
+          - generic [ref=e263]:
+            - heading "Administração" [level=4] [ref=e264]
+            - generic [ref=e265]:
+              - button "Recalcular limite" [ref=e266] [cursor=pointer]
+              - button "Rebuild de faturas" [ref=e267] [cursor=pointer]
+            - group [ref=e268]:
+              - generic "Audit logs recentes" [ref=e269] [cursor=pointer]
+            - group [ref=e270]:
+              - generic "Métricas operacionais" [ref=e271] [cursor=pointer]
+          - generic [ref=e272]:
+            - button "Editar" [ref=e273] [cursor=pointer]:
+              - img [ref=e274]
+              - text: Editar
+            - button "Excluir" [ref=e277] [cursor=pointer]:
+              - img [ref=e278]
+              - text: Excluir
 ```
 
 # Test source
 
 ```ts
-  85  |     password: E2E_PASSWORD,
-  86  |     emailVerified: true,
-  87  |   });
-  88  | };
-  89  | 
-  90  | const seedWorkspaceMembership = async ({ uid, email, role }: SeedUserInput): Promise<void> => {
-  91  |   const db = getDb();
-  92  |   const now = admin.firestore.FieldValue.serverTimestamp();
-  93  | 
-  94  |   await Promise.all([
-  95  |     db.doc(`workspaces/${WORKSPACE_ID}/members/${uid}`).set({
-  96  |       uid,
-  97  |       email,
-  98  |       displayName: email,
-  99  |       role,
-  100 |       status: 'active',
-  101 |       joinedAt: now,
-  102 |     }),
-  103 |     db.doc(`users/${uid}/workspaces/${WORKSPACE_ID}`).set({
-  104 |       workspaceId: WORKSPACE_ID,
-  105 |       role,
-  106 |       createdAt: now,
-  107 |       updatedAt: now,
-  108 |     }),
-  109 |   ]);
-  110 | };
-  111 | 
-  112 | const seedWorkspace = async (): Promise<void> => {
-  113 |   const db = getDb();
-  114 |   const now = admin.firestore.FieldValue.serverTimestamp();
-  115 | 
-  116 |   await db.doc(`workspaces/${WORKSPACE_ID}`).set({
-  117 |     name: 'Workspace E2E Cartão',
-  118 |     type: 'PF',
-  119 |     userId: OWNER_UID,
-  120 |     ownerId: OWNER_UID,
-  121 |     themeColor: '#4f46e5',
-  122 |     currency: 'BRL',
-  123 |     createdAt: now,
-  124 |     updatedAt: now,
-  125 |   });
-  126 | 
-  127 |   await Promise.all([
-  128 |     createAuthUser({ uid: OWNER_UID, email: OWNER_EMAIL }),
-  129 |     createAuthUser({ uid: ADMIN_UID, email: ADMIN_EMAIL }),
-  130 |     createAuthUser({ uid: MEMBER_UID, email: MEMBER_EMAIL }),
-  131 |   ]);
-  132 | 
-  133 |   await Promise.all([
-  134 |     seedWorkspaceMembership({ uid: OWNER_UID, email: OWNER_EMAIL, role: 'owner' }),
-  135 |     seedWorkspaceMembership({ uid: ADMIN_UID, email: ADMIN_EMAIL, role: 'admin' }),
-  136 |     seedWorkspaceMembership({ uid: MEMBER_UID, email: MEMBER_EMAIL, role: 'member' }),
-  137 |   ]);
-  138 | };
-  139 | 
-  140 | const seedPermissionCard = async (): Promise<void> => {
-  141 |   const db = getDb();
-  142 |   const now = admin.firestore.FieldValue.serverTimestamp();
-  143 | 
-  144 |   await db.doc(`workspaces/${WORKSPACE_ID}/credit_cards/${CARD_PERMISSION_ID}`).set({
-  145 |     workspaceId: WORKSPACE_ID,
-  146 |     name: CARD_PERMISSION_NAME,
-  147 |     brand: 'Visa',
-  148 |     status: 'active',
-  149 |     limitTotal: 5000,
-  150 |     closingDay: 1,
-  151 |     dueDay: 10,
-  152 |     visual: {
-  153 |       bgType: 'color',
-  154 |       bgColor: '#1e293b',
-  155 |       bgGradientColor: '#3b82f6',
-  156 |       bgImage: '',
-  157 |       textColor: 'white',
-  158 |       showName: true,
-  159 |       showBrand: true,
-  160 |       showLogo: true,
-  161 |     },
-  162 |     createdAt: now,
-  163 |     updatedAt: now,
-  164 |   });
-  165 | };
-  166 | 
-  167 | const waitUntil = async <T>(
-  168 |   callback: () => Promise<T | undefined>,
-  169 |   message: string,
-  170 |   timeoutMs = 30_000
-  171 | ): Promise<T> => {
-  172 |   const startedAt = Date.now();
-  173 |   let lastResult: T | undefined;
-  174 | 
-  175 |   while (Date.now() - startedAt < timeoutMs) {
-  176 |     lastResult = await callback();
-  177 | 
-  178 |     if (lastResult) {
-  179 |       return lastResult;
-  180 |     }
-  181 | 
-  182 |     await new Promise((resolve) => setTimeout(resolve, 350));
-  183 |   }
-  184 | 
-> 185 |   throw new Error(message);
-      |         ^ Error: Compra Compra cancelável E2E não foi persistida no domínio de cartão.
-  186 | };
-  187 | 
-  188 | const findWorkspaceCollectionDoc = async <T extends FirebaseFirestore.DocumentData>(
-  189 |   collectionName: string,
-  190 |   predicate: (data: T, id: string) => boolean
-  191 | ): Promise<{ id: string; data: T } | undefined> => {
-  192 |   const snapshot = await getDb()
-  193 |     .collection(`workspaces/${WORKSPACE_ID}/${collectionName}`)
-  194 |     .get();
-  195 | 
-  196 |   const found = snapshot.docs.find((documentSnapshot) =>
-  197 |     predicate(documentSnapshot.data() as T, documentSnapshot.id)
-  198 |   );
-  199 | 
-  200 |   if (!found) {
-  201 |     return undefined;
-  202 |   }
-  203 | 
-  204 |   return {
-  205 |     id: found.id,
-  206 |     data: found.data() as T,
-  207 |   };
-  208 | };
-  209 | 
-  210 | const loginAs = async (page: Page, email: string): Promise<void> => {
-  211 |   await page.goto(`/?e2eEmail=${encodeURIComponent(email)}&e2ePassword=${encodeURIComponent(E2E_PASSWORD)}`);
-  212 | 
-  213 |   await page.getByTestId('e2e-login-button').click();
-  214 | 
-  215 |   await expect(page.getByText(/Transações Recentes|Saldo Atual|Dashboard/i).first()).toBeVisible({
-  216 |     timeout: 30_000,
-  217 |   });
-  218 | };
-  219 | 
-  220 | const navigateBySidebar = async (page: Page, name: RegExp): Promise<void> => {
-  221 |   await page.getByRole('link', { name }).click();
-  222 | };
-  223 | 
-  224 | const createCardThroughUi = async (page: Page, cardName: string): Promise<CreatedCardReference> => {
-  225 |   await navigateBySidebar(page, /Cartões de Crédito|Cartões Corporativos/i);
-  226 | 
-  227 |   await page.getByRole('button', { name: /Novo Cartão/i }).click();
-  228 | 
-  229 |   const cardForm = page.locator('form#cardForm');
-  230 | 
-  231 |   await cardForm.getByPlaceholder('Ex: Nubank Empresarial').fill(cardName);
-  232 |   await cardForm.locator('input[type="number"]').nth(0).fill('5000');
-  233 |   await cardForm.locator('input[type="number"]').nth(1).fill('1');
-  234 |   await cardForm.locator('input[type="number"]').nth(2).fill('10');
-  235 | 
-  236 |   await page.getByRole('button', { name: 'Salvar Cartão' }).click();
-  237 | 
-  238 |   await expect(page.getByText(cardName).first()).toBeVisible({
-  239 |     timeout: 20_000,
-  240 |   });
-  241 | 
-  242 |   const cardDoc = await waitUntil(
-  243 |     () =>
-  244 |       findWorkspaceCollectionDoc<{ name?: string }>(
-  245 |         'credit_cards',
-  246 |         (data) => data.name === cardName
-  247 |       ),
-  248 |     `Cartão ${cardName} não foi persistido no Firestore Emulator.`
-  249 |   );
-  250 | 
-  251 |   return {
-  252 |     id: cardDoc.id,
-  253 |     name: cardName,
-  254 |   };
-  255 | };
-  256 | 
-  257 | const createCreditCardPurchaseThroughUi = async (
-  258 |   page: Page,
-  259 |   input: PurchaseInput
-  260 | ): Promise<void> => {
-  261 |   await navigateBySidebar(page, /Dashboard/i);
-  262 | 
-  263 |   await page.getByRole('button', { name: /Nova Transação/i }).click();
-  264 |   await page.getByRole('button', { name: /^Cartão$/i }).click();
-  265 | 
-  266 |   const transactionForm = page.locator('form').last();
-  267 | 
-  268 |   await transactionForm.locator('select').nth(0).selectOption(input.cardId);
-  269 |   await transactionForm.locator('input[type="number"]').nth(0).fill(input.amount);
-  270 |   await transactionForm.locator('input[type="number"]').nth(1).fill(input.installments);
-  271 | 
-  272 |   await page.getByRole('button', { name: /Revisar e Adicionar Parcelado/i }).click();
-  273 | 
-  274 |     const purchaseDoc = await waitUntil(
-  275 |     async () => {
-  276 |       const purchaseErrorVisible = await page
-  277 |         .getByText(/Erro ao criar compra no cartão|Limite disponível insuficiente|Informe um valor válido|Informe uma quantidade válida|Selecione um cartão válido/i)
-  278 |         .first()
-  279 |         .isVisible()
-  280 |         .catch(() => false);
-  281 | 
-  282 |       if (purchaseErrorVisible) {
-  283 |         throw new Error(`A UI rejeitou a compra ${input.description} antes da persistência no domínio.`);
-  284 |       }
-  285 | 
+  439 | };
+  440 | 
+  441 | const openInvoiceDetailsByIndex = async (page: Page, index: number): Promise<void> => {
+  442 |   await page.getByRole('button', { name: /Ver detalhes da fatura/i }).nth(index).click();
+  443 | 
+  444 |   await expect(page.getByText('Detalhe da fatura')).toBeVisible({
+  445 |     timeout: 20_000,
+  446 |   });
+  447 | };
+  448 | 
+  449 | const closeInvoiceDetails = async (page: Page): Promise<void> => {
+  450 |   await page.getByLabel('Fechar detalhe da fatura').click();
+  451 | 
+  452 |   await expect(page.getByText('Detalhe da fatura')).toHaveCount(0, {
+  453 |     timeout: 20_000,
+  454 |   });
+  455 | };
+  456 | 
+  457 | const closeCardDetails = async (page: Page): Promise<void> => {
+  458 |   await page.getByLabel('Fechar detalhes do cartão').click();
+  459 | 
+  460 |   await expect(page.getByText('Detalhes do Cartão')).toHaveCount(0, {
+  461 |     timeout: 20_000,
+  462 |   });
+  463 | };
+  464 | 
+  465 | test.describe('Fluxos E2E do domínio de cartão', () => {
+  466 |   test.beforeEach(async () => {
+  467 |     await resetEmulatorData();
+  468 |     await seedWorkspace();
+  469 |   });
+  470 | 
+  471 |   test('owner executa compra, pagamento, estorno, cancelamento e valida relatórios sem saída imediata', async ({ page }) => {
+  472 |     test.setTimeout(180_000);
+  473 | 
+  474 |     await loginAs(page, OWNER_EMAIL);
+  475 | 
+  476 |     const card = await createCardThroughUi(page, 'Cartão Fluxo E2E');
+  477 | 
+  478 |     await createCreditCardPurchaseThroughUi(page, {
+  479 |       cardId: card.id,
+  480 |       description: 'Compra cancelável E2E',
+  481 |       amount: '50',
+  482 |       installments: '1',
+  483 |     });
+  484 | 
+  485 |     await openCardDetails(page, card.name);
+  486 |     await openInvoiceDetailsByIndex(page, 0);
+  487 | 
+  488 |     page.once('dialog', async (dialog) => {
+  489 |       await dialog.accept('Cancelamento E2E');
+  490 |     });
+  491 | 
+  492 |     await page.getByRole('button', { name: /Cancelar compra/i }).first().click();
+  493 | 
+  494 |     await waitUntil(
+  495 |       () =>
+  496 |         findWorkspaceCollectionDoc<{ description?: string; status?: string }>(
+  497 |           'credit_card_purchases',
+  498 |           (data) => data.description === 'Compra cancelável E2E' && data.status === 'cancelled'
+  499 |         ),
+  500 |       'Cancelamento de compra não foi refletido no domínio.'
+  501 |     );
+  502 | 
+  503 |     await closeInvoiceDetails(page);
+  504 |     await closeCardDetails(page);
+  505 | 
+  506 |     await createCreditCardPurchaseThroughUi(page, {
+  507 |       cardId: card.id,
+  508 |       description: 'Compra à vista E2E',
+  509 |       amount: '100',
+  510 |       installments: '1',
+  511 |     });
+  512 | 
+  513 |     await createCreditCardPurchaseThroughUi(page, {
+  514 |       cardId: card.id,
+  515 |       description: 'Compra parcelada E2E',
+  516 |       amount: '300',
+  517 |       installments: '3',
+  518 |     });
+  519 | 
+  520 |     await expect(
+  521 |       page.getByRole('button', { name: /Despesas\s+R\$\s*0,00/i })
+  522 |     ).toBeVisible({
+  523 |       timeout: 20_000,
+  524 |     });
+  525 | 
+  526 |     await navigateBySidebar(page, /Relatórios/i);
+  527 | 
+  528 |     await expect(page.getByText(/Indicadores de Cartão de Crédito/i)).toBeVisible({
+  529 |       timeout: 30_000,
+  530 |     });
+  531 | 
+  532 |     await expect(page.getByText(card.name).first()).toBeVisible({
+  533 |       timeout: 30_000,
+  534 |     });
+  535 | 
+  536 |     await openCardDetails(page, card.name);
+  537 |     await expect(page.getByText(/Fatura/i).first()).toBeVisible();
+  538 | 
+> 539 |     await page.getByRole('button', { name: /Pagar total/i }).first().click();
+      |                                                                      ^ Error: locator.click: Test timeout of 180000ms exceeded.
+  540 |     await page.getByRole('button', { name: /Confirmar pagamento/i }).click();
+  541 | 
+  542 |     await waitUntil(
+  543 |       () =>
+  544 |         findWorkspaceCollectionDoc<{ status?: string; paidAmount?: number }>(
+  545 |           'credit_card_invoices',
+  546 |           (data) => data.status === 'paid' && Number(data.paidAmount || 0) > 0
+  547 |         ),
+  548 |       'Pagamento total não marcou a fatura como paga.'
+  549 |     );
+  550 | 
+  551 |     await openInvoiceDetailsByIndex(page, 1);
+  552 | 
+  553 |     await page.getByRole('button', { name: /Pagamento parcial/i }).click();
+  554 | 
+  555 |     const paymentModal = page.getByText('Pagamento de fatura').locator('xpath=ancestor::div[contains(@class, "rounded-2xl")]');
+  556 | 
+  557 |     await paymentModal.locator('input[type="number"]').fill('40');
+  558 |     await paymentModal.getByRole('button', { name: /Confirmar pagamento/i }).click();
+  559 | 
+  560 |     await waitUntil(
+  561 |       () =>
+  562 |         findWorkspaceCollectionDoc<{ status?: string; paidAmount?: number; remainingAmount?: number }>(
+  563 |           'credit_card_invoices',
+  564 |           (data) =>
+  565 |             data.status === 'partial_paid' &&
+  566 |             Number(data.paidAmount || 0) === 40 &&
+  567 |             Number(data.remainingAmount || 0) > 0
+  568 |         ),
+  569 |       'Pagamento parcial não deixou a fatura como partial_paid.'
+  570 |     );
+  571 | 
+  572 |     await expect(page.getByRole('button', { name: /Estornar/i })).toBeVisible({
+  573 |       timeout: 30_000,
+  574 |     });
+  575 | 
+  576 |     page.once('dialog', async (dialog) => {
+  577 |       await dialog.accept();
+  578 |     });
+  579 | 
+  580 |     await page.getByRole('button', { name: /Estornar/i }).click();
+  581 | 
+  582 |     await waitUntil(
+  583 |       () =>
+  584 |         findWorkspaceCollectionDoc<{ status?: string }>(
+  585 |           'credit_card_invoice_payments',
+  586 |           (data) => data.status === 'reversed'
+  587 |         ),
+  588 |       'Estorno não atualizou o pagamento para reversed.'
+  589 |     );
+  590 |   });
+  591 | 
+  592 |   test('member não visualiza ações administrativas do domínio de cartão', async ({ page }) => {
+  593 |     await seedPermissionCard();
+  594 | 
+  595 |     await loginAs(page, MEMBER_EMAIL);
+  596 | 
+  597 |     await openCardDetails(page, CARD_PERMISSION_NAME);
+  598 | 
+  599 |     await expect(page.getByText('Administração')).toHaveCount(0);
+  600 |     await expect(page.getByRole('button', { name: /Recalcular limite/i })).toHaveCount(0);
+  601 |     await expect(page.getByRole('button', { name: /Rebuild de faturas/i })).toHaveCount(0);
+  602 |   });
+  603 | 
+  604 |   test('admin visualiza ações administrativas permitidas do domínio de cartão', async ({ page }) => {
+  605 |     await seedPermissionCard();
+  606 | 
+  607 |     await loginAs(page, ADMIN_EMAIL);
+  608 | 
+  609 |     await openCardDetails(page, CARD_PERMISSION_NAME);
+  610 | 
+  611 |     await expect(page.getByText('Administração')).toBeVisible({
+  612 |       timeout: 20_000,
+  613 |     });
+  614 |     await expect(page.getByRole('button', { name: /Recalcular limite/i })).toBeVisible();
+  615 |     await expect(page.getByRole('button', { name: /Rebuild de faturas/i })).toBeVisible();
+  616 |   });
+  617 | });
 ```

@@ -1,4 +1,5 @@
 import * as admin from "firebase-admin";
+import { FieldValue } from "firebase-admin/firestore";
 
 import type {
   CreditCardCallableExecutionContext,
@@ -509,7 +510,7 @@ export const executeRebuildCardInvoicesForCard = async (
       );
     }
 
-    const serverTimestamp = admin.firestore.FieldValue.serverTimestamp();
+    const serverTimestamp = FieldValue.serverTimestamp();
     const updatedInstallmentIds: string[] = [];
     const rebuiltInvoiceIds: string[] = [];
     const cancelledInvoiceIds: string[] = [];

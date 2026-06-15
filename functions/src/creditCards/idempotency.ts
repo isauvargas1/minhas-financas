@@ -1,4 +1,5 @@
 import * as admin from "firebase-admin";
+import { FieldValue } from "firebase-admin/firestore";
 import {createHash} from "crypto";
 
 import {
@@ -25,10 +26,10 @@ export interface CreditCardIdempotencyRecord {
   idempotencyKeyHash: string;
   requestHash: string;
   status: CreditCardIdempotencyStatus;
-  createdAt: admin.firestore.FieldValue;
-  updatedAt: admin.firestore.FieldValue;
-  completedAt?: admin.firestore.FieldValue;
-  failedAt?: admin.firestore.FieldValue;
+  createdAt: FieldValue;
+  updatedAt: FieldValue;
+  completedAt?: FieldValue;
+  failedAt?: FieldValue;
   result?: Record<string, unknown>;
   error?: Record<string, unknown>;
 }
@@ -120,8 +121,8 @@ export const reserveIdempotencyKey = async (
     idempotencyKeyHash: hashValue(input.idempotencyKey),
     requestHash,
     status: "started",
-    createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    createdAt: FieldValue.serverTimestamp(),
+    updatedAt: FieldValue.serverTimestamp(),
   });
 
   return {
@@ -139,8 +140,8 @@ export const markIdempotencyKeyCompleted = (
   transaction.update(ref, {
     status: "completed",
     result,
-    completedAt: admin.firestore.FieldValue.serverTimestamp(),
-    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    completedAt: FieldValue.serverTimestamp(),
+    updatedAt: FieldValue.serverTimestamp(),
   });
 };
 
@@ -152,7 +153,7 @@ export const markIdempotencyKeyFailed = (
   transaction.update(ref, {
     status: "failed",
     error,
-    failedAt: admin.firestore.FieldValue.serverTimestamp(),
-    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    failedAt: FieldValue.serverTimestamp(),
+    updatedAt: FieldValue.serverTimestamp(),
   });
 };

@@ -109,6 +109,72 @@ const seedWorkspaceMembership = async ({ uid, email, role }: SeedUserInput): Pro
   ]);
 };
 
+const normalizeSettingsCatalogNameForE2E = (value: string): string =>
+  value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .toLowerCase();
+
+const seedSettingsCatalog = async (): Promise<void> => {
+  const db = getDb();
+  const now = admin.firestore.FieldValue.serverTimestamp();
+
+  const category = {
+    id: 'category-parcelado-eletronicos',
+    group: 'category',
+    name: 'Eletrônicos',
+    transactionSubtype: 'parcelado',
+    workspaceScope: 'both',
+    icon: 'DeviceMobile',
+    color: '#6366f1',
+    stroke: 2,
+    sortOrder: 10,
+    status: 'active',
+  } as const;
+
+  const normalizedName = normalizeSettingsCatalogNameForE2E(category.name);
+  const dedupeKey = [
+    category.group,
+    category.transactionSubtype,
+    category.workspaceScope,
+    normalizedName,
+  ].join('::');
+
+  await Promise.all([
+    db.doc(`workspaces/${WORKSPACE_ID}/settings_catalog/${category.id}`).set({
+      workspaceId: WORKSPACE_ID,
+      group: category.group,
+      name: category.name,
+      normalizedName,
+      dedupeKey,
+      workspaceScope: category.workspaceScope,
+      transactionSubtype: category.transactionSubtype,
+      icon: category.icon,
+      color: category.color,
+      stroke: category.stroke,
+      sortOrder: category.sortOrder,
+      status: category.status,
+      createdBy: OWNER_UID,
+      updatedBy: OWNER_UID,
+      createdAt: now,
+      updatedAt: now,
+    }),
+    db.doc(`workspaces/${WORKSPACE_ID}/settings_catalog_uniques/${dedupeKey}`).set({
+      dedupeKey,
+      catalogItemId: category.id,
+      workspaceId: WORKSPACE_ID,
+      group: category.group,
+      normalizedName,
+      createdBy: OWNER_UID,
+      updatedBy: OWNER_UID,
+      createdAt: now,
+      updatedAt: now,
+    }),
+  ]);
+};
+
 const seedWorkspace = async (): Promise<void> => {
   const db = getDb();
   const now = admin.firestore.FieldValue.serverTimestamp();
@@ -135,6 +201,8 @@ const seedWorkspace = async (): Promise<void> => {
     seedWorkspaceMembership({ uid: ADMIN_UID, email: ADMIN_EMAIL, role: 'admin' }),
     seedWorkspaceMembership({ uid: MEMBER_UID, email: MEMBER_EMAIL, role: 'member' }),
   ]);
+
+  await seedSettingsCatalog();
 };
 
 const seedPermissionCard = async (): Promise<void> => {
@@ -218,9 +286,12 @@ const loginAs = async (page: Page, email: string): Promise<void> => {
 };
 
 const navigateBySidebar = async (page: Page, name: RegExp): Promise<void> => {
+  await expect(page.getByText('Detalhe da fatura')).toHaveCount(0, {
+    timeout: 20_000,
+  });
+
   await page.getByRole('link', { name }).click();
 };
-
 const createCardThroughUi = async (page: Page, cardName: string): Promise<CreatedCardReference> => {
   await navigateBySidebar(page, /Cartões de Crédito|Cartões Corporativos/i);
 
@@ -264,17 +335,38 @@ const createCreditCardPurchaseThroughUi = async (
   await page.getByRole('button', { name: /^Cartão$/i }).click();
 
   const transactionForm = page.locator('form').last();
+  const categorySelect = transactionForm.locator('select').nth(1);
+
+  const purchaseDate = (() => {
+    const now = new Date();
+
+    return [
+      now.getFullYear(),
+      String(now.getMonth() + 1).padStart(2, '0'),
+      String(now.getDate()).padStart(2, '0'),
+    ].join('-');
+  })();
 
   await transactionForm.locator('select').nth(0).selectOption(input.cardId);
+  await transactionForm
+    .getByPlaceholder('Busque, selecione ou digite um novo item...')
+    .fill(input.description);
+
+  await expect(categorySelect).toContainText('Eletrônicos', {
+    timeout: 20_000,
+  });
+
+  await categorySelect.selectOption({ label: 'Eletrônicos' });
+  await transactionForm.locator('input[type="date"]').fill(purchaseDate);
   await transactionForm.locator('input[type="number"]').nth(0).fill(input.amount);
   await transactionForm.locator('input[type="number"]').nth(1).fill(input.installments);
 
   await page.getByRole('button', { name: /Revisar e Adicionar Parcelado/i }).click();
 
-    const purchaseDoc = await waitUntil(
+  const purchaseDoc = await waitUntil(
     async () => {
       const purchaseErrorVisible = await page
-        .getByText(/Erro ao criar compra no cartão|Limite disponível insuficiente|Informe um valor válido|Informe uma quantidade válida|Selecione um cartão válido/i)
+                .getByText(/Erro ao criar compra no cartão|Limite disponível insuficiente|Informe um valor válido|Informe uma quantidade válida|Selecione um cartão válido|A data escolhida pertence a uma fatura que não está aberta/i)
         .first()
         .isVisible()
         .catch(() => false);
@@ -354,6 +446,22 @@ const openInvoiceDetailsByIndex = async (page: Page, index: number): Promise<voi
   });
 };
 
+const closeInvoiceDetails = async (page: Page): Promise<void> => {
+  await page.getByLabel('Fechar detalhe da fatura').click();
+
+  await expect(page.getByText('Detalhe da fatura')).toHaveCount(0, {
+    timeout: 20_000,
+  });
+};
+
+const closeCardDetails = async (page: Page): Promise<void> => {
+  await page.getByLabel('Fechar detalhes do cartão').click();
+
+  await expect(page.getByText('Detalhes do Cartão')).toHaveCount(0, {
+    timeout: 20_000,
+  });
+};
+
 test.describe('Fluxos E2E do domínio de cartão', () => {
   test.beforeEach(async () => {
     await resetEmulatorData();
@@ -392,8 +500,8 @@ test.describe('Fluxos E2E do domínio de cartão', () => {
       'Cancelamento de compra não foi refletido no domínio.'
     );
 
-    await page.getByLabel('Fechar detalhe da fatura').click();
-    await page.getByRole('button', { name: /Fechar detalhe/i }).click().catch(() => undefined);
+    await closeInvoiceDetails(page);
+    await closeCardDetails(page);
 
     await createCreditCardPurchaseThroughUi(page, {
       cardId: card.id,

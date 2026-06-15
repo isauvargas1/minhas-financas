@@ -1,4 +1,5 @@
 import * as admin from "firebase-admin";
+import { FieldValue } from "firebase-admin/firestore";
 
 import type {
   CreditCardCallableExecutionContext,
@@ -249,7 +250,7 @@ export const executeReopenCreditCardInvoice = async (
     }
 
     const eventId = `${payload.invoiceId}_invoice_reopened`;
-    const serverTimestamp = admin.firestore.FieldValue.serverTimestamp();
+    const serverTimestamp = FieldValue.serverTimestamp();
 
     transaction.update(invoiceRef, toFirestoreData({
       status: "open",

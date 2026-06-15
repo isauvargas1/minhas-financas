@@ -1,4 +1,5 @@
 import * as admin from "firebase-admin";
+import { FieldValue } from "firebase-admin/firestore";
 
 import type {
   CreditCardCallableExecutionContext,
@@ -280,7 +281,7 @@ export const executeCloseCreditCardInvoice = async (
       paidAmount
     );
     const eventId = `${payload.invoiceId}_invoice_closed`;
-    const serverTimestamp = admin.firestore.FieldValue.serverTimestamp();
+    const serverTimestamp = FieldValue.serverTimestamp();
 
     transaction.update(invoiceRef, toFirestoreData({
       status: "closed",

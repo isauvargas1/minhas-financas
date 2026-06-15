@@ -1,4 +1,5 @@
 import * as admin from "firebase-admin";
+import { FieldValue } from "firebase-admin/firestore";
 
 import type {
     CreditCardCallableExecutionContext,
@@ -335,7 +336,7 @@ export const executeRegisterCreditCardInvoicePayment = async (
             Math.max(currentLimitUsed - paymentAmount, 0)
         );
         const newLimitAvailable = normalizeMoney(limitTotal - newLimitUsed);
-        const serverTimestamp = admin.firestore.FieldValue.serverTimestamp();
+        const serverTimestamp = FieldValue.serverTimestamp();
 
         transaction.set(paymentRef, toFirestoreData({
             id: paymentId,

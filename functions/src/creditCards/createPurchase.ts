@@ -1,4 +1,5 @@
 import * as admin from "firebase-admin";
+import { FieldValue } from "firebase-admin/firestore";
 
 import type {
     CreditCardCallableExecutionContext,
@@ -381,6 +382,23 @@ const derivePaymentStatus = (
     return "overpaid";
 };
 
+const isReusableCancelledInvoice = (
+    existingData: admin.firestore.DocumentData
+): boolean => {
+    const totalAmount = normalizeMoney(Number(existingData.totalAmount ?? 0));
+    const paidAmount = normalizeMoney(Number(existingData.paidAmount ?? 0));
+    const remainingAmount = normalizeMoney(Number(existingData.remainingAmount ?? 0));
+    const itemsCount = Number(existingData.itemsCount ?? 0);
+
+    return (
+        existingData.status === "cancelled" &&
+        totalAmount === 0 &&
+        paidAmount === 0 &&
+        remainingAmount === 0 &&
+        itemsCount === 0
+    );
+};
+
 const buildResult = (
     purchaseId: string,
     installments: InstallmentDraft[],
@@ -537,7 +555,7 @@ export const executeCreateCreditCardPurchase = async (
         const newLimitAvailable = normalizeMoney(
             currentLimitAvailable - purchaseTotalAmount
         );
-        const serverTimestamp = admin.firestore.FieldValue.serverTimestamp();
+        const serverTimestamp = FieldValue.serverTimestamp();
 
         transaction.set(purchaseRef, toFirestoreData({
             id: purchaseId,
@@ -588,9 +606,12 @@ export const executeCreateCreditCardPurchase = async (
                     );
                 }
 
-                const existingStatus = existingData.status;
+                                const existingStatus = existingData.status;
+                const canReceivePurchase =
+                    existingStatus === "open" ||
+                    isReusableCancelledInvoice(existingData);
 
-                if (existingStatus !== "open") {
+                if (!canReceivePurchase) {
                     throw new CreditCardApplicationError(
                         "domain_precondition_failed",
                         "Não é permitido adicionar compra em fatura não aberta.",
@@ -607,12 +628,14 @@ export const executeCreateCreditCardPurchase = async (
                 const remainingAmount = normalizeMoney(totalAmount - paidAmount);
                 const itemsCount = Number(existingData.itemsCount ?? 0) +
                     invoice.itemsCount;
+                const status = "open";
 
                 transaction.update(invoiceRef, {
                     totalAmount,
                     paidAmount,
                     remainingAmount,
                     itemsCount,
+                    status,
                     paymentStatusDerived: derivePaymentStatus(
                         totalAmount,
                         paidAmount
@@ -628,7 +651,7 @@ export const executeCreateCreditCardPurchase = async (
                         cardId: payload.cardId,
                         competenceMonth: invoice.competenceMonth,
                         dueDate: invoice.dueDate,
-                        status: existingStatus,
+                        status,
                         totalAmount,
                         paidAmount,
                         remainingAmount,

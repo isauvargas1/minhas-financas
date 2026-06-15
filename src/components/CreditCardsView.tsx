@@ -1215,7 +1215,17 @@ const CreditCardsView: React.FC<CreditCardsViewProps> = ({ transactions }) => {
                     <div className="w-full max-w-lg bg-white dark:bg-dark-100 h-full shadow-2xl p-6 overflow-y-auto animate-slide-in-right" onClick={e => e.stopPropagation()}>
                         <div className="flex justify-between items-center mb-6">
                             <h3 className="text-xl font-bold text-gray-800 dark:text-white">Detalhes do Cartão</h3>
-                            <button onClick={() => setSelectedCardId(null)} className="p-2 hover:bg-gray-100 dark:hover:bg-dark-200 rounded-full transition-colors text-gray-500"><CloseIcon /></button>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setSelectedCardId(null);
+                                    setSelectedInvoiceForDetails(null);
+                                }}
+                                aria-label="Fechar detalhes do cartão"
+                                className="p-2 hover:bg-gray-100 dark:hover:bg-dark-200 rounded-full transition-colors text-gray-500"
+                            >
+                                <CloseIcon />
+                            </button>
                         </div>
 
                         <div className="mb-8 transform scale-90 sm:scale-100 origin-top-center">

@@ -1,4 +1,5 @@
-import * as admin from "firebase-admin";
+
+import { FieldValue } from "firebase-admin/firestore";
 
 import type {
   CreditCardCallableExecutionContext,
@@ -96,7 +97,7 @@ export const recordPurchaseLimitExceededEvent = async (
       payload: eventPayload,
       correlationId: payload.correlationId,
       idempotencyKey: payload.idempotencyKey,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      createdAt: FieldValue.serverTimestamp(),
       actorId: auth.uid,
     });
 

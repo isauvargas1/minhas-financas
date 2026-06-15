@@ -1,4 +1,5 @@
 import * as admin from "firebase-admin";
+import { FieldValue } from "firebase-admin/firestore";
 
 import {
   creditCardAuditLogDoc,
@@ -101,6 +102,6 @@ export const recordCreditCardAuditLog = (
     idempotencyKey: input.idempotencyKey,
     correlationId: input.correlationId,
     details: stripUndefinedValuesDeep(input.details ?? {}),
-    occurredAt: admin.firestore.FieldValue.serverTimestamp(),
+    occurredAt: FieldValue.serverTimestamp(),
   }));
 };

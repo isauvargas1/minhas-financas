@@ -1,4 +1,5 @@
 import * as admin from "firebase-admin";
+import { FieldValue } from "firebase-admin/firestore";
 
 import type {
   CreditCardCallableExecutionContext,
@@ -244,7 +245,7 @@ export const executeRecalculateCardLimit = async (
     const limitUsed = normalizeMoney(Math.max(rawLimitUsed, 0));
     const limitAvailable = normalizeMoney(limitTotal - limitUsed);
     const eventId = `${payload.cardId}_limit_recalculated_${Date.now()}`;
-    const serverTimestamp = admin.firestore.FieldValue.serverTimestamp();
+    const serverTimestamp = FieldValue.serverTimestamp();
     const previousSnapshot = currentLimitSnapshot.exists ?
       currentLimitSnapshot.data() :
       undefined;

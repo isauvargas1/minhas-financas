@@ -1,4 +1,5 @@
 import * as admin from "firebase-admin";
+import { FieldValue } from "firebase-admin/firestore";
 
 import type {
   CreditCardCallableExecutionContext,
@@ -438,7 +439,7 @@ export const executeCancelCreditCardPurchase = async (
     const newLimitAvailable = normalizeMoney(limitTotal - newLimitUsed);
     const ledgerEntryId = `${payload.purchaseId}_purchase_cancelled_restore`;
     const eventId = `${payload.purchaseId}_purchase_cancelled`;
-    const serverTimestamp = admin.firestore.FieldValue.serverTimestamp();
+    const serverTimestamp = FieldValue.serverTimestamp();
 
     transaction.update(purchaseRef, toFirestoreData({
       status: "cancelled",

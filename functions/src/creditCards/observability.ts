@@ -1,4 +1,5 @@
 import * as admin from "firebase-admin";
+import { FieldValue } from "firebase-admin/firestore";
 
 import {
   cardFinancialEventDoc,
@@ -82,7 +83,7 @@ export const recordCreditCardOperationMetric = (
     domain: "credit_card",
     operation: input.operation,
     status,
-    count: admin.firestore.FieldValue.increment(1),
+        count: FieldValue.increment(1),
     lastActorId: input.actorId,
     lastCardId: input.cardId,
     lastInvoiceId: input.invoiceId,
@@ -90,11 +91,11 @@ export const recordCreditCardOperationMetric = (
     lastPaymentId: input.paymentId,
     lastCorrelationId: input.correlationId,
     lastIdempotencyKey: input.idempotencyKey,
-    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
   };
 
   if (typeof input.amount === "number" && Number.isFinite(input.amount)) {
-    metricData.amountTotal = admin.firestore.FieldValue.increment(input.amount);
+       metricData.amountTotal = FieldValue.increment(input.amount);
   }
 
   transaction.set(metricRef, stripUndefinedValues(metricData), {merge: true});
@@ -257,7 +258,7 @@ export const recordCreditCardCallableFailure = async (
         actorId,
         correlationId,
         idempotencyKey,
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          createdAt: FieldValue.serverTimestamp(),
       })
     );
 

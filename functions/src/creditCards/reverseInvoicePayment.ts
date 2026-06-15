@@ -1,4 +1,5 @@
 import * as admin from "firebase-admin";
+import { FieldValue } from "firebase-admin/firestore";
 
 import type {
   CreditCardCallableExecutionContext,
@@ -384,7 +385,7 @@ export const executeReverseCreditCardInvoicePayment = async (
     ) ?
       workspaceDoc(workspaceId).collection("transactions").doc() :
       undefined;
-    const serverTimestamp = admin.firestore.FieldValue.serverTimestamp();
+    const serverTimestamp = FieldValue.serverTimestamp();
 
     transaction.update(paymentRef, toFirestoreData({
       status: "reversed",

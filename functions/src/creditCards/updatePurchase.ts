@@ -1,4 +1,5 @@
 import * as admin from "firebase-admin";
+import { FieldValue } from "firebase-admin/firestore";
 
 import type {
   CreditCardCallableExecutionContext,
@@ -720,7 +721,7 @@ export const executeUpdateCreditCardPurchase = async (
 );
     const updatedInstallmentIds: string[] = [];
     const cancelledInstallmentIds: string[] = [];
-    const serverTimestamp = admin.firestore.FieldValue.serverTimestamp();
+    const serverTimestamp = FieldValue.serverTimestamp();
 
     newInstallments.forEach((installment) => {
       transaction.set(
