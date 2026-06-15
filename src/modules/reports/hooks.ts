@@ -6,8 +6,10 @@ import {
     ReportTimeRange,
     FinancialReportSnapshot,
     CreditCardReportDomainData,
+    CreditCardReportDomainMeta,
 } from './types';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
+import { resolveReportDateRange } from './logic';
 import { Receivable, Client } from '../clients/types';
 import {
     listCreditCardInstallmentsForReports,
@@ -18,7 +20,7 @@ import {
 
 export const reportKeys = {
     snapshot: (range: string, ws: string) => ['financialReportSnapshot', range, ws],
-    creditCardDomain: (ws: string) => ['financialReportCreditCardDomain', ws],
+    creditCardDomain: (range: string, ws: string) => ['financialReportCreditCardDomain', range, ws],
 };
 
 
@@ -78,6 +80,38 @@ const buildClientsVersion = (clients?: Client[]): string =>
         ].join(':'))
         .join('|');
 
+        const CREDIT_CARD_REPORT_QUERY_LIMITS = {
+    purchases: 5000,
+    invoices: 2500,
+    installments: 5000,
+    payments: 2500,
+};
+
+type CreditCardReportDomainCollectionKey = keyof typeof CREDIT_CARD_REPORT_QUERY_LIMITS;
+
+const buildCreditCardReportDomainMeta = (
+    range: ReportTimeRange,
+    dateRange: ReturnType<typeof resolveReportDateRange>,
+    collectionSizes: Record<CreditCardReportDomainCollectionKey, number>,
+): CreditCardReportDomainMeta => {
+    const truncated = {
+        purchases: collectionSizes.purchases >= CREDIT_CARD_REPORT_QUERY_LIMITS.purchases,
+        invoices: collectionSizes.invoices >= CREDIT_CARD_REPORT_QUERY_LIMITS.invoices,
+        installments: collectionSizes.installments >= CREDIT_CARD_REPORT_QUERY_LIMITS.installments,
+        payments: collectionSizes.payments >= CREDIT_CARD_REPORT_QUERY_LIMITS.payments,
+    };
+
+    return {
+        range,
+        startDate: dateRange.startDate,
+        endDate: dateRange.endDate,
+        isAllTime: dateRange.isAllTime,
+        limits: { ...CREDIT_CARD_REPORT_QUERY_LIMITS },
+        truncated,
+        isTruncated: Object.values(truncated).some(Boolean),
+    };
+};
+
 export const useFinancialReportSnapshot = (
     transactions: Transaction[],
     goals: Goal[],
@@ -91,20 +125,40 @@ export const useFinancialReportSnapshot = (
 
     const workspaceId = activeWorkspace?.id;
 
-    const creditCardDomainQuery = useQuery({
+        const creditCardDomainQuery = useQuery({
         queryKey: workspaceId && workspaceId !== 'loading'
-            ? reportKeys.creditCardDomain(workspaceId)
-            : ['financialReportCreditCardDomain', 'disabled'],
+            ? reportKeys.creditCardDomain(range, workspaceId)
+            : ['financialReportCreditCardDomain', range, 'disabled'],
         queryFn: async (): Promise<CreditCardReportDomainData> => {
             if (!workspaceId || workspaceId === 'loading') {
                 return EMPTY_CREDIT_CARD_REPORT_DOMAIN_DATA;
             }
 
+            const dateRange = resolveReportDateRange(range);
+            const dateRangeOptions = dateRange.isAllTime
+                ? {}
+                : {
+                    startDate: dateRange.startDate,
+                    endDate: dateRange.endDate,
+                };
+
             const [purchases, invoices, installments, payments] = await Promise.all([
-                listCreditCardPurchasesForReports(workspaceId, { limit: 1000 }),
-                listCreditCardInvoicesForReports(workspaceId, { limit: 500 }),
-                listCreditCardInstallmentsForReports(workspaceId, { limit: 1000 }),
-                listCreditCardInvoicePaymentsForReports(workspaceId, { limit: 500 }),
+                listCreditCardPurchasesForReports(workspaceId, {
+                    ...dateRangeOptions,
+                    limit: CREDIT_CARD_REPORT_QUERY_LIMITS.purchases,
+                }),
+                listCreditCardInvoicesForReports(workspaceId, {
+                    ...dateRangeOptions,
+                    limit: CREDIT_CARD_REPORT_QUERY_LIMITS.invoices,
+                }),
+                listCreditCardInstallmentsForReports(workspaceId, {
+                    ...dateRangeOptions,
+                    limit: CREDIT_CARD_REPORT_QUERY_LIMITS.installments,
+                }),
+                listCreditCardInvoicePaymentsForReports(workspaceId, {
+                    ...dateRangeOptions,
+                    limit: CREDIT_CARD_REPORT_QUERY_LIMITS.payments,
+                }),
             ]);
 
             return {
@@ -112,6 +166,16 @@ export const useFinancialReportSnapshot = (
                 invoices,
                 installments,
                 payments,
+                meta: buildCreditCardReportDomainMeta(
+                    range,
+                    dateRange,
+                    {
+                        purchases: purchases.length,
+                        invoices: invoices.length,
+                        installments: installments.length,
+                        payments: payments.length,
+                    }
+                ),
             };
         },
         enabled: Boolean(workspaceId) && workspaceId !== 'loading',

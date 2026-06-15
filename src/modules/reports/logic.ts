@@ -35,6 +35,44 @@ export const buildCashAccountingTransactions = (
         )
     );
 
+    export interface ReportDateRange {
+    startDate?: string;
+    endDate: string;
+    isAllTime: boolean;
+}
+
+const toReportIsoDate = (date: Date): string => date.toISOString().slice(0, 10);
+
+export const resolveReportDateRange = (range: ReportTimeRange): ReportDateRange => {
+    const now = new Date();
+    const endDate = toReportIsoDate(now);
+    const startDate = new Date(now);
+
+    switch (range) {
+        case '7d':
+            startDate.setDate(now.getDate() - 7);
+            return { startDate: toReportIsoDate(startDate), endDate, isAllTime: false };
+        case '30d':
+            startDate.setDate(now.getDate() - 30);
+            return { startDate: toReportIsoDate(startDate), endDate, isAllTime: false };
+        case '90d':
+            startDate.setDate(now.getDate() - 90);
+            return { startDate: toReportIsoDate(startDate), endDate, isAllTime: false };
+        case '12m':
+            startDate.setFullYear(now.getFullYear() - 1);
+            return { startDate: toReportIsoDate(startDate), endDate, isAllTime: false };
+        case 'ytd':
+            return {
+                startDate: toReportIsoDate(new Date(now.getFullYear(), 0, 1)),
+                endDate,
+                isAllTime: false,
+            };
+        case 'all':
+        default:
+            return { endDate, isAllTime: true };
+    }
+};
+
 export const filterTransactionsByRange = (transactions: Transaction[], range: ReportTimeRange): Transaction[] => {
     const now = new Date();
     let startDate = new Date();

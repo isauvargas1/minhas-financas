@@ -308,3 +308,155 @@ A subfase é aprovada quando:
 - nenhum detalhe sensível é exposto ao frontend;
 - `npm run build` passa;
 - `npm run test:integration` passa no Firestore Emulator.
+
+## Subfase 12.7 — Testes de RBAC, replay e concorrência
+
+### Status
+
+Concluída como cobertura automatizada de segurança, idempotência e concorrência do domínio de cartão.
+
+### Arquivos alterados
+
+- `functions/src/creditCards/__tests__/rbac.integration.test.ts`
+
+### Arquivos criados
+
+- `functions/src/creditCards/__tests__/idempotencyReplay.integration.test.ts`
+- `functions/src/creditCards/__tests__/concurrency.integration.test.ts`
+
+### Arquivo revisado sem alteração
+
+- `functions/src/creditCards/testSupport/emulatorFirestore.ts`
+
+### Objetivo
+
+Cobrir automaticamente a parte mais sensível da Fase 10: múltiplos usuários, operações repetidas e concorrência em operações financeiras críticas.
+
+### Cenários cobertos
+
+- `member` tentando pagar fatura;
+- `member` tentando cancelar compra;
+- `member` tentando executar rebuild de faturas;
+- usuário fora do workspace tentando criar compra;
+- usuário fora do workspace tentando pagar fatura;
+- mesma `idempotencyKey` com mesmo payload;
+- mesma `idempotencyKey` com payload diferente;
+- dois pagamentos simultâneos na mesma fatura;
+- dois estornos simultâneos no mesmo pagamento;
+- cancelamento de compra com fatura paga.
+
+### Critério de aceite
+
+A subfase é aprovada quando:
+
+- operações não autorizadas são bloqueadas;
+- operações duplicadas não duplicam efeitos financeiros;
+- replay incompatível é bloqueado;
+- concorrência preserva fatura, limite, ledger e caixa;
+- `npm run build` passa;
+- `npm run test:integration` passa no Firestore Emulator.
+
+## Subfase 12.8 — Testes de edição, fechamento e recálculo
+
+### Status
+
+Concluída como cobertura automatizada dos casos de uso de edição, fechamento, reabertura e recálculo do domínio de cartão.
+
+### Arquivos alterados
+
+- `functions/src/creditCards/updatePurchase.ts`
+- `functions/src/creditCards/closeInvoice.ts`
+- `functions/src/creditCards/reopenInvoice.ts`
+
+### Arquivos criados
+
+- `functions/src/creditCards/__tests__/updatePurchase.integration.test.ts`
+- `functions/src/creditCards/__tests__/closeReopenInvoice.integration.test.ts`
+- `functions/src/creditCards/__tests__/recalculateLimit.integration.test.ts`
+
+### Objetivo
+
+Completar a cobertura dos casos de uso obrigatórios da camada de aplicação do domínio de cartão.
+
+### Cenários cobertos
+
+- edição de compra aberta;
+- bloqueio de edição quando a fatura afetada já possui pagamento;
+- fechamento de fatura sem baixa de caixa;
+- reabertura de fatura fechada sem pagamento;
+- recálculo de limite a partir do ledger;
+- validação de `financial_events`;
+- validação de audit logs;
+- validação de métricas operacionais.
+
+### Observação sobre edição de fatura fechada
+
+O código atual de `updateCreditCardPurchase` adota uma política conservadora e bloqueia qualquer edição quando uma fatura afetada não está `open`.
+
+Portanto, a edição de compra afetando fatura fechada sob política permitida não foi implementada nesta subfase, porque não existe policy de edição no contrato atual do payload.
+
+Essa capacidade deve ser tratada em uma subfase própria caso a regra de negócio seja confirmada.
+
+### Critério de aceite
+
+A subfase é aprovada quando:
+
+- todos os testes de integração passam no Firestore Emulator;
+- estado financeiro permanece consistente após edição, fechamento, reabertura e recálculo;
+- fechamento de fatura não cria transação de caixa;
+- reabertura de fatura não cria transação de caixa;
+- recálculo corrige snapshot de limite com base no ledger;
+- eventos, auditoria e métricas são registrados.
+
+## Subfase 12.9 — Escalabilidade dos relatórios e leituras do domínio
+
+### Status
+
+Concluída como filtro por período e fallback de truncamento para leituras do domínio de cartão nos relatórios.
+
+### Estratégia adotada
+
+A estratégia aplicada foi filtro por range do relatório, com limites superiores controlados e alerta de possível truncamento.
+
+Não foram implementados snapshots mensais materializados nesta subfase.
+
+### Arquivos alterados
+
+- `src/modules/reports/types.ts`
+- `src/modules/reports/logic.ts`
+- `src/modules/credit-cards/persistence/readApi.ts`
+- `src/modules/reports/hooks.ts`
+- `src/modules/reports/api.ts`
+
+### Arquivos revisados sem alteração
+
+- `firestore.indexes.json`
+
+### Arquivos não criados nesta subfase
+
+- `functions/src/creditCards/reportSnapshots.ts`
+
+### Comportamento implementado
+
+- leituras de compras usam filtro por `purchaseDate`;
+- leituras de faturas usam filtro por `dueDate`;
+- leituras de parcelas usam filtro por `dueDate`;
+- leituras de pagamentos usam filtro por `paymentDate`;
+- a query do domínio de cartão passa a depender do período selecionado no relatório;
+- os limites fixos antigos foram substituídos por limites superiores controlados;
+- quando uma coleção atinge o limite configurado, o snapshot gera alerta de possível truncamento;
+- o usuário é orientado a filtrar um período menor quando houver risco de relatório incompleto.
+
+### Critério de aceite
+
+A subfase é aprovada quando:
+
+- relatórios não carregam indefinidamente todas as compras;
+- dados de cartão são filtrados por período;
+- workspaces grandes não são truncados silenciosamente;
+- `npm run build` passa;
+- a UI exibe alerta quando alguma coleção atinge o limite configurado.
+
+### Observação sobre snapshots
+
+Snapshots mensais materializados continuam recomendados antes de operação SaaS comercial em larga escala, mas não foram implementados agora para evitar uma nova camada de agregação antes da homologação ampla.

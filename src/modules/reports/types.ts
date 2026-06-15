@@ -9,11 +9,29 @@ export type ReportTimeRange = '7d' | '30d' | '90d' | '12m' | 'ytd' | 'all';
 
 export type ReportType = 'cashflow' | 'category' | 'comparison' | 'heatmap';
 
+export interface CreditCardReportDomainCollectionMeta {
+  purchases: number;
+  invoices: number;
+  installments: number;
+  payments: number;
+}
+
+export interface CreditCardReportDomainMeta {
+  range: ReportTimeRange;
+  startDate?: string;
+  endDate: string;
+  isAllTime: boolean;
+  limits: CreditCardReportDomainCollectionMeta;
+  truncated: Record<keyof CreditCardReportDomainCollectionMeta, boolean>;
+  isTruncated: boolean;
+}
+
 export interface CreditCardReportDomainData {
   purchases: CreditCardPurchase[];
   invoices: CreditCardInvoice[];
   installments: CreditCardInstallment[];
   payments: CreditCardInvoicePayment[];
+  meta?: CreditCardReportDomainMeta;
 }
 
 export interface CreditCardDueBuckets {

@@ -44,6 +44,8 @@ import {
 
 export interface CreditCardQueryLimitOptions {
   limit?: number;
+  startDate?: IsoDateString;
+  endDate?: IsoDateString;
 }
 
 export interface ListCreditCardInvoicesByCardOptions extends CreditCardQueryLimitOptions {
@@ -76,6 +78,26 @@ const withOptionalLimit = (
   ...constraints,
   firestoreLimit(normalizeQueryLimit(limit)),
 ];
+
+const buildDateRangeConstraints = (
+  fieldPath: string,
+  options: CreditCardQueryLimitOptions,
+  direction: 'asc' | 'desc'
+): QueryConstraint[] => {
+  const constraints: QueryConstraint[] = [];
+
+  if (options.startDate) {
+    constraints.push(where(fieldPath, '>=', options.startDate));
+  }
+
+  if (options.endDate) {
+    constraints.push(where(fieldPath, '<=', options.endDate));
+  }
+
+  constraints.push(orderBy(fieldPath, direction));
+
+  return constraints;
+};
 
 const mapDocs = <TData>(snapshot: QuerySnapshot<DocumentData>): TData[] =>
   snapshot.docs.map((documentSnapshot) => ({
@@ -379,7 +401,7 @@ export const listCreditCardInvoicesForReports = async (
     query(
       creditCardInvoicesCollectionRef(workspaceId),
       ...withOptionalLimit(
-        [orderBy('dueDate', 'asc')],
+        buildDateRangeConstraints('dueDate', options, 'asc'),
         options.limit
       )
     )
@@ -396,7 +418,7 @@ export const listCreditCardInstallmentsForReports = async (
     query(
       creditCardInstallmentsCollectionRef(workspaceId),
       ...withOptionalLimit(
-        [orderBy('dueDate', 'asc')],
+        buildDateRangeConstraints('dueDate', options, 'asc'),
         options.limit
       )
     )
@@ -413,7 +435,7 @@ export const listCreditCardInvoicePaymentsForReports = async (
     query(
       creditCardInvoicePaymentsCollectionRef(workspaceId),
       ...withOptionalLimit(
-        [orderBy('paymentDate', 'desc')],
+        buildDateRangeConstraints('paymentDate', options, 'desc'),
         options.limit
       )
     )
@@ -430,7 +452,7 @@ export const listCreditCardPurchasesForReports = async (
     query(
       creditCardPurchasesCollectionRef(workspaceId),
       ...withOptionalLimit(
-        [orderBy('purchaseDate', 'desc')],
+        buildDateRangeConstraints('purchaseDate', options, 'desc'),
         options.limit
       )
     )

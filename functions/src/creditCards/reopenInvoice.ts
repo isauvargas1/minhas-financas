@@ -30,6 +30,10 @@ import {
   recordCreditCardAuditLog,
 } from "./auditLogs";
 
+import {
+  recordCreditCardOperationMetric,
+} from "./observability";
+
 export interface ReopenCreditCardInvoiceResult {
   success: true;
   invoiceId: string;
@@ -312,6 +316,17 @@ export const executeReopenCreditCardInvoice = async (
         paidAmount,
         remainingAmount,
       },
+    });
+
+        recordCreditCardOperationMetric(transaction, {
+      workspaceId,
+      operation: "invoice_reopened",
+      actorId: auth.uid,
+      cardId: payload.cardId,
+      invoiceId: payload.invoiceId,
+      amount: totalAmount,
+      correlationId: payload.correlationId,
+      idempotencyKey: payload.idempotencyKey,
     });
 
     const result = buildResult(

@@ -63,6 +63,28 @@ export const getFinancialReportSnapshot = async (
 
     const alerts = generateAlerts(kpis, debtProfile, workspace, receivables);
 
+        if (creditCardDomainData?.meta?.isTruncated) {
+        const labels: Record<string, string> = {
+            purchases: 'compras',
+            invoices: 'faturas',
+            installments: 'parcelas',
+            payments: 'pagamentos',
+        };
+
+        const truncatedCollections = Object.entries(creditCardDomainData.meta.truncated)
+            .filter(([, isTruncated]) => isTruncated)
+            .map(([collection]) => labels[collection] ?? collection)
+            .join(', ');
+
+        alerts.push({
+            id: 'credit-card-report-domain-truncated',
+            title: 'Relatório de cartões limitado',
+            message: `O relatório atingiu o limite de leitura para ${truncatedCollections}. Filtre um período menor para evitar dados incompletos.`,
+            severity: 'warning',
+            createdAt: new Date().toISOString(),
+        });
+    }
+
     let topClients = undefined;
     let receivablesStatus = undefined;
 

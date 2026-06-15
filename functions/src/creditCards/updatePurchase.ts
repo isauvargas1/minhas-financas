@@ -34,6 +34,10 @@ import {
   recordCreditCardAuditLog,
 } from "./auditLogs";
 
+import {
+  recordCreditCardOperationMetric,
+} from "./observability";
+
 export interface UpdateCreditCardPurchaseResult {
   success: true;
   purchaseId: string;
@@ -973,6 +977,17 @@ transaction.update(purchaseRef, toFirestoreData({
         updatedInstallmentIds,
         cancelledInstallmentIds,
       },
+    });
+
+     recordCreditCardOperationMetric(transaction, {
+      workspaceId,
+      operation: "purchase_updated",
+      actorId: auth.uid,
+      cardId: payload.cardId,
+      purchaseId: payload.purchaseId,
+      amount: Math.abs(deltaAmount),
+      correlationId: payload.correlationId,
+      idempotencyKey: payload.idempotencyKey,
     });
 
     const result = buildResult(

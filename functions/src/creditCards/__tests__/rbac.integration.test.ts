@@ -257,13 +257,23 @@ test(
 
     assert.equal(adminCancelContext.auth.role, "admin");
 
-    await expectWorkspaceMembershipRequired(() =>
+        await expectWorkspaceMembershipRequired(() =>
       buildCreditCardCallableContext(
         buildRequest(TEST_OUTSIDER_ID, createPurchasePayload),
         createCreditCardPurchasePayloadSchema,
         "createCreditCardPurchase",
       ),
     );
+
+    await expectWorkspaceMembershipRequired(() =>
+      buildCreditCardCallableContext(
+        buildRequest(TEST_OUTSIDER_ID, paymentPayload),
+        registerCreditCardInvoicePaymentPayloadSchema,
+        "registerCreditCardInvoicePayment",
+      ),
+    );
+
+    await resetCreditCardIntegrationWorkspace(TEST_WORKSPACE_ID);
 
     await resetCreditCardIntegrationWorkspace(TEST_WORKSPACE_ID);
   },
