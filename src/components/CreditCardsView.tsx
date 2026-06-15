@@ -1686,6 +1686,17 @@ const CreditCardsView: React.FC<CreditCardsViewProps> = ({ transactions }) => {
                     isSubmitting={registerInvoicePaymentMutation.isPending}
                 />
             )}
+
+            <CreditCardForm
+                isOpen={isFormOpen}
+                onClose={() => {
+                    setIsFormOpen(false);
+                    setCardToEdit(null);
+                }}
+                onSave={handleSave}
+                cardToEdit={cardToEdit}
+            />
+
             <style>{`
                 @keyframes slide-in-right { from { transform: translateX(100%); } to { transform: translateX(0); } }
                 .animate-slide-in-right { animation: slide-in-right 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }

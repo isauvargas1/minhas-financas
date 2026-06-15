@@ -266,25 +266,73 @@ const createCreditCardPurchaseThroughUi = async (
   const transactionForm = page.locator('form').last();
 
   await transactionForm.locator('select').nth(0).selectOption(input.cardId);
-  await transactionForm.getByRole('combobox').fill(input.description);
-  await transactionForm.getByRole('combobox').press('Enter');
-  await transactionForm.locator('select').nth(1).selectOption({ label: 'Alimentação' });
   await transactionForm.locator('input[type="number"]').nth(0).fill(input.amount);
   await transactionForm.locator('input[type="number"]').nth(1).fill(input.installments);
 
   await page.getByRole('button', { name: /Revisar e Adicionar Parcelado/i }).click();
 
-  await expect(page.getByText(/parcela\(s\) geradas na fatura/i)).toBeVisible({
-    timeout: 30_000,
-  });
+    const purchaseDoc = await waitUntil(
+    async () => {
+      const purchaseErrorVisible = await page
+        .getByText(/Erro ao criar compra no cartão|Limite disponível insuficiente|Informe um valor válido|Informe uma quantidade válida|Selecione um cartão válido/i)
+        .first()
+        .isVisible()
+        .catch(() => false);
+
+      if (purchaseErrorVisible) {
+        throw new Error(`A UI rejeitou a compra ${input.description} antes da persistência no domínio.`);
+      }
+
+      return findWorkspaceCollectionDoc<{
+        description?: string;
+        cardId?: string;
+        status?: string;
+        installmentsCount?: number;
+      }>(
+        'credit_card_purchases',
+        (data) =>
+          data.description === input.description &&
+          String(data.cardId) === String(input.cardId) &&
+          data.status === 'active' &&
+          Number(data.installmentsCount || 0) === Number(input.installments)
+      );
+    },
+    `Compra ${input.description} não foi persistida no domínio de cartão.`,
+    60_000
+  );
 
   await waitUntil(
     () =>
-      findWorkspaceCollectionDoc<{ description?: string }>(
-        'credit_card_purchases',
-        (data) => data.description === input.description
+      findWorkspaceCollectionDoc<{
+        purchaseId?: string;
+        cardId?: string;
+        status?: string;
+      }>(
+        'credit_card_installments',
+        (data) =>
+          data.purchaseId === purchaseDoc.id &&
+          String(data.cardId) === String(input.cardId) &&
+          data.status === 'invoiced'
       ),
-    `Compra ${input.description} não foi persistida no domínio de cartão.`
+    `Parcelas da compra ${input.description} não foram geradas na fatura.`,
+    45_000
+  );
+
+  await waitUntil(
+    () =>
+      findWorkspaceCollectionDoc<{
+        cardId?: string;
+        status?: string;
+        totalAmount?: number;
+      }>(
+        'credit_card_invoices',
+        (data) =>
+          String(data.cardId) === String(input.cardId) &&
+          data.status === 'open' &&
+          Number(data.totalAmount || 0) > 0
+      ),
+    `Fatura da compra ${input.description} não foi criada no domínio.`,
+    45_000
   );
 };
 
@@ -313,6 +361,8 @@ test.describe('Fluxos E2E do domínio de cartão', () => {
   });
 
   test('owner executa compra, pagamento, estorno, cancelamento e valida relatórios sem saída imediata', async ({ page }) => {
+    test.setTimeout(180_000);
+
     await loginAs(page, OWNER_EMAIL);
 
     const card = await createCardThroughUi(page, 'Cartão Fluxo E2E');

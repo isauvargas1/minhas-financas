@@ -314,10 +314,11 @@ const AppContent: React.FC = () => {
                 showNotification(
                     'A data escolhida pertence a uma fatura que não está aberta. Use uma data de fatura aberta ou registre um ajuste.'
                 );
-                return;
+                throw error;
             }
 
             showNotification('Erro ao criar compra no cartão.');
+            throw error;
         }
     };
 
