@@ -150,21 +150,14 @@ export const useCreateCreditCardPurchaseDomain = () => {
                 workspaceId: activeWorkspace.id,
             });
         },
-        onSuccess: async () => {
+        onSuccess: async (_result, variables) => {
             if (!isWorkspaceReady(activeWorkspace?.id)) return;
 
-            await Promise.all([
-                queryClient.invalidateQueries({
-                    queryKey: KEYS.all(activeWorkspace.id),
-                    refetchType: 'active',
-                }),
-                queryClient.invalidateQueries({
-                    queryKey: CREDIT_CARD_COMPATIBILITY_KEYS.invoiceTransactionProjections(
-                        activeWorkspace.id,
-                    ),
-                    refetchType: 'active',
-                }),
-            ]);
+            await invalidateCreditCardDomainQueries(
+                queryClient,
+                activeWorkspace.id,
+                variables.cardId
+            );
         },
     });
 };
@@ -200,14 +193,14 @@ const invalidateCreditCardDomainQueries = async (
             : Promise.resolve(),
         cardId
             ? queryClient.invalidateQueries({
-                queryKey: KEYS.recentPurchasesByCard(workspaceId, cardId),
-                refetchType: 'active',
+                queryKey: KEYS.invoicesByCard(workspaceId, cardId),
+                refetchType: 'all',
             })
             : Promise.resolve(),
         cardId
             ? queryClient.invalidateQueries({
-                queryKey: KEYS.auditLogsByCard(workspaceId, cardId),
-                refetchType: 'active',
+                queryKey: KEYS.recentPurchasesByCard(workspaceId, cardId),
+                refetchType: 'all',
             })
             : Promise.resolve(),
         queryClient.invalidateQueries({
@@ -243,7 +236,8 @@ export const useOpenCreditCardInvoicesByCard = (cardId?: string | null) => {
             });
         },
         enabled: isWorkspaceReady(workspaceId) && Boolean(cardId),
-        staleTime: 1000 * 60 * 2,
+        staleTime: 0,
+        refetchOnMount: 'always',
     });
 };
 

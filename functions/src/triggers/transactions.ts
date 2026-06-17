@@ -1,5 +1,6 @@
-import {onDocumentWritten} from "firebase-functions/v2/firestore";
+import { onDocumentWritten } from "firebase-functions/v2/firestore";
 import * as admin from "firebase-admin";
+import { FieldValue } from "firebase-admin/firestore";
 
 const db = admin.firestore();
 
@@ -63,7 +64,7 @@ export const onTransactionWrite = onDocumentWritten(
       action,
       userId,
       description: logMessage,
-      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+      timestamp: FieldValue.serverTimestamp(),
       details: {
         before: beforeData || null,
         after: afterData || null,
@@ -101,8 +102,8 @@ export const onTransactionWrite = onDocumentWritten(
       }
 
       batch.update(goalRef, {
-        currentAmount: admin.firestore.FieldValue.increment(diff),
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        currentAmount: FieldValue.increment(diff),
+        updatedAt: FieldValue.serverTimestamp(),
       });
     }
 
