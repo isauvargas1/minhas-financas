@@ -39,6 +39,15 @@ interface PurchaseInput {
   installments: string;
 }
 
+interface CreditCardInvoiceLookupData extends FirebaseFirestore.DocumentData {
+  cardId?: string;
+  status?: string;
+  totalAmount?: number;
+  paidAmount?: number;
+  remainingAmount?: number;
+  competenceMonth?: string;
+}
+
 const configureEmulatorEnvironment = () => {
   process.env.GCLOUD_PROJECT = PROJECT_ID;
   process.env.FIRESTORE_EMULATOR_HOST = '127.0.0.1:8080';
@@ -285,6 +294,8 @@ const loginAs = async (page: Page, email: string): Promise<void> => {
   });
 };
 
+
+
 const navigateBySidebar = async (page: Page, name: RegExp): Promise<void> => {
   await expect(page.getByText('Detalhe da fatura')).toHaveCount(0, {
     timeout: 20_000,
@@ -366,7 +377,7 @@ const createCreditCardPurchaseThroughUi = async (
   const purchaseDoc = await waitUntil(
     async () => {
       const purchaseErrorVisible = await page
-                .getByText(/Erro ao criar compra no cartão|Limite disponível insuficiente|Informe um valor válido|Informe uma quantidade válida|Selecione um cartão válido|A data escolhida pertence a uma fatura que não está aberta/i)
+        .getByText(/Erro ao criar compra no cartão|Limite disponível insuficiente|Informe um valor válido|Informe uma quantidade válida|Selecione um cartão válido|A data escolhida pertence a uma fatura que não está aberta/i)
         .first()
         .isVisible()
         .catch(() => false);
@@ -444,6 +455,94 @@ const openInvoiceDetailsByIndex = async (page: Page, index: number): Promise<voi
   await expect(page.getByText('Detalhe da fatura')).toBeVisible({
     timeout: 20_000,
   });
+};
+
+const openInvoiceDetailsWithPaymentAction = async (
+  page: Page,
+  mode: 'total' | 'partial'
+): Promise<void> => {
+  const paymentButtonName = mode === 'total' ? /Pagar total/i : /Pagamento parcial/i;
+
+  await waitUntil(
+    async () => {
+      const count = await page
+        .getByRole('button', { name: /Ver detalhes da fatura/i })
+        .count();
+
+      return count > 0 ? count : undefined;
+    },
+    'Nenhum botão de detalhe de fatura foi renderizado para o cartão.',
+    45_000
+  );
+
+  const detailsButtons = page.getByRole('button', { name: /Ver detalhes da fatura/i });
+  const buttonCount = await detailsButtons.count();
+
+  for (let index = 0; index < buttonCount; index += 1) {
+    const detailsButton = detailsButtons.nth(index);
+
+    await detailsButton.scrollIntoViewIfNeeded();
+    await detailsButton.click();
+
+    await expect(page.getByText('Detalhe da fatura')).toBeVisible({
+      timeout: 20_000,
+    });
+
+    const drawer = page
+      .getByText('Detalhe da fatura')
+      .locator('xpath=ancestor::div[contains(@class, "fixed")]');
+
+    const paymentButton = drawer.getByRole('button', { name: paymentButtonName });
+    const canUsePaymentAction =
+      (await paymentButton.isVisible().catch(() => false)) &&
+      (await paymentButton.isEnabled().catch(() => false));
+
+    if (canUsePaymentAction) {
+      return;
+    }
+
+    await closeInvoiceDetails(page);
+  }
+
+  throw new Error(
+    mode === 'total'
+      ? 'Nenhuma fatura com ação de pagamento total foi encontrada.'
+      : 'Nenhuma fatura com ação de pagamento parcial foi encontrada.'
+  );
+};
+
+const payInvoiceFromDetailsDrawer = async (
+  page: Page,
+  mode: 'total' | 'partial',
+  amount?: string
+): Promise<void> => {
+  const drawer = page.getByText('Detalhe da fatura').locator('xpath=ancestor::div[contains(@class, "fixed")]');
+  const paymentButtonName = mode === 'total' ? /Pagar total/i : /Pagamento parcial/i;
+  const paymentButton = drawer.getByRole('button', { name: paymentButtonName });
+
+  await expect(paymentButton).toBeEnabled({
+    timeout: 30_000,
+  });
+
+  await paymentButton.click();
+
+  const paymentModal = page
+    .getByText('Pagamento de fatura')
+    .locator('xpath=ancestor::div[contains(@class, "rounded-2xl")]');
+
+  await expect(paymentModal).toBeVisible({
+    timeout: 20_000,
+  });
+
+  if (mode === 'partial' && amount) {
+    await paymentModal.locator('input[type="number"]').fill(amount);
+  }
+
+  page.once('dialog', async (dialog) => {
+    await dialog.accept();
+  });
+
+  await paymentModal.getByRole('button', { name: /Confirmar pagamento/i }).click();
 };
 
 const closeInvoiceDetails = async (page: Page): Promise<void> => {
@@ -536,37 +635,38 @@ test.describe('Fluxos E2E do domínio de cartão', () => {
     await openCardDetails(page, card.name);
     await expect(page.getByText(/Fatura/i).first()).toBeVisible();
 
-    await page.getByRole('button', { name: /Pagar total/i }).first().click();
-    await page.getByRole('button', { name: /Confirmar pagamento/i }).click();
+    await openInvoiceDetailsWithPaymentAction(page, 'total');
+    await payInvoiceFromDetailsDrawer(page, 'total');
 
-    await waitUntil(
+    const totalPaymentInvoice = await waitUntil(
       () =>
-        findWorkspaceCollectionDoc<{ status?: string; paidAmount?: number }>(
-          'credit_card_invoices',
-          (data) => data.status === 'paid' && Number(data.paidAmount || 0) > 0
-        ),
-      'Pagamento total não marcou a fatura como paga.'
-    );
-
-    await openInvoiceDetailsByIndex(page, 1);
-
-    await page.getByRole('button', { name: /Pagamento parcial/i }).click();
-
-    const paymentModal = page.getByText('Pagamento de fatura').locator('xpath=ancestor::div[contains(@class, "rounded-2xl")]');
-
-    await paymentModal.locator('input[type="number"]').fill('40');
-    await paymentModal.getByRole('button', { name: /Confirmar pagamento/i }).click();
-
-    await waitUntil(
-      () =>
-        findWorkspaceCollectionDoc<{ status?: string; paidAmount?: number; remainingAmount?: number }>(
+        findWorkspaceCollectionDoc<CreditCardInvoiceLookupData>(
           'credit_card_invoices',
           (data) =>
+            String(data.cardId) === String(card.id) &&
+            data.status === 'paid' &&
+            Number(data.paidAmount || 0) > 0
+        ),
+      'Pagamento total não marcou nenhuma fatura do cartão como paga.'
+    );
+
+    await closeInvoiceDetails(page);
+
+    await openInvoiceDetailsWithPaymentAction(page, 'partial');
+    await payInvoiceFromDetailsDrawer(page, 'partial', '40');
+
+    await waitUntil(
+      () =>
+        findWorkspaceCollectionDoc<CreditCardInvoiceLookupData>(
+          'credit_card_invoices',
+          (data, id) =>
+            String(data.cardId) === String(card.id) &&
+            id !== totalPaymentInvoice.id &&
             data.status === 'partial_paid' &&
             Number(data.paidAmount || 0) === 40 &&
             Number(data.remainingAmount || 0) > 0
         ),
-      'Pagamento parcial não deixou a fatura como partial_paid.'
+      'Pagamento parcial não deixou uma fatura restante como partial_paid.'
     );
 
     await expect(page.getByRole('button', { name: /Estornar/i })).toBeVisible({

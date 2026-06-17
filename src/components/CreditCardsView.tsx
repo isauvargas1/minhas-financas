@@ -505,7 +505,11 @@ const CreditCardInvoiceDetailsDrawer = ({
         invoice.status !== 'cancelled';
 
     return (
-        <div className="fixed inset-0 z-50 bg-black/50 flex justify-end" onClick={onClose}>
+        <div
+            data-testid={`credit-card-invoice-details-drawer-${invoice.id}`}
+            className="fixed inset-0 z-50 bg-black/50 flex justify-end"
+            onClick={onClose}
+        >
             <div
                 className="w-full max-w-2xl bg-white dark:bg-dark-100 h-full shadow-2xl overflow-y-auto animate-slide-in-right"
                 onClick={(event) => event.stopPropagation()}
@@ -1332,6 +1336,8 @@ const CreditCardsView: React.FC<CreditCardsViewProps> = ({ transactions }) => {
 
                                                             <button
                                                                 type="button"
+                                                                data-testid={`credit-card-invoice-details-${invoice.id}`}
+                                                                aria-label={`Ver detalhes da fatura ${invoice.competenceMonth}`}
                                                                 onClick={() => setSelectedInvoiceForDetails(invoice)}
                                                                 className="w-full py-2 rounded-lg font-bold bg-white dark:bg-dark-300 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-dark-400 transition-all"
                                                             >
