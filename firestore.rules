@@ -8,7 +8,11 @@ service cloud.firestore {
 
     function isMember(workspaceId) {
       return signedIn() &&
-        exists(/databases/$(database)/documents/workspaces/$(workspaceId)/members/$(request.auth.uid));
+        exists(/databases/$(database)/documents/workspaces/$(workspaceId)/members/$(request.auth.uid)) &&
+        (
+          !get(/databases/$(database)/documents/workspaces/$(workspaceId)/members/$(request.auth.uid)).data.keys().hasAny(['status']) ||
+          get(/databases/$(database)/documents/workspaces/$(workspaceId)/members/$(request.auth.uid)).data.status == 'active'
+        );
     }
 
     function getRole(workspaceId) {
@@ -22,7 +26,11 @@ service cloud.firestore {
     // Para subcoleções: lê o ownerId do documento pai
     function isWorkspaceOwnerByParent(workspaceId) {
       return signedIn() &&
-        get(/databases/$(database)/documents/workspaces/$(workspaceId)).data.ownerId == request.auth.uid;
+        get(/databases/$(database)/documents/workspaces/$(workspaceId)).data.ownerId == request.auth.uid &&
+        (
+          !exists(/databases/$(database)/documents/workspaces/$(workspaceId)/members/$(request.auth.uid)) ||
+          isMember(workspaceId)
+        );
     }
 
     function isDateOnlyString(value) {
@@ -47,7 +55,7 @@ service cloud.firestore {
         && (!data.keys().hasAny(['workspaceId']) || data.workspaceId == workspaceId)
         && (!data.keys().hasAny(['cardId']) || data.cardId is string)
         && (!data.keys().hasAny(['goalId']) || data.goalId is string)
-        && (!data.keys().hasAny(['walletId']) || data.walletId is int || data.walletId is float)
+        && (!data.keys().hasAny(['walletId']) || data.walletId is string || data.walletId is int || data.walletId is float)
         && (!data.keys().hasAny(['profileId']) || data.profileId is string)
         && (!data.keys().hasAny(['expenseType']) || data.expenseType is string)
         && (!data.keys().hasAny(['incomeType']) || data.incomeType is string)
@@ -224,6 +232,259 @@ function canMemberWriteWorkspaceScopedData(workspaceId) {
     isWorkspaceOwnerByParent(workspaceId);
 }
 
+function canReadInvestmentDomain(workspaceId) {
+  return hasRole(workspaceId, ['owner', 'admin', 'member']);
+}
+
+function canReadSensitiveInvestmentDomain(workspaceId) {
+  return hasRole(workspaceId, ['owner', 'admin']);
+}
+
+function isBoundedInvestmentList() {
+  return request.query.limit != null &&
+    request.query.limit > 0 &&
+    request.query.limit <= 100;
+}
+
+function isInvestmentString(value, maxSize) {
+  return value is string && value.size() > 0 && value.size() <= maxSize;
+}
+
+function isInvestmentProfileType(value) {
+  return value in ['PF', 'PJ'];
+}
+
+function isInvestmentCurrency(value) {
+  return value == 'BRL';
+}
+
+function isInvestmentInteger(value) {
+  return value is int &&
+    value >= -9007199254740991 && value <= 9007199254740991;
+}
+
+function isNonNegativeInvestmentInteger(value) {
+  return isInvestmentInteger(value) && value >= 0;
+}
+
+function hasValidInvestmentIdentity(data, workspaceId, docId) {
+  return data.id == docId &&
+    data.workspaceId == workspaceId &&
+    isInvestmentProfileType(data.profileType);
+}
+
+function isValidInvestmentAccount(data, workspaceId, docId) {
+  return data.keys().hasAll([
+      'id', 'workspaceId', 'profileType', 'name', 'institutionName',
+      'currency', 'status', 'createdBy', 'createdAt', 'updatedBy', 'updatedAt'
+    ]) &&
+    hasValidInvestmentIdentity(data, workspaceId, docId) &&
+    isInvestmentString(data.name, 160) &&
+    isInvestmentString(data.institutionName, 160) &&
+    isInvestmentCurrency(data.currency) &&
+    data.status in ['active', 'archived'] &&
+    isInvestmentString(data.createdBy, 128) &&
+    isInvestmentString(data.updatedBy, 128) &&
+    data.createdAt is timestamp && data.updatedAt is timestamp &&
+    (!data.keys().hasAny(['archivedAt']) || data.archivedAt is timestamp) &&
+    (!data.keys().hasAny(['archivedBy']) || isInvestmentString(data.archivedBy, 128)) &&
+    (!data.keys().hasAny(['archiveReason']) || isInvestmentString(data.archiveReason, 500));
+}
+
+function isValidInvestmentAsset(data, workspaceId, docId) {
+  return data.keys().hasAll([
+      'id', 'workspaceId', 'profileType', 'name', 'assetType', 'currency',
+      'status', 'createdBy', 'createdAt', 'updatedBy', 'updatedAt'
+    ]) &&
+    hasValidInvestmentIdentity(data, workspaceId, docId) &&
+    isInvestmentString(data.name, 160) &&
+    isInvestmentString(data.assetType, 80) &&
+    (!data.keys().hasAny(['symbol']) || isInvestmentString(data.symbol, 32)) &&
+    isInvestmentCurrency(data.currency) &&
+    data.status in ['active', 'archived'] &&
+    isInvestmentString(data.createdBy, 128) &&
+    isInvestmentString(data.updatedBy, 128) &&
+    data.createdAt is timestamp && data.updatedAt is timestamp &&
+    (!data.keys().hasAny(['archivedAt']) || data.archivedAt is timestamp) &&
+    (!data.keys().hasAny(['archivedBy']) || isInvestmentString(data.archivedBy, 128)) &&
+    (!data.keys().hasAny(['archiveReason']) || isInvestmentString(data.archiveReason, 500));
+}
+
+function isValidInvestmentMovement(data, workspaceId, docId) {
+  return data.keys().hasAll([
+      'id', 'workspaceId', 'profileType', 'domainVersion',
+      'calculationVersion', 'accountId', 'assetId', 'positionId',
+      'operation', 'status', 'currency', 'description', 'principalCents',
+      'gainCents', 'feesCents', 'taxCents', 'quantityMicros',
+      'cashDeltaCents', 'principalDeltaCents', 'realizedGainDeltaCents',
+      'feesDeltaCents', 'taxDeltaCents', 'quantityDeltaMicros',
+      'goalNetContributionDeltaCents', 'goalCurrentValueDeltaCents',
+      'correlationId', 'idempotencyKeyHash', 'occurredAt', 'createdBy',
+      'createdAt'
+    ]) &&
+    hasValidInvestmentIdentity(data, workspaceId, docId) &&
+    data.domainVersion == 2 &&
+    isInvestmentString(data.calculationVersion, 100) &&
+    isInvestmentString(data.accountId, 128) &&
+    isInvestmentString(data.assetId, 128) &&
+    isInvestmentString(data.positionId, 257) &&
+    data.operation in ['contribution', 'redemption', 'reversal', 'goal_link', 'goal_unlink'] &&
+    data.status in ['pending', 'settled'] &&
+    isInvestmentCurrency(data.currency) &&
+    isInvestmentString(data.description, 500) &&
+    isNonNegativeInvestmentInteger(data.principalCents) &&
+    isNonNegativeInvestmentInteger(data.gainCents) &&
+    isNonNegativeInvestmentInteger(data.feesCents) &&
+    isNonNegativeInvestmentInteger(data.taxCents) &&
+    isNonNegativeInvestmentInteger(data.quantityMicros) &&
+    isInvestmentInteger(data.cashDeltaCents) &&
+    isInvestmentInteger(data.principalDeltaCents) &&
+    isInvestmentInteger(data.realizedGainDeltaCents) &&
+    isInvestmentInteger(data.feesDeltaCents) &&
+    isInvestmentInteger(data.taxDeltaCents) &&
+    isInvestmentInteger(data.quantityDeltaMicros) &&
+    isInvestmentInteger(data.goalNetContributionDeltaCents) &&
+    isInvestmentInteger(data.goalCurrentValueDeltaCents) &&
+    isInvestmentString(data.correlationId, 128) &&
+    isInvestmentString(data.idempotencyKeyHash, 128) &&
+    data.occurredAt is timestamp && data.createdAt is timestamp &&
+    isInvestmentString(data.createdBy, 128) &&
+    (!data.keys().hasAny(['settlementAt']) || data.settlementAt is timestamp) &&
+    (!data.keys().hasAny(['settledAt']) || data.settledAt is timestamp) &&
+    (!data.keys().hasAny(['settledBy']) || isInvestmentString(data.settledBy, 128)) &&
+    (
+      (data.status == 'pending' &&
+        data.cashDeltaCents == 0 && data.principalDeltaCents == 0 &&
+        data.realizedGainDeltaCents == 0 && data.feesDeltaCents == 0 &&
+        data.taxDeltaCents == 0 && data.quantityDeltaMicros == 0 &&
+        data.goalNetContributionDeltaCents == 0 &&
+        data.goalCurrentValueDeltaCents == 0 &&
+        !data.keys().hasAny(['settledAt', 'settledBy'])) ||
+      (data.status == 'settled' && data.settlementAt is timestamp &&
+        data.settledAt is timestamp && isInvestmentString(data.settledBy, 128))
+    );
+}
+
+function isValidInvestmentPosition(data, workspaceId, docId) {
+  return data.keys().hasAll([
+      'id', 'workspaceId', 'profileType', 'accountId', 'assetId', 'currency',
+      'status', 'quantityMicros', 'principalCents', 'realizedGainCents',
+      'feesCents', 'taxCents', 'currentValueCents',
+      'unrealizedAppreciationCents', 'calculationVersion', 'version',
+      'createdAt', 'updatedAt', 'updatedBy'
+    ]) &&
+    hasValidInvestmentIdentity(data, workspaceId, docId) &&
+    isInvestmentString(data.accountId, 128) &&
+    isInvestmentString(data.assetId, 128) &&
+    isInvestmentCurrency(data.currency) &&
+    data.status in ['active', 'archived'] &&
+    isNonNegativeInvestmentInteger(data.quantityMicros) &&
+    isNonNegativeInvestmentInteger(data.principalCents) &&
+    isNonNegativeInvestmentInteger(data.realizedGainCents) &&
+    isNonNegativeInvestmentInteger(data.feesCents) &&
+    isNonNegativeInvestmentInteger(data.taxCents) &&
+    isNonNegativeInvestmentInteger(data.currentValueCents) &&
+    isInvestmentInteger(data.unrealizedAppreciationCents) &&
+    isInvestmentString(data.calculationVersion, 100) &&
+    isNonNegativeInvestmentInteger(data.version) &&
+    data.createdAt is timestamp && data.updatedAt is timestamp &&
+    isInvestmentString(data.updatedBy, 128);
+}
+
+function isValidInvestmentValuation(data, workspaceId, docId) {
+  return data.keys().hasAll([
+      'id', 'workspaceId', 'profileType', 'assetId', 'currency',
+      'unitPriceMicros', 'source', 'effectiveAt', 'correlationId',
+      'createdBy', 'createdAt'
+    ]) &&
+    hasValidInvestmentIdentity(data, workspaceId, docId) &&
+    isInvestmentString(data.assetId, 128) &&
+    isInvestmentCurrency(data.currency) &&
+    isNonNegativeInvestmentInteger(data.unitPriceMicros) &&
+    data.unitPriceMicros > 0 &&
+    data.source in ['manual', 'provider', 'import'] &&
+    data.effectiveAt is timestamp && data.createdAt is timestamp &&
+    isInvestmentString(data.correlationId, 128) &&
+    isInvestmentString(data.createdBy, 128);
+}
+
+function isValidInvestmentSnapshot(data, workspaceId, docId) {
+  return data.keys().hasAll([
+      'id', 'workspaceId', 'profileType', 'kind', 'targetId', 'status',
+      'cutoffAt', 'processedCount', 'expectedProjectionVersion', 'totals',
+      'pageSize', 'calculationVersion', 'correlationId', 'createdBy',
+      'createdAt', 'updatedAt'
+    ]) &&
+    hasValidInvestmentIdentity(data, workspaceId, docId) &&
+    data.kind in ['position_rebuild', 'goal_rebuild'] &&
+    isInvestmentString(data.targetId, 257) &&
+    data.status in ['running', 'completed'] &&
+    data.cutoffAt is timestamp &&
+    isNonNegativeInvestmentInteger(data.processedCount) &&
+    isNonNegativeInvestmentInteger(data.expectedProjectionVersion) &&
+    data.totals is map &&
+    isInvestmentInteger(data.totals.quantityMicros) &&
+    isInvestmentInteger(data.totals.principalCents) &&
+    isInvestmentInteger(data.totals.realizedGainCents) &&
+    isInvestmentInteger(data.totals.feesCents) &&
+    isInvestmentInteger(data.totals.taxCents) &&
+    isInvestmentInteger(data.totals.netContributionCents) &&
+    isInvestmentInteger(data.totals.currentValueCents) &&
+    isNonNegativeInvestmentInteger(data.pageSize) &&
+    data.pageSize > 0 && data.pageSize <= 100 &&
+    isInvestmentString(data.calculationVersion, 100) &&
+    isInvestmentString(data.correlationId, 128) &&
+    isInvestmentString(data.createdBy, 128) &&
+    data.createdAt is timestamp && data.updatedAt is timestamp &&
+    (!data.keys().hasAny(['completedAt']) || data.completedAt is timestamp);
+}
+
+function isValidInvestmentEventLog(data, workspaceId, docId) {
+  return data.keys().hasAll([
+      'id', 'workspaceId', 'profileType', 'actorId', 'actorRole',
+      'operation', 'entityType', 'entityId', 'correlationId',
+      'idempotencyKeyId', 'outcome', 'details', 'occurredAt'
+    ]) &&
+    hasValidInvestmentIdentity(data, workspaceId, docId) &&
+    isInvestmentString(data.actorId, 128) &&
+    data.actorRole in ['owner', 'admin', 'member'] &&
+    isInvestmentString(data.operation, 128) &&
+    data.entityType in ['account', 'asset', 'movement', 'position', 'goal', 'snapshot'] &&
+    isInvestmentString(data.entityId, 257) &&
+    isInvestmentString(data.correlationId, 128) &&
+    isInvestmentString(data.idempotencyKeyId, 257) &&
+    data.outcome == 'completed' && data.details is map &&
+    data.occurredAt is timestamp;
+}
+
+function isValidInvestmentImportBatch(data, workspaceId, docId) {
+  return data.keys().hasAll([
+      'id', 'workspaceId', 'profileType', 'status', 'source',
+      'processedCount', 'failedCount', 'correlationId', 'createdBy',
+      'createdAt', 'updatedAt'
+    ]) &&
+    hasValidInvestmentIdentity(data, workspaceId, docId) &&
+    data.status in ['pending', 'running', 'completed', 'failed'] &&
+    isInvestmentString(data.source, 160) &&
+    isNonNegativeInvestmentInteger(data.processedCount) &&
+    isNonNegativeInvestmentInteger(data.failedCount) &&
+    isInvestmentString(data.correlationId, 128) &&
+    isInvestmentString(data.createdBy, 128) &&
+    data.createdAt is timestamp && data.updatedAt is timestamp &&
+    (!data.keys().hasAny(['completedAt']) || data.completedAt is timestamp);
+}
+
+function isValidLegacyInvestmentAudit(data, workspaceId) {
+  return data.workspaceId == workspaceId &&
+    isInvestmentProfileType(data.profileType) &&
+    isInvestmentString(data.actorId, 128) &&
+    data.actorRole in ['owner', 'admin', 'member'] &&
+    isInvestmentString(data.operation, 128) &&
+    isInvestmentString(data.targetId, 257) &&
+    isInvestmentString(data.correlationId, 257) &&
+    data.details is map && data.timestamp is timestamp;
+}
+
 function isCreditCardDomainCollection(collectionName) {
   return collectionName in [
     'credit_card_purchases',
@@ -236,7 +497,19 @@ function isCreditCardDomainCollection(collectionName) {
     'credit_card_operational_metrics',
     'invoice_views',
     'card_limit_snapshots',
-    'credit_card_idempotency_keys'
+    'credit_card_idempotency_keys',
+    'goal_audit_logs',
+    'goal_idempotency_keys',
+    'investment_audit_logs',
+    'investment_accounts',
+    'investment_assets',
+    'investment_movements',
+    'investment_positions',
+    'investment_valuations',
+    'investment_snapshots',
+    'investment_event_logs',
+    'investment_import_batches',
+    'investment_idempotency_keys'
   ];
 }
 
@@ -374,25 +647,49 @@ function isValidCreditCardUpdate(data, previous, workspaceId) {
         allow create: if
           (hasRole(workspaceId, ['owner', 'admin', 'member']) || isWorkspaceOwnerByParent(workspaceId)) &&
           isCommonValidTransactionPayload(request.resource.data, workspaceId) &&
-          request.resource.data.userId == request.auth.uid;
+          request.resource.data.userId == request.auth.uid &&
+          !request.resource.data.keys().hasAny([
+            'goalId',
+            'investmentMetadata',
+            'redeemedPrincipalCents',
+            'remainingPrincipalCents',
+            'settlementDate'
+          ]);
 
         allow update: if
           (
             (hasRole(workspaceId, ['owner', 'admin']) || isWorkspaceOwnerByParent(workspaceId)) &&
             isCommonValidTransactionPayload(request.resource.data, workspaceId) &&
-            request.resource.data.userId == resource.data.userId
+            request.resource.data.userId == resource.data.userId &&
+            !resource.data.keys().hasAny(['goalId']) &&
+            !request.resource.data.keys().hasAny(['goalId']) &&
+            !resource.data.keys().hasAny(['investmentMetadata']) &&
+            !request.resource.data.keys().hasAny(['investmentMetadata']) &&
+            !resource.data.keys().hasAny(['redeemedPrincipalCents', 'remainingPrincipalCents']) &&
+            !request.resource.data.keys().hasAny(['redeemedPrincipalCents', 'remainingPrincipalCents', 'settlementDate'])
           ) ||
           (
             isMemberTransactionOwner(workspaceId, resource.data) &&
             isCommonValidTransactionPayload(request.resource.data, workspaceId) &&
             request.resource.data.userId == request.auth.uid &&
-            request.resource.data.userId == resource.data.userId
+            request.resource.data.userId == resource.data.userId &&
+            !resource.data.keys().hasAny(['goalId']) &&
+            !request.resource.data.keys().hasAny(['goalId']) &&
+            !resource.data.keys().hasAny(['investmentMetadata']) &&
+            !request.resource.data.keys().hasAny(['investmentMetadata']) &&
+            !resource.data.keys().hasAny(['redeemedPrincipalCents', 'remainingPrincipalCents']) &&
+            !request.resource.data.keys().hasAny(['redeemedPrincipalCents', 'remainingPrincipalCents', 'settlementDate'])
           );
 
         allow delete: if
-          hasRole(workspaceId, ['owner', 'admin']) ||
-          isWorkspaceOwnerByParent(workspaceId) ||
-          isMemberTransactionOwner(workspaceId, resource.data);
+          !resource.data.keys().hasAny(['goalId']) &&
+          !resource.data.keys().hasAny(['investmentMetadata']) &&
+          !resource.data.keys().hasAny(['redeemedPrincipalCents', 'remainingPrincipalCents']) &&
+          (
+            hasRole(workspaceId, ['owner', 'admin']) ||
+            isWorkspaceOwnerByParent(workspaceId) ||
+            isMemberTransactionOwner(workspaceId, resource.data)
+          );
       }
 
      match /recurring_expenses/{docId} {
@@ -476,7 +773,92 @@ match /credit_card_idempotency_keys/{docId} {
 
       match /goals/{docId} {
         allow read: if isMember(workspaceId) || isWorkspaceOwnerByParent(workspaceId);
-        allow write: if hasRole(workspaceId, ['owner', 'admin', 'member']) || isWorkspaceOwnerByParent(workspaceId);
+        allow write: if false;
+      }
+
+      match /goal_audit_logs/{docId} {
+        allow read: if canWriteWorkspaceScopedData(workspaceId);
+        allow write: if false;
+      }
+
+      match /goal_idempotency_keys/{docId} {
+        allow read, write: if false;
+      }
+
+      match /investment_audit_logs/{docId} {
+        allow get: if canReadSensitiveInvestmentDomain(workspaceId) &&
+          isValidLegacyInvestmentAudit(resource.data, workspaceId);
+        allow list: if canReadSensitiveInvestmentDomain(workspaceId) &&
+          isBoundedInvestmentList();
+        allow write: if false;
+      }
+
+      match /investment_accounts/{docId} {
+        allow get: if canReadInvestmentDomain(workspaceId) &&
+          isValidInvestmentAccount(resource.data, workspaceId, docId);
+        allow list: if canReadInvestmentDomain(workspaceId) &&
+          isBoundedInvestmentList();
+        allow write: if false;
+      }
+
+      match /investment_assets/{docId} {
+        allow get: if canReadInvestmentDomain(workspaceId) &&
+          isValidInvestmentAsset(resource.data, workspaceId, docId);
+        allow list: if canReadInvestmentDomain(workspaceId) &&
+          isBoundedInvestmentList();
+        allow write: if false;
+      }
+
+      match /investment_movements/{docId} {
+        allow get: if canReadInvestmentDomain(workspaceId) &&
+          isValidInvestmentMovement(resource.data, workspaceId, docId);
+        allow list: if canReadInvestmentDomain(workspaceId) &&
+          isBoundedInvestmentList();
+        allow write: if false;
+      }
+
+      match /investment_positions/{docId} {
+        allow get: if canReadInvestmentDomain(workspaceId) &&
+          isValidInvestmentPosition(resource.data, workspaceId, docId);
+        allow list: if canReadInvestmentDomain(workspaceId) &&
+          isBoundedInvestmentList();
+        allow write: if false;
+      }
+
+      match /investment_valuations/{docId} {
+        allow get: if canReadInvestmentDomain(workspaceId) &&
+          isValidInvestmentValuation(resource.data, workspaceId, docId);
+        allow list: if canReadInvestmentDomain(workspaceId) &&
+          isBoundedInvestmentList();
+        allow write: if false;
+      }
+
+      match /investment_snapshots/{docId} {
+        allow get: if canReadSensitiveInvestmentDomain(workspaceId) &&
+          isValidInvestmentSnapshot(resource.data, workspaceId, docId);
+        allow list: if canReadSensitiveInvestmentDomain(workspaceId) &&
+          isBoundedInvestmentList();
+        allow write: if false;
+      }
+
+      match /investment_event_logs/{docId} {
+        allow get: if canReadSensitiveInvestmentDomain(workspaceId) &&
+          isValidInvestmentEventLog(resource.data, workspaceId, docId);
+        allow list: if canReadSensitiveInvestmentDomain(workspaceId) &&
+          isBoundedInvestmentList();
+        allow write: if false;
+      }
+
+      match /investment_import_batches/{docId} {
+        allow get: if canReadSensitiveInvestmentDomain(workspaceId) &&
+          isValidInvestmentImportBatch(resource.data, workspaceId, docId);
+        allow list: if canReadSensitiveInvestmentDomain(workspaceId) &&
+          isBoundedInvestmentList();
+        allow write: if false;
+      }
+
+      match /investment_idempotency_keys/{docId} {
+        allow read, write: if false;
       }
 
       match /loans/{docId} {
