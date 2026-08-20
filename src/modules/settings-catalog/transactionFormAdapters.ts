@@ -23,19 +23,9 @@ const isVisibleForWorkspaceType = (
   return item.workspaceScope === workspaceType;
 };
 
-const stableNumericIdFromString = (value: string): number => {
-  let hash = 0;
-
-  for (let i = 0; i < value.length; i += 1) {
-    hash = (hash * 31 + value.charCodeAt(i)) | 0;
-  }
-
-  return Math.abs(hash) || 1;
-};
-
 const toLegacyEntityItem = (item: SettingsCatalogItem): EntityItem => {
   return {
-    id: stableNumericIdFromString(item.id),
+    id: item.id,
     name: item.name,
     type: item.transactionSubtype,
     icon: item.icon,
@@ -46,7 +36,7 @@ const toLegacyEntityItem = (item: SettingsCatalogItem): EntityItem => {
 
 const toLegacyWalletEntityItem = (item: SettingsCatalogItem): EntityItem => {
   return {
-    id: stableNumericIdFromString(item.id),
+    id: item.id,
     name: item.name,
     icon: item.icon,
     iconColor: item.color,

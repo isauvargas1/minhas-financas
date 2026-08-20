@@ -71,7 +71,7 @@ export const useDeleteTransaction = (workspaceId: string) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: string | number) => deleteTransaction(workspaceId, id),
+    mutationFn: (transaction: Transaction) => deleteTransaction(workspaceId, transaction),
     onSuccess: async () => {
       await invalidateTransactionDependents(queryClient, workspaceId);
     }

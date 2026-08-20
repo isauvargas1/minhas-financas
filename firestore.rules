@@ -509,7 +509,8 @@ function isCreditCardDomainCollection(collectionName) {
     'investment_snapshots',
     'investment_event_logs',
     'investment_import_batches',
-    'investment_idempotency_keys'
+    'investment_idempotency_keys',
+    'investment_summaries'
   ];
 }
 
@@ -859,6 +860,24 @@ match /credit_card_idempotency_keys/{docId} {
 
       match /investment_idempotency_keys/{docId} {
         allow read, write: if false;
+      }
+
+      match /investment_summaries/{docId} {
+        allow get: if docId == 'current' &&
+          canReadInvestmentDomain(workspaceId) &&
+          resource.data.workspaceId == workspaceId &&
+          resource.data.id == docId &&
+          isInvestmentProfileType(resource.data.profileType) &&
+          resource.data.currency == 'BRL' &&
+          isNonNegativeInvestmentInteger(resource.data.positionCount) &&
+          isNonNegativeInvestmentInteger(resource.data.principalCents) &&
+          isNonNegativeInvestmentInteger(resource.data.currentValueCents) &&
+          isNonNegativeInvestmentInteger(resource.data.realizedGainCents) &&
+          isNonNegativeInvestmentInteger(resource.data.feesCents) &&
+          isNonNegativeInvestmentInteger(resource.data.taxCents) &&
+          resource.data.unrealizedAppreciationCents is int &&
+          resource.data.updatedAt is timestamp;
+        allow list, write: if false;
       }
 
       match /loans/{docId} {

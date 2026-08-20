@@ -1,17 +1,17 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Goal, GoalCategory, GoalPriority, GoalHorizon, EntityItem, Transaction, GoalStatus, BusinessGoalType, GoalPeriod } from '../types.ts';
-import { CloseIcon, SearchIcon, SparklesIcon, CheckIcon, DynamicIcon, getAllTablerIconKeys, BriefcaseIcon, BuildingIcon, ClockIcon } from './Icons.tsx';
+import { CloseIcon, SearchIcon, SparklesIcon, DynamicIcon, getAllTablerIconKeys, BriefcaseIcon, BuildingIcon, ClockIcon } from './Icons.tsx';
 import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
 
 interface GoalFormModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSave: (goal: Goal) => void;
+    onSave: (goal: Omit<Goal, 'id'> & { id?: string }, idempotencyKey: string) => Promise<Goal>;
     goalToEdit?: Goal | null;
     wallets: EntityItem[]; 
     transactions?: Transaction[];
-    onLinkTransactions?: (transactionIds: number[], goalId: number | undefined) => void;
+    onLinkTransactions?: (transactionIds: string[], goalId: string, idempotencyKey: string) => Promise<void>;
     initialSection?: 'details' | 'linking';
 }
 
@@ -89,9 +89,16 @@ const GoalFormModal: React.FC<GoalFormModalProps> = ({
     const [monthlySuggestion, setMonthlySuggestion] = useState<number | null>(null);
 
     // Retroactive Linking State
-    const [selectedTransactionIds, setSelectedTransactionIds] = useState<number[]>([]);
+    const [selectedTransactionIds, setSelectedTransactionIds] = useState<string[]>([]);
+    const [isSaving, setIsSaving] = useState(false);
+    const [saveError, setSaveError] = useState<string | null>(null);
 
     const formRef = useRef<HTMLFormElement>(null);
+    const modalRef = useRef<HTMLDivElement>(null);
+    const titleRef = useRef<HTMLHeadingElement>(null);
+    const previousFocusRef = useRef<HTMLElement | null>(null);
+    const saveRequestId = useRef(crypto.randomUUID());
+    const linkRequestId = useRef(crypto.randomUUID());
 
     useEffect(() => {
         if (isOpen) {
@@ -115,7 +122,11 @@ const GoalFormModal: React.FC<GoalFormModalProps> = ({
                 setCostCenter(goalToEdit.costCenter || '');
                 
                 // Transactions
-                const linked = transactions.filter(t => t.type === 'investimento' && t.goalId === goalToEdit.id).map(t => t.id);
+                const linked = transactions.filter(t =>
+                    t.type === 'investimento' &&
+                    (!t.investmentMetadata || t.investmentMetadata.investmentOperation === 'contribution') &&
+                    t.goalId === goalToEdit.id
+                ).map(t => String(t.id));
                 setSelectedTransactionIds(linked);
             } else {
                 // Reset
@@ -142,8 +153,12 @@ const GoalFormModal: React.FC<GoalFormModalProps> = ({
             // Reset Picker
             setIsIconPickerOpen(false);
             setIconSearch('');
+            setSaveError(null);
+            setIsSaving(false);
+            saveRequestId.current = crypto.randomUUID();
+            linkRequestId.current = crypto.randomUUID();
         }
-    }, [isOpen, goalToEdit, isPJ, transactions]);
+    }, [isOpen, goalToEdit, isPJ]);
 
     // Calculate suggestion (PF Only mostly)
     useEffect(() => {
@@ -176,6 +191,39 @@ const GoalFormModal: React.FC<GoalFormModalProps> = ({
         }
     }, [isOpen, initialSection]);
 
+    useEffect(() => {
+        if (!isOpen) return;
+        previousFocusRef.current = document.activeElement instanceof HTMLElement
+            ? document.activeElement
+            : null;
+        requestAnimationFrame(() => titleRef.current?.focus());
+        return () => previousFocusRef.current?.focus();
+    }, [isOpen]);
+
+    useEffect(() => {
+        if (!isOpen) return;
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape' && !isSaving) onClose();
+            if (event.key === 'Tab' && modalRef.current) {
+                const focusable = Array.from(modalRef.current.querySelectorAll<HTMLElement>(
+                    'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+                ));
+                if (focusable.length === 0) return;
+                const first = focusable[0];
+                const last = focusable[focusable.length - 1];
+                if (event.shiftKey && document.activeElement === first) {
+                    event.preventDefault();
+                    last.focus();
+                } else if (!event.shiftKey && document.activeElement === last) {
+                    event.preventDefault();
+                    first.focus();
+                }
+            }
+        };
+        document.addEventListener('keydown', handleKeyDown);
+        return () => document.removeEventListener('keydown', handleKeyDown);
+    }, [isOpen, isSaving, onClose]);
+
     // --- ICON SEARCH LOGIC ---
     const allIconKeys = useMemo(() => getAllTablerIconKeys(), []);
     const filteredIcons = useMemo(() => {
@@ -203,12 +251,14 @@ const GoalFormModal: React.FC<GoalFormModalProps> = ({
         return 'longo';
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        const goalId = goalToEdit ? goalToEdit.id : Date.now();
+        if (isSaving) return;
+        setIsSaving(true);
+        setSaveError(null);
 
-        const newGoal: Goal = {
-            id: goalId,
+        const newGoal: Omit<Goal, 'id'> & { id?: string } = {
+            ...(goalToEdit ? { id: goalToEdit.id } : {}),
             name,
             description,
             category,
@@ -223,24 +273,36 @@ const GoalFormModal: React.FC<GoalFormModalProps> = ({
             period: isPJ ? period : undefined,
             costCenter: isPJ ? costCenter : undefined,
             isAutomatic: isPJ && businessType !== 'investimento',
+            progressBasis: goalToEdit?.progressBasis ?? 'net_contributions',
             visual: { color, icon, emoji, progressBarType: 'linear' },
             createdAt: goalToEdit ? goalToEdit.createdAt : new Date().toISOString(),
             updatedAt: new Date().toISOString()
         };
 
-        if (onLinkTransactions) onLinkTransactions(selectedTransactionIds, goalId);
-        onSave(newGoal);
-        onClose();
+        try {
+            const persistedGoal = await onSave(newGoal, saveRequestId.current);
+            if (onLinkTransactions) {
+                await onLinkTransactions(selectedTransactionIds, persistedGoal.id, linkRequestId.current);
+            }
+            onClose();
+        } catch (error) {
+            console.error('Falha ao salvar meta:', error);
+            setSaveError('Não foi possível salvar a meta. Revise os dados e tente novamente.');
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     const availableInvestments = transactions.filter(t => 
         t.type === 'investimento' && 
+        (!t.investmentMetadata || t.investmentMetadata.investmentOperation === 'contribution') &&
         (t.goalId === undefined || (goalToEdit && t.goalId === goalToEdit.id))
     );
 
-    const toggleTransactionSelection = (id: number) => {
+    const toggleTransactionSelection = (id: string | number) => {
+        const stringId = String(id);
         setSelectedTransactionIds(prev => 
-            prev.includes(id) ? prev.filter(tid => tid !== id) : [...prev, id]
+            prev.includes(stringId) ? prev.filter(tid => tid !== stringId) : [...prev, stringId]
         );
     };
 
@@ -254,16 +316,16 @@ const GoalFormModal: React.FC<GoalFormModalProps> = ({
     // --- PJ MODE RENDER ---
     if (isPJ) {
         return (
-            <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={onClose}>
-                <div className="bg-white dark:bg-dark-100 rounded-xl shadow-lg w-full max-w-2xl animate-scale-in max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={() => !isSaving && onClose()}>
+                <div ref={modalRef} role="dialog" aria-modal="true" aria-labelledby="goal-modal-title" className="bg-white dark:bg-dark-100 rounded-xl shadow-lg w-full max-w-2xl animate-scale-in max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
                     <div className="flex justify-between items-center p-6 border-b border-gray-200 dark:border-gray-700">
-                        <h3 className="text-xl font-bold text-gray-800 dark:text-white">
+                        <h3 id="goal-modal-title" ref={titleRef} tabIndex={-1} className="text-xl font-bold text-gray-800 dark:text-white outline-none">
                             {goalToEdit ? 'Editar Meta' : 'Nova Meta Empresarial'}
                         </h3>
-                        <button onClick={onClose} className="text-gray-500 hover:text-gray-700"><CloseIcon /></button>
+                        <button type="button" onClick={onClose} aria-label="Fechar" className="text-gray-500 hover:text-gray-700"><CloseIcon /></button>
                     </div>
 
-                    <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
+                    <form id="goalForm" onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
                         <div className="space-y-4 bg-indigo-50 dark:bg-indigo-900/10 p-5 rounded-xl border border-indigo-100 dark:border-indigo-900/30">
                             <h4 className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest flex items-center gap-2">
                                 <BriefcaseIcon className="w-4 h-4" /> Objetivo de Negócio
@@ -345,9 +407,10 @@ const GoalFormModal: React.FC<GoalFormModalProps> = ({
                         </div>
                     </form>
 
+                    {saveError && <p role="alert" className="px-6 pt-4 text-sm text-red-600 dark:text-red-400">{saveError}</p>}
                     <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3">
                         <button onClick={onClose} className="px-5 py-2 bg-gray-100 dark:bg-dark-200 text-gray-700 dark:text-gray-300 rounded-lg font-medium">Cancelar</button>
-                        <button type="submit" form="goalForm" className="px-8 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold shadow-md">Salvar Meta</button>
+                        <button type="submit" form="goalForm" disabled={isSaving} className="px-8 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white rounded-lg font-bold shadow-md">{isSaving ? 'Salvando...' : 'Salvar Meta'}</button>
                     </div>
                 </div>
             </div>
@@ -356,14 +419,14 @@ const GoalFormModal: React.FC<GoalFormModalProps> = ({
 
     // --- PF MODE RENDER (RESTAURADO) ---
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4" onClick={onClose}>
-            <div className="bg-white dark:bg-dark-100 rounded-xl shadow-lg w-full max-w-2xl animate-scale-in max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4" onClick={() => !isSaving && onClose()}>
+            <div ref={modalRef} role="dialog" aria-modal="true" aria-labelledby="goal-modal-title" className="bg-white dark:bg-dark-100 rounded-xl shadow-lg w-full max-w-2xl animate-scale-in max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
                 {/* Header */}
                 <div className="flex justify-between items-center p-6 border-b border-gray-200 dark:border-gray-700">
-                    <h3 className="text-xl font-bold text-gray-800 dark:text-white">
+                    <h3 id="goal-modal-title" ref={titleRef} tabIndex={-1} className="text-xl font-bold text-gray-800 dark:text-white outline-none">
                         {goalToEdit ? 'Editar Meta' : 'Nova Meta Financeira'}
                     </h3>
-                    <button onClick={onClose} className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
+                    <button type="button" onClick={onClose} aria-label="Fechar" className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
                         <CloseIcon />
                     </button>
                 </div>
@@ -678,7 +741,7 @@ const GoalFormModal: React.FC<GoalFormModalProps> = ({
                                 <table className="w-full text-sm text-left">
                                     <thead className="bg-gray-50 dark:bg-dark-200 text-gray-500 dark:text-gray-400 font-medium">
                                         <tr>
-                                            <th className="px-4 py-2 w-10">#</th>
+                                            <th className="px-4 py-2 w-10">Selecionar</th>
                                             <th className="px-4 py-2">Descrição</th>
                                             <th className="px-4 py-2">Data</th>
                                             <th className="px-4 py-2 text-right">Valor</th>
@@ -686,7 +749,7 @@ const GoalFormModal: React.FC<GoalFormModalProps> = ({
                                     </thead>
                                     <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                                         {availableInvestments.map(t => {
-                                            const isSelected = selectedTransactionIds.includes(t.id);
+                                            const isSelected = selectedTransactionIds.includes(String(t.id));
                                             return (
                                                 <tr 
                                                     key={t.id} 
@@ -694,9 +757,14 @@ const GoalFormModal: React.FC<GoalFormModalProps> = ({
                                                     className={`cursor-pointer transition-colors ${isSelected ? 'bg-indigo-50 dark:bg-indigo-900/20' : 'hover:bg-gray-50 dark:hover:bg-dark-200'}`}
                                                 >
                                                     <td className="px-4 py-3">
-                                                        <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${isSelected ? 'bg-indigo-600 border-indigo-600 text-white' : 'border-gray-400 dark:border-gray-500'}`}>
-                                                            {isSelected && <CheckIcon className="w-3 h-3" />}
-                                                        </div>
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={isSelected}
+                                                            onChange={() => toggleTransactionSelection(t.id)}
+                                                            onClick={(event) => event.stopPropagation()}
+                                                            aria-label={`Vincular ${t.description}`}
+                                                            className="h-5 w-5 rounded border-gray-400 text-indigo-600 focus:ring-indigo-500"
+                                                        />
                                                     </td>
                                                     <td className="px-4 py-3 text-gray-800 dark:text-gray-200">
                                                         <div className="font-medium">{t.description}</div>
@@ -728,13 +796,14 @@ const GoalFormModal: React.FC<GoalFormModalProps> = ({
 
                 </form>
 
+                {saveError && <p role="alert" className="px-6 pt-4 text-sm text-red-600 dark:text-red-400">{saveError}</p>}
                 {/* Footer */}
                 <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3">
                     <button onClick={onClose} className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
                         Cancelar
                     </button>
-                    <button type="submit" form="goalForm" className="px-6 py-2 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition-colors shadow-sm">
-                        {goalToEdit ? 'Salvar Alterações' : 'Criar Meta'}
+                    <button type="submit" form="goalForm" disabled={isSaving} className="px-6 py-2 bg-indigo-600 disabled:opacity-60 text-white font-medium rounded-lg hover:bg-indigo-700 transition-colors shadow-sm">
+                        {isSaving ? 'Salvando...' : goalToEdit ? 'Salvar Alterações' : 'Criar Meta'}
                     </button>
                 </div>
             </div>

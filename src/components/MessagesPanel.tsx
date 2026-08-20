@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, type MotionProps } from 'framer-motion';
 import { useChatThreads, useThreadMessages, useSendMessage, useMarkThreadAsRead } from '../modules/messages/hooks.ts';
 import { ChatThread, ChatMessage } from '../modules/messages/types.ts';
 import { CloseIcon, DynamicIcon, SearchIcon, ArrowUpIcon, UsersIcon, ChevronLeftIcon, MessageCirclePlusIcon } from './Icons.tsx';
@@ -13,6 +13,8 @@ interface MessagesPanelProps {
     onMarkAsRead?: (id: string) => void;
     onOpenSplitGroup?: (groupId: string) => void;
 }
+
+const MotionDiv = motion.div as React.ComponentType<React.HTMLAttributes<HTMLDivElement> & MotionProps>;
 
 const MessagesPanel: React.FC<MessagesPanelProps> = ({ onClose, onOpenSplitGroup }) => {
     const { data: threadsData } = useChatThreads();
@@ -262,7 +264,7 @@ const MessagesPanel: React.FC<MessagesPanelProps> = ({ onClose, onOpenSplitGroup
                                                 </span>
                                             </div>
                                         )}
-                                        <motion.div 
+                                        <MotionDiv
                                             initial={{ opacity: 0, y: 10, scale: 0.95 }}
                                             animate={{ opacity: 1, y: 0, scale: 1 }}
                                             className={`flex w-full ${isMe ? 'justify-end' : 'justify-start'}`}
@@ -278,7 +280,7 @@ const MessagesPanel: React.FC<MessagesPanelProps> = ({ onClose, onOpenSplitGroup
                                                     {isMe && msg.status === 'sent' && <span className="ml-1">✓</span>}
                                                 </div>
                                             </div>
-                                        </motion.div>
+                                        </MotionDiv>
                                     </React.Fragment>
                                 );
                             })}
@@ -316,7 +318,7 @@ const MessagesPanel: React.FC<MessagesPanelProps> = ({ onClose, onOpenSplitGroup
     return (
         <>
             <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40 transition-opacity" onClick={onClose} />
-            <motion.div 
+            <MotionDiv
                 initial={{ x: '100%' }}
                 animate={{ x: 0 }}
                 exit={{ x: '100%' }}
@@ -325,7 +327,7 @@ const MessagesPanel: React.FC<MessagesPanelProps> = ({ onClose, onOpenSplitGroup
             >
                 {renderSidebar()}
                 {renderChat()}
-            </motion.div>
+            </MotionDiv>
 
             <NewConversationModal 
                 isOpen={isNewConversationOpen}

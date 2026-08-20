@@ -20,7 +20,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 
 interface ExtendedTransactionModalProps extends TransactionModalProps {
     goals?: Goal[];
-    defaultGoalId?: number | null;
+    defaultGoalId?: string | null;
 }
 
 const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
@@ -43,12 +43,16 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
     incomeTypes = [],
     costCenters = [],
     goals = [],
+    transactions = [],
     defaultGoalId = null,
     onAddProductService
 }) => {
     const { activeWorkspace } = useWorkspace();
     const isPJ = activeWorkspace.type === 'PJ';
     const createCatalogItemMutation = useCreateSettingsCatalogItem();
+    const modalRef = useRef<HTMLDivElement>(null);
+    const titleRef = useRef<HTMLHeadingElement>(null);
+    const previousFocusRef = useRef<HTMLElement | null>(null);
 
 
     const isEditing = !!transactionToEdit;
@@ -93,6 +97,55 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
     const [walletId, setWalletId] = useState('');
     const [isDeposited, setIsDeposited] = useState(true);
     const [selectedGoalId, setSelectedGoalId] = useState<string>('');
+    const [investmentOperation, setInvestmentOperation] = useState<'contribution' | 'redemption'>('contribution');
+    const [sourceMovementId, setSourceMovementId] = useState('');
+    const [redemptionGain, setRedemptionGain] = useState('0');
+    const [redemptionFees, setRedemptionFees] = useState('0');
+    const [redemptionTax, setRedemptionTax] = useState('0');
+    const redemptionRequestId = useRef('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [submissionError, setSubmissionError] = useState<string | null>(null);
+
+    const redemptionSources = useMemo(() => transactions.filter((transaction) => {
+        if (transaction.type !== 'investimento' || transaction.isPaid !== true) return false;
+        if (transaction.investmentMetadata &&
+            transaction.investmentMetadata.investmentOperation !== 'contribution') return false;
+        const principalCents = transaction.investmentMetadata?.principalCents ??
+            transaction.valueCents ?? Math.round(transaction.value * 100);
+        const remainingCents = transaction.remainingPrincipalCents ??
+            principalCents - (transaction.redeemedPrincipalCents ?? 0);
+        return remainingCents > 0 || String(transaction.id) === sourceMovementId;
+    }), [transactions, sourceMovementId]);
+
+    useEffect(() => {
+        if (!isOpen) return;
+        previousFocusRef.current = document.activeElement instanceof HTMLElement
+            ? document.activeElement
+            : null;
+        requestAnimationFrame(() => titleRef.current?.focus());
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') onClose();
+            if (event.key !== 'Tab' || !modalRef.current) return;
+            const focusable = Array.from(modalRef.current.querySelectorAll<HTMLElement>(
+                'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+            ));
+            if (focusable.length === 0) return;
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+            if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault();
+                last.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault();
+                first.focus();
+            }
+        };
+        document.addEventListener('keydown', handleKeyDown);
+        return () => {
+            document.removeEventListener('keydown', handleKeyDown);
+            previousFocusRef.current?.focus();
+        };
+    }, [isOpen]);
 
     // PJ Specific State
     const [supplier, setSupplier] = useState('');
@@ -512,6 +565,23 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
             if (transactionToEdit.walletId) setWalletId(String(transactionToEdit.walletId));
             if (transactionToEdit.goalId) setSelectedGoalId(String(transactionToEdit.goalId));
             else setSelectedGoalId('');
+            const investmentMetadata = transactionToEdit.investmentMetadata;
+            if (investmentMetadata?.investmentOperation === 'redemption') {
+                setInvestmentOperation('redemption');
+                setSourceMovementId(investmentMetadata.sourceMovementId);
+                setValue(String(investmentMetadata.principalCents / 100));
+                setRedemptionGain(String(investmentMetadata.gainCents / 100));
+                setRedemptionFees(String(investmentMetadata.feesCents / 100));
+                setRedemptionTax(String(investmentMetadata.taxCents / 100));
+                setDate(investmentMetadata.settlementDate || transactionToEdit.date);
+                setIsDeposited(investmentMetadata.status === 'settled');
+            } else {
+                setInvestmentOperation('contribution');
+                setSourceMovementId('');
+                setRedemptionGain('0');
+                setRedemptionFees('0');
+                setRedemptionTax('0');
+            }
 
             // Set PJ Fields
             setSupplier(transactionToEdit.supplier || '');
@@ -531,6 +601,11 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
             setInstallments('1');
             setIsPaid(true);
             setIsDeposited(true);
+            setInvestmentOperation('contribution');
+            setSourceMovementId('');
+            setRedemptionGain('0');
+            setRedemptionFees('0');
+            setRedemptionTax('0');
             setSupplier('');
             setCostCenter('');
 
@@ -546,19 +621,14 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
             setWalletId('');
             setValueType('total');
         }
+        setSubmissionError(null);
+        setIsSubmitting(false);
+        redemptionRequestId.current = `investment-redemption-${globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`}`;
     }, [
         isOpen,
         transactionToEdit,
         defaultType,
-        allowedTypes,
         isEditing,
-        currentDate,
-        creditCards,
-        wallets,
-        settingsCategories,
-        expenseTypes,
-        paymentTypes,
-        incomeTypes,
         defaultGoalId,
         resolvedAllowedTypes
     ]);
@@ -889,14 +959,76 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
         if (activeTab === 'receita') transactionData.incomeType = incomeType;
 
         if (activeTab === 'investimento') {
-            if (walletId) transactionData.walletId = Number(walletId);
-            transactionData.isPaid = isDeposited;
-            if (selectedGoalId) transactionData.goalId = selectedGoalId;
-            else transactionData.goalId = undefined;
+            if (investmentOperation === 'redemption') {
+                const source = redemptionSources.find(item => String(item.id) === sourceMovementId);
+                const principal = parseFloat(value);
+                const gain = parseFloat(redemptionGain || '0');
+                const fees = parseFloat(redemptionFees || '0');
+                const tax = parseFloat(redemptionTax || '0');
+                if (!source) {
+                    setSubmissionError('Selecione um investimento de origem com saldo disponível.');
+                    return;
+                }
+                if (![principal, gain, fees, tax].every(Number.isFinite) || principal <= 0 || gain < 0 || fees < 0 || tax < 0) {
+                    setSubmissionError('Revise os valores informados para o resgate.');
+                    return;
+                }
+                if (tax > gain || fees + tax >= principal + gain) {
+                    setSubmissionError('Impostos não podem superar o ganho, e os descontos devem ser menores que o valor bruto.');
+                    return;
+                }
+                const toCents = (amount: number) => Math.round(amount * 100);
+                const netCashCents = toCents(principal) + toCents(gain) - toCents(fees) - toCents(tax);
+                transactionData.value = netCashCents / 100;
+                transactionData.valueCents = netCashCents;
+                transactionData.category = source.category;
+                transactionData.walletId = source.walletId;
+                transactionData.goalId = source.goalId;
+                transactionData.isPaid = isDeposited;
+                transactionData.investmentMetadata = {
+                    currency: 'BRL',
+                    investmentOperation: 'redemption',
+                    cashImpact: isDeposited ? 'inflow' : 'none',
+                    investmentImpact: isDeposited ? 'decrease' : 'none',
+                    principalCents: toCents(principal),
+                    gainCents: toCents(gain),
+                    feesCents: toCents(fees),
+                    taxCents: toCents(tax),
+                    settlementDate: date,
+                    status: isDeposited ? 'settled' : 'pending',
+                    sourceMovementId,
+                    idempotencyKey: redemptionRequestId.current,
+                };
+            } else {
+                if (walletId) transactionData.walletId = walletId;
+                transactionData.isPaid = isDeposited;
+                if (selectedGoalId) transactionData.goalId = selectedGoalId;
+                else transactionData.goalId = undefined;
+            }
         }
 
-        if (isEditing) onUpdateTransaction({ ...transactionToEdit, ...transactionData });
-        else onAddTransaction(transactionData as Omit<Transaction, 'id'>);
+        if (activeTab === 'investimento') {
+            setIsSubmitting(true);
+            setSubmissionError(null);
+            try {
+                if (isEditing) await onUpdateTransaction({ ...transactionToEdit, ...transactionData });
+                else await onAddTransaction(transactionData as Omit<Transaction, 'id'>);
+                onClose();
+            } catch (error) {
+                console.error('Falha ao salvar investimento:', error);
+                setSubmissionError(
+                    investmentOperation === 'redemption'
+                        ? 'Não foi possível salvar o resgate. Revise o saldo e tente novamente.'
+                        : 'Não foi possível salvar o aporte. Revise os dados e tente novamente.'
+                );
+            } finally {
+                setIsSubmitting(false);
+            }
+            return;
+        }
+
+        if (isEditing) await onUpdateTransaction({ ...transactionToEdit, ...transactionData });
+        else await onAddTransaction(transactionData as Omit<Transaction, 'id'>);
 
         onClose();
     };
@@ -1239,20 +1371,118 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
 
         if (activeTab === 'investimento') {
             const categoryOptions = buildNameOptions(getCategoryOptions(activeTab), category);
+            const immutableRedemption = isEditing &&
+                transactionToEdit?.investmentMetadata?.investmentOperation === 'redemption' &&
+                transactionToEdit.investmentMetadata.status !== 'pending';
+
+            if (investmentOperation === 'redemption') {
+                return (
+                    <>
+                        <div>
+                            <label htmlFor="investmentOperation" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Operação <span className="text-red-500">*</span>
+                            </label>
+                            <select id="investmentOperation" value={investmentOperation} disabled={isEditing} onChange={event => setInvestmentOperation(event.target.value as 'contribution' | 'redemption')} className={commonInputClasses}>
+                                <option value="contribution">Aporte</option>
+                                <option value="redemption">Resgate</option>
+                            </select>
+                        </div>
+
+                        {immutableRedemption && (
+                            <p role="status" className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-200">
+                                Um resgate liquidado não pode ser editado. Use a ação de estorno na lista de investimentos.
+                            </p>
+                        )}
+
+                        <div>
+                            <label htmlFor="redemptionSource" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Investimento de origem <span className="text-red-500">*</span>
+                            </label>
+                            <select id="redemptionSource" value={sourceMovementId} onChange={event => setSourceMovementId(event.target.value)} disabled={immutableRedemption} className={commonInputClasses} required>
+                                <option value="">Selecione...</option>
+                                {redemptionSources.map(source => {
+                                    const principalCents = source.investmentMetadata?.principalCents ?? source.valueCents ?? Math.round(source.value * 100);
+                                    const remainingCents = source.remainingPrincipalCents ?? principalCents - (source.redeemedPrincipalCents ?? 0);
+                                    return (
+                                        <option key={String(source.id)} value={String(source.id)}>
+                                            {source.description} — saldo de {formatCurrency(remainingCents / 100)}
+                                        </option>
+                                    );
+                                })}
+                            </select>
+                        </div>
+
+                        <div>
+                            <label htmlFor="redemptionDescription" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Descrição <span className="text-red-500">*</span>
+                            </label>
+                            <input id="redemptionDescription" type="text" value={description} onChange={event => setDescription(event.target.value)} disabled={immutableRedemption} className={commonInputClasses} placeholder="Ex: Resgate parcial do CDB" required />
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label htmlFor="redemptionPrincipal" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Principal resgatado (R$)</label>
+                                <input id="redemptionPrincipal" type="number" value={value} onChange={event => setValue(event.target.value)} disabled={immutableRedemption} min="0.01" step="0.01" className={commonInputClasses} required />
+                            </div>
+                            <div>
+                                <label htmlFor="redemptionGain" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Rendimento realizado (R$)</label>
+                                <input id="redemptionGain" type="number" value={redemptionGain} onChange={event => setRedemptionGain(event.target.value)} disabled={immutableRedemption} min="0" step="0.01" className={commonInputClasses} required />
+                            </div>
+                            <div>
+                                <label htmlFor="redemptionFees" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Taxas (R$)</label>
+                                <input id="redemptionFees" type="number" value={redemptionFees} onChange={event => setRedemptionFees(event.target.value)} disabled={immutableRedemption} min="0" step="0.01" className={commonInputClasses} required />
+                            </div>
+                            <div>
+                                <label htmlFor="redemptionTax" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Impostos (R$)</label>
+                                <input id="redemptionTax" type="number" value={redemptionTax} onChange={event => setRedemptionTax(event.target.value)} disabled={immutableRedemption} min="0" step="0.01" className={commonInputClasses} required />
+                            </div>
+                        </div>
+
+                        <div className="bg-gray-50 dark:bg-dark-200 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                            <span className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Situação do resgate</span>
+                            <div className="flex gap-4 mb-3">
+                                <label className="flex items-center cursor-pointer">
+                                    <input type="radio" name="redemptionStatus" checked={isDeposited === false} onChange={() => setIsDeposited(false)} disabled={immutableRedemption} className="mr-2 text-blue-600 focus:ring-blue-500" />
+                                    <span className="text-gray-700 dark:text-gray-300">Pendente</span>
+                                </label>
+                                <label className="flex items-center cursor-pointer">
+                                    <input type="radio" name="redemptionStatus" checked={isDeposited === true} onChange={() => setIsDeposited(true)} disabled={immutableRedemption} className="mr-2 text-blue-600 focus:ring-blue-500" />
+                                    <span className="text-gray-700 dark:text-gray-300">Liquidado</span>
+                                </label>
+                            </div>
+                            <label htmlFor="redemptionSettlementDate" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                {isDeposited ? 'Data da liquidação' : 'Data prevista'} <span className="text-red-500">*</span>
+                            </label>
+                            <input id="redemptionSettlementDate" type="date" value={date} onChange={event => setDate(event.target.value)} disabled={immutableRedemption} className={commonInputClasses} required />
+                        </div>
+                    </>
+                );
+            }
 
             return (
                 <>
+                    <div>
+                        <label htmlFor="investmentOperation" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Operação <span className="text-red-500">*</span>
+                        </label>
+                        <select id="investmentOperation" value={investmentOperation} disabled={isEditing || Boolean(defaultGoalId)} onChange={event => setInvestmentOperation(event.target.value as 'contribution' | 'redemption')} className={commonInputClasses}>
+                            <option value="contribution">Aporte</option>
+                            <option value="redemption">Resgate</option>
+                        </select>
+                    </div>
                     {renderPJFields()}
                     <div className="bg-indigo-50 dark:bg-indigo-900/20 p-3 rounded-lg border border-indigo-100 dark:border-indigo-800 mb-4 animate-fade-in">
                         <div className="flex items-center gap-2 mb-2">
                             <TargetIcon className="text-indigo-500 h-4 w-4" />
-                            <label className="block text-sm font-bold text-indigo-700 dark:text-indigo-300">
+                            <label htmlFor="investmentGoal" className="block text-sm font-bold text-indigo-700 dark:text-indigo-300">
                                 Vincular a uma Meta?
                             </label>
                         </div>
                         <select
+                            id="investmentGoal"
                             value={selectedGoalId}
                             onChange={e => setSelectedGoalId(e.target.value)}
+                            disabled={isEditing && Boolean(transactionToEdit?.goalId)}
                             className="w-full border border-indigo-200 dark:border-indigo-700 bg-white dark:bg-dark-100 text-gray-800 dark:text-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                         >
                             <option value="">Sem Meta (Investimento Geral)</option>
@@ -1262,13 +1492,18 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
                                 </option>
                             ))}
                         </select>
+                        {isEditing && transactionToEdit?.goalId && (
+                            <p className="mt-2 text-xs text-indigo-700 dark:text-indigo-300">
+                                Para alterar o vínculo, use “Vincular Existente” na meta.
+                            </p>
+                        )}
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            <label htmlFor="investmentWallet" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                             Selecione a Carteira <span className="text-red-500">*</span>
                         </label>
-                        <select value={walletId} onChange={e => setWalletId(e.target.value)} className={commonInputClasses} required>
+                        <select id="investmentWallet" value={walletId} onChange={e => setWalletId(e.target.value)} className={commonInputClasses} required>
                             <option value="">Selecione...</option>
                             {walletOptions.map((wallet) => (
                                 <option key={wallet.value} value={wallet.value}>{wallet.label}</option>
@@ -1277,17 +1512,17 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        <label htmlFor="investmentDescription" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                             Descrição <span className="text-red-500">*</span>
                         </label>
-                        <input type="text" value={description} onChange={e => setDescription(e.target.value)} className={commonInputClasses} placeholder="Ex: Aporte Mensal" required />
+                        <input id="investmentDescription" type="text" value={description} onChange={e => setDescription(e.target.value)} className={commonInputClasses} placeholder="Ex: Aporte Mensal" required />
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        <label htmlFor="investmentCategory" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                             Categoria <span className="text-red-500">*</span>
                         </label>
-                        <select value={category} onChange={e => setCategory(e.target.value)} className={commonInputClasses} required>
+                        <select id="investmentCategory" value={category} onChange={e => setCategory(e.target.value)} className={commonInputClasses} required>
                             <option value="">Selecione...</option>
                             {categoryOptions.map((name) => (
                                 <option key={name} value={name}>{name}</option>
@@ -1296,10 +1531,10 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        <label htmlFor="investmentValue" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                             Valor Investido (R$) <span className="text-red-500">*</span>
                         </label>
-                        <input type="number" value={value} onChange={e => setValue(e.target.value)} step="0.01" min="0.01" className={commonInputClasses} required />
+                        <input id="investmentValue" type="number" value={value} onChange={e => setValue(e.target.value)} step="0.01" min="0.01" className={commonInputClasses} required />
                     </div>
 
                     <div className="bg-gray-50 dark:bg-dark-200 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
@@ -1320,7 +1555,7 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 animate-fade-in">
                                 {isDeposited ? 'Quando foi depositado?' : 'Quando deve ser depositado?'} <span className="text-red-500">*</span>
                             </label>
-                            <input type="date" value={date} onChange={e => setDate(e.target.value)} className={commonInputClasses} required />
+                            <input id="investmentDate" aria-label={isDeposited ? 'Data do depósito' : 'Data prevista do depósito'} type="date" value={date} onChange={e => setDate(e.target.value)} className={commonInputClasses} required />
                         </div>
                     </div>
                 </>
@@ -1332,10 +1567,10 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4 transition-opacity" onClick={onClose}>
-            <div className="bg-white dark:bg-dark-100 rounded-xl shadow-lg w-full max-w-lg transition-transform transform scale-95 animate-scale-in max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div ref={modalRef} role="dialog" aria-modal="true" aria-labelledby="transaction-modal-title" className="bg-white dark:bg-dark-100 rounded-xl shadow-lg w-full max-w-lg transition-transform transform scale-95 animate-scale-in max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
                 <div className="flex justify-between items-center p-6 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-dark-100 z-10">
-                    <h3 className="text-xl font-bold text-gray-800 dark:text-white">{isEditing ? 'Editar Transação' : 'Nova Transação'}</h3>
-                    <button onClick={onClose} className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
+                    <h3 id="transaction-modal-title" ref={titleRef} tabIndex={-1} className="text-xl font-bold text-gray-800 dark:text-white outline-none">{isEditing ? 'Editar Transação' : 'Nova Transação'}</h3>
+                    <button type="button" onClick={onClose} aria-label="Fechar" className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
                         <CloseIcon />
                     </button>
                 </div>
@@ -1435,8 +1670,15 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
                             {renderFields()}
                         </div>
                         <div className="mt-6">
-                            <button type="submit" className={`w-full text-white font-medium py-3 px-4 rounded-lg shadow-md transition-colors duration-200 ${buttonClasses[activeTab]}`}>
-                                {isEditing ? 'Salvar Alterações' : `Revisar e Adicionar ${activeTab === 'receita' ? 'Receita' : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}`}
+                            {submissionError && <p role="alert" className="mb-3 text-sm text-red-600 dark:text-red-400">{submissionError}</p>}
+                            <button type="submit" disabled={isSubmitting || Boolean(isEditing && transactionToEdit?.investmentMetadata?.investmentOperation === 'redemption' && transactionToEdit.investmentMetadata.status !== 'pending')} className={`w-full disabled:opacity-60 text-white font-medium py-3 px-4 rounded-lg shadow-md transition-colors duration-200 ${buttonClasses[activeTab]}`}>
+                                {isSubmitting
+                                    ? investmentOperation === 'redemption' ? 'Salvando resgate...' : 'Salvando aporte...'
+                                    : isEditing
+                                        ? 'Salvar Alterações'
+                                        : investmentOperation === 'redemption'
+                                            ? 'Registrar Resgate'
+                                            : `Revisar e Adicionar ${activeTab === 'receita' ? 'Receita' : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}`}
                             </button>
                         </div>
                     </form>

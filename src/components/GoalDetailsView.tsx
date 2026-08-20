@@ -12,6 +12,7 @@ import { motion } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
 import { calculateBusinessGoalProgress, getGoalPaceStatus, getPeriodDates } from '../modules/goals/logic.ts';
+import { goalInvestmentImpact, transactionCashImpact } from '../modules/investments/semantics.ts';
 
 interface GoalDetailsViewProps {
     goal: Goal;
@@ -38,7 +39,7 @@ const GoalDetailsView: React.FC<GoalDetailsViewProps> = ({
 
     const currentVal = useMemo(() => {
         if (isPJ && goal.isAutomatic) {
-            const balance = transactions.reduce((acc, t) => t.type === 'receita' ? acc + t.value : acc - t.value, 0);
+            const balance = transactions.reduce((acc, transaction) => acc + transactionCashImpact(transaction), 0);
             return calculateBusinessGoalProgress(goal, transactions, balance);
         }
         return goal.currentAmount;
@@ -96,7 +97,7 @@ const GoalDetailsView: React.FC<GoalDetailsViewProps> = ({
             const recent = goalTransactions.filter(t => new Date(t.date) >= sixMonthsAgo);
             const distinctMonths = new Set(recent.map(t => t.date.substring(0, 7))).size;
             const divider = Math.max(1, distinctMonths);
-            const avgMonthly = recent.reduce((acc, t) => acc + t.value, 0) / divider;
+            const avgMonthly = recent.reduce((acc, transaction) => acc + goalInvestmentImpact(transaction), 0) / divider;
             if (avgMonthly <= 0) return null;
             const monthsNeeded = remaining / avgMonthly;
             if (monthsNeeded > 120) return "> 10 anos";
@@ -114,15 +115,16 @@ const GoalDetailsView: React.FC<GoalDetailsViewProps> = ({
             let milestones = [0.25, 0.50, 0.75, 1.0];
             let nextMilestoneIdx = 0;
             chronological.forEach(t => {
-                runningTotal += t.value;
+                const impact = goalInvestmentImpact(t);
+                runningTotal += impact;
                 const progress = runningTotal / goal.targetAmount;
                 while (nextMilestoneIdx < milestones.length && progress >= milestones[nextMilestoneIdx]) {
                     const pct = milestones[nextMilestoneIdx] * 100;
                     events.push({ date: t.date, title: `Alcançou ${pct}%`, type: 'milestone', value: runningTotal });
                     nextMilestoneIdx++;
                 }
-                if (t.value >= goal.targetAmount * 0.1) {
-                    events.push({ date: t.date, title: 'Grande Aporte', type: 'deposit', value: t.value });
+                if (impact >= goal.targetAmount * 0.1) {
+                    events.push({ date: t.date, title: 'Grande Aporte', type: 'deposit', value: impact });
                 }
             });
             if (goal.status === 'alcancada' || percentage >= 100) {
@@ -167,7 +169,7 @@ onClick={() => { if (option.key === 'alcancada' && !isActive) handleComplete(); 
                         </div>
                         <div className="h-6 w-px bg-gray-200 dark:bg-gray-700"></div>
                         <button onClick={() => onEdit(goal)} className="p-2 bg-gray-100 text-gray-700 dark:bg-dark-200 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-dark-300 transition-colors"><EditIcon className="h-4 w-4" /></button>
-                        <button onClick={() => { if(confirm("Tem certeza? Isso irá desvincular os investimentos.")) onDelete(goal.id); }} className="p-2 bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"><DeleteIcon className="h-4 w-4" /></button>
+                        <button onClick={() => onDelete(goal.id)} aria-label="Arquivar meta" title="Arquivar meta" className="p-2 bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"><DeleteIcon className="h-4 w-4" /></button>
                     </div>
                 </div>
 
@@ -221,7 +223,7 @@ onClick={() => { if (option.key === 'alcancada' && !isActive) handleComplete(); 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 flex-1 min-h-0">
                     <div className="lg:col-span-2 flex flex-col min-h-0">
                         <div className="flex justify-between items-center mb-4">
-                            <h3 className="font-bold text-lg text-gray-800 dark:text-white flex items-center gap-2"><HistoryIcon className="h-5 w-5 text-gray-400" /> Histórico de Aportes</h3>
+                            <h3 className="font-bold text-lg text-gray-800 dark:text-white flex items-center gap-2"><HistoryIcon className="h-5 w-5 text-gray-400" /> Histórico da Meta</h3>
                             <div className="flex gap-2">
                                 <button onClick={() => onLink(goal)} className="text-xs bg-gray-100 hover:bg-gray-200 dark:bg-dark-200 dark:hover:bg-dark-300 text-gray-700 dark:text-gray-300 px-3 py-1.5 rounded-lg transition-colors">Vincular Existente</button>
                                 <button onClick={() => onAddInvestment(goal.id)} className="text-xs bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1"><PlusIcon className="h-3 w-3" /> Novo Aporte</button>
@@ -233,14 +235,35 @@ onClick={() => { if (option.key === 'alcancada' && !isActive) handleComplete(); 
                                     <table className="w-full text-sm text-left">
                                         <thead className="bg-gray-50 dark:bg-dark-200 text-gray-500 dark:text-gray-400 font-medium sticky top-0"><tr><th className="px-5 py-3">Descrição</th><th className="px-5 py-3">Categoria</th><th className="px-5 py-3">Data</th><th className="px-5 py-3 text-right">Valor</th></tr></thead>
                                         <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                                            {goalTransactions.map(t => (<tr key={t.id} className="hover:bg-gray-50 dark:hover:bg-dark-200 transition-colors"><td className="px-5 py-3 text-gray-800 dark:text-gray-200 font-medium">{t.description}</td><td className="px-5 py-3 text-gray-500 dark:text-gray-400">{t.category}</td><td className="px-5 py-3 text-gray-500 dark:text-gray-400">{new Date(t.date).toLocaleDateString('pt-BR')}</td><td className="px-5 py-3 text-right font-bold text-gray-800 dark:text-white">{formatValue(t.value)}</td></tr>))}
+                                            {goalTransactions.map(t => {
+                                                const impact = goalInvestmentImpact(t);
+                                                const operation = t.investmentMetadata?.investmentOperation;
+                                                const operationLabel = operation === 'redemption'
+                                                    ? 'Resgate'
+                                                    : operation === 'redemption_reversal'
+                                                        ? 'Estorno de resgate'
+                                                        : 'Aporte';
+                                                return (
+                                                    <tr key={t.id} className="hover:bg-gray-50 dark:hover:bg-dark-200 transition-colors">
+                                                        <td className="px-5 py-3 text-gray-800 dark:text-gray-200 font-medium">
+                                                            {t.description}
+                                                            <span className="block text-xs font-normal text-gray-500 dark:text-gray-400">{operationLabel}</span>
+                                                        </td>
+                                                        <td className="px-5 py-3 text-gray-500 dark:text-gray-400">{t.category}</td>
+                                                        <td className="px-5 py-3 text-gray-500 dark:text-gray-400">{new Date(t.date).toLocaleDateString('pt-BR')}</td>
+                                                        <td className="px-5 py-3 text-right font-bold text-gray-800 dark:text-white">
+                                                            {impact > 0 ? '+' : impact < 0 ? '-' : '•'} {formatValue(Math.abs(impact))}
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
                                         </tbody>
                                     </table>
                                 ) : (
                                     <div className="flex flex-col items-center justify-center h-48 text-gray-400"><PiggyBankIcon className="h-10 w-10 mb-2 opacity-50" /><p>Nenhum investimento vinculado ainda.</p></div>
                                 )}
                             </div>
-                            {goalTransactions.length > 0 && (<div className="p-4 border-t border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-dark-200/50 flex justify-between items-center"><span className="text-sm font-medium text-gray-600 dark:text-gray-300">Total Investido</span><span className="text-lg font-bold text-gray-800 dark:text-white">{formatValue(goal.currentAmount)}</span></div>)}
+                            {goalTransactions.length > 0 && (<div className="p-4 border-t border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-dark-200/50 flex justify-between items-center"><span className="text-sm font-medium text-gray-600 dark:text-gray-300">Progresso Atual</span><span className="text-lg font-bold text-gray-800 dark:text-white">{formatValue(goal.currentAmount)}</span></div>)}
                         </div>
                     </div>
                     <div className="flex flex-col min-h-0">
@@ -276,7 +299,7 @@ onClick={() => { if (option.key === 'alcancada' && !isActive) handleComplete(); 
                     <button onClick={() => onEdit(goal)} className="p-2 bg-gray-100 text-gray-700 dark:bg-dark-200 rounded-lg hover:bg-gray-200 transition-colors" title="Editar">
                         <EditIcon className="h-4 w-4" />
                     </button>
-                    <button onClick={() => onDelete(goal.id)} className="p-2 bg-red-50 text-red-600 dark:bg-red-900/20 rounded-lg hover:bg-red-100 transition-colors" title="Excluir">
+                    <button onClick={() => onDelete(goal.id)} className="p-2 bg-red-50 text-red-600 dark:bg-red-900/20 rounded-lg hover:bg-red-100 transition-colors" title="Arquivar" aria-label="Arquivar meta">
                         <DeleteIcon className="h-4 w-4" />
                     </button>
                 </div>

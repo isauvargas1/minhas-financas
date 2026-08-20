@@ -1,6 +1,7 @@
 
 import { Transaction, Goal } from '../../types.ts';
 import { PJAllocationBucket, PJAllocationModel, PJBusinessDiagnostic, PJAllocationResult } from './types.ts';
+import { contributionAllocation, isInvestmentContribution } from '../investments/semantics.ts';
 
 // Mapeamento de categorias PJ para buckets lógicos
 const PJ_CATEGORY_MAP: Record<string, PJAllocationBucket> = {
@@ -61,8 +62,10 @@ export const calculatePJAllocation = (
 
     transactions.forEach(t => {
         if (t.type === 'receita') return;
+        if (t.type === 'investimento' && !isInvestmentContribution(t)) return;
         const bucket = PJ_CATEGORY_MAP[t.category] || 'operacional';
-        sums[bucket] += t.value;
+        const value = t.type === 'investimento' ? contributionAllocation(t) : t.value;
+        if (value > 0) sums[bucket] += value;
     });
 
     const netResult = revenue - Object.values(sums).reduce((a, b) => a + b, 0);

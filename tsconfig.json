@@ -25,5 +25,12 @@
 ,
     "allowImportingTsExtensions": true,
     "noEmit": true
-  }
+  },
+  "include": [
+    "index.tsx",
+    "src",
+    "e2e",
+    "vite.config.ts",
+    "playwright.config.ts"
+  ]
 }

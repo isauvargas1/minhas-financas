@@ -18,6 +18,7 @@ import {
   setDoc,
   startAfter,
   updateDoc,
+  where,
 } from 'firebase/firestore';
 
 const require = createRequire(import.meta.url);
@@ -128,6 +129,18 @@ const seed = async () => {
     db.doc(`workspaces/${workspaceB}/investment_assets/document-b`).set(asset('document-b', workspaceB, 'PJ', users.ownerB.uid)),
     db.doc(`workspaces/${workspaceA}/investment_positions/document-a`).set(position('document-a', workspaceA, 'PF', users.ownerA.uid)),
     db.doc(`workspaces/${workspaceB}/investment_positions/document-b`).set(position('document-b', workspaceB, 'PJ', users.ownerB.uid)),
+    db.doc(`workspaces/${workspaceA}/investment_summaries/current`).set({
+      id: 'current', workspaceId: workspaceA, profileType: 'PF', currency: 'BRL',
+      positionCount: 1, principalCents: 10_000, currentValueCents: 10_000,
+      realizedGainCents: 0, unrealizedAppreciationCents: 0, feesCents: 0,
+      taxCents: 0, updatedAt: now, updatedBy: users.ownerA.uid,
+    }),
+    db.doc(`workspaces/${workspaceB}/investment_summaries/current`).set({
+      id: 'current', workspaceId: workspaceB, profileType: 'PJ', currency: 'BRL',
+      positionCount: 1, principalCents: 20_000, currentValueCents: 21_000,
+      realizedGainCents: 0, unrealizedAppreciationCents: 1_000, feesCents: 0,
+      taxCents: 0, updatedAt: now, updatedBy: users.ownerB.uid,
+    }),
     db.doc(`workspaces/${workspaceA}/investment_valuations/document-a`).set(valuation('document-a', workspaceA, 'PF', users.ownerA.uid)),
     db.doc(`workspaces/${workspaceB}/investment_valuations/document-b`).set(valuation('document-b', workspaceB, 'PJ', users.ownerB.uid)),
   ]);
@@ -239,6 +252,40 @@ test('Rules M4 validam schema, RBAC, isolamento e paginação limitada', async (
       ownerA.db,
       `workspaces/${workspaceWithoutMembership}/investment_accounts/document-orphan`,
     )));
+
+    assert.equal((await getDoc(doc(
+      memberA.db,
+      `workspaces/${workspaceA}/investment_summaries/current`,
+    ))).data()?.principalCents, 10_000);
+    await assert.rejects(() => getDoc(doc(
+      ownerB.db,
+      `workspaces/${workspaceA}/investment_summaries/current`,
+    )));
+    await assert.rejects(() => updateDoc(doc(
+      ownerA.db,
+      `workspaces/${workspaceA}/investment_summaries/current`,
+    ), {principalCents: 1}));
+    await assert.rejects(() => getDocs(collection(
+      ownerA.db,
+      `workspaces/${workspaceA}/investment_summaries`,
+    )));
+
+    const activeAccounts = await getDocs(query(
+      collection(memberA.db, `workspaces/${workspaceA}/investment_accounts`),
+      where('status', '==', 'active'),
+      orderBy('updatedAt', 'desc'),
+      orderBy(documentId(), 'desc'),
+      limit(20),
+    ));
+    assert.equal(activeAccounts.size, 1);
+    const activePositions = await getDocs(query(
+      collection(memberA.db, `workspaces/${workspaceA}/investment_positions`),
+      where('status', '==', 'active'),
+      orderBy('updatedAt', 'desc'),
+      orderBy(documentId(), 'desc'),
+      limit(20),
+    ));
+    assert.equal(activePositions.size, 1);
 
     for (const invalidId of [
       'invalid-workspace',

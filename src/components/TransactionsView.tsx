@@ -27,6 +27,7 @@ import {
     isCreditCardInvoiceCompatibleTransaction,
     isCreditCardInvoicePaymentCashTransaction,
 } from '../modules/credit-cards/compatibility';
+import { isInvestmentRedemption, transactionCashImpactCents } from '../modules/investments/semantics.ts';
 
 interface TransactionsViewProps {
     viewType: 'receita' | 'despesa' | 'investimento';
@@ -702,6 +703,14 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({
                                     const creditCardInvoiceSecondaryText = isCreditCardInvoiceProjection
                                         ? getCreditCardInvoiceSecondaryText(transaction)
                                         : null;
+                                    const redemptionStatus = isInvestmentRedemption(transaction)
+                                        ? transaction.investmentMetadata?.status
+                                        : undefined;
+                                    const isRedemptionReversal = transaction.investmentMetadata?.investmentOperation === 'redemption_reversal';
+                                    const redemptionCannotEdit = isRedemptionReversal ||
+                                        (redemptionStatus !== undefined && redemptionStatus !== 'pending');
+                                    const redemptionCannotReverse = isRedemptionReversal ||
+                                        redemptionStatus === 'cancelled' || redemptionStatus === 'reversed';
 
                                     return (
                                         <tr
@@ -874,9 +883,21 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({
 
                                                     {viewType === 'investimento' && (
                                                         <td className="py-4 px-4 text-center">
-                                                            {transaction.isPaid ? (
+                                                            {transaction.investmentMetadata?.status === 'cancelled' ? (
+                                                                <span className="inline-flex rounded-full bg-gray-100 dark:bg-gray-800 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
+                                                                    Cancelado
+                                                                </span>
+                                                            ) : transaction.investmentMetadata?.status === 'reversed' ? (
+                                                                <span className="inline-flex rounded-full bg-gray-100 dark:bg-gray-800 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
+                                                                    Estornado
+                                                                </span>
+                                                            ) : transaction.investmentMetadata?.investmentOperation === 'redemption_reversal' ? (
+                                                                <span className="inline-flex rounded-full bg-purple-100 dark:bg-purple-900/30 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-purple-800 dark:text-purple-300">
+                                                                    Estorno liquidado
+                                                                </span>
+                                                            ) : transaction.isPaid ? (
                                                                 <span className="inline-flex rounded-full bg-blue-100 dark:bg-blue-900/30 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-blue-800 dark:text-blue-400">
-                                                                    Depositado
+                                                                    {isInvestmentRedemption(transaction) ? 'Liquidado' : 'Depositado'}
                                                                 </span>
                                                             ) : (
                                                                 <span className="inline-flex rounded-full bg-amber-100 dark:bg-amber-900/30 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-amber-800 dark:text-amber-400">
@@ -896,37 +917,45 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({
                                                         ] || ''
                                                             }`}
                                                     >
-                                                        - {formatCurrency(transaction.value)}
+                                                        {transactionCashImpactCents(transaction) > 0 ? '+' : transactionCashImpactCents(transaction) < 0 ? '-' : '•'} {formatCurrency(transaction.value)}
                                                     </td>
 
                                                     <td className="py-4 px-4 text-center">
                                                         <div className="flex items-center justify-center gap-2">
                                                             <button
                                                                 onClick={() => onEditTransaction(transaction)}
-                                                                disabled={isCreditCardInvoiceProjection}
-                                                                className={`p-2 rounded-full transition-colors ${isCreditCardInvoiceProjection
+                                                                disabled={isCreditCardInvoiceProjection || redemptionCannotEdit}
+                                                                className={`p-2 rounded-full transition-colors ${isCreditCardInvoiceProjection || redemptionCannotEdit
                                                                     ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
                                                                     : 'text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30'
                                                                     }`}
                                                                 aria-label={
                                                                     isCreditCardInvoiceProjection
                                                                         ? 'Fatura de cartão não pode ser editada como transação'
-                                                                        : 'Editar'
+                                                                        : redemptionCannotEdit
+                                                                            ? 'Movimento de resgate não pode ser editado'
+                                                                            : 'Editar'
                                                                 }
                                                             >
                                                                 <EditIcon />
                                                             </button>
                                                             <button
                                                                 onClick={() => onDeleteTransaction(transaction)}
-                                                                disabled={isCreditCardInvoiceProjection}
-                                                                className={`p-2 rounded-full transition-colors ${isCreditCardInvoiceProjection
+                                                                disabled={isCreditCardInvoiceProjection || redemptionCannotReverse}
+                                                                className={`p-2 rounded-full transition-colors ${isCreditCardInvoiceProjection || redemptionCannotReverse
                                                                     ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
                                                                     : 'text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30'
                                                                     }`}
                                                                 aria-label={
                                                                     isCreditCardInvoiceProjection
                                                                         ? 'Fatura de cartão não pode ser excluída como transação'
-                                                                        : 'Deletar'
+                                                                        : redemptionStatus === 'pending'
+                                                                            ? 'Cancelar resgate'
+                                                                            : redemptionStatus === 'settled'
+                                                                                ? 'Estornar resgate'
+                                                                                : redemptionCannotReverse
+                                                                                    ? 'Movimento de resgate já encerrado'
+                                                                                    : 'Deletar'
                                                                 }
                                                             >
                                                                 <DeleteIcon />

@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Transaction, Goal } from '../types.ts';
 import { calculatePJAllocation, PJ_MODELS } from '../modules/business-allocations/logic.ts';
 import { PJAllocationModel, PJAllocationBucket } from '../modules/business-allocations/types.ts';
+import { contributionAllocation, isInvestmentContribution } from '../modules/investments/semantics.ts';
 import { 
     BriefcaseIcon, TrendingUpIcon, BuildingIcon, 
     WarningIcon, CheckIcon, SettingsIcon, 
@@ -42,6 +43,7 @@ const BusinessAllocationAnalysis: React.FC<BusinessAllocationAnalysisProps> = ({
         };
         return transactions.filter(t => {
             if (t.type === 'receita') return false;
+            if (t.type === 'investimento' && (!isInvestmentContribution(t) || contributionAllocation(t) <= 0)) return false;
             const b = CATEGORY_MAP[t.category] || 'operacional';
             return b === drilldownBucket;
         });

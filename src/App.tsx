@@ -28,7 +28,8 @@ import LoansView from "./components/LoansView";
 import LoanDetailsView from "./components/LoanDetailsView";
 import PJLoansView from "./components/PJLoansView";
 import PJLoanDetailsView from "./components/PJLoanDetailsView";
-import { useGoals, useCreateGoal, useUpdateGoal, useDeleteGoal } from "./modules/goals/hooks";
+import { useGoals, useCreateGoal, useUpdateGoal, useArchiveGoal, useSetGoalTransactionLinks } from "./modules/goals/hooks";
+import type { GoalWriteInput } from "./modules/goals/api";
 import { AdminDashboard } from './components/AdminDashboard';
 import { PricingTable } from './modules/billing/components/PricingTable';
 import { BillingSuccessModal } from './modules/billing/components/BillingSuccessModal';
@@ -78,6 +79,12 @@ import {
     isCreditCardInvoiceCompatibleTransaction,
     useCreditCardInvoiceTransactionProjections,
 } from "./modules/credit-cards/compatibility";
+import {
+    summarizeLegacyCashFlow,
+} from "./modules/investments/semantics";
+const InvestmentsPortfolioView = React.lazy(
+    () => import("./modules/investments/components/InvestmentsPortfolioView"),
+);
 // ----------------------
 
 const queryClient = new QueryClient({
@@ -91,7 +98,7 @@ const queryClient = new QueryClient({
 
 const AppContent: React.FC = () => {
     const { theme, toggleMode, playSound } = useTheme();
-    const { activeWorkspace, isLoading } = useWorkspace();
+    const { activeWorkspace, isLoading, canManageActiveWorkspace } = useWorkspace();
     const workspaceId = activeWorkspace?.id ?? "";
     const { user } = useAuth();
 
@@ -100,6 +107,7 @@ const AppContent: React.FC = () => {
     const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
     const [transactionModalDefaultType, setTransactionModalDefaultType] = useState<TransactionType | null>(null);
     const [transactionModalAllowedTypes, setTransactionModalAllowedTypes] = useState<TransactionType[] | null>(null);
+    const [transactionModalDefaultGoalId, setTransactionModalDefaultGoalId] = useState<string | null>(null);
     const [notification, setNotification] = useState<{ message: string; visible: boolean }>({ message: '', visible: false });
     const [view, setView] = useState<'dashboard' | 'receita' | 'despesa' | 'investimento' | 'settings' | 'cards' | 'personalizacao' | 'goals' | 'goal_details' | 'shared_expenses' | 'split_group_details' | 'recurring' | 'recurring_details' | 'reports' | 'clients_receivables' | 'loans' | 'loan_details' | 'admin' | 'planos'>('dashboard'); const [isConfirmationOpen, setIsConfirmationOpen] = useState(false);
     const [currentDate, setCurrentDate] = useState(new Date());
@@ -108,11 +116,13 @@ const AppContent: React.FC = () => {
         setTransactionToEdit(null);
         setTransactionModalDefaultType(null);
         setTransactionModalAllowedTypes(null);
+        setTransactionModalDefaultGoalId(null);
         setIsModalOpen(true);
     };
 
     const openScopedTransactionModal = (viewType: 'receita' | 'despesa' | 'investimento') => {
         setTransactionToEdit(null);
+        setTransactionModalDefaultGoalId(null);
 
         if (viewType === 'receita') {
             setTransactionModalDefaultType('receita');
@@ -135,6 +145,7 @@ const AppContent: React.FC = () => {
         }
 
         setTransactionToEdit(transaction);
+        setTransactionModalDefaultGoalId(null);
         setTransactionModalDefaultType(transaction.type);
         setTransactionModalAllowedTypes([transaction.type]);
         setIsModalOpen(true);
@@ -145,6 +156,15 @@ const AppContent: React.FC = () => {
         setTransactionToEdit(null);
         setTransactionModalDefaultType(null);
         setTransactionModalAllowedTypes(null);
+        setTransactionModalDefaultGoalId(null);
+    };
+
+    const openGoalContributionModal = (goalId: string) => {
+        setTransactionToEdit(null);
+        setTransactionModalDefaultType('investimento');
+        setTransactionModalAllowedTypes(['investimento']);
+        setTransactionModalDefaultGoalId(goalId);
+        setIsModalOpen(true);
     };
 
     // --- INTEGRACAO COM FIRESTORE (HOOKS) ---
@@ -176,7 +196,8 @@ const AppContent: React.FC = () => {
     const { data: goalsData } = useGoals();
     const createGoalMutation = useCreateGoal();
     const updateGoalMutation = useUpdateGoal();
-    const deleteGoalMutation = useDeleteGoal();
+    const archiveGoalMutation = useArchiveGoal();
+    const setGoalLinksMutation = useSetGoalTransactionLinks();
     const goals = useMemo(() => goalsData || [], [goalsData]);
     const [productsServices, setProductsServices] = useState<EntityItem[]>(initialProductsServices);
     const [expenseTypes, setExpenseTypes] = useState<EntityItem[]>(initialExpenseTypes);
@@ -199,6 +220,7 @@ const AppContent: React.FC = () => {
 
     const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
     const [goalToEdit, setGoalToEdit] = useState<Goal | null>(null);
+    const [goalModalInitialSection, setGoalModalInitialSection] = useState<'details' | 'linking'>('details');
     const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
     const [selectedRecurringExpenseId, setSelectedRecurringExpenseId] = useState<string | null>(null);
     const [selectedLoanId, setSelectedLoanId] = useState<string | null>(null);
@@ -243,6 +265,7 @@ const AppContent: React.FC = () => {
         } catch (error) {
             console.error("Erro ao salvar transação:", error);
             showNotification('Erro ao salvar.');
+            throw error;
         }
     };
 
@@ -264,6 +287,7 @@ const AppContent: React.FC = () => {
         } catch (error) {
             console.error("Erro na geração em massa:", error);
             showNotification('Erro na geração em massa.');
+            throw error;
         }
     };
 
@@ -341,6 +365,7 @@ const AppContent: React.FC = () => {
         } catch (error) {
             console.error(error);
             showNotification('Erro ao atualizar.');
+            throw error;
         }
     };
 
@@ -365,10 +390,16 @@ const AppContent: React.FC = () => {
         }
 
         try {
-            await deleteTxMutation.mutateAsync(transactionToDelete.id);
+            await deleteTxMutation.mutateAsync(transactionToDelete);
             setTransactionToDelete(null);
             setIsConfirmationOpen(false);
-            showNotification('Excluído!');
+            showNotification(
+                transactionToDelete.investmentMetadata?.investmentOperation === 'redemption'
+                    ? transactionToDelete.investmentMetadata.status === 'pending'
+                        ? 'Resgate cancelado!'
+                        : 'Resgate estornado!'
+                    : 'Excluído!'
+            );
             playSound('success');
         } catch (error) {
             console.error(error);
@@ -395,39 +426,78 @@ const AppContent: React.FC = () => {
         playSound('success');
     };
 
-    const handleSaveGoal = async (goal: Goal) => {
+    const toGoalWriteInput = (goal: Omit<Goal, 'id'> & { id?: string }): GoalWriteInput => {
+        const {
+            currentAmount: _currentAmount,
+            createdAt: _createdAt,
+            updatedAt: _updatedAt,
+            id: _id,
+            currentAmountCents: _currentAmountCents,
+            netContributionCents: _netContributionCents,
+            currentValueCents: _currentValueCents,
+            targetAmountCents: _targetAmountCents,
+            archived: _archived,
+            archivedAt: _archivedAt,
+            ...writeInput
+        } = goal;
+        return writeInput;
+    };
+
+    const handleSaveGoal = async (
+        goal: Omit<Goal, 'id'> & { id?: string },
+        idempotencyKey: string,
+    ): Promise<Goal> => {
         try {
-            if (goalToEdit) {
-                // Modo Edição: ID já existe
-                await updateGoalMutation.mutateAsync({
-                    id: goal.id, // O ID agora é string
-                    data: goal
+            const writeInput = toGoalWriteInput(goal);
+            let persistedGoal: Goal;
+            if (goal.id) {
+                persistedGoal = await updateGoalMutation.mutateAsync({
+                    id: goal.id,
+                    goal: writeInput,
+                    idempotencyKey,
                 });
             } else {
-                // Modo Criação: Remove ID temporário se houver
-                const { id, ...newGoal } = goal;
-                await createGoalMutation.mutateAsync(newGoal);
+                persistedGoal = await createGoalMutation.mutateAsync({
+                    goal: writeInput,
+                    idempotencyKey,
+                });
             }
             showNotification('Meta salva com sucesso!');
             playSound('success');
-            setIsGoalModalOpen(false); // Fecha o modal
+            return persistedGoal;
         } catch (e) {
             console.error(e);
             showNotification('Erro ao salvar meta.');
+            throw e;
+        }
+    };
+
+    const handleLinkGoalTransactions = async (
+        transactionIds: string[],
+        goalId: string,
+        idempotencyKey: string,
+    ) => {
+        try {
+            await setGoalLinksMutation.mutateAsync({goalId, transactionIds, idempotencyKey});
+            showNotification('Aportes vinculados com sucesso!');
+        } catch (error) {
+            console.error('Erro ao vincular aportes:', error);
+            showNotification('Não foi possível atualizar os vínculos da meta.');
+            throw error;
         }
     };
 
     const handleDeleteGoal = async (id: string) => {
-        if (confirm('Tem certeza que deseja excluir esta meta?')) {
+        if (confirm('Tem certeza que deseja arquivar esta meta? O histórico de aportes será preservado.')) {
             try {
-                await deleteGoalMutation.mutateAsync(id);
-                showNotification('Meta removida!');
+                await archiveGoalMutation.mutateAsync({id, idempotencyKey: crypto.randomUUID()});
+                showNotification('Meta arquivada com sucesso!');
                 playSound('success');
                 // Se estiver na tela de detalhes, volta para lista
                 if (view === 'goal_details') setView('goals');
             } catch (e) {
                 console.error(e);
-                showNotification('Erro ao excluir meta.');
+                showNotification('Erro ao arquivar meta.');
             }
         }
     };
@@ -479,11 +549,7 @@ const AppContent: React.FC = () => {
     );
 
     const summaryData: SummaryData = useMemo(() => {
-        const inc = currentMonthCashFlowTransactions.filter(t => t.type === 'receita').reduce((a, t) => a + t.value, 0);
-        const exp = currentMonthCashFlowTransactions.filter(t => t.type === 'despesa' || t.type === 'parcelado').reduce((a, t) => a + t.value, 0);
-        const inv = currentMonthCashFlowTransactions.filter(t => t.type === 'investimento').reduce((a, t) => a + t.value, 0);
-
-        return { balance: inc - exp - inv, income: inc, expenses: exp, investments: inv };
+        return summarizeLegacyCashFlow(currentMonthCashFlowTransactions);
     }, [currentMonthCashFlowTransactions]);
 
     if (isLoading) return <div className="flex h-screen items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div></div>;
@@ -520,7 +586,7 @@ const AppContent: React.FC = () => {
                     <GoalsView
                         transactions={transactions}
                         onSelectGoal={(g) => { setSelectedGoal(g); setView('goal_details'); }}
-                        onOpenGoalModal={(g) => { setGoalToEdit(g || null); setIsGoalModalOpen(true); }}
+                        onOpenGoalModal={(g) => { setGoalToEdit(g || null); setGoalModalInitialSection('details'); setIsGoalModalOpen(true); }}
                     />
                 )}
                 {view === 'goal_details' && selectedGoal && (
@@ -528,13 +594,23 @@ const AppContent: React.FC = () => {
                         goal={selectedGoal}
                         transactions={transactions}
                         onBack={() => setView('goals')}
-                        onEdit={g => { setGoalToEdit(g); setIsGoalModalOpen(true); }}
-                        onLink={() => { }}
+                        onEdit={g => { setGoalToEdit(g); setGoalModalInitialSection('details'); setIsGoalModalOpen(true); }}
+                        onLink={g => { setGoalToEdit(g); setGoalModalInitialSection('linking'); setIsGoalModalOpen(true); }}
                         onDelete={handleDeleteGoal}
-                        onAddInvestment={() => setIsModalOpen(true)}
+                        onAddInvestment={openGoalContributionModal}
                     />
                 )}
-                {(view === 'receita' || view === 'despesa' || view === 'investimento') && <TransactionsView
+                {view === 'investimento' && activeWorkspace.features?.investmentsV2?.enabled === true && (
+                    <React.Suspense fallback={<div className="p-6 text-sm text-gray-600">Carregando investimentos...</div>}>
+                        <InvestmentsPortfolioView
+                            workspaceId={workspaceId}
+                            canManage={canManageActiveWorkspace}
+                            goals={goals}
+                            onBack={() => setView('dashboard')}
+                        />
+                    </React.Suspense>
+                )}
+                {(view === 'receita' || view === 'despesa' || (view === 'investimento' && activeWorkspace.features?.investmentsV2?.enabled !== true)) && <TransactionsView
                     viewType={view}
                     transactions={
                         view === 'despesa'
@@ -600,9 +676,23 @@ const AppContent: React.FC = () => {
                 paymentTypes={paymentTypes}
                 incomeTypes={incomeTypes}
                 goals={goals}
+                transactions={transactions}
+                defaultGoalId={transactionModalDefaultGoalId}
             />
-            <ConfirmationModal isOpen={isConfirmationOpen} onClose={() => setIsConfirmationOpen(false)} onConfirm={handleDeleteTransaction} title="Excluir" message="Excluir permanentemente?" />
-            <GoalFormModal isOpen={isGoalModalOpen} onClose={() => setIsGoalModalOpen(false)} onSave={handleSaveGoal} goalToEdit={goalToEdit} wallets={wallets} transactions={transactions} />
+            <ConfirmationModal
+                isOpen={isConfirmationOpen}
+                onClose={() => setIsConfirmationOpen(false)}
+                onConfirm={handleDeleteTransaction}
+                title={transactionToDelete?.investmentMetadata?.investmentOperation === 'redemption'
+                    ? transactionToDelete.investmentMetadata.status === 'pending' ? 'Cancelar resgate' : 'Estornar resgate'
+                    : 'Excluir'}
+                message={transactionToDelete?.investmentMetadata?.investmentOperation === 'redemption'
+                    ? transactionToDelete.investmentMetadata.status === 'pending'
+                        ? 'Cancelar este resgate pendente? Nenhum saldo será alterado.'
+                        : 'Estornar este resgate liquidado? Será criado um movimento compensatório.'
+                    : 'Excluir permanentemente?'}
+            />
+            <GoalFormModal isOpen={isGoalModalOpen} onClose={() => setIsGoalModalOpen(false)} onSave={handleSaveGoal} onLinkTransactions={handleLinkGoalTransactions} initialSection={goalModalInitialSection} goalToEdit={goalToEdit} wallets={wallets} transactions={transactions} />
             <Notification message={notification.message} isVisible={notification.visible} />
         </div>
     );

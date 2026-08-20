@@ -351,6 +351,7 @@ export const useFinanceAIChat = () => {
     return {
         history,
         isLoading: mutation.isPending,
+        isError: mutation.isError,
         sendQuestion,
         clearHistory
     };

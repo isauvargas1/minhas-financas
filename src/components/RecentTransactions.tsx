@@ -11,6 +11,10 @@ import {
     isCreditCardInvoiceCompatibleTransaction,
     isCreditCardInvoicePaymentCashTransaction,
 } from '../modules/credit-cards/compatibility';
+import {
+    isInvestmentRedemption,
+    transactionCashImpactCents,
+} from '../modules/investments/semantics.ts';
 
 interface RecentTransactionsProps {
     transactions: Transaction[];
@@ -171,6 +175,8 @@ const RecentTransactions: React.FC<RecentTransactionsProps> = ({ transactions, o
                             });
                             const isInvoiceProjection = isCreditCardInvoiceCompatibleTransaction(t);
                             const isInvoicePayment = isCreditCardInvoicePaymentCashTransaction(t);
+                            const isRedemption = isInvestmentRedemption(t);
+                            const cashImpactCents = transactionCashImpactCents(t);
 
                             return (
                                 <tr key={t.id} className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-dark-200 transition-colors duration-200">
@@ -195,6 +201,10 @@ const RecentTransactions: React.FC<RecentTransactionsProps> = ({ transactions, o
                                                 <span className="text-xs text-purple-600 dark:text-purple-300 font-medium">
                                                     Fatura de cartão
                                                 </span>
+                                            ) : isRedemption ? (
+                                                <span className="text-xs text-emerald-600 dark:text-emerald-300 font-medium">
+                                                    Resgate de investimento
+                                                </span>
                                             ) : t.type === 'parcelado' ? (
                                                 <span className="text-xs text-purple-600 dark:text-purple-300 font-medium">
                                                     Parcela {t.currentInstallment}/{t.installments}
@@ -215,7 +225,7 @@ const RecentTransactions: React.FC<RecentTransactionsProps> = ({ transactions, o
                                     </td>
 
                                     <td className={`py-4 px-4 text-center font-medium ${transactionTypeColors[t.type] || ''}`}>
-                                        {t.type === 'receita' ? '+' : '-'} {formatCurrency(t.value)}
+                                        {cashImpactCents > 0 ? '+' : cashImpactCents < 0 ? '-' : '•'} {formatCurrency(t.value)}
                                     </td>
                                 </tr>
                             );

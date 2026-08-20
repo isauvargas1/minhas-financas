@@ -6,7 +6,7 @@ import { CloseIcon, FileInvoiceIcon } from './Icons.tsx';
 interface ReceivableFormModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSave: (receivable: Omit<Receivable, 'id' | 'createdAt' | 'workspaceId'>) => void;
+    onSave: (receivable: Pick<Receivable, 'description' | 'clientId' | 'value' | 'dueDate' | 'status'>) => void;
     clients: Client[];
     receivableToEdit?: Receivable | null;
 }
@@ -16,14 +16,14 @@ const ReceivableFormModal: React.FC<ReceivableFormModalProps> = ({ isOpen, onClo
     const [clientId, setClientId] = useState('');
     const [amount, setAmount] = useState('');
     const [dueDate, setDueDate] = useState(new Date().toISOString().split('T')[0]);
-    const [status, setStatus] = useState<Receivable['status']>('pendente');
+    const [status, setStatus] = useState<Receivable['status']>('pending');
 
     useEffect(() => {
         if (isOpen) {
             if (receivableToEdit) {
                 setDescription(receivableToEdit.description);
                 setClientId(receivableToEdit.clientId);
-                setAmount(String(receivableToEdit.amount));
+                setAmount(String(receivableToEdit.value));
                 setDueDate(receivableToEdit.dueDate);
                 setStatus(receivableToEdit.status);
             } else {
@@ -31,7 +31,7 @@ const ReceivableFormModal: React.FC<ReceivableFormModalProps> = ({ isOpen, onClo
                 setClientId(clients.length > 0 ? clients[0].id : '');
                 setAmount('');
                 setDueDate(new Date().toISOString().split('T')[0]);
-                setStatus('pendente');
+                setStatus('pending');
             }
         }
     }, [isOpen, receivableToEdit, clients]);
@@ -43,7 +43,7 @@ const ReceivableFormModal: React.FC<ReceivableFormModalProps> = ({ isOpen, onClo
         onSave({ 
             description, 
             clientId, 
-            amount: parseFloat(amount), 
+            value: parseFloat(amount),
             dueDate, 
             status 
         });
@@ -124,10 +124,10 @@ const ReceivableFormModal: React.FC<ReceivableFormModalProps> = ({ isOpen, onClo
                             onChange={e => setStatus(e.target.value as any)} 
                             className="w-full bg-background border border-border rounded-lg px-4 py-2 text-on-surface focus:ring-2 focus:ring-primary outline-none"
                         >
-                            <option value="pendente">Pendente</option>
-                            <option value="recebido">Recebido</option>
-                            <option value="atrasado">Atrasado</option>
-                            <option value="cancelado">Cancelado</option>
+                            <option value="pending">Pendente</option>
+                            <option value="paid">Recebido</option>
+                            <option value="overdue">Atrasado</option>
+                            <option value="cancelled">Cancelado</option>
                         </select>
                     </div>
 

@@ -51,7 +51,7 @@ export type Category = {
 };
 
 export interface EntityItem {
-    id: number;
+    id: string | number;
     name: string;
     type?: string;
     icon?: string;
@@ -135,17 +135,39 @@ export interface TransactionCreditCardCompatibility {
     isProjection: true;
 }
 
+export type InvestmentOperation = 'contribution' | 'redemption' | 'redemption_reversal';
+export type InvestmentCashImpact = 'none' | 'inflow' | 'outflow';
+export type InvestmentAssetImpact = 'none' | 'increase' | 'decrease';
+export type InvestmentMovementStatus = 'pending' | 'settled' | 'cancelled' | 'reversed';
+
+export interface TransactionInvestmentMetadata {
+    currency: 'BRL';
+    investmentOperation: InvestmentOperation;
+    cashImpact: InvestmentCashImpact;
+    investmentImpact: InvestmentAssetImpact;
+    principalCents: number;
+    gainCents: number;
+    feesCents: number;
+    taxCents: number;
+    settlementDate?: string;
+    status: InvestmentMovementStatus;
+    sourceMovementId: string;
+    idempotencyKey: string;
+    reversalMovementId?: string;
+}
+
 export interface Transaction {
     id: number | string;
     type: TransactionType;
     description: string;
     category: string;
     value: number;
+    valueCents?: number;
     date: string;
     installments?: number;
     currentInstallment?: number;
     cardId?: string;
-    walletId?: number;
+    walletId?: string | number;
     userId?: string;
     workspaceId?: string;
     goalId?: string;
@@ -163,6 +185,9 @@ export interface Transaction {
     creditCardInvoicePaymentId?: string;
     creditCardCompatibility?: TransactionCreditCardCompatibility;
     displaySnapshots?: TransactionDisplaySnapshots;
+    investmentMetadata?: TransactionInvestmentMetadata;
+    redeemedPrincipalCents?: number;
+    remainingPrincipalCents?: number;
 }
 
 // --- GOALS MODULE TYPES ---
@@ -193,6 +218,8 @@ export type GoalStatus = 'em_andamento' | 'alcancada' | 'pausada' | 'cancelada';
 
 export type GoalPriority = 'baixa' | 'media' | 'alta';
 
+export type GoalProgressBasis = 'net_contributions' | 'current_value';
+
 export interface Goal {
     id: string;
     name: string;
@@ -203,6 +230,12 @@ export interface Goal {
 
     targetAmount: number;
     currentAmount: number;
+    currentAmountCents?: number;
+    netContributionCents?: number;
+    currentValue?: number;
+    currentValueCents?: number;
+    targetAmountCents?: number;
+    progressBasis?: GoalProgressBasis;
     startDate: string;
     deadline: string;
     horizon: GoalHorizon;
@@ -223,6 +256,8 @@ export interface Goal {
     createdAt: string;
     updatedAt: string;
     profileId?: string;
+    archived?: boolean;
+    archivedAt?: unknown;
 }
 
 // --- SHARED EXPENSES MODULE TYPES (Split Bills) ---
@@ -365,10 +400,10 @@ export interface CreditCardPurchaseModalInput {
 export interface TransactionModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onAddTransaction: (transaction: Omit<Transaction, 'id'>) => void;
-    onAddTransactions?: (transactions: Omit<Transaction, 'id'>[]) => void;
+    onAddTransaction: (transaction: Omit<Transaction, 'id'>) => Promise<void> | void;
+    onAddTransactions?: (transactions: Omit<Transaction, 'id'>[]) => Promise<void> | void;
     onAddCreditCardPurchase?: (purchase: CreditCardPurchaseModalInput) => Promise<void> | void;
-    onUpdateTransaction: (transaction: Transaction) => void;
+    onUpdateTransaction: (transaction: Transaction) => Promise<void> | void;
     transactionToEdit?: Transaction | null;
     defaultType?: TransactionType | null;
     currentDate: Date;
@@ -381,6 +416,7 @@ export interface TransactionModalProps {
     incomeTypes?: EntityItem[];
     allowedTypes?: TransactionType[] | null;
     costCenters?: EntityItem[];
+    transactions?: Transaction[];
     onAddProductService?: (name: string) => void;
 }
 

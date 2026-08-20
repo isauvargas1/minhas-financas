@@ -43,12 +43,12 @@ const ClientsReceivablesView: React.FC = () => {
         let nextDue = 0;
 
         receivables.forEach(r => {
-            if (r.status === 'recebido' || r.status === 'cancelado') return;
+            if (r.status === 'paid' || r.status === 'cancelled') return;
             
-            totalReceivable += r.amount;
+            totalReceivable += r.value;
             
             if (r.dueDate < todayStr) {
-                totalOverdue += r.amount;
+                totalOverdue += r.value;
             }
             
             // Check if due in next 7 days
@@ -56,7 +56,7 @@ const ClientsReceivablesView: React.FC = () => {
             const diffTime = dueDate.getTime() - now.getTime();
             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
             if (diffDays >= 0 && diffDays <= 7) {
-                nextDue += r.amount;
+                nextDue += r.value;
             }
         });
 
@@ -234,15 +234,15 @@ const ClientsReceivablesView: React.FC = () => {
                                         <tr key={r.id} className="hover:bg-background/50 transition-colors group">
                                             <td className="px-6 py-3 font-medium text-on-surface">{r.description}</td>
                                             <td className="px-6 py-3 text-on-surface">{getClientName(r.clientId)}</td>
-                                            <td className={`px-6 py-3 ${r.status !== 'recebido' && r.dueDate < new Date().toISOString().split('T')[0] ? 'text-red-500 font-medium' : 'text-muted'}`}>
+                                            <td className={`px-6 py-3 ${r.status !== 'paid' && r.dueDate < new Date().toISOString().split('T')[0] ? 'text-red-500 font-medium' : 'text-muted'}`}>
                                                 {formatDate(r.dueDate)}
                                             </td>
-                                            <td className="px-6 py-3 text-right font-bold text-on-surface">{formatCurrency(r.amount)}</td>
+                                            <td className="px-6 py-3 text-right font-bold text-on-surface">{formatCurrency(r.value)}</td>
                                             <td className="px-6 py-3 text-center">
                                                 <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${
-                                                    r.status === 'recebido' ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-300' :
-                                                    r.status === 'atrasado' ? 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-300' :
-                                                    r.status === 'cancelado' ? 'bg-gray-100 text-gray-600 dark:bg-gray-800' :
+                                                    r.status === 'paid' ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-300' :
+                                                    r.status === 'overdue' ? 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-300' :
+                                                    r.status === 'cancelled' ? 'bg-gray-100 text-gray-600 dark:bg-gray-800' :
                                                     'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-300'
                                                 }`}>
                                                     {r.status}
@@ -250,8 +250,8 @@ const ClientsReceivablesView: React.FC = () => {
                                             </td>
                                             <td className="px-6 py-3 text-right">
                                                 <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    {r.status !== 'recebido' && (
-                                                        <button onClick={() => handleStatusUpdate(r.id, 'recebido')} className="p-1.5 bg-green-50 text-green-600 hover:bg-green-100 rounded" title="Marcar Recebido">
+                                                    {r.status !== 'paid' && (
+                                                        <button onClick={() => handleStatusUpdate(r.id, 'paid')} className="p-1.5 bg-green-50 text-green-600 hover:bg-green-100 rounded" title="Marcar Recebido">
                                                             <CheckIcon className="w-4 h-4" />
                                                         </button>
                                                     )}

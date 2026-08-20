@@ -23,16 +23,6 @@ const GoalsView: React.FC<GoalsViewProps> = ({
     const { activeWorkspace } = useWorkspace();
     const isPJ = activeWorkspace.type === 'PJ';
 
-
-    
-    if (isLoading) {
-        return (
-            <div className="flex items-center justify-center h-full">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-            </div>
-        );
-    }
-
     // Filter & Sort State
     const [filterStatus, setFilterStatus] = useState<string>('all');
     
@@ -47,6 +37,14 @@ const GoalsView: React.FC<GoalsViewProps> = ({
             return pMap[b.priority] - pMap[a.priority];
         });
     }, [goals, searchQuery, filterStatus]);
+
+    if (isLoading) {
+        return (
+            <div className="flex items-center justify-center h-full">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+            </div>
+        );
+    }
 
     // Helper counts
     const completedCount = goals.filter(g => (g.currentAmount >= g.targetAmount) || g.status === 'alcancada').length;

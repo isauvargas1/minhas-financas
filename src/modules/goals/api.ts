@@ -1,82 +1,115 @@
-import { 
-    collection, 
-    doc, 
-    getDocs, 
-    addDoc, 
-    updateDoc, 
-    deleteDoc, 
-    Timestamp 
-} from 'firebase/firestore';
-import { db } from '../../lib/firebase';
-import { Goal } from '../../types';
+import {collection, getDocs} from 'firebase/firestore';
+import {httpsCallable} from 'firebase/functions';
 
-const COLLECTION_NAME = 'goals';
+import {db, functions} from '../../lib/firebase';
+import type {Goal} from '../../types';
 
-// Helper recursivo para limpar undefined
-const cleanPayload = (obj: any): any => {
-    if (Array.isArray(obj)) {
-        return obj.map(v => cleanPayload(v));
-    } else if (obj !== null && typeof obj === 'object' && !(obj instanceof Timestamp)) {
-        return Object.entries(obj).reduce((acc, [key, value]) => {
-            if (value !== undefined) {
-                acc[key] = cleanPayload(value);
-            }
-            return acc;
-        }, {} as any);
-    }
-    return obj;
+type GoalWriteInput = Omit<Goal, 'id' | 'createdAt' | 'updatedAt' | 'currentAmount'>;
+
+const omitUndefined = <T>(value: T): T => {
+  if (Array.isArray(value)) {
+    return value.map(omitUndefined) as T;
+  }
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .filter(([, entry]) => entry !== undefined)
+        .map(([key, entry]) => [key, omitUndefined(entry)]),
+    ) as T;
+  }
+  return value;
+};
+
+const callGoalFunction = async <TInput extends Record<string, unknown>, TResult>(
+  name: string,
+  input: TInput,
+): Promise<TResult> => {
+  const callable = httpsCallable<TInput, TResult>(functions, name);
+  const response = await callable(input);
+  return response.data;
 };
 
 export const listGoals = async (workspaceId?: string): Promise<Goal[]> => {
-    if (!workspaceId || workspaceId === 'loading') return [];
-
-    try {
-        const ref = collection(db, 'workspaces', workspaceId, COLLECTION_NAME);
-        const snapshot = await getDocs(ref);
-        
-        return snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        } as Goal));
-    } catch (error) {
-        console.error("Erro ao listar metas:", error);
-        return [];
-    }
-};
-
-export const createGoal = async (goal: Omit<Goal, 'id'>, workspaceId?: string): Promise<Goal> => {
-    if (!workspaceId) throw new Error("Workspace ID obrigatório");
-
-    const ref = collection(db, 'workspaces', workspaceId, COLLECTION_NAME);
-    
-    const payload = cleanPayload({
-        ...goal,
-        createdAt: Timestamp.now(),
-        updatedAt: Timestamp.now()
-    });
-
-    const docRef = await addDoc(ref, payload);
-
-    return { id: docRef.id, ...goal } as Goal;
-};
-
-export const updateGoal = async (id: string, data: Partial<Goal>, workspaceId?: string): Promise<Goal> => {
-    if (!workspaceId) throw new Error("Workspace ID obrigatório");
-
-    const docRef = doc(db, 'workspaces', workspaceId, COLLECTION_NAME, id);
-    
-    const payload = cleanPayload({
+  if (!workspaceId || workspaceId === 'loading') return [];
+  const snapshot = await getDocs(collection(db, 'workspaces', workspaceId, 'goals'));
+  return snapshot.docs
+    .map((item) => {
+      const data = item.data() as Omit<Goal, 'id'>;
+      return {
+        id: item.id,
         ...data,
-        updatedAt: Timestamp.now()
-    });
-
-    await updateDoc(docRef, payload);
-
-    return { id, ...data } as Goal; // Retorno otimista
+        progressBasis: data.progressBasis ?? 'net_contributions',
+      } as Goal;
+    })
+    .filter((goal) => goal.archived !== true);
 };
 
-export const deleteGoal = async (id: string, workspaceId?: string): Promise<void> => {
-    if (!workspaceId) return;
-    const docRef = doc(db, 'workspaces', workspaceId, COLLECTION_NAME, id);
-    await deleteDoc(docRef);
+export const createGoal = async (
+  goal: GoalWriteInput,
+  workspaceId: string,
+  idempotencyKey: string,
+): Promise<Goal> => {
+  const result = await callGoalFunction<
+    {workspaceId: string; idempotencyKey: string; goal: GoalWriteInput},
+    {success: true; goalId: string}
+  >('createGoal', {workspaceId, idempotencyKey, goal: omitUndefined(goal)});
+  return {
+    id: result.goalId,
+    ...goal,
+    currentAmount: goal.progressBasis === 'current_value' ? goal.currentValue ?? 0 : 0,
+    progressBasis: goal.progressBasis ?? 'net_contributions',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
 };
+
+export const updateGoal = async (
+  id: string,
+  goal: GoalWriteInput,
+  workspaceId: string,
+  idempotencyKey: string,
+): Promise<Goal> => {
+  await callGoalFunction('updateGoal', {
+    workspaceId,
+    idempotencyKey,
+    goalId: id,
+    goal: omitUndefined(goal),
+  });
+  return {
+    id,
+    ...goal,
+    currentAmount: goal.progressBasis === 'current_value' ? goal.currentValue ?? 0 : 0,
+    progressBasis: goal.progressBasis ?? 'net_contributions',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+};
+
+export const setGoalTransactionLinks = async (
+  goalId: string,
+  transactionIds: string[],
+  workspaceId: string,
+  idempotencyKey: string,
+): Promise<void> => {
+  await callGoalFunction('setGoalTransactionLinks', {
+    workspaceId,
+    idempotencyKey,
+    goalId,
+    transactionIds,
+  });
+};
+
+export const archiveGoal = async (
+  goalId: string,
+  workspaceId: string,
+  idempotencyKey: string,
+): Promise<void> => {
+  await callGoalFunction('archiveGoal', {
+    workspaceId,
+    idempotencyKey,
+    goalId,
+    reason: 'Arquivada pelo usuário',
+  });
+};
+
+export type {GoalWriteInput};

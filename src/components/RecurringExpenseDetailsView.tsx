@@ -1,6 +1,6 @@
 
 import React, { useMemo, useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, type MotionProps } from 'framer-motion';
 import { useRecurringExpense, useRecurringOccurrences, useSaveOccurrence, useUpdateRecurringExpense } from '../modules/recurring-expenses/hooks.ts';
 import { useSplitParticipants, useCreateSplitBill } from '../modules/split-bills/hooks.ts';
 import { BackIcon, DynamicIcon, CalendarIcon, WarningIcon, TrendingUpIcon, BuildingIcon, BriefcaseIcon, FileInvoiceIcon } from './Icons.tsx';
@@ -31,6 +31,8 @@ const itemVariants = {
     show: { opacity: 1, x: 0 }
 };
 
+const MotionDiv = motion.div as React.ComponentType<React.HTMLAttributes<HTMLDivElement> & MotionProps>;
+
 const RecurringExpenseDetailsView: React.FC<RecurringExpenseDetailsViewProps> = ({ expenseId, onBack, onAddTransaction }) => {
     const { activeWorkspace } = useWorkspace();
     const isPJ = activeWorkspace.type === 'PJ';
@@ -38,7 +40,6 @@ const RecurringExpenseDetailsView: React.FC<RecurringExpenseDetailsViewProps> = 
     const { data: expense, isLoading: isExpenseLoading } = useRecurringExpense(expenseId);
     const saveOccurrenceMutation = useSaveOccurrence();
     const updateExpenseMutation = useUpdateRecurringExpense();
-    const MotionDiv = motion.div as any;
     
     // Split Bill Hooks
     const { data: splitParticipants } = useSplitParticipants(expense?.splitGroupIdOpcional || '');
@@ -227,7 +228,7 @@ const RecurringExpenseDetailsView: React.FC<RecurringExpenseDetailsViewProps> = 
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
                 {/* Hero Card */}
-                <MotionDiv 
+                <MotionDiv
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     className="lg:col-span-2 bg-surface rounded-card p-6 shadow-sm border border-border relative overflow-hidden flex flex-col justify-between"
@@ -333,7 +334,7 @@ const RecurringExpenseDetailsView: React.FC<RecurringExpenseDetailsViewProps> = 
 
             {/* Adjust Price Form */}
             {isAdjusting && (
-                <motion.div 
+                <MotionDiv
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: 'auto', opacity: 1 }}
                     className="mb-6 p-4 bg-background rounded-lg border border-border"
@@ -369,7 +370,7 @@ const RecurringExpenseDetailsView: React.FC<RecurringExpenseDetailsViewProps> = 
                             Cancelar
                         </button>
                     </form>
-                </motion.div>
+                </MotionDiv>
             )}
 
             {/* Timeline / Occurrences */}
@@ -393,7 +394,7 @@ const RecurringExpenseDetailsView: React.FC<RecurringExpenseDetailsViewProps> = 
                                     className="space-y-3"
                                 >
                                     {futureOccurrences.length > 0 ? futureOccurrences.map(occ => (
-                                        <motion.div key={occ.id} variants={itemVariants} className="bg-surface p-4 rounded-card shadow-sm border border-border flex items-center justify-between opacity-90 hover:opacity-100 transition-opacity">
+                                        <MotionDiv key={occ.id} variants={itemVariants} className="bg-surface p-4 rounded-card shadow-sm border border-border flex items-center justify-between opacity-90 hover:opacity-100 transition-opacity">
                                             <div className="flex items-center gap-3">
                                                 <div className="w-10 h-10 rounded-lg bg-background flex flex-col items-center justify-center text-xs font-bold text-muted border border-border">
                                                     <span>{new Date(occ.dataPrevista).getDate()}</span>
@@ -429,7 +430,7 @@ const RecurringExpenseDetailsView: React.FC<RecurringExpenseDetailsViewProps> = 
                                                     </span>
                                                 )}
                                             </div>
-                                        </motion.div>
+                                        </MotionDiv>
                                     )) : (
                                         <p className="text-muted text-sm">Nenhuma cobrança prevista.</p>
                                     )}

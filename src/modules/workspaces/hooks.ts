@@ -11,11 +11,12 @@ export const keys = {
 export const useCreateWorkspace = () => {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (input: { type: WorkspaceType; name: string; ownerId: string; email: string }) => 
+        mutationFn: (input: { type: WorkspaceType; name: string; ownerId: string; email: string; cnpj?: string }) =>
             api.createWorkspace({ 
                 type: input.type, 
                 name: input.name, 
-                ownerId: input.ownerId 
+                ownerId: input.ownerId,
+                cnpj: input.cnpj
             }, input.email),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: keys.all });

@@ -6,6 +6,8 @@ export interface Client {
     phone?: string;
     address?: string;
     description?: string;
+    document?: string;
+    notes?: string;
     status: 'active' | 'inactive';
     createdAt: string;
     updatedAt: string;

@@ -1,8 +1,10 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import {useQueryClient} from '@tanstack/react-query';
 import { Workspace } from '../modules/workspaces/types';
 import { listWorkspaces, createWorkspace } from '../modules/workspaces/api';
 import { useTheme } from './ThemeContext';
 import { useAuth } from './AuthContext';
+import {seedLegacySettingsCatalog} from '../modules/settings-catalog/api';
 
 interface WorkspaceContextValue {
     workspaces: Workspace[];
@@ -30,6 +32,7 @@ const LOADING_WORKSPACE: Workspace = {
 export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const { user } = useAuth();
     const { updateTheme, theme } = useTheme();
+    const queryClient = useQueryClient();
     
     const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
     const [activeWorkspace, setActiveWorkspace] = useState<Workspace | null>(null);
@@ -97,6 +100,17 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children 
                 chartIncome: workspace.type === 'PJ' ? '#0f766e' : '#22c55e'
             }
         });
+
+        if (workspace.myRole === 'owner' || workspace.myRole === 'admin') {
+            void seedLegacySettingsCatalog(workspace.id)
+                .then(() => queryClient.invalidateQueries({
+                    queryKey: ['settingsCatalog', workspace.id],
+                    refetchType: 'active',
+                }))
+                .catch((error) => {
+                    console.error('Não foi possível preparar o catálogo inicial do workspace:', error);
+                });
+        }
     };
 
     const switchWorkspace = (workspaceId: string) => {

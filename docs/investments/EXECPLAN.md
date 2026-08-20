@@ -13,7 +13,7 @@ O M0 estabelece apenas baseline, comandos de verificação e decisões executáv
 - [ ] M2 — resgate legado semanticamente correto implementado; aprovação depende da execução de Emulator/E2E e dos gates.
 - [x] M3 — domínio backend oficial, operações críticas, rebuild paginado e auditoria implementados e validados.
 - [x] M4 — Firestore Rules, índices e hardening validados para `investment_*`.
-- [ ] M5 — leitura e experiência frontend.
+- [x] M5 — leitura e experiência frontend.
 - [ ] M6 — integração com metas, relatórios e allocations.
 - [ ] M7 — hardening, observabilidade, E2E e gate final.
 
@@ -75,10 +75,13 @@ Delta executado neste marco:
 
 ### M5 — frontend
 
-1. Substituir writes financeiros diretos por callables e consumir read models paginados.
-2. Expor estados loading/empty/error/success e mensagens seguras em pt-BR.
-3. Preservar rotas e comportamento legado até a compatibilidade ser comprovada.
-4. Cobrir teclado, foco, responsividade e fluxos críticos com Playwright.
+1. A rota existente de investimentos seleciona a UI patrimonial apenas quando `features.investmentsV2.enabled === true`; flag ausente ou falsa mantém o legado sem alterações e sem dual-write.
+2. `src/modules/investments` lê accounts, assets, positions e movements com `limit(20)`, ordenação estável, cursores e filtros server-side; o resumo usa a projeção constante `investment_summaries/current`, atualizada atomicamente com positions.
+3. A UI expõe resumo, contas, ativos/posições, movimentações, estados loading/empty/error/success, aporte, pedido e liquidação de resgate parcial/total, vínculo com meta, inativação e reversão privilegiada. Toda mutação usa callable; positions e projeções continuam sem escrita direta do cliente.
+4. Criação/edição de contas e ativos ganhou callables owner/admin estritos, idempotentes e auditáveis; inativação preserva histórico. Os índices adicionados correspondem somente às combinações de filtro/ordenação usadas pela V2.
+5. A experiência nova usa textos pt-BR, erros seguros, controles rotulados, `dialog` modal com Escape e devolução de foco, tabelas com rolagem mobile e cards responsivos. Playwright direcionado cobre flag falsa, flag verdadeira, viewport móvel, foco/modal e criação via callable.
+6. Risco residual: workspaces com positions V2 anteriores à projeção `investment_summaries/current` precisam de rebuild operacional antes de habilitar a flag; a UI sinaliza resumo indisponível e não calcula totais por full-scan.
+7. O gate final executou `verify:all` integralmente: typecheck, builds frontend/Functions, 33 testes unitários de Functions, 3 testes unitários de semântica, integrações e Rules no Emulator e 9 E2E Playwright passaram sem falhas ou skips. O smoke legado também confirmou aporte/meta após invalidar pontualmente o catálogo semeado para eliminar a corrida de cache.
 
 ### M6 — metas, relatórios e allocations
 

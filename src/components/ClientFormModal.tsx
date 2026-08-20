@@ -6,7 +6,7 @@ import { CloseIcon, UsersIcon } from './Icons.tsx';
 interface ClientFormModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSave: (client: Omit<Client, 'id' | 'createdAt' | 'workspaceId'>) => void;
+    onSave: (client: Pick<Client, 'name' | 'email' | 'phone' | 'document' | 'notes'>) => void;
     clientToEdit?: Client | null;
 }
 

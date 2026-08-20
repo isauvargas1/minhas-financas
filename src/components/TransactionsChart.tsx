@@ -4,6 +4,7 @@ import { ResponsiveContainer, PieChart, Pie, BarChart, Bar, LineChart, Line, Cel
 import { Transaction, TransactionType } from '../types.ts';
 import { PieChartIcon, BarChartIcon, LineChartIcon, DoughnutChartIcon } from './Icons.tsx';
 import { useTheme } from '../contexts/ThemeContext.tsx';
+import { contributionAllocation } from '../modules/investments/semantics.ts';
 
 interface TransactionsChartProps {
     transactions: Transaction[];
@@ -27,7 +28,8 @@ const TransactionsChart: React.FC<TransactionsChartProps> = ({ transactions }) =
 
     const data = useMemo(() => {
         const aggregated = transactions.reduce((acc, t) => {
-            acc[t.type] = (acc[t.type] || 0) + t.value;
+            const value = t.type === 'investimento' ? contributionAllocation(t) : t.value;
+            acc[t.type] = (acc[t.type] || 0) + value;
             return acc;
         }, {} as Record<TransactionType, number>);
 

@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, type MotionProps } from 'framer-motion';
 import { NotificationItem, NotificationType } from '../types.ts';
 import { CheckIcon, CloseIcon, WarningIcon, DynamicIcon } from './Icons.tsx';
 
@@ -12,6 +12,8 @@ interface NotificationsPanelProps {
     onDelete: (id: string) => void; // Archive
     onNavigate?: (route: string) => void; // Add navigation support
 }
+
+const MotionDiv = motion.div as React.ComponentType<React.HTMLAttributes<HTMLDivElement> & MotionProps>;
 
 const NotificationsPanel: React.FC<NotificationsPanelProps> = ({ 
     notifications, onClose, onMarkAllRead, onMarkAsRead, onDelete, onNavigate
@@ -61,7 +63,7 @@ const NotificationsPanel: React.FC<NotificationsPanelProps> = ({
     };
 
     return (
-        <motion.div 
+        <MotionDiv
             initial={{ opacity: 0, y: 10, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
@@ -102,7 +104,7 @@ const NotificationsPanel: React.FC<NotificationsPanelProps> = ({
                 ) : (
                     <AnimatePresence initial={false}>
                         {notifications.map((notif) => (
-                            <motion.div 
+                            <MotionDiv
                                 key={notif.id}
                                 layout
                                 initial={{ opacity: 0, x: -20 }}
@@ -150,12 +152,12 @@ const NotificationsPanel: React.FC<NotificationsPanelProps> = ({
                                 {notif.status === 'unread' && (
                                     <span className="absolute top-1/2 right-3 transform -translate-y-1/2 w-2 h-2 bg-primary rounded-full group-hover:opacity-0 transition-opacity shadow-sm"></span>
                                 )}
-                            </motion.div>
+                            </MotionDiv>
                         ))}
                     </AnimatePresence>
                 )}
             </div>
-        </motion.div>
+        </MotionDiv>
     );
 };
 

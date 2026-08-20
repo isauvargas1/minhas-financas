@@ -8,6 +8,8 @@ export * from "./triggers/transactions";
 // Callables (APIs chamadas pelo frontend)
 export * from "./callables/splitGroups";
 export * from "./creditCards/callables";
+export * from "./goals/callables";
+export * from "./investments/callables";
 
 export * from "./callables/billing";
 

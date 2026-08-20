@@ -11,6 +11,7 @@ import {
 } from './Icons.tsx';
 import { useTheme } from '../contexts/ThemeContext.tsx';
 import { useCreateNotification } from '../modules/notifications/hooks.ts';
+import { contributionAllocation, isInvestmentContribution } from '../modules/investments/semantics.ts';
 
 interface AllocationAnalysisProps {
     transactions: Transaction[];
@@ -41,6 +42,7 @@ const AllocationAnalysis: React.FC<AllocationAnalysisProps> = ({ transactions, g
         return transactions.filter(t => {
             if (t.type === 'receita') return false;
             if (t.type === 'investimento') {
+                if (!isInvestmentContribution(t) || contributionAllocation(t) <= 0) return false;
                 const isRetirement = goals.find(g => g.id === t.goalId)?.category === 'patrimonio' || !t.goalId;
                 if (drilldownBucket === 'aposentadoria') return isRetirement;
                 if (drilldownBucket === 'objetivos') return !!t.goalId && !isRetirement;

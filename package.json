@@ -5,10 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "typecheck": "tsc --noEmit && npm --prefix functions run build -- --noEmit",
     "build": "vite build",
     "preview": "vite preview",
     "functions:build": "npm --prefix functions run build",
     "functions:test:unit": "npm --prefix functions run test:unit",
+    "test:unit:investments": "node --experimental-strip-types --test tests/unit/investment-semantics.test.ts",
     "functions:test:integration": "npm --prefix functions run test:integration",
     "functions:test:integration:emulator": "FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 GCLOUD_PROJECT=minhas-financas-local npm --prefix functions run test:integration",
     "emulators:firestore": "firebase emulators:start --only firestore --project minhas-financas-local",
@@ -21,7 +23,13 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "e2e:kill-ports": "lsof -tiTCP:4000,4400,4500,5001,8080,9099,9150,5173 -sTCP:LISTEN | xargs -r kill -9",
-    "test:e2e:clean": "npm run e2e:kill-ports && npm run test:e2e"
+    "test:e2e:clean": "npm run e2e:kill-ports && npm run test:e2e",
+    "test:rules:goals": "node --test tests/firestore/goals.rules.integration.test.mjs",
+    "test:rules:investments": "node --test tests/firestore/investment-redemptions.rules.integration.test.mjs",
+    "test:rules:investment-domain": "node --test tests/firestore/investment-domain.rules.integration.test.mjs",
+    "test:integration:emulator": "firebase emulators:exec --only auth,firestore --project minhas-financas-local \"npm run functions:test:integration:emulator && npm run test:rules:goals && npm run test:rules:investments && npm run test:rules:investment-domain\"",
+    "verify:fast": "npm run typecheck && npm run build && npm run functions:build && npm run functions:test:unit && npm run test:unit:investments",
+    "verify:all": "npm run verify:fast && npm run test:integration:emulator && npm run test:e2e"
   },
   "dependencies": {
     "@google/genai": "^1.32.0",

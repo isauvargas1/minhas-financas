@@ -8,6 +8,10 @@ import {
 import { Receivable, Client } from '../clients/types.ts';
 import { Workspace } from '../workspaces/types.ts';
 import {
+    contributionAllocation,
+    transactionCashImpact,
+} from '../investments/semantics.ts';
+import {
     ReportTimeRange,
     FinancialReportSnapshot,
     FinancialKPI,
@@ -112,9 +116,9 @@ function buildPersonalKPIs(
 
     const income = filtered.filter(t => t.type === 'receita').reduce((sum, t) => sum + t.value, 0);
     const expense = filtered.filter(t => t.type === 'despesa' || t.type === 'parcelado').reduce((sum, t) => sum + t.value, 0);
-    const investment = filtered.filter(t => t.type === 'investimento').reduce((sum, t) => sum + t.value, 0);
+    const investment = filtered.reduce((sum, t) => sum + contributionAllocation(t), 0);
 
-    const netResult = income - expense - investment;
+    const netResult = filtered.reduce((sum, transaction) => sum + transactionCashImpact(transaction), 0);
     const savingsRate = income > 0 ? (investment / income) * 100 : 0;
 
     return [
@@ -144,7 +148,7 @@ function buildPersonalKPIs(
         },
         {
             id: 'kpi-balance',
-            label: 'Resultado Líquido',
+            label: 'Fluxo de Caixa Líquido',
             value: netResult,
             formattedValue: formatCurrency(netResult),
             trend: netResult >= 0 ? 'up' : 'down',
@@ -249,9 +253,10 @@ export const calculateCashFlow = (transactions: Transaction[]): CashFlowSummary[
     cashAccountingTransactions.forEach(t => {
         const key = t.date.slice(0, 7);
         if (history[key]) {
+            history[key].netCashFlow += transactionCashImpact(t);
             if (t.type === 'receita') {
                 history[key].totalIncome += t.value;
-            } else if (t.type === 'despesa' || t.type === 'parcelado' || t.type === 'investimento') {
+            } else if (t.type === 'despesa' || t.type === 'parcelado') {
                 history[key].totalExpenses += t.value;
             }
         }
@@ -259,8 +264,7 @@ export const calculateCashFlow = (transactions: Transaction[]): CashFlowSummary[
 
     return Object.values(history).map(item => ({
         ...item,
-        netCashFlow: item.totalIncome - item.totalExpenses,
-        savingsRate: item.totalIncome > 0 ? ((item.totalIncome - item.totalExpenses) / item.totalIncome) * 100 : 0
+        savingsRate: item.totalIncome > 0 ? (item.netCashFlow / item.totalIncome) * 100 : 0
     })).sort((a, b) => b.month.localeCompare(a.month));
 };
 

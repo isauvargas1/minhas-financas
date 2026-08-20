@@ -1,54 +1,78 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { listGoals, createGoal, updateGoal, deleteGoal } from './api';
-import { Goal } from '../../types';
-import { useWorkspace } from '../../contexts/WorkspaceContext';
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
+import {useWorkspace} from '../../contexts/WorkspaceContext';
+import type {Goal} from '../../types';
+import {
+  archiveGoal,
+  createGoal,
+  listGoals,
+  setGoalTransactionLinks,
+  updateGoal,
+  type GoalWriteInput,
+} from './api';
 
-export const KEYS = {
-    all: (ws: string) => ['goals', ws],
+export const KEYS = {all: (workspaceId: string) => ['goals', workspaceId]};
+
+const useInvalidateGoals = () => {
+  const {activeWorkspace} = useWorkspace();
+  const queryClient = useQueryClient();
+  return async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({queryKey: KEYS.all(activeWorkspace.id)}),
+      queryClient.invalidateQueries({queryKey: ['transactions', activeWorkspace.id]}),
+    ]);
+  };
 };
 
 export const useGoals = () => {
-    const { activeWorkspace } = useWorkspace();
-    return useQuery({
-        queryKey: KEYS.all(activeWorkspace.id),
-        queryFn: () => listGoals(activeWorkspace.id),
-        enabled: !!activeWorkspace.id && activeWorkspace.id !== 'loading'
-    });
+  const {activeWorkspace} = useWorkspace();
+  return useQuery({
+    queryKey: KEYS.all(activeWorkspace.id),
+    queryFn: () => listGoals(activeWorkspace.id),
+    enabled: Boolean(activeWorkspace.id) && activeWorkspace.id !== 'loading',
+  });
 };
 
 export const useCreateGoal = () => {
-    const { activeWorkspace } = useWorkspace();
-    const queryClient = useQueryClient();
-    
-    return useMutation({
-        mutationFn: (goal: Omit<Goal, 'id'>) => createGoal(goal, activeWorkspace.id),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: KEYS.all(activeWorkspace.id) });
-        }
-    });
+  const {activeWorkspace} = useWorkspace();
+  const invalidate = useInvalidateGoals();
+  return useMutation({
+    mutationFn: ({goal, idempotencyKey}: {goal: GoalWriteInput; idempotencyKey: string}) =>
+      createGoal(goal, activeWorkspace.id, idempotencyKey),
+    onSuccess: invalidate,
+  });
 };
 
 export const useUpdateGoal = () => {
-    const { activeWorkspace } = useWorkspace();
-    const queryClient = useQueryClient();
-    
-    return useMutation({
-        mutationFn: ({ id, data }: { id: string; data: Partial<Goal> }) => 
-            updateGoal(id, data, activeWorkspace.id),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: KEYS.all(activeWorkspace.id) });
-        }
-    });
+  const {activeWorkspace} = useWorkspace();
+  const invalidate = useInvalidateGoals();
+  return useMutation({
+    mutationFn: ({id, goal, idempotencyKey}: {id: string; goal: GoalWriteInput; idempotencyKey: string}) =>
+      updateGoal(id, goal, activeWorkspace.id, idempotencyKey),
+    onSuccess: invalidate,
+  });
 };
 
-export const useDeleteGoal = () => {
-    const { activeWorkspace } = useWorkspace();
-    const queryClient = useQueryClient();
-    
-    return useMutation({
-        mutationFn: (id: string) => deleteGoal(id, activeWorkspace.id),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: KEYS.all(activeWorkspace.id) });
-        }
-    });
+export const useSetGoalTransactionLinks = () => {
+  const {activeWorkspace} = useWorkspace();
+  const invalidate = useInvalidateGoals();
+  return useMutation({
+    mutationFn: ({goalId, transactionIds, idempotencyKey}: {
+      goalId: string;
+      transactionIds: string[];
+      idempotencyKey: string;
+    }) => setGoalTransactionLinks(goalId, transactionIds, activeWorkspace.id, idempotencyKey),
+    onSuccess: invalidate,
+  });
 };
+
+export const useArchiveGoal = () => {
+  const {activeWorkspace} = useWorkspace();
+  const invalidate = useInvalidateGoals();
+  return useMutation({
+    mutationFn: ({id, idempotencyKey}: {id: string; idempotencyKey: string}) =>
+      archiveGoal(id, activeWorkspace.id, idempotencyKey),
+    onSuccess: invalidate,
+  });
+};
+
+export type GoalMutationResult = Goal;

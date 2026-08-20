@@ -9,6 +9,7 @@ import { motion } from 'framer-motion';
 // @ts-ignore
 import confetti from 'canvas-confetti';
 import { calculateBusinessGoalProgress, getGoalPaceStatus } from '../modules/goals/logic.ts';
+import { transactionCashImpact } from '../modules/investments/semantics.ts';
 import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
 
 interface GoalCardProps {
@@ -32,7 +33,7 @@ const GoalCard: React.FC<GoalCardProps> = ({ goal, onClick, mode, transactions }
     // --- BUSINESS LOGIC ---
     const currentVal = useMemo(() => {
         if (isPJ && goal.isAutomatic) {
-            const balance = transactions.reduce((acc, t) => t.type === 'receita' ? acc + t.value : acc - t.value, 0);
+            const balance = transactions.reduce((acc, transaction) => acc + transactionCashImpact(transaction), 0);
             return calculateBusinessGoalProgress(goal, transactions, balance);
         }
         return goal.currentAmount;

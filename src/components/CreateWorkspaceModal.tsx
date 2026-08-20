@@ -4,6 +4,7 @@ import { CloseIcon, BriefcaseIcon } from './Icons.tsx';
 import { useCreateWorkspace } from '../modules/workspaces/hooks.ts';
 import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
 import { useTheme } from '../contexts/ThemeContext.tsx';
+import { useAuth } from '../contexts/AuthContext.tsx';
 
 interface CreateWorkspaceModalProps {
     isOpen: boolean;
@@ -17,18 +18,21 @@ const CreateWorkspaceModal: React.FC<CreateWorkspaceModalProps> = ({ isOpen, onC
     const { mutate: createWorkspace, isPending } = useCreateWorkspace();
     const { reloadWorkspaces, switchWorkspace } = useWorkspace();
     const { playSound } = useTheme();
+    const { user } = useAuth();
 
     if (!isOpen) return null;
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         
-        if (!name.trim()) return;
+        if (!name.trim() || !user) return;
 
         createWorkspace({ 
             type: 'PJ', 
             name, 
-            cnpj: cnpj || undefined 
+            cnpj: cnpj || undefined,
+            ownerId: user.uid,
+            email: user.email || 'usuario-sem-email@sistema'
         }, {
             onSuccess: async (newWorkspace) => {
                 playSound('success');

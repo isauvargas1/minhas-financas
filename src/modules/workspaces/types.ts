@@ -21,6 +21,11 @@ export interface Workspace {
   createdAt: string;
   updatedAt: string;
   themeColor?: string;
+  features?: {
+    investmentsV2?: {
+      enabled: boolean;
+    };
+  };
   
   // Campo injetado dinamicamente no front ao listar (não salvo no banco)
   myRole?: WorkspaceRole; 

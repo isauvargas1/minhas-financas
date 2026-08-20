@@ -1,6 +1,7 @@
 
 import { Transaction, Goal } from '../../types.ts';
 import { AllocationModel, AllocationDiagnostic, AllocationBucket, AllocationResult } from './types.ts';
+import { contributionAllocation } from '../investments/semantics.ts';
 
 // Dicionário padrão de mapeamento (pode ser expandido via config futuramente)
 const CATEGORY_MAP: Record<string, AllocationBucket> = {
@@ -54,16 +55,18 @@ export const calculateAllocation = (
             const bucket = CATEGORY_MAP[t.category] || 'estilo_vida';
             if (bucket in buckets) buckets[bucket as AllocationBucket] += t.value;
         } else if (t.type === 'investimento') {
+            const allocationValue = contributionAllocation(t);
+            if (allocationValue <= 0) return;
             // Se tem meta e a meta é categoria patrimônio/aposentadoria -> Aposentadoria
             // Senão se tem meta -> Objetivos
             // Senão -> Aposentadoria (longo prazo padrão)
             const linkedGoal = goals.find(g => g.id === t.goalId);
             if (linkedGoal?.category === 'patrimonio') {
-                buckets.aposentadoria += t.value;
+                buckets.aposentadoria += allocationValue;
             } else if (t.goalId) {
-                buckets.objetivos += t.value;
+                buckets.objetivos += allocationValue;
             } else {
-                buckets.aposentadoria += t.value;
+                buckets.aposentadoria += allocationValue;
             }
         }
     });

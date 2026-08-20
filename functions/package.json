@@ -3,7 +3,7 @@
   "scripts": {
     "lint": "eslint --ext .js,.ts .",
     "build": "tsc",
-    "test:unit": "npm run build && node --test \"lib/**/*.test.js\"",
+    "test:unit": "npm run build && node --test lib/creditCards/__tests__/domainConsistency.test.js lib/creditCards/__tests__/paymentLifecycle.test.js lib/creditCards/__tests__/purchaseSchedule.test.js lib/goals/__tests__/integrity.test.js lib/investments/__tests__/integrity.test.js lib/investments/__tests__/domainV2.test.js",
     "test:integration": "npm run build && node --test \"lib/**/*.integration.test.js\"",
     "build:watch": "tsc --watch",
     "serve": "npm run build && firebase emulators:start --only functions",

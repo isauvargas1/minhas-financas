@@ -72,9 +72,18 @@ export const getWorkspaceRoleForUser = async (
 
   if (memberSnap.exists) {
     const role = memberSnap.data()?.role;
+    const status = memberSnap.data()?.status;
 
-    if (isWorkspaceMemberRole(role)) {
+    if (isWorkspaceMemberRole(role) && (status === undefined || status === "active")) {
       return role;
+    }
+
+    if (status !== undefined && status !== "active") {
+      throw new CreditCardApplicationError(
+        "workspace_membership_required",
+        "A participação do usuário neste workspace não está ativa.",
+        {workspaceId}
+      );
     }
   }
 
