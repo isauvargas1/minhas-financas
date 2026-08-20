@@ -19,3 +19,12 @@ export const callInvestment = async <T extends CallablePayload>(name: string, pa
   ) as T;
   return (await callable(normalized)).data;
 };
+
+export const onboardInvestmentWorkspace = async (workspaceId: string) => {
+  const requestId = `investment-onboarding-v1:${workspaceId}`;
+  return callInvestment('onboardInvestmentWorkspace', {
+    workspaceId,
+    idempotencyKey: requestId,
+    correlationId: requestId,
+  });
+};

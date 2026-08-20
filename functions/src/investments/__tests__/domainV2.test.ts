@@ -7,6 +7,7 @@ import {
   settleInvestmentRedemptionPayloadSchema,
   saveInvestmentAccountPayloadSchema,
   saveInvestmentAssetPayloadSchema,
+  onboardInvestmentWorkspacePayloadSchema,
 } from "../contracts";
 import {profileTypeFromWorkspace} from "../infrastructure";
 import {currentValueForPosition, positionValueCents} from "../math";
@@ -103,6 +104,20 @@ test("cadastros patrimoniais aceitam somente campos públicos tipados", () => {
     ...common,
     name: "Ativo",
     assetType: "ação",
+  }));
+});
+
+test("onboarding exige IDs de retry tipados e rejeita campos extras", () => {
+  assert.equal(onboardInvestmentWorkspacePayloadSchema.parse({
+    workspaceId: "workspace-pf",
+    idempotencyKey: "onboarding-pf-version-1",
+    correlationId: "correlation-onboarding-pf-version-1",
+  }).workspaceId, "workspace-pf");
+  assert.throws(() => onboardInvestmentWorkspacePayloadSchema.parse({
+    workspaceId: "workspace-pf",
+    idempotencyKey: "onboarding-pf-version-1",
+    correlationId: "correlation-onboarding-pf-version-1",
+    role: "owner",
   }));
 });
 

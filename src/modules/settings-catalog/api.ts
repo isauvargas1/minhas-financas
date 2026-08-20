@@ -1,9 +1,15 @@
 import {
   collection,
   doc,
+  documentId,
   getDocs,
+  limit,
+  orderBy,
+  query,
   runTransaction,
-  serverTimestamp
+  serverTimestamp,
+  startAfter,
+  where,
 } from 'firebase/firestore';
 import {httpsCallable} from 'firebase/functions';
 
@@ -20,8 +26,13 @@ import {
 import type {
   SettingsCatalogCreateInput,
   SettingsCatalogItem,
+  SettingsCatalogListFilters,
+  SettingsCatalogPage,
+  SettingsCatalogPageCursor,
   SettingsCatalogUpdateInput
 } from './types';
+
+const SETTINGS_CATALOG_PAGE_SIZE = 30;
 
 const settingsCatalogCollection = (workspaceId: string) =>
   collection(db, 'workspaces', workspaceId, SETTINGS_CATALOG_COLLECTION);
@@ -85,6 +96,49 @@ export const listSettingsCatalog = async (
   });
 
   return sortSettingsCatalogItems(items);
+};
+
+export const listSettingsCatalogPage = async (
+  workspaceId: string | undefined,
+  filters: SettingsCatalogListFilters,
+  cursor: SettingsCatalogPageCursor | null,
+): Promise<SettingsCatalogPage> => {
+  if (!workspaceId || workspaceId === 'loading' || !filters.group) {
+    return {items: [], nextCursor: null};
+  }
+
+  const constraints = [
+    where('group', '==', filters.group),
+    ...(filters.transactionSubtype
+      ? [where('transactionSubtype', '==', filters.transactionSubtype)]
+      : []),
+    ...(!filters.includeInactive ? [where('status', '==', 'active')] : []),
+    orderBy('sortOrder', 'asc'),
+    orderBy('normalizedName', 'asc'),
+    orderBy(documentId(), 'asc'),
+    ...(cursor
+      ? [startAfter(cursor.sortOrder, cursor.normalizedName, cursor.id)]
+      : []),
+    limit(SETTINGS_CATALOG_PAGE_SIZE + 1),
+  ];
+  const snapshot = await getDocs(query(settingsCatalogCollection(workspaceId), ...constraints));
+  const pageDocs = snapshot.docs.slice(0, SETTINGS_CATALOG_PAGE_SIZE);
+  const items = pageDocs.map((itemDoc) => ({
+    id: itemDoc.id,
+    ...(itemDoc.data() as Omit<SettingsCatalogItem, 'id'>),
+  } as SettingsCatalogItem));
+  const last = pageDocs.at(-1);
+
+  return {
+    items,
+    nextCursor: snapshot.size > SETTINGS_CATALOG_PAGE_SIZE && last
+      ? {
+          sortOrder: Number(last.get('sortOrder') ?? 0),
+          normalizedName: String(last.get('normalizedName') ?? ''),
+          id: last.id,
+        }
+      : null,
+  };
 };
 
 export const createSettingsCatalogItem = async (
@@ -243,9 +297,11 @@ export const updateSettingsCatalogItem = async (
 
 export const deleteSettingsCatalogItem = async (
   id: string,
-  workspaceId?: string
+  workspaceId?: string,
+  userId?: string,
 ): Promise<void> => {
   assertValidWorkspaceId(workspaceId);
+  assertValidUserId(userId);
 
   await runTransaction(db, async (transaction) => {
     const itemRef = settingsCatalogDoc(workspaceId, id);
@@ -256,12 +312,10 @@ export const deleteSettingsCatalogItem = async (
     }
 
     const current = itemSnapshot.data() as Omit<SettingsCatalogItem, 'id'>;
-    const uniqueRef = settingsCatalogUniqueDoc(
-      workspaceId,
-      current.dedupeKey
-    );
-
-    transaction.delete(itemRef);
-    transaction.delete(uniqueRef);
+    transaction.update(itemRef, {
+      status: 'inactive',
+      updatedBy: userId,
+      updatedAt: serverTimestamp()
+    });
   });
 };

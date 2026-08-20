@@ -61,5 +61,11 @@ export const SETTINGS_CATALOG_GROUP_CONFIG: Record<
     workspaceScope: 'PJ',
     requiresTransactionSubtype: false,
     allowedTransactionSubtypes: []
-  }
+  },
+  investment_type: { workspaceScope: 'both', requiresTransactionSubtype: false, allowedTransactionSubtypes: [] },
+  investment_class: { workspaceScope: 'both', requiresTransactionSubtype: false, allowedTransactionSubtypes: [] },
+  investment_risk: { workspaceScope: 'both', requiresTransactionSubtype: false, allowedTransactionSubtypes: [] },
+  investment_liquidity: { workspaceScope: 'both', requiresTransactionSubtype: false, allowedTransactionSubtypes: [] },
+  investment_indexer: { workspaceScope: 'both', requiresTransactionSubtype: false, allowedTransactionSubtypes: [] },
+  investment_strategy: { workspaceScope: 'both', requiresTransactionSubtype: false, allowedTransactionSubtypes: [] }
 };

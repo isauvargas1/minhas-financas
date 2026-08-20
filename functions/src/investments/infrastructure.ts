@@ -16,6 +16,7 @@ import {
 } from "./paths";
 
 export type InvestmentBackendOperation =
+  | "onboardInvestmentWorkspace"
   | "saveInvestmentAccount"
   | "saveInvestmentAsset"
   | "createInvestmentContribution"

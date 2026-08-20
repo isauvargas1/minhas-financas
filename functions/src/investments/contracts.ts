@@ -214,6 +214,10 @@ export const saveInvestmentAssetPayloadSchema = z
   })
   .strict();
 
+export const onboardInvestmentWorkspacePayloadSchema = z
+  .object(v2BaseShape)
+  .strict();
+
 export const saveInvestmentRedemptionPayloadSchema = baseSchema
   .extend({
     transactionId: documentIdSchema.optional(),
@@ -309,4 +313,7 @@ export type SaveInvestmentAccountPayload = z.infer<
 >;
 export type SaveInvestmentAssetPayload = z.infer<
   typeof saveInvestmentAssetPayloadSchema
+>;
+export type OnboardInvestmentWorkspacePayload = z.infer<
+  typeof onboardInvestmentWorkspacePayloadSchema
 >;

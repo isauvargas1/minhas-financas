@@ -15,6 +15,7 @@ import {
   limit,
   orderBy,
   query,
+  serverTimestamp,
   setDoc,
   startAfter,
   updateDoc,
@@ -407,6 +408,40 @@ test('Rules M4 validam schema, RBAC, isolamento e paginação limitada', async (
       ownerA.db,
       `workspaces/${workspaceA}/investment_idempotency_keys/key-a`,
     )));
+
+    const customCatalogPath = `workspaces/${workspaceA}/settings_catalog/risk-custom`;
+    await setDoc(doc(ownerA.db, customCatalogPath), {
+      workspaceId: workspaceA,
+      group: 'investment_risk',
+      name: 'Muito baixo',
+      normalizedName: 'muito baixo',
+      dedupeKey: 'investment_risk::all::both::muito baixo',
+      workspaceScope: 'both',
+      sortOrder: 10,
+      status: 'active',
+      createdBy: users.ownerA.uid,
+      updatedBy: users.ownerA.uid,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+    assert.equal((await getDoc(doc(memberA.db, customCatalogPath))).exists(), true);
+    await assert.rejects(() => getDoc(doc(ownerB.db, customCatalogPath)));
+    await assert.rejects(() => deleteDoc(doc(ownerA.db, customCatalogPath)));
+    await assert.rejects(() => setDoc(doc(ownerA.db,
+      `workspaces/${workspaceA}/settings_catalog/strategy-forged`), {
+      workspaceId: workspaceA,
+      group: 'investment_strategy',
+      name: 'Estratégia forjada',
+      normalizedName: 'estrategia forjada',
+      dedupeKey: 'investment_strategy::all::PJ::estrategia forjada',
+      workspaceScope: 'PJ',
+      sortOrder: 10,
+      status: 'active',
+      createdBy: users.ownerA.uid,
+      updatedBy: users.ownerA.uid,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    }));
 
     assert.equal((await getDoc(doc(
       memberA.db,

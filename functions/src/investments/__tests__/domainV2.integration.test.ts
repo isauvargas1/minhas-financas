@@ -26,6 +26,7 @@ import {
   executeRecalculateGoalInvestmentProgress,
   executeRecalculateInvestmentPosition,
 } from "../rebuild";
+import {executeOnboardInvestmentWorkspace} from "../onboarding";
 
 if (!process.env.FIRESTORE_EMULATOR_HOST) {
   throw new Error(
@@ -373,6 +374,70 @@ test("CRUD seguro de conta e ativo é privilegiado, auditável e idempotente", a
     `workspaces/${WORKSPACE_A}/investment_event_logs`,
   ).where("correlationId", "in", [accountInput.correlationId, assetInput.correlationId]).get();
   assert.equal(events.size, 2);
+});
+
+test("onboarding PF/PJ é owner-only, idempotente e não duplica cadastros", async () => {
+  await seedWorkspace(WORKSPACE_A, OWNER_A, "PF");
+  await seedMember(WORKSPACE_A, ADMIN_A, "admin");
+  const legacyDedupeKey = "investment_type::all::both::renda fixa";
+  await db().doc(`workspaces/${WORKSPACE_A}/settings_catalog/legacy-fixed-income`).set({
+    workspaceId: WORKSPACE_A,
+    group: "investment_type",
+    name: "Renda fixa",
+    normalizedName: "renda fixa",
+    dedupeKey: legacyDedupeKey,
+    workspaceScope: "both",
+    sortOrder: 10,
+    status: "active",
+    createdBy: OWNER_A,
+    updatedBy: OWNER_A,
+    createdAt: Timestamp.now(),
+    updatedAt: Timestamp.now(),
+  });
+  const pfInput = {
+    workspaceId: WORKSPACE_A,
+    idempotencyKey: "m6-onboarding-pf-0001",
+    correlationId: "corr-m6-onboarding-pf-0001",
+  };
+  const first = await executeOnboardInvestmentWorkspace(auth(), pfInput);
+  assert.deepEqual(await executeOnboardInvestmentWorkspace(auth(), pfInput), first);
+  assert.equal(first.createdAccount, true);
+  assert.equal(first.createdAsset, true);
+  assert.equal((await db().collection(`workspaces/${WORKSPACE_A}/investment_accounts`).get()).size, 1);
+  assert.equal((await db().collection(`workspaces/${WORKSPACE_A}/investment_assets`).get()).size, 1);
+  assert.equal((await db().collection(`workspaces/${WORKSPACE_A}/settings_catalog`)
+    .where("dedupeKey", "==", legacyDedupeKey).get()).size, 1);
+  assert.equal((await db().doc(
+    `workspaces/${WORKSPACE_A}/settings_catalog_uniques/${legacyDedupeKey}`,
+  ).get()).data()?.catalogItemId, "legacy-fixed-income");
+  const pfClasses = await db().collection(`workspaces/${WORKSPACE_A}/settings_catalog`)
+    .where("group", "==", "investment_class").get();
+  assert.ok(pfClasses.size > 0);
+  assert.ok(pfClasses.docs.every((entry) => entry.data().workspaceScope === "PF"));
+  await assert.rejects(() => executeOnboardInvestmentWorkspace(
+    auth(WORKSPACE_A, ADMIN_A, "admin"),
+    {...pfInput, idempotencyKey: "m6-onboarding-admin-0001", correlationId: "corr-m6-onboarding-admin-0001"},
+  ));
+  await assert.rejects(() => executeOnboardInvestmentWorkspace(
+    auth(WORKSPACE_A, OWNER_A, "owner"),
+    {...pfInput, workspaceId: WORKSPACE_B, idempotencyKey: "m6-onboarding-forged-0001", correlationId: "corr-m6-onboarding-forged-0001"},
+  ));
+
+  await seedWorkspace(WORKSPACE_B, OWNER_B, "PJ");
+  await seedCatalog(WORKSPACE_B, "PJ");
+  const pj = await executeOnboardInvestmentWorkspace(auth(WORKSPACE_B, OWNER_B), {
+    workspaceId: WORKSPACE_B,
+    idempotencyKey: "m6-onboarding-pj-0001",
+    correlationId: "corr-m6-onboarding-pj-0001",
+  });
+  assert.equal(pj.createdAccount, false);
+  assert.equal(pj.createdAsset, false);
+  assert.equal((await db().collection(`workspaces/${WORKSPACE_B}/investment_accounts`).get()).size, 1);
+  assert.equal((await db().collection(`workspaces/${WORKSPACE_B}/investment_assets`).get()).size, 1);
+  const pjStrategies = await db().collection(`workspaces/${WORKSPACE_B}/settings_catalog`)
+    .where("group", "==", "investment_strategy").get();
+  assert.ok(pjStrategies.size > 0);
+  assert.ok(pjStrategies.docs.every((entry) => entry.data().workspaceScope === "PJ"));
 });
 
 test("concorrência, falha atômica e retry não excedem a posição", async () => {

@@ -7,7 +7,13 @@ export type SettingsCatalogGroup =
   | 'payment_method'
   | 'income_type'
   | 'wallet'
-  | 'cost_center';
+  | 'cost_center'
+  | 'investment_type'
+  | 'investment_class'
+  | 'investment_risk'
+  | 'investment_liquidity'
+  | 'investment_indexer'
+  | 'investment_strategy';
 
 export type SettingsCatalogStatus = 'active' | 'inactive';
 
@@ -44,6 +50,17 @@ export interface SettingsCatalogListFilters {
   transactionSubtype?: SettingsCatalogTransactionSubtype;
   workspaceScope?: SettingsCatalogWorkspaceScope;
   includeInactive?: boolean;
+}
+
+export interface SettingsCatalogPageCursor {
+  sortOrder: number;
+  normalizedName: string;
+  id: string;
+}
+
+export interface SettingsCatalogPage {
+  items: SettingsCatalogItem[];
+  nextCursor: SettingsCatalogPageCursor | null;
 }
 
 export interface SettingsCatalogCreateInput {

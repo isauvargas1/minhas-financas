@@ -6,6 +6,7 @@ import {
   createSettingsCatalogItem,
   deleteSettingsCatalogItem,
   listSettingsCatalog,
+  listSettingsCatalogPage,
   updateSettingsCatalogItem,
 } from './api';
 import { filterSettingsCatalogItems } from './utils';
@@ -13,6 +14,7 @@ import type {
   SettingsCatalogCreateInput,
   SettingsCatalogGroup,
   SettingsCatalogListFilters,
+  SettingsCatalogPageCursor,
   SettingsCatalogUpdateInput,
 } from './types';
 
@@ -76,6 +78,25 @@ export const useSettingsCatalogGroup = (
   });
 };
 
+export const useSettingsCatalogPage = (
+  filters: SettingsCatalogListFilters,
+  cursor: SettingsCatalogPageCursor | null,
+) => {
+  const { activeWorkspace } = useWorkspace();
+  const workspaceId = activeWorkspace?.id;
+
+  return useQuery({
+    queryKey: isWorkspaceReady(workspaceId)
+      ? [...SETTINGS_CATALOG_KEYS.workspace(workspaceId), 'page', filters, cursor]
+      : SETTINGS_CATALOG_KEYS.root,
+    queryFn: () => listSettingsCatalogPage(workspaceId, filters, cursor),
+    enabled: isWorkspaceReady(workspaceId) && Boolean(filters.group),
+    staleTime: 1000 * 60 * 5,
+    retry: 1,
+    refetchOnWindowFocus: false,
+  });
+};
+
 export const useCreateSettingsCatalogItem = () => {
   const { activeWorkspace } = useWorkspace();
   const { user } = useAuth();
@@ -122,6 +143,7 @@ export const useUpdateSettingsCatalogItem = () => {
 
 export const useDeleteSettingsCatalogItem = () => {
   const { activeWorkspace } = useWorkspace();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -130,7 +152,7 @@ export const useDeleteSettingsCatalogItem = () => {
         return Promise.reject(new Error('Workspace ativo não encontrado.'));
       }
 
-      return deleteSettingsCatalogItem(id, activeWorkspace.id);
+      return deleteSettingsCatalogItem(id, activeWorkspace.id, user?.uid);
     },
     onSuccess: async () => {
       await invalidateSettingsCatalogCache(queryClient, activeWorkspace?.id);

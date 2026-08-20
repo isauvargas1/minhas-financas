@@ -12,7 +12,13 @@ export type SettingsCatalogSectionKey =
   | 'paymentTypes'
   | 'incomeTypes'
   | 'wallets'
-  | 'costCenters';
+  | 'costCenters'
+  | 'investmentTypes'
+  | 'investmentClasses'
+  | 'investmentRisks'
+  | 'investmentLiquidity'
+  | 'investmentIndexers'
+  | 'investmentStrategies';
 
 export interface SettingsCatalogSectionDefinition {
   key: SettingsCatalogSectionKey;
@@ -93,9 +99,9 @@ export const SETTINGS_CATALOG_SECTION_LIST: SettingsCatalogSectionDefinition[] =
   {
     key: 'wallets',
     group: 'wallet',
-    title: 'Carteiras e contas',
+    title: 'Carteiras de caixa',
     shortTitle: 'Carteiras',
-    description: 'Locais de alocação financeira como conta, caixa, reserva ou carteira.',
+    description: 'Origens e destinos de caixa usados nos lançamentos. Contas de investimento são cadastradas separadamente.',
     emptyTitle: 'Nenhuma carteira cadastrada',
     emptyDescription: 'Cadastre carteiras para organizar saldos e origem dos recursos.',
     searchPlaceholder: 'Buscar carteira',
@@ -113,6 +119,36 @@ export const SETTINGS_CATALOG_SECTION_LIST: SettingsCatalogSectionDefinition[] =
     searchPlaceholder: 'Buscar centro de custo',
     supportsTransactionSubtype: false,
     workspaceTypes: ['PJ']
+  },
+  {
+    key: 'investmentTypes', group: 'investment_type', title: 'Tipos de investimento', shortTitle: 'Tipos de investimento',
+    description: 'Tipos customizáveis para classificar ativos, sem substituir o cadastro do ativo.', emptyTitle: 'Nenhum tipo de investimento cadastrado',
+    emptyDescription: 'Crie um tipo para organizar os ativos do workspace.', searchPlaceholder: 'Buscar tipo de investimento', supportsTransactionSubtype: false, workspaceTypes: ['PF', 'PJ']
+  },
+  {
+    key: 'investmentClasses', group: 'investment_class', title: 'Classes patrimoniais', shortTitle: 'Classes patrimoniais',
+    description: 'Classes adequadas ao contexto PF ou PJ.', emptyTitle: 'Nenhuma classe patrimonial cadastrada',
+    emptyDescription: 'Crie uma classe para estruturar o patrimônio.', searchPlaceholder: 'Buscar classe patrimonial', supportsTransactionSubtype: false, workspaceTypes: ['PF', 'PJ']
+  },
+  {
+    key: 'investmentRisks', group: 'investment_risk', title: 'Níveis de risco', shortTitle: 'Risco',
+    description: 'Níveis usados para comunicar o risco dos ativos.', emptyTitle: 'Nenhum nível de risco cadastrado',
+    emptyDescription: 'Crie níveis de risco claros para o workspace.', searchPlaceholder: 'Buscar nível de risco', supportsTransactionSubtype: false, workspaceTypes: ['PF', 'PJ']
+  },
+  {
+    key: 'investmentLiquidity', group: 'investment_liquidity', title: 'Liquidez', shortTitle: 'Liquidez',
+    description: 'Prazos de disponibilidade dos recursos.', emptyTitle: 'Nenhum prazo de liquidez cadastrado',
+    emptyDescription: 'Crie opções de liquidez para os ativos.', searchPlaceholder: 'Buscar liquidez', supportsTransactionSubtype: false, workspaceTypes: ['PF', 'PJ']
+  },
+  {
+    key: 'investmentIndexers', group: 'investment_indexer', title: 'Indexadores', shortTitle: 'Indexadores',
+    description: 'Referências de remuneração dos investimentos.', emptyTitle: 'Nenhum indexador cadastrado',
+    emptyDescription: 'Crie os indexadores utilizados pelo workspace.', searchPlaceholder: 'Buscar indexador', supportsTransactionSubtype: false, workspaceTypes: ['PF', 'PJ']
+  },
+  {
+    key: 'investmentStrategies', group: 'investment_strategy', title: 'Estratégias', shortTitle: 'Estratégias',
+    description: 'Estratégias patrimoniais adequadas ao contexto PF ou PJ.', emptyTitle: 'Nenhuma estratégia cadastrada',
+    emptyDescription: 'Crie estratégias para orientar a organização patrimonial.', searchPlaceholder: 'Buscar estratégia', supportsTransactionSubtype: false, workspaceTypes: ['PF', 'PJ']
   }
 ];
 

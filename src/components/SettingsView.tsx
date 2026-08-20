@@ -21,6 +21,7 @@ import { useUpdateWorkspace } from '../modules/workspaces/hooks.ts';
 import { useSettingsCatalogScreen } from '../modules/settings-catalog/useSettingsCatalogScreen.ts';
 import type { SettingsCatalogItem, SettingsCatalogStatus, SettingsCatalogTransactionSubtype } from '../modules/settings-catalog/types.ts';
 import { createPortal } from 'react-dom';
+import {InvestmentOnboardingCard} from '../modules/investments/components/InvestmentOnboardingCard.tsx';
 
 interface SettingsViewProps {
     data?: {
@@ -183,6 +184,10 @@ const SettingsView: React.FC<SettingsViewProps> = () => {
         error,
         isLoading,
         isFetching,
+        hasPreviousPage,
+        hasNextPage,
+        firstPage,
+        nextPage,
         isModalOpen,
         modalMode,
         selectedItem,
@@ -365,9 +370,7 @@ const sortedItems = useMemo(() => {
 }, [items, sortField, sortDirection]);
 
     const queryErrorMessage =
-        error instanceof Error
-            ? error.message
-            : 'Não foi possível carregar os cadastros do workspace.';
+        'Não foi possível carregar os cadastros. Tente novamente em instantes.';
 
     const renderIcon = (
         iconName?: string,
@@ -699,7 +702,11 @@ const sortedItems = useMemo(() => {
                     </div>
                 </div>
 
-               
+                <InvestmentOnboardingCard
+                    workspaceId={activeWorkspace.id}
+                    profileType={activeWorkspace.type}
+                    isOwner={activeWorkspace.myRole === 'owner'}
+                />
 
            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
     <div className="group relative overflow-hidden rounded-2xl border border-border bg-surface p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/20 hover:shadow-[0_14px_28px_rgba(2,6,23,0.16)]">
@@ -709,13 +716,13 @@ const sortedItems = useMemo(() => {
         <div className="relative flex items-start justify-between gap-4">
             <div>
                 <p className="text-[11px] font-black uppercase tracking-[0.18em] text-muted">
-                    Total
+                    Nesta página
                 </p>
                 <p className="mt-3 text-3xl font-black tracking-tight text-on-surface">
                     {stats.total}
                 </p>
                 <p className="mt-1 text-xs text-muted">
-                    Itens cadastrados
+                    Itens exibidos
                 </p>
             </div>
 
@@ -738,7 +745,7 @@ const sortedItems = useMemo(() => {
                     {stats.active}
                 </p>
                 <p className="mt-1 text-xs text-muted">
-                    Em uso no catálogo
+                    Ativos nesta página
                 </p>
             </div>
 
@@ -761,7 +768,7 @@ const sortedItems = useMemo(() => {
                     {stats.inactive}
                 </p>
                 <p className="mt-1 text-xs text-muted">
-                    Ocultos ou pausados
+                    Inativos nesta página
                 </p>
             </div>
 
@@ -932,6 +939,27 @@ const sortedItems = useMemo(() => {
                                     />
                                     Exibir inativos
                                 </label>
+                            </div>
+                            <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-muted">
+                                <span>A busca considera os itens carregados nesta página.</span>
+                                <div className="flex gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={firstPage}
+                                        disabled={!hasPreviousPage || isFetching}
+                                        className="rounded-lg border border-border px-3 py-2 font-semibold text-on-surface disabled:cursor-not-allowed disabled:opacity-50"
+                                    >
+                                        Primeira página
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={nextPage}
+                                        disabled={!hasNextPage || isFetching}
+                                        className="rounded-lg border border-border px-3 py-2 font-semibold text-on-surface disabled:cursor-not-allowed disabled:opacity-50"
+                                    >
+                                        Próxima página
+                                    </button>
+                                </div>
                             </div>
 
                             {activeSection?.supportsTransactionSubtype && (
@@ -1104,7 +1132,7 @@ const sortedItems = useMemo(() => {
                                                                 className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-red-200 hover:bg-red-50 text-sm font-medium text-red-600 transition-colors"
                                                             >
                                                                 <DeleteIcon className="h-4 w-4" />
-                                                                Excluir
+                                                                Inativar
                                                             </button>
                                                         </div>
                                                     </div>
@@ -1252,7 +1280,7 @@ const sortedItems = useMemo(() => {
                                                                         className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-red-200 hover:bg-red-50 text-sm font-medium text-red-600 transition-colors"
                                                                     >
                                                                         <DeleteIcon className="h-4 w-4" />
-                                                                        Excluir
+                                                                        Inativar
                                                                     </button>
                                                                 </div>
                                                             </td>
@@ -1573,10 +1601,10 @@ const sortedItems = useMemo(() => {
                         </div>
 
                         <h3 className="text-lg font-bold text-on-surface">
-                            Excluir cadastro
+                            Inativar cadastro
                         </h3>
                         <p className="text-sm text-muted mt-2">
-                            Tem certeza que deseja excluir <strong>{itemToDelete.name}</strong>?
+                            Tem certeza que deseja inativar <strong>{itemToDelete.name}</strong>? Referências históricas serão preservadas.
                             Esta ação também libera a chave de unicidade desse item.
                         </p>
 
@@ -1593,7 +1621,7 @@ const sortedItems = useMemo(() => {
                                 onClick={handleConfirmDelete}
                                 className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold"
                             >
-                                Excluir item
+                                Inativar item
                             </button>
                         </div>
                     </div>

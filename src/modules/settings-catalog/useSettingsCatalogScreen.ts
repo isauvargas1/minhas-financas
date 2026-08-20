@@ -4,7 +4,7 @@ import { useWorkspace } from '../../contexts/WorkspaceContext';
 import {
   useCreateSettingsCatalogItem,
   useDeleteSettingsCatalogItem,
-  useSettingsCatalog,
+  useSettingsCatalogPage,
   useUpdateSettingsCatalogItem
 } from './hooks';
 import {
@@ -18,6 +18,7 @@ import {
 import type {
   SettingsCatalogCreateInput,
   SettingsCatalogItem,
+  SettingsCatalogPageCursor,
   SettingsCatalogStatus,
   SettingsCatalogTransactionSubtype,
   SettingsCatalogUpdateInput
@@ -61,6 +62,7 @@ export const useSettingsCatalogScreen = () => {
   const [modalMode, setModalMode] = useState<ModalMode>('create');
   const [selectedItem, setSelectedItem] = useState<SettingsCatalogItem | null>(null);
   const [feedback, setFeedback] = useState<FeedbackState>(null);
+  const [pageCursor, setPageCursor] = useState<SettingsCatalogPageCursor | null>(null);
 
   useEffect(() => {
     const activeSectionExists = sections.some(
@@ -75,24 +77,31 @@ export const useSettingsCatalogScreen = () => {
   const activeSection =
     getSettingsCatalogSectionByKey(activeSectionKey) ?? sections[0];
 
-  const query = useSettingsCatalog({
+  const query = useSettingsCatalogPage({
     group: activeSection?.group,
     includeInactive,
     transactionSubtype: activeSection?.supportsTransactionSubtype
       ? transactionSubtype
       : undefined
-  });
+  }, pageCursor);
+
+  useEffect(() => {
+    setPageCursor(null);
+  }, [activeSectionKey, includeInactive, transactionSubtype, activeWorkspace.id]);
 
   const items = useMemo(() => {
-    const baseItems = query.data ?? [];
+    const baseItems = query.data?.items ?? [];
     const visibleItems = baseItems.filter((item) =>
       matchesSettingsCatalogSearch(item, search)
     );
 
     return sortSettingsCatalogForDisplay(visibleItems);
-  }, [query.data, search]);
+  }, [query.data?.items, search]);
 
-  const stats = useMemo(() => buildSettingsCatalogStats(query.data ?? []), [query.data]);
+  const stats = useMemo(
+    () => buildSettingsCatalogStats(query.data?.items ?? []),
+    [query.data?.items],
+  );
 
   const createMutation = useCreateSettingsCatalogItem();
   const updateMutation = useUpdateSettingsCatalogItem();
@@ -153,7 +162,11 @@ export const useSettingsCatalogScreen = () => {
         const payload: SettingsCatalogCreateInput = {
           group: activeSection.group,
           name: values.name,
-          workspaceScope: activeSection.group === 'cost_center' ? 'PJ' : 'both',
+          workspaceScope: activeSection.group === 'cost_center'
+            ? 'PJ'
+            : activeSection.group === 'investment_class' || activeSection.group === 'investment_strategy'
+              ? activeWorkspace.type
+              : 'both',
           transactionSubtype: activeSection.supportsTransactionSubtype
             ? transactionSubtype
             : undefined,
@@ -173,15 +186,10 @@ export const useSettingsCatalogScreen = () => {
       }
 
       closeModal();
-    } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : 'Não foi possível salvar o cadastro.';
-
+    } catch {
       setFeedback({
         type: 'error',
-        message
+        message: 'Não foi possível salvar o cadastro. Revise os dados e tente novamente.'
       });
     }
   };
@@ -194,17 +202,12 @@ export const useSettingsCatalogScreen = () => {
 
       setFeedback({
         type: 'success',
-        message: `“${item.name}” foi removido com sucesso.`
+          message: `“${item.name}” foi inativado com sucesso.`
       });
-    } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : 'Não foi possível remover o cadastro.';
-
+    } catch {
       setFeedback({
         type: 'error',
-        message
+        message: 'Não foi possível inativar o cadastro. Tente novamente.'
       });
     }
   };
@@ -227,13 +230,19 @@ export const useSettingsCatalogScreen = () => {
     transactionSubtype,
     setTransactionSubtype,
     items,
-    rawItems: query.data ?? [],
+    rawItems: query.data?.items ?? [],
     stats,
     feedback,
     clearFeedback,
     error: query.error,
     isLoading,
     isFetching: query.isFetching,
+    hasPreviousPage: pageCursor !== null,
+    hasNextPage: query.data?.nextCursor !== null,
+    firstPage: () => setPageCursor(null),
+    nextPage: () => {
+      if (query.data?.nextCursor) setPageCursor(query.data.nextCursor);
+    },
     isModalOpen,
     modalMode,
     selectedItem,

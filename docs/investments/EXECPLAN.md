@@ -14,7 +14,7 @@ O M0 estabelece apenas baseline, comandos de verificação e decisões executáv
 - [x] M3 — domínio backend oficial, operações críticas, rebuild paginado e auditoria implementados e validados.
 - [x] M4 — Firestore Rules, índices e hardening validados para `investment_*`.
 - [x] M5 — leitura e experiência frontend.
-- [ ] M6 — integração com metas, relatórios e allocations.
+- [x] M6 — Cadastros e onboarding PF/PJ validados.
 - [ ] M7 — hardening, observabilidade, E2E e gate final.
 
 ## Dependências confirmadas no M0
@@ -83,12 +83,14 @@ Delta executado neste marco:
 6. Risco residual: workspaces com positions V2 anteriores à projeção `investment_summaries/current` precisam de rebuild operacional antes de habilitar a flag; a UI sinaliza resumo indisponível e não calcula totais por full-scan.
 7. O gate final executou `verify:all` integralmente: typecheck, builds frontend/Functions, 33 testes unitários de Functions, 3 testes unitários de semântica, integrações e Rules no Emulator e 9 E2E Playwright passaram sem falhas ou skips. O smoke legado também confirmou aporte/meta após invalidar pontualmente o catálogo semeado para eliminar a corrida de cache.
 
-### M6 — metas, relatórios e allocations
+### M6 — Cadastros e onboarding PF/PJ
 
-1. Trocar incrementos frágeis de `goals.currentAmount` por projeção reconstruível a partir da fonte oficial.
-2. Integrar relatórios sem dupla contagem com `transactions` e projeções de cartão.
-3. Separar fluxo de caixa, patrimônio, principal, rendimento realizado e valorização em todos os consumidores.
-4. Reconciliar relatórios e allocations contra reconstrução independente por PF/PJ.
+1. `InvestmentAccount` e `InvestmentAsset` permanecem em coleções próprias e são preparados por callable owner-only, transacional, idempotente e auditável. Carteiras do catálogo continuam representando caixa e a UI explicita que não são contas de investimento.
+2. Tipo, classe, risco, liquidez, indexador e estratégia passam a grupos customizáveis de `settings_catalog`; classe e estratégia respeitam PF/PJ. O seed usa chaves determinísticas, adota itens legados que ainda não possuíam lock e não duplica conta/ativo ativo.
+3. Workspace novo de owner recebe conta e ativo ativos para o primeiro aporte. Workspace antigo pode executar a mesma rotina em Configurações > Cadastros; admin/member não podem executá-la, e registros arquivados permanecem preservados.
+4. Exclusão de catálogo foi substituída por inativação; Rules bloqueiam hard delete de item e lock. A tela atual mantém seus grupos, adiciona taxonomias patrimoniais e usa listagem de 30 itens com cursor e índices correspondentes; o `TransactionModal` legado não foi alterado.
+5. Contratos mantêm IDs Firestore como `string`, moeda BRL e perfil PF/PJ explícito. Mensagens novas são seguras e em pt-BR, com estados de carregamento, erro e sucesso.
+6. Testes cobrem contrato estrito, seed/replay/dedupe, item legado sem lock, archived/active, owner/admin, tenant forjado, PF/PJ, Rules e E2E da tela existente. Typecheck, builds, testes direcionados, Auth/Firestore Emulator e Playwright passaram sem skips.
 
 ### M7 — hardening
 

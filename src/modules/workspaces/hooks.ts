@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as api from './api';
 import { Workspace, WorkspaceMember, WorkspaceRole, WorkspaceType } from './types';
+import {onboardInvestmentWorkspace} from '../investments/persistence/callableApi';
 
 export const keys = {
     all: ['workspaces'],
@@ -11,13 +12,16 @@ export const keys = {
 export const useCreateWorkspace = () => {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (input: { type: WorkspaceType; name: string; ownerId: string; email: string; cnpj?: string }) =>
-            api.createWorkspace({ 
+        mutationFn: async (input: { type: WorkspaceType; name: string; ownerId: string; email: string; cnpj?: string }) => {
+            const workspace = await api.createWorkspace({
                 type: input.type, 
                 name: input.name, 
                 ownerId: input.ownerId,
                 cnpj: input.cnpj
-            }, input.email),
+            }, input.email);
+            await onboardInvestmentWorkspace(workspace.id);
+            return workspace;
+        },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: keys.all });
         }

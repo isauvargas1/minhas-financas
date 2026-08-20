@@ -83,7 +83,13 @@ service cloud.firestore {
         'payment_method',
         'income_type',
         'wallet',
-        'cost_center'
+        'cost_center',
+        'investment_type',
+        'investment_class',
+        'investment_risk',
+        'investment_liquidity',
+        'investment_indexer',
+        'investment_strategy'
       ];
     }
 
@@ -132,10 +138,12 @@ service cloud.firestore {
       );
     }
 
-    function isCatalogWorkspaceScopeConsistent(data) {
+    function isCatalogWorkspaceScopeConsistent(data, workspaceId) {
       return (
         (data.group == 'cost_center' && data.workspaceScope == 'PJ') ||
-        (data.group != 'cost_center' && data.workspaceScope == 'both')
+        (data.group in ['investment_class', 'investment_strategy'] &&
+          data.workspaceScope == get(/databases/$(database)/documents/workspaces/$(workspaceId)).data.type) ||
+        (!(data.group in ['cost_center', 'investment_class', 'investment_strategy']) && data.workspaceScope == 'both')
       );
     }
 
@@ -151,7 +159,7 @@ service cloud.firestore {
         && data.dedupeKey is string
         && data.dedupeKey.size() > 0
         && isValidCatalogWorkspaceScope(data.workspaceScope)
-        && isCatalogWorkspaceScopeConsistent(data)
+        && isCatalogWorkspaceScopeConsistent(data, workspaceId)
         && isCatalogSubtypeConsistent(data)
         && (!data.keys().hasAny(['icon']) || data.icon is string)
         && (!data.keys().hasAny(['color']) || isValidCatalogColor(data.color))
@@ -944,7 +952,7 @@ match /split_shares/{docId} {
           workspaceId
         );
 
-        allow delete: if canManageWorkspaceCatalog(workspaceId);
+        allow delete: if false;
       }
 
       match /settings_catalog_uniques/{dedupeKey} {
@@ -962,7 +970,7 @@ match /split_shares/{docId} {
           request.resource.data.createdBy == resource.data.createdBy &&
           request.resource.data.updatedBy == request.auth.uid;
 
-        allow delete: if canManageWorkspaceCatalog(workspaceId);
+        allow delete: if false;
       }
 
           match /{subCollection}/{docId} {

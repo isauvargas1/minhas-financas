@@ -9,6 +9,7 @@ import {
   createInvestmentContributionPayloadSchema,
   createInvestmentRedemptionPayloadSchema,
   linkInvestmentToGoalPayloadSchema,
+  onboardInvestmentWorkspacePayloadSchema,
   recalculateGoalInvestmentProgressPayloadSchema,
   recalculateInvestmentPositionPayloadSchema,
   reverseInvestmentRedemptionPayloadSchema,
@@ -41,6 +42,7 @@ import {
   executeRecalculateGoalInvestmentProgress,
   executeRecalculateInvestmentPosition,
 } from "./rebuild";
+import {executeOnboardInvestmentWorkspace} from "./onboarding";
 
 const ALL_ACTIVE_ROLES: Array<"owner" | "admin" | "member"> = [
   "owner",
@@ -103,6 +105,27 @@ const privilegedCallable = <TPayload extends { workspaceId: string }>(
         throw toInvestmentHttpsError(error);
       }
     });
+
+const ownerCallable = <TPayload extends { workspaceId: string }>(
+  schema: z.ZodType<TPayload>,
+  operation: (
+    auth: Awaited<ReturnType<typeof requireWorkspaceRole>>,
+    payload: TPayload,
+  ) => Promise<Record<string, unknown>>,
+) => onCall(async (request) => {
+  try {
+    const payload = schema.parse(request.data);
+    const auth = await requireWorkspaceRole(request, payload.workspaceId, ["owner"]);
+    return await operation(auth, payload);
+  } catch (error) {
+    throw toInvestmentHttpsError(error);
+  }
+});
+
+export const onboardInvestmentWorkspace = ownerCallable(
+  onboardInvestmentWorkspacePayloadSchema,
+  executeOnboardInvestmentWorkspace,
+);
 
 export const createInvestmentContribution = callable(
   createInvestmentContributionPayloadSchema,

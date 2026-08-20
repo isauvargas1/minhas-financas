@@ -5,6 +5,7 @@ import { listWorkspaces, createWorkspace } from '../modules/workspaces/api';
 import { useTheme } from './ThemeContext';
 import { useAuth } from './AuthContext';
 import {seedLegacySettingsCatalog} from '../modules/settings-catalog/api';
+import {onboardInvestmentWorkspace} from '../modules/investments/persistence/callableApi';
 
 interface WorkspaceContextValue {
     workspaces: Workspace[];
@@ -44,6 +45,7 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children 
         setIsLoading(true);
         try {
             let list = await listWorkspaces(user.uid);
+            let createdDefaultWorkspace = false;
 
             if (list.length === 0) {
                 console.log("Novo usuário detectado. Criando workspace padrão...");
@@ -56,6 +58,7 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children 
                 }, user.email || 'usuario-sem-email@sistema'); 
 
                 list = [defaultWorkspace];
+                createdDefaultWorkspace = true;
             }
 
             setWorkspaces(list);
@@ -68,7 +71,7 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children 
                 selected = list[0];
             }
 
-            handleWorkspaceSelection(selected);
+            handleWorkspaceSelection(selected, createdDefaultWorkspace);
 
         } catch (error) {
             console.error("Falha crítica ao carregar workspaces", error);
@@ -86,7 +89,7 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children 
         }
     }, [user]);
 
-    const handleWorkspaceSelection = (workspace: Workspace) => {
+    const handleWorkspaceSelection = (workspace: Workspace, onboardNewWorkspace = false) => {
         setActiveWorkspace(workspace);
         if (user) {
             localStorage.setItem(`lastWorkspaceId_${user.uid}`, workspace.id);
@@ -110,6 +113,11 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children 
                 .catch((error) => {
                     console.error('Não foi possível preparar o catálogo inicial do workspace:', error);
                 });
+        }
+        if (onboardNewWorkspace && workspace.myRole === 'owner') {
+            void onboardInvestmentWorkspace(workspace.id).catch((error) => {
+                console.error('Não foi possível preparar os cadastros de investimentos:', error);
+            });
         }
     };
 
