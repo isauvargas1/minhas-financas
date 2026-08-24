@@ -4,6 +4,7 @@ import {FieldValue, Timestamp} from "firebase-admin/firestore";
 
 import type {WorkspaceAuthorizationContext} from "../creditCards/auth";
 import {CreditCardApplicationError} from "../creditCards/errors";
+import {assertLegacyInvestmentTrailOpen} from "../shared/featureFlags";
 import {toMinorUnits} from "../goals/operations";
 import type {
   CancelInvestmentRedemptionPayload,
@@ -98,6 +99,7 @@ const writeAudit = (
   auth: WorkspaceAuthorizationContext,
   operation: InvestmentOperation,
   idempotencyRef: admin.firestore.DocumentReference,
+  correlationId: string,
   targetId: string,
   details: Record<string, unknown>,
 ) => {
@@ -110,7 +112,7 @@ const writeAudit = (
       actorRole: auth.role,
       operation,
       targetId,
-      correlationId: idempotencyRef.id,
+      correlationId,
       details,
       timestamp: FieldValue.serverTimestamp(),
     },
@@ -246,6 +248,7 @@ export const executeSaveInvestmentRedemption = async (
     transaction.get(workspaceDocument),
   ]);
   const source = assertEligibleSource(sourceSnapshot);
+  assertLegacyInvestmentTrailOpen(workspaceSnapshot.data());
   assertLegacyCurrency(workspaceSnapshot.data());
   const existing = redemptionSnapshot.data();
   if (existing) {
@@ -392,7 +395,7 @@ export const executeSaveInvestmentRedemption = async (
     netCashCents,
     remainingPrincipalCents: remainingPrincipalCents - (isSettled ? principalCents : 0),
   };
-  writeAudit(transaction, auth, "saveInvestmentRedemption", reservation.ref, redemptionId, {
+  writeAudit(transaction, auth, "saveInvestmentRedemption", reservation.ref, payload.correlationId, redemptionId, {
     profileType,
     before: existing ?? null,
     after: persisted,
@@ -417,6 +420,7 @@ export const executeCancelInvestmentRedemption = async (
     transaction.get(ref),
     transaction.get(workspaceRef),
   ]);
+  assertLegacyInvestmentTrailOpen(workspaceSnapshot.data());
   const current = snapshot.data();
   if (!snapshot.exists || current?.investmentMetadata?.investmentOperation !== "redemption") {
     throw new CreditCardApplicationError("not_found", "Resgate não encontrado.");
@@ -439,7 +443,7 @@ export const executeCancelInvestmentRedemption = async (
     "updatedAt", FieldValue.serverTimestamp(),
   );
   const result = {success: true, transactionId: payload.transactionId, status: "cancelled"};
-  writeAudit(transaction, auth, "cancelInvestmentRedemption", reservation.ref, payload.transactionId, {
+  writeAudit(transaction, auth, "cancelInvestmentRedemption", reservation.ref, payload.correlationId, payload.transactionId, {
     profileType,
     before: current,
     afterStatus: "cancelled",
@@ -469,6 +473,7 @@ export const executeReverseInvestmentRedemption = async (
     throw new CreditCardApplicationError("not_found", "Resgate não encontrado.");
   }
   const redemptionData = redemption as admin.firestore.DocumentData;
+  assertLegacyInvestmentTrailOpen(workspaceSnapshot.data());
   assertLegacyCurrency(workspaceSnapshot.data());
   if (metadata.status !== "settled" || metadata.reversalMovementId) {
     throw new CreditCardApplicationError(
@@ -566,7 +571,7 @@ export const executeReverseInvestmentRedemption = async (
     reversalMovementId: reversalId,
     status: "reversed",
   };
-  writeAudit(transaction, auth, "reverseInvestmentRedemption", reservation.ref, payload.transactionId, {
+  writeAudit(transaction, auth, "reverseInvestmentRedemption", reservation.ref, payload.correlationId, payload.transactionId, {
     profileType,
     sourceMovementId: metadata.sourceMovementId,
     reversalMovementId: reversalId,

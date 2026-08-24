@@ -20,14 +20,19 @@ import {
 import {addExact, currentValueForPosition} from "./math";
 import {integerOrZero, positionState, writePosition} from "./operationsV2";
 import {
+  writeInvestmentAllocationProjections,
+  writeInvestmentValuationReportPeriod,
+} from "./reporting";
+import {
   INVESTMENT_COLLECTIONS,
   investmentCollection,
   investmentDoc,
   investmentFirestore,
   investmentGoalDoc,
 } from "./paths";
-
-const REBUILD_ROLES = ["owner", "admin"] as const;
+import {recordInvestmentOperationMetric} from "./observability";
+import {readInvestmentPeriodContext} from "./reporting";
+import {investmentOperationRoles} from "./writeStrategy";
 
 interface RebuildTotals {
   quantityMicros: number;
@@ -129,7 +134,7 @@ export const executeRecalculateInvestmentPosition = async (
     const authorization = await authorizeInvestmentTransaction(
       transaction,
       auth,
-      [...REBUILD_ROLES],
+      investmentOperationRoles(operation),
     );
     const reservation = await reserveInvestmentIdempotency(
       transaction,
@@ -297,10 +302,15 @@ export const executeRecalculateInvestmentPosition = async (
       integerOrZero(existingRebuild?.processedCount) + pageDocuments.length;
     let valuationSnapshot: admin.firestore.QueryDocumentSnapshot | undefined;
     if (!hasMore) {
+      // Filtra por conta **e** ativo: a valoração pertence à posição que a
+      // recebeu. Buscando só por `assetId`, o mesmo ativo custodiado em duas
+      // contas reconstruía as duas com o preço de uma delas, divergindo do
+      // caminho incremental e acusando deriva inexistente no ledger.
       const valuationQuery = investmentCollection(
         auth.workspaceId,
         INVESTMENT_COLLECTIONS.valuations,
       )
+        .where("accountId", "==", payload.accountId)
         .where("assetId", "==", payload.assetId)
         .where("effectiveAt", "<=", cutoffAt)
         .orderBy("effectiveAt", "desc")
@@ -308,6 +318,15 @@ export const executeRecalculateInvestmentPosition = async (
         .limit(1);
       valuationSnapshot = (await transaction.get(valuationQuery)).docs[0];
     }
+    // Contexto do período lido ainda na fase de leitura da transação.
+    const periodContext = hasMore ?
+      undefined :
+      await readInvestmentPeriodContext(
+        transaction,
+        auth.workspaceId,
+        (valuationSnapshot?.data()?.effectiveAt as Timestamp | undefined) ??
+          cutoffAt,
+      );
     const valuation = valuationSnapshot?.data();
     const valuationUnitPriceMicros =
       valuation && Number.isSafeInteger(valuation.unitPriceMicros) ?
@@ -386,6 +405,30 @@ export const executeRecalculateInvestmentPosition = async (
         nextCursor?.orderedAt ?? cutoffAt,
         auth.uid,
       );
+      writeInvestmentAllocationProjections(
+        transaction,
+        auth.workspaceId,
+        authorization.profileType,
+        auth.uid,
+        accountSnapshot.data() ?? {},
+        assetSnapshot.data() ?? {},
+        currentPosition,
+        rebuiltState,
+        {
+          previous: currentPosition.goalId === linkedGoalId ?
+            goalSnapshot?.data()?.name as string | undefined : undefined,
+          next: goalSnapshot?.data()?.name as string | undefined,
+        },
+      );
+      if (periodContext) writeInvestmentValuationReportPeriod(
+        transaction,
+        auth.workspaceId,
+        authorization.profileType,
+        auth.uid,
+        rebuiltState.valuationEffectiveAt ?? cutoffAt,
+        rebuiltState.currentValueCents - currentPosition.currentValueCents,
+        periodContext,
+      );
       if (goalSnapshot) {
         const goal = goalSnapshot.data() ?? {};
         transaction.update(goalSnapshot.ref, {
@@ -408,6 +451,13 @@ export const executeRecalculateInvestmentPosition = async (
       pageProcessedCount: pageDocuments.length,
       totals,
     };
+    recordInvestmentOperationMetric(transaction, {
+      workspaceId: auth.workspaceId,
+      operation,
+      actorId: auth.uid,
+      correlationId: payload.correlationId,
+      idempotencyKey: payload.idempotencyKey,
+    });
     recordInvestmentEvent(
       transaction,
       auth,
@@ -454,7 +504,7 @@ export const executeRecalculateGoalInvestmentProgress = async (
     const authorization = await authorizeInvestmentTransaction(
       transaction,
       auth,
-      [...REBUILD_ROLES],
+      investmentOperationRoles(operation),
     );
     const reservation = await reserveInvestmentIdempotency(
       transaction,
@@ -596,6 +646,13 @@ export const executeRecalculateGoalInvestmentProgress = async (
       netContributionCents: totals.netContributionCents,
       currentValueCents: totals.currentValueCents,
     };
+    recordInvestmentOperationMetric(transaction, {
+      workspaceId: auth.workspaceId,
+      operation,
+      actorId: auth.uid,
+      correlationId: payload.correlationId,
+      idempotencyKey: payload.idempotencyKey,
+    });
     recordInvestmentEvent(
       transaction,
       auth,

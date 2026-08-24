@@ -1,5 +1,6 @@
 import {onSchedule} from "firebase-functions/v2/scheduler";
 import * as admin from "firebase-admin";
+import {FieldPath} from "firebase-admin/firestore";
 
 import {
   cardFinancialEventDoc,
@@ -24,6 +25,11 @@ interface InvoiceData {
   remainingAmount?: number;
   itemsCount?: number;
 }
+
+/** Faturas lidas por página, para a execução não crescer sem limite. */
+const INVOICE_ALERT_PAGE_SIZE = 200;
+/** Teto de páginas por execução. */
+const INVOICE_ALERT_MAX_PAGES = 50;
 
 const DUE_SOON_DAYS = 3;
 
@@ -315,20 +321,29 @@ export const processCreditCardInvoiceOperationalAlerts = onSchedule(
     const todayIsoDate = getSaoPauloTodayIsoDate();
     const windowEndIsoDate = addDaysToIsoDate(todayIsoDate, DUE_SOON_DAYS);
 
-    const snapshot = await db
+    // A consulta já é seletiva por status e vencimento, mas rodava sem
+    // `limit`: uma base grande traria todas as faturas de todos os tenants
+    // numa leitura só, a cada execução. Agora é paginada por cursor, com teto
+    // por execução.
+    let processedCount = 0;
+    let failedCount = 0;
+    let scannedCount = 0;
+    let exhaustedWindow = false;
+    let cursor: FirebaseFirestore.QueryDocumentSnapshot | undefined;
+
+    for (let page = 0; page < INVOICE_ALERT_MAX_PAGES; page += 1) {
+    let pageQuery = db
       .collectionGroup("credit_card_invoices")
       .where("status", "in", ACTIVE_INVOICE_STATUSES)
       .where("dueDate", "<=", windowEndIsoDate)
       .orderBy("dueDate", "asc")
-      .get();
-
-    if (snapshot.empty) {
-      console.log("Nenhuma fatura para alertas operacionais de cartão.");
-      return;
-    }
-
-    let processedCount = 0;
-    let failedCount = 0;
+      .orderBy(FieldPath.documentId(), "asc")
+      .limit(INVOICE_ALERT_PAGE_SIZE);
+    if (cursor) pageQuery = pageQuery.startAfter(cursor);
+    const snapshot = await pageQuery.get();
+    if (snapshot.empty) break;
+    cursor = snapshot.docs[snapshot.docs.length - 1];
+    scannedCount += snapshot.size;
 
     for (const invoiceSnapshot of snapshot.docs) {
       const invoice = {
@@ -398,8 +413,21 @@ export const processCreditCardInvoiceOperationalAlerts = onSchedule(
       }
     }
 
-    console.log(
-      `Alertas operacionais de fatura processados. Sucesso: ${processedCount}. Falhas: ${failedCount}.`
-    );
+    if (snapshot.size < INVOICE_ALERT_PAGE_SIZE) {
+      exhaustedWindow = true;
+      break;
+    }
+    }
+
+    // Log sanitizado: só contagens, sem identificador de fatura ou valor.
+    // `truncated` existe para o corte por teto não passar despercebido: sem
+    // ele, uma execução que parou na metade seria indistinguível de uma que
+    // varreu a janela inteira.
+    console.log("credit_card_invoice_alerts_processed", {
+      processed: processedCount,
+      failed: failedCount,
+      scanned: scannedCount,
+      truncated: !exhaustedWindow,
+    });
   }
 );

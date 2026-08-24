@@ -88,6 +88,7 @@ const redemptionPayload = (
 ) => ({
   workspaceId: WORKSPACE,
   idempotencyKey,
+  correlationId: `corr-${idempotencyKey}`,
   redemption: {
     sourceMovementId,
     description: "Resgate compatível",
@@ -159,6 +160,7 @@ test("pending, liquidação, parcial, total, replay, meta e estorno reconciliam"
   const reversalPayload = {
     workspaceId: WORKSPACE,
     idempotencyKey: "redemption-reversal-0001",
+    correlationId: "corr-redemption-reversal-0001",
     transactionId: String(total.transactionId),
     reversalDate: "2026-08-19",
     reason: "Correção operacional",
@@ -181,6 +183,7 @@ test("pending, liquidação, parcial, total, replay, meta e estorno reconciliam"
   const cancelPayload = {
     workspaceId: WORKSPACE,
     idempotencyKey: "redemption-cancel-0001",
+    correlationId: "corr-redemption-cancel-0001",
     transactionId: String(pendingToCancel.transactionId),
     reason: "Solicitação cancelada",
   };

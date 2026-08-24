@@ -38,8 +38,23 @@ export const toInvestmentHttpsError = (error: unknown): HttpsError => {
       );
     }
   }
+  if (isAlreadyExistsError(error)) {
+    // Duas execuções concorrentes da mesma chave: a perdedora falha ao criar a
+    // reserva de idempotência. É conflito de idempotência, não erro interno.
+    return new HttpsError(
+      "failed-precondition",
+      "Esta solicitação já está em processamento.",
+    );
+  }
   return new HttpsError(
     "internal",
     "Erro interno ao processar operação de investimento.",
   );
+};
+
+/** `ALREADY_EXISTS` (gRPC 6) devolvido por `transaction.create`. */
+const isAlreadyExistsError = (error: unknown): boolean => {
+  if (typeof error !== "object" || error === null) return false;
+  const code = (error as {code?: unknown}).code;
+  return code === 6 || code === "already-exists";
 };

@@ -2,16 +2,27 @@ import {onCall} from "firebase-functions/v2/https";
 import {z} from "zod";
 
 import {requireWorkspaceRole} from "../creditCards/auth";
+import type {InvestmentBackendOperation} from "./infrastructure";
+import {recordInvestmentCallableFailureSafely} from "./observability";
+import {investmentOperationRoles} from "./writeStrategy";
 import {
   archiveInvestmentAccountPayloadSchema,
   archiveInvestmentAssetPayloadSchema,
+  cancelInvestmentMovementPayloadSchema,
   cancelInvestmentRedemptionPayloadSchema,
   createInvestmentContributionPayloadSchema,
   createInvestmentRedemptionPayloadSchema,
   linkInvestmentToGoalPayloadSchema,
   onboardInvestmentWorkspacePayloadSchema,
+  backfillInvestmentWorkspacePayloadSchema,
+  enableInvestmentsV2FlagPayloadSchema,
+  migrateLegacyInvestmentsPayloadSchema,
+  rollbackLegacyInvestmentMigrationPayloadSchema,
+  rebuildInvestmentProjectionsPayloadSchema,
   recalculateGoalInvestmentProgressPayloadSchema,
   recalculateInvestmentPositionPayloadSchema,
+  recordInvestmentValuationPayloadSchema,
+  registerInvestmentImportBatchPayloadSchema,
   reverseInvestmentRedemptionPayloadSchema,
   reverseInvestmentMovementPayloadSchema,
   saveInvestmentRedemptionPayloadSchema,
@@ -29,9 +40,12 @@ import {
 import {
   executeArchiveInvestmentAccount,
   executeArchiveInvestmentAsset,
+  executeCancelInvestmentMovement,
   executeCreateInvestmentContribution,
   executeCreateInvestmentRedemptionV2,
   executeLinkInvestmentToGoal,
+  executeRecordInvestmentValuation,
+  executeRegisterInvestmentImportBatch,
   executeReverseInvestmentMovement,
   executeSettleInvestmentRedemption,
   executeSaveInvestmentAccount,
@@ -42,15 +56,23 @@ import {
   executeRecalculateGoalInvestmentProgress,
   executeRecalculateInvestmentPosition,
 } from "./rebuild";
+import {executeRebuildInvestmentProjections} from "./projectionRebuild";
+import {executeBackfillInvestmentWorkspace} from "./backfill";
+import {
+  executeEnableInvestmentsV2Flag,
+  executeMigrateLegacyInvestments,
+  executeRollbackLegacyInvestmentMigration,
+} from "./legacyMigration";
 import {executeOnboardInvestmentWorkspace} from "./onboarding";
 
-const ALL_ACTIVE_ROLES: Array<"owner" | "admin" | "member"> = [
-  "owner",
-  "admin",
-  "member",
-];
-
-const callable = <TPayload extends { workspaceId: string }>(
+/**
+ * Wrapper único de callable do domínio.
+ *
+ * Os papéis vêm da matriz declarativa (`writeStrategy.ts`), nunca de literais
+ * locais, e a mesma entrada é relida dentro da transação pelas operações.
+ */
+const investmentCallable = <TPayload extends { workspaceId: string }>(
+  backendOperation: InvestmentBackendOperation,
   schema: z.ZodType<TPayload>,
   operation: (
     auth: Awaited<ReturnType<typeof requireWorkspaceRole>>,
@@ -58,131 +80,171 @@ const callable = <TPayload extends { workspaceId: string }>(
   ) => Promise<Record<string, unknown>>,
 ) =>
     onCall(async (request) => {
+      // Só existe workspace autorizado depois que `requireWorkspaceRole`
+      // devolve. A observabilidade de falha usa exclusivamente este valor:
+      // ler `workspaceId` do payload deixava qualquer chamador gravar no
+      // domínio de outro tenant pelo caminho de erro.
+      let authorizedWorkspaceId: string | undefined;
       try {
         const payload = schema.parse(request.data);
         const auth = await requireWorkspaceRole(
           request,
           payload.workspaceId,
-          ALL_ACTIVE_ROLES,
+          investmentOperationRoles(backendOperation),
         );
+        authorizedWorkspaceId = auth.workspaceId;
         return await operation(auth, payload);
       } catch (error) {
+        await recordInvestmentCallableFailureSafely(
+          backendOperation,
+          request,
+          error,
+          authorizedWorkspaceId,
+        );
         throw toInvestmentHttpsError(error);
       }
     });
 
-export const saveInvestmentRedemption = callable(
+export const saveInvestmentRedemption = investmentCallable(
+  "saveInvestmentRedemption",
   saveInvestmentRedemptionPayloadSchema,
   executeSaveInvestmentRedemption,
 );
 
-export const cancelInvestmentRedemption = callable(
+export const cancelInvestmentRedemption = investmentCallable(
+  "cancelInvestmentRedemption",
   cancelInvestmentRedemptionPayloadSchema,
   executeCancelInvestmentRedemption,
 );
 
-export const reverseInvestmentRedemption = callable(
+export const reverseInvestmentRedemption = investmentCallable(
+  "reverseInvestmentRedemption",
   reverseInvestmentRedemptionPayloadSchema,
   executeReverseInvestmentRedemption,
 );
 
-const privilegedCallable = <TPayload extends { workspaceId: string }>(
-  schema: z.ZodType<TPayload>,
-  operation: (
-    auth: Awaited<ReturnType<typeof requireWorkspaceRole>>,
-    payload: TPayload,
-  ) => Promise<Record<string, unknown>>,
-) =>
-    onCall(async (request) => {
-      try {
-        const payload = schema.parse(request.data);
-        const auth = await requireWorkspaceRole(request, payload.workspaceId, [
-          "owner",
-          "admin",
-        ]);
-        return await operation(auth, payload);
-      } catch (error) {
-        throw toInvestmentHttpsError(error);
-      }
-    });
-
-const ownerCallable = <TPayload extends { workspaceId: string }>(
-  schema: z.ZodType<TPayload>,
-  operation: (
-    auth: Awaited<ReturnType<typeof requireWorkspaceRole>>,
-    payload: TPayload,
-  ) => Promise<Record<string, unknown>>,
-) => onCall(async (request) => {
-  try {
-    const payload = schema.parse(request.data);
-    const auth = await requireWorkspaceRole(request, payload.workspaceId, ["owner"]);
-    return await operation(auth, payload);
-  } catch (error) {
-    throw toInvestmentHttpsError(error);
-  }
-});
-
-export const onboardInvestmentWorkspace = ownerCallable(
+export const onboardInvestmentWorkspace = investmentCallable(
+  "onboardInvestmentWorkspace",
   onboardInvestmentWorkspacePayloadSchema,
   executeOnboardInvestmentWorkspace,
 );
 
-export const createInvestmentContribution = callable(
+export const createInvestmentContribution = investmentCallable(
+  "createInvestmentContribution",
   createInvestmentContributionPayloadSchema,
   executeCreateInvestmentContribution,
 );
 
-export const createInvestmentRedemption = callable(
+export const createInvestmentRedemption = investmentCallable(
+  "createInvestmentRedemption",
   createInvestmentRedemptionPayloadSchema,
   executeCreateInvestmentRedemptionV2,
 );
 
-export const settleInvestmentRedemption = callable(
+export const settleInvestmentRedemption = investmentCallable(
+  "settleInvestmentRedemption",
   settleInvestmentRedemptionPayloadSchema,
   executeSettleInvestmentRedemption,
 );
 
-export const reverseInvestmentMovement = privilegedCallable(
+export const reverseInvestmentMovement = investmentCallable(
+  "reverseInvestmentMovement",
   reverseInvestmentMovementPayloadSchema,
   executeReverseInvestmentMovement,
 );
 
-export const linkInvestmentToGoal = callable(
+export const linkInvestmentToGoal = investmentCallable(
+  "linkInvestmentToGoal",
   linkInvestmentToGoalPayloadSchema,
   executeLinkInvestmentToGoal,
 );
 
-export const unlinkInvestmentFromGoal = callable(
+export const unlinkInvestmentFromGoal = investmentCallable(
+  "unlinkInvestmentFromGoal",
   unlinkInvestmentFromGoalPayloadSchema,
   executeUnlinkInvestmentFromGoal,
 );
 
-export const recalculateInvestmentPosition = privilegedCallable(
+export const recalculateInvestmentPosition = investmentCallable(
+  "recalculateInvestmentPosition",
   recalculateInvestmentPositionPayloadSchema,
   executeRecalculateInvestmentPosition,
 );
 
-export const recalculateGoalInvestmentProgress = privilegedCallable(
+export const recalculateGoalInvestmentProgress = investmentCallable(
+  "recalculateGoalInvestmentProgress",
   recalculateGoalInvestmentProgressPayloadSchema,
   executeRecalculateGoalInvestmentProgress,
 );
 
-export const archiveInvestmentAccount = privilegedCallable(
+export const archiveInvestmentAccount = investmentCallable(
+  "archiveInvestmentAccount",
   archiveInvestmentAccountPayloadSchema,
   executeArchiveInvestmentAccount,
 );
 
-export const archiveInvestmentAsset = privilegedCallable(
+export const archiveInvestmentAsset = investmentCallable(
+  "archiveInvestmentAsset",
   archiveInvestmentAssetPayloadSchema,
   executeArchiveInvestmentAsset,
 );
 
-export const saveInvestmentAccount = privilegedCallable(
+export const saveInvestmentAccount = investmentCallable(
+  "saveInvestmentAccount",
   saveInvestmentAccountPayloadSchema,
   executeSaveInvestmentAccount,
 );
 
-export const saveInvestmentAsset = privilegedCallable(
+export const saveInvestmentAsset = investmentCallable(
+  "saveInvestmentAsset",
   saveInvestmentAssetPayloadSchema,
   executeSaveInvestmentAsset,
+);
+
+export const cancelInvestmentMovement = investmentCallable(
+  "cancelInvestmentMovement",
+  cancelInvestmentMovementPayloadSchema,
+  executeCancelInvestmentMovement,
+);
+
+export const recordInvestmentValuation = investmentCallable(
+  "recordInvestmentValuation",
+  recordInvestmentValuationPayloadSchema,
+  executeRecordInvestmentValuation,
+);
+
+export const registerInvestmentImportBatch = investmentCallable(
+  "registerInvestmentImportBatch",
+  registerInvestmentImportBatchPayloadSchema,
+  executeRegisterInvestmentImportBatch,
+);
+
+export const rebuildInvestmentProjections = investmentCallable(
+  "rebuildInvestmentProjections",
+  rebuildInvestmentProjectionsPayloadSchema,
+  executeRebuildInvestmentProjections,
+);
+
+export const backfillInvestmentWorkspace = investmentCallable(
+  "backfillInvestmentWorkspace",
+  backfillInvestmentWorkspacePayloadSchema,
+  executeBackfillInvestmentWorkspace,
+);
+
+export const migrateLegacyInvestments = investmentCallable(
+  "migrateLegacyInvestments",
+  migrateLegacyInvestmentsPayloadSchema,
+  executeMigrateLegacyInvestments,
+);
+
+export const rollbackLegacyInvestmentMigration = investmentCallable(
+  "rollbackLegacyInvestmentMigration",
+  rollbackLegacyInvestmentMigrationPayloadSchema,
+  executeRollbackLegacyInvestmentMigration,
+);
+
+export const enableInvestmentsV2Flag = investmentCallable(
+  "enableInvestmentsV2Flag",
+  enableInvestmentsV2FlagPayloadSchema,
+  executeEnableInvestmentsV2Flag,
 );

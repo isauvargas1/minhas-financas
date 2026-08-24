@@ -11,6 +11,9 @@ export const INVESTMENT_COLLECTIONS = {
   idempotencyKeys: "investment_idempotency_keys",
   importBatches: "investment_import_batches",
   summaries: "investment_summaries",
+  reportPeriods: "investment_report_periods",
+  allocationSummaries: "investment_allocation_summaries",
+  operationalMetrics: "investment_operational_metrics",
 } as const;
 
 export type InvestmentCollectionName =

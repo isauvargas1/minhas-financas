@@ -7,7 +7,21 @@ export const INVESTMENT_CALCULATION_VERSION =
 export type InvestmentProfileType = "PF" | "PJ";
 export type InvestmentCurrency = "BRL";
 export type InvestmentLifecycleStatus = "active" | "archived";
-export type InvestmentMovementStatus = "pending" | "settled";
+/**
+ * `pending` tem todos os deltas em zero e não toca posição, meta ou caixa;
+ * por isso `cancelled` é uma saída legítima que não apaga fato financeiro.
+ * Estorno NÃO é status: continua sendo movimento compensatório com vínculo
+ * bidirecional no original.
+ */
+export type InvestmentMovementStatus = "pending" | "settled" | "cancelled";
+export type InvestmentAllocationPurpose =
+  | "unassigned"
+  | "retirement"
+  | "goal"
+  | "reserve"
+  | "financial_application"
+  | "reinvestment"
+  | "fixed_asset";
 export type InvestmentMovementOperation =
   | "contribution"
   | "redemption"
@@ -39,6 +53,7 @@ export interface InvestmentAsset {
   name: string;
   symbol?: string;
   assetType: string;
+  allocationPurpose: InvestmentAllocationPurpose;
   currency: InvestmentCurrency;
   status: InvestmentLifecycleStatus;
   createdBy: string;
@@ -76,19 +91,41 @@ export interface InvestmentMovement {
   quantityDeltaMicros: number;
   goalNetContributionDeltaCents: number;
   goalCurrentValueDeltaCents: number;
+  /**
+   * Efeito deste movimento sobre o valor patrimonial da posição. Sem ele a
+   * reconstrução da série mensal teria de inferir o patrimônio pelo delta da
+   * meta, que é zero quando a posição não está vinculada.
+   */
+  currentValueDeltaCents?: number;
   goalId?: string;
+  walletId?: string;
   transactionId?: string;
   reversedMovementId?: string;
+  reversalOfOperation?: InvestmentMovementOperation;
   reversedByMovementId?: string;
   reversalReason?: string;
+  reversedAt?: Timestamp;
+  reversedBy?: string;
+  reversalCorrelationId?: string;
+  cancelledAt?: Timestamp;
+  cancelledBy?: string;
+  cancellationReason?: string;
+  cancellationCorrelationId?: string;
   correlationId: string;
   idempotencyKeyHash: string;
   occurredAt: Timestamp;
+  expectedSettlementAt?: Timestamp;
   settlementAt?: Timestamp;
+  settlementCorrelationId?: string;
+  importBatchId?: string;
+  /** Transação legada que originou este movimento na migração. */
+  migratedFromTransactionId?: string;
+  migrationId?: string;
   createdBy: string;
   createdAt: Timestamp;
   settledBy?: string;
   settledAt?: Timestamp;
+  updatedAt?: Timestamp;
 }
 
 export interface InvestmentPosition {
@@ -185,7 +222,7 @@ export interface InvestmentEventLog {
   entityId: string;
   correlationId: string;
   idempotencyKeyId: string;
-  outcome: "completed";
+  outcome: "completed" | "failed";
   details: Record<string, unknown>;
   occurredAt: Timestamp;
 }

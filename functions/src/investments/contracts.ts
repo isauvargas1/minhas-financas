@@ -40,9 +40,12 @@ const descriptionSchema = z.string().trim().min(1).max(240);
 const reasonSchema = z.string().trim().min(3).max(500);
 const entityNameSchema = z.string().trim().min(2).max(120);
 
+// M3.B: a trilha legada passa a exigir `correlationId` do cliente em vez de
+// sintetizá-lo a partir do ID da chave de idempotência.
 const baseSchema = z.object({
   workspaceId: workspaceIdSchema,
   idempotencyKey: idempotencyKeySchema,
+  correlationId: investmentCorrelationIdSchema,
 });
 
 const v2BaseShape = {
@@ -87,6 +90,8 @@ export const createInvestmentContributionPayloadSchema = z
     assetId: investmentDocumentIdSchema,
     goalId: investmentDocumentIdSchema.optional(),
     walletId: investmentDocumentIdSchema.optional(),
+    // Procedência: vincula o aporte a um lote de importação aberto.
+    importBatchId: investmentDocumentIdSchema.optional(),
     description: descriptionSchema,
     principalCents: positiveCentsSchema,
     quantityMicros: quantityMicrosSchema,
@@ -172,6 +177,80 @@ export const recalculateGoalInvestmentProgressPayloadSchema = rebuildSchema
   })
   .strict();
 
+export const rebuildInvestmentProjectionsPayloadSchema = rebuildSchema.strict();
+
+export const migrateLegacyInvestmentsPayloadSchema = z
+  .object({
+    ...v2BaseShape,
+    migrationId: investmentDocumentIdSchema.optional(),
+    // Teto de 100 para o snapshot de checkpoint continuar dentro do validador
+    // de leitura das Rules (`isValidInvestmentSnapshot`, pageSize <= 100).
+    pageSize: z.number().int().min(1).max(100).default(100),
+    dryRun: z.boolean().default(true),
+    reason: reasonSchema,
+  })
+  .strict();
+
+export const rollbackLegacyInvestmentMigrationPayloadSchema = z
+  .object({
+    ...v2BaseShape,
+    migrationId: investmentDocumentIdSchema,
+    reason: reasonSchema,
+  })
+  .strict();
+
+export const enableInvestmentsV2FlagPayloadSchema = z
+  .object({
+    ...v2BaseShape,
+    pageSize: z.number().int().min(1).max(200).default(100),
+    reason: reasonSchema,
+  })
+  .strict();
+
+export const backfillInvestmentWorkspacePayloadSchema = z
+  .object({
+    ...v2BaseShape,
+    backfillId: investmentDocumentIdSchema.optional(),
+    pageSize: z.number().int().min(1).max(100).default(20),
+    reason: reasonSchema,
+  })
+  .strict();
+
+export const cancelInvestmentMovementPayloadSchema = z
+  .object({
+    ...v2BaseShape,
+    movementId: investmentDocumentIdSchema,
+    occurredAt: isoTimestampSchema,
+    reason: reasonSchema,
+  })
+  .strict();
+
+export const recordInvestmentValuationPayloadSchema = z
+  .object({
+    ...v2BaseShape,
+    assetId: investmentDocumentIdSchema,
+    accountId: investmentDocumentIdSchema,
+    unitPriceMicros: quantityMicrosSchema,
+    source: z.enum(["manual", "provider", "import"]).default("manual"),
+    effectiveAt: isoTimestampSchema,
+    reason: reasonSchema,
+  })
+  .strict();
+
+export const registerInvestmentImportBatchPayloadSchema = z
+  .object({
+    ...v2BaseShape,
+    batchId: investmentDocumentIdSchema.optional(),
+    source: z.string().trim().min(2).max(160),
+    status: z
+      .enum(["pending", "running", "completed", "failed"])
+      .default("pending"),
+    processedCount: centsSchema.default(0),
+    failedCount: centsSchema.default(0),
+    reason: reasonSchema,
+  })
+  .strict();
+
 export const archiveInvestmentAccountPayloadSchema = z
   .object({
     ...v2BaseShape,
@@ -211,6 +290,15 @@ export const saveInvestmentAssetPayloadSchema = z
       "crypto",
       "other",
     ]),
+    allocationPurpose: z.enum([
+      "unassigned",
+      "retirement",
+      "goal",
+      "reserve",
+      "financial_application",
+      "reinvestment",
+      "fixed_asset",
+    ]).optional(),
   })
   .strict();
 
@@ -316,4 +404,29 @@ export type SaveInvestmentAssetPayload = z.infer<
 >;
 export type OnboardInvestmentWorkspacePayload = z.infer<
   typeof onboardInvestmentWorkspacePayloadSchema
+>;
+
+export type CancelInvestmentMovementPayload = z.infer<
+  typeof cancelInvestmentMovementPayloadSchema
+>;
+export type RecordInvestmentValuationPayload = z.infer<
+  typeof recordInvestmentValuationPayloadSchema
+>;
+export type RegisterInvestmentImportBatchPayload = z.infer<
+  typeof registerInvestmentImportBatchPayloadSchema
+>;
+export type RebuildInvestmentProjectionsPayload = z.infer<
+  typeof rebuildInvestmentProjectionsPayloadSchema
+>;
+export type BackfillInvestmentWorkspacePayload = z.infer<
+  typeof backfillInvestmentWorkspacePayloadSchema
+>;
+export type MigrateLegacyInvestmentsPayload = z.infer<
+  typeof migrateLegacyInvestmentsPayloadSchema
+>;
+export type RollbackLegacyInvestmentMigrationPayload = z.infer<
+  typeof rollbackLegacyInvestmentMigrationPayloadSchema
+>;
+export type EnableInvestmentsV2FlagPayload = z.infer<
+  typeof enableInvestmentsV2FlagPayloadSchema
 >;

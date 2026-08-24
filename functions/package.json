@@ -3,7 +3,7 @@
   "scripts": {
     "lint": "eslint --ext .js,.ts .",
     "build": "tsc",
-    "test:unit": "npm run build && node --test lib/creditCards/__tests__/domainConsistency.test.js lib/creditCards/__tests__/paymentLifecycle.test.js lib/creditCards/__tests__/purchaseSchedule.test.js lib/goals/__tests__/integrity.test.js lib/investments/__tests__/integrity.test.js lib/investments/__tests__/domainV2.test.js",
+    "test:unit": "npm run build && node --test $(find lib -name '*.test.js' ! -name '*.integration.test.js' | sort)",
     "test:integration": "npm run build && node --test \"lib/**/*.integration.test.js\"",
     "build:watch": "tsc --watch",
     "serve": "npm run build && firebase emulators:start --only functions",
@@ -20,7 +20,8 @@
     "firebase-admin": "^13.6.0",
     "firebase-functions": "^7.0.0",
     "stripe": "^20.4.0",
-    "zod": "^4.3.6"
+    "zod": "^4.3.6",
+    "@google/generative-ai": "^0.24.1"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^5.12.0",

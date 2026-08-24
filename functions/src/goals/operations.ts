@@ -4,6 +4,7 @@ import {FieldValue, Timestamp} from "firebase-admin/firestore";
 
 import {CreditCardApplicationError} from "../creditCards/errors";
 import type {WorkspaceAuthorizationContext} from "../creditCards/auth";
+import {assertLegacyInvestmentTrailOpen} from "../shared/featureFlags";
 import type {
   ArchiveGoalPayload,
   CreateGoalPayload,
@@ -189,8 +190,38 @@ const sumGoalContributions = (
   0,
 );
 
+/**
+ * Teto de aportes somados numa única transação.
+ *
+ * M4.E — a consulta rodava sem `limit` e sem `orderBy` dentro de uma
+ * transação, custando O(histórico de movimentos) a cada escrita de meta. O M3
+ * agravou isso ao espelhar cada movimento em `transactions`. O teto abaixo
+ * limita o custo; ultrapassá-lo falha de forma explícita em vez de somar
+ * silenciosamente um subconjunto.
+ */
+export const GOAL_CONTRIBUTIONS_SCAN_LIMIT = 2_000;
+
 const goalContributionsQuery = (workspaceId: string, goalId: string) =>
-  db().collection(`${workspacePath(workspaceId)}/transactions`).where("goalId", "==", goalId);
+  db()
+    .collection(`${workspacePath(workspaceId)}/transactions`)
+    .where("goalId", "==", goalId)
+    .orderBy("__name__", "asc")
+    .limit(GOAL_CONTRIBUTIONS_SCAN_LIMIT + 1);
+
+/** Falha alto se o histórico da meta ultrapassar o teto de varredura. */
+const assertGoalContributionsWithinLimit = (
+  snapshot: admin.firestore.QuerySnapshot,
+  goalId: string,
+): admin.firestore.QuerySnapshot => {
+  if (snapshot.size > GOAL_CONTRIBUTIONS_SCAN_LIMIT) {
+    throw new CreditCardApplicationError(
+      "domain_precondition_failed",
+      `A meta ${goalId} ultrapassou ${GOAL_CONTRIBUTIONS_SCAN_LIMIT} aportes ` +
+        "e precisa de reconstrução paginada para recalcular o progresso.",
+    );
+  }
+  return snapshot;
+};
 
 const buildGoalPersistence = (
   input: CreateGoalPayload["goal"],
@@ -286,7 +317,8 @@ export const executeSetGoalTransactionLinks = async (
   const goalDocument = goalRef(auth.workspaceId, payload.goalId);
   const [goalSnapshot, linkedSnapshot] = await Promise.all([
     transaction.get(goalDocument),
-    transaction.get(goalContributionsQuery(auth.workspaceId, payload.goalId)),
+    transaction.get(goalContributionsQuery(auth.workspaceId, payload.goalId)).then((snapshot) =>
+      assertGoalContributionsWithinLimit(snapshot, payload.goalId)),
   ]);
   if (!goalSnapshot.exists || goalSnapshot.data()?.archived === true) {
     throw new CreditCardApplicationError("not_found", "Meta não encontrada.");
@@ -405,7 +437,8 @@ export const executeArchiveGoal = async (
   const ref = goalRef(auth.workspaceId, payload.goalId);
   const [goalSnapshot, historySnapshot] = await Promise.all([
     transaction.get(ref),
-    transaction.get(goalContributionsQuery(auth.workspaceId, payload.goalId)),
+    transaction.get(goalContributionsQuery(auth.workspaceId, payload.goalId)).then((snapshot) =>
+      assertGoalContributionsWithinLimit(snapshot, payload.goalId)),
   ]);
   if (!goalSnapshot.exists) {
     throw new CreditCardApplicationError("not_found", "Meta não encontrada.");
@@ -438,7 +471,8 @@ export const executeRebuildGoalProgress = async (
   const ref = goalRef(auth.workspaceId, payload.goalId);
   const [goalSnapshot, contributions] = await Promise.all([
     transaction.get(ref),
-    transaction.get(goalContributionsQuery(auth.workspaceId, payload.goalId)),
+    transaction.get(goalContributionsQuery(auth.workspaceId, payload.goalId)).then((snapshot) =>
+      assertGoalContributionsWithinLimit(snapshot, payload.goalId)),
   ]);
   if (!goalSnapshot.exists) {
     throw new CreditCardApplicationError("not_found", "Meta não encontrada.");
@@ -476,10 +510,16 @@ export const executeSaveGoalContribution = async (
   const contributionDocument = transactionRef(auth.workspaceId, contributionId);
   const goalDocument = goalRef(auth.workspaceId, payload.contribution.goalId);
   const contributionSnapshot = await transaction.get(contributionDocument);
-  const [goalSnapshot, linkedSnapshot] = await Promise.all([
+  const [goalSnapshot, linkedSnapshot, workspaceSnapshot] = await Promise.all([
     transaction.get(goalDocument),
-    transaction.get(goalContributionsQuery(auth.workspaceId, payload.contribution.goalId)),
+    transaction.get(goalContributionsQuery(auth.workspaceId, payload.contribution.goalId)).then((snapshot) =>
+      assertGoalContributionsWithinLimit(snapshot, payload.contribution.goalId)),
+    transaction.get(db().doc(workspacePath(auth.workspaceId))),
   ]);
+  // Com o domínio oficial ligado, o progresso da meta vem de
+  // `investmentProgressCents`, alimentado pelas posições. Um aporte gravado
+  // aqui sairia do caixa e não apareceria na meta nem no patrimônio.
+  assertLegacyInvestmentTrailOpen(workspaceSnapshot.data());
   if (!goalSnapshot.exists || goalSnapshot.data()?.archived === true) {
     throw new CreditCardApplicationError("not_found", "Meta não encontrada.");
   }

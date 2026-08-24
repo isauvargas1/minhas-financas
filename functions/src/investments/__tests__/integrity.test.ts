@@ -7,6 +7,7 @@ import {saveInvestmentRedemptionPayloadSchema} from "../contracts";
 const payload = {
   workspaceId: "workspace-a",
   idempotencyKey: "redemption-unit-test-0001",
+  correlationId: "corr-redemption-unit-test",
   redemption: {
     sourceMovementId: "contribution-a",
     description: "Resgate parcial",
@@ -40,6 +41,20 @@ test("contrato de resgate mantém principal, ganho, taxas e impostos separados",
       redemption: {...payload.redemption, settlementDate: "2026-02-30"},
     }),
     /data inválida/i,
+  );
+});
+
+test("callable legada exige correlationId do cliente", () => {
+  const {correlationId: _omitted, ...withoutCorrelation} = payload;
+  assert.throws(
+    () => saveInvestmentRedemptionPayloadSchema.parse(withoutCorrelation),
+    /correlationId/i,
+  );
+  assert.throws(
+    () => saveInvestmentRedemptionPayloadSchema.parse({
+      ...payload,
+      correlationId: "curto",
+    }),
   );
 });
 

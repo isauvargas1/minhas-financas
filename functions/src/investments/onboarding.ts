@@ -2,6 +2,9 @@ import {FieldValue} from "firebase-admin/firestore";
 
 import type {WorkspaceAuthorizationContext} from "../creditCards/auth";
 import type {OnboardInvestmentWorkspacePayload} from "./contracts";
+import {assertInvestmentDocument} from "./documentContracts";
+import {recordInvestmentOperationMetric} from "./observability";
+import {investmentOperationRoles} from "./writeStrategy";
 import {
   authorizeInvestmentTransaction,
   completeInvestmentIdempotency,
@@ -57,8 +60,12 @@ export const executeOnboardInvestmentWorkspace = async (
   auth: WorkspaceAuthorizationContext,
   payload: OnboardInvestmentWorkspacePayload,
 ): Promise<Record<string, unknown>> => investmentFirestore().runTransaction(async (transaction) => {
-  const authorization = await authorizeInvestmentTransaction(transaction, auth, ["owner"]);
   const operation = "onboardInvestmentWorkspace" as const;
+  const authorization = await authorizeInvestmentTransaction(
+    transaction,
+    auth,
+    investmentOperationRoles(operation),
+  );
   const reservation = await reserveInvestmentIdempotency(
     transaction, auth, operation, payload.idempotencyKey, payload.correlationId, payload,
   );
@@ -135,7 +142,7 @@ export const executeOnboardInvestmentWorkspace = async (
   let assetId: string | null = assetPage.docs[0]?.id ?? null;
   if (!accountId) {
     accountId = deterministicDocumentId("onboarding", auth.workspaceId, "account");
-    transaction.create(investmentDoc(auth.workspaceId, INVESTMENT_COLLECTIONS.accounts, accountId), {
+    transaction.create(investmentDoc(auth.workspaceId, INVESTMENT_COLLECTIONS.accounts, accountId), assertInvestmentDocument("account", {
       id: accountId,
       workspaceId: auth.workspaceId,
       profileType: authorization.profileType,
@@ -147,24 +154,29 @@ export const executeOnboardInvestmentWorkspace = async (
       updatedBy: auth.uid,
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
-    });
+    }, auth.workspaceId));
   }
   if (!assetId) {
     assetId = deterministicDocumentId("onboarding", auth.workspaceId, "asset");
-    transaction.create(investmentDoc(auth.workspaceId, INVESTMENT_COLLECTIONS.assets, assetId), {
+    transaction.create(investmentDoc(auth.workspaceId, INVESTMENT_COLLECTIONS.assets, assetId), assertInvestmentDocument("asset", {
       id: assetId,
       workspaceId: auth.workspaceId,
       profileType: authorization.profileType,
       name: authorization.profileType === "PJ" ? "Reserva financeira da empresa" : "Reserva de liquidez",
       symbol: authorization.profileType === "PJ" ? "RESERVA-PJ" : "RESERVA-PF",
       assetType: "fixed_income",
+      // PF trata reserva de liquidez como objetivo não classificado; PJ a
+      // classifica explicitamente como reserva. O campo é obrigatório no
+      // documento e não pode depender do default do leitor.
+      allocationPurpose:
+        authorization.profileType === "PJ" ? "reserve" : "unassigned",
       currency: "BRL",
       status: "active",
       createdBy: auth.uid,
       updatedBy: auth.uid,
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
-    });
+    }, auth.workspaceId));
   }
 
   const result = {
@@ -178,6 +190,13 @@ export const executeOnboardInvestmentWorkspace = async (
     createdCatalogCount,
     existingCatalogCount: seeds.length - createdCatalogCount,
   };
+  recordInvestmentOperationMetric(transaction, {
+    workspaceId: auth.workspaceId,
+    operation,
+    actorId: auth.uid,
+    correlationId: payload.correlationId,
+    idempotencyKey: payload.idempotencyKey,
+  });
   recordInvestmentEvent(
     transaction, auth, authorization.role, authorization.profileType,
     operation, reservation, payload.correlationId, "workspace", auth.workspaceId, result,

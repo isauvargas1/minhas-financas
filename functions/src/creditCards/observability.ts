@@ -9,6 +9,7 @@ import {
 import {
   enqueueCreditCardDomainNotifications,
 } from "./domainNotifications";
+import { saoPauloDayKey } from "../shared/dateKeys";
 
 import type {
   CreditCardBackendWriteOperation,
@@ -46,16 +47,7 @@ export interface RecordCreditCardOperationMetricInput {
   idempotencyKey?: string;
 }
 
-const getSaoPauloDateKey = (): string => {
-  const formatter = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Sao_Paulo",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  });
-
-  return formatter.format(new Date());
-};
+const getSaoPauloDateKey = (): string => saoPauloDayKey();
 
 const sanitizeMetricIdPart = (value: string): string =>
   value.replace(/[^\w-]/g, "_");

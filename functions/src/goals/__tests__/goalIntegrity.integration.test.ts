@@ -15,6 +15,9 @@ import {
 } from "../operations";
 
 const enabled = Boolean(process.env.FIRESTORE_EMULATOR_HOST);
+if (!enabled) {
+  throw new Error("FIRESTORE_EMULATOR_HOST é obrigatório para os testes de integridade de metas.");
+}
 const PF_WORKSPACE = "goal-integrity-pf";
 const PJ_WORKSPACE = "goal-integrity-pj";
 const OTHER_WORKSPACE = "goal-integrity-other";
@@ -64,7 +67,7 @@ const goalPayload = (workspaceId: string, idempotencyKey: string) => ({
   },
 });
 
-test("aporte pré-vinculado, vínculo retroativo, pending, retry, concorrência e arquivamento", {skip: !enabled}, async () => {
+test("aporte pré-vinculado, vínculo retroativo, pending, retry, concorrência e arquivamento", async () => {
   await resetWorkspace(PF_WORKSPACE);
   await seedWorkspace(PF_WORKSPACE, OWNER_A, "PF");
   const auth = authContext(PF_WORKSPACE, OWNER_A);
@@ -195,7 +198,7 @@ test("aporte pré-vinculado, vínculo retroativo, pending, retry, concorrência 
   assert.equal(currentValueContribution.currentAmount, 321.45);
 });
 
-test("seed legado PF/PJ é idempotente e preserva workspaces existentes", {skip: !enabled}, async () => {
+test("seed legado PF/PJ é idempotente e preserva workspaces existentes", async () => {
   await Promise.all([resetWorkspace(PF_WORKSPACE), resetWorkspace(PJ_WORKSPACE)]);
   await Promise.all([
     seedWorkspace(PF_WORKSPACE, OWNER_A, "PF"),
@@ -224,7 +227,7 @@ test("seed legado PF/PJ é idempotente e preserva workspaces existentes", {skip:
   assert.equal(pjCostCenters.size, 3);
 });
 
-test("RBAC rejeita acesso cruzado nos dois sentidos", {skip: !enabled}, async () => {
+test("RBAC rejeita acesso cruzado nos dois sentidos", async () => {
   await Promise.all([resetWorkspace(PF_WORKSPACE), resetWorkspace(OTHER_WORKSPACE)]);
   await Promise.all([
     seedWorkspace(PF_WORKSPACE, OWNER_A, "PF"),

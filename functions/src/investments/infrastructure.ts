@@ -21,14 +21,26 @@ export type InvestmentBackendOperation =
   | "saveInvestmentAsset"
   | "createInvestmentContribution"
   | "createInvestmentRedemption"
+  | "cancelInvestmentMovement"
   | "settleInvestmentRedemption"
   | "reverseInvestmentMovement"
+  | "recordInvestmentValuation"
   | "linkInvestmentToGoal"
   | "unlinkInvestmentFromGoal"
   | "recalculateInvestmentPosition"
   | "recalculateGoalInvestmentProgress"
+  | "rebuildInvestmentProjections"
+  | "backfillInvestmentWorkspace"
+  | "migrateLegacyInvestments"
+  | "rollbackLegacyInvestmentMigration"
+  | "enableInvestmentsV2Flag"
+  | "registerInvestmentImportBatch"
   | "archiveInvestmentAccount"
-  | "archiveInvestmentAsset";
+  | "archiveInvestmentAsset"
+  // Trilha legada do M2, mantida separada e documentada por estado da flag.
+  | "saveInvestmentRedemption"
+  | "cancelInvestmentRedemption"
+  | "reverseInvestmentRedemption";
 
 export interface InvestmentIdempotencyReservation {
   ref: admin.firestore.DocumentReference;
@@ -139,6 +151,23 @@ export const authorizeInvestmentTransaction = async (
   };
 };
 
+/**
+ * Payload considerado para a identidade da chave de idempotência.
+ *
+ * `correlationId` é metadado de rastreamento, não conteúdo da operação: um
+ * retry legítimo do cliente gera um novo `correlationId` e precisa ser tratado
+ * como replay, não como `idempotency_conflict`. O valor continua registrado na
+ * chave, no movimento e no event log.
+ */
+export const idempotencyIdentityPayload = (payload: unknown): unknown => {
+  if (typeof payload !== "object" || payload === null) return payload;
+  const {correlationId: _ignored, ...rest} = payload as Record<
+    string,
+    unknown
+  >;
+  return rest;
+};
+
 export const reserveInvestmentIdempotency = async (
   transaction: admin.firestore.Transaction,
   auth: WorkspaceAuthorizationContext,
@@ -165,7 +194,7 @@ export const reserveInvestmentIdempotency = async (
     INVESTMENT_COLLECTIONS.idempotencyKeys,
     id,
   );
-  const requestHash = sha256(stableStringify(payload));
+  const requestHash = sha256(stableStringify(idempotencyIdentityPayload(payload)));
   const snapshot = await transaction.get(ref);
   if (!snapshot.exists) return {ref, requestHash, keyHash};
   const data = snapshot.data() ?? {};
@@ -173,8 +202,7 @@ export const reserveInvestmentIdempotency = async (
     data.workspaceId !== auth.workspaceId ||
     data.actorId !== auth.uid ||
     data.operation !== operation ||
-    data.requestHash !== requestHash ||
-    data.correlationId !== correlationId
+    data.requestHash !== requestHash
   ) {
     throw new CreditCardApplicationError(
       "idempotency_conflict",

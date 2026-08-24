@@ -199,6 +199,16 @@ test(
       .get();
     assert.equal(summary.data()?.principalCents, 100_000);
     assert.equal(summary.data()?.currentValueCents, 100_000);
+    let reportPeriod = await db()
+      .doc(`workspaces/${WORKSPACE_A}/investment_report_periods/2026-08`)
+      .get();
+    assert.equal(reportPeriod.data()?.contributionCents, 100_000);
+    assert.equal(
+      reportPeriod.data()?.daily?.["2026-08-10"]?.contributionCents,
+      100_000,
+    );
+    assert.equal(reportPeriod.data()?.redemptionPrincipalCents, 0);
+    assert.equal(reportPeriod.data()?.settledMovementCount, 1);
 
     const pendingInput = {
       workspaceId: WORKSPACE_A,
@@ -227,6 +237,10 @@ test(
       .doc(`workspaces/${WORKSPACE_A}/investment_summaries/current`)
       .get();
     assert.equal(summary.data()?.principalCents, 100_000);
+    reportPeriod = await db()
+      .doc(`workspaces/${WORKSPACE_A}/investment_report_periods/2026-08`)
+      .get();
+    assert.equal(reportPeriod.data()?.settledMovementCount, 1);
     const pendingProjection = await db()
       .doc(`workspaces/${WORKSPACE_A}/transactions/${pending.transactionId}`)
       .get();
@@ -273,6 +287,13 @@ test(
       .get();
     assert.equal(summary.data()?.principalCents, 60_000);
     assert.equal(summary.data()?.realizedGainCents, 5_000);
+    reportPeriod = await db()
+      .doc(`workspaces/${WORKSPACE_A}/investment_report_periods/2026-08`)
+      .get();
+    assert.equal(reportPeriod.data()?.redemptionPrincipalCents, 40_000);
+    assert.equal(reportPeriod.data()?.realizedGainCents, 5_000);
+    assert.equal(reportPeriod.data()?.feesCents, 500);
+    assert.equal(reportPeriod.data()?.taxCents, 1_000);
     const settledProjection = await db()
       .doc(`workspaces/${WORKSPACE_A}/transactions/${pending.transactionId}`)
       .get();
@@ -310,6 +331,32 @@ test(
       .get();
     assert.equal(summary.data()?.principalCents, 100_000);
     assert.equal(summary.data()?.realizedGainCents, 0);
+    reportPeriod = await db()
+      .doc(`workspaces/${WORKSPACE_A}/investment_report_periods/2026-08`)
+      .get();
+    assert.equal(reportPeriod.data()?.contributionCents, 100_000);
+    assert.equal(reportPeriod.data()?.redemptionPrincipalCents, 0);
+    assert.equal(reportPeriod.data()?.realizedGainCents, 0);
+    assert.equal(reportPeriod.data()?.feesCents, 0);
+    assert.equal(reportPeriod.data()?.taxCents, 0);
+    assert.equal(
+      reportPeriod.data()?.daily?.["2026-08-19"]
+        ?.redemptionPrincipalCents,
+      40_000,
+    );
+    assert.equal(
+      reportPeriod.data()?.daily?.["2026-08-20"]
+        ?.redemptionPrincipalCents,
+      -40_000,
+    );
+    assert.equal(reportPeriod.data()?.costDeltaCents, 100_000);
+    assert.equal(reportPeriod.data()?.currentValueDeltaCents, 100_000);
+    assert.equal(reportPeriod.data()?.cashDeltaCents, -100_000);
+    const goalAllocation = await db().collection(
+      `workspaces/${WORKSPACE_A}/investment_allocation_summaries`,
+    ).where("dimension", "==", "goal").where("key", "==", GOAL).get();
+    assert.equal(goalAllocation.size, 1);
+    assert.equal(goalAllocation.docs[0].data().currentValueCents, 100_000);
     const settledMovements = await db()
       .collection(`workspaces/${WORKSPACE_A}/investment_movements`)
       .where("status", "==", "settled")
@@ -438,6 +485,30 @@ test("onboarding PF/PJ é owner-only, idempotente e não duplica cadastros", asy
     .where("group", "==", "investment_strategy").get();
   assert.ok(pjStrategies.size > 0);
   assert.ok(pjStrategies.docs.every((entry) => entry.data().workspaceScope === "PJ"));
+  const pjAssetInput = {
+    workspaceId: WORKSPACE_B,
+    idempotencyKey: "m7-save-pj-asset-0001",
+    correlationId: "corr-m7-save-pj-asset-0001",
+    name: "Reserva empresarial",
+    assetType: "fixed_income" as const,
+    allocationPurpose: "reserve" as const,
+  };
+  const pjAsset = await executeSaveInvestmentAsset(
+    auth(WORKSPACE_B, OWNER_B),
+    pjAssetInput,
+  );
+  assert.equal((await db().doc(
+    `workspaces/${WORKSPACE_B}/investment_assets/${pjAsset.entityId}`,
+  ).get()).data()?.allocationPurpose, "reserve");
+  await assert.rejects(() => executeSaveInvestmentAsset(
+    auth(WORKSPACE_B, OWNER_B),
+    {
+      ...pjAssetInput,
+      idempotencyKey: "m7-save-pj-invalid-0001",
+      correlationId: "corr-m7-save-pj-invalid-0001",
+      allocationPurpose: "retirement",
+    },
+  ));
 });
 
 test("concorrência, falha atômica e retry não excedem a posição", async () => {
@@ -617,6 +688,7 @@ test(
         id: "valuation-a",
         workspaceId: WORKSPACE_A,
         profileType: "PF",
+        accountId: ACCOUNT,
         assetId: ASSET,
         currency: "BRL",
         unitPriceMicros: 1_200_000_000,

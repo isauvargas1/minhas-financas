@@ -6,8 +6,11 @@ import {CreditCardApplicationError} from "../creditCards/errors";
 import type {
   ArchiveInvestmentAccountPayload,
   ArchiveInvestmentAssetPayload,
+  CancelInvestmentMovementPayload,
   CreateInvestmentContributionPayload,
   CreateInvestmentRedemptionV2Payload,
+  RecordInvestmentValuationPayload,
+  RegisterInvestmentImportBatchPayload,
   LinkInvestmentToGoalPayload,
   ReverseInvestmentMovementPayload,
   SaveInvestmentAccountPayload,
@@ -19,6 +22,10 @@ import {
   INVESTMENT_CALCULATION_VERSION,
   INVESTMENT_DOMAIN_VERSION,
 } from "./domain";
+import {saoPauloDayKey} from "../shared/dateKeys";
+import {assertInvestmentDocument} from "./documentContracts";
+import {recordInvestmentOperationMetric} from "./observability";
+import {investmentOperationRoles} from "./writeStrategy";
 import {
   assertWorkspaceDocument,
   authorizeInvestmentTransaction,
@@ -30,17 +37,26 @@ import {
   reserveInvestmentIdempotency,
   sha256,
 } from "./infrastructure";
-import {addExact, currentValueForPosition, negateExact} from "./math";
+import {
+  addExact,
+  currentValueForPosition,
+  negateExact,
+  positionValueCents,
+} from "./math";
+import {
+  readInvestmentPeriodContext,
+  writeInvestmentAllocationProjections,
+  writeInvestmentReportPeriod,
+  writeInvestmentValuationReportPeriod,
+} from "./reporting";
 import {
   INVESTMENT_COLLECTIONS,
+  investmentCollection,
   investmentDoc,
   investmentFirestore,
   investmentGoalDoc,
   investmentTransactionDoc,
 } from "./paths";
-
-const MUTATION_ROLES = ["owner", "admin", "member"] as const;
-const PRIVILEGED_ROLES = ["owner", "admin"] as const;
 
 export interface PositionState {
   quantityMicros: number;
@@ -291,6 +307,19 @@ export const writePosition = (
     updatedAt: FieldValue.serverTimestamp(),
     updatedBy: actorId,
   };
+  // Valida a visão completa do documento (inclusive `goalId`) antes de
+  // qualquer escrita; o `merge` abaixo usa `FieldValue.delete()`, que não é
+  // representável no contrato.
+  assertInvestmentDocument("position", {
+    ...data,
+    ...(state.goalId ? {goalId: state.goalId} : {}),
+    // `data` não carrega `createdAt`: o campo só é escrito na criação e
+    // preservado no merge. A validação usa a visão completa do documento.
+    createdAt: snapshot.exists ?
+      ((snapshot.data()?.createdAt as Timestamp | undefined) ??
+        FieldValue.serverTimestamp()) :
+      FieldValue.serverTimestamp(),
+  }, workspaceId);
   if (snapshot.exists) {
     transaction.set(
       snapshot.ref,
@@ -330,6 +359,9 @@ export const writePosition = (
     workspaceId,
     profileType,
     currency: "BRL",
+    // Cerca de reconstrução: toda mutação publica uma nova versão de
+    // projeção, invalidando um rebuild concorrente em andamento.
+    projectionVersion: FieldValue.increment(1),
     positionCount: FieldValue.increment(snapshot.exists ? 0 : 1),
     principalCents: FieldValue.increment(
       state.principalCents - previous.principalCents,
@@ -352,7 +384,7 @@ export const writePosition = (
 };
 
 const transactionDate = (timestamp: Timestamp): string =>
-  timestamp.toDate().toISOString().slice(0, 10);
+  saoPauloDayKey(timestamp.toDate());
 
 const writeCashProjection = (
   transaction: admin.firestore.Transaction,
@@ -360,7 +392,7 @@ const writeCashProjection = (
   profileType: "PF" | "PJ",
   movement: Record<string, unknown>,
   investmentOperation: "contribution" | "redemption" | "redemption_reversal",
-  status: "pending" | "settled",
+  status: "pending" | "settled" | "cancelled",
 ): void => {
   const transactionId = String(movement.transactionId);
   const occurredAt = movement.occurredAt as Timestamp;
@@ -442,7 +474,7 @@ export const executeCreateInvestmentContribution = async (
     const authorization = await authorizeInvestmentTransaction(
       transaction,
       auth,
-      [...MUTATION_ROLES],
+      investmentOperationRoles(operation),
     );
     const reservation = await reserveInvestmentIdempotency(
       transaction,
@@ -488,6 +520,35 @@ export const executeCreateInvestmentContribution = async (
       authorization.profileType,
       true,
     );
+    const importBatchRef = payload.importBatchId ?
+      investmentDoc(
+        auth.workspaceId,
+        INVESTMENT_COLLECTIONS.importBatches,
+        payload.importBatchId,
+      ) :
+      undefined;
+    const importBatchSnapshot = importBatchRef ?
+      await transaction.get(importBatchRef) :
+      undefined;
+    if (importBatchRef && importBatchSnapshot) {
+      const batch = assertWorkspaceDocument(
+        importBatchSnapshot,
+        auth.workspaceId,
+        "Lote de importação",
+      );
+      if (batch.status === "completed" || batch.status === "failed") {
+        throw new CreditCardApplicationError(
+          "domain_precondition_failed",
+          "O lote de importação informado não está aberto.",
+        );
+      }
+      if (batch.profileType !== authorization.profileType) {
+        throw new CreditCardApplicationError(
+          "domain_precondition_failed",
+          "O lote de importação não pertence ao contexto PF/PJ do workspace.",
+        );
+      }
+    }
     if (movementSnapshot.exists) {
       throw new CreditCardApplicationError(
         "idempotency_conflict",
@@ -514,6 +575,11 @@ export const executeCreateInvestmentContribution = async (
     if (goalSnapshot) {
       assertWorkspaceDocument(goalSnapshot, auth.workspaceId, "Meta");
     }
+    const periodContext = await readInvestmentPeriodContext(
+      transaction,
+      auth.workspaceId,
+      occurredAt,
+    );
     const cashOutCents = addExact(
       addExact(payload.principalCents, payload.feesCents, "cashOutCents"),
       payload.taxCents,
@@ -555,8 +621,12 @@ export const executeCreateInvestmentContribution = async (
       goalCurrentValueDeltaCents: goalId ?
         next.currentValueCents - current.currentValueCents :
         0,
+      currentValueDeltaCents: next.currentValueCents - current.currentValueCents,
       ...(goalId ? {goalId} : {}),
       ...(payload.walletId ? {walletId: payload.walletId} : {}),
+      ...(payload.importBatchId ?
+        {importBatchId: payload.importBatchId} :
+        {}),
       transactionId: projectionId,
       correlationId: payload.correlationId,
       idempotencyKeyHash: reservation.keyHash,
@@ -567,7 +637,17 @@ export const executeCreateInvestmentContribution = async (
       settledBy: auth.uid,
       settledAt: FieldValue.serverTimestamp(),
     };
-    transaction.create(movementRef, movement);
+    transaction.create(
+      movementRef,
+      assertInvestmentDocument("movement", movement, auth.workspaceId),
+    );
+    if (importBatchRef) {
+      // Contador do lote avança no mesmo limite atômico do aporte.
+      transaction.update(importBatchRef, {
+        processedCount: FieldValue.increment(1),
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+    }
     writePosition(
       transaction,
       positionSnapshot,
@@ -579,6 +659,35 @@ export const executeCreateInvestmentContribution = async (
       movementId,
       occurredAt,
       auth.uid,
+    );
+    writeInvestmentAllocationProjections(
+      transaction,
+      auth.workspaceId,
+      authorization.profileType,
+      auth.uid,
+      accountSnapshot.data() ?? {},
+      assetSnapshot.data() ?? {},
+      current,
+      next,
+      {next: goalSnapshot?.data()?.name as string | undefined},
+    );
+    writeInvestmentReportPeriod(
+      transaction,
+      auth.workspaceId,
+      authorization.profileType,
+      auth.uid,
+      occurredAt,
+      {
+        operation: "contribution",
+        principalCents: payload.principalCents,
+        gainCents: 0,
+        feesCents: payload.feesCents,
+        taxCents: payload.taxCents,
+        cashDeltaCents: movement.cashDeltaCents,
+        currentValueDeltaCents:
+          next.currentValueCents - current.currentValueCents,
+      },
+      periodContext,
     );
     updateGoalProjection(
       transaction,
@@ -605,6 +714,13 @@ export const executeCreateInvestmentContribution = async (
       principalCents: next.principalCents,
       currentValueCents: next.currentValueCents,
     };
+    recordInvestmentOperationMetric(transaction, {
+      workspaceId: auth.workspaceId,
+      operation,
+      actorId: auth.uid,
+      correlationId: payload.correlationId,
+      idempotencyKey: payload.idempotencyKey,
+    });
     recordInvestmentEvent(
       transaction,
       auth,
@@ -653,7 +769,7 @@ export const executeCreateInvestmentRedemptionV2 = async (
     const authorization = await authorizeInvestmentTransaction(
       transaction,
       auth,
-      [...MUTATION_ROLES],
+      investmentOperationRoles(operation),
     );
     const reservation = await reserveInvestmentIdempotency(
       transaction,
@@ -744,6 +860,7 @@ export const executeCreateInvestmentRedemptionV2 = async (
       quantityDeltaMicros: 0,
       goalNetContributionDeltaCents: 0,
       goalCurrentValueDeltaCents: 0,
+      currentValueDeltaCents: 0,
       ...(current.goalId ? {goalId: current.goalId} : {}),
       ...(payload.walletId ? {walletId: payload.walletId} : {}),
       transactionId: projectionId,
@@ -754,7 +871,7 @@ export const executeCreateInvestmentRedemptionV2 = async (
       createdBy: auth.uid,
       createdAt: FieldValue.serverTimestamp(),
     };
-    transaction.create(refs.movement, movement);
+    transaction.create(refs.movement, assertInvestmentDocument("movement", movement, auth.workspaceId));
     writeCashProjection(
       transaction,
       auth,
@@ -770,6 +887,13 @@ export const executeCreateInvestmentRedemptionV2 = async (
       transactionId: projectionId,
       status: "pending",
     };
+    recordInvestmentOperationMetric(transaction, {
+      workspaceId: auth.workspaceId,
+      operation,
+      actorId: auth.uid,
+      correlationId: payload.correlationId,
+      idempotencyKey: payload.idempotencyKey,
+    });
     recordInvestmentEvent(
       transaction,
       auth,
@@ -804,7 +928,7 @@ export const executeSettleInvestmentRedemption = async (
     const authorization = await authorizeInvestmentTransaction(
       transaction,
       auth,
-      [...MUTATION_ROLES],
+      investmentOperationRoles(operation),
     );
     const reservation = await reserveInvestmentIdempotency(
       transaction,
@@ -892,6 +1016,11 @@ export const executeSettleInvestmentRedemption = async (
     if (goalSnapshot) {
       assertWorkspaceDocument(goalSnapshot, auth.workspaceId, "Meta");
     }
+    const periodContext = await readInvestmentPeriodContext(
+      transaction,
+      auth.workspaceId,
+      settledAt,
+    );
     const grossCents = addExact(
       payload.settlement.principalCents,
       payload.settlement.gainCents,
@@ -933,6 +1062,7 @@ export const executeSettleInvestmentRedemption = async (
       goalCurrentValueDeltaCents: goalId ?
         next.currentValueCents - current.currentValueCents :
         0,
+      currentValueDeltaCents: next.currentValueCents - current.currentValueCents,
       ...(goalId ? {goalId} : {}),
       settlementAt: settledAt,
       settledBy: auth.uid,
@@ -956,6 +1086,7 @@ export const executeSettleInvestmentRedemption = async (
       goalNetContributionDeltaCents:
         settledMovement.goalNetContributionDeltaCents,
       goalCurrentValueDeltaCents: settledMovement.goalCurrentValueDeltaCents,
+      currentValueDeltaCents: settledMovement.currentValueDeltaCents,
       ...(goalId ? {goalId} : {}),
       settlementAt: settledMovement.settlementAt,
       settledBy: auth.uid,
@@ -974,6 +1105,38 @@ export const executeSettleInvestmentRedemption = async (
       payload.movementId,
       settledAt,
       auth.uid,
+    );
+    writeInvestmentAllocationProjections(
+      transaction,
+      auth.workspaceId,
+      authorization.profileType,
+      auth.uid,
+      accountSnapshot.data() ?? {},
+      assetSnapshot.data() ?? {},
+      current,
+      next,
+      {
+        previous: goalSnapshot?.data()?.name as string | undefined,
+        next: goalSnapshot?.data()?.name as string | undefined,
+      },
+    );
+    writeInvestmentReportPeriod(
+      transaction,
+      auth.workspaceId,
+      authorization.profileType,
+      auth.uid,
+      settledAt,
+      {
+        operation: "redemption",
+        principalCents: payload.settlement.principalCents,
+        gainCents: payload.settlement.gainCents,
+        feesCents: payload.settlement.feesCents,
+        taxCents: payload.settlement.taxCents,
+        cashDeltaCents,
+        currentValueDeltaCents:
+          next.currentValueCents - current.currentValueCents,
+      },
+      periodContext,
     );
     updateGoalProjection(
       transaction,
@@ -1000,6 +1163,13 @@ export const executeSettleInvestmentRedemption = async (
       remainingPrincipalCents: next.principalCents,
       realizedGainCents: next.realizedGainCents,
     };
+    recordInvestmentOperationMetric(transaction, {
+      workspaceId: auth.workspaceId,
+      operation,
+      actorId: auth.uid,
+      correlationId: payload.correlationId,
+      idempotencyKey: payload.idempotencyKey,
+    });
     recordInvestmentEvent(
       transaction,
       auth,
@@ -1044,7 +1214,7 @@ export const executeReverseInvestmentMovement = async (
     const authorization = await authorizeInvestmentTransaction(
       transaction,
       auth,
-      [...PRIVILEGED_ROLES],
+      investmentOperationRoles(operation),
     );
     const reservation = await reserveInvestmentIdempotency(
       transaction,
@@ -1095,7 +1265,29 @@ export const executeReverseInvestmentMovement = async (
       INVESTMENT_COLLECTIONS.positions,
       original.positionId,
     );
-    const positionSnapshot = await transaction.get(positionRef);
+    const accountRef = investmentDoc(
+      auth.workspaceId,
+      INVESTMENT_COLLECTIONS.accounts,
+      original.accountId,
+    );
+    const assetRef = investmentDoc(
+      auth.workspaceId,
+      INVESTMENT_COLLECTIONS.assets,
+      original.assetId,
+    );
+    const [positionSnapshot, accountSnapshot, assetSnapshot] =
+      await Promise.all([
+        transaction.get(positionRef),
+        transaction.get(accountRef),
+        transaction.get(assetRef),
+      ]);
+    ensureAccountAndAsset(
+      accountSnapshot,
+      assetSnapshot,
+      auth.workspaceId,
+      authorization.profileType,
+      false,
+    );
     const current = positionState(positionSnapshot);
     if (!positionSnapshot.exists) {
       throw new CreditCardApplicationError(
@@ -1127,6 +1319,11 @@ export const executeReverseInvestmentMovement = async (
     if (goalSnapshot) {
       assertWorkspaceDocument(goalSnapshot, auth.workspaceId, "Meta");
     }
+    const periodContext = await readInvestmentPeriodContext(
+      transaction,
+      auth.workspaceId,
+      reversedAt,
+    );
     const reversal = {
       id: reversalId,
       workspaceId: auth.workspaceId,
@@ -1137,6 +1334,9 @@ export const executeReverseInvestmentMovement = async (
       assetId: original.assetId,
       positionId: original.positionId,
       operation: "reversal",
+      // A operação original fica explícita no documento: a reconstrução das
+      // projeções não precisa inferi-la pelo sinal do principal.
+      reversalOfOperation: original.operation,
       status: "settled",
       currency: "BRL",
       description: `Estorno: ${original.description}`,
@@ -1155,6 +1355,7 @@ export const executeReverseInvestmentMovement = async (
       goalCurrentValueDeltaCents: goalId ?
         next.currentValueCents - current.currentValueCents :
         0,
+      currentValueDeltaCents: next.currentValueCents - current.currentValueCents,
       ...(goalId ? {goalId} : {}),
       ...(original.walletId ? {walletId: original.walletId} : {}),
       transactionId: projectionId,
@@ -1169,7 +1370,7 @@ export const executeReverseInvestmentMovement = async (
       settledBy: auth.uid,
       settledAt: FieldValue.serverTimestamp(),
     };
-    transaction.create(reversalRef, reversal);
+    transaction.create(reversalRef, assertInvestmentDocument("movement", reversal, auth.workspaceId));
     transaction.update(originalRef, {
       reversedByMovementId: reversalId,
       reversedAt,
@@ -1189,6 +1390,39 @@ export const executeReverseInvestmentMovement = async (
       reversalId,
       reversedAt,
       auth.uid,
+    );
+    writeInvestmentAllocationProjections(
+      transaction,
+      auth.workspaceId,
+      authorization.profileType,
+      auth.uid,
+      accountSnapshot.data() ?? {},
+      assetSnapshot.data() ?? {},
+      current,
+      next,
+      {
+        previous: goalSnapshot?.data()?.name as string | undefined,
+        next: goalSnapshot?.data()?.name as string | undefined,
+      },
+    );
+    writeInvestmentReportPeriod(
+      transaction,
+      auth.workspaceId,
+      authorization.profileType,
+      auth.uid,
+      reversedAt,
+      {
+        operation: "reversal",
+        reversalOfOperation: original.operation,
+        principalCents: original.principalCents,
+        gainCents: original.gainCents,
+        feesCents: original.feesCents,
+        taxCents: original.taxCents,
+        cashDeltaCents: reversal.cashDeltaCents,
+        currentValueDeltaCents:
+          next.currentValueCents - current.currentValueCents,
+      },
+      periodContext,
     );
     updateGoalProjection(
       transaction,
@@ -1215,6 +1449,13 @@ export const executeReverseInvestmentMovement = async (
       status: "settled",
       principalCents: next.principalCents,
     };
+    recordInvestmentOperationMetric(transaction, {
+      workspaceId: auth.workspaceId,
+      operation,
+      actorId: auth.uid,
+      correlationId: payload.correlationId,
+      idempotencyKey: payload.idempotencyKey,
+    });
     recordInvestmentEvent(
       transaction,
       auth,
@@ -1257,7 +1498,7 @@ const executeGoalLinkChange = async (
     const authorization = await authorizeInvestmentTransaction(
       transaction,
       auth,
-      [...MUTATION_ROLES],
+      investmentOperationRoles(operation),
     );
     const reservation = await reserveInvestmentIdempotency(
       transaction,
@@ -1370,6 +1611,7 @@ const executeGoalLinkChange = async (
       quantityDeltaMicros: 0,
       goalNetContributionDeltaCents: sign * current.principalCents,
       goalCurrentValueDeltaCents: sign * current.currentValueCents,
+      currentValueDeltaCents: 0,
       goalId: payload.goalId,
       correlationId: payload.correlationId,
       idempotencyKeyHash: reservation.keyHash,
@@ -1380,7 +1622,7 @@ const executeGoalLinkChange = async (
       settledBy: auth.uid,
       settledAt: FieldValue.serverTimestamp(),
     };
-    transaction.create(refs.movement, movement);
+    transaction.create(refs.movement, assertInvestmentDocument("movement", movement, auth.workspaceId));
     writePosition(
       transaction,
       positionSnapshot,
@@ -1392,6 +1634,22 @@ const executeGoalLinkChange = async (
       movementId,
       occurredAt,
       auth.uid,
+    );
+    writeInvestmentAllocationProjections(
+      transaction,
+      auth.workspaceId,
+      authorization.profileType,
+      auth.uid,
+      accountSnapshot.data() ?? {},
+      assetSnapshot.data() ?? {},
+      current,
+      next,
+      {
+        previous: current.goalId === payload.goalId ?
+          goalSnapshot.data()?.name as string | undefined : undefined,
+        next: next.goalId === payload.goalId ?
+          goalSnapshot.data()?.name as string | undefined : undefined,
+      },
     );
     updateGoalProjection(
       transaction,
@@ -1407,6 +1665,13 @@ const executeGoalLinkChange = async (
       goalId: payload.goalId,
       linked: link,
     };
+    recordInvestmentOperationMetric(transaction, {
+      workspaceId: auth.workspaceId,
+      operation,
+      actorId: auth.uid,
+      correlationId: payload.correlationId,
+      idempotencyKey: payload.idempotencyKey,
+    });
     recordInvestmentEvent(
       transaction,
       auth,
@@ -1464,7 +1729,7 @@ const executeArchive = async (
     const authorization = await authorizeInvestmentTransaction(
       transaction,
       auth,
-      [...PRIVILEGED_ROLES],
+      investmentOperationRoles(operation),
     );
     const reservation = await reserveInvestmentIdempotency(
       transaction,
@@ -1501,6 +1766,13 @@ const executeArchive = async (
       updatedAt: FieldValue.serverTimestamp(),
     });
     const result = {success: true, entityId, status: "archived"};
+    recordInvestmentOperationMetric(transaction, {
+      workspaceId: auth.workspaceId,
+      operation,
+      actorId: auth.uid,
+      correlationId: payload.correlationId,
+      idempotencyKey: payload.idempotencyKey,
+    });
     recordInvestmentEvent(
       transaction,
       auth,
@@ -1561,7 +1833,7 @@ const executeSaveEntity = async (
     const authorization = await authorizeInvestmentTransaction(
       transaction,
       auth,
-      [...PRIVILEGED_ROLES],
+      investmentOperationRoles(operation),
     );
     const reservation = await reserveInvestmentIdempotency(
       transaction,
@@ -1589,15 +1861,60 @@ const executeSaveEntity = async (
           "Um ativo inativado não pode ser editado.",
       );
     }
+    if (entityType === "asset") {
+      const assetPayload = payload as SaveInvestmentAssetPayload;
+      const allocationPurpose = assetPayload.allocationPurpose ?? "unassigned";
+      const allowedPurposes = authorization.profileType === "PJ" ?
+        [
+          "unassigned",
+          "reserve",
+          "financial_application",
+          "reinvestment",
+          "fixed_asset",
+        ] : ["unassigned", "retirement", "goal"];
+      if (!allowedPurposes.includes(allocationPurpose)) {
+        throw new CreditCardApplicationError(
+          "domain_precondition_failed",
+          "A finalidade do ativo não é compatível com o contexto PF/PJ.",
+        );
+      }
+      const classificationChanged = snapshot.exists && (
+        before?.assetType !== assetPayload.assetType ||
+        (before?.allocationPurpose ?? "unassigned") !==
+          allocationPurpose
+      );
+      if (classificationChanged) {
+        const position = await transaction.get(
+          investmentCollection(
+            auth.workspaceId,
+            INVESTMENT_COLLECTIONS.positions,
+          )
+            .where("assetId", "==", entityId)
+            .where("status", "==", "active")
+            .limit(1),
+        );
+        if (!position.empty) {
+          throw new CreditCardApplicationError(
+            "domain_precondition_failed",
+            "A classificação não pode mudar enquanto o ativo possui posição; " +
+              "preserve o histórico e cadastre um novo ativo.",
+          );
+        }
+      }
+    }
     const mutable = entityType === "account" ? {
       name: payload.name,
-      institutionName: (payload as SaveInvestmentAccountPayload).institutionName,
+      institutionName:
+        (payload as SaveInvestmentAccountPayload).institutionName,
     } : {
       name: payload.name,
       ...((payload as SaveInvestmentAssetPayload).symbol ? {
         symbol: (payload as SaveInvestmentAssetPayload).symbol,
       } : {}),
       assetType: (payload as SaveInvestmentAssetPayload).assetType,
+      allocationPurpose:
+        (payload as SaveInvestmentAssetPayload).allocationPurpose ??
+          "unassigned",
     };
     const common = {
       id: entityId,
@@ -1609,16 +1926,30 @@ const executeSaveEntity = async (
       updatedBy: auth.uid,
       updatedAt: FieldValue.serverTimestamp(),
     };
+    const existing = snapshot.data() ?? {};
+    // Edição preserva os campos de criação; a validação roda sobre a visão
+    // completa do documento resultante, não sobre o patch.
+    const document = {
+      ...common,
+      createdBy: snapshot.exists ? String(existing.createdBy) : auth.uid,
+      createdAt: snapshot.exists ?
+        (existing.createdAt as Timestamp) :
+        FieldValue.serverTimestamp(),
+    };
+    assertInvestmentDocument(entityType, document, auth.workspaceId);
     if (snapshot.exists) {
       transaction.update(ref, common);
     } else {
-      transaction.create(ref, {
-        ...common,
-        createdBy: auth.uid,
-        createdAt: FieldValue.serverTimestamp(),
-      });
+      transaction.create(ref, document);
     }
     const result = {success: true, entityId, created: !snapshot.exists};
+    recordInvestmentOperationMetric(transaction, {
+      workspaceId: auth.workspaceId,
+      operation,
+      actorId: auth.uid,
+      correlationId: payload.correlationId,
+      idempotencyKey: payload.idempotencyKey,
+    });
     recordInvestmentEvent(
       transaction,
       auth,
@@ -1646,12 +1977,510 @@ const executeSaveEntity = async (
 export const executeSaveInvestmentAccount = (
   auth: WorkspaceAuthorizationContext,
   payload: SaveInvestmentAccountPayload,
-): Promise<Record<string, unknown>> => executeSaveEntity(auth, payload, "account");
+): Promise<Record<string, unknown>> =>
+  executeSaveEntity(auth, payload, "account");
 
 export const executeSaveInvestmentAsset = (
   auth: WorkspaceAuthorizationContext,
   payload: SaveInvestmentAssetPayload,
-): Promise<Record<string, unknown>> => executeSaveEntity(auth, payload, "asset");
+): Promise<Record<string, unknown>> =>
+  executeSaveEntity(auth, payload, "asset");
 
 export const investmentIdempotencyKeyHash = (key: string): string =>
   sha256(key);
+
+/**
+ * Cancelamento de movimento pendente (M3.D).
+ *
+ * Antes do M3 um resgate `pending` não tinha nenhuma transição de saída:
+ * `reverseInvestmentMovement` exige `settled` e o cancelamento legado do M2
+ * atuava apenas sobre `transactions`. O resultado era uma obrigação aberta
+ * permanente, invisível ao rebuild e sem saída operacional.
+ *
+ * Cancelar um pendente não apaga fato financeiro: todos os deltas já são zero
+ * e o movimento não tocou posição, meta nem caixa. O documento é preservado
+ * com `cancelledAt`/`cancelledBy`/motivo — não há hard delete.
+ */
+export const executeCancelInvestmentMovement = async (
+  auth: WorkspaceAuthorizationContext,
+  payload: CancelInvestmentMovementPayload,
+): Promise<Record<string, unknown>> => {
+  const operation = "cancelInvestmentMovement" as const;
+  const occurredAt = parseTimestamp(payload.occurredAt);
+  return investmentFirestore().runTransaction(async (transaction) => {
+    const authorization = await authorizeInvestmentTransaction(
+      transaction,
+      auth,
+      investmentOperationRoles(operation),
+    );
+    const reservation = await reserveInvestmentIdempotency(
+      transaction,
+      auth,
+      operation,
+      payload.idempotencyKey,
+      payload.correlationId,
+      payload,
+    );
+    if (reservation.replay) return reservation.replay;
+    const movementRef = investmentDoc(
+      auth.workspaceId,
+      INVESTMENT_COLLECTIONS.movements,
+      payload.movementId,
+    );
+    const movementSnapshot = await transaction.get(movementRef);
+    const movement = assertWorkspaceDocument(
+      movementSnapshot,
+      auth.workspaceId,
+      "Movimento de investimento",
+    );
+    if (movement.status === "cancelled") {
+      throw new CreditCardApplicationError(
+        "domain_precondition_failed",
+        "Este movimento já está cancelado.",
+      );
+    }
+    if (movement.status !== "pending") {
+      throw new CreditCardApplicationError(
+        "domain_precondition_failed",
+        "Somente um movimento pendente pode ser cancelado. " +
+          "Movimento liquidado exige estorno compensatório.",
+      );
+    }
+    const cancellation = {
+      status: "cancelled" as const,
+      cancelledAt: FieldValue.serverTimestamp(),
+      cancelledBy: auth.uid,
+      cancellationReason: payload.reason,
+      cancellationCorrelationId: payload.correlationId,
+      updatedAt: FieldValue.serverTimestamp(),
+    };
+    const cancelledMovement = assertInvestmentDocument(
+      "movement",
+      {...movement, ...cancellation},
+      auth.workspaceId,
+    );
+    transaction.update(movementRef, cancellation);
+    if (typeof movement.transactionId === "string") {
+      writeCashProjection(
+        transaction,
+        auth,
+        authorization.profileType,
+        cancelledMovement,
+        movement.operation === "redemption" ? "redemption" : "contribution",
+        "cancelled",
+      );
+    }
+    const result = {
+      success: true,
+      movementId: payload.movementId,
+      positionId: movement.positionId,
+      transactionId: movement.transactionId,
+      status: "cancelled",
+    };
+    recordInvestmentOperationMetric(transaction, {
+      workspaceId: auth.workspaceId,
+      operation,
+      actorId: auth.uid,
+      accountId: movement.accountId as string,
+      assetId: movement.assetId as string,
+      movementId: payload.movementId,
+      correlationId: payload.correlationId,
+      idempotencyKey: payload.idempotencyKey,
+    });
+    recordInvestmentEvent(
+      transaction,
+      auth,
+      authorization.role,
+      authorization.profileType,
+      operation,
+      reservation,
+      payload.correlationId,
+      "movement",
+      payload.movementId,
+      {
+        positionId: movement.positionId,
+        beforeStatus: "pending",
+        afterStatus: "cancelled",
+        occurredAt: occurredAt.toDate().toISOString(),
+        reason: payload.reason,
+      },
+    );
+    completeInvestmentIdempotency(
+      transaction,
+      auth,
+      operation,
+      payload.correlationId,
+      reservation,
+      result,
+    );
+    return result;
+  });
+};
+
+/**
+ * Marcação a mercado (M3.D).
+ *
+ * `investment_valuations` era lida pelo rebuild mas não tinha nenhum caminho
+ * de escrita: `currentValueCents` nunca divergia de `principalCents`,
+ * `unrealizedAppreciationCents` era sempre zero e `progressBasis:
+ * 'current_value'` era indistinguível de `net_contributions`.
+ *
+ * Valoração altera patrimônio e **nunca** fluxo de caixa: não há movimento no
+ * ledger, não há espelho em `transactions` e o custo (principal) permanece
+ * intacto. Só o valor atual e a apreciação não realizada mudam.
+ */
+export const executeRecordInvestmentValuation = async (
+  auth: WorkspaceAuthorizationContext,
+  payload: RecordInvestmentValuationPayload,
+): Promise<Record<string, unknown>> => {
+  const operation = "recordInvestmentValuation" as const;
+  const effectiveAt = parseTimestamp(payload.effectiveAt);
+  return investmentFirestore().runTransaction(async (transaction) => {
+    const authorization = await authorizeInvestmentTransaction(
+      transaction,
+      auth,
+      investmentOperationRoles(operation),
+    );
+    const reservation = await reserveInvestmentIdempotency(
+      transaction,
+      auth,
+      operation,
+      payload.idempotencyKey,
+      payload.correlationId,
+      payload,
+    );
+    if (reservation.replay) return reservation.replay;
+    const positionId = investmentPositionId(payload.accountId, payload.assetId);
+    const refs = {
+      account: investmentDoc(
+        auth.workspaceId,
+        INVESTMENT_COLLECTIONS.accounts,
+        payload.accountId,
+      ),
+      asset: investmentDoc(
+        auth.workspaceId,
+        INVESTMENT_COLLECTIONS.assets,
+        payload.assetId,
+      ),
+      position: investmentDoc(
+        auth.workspaceId,
+        INVESTMENT_COLLECTIONS.positions,
+        positionId,
+      ),
+    };
+    const [accountSnapshot, assetSnapshot, positionSnapshot] =
+      await Promise.all([
+        transaction.get(refs.account),
+        transaction.get(refs.asset),
+        transaction.get(refs.position),
+      ]);
+    ensureAccountAndAsset(
+      accountSnapshot,
+      assetSnapshot,
+      auth.workspaceId,
+      authorization.profileType,
+      false,
+    );
+    if (!positionSnapshot.exists) {
+      throw new CreditCardApplicationError(
+        "domain_precondition_failed",
+        "Não existe posição para valorar nesta conta e ativo.",
+      );
+    }
+    const current = positionState(positionSnapshot);
+    if (current.quantityMicros <= 0) {
+      throw new CreditCardApplicationError(
+        "domain_precondition_failed",
+        "Posição sem quantidade não pode ser valorada.",
+      );
+    }
+    if (
+      current.valuationEffectiveAt &&
+      current.valuationEffectiveAt.toMillis() > effectiveAt.toMillis()
+    ) {
+      throw new CreditCardApplicationError(
+        "domain_precondition_failed",
+        "Já existe valoração mais recente para esta posição.",
+      );
+    }
+    const valuationId = deterministicDocumentId(
+      "valuation",
+      auth.uid,
+      payload.idempotencyKey,
+    );
+    const valuationRef = investmentDoc(
+      auth.workspaceId,
+      INVESTMENT_COLLECTIONS.valuations,
+      valuationId,
+    );
+    const valuationSnapshot = await transaction.get(valuationRef);
+    if (valuationSnapshot.exists) {
+      throw new CreditCardApplicationError(
+        "idempotency_conflict",
+        "Esta valoração já foi registrada.",
+      );
+    }
+    const currentValueCents = positionValueCents(
+      current.quantityMicros,
+      payload.unitPriceMicros,
+    );
+    const next: PositionState = {
+      ...current,
+      currentValueCents,
+      valuationId,
+      valuationUnitPriceMicros: payload.unitPriceMicros,
+      valuationEffectiveAt: effectiveAt,
+      version: current.version + 1,
+    };
+    const currentValueDeltaCents = addExact(
+      currentValueCents,
+      -current.currentValueCents,
+      "currentValueDeltaCents",
+    );
+    const goalId = current.goalId;
+    const goalSnapshot = goalId ?
+      await transaction.get(investmentGoalDoc(auth.workspaceId, goalId)) :
+      undefined;
+    if (goalSnapshot) {
+      assertWorkspaceDocument(goalSnapshot, auth.workspaceId, "Meta");
+    }
+    const periodContext = await readInvestmentPeriodContext(
+      transaction,
+      auth.workspaceId,
+      effectiveAt,
+    );
+    transaction.create(
+      valuationRef,
+      assertInvestmentDocument("valuation", {
+        id: valuationId,
+        workspaceId: auth.workspaceId,
+        profileType: authorization.profileType,
+        // A valoração é gravada para a posição de uma conta específica, e é
+        // essa posição que passa a carregar `valuationUnitPriceMicros`. Sem
+        // `accountId` no documento, o rebuild — que busca a valoração só por
+        // `assetId` — aplicava o preço a todas as posições do ativo e publicava
+        // um patrimônio diferente do caminho incremental.
+        accountId: payload.accountId,
+        assetId: payload.assetId,
+        currency: "BRL",
+        unitPriceMicros: payload.unitPriceMicros,
+        source: payload.source,
+        effectiveAt,
+        correlationId: payload.correlationId,
+        createdBy: auth.uid,
+        createdAt: FieldValue.serverTimestamp(),
+      }, auth.workspaceId),
+    );
+    writePosition(
+      transaction,
+      positionSnapshot,
+      auth.workspaceId,
+      authorization.profileType,
+      payload.accountId,
+      payload.assetId,
+      next,
+      valuationId,
+      effectiveAt,
+      auth.uid,
+    );
+    writeInvestmentAllocationProjections(
+      transaction,
+      auth.workspaceId,
+      authorization.profileType,
+      auth.uid,
+      accountSnapshot.data() ?? {},
+      assetSnapshot.data() ?? {},
+      current,
+      next,
+      {
+        previous: goalSnapshot?.data()?.name as string | undefined,
+        next: goalSnapshot?.data()?.name as string | undefined,
+      },
+    );
+    writeInvestmentValuationReportPeriod(
+      transaction,
+      auth.workspaceId,
+      authorization.profileType,
+      auth.uid,
+      effectiveAt,
+      currentValueDeltaCents,
+      periodContext,
+    );
+    // Valoração muda apenas o valor atual da meta; o aporte líquido
+    // (`net_contributions`) permanece intacto.
+    updateGoalProjection(
+      transaction,
+      goalSnapshot,
+      0,
+      goalId ? currentValueDeltaCents : 0,
+      auth.uid,
+    );
+    const result = {
+      success: true,
+      valuationId,
+      positionId,
+      unitPriceMicros: payload.unitPriceMicros,
+      currentValueCents,
+      currentValueDeltaCents,
+      unrealizedAppreciationCents: currentValueCents - next.principalCents,
+    };
+    recordInvestmentOperationMetric(transaction, {
+      workspaceId: auth.workspaceId,
+      operation,
+      actorId: auth.uid,
+      accountId: payload.accountId,
+      assetId: payload.assetId,
+      goalId,
+      amountCents: currentValueDeltaCents,
+      correlationId: payload.correlationId,
+      idempotencyKey: payload.idempotencyKey,
+    });
+    recordInvestmentEvent(
+      transaction,
+      auth,
+      authorization.role,
+      authorization.profileType,
+      operation,
+      reservation,
+      payload.correlationId,
+      "position",
+      positionId,
+      {
+        valuationId,
+        unitPriceMicros: payload.unitPriceMicros,
+        currentValueDeltaCents,
+        cashDeltaCents: 0,
+      },
+    );
+    completeInvestmentIdempotency(
+      transaction,
+      auth,
+      operation,
+      payload.correlationId,
+      reservation,
+      result,
+    );
+    return result;
+  });
+};
+
+/**
+ * Lote de importação (M3.C).
+ *
+ * `InvestmentImportBatch` existia como tipo e como bloco de Rules, sem
+ * nenhum leitor, escritor ou contrato — entidade morta. O M3 decide
+ * **implementar a ingestão** em vez de remover a entidade: o lote passa a ser
+ * o registro de procedência de aportes importados, com ciclo de vida
+ * explícito e contadores atualizados na mesma transação do aporte.
+ */
+export const executeRegisterInvestmentImportBatch = async (
+  auth: WorkspaceAuthorizationContext,
+  payload: RegisterInvestmentImportBatchPayload,
+): Promise<Record<string, unknown>> => {
+  const operation = "registerInvestmentImportBatch" as const;
+  return investmentFirestore().runTransaction(async (transaction) => {
+    const authorization = await authorizeInvestmentTransaction(
+      transaction,
+      auth,
+      investmentOperationRoles(operation),
+    );
+    const reservation = await reserveInvestmentIdempotency(
+      transaction,
+      auth,
+      operation,
+      payload.idempotencyKey,
+      payload.correlationId,
+      payload,
+    );
+    if (reservation.replay) return reservation.replay;
+    const batchId =
+      payload.batchId ??
+      deterministicDocumentId("import-batch", auth.uid, payload.idempotencyKey);
+    const batchRef = investmentDoc(
+      auth.workspaceId,
+      INVESTMENT_COLLECTIONS.importBatches,
+      batchId,
+    );
+    const batchSnapshot = await transaction.get(batchRef);
+    const existing = batchSnapshot.exists ?
+      assertWorkspaceDocument(
+        batchSnapshot,
+        auth.workspaceId,
+        "Lote de importação",
+      ) :
+      undefined;
+    if (existing && existing.status === "completed") {
+      throw new CreditCardApplicationError(
+        "domain_precondition_failed",
+        "Lote de importação concluído não pode ser reaberto.",
+      );
+    }
+    const document = assertInvestmentDocument("importBatch", {
+      id: batchId,
+      workspaceId: auth.workspaceId,
+      profileType: authorization.profileType,
+      status: payload.status,
+      source: payload.source,
+      processedCount: payload.processedCount,
+      failedCount: payload.failedCount,
+      correlationId: payload.correlationId,
+      createdBy: existing ? String(existing.createdBy) : auth.uid,
+      createdAt: existing ?
+        (existing.createdAt as Timestamp) :
+        FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+      ...(payload.status === "completed" ?
+        {completedAt: FieldValue.serverTimestamp()} :
+        {}),
+    }, auth.workspaceId);
+    if (batchSnapshot.exists) {
+      transaction.update(batchRef, {
+        status: document.status,
+        source: document.source,
+        processedCount: document.processedCount,
+        failedCount: document.failedCount,
+        correlationId: document.correlationId,
+        updatedAt: FieldValue.serverTimestamp(),
+        ...(payload.status === "completed" ?
+          {completedAt: FieldValue.serverTimestamp()} :
+          {}),
+      });
+    } else {
+      transaction.create(batchRef, document);
+    }
+    const result = {
+      success: true,
+      batchId,
+      status: payload.status,
+      created: !batchSnapshot.exists,
+    };
+    recordInvestmentOperationMetric(transaction, {
+      workspaceId: auth.workspaceId,
+      operation,
+      actorId: auth.uid,
+      correlationId: payload.correlationId,
+      idempotencyKey: payload.idempotencyKey,
+    });
+    recordInvestmentEvent(
+      transaction,
+      auth,
+      authorization.role,
+      authorization.profileType,
+      operation,
+      reservation,
+      payload.correlationId,
+      "importBatch",
+      batchId,
+      {status: payload.status, source: payload.source},
+    );
+    completeInvestmentIdempotency(
+      transaction,
+      auth,
+      operation,
+      payload.correlationId,
+      reservation,
+      result,
+    );
+    return result;
+  });
+};

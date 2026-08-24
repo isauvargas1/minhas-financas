@@ -10,6 +10,7 @@ export * from "./callables/splitGroups";
 export * from "./creditCards/callables";
 export * from "./goals/callables";
 export * from "./investments/callables";
+export * from "./ai/callables";
 
 export * from "./callables/billing";
 
