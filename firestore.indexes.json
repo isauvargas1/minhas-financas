@@ -302,11 +302,29 @@
       "queryScope": "COLLECTION",
       "fields": [
         {
+          "fieldPath": "accountId",
+          "order": "ASCENDING"
+        },
+        {
           "fieldPath": "assetId",
           "order": "ASCENDING"
         },
         {
           "fieldPath": "effectiveAt",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "investment_report_periods",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "periodStart",
           "order": "DESCENDING"
         },
         {
@@ -337,109 +355,306 @@
       "collectionGroup": "settings_catalog",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "group", "order": "ASCENDING" },
-        { "fieldPath": "status", "order": "ASCENDING" },
-        { "fieldPath": "sortOrder", "order": "ASCENDING" },
-        { "fieldPath": "normalizedName", "order": "ASCENDING" },
-        { "fieldPath": "__name__", "order": "ASCENDING" }
+        {
+          "fieldPath": "group",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "sortOrder",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "normalizedName",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "ASCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "settings_catalog",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "group", "order": "ASCENDING" },
-        { "fieldPath": "sortOrder", "order": "ASCENDING" },
-        { "fieldPath": "normalizedName", "order": "ASCENDING" },
-        { "fieldPath": "__name__", "order": "ASCENDING" }
+        {
+          "fieldPath": "group",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "sortOrder",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "normalizedName",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "ASCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "settings_catalog",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "group", "order": "ASCENDING" },
-        { "fieldPath": "transactionSubtype", "order": "ASCENDING" },
-        { "fieldPath": "status", "order": "ASCENDING" },
-        { "fieldPath": "sortOrder", "order": "ASCENDING" },
-        { "fieldPath": "normalizedName", "order": "ASCENDING" },
-        { "fieldPath": "__name__", "order": "ASCENDING" }
+        {
+          "fieldPath": "group",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "transactionSubtype",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "sortOrder",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "normalizedName",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "ASCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "settings_catalog",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "group", "order": "ASCENDING" },
-        { "fieldPath": "transactionSubtype", "order": "ASCENDING" },
-        { "fieldPath": "sortOrder", "order": "ASCENDING" },
-        { "fieldPath": "normalizedName", "order": "ASCENDING" },
-        { "fieldPath": "__name__", "order": "ASCENDING" }
+        {
+          "fieldPath": "group",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "transactionSubtype",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "sortOrder",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "normalizedName",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "ASCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "investment_accounts",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "status", "order": "ASCENDING" },
-        { "fieldPath": "updatedAt", "order": "DESCENDING" },
-        { "fieldPath": "__name__", "order": "DESCENDING" }
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "updatedAt",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "investment_assets",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "status", "order": "ASCENDING" },
-        { "fieldPath": "updatedAt", "order": "DESCENDING" },
-        { "fieldPath": "__name__", "order": "DESCENDING" }
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "updatedAt",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "investment_positions",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "status", "order": "ASCENDING" },
-        { "fieldPath": "updatedAt", "order": "DESCENDING" },
-        { "fieldPath": "__name__", "order": "DESCENDING" }
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "updatedAt",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "investment_positions",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "accountId", "order": "ASCENDING" },
-        { "fieldPath": "status", "order": "ASCENDING" },
-        { "fieldPath": "updatedAt", "order": "DESCENDING" },
-        { "fieldPath": "__name__", "order": "DESCENDING" }
+        {
+          "fieldPath": "accountId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "updatedAt",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "investment_movements",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "status", "order": "ASCENDING" },
-        { "fieldPath": "occurredAt", "order": "DESCENDING" },
-        { "fieldPath": "__name__", "order": "DESCENDING" }
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "occurredAt",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "investment_movements",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "operation", "order": "ASCENDING" },
-        { "fieldPath": "occurredAt", "order": "DESCENDING" },
-        { "fieldPath": "__name__", "order": "DESCENDING" }
+        {
+          "fieldPath": "operation",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "occurredAt",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "investment_movements",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "status", "order": "ASCENDING" },
-        { "fieldPath": "operation", "order": "ASCENDING" },
-        { "fieldPath": "occurredAt", "order": "DESCENDING" },
-        { "fieldPath": "__name__", "order": "DESCENDING" }
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "operation",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "occurredAt",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "investment_positions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "assetId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "investment_allocation_summaries",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "dimension",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "currentValueCents",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "credit_card_invoices",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "dueDate",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "transactions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "type",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "date",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "ASCENDING"
+        }
       ]
     }
   ],
