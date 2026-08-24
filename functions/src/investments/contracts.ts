@@ -54,16 +54,62 @@ const v2BaseShape = {
   correlationId: investmentCorrelationIdSchema,
 };
 
+/**
+ * Valores de uma liquidação de resgate.
+ *
+ * ## Perda realizada (INV-P1-009)
+ *
+ * `gainCents` continua não-negativo e ganha um irmão explícito, `lossCents`.
+ * A alternativa considerada foi transformar `gainCents` num
+ * `realizedResultCents` com sinal; ela foi descartada porque mudaria o
+ * significado de um campo **já persistido** em movimentos, posições, períodos,
+ * validadores das Rules, trilha legada e migração — e, depois da mudança, um
+ * `0` histórico seria indistinguível entre "sem ganho" e "campo ainda não
+ * existia". Com o campo adicional, todo documento antigo continua significando
+ * exatamente o que significava, e o resultado com sinal é derivado onde for
+ * preciso: `realizedResult = realizedGain − realizedLoss`.
+ *
+ * Semântica dos campos numa liquidação:
+ *
+ * - `principalCents` — custo de aquisição **retirado da posição**;
+ * - `gainCents` — resultado positivo, acima do custo;
+ * - `lossCents` — resultado negativo, abaixo do custo;
+ * - caixa recebido = `principal + ganho − perda − taxas − imposto`.
+ *
+ * Antes desta correção, um resgate integral abaixo do custo só podia ser
+ * lançado reduzindo o `principalCents` da liquidação — o que zerava a
+ * quantidade e deixava principal fantasma permanente na posição, somado ao
+ * patrimônio e às 8 faixas de alocação, irrecuperável por reconstrução.
+ */
 const financialAmountsSchema = z
   .object({
     principalCents: positiveCentsSchema,
     quantityMicros: quantityMicrosSchema,
     gainCents: centsSchema.default(0),
+    lossCents: centsSchema.default(0),
     feesCents: centsSchema.default(0),
     taxCents: centsSchema.default(0),
   })
   .strict()
   .superRefine((values, context) => {
+    // Ganho e perda são mutuamente exclusivos: o resultado realizado de uma
+    // liquidação tem um sinal só. Aceitar os dois permitiria compensá-los e
+    // esconder a magnitude real de cada um no relatório.
+    if (values.gainCents > 0 && values.lossCents > 0) {
+      context.addIssue({
+        code: "custom",
+        path: ["lossCents"],
+        message:
+          "Uma liquidação tem ganho ou perda realizada, nunca os dois.",
+      });
+    }
+    if (values.lossCents > values.principalCents) {
+      context.addIssue({
+        code: "custom",
+        path: ["lossCents"],
+        message: "A perda realizada não pode superar o custo resgatado.",
+      });
+    }
     if (values.taxCents > values.gainCents) {
       context.addIssue({
         code: "custom",
@@ -72,8 +118,8 @@ const financialAmountsSchema = z
       });
     }
     if (
-      values.feesCents + values.taxCents >=
-      values.principalCents + values.gainCents
+      values.feesCents + values.taxCents >
+      values.principalCents + values.gainCents - values.lossCents
     ) {
       context.addIssue({
         code: "custom",

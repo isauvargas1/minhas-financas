@@ -69,6 +69,57 @@ export const investmentPositionId = (
   assetId: string,
 ): string => deterministicDocumentId("position", accountId, assetId);
 
+/**
+ * Tolerância de relógio entre o cliente e o servidor.
+ *
+ * Um instante enviado pelo navegador pode estar minutos adiantado sem que
+ * exista qualquer intenção de lançar no futuro.
+ */
+export const FUTURE_DATE_TOLERANCE_MS = 5 * 60 * 1000;
+
+/**
+ * Recusa data futura em fato financeiro (INV-P2-022).
+ *
+ * Liquidação, estorno e valoração não tinham nenhuma checagem temporal. Uma
+ * valoração no futuro cria o período do mês futuro e passa a receber deltas;
+ * um estorno com data futura desloca o fechamento de meses que ainda não
+ * existem.
+ */
+export const assertNotFuture = (
+  value: Timestamp,
+  field: string,
+): Timestamp => {
+  if (value.toMillis() > Date.now() + FUTURE_DATE_TOLERANCE_MS) {
+    throw new CreditCardApplicationError(
+      "domain_precondition_failed",
+      `A data informada em ${field} está no futuro.`,
+    );
+  }
+  return value;
+};
+
+/**
+ * Recusa data anterior ao fato que a originou (INV-P2-022).
+ *
+ * Um estorno com `reversedAt` retroativo subtrai patrimônio de um mês anterior
+ * ao próprio movimento estornado e propaga o negativo para todos os meses
+ * seguintes.
+ */
+export const assertNotBefore = (
+  value: Timestamp,
+  floor: Timestamp,
+  field: string,
+  floorLabel: string,
+): Timestamp => {
+  if (value.toMillis() < floor.toMillis()) {
+    throw new CreditCardApplicationError(
+      "domain_precondition_failed",
+      `A data informada em ${field} é anterior ${floorLabel}.`,
+    );
+  }
+  return value;
+};
+
 export const parseTimestamp = (value: string): Timestamp => {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {

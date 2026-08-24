@@ -38,6 +38,8 @@ export interface InvestmentPosition {
   principalCents: number;
   currentValueCents: number;
   realizedGainCents: number;
+  /** Perda realizada acumulada (INV-P1-009). Ausente em documentos anteriores. */
+  realizedLossCents?: number;
   unrealizedAppreciationCents: number;
   updatedAt: Timestamp;
 }
@@ -53,6 +55,8 @@ export interface InvestmentMovement {
   description: string;
   principalCents: number;
   gainCents: number;
+  /** Perda realizada da liquidação (INV-P1-009). */
+  lossCents?: number;
   feesCents: number;
   taxCents: number;
   quantityMicros: number;
@@ -67,6 +71,7 @@ export interface InvestmentSummary {
   principalCents: number;
   currentValueCents: number;
   realizedGainCents: number;
+  realizedLossCents?: number;
   unrealizedAppreciationCents: number;
   feesCents: number;
   taxCents: number;
@@ -82,6 +87,7 @@ export interface InvestmentReportPeriod {
   contributionCents: number;
   redemptionPrincipalCents: number;
   realizedGainCents: number;
+  realizedLossCents?: number;
   feesCents: number;
   taxCents: number;
   costDeltaCents: number;
@@ -98,6 +104,7 @@ export interface InvestmentReportPeriod {
     contributionCents: number;
     redemptionPrincipalCents: number;
     realizedGainCents: number;
+    realizedLossCents?: number;
     feesCents: number;
     taxCents: number;
     costDeltaCents: number;
@@ -118,6 +125,7 @@ export interface InvestmentAllocationSummary {
   principalCents: number;
   currentValueCents: number;
   realizedGainCents: number;
+  realizedLossCents?: number;
   feesCents: number;
   taxCents: number;
 }

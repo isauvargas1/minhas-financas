@@ -27,6 +27,8 @@ import {assertInvestmentDocument} from "./documentContracts";
 import {recordInvestmentOperationMetric} from "./observability";
 import {investmentOperationRoles} from "./writeStrategy";
 import {
+  assertNotBefore,
+  assertNotFuture,
   assertWorkspaceDocument,
   authorizeInvestmentTransaction,
   completeInvestmentIdempotency,
@@ -62,6 +64,11 @@ export interface PositionState {
   quantityMicros: number;
   principalCents: number;
   realizedGainCents: number;
+  /**
+   * Perda realizada acumulada (INV-P1-009). Não-negativa, como o ganho: o
+   * resultado com sinal é derivado (`realizedGain − realizedLoss`).
+   */
+  realizedLossCents: number;
   feesCents: number;
   taxCents: number;
   currentValueCents: number;
@@ -76,6 +83,7 @@ interface PositionDeltas {
   quantityMicros: number;
   principalCents: number;
   realizedGainCents: number;
+  realizedLossCents?: number;
   feesCents: number;
   taxCents: number;
 }
@@ -84,6 +92,7 @@ const emptyPosition = (): PositionState => ({
   quantityMicros: 0,
   principalCents: 0,
   realizedGainCents: 0,
+  realizedLossCents: 0,
   feesCents: 0,
   taxCents: 0,
   currentValueCents: 0,
@@ -92,6 +101,21 @@ const emptyPosition = (): PositionState => ({
 
 export const integerOrZero = (value: unknown): number =>
   Number.isSafeInteger(value) ? (value as number) : 0;
+
+/**
+ * Posição **exposta**: tem quantidade, custo ou valor.
+ *
+ * É a definição que `projectionRebuild.accumulatePosition` usa para contar, e
+ * por isso precisa ser a mesma no caminho incremental (INV-P2-047).
+ */
+export const isExposedPosition = (state: {
+  quantityMicros: number;
+  principalCents: number;
+  currentValueCents: number;
+}): boolean =>
+  state.quantityMicros !== 0 ||
+  state.principalCents !== 0 ||
+  state.currentValueCents !== 0;
 
 export const positionState = (
   snapshot: admin.firestore.DocumentSnapshot,
@@ -102,6 +126,7 @@ export const positionState = (
     quantityMicros: integerOrZero(data.quantityMicros),
     principalCents: integerOrZero(data.principalCents),
     realizedGainCents: integerOrZero(data.realizedGainCents),
+    realizedLossCents: integerOrZero(data.realizedLossCents),
     feesCents: integerOrZero(data.feesCents),
     taxCents: integerOrZero(data.taxCents),
     currentValueCents: integerOrZero(data.currentValueCents),
@@ -139,18 +164,37 @@ const applyPositionDeltas = (
     deltas.realizedGainCents,
     "realizedGainCents",
   );
+  const realizedLossCents = addExact(
+    current.realizedLossCents,
+    deltas.realizedLossCents ?? 0,
+    "realizedLossCents",
+  );
   const feesCents = addExact(current.feesCents, deltas.feesCents, "feesCents");
   const taxCents = addExact(current.taxCents, deltas.taxCents, "taxCents");
   if (
     quantityMicros < 0 ||
     principalCents < 0 ||
     realizedGainCents < 0 ||
+    realizedLossCents < 0 ||
     feesCents < 0 ||
     taxCents < 0
   ) {
     throw new CreditCardApplicationError(
       "domain_precondition_failed",
       "O movimento deixaria a posição de investimento inconsistente.",
+    );
+  }
+  // INV-P1-009 — invariante de encerramento. Sem quantidade não há custo de
+  // aquisição a sustentar: um principal remanescente aqui é patrimônio
+  // fantasma, somado ao resumo e às 8 faixas de alocação, e a reconstrução
+  // reproduz o mesmo erro porque soma os mesmos deltas do ledger. O caminho
+  // correto para resgatar abaixo do custo é retirar o custo inteiro e lançar
+  // a diferença em `lossCents`.
+  if (quantityMicros === 0 && principalCents !== 0) {
+    throw new CreditCardApplicationError(
+      "domain_precondition_failed",
+      "Ao zerar a quantidade da posição, o custo resgatado precisa ser o " +
+        "custo total. Lance a diferença como perda realizada.",
     );
   }
   const currentValueCents = currentValueForPosition(
@@ -163,6 +207,7 @@ const applyPositionDeltas = (
     quantityMicros,
     principalCents,
     realizedGainCents,
+    realizedLossCents,
     feesCents,
     taxCents,
     currentValueCents,
@@ -287,6 +332,7 @@ export const writePosition = (
     quantityMicros: state.quantityMicros,
     principalCents: state.principalCents,
     realizedGainCents: state.realizedGainCents,
+    realizedLossCents: state.realizedLossCents,
     feesCents: state.feesCents,
     taxCents: state.taxCents,
     currentValueCents: state.currentValueCents,
@@ -362,7 +408,14 @@ export const writePosition = (
     // Cerca de reconstrução: toda mutação publica uma nova versão de
     // projeção, invalidando um rebuild concorrente em andamento.
     projectionVersion: FieldValue.increment(1),
-    positionCount: FieldValue.increment(snapshot.exists ? 0 : 1),
+    // INV-P2-047 — `positionCount` só crescia: contava a criação do documento
+    // e nunca o encerramento da posição. Como a reconstrução conta apenas
+    // posições **expostas**, a métrica de deriva acusava divergência
+    // permanente mesmo num workspace íntegro, e o sinal ficava inútil.
+    // A definição passa a ser a mesma dos dois lados.
+    positionCount: FieldValue.increment(
+      Number(isExposedPosition(state)) - Number(isExposedPosition(previous)),
+    ),
     principalCents: FieldValue.increment(
       state.principalCents - previous.principalCents,
     ),
@@ -371,6 +424,9 @@ export const writePosition = (
     ),
     realizedGainCents: FieldValue.increment(
       state.realizedGainCents - previous.realizedGainCents,
+    ),
+    realizedLossCents: FieldValue.increment(
+      state.realizedLossCents - previous.realizedLossCents,
     ),
     feesCents: FieldValue.increment(state.feesCents - previous.feesCents),
     taxCents: FieldValue.increment(state.taxCents - previous.taxCents),
@@ -923,7 +979,10 @@ export const executeSettleInvestmentRedemption = async (
   payload: SettleInvestmentRedemptionPayload,
 ): Promise<Record<string, unknown>> => {
   const operation = "settleInvestmentRedemption" as const;
-  const settledAt = parseTimestamp(payload.settledAt);
+  const settledAt = assertNotFuture(
+    parseTimestamp(payload.settledAt),
+    "settledAt",
+  );
   return investmentFirestore().runTransaction(async (transaction) => {
     const authorization = await authorizeInvestmentTransaction(
       transaction,
@@ -963,6 +1022,29 @@ export const executeSettleInvestmentRedemption = async (
       throw new CreditCardApplicationError(
         "domain_precondition_failed",
         "A liquidação supera os valores solicitados no resgate.",
+      );
+    }
+    // INV-P2-022 — a liquidação não pode preceder o pedido que a originou.
+    assertNotBefore(
+      settledAt,
+      movement.occurredAt as Timestamp,
+      "settledAt",
+      "à solicitação do resgate",
+    );
+    // INV-P1-009 — a exclusividade também vive aqui, e não só no schema Zod
+    // da callable: as operações são chamadas diretamente por testes de
+    // integração e pelos caminhos operacionais, e a invariante financeira não
+    // pode depender de quem construiu o payload.
+    if (payload.settlement.gainCents > 0 && payload.settlement.lossCents > 0) {
+      throw new CreditCardApplicationError(
+        "domain_precondition_failed",
+        "Uma liquidação tem ganho ou perda realizada, nunca os dois.",
+      );
+    }
+    if (payload.settlement.lossCents > payload.settlement.principalCents) {
+      throw new CreditCardApplicationError(
+        "domain_precondition_failed",
+        "A perda realizada não pode superar o custo resgatado.",
       );
     }
     const refs = {
@@ -1006,6 +1088,7 @@ export const executeSettleInvestmentRedemption = async (
         "principalDeltaCents",
       ),
       realizedGainCents: payload.settlement.gainCents,
+      realizedLossCents: payload.settlement.lossCents,
       feesCents: payload.settlement.feesCents,
       taxCents: payload.settlement.taxCents,
     });
@@ -1021,9 +1104,17 @@ export const executeSettleInvestmentRedemption = async (
       auth.workspaceId,
       settledAt,
     );
+    // Caixa recebido = custo resgatado + ganho − perda − taxas − imposto.
+    // A perda entra com sinal negativo aqui e **não** reduz o principal
+    // retirado da posição: é isso que impede o principal fantasma de
+    // INV-P1-009.
     const grossCents = addExact(
-      payload.settlement.principalCents,
-      payload.settlement.gainCents,
+      addExact(
+        payload.settlement.principalCents,
+        payload.settlement.gainCents,
+        "grossCents",
+      ),
+      -payload.settlement.lossCents,
       "grossCents",
     );
     const chargesCents = addExact(
@@ -1036,23 +1127,48 @@ export const executeSettleInvestmentRedemption = async (
       -chargesCents,
       "cashDeltaCents",
     );
-    if (cashDeltaCents <= 0) {
+    // Zero é admissível: uma perda igual ao custo é baixa total do ativo, com
+    // caixa nulo. Negativo não é — um resgate não pode consumir dinheiro.
+    if (cashDeltaCents < 0) {
       throw new CreditCardApplicationError(
         "domain_precondition_failed",
-        "Taxas e impostos devem ser menores que o valor bruto do resgate.",
+        "Perda, taxas e impostos somados não podem superar o valor bruto " +
+          "do resgate.",
       );
     }
+    // INV-P3-051 — a liquidação parcial sobrescrevia `principalCents` e
+    // `quantityMicros` do movimento com o valor liquidado, apagando o pedido
+    // original: depois disso não havia como saber quanto tinha sido
+    // solicitado, nem auditar a diferença. Os valores pedidos passam a ser
+    // preservados em campos próprios, e o residual fica explícito.
+    const requestedPrincipalCents = integerOrZero(
+      movement.requestedPrincipalCents ?? movement.principalCents,
+    );
+    const requestedQuantityMicros = integerOrZero(
+      movement.requestedQuantityMicros ?? movement.quantityMicros,
+    );
+    const residualPrincipalCents =
+      requestedPrincipalCents - payload.settlement.principalCents;
+    const residualQuantityMicros =
+      requestedQuantityMicros - payload.settlement.quantityMicros;
+
     const settledMovement = {
       ...movement,
       status: "settled",
+      requestedPrincipalCents,
+      requestedQuantityMicros,
+      residualPrincipalCents,
+      residualQuantityMicros,
       principalCents: payload.settlement.principalCents,
       gainCents: payload.settlement.gainCents,
+      lossCents: payload.settlement.lossCents,
       feesCents: payload.settlement.feesCents,
       taxCents: payload.settlement.taxCents,
       quantityMicros: payload.settlement.quantityMicros,
       cashDeltaCents,
       principalDeltaCents: -payload.settlement.principalCents,
       realizedGainDeltaCents: payload.settlement.gainCents,
+      realizedLossDeltaCents: payload.settlement.lossCents,
       feesDeltaCents: payload.settlement.feesCents,
       taxDeltaCents: payload.settlement.taxCents,
       quantityDeltaMicros: -payload.settlement.quantityMicros,
@@ -1072,14 +1188,20 @@ export const executeSettleInvestmentRedemption = async (
     };
     transaction.update(movementRef, {
       status: settledMovement.status,
+      requestedPrincipalCents,
+      requestedQuantityMicros,
+      residualPrincipalCents,
+      residualQuantityMicros,
       principalCents: settledMovement.principalCents,
       gainCents: settledMovement.gainCents,
+      lossCents: settledMovement.lossCents,
       feesCents: settledMovement.feesCents,
       taxCents: settledMovement.taxCents,
       quantityMicros: settledMovement.quantityMicros,
       cashDeltaCents: settledMovement.cashDeltaCents,
       principalDeltaCents: settledMovement.principalDeltaCents,
       realizedGainDeltaCents: settledMovement.realizedGainDeltaCents,
+      realizedLossDeltaCents: settledMovement.realizedLossDeltaCents,
       feesDeltaCents: settledMovement.feesDeltaCents,
       taxDeltaCents: settledMovement.taxDeltaCents,
       quantityDeltaMicros: settledMovement.quantityDeltaMicros,
@@ -1130,6 +1252,7 @@ export const executeSettleInvestmentRedemption = async (
         operation: "redemption",
         principalCents: payload.settlement.principalCents,
         gainCents: payload.settlement.gainCents,
+        lossCents: payload.settlement.lossCents,
         feesCents: payload.settlement.feesCents,
         taxCents: payload.settlement.taxCents,
         cashDeltaCents,
@@ -1162,6 +1285,13 @@ export const executeSettleInvestmentRedemption = async (
       cashDeltaCents,
       remainingPrincipalCents: next.principalCents,
       realizedGainCents: next.realizedGainCents,
+      realizedLossCents: next.realizedLossCents,
+      realizedResultCents: next.realizedGainCents - next.realizedLossCents,
+      // O pedido residual não vira novo pendente automaticamente: a decisão
+      // de resgatar o restante é do usuário. O valor volta explícito para que
+      // a interface possa oferecê-la (INV-P3-051).
+      residualPrincipalCents,
+      residualQuantityMicros,
     };
     recordInvestmentOperationMetric(transaction, {
       workspaceId: auth.workspaceId,
@@ -1209,7 +1339,10 @@ export const executeReverseInvestmentMovement = async (
     payload.idempotencyKey,
   );
   const projectionId = `investment_${reversalId}`;
-  const reversedAt = parseTimestamp(payload.reversedAt);
+  const reversedAt = assertNotFuture(
+    parseTimestamp(payload.reversedAt),
+    "reversedAt",
+  );
   return investmentFirestore().runTransaction(async (transaction) => {
     const authorization = await authorizeInvestmentTransaction(
       transaction,
@@ -1260,6 +1393,16 @@ export const executeReverseInvestmentMovement = async (
         "Este movimento já foi estornado.",
       );
     }
+    // INV-P2-022 — o estorno não pode preceder o fato estornado. Com data
+    // retroativa ele subtrai patrimônio de um mês anterior ao próprio
+    // movimento e propaga o negativo para todos os meses seguintes.
+    assertNotBefore(
+      reversedAt,
+      ((original.settlementAt as Timestamp | undefined) ??
+        (original.occurredAt as Timestamp)),
+      "reversedAt",
+      "à liquidação do movimento estornado",
+    );
     const positionRef = investmentDoc(
       auth.workspaceId,
       INVESTMENT_COLLECTIONS.positions,
@@ -1308,6 +1451,13 @@ export const executeReverseInvestmentMovement = async (
         original.realizedGainDeltaCents,
         "realizedGainDeltaCents",
       ),
+      // INV-P1-009 — o estorno anula também a perda realizada do movimento
+      // original. Sem isto, estornar um resgate com prejuízo deixaria a perda
+      // acumulada na posição sem fato que a sustente.
+      realizedLossCents: negateExact(
+        integerOrZero(original.realizedLossDeltaCents),
+        "realizedLossDeltaCents",
+      ),
       feesCents: negateExact(original.feesDeltaCents, "feesDeltaCents"),
       taxCents: negateExact(original.taxDeltaCents, "taxDeltaCents"),
     };
@@ -1342,12 +1492,14 @@ export const executeReverseInvestmentMovement = async (
       description: `Estorno: ${original.description}`,
       principalCents: Math.abs(original.principalCents),
       gainCents: Math.abs(original.gainCents),
+      lossCents: Math.abs(integerOrZero(original.lossCents)),
       feesCents: Math.abs(original.feesCents),
       taxCents: Math.abs(original.taxCents),
       quantityMicros: Math.abs(original.quantityMicros),
       cashDeltaCents: negateExact(original.cashDeltaCents, "cashDeltaCents"),
       principalDeltaCents: deltas.principalCents,
       realizedGainDeltaCents: deltas.realizedGainCents,
+      realizedLossDeltaCents: deltas.realizedLossCents,
       feesDeltaCents: deltas.feesCents,
       taxDeltaCents: deltas.taxCents,
       quantityDeltaMicros: deltas.quantityMicros,
@@ -1416,6 +1568,7 @@ export const executeReverseInvestmentMovement = async (
         reversalOfOperation: original.operation,
         principalCents: original.principalCents,
         gainCents: original.gainCents,
+        lossCents: integerOrZero(original.lossCents),
         feesCents: original.feesCents,
         taxCents: original.taxCents,
         cashDeltaCents: reversal.cashDeltaCents,
@@ -2134,7 +2287,10 @@ export const executeRecordInvestmentValuation = async (
   payload: RecordInvestmentValuationPayload,
 ): Promise<Record<string, unknown>> => {
   const operation = "recordInvestmentValuation" as const;
-  const effectiveAt = parseTimestamp(payload.effectiveAt);
+  const effectiveAt = assertNotFuture(
+    parseTimestamp(payload.effectiveAt),
+    "effectiveAt",
+  );
   return investmentFirestore().runTransaction(async (transaction) => {
     const authorization = await authorizeInvestmentTransaction(
       transaction,

@@ -40,7 +40,7 @@ export const buildInvestmentOverview = (
 ): InvestmentOverview | undefined => {
   if (!data.summary) return undefined;
   const start = rangeStart(range);
-  const sum = (field: 'contributionCents' | 'redemptionPrincipalCents' | 'realizedGainCents' | 'feesCents' | 'taxCents' | 'cashDeltaCents' | 'settledMovementCount') => data.periods.reduce(
+  const sum = (field: 'contributionCents' | 'redemptionPrincipalCents' | 'realizedGainCents' | 'realizedLossCents' | 'feesCents' | 'taxCents' | 'cashDeltaCents' | 'settledMovementCount') => data.periods.reduce(
     (total, period) => {
       if (!start) return total + (period[field] ?? 0);
       if (period.daily) {
@@ -99,16 +99,22 @@ export const buildInvestmentOverview = (
   const contributionCents = sum('contributionCents');
   const principalCents = sum('redemptionPrincipalCents');
   const gainCents = sum('realizedGainCents');
+  // INV-P1-009 — a perda realizada tem campo próprio. O resultado realizado
+  // com sinal é derivado, nunca armazenado: `ganho − perda`.
+  const lossCents = sum('realizedLossCents');
+  const realizedResultCents = gainCents - lossCents;
   const feesCents = sum('feesCents');
   const taxCents = sum('taxCents');
   return {
     source: 'official-v2',
     contributions: fromCents(contributionCents),
-    redemptionGross: fromCents(principalCents + gainCents),
-    redemptionNet: fromCents(principalCents + gainCents - feesCents - taxCents),
+    redemptionGross: fromCents(principalCents + realizedResultCents),
+    redemptionNet: fromCents(principalCents + realizedResultCents - feesCents - taxCents),
     redeemedPrincipal: fromCents(principalCents),
     realizedGain: fromCents(gainCents),
-    investmentIncome: fromCents(gainCents - feesCents - taxCents),
+    realizedLoss: fromCents(lossCents),
+    realizedResult: fromCents(realizedResultCents),
+    investmentIncome: fromCents(realizedResultCents - feesCents - taxCents),
     fees: fromCents(feesCents),
     taxes: fromCents(taxCents),
     cost: fromCents(data.summary.principalCents),

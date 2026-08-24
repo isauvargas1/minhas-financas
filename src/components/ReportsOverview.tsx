@@ -193,6 +193,10 @@ const ReportsOverview: React.FC<ReportsOverviewProps> = ({ snapshot, isLoading }
                             ['Principal resgatado', snapshot.investmentOverview.redeemedPrincipal],
                             ['Resgate líquido', snapshot.investmentOverview.redemptionNet],
                             ['Ganho realizado', snapshot.investmentOverview.realizedGain],
+                            // INV-P1-009 — perda realizada tem linha própria, e o
+                            // resultado com sinal é exibido separado do ganho bruto.
+                            ['Perda realizada', snapshot.investmentOverview.realizedLoss],
+                            ['Resultado realizado', snapshot.investmentOverview.realizedResult],
                             ['Renda de investimento', snapshot.investmentOverview.investmentIncome],
                             ['Ganho não realizado', snapshot.investmentOverview.unrealizedGain],
                             ['Taxas', snapshot.investmentOverview.fees],

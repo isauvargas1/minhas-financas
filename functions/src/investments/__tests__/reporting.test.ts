@@ -18,6 +18,7 @@ test(
       contributionCents: 100_000,
       redemptionPrincipalCents: 0,
       realizedGainCents: 0,
+      realizedLossCents: 0,
       feesCents: 500,
       taxCents: 0,
       costDeltaCents: 100_000,
@@ -109,6 +110,7 @@ test("estorno compensa a contagem de movimentos, não a duplica", () => {
     "contributionCents",
     "redemptionPrincipalCents",
     "realizedGainCents",
+    "realizedLossCents",
     "feesCents",
     "taxCents",
     "costDeltaCents",
@@ -145,4 +147,52 @@ test("estorno de resgate devolve principal ao custo e retira o ganho", () => {
   assert.equal(redemption.costDeltaCents, -40_000);
   assert.equal(reversal.costDeltaCents, 40_000);
   assert.equal(redemption.settledMovementCount + reversal.settledMovementCount, 0);
+});
+
+// INV-P1-009 — a perda realizada percorre a série mensal com sinal próprio.
+
+test("perda realizada entra no período e é anulada pelo estorno", () => {
+  const redemption = movementReportDeltas({
+    operation: "redemption",
+    principalCents: 40_000,
+    gainCents: 0,
+    lossCents: 6_000,
+    feesCents: 0,
+    taxCents: 0,
+    cashDeltaCents: 34_000,
+    currentValueDeltaCents: -40_000,
+  });
+  assert.equal(redemption.realizedGainCents, 0);
+  assert.equal(redemption.realizedLossCents, 6_000);
+  // O custo sai integralmente da posição: a perda não reduz o principal.
+  assert.equal(redemption.costDeltaCents, -40_000);
+  assert.equal(redemption.redemptionPrincipalCents, 40_000);
+
+  const reversal = movementReportDeltas({
+    operation: "reversal",
+    reversalOfOperation: "redemption",
+    principalCents: 40_000,
+    gainCents: 0,
+    lossCents: 6_000,
+    feesCents: 0,
+    taxCents: 0,
+    cashDeltaCents: -34_000,
+    currentValueDeltaCents: 40_000,
+  });
+  assert.equal(redemption.realizedLossCents + reversal.realizedLossCents, 0);
+});
+
+test("aporte nunca produz resultado realizado, nem ganho nem perda", () => {
+  const contribution = movementReportDeltas({
+    operation: "contribution",
+    principalCents: 10_000,
+    gainCents: 0,
+    lossCents: 0,
+    feesCents: 0,
+    taxCents: 0,
+    cashDeltaCents: -10_000,
+    currentValueDeltaCents: 10_000,
+  });
+  assert.equal(contribution.realizedGainCents, 0);
+  assert.equal(contribution.realizedLossCents, 0);
 });

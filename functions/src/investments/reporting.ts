@@ -42,6 +42,8 @@ export interface MovementReportInput {
   reversalOfOperation?: "contribution" | "redemption";
   principalCents: number;
   gainCents: number;
+  /** Perda realizada da liquidação (INV-P1-009). Não-negativa. */
+  lossCents?: number;
   feesCents: number;
   taxCents: number;
   cashDeltaCents: number;
@@ -52,6 +54,7 @@ export interface MovementReportDeltas {
   contributionCents: number;
   redemptionPrincipalCents: number;
   realizedGainCents: number;
+  realizedLossCents: number;
   feesCents: number;
   taxCents: number;
   costDeltaCents: number;
@@ -81,6 +84,8 @@ export const movementReportDeltas = (
       effectiveOperation === "redemption" ? sign * input.principalCents : 0,
     realizedGainCents:
       effectiveOperation === "redemption" ? sign * input.gainCents : 0,
+    realizedLossCents:
+      effectiveOperation === "redemption" ? sign * (input.lossCents ?? 0) : 0,
     feesCents: sign * input.feesCents,
     taxCents: sign * input.taxCents,
     costDeltaCents:
@@ -228,6 +233,7 @@ const writeInvestmentReportDeltas = (
         deltas.redemptionPrincipalCents,
       ),
       realizedGainCents: FieldValue.increment(deltas.realizedGainCents),
+      realizedLossCents: FieldValue.increment(deltas.realizedLossCents),
       feesCents: FieldValue.increment(deltas.feesCents),
       taxCents: FieldValue.increment(deltas.taxCents),
       costDeltaCents: FieldValue.increment(deltas.costDeltaCents),
@@ -248,6 +254,7 @@ const writeInvestmentReportDeltas = (
             deltas.redemptionPrincipalCents,
           ),
           realizedGainCents: FieldValue.increment(deltas.realizedGainCents),
+          realizedLossCents: FieldValue.increment(deltas.realizedLossCents),
           feesCents: FieldValue.increment(deltas.feesCents),
           taxCents: FieldValue.increment(deltas.taxCents),
           costDeltaCents: FieldValue.increment(deltas.costDeltaCents),
@@ -302,6 +309,7 @@ export const writeInvestmentValuationReportPeriod = (
       contributionCents: 0,
       redemptionPrincipalCents: 0,
       realizedGainCents: 0,
+      realizedLossCents: 0,
       feesCents: 0,
       taxCents: 0,
       costDeltaCents: 0,
@@ -402,6 +410,7 @@ const writeAllocationDelta = (
     principalCents: number;
     currentValueCents: number;
     realizedGainCents: number;
+    realizedLossCents: number;
     feesCents: number;
     taxCents: number;
   },
@@ -421,6 +430,7 @@ const writeAllocationDelta = (
       principalCents: FieldValue.increment(deltas.principalCents),
       currentValueCents: FieldValue.increment(deltas.currentValueCents),
       realizedGainCents: FieldValue.increment(deltas.realizedGainCents),
+      realizedLossCents: FieldValue.increment(deltas.realizedLossCents),
       feesCents: FieldValue.increment(deltas.feesCents),
       taxCents: FieldValue.increment(deltas.taxCents),
       updatedAt: FieldValue.serverTimestamp(),
@@ -471,6 +481,8 @@ export const writeInvestmentAllocationProjections = (
         currentValueCents: next.currentValueCents - previous.currentValueCents,
         realizedGainCents:
           next.realizedGainCents - previous.realizedGainCents,
+        realizedLossCents:
+          next.realizedLossCents - previous.realizedLossCents,
         feesCents: next.feesCents - previous.feesCents,
         taxCents: next.taxCents - previous.taxCents,
       },
@@ -498,6 +510,8 @@ export const writeInvestmentAllocationProjections = (
           currentValueCents: next.currentValueCents - previous.currentValueCents,
           realizedGainCents:
             next.realizedGainCents - previous.realizedGainCents,
+          realizedLossCents:
+            next.realizedLossCents - previous.realizedLossCents,
           feesCents: next.feesCents - previous.feesCents,
           taxCents: next.taxCents - previous.taxCents,
         },
@@ -517,6 +531,7 @@ export const writeInvestmentAllocationProjections = (
         principalCents: -previous.principalCents,
         currentValueCents: -previous.currentValueCents,
         realizedGainCents: -previous.realizedGainCents,
+        realizedLossCents: -previous.realizedLossCents,
         feesCents: -previous.feesCents,
         taxCents: -previous.taxCents,
       },
@@ -532,6 +547,7 @@ export const writeInvestmentAllocationProjections = (
         principalCents: next.principalCents,
         currentValueCents: next.currentValueCents,
         realizedGainCents: next.realizedGainCents,
+        realizedLossCents: next.realizedLossCents,
         feesCents: next.feesCents,
         taxCents: next.taxCents,
       },

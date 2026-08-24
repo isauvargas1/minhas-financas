@@ -577,12 +577,17 @@ function isValidInvestmentMovement(data, workspaceId, docId) {
     isInvestmentString(data.description, 500) &&
     isNonNegativeInvestmentInteger(data.principalCents) &&
     isNonNegativeInvestmentInteger(data.gainCents) &&
+    // INV-P1-009 — perda realizada. Não-negativa como o ganho, e mutuamente
+    // exclusiva com ele: o resultado com sinal é derivado.
+    isNonNegativeInvestmentInteger(data.get('lossCents', 0)) &&
+    (data.get('gainCents', 0) == 0 || data.get('lossCents', 0) == 0) &&
     isNonNegativeInvestmentInteger(data.feesCents) &&
     isNonNegativeInvestmentInteger(data.taxCents) &&
     isNonNegativeInvestmentInteger(data.quantityMicros) &&
     isInvestmentInteger(data.cashDeltaCents) &&
     isInvestmentInteger(data.principalDeltaCents) &&
     isInvestmentInteger(data.realizedGainDeltaCents) &&
+    isInvestmentInteger(data.get('realizedLossDeltaCents', 0)) &&
     isInvestmentInteger(data.feesDeltaCents) &&
     isInvestmentInteger(data.taxDeltaCents) &&
     isInvestmentInteger(data.quantityDeltaMicros) &&
@@ -611,7 +616,9 @@ function isValidInvestmentMovement(data, workspaceId, docId) {
 
 function hasZeroInvestmentMovementDeltas(data) {
   return data.cashDeltaCents == 0 && data.principalDeltaCents == 0 &&
-    data.realizedGainDeltaCents == 0 && data.feesDeltaCents == 0 &&
+    data.realizedGainDeltaCents == 0 &&
+    data.get('realizedLossDeltaCents', 0) == 0 &&
+    data.feesDeltaCents == 0 &&
     data.taxDeltaCents == 0 && data.quantityDeltaMicros == 0 &&
     data.goalNetContributionDeltaCents == 0 &&
     data.goalCurrentValueDeltaCents == 0;
@@ -633,6 +640,11 @@ function isValidInvestmentPosition(data, workspaceId, docId) {
     isNonNegativeInvestmentInteger(data.quantityMicros) &&
     isNonNegativeInvestmentInteger(data.principalCents) &&
     isNonNegativeInvestmentInteger(data.realizedGainCents) &&
+    isNonNegativeInvestmentInteger(data.get('realizedLossCents', 0)) &&
+    // INV-P1-009 — invariante de encerramento: sem quantidade não há custo de
+    // aquisição a sustentar. Principal remanescente com quantidade zero é
+    // patrimônio fantasma, e a reconstrução o reproduz.
+    (data.quantityMicros > 0 || data.principalCents == 0) &&
     isNonNegativeInvestmentInteger(data.feesCents) &&
     isNonNegativeInvestmentInteger(data.taxCents) &&
     isNonNegativeInvestmentInteger(data.currentValueCents) &&
@@ -682,6 +694,7 @@ function isValidInvestmentSnapshot(data, workspaceId, docId) {
     isInvestmentInteger(data.totals.quantityMicros) &&
     isInvestmentInteger(data.totals.principalCents) &&
     isInvestmentInteger(data.totals.realizedGainCents) &&
+    isInvestmentInteger(data.totals.get('realizedLossCents', 0)) &&
     isInvestmentInteger(data.totals.feesCents) &&
     isInvestmentInteger(data.totals.taxCents) &&
     isInvestmentInteger(data.totals.netContributionCents) &&
@@ -766,6 +779,7 @@ function isValidInvestmentReportPeriod(data, workspaceId, docId) {
     isInvestmentInteger(data.contributionCents) &&
     isInvestmentInteger(data.redemptionPrincipalCents) &&
     isInvestmentInteger(data.realizedGainCents) &&
+    isInvestmentInteger(data.get('realizedLossCents', 0)) &&
     isInvestmentInteger(data.feesCents) &&
     isInvestmentInteger(data.taxCents) &&
     isInvestmentInteger(data.costDeltaCents) &&
@@ -795,6 +809,7 @@ function isValidInvestmentAllocationSummary(data, workspaceId, docId) {
     isInvestmentInteger(data.principalCents) &&
     isInvestmentInteger(data.currentValueCents) &&
     isInvestmentInteger(data.realizedGainCents) &&
+    isInvestmentInteger(data.get('realizedLossCents', 0)) &&
     isInvestmentInteger(data.feesCents) &&
     isInvestmentInteger(data.taxCents) &&
     data.updatedAt is timestamp &&
@@ -1246,6 +1261,8 @@ match /credit_card_idempotency_keys/{docId} {
           isNonNegativeInvestmentInteger(resource.data.principalCents) &&
           isNonNegativeInvestmentInteger(resource.data.currentValueCents) &&
           isNonNegativeInvestmentInteger(resource.data.realizedGainCents) &&
+          isNonNegativeInvestmentInteger(
+            resource.data.get('realizedLossCents', 0)) &&
           isNonNegativeInvestmentInteger(resource.data.feesCents) &&
           isNonNegativeInvestmentInteger(resource.data.taxCents) &&
           resource.data.unrealizedAppreciationCents is int &&

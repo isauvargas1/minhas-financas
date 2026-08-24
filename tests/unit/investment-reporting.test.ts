@@ -179,3 +179,52 @@ test('período histórico sem fechamento é omitido e sinalizado', () => {
   assert.equal(overview!.evolution.length, 0);
   assert.equal(overview!.evolutionUnavailable, true);
 });
+
+// INV-P1-009 — perda realizada no relatório.
+
+test('perda realizada reduz o resultado, sem virar ganho negativo', () => {
+  const data = reportData();
+  data.periods[1] = {
+    ...data.periods[1],
+    realizedGainCents: 0,
+    realizedLossCents: 3_000,
+    feesCents: 0,
+    taxCents: 0,
+    cashDeltaCents: 17_000,
+  };
+  const overview = buildInvestmentOverview(data, 'all');
+  assert.ok(overview);
+  assert.equal(overview.realizedGain, 0, 'ganho segue não-negativo');
+  assert.equal(overview.realizedLoss, 30);
+  assert.equal(overview.realizedResult, -30, 'resultado realizado carrega o sinal');
+  // Resgate bruto = principal resgatado + resultado realizado.
+  assert.equal(overview.redemptionGross, 200 - 30);
+  assert.equal(overview.redemptionNet, 170);
+  assert.equal(overview.investmentIncome, -30);
+});
+
+test('ganho e perda em meses distintos somam com o sinal correto', () => {
+  const data = reportData();
+  data.periods[0] = {
+    ...data.periods[0],
+    redemptionPrincipalCents: 10_000,
+    realizedGainCents: 4_000,
+  };
+  data.periods[1] = {
+    ...data.periods[1],
+    realizedGainCents: 0,
+    realizedLossCents: 1_000,
+  };
+  const overview = buildInvestmentOverview(data, 'all');
+  assert.ok(overview);
+  assert.equal(overview.realizedGain, 40);
+  assert.equal(overview.realizedLoss, 10);
+  assert.equal(overview.realizedResult, 30);
+});
+
+test('período sem o campo de perda é tratado como perda zero', () => {
+  const overview = buildInvestmentOverview(reportData(), 'all');
+  assert.ok(overview);
+  assert.equal(overview.realizedLoss, 0);
+  assert.equal(overview.realizedResult, overview.realizedGain);
+});

@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { callInvestment, investmentRequestIds } from '../persistence/callableApi';
+import { useFinancialIntent } from '../hooks/useIntentNonce';
 import {
   listInvestmentAccounts,
   listInvestmentAssets,
@@ -131,9 +132,20 @@ export const InvestmentRegistrySection: React.FC<Props> = ({ workspaceId, profil
   });
   const current = entity === 'account' ? accounts : assets;
 
+  // Idempotência por intenção, não por clique (INV-P1-004): a identidade é o
+  // editor aberto mais a entidade em edição.
+  const intent = useFinancialIntent(
+    editorOpen ? `${entity}:${editing?.id ?? 'novo'}` : archiving ? `archive:${archiving.id}` : null,
+  );
+
   const mutation = useMutation({
-    mutationFn: ({ name, payload }: { name: string; payload: Record<string, unknown> }) =>
-      callInvestment(name, { workspaceId, ...investmentRequestIds(), ...payload }),
+    mutationFn: ({ name, payload }: { name: string; payload: Record<string, unknown> }) => {
+      const body = { workspaceId, ...payload };
+      return callInvestment(name, {
+        ...body,
+        ...investmentRequestIds(name, intent.nonce, body),
+      });
+    },
     onSuccess: async () => {
       setEditorOpen(false);
       setEditing(null);

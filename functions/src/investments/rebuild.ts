@@ -38,6 +38,7 @@ interface RebuildTotals {
   quantityMicros: number;
   principalCents: number;
   realizedGainCents: number;
+  realizedLossCents: number;
   feesCents: number;
   taxCents: number;
   netContributionCents: number;
@@ -48,6 +49,7 @@ const emptyTotals = (): RebuildTotals => ({
   quantityMicros: 0,
   principalCents: 0,
   realizedGainCents: 0,
+  realizedLossCents: 0,
   feesCents: 0,
   taxCents: 0,
   netContributionCents: 0,
@@ -63,6 +65,7 @@ const totalsFromSnapshot = (value: unknown): RebuildTotals => {
     quantityMicros: integerOrZero(data.quantityMicros),
     principalCents: integerOrZero(data.principalCents),
     realizedGainCents: integerOrZero(data.realizedGainCents),
+    realizedLossCents: integerOrZero(data.realizedLossCents),
     feesCents: integerOrZero(data.feesCents),
     taxCents: integerOrZero(data.taxCents),
     netContributionCents: integerOrZero(data.netContributionCents),
@@ -106,12 +109,22 @@ const assertNonNegativePositionTotals = (totals: RebuildTotals): void => {
     totals.quantityMicros < 0 ||
     totals.principalCents < 0 ||
     totals.realizedGainCents < 0 ||
+    totals.realizedLossCents < 0 ||
     totals.feesCents < 0 ||
     totals.taxCents < 0
   ) {
     throw new CreditCardApplicationError(
       "domain_precondition_failed",
       "O ledger contém uma sequência de movimentos inconsistente.",
+    );
+  }
+  // INV-P1-009 — a mesma invariante do caminho incremental precisa valer na
+  // reconstrução, senão o rebuild republicaria o principal fantasma.
+  if (totals.quantityMicros === 0 && totals.principalCents !== 0) {
+    throw new CreditCardApplicationError(
+      "domain_precondition_failed",
+      "O ledger encerra a posição com custo remanescente. Reveja as " +
+        "liquidações abaixo do custo antes de reconstruir.",
     );
   }
 };
@@ -260,6 +273,11 @@ export const executeRecalculateInvestmentPosition = async (
         integerOrZero(movement.realizedGainDeltaCents),
         "realizedGainCents",
       );
+      totals.realizedLossCents = addExact(
+        totals.realizedLossCents,
+        integerOrZero(movement.realizedLossDeltaCents),
+        "realizedLossCents",
+      );
       totals.feesCents = addExact(
         totals.feesCents,
         integerOrZero(movement.feesDeltaCents),
@@ -381,6 +399,7 @@ export const executeRecalculateInvestmentPosition = async (
         quantityMicros: totals.quantityMicros,
         principalCents: totals.principalCents,
         realizedGainCents: totals.realizedGainCents,
+        realizedLossCents: totals.realizedLossCents,
         feesCents: totals.feesCents,
         taxCents: totals.taxCents,
         currentValueCents: totals.currentValueCents,

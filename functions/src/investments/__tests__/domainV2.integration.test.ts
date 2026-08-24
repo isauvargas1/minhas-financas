@@ -259,6 +259,7 @@ test(
         principalCents: 40_000,
         quantityMicros: 400_000,
         gainCents: 5_000,
+        lossCents: 0,
         feesCents: 500,
         taxCents: 1_000,
       },
@@ -555,6 +556,7 @@ test("concorrência, falha atômica e retry não excedem a posição", async () 
         principalCents: 30_000,
         quantityMicros: 300_000,
         gainCents: 0,
+        lossCents: 0,
         feesCents: 0,
         taxCents: 0,
       },
@@ -600,6 +602,7 @@ test("concorrência, falha atômica e retry não excedem a posição", async () 
       principalCents: 30_001,
       quantityMicros: 300_000,
       gainCents: 0,
+      lossCents: 0,
       feesCents: 0,
       taxCents: 0,
     },
@@ -976,3 +979,242 @@ test(
     assert.equal(deterministic, memberContribution.movementId);
   },
 );
+
+// INV-P1-009 — resgate com prejuízo.
+//
+// Antes, não havia campo para perda realizada. Um resgate integral abaixo do
+// custo só podia ser lançado reduzindo o `principalCents` da liquidação: a
+// quantidade zerava, o custo remanescente ficava na posição sem quantidade que
+// o sustentasse, e esse principal fantasma entrava no patrimônio e nas 8
+// faixas de alocação. O rebuild reproduzia o mesmo valor, porque soma os
+// mesmos deltas do ledger — erro irrecuperável por reconstrução.
+
+const settleRedemption = async (
+  movementId: string,
+  suffix: string,
+  settlement: {
+    principalCents: number;
+    quantityMicros: number;
+    gainCents: number;
+    lossCents: number;
+    feesCents: number;
+    taxCents: number;
+  },
+) =>
+  executeSettleInvestmentRedemption(auth(), {
+    workspaceId: WORKSPACE_A,
+    idempotencyKey: `m9-loss-settle-${suffix}-0001`,
+    correlationId: `corr-m9-loss-settle-${suffix}-0001`,
+    movementId,
+    settlement,
+    settledAt: "2026-08-19T12:00:00.000Z",
+  });
+
+const requestRedemption = async (
+  suffix: string,
+  principalCents: number,
+  quantityMicros: number,
+) =>
+  executeCreateInvestmentRedemptionV2(auth(), {
+    workspaceId: WORKSPACE_A,
+    idempotencyKey: `m9-loss-request-${suffix}-0001`,
+    correlationId: `corr-m9-loss-request-${suffix}-0001`,
+    accountId: ACCOUNT,
+    assetId: ASSET,
+    description: "Resgate abaixo do custo",
+    requestedPrincipalCents: principalCents,
+    requestedQuantityMicros: quantityMicros,
+    requestedAt: "2026-08-18T10:00:00.000Z",
+  });
+
+const positionDocument = async () =>
+  (await db()
+    .doc(
+      `workspaces/${WORKSPACE_A}/investment_positions/` +
+        investmentPositionId(ACCOUNT, ASSET),
+    )
+    .get()).data();
+
+test("resgate integral abaixo do custo zera a posição sem principal fantasma", async () => {
+  await seedWorkspace(WORKSPACE_A, OWNER_A);
+  await seedCatalog(WORKSPACE_A, "PF");
+  await executeCreateInvestmentContribution(
+    auth(),
+    contributionPayload("m9-loss-contribution-0001", {
+      principalCents: 100_000,
+      quantityMicros: 100_000_000,
+    }),
+  );
+
+  const pending = await requestRedemption("total", 100_000, 100_000_000);
+  const settled = await settleRedemption(
+    String(pending.movementId),
+    "total",
+    {
+      // Custo integral retirado da posição; a diferença até o caixa recebido
+      // (R$ 800,00) é perda realizada, não redução de custo.
+      principalCents: 100_000,
+      quantityMicros: 100_000_000,
+      gainCents: 0,
+      lossCents: 20_000,
+      feesCents: 0,
+      taxCents: 0,
+    },
+  );
+
+  assert.equal(settled.cashDeltaCents, 80_000);
+  assert.equal(settled.remainingPrincipalCents, 0);
+  assert.equal(settled.realizedLossCents, 20_000);
+  assert.equal(settled.realizedResultCents, -20_000);
+
+  const position = await positionDocument();
+  assert.equal(position?.quantityMicros, 0);
+  assert.equal(position?.principalCents, 0, "sem quantidade não há custo");
+  assert.equal(position?.currentValueCents, 0, "sem patrimônio fantasma");
+  assert.equal(position?.realizedLossCents, 20_000);
+
+  const summary = (await db()
+    .doc(`workspaces/${WORKSPACE_A}/investment_summaries/current`)
+    .get()).data();
+  assert.equal(summary?.currentValueCents, 0);
+  assert.equal(summary?.principalCents, 0);
+  assert.equal(summary?.realizedLossCents, 20_000);
+
+  // Reconstrução do ledger devolve exatamente o mesmo estado.
+  const rebuild = await executeRecalculateInvestmentPosition(auth(), {
+    workspaceId: WORKSPACE_A,
+    idempotencyKey: "m9-loss-rebuild-0001",
+    correlationId: "corr-m9-loss-rebuild-0001",
+    accountId: ACCOUNT,
+    assetId: ASSET,
+    pageSize: 50,
+    reason: "Reconstrução após resgate com prejuízo",
+  });
+  assert.equal(rebuild.status, "completed");
+  const rebuilt = await positionDocument();
+  assert.equal(rebuilt?.quantityMicros, 0);
+  assert.equal(rebuilt?.principalCents, 0);
+  assert.equal(rebuilt?.realizedLossCents, 20_000);
+  assert.equal(rebuilt?.currentValueCents, 0);
+});
+
+test("o caminho que criava principal fantasma passa a ser recusado", async () => {
+  await seedWorkspace(WORKSPACE_A, OWNER_A);
+  await seedCatalog(WORKSPACE_A, "PF");
+  await executeCreateInvestmentContribution(
+    auth(),
+    contributionPayload("m9-phantom-contribution-0001", {
+      principalCents: 100_000,
+      quantityMicros: 100_000_000,
+    }),
+  );
+  const pending = await requestRedemption("phantom", 100_000, 100_000_000);
+
+  // Exatamente a reprodução da auditoria: quantidade integral, custo reduzido.
+  await assert.rejects(
+    () => settleRedemption(String(pending.movementId), "phantom", {
+      principalCents: 80_000,
+      quantityMicros: 100_000_000,
+      gainCents: 0,
+      lossCents: 0,
+      feesCents: 0,
+      taxCents: 0,
+    }),
+    (error: unknown) =>
+      error instanceof CreditCardApplicationError &&
+      error.code === "domain_precondition_failed",
+  );
+
+  const position = await positionDocument();
+  assert.equal(position?.quantityMicros, 100_000_000);
+  assert.equal(position?.principalCents, 100_000);
+});
+
+test("resgate parcial com prejuízo mantém custo proporcional e caixa correto", async () => {
+  await seedWorkspace(WORKSPACE_A, OWNER_A);
+  await seedCatalog(WORKSPACE_A, "PF");
+  await executeCreateInvestmentContribution(
+    auth(),
+    contributionPayload("m9-partial-contribution-0001", {
+      principalCents: 100_000,
+      quantityMicros: 100_000_000,
+    }),
+  );
+  const pending = await requestRedemption("partial", 40_000, 40_000_000);
+  const settled = await settleRedemption(String(pending.movementId), "partial", {
+    principalCents: 40_000,
+    quantityMicros: 40_000_000,
+    gainCents: 0,
+    lossCents: 5_000,
+    feesCents: 1_000,
+    taxCents: 0,
+  });
+
+  // 40.000 de custo − 5.000 de perda − 1.000 de taxa.
+  assert.equal(settled.cashDeltaCents, 34_000);
+  const position = await positionDocument();
+  assert.equal(position?.quantityMicros, 60_000_000);
+  assert.equal(position?.principalCents, 60_000);
+  assert.equal(position?.realizedLossCents, 5_000);
+  assert.equal(position?.realizedGainCents, 0);
+});
+
+test("estorno de resgate com prejuízo devolve custo e anula a perda", async () => {
+  await seedWorkspace(WORKSPACE_A, OWNER_A);
+  await seedCatalog(WORKSPACE_A, "PF");
+  await executeCreateInvestmentContribution(
+    auth(),
+    contributionPayload("m9-reversal-contribution-0001", {
+      principalCents: 100_000,
+      quantityMicros: 100_000_000,
+    }),
+  );
+  const pending = await requestRedemption("reversal", 100_000, 100_000_000);
+  const settled = await settleRedemption(String(pending.movementId), "reversal", {
+    principalCents: 100_000,
+    quantityMicros: 100_000_000,
+    gainCents: 0,
+    lossCents: 20_000,
+    feesCents: 0,
+    taxCents: 0,
+  });
+  assert.equal(settled.realizedLossCents, 20_000);
+
+  await executeReverseInvestmentMovement(auth(), {
+    workspaceId: WORKSPACE_A,
+    idempotencyKey: "m9-reversal-0001",
+    correlationId: "corr-m9-reversal-0001",
+    movementId: String(pending.movementId),
+    reversedAt: "2026-08-21T12:00:00.000Z",
+    reason: "Resgate lançado por engano",
+  });
+
+  const position = await positionDocument();
+  assert.equal(position?.quantityMicros, 100_000_000);
+  assert.equal(position?.principalCents, 100_000);
+  assert.equal(position?.realizedLossCents, 0, "a perda é anulada pelo estorno");
+  assert.equal(position?.currentValueCents, 100_000);
+});
+
+test("ganho e perda no mesmo movimento são recusados", async () => {
+  await seedWorkspace(WORKSPACE_A, OWNER_A);
+  await seedCatalog(WORKSPACE_A, "PF");
+  await executeCreateInvestmentContribution(
+    auth(),
+    contributionPayload("m9-both-contribution-0001", {
+      principalCents: 100_000,
+      quantityMicros: 100_000_000,
+    }),
+  );
+  const pending = await requestRedemption("both", 50_000, 50_000_000);
+  await assert.rejects(
+    () => settleRedemption(String(pending.movementId), "both", {
+      principalCents: 50_000,
+      quantityMicros: 50_000_000,
+      gainCents: 1_000,
+      lossCents: 1_000,
+      feesCents: 0,
+      taxCents: 0,
+    }),
+  );
+});

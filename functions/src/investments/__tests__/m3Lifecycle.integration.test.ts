@@ -144,7 +144,7 @@ const runProjectionRebuild = async (
   pageSize = 50,
 ): Promise<Record<string, unknown>> => {
   let last: Record<string, unknown> = {};
-  for (let page = 0; page < 50; page += 1) {
+  for (let page = 0; page < 200; page += 1) {
     last = await executeRebuildInvestmentProjections(auth(), {
       workspaceId: WORKSPACE,
       idempotencyKey: `${correlationId}-page-${page}-000000`,
@@ -154,7 +154,9 @@ const runProjectionRebuild = async (
     });
     if (last.completed === true) return last;
   }
-  throw new Error("Rebuild de projeções não concluiu.");
+  throw new Error(
+    `Rebuild de projeções não concluiu. Último estado: ${JSON.stringify(last)}`,
+  );
 };
 
 test("cancelar pendente não move posição, meta nem caixa", async () => {
@@ -416,6 +418,7 @@ test("rebuild de projeções bate com o ledger e corrige deriva", async () => {
       principalCents: 40_000,
       quantityMicros: 400_000,
       gainCents: 5_000,
+      lossCents: 0,
       feesCents: 100,
       taxCents: 200,
     },

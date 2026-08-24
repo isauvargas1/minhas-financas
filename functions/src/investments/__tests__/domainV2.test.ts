@@ -129,6 +129,7 @@ test("liquidação separa principal, ganho, taxa e imposto", () => {
       principalCents: 10_000,
       quantityMicros: 500_000,
       gainCents: 1_000,
+      lossCents: 0,
       feesCents: 100,
       taxCents: 150,
     },
@@ -138,6 +139,8 @@ test("liquidação separa principal, ganho, taxa e imposto", () => {
     principalCents: 10_000,
     quantityMicros: 500_000,
     gainCents: 1_000,
+    // INV-P1-009 — a perda realizada é campo próprio, com default zero.
+    lossCents: 0,
     feesCents: 100,
     taxCents: 150,
   });

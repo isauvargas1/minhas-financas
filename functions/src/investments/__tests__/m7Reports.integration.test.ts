@@ -177,6 +177,7 @@ test("principal resgatado entra como principal e nunca como ganho", async () => 
       principalCents: 40_000,
       quantityMicros: 400_000,
       gainCents: 5_000,
+      lossCents: 0,
       feesCents: 100,
       taxCents: 200,
     },
@@ -240,7 +241,7 @@ const runProjectionRebuild = async (
   correlationId: string,
   pageSize = 50,
 ): Promise<Record<string, unknown>> => {
-  for (let page = 0; page < 60; page += 1) {
+  for (let page = 0; page < 200; page += 1) {
     const result = await executeRebuildInvestmentProjections(auth(), {
       workspaceId: WORKSPACE,
       idempotencyKey: `${correlationId}-page-${page}-000000`,
@@ -334,7 +335,7 @@ test("resgate e valoração deslocam o fechamento do mês correspondente", async
     settledAt: "2026-08-06T15:00:00.000Z",
     settlement: {
       principalCents: 40_000, quantityMicros: 400_000,
-      gainCents: 0, feesCents: 0, taxCents: 0,
+      gainCents: 0, lossCents: 0, feesCents: 0, taxCents: 0,
     },
   });
   assert.equal((await periodDoc("2026-07"))?.closingCurrentValueCents, 100_000);
@@ -409,36 +410,127 @@ test("lançamento retroativo corrige o fechamento dos meses posteriores", async 
   assert.equal(summary?.currentValueCents, 50_000);
 });
 
-test("rebuild recusa reconstruir série quando há valoração, em vez de corromper", async () => {
+// INV-P1-005 — a reconstrução recusava rodar em qualquer workspace com
+// valoração, deixando sem reparo de deriva exatamente os workspaces que marcam
+// a mercado. A fase `timeline` mescla movimentos e valorações por posição, em
+// ordem cronológica, e reproduz o caminho incremental centavo a centavo.
+
+test("rebuild com valorações reproduz o caminho incremental e é idempotente", async () => {
   await seed();
-  await executeCreateInvestmentContribution(auth(), contribution("m7-guard-contrib-0001", {
-    occurredAt: "2026-07-10T15:00:00.000Z",
+
+  // Junho: aporte. Julho: valoração para cima. Agosto: aporte e nova valoração.
+  await executeCreateInvestmentContribution(auth(), contribution("m7-val-c1-0001", {
+    principalCents: 100_000, quantityMicros: 1_000_000,
+    occurredAt: "2026-06-10T15:00:00.000Z",
   }));
   await executeRecordInvestmentValuation(auth(), {
     workspaceId: WORKSPACE,
-    idempotencyKey: "m7-guard-valuation-0001",
-    correlationId: "corr-m7-guard-valuation",
+    idempotencyKey: "m7-val-v1-0001",
+    correlationId: "corr-m7-val-v1",
     accountId: ACCOUNT, assetId: ASSET,
-    unitPriceMicros: 1_200_000_000,
+    unitPriceMicros: 120_000_000,
+    source: "manual",
+    effectiveAt: "2026-07-15T15:00:00.000Z",
+    reason: "Marcação a mercado",
+  });
+  await executeCreateInvestmentContribution(auth(), contribution("m7-val-c2-0001", {
+    principalCents: 50_000, quantityMicros: 500_000,
+    occurredAt: "2026-08-10T15:00:00.000Z",
+  }));
+  await executeRecordInvestmentValuation(auth(), {
+    workspaceId: WORKSPACE,
+    idempotencyKey: "m7-val-v2-0001",
+    correlationId: "corr-m7-val-v2",
+    accountId: ACCOUNT, assetId: ASSET,
+    unitPriceMicros: 90_000_000,
     source: "manual",
     effectiveAt: "2026-08-20T15:00:00.000Z",
     reason: "Marcação a mercado",
   });
-  const before = await periodDoc("2026-08");
-  assert.ok(
-    (before?.currentValueDeltaCents ?? 0) !== 0,
-    "A valoração precisa ter deixado delta patrimonial no mês.",
+
+  const incremental = {
+    "2026-06": await periodDoc("2026-06"),
+    "2026-07": await periodDoc("2026-07"),
+    "2026-08": await periodDoc("2026-08"),
+  };
+  const incrementalSummary = (await doc("investment_summaries/current").get()).data();
+
+  // Página pequena de propósito: exercita a retomada dentro da linha do tempo
+  // de uma mesma posição, com valorações entre movimentos.
+  await runProjectionRebuild("corr-m7-val-rebuild", 2);
+
+  for (const period of ["2026-06", "2026-07", "2026-08"] as const) {
+    const rebuilt = await periodDoc(period);
+    const before = incremental[period];
+    assert.equal(
+      rebuilt?.currentValueDeltaCents,
+      before?.currentValueDeltaCents,
+      `Delta patrimonial de ${period} precisa bater com o incremental.`,
+    );
+    assert.equal(
+      rebuilt?.closingCurrentValueCents,
+      before?.closingCurrentValueCents,
+      `Fechamento de ${period} precisa bater com o incremental.`,
+    );
+    assert.equal(rebuilt?.contributionCents, before?.contributionCents);
+    assert.equal(rebuilt?.realizedGainCents, before?.realizedGainCents);
+  }
+
+  const rebuiltSummary = (await doc("investment_summaries/current").get()).data();
+  assert.equal(rebuiltSummary?.currentValueCents, incrementalSummary?.currentValueCents);
+  assert.equal(rebuiltSummary?.principalCents, incrementalSummary?.principalCents);
+
+  // Fechamento do último mês reconcilia com o patrimônio do resumo.
+  assert.equal(
+    (await periodDoc("2026-08"))?.closingCurrentValueCents,
+    rebuiltSummary?.currentValueCents,
   );
 
-  // O rebuild ainda não repassa valorações; publicar apagaria esse delta.
-  await assert.rejects(
-    () => runProjectionRebuild("corr-m7-guard-rebuild", 10),
-    (error: unknown) => error instanceof Error && /valoraç/i.test(error.message),
-  );
+  // Reexecutar não altera nada: a publicação é de valores absolutos.
+  await runProjectionRebuild("corr-m7-val-rebuild-again", 2);
+  for (const period of ["2026-06", "2026-07", "2026-08"] as const) {
+    const again = await periodDoc(period);
+    assert.equal(again?.closingCurrentValueCents, incremental[period]?.closingCurrentValueCents);
+    assert.equal(again?.currentValueDeltaCents, incremental[period]?.currentValueDeltaCents);
+  }
+});
 
-  // Nada foi sobrescrito.
-  const after = await periodDoc("2026-08");
-  assert.equal(after?.currentValueDeltaCents, before?.currentValueDeltaCents);
+test("rebuild poda período órfão e substitui o mapa diário", async () => {
+  await seed();
+  await executeCreateInvestmentContribution(auth(), contribution("m7-prune-c1-0001", {
+    principalCents: 40_000, quantityMicros: 400_000,
+    occurredAt: "2026-08-10T15:00:00.000Z",
+  }));
+
+  // Período sem lastro nenhum no ledger, como sobreviveria de uma execução
+  // anterior, e uma chave de dia obsoleta no mês legítimo (INV-P2-015).
+  await doc("investment_report_periods/2026-03").set({
+    id: "2026-03", workspaceId: WORKSPACE, profileType: "PF", currency: "BRL",
+    period: "2026-03",
+    periodStart: admin.firestore.Timestamp.fromDate(new Date("2026-03-01T03:00:00.000Z")),
+    contributionCents: 999_999, redemptionPrincipalCents: 0,
+    realizedGainCents: 0, feesCents: 0, taxCents: 0, costDeltaCents: 999_999,
+    currentValueDeltaCents: 999_999, cashDeltaCents: -999_999,
+    settledMovementCount: 1, closingCurrentValueCents: 999_999,
+    daily: {"2026-03-01": {contributionCents: 999_999}},
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(), updatedBy: "teste",
+  });
+  await doc("investment_report_periods/2026-08").update({
+    "daily.2026-08-01": {contributionCents: 777_777},
+  });
+
+  await runProjectionRebuild("corr-m7-prune-rebuild", 20);
+
+  const orphan = await periodDoc("2026-03");
+  assert.equal(orphan?.contributionCents, 0);
+  assert.equal(orphan?.closingCurrentValueCents, 0);
+  assert.deepEqual(orphan?.daily, {});
+
+  const august = await periodDoc("2026-08");
+  assert.equal(august?.contributionCents, 40_000);
+  // O dia inventado desapareceu: o mapa é substituído, não mesclado.
+  assert.equal((august?.daily as Record<string, unknown>)["2026-08-01"], undefined);
+  assert.ok((august?.daily as Record<string, unknown>)["2026-08-10"]);
 });
 
 test("período legado sem fechamento é semeado com a base cumulativa", async () => {

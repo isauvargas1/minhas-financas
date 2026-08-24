@@ -170,6 +170,10 @@ export interface InvestmentOverview {
   redemptionNet: number;
   redeemedPrincipal: number;
   realizedGain: number;
+  /** Perda realizada acumulada no período (INV-P1-009). Não-negativa. */
+  realizedLoss: number;
+  /** Resultado realizado com sinal: `realizedGain − realizedLoss`. */
+  realizedResult: number;
   investmentIncome: number;
   fees: number;
   taxes: number;

@@ -108,6 +108,9 @@ export const investmentPositionDocumentSchema = z
     quantityMicros: nonNegativeInt,
     principalCents: nonNegativeInt,
     realizedGainCents: nonNegativeInt,
+    // INV-P1-009 — perda realizada acumulada. Opcional para que posições
+    // gravadas antes desta versão continuem válidas; ausência significa zero.
+    realizedLossCents: nonNegativeInt.optional(),
     feesCents: nonNegativeInt,
     taxCents: nonNegativeInt,
     currentValueCents: nonNegativeInt,
@@ -144,13 +147,23 @@ const movementBase = z
     currency,
     description: investmentString(500),
     principalCents: nonNegativeInt,
+    // INV-P3-051 — pedido original preservado na liquidação parcial.
+    requestedPrincipalCents: nonNegativeInt.optional(),
+    requestedQuantityMicros: nonNegativeInt.optional(),
+    residualPrincipalCents: nonNegativeInt.optional(),
+    residualQuantityMicros: nonNegativeInt.optional(),
     gainCents: nonNegativeInt,
+    // INV-P1-009 — perda realizada da liquidação. Irmã de `gainCents`, e não
+    // um `gainCents` com sinal: a alternativa mudaria o significado de um
+    // campo já persistido em todo o histórico.
+    lossCents: nonNegativeInt.optional(),
     feesCents: nonNegativeInt,
     taxCents: nonNegativeInt,
     quantityMicros: nonNegativeInt,
     cashDeltaCents: safeInt,
     principalDeltaCents: safeInt,
     realizedGainDeltaCents: safeInt,
+    realizedLossDeltaCents: safeInt.optional(),
     feesDeltaCents: safeInt,
     taxDeltaCents: safeInt,
     quantityDeltaMicros: safeInt,
@@ -196,6 +209,7 @@ const zeroDeltaFields = [
   "cashDeltaCents",
   "principalDeltaCents",
   "realizedGainDeltaCents",
+  "realizedLossDeltaCents",
   "feesDeltaCents",
   "taxDeltaCents",
   "quantityDeltaMicros",
@@ -227,6 +241,17 @@ export const investmentMovementDocumentSchema = movementBase.superRefine(
           message: `Movimento ${movement.status} não pode ter liquidação.`,
         });
       }
+    }
+    // INV-P1-009 — ganho e perda são mutuamente exclusivos no mesmo
+    // movimento. Aceitar os dois permitiria compensá-los e esconder a
+    // magnitude real de cada um no relatório.
+    if ((movement.gainCents ?? 0) > 0 && (movement.lossCents ?? 0) > 0) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["lossCents"],
+        message:
+          "Um movimento tem ganho ou perda realizada, nunca os dois.",
+      });
     }
     if (movement.status === "settled") {
       if (
