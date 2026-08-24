@@ -29,9 +29,21 @@ export default defineConfig({
   reporter: process.env.CI ? [['list'], ['html']] : [['list']],
   use: {
     baseURL,
-    trace: 'on-first-retry',
-    screenshot: 'only-on-failure',
-    video: 'retain-on-failure',
+    // Artefatos de depuração ficam no CI. Localmente, gravar vídeo de todas as
+    // execuções para descartar no sucesso é justamente o que esgota a memória
+    // do container e derruba o renderer, seguindo o mesmo critério já usado
+    // acima para `retries` e `reporter`.
+    trace: process.env.CI ? 'on-first-retry' : 'off',
+    screenshot: process.env.CI ? 'only-on-failure' : 'off',
+    video: process.env.CI ? 'retain-on-failure' : 'off',
+    launchOptions: {
+      // `/dev/shm` tem 64 MB no container padrão, e o renderer do Chromium
+      // estoura esse limite ao carregar o bundle, derrubando a página com
+      // "Target crashed" antes de qualquer asserção. Este é o contorno
+      // documentado: usar arquivos temporários em disco no lugar de memória
+      // compartilhada.
+      args: ['--disable-dev-shm-usage'],
+    },
   },
   webServer: [
     ...(shouldStartFirebaseEmulators

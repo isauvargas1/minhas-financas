@@ -30,6 +30,7 @@
     "index.tsx",
     "src",
     "e2e",
+    "tests",
     "vite.config.ts",
     "playwright.config.ts"
   ]

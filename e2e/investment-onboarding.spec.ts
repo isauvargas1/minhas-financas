@@ -54,7 +54,7 @@ test('owner prepara defaults PF sem duplicar e preserva a tela atual de Cadastro
   await expect(page.getByText('Produtos e Serviços')).toBeVisible();
 
   await page.getByRole('button', {name: 'Preparar padrões de investimentos'}).click();
-  await expect(page.getByRole('status')).toContainText('sem duplicar');
+  await expect(page.getByText(/preparados com sucesso, sem duplicar/)).toBeVisible();
   await expect.poll(async () => (
     await db.collection(`workspaces/${WORKSPACE}/investment_accounts`).where('status', '==', 'active').get()
   ).size).toBe(1);
@@ -63,4 +63,75 @@ test('owner prepara defaults PF sem duplicar e preserva a tela atual de Cadastro
   ).size).toBe(1);
   expect((await db.collection(`workspaces/${WORKSPACE}/investment_accounts`).get()).size).toBe(2);
   expect((await db.collection(`workspaces/${WORKSPACE}/investment_assets`).get()).size).toBe(1);
+});
+
+test('Cadastros gerencia conta e ativo de investimento sem tocar carteiras de caixa', async ({page}) => {
+  const db = sdk().firestore();
+  await page.goto(`/?e2eEmail=${encodeURIComponent(EMAIL)}&e2ePassword=${PASSWORD}`);
+  await page.getByTestId('e2e-login-button').click();
+  await expect(page.getByText('Saldo Atual')).toBeVisible({timeout: 30_000});
+  await page.getByText('Configurações', {exact: true}).first().click();
+  await page.getByRole('heading', {name: 'Cadastros', exact: true}).click();
+
+  const registry = page.locator('section[aria-labelledby="investment-registry-title"]');
+  await expect(registry).toBeVisible();
+  // Carteira e conta de investimento permanecem conceitos distintos.
+  await expect(registry.getByText(/separados das carteiras de caixa/)).toBeVisible();
+  // Cadastros legados continuam na tela.
+  await expect(page.getByText('Produtos e Serviços')).toBeVisible();
+
+  // Cria conta a partir de Cadastros, exclusivamente via callable.
+  await registry.getByRole('button', {name: 'Nova conta'}).click();
+  await page.getByLabel('Nome da conta').fill('Conta Cadastros E2E');
+  await page.getByLabel('Instituição').fill('Corretora Cadastros');
+  await page.getByRole('button', {name: 'Salvar conta'}).click();
+  await expect(registry.getByText('Cadastro patrimonial atualizado com sucesso.')).toBeVisible();
+  await expect.poll(async () => (
+    await db.collection(`workspaces/${WORKSPACE}/investment_accounts`)
+      .where('name', '==', 'Conta Cadastros E2E').get()
+  ).size).toBe(1);
+  await expect(registry.getByText('Conta Cadastros E2E')).toBeVisible();
+
+  // Edita a mesma conta: o registro é atualizado, não duplicado.
+  await registry.locator('li').filter({hasText: 'Conta Cadastros E2E'})
+    .getByRole('button', {name: 'Editar'}).click();
+  await page.getByLabel('Instituição').fill('Corretora Renomeada');
+  await page.getByRole('button', {name: 'Salvar conta'}).click();
+  await expect(registry.getByText('Corretora Renomeada')).toBeVisible();
+  expect((await db.collection(`workspaces/${WORKSPACE}/investment_accounts`)
+    .where('name', '==', 'Conta Cadastros E2E').get()).size).toBe(1);
+
+  // Inativa preservando histórico: some de Ativas e aparece em Inativas.
+  await registry.locator('li').filter({hasText: 'Conta Cadastros E2E'})
+    .getByRole('button', {name: 'Inativar'}).click();
+  await expect(page.getByRole('heading', {name: 'Inativar conta de investimento'})).toBeVisible();
+  await page.getByRole('button', {name: 'Confirmar inativação'}).click();
+  // Fonte da verdade: a inativação precisa ter chegado ao Firestore.
+  await expect.poll(async () => {
+    const snapshot = await db.collection(`workspaces/${WORKSPACE}/investment_accounts`)
+      .where('name', '==', 'Conta Cadastros E2E').get();
+    return snapshot.docs[0]?.data().status ?? '';
+  }, {timeout: 25_000}).toBe('archived');
+  await expect(registry.getByText('Conta Cadastros E2E')).toHaveCount(0);
+  await registry.getByLabel('Situação do cadastro patrimonial').selectOption('archived');
+  await expect(registry.getByText('Conta Cadastros E2E')).toBeVisible();
+  await expect(registry.getByText('Conta encerrada')).toBeVisible();
+  const archived = await db.collection(`workspaces/${WORKSPACE}/investment_accounts`)
+    .where('name', '==', 'Conta Cadastros E2E').get();
+  expect(archived.docs[0].data().status).toBe('archived');
+  expect(archived.docs[0].data().institutionName).toBe('Corretora Renomeada');
+
+  // Ativos usam o mesmo cadastro, com finalidade PF.
+  await registry.getByRole('tab', {name: 'Ativos'}).click();
+  await registry.getByLabel('Situação do cadastro patrimonial').selectOption('active');
+  await registry.getByRole('button', {name: 'Novo ativo'}).click();
+  await page.getByLabel('Nome do ativo').fill('Tesouro Cadastros E2E');
+  await page.getByLabel('Finalidade').selectOption('retirement');
+  await page.getByRole('button', {name: 'Salvar ativo'}).click();
+  await expect.poll(async () => {
+    const snapshot = await db.collection(`workspaces/${WORKSPACE}/investment_assets`)
+      .where('name', '==', 'Tesouro Cadastros E2E').get();
+    return snapshot.docs[0]?.data().allocationPurpose ?? '';
+  }, {timeout: 20_000}).toBe('retirement');
+  await expect(registry.getByText('Tesouro Cadastros E2E')).toBeVisible();
 });

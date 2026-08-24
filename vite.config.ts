@@ -11,8 +11,12 @@ export default defineConfig(({ mode }) => {
       },
       plugins: [react()],
       define: {
-        'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-        'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY)
+        // A chave do Gemini NÃO é mais injetada no bundle. `define` substitui
+        // o identificador no código servido ao navegador, o que tornava a
+        // credencial legível para qualquer visitante. A inferência passou a
+        // ser callable de backend, onde a chave vive em variável de ambiente.
+        'process.env.API_KEY': JSON.stringify(''),
+        'process.env.GEMINI_API_KEY': JSON.stringify('')
       },
       resolve: {
   alias: {

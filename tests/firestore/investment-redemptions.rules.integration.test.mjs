@@ -94,6 +94,17 @@ const seed = async () => {
       timestamp: firebaseAdmin.firestore.Timestamp.fromDate(new Date('2026-08-18T12:00:00.000Z')),
     }),
     db.doc(`workspaces/${workspaceA}/investment_idempotency_keys/key-a`).set({status: 'completed'}),
+    // M3.B: documento cujo único marcador de investimento é `settlementDate`.
+    // Antes do M3 o pré-teste de update e o de delete não citavam esse campo,
+    // então ele permanecia editável e apagável pelo cliente.
+    db.doc(`workspaces/${workspaceA}/transactions/settlement-only-a`).set({
+      type: 'investimento', description: 'Liquidação protegida', category: 'CDB',
+      value: 10, valueCents: 1000, date: '2026-08-18', userId: users.ownerA.uid,
+      workspaceId: workspaceA,
+      settlementDate: firebaseAdmin.firestore.Timestamp.fromDate(
+        new Date('2026-08-18T12:00:00.000Z'),
+      ),
+    }),
   ]);
 };
 
@@ -114,23 +125,46 @@ const anonymousClient = (suffix) => {
   return {app, db};
 };
 
-test('Rules isolam resgates e reservam metadata, saldos, auditoria e idempotência ao backend', async () => {
-  await seed();
-  const ownerA = await signedClient(users.ownerA, 'owner-a');
-  const ownerB = await signedClient(users.ownerB, 'owner-b');
-  const adminA = await signedClient(users.adminA, 'admin-a');
-  const memberA = await signedClient(users.memberA, 'member-a');
-  const removedA = await signedClient(users.removedA, 'removed-a');
-  const anonymous = anonymousClient('anonymous');
+const withClients = async (names, run) => {
+  const clients = {};
   try {
-    assert.equal((await getDoc(doc(ownerA.db, `workspaces/${workspaceA}/transactions/redemption-a`))).exists(), true);
-    assert.equal((await getDoc(doc(adminA.db, `workspaces/${workspaceA}/transactions/redemption-a`))).exists(), true);
-    assert.equal((await getDoc(doc(memberA.db, `workspaces/${workspaceA}/transactions/redemption-a`))).exists(), true);
-    await assert.rejects(() => getDoc(doc(ownerA.db, `workspaces/${workspaceB}/transactions/redemption-b`)));
-    await assert.rejects(() => getDoc(doc(ownerB.db, `workspaces/${workspaceA}/transactions/redemption-a`)));
-    await assert.rejects(() => getDoc(doc(removedA.db, `workspaces/${workspaceA}/transactions/redemption-a`)));
-    await assert.rejects(() => getDoc(doc(anonymous.db, `workspaces/${workspaceA}/transactions/redemption-a`)));
+    for (const name of names) {
+      clients[name] = await signedClient(users[name], `${name}-${Math.random().toString(36).slice(2, 8)}`);
+    }
+    await run(clients);
+  } finally {
+    await Promise.all(Object.values(clients).map((client) => deleteApp(client.app)));
+  }
+};
 
+test('resgate é legível por owner, admin e member do próprio workspace', async () => {
+  await seed();
+  await withClients(['ownerA', 'adminA', 'memberA'], async ({ownerA, adminA, memberA}) => {
+    for (const client of [ownerA, adminA, memberA]) {
+      const snapshot = await getDoc(doc(client.db, `workspaces/${workspaceA}/transactions/redemption-a`));
+      assert.equal(snapshot.exists(), true);
+    }
+  });
+});
+
+test('resgate é isolado entre tenants, removidos e anônimos', async () => {
+  await seed();
+  await withClients(['ownerA', 'ownerB', 'removedA'], async ({ownerA, ownerB, removedA}) => {
+    const anonymous = anonymousClient('anonymous');
+    try {
+      await assert.rejects(() => getDoc(doc(ownerA.db, `workspaces/${workspaceB}/transactions/redemption-b`)));
+      await assert.rejects(() => getDoc(doc(ownerB.db, `workspaces/${workspaceA}/transactions/redemption-a`)));
+      await assert.rejects(() => getDoc(doc(removedA.db, `workspaces/${workspaceA}/transactions/redemption-a`)));
+      await assert.rejects(() => getDoc(doc(anonymous.db, `workspaces/${workspaceA}/transactions/redemption-a`)));
+    } finally {
+      await deleteApp(anonymous.app);
+    }
+  });
+});
+
+test('cliente não forja metadata de investimento nem workspace alheio', async () => {
+  await seed();
+  await withClients(['ownerA', 'memberA'], async ({ownerA, memberA}) => {
     await assert.rejects(() => setDoc(
       doc(ownerA.db, `workspaces/${workspaceA}/transactions/forged-redemption`),
       {
@@ -146,22 +180,60 @@ test('Rules isolam resgates e reservam metadata, saldos, auditoria e idempotênc
         date: '2026-08-18', userId: users.memberA.uid, workspaceId: workspaceB,
       },
     ));
+    await assert.rejects(() => setDoc(
+      doc(ownerA.db, `workspaces/${workspaceA}/transactions/forged-settlement`),
+      {
+        type: 'investimento', description: 'Liquidação forjada', category: 'CDB', value: 10,
+        date: '2026-08-18', userId: users.ownerA.uid, workspaceId: workspaceA,
+        settlementDate: '2026-08-18',
+      },
+    ));
+  });
+});
+
+test('cliente não escala o próprio papel', async () => {
+  await seed();
+  await withClients(['memberA'], async ({memberA}) => {
     await assert.rejects(() => updateDoc(
       doc(memberA.db, `workspaces/${workspaceA}/members/${users.memberA.uid}`),
       {role: 'owner'},
     ));
+  });
+});
+
+test('saldos de principal e histórico de resgate não são editáveis nem apagáveis', async () => {
+  await seed();
+  await withClients(['ownerA'], async ({ownerA}) => {
     await assert.rejects(() => updateDoc(
       doc(ownerA.db, `workspaces/${workspaceA}/transactions/source-a`),
       {redeemedPrincipalCents: 0, remainingPrincipalCents: 10000},
     ));
     await assert.rejects(() => deleteDoc(doc(ownerA.db, `workspaces/${workspaceA}/transactions/source-a`)));
     await assert.rejects(() => deleteDoc(doc(ownerA.db, `workspaces/${workspaceA}/transactions/redemption-a`)));
+  });
+});
 
+test('documento marcado apenas por settlementDate não é editável nem apagável', async () => {
+  await seed();
+  await withClients(['ownerA'], async ({ownerA}) => {
+    const ref = doc(ownerA.db, `workspaces/${workspaceA}/transactions/settlement-only-a`);
+    await assert.rejects(
+      () => updateDoc(ref, {description: 'Editado pelo cliente'}),
+      'Update de documento com settlementDate precisa ser negado.',
+    );
+    await assert.rejects(
+      () => deleteDoc(ref),
+      'Hard delete de histórico financeiro precisa ser negado.',
+    );
+  });
+});
+
+test('trilha de auditoria é privilegiada e idempotência nunca é exposta', async () => {
+  await seed();
+  await withClients(['ownerA', 'adminA', 'memberA'], async ({ownerA, adminA, memberA}) => {
     assert.equal((await getDoc(doc(ownerA.db, `workspaces/${workspaceA}/investment_audit_logs/audit-a`))).exists(), true);
     assert.equal((await getDoc(doc(adminA.db, `workspaces/${workspaceA}/investment_audit_logs/audit-a`))).exists(), true);
     await assert.rejects(() => getDoc(doc(memberA.db, `workspaces/${workspaceA}/investment_audit_logs/audit-a`)));
     await assert.rejects(() => getDoc(doc(ownerA.db, `workspaces/${workspaceA}/investment_idempotency_keys/key-a`)));
-  } finally {
-    await Promise.all([ownerA, ownerB, adminA, memberA, removedA, anonymous].map(client => deleteApp(client.app)));
-  }
+  });
 });

@@ -19,6 +19,9 @@ import {
 const require = createRequire(import.meta.url);
 const admin = require('../../functions/node_modules/firebase-admin');
 const enabled = Boolean(process.env.FIRESTORE_EMULATOR_HOST);
+if (!enabled) {
+  throw new Error('FIRESTORE_EMULATOR_HOST é obrigatório para os testes de Rules de metas.');
+}
 const projectId = process.env.GCLOUD_PROJECT || 'minhas-financas-local';
 const password = 'rules-password-123456';
 
@@ -78,19 +81,47 @@ const transactionPayload = (workspaceId, uid, extra = {}) => ({
   ...extra,
 });
 
-test('Rules isolam tenants e reservam metas/vínculos ao backend', {skip: !enabled}, async () => {
-  await seed();
-  const clientA = await signedClient(ownerA, 'a');
-  const clientB = await signedClient(ownerB, 'b');
+const withClients = async (run) => {
+  const clientA = await signedClient(ownerA, `a-${Math.random().toString(36).slice(2, 8)}`);
+  const clientB = await signedClient(ownerB, `b-${Math.random().toString(36).slice(2, 8)}`);
   try {
-    assert.equal((await getDoc(doc(clientA.db, `workspaces/${workspaceA}/goals/server-goal-id`))).exists(), true);
+    await run(clientA, clientB);
+  } finally {
+    await Promise.all([deleteApp(clientA.app), deleteApp(clientB.app)]);
+  }
+};
+
+test('meta do próprio workspace é legível', async () => {
+  await seed();
+  await withClients(async (clientA) => {
+    assert.equal(
+      (await getDoc(doc(clientA.db, `workspaces/${workspaceA}/goals/server-goal-id`))).exists(),
+      true,
+    );
+  });
+});
+
+test('metas são isoladas entre tenants nos dois sentidos', async () => {
+  await seed();
+  await withClients(async (clientA, clientB) => {
     await assert.rejects(() => getDoc(doc(clientA.db, `workspaces/${workspaceB}/goals/server-goal-id`)));
     await assert.rejects(() => getDoc(doc(clientB.db, `workspaces/${workspaceA}/goals/server-goal-id`)));
+  });
+});
 
+test('cliente não cria meta diretamente', async () => {
+  await seed();
+  await withClients(async (clientA) => {
     await assert.rejects(() => setDoc(
       doc(clientA.db, `workspaces/${workspaceA}/goals/client-created-goal`),
       {name: 'Meta forjada'},
     ));
+  });
+});
+
+test('cliente não forja nem cria vínculo de meta em transação', async () => {
+  await seed();
+  await withClients(async (clientA) => {
     await assert.rejects(() => setDoc(
       doc(clientA.db, `workspaces/${workspaceA}/transactions/forged-linked-contribution`),
       transactionPayload(workspaceA, ownerA.uid, {goalId: 'server-goal-id'}),
@@ -99,11 +130,15 @@ test('Rules isolam tenants e reservam metas/vínculos ao backend', {skip: !enabl
       doc(clientA.db, `workspaces/${workspaceA}/transactions/unlinked-transaction-id`),
       {goalId: 'server-goal-id'},
     ));
+  });
+});
+
+test('transação sem vínculo de meta permanece permitida ao cliente', async () => {
+  await seed();
+  await withClients(async (clientA) => {
     await setDoc(
       doc(clientA.db, `workspaces/${workspaceA}/transactions/allowed-unlinked-contribution`),
       transactionPayload(workspaceA, ownerA.uid),
     );
-  } finally {
-    await Promise.all([deleteApp(clientA.app), deleteApp(clientB.app)]);
-  }
+  });
 });
