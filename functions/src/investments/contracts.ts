@@ -241,13 +241,26 @@ export const rollbackLegacyInvestmentMigrationPayloadSchema = z
   .object({
     ...v2BaseShape,
     migrationId: investmentDocumentIdSchema,
+    // INV-P1-012 — o rollback emite um movimento compensatório por movimento
+    // migrado, então é paginado e retomável como as demais operações pesadas.
+    pageSize: z.number().int().min(1).max(50).default(20),
     reason: reasonSchema,
+  })
+  .strict();
+
+export const reconcileLegacyMigrationPayloadSchema = z
+  .object({
+    ...v2BaseShape,
+    pageSize: z.number().int().min(1).max(200).default(100),
   })
   .strict();
 
 export const enableInvestmentsV2FlagPayloadSchema = z
   .object({
     ...v2BaseShape,
+    // INV-P2-021 — o lote aplicado é pré-condição verificável. Omitido, o
+    // backend deriva o lote padrão da tentativa corrente.
+    migrationId: investmentDocumentIdSchema.optional(),
     pageSize: z.number().int().min(1).max(200).default(100),
     reason: reasonSchema,
   })
@@ -472,6 +485,9 @@ export type MigrateLegacyInvestmentsPayload = z.infer<
 >;
 export type RollbackLegacyInvestmentMigrationPayload = z.infer<
   typeof rollbackLegacyInvestmentMigrationPayloadSchema
+>;
+export type ReconcileLegacyMigrationPayload = z.infer<
+  typeof reconcileLegacyMigrationPayloadSchema
 >;
 export type EnableInvestmentsV2FlagPayload = z.infer<
   typeof enableInvestmentsV2FlagPayloadSchema

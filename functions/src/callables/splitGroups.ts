@@ -148,13 +148,14 @@ export const createSplitGroupInvite = onCall(
       // Limite de frequência e criação no mesmo limite atômico: um laço de
       // chamadas não consegue passar entre a verificação e a escrita.
       await db().runTransaction(async (transaction) => {
-        await consumeRateLimit(
+        const rateLimit = await consumeRateLimit(
           transaction,
           auth.workspaceId,
           auth.uid,
           CREATE_INVITE_RATE_LIMIT
         );
 
+        rateLimit.commit();
         transaction.set(inviteRef, {
           groupId: data.groupId,
           codigoConvite: code,
@@ -195,8 +196,9 @@ export const acceptSplitGroupInvite = onCall(
 
       const result = await db().runTransaction(async (transaction) => {
         // Toda tentativa consome limite, inclusive as que falham: é o que
-        // fecha a varredura por força bruta do espaço de códigos.
-        await consumeRateLimit(
+        // fecha a varredura por força bruta do espaço de códigos. A gravação
+        // do contador vem depois das leituras, por exigência do Firestore.
+        const rateLimit = await consumeRateLimit(
           transaction,
           auth.workspaceId,
           auth.uid,
@@ -209,6 +211,15 @@ export const acceptSplitGroupInvite = onCall(
             .where("status", "==", "pendente")
             .limit(1)
         );
+
+        const existing = await transaction.get(
+          participantsRef
+            .where("groupId", "==", inviteSnapshot.docs[0]?.data().groupId ?? "")
+            .where("userId", "==", auth.uid)
+            .limit(1)
+        );
+
+        rateLimit.commit();
 
         if (inviteSnapshot.empty) {
           throw new HttpsError(
@@ -227,13 +238,6 @@ export const acceptSplitGroupInvite = onCall(
             "Este convite já expirou."
           );
         }
-
-        const existing = await transaction.get(
-          participantsRef
-            .where("groupId", "==", invite.groupId)
-            .where("userId", "==", auth.uid)
-            .limit(1)
-        );
 
         if (!existing.empty) {
           throw new HttpsError(

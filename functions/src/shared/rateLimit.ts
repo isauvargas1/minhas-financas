@@ -36,18 +36,23 @@ export const rateLimitDocumentId = (
   `${sanitizeKeyPart(policy.operation)}_${sanitizeKeyPart(actorId)}`;
 
 /**
- * Consome uma unidade do limite dentro da transação informada.
+ * Verifica o limite e devolve o gravador do contador.
  *
- * Precisa ser chamada na fase de leitura da transação, como qualquer outra
- * leitura. Lança `domain_precondition_failed` com mensagem em pt-BR quando o
- * teto é atingido.
+ * A separação entre verificação e gravação não é estilística: o Firestore
+ * exige **todas** as leituras antes de qualquer escrita numa transação, e as
+ * operações do domínio leem dezenas de documentos depois de reservar a
+ * idempotência. Consumir o limite com um `set` imediato quebrava toda operação
+ * que lesse algo em seguida.
+ *
+ * Lança `domain_precondition_failed` com mensagem em pt-BR quando o teto é
+ * atingido — antes de qualquer escrita, portanto sem efeito colateral.
  */
 export const consumeRateLimit = async (
   transaction: admin.firestore.Transaction,
   workspaceId: string,
   actorId: string,
   policy: RateLimitPolicy,
-): Promise<{remaining: number; resetsAt: Timestamp}> =>
+): Promise<RateLimitReservation> =>
   consumeRateLimitAt(
     transaction,
     admin
@@ -71,7 +76,7 @@ export const consumeUserRateLimit = async (
   transaction: admin.firestore.Transaction,
   userId: string,
   policy: RateLimitPolicy,
-): Promise<{remaining: number; resetsAt: Timestamp}> =>
+): Promise<RateLimitReservation> =>
   consumeRateLimitAt(
     transaction,
     admin
@@ -79,6 +84,13 @@ export const consumeUserRateLimit = async (
       .doc(`users/${userId}/rate_limits/${rateLimitDocumentId(policy, userId)}`),
     {workspaceId: null, actorId: userId, policy},
   );
+
+export interface RateLimitReservation {
+  remaining: number;
+  resetsAt: Timestamp;
+  /** Grava o contador. Chamar na fase de escrita da transação. */
+  commit: () => void;
+}
 
 const consumeRateLimitAt = async (
   transaction: admin.firestore.Transaction,
@@ -88,7 +100,7 @@ const consumeRateLimitAt = async (
     actorId: string;
     policy: RateLimitPolicy;
   },
-): Promise<{remaining: number; resetsAt: Timestamp}> => {
+): Promise<RateLimitReservation> => {
   const {workspaceId, actorId, policy} = context;
   const snapshot = await transaction.get(ref);
   const now = Date.now();
@@ -110,7 +122,7 @@ const consumeRateLimitAt = async (
   }
 
   const nextWindowStartMs = expired ? now : windowStartMs;
-  transaction.set(
+  const commit = () => transaction.set(
     ref,
     {
       id: ref.id,
@@ -130,5 +142,6 @@ const consumeRateLimitAt = async (
   return {
     remaining: policy.limit - used - 1,
     resetsAt: Timestamp.fromMillis(nextWindowStartMs + windowMs),
+    commit,
   };
 };

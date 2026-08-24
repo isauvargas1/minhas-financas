@@ -17,6 +17,7 @@ import {
   backfillInvestmentWorkspacePayloadSchema,
   enableInvestmentsV2FlagPayloadSchema,
   migrateLegacyInvestmentsPayloadSchema,
+  reconcileLegacyMigrationPayloadSchema,
   rollbackLegacyInvestmentMigrationPayloadSchema,
   rebuildInvestmentProjectionsPayloadSchema,
   recalculateGoalInvestmentProgressPayloadSchema,
@@ -61,6 +62,7 @@ import {executeBackfillInvestmentWorkspace} from "./backfill";
 import {
   executeEnableInvestmentsV2Flag,
   executeMigrateLegacyInvestments,
+  executeReconcileLegacyMigration,
   executeRollbackLegacyInvestmentMigration,
 } from "./legacyMigration";
 import {executeOnboardInvestmentWorkspace} from "./onboarding";
@@ -251,6 +253,13 @@ export const rollbackLegacyInvestmentMigration = investmentCallable(
   "rollbackLegacyInvestmentMigration",
   rollbackLegacyInvestmentMigrationPayloadSchema,
   executeRollbackLegacyInvestmentMigration,
+  HEAVY_CALLABLE_OPTIONS,
+);
+
+export const reconcileLegacyMigration = investmentCallable(
+  "enableInvestmentsV2Flag",
+  reconcileLegacyMigrationPayloadSchema,
+  executeReconcileLegacyMigration,
   HEAVY_CALLABLE_OPTIONS,
 );
 

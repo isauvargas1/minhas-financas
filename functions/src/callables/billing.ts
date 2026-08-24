@@ -109,7 +109,12 @@ export const createCheckoutSession = onCall({
   // O limite vive sob o próprio usuário: checkout não tem workspace.
   const actorId = request.auth.uid;
   await admin.firestore().runTransaction(async (transaction) => {
-    await consumeUserRateLimit(transaction, actorId, CHECKOUT_RATE_LIMIT);
+    const rateLimit = await consumeUserRateLimit(
+      transaction,
+      actorId,
+      CHECKOUT_RATE_LIMIT,
+    );
+    rateLimit.commit();
   });
 
   const session = await stripe.checkout.sessions.create({

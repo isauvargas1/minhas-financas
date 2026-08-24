@@ -23,6 +23,7 @@ import type { SettingsCatalogItem, SettingsCatalogStatus, SettingsCatalogTransac
 import { createPortal } from 'react-dom';
 import {InvestmentOnboardingCard} from '../modules/investments/components/InvestmentOnboardingCard.tsx';
 import {InvestmentRegistrySection} from '../modules/investments/components/InvestmentRegistrySection.tsx';
+import {InvestmentOperationsPanel} from '../modules/investments/components/InvestmentOperationsPanel.tsx';
 
 interface SettingsViewProps {
     data?: {
@@ -713,6 +714,17 @@ const sortedItems = useMemo(() => {
                     workspaceId={activeWorkspace.id}
                     profileType={activeWorkspace.type}
                     canManage={canManageActiveWorkspace}
+                />
+
+                {/*
+                  Superfície operacional do domínio patrimonial (INV-P1-006).
+                  Só o proprietário do workspace a vê: são ações de efeito
+                  amplo, e o backend as restringe pela mesma matriz de papéis.
+                */}
+                <InvestmentOperationsPanel
+                    workspaceId={activeWorkspace.id}
+                    isOwner={activeWorkspace.myRole === 'owner'}
+                    investmentsV2Enabled={activeWorkspace.features?.investmentsV2?.enabled === true}
                 />
 
            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

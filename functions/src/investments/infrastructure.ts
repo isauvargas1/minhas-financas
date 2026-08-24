@@ -7,7 +7,9 @@ import type {
   WorkspaceMemberRole,
 } from "../creditCards/auth";
 import {CreditCardApplicationError} from "../creditCards/errors";
+import {consumeRateLimit} from "../shared/rateLimit";
 import type {InvestmentProfileType} from "./domain";
+import {investmentRateLimitPolicy} from "./rateLimits";
 import {
   INVESTMENT_COLLECTIONS,
   investmentDoc,
@@ -47,6 +49,14 @@ export interface InvestmentIdempotencyReservation {
   requestHash: string;
   keyHash: string;
   replay?: Record<string, unknown>;
+  /**
+   * Gravador do contador de limite de frequência (INV-P2-031).
+   *
+   * A verificação acontece na fase de leitura, junto com a reserva; a escrita
+   * só pode acontecer depois de todas as leituras da operação, e por isso é
+   * feita em `completeInvestmentIdempotency`.
+   */
+  commitRateLimit?: () => void;
 }
 
 export const sha256 = (value: string): string =>
@@ -247,7 +257,19 @@ export const reserveInvestmentIdempotency = async (
   );
   const requestHash = sha256(stableStringify(idempotencyIdentityPayload(payload)));
   const snapshot = await transaction.get(ref);
-  if (!snapshot.exists) return {ref, requestHash, keyHash};
+  if (!snapshot.exists) {
+    // INV-P2-031 — limite de frequência por ator e workspace, consumido
+    // dentro da transação e **antes** de qualquer escrita de domínio.
+    //
+    // Só a intenção nova consome orçamento: um replay de idempotência é a
+    // mesma intenção do usuário chegando de novo, e penalizá-lo transformaria
+    // o mecanismo que existe para tolerar retry num motivo de recusa.
+    const policy = investmentRateLimitPolicy(operation);
+    const rateLimit = policy ?
+      await consumeRateLimit(transaction, auth.workspaceId, auth.uid, policy) :
+      undefined;
+    return {ref, requestHash, keyHash, commitRateLimit: rateLimit?.commit};
+  }
   const data = snapshot.data() ?? {};
   if (
     data.workspaceId !== auth.workspaceId ||
@@ -286,6 +308,8 @@ export const completeInvestmentIdempotency = (
   reservation: InvestmentIdempotencyReservation,
   result: Record<string, unknown>,
 ): void => {
+  // Fase de escrita: é aqui que o contador de frequência é efetivado.
+  reservation.commitRateLimit?.();
   transaction.create(reservation.ref, {
     id: reservation.ref.id,
     workspaceId: auth.workspaceId,

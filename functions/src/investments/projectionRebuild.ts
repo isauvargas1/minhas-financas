@@ -81,6 +81,22 @@ export const MAX_ALLOCATION_BUCKETS = 400;
 export const MAX_REPORT_PERIODS = 240;
 
 /**
+ * Teto de baldes diários acumulados no snapshot (INV-P2-040).
+ *
+ * O estado de trabalho da reconstrução vive num único documento do Firestore,
+ * que tem limite rígido de 1 MiB. Períodos e alocações já tinham teto; o mapa
+ * `daily` não tinha nenhum, e ele é o único componente que cresce com o
+ * **tempo de uso** do workspace em vez de com a estrutura dele: um dia com
+ * movimento vira uma entrada de nove campos.
+ *
+ * 2.000 dias com movimento correspondem a mais de cinco anos de atividade
+ * diária ininterrupta e ocupam da ordem de 400 KiB, deixando folga larga para
+ * períodos, alocações e metadados. Atingir o teto é erro de domínio nomeando a
+ * dimensão — nunca truncamento silencioso da série diária.
+ */
+export const MAX_DAILY_BUCKETS = 2_000;
+
+/**
  * Teto de escritas por transação. O limite do Firestore é 500; a publicação
  * escreve no máximo `pageSize` documentos de projeção (≤100) mais os
  * documentos fixos de snapshot, evento, métrica e idempotência.
@@ -507,6 +523,18 @@ const commitBuckets = (
       "domain_precondition_failed",
       `A reconstrução excedeu o teto de ${MAX_REPORT_PERIODS} períodos ` +
         "mensais. Nenhum dado foi truncado.",
+    );
+  }
+  const dailyCount = Object.values(state.periods).reduce(
+    (total, bucket) => total + Object.keys(bucket.daily ?? {}).length,
+    0,
+  );
+  if (dailyCount > MAX_DAILY_BUCKETS) {
+    throw new CreditCardApplicationError(
+      "domain_precondition_failed",
+      `A reconstrução excedeu o teto de ${MAX_DAILY_BUCKETS} dias com ` +
+        "movimento acumulados no checkpoint, que é o limite de tamanho do " +
+        "documento de estado. Nenhum dado foi truncado.",
     );
   }
 };

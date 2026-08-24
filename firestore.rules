@@ -1246,6 +1246,21 @@ match /credit_card_idempotency_keys/{docId} {
         allow write: if false;
       }
 
+      // Lease de operação pesada (INV-P2-043) e relatório de deriva
+      // (INV-P2-019): estado operacional server-only. O lease não é
+      // checkpoint e não satisfaz `isValidInvestmentSnapshot`, por isso vive
+      // em coleção própria. A deriva é lida por owner/admin para diagnóstico.
+      match /investment_operation_leases/{docId} {
+        allow read, write: if false;
+      }
+
+      match /investment_drift_reports/{docId} {
+        allow get: if canReadSensitiveInvestmentDomain(workspaceId);
+        allow list: if canReadSensitiveInvestmentDomain(workspaceId) &&
+          isBoundedInvestmentList();
+        allow write: if false;
+      }
+
       match /investment_idempotency_keys/{docId} {
         allow read, write: if false;
       }

@@ -25,10 +25,22 @@ const db = (): admin.firestore.Firestore => {
 
 const policy = {operation: "testOperation", limit: 3, windowSeconds: 60};
 
+/**
+ * `consumeRateLimit` verifica na fase de leitura e devolve o gravador do
+ * contador, que precisa ser chamado na fase de escrita — o Firestore exige
+ * todas as leituras antes de qualquer escrita numa transação.
+ */
 const consume = (workspaceId = WORKSPACE, actorId = ACTOR) =>
-  db().runTransaction((transaction) =>
-    consumeRateLimit(transaction, workspaceId, actorId, policy),
-  );
+  db().runTransaction(async (transaction) => {
+    const reservation = await consumeRateLimit(
+      transaction,
+      workspaceId,
+      actorId,
+      policy,
+    );
+    reservation.commit();
+    return reservation;
+  });
 
 const reset = async (): Promise<void> => {
   await Promise.all([
