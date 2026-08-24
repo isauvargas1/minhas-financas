@@ -1,0 +1,4 @@
+interface:
+  display_name: "Regression Release Gate"
+  short_description: "Valida regressões antes de releases importantes"
+  default_prompt: "Use $regression-release-gate para validar integralmente esta mudança antes de concluir."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Multi-Tenant Security Review"
+  short_description: "Review tenant isolation and authorization"
+  default_prompt: "Use $multi-tenant-security-review to audit this change for tenant isolation, authorization, and cross-workspace security."

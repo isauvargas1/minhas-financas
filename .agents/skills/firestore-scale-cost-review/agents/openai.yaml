@@ -1,0 +1,4 @@
+interface:
+  display_name: "Firestore Scale & Cost Review"
+  short_description: "Review Firestore scale, isolation, and cost"
+  default_prompt: "Use $firestore-scale-cost-review to review this Firestore change for workspace isolation, scalability, and cost."

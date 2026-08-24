@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "deny": [
+      "Bash(git push *)",
+      "Bash(firebase deploy *)",
+      "Bash(npx firebase deploy *)",
+      "Bash(git reset --hard *)",
+      "Bash(git clean -fd *)"
+    ]
+  },
+  "sandbox": {
+    "enabled": true,
+    "autoAllowBashIfSandboxed": true,
+    "allowUnsandboxedCommands": false
+  }
+}

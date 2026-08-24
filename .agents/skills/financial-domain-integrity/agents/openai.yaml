@@ -1,0 +1,4 @@
+interface:
+  display_name: "Financial Domain Integrity"
+  short_description: "Valida integridade de mudanças financeiras"
+  default_prompt: "Use $financial-domain-integrity para validar esta mudança financeira e seus testes."

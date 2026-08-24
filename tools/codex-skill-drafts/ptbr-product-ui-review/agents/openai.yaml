@@ -1,0 +1,4 @@
+interface:
+  display_name: "Revisão de UI em PT-BR"
+  short_description: "Audita linguagem, estados e acessibilidade da UI"
+  default_prompt: "Use $ptbr-product-ui-review para revisar esta alteração de produto e emitir PASS ou FAIL com evidências."

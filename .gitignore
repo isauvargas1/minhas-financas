@@ -26,3 +26,24 @@ dist-ssr
 # Playwright
 /test-results/
 /playwright-report/
+
+# Secrets e configuração de ambiente (nunca versionar)
+.env
+.env.*
+!.env.example
+functions/.env
+functions/.env.*
+!functions/.env.example
+*.pem
+*-service-account*.json
+serviceAccountKey*.json
+
+# Estado local de ferramentas
+.claude/settings.local.json
+*.save
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+database-debug.log
+pubsub-debug.log
+.firebase/
