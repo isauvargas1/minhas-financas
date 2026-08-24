@@ -1,6 +1,14 @@
 import * as admin from "firebase-admin";
+import {setGlobalOptions} from "firebase-functions/v2/options";
+
+import {GLOBAL_FUNCTION_OPTIONS} from "./shared/runtimeOptions";
 
 admin.initializeApp();
+
+// Região junto do Firestore (`southamerica-east1`) e teto global de
+// instâncias. Sem isso todo o deploy subia em `us-central1`, a um continente
+// de distância do banco (INV-P2-042).
+setGlobalOptions(GLOBAL_FUNCTION_OPTIONS);
 
 // Triggers (Gatilhos Automáticos)
 export * from "./triggers/transactions";

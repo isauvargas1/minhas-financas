@@ -47,13 +47,49 @@ export const consumeRateLimit = async (
   workspaceId: string,
   actorId: string,
   policy: RateLimitPolicy,
+): Promise<{remaining: number; resetsAt: Timestamp}> =>
+  consumeRateLimitAt(
+    transaction,
+    admin
+      .firestore()
+      .doc(
+        `workspaces/${workspaceId}/rate_limits/` +
+          rateLimitDocumentId(policy, actorId),
+      ),
+    {workspaceId, actorId, policy},
+  );
+
+/**
+ * Consome limite num documento arbitrário.
+ *
+ * Existe para as operações que **não têm workspace** — o checkout de
+ * assinatura é por usuário, não por tenant. Escrever o contador sob
+ * `workspaces/user_{uid}/…` criaria subcoleção sob um documento de workspace
+ * que não existe, poluindo a listagem do tenant.
+ */
+export const consumeUserRateLimit = async (
+  transaction: admin.firestore.Transaction,
+  userId: string,
+  policy: RateLimitPolicy,
+): Promise<{remaining: number; resetsAt: Timestamp}> =>
+  consumeRateLimitAt(
+    transaction,
+    admin
+      .firestore()
+      .doc(`users/${userId}/rate_limits/${rateLimitDocumentId(policy, userId)}`),
+    {workspaceId: null, actorId: userId, policy},
+  );
+
+const consumeRateLimitAt = async (
+  transaction: admin.firestore.Transaction,
+  ref: admin.firestore.DocumentReference,
+  context: {
+    workspaceId: string | null;
+    actorId: string;
+    policy: RateLimitPolicy;
+  },
 ): Promise<{remaining: number; resetsAt: Timestamp}> => {
-  const ref = admin
-    .firestore()
-    .doc(
-      `workspaces/${workspaceId}/rate_limits/` +
-        rateLimitDocumentId(policy, actorId),
-    );
+  const {workspaceId, actorId, policy} = context;
   const snapshot = await transaction.get(ref);
   const now = Date.now();
   const windowMs = policy.windowSeconds * 1000;

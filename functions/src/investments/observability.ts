@@ -3,6 +3,11 @@ import {FieldValue} from "firebase-admin/firestore";
 import type {CallableRequest} from "firebase-functions/v2/https";
 
 import {saoPauloDayKey} from "../shared/dateKeys";
+import {
+  boundedFailureEventId,
+  idempotencyKeyDigest,
+  safeErrorMessage,
+} from "../shared/observabilityKeys";
 import type {InvestmentBackendOperation} from "./infrastructure";
 import {INVESTMENT_COLLECTIONS, investmentDoc, investmentFirestore} from "./paths";
 
@@ -30,6 +35,12 @@ export interface RecordInvestmentOperationMetricInput {
   goalId?: string;
   amountCents?: number;
   correlationId?: string;
+  /**
+   * Chave de idempotência crua. Persistida **sempre** como digest
+   * (INV-P2-039): `investment_operational_metrics` é legível por qualquer
+   * membro do workspace, e quem conhece a chave transforma uma operação nova
+   * em replay da anterior.
+   */
   idempotencyKey?: string;
   errorCode?: string;
 }
@@ -76,7 +87,7 @@ export const recordInvestmentOperationMetric = (
     lastMovementId: input.movementId,
     lastGoalId: input.goalId,
     lastCorrelationId: input.correlationId,
-    lastIdempotencyKey: input.idempotencyKey,
+    lastIdempotencyKeyHash: idempotencyKeyDigest(input.idempotencyKey),
     lastErrorCode: input.errorCode,
     updatedAt: FieldValue.serverTimestamp(),
   };
@@ -151,9 +162,15 @@ export const recordInvestmentCallableFailure = async (
   const correlationId = readString(data, "correlationId");
   const idempotencyKey = readString(data, "idempotencyKey");
   const errorCode = errorCodeOf(error);
-  const eventId = sanitizeMetricIdPart(
-    `failure_${operation}_${correlationId ?? idempotencyKey ?? "unknown"}`,
-  );
+  // O ID vinha do `correlationId`, que é livre e muda a cada tentativa: cada
+  // retry criava um documento novo em `investment_event_logs`, sem teto
+  // (INV-P2-039). A identidade passa a ser a intenção financeira.
+  const eventId = boundedFailureEventId({
+    operation,
+    idempotencyKey,
+    actorId,
+    dayKey: saoPauloDayKey(),
+  });
   await investmentFirestore().runTransaction(async (transaction) => {
     recordInvestmentOperationMetric(transaction, {
       workspaceId,
@@ -183,12 +200,11 @@ export const recordInvestmentCallableFailure = async (
         entityType: "operation",
         entityId: operation,
         correlationId,
-        idempotencyKeyId: idempotencyKey,
+        idempotencyKeyHash: idempotencyKeyDigest(idempotencyKey),
         outcome: "failed",
         details: stripUndefined({
           errorCode,
-          message:
-            error instanceof Error ? error.message.slice(0, 500) : undefined,
+          message: safeErrorMessage(error, "Falha ao processar operação."),
         }),
         occurredAt: FieldValue.serverTimestamp(),
       }),

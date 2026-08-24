@@ -68,193 +68,126 @@ import type {
   CreditCardCallableExecutionContext,
 } from "./callable";
 
-import type {
-  CreateCreditCardPurchasePayload,
-} from "./contracts";
-
 import {
   recordPurchaseLimitExceededEvent,
 } from "./purchaseFailureEvents";
 
-const toObservedHttpsError = async (
+import {
+  CREDIT_CARD_CALLABLE_OPTIONS,
+  HEAVY_CREDIT_CARD_CALLABLE_OPTIONS,
+} from "../shared/runtimeOptions";
+
+import type { z } from "zod";
+
+/**
+ * Wrapper único das callables de cartão.
+ *
+ * Antes, cada callable montava o próprio `try/catch` e o `catch` chamava a
+ * observabilidade passando `request.data` cru — de onde o `workspaceId` era
+ * lido. Como o `catch` também captura `unauthenticated` e
+ * `workspace_role_denied`, um chamador **sem token** gravava métricas, eventos
+ * financeiros e notificações no workspace de qualquer tenant (INV-P0-001).
+ *
+ * Aqui o workspace só existe depois que `buildCreditCardCallableContext`
+ * devolve — isto é, depois de `requireWorkspaceRole`. É esse valor, e nenhum
+ * outro, que chega à observabilidade. É o mesmo padrão já aplicado em
+ * `investments/callables.ts`.
+ */
+const creditCardCallable = <TPayload extends { workspaceId: string }>(
   operation: CreditCardBackendWriteOperation,
-  request: {data: unknown; auth?: {uid?: string}},
-  error: unknown
-) => {
-  await recordCreditCardCallableFailureSafely(
-    operation,
-    request.data,
-    request.auth?.uid,
-    error
-  );
+  schema: z.ZodType<TPayload>,
+  execute: (
+    context: CreditCardCallableExecutionContext<TPayload>
+  ) => Promise<unknown>,
+  options: {
+    runtime?: typeof CREDIT_CARD_CALLABLE_OPTIONS;
+    onFailure?: (
+      context: CreditCardCallableExecutionContext<TPayload>,
+      error: unknown
+    ) => Promise<void>;
+  } = {}
+) =>
+  onCall(options.runtime ?? CREDIT_CARD_CALLABLE_OPTIONS, async (request) => {
+    let context: CreditCardCallableExecutionContext<TPayload> | null = null;
 
-  return toHttpsError(error);
-};
+    try {
+      context = await buildCreditCardCallableContext(
+        request,
+        schema,
+        operation
+      );
 
-export const createCreditCardPurchase = onCall(async (request) => {
-  let context: CreditCardCallableExecutionContext<CreateCreditCardPurchasePayload> | null = null;
+      return await execute(context);
+    } catch (error) {
+      if (context && options.onFailure) {
+        await options.onFailure(context, error);
+      }
 
-  try {
-    context = await buildCreditCardCallableContext(
-      request,
-      createCreditCardPurchasePayloadSchema,
-      "createCreditCardPurchase"
-    );
+      await recordCreditCardCallableFailureSafely(
+        operation,
+        request.data,
+        request.auth?.uid,
+        error,
+        context?.auth.workspaceId
+      );
 
-    return await executeCreateCreditCardPurchase(context);
-  } catch (error) {
-    if (context) {
-      await recordPurchaseLimitExceededEvent(context, error);
+      throw toHttpsError(error);
     }
+  });
 
-    throw await toObservedHttpsError(
-      "createCreditCardPurchase",
-      request,
-      error
-    );
-  }
-});
+export const createCreditCardPurchase = creditCardCallable(
+  "createCreditCardPurchase",
+  createCreditCardPurchasePayloadSchema,
+  executeCreateCreditCardPurchase,
+  { onFailure: recordPurchaseLimitExceededEvent }
+);
 
-export const registerCreditCardInvoicePayment = onCall(async (request) => {
-  try {
-    const context = await buildCreditCardCallableContext(
-      request,
-      registerCreditCardInvoicePaymentPayloadSchema,
-      "registerCreditCardInvoicePayment"
-    );
+export const registerCreditCardInvoicePayment = creditCardCallable(
+  "registerCreditCardInvoicePayment",
+  registerCreditCardInvoicePaymentPayloadSchema,
+  executeRegisterCreditCardInvoicePayment
+);
 
-    return await executeRegisterCreditCardInvoicePayment(context);
-  } catch (error) {
-    throw await toObservedHttpsError(
-      "registerCreditCardInvoicePayment",
-      request,
-      error
-    );
-  }
-});
+export const reverseCreditCardInvoicePayment = creditCardCallable(
+  "reverseCreditCardInvoicePayment",
+  reverseCreditCardInvoicePaymentPayloadSchema,
+  executeReverseCreditCardInvoicePayment
+);
 
-export const reverseCreditCardInvoicePayment = onCall(async (request) => {
-  try {
-    const context = await buildCreditCardCallableContext(
-      request,
-      reverseCreditCardInvoicePaymentPayloadSchema,
-      "reverseCreditCardInvoicePayment"
-    );
+export const cancelCreditCardPurchase = creditCardCallable(
+  "cancelCreditCardPurchase",
+  cancelCreditCardPurchasePayloadSchema,
+  executeCancelCreditCardPurchase
+);
 
-    return await executeReverseCreditCardInvoicePayment(context);
-  } catch (error) {
-    throw await toObservedHttpsError(
-      "reverseCreditCardInvoicePayment",
-      request,
-      error
-    );
-  }
-});
+export const recalculateCardLimit = creditCardCallable(
+  "recalculateCardLimit",
+  recalculateCardLimitPayloadSchema,
+  executeRecalculateCardLimit,
+  { runtime: HEAVY_CREDIT_CARD_CALLABLE_OPTIONS }
+);
 
-export const cancelCreditCardPurchase = onCall(async (request) => {
-  try {
-    const context = await buildCreditCardCallableContext(
-      request,
-      cancelCreditCardPurchasePayloadSchema,
-      "cancelCreditCardPurchase"
-    );
+export const closeCreditCardInvoice = creditCardCallable(
+  "closeCreditCardInvoice",
+  closeCreditCardInvoicePayloadSchema,
+  executeCloseCreditCardInvoice
+);
 
-    return await executeCancelCreditCardPurchase(context);
-  } catch (error) {
-    throw await toObservedHttpsError(
-      "cancelCreditCardPurchase",
-      request,
-      error
-    );
-  }
-});
+export const reopenCreditCardInvoice = creditCardCallable(
+  "reopenCreditCardInvoice",
+  reopenCreditCardInvoicePayloadSchema,
+  executeReopenCreditCardInvoice
+);
 
-export const recalculateCardLimit = onCall(async (request) => {
-  try {
-    const context = await buildCreditCardCallableContext(
-      request,
-      recalculateCardLimitPayloadSchema,
-      "recalculateCardLimit"
-    );
+export const rebuildCardInvoicesForCard = creditCardCallable(
+  "rebuildCardInvoicesForCard",
+  rebuildCardInvoicesForCardPayloadSchema,
+  executeRebuildCardInvoicesForCard,
+  { runtime: HEAVY_CREDIT_CARD_CALLABLE_OPTIONS }
+);
 
-    return await executeRecalculateCardLimit(context);
-  } catch (error) {
-    throw await toObservedHttpsError(
-      "recalculateCardLimit",
-      request,
-      error
-    );
-  }
-});
-
-export const closeCreditCardInvoice = onCall(async (request) => {
-  try {
-    const context = await buildCreditCardCallableContext(
-      request,
-      closeCreditCardInvoicePayloadSchema,
-      "closeCreditCardInvoice"
-    );
-
-    return await executeCloseCreditCardInvoice(context);
-  } catch (error) {
-    throw await toObservedHttpsError(
-      "closeCreditCardInvoice",
-      request,
-      error
-    );
-  }
-});
-
-export const reopenCreditCardInvoice = onCall(async (request) => {
-  try {
-    const context = await buildCreditCardCallableContext(
-      request,
-      reopenCreditCardInvoicePayloadSchema,
-      "reopenCreditCardInvoice"
-    );
-
-    return await executeReopenCreditCardInvoice(context);
-  } catch (error) {
-    throw await toObservedHttpsError(
-      "reopenCreditCardInvoice",
-      request,
-      error
-    );
-  }
-});
-
-export const rebuildCardInvoicesForCard = onCall(async (request) => {
-  try {
-    const context = await buildCreditCardCallableContext(
-      request,
-      rebuildCardInvoicesForCardPayloadSchema,
-      "rebuildCardInvoicesForCard"
-    );
-
-    return await executeRebuildCardInvoicesForCard(context);
-  } catch (error) {
-    throw await toObservedHttpsError(
-      "rebuildCardInvoicesForCard",
-      request,
-      error
-    );
-  }
-});
-
-export const updateCreditCardPurchase = onCall(async (request) => {
-  try {
-    const context = await buildCreditCardCallableContext(
-      request,
-      updateCreditCardPurchasePayloadSchema,
-      "updateCreditCardPurchase"
-    );
-
-    return await executeUpdateCreditCardPurchase(context);
-  } catch (error) {
-    throw await toObservedHttpsError(
-      "updateCreditCardPurchase",
-      request,
-      error
-    );
-  }
-});
+export const updateCreditCardPurchase = creditCardCallable(
+  "updateCreditCardPurchase",
+  updateCreditCardPurchasePayloadSchema,
+  executeUpdateCreditCardPurchase
+);

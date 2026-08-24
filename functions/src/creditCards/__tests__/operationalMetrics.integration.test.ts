@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import {idempotencyKeyDigest} from "../../shared/observabilityKeys";
+
 import {
   executeCancelCreditCardPurchase,
   type CancelCreditCardPurchaseResult,
@@ -221,8 +223,8 @@ test(
     assert.equal(purchaseMetric.lastActorId, TEST_OWNER_ID);
     assert.equal(purchaseMetric.lastCardId, TEST_CARD_ID);
     assert.equal(
-      purchaseMetric.lastIdempotencyKey,
-      "integration-metrics-purchase-cancel-001",
+      purchaseMetric.lastIdempotencyKeyHash,
+      idempotencyKeyDigest("integration-metrics-purchase-cancel-001"),
     );
     assert.equal(
       purchaseMetric.lastCorrelationId,
@@ -236,7 +238,7 @@ test(
     assert.equal(paymentMetric.lastCardId, TEST_CARD_ID);
     assert.equal(paymentMetric.lastInvoiceId, invoiceId);
     assert.equal(paymentMetric.lastPaymentId, paymentResult.paymentId);
-    assert.equal(paymentMetric.lastIdempotencyKey, "integration-metrics-payment-001");
+    assert.equal(paymentMetric.lastIdempotencyKeyHash, idempotencyKeyDigest("integration-metrics-payment-001"));
 
     const reversalMetric = findSuccessMetric(metrics, "invoice_payment_reversed");
     assert.equal(reversalMetric.count, 1);
@@ -245,7 +247,7 @@ test(
     assert.equal(reversalMetric.lastCardId, TEST_CARD_ID);
     assert.equal(reversalMetric.lastInvoiceId, invoiceId);
     assert.equal(reversalMetric.lastPaymentId, paymentResult.paymentId);
-    assert.equal(reversalMetric.lastIdempotencyKey, "integration-metrics-reversal-001");
+    assert.equal(reversalMetric.lastIdempotencyKeyHash, idempotencyKeyDigest("integration-metrics-reversal-001"));
 
     const cancellationMetric = findSuccessMetric(metrics, "purchase_cancelled");
     assert.equal(cancellationMetric.count, 1);
@@ -253,14 +255,14 @@ test(
     assert.equal(cancellationMetric.lastActorId, TEST_OWNER_ID);
     assert.equal(cancellationMetric.lastCardId, TEST_CARD_ID);
     assert.equal(cancellationMetric.lastPurchaseId, purchaseForCancellationResult.purchaseId);
-    assert.equal(cancellationMetric.lastIdempotencyKey, "integration-metrics-cancel-001");
+    assert.equal(cancellationMetric.lastIdempotencyKeyHash, idempotencyKeyDigest("integration-metrics-cancel-001"));
 
     const rebuildMetric = findSuccessMetric(metrics, "card_invoices_rebuilt");
     assert.equal(rebuildMetric.count, 1);
     assert.equal(rebuildMetric.lastActorId, TEST_OWNER_ID);
     assert.equal(rebuildMetric.lastCardId, TEST_CARD_ID);
     assert.equal(rebuildMetric.lastCorrelationId, "integration-metrics-rebuild");
-    assert.equal(rebuildMetric.lastIdempotencyKey, "integration-metrics-rebuild-001");
+    assert.equal(rebuildMetric.lastIdempotencyKeyHash, idempotencyKeyDigest("integration-metrics-rebuild-001"));
 
     const workspaceSnapshot = await db
       .doc(`workspaces/${TEST_WORKSPACE_ID}`)

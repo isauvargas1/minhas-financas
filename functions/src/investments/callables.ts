@@ -64,6 +64,10 @@ import {
   executeRollbackLegacyInvestmentMigration,
 } from "./legacyMigration";
 import {executeOnboardInvestmentWorkspace} from "./onboarding";
+import {
+  DOMAIN_CALLABLE_OPTIONS,
+  HEAVY_CALLABLE_OPTIONS,
+} from "../shared/runtimeOptions";
 
 /**
  * Wrapper único de callable do domínio.
@@ -78,8 +82,9 @@ const investmentCallable = <TPayload extends { workspaceId: string }>(
     auth: Awaited<ReturnType<typeof requireWorkspaceRole>>,
     payload: TPayload,
   ) => Promise<Record<string, unknown>>,
+  runtime = DOMAIN_CALLABLE_OPTIONS,
 ) =>
-    onCall(async (request) => {
+    onCall(runtime, async (request) => {
       // Só existe workspace autorizado depois que `requireWorkspaceRole`
       // devolve. A observabilidade de falha usa exclusivamente este valor:
       // ler `workspaceId` do payload deixava qualquer chamador gravar no
@@ -169,12 +174,14 @@ export const recalculateInvestmentPosition = investmentCallable(
   "recalculateInvestmentPosition",
   recalculateInvestmentPositionPayloadSchema,
   executeRecalculateInvestmentPosition,
+  HEAVY_CALLABLE_OPTIONS,
 );
 
 export const recalculateGoalInvestmentProgress = investmentCallable(
   "recalculateGoalInvestmentProgress",
   recalculateGoalInvestmentProgressPayloadSchema,
   executeRecalculateGoalInvestmentProgress,
+  HEAVY_CALLABLE_OPTIONS,
 );
 
 export const archiveInvestmentAccount = investmentCallable(
@@ -223,24 +230,28 @@ export const rebuildInvestmentProjections = investmentCallable(
   "rebuildInvestmentProjections",
   rebuildInvestmentProjectionsPayloadSchema,
   executeRebuildInvestmentProjections,
+  HEAVY_CALLABLE_OPTIONS,
 );
 
 export const backfillInvestmentWorkspace = investmentCallable(
   "backfillInvestmentWorkspace",
   backfillInvestmentWorkspacePayloadSchema,
   executeBackfillInvestmentWorkspace,
+  HEAVY_CALLABLE_OPTIONS,
 );
 
 export const migrateLegacyInvestments = investmentCallable(
   "migrateLegacyInvestments",
   migrateLegacyInvestmentsPayloadSchema,
   executeMigrateLegacyInvestments,
+  HEAVY_CALLABLE_OPTIONS,
 );
 
 export const rollbackLegacyInvestmentMigration = investmentCallable(
   "rollbackLegacyInvestmentMigration",
   rollbackLegacyInvestmentMigrationPayloadSchema,
   executeRollbackLegacyInvestmentMigration,
+  HEAVY_CALLABLE_OPTIONS,
 );
 
 export const enableInvestmentsV2Flag = investmentCallable(

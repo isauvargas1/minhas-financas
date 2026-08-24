@@ -188,6 +188,15 @@ export interface Transaction {
     investmentMetadata?: TransactionInvestmentMetadata;
     redeemedPrincipalCents?: number;
     remainingPrincipalCents?: number;
+    /**
+     * Baixa lógica (INV-P2-032). Histórico financeiro não é apagado: a
+     * exclusão pela interface marca o documento, que permanece disponível
+     * para auditoria e para a reconciliação da migração legada, e some de
+     * toda leitura do produto.
+     */
+    voidedAt?: unknown;
+    voidedBy?: string;
+    voidReason?: string;
 }
 
 // --- GOALS MODULE TYPES ---

@@ -82,9 +82,17 @@ function hasOnlyClientTransactionKeys(data) {
 // Campos que o cliente pode alterar numa transação já existente. O que ficar
 // de fora é imutável por construção — inclusive `workspaceId`, `userId`,
 // `profileId` e `createdAt`, e qualquer campo que só o backend grave.
+// INV-P1-002 — `type` **não** está aqui, e é deliberado.
+//
+// `isLegacyInvestmentWriteAllowed` fechava só o `create`. Com a flag V2
+// ligada, o cliente criava uma `despesa` (aceita) e em seguida a atualizava
+// para `investimento` — aceito. O dinheiro saía do fluxo de caixa e nunca
+// chegava ao patrimônio, sem erro visível. Trocar o tipo de uma transação
+// existente não é operação legítima do produto: o modal só oferece o tipo
+// original quando está editando (`TransactionModal.tsx`, `resolvedAllowedTypes`).
 function changesOnlyMutableTransactionKeys() {
   return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-    'type', 'description', 'category', 'value', 'date', 'transactionDate',
+    'description', 'category', 'value', 'date', 'transactionDate',
     'installments', 'currentInstallment', 'cardId', 'walletId',
     'loanId', 'loanMovementId', 'expenseType', 'incomeType', 'paymentMethod',
     'isPaid', 'supplier', 'costCenter', 'source', 'creditCardInvoiceId',
@@ -93,34 +101,175 @@ function changesOnlyMutableTransactionKeys() {
   ]);
 }
 
+// INV-P3-053 — superfície de escrita do cliente em `workspaces`.
+function workspaceMutableKeys() {
+  return [
+    'name', 'slug', 'cnpj', 'logoUrl', 'themeColor', 'pjAccentColor',
+    'currency', 'alertPreferences', 'updatedAt'
+  ];
+}
+
+function hasOnlyWorkspaceCreateKeys(data) {
+  return data.keys().hasOnly(
+    workspaceMutableKeys().concat(['ownerId', 'userId', 'type', 'createdAt'])
+  );
+}
+
+function changesOnlyMutableWorkspaceKeys() {
+  return request.resource.data.diff(resource.data).affectedKeys()
+    .hasOnly(workspaceMutableKeys());
+}
+
+function isValidWorkspacePayload(data) {
+  return data.name is string
+    && data.name.size() > 0
+    && data.name.size() <= 120
+    && data.get('slug', '') is string
+    && data.get('slug', '').size() <= 120
+    && (data.get('cnpj', '') is string || data.get('cnpj', null) == null)
+    && data.get('logoUrl', '') is string
+    && data.get('logoUrl', '').size() <= 2048
+    && data.get('themeColor', '') is string
+    && data.get('themeColor', '').size() <= 32
+    && data.get('pjAccentColor', '') is string
+    && data.get('pjAccentColor', '').size() <= 32
+    && data.get('currency', '') is string
+    && data.get('currency', '').size() <= 8
+    && data.get('alertPreferences', {}) is map;
+}
+
+function hasOnlyWorkspaceMemberKeys(data) {
+  return data.keys().hasOnly([
+    'uid', 'email', 'role', 'status', 'displayName', 'photoURL',
+    'joinedAt', 'createdAt', 'updatedAt'
+  ]);
+}
+
 function isWorkspaceRoleName(value) {
   return value in ['owner', 'admin', 'member', 'viewer'];
 }
 
-function isCommonValidTransactionPayload(data, workspaceId) {
+// INV-P1-013 — campos de `users/{uid}` que o próprio usuário edita. Tudo que
+// não estiver aqui é server-owned: `planId`, `isPro`, `isAdmin`,
+// `stripeCustomerId`, status de assinatura e qualquer entitlement futuro.
+function ownProfileEditableKeys() {
+  return [
+    'displayName', 'photoURL', 'phoneNumber', 'email',
+    'preferences', 'onboarding', 'locale', 'timezone',
+    'activeWorkspaceId', 'updatedAt'
+  ];
+}
+
+function hasOnlyOwnProfileKeys(data) {
+  return data.keys().hasOnly(ownProfileEditableKeys().concat(['createdAt']));
+}
+
+function changesOnlyOwnProfileKeys() {
+  return request.resource.data.diff(resource.data).affectedKeys()
+    .hasOnly(ownProfileEditableKeys());
+}
+
+function isValidOwnProfilePayload(data) {
+  return data.get('displayName', '') is string
+    && data.get('displayName', '').size() <= 120
+    && data.get('photoURL', '') is string
+    && data.get('photoURL', '').size() <= 2048
+    && data.get('phoneNumber', '') is string
+    && data.get('phoneNumber', '').size() <= 32
+    && data.get('email', '') is string
+    && data.get('email', '').size() <= 320
+    && data.get('locale', '') is string
+    && data.get('locale', '').size() <= 32
+    && data.get('timezone', '') is string
+    && data.get('timezone', '').size() <= 64
+    && data.get('activeWorkspaceId', '') is string
+    && data.get('activeWorkspaceId', '').size() <= 128
+    && data.get('preferences', {}) is map
+    && data.get('onboarding', {}) is map;
+}
+
+// INV-P2-049 — custo de avaliação.
+    //
+    // A versão anterior encadeava 14 guardas no formato
+    // `!data.keys().hasAny(['x']) || data.x is T`. Cada uma custa três
+    // subexpressões (construção da lista, `hasAny`, negação) mais a
+    // comparação, e `keys()` é reconstruído a cada chamada. Somadas ao
+    // `changesOnlyMutableTransactionKeys()` nos **dois** ramos de
+    // `allow update`, elas levavam a regra ao teto de 1.000 expressões do
+    // motor de Rules — e ao atingir o teto o motor **nega**. O Emulator
+    // registrou isso durante um `set()` sobre documento inexistente, que faz
+    // avaliar `create` e `update` na mesma requisição.
+    //
+    // `data.get(chave, padrão)` faz o mesmo trabalho numa subexpressão só: o
+    // padrão é escolhido para satisfazer o tipo quando a chave está ausente.
+    // Os tetos numéricos e de tamanho de string fecham INV-P3-053.
+    function isCommonValidTransactionPayload(data, workspaceId) {
       return isValidTransactionType(data.type)
         && data.description is string
         && data.description.size() > 0
+        && data.description.size() <= 300
         && data.category is string
         && data.category.size() > 0
+        && data.category.size() <= 120
         && (data.value is int || data.value is float)
         && data.value > 0
+        && data.value <= 1000000000
         && isDateOnlyString(data.date)
         && data.userId is string
         && data.userId.size() > 0
-        && (!data.keys().hasAny(['workspaceId']) || data.workspaceId == workspaceId)
-        && (!data.keys().hasAny(['cardId']) || data.cardId is string)
-        && (!data.keys().hasAny(['goalId']) || data.goalId is string)
-        && (!data.keys().hasAny(['walletId']) || data.walletId is string || data.walletId is int || data.walletId is float)
-        && (!data.keys().hasAny(['profileId']) || data.profileId is string)
-        && (!data.keys().hasAny(['expenseType']) || data.expenseType is string)
-        && (!data.keys().hasAny(['incomeType']) || data.incomeType is string)
-        && (!data.keys().hasAny(['paymentMethod']) || data.paymentMethod is string)
-        && (!data.keys().hasAny(['isPaid']) || data.isPaid is bool)
-        && (!data.keys().hasAny(['supplier']) || data.supplier is string)
-        && (!data.keys().hasAny(['costCenter']) || data.costCenter is string)
-        && (!data.keys().hasAny(['installments']) || (data.installments is int && data.installments > 0))
-        && (!data.keys().hasAny(['currentInstallment']) || (data.currentInstallment is int && data.currentInstallment > 0));
+        && data.userId.size() <= 128
+        && data.get('workspaceId', workspaceId) == workspaceId
+        && data.get('cardId', '') is string
+        && data.get('goalId', '') is string
+        && (data.get('walletId', '') is string
+          || data.get('walletId', '') is int
+          || data.get('walletId', '') is float)
+        && data.get('profileId', '') is string
+        && data.get('expenseType', '') is string
+        && data.get('incomeType', '') is string
+        && data.get('paymentMethod', '') is string
+        && data.get('isPaid', false) is bool
+        && data.get('supplier', '') is string
+        && data.get('supplier', '').size() <= 200
+        && data.get('costCenter', '') is string
+        && data.get('costCenter', '').size() <= 200
+        && data.get('installments', 1) is int
+        && data.get('installments', 1) > 0
+        && data.get('installments', 1) <= 480
+        && data.get('currentInstallment', 1) is int
+        && data.get('currentInstallment', 1) > 0
+        && data.get('currentInstallment', 1) <= 480;
+    }
+
+    // Campos que só o backend grava numa transação. Uma única chamada por
+    // documento, em vez das três chamadas separadas de `hasAny` que a regra
+    // de `update` fazia de cada lado.
+    function isPlainClientTransaction(data) {
+      return !data.keys().hasAny([
+        'goalId', 'investmentMetadata', 'valueCents',
+        'redeemedPrincipalCents', 'remainingPrincipalCents', 'settlementDate'
+      ]);
+    }
+
+    // Baixa lógica de transação (INV-P2-032). `AGENTS.md` proíbe hard delete
+    // de histórico financeiro, e uma transação legada apagada quebra a
+    // reconciliação da migração para sempre — ela é a origem do movimento
+    // migrado. O documento permanece; passa a carregar quem baixou, quando e
+    // por quê, e some das leituras do produto.
+    function isTransactionVoid() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'voidedAt', 'voidedBy', 'voidReason', 'updatedAt'
+        ])
+        && request.resource.data.voidedBy == request.auth.uid
+        && request.resource.data.voidedAt is timestamp
+        && request.resource.data.get('voidReason', '') is string
+        && request.resource.data.get('voidReason', '').size() <= 300;
+    }
+
+    function canActOnExistingTransaction(workspaceId) {
+      return hasRole(workspaceId, ['owner', 'admin'])
+        || isWorkspaceOwnerByParent(workspaceId)
+        || isMemberTransactionOwner(workspaceId, resource.data);
     }
 
     function isMemberTransactionOwner(workspaceId, data) {
@@ -673,7 +822,11 @@ function isBackendOwnedCollection(collectionName) {
       'card_limit_ledger',
       'card_limit_snapshots',
       'invoice_views',
-      'financial_events'
+      'financial_events',
+      // Contadores de limite de frequência: estado operacional server-only.
+      // Expor a contagem ao cliente entrega o orçamento restante a quem
+      // estiver tentando forçar o limite.
+      'rate_limits'
     ];
 }
 
@@ -789,18 +942,24 @@ function isValidCreditCardUpdate(data, previous, workspaceId) {
 }
 
     match /workspaces/{workspaceId} {
-      allow create: if signedIn() && request.resource.data.ownerId == request.auth.uid;
+      allow create: if signedIn() &&
+        request.resource.data.ownerId == request.auth.uid &&
+        hasOnlyWorkspaceCreateKeys(request.resource.data) &&
+        isValidWorkspacePayload(request.resource.data);
       allow read: if isMember(workspaceId) || (signedIn() && resource.data.ownerId == request.auth.uid);
       // M4.C — `ownerId`, `type` (PF/PJ) e `features` são críticos: reescrever
       // `ownerId` era takeover permanente disponível a qualquer admin, e `type`
       // é a fonte em que `profileTypeFromWorkspace` confia para o contexto
       // contábil. Transferência de titularidade passa a exigir backend.
+      //
+      // INV-P3-053 — a deny-list virou allowlist: campos arbitrários deixam de
+      // ser aceitos, e um campo autoritativo futuro nasce protegido em vez de
+      // depender de alguém lembrar de acrescentá-lo à lista de negados.
       allow update: if
         (hasRole(workspaceId, ['owner', 'admin']) ||
           (signedIn() && resource.data.ownerId == request.auth.uid)) &&
-        !request.resource.data.diff(resource.data).affectedKeys().hasAny([
-          'ownerId', 'type', 'features', 'userId', 'createdAt'
-        ]);
+        changesOnlyMutableWorkspaceKeys() &&
+        isValidWorkspacePayload(request.resource.data);
 
       match /members/{memberId} {
         allow read: if
@@ -816,10 +975,14 @@ function isValidCreditCardUpdate(data, previous, workspaceId) {
         allow create, update: if
           (hasRole(workspaceId, ['owner', 'admin']) ||
             isWorkspaceOwnerByParent(workspaceId)) &&
+          hasOnlyWorkspaceMemberKeys(request.resource.data) &&
           request.resource.data.uid == memberId &&
           isWorkspaceRoleName(request.resource.data.role) &&
-          (!request.resource.data.keys().hasAny(['status']) ||
-            request.resource.data.status is string) &&
+          request.resource.data.get('status', '') is string &&
+          request.resource.data.get('email', '') is string &&
+          request.resource.data.get('email', '').size() <= 320 &&
+          request.resource.data.get('displayName', '') is string &&
+          request.resource.data.get('displayName', '').size() <= 120 &&
           (request.auth.uid != memberId ||
             isWorkspaceOwnerByParent(workspaceId) ||
             (resource != null && resource.data.role == request.resource.data.role)) &&
@@ -859,46 +1022,32 @@ function isValidCreditCardUpdate(data, previous, workspaceId) {
             'settlementDate'
           ]);
 
+        // Ramo único: o papel do ator e as guardas de documento eram
+        // idênticos nos dois ramos anteriores e eram avaliados duas vezes
+        // (INV-P2-049). Aqui cada predicado roda uma vez só, o que abriu
+        // orçamento para acrescentar `isLegacyInvestmentWriteAllowed` sem
+        // arriscar negar edição legítima por esgotamento.
         allow update: if
+          canActOnExistingTransaction(workspaceId) &&
+          isPlainClientTransaction(resource.data) &&
+          isPlainClientTransaction(request.resource.data) &&
+          request.resource.data.userId == resource.data.userId &&
+          resource.data.get('voidedAt', null) == null &&
           (
-            (hasRole(workspaceId, ['owner', 'admin']) || isWorkspaceOwnerByParent(workspaceId)) &&
-            isCommonValidTransactionPayload(request.resource.data, workspaceId) &&
-            request.resource.data.userId == resource.data.userId &&
-            !resource.data.keys().hasAny(['goalId']) &&
-            !request.resource.data.keys().hasAny(['goalId']) &&
-            !resource.data.keys().hasAny(['investmentMetadata']) &&
-            !request.resource.data.keys().hasAny(['investmentMetadata']) &&
-            !resource.data.keys().hasAny(['redeemedPrincipalCents', 'remainingPrincipalCents', 'settlementDate']) &&
-            !request.resource.data.keys().hasAny(['redeemedPrincipalCents', 'remainingPrincipalCents', 'settlementDate']) &&
-            changesOnlyMutableTransactionKeys()
-          ) ||
-          (
-            isMemberTransactionOwner(workspaceId, resource.data) &&
-            isCommonValidTransactionPayload(request.resource.data, workspaceId) &&
-            request.resource.data.userId == request.auth.uid &&
-            request.resource.data.userId == resource.data.userId &&
-            !resource.data.keys().hasAny(['goalId']) &&
-            !request.resource.data.keys().hasAny(['goalId']) &&
-            !resource.data.keys().hasAny(['investmentMetadata']) &&
-            !request.resource.data.keys().hasAny(['investmentMetadata']) &&
-            !resource.data.keys().hasAny(['redeemedPrincipalCents', 'remainingPrincipalCents', 'settlementDate']) &&
-            !request.resource.data.keys().hasAny(['redeemedPrincipalCents', 'remainingPrincipalCents', 'settlementDate']) &&
-            changesOnlyMutableTransactionKeys()
+            (
+              changesOnlyMutableTransactionKeys() &&
+              isCommonValidTransactionPayload(request.resource.data, workspaceId) &&
+              isLegacyInvestmentWriteAllowed(workspaceId, request.resource.data)
+            ) ||
+            isTransactionVoid()
           );
 
-        allow delete: if
-          !resource.data.keys().hasAny(['goalId']) &&
-          !resource.data.keys().hasAny(['investmentMetadata']) &&
-          !resource.data.keys().hasAny([
-            'redeemedPrincipalCents',
-            'remainingPrincipalCents',
-            'settlementDate'
-          ]) &&
-          (
-            hasRole(workspaceId, ['owner', 'admin']) ||
-            isWorkspaceOwnerByParent(workspaceId) ||
-            isMemberTransactionOwner(workspaceId, resource.data)
-          );
+        // INV-P2-032 — histórico financeiro não é apagado. A exclusão pela
+        // interface virou baixa lógica (`voidedAt`), coberta pelo `update`
+        // acima. Sem isto, uma transação legada migrada — que não tem
+        // `investmentMetadata` — podia ser apagada e a reconciliação da
+        // migração ficava permanentemente impossível.
+        allow delete: if false;
       }
 
      match /recurring_expenses/{docId} {
@@ -1218,11 +1367,48 @@ match /split_shares/{docId} {
       }
     }
 
+    // INV-P1-013 — `allow write` irrestrito ao próprio usuário deixava
+    // qualquer conta autenticada gravar `{planId: 'pro', isPro: true}` pelo
+    // console do navegador. `usePlan` lê exatamente esse documento como única
+    // fonte de entitlement do cliente, e `AuthContext` lê `isAdmin` dali. A
+    // fonte de verdade de cobrança é o webhook do Stripe, que escreve pelo
+    // Admin SDK e não passa por estas regras.
+    //
+    // A escrita do cliente passa a ser allowlist explícita de campos de
+    // perfil. Qualquer campo fora da lista — inclusive campos futuros de
+    // billing — é imutável pelo cliente por construção, e não por uma
+    // deny-list que precisaria ser lembrada a cada campo novo.
     match /users/{userId} {
-      allow read, write: if signedIn() && request.auth.uid == userId;
+      allow read: if signedIn() && request.auth.uid == userId;
 
+      allow create: if signedIn() && request.auth.uid == userId &&
+        hasOnlyOwnProfileKeys(request.resource.data) &&
+        isValidOwnProfilePayload(request.resource.data);
+
+      allow update: if signedIn() && request.auth.uid == userId &&
+        changesOnlyOwnProfileKeys() &&
+        isValidOwnProfilePayload(request.resource.data);
+
+      allow delete: if false;
+
+      // Contadores de limite de frequência do usuário: server-only nos dois
+      // sentidos. Expor a contagem entrega o orçamento restante a quem
+      // estiver tentando forçá-lo.
+      match /rate_limits/{docId} {
+        allow read, write: if false;
+      }
+
+      // Índice de participação do usuário. `role` aqui é espelho de leitura,
+      // nunca fonte: a autorização real vem de `workspaces/{id}/members`.
       match /workspaces/{workspaceId} {
-        allow read, write: if signedIn() && request.auth.uid == userId;
+        allow read: if signedIn() && request.auth.uid == userId;
+        allow write: if signedIn() && request.auth.uid == userId &&
+          request.resource.data.keys().hasOnly([
+            'workspaceId', 'role', 'createdAt', 'updatedAt'
+          ]) &&
+          request.resource.data.workspaceId == workspaceId &&
+          isWorkspaceRoleName(request.resource.data.role);
+        allow delete: if signedIn() && request.auth.uid == userId;
       }
     }
   }

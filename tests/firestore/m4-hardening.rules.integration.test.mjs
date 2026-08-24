@@ -613,3 +613,303 @@ test('M4 — flag V2 desligada preserva a trilha legada de investimento', async 
     true,
   );
 });
+
+// ------------------------------------------------------- INV-P1-002 / P2-049
+//
+// A barreira da trilha legada fechava apenas `create`. Com a flag V2 ligada, o
+// cliente criava uma `despesa` (aceita) e a atualizava para `investimento` —
+// aceito, porque `type` estava na lista de chaves mutáveis e nenhum dos ramos
+// de `allow update` chamava `isLegacyInvestmentWriteAllowed`.
+
+test('INV-P1-002 — update de type para investimento é negado com V2 ligada, em todos os papéis', async () => {
+  await seed();
+  const db = getAdmin().firestore();
+  await db.doc(`workspaces/${wsA}`).set(
+    {features: {investmentsV2: {enabled: true}}},
+    {merge: true},
+  );
+
+  await withClients(['ownerA', 'adminA', 'memberA'], async (c) => {
+    for (const [name, user] of [
+      ['ownerA', users.ownerA],
+      ['adminA', users.adminA],
+      ['memberA', users.memberA],
+    ]) {
+      const docId = `bypass-${name}`;
+      const ref = doc(c[name].db, `workspaces/${wsA}/transactions/${docId}`);
+
+      // A despesa é aceita, como sempre foi.
+      await setDoc(ref, clientTransaction(wsA, user.uid, {
+        description: 'Despesa que tenta virar investimento',
+      }));
+
+      await assert.rejects(
+        () => updateDoc(ref, {type: 'investimento'}),
+        `${name} não pode trocar o tipo de uma transação para investimento`,
+      );
+
+      const persisted = await db
+        .doc(`workspaces/${wsA}/transactions/${docId}`)
+        .get();
+      assert.equal(persisted.data().type, 'despesa');
+    }
+  });
+});
+
+test('INV-P1-002 — troca de tipo é negada mesmo com a flag V2 desligada', async () => {
+  await seed();
+  await withClients(['ownerA'], async ({ownerA}) => {
+    const ref = doc(ownerA.db, `workspaces/${wsA}/transactions/tipo-imutavel`);
+    await setDoc(ref, clientTransaction(wsA, users.ownerA.uid));
+
+    // Trocar o tipo de uma transação existente não é operação do produto: o
+    // modal só oferece o tipo original quando está editando.
+    await assert.rejects(
+      () => updateDoc(ref, {type: 'receita'}),
+      'tipo é imutável mesmo sem a flag',
+    );
+  });
+});
+
+test('INV-P2-049 — update com payload máximo de chaves mutáveis continua aceito', async () => {
+  await seed();
+  await withClients(['ownerA', 'memberA'], async (c) => {
+    for (const [name, user] of [
+      ['ownerA', users.ownerA],
+      ['memberA', users.memberA],
+    ]) {
+      const ref = doc(c[name].db, `workspaces/${wsA}/transactions/teto-${name}`);
+      await setDoc(ref, clientTransaction(wsA, user.uid));
+
+      // Toda chave mutável de uma vez: é o pior caso de custo de avaliação da
+      // regra de `update`, que já operava no teto de 1.000 expressões.
+      await updateDoc(ref, {
+        description: 'Descrição atualizada com texto bem mais longo que o anterior',
+        category: 'Educação',
+        value: 987.65,
+        date: '2026-08-21',
+        transactionDate: clientTs('2026-08-21T15:00:00.000Z'),
+        installments: 3,
+        currentInstallment: 2,
+        cardId: 'card-9',
+        walletId: 'wallet-9',
+        loanId: 'loan-9',
+        loanMovementId: 'loan-mov-9',
+        expenseType: 'fixa',
+        incomeType: 'servico',
+        paymentMethod: 'boleto',
+        isPaid: false,
+        supplier: 'Fornecedor Atualizado',
+        costCenter: 'Centro Atualizado',
+        source: 'manual',
+        creditCardInvoiceId: 'inv-9',
+        creditCardInvoicePaymentId: 'pay-9',
+        creditCardCompatibility: {
+          source: 'credit_card_invoice',
+          invoiceId: 'inv-9',
+          cardId: 'card-9',
+          competenceMonth: '2026-08',
+          invoiceStatus: 'open',
+          isProjection: true,
+        },
+        displaySnapshots: {
+          categorySnapshot: {
+            group: 'category',
+            label: 'Educação',
+            normalizedLabel: 'educacao',
+          },
+        },
+        updatedAt: serverTimestamp(),
+      });
+    }
+  });
+});
+
+// ------------------------------------------------------------- INV-P2-032
+
+test('INV-P2-032 — delete de transação é negado; a baixa é lógica', async () => {
+  await seed();
+  await withClients(['ownerA', 'adminA', 'memberA'], async (c) => {
+    for (const [name, user] of [
+      ['ownerA', users.ownerA],
+      ['adminA', users.adminA],
+      ['memberA', users.memberA],
+    ]) {
+      const docId = `soft-delete-${name}`;
+      const ref = doc(c[name].db, `workspaces/${wsA}/transactions/${docId}`);
+      await setDoc(ref, clientTransaction(wsA, user.uid));
+
+      await assert.rejects(
+        () => deleteDoc(ref),
+        `${name} não pode apagar histórico financeiro`,
+      );
+
+      // A baixa lógica é o caminho aceito, e carrega quem baixou.
+      await updateDoc(ref, {
+        voidedAt: serverTimestamp(),
+        voidedBy: user.uid,
+        voidReason: 'Excluída pelo usuário',
+        updatedAt: serverTimestamp(),
+      });
+
+      const persisted = await getAdmin()
+        .firestore()
+        .doc(`workspaces/${wsA}/transactions/${docId}`)
+        .get();
+      assert.ok(persisted.exists);
+      assert.equal(persisted.data().voidedBy, user.uid);
+
+      // Depois de baixada, a transação não volta a ser editável.
+      await assert.rejects(
+        () => updateDoc(ref, {description: 'Tentando reviver'}),
+        'transação baixada não aceita mais edição',
+      );
+    }
+  });
+});
+
+test('INV-P2-032 — baixa lógica não aceita forjar o autor da baixa', async () => {
+  await seed();
+  await withClients(['ownerA'], async ({ownerA}) => {
+    const ref = doc(ownerA.db, `workspaces/${wsA}/transactions/void-forjado`);
+    await setDoc(ref, clientTransaction(wsA, users.ownerA.uid));
+
+    await assert.rejects(
+      () => updateDoc(ref, {
+        voidedAt: serverTimestamp(),
+        voidedBy: users.memberA.uid,
+        updatedAt: serverTimestamp(),
+      }),
+      'voidedBy precisa ser o próprio autor da requisição',
+    );
+  });
+});
+
+// ------------------------------------------------------------- INV-P1-013
+
+test('INV-P1-013 — usuário autenticado não concede a si mesmo o plano pago', async () => {
+  await seed();
+  const db = getAdmin().firestore();
+  await db.doc(`users/${users.ownerA.uid}`).set({
+    displayName: 'Owner A',
+    planId: 'free',
+    isPro: false,
+  });
+
+  await withClients(['ownerA'], async ({ownerA}) => {
+    const ref = doc(ownerA.db, `users/${users.ownerA.uid}`);
+
+    for (const forged of [
+      {planId: 'pro'},
+      {isPro: true},
+      {planId: 'pro', isPro: true},
+      {isAdmin: true},
+      {stripeCustomerId: 'cus_forjado'},
+      {subscriptionStatus: 'active'},
+      {entitlements: {pro: true}},
+    ]) {
+      await assert.rejects(
+        () => setDoc(ref, forged, {merge: true}),
+        `campo server-owned não pode ser gravado pelo cliente: ${Object.keys(forged).join(',')}`,
+      );
+    }
+
+    // Edição legítima de perfil continua funcionando.
+    await setDoc(ref, {
+      displayName: 'Owner Atualizado',
+      photoURL: 'https://example.test/avatar.png',
+      locale: 'pt-BR',
+      updatedAt: serverTimestamp(),
+    }, {merge: true});
+
+    const persisted = await db.doc(`users/${users.ownerA.uid}`).get();
+    assert.equal(persisted.data().displayName, 'Owner Atualizado');
+    assert.equal(persisted.data().planId, 'free');
+    assert.equal(persisted.data().isPro, false);
+
+    // O documento de outro usuário permanece inacessível.
+    await assert.rejects(
+      () => getDoc(doc(ownerA.db, `users/${users.memberA.uid}`)),
+      'ninguém lê o documento de perfil de outro usuário',
+    );
+    await assert.rejects(
+      () => setDoc(doc(ownerA.db, `users/${users.memberA.uid}`), {displayName: 'x'}),
+      'ninguém escreve no perfil de outro usuário',
+    );
+
+    // Nem apaga o próprio.
+    await assert.rejects(
+      () => deleteDoc(ref),
+      'documento de usuário não é apagável pelo cliente',
+    );
+  });
+});
+
+test('INV-P1-013 — backend continua sendo a fonte de entitlement', async () => {
+  await seed();
+  const db = getAdmin().firestore();
+
+  // O Admin SDK — usado pelo webhook do Stripe — ignora as Rules.
+  await db.doc(`users/${users.ownerA.uid}`).set({
+    displayName: 'Owner A',
+    planId: 'pro',
+    isPro: true,
+    stripeCustomerId: 'cus_legitimo',
+  });
+
+  await withClients(['ownerA'], async ({ownerA}) => {
+    const snapshot = await getDoc(doc(ownerA.db, `users/${users.ownerA.uid}`));
+    assert.equal(snapshot.data().planId, 'pro');
+
+    // E o usuário pago continua editando o próprio perfil sem perder o plano.
+    await setDoc(doc(ownerA.db, `users/${users.ownerA.uid}`), {
+      displayName: 'Owner Pago',
+      updatedAt: serverTimestamp(),
+    }, {merge: true});
+
+    const after = await db.doc(`users/${users.ownerA.uid}`).get();
+    assert.equal(after.data().displayName, 'Owner Pago');
+    assert.equal(after.data().planId, 'pro');
+    assert.equal(after.data().isPro, true);
+  });
+});
+
+// ------------------------------------------------------------- INV-P3-053
+
+test('INV-P3-053 — workspace, membro e transação rejeitam campos arbitrários', async () => {
+  await seed();
+  await withClients(['ownerA'], async ({ownerA}) => {
+    await assert.rejects(
+      () => updateDoc(doc(ownerA.db, `workspaces/${wsA}`), {campoArbitrario: 'x'}),
+      'workspace não aceita campo fora da allowlist',
+    );
+
+    await assert.rejects(
+      () => setDoc(doc(ownerA.db, `workspaces/${wsA}/members/${users.memberA.uid}`), {
+        uid: users.memberA.uid,
+        role: 'member',
+        campoArbitrario: 'x',
+      }),
+      'membership não aceita campo fora da allowlist',
+    );
+
+    // Teto numérico e de tamanho de string em transações.
+    await assert.rejects(
+      () => setDoc(doc(ownerA.db, `workspaces/${wsA}/transactions/teto-valor`),
+        clientTransaction(wsA, users.ownerA.uid, {value: 5_000_000_000})),
+      'valor de transação tem teto',
+    );
+    await assert.rejects(
+      () => setDoc(doc(ownerA.db, `workspaces/${wsA}/transactions/teto-descricao`),
+        clientTransaction(wsA, users.ownerA.uid, {description: 'x'.repeat(400)})),
+      'descrição de transação tem tamanho máximo',
+    );
+
+    // O caminho legítimo segue aceito.
+    await updateDoc(doc(ownerA.db, `workspaces/${wsA}`), {
+      name: 'Workspace Renomeado',
+      themeColor: '#123456',
+      updatedAt: serverTimestamp(),
+    });
+  });
+});

@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import {idempotencyKeyDigest} from "../../shared/observabilityKeys";
+
 import {
   executeCreateCreditCardPurchase,
   type CreateCreditCardPurchaseResult,
@@ -160,7 +162,7 @@ test(
     assert.equal(recalculateMetric.lastActorId, TEST_OWNER_ID);
     assert.equal(recalculateMetric.lastCardId, TEST_CARD_ID);
     assert.equal(recalculateMetric.lastCorrelationId, "integration-recalculate-limit");
-    assert.equal(recalculateMetric.lastIdempotencyKey, "integration-recalculate-limit-001");
+    assert.equal(recalculateMetric.lastIdempotencyKeyHash, idempotencyKeyDigest("integration-recalculate-limit-001"));
 
     await resetCreditCardIntegrationWorkspace(TEST_WORKSPACE_ID);
   }

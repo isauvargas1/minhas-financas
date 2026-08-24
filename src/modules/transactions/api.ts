@@ -1,7 +1,6 @@
 import {
   addDoc,
   collection,
-  deleteDoc,
   doc,
   DocumentData,
   getDocs,
@@ -12,7 +11,7 @@ import {
 } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
 
-import { db, functions } from "../../lib/firebase";
+import { auth, db, functions } from "../../lib/firebase";
 import type { Transaction } from "../../types";
 import { toDateOnlyString, toFirestoreDateTimestamp } from "../../utils/date";
 
@@ -47,6 +46,13 @@ const stripUndefined = <T extends Record<string, any>>(obj: T): Partial<T> => {
 
   return out;
 };
+
+/**
+ * Transação baixada logicamente (INV-P2-032): permanece no histórico para
+ * auditoria e reconciliação, e não participa de nenhuma leitura do produto.
+ */
+export const isVoidedTransaction = (data: DocumentData): boolean =>
+  data?.voidedAt !== undefined && data?.voidedAt !== null;
 
 const getSortTime = (data: DocumentData): number => {
   if (data.createdAt && typeof data.createdAt.toMillis === "function") {
@@ -177,6 +183,7 @@ export const getTransactions = async (workspaceId: string): Promise<Transaction[
   const snapshot = await getDocs(txCol(workspaceId));
 
   return snapshot.docs
+    .filter((document) => !isVoidedTransaction(document.data()))
     .sort((a, b) => getSortTime(b.data()) - getSortTime(a.data()))
     .map(normalizeTransaction);
 };
@@ -282,6 +289,15 @@ export const updateTransaction = async (
   );
 };
 
+/**
+ * Baixa lógica de transação (INV-P2-032).
+ *
+ * `AGENTS.md` proíbe hard delete de histórico financeiro, e as Rules agora
+ * negam `delete` em `transactions`. Uma transação legada apagada é a origem de
+ * um movimento migrado: apagá-la torna a reconciliação da migração impossível
+ * para sempre. O documento permanece, marcado com quem baixou, quando e por
+ * quê, e desaparece de toda leitura do produto.
+ */
 export const deleteTransaction = async (
   workspaceId: string,
   transaction: Transaction,
@@ -315,5 +331,16 @@ export const deleteTransaction = async (
   }
 
   const docRef = doc(db, "workspaces", workspaceId, "transactions", String(transaction.id));
-  await deleteDoc(docRef);
+  const actorId = auth.currentUser?.uid;
+
+  if (!actorId) {
+    throw new Error("Sessão expirada. Entre novamente para excluir a transação.");
+  }
+
+  await updateDoc(docRef, {
+    voidedAt: serverTimestamp(),
+    voidedBy: actorId,
+    voidReason: "Excluída pelo usuário",
+    updatedAt: serverTimestamp(),
+  });
 };

@@ -135,6 +135,12 @@ export const classifyLegacyRow = (
   if (data.type !== "investimento") {
     return {...base, skipReason: "nao_e_investimento"};
   }
+  // Baixa lógica (INV-P2-032). A transação continua no histórico para
+  // auditoria, mas não é fato consumado: migrá-la inventaria patrimônio. É
+  // exclusão legítima, não `unclassified`.
+  if (data.voidedAt !== undefined && data.voidedAt !== null) {
+    return {...base, skipReason: "baixada_logicamente"};
+  }
   const metadata = data.investmentMetadata;
   if (!metadata) {
     if (data.isPaid === false) return {...base, skipReason: "nao_liquidado"};

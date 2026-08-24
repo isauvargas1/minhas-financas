@@ -10,6 +10,11 @@ import {
   enqueueCreditCardDomainNotifications,
 } from "./domainNotifications";
 import { saoPauloDayKey } from "../shared/dateKeys";
+import {
+  boundedFailureEventId,
+  idempotencyKeyDigest,
+  safeErrorMessage,
+} from "../shared/observabilityKeys";
 
 import type {
   CreditCardBackendWriteOperation,
@@ -44,6 +49,11 @@ export interface RecordCreditCardOperationMetricInput {
   paymentId?: string;
   amount?: number;
   correlationId?: string;
+  /**
+   * Chave de idempotência crua. Persistida **sempre** como digest
+   * (INV-P2-039): a coleção de métricas é legível por qualquer membro do
+   * workspace, e quem conhece a chave transforma uma operação nova em replay.
+   */
   idempotencyKey?: string;
 }
 
@@ -82,7 +92,7 @@ export const recordCreditCardOperationMetric = (
     lastPurchaseId: input.purchaseId,
     lastPaymentId: input.paymentId,
     lastCorrelationId: input.correlationId,
-    lastIdempotencyKey: input.idempotencyKey,
+    lastIdempotencyKeyHash: idempotencyKeyDigest(input.idempotencyKey),
         updatedAt: FieldValue.serverTimestamp(),
   };
 
@@ -108,9 +118,6 @@ const OPERATION_METRIC_MAP: Record<
   rebuildCardInvoicesForCard: "card_invoices_rebuilt",
   migrateLegacyInstallmentsToInvoiceDomain: "legacy_installments_migrated",
 };
-const sanitizeEventIdPart = (value: string): string =>
-  value.replace(/[^\w-]/g, "_");
-
 const asRecord = (value: unknown): Record<string, unknown> | undefined =>
   typeof value === "object" && value !== null ?
     value as Record<string, unknown> :
@@ -159,44 +166,63 @@ const getFailureCode = (error: unknown): string => {
   return "unknown";
 };
 
-const getFailureMessage = (error: unknown): string => {
-  if (error instanceof Error && error.message.trim()) {
-    return error.message;
-  }
+const getFailureMessage = (error: unknown): string =>
+  safeErrorMessage(error, "Falha ao processar operação crítica de cartão.");
 
-  return "Falha ao processar operação crítica de cartão.";
-};
-
+/**
+ * ID do evento de falha com cardinalidade limitada.
+ *
+ * Antes derivava do `correlationId`, que é livre e muda a cada tentativa: cada
+ * chamada criava um documento novo em `financial_events`, sem teto
+ * (INV-P2-039). Agora a identidade é a intenção — a chave de idempotência
+ * quando existe, senão um balde por operação, ator e dia.
+ */
 const buildFailureEventId = (
   operation: CreditCardBackendWriteOperation,
-  payload: Record<string, unknown> | undefined
-): string => {
-  const base =
-    getStringValue(payload, "correlationId") ||
-    getStringValue(payload, "idempotencyKey") ||
-    `${operation}_${Date.now()}`;
+  payload: Record<string, unknown> | undefined,
+  actorId: string | undefined
+): string =>
+  boundedFailureEventId({
+    operation: `processing_failure_${operation}`,
+    idempotencyKey: getStringValue(payload, "idempotencyKey"),
+    actorId,
+    dayKey: getSaoPauloDateKey(),
+  });
 
-  return sanitizeEventIdPart(`processing_failure_${operation}_${base}`);
-};
-
+/**
+ * Registra a falha de uma callable de cartão.
+ *
+ * `authorizedWorkspaceId` é preenchido **apenas** depois que
+ * `requireWorkspaceRole` devolveu — e é a única origem do workspace usado
+ * aqui. Ler `workspaceId` do `request.data` cru era o vetor INV-P0-001: este
+ * caminho roda no `catch` que também captura `unauthenticated` e
+ * `workspace_role_denied`, então um chamador **sem token** conseguia gravar
+ * métricas, eventos financeiros e notificações no workspace de outro tenant,
+ * com `amount`, `errorMessage` e `correlationId` sob controle dele e sem teto
+ * de documentos. Sem autorização, a falha vira log sanitizado e nada é
+ * escrito.
+ */
 export const recordCreditCardCallableFailure = async (
   operation: CreditCardBackendWriteOperation,
   requestData: unknown,
   actorId: string | undefined,
-  error: unknown
+  error: unknown,
+  authorizedWorkspaceId: string | undefined
 ): Promise<void> => {
   const payload = asRecord(requestData);
-  const workspaceId = getStringValue(payload, "workspaceId");
 
-  if (!workspaceId) {
-    console.error("Falha crítica de cartão sem workspaceId rastreável.", {
+  if (!authorizedWorkspaceId) {
+    // Sem workspace autorizado não há destino legítimo para a escrita. O log
+    // não repete payload nem valor monetário: só o suficiente para investigar.
+    console.error("credit_card_callable_failure_unauthorized", {
       operation,
-      actorId,
+      actorId: actorId ?? "anonymous",
       errorCode: getFailureCode(error),
-      errorMessage: getFailureMessage(error),
     });
     return;
   }
+
+  const workspaceId = authorizedWorkspaceId;
 
   const observedOperation = OPERATION_METRIC_MAP[operation];
   const cardId = getStringValue(payload, "cardId");
@@ -208,7 +234,7 @@ export const recordCreditCardCallableFailure = async (
     getNumberValue(payload, "totalAmount");
   const correlationId = getStringValue(payload, "correlationId");
   const idempotencyKey = getStringValue(payload, "idempotencyKey");
-  const eventId = buildFailureEventId(operation, payload);
+  const eventId = buildFailureEventId(operation, payload, actorId);
   const errorCode = getFailureCode(error);
   const errorMessage = getFailureMessage(error);
 
@@ -227,14 +253,15 @@ export const recordCreditCardCallableFailure = async (
       idempotencyKey,
     });
 
-     const eventPayload = removeUndefinedFields({
-    operation,
-    errorCode,
-    errorMessage,
-    amount,
-    correlationId,
-    idempotencyKey,
-  });
+    const idempotencyKeyHash = idempotencyKeyDigest(idempotencyKey);
+    const eventPayload = removeUndefinedFields({
+      operation,
+      errorCode,
+      errorMessage,
+      amount,
+      correlationId,
+      idempotencyKeyHash,
+    });
 
        transaction.set(
       cardFinancialEventDoc(workspaceId, eventId),
@@ -249,8 +276,8 @@ export const recordCreditCardCallableFailure = async (
         payload: eventPayload,
         actorId,
         correlationId,
-        idempotencyKey,
-          createdAt: FieldValue.serverTimestamp(),
+        idempotencyKeyHash,
+        createdAt: FieldValue.serverTimestamp(),
       })
     );
 
@@ -274,20 +301,24 @@ export const recordCreditCardCallableFailureSafely = async (
   operation: CreditCardBackendWriteOperation,
   requestData: unknown,
   actorId: string | undefined,
-  error: unknown
+  error: unknown,
+  authorizedWorkspaceId: string | undefined
 ): Promise<void> => {
   try {
     await recordCreditCardCallableFailure(
       operation,
       requestData,
       actorId,
-      error
+      error,
+      authorizedWorkspaceId
     );
   } catch (observabilityError) {
-    console.error("Falha ao registrar observabilidade de erro do cartão.", {
+    // Log sanitizado: serializar o objeto de erro cru vazava payload, valor
+    // monetário e identificador de pessoa para o Cloud Logging (INV-P2-036).
+    console.error("credit_card_callable_failure_observability_error", {
       operation,
-      actorId,
-      observabilityError,
+      actorId: actorId ?? "anonymous",
+      errorCode: getFailureCode(observabilityError),
     });
   }
 };

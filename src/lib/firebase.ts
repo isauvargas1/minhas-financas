@@ -37,7 +37,12 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
-export const functions = getFunctions(app);
+// Mesma região declarada em `functions/src/shared/runtimeOptions.ts`. O SDK
+// Web resolve `us-central1` por padrão; sem isto o cliente chamaria um
+// endpoint que não existe mais depois da migração de região (INV-P2-042).
+export const FUNCTIONS_REGION = 'southamerica-east1';
+
+export const functions = getFunctions(app, FUNCTIONS_REGION);
 
 const shouldUseFirebaseEmulators =
   import.meta.env.VITE_USE_FIREBASE_EMULATORS === 'true';

@@ -153,6 +153,8 @@ export const contributionMinorUnits = (
   data: admin.firestore.DocumentData,
 ): number => {
   if (data.type !== "investimento" || !data.goalId) return 0;
+  // Baixa lógica (INV-P2-032): o documento permanece, o fato não conta.
+  if (data.voidedAt !== undefined && data.voidedAt !== null) return 0;
   const metadata = data.investmentMetadata;
   if (!metadata) {
     if (!isSettledGoalContribution(data)) return 0;
