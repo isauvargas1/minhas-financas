@@ -179,6 +179,54 @@ const ReportsOverview: React.FC<ReportsOverviewProps> = ({ snapshot, isLoading }
                 ))}
             </div>
 
+            {snapshot.investmentOverview && (
+                <section aria-labelledby="investment-overview-title" className="space-y-5 rounded-card border border-border bg-surface p-5 shadow-sm">
+                    <div>
+                        <h3 id="investment-overview-title" className="font-bold text-on-surface">Patrimônio de investimentos</h3>
+                        <p className="text-xs text-muted">Caixa, principal e rendimentos são apresentados separadamente a partir do domínio patrimonial oficial.</p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+                        {[
+                            ['Patrimônio atual', snapshot.investmentOverview.currentValue],
+                            ['Custo atual', snapshot.investmentOverview.cost],
+                            ['Aportes', snapshot.investmentOverview.contributions],
+                            ['Principal resgatado', snapshot.investmentOverview.redeemedPrincipal],
+                            ['Resgate líquido', snapshot.investmentOverview.redemptionNet],
+                            ['Ganho realizado', snapshot.investmentOverview.realizedGain],
+                            ['Renda de investimento', snapshot.investmentOverview.investmentIncome],
+                            ['Ganho não realizado', snapshot.investmentOverview.unrealizedGain],
+                            ['Taxas', snapshot.investmentOverview.fees],
+                            ['Impostos', snapshot.investmentOverview.taxes],
+                        ].map(([label, value]) => (
+                            <article key={String(label)} className="rounded-xl border border-border bg-background p-3">
+                                <p className="text-xs text-muted">{label}</p>
+                                <p className="mt-1 font-bold text-on-surface">{formatCurrency(Number(value))}</p>
+                            </article>
+                        ))}
+                    </div>
+                    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                        {snapshot.investmentOverview.allocations.map((allocation) => (
+                            <section key={allocation.dimension} aria-label={`Alocação por ${allocation.label.toLowerCase()}`} className="rounded-xl border border-border p-4">
+                                <h4 className="font-semibold text-on-surface">Por {allocation.label.toLowerCase()}</h4>
+                                {allocation.items.length === 0 ? (
+                                    <p className="mt-3 text-sm text-muted">Sem valores para esta classificação.</p>
+                                ) : (
+                                    <ul className="mt-3 space-y-2">
+                                        {allocation.items.slice(0, 5).map((item) => (
+                                            <li key={item.key} className="flex items-center justify-between gap-3 text-sm">
+                                                <span className="truncate text-muted">{item.label}</span>
+                                                <span className="whitespace-nowrap font-medium">{formatCurrency(item.amount)} · {item.percentage.toFixed(1)}%</span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
+                                {allocation.truncated && <p className="mt-2 text-xs text-muted">Os menores valores foram agrupados em Outros.</p>}
+                            </section>
+                        ))}
+                    </div>
+                </section>
+            )}
+
             {hasCreditCardIndicators && (
                 <div className="bg-surface rounded-card border border-border shadow-sm overflow-hidden">
                     <div className="p-5 border-b border-border bg-background/30">

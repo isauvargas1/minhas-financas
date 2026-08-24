@@ -22,6 +22,7 @@ import { useSettingsCatalogScreen } from '../modules/settings-catalog/useSetting
 import type { SettingsCatalogItem, SettingsCatalogStatus, SettingsCatalogTransactionSubtype } from '../modules/settings-catalog/types.ts';
 import { createPortal } from 'react-dom';
 import {InvestmentOnboardingCard} from '../modules/investments/components/InvestmentOnboardingCard.tsx';
+import {InvestmentRegistrySection} from '../modules/investments/components/InvestmentRegistrySection.tsx';
 
 interface SettingsViewProps {
     data?: {
@@ -154,7 +155,7 @@ const renderInPortal = (children: React.ReactNode) => {
 };
 
 const SettingsView: React.FC<SettingsViewProps> = () => {
-    const { activeWorkspace, reloadWorkspaces } = useWorkspace();
+    const { activeWorkspace, reloadWorkspaces, canManageActiveWorkspace } = useWorkspace();
     const updateWorkspaceMutation = useUpdateWorkspace();
     const isPJ = activeWorkspace.type === 'PJ';
 
@@ -706,6 +707,12 @@ const sortedItems = useMemo(() => {
                     workspaceId={activeWorkspace.id}
                     profileType={activeWorkspace.type}
                     isOwner={activeWorkspace.myRole === 'owner'}
+                />
+
+                <InvestmentRegistrySection
+                    workspaceId={activeWorkspace.id}
+                    profileType={activeWorkspace.type}
+                    canManage={canManageActiveWorkspace}
                 />
 
            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

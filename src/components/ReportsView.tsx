@@ -34,7 +34,7 @@ const ReportsView: React.FC<ReportsViewProps> = ({ transactions, goals, creditCa
     const { data: receivables } = useReceivables(); 
     const { data: clients } = useClients();
 
-    const { data: snapshot, isLoading } = useFinancialReportSnapshot(
+    const { data: snapshot, isLoading, isError } = useFinancialReportSnapshot(
         transactions, 
         goals, 
         creditCards, 
@@ -126,20 +126,25 @@ const ReportsView: React.FC<ReportsViewProps> = ({ transactions, goals, creditCa
 
             {/* Content Area */}
             <div className="flex-1 overflow-y-auto custom-scrollbar pb-6" role="tabpanel">
-                {activeTab === 'overview' && (
+                {isError && (
+                    <div role="alert" className="rounded-lg border border-red-300 bg-red-50 p-4 text-red-800">
+                        Não foi possível carregar os relatórios. Tente novamente.
+                    </div>
+                )}
+                {!isError && activeTab === 'overview' && (
                     <ReportsOverview 
                         snapshot={snapshot || undefined} 
                         isLoading={isLoading} 
                     />
                 )}
-                {activeTab === 'charts' && (
+                {!isError && activeTab === 'charts' && (
                     <ReportsChartsView 
                         snapshot={snapshot || undefined} 
                         isLoading={isLoading}
                         categories={categories}
                     />
                 )}
-                {activeTab === 'ai' && snapshot && (
+                {!isError && activeTab === 'ai' && snapshot && (
                     <ReportsAIChat snapshot={snapshot} />
                 )}
                 {/* Fallback for AI Tab Loading */}

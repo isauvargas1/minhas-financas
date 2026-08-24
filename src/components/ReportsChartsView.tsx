@@ -127,6 +127,10 @@ const ReportsChartsView: React.FC<ReportsChartsViewProps> = ({ snapshot, isLoadi
     }, [snapshot]);
 
     const creditCardExpenseViews = snapshot?.creditCardExpenseReportViews;
+    const investmentEvolutionData = snapshot?.investmentOverview?.evolution.map((item) => ({
+        name: new Date(`${item.period}-02T12:00:00`).toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }),
+        Patrimônio: item.currentValue,
+    })) ?? [];
 
     const selectedCreditCardExpensePeriodData = useMemo(() => {
         if (!creditCardExpenseViews) return [];
@@ -159,6 +163,33 @@ const ReportsChartsView: React.FC<ReportsChartsViewProps> = ({ snapshot, isLoadi
 
     return (
         <div className="space-y-8 animate-fade-in">
+
+            {snapshot?.investmentOverview?.evolutionUnavailable && (
+                <section className="bg-surface p-6 rounded-card border border-amber-300 shadow-sm">
+                    <h3 className="text-lg font-bold text-on-surface mb-1">Evolução patrimonial</h3>
+                    <p role="status" className="text-sm text-amber-900">
+                        A série histórica ainda não tem o valor de fechamento de cada mês.
+                        Execute a reconstrução das projeções para disponibilizá-la.
+                    </p>
+                </section>
+            )}
+            {investmentEvolutionData.length > 0 && (
+                <section className="bg-surface p-6 rounded-card border border-border shadow-sm" aria-labelledby="investment-evolution-title">
+                    <h3 id="investment-evolution-title" className="text-lg font-bold text-on-surface mb-1">Evolução patrimonial</h3>
+                    <p className="mb-6 text-xs text-muted">Valor de fechamento de cada mês, lido da projeção mensal oficial, sem varrer movimentações no navegador.</p>
+                    <div className="h-72 w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={investmentEvolutionData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme.colors.border} />
+                                <XAxis dataKey="name" tick={{ fill: theme.colors.textSecondary, fontSize: 12 }} />
+                                <YAxis tick={{ fill: theme.colors.textSecondary, fontSize: 12 }} tickFormatter={(value) => new Intl.NumberFormat('pt-BR', { notation: 'compact', style: 'currency', currency: 'BRL' }).format(value)} />
+                                <Tooltip formatter={(value: number) => formatCurrency(value)} contentStyle={{ backgroundColor: theme.colors.surface, borderColor: theme.colors.border, color: theme.colors.text, borderRadius: '8px' }} />
+                                <Area type="monotone" dataKey="Patrimônio" stroke={theme.colors.primary} fill={theme.colors.primary} fillOpacity={0.15} strokeWidth={3} />
+                            </AreaChart>
+                        </ResponsiveContainer>
+                    </div>
+                </section>
+            )}
 
             {/* Row 1: Cash Flow Evolution */}
             <div className="bg-surface p-6 rounded-card border border-border shadow-sm">

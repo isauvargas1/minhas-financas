@@ -85,6 +85,9 @@ import {
 const InvestmentsPortfolioView = React.lazy(
     () => import("./modules/investments/components/InvestmentsPortfolioView"),
 );
+const InvestmentDashboardOverview = React.lazy(
+    () => import("./modules/investments/components/InvestmentDashboardOverview"),
+);
 // ----------------------
 
 const queryClient = new QueryClient({
@@ -160,6 +163,14 @@ const AppContent: React.FC = () => {
     };
 
     const openGoalContributionModal = (goalId: string) => {
+        // Com o domínio patrimonial oficial ligado, o progresso da meta vem das
+        // posições, não de transações. Levar ao lançamento legado daria um
+        // aporte que sai do caixa e não aparece na meta, então a ação leva
+        // direto à tela onde o vínculo é feito.
+        if (activeWorkspace.features?.investmentsV2?.enabled === true) {
+            setView('investimento');
+            return;
+        }
         setTransactionToEdit(null);
         setTransactionModalDefaultType('investimento');
         setTransactionModalAllowedTypes(['investimento']);
@@ -568,6 +579,11 @@ const AppContent: React.FC = () => {
                             <SummaryCard title="Despesas" value={summaryData.expenses} trend="Mensal" icon={<ArrowDownIcon />} color="red" isClickable onClick={() => handleNavigate('despesa')} />
                             <SummaryCard title="Investimentos" value={summaryData.investments} trend="Mensal" icon={<ChartBarIcon />} color="indigo" isClickable onClick={() => handleNavigate('investimento')} />
                         </div>
+                        {activeWorkspace.features?.investmentsV2?.enabled === true && (
+                            <React.Suspense fallback={<div role="status" className="rounded-card border border-border bg-surface p-5">Carregando patrimônio…</div>}>
+                                <InvestmentDashboardOverview workspaceId={workspaceId} />
+                            </React.Suspense>
+                        )}
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                             <div className="flex flex-col gap-6">
                                 <TransactionsChart transactions={currentMonthCashFlowTransactions} />
@@ -604,6 +620,7 @@ const AppContent: React.FC = () => {
                     <React.Suspense fallback={<div className="p-6 text-sm text-gray-600">Carregando investimentos...</div>}>
                         <InvestmentsPortfolioView
                             workspaceId={workspaceId}
+                            profileType={activeWorkspace.type}
                             canManage={canManageActiveWorkspace}
                             goals={goals}
                             onBack={() => setView('dashboard')}

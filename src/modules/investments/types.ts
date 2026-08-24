@@ -1,7 +1,9 @@
 import type { Timestamp } from 'firebase/firestore';
 
 export type InvestmentStatus = 'active' | 'archived';
-export type InvestmentMovementStatus = 'pending' | 'settled';
+// M3.D deu saída ao estado pendente: um pedido pode ser cancelado sem apagar
+// fato financeiro, já que os deltas de um pendente são todos zero.
+export type InvestmentMovementStatus = 'pending' | 'settled' | 'cancelled';
 
 export interface InvestmentAccount {
   id: string;
@@ -19,6 +21,7 @@ export interface InvestmentAsset {
   name: string;
   symbol?: string;
   assetType: 'fixed_income' | 'fund' | 'stock' | 'etf' | 'crypto' | 'other';
+  allocationPurpose?: 'unassigned' | 'retirement' | 'goal' | 'reserve' | 'financial_application' | 'reinvestment' | 'fixed_asset';
   currency: 'BRL';
   status: InvestmentStatus;
   updatedAt: Timestamp;
@@ -68,6 +71,63 @@ export interface InvestmentSummary {
   feesCents: number;
   taxCents: number;
   updatedAt: Timestamp;
+}
+
+export type InvestmentAllocationDimension = 'account' | 'class' | 'asset' | 'goal' | 'risk' | 'liquidity' | 'indexer' | 'purpose';
+
+export interface InvestmentReportPeriod {
+  id: string;
+  workspaceId: string;
+  period: string;
+  contributionCents: number;
+  redemptionPrincipalCents: number;
+  realizedGainCents: number;
+  feesCents: number;
+  taxCents: number;
+  costDeltaCents: number;
+  currentValueDeltaCents: number;
+  /**
+   * Valor patrimonial ao fim do mês, materializado na própria série mensal.
+   * O gráfico lê este campo direto: reconstruir subtraindo deltas a partir do
+   * patrimônio atual depende da janela carregada e erra o histórico.
+   */
+  closingCurrentValueCents?: number;
+  cashDeltaCents: number;
+  settledMovementCount: number;
+  daily?: Record<string, {
+    contributionCents: number;
+    redemptionPrincipalCents: number;
+    realizedGainCents: number;
+    feesCents: number;
+    taxCents: number;
+    costDeltaCents: number;
+    currentValueDeltaCents: number;
+    cashDeltaCents: number;
+    settledMovementCount: number;
+  }>;
+  periodStart: Timestamp;
+}
+
+export interface InvestmentAllocationSummary {
+  id: string;
+  workspaceId: string;
+  dimension: InvestmentAllocationDimension;
+  key: string;
+  label: string;
+  positionCount: number;
+  principalCents: number;
+  currentValueCents: number;
+  realizedGainCents: number;
+  feesCents: number;
+  taxCents: number;
+}
+
+export interface OfficialInvestmentReportData {
+  summary: InvestmentSummary | null;
+  periods: InvestmentReportPeriod[];
+  allocations: Partial<Record<InvestmentAllocationDimension, InvestmentAllocationSummary[]>>;
+  periodsTruncated: boolean;
+  truncatedDimensions: InvestmentAllocationDimension[];
 }
 
 export interface InvestmentPage<T> {

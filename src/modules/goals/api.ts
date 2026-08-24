@@ -1,8 +1,9 @@
-import {collection, getDocs} from 'firebase/firestore';
+import {collection, getDocs, limit, query} from 'firebase/firestore';
 import {httpsCallable} from 'firebase/functions';
 
 import {db, functions} from '../../lib/firebase';
 import type {Goal} from '../../types';
+import {mapGoalDocument} from './projection';
 
 type GoalWriteInput = Omit<Goal, 'id' | 'createdAt' | 'updatedAt' | 'currentAmount'>;
 
@@ -29,17 +30,20 @@ const callGoalFunction = async <TInput extends Record<string, unknown>, TResult>
   return response.data;
 };
 
-export const listGoals = async (workspaceId?: string): Promise<Goal[]> => {
+export const listGoals = async (workspaceId?: string, investmentsV2Enabled = false): Promise<Goal[]> => {
   if (!workspaceId || workspaceId === 'loading') return [];
-  const snapshot = await getDocs(collection(db, 'workspaces', workspaceId, 'goals'));
+  const snapshot = await getDocs(query(
+    collection(db, 'workspaces', workspaceId, 'goals'),
+    limit(100),
+  ));
   return snapshot.docs
     .map((item) => {
       const data = item.data() as Omit<Goal, 'id'>;
-      return {
-        id: item.id,
-        ...data,
-        progressBasis: data.progressBasis ?? 'net_contributions',
-      } as Goal;
+      return mapGoalDocument(
+        item.id,
+        data as Omit<Goal, 'id'> & {investmentProgressCents?: number},
+        investmentsV2Enabled,
+      );
     })
     .filter((goal) => goal.archived !== true);
 };

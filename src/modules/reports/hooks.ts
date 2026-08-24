@@ -17,10 +17,12 @@ import {
     listCreditCardInvoicesForReports,
     listCreditCardPurchasesForReports,
 } from '../credit-cards/persistence/readApi';
+import { getOfficialInvestmentReportData } from '../investments/persistence/readApi';
 
 export const reportKeys = {
     snapshot: (range: string, ws: string) => ['financialReportSnapshot', range, ws],
     creditCardDomain: (range: string, ws: string) => ['financialReportCreditCardDomain', range, ws],
+    investmentDomain: (range: string, ws: string) => ['financialReportInvestmentDomain', range, ws],
 };
 
 
@@ -124,6 +126,18 @@ export const useFinancialReportSnapshot = (
 
 
     const workspaceId = activeWorkspace?.id;
+    const investmentsV2Enabled = activeWorkspace?.features?.investmentsV2?.enabled === true;
+
+    const investmentDomainQuery = useQuery({
+        queryKey: workspaceId && workspaceId !== 'loading'
+            ? reportKeys.investmentDomain(range, workspaceId)
+            : ['financialReportInvestmentDomain', 'disabled'],
+        queryFn: () => getOfficialInvestmentReportData(workspaceId!, {
+            periodLimit: range === 'all' ? 100 : range === '12m' || range === 'ytd' ? 14 : range === '90d' ? 5 : 3,
+        }),
+        enabled: Boolean(workspaceId) && workspaceId !== 'loading' && investmentsV2Enabled,
+        staleTime: 1000 * 60 * 2,
+    });
 
         const creditCardDomainQuery = useQuery({
         queryKey: workspaceId && workspaceId !== 'loading'
@@ -192,23 +206,32 @@ export const useFinancialReportSnapshot = (
         buildReceivablesVersion(receivables),
         buildClientsVersion(clients),
         buildCreditCardDomainVersion(creditCardDomainData),
+        investmentsV2Enabled ? String(investmentDomainQuery.dataUpdatedAt) : 'legacy-investments',
     ].join('::');
 
     return useQuery({
         queryKey: workspaceId && workspaceId !== 'loading'
             ? [...reportKeys.snapshot(range, workspaceId), dataVersion]
             : ['financialReportSnapshot', range, 'disabled', dataVersion],
-        queryFn: () => api.getFinancialReportSnapshot(
-            transactions,
-            goals,
-            creditCards,
-            range,
-            activeWorkspace,
-            receivables,
-            clients,
-            creditCardDomainData
-        ),
-        enabled: Boolean(workspaceId) && workspaceId !== 'loading' && !creditCardDomainQuery.isLoading,
+        queryFn: () => {
+            if (investmentsV2Enabled && investmentDomainQuery.isError) {
+                throw new Error('Não foi possível carregar o domínio patrimonial.');
+            }
+            return api.getFinancialReportSnapshot(
+                transactions,
+                goals,
+                creditCards,
+                range,
+                activeWorkspace,
+                receivables,
+                clients,
+                creditCardDomainData,
+                investmentsV2Enabled ? investmentDomainQuery.data : undefined,
+            );
+        },
+        enabled: Boolean(workspaceId) && workspaceId !== 'loading' &&
+            !creditCardDomainQuery.isLoading &&
+            (!investmentsV2Enabled || !investmentDomainQuery.isLoading),
         staleTime: 1000 * 60 * 5
     });
 };
@@ -313,7 +336,7 @@ export const useFinanceAIChat = () => {
 
     const mutation = useMutation({
         mutationFn: (params: { question: string; context: FinancialReportSnapshot }) =>
-            api.askFinanceAI(params.question, params.context),
+            api.askFinanceAI(params.question, params.context, activeWorkspace.id),
         onSuccess: (data) => {
             setHistory(prev => [
                 ...prev,

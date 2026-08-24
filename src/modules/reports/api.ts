@@ -1,3 +1,5 @@
+import { httpsCallable } from 'firebase/functions';
+import { functions } from '../../lib/firebase';
 import {
     FinancialReportSnapshot,
     ReportTimeRange,
@@ -17,10 +19,11 @@ import {
 } from './logic';
 import { Transaction, Goal, CreditCard, Loan } from '../../types';
 // CORRECTED IMPORT
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import { Workspace } from '../workspaces/types';
 import { Receivable, Client } from '../clients/types';
 import { listLoans } from '../loans/api';
+import type { OfficialInvestmentReportData } from '../investments/types';
+import { buildInvestmentOverview } from './investments';
 
 export const getFinancialReportSnapshot = async (
     transactions: Transaction[],
@@ -30,7 +33,8 @@ export const getFinancialReportSnapshot = async (
     workspace?: Workspace,
     receivables?: Receivable[],
     clients?: Client[],
-    creditCardDomainData?: CreditCardReportDomainData
+    creditCardDomainData?: CreditCardReportDomainData,
+    officialInvestmentData?: OfficialInvestmentReportData,
 ): Promise<FinancialReportSnapshot> => {
 
     // Simulate network delay (optional)
@@ -62,6 +66,48 @@ export const getFinancialReportSnapshot = async (
 );
 
     const alerts = generateAlerts(kpis, debtProfile, workspace, receivables);
+    const investmentOverview = officialInvestmentData
+        ? buildInvestmentOverview(officialInvestmentData, range)
+        : undefined;
+    const effectiveKpis = investmentOverview
+        ? kpis.map((kpi) => kpi.id === 'kpi-investments' ? {
+            ...kpi,
+            value: investmentOverview.contributions,
+            formattedValue: new Intl.NumberFormat('pt-BR', {
+                style: 'currency',
+                currency: 'BRL',
+            }).format(investmentOverview.contributions),
+            description: 'Aportes liquidados no domínio patrimonial oficial.',
+        } : kpi)
+        : kpis;
+
+    if (officialInvestmentData && !investmentOverview) {
+        alerts.push({
+            id: 'investment-report-projection-unavailable',
+            title: 'Resumo patrimonial indisponível',
+            message: 'A projeção patrimonial ainda não foi criada. Processe ou reconstrua uma posição antes de analisar este relatório.',
+            severity: 'warning',
+            createdAt: new Date().toISOString(),
+        });
+    }
+    if (investmentOverview?.periodsTruncated) {
+        alerts.push({
+            id: 'investment-report-periods-truncated',
+            title: 'Histórico patrimonial limitado',
+            message: 'O histórico atingiu o limite seguro de leitura. Selecione um período menor para uma análise completa.',
+            severity: 'warning',
+            createdAt: new Date().toISOString(),
+        });
+    }
+    if (investmentOverview && Math.abs(investmentOverview.reconciliationDifference) >= 0.01) {
+        alerts.push({
+            id: 'investment-report-reconciliation',
+            title: 'Reconciliação patrimonial necessária',
+            message: 'O resumo atual e a evolução histórica apresentam diferença. Solicite a reconstrução das projeções antes de tomar decisões.',
+            severity: 'critical',
+            createdAt: new Date().toISOString(),
+        });
+    }
 
         if (creditCardDomainData?.meta?.isTruncated) {
         const labels: Record<string, string> = {
@@ -96,13 +142,13 @@ export const getFinancialReportSnapshot = async (
     return {
         generatedAt: new Date().toISOString(),
         periodLabel: mapRangeToLabel(range),
-        kpis,
+        kpis: effectiveKpis,
         cashFlow,
         expenseCategories,
         debtProfile,
         creditCardIndicators: debtProfile.creditCardIndicators,
         creditCardExpenseReportViews,
-        investmentOverview: undefined,
+        investmentOverview,
         topClients,
         receivablesStatus,
         alerts
@@ -124,90 +170,58 @@ export const markAlertAsRead = async (alertId: string): Promise<void> => {
     console.log(`Alert ${alertId} marked as read`);
 };
 
+/**
+ * Análise por IA — executada exclusivamente no backend.
+ *
+ * O cliente Gemini já foi instanciado aqui, no navegador, com a chave vinda de
+ * `VITE_GOOGLE_AI_KEY`. Variável `VITE_*` entra no bundle, então a credencial
+ * ficava legível para qualquer visitante. Agora o navegador só envia a
+ * pergunta e um resumo já agregado; a chave existe apenas no servidor.
+ */
 export const askFinanceAI = async (
     question: string,
-    contextSnapshot: FinancialReportSnapshot
+    contextSnapshot: FinancialReportSnapshot,
+    workspaceId: string,
 ): Promise<FinanceAIAnswer> => {
-
-    // Use VITE_ prefix for Vite environment variables if applicable, or fallback to process.env
-    const apiKey = import.meta.env?.VITE_GOOGLE_AI_KEY || process.env.API_KEY;
-
-    if (!apiKey) {
-        console.warn("API Key not found. Please set VITE_GOOGLE_AI_KEY in .env");
-        return {
-            id: Date.now().toString(),
-            answer: "Erro de configuração: Chave da IA não encontrada. Verifique suas variáveis de ambiente.",
-            createdAt: new Date().toISOString()
-        };
-    }
-
+    const isPJ = contextSnapshot.kpis.some(k => k.id === 'kpi-net-profit');
     try {
-        // CORRECTED INITIALIZATION
-        const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
-
-        const isPJ = contextSnapshot.kpis.some(k => k.id === 'kpi-net-profit');
-
-        const kpiSummary = contextSnapshot.kpis.map(k => `${k.label}: ${k.formattedValue}`).join('; ');
-        const topCategories = contextSnapshot.expenseCategories.slice(0, 5).map(c => `${c.categoryName} (${c.percentageOfTotal.toFixed(1)}%)`).join(', ');
-        const alertsSummary = contextSnapshot.alerts.map(a => `[${a.severity.toUpperCase()}] ${a.title}: ${a.message}`).join('\n');
-
-        const debtVal = contextSnapshot.kpis.find(k => k.id === 'kpi-debt-total')?.value || 0;
-        const finExpVal = contextSnapshot.kpis.find(k => k.id === 'kpi-financial-exp')?.value || 0;
-
-        const systemPrompt = `
-            Contexto do Sistema:
-            Você é uma IA integrada a um painel financeiro empresarial.
-            
-            ${isPJ ? `
-            --- MODO CONSULTOR ESTRATÉGICO (PJ) ---
-            Persona: CFO Virtual sênior focado em eficiência operacional e liquidez.
-            
-            Dados Financeiros da Empresa (Período: ${contextSnapshot.periodLabel}):
-            - KPIs Principais: ${kpiSummary}
-            - Endividamento Bancário Atual: R$ ${debtVal.toFixed(2)}
-            - Despesas Financeiras (Juros Pagos): R$ ${finExpVal.toFixed(2)}
-            - Maiores Saídas de Caixa: ${topCategories}
-            - Alertas Críticos: ${alertsSummary || 'Estabilidade operacional detectada.'}
-
-            Instruções de Análise PJ:
-            1. Avalie se o lucro é suficiente para cobrir os juros da dívida.
-            2. Analise a sustentabilidade do fluxo de caixa frente ao endividamento.
-            3. Sugira estratégias de redução de alavancagem se o custo financeiro ultrapassar 5% da receita bruta.
-            4. Fale sobre ROI, EBITDA, Liquidez Corrente e Alavancagem Financeira.
-            ` : `
-            --- MODO FINANÇAS PESSOAIS (PF) ---
-            Persona: Consultor financeiro pessoal amigável.
-            Resumo: ${kpiSummary}
-            Alertas: ${alertsSummary || 'Nenhum.'}
-            `}
-
-            Pergunta do Usuário: "${question}"
-            
-            Responda em Markdown profissional. Use bullets para recomendações.
-        `;
-
-        const result = await model.generateContent([systemPrompt]); // Assuming question is part of the flow or separate
-        // To include the user question explicitly if needed by the prompt logic:
-        // const result = await model.generateContent([systemPrompt, question]); 
-
-        // Note: The prompt construction above embeds the question, so sending just systemPrompt string is fine if it contains everything.
-
-        const response = await result.response;
-        const text = response.text();
-
+        const callable = httpsCallable<Record<string, unknown>, {
+            answer: string;
+            createdAt: string;
+        }>(functions, 'analyzeFinancialQuestion');
+        const result = await callable({
+            workspaceId,
+            question,
+            context: {
+                profileType: isPJ ? 'PJ' : 'PF',
+                periodLabel: contextSnapshot.periodLabel,
+                kpis: contextSnapshot.kpis.map((kpi) => ({
+                    label: kpi.label,
+                    formattedValue: kpi.formattedValue,
+                })),
+                topCategories: contextSnapshot.expenseCategories
+                    .slice(0, 5)
+                    .map((c) => `${c.categoryName} (${c.percentageOfTotal.toFixed(1)}%)`),
+                alerts: contextSnapshot.alerts.map(
+                    (a) => `[${a.severity.toUpperCase()}] ${a.title}: ${a.message}`,
+                ),
+            },
+        });
         return {
             id: Date.now().toString(),
-            answer: text || "Não foi possível processar a análise.",
-            createdAt: new Date().toISOString()
+            answer: result.data.answer,
+            createdAt: result.data.createdAt,
         };
     } catch (error) {
-        console.error("AI Error:", error);
-        return {
-            id: Date.now().toString(),
-            answer: "Desculpe, ocorreu um erro ao consultar a IA. Tente novamente mais tarde.",
-            createdAt: new Date().toISOString()
-        };
+        const code = typeof error === 'object' && error && 'code' in error
+            ? String(error.code)
+            : '';
+        const answer = code.includes('failed-precondition')
+            ? 'A análise por IA está indisponível no momento. Se o limite de uso foi atingido, tente novamente mais tarde.'
+            : code.includes('permission-denied')
+                ? 'Você não tem permissão para usar a análise por IA neste workspace.'
+                : 'Não foi possível consultar a IA agora. Tente novamente mais tarde.';
+        return {id: Date.now().toString(), answer, createdAt: new Date().toISOString()};
     }
 };
 

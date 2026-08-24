@@ -164,14 +164,31 @@ export interface DebtProfile {
 
 
 export interface InvestmentOverview {
-  totalInvested: number;
-  estimatedReturnMonthly: number;
-  estimatedReturnYearly: number;
-  allocationByType: {
-    type: string; // renda fixa, variável, etc
-    amount: number;
-    percentage: number;
-  }[];
+  source: 'official-v2';
+  contributions: number;
+  redemptionGross: number;
+  redemptionNet: number;
+  redeemedPrincipal: number;
+  realizedGain: number;
+  investmentIncome: number;
+  fees: number;
+  taxes: number;
+  cost: number;
+  currentValue: number;
+  unrealizedGain: number;
+  cashImpact: number;
+  settledMovementCount: number;
+  evolution: Array<{ period: string; currentValue: number }>;
+  /** Série indisponível: períodos ainda sem fechamento materializado. */
+  evolutionUnavailable: boolean;
+  allocations: Array<{
+    dimension: 'account' | 'class' | 'asset' | 'goal' | 'risk' | 'liquidity' | 'indexer' | 'purpose';
+    label: string;
+    items: Array<{ key: string; label: string; amount: number; percentage: number }>;
+    truncated: boolean;
+  }>;
+  reconciliationDifference: number;
+  periodsTruncated: boolean;
 }
 
 // --- PHASE 4: Business Specifics ---

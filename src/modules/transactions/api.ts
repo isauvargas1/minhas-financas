@@ -120,6 +120,7 @@ const saveRedemption = async (
   return callInvestmentFunction("saveInvestmentRedemption", {
     workspaceId,
     idempotencyKey: metadata.idempotencyKey,
+    correlationId: `transaction-ui-${metadata.idempotencyKey}`,
     ...(transactionId ? {transactionId} : {}),
     redemption: {
       sourceMovementId: metadata.sourceMovementId,
@@ -293,6 +294,7 @@ export const deleteTransaction = async (
       await callInvestmentFunction("cancelInvestmentRedemption", {
         workspaceId,
         idempotencyKey,
+        correlationId: `transaction-ui-${idempotencyKey}`,
         transactionId: String(transaction.id),
         reason: "Cancelado pelo usuário",
       });
@@ -302,6 +304,7 @@ export const deleteTransaction = async (
       await callInvestmentFunction("reverseInvestmentRedemption", {
         workspaceId,
         idempotencyKey,
+        correlationId: `transaction-ui-${idempotencyKey}`,
         transactionId: String(transaction.id),
         reversalDate: new Date().toISOString().slice(0, 10),
         reason: "Estornado pelo usuário",

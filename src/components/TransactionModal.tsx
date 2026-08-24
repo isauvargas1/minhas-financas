@@ -1,3 +1,5 @@
+import { httpsCallable } from 'firebase/functions';
+import { functions } from '../lib/firebase';
 
 import React, { useState, FormEvent, useEffect, useRef, useMemo } from 'react';
 import {
@@ -16,7 +18,6 @@ import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
 import { useTransactionCatalogOptions } from '../modules/settings-catalog/useTransactionCatalogOptions.ts';
 import { useCreateSettingsCatalogItem } from '../modules/settings-catalog/hooks.ts';
 import { normalizeSettingsCatalogName } from '../modules/settings-catalog/utils.ts';
-import { GoogleGenAI, Type } from "@google/genai";
 
 interface ExtendedTransactionModalProps extends TransactionModalProps {
     goals?: Goal[];
@@ -57,21 +58,35 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
 
     const isEditing = !!transactionToEdit;
     const [activeTab, setActiveTab] = useState<TransactionType>('receita');
+    // Com o domínio patrimonial oficial ligado, aporte e resgate deixam de ser
+    // lançamento de transação: os relatórios passam a ler só as projeções,
+    // enquanto o fluxo de caixa continua somando `transactions`. Um aporte
+    // gravado por aqui sairia do caixa e nunca chegaria ao patrimônio. As
+    // Rules e as callables já recusam a escrita; a interface para de oferecê-la
+    // para o usuário não esbarrar num erro de permissão sem explicação.
+    const investmentsV2Enabled = activeWorkspace?.features?.investmentsV2?.enabled === true;
+
     const resolvedAllowedTypes = useMemo<TransactionType[]>(() => {
+        const withoutLegacyInvestment = (types: TransactionType[]) =>
+            investmentsV2Enabled ? types.filter(type => type !== 'investimento') : types;
+
         if (isEditing && transactionToEdit) {
             return [transactionToEdit.type];
         }
 
         if (allowedTypes && allowedTypes.length > 0) {
-            return allowedTypes;
+            return withoutLegacyInvestment(allowedTypes);
         }
 
         if (defaultType) {
-            return [defaultType];
+            return withoutLegacyInvestment([defaultType]);
         }
 
-        return ['receita', 'despesa', 'investimento', 'parcelado'];
-    }, [allowedTypes, defaultType, isEditing, transactionToEdit]);
+        return withoutLegacyInvestment(['receita', 'despesa', 'investimento', 'parcelado']);
+    }, [allowedTypes, defaultType, isEditing, transactionToEdit, investmentsV2Enabled]);
+
+    /** Modal aberto só para investimento num workspace já migrado. */
+    const investmentTrailClosed = !isEditing && resolvedAllowedTypes.length === 0;
 
     // State for form fields
     const [description, setDescription] = useState('');
@@ -689,35 +704,20 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
             const reader = new FileReader();
             reader.onload = async () => {
                 const base64Data = (reader.result as string).split(',')[1];
-                const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
-                const response = await ai.models.generateContent({
-                    model: 'gemini-3-flash-preview',
-                    contents: {
-                        parts: [
-                            { inlineData: { data: base64Data, mimeType: file.type } },
-                            { text: `Extraia informações financeiras deste documento para preencher um formulário. Retorne um JSON com os campos: type (receita, despesa, investimento, parcelado), description, value (number), category (sugestão), date (YYYY-MM-DD), supplier, costCenter, installments (se parcelado).` }
-                        ]
-                    },
-                    config: {
-                        responseMimeType: 'application/json',
-                        responseSchema: {
-                            type: Type.OBJECT,
-                            properties: {
-                                type: { type: Type.STRING },
-                                description: { type: Type.STRING },
-                                value: { type: Type.NUMBER },
-                                category: { type: Type.STRING },
-                                date: { type: Type.STRING },
-                                supplier: { type: Type.STRING },
-                                costCenter: { type: Type.STRING },
-                                installments: { type: Type.INTEGER }
-                            }
-                        }
-                    }
+                // A extração roda no backend: a chave do modelo nunca chega ao
+                // navegador. Antes, `vite.config.ts` injetava a credencial real
+                // no bundle servido a qualquer visitante.
+                const callable = httpsCallable<Record<string, unknown>, { extracted: Record<string, unknown> }>(
+                    functions,
+                    'extractTransactionFromContent',
+                );
+                const response = await callable({
+                    kind: 'document',
+                    workspaceId: activeWorkspace.id,
+                    mimeType: file.type,
+                    dataBase64: base64Data,
                 });
-
-                const result = JSON.parse(response.text || '{}');
+                const result = response.data.extracted ?? {};
                 applyAIData(result);
                 setAIStatus("Comprovante lido com sucesso!");
                 setTimeout(() => setAIStatus(null), 3000);
@@ -764,30 +764,16 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
             setIsAILoading(true);
 
             try {
-                const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-                const response = await ai.models.generateContent({
-                    model: 'gemini-3-flash-preview',
-                    contents: transcript,
-                    config: {
-                        systemInstruction: `O usuário descreveu uma transação financeira em linguagem natural. Extraia os dados e retorne um JSON. Campos: type (receita, despesa, investimento, parcelado), description, value (number), date (YYYY-MM-DD), category, supplier, costCenter, installments.`,
-                        responseMimeType: 'application/json',
-                        responseSchema: {
-                            type: Type.OBJECT,
-                            properties: {
-                                type: { type: Type.STRING },
-                                description: { type: Type.STRING },
-                                value: { type: Type.NUMBER },
-                                category: { type: Type.STRING },
-                                date: { type: Type.STRING },
-                                supplier: { type: Type.STRING },
-                                costCenter: { type: Type.STRING },
-                                installments: { type: Type.INTEGER }
-                            }
-                        }
-                    }
+                const callable = httpsCallable<Record<string, unknown>, { extracted: Record<string, unknown> }>(
+                    functions,
+                    'extractTransactionFromContent',
+                );
+                const response = await callable({
+                    kind: 'text',
+                    workspaceId: activeWorkspace.id,
+                    transcript,
                 });
-
-                const result = JSON.parse(response.text || '{}');
+                const result = response.data.extracted ?? {};
                 applyAIData(result);
                 setAIStatus("Entendido! Revise os dados preenchidos.");
                 setTimeout(() => setAIStatus(null), 3000);
@@ -1575,8 +1561,26 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
                     </button>
                 </div>
 
+                {investmentTrailClosed && (
+                    <div className="p-6">
+                        <p role="status" className="rounded-lg border border-indigo-200 bg-indigo-50 p-4 text-sm text-indigo-900 dark:border-indigo-800 dark:bg-indigo-900/20 dark:text-indigo-100">
+                            Este workspace já usa o domínio patrimonial oficial. Aportes e
+                            resgates são registrados em <strong>Investimentos</strong>, onde
+                            ficam vinculados a conta, ativo e meta — e não mais como
+                            lançamento de transação.
+                        </p>
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="mt-4 w-full rounded-lg bg-indigo-600 px-4 py-2 font-semibold text-white hover:bg-indigo-700"
+                        >
+                            Entendi
+                        </button>
+                    </div>
+                )}
+
                 {/* AI Entry Panel */}
-                {!isEditing && (
+                {!isEditing && !investmentTrailClosed && (
                     <div className="p-4 bg-indigo-50 dark:bg-indigo-900/10 border-b border-indigo-100 dark:border-indigo-900/30 flex flex-col gap-3">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
@@ -1664,7 +1668,7 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
                     </div>
                 )}
 
-                <div className="p-6">
+                {!investmentTrailClosed && <div className="p-6">
                     <form onSubmit={handleSubmit}>
                         <div className="space-y-4">
                             {renderFields()}
@@ -1682,7 +1686,7 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
                             </button>
                         </div>
                     </form>
-                </div>
+                </div>}
             </div>
             <style>{`
                 @keyframes shimmer {

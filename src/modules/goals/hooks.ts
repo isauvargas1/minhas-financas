@@ -10,14 +10,14 @@ import {
   type GoalWriteInput,
 } from './api';
 
-export const KEYS = {all: (workspaceId: string) => ['goals', workspaceId]};
+export const KEYS = {all: (workspaceId: string, investmentsV2Enabled?: boolean) => ['goals', workspaceId, investmentsV2Enabled ? 'v2' : 'legacy']};
 
 const useInvalidateGoals = () => {
   const {activeWorkspace} = useWorkspace();
   const queryClient = useQueryClient();
   return async () => {
     await Promise.all([
-      queryClient.invalidateQueries({queryKey: KEYS.all(activeWorkspace.id)}),
+      queryClient.invalidateQueries({queryKey: ['goals', activeWorkspace.id]}),
       queryClient.invalidateQueries({queryKey: ['transactions', activeWorkspace.id]}),
     ]);
   };
@@ -25,9 +25,10 @@ const useInvalidateGoals = () => {
 
 export const useGoals = () => {
   const {activeWorkspace} = useWorkspace();
+  const investmentsV2Enabled = activeWorkspace.features?.investmentsV2?.enabled === true;
   return useQuery({
-    queryKey: KEYS.all(activeWorkspace.id),
-    queryFn: () => listGoals(activeWorkspace.id),
+    queryKey: KEYS.all(activeWorkspace.id, investmentsV2Enabled),
+    queryFn: () => listGoals(activeWorkspace.id, investmentsV2Enabled),
     enabled: Boolean(activeWorkspace.id) && activeWorkspace.id !== 'loading',
   });
 };
