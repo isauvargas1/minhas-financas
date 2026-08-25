@@ -209,3 +209,23 @@ desaparece de toda leitura do produto.
 | NEW-03 | P1 | **Ordenar transações por `transactionDate` fazia o histórico legado desaparecer.** A paginação por janela usava `transactionDate`, que é opcional em documentos legados — e o Firestore omite da consulta ordenada todo documento sem o campo ordenado. Encontrado pelo E2E, que passou a falhar em três cenários com dados semeados sem o campo. | FIXED — a ordenação passou a usar `date`, exigido pelas Rules em toda transação e lexicograficamente ordenável. | perf(finance) |
 | NEW-04 | P2 | **Estorno de movimento migrado criava espelho de caixa duplicado.** O rollback da migração emite um `reversal` por movimento, e `executeReverseInvestmentMovement` escrevia espelho em `transactions` — mas a transação legada de origem **já é** o registro de caixa daquele evento. O rollback dobrava o caixa. Encontrado pelo teste de rollback ao contar as transações preservadas. | FIXED — movimento com `migratedFromTransactionId` não gera espelho no estorno, e aponta para a mesma transação de origem. | fix(investments) |
 | NEW-05 | P2 | **Rollback em ordem de `__name__` deixava a posição inconsistente.** A migração aplica em ordem cronológica; desfazer na mesma ordem tenta devolver o custo do aporte a uma posição que ainda carrega o resgate, e `applyPositionDeltas` recusa — com razão. | FIXED — a compensação percorre do mais recente para o mais antigo, o que mantém **toda** posição intermediária válida. Índice `(migrationId, occurredAt desc)` declarado. | fix(investments) |
+
+---
+
+## Smoke de regressão do produto inteiro (§11)
+
+`e2e/regression-smoke.spec.ts` percorre, para PF e PJ e com a flag
+`investmentsV2` **desligada e ligada**: dashboard com receita, despesa e
+parcelada vindas da leitura paginada; investimentos (trilha legada com a flag
+desligada, tela patrimonial e aba de alocação com ela ligada); metas; cartões;
+recorrências; relatórios; Configurações › Cadastros › Carteiras; e o retorno ao
+painel. Um quinto teste troca de workspace — de PF para um workspace PJ vazio —
+e confere que o produto vira de perfil, lida com o estado vazio e não vaza
+lançamento entre tenants.
+
+A verificação de exceção não capturada acontece **antes** de cada asserção de
+conteúdo. Sem ela, uma falha de renderização em React desmonta a árvore e a
+asserção seguinte reporta apenas "element(s) not found" — o teste acusa o
+sintoma e esconde a causa.
+
+Resultado: 5/5 no smoke; 29/29 na suíte E2E completa.
