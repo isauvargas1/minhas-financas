@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { RecurringExpense, RecurringExpenseType, RecurringBillingPeriod, RecurringPaymentMethod, BusinessContractType } from '../modules/recurring-expenses/types.ts';
 import { CreditCard, EntityItem } from '../types.ts';
 import { useSplitGroups } from '../modules/split-bills/hooks.ts';
-import { CloseIcon, SearchIcon, DynamicIcon, CreditCardIcon, UsersIcon, BoltIcon, PaletteIcon, getAllTablerIconKeys, BuildingIcon, BriefcaseIcon } from './Icons.tsx';
+import { CloseIcon, SearchIcon, DynamicIcon, CreditCardIcon, UsersIcon, BoltIcon, PaletteIcon, useTablerIconKeys, BuildingIcon, BriefcaseIcon } from './Icons.tsx';
 import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
 
 interface RecurringExpenseFormModalProps {
@@ -154,7 +154,10 @@ const RecurringExpenseFormModal: React.FC<RecurringExpenseFormModalProps> = ({
     }, [isOpen, expenseToEdit, isPJ]);
 
     // --- ICON PICKER LOGIC ---
-    const allIconKeys = useMemo(() => getAllTablerIconKeys(), []);
+    // O catálogo completo chega junto com o pacote de ícones, carregado sob
+    // demanda (INV-P2-044). Até lá a lista fica vazia e o seletor mostra o
+    // estado de carregamento, em vez de a tela inteira esperar 9,6 MB.
+    const allIconKeys = useTablerIconKeys();
     const filteredIcons = useMemo(() => {
         const lowerSearch = iconSearch.toLowerCase();
         const terms = lowerSearch.split(' ').filter(t => t.trim() !== '');

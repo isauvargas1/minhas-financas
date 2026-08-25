@@ -1,12 +1,77 @@
 
-import React from 'react';
+import React, { useEffect, useReducer } from 'react';
 import { useTheme } from '../contexts/ThemeContext.tsx';
 import { IconProps } from '../types.ts';
 
-// Import Icon Packs
-import * as LucideIcons from 'lucide-react';
-import * as TablerIcons from '@tabler/icons-react';
-import * as PhosphorIcons from '@phosphor-icons/react';
+/*
+ * Pacotes de ícones carregados sob demanda (INV-P2-044).
+ *
+ * O produto resolve ícones **por nome em tempo de execução**: o usuário escolhe
+ * o pacote no tema e escolhe ícones arbitrários para metas, categorias e
+ * carteiras. Isso obriga a ter as bibliotecas inteiras disponíveis, e com
+ * `import * as` elas entravam no primeiro paint: 9,6 MB de JavaScript
+ * analisados a cada carga de página.
+ *
+ * O renderer do Chromium estourava a memória analisando isso em máquina com
+ * pouca folga, e a página morria com "Page crashed" **antes de qualquer
+ * asserção** — de forma dependente da ordem e da carga, que é exatamente o
+ * flake que a auditoria registrou. O mesmo custo recaía sobre todo usuário
+ * real em cada visita.
+ *
+ * Os pacotes passam a ser importados dinamicamente, uma vez por sessão, com
+ * cache em módulo. Até resolverem, os ícones renderizam o mesmo desenho neutro
+ * que já servia de fallback para nome desconhecido — o que dura um frame na
+ * primeira renderização e nada nas seguintes.
+ */
+type IconPackName = 'lucide' | 'tabler' | 'phosphor';
+
+type IconPacks = Partial<Record<IconPackName, unknown>>;
+
+const loadedPacks: IconPacks = {};
+const packPromises: Partial<Record<IconPackName, Promise<unknown>>> = {};
+const packSubscribers = new Set<() => void>();
+
+const IMPORTERS: Record<IconPackName, () => Promise<unknown>> = {
+    lucide: () => import('lucide-react'),
+    tabler: () => import('@tabler/icons-react'),
+    phosphor: () => import('@phosphor-icons/react'),
+};
+
+/**
+ * Carrega um pacote uma única vez por sessão.
+ *
+ * `phosphor` pesa mais de 6 MB e só é necessário quando o tema do usuário o
+ * escolhe — carregá-lo sempre custaria a todo mundo por uma preferência de
+ * minoria. `tabler` é necessário além do tema, porque `DynamicIcon` resolve
+ * ícones escolhidos pelo usuário em metas, categorias e carteiras.
+ */
+export const loadIconPack = (pack: IconPackName): Promise<unknown> => {
+    if (loadedPacks[pack]) return Promise.resolve(loadedPacks[pack]);
+    packPromises[pack] ??= IMPORTERS[pack]().then((module) => {
+        loadedPacks[pack] = module;
+        packSubscribers.forEach((notify) => notify());
+        return module;
+    });
+    return packPromises[pack]!;
+};
+
+/** Assina o carregamento dos pacotes pedidos e re-renderiza quando chegam. */
+const useIconPacks = (...packs: IconPackName[]): IconPacks => {
+    const [, forceRender] = useReducer((value: number) => value + 1, 0);
+    const needed = packs.join(',');
+    useEffect(() => {
+        packSubscribers.add(forceRender);
+        needed.split(',').forEach((pack) => {
+            if (!loadedPacks[pack as IconPackName]) {
+                void loadIconPack(pack as IconPackName);
+            }
+        });
+        return () => {
+            packSubscribers.delete(forceRender);
+        };
+    }, [needed]);
+    return loadedPacks;
+};
 
 // Map generic names to specific library names
 const ICON_MAP: Record<string, { lucide: string, phosphor: string, tabler: string }> = {
@@ -138,7 +203,9 @@ const getIconFromSet = (iconSet: any, iconName: string) => {
 
 const AppIcon: React.FC<{ name: string } & IconProps> = ({ name, className, ...props }) => {
     const { theme } = useTheme();
-    const pack = theme?.icons?.pack || 'lucide';
+    const pack = (theme?.icons?.pack || 'lucide') as IconPackName;
+    // O pacote do tema, mais `tabler` como fallback do caminho `lucide`.
+    const packs = useIconPacks(pack, 'tabler');
     const size = theme?.icons?.size || 20;
     const strokeWidth = theme?.icons?.strokeWidth || 2;
 
@@ -153,16 +220,16 @@ const AppIcon: React.FC<{ name: string } & IconProps> = ({ name, className, ...p
 
     switch (pack) {
         case 'phosphor':
-            IconSet = PhosphorIcons;
+            IconSet = packs?.phosphor;
             iconSpecificName = mapping.phosphor;
             break;
         case 'tabler':
-            IconSet = TablerIcons;
+            IconSet = packs?.tabler;
             iconSpecificName = mapping.tabler;
             break;
         case 'lucide':
         default:
-            IconSet = LucideIcons;
+            IconSet = packs?.lucide;
             iconSpecificName = mapping.lucide;
             break;
     }
@@ -171,7 +238,7 @@ const AppIcon: React.FC<{ name: string } & IconProps> = ({ name, className, ...p
 
     if (!IconComponent) {
         if (pack === 'lucide') {
-            const FallbackComp = getIconFromSet(TablerIcons, mapping.tabler);
+            const FallbackComp = getIconFromSet(packs?.tabler, mapping.tabler);
             if (FallbackComp) {
                 return <FallbackComp className={className} size={size} stroke={strokeWidth} {...props} />;
             }
@@ -194,23 +261,48 @@ const AppIcon: React.FC<{ name: string } & IconProps> = ({ name, className, ...p
 };
 
 export const DynamicIcon: React.FC<{ name: string; className?: string; size?: number; color?: string; title?: string }> = ({ name, className, size, color, ...props }) => {
+    const packs = useIconPacks('tabler');
     if (!name) return null;
     const iconName = name.startsWith('Icon') ? name : `Icon${name}`;
-    const IconComponent = getIconFromSet(TablerIcons, iconName);
+    const IconComponent = getIconFromSet(packs?.tabler, iconName);
     if (!IconComponent) return <AppIcon name={name} className={className} {...props} />;
     return <IconComponent size={size || 24} className={className} stroke={2} color={color || 'currentColor'} {...props} />;
 };
 
-export const getAllTablerIconKeys = () => {
+const collectTablerKeys = (tabler: unknown): string[] => {
     const keys = new Set<string>();
-    Object.keys(TablerIcons).forEach(key => { if (key.startsWith('Icon')) keys.add(key); });
-    // @ts-ignore
-    if (TablerIcons.default) {
-        // @ts-ignore
-        Object.keys(TablerIcons.default).forEach(key => { if (key.startsWith('Icon')) keys.add(key); });
-    }
+    const add = (source: unknown) => {
+        if (!source || typeof source !== 'object') return;
+        Object.keys(source as Record<string, unknown>).forEach((key) => {
+            if (key.startsWith('Icon')) keys.add(key);
+        });
+    };
+    add(tabler);
+    add((tabler as { default?: unknown } | null)?.default);
     return Array.from(keys);
 };
+
+/**
+ * Catálogo completo de ícones do Tabler, para os seletores.
+ *
+ * Devolve lista vazia enquanto o pacote não chegou — os seletores mostram o
+ * estado de carregamento em vez de bloquear a tela inteira esperando 9,6 MB.
+ */
+export const useTablerIconKeys = (): string[] => {
+    const packs = useIconPacks('tabler');
+    return React.useMemo(
+        () => (packs.tabler ? collectTablerKeys(packs.tabler) : []),
+        [packs],
+    );
+};
+
+/** Resolve um ícone do Tabler pelo nome, no pacote já carregado. */
+export const resolveTablerIcon = (iconName: string): unknown =>
+    getIconFromSet(loadedPacks.tabler, iconName) ?? undefined;
+
+/** Versão síncrona, para chamadores fora de componente. Vazia até carregar. */
+export const getAllTablerIconKeys = (): string[] =>
+    loadedPacks.tabler ? collectTablerKeys(loadedPacks.tabler) : [];
 
 // --- Export Wrappers ---
 export const DashboardIcon: React.FC<IconProps> = (props) => <AppIcon name="Dashboard" {...props} />;

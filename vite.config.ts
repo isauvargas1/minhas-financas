@@ -46,11 +46,13 @@ export default defineConfig(({ mode }) => {
               ],
               'vendor-charts': ['recharts'],
               'vendor-motion': ['framer-motion'],
-              'vendor-icons': [
-                '@tabler/icons-react',
-                'lucide-react',
-                '@phosphor-icons/react',
-              ],
+              /*
+               * Os pacotes de ícones **não** entram em `manualChunks`.
+               *
+               * Agrupá-los força a inclusão integral e anula o tree-shaking;
+               * eles são importados dinamicamente por `Icons.tsx` e o Rollup
+               * já os separa em chunks próprios, fora do carregamento inicial.
+               */
               'vendor-query': ['@tanstack/react-query'],
             },
           },

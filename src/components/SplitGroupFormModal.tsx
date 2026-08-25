@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { SplitGroup, SplitGroupType } from '../types.ts';
-import { CloseIcon, SearchIcon, DynamicIcon, getAllTablerIconKeys } from './Icons.tsx';
+import { CloseIcon, SearchIcon, DynamicIcon, useTablerIconKeys } from './Icons.tsx';
 import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
 
 interface SplitGroupFormModalProps {
@@ -89,7 +89,10 @@ const SplitGroupFormModal: React.FC<SplitGroupFormModalProps> = ({
     }, [isOpen, groupToEdit, initialBusinessType, isPJ]);
 
     // --- ICON SEARCH LOGIC ---
-    const allIconKeys = useMemo(() => getAllTablerIconKeys(), []);
+    // O catálogo completo chega junto com o pacote de ícones, carregado sob
+    // demanda (INV-P2-044). Até lá a lista fica vazia e o seletor mostra o
+    // estado de carregamento, em vez de a tela inteira esperar 9,6 MB.
+    const allIconKeys = useTablerIconKeys();
 
     const filteredIcons = useMemo(() => {
         const lowerSearch = iconSearch.toLowerCase();

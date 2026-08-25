@@ -210,7 +210,17 @@ const goalContributionsQuery = (workspaceId: string, goalId: string) =>
     .orderBy("__name__", "asc")
     .limit(GOAL_CONTRIBUTIONS_SCAN_LIMIT + 1);
 
-/** Falha alto se o histórico da meta ultrapassar o teto de varredura. */
+/**
+ * Falha alto se o histórico da meta ultrapassar o teto de varredura.
+ *
+ * **Chame depois do `Promise.all`, nunca dentro de um `.then()` encadeado numa
+ * das leituras** (INV-P2-044). Lançar de dentro do `.then()` faz o
+ * `Promise.all` rejeitar enquanto as leituras irmãs ainda estão em voo; o
+ * `runTransaction` aborta e as leituras pendentes do handle abortado rejeitam
+ * com `Transaction is invalid or closed`. Sob concorrência — dois aportes
+ * simultâneos na mesma meta, que é justamente o cenário testado — isso
+ * transformava um retry legítimo de contenção em falha intermitente da suíte.
+ */
 const assertGoalContributionsWithinLimit = (
   snapshot: admin.firestore.QuerySnapshot,
   goalId: string,
@@ -319,9 +329,11 @@ export const executeSetGoalTransactionLinks = async (
   const goalDocument = goalRef(auth.workspaceId, payload.goalId);
   const [goalSnapshot, linkedSnapshot] = await Promise.all([
     transaction.get(goalDocument),
-    transaction.get(goalContributionsQuery(auth.workspaceId, payload.goalId)).then((snapshot) =>
-      assertGoalContributionsWithinLimit(snapshot, payload.goalId)),
+    transaction.get(goalContributionsQuery(auth.workspaceId, payload.goalId)),
   ]);
+  // Validação **depois** de todas as leituras: lançar de dentro do
+  // `Promise.all` aborta a transação com leituras irmãs em voo (INV-P2-044).
+  assertGoalContributionsWithinLimit(linkedSnapshot, payload.goalId);
   if (!goalSnapshot.exists || goalSnapshot.data()?.archived === true) {
     throw new CreditCardApplicationError("not_found", "Meta não encontrada.");
   }
@@ -439,9 +451,11 @@ export const executeArchiveGoal = async (
   const ref = goalRef(auth.workspaceId, payload.goalId);
   const [goalSnapshot, historySnapshot] = await Promise.all([
     transaction.get(ref),
-    transaction.get(goalContributionsQuery(auth.workspaceId, payload.goalId)).then((snapshot) =>
-      assertGoalContributionsWithinLimit(snapshot, payload.goalId)),
+    transaction.get(goalContributionsQuery(auth.workspaceId, payload.goalId)),
   ]);
+  // Validação **depois** de todas as leituras: lançar de dentro do
+  // `Promise.all` aborta a transação com leituras irmãs em voo (INV-P2-044).
+  assertGoalContributionsWithinLimit(historySnapshot, payload.goalId);
   if (!goalSnapshot.exists) {
     throw new CreditCardApplicationError("not_found", "Meta não encontrada.");
   }
@@ -473,9 +487,11 @@ export const executeRebuildGoalProgress = async (
   const ref = goalRef(auth.workspaceId, payload.goalId);
   const [goalSnapshot, contributions] = await Promise.all([
     transaction.get(ref),
-    transaction.get(goalContributionsQuery(auth.workspaceId, payload.goalId)).then((snapshot) =>
-      assertGoalContributionsWithinLimit(snapshot, payload.goalId)),
+    transaction.get(goalContributionsQuery(auth.workspaceId, payload.goalId)),
   ]);
+  // Validação **depois** de todas as leituras: lançar de dentro do
+  // `Promise.all` aborta a transação com leituras irmãs em voo (INV-P2-044).
+  assertGoalContributionsWithinLimit(contributions, payload.goalId);
   if (!goalSnapshot.exists) {
     throw new CreditCardApplicationError("not_found", "Meta não encontrada.");
   }
@@ -514,10 +530,12 @@ export const executeSaveGoalContribution = async (
   const contributionSnapshot = await transaction.get(contributionDocument);
   const [goalSnapshot, linkedSnapshot, workspaceSnapshot] = await Promise.all([
     transaction.get(goalDocument),
-    transaction.get(goalContributionsQuery(auth.workspaceId, payload.contribution.goalId)).then((snapshot) =>
-      assertGoalContributionsWithinLimit(snapshot, payload.contribution.goalId)),
+    transaction.get(goalContributionsQuery(auth.workspaceId, payload.contribution.goalId)),
     transaction.get(db().doc(workspacePath(auth.workspaceId))),
   ]);
+  // Validação **depois** de todas as leituras: lançar de dentro do
+  // `Promise.all` aborta a transação com leituras irmãs em voo (INV-P2-044).
+  assertGoalContributionsWithinLimit(linkedSnapshot, payload.contribution.goalId);
   // Com o domínio oficial ligado, o progresso da meta vem de
   // `investmentProgressCents`, alimentado pelas posições. Um aporte gravado
   // aqui sairia do caixa e não apareceria na meta nem no patrimônio.

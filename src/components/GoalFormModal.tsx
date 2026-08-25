@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Goal, GoalCategory, GoalPriority, GoalHorizon, EntityItem, Transaction, GoalStatus, BusinessGoalType, GoalPeriod } from '../types.ts';
-import { CloseIcon, SearchIcon, SparklesIcon, DynamicIcon, getAllTablerIconKeys, BriefcaseIcon, BuildingIcon, ClockIcon } from './Icons.tsx';
+import { CloseIcon, SearchIcon, SparklesIcon, DynamicIcon, useTablerIconKeys, BriefcaseIcon, BuildingIcon, ClockIcon } from './Icons.tsx';
 import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
 
 interface GoalFormModalProps {
@@ -236,7 +236,10 @@ const GoalFormModal: React.FC<GoalFormModalProps> = ({
     }, [isOpen, isSaving, onClose]);
 
     // --- ICON SEARCH LOGIC ---
-    const allIconKeys = useMemo(() => getAllTablerIconKeys(), []);
+    // O catálogo completo chega junto com o pacote de ícones, carregado sob
+    // demanda (INV-P2-044). Até lá a lista fica vazia e o seletor mostra o
+    // estado de carregamento, em vez de a tela inteira esperar 9,6 MB.
+    const allIconKeys = useTablerIconKeys();
     const filteredIcons = useMemo(() => {
         const lowerSearch = iconSearch.toLowerCase();
         const terms = lowerSearch.split(' ').filter(t => t.trim() !== '');

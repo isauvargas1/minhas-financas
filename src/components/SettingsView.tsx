@@ -12,8 +12,33 @@ import {
     BellIcon,
     PaletteIcon,
     UsersIcon,
+    resolveTablerIcon,
+    useTablerIconKeys,
 } from './Icons.tsx';
-import * as TablerIcons from '@tabler/icons-react';
+/*
+ * Importação nomeada, não namespace (INV-P2-044).
+ *
+ * `import * as TablerIcons` arrasta a biblioteca inteira — 9,6 MB — para o
+ * primeiro paint, mesmo usando catorze ícones. Nomeados são tree-shakeable.
+ * A resolução dinâmica por nome, que o seletor de ícones precisa, continua
+ * existindo em `Icons.tsx`, agora carregada sob demanda.
+ */
+import {
+    IconAlertTriangle,
+    IconChartBar,
+    IconChevronRight,
+    IconCircleCheck,
+    IconCreditCard,
+    IconDatabase,
+    IconLayoutGrid,
+    IconPackage,
+    IconReceipt2,
+    IconShape,
+    IconTags,
+    IconTrendingDown,
+    IconTrendingUp,
+    IconWallet,
+} from '@tabler/icons-react';
 import PersonalizationView from './PersonalizationView.tsx';
 import MembersManagerModal from './MembersManagerModal.tsx';
 import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
@@ -48,10 +73,10 @@ const CATEGORY_SUBTYPE_OPTIONS: Array<{
     label: string;
     icon: React.ComponentType<any>;
 }> = [
-    { key: 'receita', label: 'Receitas', icon: TablerIcons.IconTrendingUp },
-    { key: 'despesa', label: 'Despesas', icon: TablerIcons.IconTrendingDown },
-    { key: 'investimento', label: 'Investimentos', icon: TablerIcons.IconChartBar },
-    { key: 'parcelado', label: 'Parcelados', icon: TablerIcons.IconCreditCard },
+    { key: 'receita', label: 'Receitas', icon: IconTrendingUp },
+    { key: 'despesa', label: 'Despesas', icon: IconTrendingDown },
+    { key: 'investimento', label: 'Investimentos', icon: IconChartBar },
+    { key: 'parcelado', label: 'Parcelados', icon: IconCreditCard },
 ];
 
 const ICON_CATEGORIES = [
@@ -71,27 +96,27 @@ const SECTION_SIDEBAR_META: Record<
     }
 > = {
     Produtos: {
-        icon: TablerIcons.IconPackage,
+        icon: IconPackage,
         shortDescription: 'Itens e serviços recorrentes.',
     },
     Despesas: {
-        icon: TablerIcons.IconReceipt2,
+        icon: IconReceipt2,
         shortDescription: 'Gastos e classificações.',
     },
     Categorias: {
-        icon: TablerIcons.IconTags,
+        icon: IconTags,
         shortDescription: 'Organização por tipo.',
     },
     Pagamentos: {
-        icon: TablerIcons.IconCreditCard,
+        icon: IconCreditCard,
         shortDescription: 'Métodos de pagamento.',
     },
     Receitas: {
-        icon: TablerIcons.IconTrendingUp,
+        icon: IconTrendingUp,
         shortDescription: 'Entradas e fontes.',
     },
     Carteiras: {
-        icon: TablerIcons.IconWallet,
+        icon: IconWallet,
         shortDescription: 'Contas e reservas.',
     },
 };
@@ -99,43 +124,36 @@ const SECTION_SIDEBAR_META: Record<
 const getSectionSidebarMeta = (shortTitle?: string) => {
     if (!shortTitle) {
         return {
-            icon: TablerIcons.IconDatabase,
+            icon: IconDatabase,
             shortDescription: 'Catálogo do workspace.',
         };
     }
 
     return (
         SECTION_SIDEBAR_META[shortTitle] || {
-            icon: TablerIcons.IconDatabase,
+            icon: IconDatabase,
             shortDescription: 'Catálogo do workspace.',
         }
     );
 };
 
-const getIconComponent = (iconName: string) => {
-    const possibleNames = [iconName, `Icon${iconName}`];
-    for (const name of possibleNames) {
-        // @ts-ignore
-        if (TablerIcons[name]) return TablerIcons[name] as React.FC<any>;
-        // @ts-ignore
-        if (TablerIcons.default && TablerIcons.default[name]) return TablerIcons.default[name] as React.FC<any>;
-    }
-    return undefined;
-};
-
-const getAllIconKeys = () => {
-    const keys = new Set<string>();
-    Object.keys(TablerIcons).forEach((key) => {
-        if (key.startsWith('Icon')) keys.add(key);
-    });
-    // @ts-ignore
-    if (TablerIcons.default) {
-        // @ts-ignore
-        Object.keys(TablerIcons.default).forEach((key) => {
-            if (key.startsWith('Icon')) keys.add(key);
-        });
-    }
-    return Array.from(keys);
+/*
+ * Resolução dinâmica por nome sobre o pacote carregado sob demanda
+ * (INV-P2-044). O seletor de ícones precisa do catálogo inteiro; o resto da
+ * tela não, e antes pagava por ele em toda carga de página.
+ */
+const useIconComponentResolver = () => {
+    const keys = useTablerIconKeys();
+    return React.useMemo(() => {
+        const available = new Set(keys);
+        return (iconName: string): React.FC<any> | undefined => {
+            const candidate = [iconName, `Icon${iconName}`]
+                .find((name) => available.has(name));
+            return candidate
+                ? (resolveTablerIcon(candidate) as React.FC<any> | undefined)
+                : undefined;
+        };
+    }, [keys]);
 };
 
 const getModalPortalRoot = (): HTMLElement => {
@@ -282,7 +300,8 @@ const SettingsView: React.FC<SettingsViewProps> = () => {
         }
     }, [isModalOpen, selectedItem]);
 
-    const allIconKeys = useMemo(() => getAllIconKeys(), []);
+    const allIconKeys = useTablerIconKeys();
+    const resolveIconComponent = useIconComponentResolver();
 
     const filteredIcons = useMemo(() => {
         const lowerSearch = iconSearch.toLowerCase().trim();
@@ -383,7 +402,7 @@ const sortedItems = useMemo(() => {
         size: number = 24
     ) => {
         if (!iconName) return null;
-        const IconComponent = getIconComponent(iconName);
+        const IconComponent = resolveIconComponent(iconName);
         if (!IconComponent) return null;
         return <IconComponent size={size} color={color || 'currentColor'} stroke={stroke || 2} />;
     };
@@ -651,7 +670,7 @@ const sortedItems = useMemo(() => {
                         className="bg-surface p-6 rounded-xl shadow-md border border-transparent hover:border-indigo-500 transition-all group text-left"
                     >
                         <div className="w-12 h-12 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                            <TablerIcons.IconDatabase size={24} />
+                            <IconDatabase size={24} />
                         </div>
                         <h3 className="text-lg font-bold text-on-surface mb-2">Cadastros</h3>
                         <p className="text-sm text-muted mb-4">
@@ -759,7 +778,7 @@ const sortedItems = useMemo(() => {
             </div>
 
             <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-primary/15 bg-primary/10 text-primary transition-transform duration-200 group-hover:scale-105">
-                <TablerIcons.IconDatabase size={20} />
+                <IconDatabase size={20} />
             </div>
         </div>
     </div>
@@ -782,7 +801,7 @@ const sortedItems = useMemo(() => {
             </div>
 
             <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-emerald-400/15 bg-emerald-400/10 text-emerald-400 transition-transform duration-200 group-hover:scale-105">
-                <TablerIcons.IconCircleCheck size={20} />
+                <IconCircleCheck size={20} />
             </div>
         </div>
     </div>
@@ -805,7 +824,7 @@ const sortedItems = useMemo(() => {
             </div>
 
             <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-amber-400/15 bg-amber-400/10 text-amber-400 transition-transform duration-200 group-hover:scale-105">
-                <TablerIcons.IconAlertTriangle size={20} />
+                <IconAlertTriangle size={20} />
             </div>
         </div>
     </div>
@@ -817,13 +836,13 @@ const sortedItems = useMemo(() => {
            <aside className="w-full xl:w-80 xl:self-start bg-surface rounded-2xl shadow-md p-4 border border-border flex-shrink-0 overflow-hidden">
     <div className="mb-4 pb-4 border-b border-border">
         <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-[11px] font-bold uppercase tracking-wide mb-3">
-            <TablerIcons.IconLayoutGrid size={14} />
+            <IconLayoutGrid size={14} />
             Seções
         </div>
 
         <div className="flex items-start gap-3">
             <div className="w-11 h-11 rounded-2xl bg-primary/12 text-primary flex items-center justify-center shrink-0">
-                <TablerIcons.IconDatabase size={22} />
+                <IconDatabase size={22} />
             </div>
 
             <div>
@@ -874,7 +893,7 @@ const sortedItems = useMemo(() => {
                                     {section.shortTitle}
                                 </span>
 
-                                <TablerIcons.IconChevronRight
+                                <IconChevronRight
                                     size={16}
                                     className={`shrink-0 transition-transform ${
                                         isActive
@@ -1073,7 +1092,7 @@ const sortedItems = useMemo(() => {
                             <div className="h-full min-h-[320px] flex items-center justify-center">
                                 <div className="max-w-md text-center">
                                     <div className="mx-auto w-16 h-16 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-4">
-                                        <TablerIcons.IconDatabase size={28} />
+                                        <IconDatabase size={28} />
                                     </div>
                                     <h4 className="text-lg font-bold text-on-surface">
                                         {activeSection?.emptyTitle}
@@ -1115,7 +1134,7 @@ const sortedItems = useMemo(() => {
                                                                 24
                                                             )
                                                         ) : (
-                                                            <TablerIcons.IconShape
+                                                            <IconShape
                                                                 size={22}
                                                                 className="text-muted"
                                                             />
@@ -1261,7 +1280,7 @@ const sortedItems = useMemo(() => {
                                                                     {item.icon ? (
                                                                         renderIcon(item.icon, item.color, item.stroke, 20)
                                                                     ) : (
-                                                                        <TablerIcons.IconShape
+                                                                        <IconShape
                                                                             size={18}
                                                                             className="text-muted"
                                                                         />
@@ -1456,7 +1475,7 @@ const sortedItems = useMemo(() => {
                                                 {itemIcon ? (
                                                     renderIcon(itemIcon, itemColor, itemStroke, 28)
                                                 ) : (
-                                                    <TablerIcons.IconShape
+                                                    <IconShape
                                                         size={24}
                                                         className="text-muted"
                                                     />

@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
@@ -301,12 +302,25 @@ test('duplo clique em Confirmar aporte cria um único movimento', async ({ page 
   await page.getByLabel('Valor principal (R$)').fill('750');
   await page.getByLabel('Quantidade').fill('7.5');
 
-  const confirm = page.getByRole('button', { name: 'Confirmar aporte' });
-  // Dois cliques em sequência imediata, sem esperar a resposta do primeiro.
-  await confirm.click({ noWaitAfter: true });
-  await confirm.click({ noWaitAfter: true, force: true }).catch(() => {
-    // O botão fica desabilitado enquanto a mutação está em voo — que é
-    // justamente a trava de duplo submit. Se o clique não passar, melhor.
+  /*
+   * Dois cliques no **mesmo tick**, antes de qualquer re-render.
+   *
+   * Nem `click()` nem `dispatchEvent()` servem aqui, e a razão é a própria
+   * trava sendo testada: no primeiro clique o botão fica desabilitado e muda o
+   * rótulo para "Processando…", então o segundo comando não reencontra o
+   * locator e o teste esgota o tempo sem nunca exercitar a corrida.
+   *
+   * Resolver o elemento uma vez e disparar os dois cliques dentro da própria
+   * página reproduz exatamente o duplo clique do usuário: os dois eventos
+   * chegam ao manipulador antes de o React commitar o estado.
+   */
+  const confirm = await page
+    .getByRole('button', { name: 'Confirmar aporte' })
+    .elementHandle();
+  assert.ok(confirm, 'O botão de confirmação precisa existir.');
+  await confirm.evaluate((node) => {
+    (node as HTMLButtonElement).click();
+    (node as HTMLButtonElement).click();
   });
   await expect(page.getByText('Operação concluída com sucesso.')).toBeVisible();
 
