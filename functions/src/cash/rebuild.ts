@@ -6,7 +6,7 @@ import {z} from "zod";
 import {requireWorkspaceRole} from "../creditCards/auth";
 import {CreditCardApplicationError} from "../creditCards/errors";
 import {toHttpsError} from "../creditCards/errors";
-import {consumeRateLimit} from "../shared/rateLimit";
+import {reserveRateLimit} from "../shared/rateLimit";
 import {HEAVY_CALLABLE_OPTIONS} from "../shared/runtimeOptions";
 import {
   CASH_PERIODS_COLLECTION,
@@ -184,7 +184,7 @@ export const rebuildCashPeriods = onCall(
         "admin",
       ]);
       await admin.firestore().runTransaction(async (transaction) => {
-        const reservation = await consumeRateLimit(
+        const reservation = await reserveRateLimit(
           transaction,
           auth.workspaceId,
           auth.uid,

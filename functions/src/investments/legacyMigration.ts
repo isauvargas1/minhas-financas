@@ -21,7 +21,7 @@ import {
   profileTypeFromWorkspace,
 } from "./infrastructure";
 import {addExact} from "./math";
-import {consumeRateLimit} from "../shared/rateLimit";
+import {reserveRateLimit} from "../shared/rateLimit";
 import {investmentRateLimitPolicy} from "./rateLimits";
 import {recordInvestmentOperationMetric} from "./observability";
 import {
@@ -634,7 +634,7 @@ export const executeMigrateLegacyInvestments = async (
     });
     const policy = investmentRateLimitPolicy("migrateLegacyInvestments");
     const rateLimit = policy ?
-      await consumeRateLimit(transaction, auth.workspaceId, auth.uid, policy) :
+      await reserveRateLimit(transaction, auth.workspaceId, auth.uid, policy) :
       undefined;
     rateLimit?.commit();
     commitLease();
@@ -1114,7 +1114,7 @@ export const executeRollbackLegacyInvestmentMigration = async (
       "rollbackLegacyInvestmentMigration",
     );
     const rateLimit = policy ?
-      await consumeRateLimit(transaction, auth.workspaceId, auth.uid, policy) :
+      await reserveRateLimit(transaction, auth.workspaceId, auth.uid, policy) :
       undefined;
     rateLimit?.commit();
     commitLease();
@@ -1346,11 +1346,11 @@ export const executeEnableInvestmentsV2Flag = async (
       investmentOperationRoles("enableInvestmentsV2Flag"),
     );
     const workspaceRef = investmentWorkspaceRef(auth.workspaceId);
-    // Leituras primeiro: `consumeRateLimit` já grava o contador.
+    // Leituras primeiro: `reserveRateLimit` já grava o contador.
     await transaction.get(workspaceRef);
     const policy = investmentRateLimitPolicy("enableInvestmentsV2Flag");
     const rateLimit = policy ?
-      await consumeRateLimit(transaction, auth.workspaceId, auth.uid, policy) :
+      await reserveRateLimit(transaction, auth.workspaceId, auth.uid, policy) :
       undefined;
     rateLimit?.commit();
     transaction.set(

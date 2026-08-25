@@ -5,7 +5,12 @@ import type {WorkspaceAuthorizationContext} from "../creditCards/auth";
 import {CreditCardApplicationError} from "../creditCards/errors";
 import type {BackfillInvestmentWorkspacePayload} from "./contracts";
 import {INVESTMENT_CALCULATION_VERSION} from "./domain";
-import {profileTypeFromWorkspace, sha256} from "./infrastructure";
+import {
+  authorizeInvestmentTransaction,
+  profileTypeFromWorkspace,
+  sha256,
+} from "./infrastructure";
+import {investmentOperationRoles} from "./writeStrategy";
 import {
   INVESTMENT_COLLECTIONS,
   investmentCollection,
@@ -149,6 +154,15 @@ export const executeBackfillInvestmentWorkspace = async (
   const leaseMs = 10 * 60 * 1000;
   const leaseToken = `${auth.uid}:${payload.correlationId}:${payload.idempotencyKey}`;
   await investmentFirestore().runTransaction(async (transaction) => {
+    // INV-P3-052 — o papel é revalidado **dentro** da transação, como nas
+    // demais operações do domínio. O wrapper da callable já autorizou, mas o
+    // backfill é longo: uma revogação de papel entre a autorização e a reserva
+    // do lease deixava a execução seguir com privilégio que já não existe.
+    await authorizeInvestmentTransaction(
+      transaction,
+      auth,
+      investmentOperationRoles("backfillInvestmentWorkspace"),
+    );
     const current = await transaction.get(snapshotRef);
     const data = current.data() ?? {};
     const heldBy = data.leaseToken;

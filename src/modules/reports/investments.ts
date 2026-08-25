@@ -1,22 +1,36 @@
-import type { OfficialInvestmentReportData } from '../investments/types';
-import type { InvestmentOverview, ReportTimeRange } from './types';
+import type { OfficialInvestmentReportData } from '../investments/types.ts';
+import type { InvestmentOverview, ReportTimeRange } from './types.ts';
+import {
+  shiftSaoPauloDays,
+  startOfSaoPauloTwelveMonths,
+  startOfSaoPauloYear,
+} from './dateWindow.ts';
 
 const fromCents = (value = 0) => value / 100;
 
-const rangeStart = (range: ReportTimeRange): string | undefined => {
+/**
+ * Início da janela, no fuso oficial do produto (INV-P2-048).
+ *
+ * O domínio materializa toda chave de período em `America/Sao_Paulo`. O
+ * recorte usava `getUTCDate()`/`toISOString()`: entre 21:00 e 23:59 BRT a data
+ * UTC já é a do dia seguinte, e na virada do mês é o mês seguinte — a janela
+ * do relatório incluía ou excluía um dia inteiro em relação ao que o backend
+ * gravou.
+ */
+const rangeStart = (
+  range: ReportTimeRange,
+  reference = new Date(),
+): string | undefined => {
   if (range === 'all') return undefined;
-  const now = new Date();
-  const start = new Date(now);
-  if (range === '7d') start.setUTCDate(now.getUTCDate() - 6);
-  if (range === '30d') start.setUTCDate(now.getUTCDate() - 29);
-  if (range === '90d') start.setUTCDate(now.getUTCDate() - 89);
-  if (range === '12m') {
-    start.setUTCFullYear(now.getUTCFullYear() - 1);
-    start.setUTCDate(start.getUTCDate() + 1);
-  }
-  if (range === 'ytd') start.setUTCMonth(0, 1);
-  return start.toISOString().slice(0, 10);
+  if (range === '7d') return shiftSaoPauloDays(-6, reference);
+  if (range === '30d') return shiftSaoPauloDays(-29, reference);
+  if (range === '90d') return shiftSaoPauloDays(-89, reference);
+  if (range === '12m') return startOfSaoPauloTwelveMonths(reference);
+  if (range === 'ytd') return startOfSaoPauloYear(reference);
+  return shiftSaoPauloDays(0, reference);
 };
+
+export const investmentRangeStartForTest = rangeStart;
 
 const inSelectedRange = (period: string, range: ReportTimeRange): boolean => {
   const start = rangeStart(range);

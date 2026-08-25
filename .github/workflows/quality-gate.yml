@@ -1,0 +1,165 @@
+name: Gate de qualidade
+
+# Nenhum commit chegava com testes vermelhos porque nada os executava: o
+# repositório não tinha CI, e o gate era inteiramente manual (dívida registrada
+# na auditoria de prontidão). Este workflow é o gate.
+#
+# Nenhum segredo é usado. As suítes rodam contra o Firebase Emulator, com dados
+# sintéticos, e nada aqui toca projeto real.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: quality-gate-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # O build do frontend inclui o catálogo completo de ícones, resolvido por
+  # nome em tempo de execução. O passo de renderização do Rollup precisa de
+  # heap acima do padrão.
+  NODE_OPTIONS: --max-old-space-size=4096
+
+jobs:
+  build-and-unit:
+    name: Build e testes unitários (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # 24 é o runtime declarado em `functions/package.json` e o que o deploy
+        # usa; 22 é o que o ambiente de desenvolvimento executa hoje. Rodar os
+        # dois é o que elimina a divergência "runtime implantado nunca
+        # exercitado" apontada na auditoria.
+        node: ['22', '24']
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            functions/package-lock.json
+
+      - name: Instalar dependências da raiz
+        run: npm ci
+
+      - name: Instalar dependências das Functions
+        run: npm ci --prefix functions
+
+      - name: Verificação de tipos
+        run: npm run typecheck
+
+      - name: Lint das Functions
+        # Formatação é aviso; correção é erro. Ver `functions/.eslintrc.js`.
+        run: npm run functions:lint
+
+      - name: Build do frontend
+        run: npm run build
+
+      - name: Build das Functions
+        run: npm run functions:build
+
+      - name: Testes unitários das Functions
+        run: npm run functions:test:unit
+
+      - name: Testes unitários do frontend
+        run: npm run test:unit:investments
+
+  integration-and-rules:
+    name: Integração e Firestore Rules
+    runs-on: ubuntu-latest
+    needs: build-and-unit
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            functions/package-lock.json
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Instalar dependências da raiz
+        run: npm ci
+
+      - name: Instalar dependências das Functions
+        run: npm ci --prefix functions
+
+      - name: Instalar Firebase CLI
+        run: npm install -g firebase-tools@latest
+
+      - name: Cache dos emuladores
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/firebase/emulators
+          key: firebase-emulators-${{ runner.os }}
+
+      - name: Suíte de integração e Rules no Emulator
+        run: npm run test:integration:emulator
+
+  e2e:
+    name: E2E
+    runs-on: ubuntu-latest
+    needs: build-and-unit
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            functions/package-lock.json
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Instalar dependências da raiz
+        run: npm ci
+
+      - name: Instalar dependências das Functions
+        run: npm ci --prefix functions
+
+      - name: Instalar Firebase CLI
+        run: npm install -g firebase-tools@latest
+
+      - name: Cache dos emuladores
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/firebase/emulators
+          key: firebase-emulators-${{ runner.os }}
+
+      - name: Instalar navegador do Playwright
+        run: npx playwright install --with-deps chromium
+
+      # O E2E roda contra o build de produção servido por `vite preview`, e não
+      # contra o servidor de desenvolvimento: o grafo de módulos não empacotado
+      # derrubava o renderer do Chromium por memória antes de qualquer
+      # asserção. `test:e2e` já constrói antes de invocar o Playwright.
+      - name: Suíte E2E
+        run: npm run test:e2e
+
+      - name: Artefatos de falha
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7

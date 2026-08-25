@@ -37,7 +37,11 @@ export const rateLimitDocumentId = (
   `${sanitizeKeyPart(policy.operation)}_${sanitizeKeyPart(actorId)}`;
 
 /**
- * Verifica o limite e devolve o gravador do contador.
+ * **Reserva** uma unidade do limite e devolve o gravador do contador.
+ *
+ * O nome é deliberado: `reserve` sinaliza que a chamada sozinha não conta
+ * nada. Quem esquece de chamar `commit()` transforma o teto em decoração — e
+ * isso não é detectável por tipo, só por leitura.
  *
  * A separação entre verificação e gravação não é estilística: o Firestore
  * exige **todas** as leituras antes de qualquer escrita numa transação, e as
@@ -48,13 +52,13 @@ export const rateLimitDocumentId = (
  * Lança `domain_precondition_failed` com mensagem em pt-BR quando o teto é
  * atingido — antes de qualquer escrita, portanto sem efeito colateral.
  */
-export const consumeRateLimit = async (
+export const reserveRateLimit = async (
   transaction: admin.firestore.Transaction,
   workspaceId: string,
   actorId: string,
   policy: RateLimitPolicy,
 ): Promise<RateLimitReservation> =>
-  consumeRateLimitAt(
+  reserveRateLimitAt(
     transaction,
     admin
       .firestore()
@@ -73,12 +77,12 @@ export const consumeRateLimit = async (
  * `workspaces/user_{uid}/…` criaria subcoleção sob um documento de workspace
  * que não existe, poluindo a listagem do tenant.
  */
-export const consumeUserRateLimit = async (
+export const reserveUserRateLimit = async (
   transaction: admin.firestore.Transaction,
   userId: string,
   policy: RateLimitPolicy,
 ): Promise<RateLimitReservation> =>
-  consumeRateLimitAt(
+  reserveRateLimitAt(
     transaction,
     admin
       .firestore()
@@ -93,7 +97,7 @@ export interface RateLimitReservation {
   commit: () => void;
 }
 
-const consumeRateLimitAt = async (
+const reserveRateLimitAt = async (
   transaction: admin.firestore.Transaction,
   ref: admin.firestore.DocumentReference,
   context: {

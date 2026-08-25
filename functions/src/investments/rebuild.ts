@@ -439,15 +439,17 @@ export const executeRecalculateInvestmentPosition = async (
           next: goalSnapshot?.data()?.name as string | undefined,
         },
       );
-      if (periodContext) writeInvestmentValuationReportPeriod(
-        transaction,
-        auth.workspaceId,
-        authorization.profileType,
-        auth.uid,
-        rebuiltState.valuationEffectiveAt ?? cutoffAt,
-        rebuiltState.currentValueCents - currentPosition.currentValueCents,
-        periodContext,
-      );
+      if (periodContext) {
+        writeInvestmentValuationReportPeriod(
+          transaction,
+          auth.workspaceId,
+          authorization.profileType,
+          auth.uid,
+          rebuiltState.valuationEffectiveAt ?? cutoffAt,
+          rebuiltState.currentValueCents - currentPosition.currentValueCents,
+          periodContext,
+        );
+      }
       if (goalSnapshot) {
         const goal = goalSnapshot.data() ?? {};
         transaction.update(goalSnapshot.ref, {

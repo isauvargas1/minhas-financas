@@ -7,7 +7,7 @@ import type {
   WorkspaceMemberRole,
 } from "../creditCards/auth";
 import {CreditCardApplicationError} from "../creditCards/errors";
-import {consumeRateLimit} from "../shared/rateLimit";
+import {reserveRateLimit} from "../shared/rateLimit";
 import {RETENTION_DAYS, expiresInDays} from "../shared/retention";
 import type {InvestmentProfileType} from "./domain";
 import {investmentRateLimitPolicy} from "./rateLimits";
@@ -268,7 +268,7 @@ export const reserveInvestmentIdempotency = async (
     // o mecanismo que existe para tolerar retry num motivo de recusa.
     const policy = investmentRateLimitPolicy(operation);
     const rateLimit = policy ?
-      await consumeRateLimit(transaction, auth.workspaceId, auth.uid, policy) :
+      await reserveRateLimit(transaction, auth.workspaceId, auth.uid, policy) :
       undefined;
     return {ref, requestHash, keyHash, commitRateLimit: rateLimit?.commit};
   }

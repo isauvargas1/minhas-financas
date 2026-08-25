@@ -5,7 +5,28 @@ import {z} from "zod";
 import {requireWorkspaceRole} from "../creditCards/auth";
 import {CreditCardApplicationError} from "../creditCards/errors";
 import {toInvestmentHttpsError} from "../investments/errors";
-import {consumeRateLimit, type RateLimitPolicy} from "../shared/rateLimit";
+import {reserveRateLimit, type RateLimitPolicy} from "../shared/rateLimit";
+import {AI_CALLABLE_OPTIONS} from "../shared/runtimeOptions";
+
+/**
+ * Segredo do provider de IA (INV-P2-020).
+ *
+ * As duas callables usavam `onCall(async …)` sem opções, enquanto `billing.ts`
+ * e `stripe.ts` já declaravam `secrets`. Sem a declaração, o Cloud Functions
+ * não monta o segredo no ambiente da função: `process.env.GOOGLE_AI_API_KEY`
+ * ficava indefinido e **as duas callables falhavam em toda chamada em
+ * produção** — fechando corretamente, mas com o recurso simplesmente
+ * inoperante.
+ *
+ * O nome do segredo precisa existir no Secret Manager do projeto; o passo está
+ * em `docs/investments/PRODUCTION_DEPLOYMENT_CHECKLIST.md`.
+ */
+export const AI_SECRETS = ["GOOGLE_AI_API_KEY"] as const;
+
+const AI_OPTIONS = {
+  ...AI_CALLABLE_OPTIONS,
+  secrets: [...AI_SECRETS],
+};
 
 /**
  * Análise financeira por IA, exclusivamente no backend.
@@ -26,7 +47,7 @@ const ANALYSIS_POLICY: RateLimitPolicy = {
   windowSeconds: 60 * 60,
 };
 
-const analysisPayloadSchema = z
+export const analysisPayloadSchema = z
   .object({
     workspaceId: z.string().min(1).max(240),
     question: z.string().trim().min(3).max(2_000),
@@ -52,7 +73,7 @@ const analysisPayloadSchema = z
 
 type AnalysisPayload = z.infer<typeof analysisPayloadSchema>;
 
-const buildPrompt = (payload: AnalysisPayload): string => {
+export const buildPrompt = (payload: AnalysisPayload): string => {
   const {context} = payload;
   const kpis = context.kpis
     .map((entry) => `${entry.label}: ${entry.formattedValue}`)
@@ -83,7 +104,7 @@ const buildPrompt = (payload: AnalysisPayload): string => {
 };
 
 /** Chave lida só do ambiente do backend; ausência é erro, não default. */
-const readApiKey = (): string => {
+export const readApiKey = (): string => {
   const key = process.env.GOOGLE_AI_API_KEY;
   if (!key || key.length < 8) {
     throw new CreditCardApplicationError(
@@ -102,7 +123,7 @@ const callGemini = async (prompt: string, apiKey: string): Promise<string> => {
   return result.response.text();
 };
 
-export const analyzeFinancialQuestion = onCall(async (request) => {
+export const analyzeFinancialQuestion = onCall(AI_OPTIONS, async (request) => {
   try {
     const payload = analysisPayloadSchema.parse(request.data);
     const auth = await requireWorkspaceRole(request, payload.workspaceId, [
@@ -111,13 +132,16 @@ export const analyzeFinancialQuestion = onCall(async (request) => {
       "member",
     ]);
     // Limite verificado e consumido atomicamente antes de gastar cota externa.
+    // `commit()` é o que grava o contador: sem ele a verificação passa e nada
+    // é contabilizado, e o teto vira decorativo.
     await admin.firestore().runTransaction(async (transaction) => {
-      await consumeRateLimit(
+      const reservation = await reserveRateLimit(
         transaction,
         auth.workspaceId,
         auth.uid,
         ANALYSIS_POLICY,
       );
+      reservation.commit();
     });
     const answer = await callGemini(buildPrompt(payload), readApiKey());
     return {
@@ -149,7 +173,7 @@ const EXTRACTION_POLICY: RateLimitPolicy = {
 /** ~6 MB em base64, cerca de 4,5 MB de arquivo. */
 const MAX_DOCUMENT_BASE64 = 6 * 1024 * 1024;
 
-const extractionPayloadSchema = z
+export const extractionPayloadSchema = z
   .discriminatedUnion("kind", [
     z.object({
       kind: z.literal("text"),
@@ -176,7 +200,7 @@ const EXTRACTION_INSTRUCTION =
   "category, supplier, costCenter, installments. Omita o campo quando não " +
   "houver informação; nunca invente valores.";
 
-export const extractTransactionFromContent = onCall(async (request) => {
+export const extractTransactionFromContent = onCall(AI_OPTIONS, async (request) => {
   try {
     const payload = extractionPayloadSchema.parse(request.data);
     const auth = await requireWorkspaceRole(request, payload.workspaceId, [
@@ -185,12 +209,13 @@ export const extractTransactionFromContent = onCall(async (request) => {
       "member",
     ]);
     await admin.firestore().runTransaction(async (transaction) => {
-      await consumeRateLimit(
+      const reservation = await reserveRateLimit(
         transaction,
         auth.workspaceId,
         auth.uid,
         EXTRACTION_POLICY,
       );
+      reservation.commit();
     });
 
     const apiKey = readApiKey();

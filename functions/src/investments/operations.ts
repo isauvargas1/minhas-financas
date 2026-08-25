@@ -5,6 +5,8 @@ import {FieldValue, Timestamp} from "firebase-admin/firestore";
 import type {WorkspaceAuthorizationContext} from "../creditCards/auth";
 import {CreditCardApplicationError} from "../creditCards/errors";
 import {assertLegacyInvestmentTrailOpen} from "../shared/featureFlags";
+import {authorizeInvestmentTransaction} from "./infrastructure";
+import {investmentOperationRoles} from "./writeStrategy";
 import {toMinorUnits} from "../goals/operations";
 import type {
   CancelInvestmentRedemptionPayload,
@@ -25,6 +27,27 @@ interface IdempotencyReservation {
 
 const db = () => admin.firestore();
 const workspacePath = (workspaceId: string) => `workspaces/${workspaceId}`;
+
+/**
+ * Revalida o papel do ator **dentro** da transação (INV-P3-052).
+ *
+ * O wrapper da callable autoriza antes de abrir a transação. As operações do
+ * domínio V2 revalidam de novo lá dentro, e estas três da trilha legada eram
+ * as únicas que não o faziam: uma revogação de papel entre a autorização e a
+ * escrita passava despercebida, e a mutação seguia com privilégio que já não
+ * existia.
+ */
+const assertLegacyRoleStillValid = async (
+  transaction: admin.firestore.Transaction,
+  auth: WorkspaceAuthorizationContext,
+  operation: InvestmentOperation,
+): Promise<void> => {
+  await authorizeInvestmentTransaction(
+    transaction,
+    auth,
+    investmentOperationRoles(operation),
+  );
+};
 const transactionRef = (workspaceId: string, transactionId: string) =>
   db().doc(`${workspacePath(workspaceId)}/transactions/${transactionId}`);
 const goalRef = (workspaceId: string, goalId: string) =>
@@ -248,6 +271,11 @@ export const executeSaveInvestmentRedemption = async (
     transaction.get(workspaceDocument),
   ]);
   const source = assertEligibleSource(sourceSnapshot);
+  // INV-P3-052 — papel revalidado dentro da transação, como no domínio V2. O
+  // wrapper da callable autoriza antes de abrir a transação; sem a
+  // revalidação, uma revogação de papel entre os dois momentos deixava a
+  // escrita passar com privilégio que já não existe.
+  await assertLegacyRoleStillValid(transaction, auth, "saveInvestmentRedemption");
   assertLegacyInvestmentTrailOpen(workspaceSnapshot.data());
   assertLegacyCurrency(workspaceSnapshot.data());
   const existing = redemptionSnapshot.data();
@@ -420,6 +448,11 @@ export const executeCancelInvestmentRedemption = async (
     transaction.get(ref),
     transaction.get(workspaceRef),
   ]);
+  // INV-P3-052 — papel revalidado dentro da transação, como no domínio V2. O
+  // wrapper da callable autoriza antes de abrir a transação; sem a
+  // revalidação, uma revogação de papel entre os dois momentos deixava a
+  // escrita passar com privilégio que já não existe.
+  await assertLegacyRoleStillValid(transaction, auth, "cancelInvestmentRedemption");
   assertLegacyInvestmentTrailOpen(workspaceSnapshot.data());
   const current = snapshot.data();
   if (!snapshot.exists || current?.investmentMetadata?.investmentOperation !== "redemption") {
@@ -473,6 +506,11 @@ export const executeReverseInvestmentRedemption = async (
     throw new CreditCardApplicationError("not_found", "Resgate não encontrado.");
   }
   const redemptionData = redemption as admin.firestore.DocumentData;
+  // INV-P3-052 — papel revalidado dentro da transação, como no domínio V2. O
+  // wrapper da callable autoriza antes de abrir a transação; sem a
+  // revalidação, uma revogação de papel entre os dois momentos deixava a
+  // escrita passar com privilégio que já não existe.
+  await assertLegacyRoleStillValid(transaction, auth, "reverseInvestmentRedemption");
   assertLegacyInvestmentTrailOpen(workspaceSnapshot.data());
   assertLegacyCurrency(workspaceSnapshot.data());
   if (metadata.status !== "settled" || metadata.reversalMovementId) {

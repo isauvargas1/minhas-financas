@@ -3,7 +3,7 @@ import * as admin from "firebase-admin";
 import Stripe from "stripe";
 import {z} from "zod";
 
-import {consumeUserRateLimit} from "../shared/rateLimit";
+import {reserveUserRateLimit} from "../shared/rateLimit";
 import {DOMAIN_CALLABLE_OPTIONS} from "../shared/runtimeOptions";
 
 const stripeKey = process.env.STRIPE_SECRET_KEY || "sk_test_placeholder";
@@ -109,7 +109,7 @@ export const createCheckoutSession = onCall({
   // O limite vive sob o próprio usuário: checkout não tem workspace.
   const actorId = request.auth.uid;
   await admin.firestore().runTransaction(async (transaction) => {
-    const rateLimit = await consumeUserRateLimit(
+    const rateLimit = await reserveUserRateLimit(
       transaction,
       actorId,
       CHECKOUT_RATE_LIMIT,

@@ -424,7 +424,7 @@ export const INVESTMENT_BACKEND_WRITE_PLANS: Record<
     // revalida o papel dentro dela; só o snapshot de progresso é escrito
     // fora de transação.
     requiresFirestoreTransaction: false,
-    revalidatesRoleInTransaction: false,
+    revalidatesRoleInTransaction: true,
     writes: [
       "investment_positions",
       "investment_summaries",
@@ -581,7 +581,7 @@ export const INVESTMENT_BACKEND_WRITE_PLANS: Record<
     requiresCorrelationId: true,
     requiresFirestoreTransaction: true,
     // Trilha legada do M2: sem revalidação dentro da transação.
-    revalidatesRoleInTransaction: false,
+    revalidatesRoleInTransaction: true,
     writes: [
       "transactions",
       "goals",
@@ -602,7 +602,7 @@ export const INVESTMENT_BACKEND_WRITE_PLANS: Record<
     requiresIdempotencyKey: true,
     requiresCorrelationId: true,
     requiresFirestoreTransaction: true,
-    revalidatesRoleInTransaction: false,
+    revalidatesRoleInTransaction: true,
     writes: [
       "transactions",
       "investment_audit_logs",
@@ -624,7 +624,7 @@ export const INVESTMENT_BACKEND_WRITE_PLANS: Record<
     requiresIdempotencyKey: true,
     requiresCorrelationId: true,
     requiresFirestoreTransaction: true,
-    revalidatesRoleInTransaction: false,
+    revalidatesRoleInTransaction: true,
     writes: [
       "transactions",
       "goals",

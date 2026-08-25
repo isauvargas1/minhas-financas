@@ -6,6 +6,9 @@ import {
     isLegacyCreditCardInstallmentTransaction,
 } from '../credit-cards/compatibility';
 import { Receivable, Client } from '../clients/types.ts';
+import {reportWindowStart, saoPauloDayKey} from './dateWindow.ts';
+
+export {reportWindowStart} from './dateWindow.ts';
 import { Workspace } from '../workspaces/types.ts';
 import {
     contributionAllocation,
@@ -45,53 +48,20 @@ export const buildCashAccountingTransactions = (
     isAllTime: boolean;
 }
 
-const toReportIsoDate = (date: Date): string => date.toISOString().slice(0, 10);
-
 export const resolveReportDateRange = (range: ReportTimeRange): ReportDateRange => {
-    const now = new Date();
-    const endDate = toReportIsoDate(now);
-    const startDate = new Date(now);
-
-    switch (range) {
-        case '7d':
-            startDate.setDate(now.getDate() - 7);
-            return { startDate: toReportIsoDate(startDate), endDate, isAllTime: false };
-        case '30d':
-            startDate.setDate(now.getDate() - 30);
-            return { startDate: toReportIsoDate(startDate), endDate, isAllTime: false };
-        case '90d':
-            startDate.setDate(now.getDate() - 90);
-            return { startDate: toReportIsoDate(startDate), endDate, isAllTime: false };
-        case '12m':
-            startDate.setFullYear(now.getFullYear() - 1);
-            return { startDate: toReportIsoDate(startDate), endDate, isAllTime: false };
-        case 'ytd':
-            return {
-                startDate: toReportIsoDate(new Date(now.getFullYear(), 0, 1)),
-                endDate,
-                isAllTime: false,
-            };
-        case 'all':
-        default:
-            return { endDate, isAllTime: true };
-    }
+    const endDate = saoPauloDayKey();
+    const startDate = reportWindowStart(range);
+    return startDate
+        ? { startDate, endDate, isAllTime: false }
+        : { endDate, isAllTime: true };
 };
 
 export const filterTransactionsByRange = (transactions: Transaction[], range: ReportTimeRange): Transaction[] => {
-    const now = new Date();
-    let startDate = new Date();
-
-    switch (range) {
-        case '7d': startDate.setDate(now.getDate() - 7); break;
-        case '30d': startDate.setDate(now.getDate() - 30); break;
-        case '90d': startDate.setDate(now.getDate() - 90); break;
-        case '12m': startDate.setFullYear(now.getFullYear() - 1); break;
-        case 'ytd': startDate = new Date(now.getFullYear(), 0, 1); break;
-        case 'all': return transactions;
-        default: startDate.setDate(now.getDate() - 30);
-    }
-
-    return transactions.filter(t => new Date(t.date) >= startDate);
+    const startDate = reportWindowStart(range);
+    if (!startDate) return transactions;
+    // `t.date` já é `YYYY-MM-DD`: comparação lexicográfica é a mesma coisa que
+    // comparação cronológica, e não passa por fuso nenhum.
+    return transactions.filter(t => (t.date ?? '') >= startDate);
 };
 
 export const formatCurrency = (val: number) => {

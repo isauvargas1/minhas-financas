@@ -200,3 +200,23 @@ test("rollback não declara escrita no ledger nem em projeção", () => {
   assert.ok(!plan.writes.includes("investment_movements"));
   assert.ok(!plan.writes.includes("investment_positions"));
 });
+
+// INV-P3-052 — quatro operações não revalidavam o papel dentro da transação.
+//
+// O wrapper da callable autoriza antes de abrir a transação. Sem a
+// revalidação, uma revogação de papel entre os dois momentos passava
+// despercebida e a mutação seguia com privilégio que já não existe.
+
+test("toda operação de escrita revalida o papel dentro da transação", () => {
+  for (const operation of Object.keys(
+    INVESTMENT_BACKEND_WRITE_PLANS,
+  ) as InvestmentBackendOperation[]) {
+    const plan = INVESTMENT_BACKEND_WRITE_PLANS[operation];
+    if (!plan.requiresFirestoreTransaction) continue;
+    assert.equal(
+      plan.revalidatesRoleInTransaction,
+      true,
+      `${operation} precisa revalidar o papel dentro da transação.`,
+    );
+  }
+});

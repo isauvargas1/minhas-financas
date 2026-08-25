@@ -6,7 +6,7 @@ import {z} from "zod";
 
 import {requireWorkspaceRole} from "../creditCards/auth";
 import {CreditCardApplicationError} from "../creditCards/errors";
-import {consumeRateLimit} from "../shared/rateLimit";
+import {reserveRateLimit} from "../shared/rateLimit";
 import {DOMAIN_CALLABLE_OPTIONS} from "../shared/runtimeOptions";
 
 const db = () => admin.firestore();
@@ -148,7 +148,7 @@ export const createSplitGroupInvite = onCall(
       // Limite de frequência e criação no mesmo limite atômico: um laço de
       // chamadas não consegue passar entre a verificação e a escrita.
       await db().runTransaction(async (transaction) => {
-        const rateLimit = await consumeRateLimit(
+        const rateLimit = await reserveRateLimit(
           transaction,
           auth.workspaceId,
           auth.uid,
@@ -198,7 +198,7 @@ export const acceptSplitGroupInvite = onCall(
         // Toda tentativa consome limite, inclusive as que falham: é o que
         // fecha a varredura por força bruta do espaço de códigos. A gravação
         // do contador vem depois das leituras, por exigência do Firestore.
-        const rateLimit = await consumeRateLimit(
+        const rateLimit = await reserveRateLimit(
           transaction,
           auth.workspaceId,
           auth.uid,

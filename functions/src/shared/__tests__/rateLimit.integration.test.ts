@@ -4,7 +4,7 @@ import * as admin from "firebase-admin";
 import {Timestamp} from "firebase-admin/firestore";
 
 import {CreditCardApplicationError} from "../../creditCards/errors";
-import {consumeRateLimit, rateLimitDocumentId} from "../rateLimit";
+import {reserveRateLimit, rateLimitDocumentId} from "../rateLimit";
 
 if (!process.env.FIRESTORE_EMULATOR_HOST) {
   throw new Error(
@@ -26,13 +26,13 @@ const db = (): admin.firestore.Firestore => {
 const policy = {operation: "testOperation", limit: 3, windowSeconds: 60};
 
 /**
- * `consumeRateLimit` verifica na fase de leitura e devolve o gravador do
+ * `reserveRateLimit` verifica na fase de leitura e devolve o gravador do
  * contador, que precisa ser chamado na fase de escrita — o Firestore exige
  * todas as leituras antes de qualquer escrita numa transação.
  */
 const consume = (workspaceId = WORKSPACE, actorId = ACTOR) =>
   db().runTransaction(async (transaction) => {
-    const reservation = await consumeRateLimit(
+    const reservation = await reserveRateLimit(
       transaction,
       workspaceId,
       actorId,
