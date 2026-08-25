@@ -16,11 +16,19 @@ objetiva em código ou documentação, nunca opinião.
 
 | Severidade | Total | OPEN | IN_PROGRESS | FIXED | RECLASSIFIED | EXTERNAL |
 | ---------- | ----- | ---- | ----------- | ----- | ------------ | -------- |
-| P0 | 1 | 1 | 0 | 0 | 0 | 0 |
-| P1 | 13 | 13 | 0 | 0 | 0 | 0 |
-| P2 | 35 | 35 | 0 | 0 | 0 | 0 |
-| P3 | 9 | 9 | 0 | 0 | 0 | 0 |
-| **Total** | **58** | **58** | **0** | **0** | **0** | **0** |
+| P0 | 1 | 0 | 0 | 1 | 0 | 0 |
+| P1 | 13 | 0 | 0 | 13 | 0 | 0 |
+| P2 | 35 | 0 | 0 | 35 | 0 | 0 |
+| P3 | 9 | 0 | 0 | 9 | 0 | 0 |
+| **Total** | **58** | **0** | **0** | **58** | **0** | **0** |
+
+Nenhum finding foi reclassificado: os 58 foram corrigidos em código, com teste.
+
+Os itens que **dependem de infraestrutura real** — provisionar segredo, ativar
+TTL por coleção, migrar a região das funções, publicar índices e executar o
+backfill por workspace — não são findings em aberto: o código e a configuração
+versionável estão prontos, e o passo manual exato está em
+[PRODUCTION_DEPLOYMENT_CHECKLIST.md](PRODUCTION_DEPLOYMENT_CHECKLIST.md).
 
 ---
 
@@ -46,7 +54,7 @@ objetiva em código ou documentação, nunca opinião.
 | INV-P2-016 | FIXED | O dashboard derivava a evolução do resumo vivo subtraindo `currentValueDeltaCents`, enquanto o relatório lia `closingCurrentValueCents`: duas fórmulas concorrentes para a mesma grandeza. | O dashboard lê o fechamento materializado, omite meses sem fechamento e sinaliza a omissão — exatamente como o relatório. | E2E `investments-v2` confere o patrimônio do dashboard contra o resumo oficial. | fix(investments) |
 | INV-P2-017 | FIXED | ~17 escritas por aporte, 4 delas em documentos singleton do workspace: resumo, período do mês, métrica diária e faixas de alocação. | A métrica diária — único dos quatro que o produto não lê — passa a ser fragmentada em 10 partes, agregadas na leitura. Os outros três permanecem no mesmo commit **por decisão**: são os números que a tela mostra logo após a operação, e a exatidão entre fato e projeção depende disso. Registrado abaixo com o tradeoff completo. | `domainV2` — 8 aportes concorrentes: todos comitam, e posição, resumo, série mensal e **todas** as 8 dimensões de alocação fecham exatamente. Retry da mesma intenção em paralelo (6×) produz um único fato. | perf(finance) |
 | INV-P2-018 | FIXED | Qualquer mutação incrementava `projectionVersion` e a reconstrução abortava em definitivo, sem caminho de reset do snapshot. | A cerca detecta a mudança e **reinicia** a execução sobre a versão nova, com `cutoffAt` novo e `restartCount` auditável; só falha ao esgotar `MAX_REBUILD_RESTARTS`, com mensagem que orienta a repetir em janela de menor movimento. | Coberto pelas suítes de rebuild; o reinício é observável em `restartCount` no snapshot e no resultado. | fix(investments) |
-| INV-P2-019 | OPEN | | | | |
+| INV-P2-019 | FIXED | A deriva era calculada **apenas durante** um rebuild, e o rebuild só roda quando alguém o dispara. Uma divergência entre o ledger e as projeções podia persistir indefinidamente sem ninguém saber, e cartões já tinha rotina diária. | Cron diário `processInvestmentDriftScan` **amostrado por rodízio**: cada execução confere uma fatia de 50 workspaces com o domínio ativo, avançando um cursor global — nunca varre todos os tenants todo dia. Compara projeção contra projeção (posições × resumo, fechamento × patrimônio), sem tocar o ledger de movimentos. Registra em `investment_drift_reports` workspaceId, correlação, tipo, magnitude, instante e status; sem PII e sem lançamento individual. Emite log estruturado de erro quando há deriva. | `crons/__tests__/investmentDrift.integration.test.ts` (6 casos): regra de comparação, workspace limpo, deriva injetada no resumo, divergência entre fechamento e resumo, ausência de PII no registro e workspace sem resumo sem falso positivo. | chore(platform) |
 | INV-P2-020 | FIXED | `onCall(async …)` sem opções nas duas callables de IA, enquanto `billing.ts` e `stripe.ts` já declaravam `secrets`. Sem a declaração o Cloud Functions não monta o segredo: `process.env.GOOGLE_AI_API_KEY` ficava indefinido e as duas falhavam em toda chamada em produção. | `secrets: ["GOOGLE_AI_API_KEY"]` declarado nas duas, junto de região, timeout e memória próprios. O provisionamento do segredo é passo de infraestrutura, registrado em PRODUCTION_DEPLOYMENT_CHECKLIST.md §1. | `ai/__tests__/callables.test.ts` (7 casos): declaração do segredo, recusa controlada em pt-BR sem segredo, chave curta tratada como ausente, conteúdo do prompt e validação de entrada. Nenhum precisa de chave real. | ci |
 | INV-P2-021 | FIXED | A única pré-condição da flag era a reconciliação, que fecha trivialmente quando os dois lados são zero. Os dois laços de reconciliação paravam em 500 páginas sem sinal. | A flag passa a exigir lote aplicado, concluído, não simulado e não revertido quando existe histórico legado. Os laços de reconciliação falham explicitamente ao atingir `RECONCILIATION_PAGE_LIMIT`. | `legacyMigration` — recusa sem migração, sobre simulação e sobre lote incompleto; e recusa por reconciliação quando há deriva injetada na posição. | fix(investments) |
 | INV-P2-022 | FIXED | Liquidação, estorno e valoração não tinham checagem temporal: data futura criava período futuro e estorno retroativo subtraía patrimônio de mês anterior ao próprio movimento. | `assertNotFuture` (com tolerância de 5 min de relógio) nas três operações, `settledAt >= occurredAt` do pedido e `reversedAt >= settlementAt` do movimento estornado. | Coberto pelas suítes de domínio; as invariantes falham fechado com mensagem em pt-BR. | fix(investments) |

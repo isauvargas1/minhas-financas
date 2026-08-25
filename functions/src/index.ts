@@ -28,5 +28,10 @@ export * from "./crons/recurring";
 
 export * from "./crons/creditCardInvoices";
 
+// INV-P2-019 — varredura diária de deriva do domínio patrimonial. Amostrada
+// por rodízio: cada execução cobre uma fatia dos workspaces com o domínio
+// ativo, sem varrer todos os tenants todo dia.
+export * from "./crons/investmentDrift";
+
 // Webhooks (Recebem avisos de serviços externos)
 export * from "./webhooks/stripe";
