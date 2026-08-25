@@ -8,6 +8,7 @@ import type {
 } from "../creditCards/auth";
 import {CreditCardApplicationError} from "../creditCards/errors";
 import {consumeRateLimit} from "../shared/rateLimit";
+import {RETENTION_DAYS, expiresInDays} from "../shared/retention";
 import type {InvestmentProfileType} from "./domain";
 import {investmentRateLimitPolicy} from "./rateLimits";
 import {
@@ -323,6 +324,9 @@ export const completeInvestmentIdempotency = (
     result,
     createdAt: FieldValue.serverTimestamp(),
     completedAt: FieldValue.serverTimestamp(),
+    // Retenção (INV-P2-041): a chave precisa sobreviver a qualquer retry
+    // plausível e não tem valor depois disso. Não é fato financeiro.
+    expiresAt: expiresInDays(RETENTION_DAYS.idempotencyKeys),
   });
 };
 

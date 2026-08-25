@@ -14,7 +14,13 @@ interface ReportsWidgetProps {
 
 const ReportsWidget: React.FC<ReportsWidgetProps> = ({ transactions, goals, creditCards, onNavigate }) => {
     // We use a fixed 30d range for the dashboard snapshot to give immediate context
-    const { data: snapshot, isLoading } = useFinancialReportSnapshot(transactions, goals, creditCards, '30d');
+    // INV-P2-035 — o widget não exibe nenhum indicador patrimonial, e o
+    // dashboard já monta `InvestmentDashboardOverview`. Sem esta opção, a mesma
+    // tela disparava duas cargas independentes do domínio patrimonial.
+    const { data: snapshot, isLoading } = useFinancialReportSnapshot(
+        transactions, goals, creditCards, '30d', undefined, undefined,
+        { includeInvestmentDomain: false },
+    );
     const { theme } = useTheme();
 
     if (isLoading) {

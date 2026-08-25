@@ -4,6 +4,7 @@ import { Transaction, Goal, CreditCard, EntityItem } from '../types.ts';
 import { ReportIcon, DashboardIcon, ChartBarIcon, SparklesIcon } from './Icons.tsx';
 import { useTheme } from '../contexts/ThemeContext.tsx';
 import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
+import { useFullTransactionHistory } from '../modules/transactions/hooks.ts';
 import { useFinancialReportSnapshot } from '../modules/reports/hooks.ts';
 import { useReceivables, useClients } from '../modules/clients/hooks.ts';
 import { ReportTimeRange } from '../modules/reports/types.ts';
@@ -45,8 +46,20 @@ const ReportsView: React.FC<ReportsViewProps> = ({ transactions, goals, creditCa
     const { data: receivables } = useReceivables(); 
     const { data: clients } = useClients();
 
+    /*
+     * INV-P1-011 — a faixa "tudo" é a única que precisa do histórico completo,
+     * e ela agora o carrega **sob demanda**, paginado, em vez de a aplicação
+     * inteira manter o histórico do workspace em memória o tempo todo.
+     */
+    const needsFullHistory = timeRange === 'all';
+    const fullHistory = useFullTransactionHistory(activeWorkspace.id, needsFullHistory);
+    const rangeTransactions = needsFullHistory
+        ? fullHistory.data?.items ?? transactions
+        : transactions;
+    const historyTruncated = needsFullHistory && fullHistory.data?.truncated === true;
+
     const { data: snapshot, isLoading, isError } = useFinancialReportSnapshot(
-        transactions, 
+        rangeTransactions,
         goals, 
         creditCards, 
         timeRange,
@@ -134,6 +147,20 @@ const ReportsView: React.FC<ReportsViewProps> = ({ transactions, goals, creditCa
                     </button>
                 ))}
             </div>
+
+            {historyTruncated && (
+                <p role="alert" className="mb-4 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+                    O histórico completo atingiu o limite seguro de leitura e os totais desta
+                    faixa não cobrem todo o período. Selecione uma faixa menor para uma análise
+                    completa.
+                </p>
+            )}
+
+            {needsFullHistory && fullHistory.isLoading && (
+                <p role="status" className="mb-4 rounded-lg border border-border bg-surface p-3 text-sm text-muted">
+                    Carregando o histórico completo…
+                </p>
+            )}
 
             {/* Content Area */}
             <div

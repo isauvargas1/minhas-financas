@@ -81,22 +81,60 @@ export const seedLegacySettingsCatalog = async (workspaceId: string): Promise<vo
   });
 };
 
-export const listSettingsCatalog = async (
+/**
+ * Teto de itens do catálogo lidos de uma vez.
+ *
+ * O catálogo é cadastro do workspace, não histórico: alguns milhares de itens
+ * já é um cenário extremo. O teto existe para que a consulta seja limitada por
+ * construção (INV-P2-034) e para que ultrapassá-lo seja **visível** em vez de
+ * silencioso.
+ */
+export const SETTINGS_CATALOG_READ_LIMIT = 2000;
+
+export interface SettingsCatalogSnapshot {
+  items: SettingsCatalogItem[];
+  /** O teto foi atingido: a lista não cobre o catálogo inteiro. */
+  truncated: boolean;
+}
+
+/**
+ * Catálogo completo do workspace, com teto explícito (INV-P2-034).
+ *
+ * A versão anterior fazia `getDocs(settingsCatalogCollection(workspaceId))` —
+ * a coleção inteira, sem `limit` — e filtrava no cliente, embora o próprio
+ * arquivo já tivesse um caminho paginado. Custo linear no cadastro, no caminho
+ * que alimenta os seletores de categoria de toda transação.
+ */
+export const listSettingsCatalogSnapshot = async (
   workspaceId?: string
-): Promise<SettingsCatalogItem[]> => {
-  if (!workspaceId || workspaceId === 'loading') return [];
+): Promise<SettingsCatalogSnapshot> => {
+  if (!workspaceId || workspaceId === 'loading') {
+    return {items: [], truncated: false};
+  }
 
-  const snapshot = await getDocs(settingsCatalogCollection(workspaceId));
+  const snapshot = await getDocs(query(
+    settingsCatalogCollection(workspaceId),
+    orderBy('sortOrder', 'asc'),
+    orderBy('normalizedName', 'asc'),
+    orderBy(documentId(), 'asc'),
+    limit(SETTINGS_CATALOG_READ_LIMIT + 1),
+  ));
 
-  const items = snapshot.docs.map((itemDoc) => {
-    return {
+  const truncated = snapshot.size > SETTINGS_CATALOG_READ_LIMIT;
+  const items = snapshot.docs
+    .slice(0, SETTINGS_CATALOG_READ_LIMIT)
+    .map((itemDoc) => ({
       id: itemDoc.id,
       ...(itemDoc.data() as Omit<SettingsCatalogItem, 'id'>)
-    } as SettingsCatalogItem;
-  });
+    } as SettingsCatalogItem));
 
-  return sortSettingsCatalogItems(items);
+  return {items: sortSettingsCatalogItems(items), truncated};
 };
+
+export const listSettingsCatalog = async (
+  workspaceId?: string
+): Promise<SettingsCatalogItem[]> =>
+  (await listSettingsCatalogSnapshot(workspaceId)).items;
 
 export const listSettingsCatalogPage = async (
   workspaceId: string | undefined,

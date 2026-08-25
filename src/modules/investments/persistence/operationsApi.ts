@@ -160,6 +160,21 @@ export const recalculateGoalInvestmentProgress = (
   });
 
 /**
+ * Reconstrução da projeção mensal de caixa (INV-P1-011).
+ *
+ * A projeção substitui a varredura da subcoleção inteira de transações no
+ * cálculo do saldo acumulado. Como todo acumulador, precisa de caminho de
+ * reconstrução — e de backfill, para workspaces cujo histórico é anterior a
+ * ela.
+ */
+export const rebuildCashPeriods = (
+  workspaceId: string,
+  nonce: string,
+  reason: string,
+  pageSize = 300,
+) => call('rebuildCashPeriods', nonce, workspaceId, { reason, pageSize });
+
+/**
  * Repagina uma operação com checkpoint até concluir.
  *
  * Todas as operações pesadas do domínio devolvem `completed: false` enquanto

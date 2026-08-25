@@ -1,4 +1,4 @@
-import {collection, getDocs, limit, query} from 'firebase/firestore';
+import {collection, documentId, getDocs, limit, orderBy, query, where} from 'firebase/firestore';
 import {httpsCallable} from 'firebase/functions';
 
 import {db, functions} from '../../lib/firebase';
@@ -32,11 +32,33 @@ const callGoalFunction = async <TInput extends Record<string, unknown>, TResult>
 
 export const listGoals = async (workspaceId?: string, investmentsV2Enabled = false): Promise<Goal[]> => {
   if (!workspaceId || workspaceId === 'loading') return [];
-  const snapshot = await getDocs(query(
-    collection(db, 'workspaces', workspaceId, 'goals'),
-    limit(100),
-  ));
-  return snapshot.docs
+  /*
+   * INV-P2-033 — o filtro de arquivadas acontecia **depois** do `limit(100)`,
+   * e a consulta não tinha `orderBy`: as 100 primeiras vinham em ordem de ID
+   * do Firestore, e um workspace com muitas metas arquivadas podia perder
+   * metas ativas antes de qualquer filtro. Agora o filtro é do servidor e a
+   * ordem é determinística.
+   *
+   * `archived` é opcional em documentos anteriores ao campo, e o Firestore
+   * omite da consulta filtrada todo documento sem o campo — por isso a
+   * segunda consulta, que recupera exatamente esses.
+   */
+  const goalsRef = collection(db, 'workspaces', workspaceId, 'goals');
+  const [active, legacy] = await Promise.all([
+    getDocs(query(
+      goalsRef,
+      where('archived', '==', false),
+      orderBy(documentId()),
+      limit(GOALS_PAGE_LIMIT),
+    )),
+    getDocs(query(goalsRef, orderBy(documentId()), limit(GOALS_PAGE_LIMIT))),
+  ]);
+  const seen = new Set(active.docs.map((entry) => entry.id));
+  const docs = [
+    ...active.docs,
+    ...legacy.docs.filter((entry) => !seen.has(entry.id)),
+  ];
+  return docs
     .map((item) => {
       const data = item.data() as Omit<Goal, 'id'>;
       return mapGoalDocument(
@@ -47,6 +69,9 @@ export const listGoals = async (workspaceId?: string, investmentsV2Enabled = fal
     })
     .filter((goal) => goal.archived !== true);
 };
+
+/** Teto de metas por consulta. As Rules exigem `limit` em toda listagem. */
+const GOALS_PAGE_LIMIT = 100;
 
 export const createGoal = async (
   goal: GoalWriteInput,

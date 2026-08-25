@@ -13,7 +13,8 @@ import { motion } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
 import { calculateBusinessGoalProgress, getGoalPaceStatus, getPeriodDates } from '../modules/goals/logic.ts';
-import { goalInvestmentImpact, transactionCashImpact } from '../modules/investments/semantics.ts';
+import { goalInvestmentImpact } from '../modules/investments/semantics.ts';
+import { cashBalanceFromPeriods, useCashPeriods } from '../modules/transactions/cashPeriods.ts';
 import { listGoalInvestmentMovements } from '../modules/investments/persistence/readApi.ts';
 
 /** Rótulo em pt-BR de cada operação do domínio patrimonial. */
@@ -71,13 +72,18 @@ const GoalDetailsView: React.FC<GoalDetailsViewProps> = ({
         },
     });
 
+    // INV-P1-011 — saldo de caixa acumulado vem da projeção mensal, não da
+    // soma do array inteiro de transações do workspace.
+    const needsGlobalBalance = isPJ && goal.isAutomatic && goal.businessType === 'caixa_minimo';
+    const cashPeriods = useCashPeriods(activeWorkspace.id, needsGlobalBalance);
+    const cashBalance = cashBalanceFromPeriods(cashPeriods.data);
+
     const currentVal = useMemo(() => {
         if (isPJ && goal.isAutomatic) {
-            const balance = transactions.reduce((acc, transaction) => acc + transactionCashImpact(transaction), 0);
-            return calculateBusinessGoalProgress(goal, transactions, balance);
+            return calculateBusinessGoalProgress(goal, transactions, cashBalance ?? 0);
         }
         return goal.currentAmount;
-    }, [isPJ, goal, transactions]);
+    }, [isPJ, goal, transactions, cashBalance]);
 
     const percentage = goal.targetAmount > 0 ? (currentVal / goal.targetAmount) * 100 : 0;
     const paceStatus = getGoalPaceStatus(goal, currentVal);

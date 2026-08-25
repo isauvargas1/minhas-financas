@@ -1218,3 +1218,127 @@ test("ganho e perda no mesmo movimento são recusados", async () => {
     }),
   );
 });
+
+// INV-P2-017 — contenção de escrita.
+//
+// Toda mutação escreve, no mesmo limite atômico, no resumo do workspace, no
+// período do mês e nas faixas de alocação. Isso é deliberado: são os números
+// que a tela mostra logo depois da operação, e a exatidão entre fato e
+// projeção depende de eles serem publicados no mesmo commit.
+//
+// O que **precisa** ser verdade sob concorrência não é ausência de contenção,
+// e sim ausência de atualização perdida: N aportes simultâneos precisam
+// somar exatamente N no resumo, na posição e na série mensal.
+
+test("aportes concorrentes não perdem atualização em nenhuma projeção", async () => {
+  await seedWorkspace(WORKSPACE_A, OWNER_A);
+  await seedCatalog(WORKSPACE_A, "PF");
+
+  const CONCURRENT = 8;
+  const PRINCIPAL = 25_000;
+  const QUANTITY = 250_000;
+
+  const outcomes = await Promise.allSettled(
+    Array.from({length: CONCURRENT}, (_, index) =>
+      executeCreateInvestmentContribution(
+        auth(),
+        contributionPayload(`m9-contention-${index}-0001`, {
+          principalCents: PRINCIPAL,
+          quantityMicros: QUANTITY,
+        }),
+      )),
+  );
+
+  const committed = outcomes.filter((o) => o.status === "fulfilled").length;
+  assert.equal(
+    committed,
+    CONCURRENT,
+    "Contenção pode causar retry, nunca perda de operação legítima.",
+  );
+
+  const expectedPrincipal = PRINCIPAL * CONCURRENT;
+
+  const position = (await db()
+    .doc(
+      `workspaces/${WORKSPACE_A}/investment_positions/` +
+        investmentPositionId(ACCOUNT, ASSET),
+    )
+    .get()).data();
+  assert.equal(position?.principalCents, expectedPrincipal);
+  assert.equal(position?.quantityMicros, QUANTITY * CONCURRENT);
+
+  const summary = (await db()
+    .doc(`workspaces/${WORKSPACE_A}/investment_summaries/current`)
+    .get()).data();
+  assert.equal(summary?.principalCents, expectedPrincipal);
+  assert.equal(summary?.currentValueCents, expectedPrincipal);
+  // INV-P2-047 — uma posição exposta, contada uma vez.
+  assert.equal(summary?.positionCount, 1);
+
+  const movements = await db()
+    .collection(`workspaces/${WORKSPACE_A}/investment_movements`)
+    .get();
+  assert.equal(movements.size, CONCURRENT);
+
+  const periods = await db()
+    .collection(`workspaces/${WORKSPACE_A}/investment_report_periods`)
+    .get();
+  const contributed = periods.docs.reduce(
+    (total, entry) => total + Number(entry.data().contributionCents ?? 0),
+    0,
+  );
+  assert.equal(contributed, expectedPrincipal);
+
+  // A soma das faixas de cada dimensão fecha com o resumo.
+  const allocations = await db()
+    .collection(`workspaces/${WORKSPACE_A}/investment_allocation_summaries`)
+    .get();
+  const byDimension = new Map<string, number>();
+  allocations.docs.forEach((entry) => {
+    const data = entry.data();
+    const dimension = String(data.dimension);
+    byDimension.set(
+      dimension,
+      (byDimension.get(dimension) ?? 0) + Number(data.principalCents ?? 0),
+    );
+  });
+  for (const [dimension, principal] of byDimension) {
+    assert.equal(
+      principal,
+      expectedPrincipal,
+      `A dimensão ${dimension} precisa fechar com o resumo.`,
+    );
+  }
+});
+
+test("retry da mesma intenção sob concorrência não duplica o fato", async () => {
+  await seedWorkspace(WORKSPACE_A, OWNER_A);
+  await seedCatalog(WORKSPACE_A, "PF");
+
+  // A mesma chave de idempotência disparada seis vezes em paralelo — o cenário
+  // real do duplo clique somado a retry de rede (INV-P1-004).
+  const payload = contributionPayload("m9-replay-race-0001", {
+    principalCents: 40_000,
+    quantityMicros: 400_000,
+  });
+  const outcomes = await Promise.allSettled(
+    Array.from({length: 6}, () =>
+      executeCreateInvestmentContribution(auth(), payload)),
+  );
+
+  const fulfilled = outcomes.filter((o) => o.status === "fulfilled");
+  assert.ok(fulfilled.length >= 1, "Ao menos uma execução precisa concluir.");
+
+  const movements = await db()
+    .collection(`workspaces/${WORKSPACE_A}/investment_movements`)
+    .get();
+  assert.equal(movements.size, 1, "Uma intenção, um fato financeiro.");
+
+  const position = (await db()
+    .doc(
+      `workspaces/${WORKSPACE_A}/investment_positions/` +
+        investmentPositionId(ACCOUNT, ASSET),
+    )
+    .get()).data();
+  assert.equal(position?.principalCents, 40_000);
+});

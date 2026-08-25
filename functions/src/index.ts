@@ -21,6 +21,7 @@ export * from "./investments/callables";
 export * from "./ai/callables";
 
 export * from "./callables/billing";
+export * from "./cash/rebuild";
 
 // Cron Jobs (Tarefas agendadas)
 export * from "./crons/recurring";

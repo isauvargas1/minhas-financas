@@ -62,6 +62,7 @@ import { LoginView } from "./components/auth/LoginView";
 // --- HOOKS MIGRADOS ---
 import {
     useTransactions,
+    useInvestmentTransactions,
     useCreateTransaction,
     useCreateTransactionsBatch,
     useUpdateTransaction,
@@ -189,6 +190,8 @@ const AppContent: React.FC = () => {
     const createCreditCardPurchaseMutation = useCreateCreditCardPurchaseDomain();
     const transactions = useMemo(() => transactionsData || [], [transactionsData]);
 
+
+
     const {
         data: creditCardInvoiceTransactionProjectionsData,
     } = useCreditCardInvoiceTransactionProjections(workspaceId);
@@ -230,6 +233,25 @@ const AppContent: React.FC = () => {
     }, [goals, selectedGoal]);
 
     const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
+
+    /*
+     * INV-P1-011 — universo de aportes carregado por propósito.
+     *
+     * O modal de transação (para escolher a origem de um resgate) e o de metas
+     * (para vínculo retroativo) precisam de **todo** o histórico de
+     * investimento, não da janela de doze meses. Antes isso era a razão de a
+     * aplicação inteira carregar a subcoleção completa; agora é uma consulta
+     * própria, com filtro por tipo e limite, feita só quando um dos dois
+     * formulários está aberto.
+     */
+    const { data: investmentTransactionsData } = useInvestmentTransactions(
+        workspaceId,
+        isModalOpen || isGoalModalOpen,
+    );
+    const investmentTransactions = useMemo(
+        () => investmentTransactionsData ?? [],
+        [investmentTransactionsData],
+    );
     const [goalToEdit, setGoalToEdit] = useState<Goal | null>(null);
     const [goalModalInitialSection, setGoalModalInitialSection] = useState<'details' | 'linking'>('details');
     const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
@@ -693,7 +715,7 @@ const AppContent: React.FC = () => {
                 paymentTypes={paymentTypes}
                 incomeTypes={incomeTypes}
                 goals={goals}
-                transactions={transactions}
+                transactions={investmentTransactions}
                 defaultGoalId={transactionModalDefaultGoalId}
             />
             <ConfirmationModal
@@ -709,7 +731,7 @@ const AppContent: React.FC = () => {
                         : 'Estornar este resgate liquidado? Será criado um movimento compensatório.'
                     : 'Excluir permanentemente?'}
             />
-            <GoalFormModal isOpen={isGoalModalOpen} onClose={() => setIsGoalModalOpen(false)} onSave={handleSaveGoal} onLinkTransactions={handleLinkGoalTransactions} initialSection={goalModalInitialSection} goalToEdit={goalToEdit} wallets={wallets} transactions={transactions} />
+            <GoalFormModal isOpen={isGoalModalOpen} onClose={() => setIsGoalModalOpen(false)} onSave={handleSaveGoal} onLinkTransactions={handleLinkGoalTransactions} initialSection={goalModalInitialSection} goalToEdit={goalToEdit} wallets={wallets} transactions={investmentTransactions} />
             <Notification message={notification.message} isVisible={notification.visible} />
         </div>
     );

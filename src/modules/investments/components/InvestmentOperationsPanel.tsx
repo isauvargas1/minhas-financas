@@ -9,6 +9,7 @@ import {
   backfillInvestmentWorkspace,
   enableInvestmentsV2Flag,
   migrateLegacyInvestments,
+  rebuildCashPeriods,
   rebuildInvestmentProjections,
   reconcileLegacyMigration,
   rollbackLegacyInvestmentMigration,
@@ -101,7 +102,8 @@ type Action =
   | 'enable-flag'
   | 'rollback'
   | 'rebuild'
-  | 'backfill';
+  | 'backfill'
+  | 'rebuild-cash';
 
 interface ActionSpec {
   id: Action;
@@ -189,6 +191,19 @@ const ACTIONS: ActionSpec[] = [
     confirmLabel: 'Reconstruir projeções',
   },
   {
+    id: 'rebuild-cash',
+    title: 'Reconstruir o fluxo de caixa mensal',
+    summary:
+      'Recalcula a projeção mensal de caixa do workspace a partir das transações.',
+    impact: [
+      'A projeção é o que substitui a leitura da coleção inteira de transações no saldo acumulado.',
+      'Publica valores absolutos e zera meses sem lastro nas transações.',
+      'Nenhuma transação é alterada.',
+      'É o backfill para históricos anteriores à projeção.',
+    ],
+    confirmLabel: 'Reconstruir fluxo de caixa',
+  },
+  {
     id: 'backfill',
     title: 'Recalcular posições e metas',
     summary:
@@ -215,6 +230,8 @@ const RESULT_LABELS: Record<string, string> = {
   restartCount: 'Reinícios por escrita concorrente',
   attempt: 'Tentativa de migração',
   processedCount: 'Registros processados',
+  processed: 'Transações processadas',
+  periods: 'Meses reconstruídos',
 };
 
 const CENTS_KEYS = new Set([
@@ -300,6 +317,11 @@ export const InvestmentOperationsPanel: React.FC<Props> = ({
         case 'backfill':
           return runPaged(
             () => backfillInvestmentWorkspace(workspaceId, nonce, trimmedReason),
+            onProgress,
+          );
+        case 'rebuild-cash':
+          return runPaged(
+            () => rebuildCashPeriods(workspaceId, nonce, trimmedReason),
             onProgress,
           );
         default:

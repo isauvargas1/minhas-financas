@@ -1260,6 +1260,18 @@ match /credit_card_idempotency_keys/{docId} {
       // (INV-P2-019): estado operacional server-only. O lease não é
       // checkpoint e não satisfaz `isValidInvestmentSnapshot`, por isso vive
       // em coleção própria. A deriva é lida por owner/admin para diagnóstico.
+      // INV-P1-011 — projeção mensal de caixa. Escrita exclusiva do gatilho de
+      // transações e da reconstrução; leitura por qualquer membro, porque é o
+      // que substitui a varredura da coleção inteira de transações.
+      match /cash_report_periods/{docId} {
+        allow get: if canReadWorkspaceScopedData(workspaceId);
+        allow list: if canReadWorkspaceScopedData(workspaceId) &&
+          request.query.limit != null &&
+          request.query.limit > 0 &&
+          request.query.limit <= 600;
+        allow write: if false;
+      }
+
       match /investment_operation_leases/{docId} {
         allow read, write: if false;
       }

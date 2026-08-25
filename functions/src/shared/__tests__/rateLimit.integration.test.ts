@@ -143,7 +143,9 @@ test("o documento de limite não guarda conteúdo da requisição", async () => 
   assert.deepEqual(
     Object.keys(stored ?? {}).sort(),
     [
-      "actorId", "count", "date", "id", "limit", "operation",
+      // `expiresAt` é a marca de retenção (INV-P2-041): o contador some junto
+      // com a janela em vez de crescer indefinidamente.
+      "actorId", "count", "date", "expiresAt", "id", "limit", "operation",
       "updatedAt", "windowSeconds", "windowStart", "workspaceId",
     ],
     "O contador guarda só metadados de controle, nunca payload.",

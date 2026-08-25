@@ -3,6 +3,7 @@ import {FieldValue, Timestamp} from "firebase-admin/firestore";
 
 import {CreditCardApplicationError} from "../creditCards/errors";
 import {saoPauloDayKey} from "./dateKeys";
+import {RETENTION_DAYS, expiresInDays} from "./retention";
 
 /**
  * Limite de frequência por ator, workspace e operação.
@@ -134,6 +135,9 @@ const consumeRateLimitAt = async (
       limit: policy.limit,
       count: expired ? 1 : FieldValue.increment(1),
       date: saoPauloDayKey(),
+      // Retenção (INV-P2-041): o contador some junto com a janela; guardá-lo
+      // além disso é só custo.
+      expiresAt: expiresInDays(RETENTION_DAYS.rateLimits),
       updatedAt: FieldValue.serverTimestamp(),
     },
     {merge: true},

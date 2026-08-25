@@ -3,6 +3,7 @@ import {FieldValue} from "firebase-admin/firestore";
 import type {CallableRequest} from "firebase-functions/v2/https";
 
 import {saoPauloDayKey} from "../shared/dateKeys";
+import {RETENTION_DAYS, expiresInDays} from "../shared/retention";
 import {
   boundedFailureEventId,
   idempotencyKeyDigest,
@@ -59,6 +60,26 @@ const stripUndefined = (
  * Métrica diária agregada. Deve ser chamada dentro da transação da operação,
  * no mesmo limite atômico da mutação crítica.
  */
+/**
+ * Fragmentos do contador diário (INV-P2-017).
+ *
+ * A métrica operacional era o quarto documento singleton escrito por **toda**
+ * mutação do domínio, e o único dos quatro que não é lido pelo produto: é
+ * observabilidade agregada, não número que o usuário vê. Sem fragmentação, um
+ * workspace com aportes concorrentes disputava esse documento sem nenhum
+ * ganho de consistência em troca.
+ *
+ * Os demais três — resumo, período do mês e faixas de alocação — permanecem no
+ * mesmo limite atômico da mutação, e isso é deliberado: são exatamente os
+ * números que a tela mostra logo depois da operação, e a exatidão entre fato e
+ * projeção que o domínio exige depende de eles serem publicados no mesmo
+ * commit.
+ */
+export const METRIC_SHARDS = 10;
+
+/** Fragmento pseudoaleatório. Distribuição uniforme basta; ordem não importa. */
+const metricShard = (): number => Math.floor(Math.random() * METRIC_SHARDS);
+
 export const recordInvestmentOperationMetric = (
   transaction: admin.firestore.Transaction,
   input: RecordInvestmentOperationMetricInput,
@@ -66,7 +87,7 @@ export const recordInvestmentOperationMetric = (
   const status = input.status ?? "success";
   const dateKey = saoPauloDayKey();
   const metricId = sanitizeMetricIdPart(
-    `${dateKey}_${input.operation}_${status}`,
+    `${dateKey}_${input.operation}_${status}_s${metricShard()}`,
   );
   const metricRef = investmentDoc(
     input.workspaceId,
@@ -80,6 +101,9 @@ export const recordInvestmentOperationMetric = (
     domain: "investment",
     operation: input.operation,
     status,
+    // O fragmento é parte da identidade do documento; a leitura agregada soma
+    // os fragmentos do mesmo dia, operação e status.
+    shardOf: sanitizeMetricIdPart(`${dateKey}_${input.operation}_${status}`),
     count: FieldValue.increment(1),
     lastActorId: input.actorId,
     lastAccountId: input.accountId,
@@ -90,6 +114,9 @@ export const recordInvestmentOperationMetric = (
     lastIdempotencyKeyHash: idempotencyKeyDigest(input.idempotencyKey),
     lastErrorCode: input.errorCode,
     updatedAt: FieldValue.serverTimestamp(),
+    // Retenção (INV-P2-041): métrica operacional agregada, não fato
+    // financeiro. O fato vive em `investment_movements`, que nunca expira.
+    expiresAt: expiresInDays(RETENTION_DAYS.operationalMetrics),
   };
   if (
     typeof input.amountCents === "number" &&
@@ -207,6 +234,7 @@ export const recordInvestmentCallableFailure = async (
           message: safeErrorMessage(error, "Falha ao processar operação."),
         }),
         occurredAt: FieldValue.serverTimestamp(),
+        expiresAt: expiresInDays(RETENTION_DAYS.eventLogs),
       }),
       {merge: true},
     );

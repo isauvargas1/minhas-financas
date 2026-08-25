@@ -114,14 +114,29 @@ const buildCreditCardReportDomainMeta = (
     };
 };
 
+export interface FinancialReportSnapshotOptions {
+    /**
+     * Carregar o domínio patrimonial junto do snapshot (INV-P2-035).
+     *
+     * O widget do dashboard usa apenas `kpi-balance`, `kpi-savings` e alertas —
+     * nada que venha do domínio patrimonial. Como ele monta na mesma tela que
+     * `InvestmentDashboardOverview`, o dashboard disparava **duas** cargas
+     * independentes do resumo, dos períodos e das alocações. Consumidores que
+     * não exibem indicadores patrimoniais passam a dizê-lo.
+     */
+    includeInvestmentDomain?: boolean;
+}
+
 export const useFinancialReportSnapshot = (
     transactions: Transaction[],
     goals: Goal[],
     creditCards: CreditCard[],
     range: ReportTimeRange,
     receivables?: Receivable[],
-    clients?: Client[]
+    clients?: Client[],
+    options: FinancialReportSnapshotOptions = {}
 ) => {
+    const includeInvestmentDomain = options.includeInvestmentDomain !== false;
     const { activeWorkspace } = useWorkspace();
 
 
@@ -135,7 +150,8 @@ export const useFinancialReportSnapshot = (
         queryFn: () => getOfficialInvestmentReportData(workspaceId!, {
             periodLimit: range === 'all' ? 100 : range === '12m' || range === 'ytd' ? 14 : range === '90d' ? 5 : 3,
         }),
-        enabled: Boolean(workspaceId) && workspaceId !== 'loading' && investmentsV2Enabled,
+        enabled: Boolean(workspaceId) && workspaceId !== 'loading' &&
+            investmentsV2Enabled && includeInvestmentDomain,
         staleTime: 1000 * 60 * 2,
     });
 

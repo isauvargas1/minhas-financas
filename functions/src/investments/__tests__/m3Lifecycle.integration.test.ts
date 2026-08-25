@@ -614,13 +614,20 @@ test("operação bem-sucedida registra métrica de sucesso", async () => {
     "createInvestmentRedemption",
     "cancelInvestmentMovement",
   ]) {
+    // INV-P2-017 — o contador diário é fragmentado para não ser o quarto
+    // documento singleton disputado por toda mutação. A leitura agregada soma
+    // os fragmentos do mesmo dia, operação e status.
     const metrics = await db()
       .collection(`workspaces/${WORKSPACE}/investment_operational_metrics`)
       .where("operation", "==", operation)
       .get();
-    assert.equal(metrics.size, 1, `Métrica ausente para ${operation}.`);
+    assert.ok(metrics.size >= 1, `Métrica ausente para ${operation}.`);
+    const total = metrics.docs.reduce(
+      (sum, entry) => sum + Number(entry.data().count ?? 0),
+      0,
+    );
+    assert.equal(total, 1, operation);
     assert.equal(metrics.docs[0].data().status, "success", operation);
-    assert.equal(metrics.docs[0].data().count, 1, operation);
     assert.equal(metrics.docs[0].data().domain, "investment", operation);
   }
 });

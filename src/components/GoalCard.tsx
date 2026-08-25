@@ -9,8 +9,8 @@ import { motion } from 'framer-motion';
 // @ts-ignore
 import confetti from 'canvas-confetti';
 import { calculateBusinessGoalProgress, getGoalPaceStatus } from '../modules/goals/logic.ts';
-import { transactionCashImpact } from '../modules/investments/semantics.ts';
 import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
+import { cashBalanceFromPeriods, useCashPeriods } from '../modules/transactions/cashPeriods.ts';
 
 interface GoalCardProps {
     goal: Goal;
@@ -26,18 +26,33 @@ const adjustBrightness = (color: string, amount: number) => {
 const GoalCard: React.FC<GoalCardProps> = ({ goal, onClick, mode, transactions }) => {
     const { theme } = useTheme();
     const { activeWorkspace } = useWorkspace();
+    const workspaceId = activeWorkspace.id;
     const isPJ = activeWorkspace.type === 'PJ';
     const cardRef = useRef<HTMLDivElement>(null);
     const MotionDiv = motion.div as any;
 
+    /*
+     * INV-P1-011 — o saldo de caixa acumulado vem da projeção mensal.
+     *
+     * Só a meta PJ do tipo `caixa_minimo` precisa desse agregado global, e ele
+     * era obtido somando o array inteiro de transações do workspace — o que
+     * obrigava toda a aplicação a carregar a subcoleção completa. A projeção é
+     * mantida por delta pelo gatilho de escrita e somar meses é O(meses).
+     *
+     * As demais metas PJ automáticas usam a janela do próprio período, que a
+     * carga padrão de doze meses cobre.
+     */
+    const needsGlobalBalance = isPJ && goal.isAutomatic && goal.businessType === 'caixa_minimo';
+    const cashPeriods = useCashPeriods(workspaceId, needsGlobalBalance);
+    const cashBalance = cashBalanceFromPeriods(cashPeriods.data);
+
     // --- BUSINESS LOGIC ---
     const currentVal = useMemo(() => {
         if (isPJ && goal.isAutomatic) {
-            const balance = transactions.reduce((acc, transaction) => acc + transactionCashImpact(transaction), 0);
-            return calculateBusinessGoalProgress(goal, transactions, balance);
+            return calculateBusinessGoalProgress(goal, transactions, cashBalance ?? 0);
         }
         return goal.currentAmount;
-    }, [isPJ, goal, transactions]);
+    }, [isPJ, goal, transactions, cashBalance]);
 
     const percentage = useMemo(() => {
         if (goal.targetAmount <= 0) return 0;
