@@ -851,7 +851,14 @@ function isBackendOwnedCollection(collectionName) {
       // Contadores de limite de frequência: estado operacional server-only.
       // Expor a contagem ao cliente entrega o orçamento restante a quem
       // estiver tentando forçar o limite.
-      'rate_limits'
+      'rate_limits',
+      // Projeção mensal de caixa. Precisa estar aqui **mesmo tendo regra
+      // própria**: a regra catch-all de subcoleção concede leitura a qualquer
+      // membro, e no Firestore basta uma regra conceder para o acesso passar.
+      // Sem esta linha, o teto de 600 documentos da regra específica era
+      // contornado pela catch-all, e uma listagem ilimitada reintroduzia o
+      // custo linear que a projeção existe para eliminar.
+      'cash_report_periods'
     ];
 }
 

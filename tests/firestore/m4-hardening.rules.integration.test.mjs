@@ -913,3 +913,129 @@ test('INV-P3-053 — workspace, membro e transação rejeitam campos arbitrário
     });
   });
 });
+
+// ------------------------- coleções novas da remediação: isolamento e escrita
+//
+// A projeção mensal de caixa (INV-P1-011), os relatórios de deriva
+// (INV-P2-019) e os leases de operação (INV-P2-043) são coleções novas
+// escritas exclusivamente pelo backend. Toda coleção nova precisa de cobertura
+// negativa nos dois sentidos entre tenants, e de prova de que o cliente não
+// escreve nela.
+
+test('coleções novas são server-only e invisíveis entre tenants', async () => {
+  await seed();
+  const db = getAdmin().firestore();
+  const now = ts(NOW);
+
+  await Promise.all([
+    db.doc(`workspaces/${wsA}/cash_report_periods/2026-08`).set({
+      id: '2026-08', workspaceId: wsA, period: '2026-08', periodStart: now,
+      incomeCents: 50_000, expenseCents: 10_000, investmentOutflowCents: 0,
+      netCents: 40_000, transactionCount: 2, updatedAt: now,
+    }),
+    db.doc(`workspaces/${wsB}/cash_report_periods/2026-08`).set({
+      id: '2026-08', workspaceId: wsB, period: '2026-08', periodStart: now,
+      incomeCents: 90_000, expenseCents: 0, investmentOutflowCents: 0,
+      netCents: 90_000, transactionCount: 1, updatedAt: now,
+    }),
+    db.doc(`workspaces/${wsA}/investment_drift_reports/2026-08-20_${wsA}`).set({
+      id: `2026-08-20_${wsA}`, workspaceId: wsA, date: '2026-08-20',
+      correlationId: 'corr-drift', status: 'clean', findings: [],
+      findingCount: 0, maxDifferenceCents: 0, positionsInspected: 1,
+      detectedAt: now, expiresAt: now,
+    }),
+    db.doc(`workspaces/${wsB}/investment_drift_reports/2026-08-20_${wsB}`).set({
+      id: `2026-08-20_${wsB}`, workspaceId: wsB, date: '2026-08-20',
+      correlationId: 'corr-drift', status: 'clean', findings: [],
+      findingCount: 0, maxDifferenceCents: 0, positionsInspected: 1,
+      detectedAt: now, expiresAt: now,
+    }),
+    db.doc(`workspaces/${wsA}/investment_operation_leases/lease_legacy_migration`).set({
+      id: 'lease_legacy_migration', workspaceId: wsA, kind: 'operation_lease',
+      leaseKind: 'legacy_migration', holderId: 'x', actorId: 'x',
+      correlationId: 'corr', expiresAt: now, updatedAt: now,
+    }),
+  ]);
+
+  await withClients(['ownerA', 'adminA', 'memberA', 'ownerB', 'memberB'], async (c) => {
+    // O próprio tenant lê a projeção de caixa; é ela que substitui a varredura
+    // da coleção inteira de transações.
+    await getDoc(doc(c.memberA.db, `workspaces/${wsA}/cash_report_periods/2026-08`));
+    await getDocs(query(
+      collection(c.memberA.db, `workspaces/${wsA}/cash_report_periods`),
+      limit(600),
+    ));
+
+    // Nos dois sentidos, cross-tenant é negado.
+    await assert.rejects(
+      () => getDoc(doc(c.memberB.db, `workspaces/${wsA}/cash_report_periods/2026-08`)),
+      'memberB não lê o caixa de A',
+    );
+    await assert.rejects(
+      () => getDoc(doc(c.ownerA.db, `workspaces/${wsB}/cash_report_periods/2026-08`)),
+      'ownerA não lê o caixa de B',
+    );
+    await assert.rejects(
+      () => getDocs(query(
+        collection(c.memberB.db, `workspaces/${wsA}/cash_report_periods`),
+        limit(600),
+      )),
+      'memberB não lista o caixa de A',
+    );
+
+    // Deriva é tier sensível: owner e admin, nunca member, nunca outro tenant.
+    await getDoc(doc(c.ownerA.db, `workspaces/${wsA}/investment_drift_reports/2026-08-20_${wsA}`));
+    await assert.rejects(
+      () => getDoc(doc(c.memberA.db, `workspaces/${wsA}/investment_drift_reports/2026-08-20_${wsA}`)),
+      'member não lê relatório de deriva',
+    );
+    await assert.rejects(
+      () => getDoc(doc(c.ownerB.db, `workspaces/${wsA}/investment_drift_reports/2026-08-20_${wsA}`)),
+      'ownerB não lê a deriva de A',
+    );
+
+    // Lease é estado operacional: ninguém lê, ninguém escreve.
+    await assert.rejects(
+      () => getDoc(doc(c.ownerA.db, `workspaces/${wsA}/investment_operation_leases/lease_legacy_migration`)),
+      'nem o owner lê o lease',
+    );
+
+    // Nenhum papel escreve em nenhuma das três, nem no próprio tenant.
+    for (const [name, path] of [
+      ['ownerA', `workspaces/${wsA}/cash_report_periods/2026-09`],
+      ['adminA', `workspaces/${wsA}/investment_drift_reports/forjado`],
+      ['memberA', `workspaces/${wsA}/investment_operation_leases/forjado`],
+    ]) {
+      await assert.rejects(
+        () => setDoc(doc(c[name].db, path), {id: 'x', workspaceId: wsA}),
+        `${name} não pode escrever em ${path}`,
+      );
+    }
+
+    // E não escreve no tenant alheio.
+    await assert.rejects(
+      () => setDoc(doc(c.ownerB.db, `workspaces/${wsA}/cash_report_periods/2026-09`), {netCents: 1}),
+      'ownerB não escreve no caixa de A',
+    );
+  });
+});
+
+test('listagem da projeção de caixa respeita o teto declarado', async () => {
+  await seed();
+  await withClients(['ownerA'], async ({ownerA}) => {
+    // 600 meses são 50 anos: acima disso a consulta é negada, o que impede
+    // uma listagem arbitrariamente grande de reintroduzir o custo linear que a
+    // projeção existe justamente para eliminar.
+    await getDocs(query(
+      collection(ownerA.db, `workspaces/${wsA}/cash_report_periods`),
+      limit(600),
+    ));
+    await assert.rejects(
+      () => getDocs(query(
+        collection(ownerA.db, `workspaces/${wsA}/cash_report_periods`),
+        limit(601),
+      )),
+      'listagem acima do teto é negada',
+    );
+  });
+});
