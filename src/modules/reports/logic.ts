@@ -128,7 +128,8 @@ function buildPersonalKPIs(
             value: income,
             formattedValue: formatCurrency(income),
             trend: 'stable',
-            period: 'custom'
+            period: 'custom',
+            nature: 'caixa'
         },
         {
             id: 'kpi-expenses',
@@ -136,7 +137,8 @@ function buildPersonalKPIs(
             value: expense,
             formattedValue: formatCurrency(expense),
             trend: 'stable',
-            period: 'custom'
+            period: 'custom',
+            nature: 'caixa'
         },
         {
             id: 'kpi-investments',
@@ -144,7 +146,11 @@ function buildPersonalKPIs(
             value: investment,
             formattedValue: formatCurrency(investment),
             trend: 'stable',
-            period: 'custom'
+            period: 'custom',
+            // Aportes são saída de caixa direcionada a investimento, não
+            // patrimônio acumulado — por isso `contribuicao`, e é o que
+            // mantém este indicador comparável com receitas e despesas.
+            nature: 'contribuicao'
         },
         {
             id: 'kpi-balance',
@@ -152,7 +158,10 @@ function buildPersonalKPIs(
             value: netResult,
             formattedValue: formatCurrency(netResult),
             trend: netResult >= 0 ? 'up' : 'down',
-            period: 'custom'
+            // Sinal do valor, não comparação com o período anterior.
+            trendBasis: 'sign',
+            period: 'custom',
+            nature: 'caixa'
         },
         {
             id: 'kpi-savings',
@@ -161,7 +170,8 @@ function buildPersonalKPIs(
             formattedValue: `${savingsRate.toFixed(1)}%`,
             trend: 'stable',
             period: 'custom',
-            description: 'Percentual da renda investida'
+            description: 'Percentual da renda investida',
+            nature: 'indicador'
         }
     ];
 }

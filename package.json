@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "typecheck": "tsc --noEmit && npm --prefix functions run build -- --noEmit",
-    "build": "vite build",
+    "build": "NODE_OPTIONS=--max-old-space-size=4096 vite build",
     "preview": "vite preview",
     "functions:build": "npm --prefix functions run build",
     "functions:test:unit": "npm --prefix functions run test:unit",
@@ -20,8 +20,9 @@
     "deploy:firestore": "firebase deploy --only firestore:rules,firestore:indexes",
     "deploy:functions": "npm run functions:build && firebase deploy --only functions",
     "deploy:safe": "npm run predeploy:check && firebase deploy --only firestore:rules,firestore:indexes,functions",
-    "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui",
+    "build:e2e": "VITE_E2E_MODE=true VITE_USE_FIREBASE_EMULATORS=true VITE_FIREBASE_API_KEY=e2e-api-key VITE_FIREBASE_AUTH_DOMAIN=localhost VITE_FIREBASE_PROJECT_ID=minhas-financas-local VITE_FIREBASE_STORAGE_BUCKET=minhas-financas-local.appspot.com VITE_FIREBASE_MESSAGING_SENDER_ID=000000000000 VITE_FIREBASE_APP_ID=1:000000000000:web:e2e npm run build",
+    "test:e2e": "npm run build:e2e && playwright test",
+    "test:e2e:ui": "npm run build:e2e && playwright test --ui",
     "e2e:kill-ports": "lsof -tiTCP:4000,4400,4500,5001,8080,9099,9150,5173 -sTCP:LISTEN | xargs -r kill -9",
     "test:e2e:clean": "npm run e2e:kill-ports && npm run test:e2e",
     "test:rules:goals": "node --test tests/firestore/goals.rules.integration.test.mjs",
@@ -34,8 +35,6 @@
     "test:rules:m4": "node --test tests/firestore/m4-hardening.rules.integration.test.mjs"
   },
   "dependencies": {
-    "@google/genai": "^1.32.0",
-    "@google/generative-ai": "^0.24.1",
     "@phosphor-icons/react": "2.1.4",
     "@tabler/icons-react": "3.2.0",
     "@tanstack/react-query": "5.0.0",

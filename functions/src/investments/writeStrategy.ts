@@ -273,6 +273,31 @@ export const INVESTMENT_BACKEND_WRITE_PLANS: Record<
     affectsCashProjection: false,
     clientDirectWriteAllowed: false,
   },
+  // INV-P2-028 — troca de meta como operação própria e atômica: emite o
+  // desvínculo e o vínculo no mesmo limite transacional.
+  changeInvestmentGoal: {
+    operation: "changeInvestmentGoal",
+    allowedRoles: MUTATION_ROLES,
+    requiresAuthentication: true,
+    requiresWorkspaceMembership: true,
+    requiresIdempotencyKey: true,
+    requiresCorrelationId: true,
+    requiresFirestoreTransaction: true,
+    revalidatesRoleInTransaction: true,
+    writes: [
+      "investment_movements",
+      "investment_positions",
+      "investment_allocation_summaries",
+      "goals",
+      "investment_event_logs",
+      "investment_idempotency_keys",
+      "investment_operational_metrics",
+    ],
+    appendsToLedger: true,
+    updatesProjections: true,
+    affectsCashProjection: false,
+    clientDirectWriteAllowed: false,
+  },
   linkInvestmentToGoal: {
     operation: "linkInvestmentToGoal",
     allowedRoles: MUTATION_ROLES,

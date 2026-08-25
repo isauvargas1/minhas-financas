@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { collection, getDocs, limit, query, where } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, limit, query, where } from 'firebase/firestore';
 
-import { db } from '../../../lib/firebase';
+import { auth, db } from '../../../lib/firebase';
 
 import { useFinancialIntent } from '../hooks/useIntentNonce';
 import {
@@ -46,6 +46,32 @@ interface Props {
   isOwner: boolean;
   investmentsV2Enabled: boolean;
 }
+
+/**
+ * Papel autoritativo do usuário no workspace.
+ *
+ * `activeWorkspace.myRole` pode vir de `users/{uid}/workspaces/{id}.role`, que
+ * é um **espelho de leitura** que o próprio usuário escreve. A fonte de
+ * verdade é `workspaces/{id}/members/{uid}`, onde as Rules impedem
+ * autopromoção. O backend recusa a operação de qualquer forma; o que esta
+ * verificação evita é oferecer na tela um caminho que termina em recusa —
+ * e sugerir a quem não pode operar que poderia.
+ */
+const useAuthoritativeOwnership = (workspaceId: string) =>
+  useQuery({
+    queryKey: ['workspace-authoritative-role', workspaceId],
+    enabled: workspaceId.length > 0,
+    queryFn: async () => {
+      const uid = auth.currentUser?.uid;
+      if (!uid) return false;
+      const [membership, workspace] = await Promise.all([
+        getDoc(doc(db, 'workspaces', workspaceId, 'members', uid)),
+        getDoc(doc(db, 'workspaces', workspaceId)),
+      ]);
+      if (workspace.data()?.ownerId === uid) return true;
+      return membership.data()?.role === 'owner';
+    },
+  });
 
 /**
  * Existe histórico legado de investimento neste workspace?
@@ -209,7 +235,10 @@ export const InvestmentOperationsPanel: React.FC<Props> = ({
   workspaceId, isOwner, investmentsV2Enabled,
 }) => {
   const client = useQueryClient();
-  const legacyPresence = useHasLegacyInvestments(workspaceId, isOwner);
+  const ownership = useAuthoritativeOwnership(workspaceId);
+  // `isOwner` (do contexto) é a checagem barata; a de membership é a que vale.
+  const canOperate = isOwner && ownership.data === true;
+  const legacyPresence = useHasLegacyInvestments(workspaceId, canOperate);
   const hasLegacyInvestments = legacyPresence.data === true;
   const [pending, setPending] = useState<ActionSpec | null>(null);
   const [reason, setReason] = useState('');
@@ -295,7 +324,7 @@ export const InvestmentOperationsPanel: React.FC<Props> = ({
     },
   });
 
-  if (!isOwner) return null;
+  if (!canOperate) return null;
 
   const reasonValid = reason.trim().length >= 3;
   const migrationIdValid = !pending?.needsMigrationId || migrationId.trim().length > 0;

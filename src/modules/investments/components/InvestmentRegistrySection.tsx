@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { callInvestment, investmentRequestIds } from '../persistence/callableApi';
@@ -9,6 +9,9 @@ import {
   type InvestmentCursor,
 } from '../persistence/readApi';
 import type { InvestmentAccount, InvestmentAsset } from '../types';
+import { listSettingsCatalogPage } from '../../settings-catalog/api';
+import type { SettingsCatalogGroup } from '../../settings-catalog/types';
+import { Dialog, Field, safeError } from './shared';
 
 /**
  * Cadastro patrimonial em Configurações > Cadastros.
@@ -41,6 +44,26 @@ const ASSET_TYPES: Array<[string, string]> = [
   ['other', 'Outro'],
 ];
 
+/**
+ * Dimensões de classificação do ativo (INV-P2-026).
+ *
+ * O catálogo do workspace já era semeado com estes grupos pelo onboarding, e
+ * nenhum ativo podia referenciá-los: os painéis de alocação por classe, risco,
+ * liquidez e indexador ficavam permanentemente vazios, com a faixa
+ * "Não informado" concentrando 100% do patrimônio.
+ */
+const CLASSIFICATION_FIELDS: Array<{
+  idField: 'classId' | 'riskId' | 'liquidityId' | 'indexerId';
+  nameField: 'className' | 'riskName' | 'liquidityName' | 'indexerName';
+  group: SettingsCatalogGroup;
+  label: string;
+}> = [
+  {idField: 'classId', nameField: 'className', group: 'investment_class', label: 'Classe'},
+  {idField: 'riskId', nameField: 'riskName', group: 'investment_risk', label: 'Risco'},
+  {idField: 'liquidityId', nameField: 'liquidityName', group: 'investment_liquidity', label: 'Liquidez'},
+  {idField: 'indexerId', nameField: 'indexerName', group: 'investment_indexer', label: 'Indexador'},
+];
+
 const PURPOSES: Record<'PF' | 'PJ', Array<[string, string]>> = {
   PF: [
     ['unassigned', 'Não classificado'],
@@ -55,54 +78,6 @@ const PURPOSES: Record<'PF' | 'PJ', Array<[string, string]>> = {
     ['fixed_asset', 'Imobilizado'],
   ],
 };
-
-const safeError = (error: unknown) => {
-  const code = typeof error === 'object' && error && 'code' in error ? String(error.code) : '';
-  if (code.includes('permission-denied')) return 'Você não tem permissão para concluir esta ação.';
-  if (code.includes('invalid-argument')) return 'Revise os dados informados e tente novamente.';
-  if (code.includes('failed-precondition')) return 'A operação não pôde ser concluída no estado atual.';
-  if (code.includes('unauthenticated')) return 'Sua sessão expirou. Entre novamente para continuar.';
-  return 'Não foi possível concluir a operação. Tente novamente.';
-};
-
-const Dialog: React.FC<{
-  title: string;
-  open: boolean;
-  onClose(): void;
-  children: React.ReactNode;
-}> = ({ title, open, onClose, children }) => {
-  const ref = useRef<HTMLDialogElement>(null);
-  const opener = useRef<HTMLElement | null>(null);
-  useEffect(() => {
-    if (open && !ref.current?.open) {
-      opener.current = document.activeElement as HTMLElement;
-      ref.current?.showModal();
-    } else if (!open && ref.current?.open) {
-      ref.current.close();
-    }
-  }, [open]);
-  return (
-    <dialog
-      ref={ref}
-      onCancel={(event) => { event.preventDefault(); onClose(); }}
-      onClose={() => opener.current?.focus()}
-      className="w-[min(94vw,32rem)] rounded-2xl bg-surface p-0 text-on-surface shadow-2xl backdrop:bg-black/50"
-    >
-      <div className="flex items-center justify-between border-b border-border px-5 py-4">
-        <h3 className="text-lg font-bold">{title}</h3>
-        <button type="button" onClick={onClose} aria-label="Fechar janela" className="rounded-lg px-3 py-2 hover:bg-background">×</button>
-      </div>
-      <div className="p-5">{children}</div>
-    </dialog>
-  );
-};
-
-const Field: React.FC<React.InputHTMLAttributes<HTMLInputElement> & { label: string }> = ({ label, ...props }) => (
-  <label className="grid gap-1 text-sm font-medium">
-    {label}
-    <input {...props} className="rounded-lg border border-border bg-surface px-3 py-2" />
-  </label>
-);
 
 /** Abas do cadastro, na ordem de navegação por seta. */
 const REGISTRY_TABS: Array<[Entity, string]> = [
@@ -131,6 +106,22 @@ export const InvestmentRegistrySection: React.FC<Props> = ({ workspaceId, profil
     enabled: workspaceId.length > 0 && entity === 'asset',
   });
   const current = entity === 'account' ? accounts : assets;
+
+  const catalog = useQuery({
+    queryKey: ['investment-classification-catalog', workspaceId],
+    enabled: workspaceId.length > 0 && entity === 'asset',
+    queryFn: async () => {
+      const entries = await Promise.all(CLASSIFICATION_FIELDS.map(async (field) => {
+        const page = await listSettingsCatalogPage(
+          workspaceId,
+          {group: field.group, includeInactive: false},
+          null,
+        );
+        return [field.group, page.items] as const;
+      }));
+      return Object.fromEntries(entries);
+    },
+  });
 
   // Idempotência por intenção, não por clique (INV-P1-004): a identidade é o
   // editor aberto mais a entidade em edição.
@@ -172,6 +163,19 @@ export const InvestmentRegistrySection: React.FC<Props> = ({ workspaceId, profil
       });
       return;
     }
+    // A classificação viaja como par `id`/`nome`: o ID vincula ao catálogo e o
+    // nome fica fotografado no ativo, para que renomear um item do catálogo
+    // não apague o rótulo histórico da faixa de alocação já publicada.
+    const classification: Record<string, string> = {};
+    for (const field of CLASSIFICATION_FIELDS) {
+      const value = String(form.get(field.idField) ?? '');
+      if (!value) continue;
+      const item = (catalog.data?.[field.group] ?? []).find((entry) => entry.id === value);
+      if (!item) continue;
+      classification[field.idField] = item.id;
+      classification[field.nameField] = item.name;
+    }
+
     mutation.mutate({
       name: 'saveInvestmentAsset',
       payload: {
@@ -180,6 +184,7 @@ export const InvestmentRegistrySection: React.FC<Props> = ({ workspaceId, profil
         symbol: form.get('symbol') || undefined,
         assetType: form.get('assetType'),
         allocationPurpose: form.get('allocationPurpose'),
+        ...classification,
       },
     });
   };
@@ -418,6 +423,36 @@ export const InvestmentRegistrySection: React.FC<Props> = ({ workspaceId, profil
               <p className="text-xs text-muted">
                 A finalidade não poderá ser alterada depois do primeiro aporte, para preservar relatórios históricos.
               </p>
+
+              {/*
+                INV-P2-026 — classe, risco, liquidez e indexador. Sem estes
+                campos, quatro painéis de alocação ficavam permanentemente
+                vazios, com "Não informado" concentrando todo o patrimônio.
+              */}
+              {CLASSIFICATION_FIELDS.map((field) => {
+                const options = catalog.data?.[field.group] ?? [];
+                return (
+                  <label key={field.idField} className="grid gap-1 text-sm font-medium">
+                    {field.label} (opcional)
+                    <select
+                      name={field.idField}
+                      defaultValue={(editing as InvestmentAsset | null)?.[field.idField] ?? ''}
+                      className="rounded-lg border border-border bg-surface px-3 py-2"
+                    >
+                      <option value="">Não informado</option>
+                      {options.map((item) => (
+                        <option key={item.id} value={item.id}>{item.name}</option>
+                      ))}
+                    </select>
+                    {options.length === 0 && (
+                      <span className="text-xs font-normal text-muted">
+                        Nenhum item cadastrado neste grupo. Prepare os padrões de investimentos
+                        ou crie itens em Cadastros.
+                      </span>
+                    )}
+                  </label>
+                );
+              })}
             </>
           )}
           <button type="submit" disabled={mutation.isPending} className="rounded-xl bg-primary px-4 py-2.5 font-bold text-white disabled:opacity-60">

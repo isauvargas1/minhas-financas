@@ -39,6 +39,9 @@ const isoTimestampSchema = z.string().datetime({offset: true});
 const descriptionSchema = z.string().trim().min(1).max(240);
 const reasonSchema = z.string().trim().min(3).max(500);
 const entityNameSchema = z.string().trim().min(2).max(120);
+/** Referência a item do catálogo do workspace (`settings_catalog`). */
+const investmentCatalogRefSchema = z.string().trim().min(1).max(160);
+const catalogLabelSchema = z.string().trim().min(1).max(160);
 
 // M3.B: a trilha legada passa a exigir `correlationId` do cliente em vez de
 // sintetizá-lo a partir do ID da chave de idempotência.
@@ -175,6 +178,26 @@ export const reverseInvestmentMovementPayloadSchema = z
     ...v2BaseShape,
     movementId: investmentDocumentIdSchema,
     reversedAt: isoTimestampSchema,
+    reason: reasonSchema,
+  })
+  .strict();
+
+/**
+ * Troca de meta de uma posição (INV-P2-028).
+ *
+ * Existe como operação própria, e não como duas chamadas do cliente, porque
+ * desvincular e vincular precisam ser **atômicos**: uma falha entre as duas
+ * etapas deixaria a posição sem meta e o progresso das duas metas errado, sem
+ * nenhuma trilha explicando o estado.
+ */
+export const changeInvestmentGoalPayloadSchema = z
+  .object({
+    ...v2BaseShape,
+    accountId: investmentDocumentIdSchema,
+    assetId: investmentDocumentIdSchema,
+    goalId: investmentDocumentIdSchema,
+    previousGoalId: investmentDocumentIdSchema,
+    occurredAt: isoTimestampSchema,
     reason: reasonSchema,
   })
   .strict();
@@ -358,6 +381,24 @@ export const saveInvestmentAssetPayloadSchema = z
       "reinvestment",
       "fixed_asset",
     ]).optional(),
+    // INV-P2-026 — classe, risco, liquidez e indexador.
+    //
+    // As quatro dimensões existiam em `allocationDescriptors` e no catálogo
+    // semeado pelo onboarding, mas nenhum ativo podia referenciá-las: os
+    // painéis correspondentes ficavam permanentemente vazios, com a faixa
+    // "Não informado" concentrando 100% do patrimônio.
+    //
+    // O par `id`/`name` é gravado junto: o ID vincula ao item de catálogo e o
+    // nome é fotografado no ativo, para que renomear ou inativar um item do
+    // catálogo não apague o rótulo histórico da faixa de alocação.
+    classId: investmentCatalogRefSchema.optional(),
+    className: catalogLabelSchema.optional(),
+    riskId: investmentCatalogRefSchema.optional(),
+    riskName: catalogLabelSchema.optional(),
+    liquidityId: investmentCatalogRefSchema.optional(),
+    liquidityName: catalogLabelSchema.optional(),
+    indexerId: investmentCatalogRefSchema.optional(),
+    indexerName: catalogLabelSchema.optional(),
   })
   .strict();
 
@@ -436,6 +477,9 @@ export type SettleInvestmentRedemptionPayload = z.infer<
 >;
 export type ReverseInvestmentMovementPayload = z.infer<
   typeof reverseInvestmentMovementPayloadSchema
+>;
+export type ChangeInvestmentGoalPayload = z.infer<
+  typeof changeInvestmentGoalPayloadSchema
 >;
 export type LinkInvestmentToGoalPayload = z.infer<
   typeof linkInvestmentToGoalPayloadSchema

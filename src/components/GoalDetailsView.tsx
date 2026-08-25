@@ -1,5 +1,6 @@
 
 import React, { useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Goal, Transaction, GoalStatus } from '../types.ts';
 import { 
     BackIcon, EditIcon, DeleteIcon, CheckIcon, TargetIcon, 
@@ -13,6 +14,16 @@ import confetti from 'canvas-confetti';
 import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
 import { calculateBusinessGoalProgress, getGoalPaceStatus, getPeriodDates } from '../modules/goals/logic.ts';
 import { goalInvestmentImpact, transactionCashImpact } from '../modules/investments/semantics.ts';
+import { listGoalInvestmentMovements } from '../modules/investments/persistence/readApi.ts';
+
+/** Rótulo em pt-BR de cada operação do domínio patrimonial. */
+const MOVEMENT_LABELS: Record<string, string> = {
+    contribution: 'Aporte',
+    redemption: 'Resgate',
+    reversal: 'Estorno',
+    goal_link: 'Vínculo com a meta',
+    goal_unlink: 'Desvínculo da meta',
+};
 
 interface GoalDetailsViewProps {
     goal: Goal;
@@ -36,6 +47,29 @@ const GoalDetailsView: React.FC<GoalDetailsViewProps> = ({
     const { activeWorkspace } = useWorkspace();
     const isPJ = activeWorkspace.type === 'PJ';
     const MotionDiv = motion.div as any;
+    const investmentsV2Enabled =
+        activeWorkspace.features?.investmentsV2?.enabled === true;
+
+    // Movimentos oficiais do domínio patrimonial vinculados a esta meta.
+    const goalMovements = useQuery({
+        queryKey: ['goal-investment-movements', activeWorkspace.id, goal.id],
+        enabled: investmentsV2Enabled && Boolean(goal.id),
+        queryFn: async () => {
+            const movements = await listGoalInvestmentMovements(
+                activeWorkspace.id,
+                String(goal.id),
+            );
+            return movements.map((movement) => ({
+                id: movement.id,
+                type: 'investimento' as const,
+                description: movement.description,
+                category: MOVEMENT_LABELS[movement.operation] ?? 'Movimentação',
+                value: movement.principalCents / 100,
+                date: movement.occurredAt?.toDate().toISOString().slice(0, 10) ?? '',
+                goalId: String(goal.id),
+            }));
+        },
+    });
 
     const currentVal = useMemo(() => {
         if (isPJ && goal.isAutomatic) {
@@ -75,8 +109,20 @@ const GoalDetailsView: React.FC<GoalDetailsViewProps> = ({
             { key: 'cancelada', label: 'Cancelar', activeLabel: 'Cancelada', icon: 'X', color: 'red' }
         ];
 
-        const goalTransactions = transactions
-            .filter(t => t.goalId === goal.id && t.type === 'investimento')
+        /*
+         * INV-P2-029 — a lista de movimentações acompanha a fonte do número.
+         *
+         * Com o domínio patrimonial ligado, o progresso vem de
+         * `investmentProgressCents`, mas a lista continuava vindo de
+         * `transactions` filtrada por `goalId`. O vínculo retroativo não gera
+         * espelho de caixa, então a meta mostrava progresso positivo com lista
+         * vazia — o usuário via um número que nada na tela explicava.
+         */
+        const goalTransactions = (investmentsV2Enabled
+            ? goalMovements.data ?? []
+            : transactions
+                .filter(t => t.goalId === goal.id && t.type === 'investimento'))
+            .slice()
             .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
         const remaining = Math.max(0, goal.targetAmount - goal.currentAmount);

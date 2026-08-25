@@ -60,6 +60,7 @@ const POLICY_BY_OPERATION: Partial<
   saveInvestmentAsset: REGISTRY_POLICY,
   archiveInvestmentAccount: REGISTRY_POLICY,
   archiveInvestmentAsset: REGISTRY_POLICY,
+  changeInvestmentGoal: REGISTRY_POLICY,
   linkInvestmentToGoal: REGISTRY_POLICY,
   unlinkInvestmentFromGoal: REGISTRY_POLICY,
   registerInvestmentImportBatch: REGISTRY_POLICY,

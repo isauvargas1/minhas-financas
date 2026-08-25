@@ -11,6 +11,7 @@ import type {
   CreateInvestmentRedemptionV2Payload,
   RecordInvestmentValuationPayload,
   RegisterInvestmentImportBatchPayload,
+  ChangeInvestmentGoalPayload,
   LinkInvestmentToGoalPayload,
   ReverseInvestmentMovementPayload,
   SaveInvestmentAccountPayload,
@@ -1869,6 +1870,231 @@ const executeGoalLinkChange = async (
   });
 };
 
+/**
+ * Troca a meta de uma posição num único limite atômico (INV-P2-028).
+ *
+ * "Alterar meta" **sempre falhava**: o formulário só oferecia a meta atual, e
+ * `linkInvestmentToGoal` recusa posição já vinculada. Fazer as duas etapas
+ * pelo cliente não resolve — uma falha entre elas deixa a posição sem meta e o
+ * progresso das duas metas errado.
+ *
+ * A operação cria **dois** movimentos, `goal_unlink` e `goal_link`, com IDs
+ * determinísticos derivados da mesma chave de idempotência. Nada é apagado, e
+ * a trilha explica a troca em vez de mostrar um desvínculo solto.
+ */
+export const executeChangeInvestmentGoal = async (
+  auth: WorkspaceAuthorizationContext,
+  payload: ChangeInvestmentGoalPayload,
+): Promise<Record<string, unknown>> => {
+  const operation = "changeInvestmentGoal" as const;
+  if (payload.goalId === payload.previousGoalId) {
+    throw new CreditCardApplicationError(
+      "invalid_payload",
+      "A meta de destino precisa ser diferente da meta atual.",
+    );
+  }
+  const occurredAt = assertNotFuture(
+    parseTimestamp(payload.occurredAt),
+    "occurredAt",
+  );
+  const positionId = investmentPositionId(payload.accountId, payload.assetId);
+  const unlinkId = deterministicDocumentId(
+    operation, auth.uid, payload.idempotencyKey, "unlink",
+  );
+  const linkId = deterministicDocumentId(
+    operation, auth.uid, payload.idempotencyKey, "link",
+  );
+
+  return investmentFirestore().runTransaction(async (transaction) => {
+    const authorization = await authorizeInvestmentTransaction(
+      transaction,
+      auth,
+      investmentOperationRoles(operation),
+    );
+    const reservation = await reserveInvestmentIdempotency(
+      transaction, auth, operation,
+      payload.idempotencyKey, payload.correlationId, payload,
+    );
+    if (reservation.replay) return reservation.replay;
+
+    const refs = {
+      account: investmentDoc(
+        auth.workspaceId, INVESTMENT_COLLECTIONS.accounts, payload.accountId,
+      ),
+      asset: investmentDoc(
+        auth.workspaceId, INVESTMENT_COLLECTIONS.assets, payload.assetId,
+      ),
+      position: investmentDoc(
+        auth.workspaceId, INVESTMENT_COLLECTIONS.positions, positionId,
+      ),
+      previousGoal: investmentGoalDoc(auth.workspaceId, payload.previousGoalId),
+      nextGoal: investmentGoalDoc(auth.workspaceId, payload.goalId),
+      unlink: investmentDoc(
+        auth.workspaceId, INVESTMENT_COLLECTIONS.movements, unlinkId,
+      ),
+      link: investmentDoc(
+        auth.workspaceId, INVESTMENT_COLLECTIONS.movements, linkId,
+      ),
+    };
+    const [
+      accountSnapshot, assetSnapshot, positionSnapshot,
+      previousGoalSnapshot, nextGoalSnapshot,
+      unlinkSnapshot, linkSnapshot,
+    ] = await Promise.all([
+      transaction.get(refs.account),
+      transaction.get(refs.asset),
+      transaction.get(refs.position),
+      transaction.get(refs.previousGoal),
+      transaction.get(refs.nextGoal),
+      transaction.get(refs.unlink),
+      transaction.get(refs.link),
+    ]);
+
+    ensureAccountAndAsset(
+      accountSnapshot, assetSnapshot, auth.workspaceId,
+      authorization.profileType, true,
+    );
+    assertWorkspaceDocument(previousGoalSnapshot, auth.workspaceId, "Meta");
+    assertWorkspaceDocument(nextGoalSnapshot, auth.workspaceId, "Meta");
+    if (unlinkSnapshot.exists || linkSnapshot.exists) {
+      throw new CreditCardApplicationError(
+        "idempotency_conflict",
+        "Movimento já existente.",
+      );
+    }
+    if (!positionSnapshot.exists) {
+      throw new CreditCardApplicationError(
+        "not_found",
+        "Posição não encontrada.",
+      );
+    }
+    const current = positionState(positionSnapshot);
+    if (current.goalId !== payload.previousGoalId) {
+      throw new CreditCardApplicationError(
+        "domain_precondition_failed",
+        "A posição não está vinculada à meta informada como atual.",
+      );
+    }
+
+    const next = {
+      ...current,
+      goalId: payload.goalId,
+      version: current.version + 1,
+    };
+    const movementBase = {
+      workspaceId: auth.workspaceId,
+      profileType: authorization.profileType,
+      domainVersion: INVESTMENT_DOMAIN_VERSION,
+      calculationVersion: INVESTMENT_CALCULATION_VERSION,
+      accountId: payload.accountId,
+      assetId: payload.assetId,
+      positionId,
+      status: "settled",
+      currency: "BRL",
+      principalCents: 0,
+      gainCents: 0,
+      feesCents: 0,
+      taxCents: 0,
+      quantityMicros: 0,
+      cashDeltaCents: 0,
+      principalDeltaCents: 0,
+      realizedGainDeltaCents: 0,
+      feesDeltaCents: 0,
+      taxDeltaCents: 0,
+      quantityDeltaMicros: 0,
+      currentValueDeltaCents: 0,
+      correlationId: payload.correlationId,
+      idempotencyKeyHash: reservation.keyHash,
+      occurredAt,
+      settlementAt: occurredAt,
+      createdBy: auth.uid,
+      createdAt: FieldValue.serverTimestamp(),
+      settledBy: auth.uid,
+      settledAt: FieldValue.serverTimestamp(),
+    };
+    const unlinkMovement = {
+      ...movementBase,
+      id: unlinkId,
+      operation: "goal_unlink",
+      description: `Troca de meta — saída: ${payload.reason}`,
+      goalId: payload.previousGoalId,
+      goalNetContributionDeltaCents: -current.principalCents,
+      goalCurrentValueDeltaCents: -current.currentValueCents,
+    };
+    const linkMovement = {
+      ...movementBase,
+      id: linkId,
+      operation: "goal_link",
+      description: `Troca de meta — entrada: ${payload.reason}`,
+      goalId: payload.goalId,
+      goalNetContributionDeltaCents: current.principalCents,
+      goalCurrentValueDeltaCents: current.currentValueCents,
+    };
+    transaction.create(refs.unlink, assertInvestmentDocument(
+      "movement", unlinkMovement, auth.workspaceId,
+    ));
+    transaction.create(refs.link, assertInvestmentDocument(
+      "movement", linkMovement, auth.workspaceId,
+    ));
+    writePosition(
+      transaction, positionSnapshot, auth.workspaceId,
+      authorization.profileType, payload.accountId, payload.assetId,
+      next, linkId, occurredAt, auth.uid,
+    );
+    writeInvestmentAllocationProjections(
+      transaction, auth.workspaceId, authorization.profileType, auth.uid,
+      accountSnapshot.data() ?? {}, assetSnapshot.data() ?? {},
+      current, next,
+      {
+        previous: previousGoalSnapshot.data()?.name as string | undefined,
+        next: nextGoalSnapshot.data()?.name as string | undefined,
+      },
+    );
+    updateGoalProjection(
+      transaction, previousGoalSnapshot,
+      unlinkMovement.goalNetContributionDeltaCents,
+      unlinkMovement.goalCurrentValueDeltaCents,
+      auth.uid,
+    );
+    updateGoalProjection(
+      transaction, nextGoalSnapshot,
+      linkMovement.goalNetContributionDeltaCents,
+      linkMovement.goalCurrentValueDeltaCents,
+      auth.uid,
+    );
+    const result = {
+      success: true,
+      positionId,
+      unlinkMovementId: unlinkId,
+      linkMovementId: linkId,
+      previousGoalId: payload.previousGoalId,
+      goalId: payload.goalId,
+    };
+    recordInvestmentOperationMetric(transaction, {
+      workspaceId: auth.workspaceId,
+      operation,
+      actorId: auth.uid,
+      goalId: payload.goalId,
+      correlationId: payload.correlationId,
+      idempotencyKey: payload.idempotencyKey,
+    });
+    recordInvestmentEvent(
+      transaction, auth, authorization.role, authorization.profileType,
+      operation, reservation, payload.correlationId,
+      "position", positionId,
+      {
+        previousGoalId: payload.previousGoalId,
+        goalId: payload.goalId,
+        reason: payload.reason,
+      },
+    );
+    completeInvestmentIdempotency(
+      transaction, auth, operation, payload.correlationId, reservation, result,
+    );
+    return result;
+  });
+};
+
 export const executeLinkInvestmentToGoal = (
   auth: WorkspaceAuthorizationContext,
   payload: LinkInvestmentToGoalPayload,
@@ -2088,6 +2314,13 @@ const executeSaveEntity = async (
       allocationPurpose:
         (payload as SaveInvestmentAssetPayload).allocationPurpose ??
           "unassigned",
+      // INV-P2-026 — classe, risco, liquidez e indexador.
+      //
+      // O par `id`/`name` é gravado junto de propósito: o ID vincula ao item
+      // do catálogo do workspace e o nome fica fotografado no ativo, para que
+      // renomear ou inativar o item não apague o rótulo histórico da faixa de
+      // alocação já publicada.
+      ...catalogClassification(payload as SaveInvestmentAssetPayload),
     };
     const common = {
       id: entityId,
@@ -2145,6 +2378,31 @@ const executeSaveEntity = async (
     );
     return result;
   });
+};
+
+/**
+ * Campos de catálogo do ativo, omitindo os ausentes.
+ *
+ * Ausência é significativa: `allocationDescriptors` cai para a faixa
+ * "Não informado" quando o campo não existe, e gravar `undefined` seria
+ * rejeitado pelo Firestore.
+ */
+const catalogClassification = (
+  payload: SaveInvestmentAssetPayload,
+): Record<string, string> => {
+  const entries: Array<[string, string | undefined]> = [
+    ["classId", payload.classId],
+    ["className", payload.className],
+    ["riskId", payload.riskId],
+    ["riskName", payload.riskName],
+    ["liquidityId", payload.liquidityId],
+    ["liquidityName", payload.liquidityName],
+    ["indexerId", payload.indexerId],
+    ["indexerName", payload.indexerName],
+  ];
+  return Object.fromEntries(
+    entries.filter((entry): entry is [string, string] => Boolean(entry[1])),
+  );
 };
 
 export const executeSaveInvestmentAccount = (

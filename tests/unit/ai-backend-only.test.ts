@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {readFileSync} from 'node:fs';
+import {existsSync, readFileSync} from 'node:fs';
 import {execFileSync} from 'node:child_process';
 
 /**
@@ -14,13 +14,21 @@ import {execFileSync} from 'node:child_process';
 
 const repoFile = (path: string) => readFileSync(path, 'utf8');
 
+/**
+ * `git ls-files` lista o índice, que ainda inclui arquivos apagados no working
+ * tree antes do commit. A guarda varre o **conteúdo em disco**, então precisa
+ * ignorar o que não existe mais — senão ela falha por um `ENOENT` que nada tem
+ * a ver com a invariante que protege.
+ */
+const existsOnDisk = (path: string) => existsSync(path);
+
 /** Sem shell: argumentos vão direto ao git, sem interpolação. */
 const gitFiles = (...patterns: string[]) =>
   execFileSync('git', ['ls-files', ...patterns], {encoding: 'utf8'})
     .split('\n')
     .filter(Boolean);
 
-const sourceFiles = gitFiles('src/**/*.ts', 'src/**/*.tsx');
+const sourceFiles = gitFiles('src/**/*.ts', 'src/**/*.tsx').filter(existsOnDisk);
 
 test('nenhum arquivo do cliente importa SDK de IA', () => {
   const offenders = sourceFiles.filter((file) => {

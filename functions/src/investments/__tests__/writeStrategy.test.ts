@@ -53,6 +53,8 @@ test("matriz de papéis por operação é a esperada pelo domínio", () => {
     onboardInvestmentWorkspace: ["owner"],
     saveInvestmentAccount: ["owner", "admin"],
     saveInvestmentAsset: ["owner", "admin"],
+    // INV-P2-028 — troca de meta: mesma matriz de vínculo e desvínculo.
+    changeInvestmentGoal: ["owner", "admin", "member"],
     createInvestmentContribution: ["owner", "admin", "member"],
     createInvestmentRedemption: ["owner", "admin", "member"],
     cancelInvestmentMovement: ["owner", "admin", "member"],

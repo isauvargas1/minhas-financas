@@ -543,6 +543,16 @@ function isValidInvestmentAsset(data, workspaceId, docId) {
           'reinvestment', 'fixed_asset'
         ])) &&
     (!data.keys().hasAny(['symbol']) || isInvestmentString(data.symbol, 32)) &&
+    // INV-P2-026 — classificação por catálogo. Opcional: um ativo sem
+    // classificação cai na faixa "Não informado" da dimensão.
+    data.get('classId', 'x') is string &&
+    data.get('className', 'x') is string &&
+    data.get('riskId', 'x') is string &&
+    data.get('riskName', 'x') is string &&
+    data.get('liquidityId', 'x') is string &&
+    data.get('liquidityName', 'x') is string &&
+    data.get('indexerId', 'x') is string &&
+    data.get('indexerName', 'x') is string &&
     isInvestmentCurrency(data.currency) &&
     data.status in ['active', 'archived'] &&
     isInvestmentString(data.createdBy, 128) &&

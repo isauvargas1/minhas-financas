@@ -114,6 +114,36 @@ export interface CategoryMetric {
 
 // --- PHASE 2: Domain Models ---
 
+/**
+ * Natureza do indicador (INV-P2-024).
+ *
+ * Indicadores de naturezas diferentes apareciam lado a lado sem distinção:
+ * "Investimentos" passou a vir das projeções patrimoniais enquanto "Taxa de
+ * Poupança" e "Fluxo de Caixa Líquido" continuaram vindo de `transactions`.
+ * Somar ou comparar mentalmente esses números leva a conclusões erradas, e
+ * nada na tela avisava que eles medem coisas distintas.
+ *
+ * - `caixa` — dinheiro que entrou ou saiu no período;
+ * - `patrimonio` — valor de mercado acumulado, não é fluxo;
+ * - `contribuicao` — quanto do caixa foi direcionado a investimento;
+ * - `rendimento` — resultado do investimento, realizado ou não;
+ * - `indicador` — razão ou percentual derivado dos anteriores.
+ */
+export type KpiNature =
+  | 'caixa'
+  | 'patrimonio'
+  | 'contribuicao'
+  | 'rendimento'
+  | 'indicador';
+
+export const KPI_NATURE_LABELS: Record<KpiNature, string> = {
+  caixa: 'Caixa',
+  patrimonio: 'Patrimônio',
+  contribuicao: 'Contribuição',
+  rendimento: 'Rendimento',
+  indicador: 'Indicador',
+};
+
 export interface FinancialKPI {
   id: string;
   label: string;
@@ -122,7 +152,19 @@ export interface FinancialKPI {
   formattedValue: string;
   trend?: 'up' | 'down' | 'stable';
   trendPercentage?: number;
+  /**
+   * De onde vem o `trend` (INV-P2-046).
+   *
+   * `sign` significa apenas "o valor é positivo ou negativo" — que é tudo que
+   * o cálculo atual produz. Rotular isso como "Alta"/"Baixa" afirmava uma
+   * comparação com período anterior que nunca foi feita, e um fluxo de caixa
+   * positivo em queda aparecia como "Alta". `period` fica reservado para
+   * quando existir comparação real, sempre acompanhada de `trendPercentage`.
+   */
+  trendBasis?: 'sign' | 'period';
   period: 'mensal' | 'anual' | 'custom';
+  /** O que o número mede. Ver `KpiNature`. */
+  nature?: KpiNature;
 }
 
 export interface CashFlowSummary {

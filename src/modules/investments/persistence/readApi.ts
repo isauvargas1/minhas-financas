@@ -76,6 +76,44 @@ export const listInvestmentAssets = (
   cursor?: InvestmentCursor,
 ) => entityPage<InvestmentAsset>(investmentAssetsRef(workspaceId), status, cursor);
 
+/**
+ * Resolve nomes de conta e ativo por ID, inclusive arquivados (INV-P3-050).
+ *
+ * A tela resolvia os nomes com o mapa dos 20 registros **ativos** carregados
+ * na página corrente: uma posição de um ativo fora dessa página — e toda
+ * posição de ativo arquivado, que nunca entra na lista de ativos — aparecia
+ * como "Ativo a1b2c3", um fragmento de ID na tabela patrimonial.
+ *
+ * A consulta é por `documentId() in [...]`, em blocos de 30, que é o teto do
+ * operador. `limit` é obrigatório pelas Rules do domínio.
+ */
+export const resolveInvestmentEntityNames = async <T extends { id: string; name: string }>(
+  reference: ReturnType<typeof investmentAccountsRef>,
+  ids: string[],
+): Promise<Map<string, string>> => {
+  const unique = Array.from(new Set(ids.filter((id) => id.length > 0)));
+  const names = new Map<string, string>();
+  const CHUNK = 30;
+  for (let index = 0; index < unique.length; index += CHUNK) {
+    const chunk = unique.slice(index, index + CHUNK);
+    const snapshot = await getDocs(query(
+      reference,
+      where(documentId(), 'in', chunk),
+      limit(chunk.length),
+    ));
+    snapshot.docs.forEach((entry) => {
+      names.set(entry.id, String((entry.data() as T).name ?? entry.id));
+    });
+  }
+  return names;
+};
+
+export const resolveInvestmentAccountNames = (workspaceId: string, ids: string[]) =>
+  resolveInvestmentEntityNames<InvestmentAccount>(investmentAccountsRef(workspaceId), ids);
+
+export const resolveInvestmentAssetNames = (workspaceId: string, ids: string[]) =>
+  resolveInvestmentEntityNames<InvestmentAsset>(investmentAssetsRef(workspaceId), ids);
+
 export const listInvestmentPositions = async (
   workspaceId: string,
   accountId?: string,
@@ -87,6 +125,29 @@ export const listInvestmentPositions = async (
   if (cursor) constraints.push(startAfter(cursor.updatedAt, cursor.id));
   constraints.push(limit(PAGE_SIZE));
   return mapPage(await getDocs(query(investmentPositionsRef(workspaceId), ...constraints)));
+};
+
+/**
+ * Movimentos do domínio patrimonial vinculados a uma meta (INV-P2-029).
+ *
+ * Com o domínio ligado, o progresso da meta vem de `investmentProgressCents`,
+ * mas a lista de movimentações continuava vindo de `transactions` filtrada por
+ * `goalId` — e o vínculo retroativo não gera espelho de caixa. A meta exibia
+ * progresso positivo com lista vazia, sem nada explicando a contradição.
+ */
+export const listGoalInvestmentMovements = async (
+  workspaceId: string,
+  goalId: string,
+  max = 50,
+): Promise<InvestmentMovement[]> => {
+  const snapshot = await getDocs(query(
+    investmentMovementsRef(workspaceId),
+    where('goalId', '==', goalId),
+    orderBy('occurredAt', 'desc'),
+    orderBy(documentId(), 'desc'),
+    limit(Math.min(max, PAGE_SIZE)),
+  ));
+  return snapshot.docs.map((entry) => ({ ...entry.data(), id: entry.id }) as InvestmentMovement);
 };
 
 export const listInvestmentMovements = async (

@@ -82,6 +82,16 @@ export const investmentAssetDocumentSchema = z
     name: investmentString(160),
     symbol: z.string().max(24).optional(),
     assetType: investmentString(64),
+    // INV-P2-026 — classificação por catálogo do workspace. Opcionais: um
+    // ativo sem classificação cai na faixa "Não informado" da dimensão.
+    classId: investmentString(160).optional(),
+    className: investmentString(160).optional(),
+    riskId: investmentString(160).optional(),
+    riskName: investmentString(160).optional(),
+    liquidityId: investmentString(160).optional(),
+    liquidityName: investmentString(160).optional(),
+    indexerId: investmentString(160).optional(),
+    indexerName: investmentString(160).optional(),
     // Obrigatório no documento: antes do M3 o onboarding não gravava o campo e
     // a finalidade só existia pelo default defensivo do leitor.
     allocationPurpose,

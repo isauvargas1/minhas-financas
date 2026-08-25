@@ -233,3 +233,108 @@ test('flag desligada mantém a aba de investimento no lançamento', async ({ pag
   await expect(page.getByRole('dialog')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Investimento', exact: true })).toBeVisible();
 });
+
+// INV-P1-007 — valoração pelo produto. Sem esta superfície, nenhuma posição
+// recebia preço: patrimônio era sempre igual a custo e o ganho não realizado
+// ficava estruturalmente zero.
+test('valoração pela tela separa patrimônio de custo e gera ganho não realizado', async ({ page }) => {
+  await seed(true);
+  await seedCatalog();
+  // O resumo semeado por `seed(true)` descreve outro cenário. Este teste
+  // exercita o efeito **da valoração** sobre o resumo, então parte do zero.
+  await firebaseAdmin().firestore()
+    .doc(`workspaces/${WORKSPACE}/investment_summaries/current`).delete();
+  await login(page);
+  await expect(page.getByRole('heading', { name: 'Patrimônio e investimentos' })).toBeVisible();
+
+  await page.getByRole('button', { name: 'Novo aporte' }).click();
+  await page.getByRole('dialog').getByLabel('Conta').selectOption({ label: 'Corretora E2E' });
+  await page.getByRole('dialog').getByLabel('Ativo').selectOption({ label: 'CDB E2E' });
+  await page.getByLabel('Descrição').fill('Aporte para valorar');
+  await page.getByLabel('Valor principal (R$)').fill('1000');
+  await page.getByLabel('Quantidade').fill('100');
+  await page.getByRole('button', { name: 'Confirmar aporte' }).click();
+  await expect(page.getByText('Operação concluída com sucesso.')).toBeVisible();
+
+  const db = firebaseAdmin().firestore();
+  const readPosition = async () => (
+    await db.collection(`workspaces/${WORKSPACE}/investment_positions`).get()
+  ).docs[0]?.data();
+
+  // Antes da valoração, patrimônio e custo coincidem por construção.
+  await expect.poll(async () => (await readPosition())?.currentValueCents ?? 0).toBe(100_000);
+
+  await page.getByRole('tab', { name: 'Ativos e posições' }).click();
+  await page.getByRole('button', { name: 'Valorar' }).click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await page.getByLabel('Preço unitário (R$)').fill('12');
+  await page.getByRole('button', { name: 'Registrar valoração' }).click();
+  await expect(page.getByText('Operação concluída com sucesso.')).toBeVisible();
+
+  // 100 unidades a R$ 12,00 = R$ 1.200,00 de patrimônio sobre R$ 1.000,00 de custo.
+  await expect.poll(async () => (await readPosition())?.currentValueCents ?? 0).toBe(120_000);
+  await expect.poll(async () => (await readPosition())?.principalCents ?? 0).toBe(100_000);
+  await expect.poll(async () => (await readPosition())?.unrealizedAppreciationCents ?? 0).toBe(20_000);
+
+  // Valoração não gera caixa: nenhum espelho novo em `transactions`.
+  const mirrors = await db.collection(`workspaces/${WORKSPACE}/transactions`).get();
+  expect(mirrors.size).toBe(1);
+
+  // E o resumo passa a distinguir patrimônio de custo na tela.
+  await page.getByRole('tab', { name: 'Resumo' }).click();
+  await expect(page.locator('article').filter({ hasText: 'Valorização não realizada' })
+    .getByText('R$ 200,00')).toBeVisible();
+});
+
+// INV-P1-004 — duplo clique em "Confirmar aporte" precisa gerar **um** fato
+// financeiro. A chave de idempotência deriva da intenção aberta, não do clique.
+test('duplo clique em Confirmar aporte cria um único movimento', async ({ page }) => {
+  await seed(true);
+  await seedCatalog();
+  await login(page);
+  await expect(page.getByRole('heading', { name: 'Patrimônio e investimentos' })).toBeVisible();
+
+  await page.getByRole('button', { name: 'Novo aporte' }).click();
+  await page.getByRole('dialog').getByLabel('Conta').selectOption({ label: 'Corretora E2E' });
+  await page.getByRole('dialog').getByLabel('Ativo').selectOption({ label: 'CDB E2E' });
+  await page.getByLabel('Descrição').fill('Aporte com duplo clique');
+  await page.getByLabel('Valor principal (R$)').fill('750');
+  await page.getByLabel('Quantidade').fill('7.5');
+
+  const confirm = page.getByRole('button', { name: 'Confirmar aporte' });
+  // Dois cliques em sequência imediata, sem esperar a resposta do primeiro.
+  await confirm.click({ noWaitAfter: true });
+  await confirm.click({ noWaitAfter: true, force: true }).catch(() => {
+    // O botão fica desabilitado enquanto a mutação está em voo — que é
+    // justamente a trava de duplo submit. Se o clique não passar, melhor.
+  });
+  await expect(page.getByText('Operação concluída com sucesso.')).toBeVisible();
+
+  const db = firebaseAdmin().firestore();
+  await expect.poll(async () => (
+    await db.collection(`workspaces/${WORKSPACE}/investment_movements`)
+      .where('operation', '==', 'contribution').get()
+  ).size).toBe(1);
+  await expect.poll(async () => (
+    await db.collection(`workspaces/${WORKSPACE}/investment_positions`).get()
+  ).docs[0]?.data()?.principalCents).toBe(75_000);
+});
+
+// INV-P1-008 — ligar a flag removia do produto os diagnósticos de alocação.
+test('alocação PF aparece na tela patrimonial com a flag ligada', async ({ page }) => {
+  await seed(true);
+  await login(page);
+  await expect(page.getByRole('heading', { name: 'Patrimônio e investimentos' })).toBeVisible();
+
+  await page.getByRole('tab', { name: 'Alocação' }).click();
+  await expect(page.getByRole('heading', { name: 'Diagnóstico de alocação' })).toBeVisible();
+  await expect(page.getByText('Por finalidade')).toBeVisible();
+  await expect(page.getByText('Por meta')).toBeVisible();
+  await expect(page.getByText('Por classe')).toBeVisible();
+  await expect(page.getByText('Por liquidez')).toBeVisible();
+  // A faixa vem do resumo oficial de alocação, não de `transactions`.
+  await expect(page.getByText('Não classificado', { exact: true })).toBeVisible();
+  // Investimento sem meta não é presumido como aposentadoria: a palavra só
+  // aparece no texto explicativo da dimensão, nunca como faixa com valor.
+  await expect(page.getByText('Aposentadoria', { exact: true })).toHaveCount(0);
+});

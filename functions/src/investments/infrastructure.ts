@@ -21,6 +21,7 @@ export type InvestmentBackendOperation =
   | "onboardInvestmentWorkspace"
   | "saveInvestmentAccount"
   | "saveInvestmentAsset"
+  | "changeInvestmentGoal"
   | "createInvestmentContribution"
   | "createInvestmentRedemption"
   | "cancelInvestmentMovement"

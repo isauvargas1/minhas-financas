@@ -78,6 +78,10 @@ export const getFinancialReportSnapshot = async (
                 currency: 'BRL',
             }).format(investmentOverview.contributions),
             description: 'Aportes liquidados no domínio patrimonial oficial.',
+            // Continua sendo contribuição, não patrimônio: o número é o que
+            // saiu do caixa para investimento no período, e por isso segue
+            // comparável com receitas, despesas e fluxo líquido (INV-P2-024).
+            nature: 'contribuicao' as const,
         } : kpi)
         : kpis;
 

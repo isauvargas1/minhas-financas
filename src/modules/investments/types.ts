@@ -22,6 +22,21 @@ export interface InvestmentAsset {
   symbol?: string;
   assetType: 'fixed_income' | 'fund' | 'stock' | 'etf' | 'crypto' | 'other';
   allocationPurpose?: 'unassigned' | 'retirement' | 'goal' | 'reserve' | 'financial_application' | 'reinvestment' | 'fixed_asset';
+  /**
+   * Classificação por catálogo do workspace (INV-P2-026).
+   *
+   * O par `id`/`name` é gravado junto: o ID vincula ao item do catálogo e o
+   * nome fica fotografado no ativo, para que renomear ou inativar o item não
+   * apague o rótulo histórico da faixa de alocação já publicada.
+   */
+  classId?: string;
+  className?: string;
+  riskId?: string;
+  riskName?: string;
+  liquidityId?: string;
+  liquidityName?: string;
+  indexerId?: string;
+  indexerName?: string;
   currency: 'BRL';
   status: InvestmentStatus;
   updatedAt: Timestamp;

@@ -1,7 +1,11 @@
 
 import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { FinancialReportSnapshot } from '../modules/reports/types.ts';
+import {
+    FinancialReportSnapshot,
+    KPI_NATURE_LABELS,
+    type KpiNature,
+} from '../modules/reports/types.ts';
 import {
     TrendingUpIcon, WalletIcon, ChartBarIcon, ArrowUpIcon,
     ArrowDownIcon, TargetIcon, BuildingIcon, SparklesIcon,
@@ -29,11 +33,14 @@ const KPICard: React.FC<{
     label: string;
     value: string;
     trend?: 'up' | 'down' | 'stable';
+    trendBasis?: 'sign' | 'period';
+    trendPercentage?: number;
+    nature?: KpiNature;
     icon: React.ReactNode;
     color: string;
     bg: string;
     description?: string;
-}> = ({ label, value, trend, icon, color, bg, description }) => (
+}> = ({ label, value, trend, trendBasis, trendPercentage, nature, icon, color, bg, description }) => (
     <MotionDiv
         whileHover={{ y: -4 }}
         className="bg-surface rounded-card p-6 border border-border shadow-sm flex flex-col justify-between h-full group transition-all duration-300 hover:shadow-lg relative overflow-hidden"
@@ -42,13 +49,35 @@ const KPICard: React.FC<{
             <div className={`p-3 rounded-xl ${bg} ${color} shadow-inner group-hover:scale-110 transition-transform duration-500`}>
                 {icon}
             </div>
-            {trend && trend !== 'stable' && (
-                <div className={`text-[10px] font-bold px-2 py-1 rounded-full flex items-center gap-1 ${trend === 'up' ? 'bg-green-100 text-green-700 dark:bg-green-900/30' : 'bg-red-100 text-red-700 dark:bg-red-900/30'
-                    }`}>
-                    {trend === 'up' ? '↑' : '↓'}
-                    <span className="uppercase">{trend === 'up' ? 'Alta' : 'Baixa'}</span>
-                </div>
-            )}
+            <div className="flex flex-col items-end gap-1">
+                {/*
+                  INV-P2-024 — a natureza do indicador fica visível: caixa,
+                  patrimônio, contribuição e rendimento medem coisas diferentes
+                  e apareciam lado a lado sem nada distingui-los.
+                */}
+                {nature && (
+                    <span className="rounded-full bg-background px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-muted">
+                        {KPI_NATURE_LABELS[nature]}
+                    </span>
+                )}
+                {/*
+                  INV-P2-046 — "Alta"/"Baixa" só quando existe comparação real
+                  com período anterior. O que o cálculo produz hoje é o sinal
+                  do valor, e rotulá-lo como tendência afirmava uma comparação
+                  que nunca foi feita.
+                */}
+                {trend && trend !== 'stable' && (
+                    <div className={`text-[10px] font-bold px-2 py-1 rounded-full flex items-center gap-1 ${trend === 'up' ? 'bg-green-100 text-green-700 dark:bg-green-900/30' : 'bg-red-100 text-red-700 dark:bg-red-900/30'
+                        }`}>
+                        {trend === 'up' ? '↑' : '↓'}
+                        <span className="uppercase">
+                            {trendBasis === 'period' && typeof trendPercentage === 'number'
+                                ? `${trend === 'up' ? 'Alta' : 'Baixa'} ${Math.abs(trendPercentage).toFixed(1)}%`
+                                : (trend === 'up' ? 'Positivo' : 'Negativo')}
+                        </span>
+                    </div>
+                )}
+            </div>
         </div>
         <div className="relative z-10">
             <p className="text-xs font-bold text-muted uppercase tracking-widest mb-1.5">{label}</p>
@@ -171,6 +200,9 @@ const ReportsOverview: React.FC<ReportsOverviewProps> = ({ snapshot, isLoading }
                         label={kpi.label}
                         value={kpi.data?.formattedValue || 'R$ 0,00'}
                         trend={kpi.data?.trend}
+                        trendBasis={kpi.data?.trendBasis}
+                        trendPercentage={kpi.data?.trendPercentage}
+                        nature={kpi.data?.nature}
                         icon={kpi.icon}
                         color={kpi.color}
                         bg={kpi.bg}

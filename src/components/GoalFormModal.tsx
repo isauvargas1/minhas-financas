@@ -70,7 +70,17 @@ const GoalFormModal: React.FC<GoalFormModalProps> = ({
 
     // Financial
     const [targetAmount, setTargetAmount] = useState('');
-    const [currentAmount, setCurrentAmount] = useState('0'); 
+    const [currentAmount, setCurrentAmount] = useState('0');
+    /*
+     * INV-P2-027 — base de progresso da meta.
+     *
+     * O backend suporta as duas bases desde o M3, e nenhum formulário as
+     * expunha: toda meta nascia em `net_contributions` e `current_value` era
+     * inalcançável pelo produto. A escolha muda o que o número da meta
+     * significa — quanto foi aportado, ou quanto a posição vale hoje.
+     */
+    const [progressBasis, setProgressBasis] =
+        useState<'net_contributions' | 'current_value'>('net_contributions');
     const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
     const [deadline, setDeadline] = useState('');
 
@@ -110,6 +120,7 @@ const GoalFormModal: React.FC<GoalFormModalProps> = ({
                 setStatus(goalToEdit.status);
                 setTargetAmount(String(goalToEdit.targetAmount));
                 setCurrentAmount(String(goalToEdit.currentAmount));
+                setProgressBasis(goalToEdit.progressBasis ?? 'net_contributions');
                 setStartDate(goalToEdit.startDate);
                 setDeadline(goalToEdit.deadline);
                 setColor(goalToEdit.visual.color);
@@ -273,7 +284,7 @@ const GoalFormModal: React.FC<GoalFormModalProps> = ({
             period: isPJ ? period : undefined,
             costCenter: isPJ ? costCenter : undefined,
             isAutomatic: isPJ && businessType !== 'investimento',
-            progressBasis: goalToEdit?.progressBasis ?? 'net_contributions',
+            progressBasis,
             visual: { color, icon, emoji, progressBarType: 'linear' },
             createdAt: goalToEdit ? goalToEdit.createdAt : new Date().toISOString(),
             updatedAt: new Date().toISOString()
@@ -695,6 +706,26 @@ const GoalFormModal: React.FC<GoalFormModalProps> = ({
                                     </div>
                                 </div>
                             )}
+
+                            <div>
+                                <label htmlFor="goal-progress-basis" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    Como medir o progresso
+                                </label>
+                                <select
+                                    id="goal-progress-basis"
+                                    value={progressBasis}
+                                    onChange={(event) => setProgressBasis(event.target.value as typeof progressBasis)}
+                                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 dark:bg-dark-200 dark:text-white"
+                                >
+                                    <option value="net_contributions">Pelo valor aportado</option>
+                                    <option value="current_value">Pelo valor de mercado da posição</option>
+                                </select>
+                                <p className="text-xs text-gray-500 mt-1">
+                                    {progressBasis === 'net_contributions'
+                                        ? 'O progresso soma os aportes líquidos vinculados e não muda com a variação de mercado.'
+                                        : 'O progresso acompanha o valor de mercado das posições vinculadas, subindo e descendo com a valoração.'}
+                                </p>
+                            </div>
 
                              <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Saldo Atual (Automático)</label>

@@ -12,6 +12,7 @@ import {
   cancelInvestmentRedemptionPayloadSchema,
   createInvestmentContributionPayloadSchema,
   createInvestmentRedemptionPayloadSchema,
+  changeInvestmentGoalPayloadSchema,
   linkInvestmentToGoalPayloadSchema,
   onboardInvestmentWorkspacePayloadSchema,
   backfillInvestmentWorkspacePayloadSchema,
@@ -44,6 +45,7 @@ import {
   executeCancelInvestmentMovement,
   executeCreateInvestmentContribution,
   executeCreateInvestmentRedemptionV2,
+  executeChangeInvestmentGoal,
   executeLinkInvestmentToGoal,
   executeRecordInvestmentValuation,
   executeRegisterInvestmentImportBatch,
@@ -158,6 +160,12 @@ export const reverseInvestmentMovement = investmentCallable(
   "reverseInvestmentMovement",
   reverseInvestmentMovementPayloadSchema,
   executeReverseInvestmentMovement,
+);
+
+export const changeInvestmentGoal = investmentCallable(
+  "changeInvestmentGoal",
+  changeInvestmentGoalPayloadSchema,
+  executeChangeInvestmentGoal,
 );
 
 export const linkInvestmentToGoal = investmentCallable(
