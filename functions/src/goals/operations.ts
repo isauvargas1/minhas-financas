@@ -228,11 +228,31 @@ const assertGoalContributionsWithinLimit = (
   if (snapshot.size > GOAL_CONTRIBUTIONS_SCAN_LIMIT) {
     throw new CreditCardApplicationError(
       "domain_precondition_failed",
-      `A meta ${goalId} ultrapassou ${GOAL_CONTRIBUTIONS_SCAN_LIMIT} aportes ` +
-        "e precisa de reconstrução paginada para recalcular o progresso.",
+      `A meta ${goalId} tem mais de ${GOAL_CONTRIBUTIONS_SCAN_LIMIT} aportes ` +
+        "vinculados: refazer o vínculo de uma vez ultrapassaria o limite de " +
+        "escritas de uma transação. Ajuste os aportes individualmente.",
     );
   }
   return snapshot;
+};
+
+/**
+ * Base de `netContributionCents` para um recálculo (NEW-06).
+ *
+ * Dentro do teto de varredura, a base é a soma dos aportes — que se
+ * autocorrige a cada escrita. Acima do teto, a base é o valor já publicado na
+ * meta, e a escrita aplica apenas o delta desta operação; a reconciliação é
+ * `rebuildGoalProgress`, que soma paginado e publica valor absoluto.
+ */
+const goalNetContributionBase = (
+  goal: admin.firestore.DocumentData,
+  linkedSnapshot: admin.firestore.QuerySnapshot,
+): number => {
+  if (linkedSnapshot.size <= GOAL_CONTRIBUTIONS_SCAN_LIMIT) {
+    return sumGoalContributions(linkedSnapshot);
+  }
+  return Number.isSafeInteger(goal.netContributionCents) ?
+    goal.netContributionCents as number : 0;
 };
 
 const buildGoalPersistence = (
@@ -453,9 +473,11 @@ export const executeArchiveGoal = async (
     transaction.get(ref),
     transaction.get(goalContributionsQuery(auth.workspaceId, payload.goalId)),
   ]);
-  // Validação **depois** de todas as leituras: lançar de dentro do
-  // `Promise.all` aborta a transação com leituras irmãs em voo (INV-P2-044).
-  assertGoalContributionsWithinLimit(historySnapshot, payload.goalId);
+  // Arquivar não depende do histórico: o número entra só na auditoria, e uma
+  // meta com histórico grande precisa poder ser arquivada (NEW-06).
+  const historyTruncated = historySnapshot.size > GOAL_CONTRIBUTIONS_SCAN_LIMIT;
+  const historyCount = historyTruncated ?
+    GOAL_CONTRIBUTIONS_SCAN_LIMIT : historySnapshot.size;
   if (!goalSnapshot.exists) {
     throw new CreditCardApplicationError("not_found", "Meta não encontrada.");
   }
@@ -467,53 +489,118 @@ export const executeArchiveGoal = async (
     status: "cancelada",
     updatedAt: FieldValue.serverTimestamp(),
   });
-  const result = {success: true, goalId: payload.goalId, historyCount: historySnapshot.size};
+  const result = {success: true, goalId: payload.goalId, historyCount, historyTruncated};
   writeAudit(transaction, auth, "archiveGoal", reservation.ref, payload.goalId, {
     reason: payload.reason,
-    historyCount: historySnapshot.size,
+    historyCount,
+    historyTruncated,
   });
   completeIdempotency(transaction, reservation, result);
   return result;
 });
 
+/**
+ * Teto absoluto de aportes que a reconstrução paginada percorre (NEW-06).
+ *
+ * O teto de varredura em transação (`GOAL_CONTRIBUTIONS_SCAN_LIMIT`) existe
+ * porque uma transação do Firestore não pode ler o histórico inteiro. A
+ * reconstrução não tem essa restrição: ela soma fora da transação, por páginas
+ * com cursor, e só então publica o valor absoluto. Este teto é o limite real
+ * do produto, e ultrapassá-lo é erro nomeado — nunca soma parcial silenciosa.
+ */
+export const GOAL_CONTRIBUTIONS_REBUILD_LIMIT = 100_000;
+
+/**
+ * Soma paginada dos aportes de uma meta.
+ *
+ * Ordena por `__name__`, que é único e sempre presente: o cursor nunca pula
+ * nem repete documento. A soma acontece **fora** da transação justamente para
+ * não herdar o teto dela; o valor publicado é o do instante da varredura, e
+ * uma execução seguinte converge se houver escrita concorrente.
+ */
+const sumGoalContributionsPaged = async (
+  workspaceId: string,
+  goalId: string,
+  pageSize: number,
+): Promise<{netContributionCents: number; contributionCount: number}> => {
+  const collectionRef = db()
+    .collection(`${workspacePath(workspaceId)}/transactions`)
+    .where("goalId", "==", goalId)
+    .orderBy(admin.firestore.FieldPath.documentId());
+
+  let netContributionCents = 0;
+  let contributionCount = 0;
+  let cursor: string | undefined;
+
+  for (;;) {
+    const query = cursor ?
+      collectionRef.startAfter(cursor).limit(pageSize) :
+      collectionRef.limit(pageSize);
+    const page = await query.get();
+    for (const entry of page.docs) {
+      netContributionCents += contributionMinorUnits(entry.data());
+    }
+    contributionCount += page.size;
+    if (contributionCount > GOAL_CONTRIBUTIONS_REBUILD_LIMIT) {
+      throw new CreditCardApplicationError(
+        "domain_precondition_failed",
+        `A meta ${goalId} ultrapassou ${GOAL_CONTRIBUTIONS_REBUILD_LIMIT} ` +
+          "aportes vinculados. Nenhum valor parcial foi publicado.",
+      );
+    }
+    if (page.size < pageSize) break;
+    cursor = page.docs[page.docs.length - 1]?.id;
+    if (!cursor) break;
+  }
+
+  return {netContributionCents, contributionCount};
+};
+
 export const executeRebuildGoalProgress = async (
   auth: WorkspaceAuthorizationContext,
   payload: RebuildGoalProgressPayload,
-): Promise<Record<string, unknown>> => db().runTransaction(async (transaction) => {
-  const reservation = await reserveIdempotency(
-    transaction, auth, "rebuildGoalProgress", payload.idempotencyKey, payload,
+): Promise<Record<string, unknown>> => {
+  // A varredura vem antes da transação: é ela que remove o beco sem saída de
+  // uma meta acima do teto de transação, que antes não tinha caminho de volta.
+  const {netContributionCents, contributionCount} = await sumGoalContributionsPaged(
+    auth.workspaceId, payload.goalId, payload.pageSize,
   );
-  if (reservation.replay) return reservation.replay;
-  const ref = goalRef(auth.workspaceId, payload.goalId);
-  const [goalSnapshot, contributions] = await Promise.all([
-    transaction.get(ref),
-    transaction.get(goalContributionsQuery(auth.workspaceId, payload.goalId)),
-  ]);
-  // Validação **depois** de todas as leituras: lançar de dentro do
-  // `Promise.all` aborta a transação com leituras irmãs em voo (INV-P2-044).
-  assertGoalContributionsWithinLimit(contributions, payload.goalId);
-  if (!goalSnapshot.exists) {
-    throw new CreditCardApplicationError("not_found", "Meta não encontrada.");
-  }
-  const netContributionCents = sumGoalContributions(contributions);
-  const progressCents = resolveGoalProgressCents(goalSnapshot.data()!, netContributionCents);
-  transaction.update(ref, {
-    progressBasis: goalSnapshot.data()?.progressBasis ?? "net_contributions",
-    netContributionCents,
-    currentAmountCents: progressCents,
-    currentAmount: fromMinorUnits(progressCents),
-    lastProgressRebuildAt: FieldValue.serverTimestamp(),
-    updatedAt: FieldValue.serverTimestamp(),
+
+  return db().runTransaction(async (transaction) => {
+    const reservation = await reserveIdempotency(
+      transaction, auth, "rebuildGoalProgress", payload.idempotencyKey, payload,
+    );
+    if (reservation.replay) return reservation.replay;
+    const ref = goalRef(auth.workspaceId, payload.goalId);
+    const goalSnapshot = await transaction.get(ref);
+    if (!goalSnapshot.exists) {
+      throw new CreditCardApplicationError("not_found", "Meta não encontrada.");
+    }
+    const progressCents = resolveGoalProgressCents(goalSnapshot.data()!, netContributionCents);
+    transaction.update(ref, {
+      progressBasis: goalSnapshot.data()?.progressBasis ?? "net_contributions",
+      netContributionCents,
+      currentAmountCents: progressCents,
+      currentAmount: fromMinorUnits(progressCents),
+      contributionCount,
+      lastProgressRebuildAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+    const result = {
+      success: true,
+      goalId: payload.goalId,
+      currentAmount: fromMinorUnits(progressCents),
+      contributionCount,
+    };
+    writeAudit(transaction, auth, "rebuildGoalProgress", reservation.ref, payload.goalId, {
+      reason: payload.reason,
+      contributionCount,
+      netContributionCents,
+    });
+    completeIdempotency(transaction, reservation, result);
+    return result;
   });
-  const result = {success: true, goalId: payload.goalId, currentAmount: fromMinorUnits(progressCents)};
-  writeAudit(transaction, auth, "rebuildGoalProgress", reservation.ref, payload.goalId, {
-    reason: payload.reason,
-    contributionCount: contributions.size,
-    netContributionCents,
-  });
-  completeIdempotency(transaction, reservation, result);
-  return result;
-});
+};
 
 export const executeSaveGoalContribution = async (
   auth: WorkspaceAuthorizationContext,
@@ -533,9 +620,6 @@ export const executeSaveGoalContribution = async (
     transaction.get(goalContributionsQuery(auth.workspaceId, payload.contribution.goalId)),
     transaction.get(db().doc(workspacePath(auth.workspaceId))),
   ]);
-  // Validação **depois** de todas as leituras: lançar de dentro do
-  // `Promise.all` aborta a transação com leituras irmãs em voo (INV-P2-044).
-  assertGoalContributionsWithinLimit(linkedSnapshot, payload.contribution.goalId);
   // Com o domínio oficial ligado, o progresso da meta vem de
   // `investmentProgressCents`, alimentado pelas posições. Um aporte gravado
   // aqui sairia do caixa e não apareceria na meta nem no patrimônio.
@@ -608,7 +692,7 @@ export const executeSaveGoalContribution = async (
       createdAt: FieldValue.serverTimestamp(),
     });
   }
-  let netContributionCents = sumGoalContributions(linkedSnapshot);
+  let netContributionCents = goalNetContributionBase(goalSnapshot.data()!, linkedSnapshot);
   if (previous && isSettledGoalContribution(previous)) {
     netContributionCents -= contributionMinorUnits(previous);
   }

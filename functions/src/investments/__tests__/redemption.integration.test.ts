@@ -172,6 +172,7 @@ test("pending, liquidação, parcial, total, replay, meta e estorno reconciliam"
     idempotencyKey: "redemption-rebuild-0001",
     goalId,
     reason: "Reconciliação independente após estorno",
+    pageSize: 300,
   });
   assert.equal(rebuilt.currentAmount, 600);
   source = await getDb().doc(`workspaces/${WORKSPACE}/transactions/${contributionId}`).get();

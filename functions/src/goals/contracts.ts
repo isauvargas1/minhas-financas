@@ -103,6 +103,8 @@ export const archiveGoalPayloadSchema = baseSchema.extend({
 export const rebuildGoalProgressPayloadSchema = baseSchema.extend({
   goalId: documentIdSchema,
   reason: z.string().trim().min(3).max(500),
+  // A soma é paginada: o tamanho da página é do chamador, com teto próprio.
+  pageSize: z.number().int().min(1).max(500).default(300),
 }).strict();
 
 const transactionSnapshotSchema = z.object({

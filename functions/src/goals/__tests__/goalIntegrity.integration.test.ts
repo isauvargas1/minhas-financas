@@ -150,6 +150,7 @@ test("aporte pré-vinculado, vínculo retroativo, pending, retry, concorrência 
     idempotencyKey: "rebuild-after-concurrency-0001",
     goalId,
     reason: "Reconciliação do teste de concorrência",
+    pageSize: 300,
   });
   assert.equal(rebuilt.currentAmount, 200.35);
 
