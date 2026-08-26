@@ -40,10 +40,11 @@ const IMPORTERS: Record<IconPackName, () => Promise<unknown>> = {
 /**
  * Carrega um pacote uma única vez por sessão.
  *
- * `phosphor` pesa mais de 6 MB e só é necessário quando o tema do usuário o
- * escolhe — carregá-lo sempre custaria a todo mundo por uma preferência de
- * minoria. `tabler` é necessário além do tema, porque `DynamicIcon` resolve
- * ícones escolhidos pelo usuário em metas, categorias e carteiras.
+ * `phosphor` pesa mais de 6 MB e `tabler` mais de 3 MB: nenhum dos dois pode
+ * ser carregado por padrão. `phosphor` só entra quando o tema do usuário o
+ * escolhe; `tabler` entra quando o ícone escolhido pelo usuário vem dele
+ * (`DynamicIcon`) ou quando o nome pedido não existe no pacote do tema — e aí
+ * é o pacote de recurso, não o do primeiro paint.
  */
 export const loadIconPack = (pack: IconPackName): Promise<unknown> => {
     if (loadedPacks[pack]) return Promise.resolve(loadedPacks[pack]);
@@ -61,7 +62,9 @@ const useIconPacks = (...packs: IconPackName[]): IconPacks => {
     const needed = packs.join(',');
     useEffect(() => {
         packSubscribers.add(forceRender);
-        needed.split(',').forEach((pack) => {
+        // `''.split(',')` devolve `['']`, não `[]`: sem o filtro, uma chamada
+        // sem pacotes pedia o importador de nome vazio e derrubava a árvore.
+        needed.split(',').filter(Boolean).forEach((pack) => {
             if (!loadedPacks[pack as IconPackName]) {
                 void loadIconPack(pack as IconPackName);
             }
@@ -204,12 +207,20 @@ const getIconFromSet = (iconSet: any, iconName: string) => {
 const AppIcon: React.FC<{ name: string } & IconProps> = ({ name, className, ...props }) => {
     const { theme } = useTheme();
     const pack = (theme?.icons?.pack || 'lucide') as IconPackName;
-    // O pacote do tema, mais `tabler` como fallback do caminho `lucide`.
-    const packs = useIconPacks(pack, 'tabler');
+    const packs = useIconPacks(pack);
     const size = theme?.icons?.size || 20;
     const strokeWidth = theme?.icons?.strokeWidth || 2;
 
     const mapping = ICON_MAP[name];
+    /*
+     * `tabler` é o pacote de recurso do caminho `lucide`, e pesa mais de 3 MB.
+     * Pedi-lo junto do pacote do tema fazia todo mundo baixar e interpretar os
+     * dois no primeiro paint, por um recurso que quase nunca é usado. Agora ele
+     * só é pedido quando o pacote do tema já chegou e realmente não tem o ícone.
+     */
+    const needsTablerFallback = pack === 'lucide' && Boolean(mapping) &&
+        Boolean(packs?.lucide) && !getIconFromSet(packs?.lucide, mapping.lucide);
+    useIconPacks(...(needsTablerFallback ? (['tabler'] as IconPackName[]) : []));
 
     if (!mapping) {
         return <FallbackIcon size={size} className={className} {...props} />;

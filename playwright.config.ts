@@ -69,6 +69,16 @@ export default defineConfig({
         {
           command:
             'npm --prefix functions run build && firebase emulators:start --only auth,firestore,functions --project minhas-financas-local',
+          /*
+           * Teto de heap do emulador do Firestore.
+           *
+           * O emulador é uma JVM que guarda tudo em memória e cresce com o que
+           * a suíte semeia. Sem teto, ele reservava heap suficiente para deixar
+           * o contêiner com menos de 900 MB livres, e o renderer do Chromium
+           * morria com "Target crashed" em pontos diferentes a cada execução —
+           * uma falha de recurso que se disfarçava de flakiness do produto.
+           */
+          env: {...process.env, JAVA_TOOL_OPTIONS: '-Xmx1024m'},
           url: 'http://127.0.0.1:4000',
           reuseExistingServer: true,
           timeout: 180_000,
