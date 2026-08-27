@@ -301,20 +301,6 @@
       ]
     },
     {
-      "collectionGroup": "investment_report_periods",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "periodStart",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "__name__",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
       "collectionGroup": "investment_positions",
       "queryScope": "COLLECTION",
       "fields": [
@@ -696,48 +682,6 @@
         },
         {
           "fieldPath": "occurredAt",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "__name__",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "cash_report_periods",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "periodStart",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "__name__",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "goals",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "archived",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "__name__",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "transactions",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "date",
           "order": "DESCENDING"
         },
         {
