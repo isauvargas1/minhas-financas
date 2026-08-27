@@ -1177,3 +1177,62 @@ uma reconstrução abandonada (retomável, nunca divergente); TTL de
 por reentrega do gatilho de caixa e o defeito de reinício da reconstrução;
 nenhum dado gravado por esta mudança impede a reversão — `cash_period_events`
 fica órfã e expira sozinha.
+
+---
+
+## Preparação operacional do deployment de desenvolvimento
+
+**Decisão.** Nenhuma lógica de negócio, cálculo financeiro ou arquitetura foi
+tocada. Só o que faltava para o deployment ser executável. Procedimento
+completo, com comandos preenchidos, em
+`INVESTMENTS_SINGLE_DOMAIN_FINALIZATION.md` §20.
+
+**Override de reset no Project ID real.** `sistema-financeiro-pesso-20698` é o
+único projeto e ainda é o ambiente de desenvolvimento, mas o utilitário de
+limpeza o recusava pelo ID literal. A recusa **permanece**; foi acrescentada
+uma porta com quatro fechaduras, todas em argv e nenhuma com valor padrão:
+`--projeto` na linha de comando (a variável `PROJETO` não abre),
+`--allow-development-reset-on-project` com o mesmo ID, `--workspace`, e
+`--apply` + `--confirmar` + `--confirmar-projeto` para escrever. Vale só para
+esse ID; qualquer outro é recusado com mensagem própria. Sob override,
+`FIRESTORE_EMULATOR_HOST` deixa de ser atenuante. `--include-legacy-...`
+continua exigindo `--confirmar-legado`. Banner em destaque quando ativo.
+`COLECOES_PROIBIDAS` + `assegurarColecaoPermitida` transformam "nunca apaga
+cartão/empréstimo/rateio/transação" em verificação antes da escrita.
+
+**Hosting.** Bloco `hosting` acrescentado a `firebase.json` por edição textual,
+preservando `firestore`, `functions` e `emulators` byte a byte — sem
+`firebase init`. `public: dist`, rewrite de SPA, `immutable` de um ano em
+`/assets/**` (todo asset do Vite tem hash de conteúdo) e `no-cache` em
+`/index.html`. Sem `predeploy`, de propósito: as `VITE_FIREBASE_*` decidem o
+projeto do bundle, e o build fica sendo passo explícito. `vite.config.ts`,
+`src/lib/firebase.ts` e `FUNCTIONS_REGION` intocados.
+
+**Deploy safety.** `.firebaserc` inalterado, sem staging. Os scripts de deploy
+passaram a fixar `--project sistema-financeiro-pesso-20698` em vez de confiar
+no alias `default`; `deploy:hosting` e `deploy:webhook` foram acrescentados.
+
+**Progresso.**
+- `tools/investments/limpar-investimentos.mjs`: override, invariante de
+  coleções proibidas, banner.
+- `tests/tools/limpar-investimentos.guard.test.mjs` (novo): 15 casos, só
+  Emulator, ligado a `test:integration:emulator` e a `test:tools:limpeza`.
+- `firebase.json`: bloco `hosting`.
+- `package.json`: `--project` explícito, `deploy:hosting`, `deploy:webhook`,
+  `test:tools:limpeza`.
+
+**Evidências.** `npm run typecheck`, `npm run build`,
+`npm --prefix functions run build`, `npm run test:integration:emulator`
+(116 integração + 15 guard + 69 Rules) e `npm run test:e2e` (26) — verdes.
+
+**Riscos residuais.** `dist/` é compartilhado por `build` e `build:e2e`, e
+publicar o segundo entrega um aplicativo apontado para `127.0.0.1`;
+`deploy:hosting` reconstrói sempre e o §20.7-I traz a conferência. Projeto
+único, sem alias de staging: ensaio só no Emulator. `gcloud` não está instalado
+no Codespace — o TTL é ativado pelo Console, procedimento no §20.4.
+
+**Rollback.** `git revert` do commit. O bloco `hosting` e o `--project` dos
+scripts não deixam estado no projeto Firebase; o override do utilitário some
+com o arquivo e a recusa padrão volta a ser incondicional.
+
+**Nada foi implantado, removido ou apagado.**

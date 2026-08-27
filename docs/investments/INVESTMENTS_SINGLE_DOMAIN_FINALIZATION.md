@@ -286,7 +286,74 @@ node tools/investments/limpar-investimentos.mjs \
 #   FIRESTORE_EMULATOR_HOST=127.0.0.1:8080
 ```
 
-`--projeto` substitui a variável `PROJETO`, que continua aceita como fallback.
+`--projeto` substitui a variável `PROJETO`, que continua aceita como fallback —
+**exceto** sob o override da subseção seguinte.
+
+### Override extraordinário de reset de desenvolvimento
+
+`sistema-financeiro-pesso-20698` é o único Project ID do produto, e o
+utilitário o recusa por padrão. Como ele ainda é o ambiente de
+desenvolvimento — sem alias de staging, sem usuário externo, só massa de teste
+—, essa recusa tornou impossível resetá-lo.
+
+A proteção **não** foi removida. Foi acrescentada uma porta com quatro
+fechaduras independentes, todas na linha de comando, nenhuma com valor padrão e
+nenhuma alcançável por variável de ambiente:
+
+| # | Fechadura | O que impede |
+|---|---|---|
+| 1 | `--projeto=sistema-financeiro-pesso-20698` **na linha de comando** | um `PROJETO=` exportado no shell abrir a porta sozinho |
+| 2 | `--allow-development-reset-on-project=sistema-financeiro-pesso-20698` | o alvo ser destravado sem ser nomeado uma segunda vez |
+| 3 | `--workspace=<id>` | modo "todos" — que não existe |
+| 4 | para escrever: `--apply` + `--confirmar=<workspaceId>` + `--confirmar-projeto=sistema-financeiro-pesso-20698` | aplicar sem repetir workspace **e** projeto depois de ler o relatório |
+
+Regras que a porta mantém fechada:
+
+- o override vale **só** para esse ID. `--allow-development-reset-on-project`
+  com qualquer outro projeto é recusado com mensagem própria — não é um
+  interruptor de permissividade, é uma exceção nomeada para um projeto nomeado;
+- se o valor do override não coincidir **exatamente** com `--projeto`, o erro é
+  de parâmetro, antes de qualquer leitura;
+- a flag sem valor (`--allow-development-reset-on-project` solto) é recusada;
+- sob override, `FIRESTORE_EMULATOR_HOST` deixa de ser atenuante: o ID real
+  exige as quatro fechaduras também contra o Emulator. Efeito colateral
+  desejado — o caminho protegido é o mesmo nos dois ambientes, e o teste do
+  guard exercita exatamente o que o operador vai digitar;
+- `--include-legacy-investment-transactions` continua exigindo
+  `--confirmar-legado` **além** de tudo isso;
+- dry-run continua sendo o padrão.
+
+Com o override ativo, o utilitário imprime um bloco em destaque antes de
+qualquer leitura, dizendo que está no Project ID real, que a recusa padrão foi
+destravada de propósito e se a execução é simulação ou exclusão.
+
+**Invariante conferida em execução.** `COLECOES_PROIBIDAS` lista as coleções
+que o utilitário nunca apaga — `members`, `transactions`, `goals`, cartões,
+faturas, empréstimos, rateios, recorrências, recebíveis, catálogo,
+`cash_report_periods`, `cash_period_events` e as trilhas de auditoria. Antes de
+cada exclusão em massa, `assegurarColecaoPermitida` recusa qualquer nome dessa
+lista e também qualquer nome que não pertença ao domínio de investimentos.
+"Nunca apaga cartão" deixou de ser promessa do comentário e passou a ser
+verificação antes da escrita.
+
+### Teste do guard
+
+`tests/tools/limpar-investimentos.guard.test.mjs` — 15 casos, executados
+**apenas contra o Emulator** e ligados a `npm run test:integration:emulator`
+(`npm run test:tools:limpeza` para rodar isolado). O `projectId` real é usado
+de propósito nos casos de override: é ele que aciona o caminho protegido, e sob
+`FIRESTORE_EMULATOR_HOST` o Admin SDK fala com o emulador local.
+
+Cobertura: recusa sem override; recusa mesmo sob Emulator; override divergente
+de `--projeto`; override sem valor; override com outro Project ID; `PROJETO=`
+não habilita; override não dispensa `--workspace`; `--apply` sem `--confirmar`;
+sem `--confirmar-projeto`; com `--confirmar-projeto` errado; `--confirmar-projeto`
+sem override; opção desconhecida; ausência de qualquer chamada ao Firebase Auth
+no código-fonte; simulação sob override não escreve nada e avisa em destaque;
+aplicação sob override preserva workspace, membership, receita, despesa,
+parcelado, cartão, fatura, empréstimo, movimentação de empréstimo, rateio,
+cota, recorrência e o documento da meta; legado sob override ainda exige
+confirmação própria; repetir a aplicação relata `total afetado: 0`.
 
 ### Classificação de `transactions`
 
@@ -373,8 +440,8 @@ npm run deploy:functions
 # 5. Rules e índices
 npm run deploy:firestore
 
-# 6. Frontend
-npm run build && <comando de hospedagem do projeto>
+# 6. Frontend — ver §20.2 e §20.7-I; o bloco `hosting` já existe em firebase.json
+npm run deploy:hosting
 
 # 7. Smoke completo
 npm run test:e2e
@@ -392,6 +459,12 @@ Checklist de aceitação do corte:
 
 **Não execute deploy a partir deste repositório sem autorização explícita.**
 `CLAUDE.md` proíbe push, merge e deploy pelo agente.
+
+O procedimento operacional completo, com os comandos já preenchidos com o
+Project ID real, está no **§20**. Esta seção ficou como registro do raciocínio
+do corte de região.
+
+
 
 ## 11. Defeito encontrado e corrigido no caminho
 
@@ -453,13 +526,18 @@ concorrência de reconstrução — foram fechados, e a prova de cada um está n
    número (§16) — e o snapshot fica `running`, retomável, com fase, cursor e
    versão esperada. O reparo é repaginar ou reexecutar. Vale para qualquer
    operação paginada do domínio, não só para esta.
-6. **Hosting não está configurado.** `firebase.json` tem `firestore`,
-   `functions` e `emulators`, e **nenhum bloco `hosting`**. `firebase deploy
-   --only hosting` falha com "no hosting targets". Publicar o frontend exige,
-   antes, um `firebase init hosting` (ou o bloco escrito à mão apontando para
-   `dist`, com o rewrite de SPA). É configuração ausente, não regressão — o
-   §10 já dizia "`<comando de hospedagem do projeto>`" em vez de um comando.
-7. **TTL de `cash_period_events` é configuração de projeto.** A marca de
+6. **`dist/` reflete o último build executado, e há dois.** `npm run build`
+   produz o bundle do projeto real; `npm run build:e2e` (dentro de
+   `npm run test:e2e`) produz o bundle apontado para os emuladores em
+   `127.0.0.1`. Os dois escrevem no mesmo `dist/`. Publicar o segundo por
+   engano entrega um aplicativo que não conecta em nada. Mitigado:
+   `npm run deploy:hosting` **sempre** reconstrói antes de publicar, e o §20
+   inclui a conferência do `projectId` embutido no bundle.
+7. **Um único projeto Firebase, sem alias de staging.** Todo comando de deploy
+   passa `--project sistema-financeiro-pesso-20698` explicitamente (§20.1) em
+   vez de confiar no alias `default`. Enquanto não houver staging, ensaiar
+   antes de aplicar significa Emulator, não um segundo projeto.
+8. **TTL de `cash_period_events` é configuração de projeto.** A marca de
    entrega só é removida se a política de TTL estiver ativa (seção 2 do
    `TTL_MANIFEST.md`). Sem ativá-la, a coleção cresce um documento por escrita
    de transação — custo de armazenamento, não risco de correção. Ativá-la cedo
@@ -715,8 +793,14 @@ Executados nesta ordem, todos verdes, sem skip novo e sem redução de cobertura
 | `npm --prefix functions run lint` | ✅ 0 erros (2.051 avisos de estilo, contra 2.061 antes) |
 | `npm --prefix functions run test:unit` | ✅ 100/100 |
 | `npm run test:unit:investments` | ✅ 35/35 |
-| `npm run test:integration:emulator` | ✅ 116/116 integração + 69/69 Rules (5+7+14+7+31+5) |
+| `npm run test:integration:emulator` | ✅ 116/116 integração + 15/15 guard do utilitário + 69/69 Rules (5+7+14+7+31+5) |
 | `npm run test:e2e` | ✅ 26/26 |
+
+Reexecutados depois da preparação operacional do §20 (`hosting` em
+`firebase.json`, override do utilitário, `--project` nos scripts de deploy):
+`typecheck`, `build`, `npm --prefix functions run build`,
+`test:integration:emulator` e `test:e2e` — todos verdes, com o guard novo
+somando 15 casos.
 
 ---
 
@@ -744,3 +828,360 @@ As quatro condições da declaração:
 
 Deployment é **de desenvolvimento**, com os passos do §10. Continua valendo:
 não executar deploy a partir deste repositório sem autorização explícita.
+
+---
+
+## 20. FINAL DEVELOPMENT DEPLOYMENT PROCEDURE
+
+Procedimento operacional do deployment de **desenvolvimento** no único projeto
+existente. Nada aqui foi executado por quem escreveu este documento.
+
+**Projeto:** `sistema-financeiro-pesso-20698` — o mesmo do `.firebaserc`, e o
+único. É tratado como ambiente de desenvolvimento porque contém somente massa
+de teste.
+
+### 20.1 Segurança de deploy: `--project` sempre explícito
+
+`.firebaserc` tem um alias, `default`, apontando para esse projeto. Depender do
+alias significa que o destino de um `firebase deploy` passa a ser decidido por
+estado fora do repositório — um `firebase use` esquecido no shell, uma variável
+`FIREBASE_PROJECT`, uma pasta herdada. Enquanto houver um projeto só, isso não
+erra o alvo; no dia em que houver dois, erra em silêncio.
+
+Todo comando de deploy deste procedimento passa
+`--project sistema-financeiro-pesso-20698`. Os scripts de `package.json`
+passaram a fixá-lo também:
+
+| Script | Comando |
+|---|---|
+| `deploy:firestore` | `predeploy:rules` (6 suítes de Rules no Emulator) + `firebase deploy --only firestore:rules,firestore:indexes --project sistema-financeiro-pesso-20698` |
+| `deploy:functions` | `verify:fast` + `firebase deploy --only functions --project sistema-financeiro-pesso-20698` |
+| `deploy:hosting` | `npm run build` + `firebase deploy --only hosting --project sistema-financeiro-pesso-20698` |
+| `deploy:webhook` | build de Functions + `firebase deploy --only functions:stripeWebhook --project sistema-financeiro-pesso-20698` |
+| `deploy:safe` | `predeploy:check` + Rules, índices e Functions, com o mesmo `--project` |
+
+Nenhum alias foi removido e nenhum projeto de staging foi criado.
+
+### 20.2 Hosting
+
+`firebase.json` ganhou um bloco `hosting`. Os blocos `firestore`, `functions` e
+`emulators` ficaram **byte a byte** como estavam — a edição foi textual, sem
+reserialização do arquivo. Nada de `firebase init hosting`.
+
+```jsonc
+"hosting": {
+  "public": "dist",                       // build.outDir do Vite (padrão)
+  "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+  "rewrites": [{"source": "**", "destination": "/index.html"}],
+  "headers": [
+    { "source": "/assets/**",
+      "headers": [{"key": "Cache-Control",
+                   "value": "public, max-age=31536000, immutable"}] },
+    { "source": "/index.html",
+      "headers": [{"key": "Cache-Control", "value": "no-cache"}] }
+  ]
+}
+```
+
+Cada decisão, e por quê:
+
+- **`public: "dist"`** — `vite.config.ts` não sobrescreve `build.outDir`, então
+  a saída é `dist/`. Conferido: `dist/index.html` + `dist/assets/`.
+- **Rewrite de SPA** — o roteamento é do cliente; sem ele, recarregar uma rota
+  interna devolve 404. O Hosting serve arquivo estático existente **antes** de
+  aplicar o rewrite, então `/assets/...` continua sendo servido diretamente.
+- **`immutable` de um ano em `/assets/**`** — seguro e permanente porque todo
+  arquivo ali tem hash de conteúdo no nome (`index-BWxOvJzN.js`,
+  `vendor-firebase-CeC634hN.js`, `index-Custtc0s.css`, e os chunks de ícones
+  carregados sob demanda). Conteúdo novo é nome novo; nenhum cliente fica preso
+  a uma versão antiga.
+- **`no-cache` em `/index.html`** — é o documento que aponta para os hashes.
+  Cacheá-lo é o que faz um navegador continuar pedindo os assets da versão
+  anterior depois de um deploy. O padrão do Hosting para `index.html` é
+  `max-age=3600`; `no-cache` não desliga a revalidação, só obriga a conferir.
+- **Sem `predeploy` no bloco `hosting`** — deliberado. Um predeploy rodaria
+  `vite build` com as variáveis que estivessem no ambiente naquele instante, e
+  as `VITE_FIREBASE_*` decidem para qual projeto o aplicativo aponta. O build
+  fica sendo um passo explícito, dentro de `npm run deploy:hosting`.
+- **Nada foi alterado** em `vite.config.ts`, em `src/lib/firebase.ts` ou em
+  `FUNCTIONS_REGION` (`southamerica-east1` nos dois lados).
+
+**Armadilha a conferir antes de publicar.** `npm run build` e
+`npm run build:e2e` escrevem no mesmo `dist/`, e o segundo embute
+`projectId: "minhas-financas-local"` com emuladores em `127.0.0.1`. Como
+`npm run test:e2e` chama `build:e2e`, rodar o E2E deixa `dist/` apontado para o
+emulador. `deploy:hosting` reconstrói sempre; a conferência do passo I abaixo
+existe para o caso de alguém publicar à mão.
+
+O bloco `hosting` não afeta o Emulator: `playwright.config.ts` e os scripts de
+teste usam `--only auth,firestore,functions`. E2E reexecutado depois da
+mudança: 26/26.
+
+### 20.3 TTL — o que ativar
+
+Fonte: `docs/investments/TTL_MANIFEST.md` §2. São **sete** grupos de coleção, o
+campo é `expiresAt` em todos.
+
+| Collection group | Campo | Retenção | Motivo |
+|---|---|---:|---|
+| `investment_idempotency_keys` | `expiresAt` | 90 dias | Reserva de intenção de uma operação. Sobrevive com folga a qualquer retry plausível; o fato financeiro vive em `investment_movements`. |
+| `investment_operational_metrics` | `expiresAt` | 400 dias | Métrica diária agregada. Não é fonte de reconstrução de nada. |
+| `investment_event_logs` | `expiresAt` | 400 dias | Log operacional. **Não** é a trilha de auditoria do domínio, que é `investment_audit_logs` e nunca expira. |
+| `investment_drift_reports` | `expiresAt` | 400 dias | Resultado de uma conferência diária. O fato conferido continua nas coleções de origem. |
+| `rate_limits` | `expiresAt` | 2 dias | Contador de janela de limite de frequência; some junto com a janela. Uma política só: ela é por **grupo**, e cobre tanto `workspaces/{ws}/rate_limits` quanto `users/{uid}/rate_limits`. |
+| `activity_logs` | `expiresAt` | 365 dias | Trilha de atividade. O fato financeiro correspondente está na transação, que nunca é apagada. |
+| `cash_period_events` | `expiresAt` | 90 dias | Marca de entrega já aplicada pelo gatilho de caixa (§15). O teto de reentrega de um gatilho do Firestore é de 7 dias; 90 é folga de mais de dez vezes. **Única entrada cuja expiração tem consequência funcional — não reduzir esse prazo.** |
+
+Nenhuma outra coleção pode receber TTL. A lista do que **nunca** expira está no
+§3 do manifesto: ledger, valorações, posições, períodos, alocações, resumos,
+snapshots, `transactions`, `cash_report_periods`, `goals`, cartões,
+empréstimos, rateios, recorrências e todas as trilhas de auditoria.
+
+### 20.4 TTL — procedimento pelo Console
+
+`gcloud` **não está instalado** neste Codespace (`which gcloud` não retorna
+nada; o `firebase` CLI, sim — 15.4.0). Os comandos `gcloud` do manifesto
+continuam válidos para quem tiver a CLI, mas **não são requisito**: a política
+de TTL é configuração de projeto e se cria pelo Console.
+
+Pelo **Firebase Console**:
+
+1. abrir o projeto `sistema-financeiro-pesso-20698`;
+2. **Build → Firestore Database**, selecionando o banco `(default)`;
+3. abrir a aba de **TTL / Time-to-live**;
+4. **criar política**: informar o *collection group ID* exatamente como na
+   tabela do §20.3 e o campo `expiresAt`;
+5. repetir para os sete;
+6. a política nasce em estado de criação e passa a ativa sozinha; a varredura
+   inicial pode levar horas.
+
+Pelo **Google Cloud Console**, o mesmo: **Firestore → Time-to-live → Create
+policy**, mesmo par (grupo, campo).
+
+Conferência, sem `gcloud`: a própria página de TTL lista as políticas — devem
+ser exatamente as sete acima, ativas, e **nenhuma outra**. Depois da primeira
+janela, conferir que as contagens de `investment_movements`, `transactions`,
+`cash_report_periods` e das trilhas de auditoria **não** mudaram.
+
+Reversão: apagar a política na mesma tela. **O que já foi apagado não volta** —
+é por isso que a lista é conferida antes, e não depois.
+
+Ordem: ativar TTL **depois** do deploy das Functions. Antes disso,
+`cash_period_events` sequer existe no projeto.
+
+### 20.5 Cutover do `stripeWebhook`
+
+**A situação.** `stripeWebhook` é `onRequest` v2 com
+`region: FUNCTIONS_REGION` (`southamerica-east1`) e os segredos
+`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` e `STRIPE_ALLOWED_PRICE_IDS` — os
+três já existem. Ele trata um único evento: `checkout.session.completed`.
+A implantação anterior está em `us-central1`, e trocar a região não é edição no
+lugar: o Firebase cria a função nova e a antiga continua existindo, com a URL
+antiga ainda registrada no Stripe.
+
+**A consequência que dita a ordem.** A assinatura do Stripe é verificada contra
+`STRIPE_WEBHOOK_SECRET`, e cada endpoint do Stripe tem o **seu** `whsec_`. Ou
+seja: enquanto o endpoint do Stripe apontar para `us-central1`, a função nova
+não recebe nada; assim que apontar para a nova, o segredo tem de ser o da nova.
+Há uma janela em que os dois existem, e é ela que evita perder evento.
+
+**Ordem correta:**
+
+1. **Deploy** em `southamerica-east1` (§20.7-G). Nesse ponto as duas funções
+   coexistem, e o Stripe ainda entrega na antiga.
+2. **Obter a URL nova.** Ler a URI que o CLI imprime — v2 é Cloud Run e a URL
+   não é dedutível pelo nome:
+   ```bash
+   firebase functions:list --project sistema-financeiro-pesso-20698
+   ```
+   Copiar a URI da linha de `stripeWebhook` em `southamerica-east1`.
+3. **Stripe Dashboard, em Test mode** (canto superior: *Test mode* ligado) →
+   **Developers → Webhooks**. Editar o endpoint existente trocando a URL, ou
+   criar um novo endpoint com a URL nova. Evento assinado:
+   `checkout.session.completed` — o único que o handler processa.
+   Criar um segundo endpoint é o caminho mais seguro: o antigo pode ser
+   desativado só depois do passo 7.
+4. **Copiar o novo signing secret** (`whsec_...`) do endpoint — em *Reveal*, na
+   página do próprio endpoint. Cada endpoint tem o seu; não reaproveitar o
+   anterior.
+5. **Atualizar o segredo** (cria uma versão nova; a anterior fica no histórico):
+   ```bash
+   firebase functions:secrets:set STRIPE_WEBHOOK_SECRET \
+     --project sistema-financeiro-pesso-20698
+   ```
+   Colar o `whsec_...` quando pedido.
+6. **Redeploy só do webhook** — um segredo novo não é lido pela revisão já
+   implantada:
+   ```bash
+   npm run deploy:webhook
+   ```
+7. **Enviar evento de teste** pelo Stripe: na página do endpoint,
+   *Send test webhook* → `checkout.session.completed`.
+8. **Confirmar 2xx** dos dois lados:
+   ```bash
+   firebase functions:log --only stripeWebhook \
+     --project sistema-financeiro-pesso-20698 | tail -30
+   ```
+   e a aba de tentativas do endpoint no Stripe, que precisa mostrar `200`.
+   `400 No signature found` ou falha de assinatura significa segredo errado ou
+   redeploy não feito.
+9. **Só então** desativar/remover o endpoint antigo no Stripe e apagar a função
+   `stripeWebhook` de `us-central1` (§20.7-E).
+
+**Regra de ordem que vale a pena repetir:** `stripeWebhook` é a **última**
+função a ser apagada de `us-central1`, depois do 2xx confirmado. Apagá-la antes
+derruba a concessão de plano sem que ninguém perceba — nenhum teste cobre o
+Stripe real.
+
+### 20.6 Sequência recomendada
+
+```
+1. ponto de recuperação Git
+2. gates locais (verify:all)
+3. limpeza de massa de teste (dry-run → apply)
+4. deploy Rules + índices
+5. deploy Functions (southamerica-east1)
+6. cutover do Stripe  ────────────┐
+7. deploy Hosting                 │  o 8 só acontece depois do 2xx do 6
+8. remover Functions us-central1 ─┘
+9. ativar TTL (Console)
+10. smoke final
+```
+
+O §20.7 lista os comandos na ordem pedida pela operação (A–J); esta é a ordem
+em que eles devem ser **executados**.
+
+### 20.7 Comandos
+
+Sem placeholders. Substituir apenas `<workspaceId>` pelo workspace alvo.
+
+**A. Dry-run da limpeza**
+```bash
+node tools/investments/limpar-investimentos.mjs \
+  --projeto=sistema-financeiro-pesso-20698 \
+  --allow-development-reset-on-project=sistema-financeiro-pesso-20698 \
+  --workspace=<workspaceId>
+```
+
+**B. Dry-run incluindo investimentos legados de teste**
+```bash
+node tools/investments/limpar-investimentos.mjs \
+  --projeto=sistema-financeiro-pesso-20698 \
+  --allow-development-reset-on-project=sistema-financeiro-pesso-20698 \
+  --workspace=<workspaceId> \
+  --include-legacy-investment-transactions
+```
+
+**C. Aplicar a limpeza** (só depois de ler o relatório de A e B)
+```bash
+# projeções e espelhos de caixa; ledger preservado
+node tools/investments/limpar-investimentos.mjs \
+  --projeto=sistema-financeiro-pesso-20698 \
+  --allow-development-reset-on-project=sistema-financeiro-pesso-20698 \
+  --workspace=<workspaceId> \
+  --apply --confirmar=<workspaceId> \
+  --confirmar-projeto=sistema-financeiro-pesso-20698
+
+# incluindo as transações de investimento anteriores ao domínio único
+node tools/investments/limpar-investimentos.mjs \
+  --projeto=sistema-financeiro-pesso-20698 \
+  --allow-development-reset-on-project=sistema-financeiro-pesso-20698 \
+  --workspace=<workspaceId> \
+  --include-legacy-investment-transactions \
+  --apply --confirmar=<workspaceId> \
+  --confirmar-projeto=sistema-financeiro-pesso-20698 \
+  --confirmar-legado=<workspaceId>
+
+# zerando o domínio inteiro, ledger incluído
+node tools/investments/limpar-investimentos.mjs \
+  --projeto=sistema-financeiro-pesso-20698 \
+  --allow-development-reset-on-project=sistema-financeiro-pesso-20698 \
+  --workspace=<workspaceId> --incluir-ledger \
+  --apply --confirmar=<workspaceId> \
+  --confirmar-projeto=sistema-financeiro-pesso-20698
+```
+
+**D. Listar as Functions antigas**
+```bash
+firebase functions:list --project sistema-financeiro-pesso-20698
+```
+
+**E. Remover as Functions de `us-central1`** — uma a uma, conferindo cada
+remoção; `stripeWebhook` **por último**, depois do 2xx do passo H
+```bash
+firebase functions:delete <nome> --region us-central1 \
+  --project sistema-financeiro-pesso-20698 --force
+```
+
+**F. Rules e índices**
+```bash
+npm run deploy:firestore
+# equivale a: predeploy:rules (6 suítes no Emulator) e
+#   firebase deploy --only firestore:rules,firestore:indexes \
+#     --project sistema-financeiro-pesso-20698
+```
+
+**G. Functions em `southamerica-east1`**
+```bash
+npm run deploy:functions
+# equivale a: verify:fast e
+#   firebase deploy --only functions --project sistema-financeiro-pesso-20698
+firebase functions:list --project sistema-financeiro-pesso-20698
+# esperado: 43 funções em southamerica-east1
+```
+
+**H. Atualizar o webhook do Stripe** (detalhe e ordem no §20.5)
+```bash
+firebase functions:list --project sistema-financeiro-pesso-20698
+# copiar a URI de stripeWebhook em southamerica-east1
+# → Stripe (Test mode) → Developers → Webhooks → apontar para essa URL,
+#   evento checkout.session.completed, e copiar o novo whsec_
+
+firebase functions:secrets:set STRIPE_WEBHOOK_SECRET \
+  --project sistema-financeiro-pesso-20698
+
+npm run deploy:webhook
+
+# → Stripe → Send test webhook → checkout.session.completed
+firebase functions:log --only stripeWebhook \
+  --project sistema-financeiro-pesso-20698 | tail -30
+```
+
+**I. Hosting**
+```bash
+npm run deploy:hosting
+# equivale a: npm run build e
+#   firebase deploy --only hosting --project sistema-financeiro-pesso-20698
+
+# conferência de que o bundle publicado é o do projeto real, e não o de E2E:
+grep -o 'projectId:"[^"]*"' dist/assets/index-*.js | head -1
+# esperado: projectId:"sistema-financeiro-pesso-20698"
+```
+
+**J. Smoke final**
+```bash
+firebase functions:list --project sistema-financeiro-pesso-20698
+# nenhuma função em us-central1; 43 em southamerica-east1
+
+firebase hosting:channel:list --project sistema-financeiro-pesso-20698
+firebase functions:log --project sistema-financeiro-pesso-20698 | tail -50
+
+npm run verify:fast
+npm run test:integration:emulator
+npm run test:e2e
+```
+
+Conferência manual, no aplicativo publicado:
+
+- [ ] a página carrega e o `projectId` do Console bate com o do bundle;
+- [ ] recarregar uma rota interna não devolve 404 (rewrite de SPA);
+- [ ] workspace novo abre Investimentos sem nenhum preparo;
+- [ ] aporte, valoração e resgate com liquidação funcionam pela tela;
+- [ ] o relatório mostra patrimônio e o dashboard mostra o resumo;
+- [ ] progresso de meta bate com a soma das posições vinculadas;
+- [ ] a página de TTL do Console lista as sete políticas ativas, e nenhuma
+      outra;
+- [ ] o endpoint do Stripe em Test mode mostra `200` na última tentativa.
+
+**Nenhum passo deste procedimento foi executado.** `CLAUDE.md` proíbe push,
+merge e deploy pelo agente.
