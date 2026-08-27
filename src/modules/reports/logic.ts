@@ -150,7 +150,7 @@ function buildBusinessKPIs(
     transactions: Transaction[],
     range: ReportTimeRange,
     receivables: Receivable[] = [],
-    loans: Loan[] = []
+    bankDebtTotal = 0
 ): FinancialKPI[] {
     const cashAccountingTransactions = buildCashAccountingTransactions(transactions);
     const filtered = filterTransactionsByRange(cashAccountingTransactions, range);
@@ -164,7 +164,15 @@ function buildBusinessKPIs(
         .filter(r => r.status === 'pending' || r.status === 'overdue')
         .reduce((sum, r) => sum + (r.value || 0), 0);
 
-    const totalLiabilities = loans.filter(l => l.type === 'borrow' && l.status !== 'paid').reduce((a, b) => a + b.currentBalance, 0);
+    /*
+     * A dívida bancária chega pronta, somada pelo servidor.
+     *
+     * Antes o relatório recebia a coleção **inteira** de contratos só para
+     * reduzi-la a este número. Como é relatório, o array não podia ser
+     * paginado sem tornar o indicador silenciosamente parcial — a saída é o
+     * agregado (`getLoanTotals`), que é exato e não lê documento nenhum.
+     */
+    const totalLiabilities = bankDebtTotal;
 
     return [
         {
@@ -210,10 +218,10 @@ export const calculateKPIs = (
     range: ReportTimeRange,
     workspace?: Workspace,
     receivables?: Receivable[],
-    loans: Loan[] = []
+    bankDebtTotal = 0
 ): FinancialKPI[] => {
     if (workspace?.type === 'PJ') {
-        return buildBusinessKPIs(transactions, range, receivables, loans);
+        return buildBusinessKPIs(transactions, range, receivables, bankDebtTotal);
     }
     return buildPersonalKPIs(transactions, range);
 };

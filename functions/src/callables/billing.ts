@@ -75,7 +75,23 @@ const CHECKOUT_RATE_LIMIT = {
 
 export const createCheckoutSession = onCall({
   ...DOMAIN_CALLABLE_OPTIONS,
-  secrets: ["STRIPE_SECRET_KEY"],
+  /*
+   * As três precisam ser **declaradas**, não só existirem no projeto.
+   *
+   * `STRIPE_ALLOWED_PRICE_IDS` e `APP_ALLOWED_ORIGINS` eram lidas de
+   * `process.env` sem constar aqui. O Cloud Functions só monta no ambiente da
+   * função os segredos que a função declara, então provisioná-las (que é o que
+   * o checklist de implantação manda fazer) não as tornava visíveis: as duas
+   * listas chegariam vazias em produção, e o código falha fechado quando estão
+   * vazias — nenhum preço seria aceito e nenhum `returnUrl` seria válido. O
+   * checkout do plano pago ficaria inoperante, com aparência de recusa
+   * deliberada.
+   */
+  secrets: [
+    "STRIPE_SECRET_KEY",
+    "STRIPE_ALLOWED_PRICE_IDS",
+    "APP_ALLOWED_ORIGINS",
+  ],
 }, async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "Sessão não iniciada");

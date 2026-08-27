@@ -63,7 +63,7 @@ const seed = async () => {
       workspaceId: WORKSPACE_ID,
       profileId: WORKSPACE_ID,
       name: 'Meta M1 E2E',
-      description: 'Validação do aporte legado',
+      description: 'Validação do aporte patrimonial',
       category: 'reserva_emergencia',
       status: 'em_andamento',
       priority: 'alta',
@@ -71,7 +71,6 @@ const seed = async () => {
       targetAmountCents: 100000,
       currentAmount: 0,
       currentAmountCents: 0,
-      netContributionCents: 0,
       progressBasis: 'net_contributions',
       startDate: '2026-01-01',
       deadline: '2027-01-01',
@@ -81,29 +80,20 @@ const seed = async () => {
       createdAt: now,
       updatedAt: now,
     }),
-    db.doc(`workspaces/${WORKSPACE_ID}/transactions/retroactive-e2e-id`).set({
-      type: 'investimento',
-      description: 'Aporte retroativo E2E',
-      category: 'CDB',
-      value: 50,
-      valueCents: 5000,
-      date: '2026-07-01',
-      isPaid: true,
-      userId: OWNER_UID,
-      workspaceId: WORKSPACE_ID,
-      profileId: WORKSPACE_ID,
+    // Conta e ativo ativos: aportar exige os dois, e é isso que o onboarding
+    // prepara. Nenhuma transação de investimento é semeada — o caixa desse tipo
+    // passa a existir só como espelho do ledger.
+    db.doc(`workspaces/${WORKSPACE_ID}/investment_accounts/goal-e2e-account`).set({
+      id: 'goal-e2e-account', workspaceId: WORKSPACE_ID, profileType: 'PF',
+      name: 'Corretora Meta E2E', institutionName: 'Instituição E2E',
+      currency: 'BRL', status: 'active',
+      createdBy: OWNER_UID, updatedBy: OWNER_UID, createdAt: now, updatedAt: now,
     }),
-    db.doc(`workspaces/${WORKSPACE_ID}/transactions/pending-e2e-id`).set({
-      type: 'investimento',
-      description: 'Aporte pendente E2E',
-      category: 'CDB',
-      value: 900,
-      valueCents: 90000,
-      date: '2026-09-01',
-      isPaid: false,
-      userId: OWNER_UID,
-      workspaceId: WORKSPACE_ID,
-      profileId: WORKSPACE_ID,
+    db.doc(`workspaces/${WORKSPACE_ID}/investment_assets/goal-e2e-asset`).set({
+      id: 'goal-e2e-asset', workspaceId: WORKSPACE_ID, profileType: 'PF',
+      name: 'CDB Meta E2E', symbol: 'CDB', assetType: 'fixed_income',
+      allocationPurpose: 'retirement', currency: 'BRL', status: 'active',
+      createdBy: OWNER_UID, updatedBy: OWNER_UID, createdAt: now, updatedAt: now,
     }),
   ]);
 };
@@ -112,7 +102,16 @@ test.beforeEach(async () => {
   await seed();
 });
 
-test('vínculo retroativo, pending, aporte pré-vinculado, retry visual e seed idempotente', async ({page}) => {
+/**
+ * Financiar uma meta é criar um movimento patrimonial vinculado a ela.
+ *
+ * Não existe mais aporte em meta como lançamento de transação: o progresso da
+ * meta vem de `investmentProgressCents`, publicado a partir das posições, e o
+ * caixa aparece pelo espelho que o ledger projeta. Este teste prova o caminho
+ * inteiro pela interface — aporte vinculado, progresso na meta, histórico na
+ * meta e espelho de caixa único.
+ */
+test('aporte vinculado à meta publica progresso e projeta caixa uma vez', async ({page}) => {
   const db = getAdmin().firestore();
   await page.goto(`/?e2eEmail=${encodeURIComponent(OWNER_EMAIL)}&e2ePassword=${PASSWORD}`);
   await page.getByTestId('e2e-login-button').click();
@@ -121,39 +120,37 @@ test('vínculo retroativo, pending, aporte pré-vinculado, retry visual e seed i
   await expect.poll(async () => (
     await db.collection(`workspaces/${WORKSPACE_ID}/settings_catalog`).where('group', '==', 'wallet').get()
   ).size).toBeGreaterThan(0);
-  expect((await db.collection('workspaces').where('ownerId', '==', OWNER_UID).get()).size).toBe(1);
 
+  // Aporte pela tela patrimonial, já vinculado à meta.
+  await page.getByText('Investimentos', {exact: true}).first().click();
+  await expect(page.getByRole('heading', {name: 'Patrimônio e investimentos'})).toBeVisible();
+  await page.getByRole('button', {name: 'Novo aporte'}).click();
+  await page.getByRole('dialog').getByLabel('Conta').selectOption({label: 'Corretora Meta E2E'});
+  await page.getByRole('dialog').getByLabel('Ativo').selectOption({label: 'CDB Meta E2E'});
+  await page.getByRole('dialog').getByLabel('Meta (opcional)').selectOption(GOAL_ID);
+  await page.getByLabel('Descrição').fill('Aporte vinculado E2E');
+  await page.getByLabel('Valor principal (R$)').fill('150.25');
+  await page.getByLabel('Quantidade').fill('1');
+  await page.getByRole('button', {name: 'Confirmar aporte'}).click();
+  await expect(page.getByText('Operação concluída com sucesso.')).toBeVisible();
+
+  // O progresso publicado na meta é o do domínio patrimonial.
+  await expect.poll(async () => (
+    await db.doc(`workspaces/${WORKSPACE_ID}/goals/${GOAL_ID}`).get()
+  ).data()?.investmentProgressCents, {timeout: 30_000}).toBe(15_025);
+
+  // Um único espelho de caixa, com a saída do aporte.
+  const espelhos = await db.collection(`workspaces/${WORKSPACE_ID}/transactions`)
+    .where('investmentMetadata.investmentOperation', '==', 'contribution').get();
+  expect(espelhos.size).toBe(1);
+  expect(espelhos.docs[0].data().investmentMetadata.cashImpact).toBe('outflow');
+
+  // A meta exibe o valor e o histórico traz o movimento, rotulado como aporte.
   await page.getByText('Metas', {exact: true}).first().click();
   await page.getByText('Meta M1 E2E', {exact: true}).first().click();
-  await page.getByRole('button', {name: 'Vincular Existente'}).click();
-  await page.getByText('Aporte retroativo E2E', {exact: true}).click();
-  await page.getByText('Aporte pendente E2E', {exact: true}).click();
-  await page.getByRole('button', {name: 'Salvar Alterações'}).click();
+  await expect(page.getByText('Aporte vinculado E2E')).toBeVisible();
+  await expect(page.getByRole('heading', {name: 'Histórico da Meta'})).toBeVisible();
 
-  await expect.poll(async () => (
-    await db.doc(`workspaces/${WORKSPACE_ID}/goals/${GOAL_ID}`).get()
-  ).data()?.currentAmount).toBe(50);
-
-  await page.getByRole('button', {name: 'Novo Aporte'}).click();
-  await expect(page.getByLabel('Vincular a uma Meta?')).toHaveValue(GOAL_ID);
-  await page.getByLabel(/Selecione a Carteira/).selectOption({label: 'Carteira Principal'});
-  await page.getByLabel(/Descrição/).fill('Aporte pré-vinculado E2E');
-  await page.getByLabel(/Categoria/).selectOption({label: 'CDB'});
-  await page.getByLabel(/Valor Investido/).fill('100.25');
-  await page.getByLabel('Data do depósito').fill('2026-08-17');
-  await page.getByRole('button', {name: 'Revisar e Adicionar Investimento'}).click();
-
-  await expect.poll(async () => (
-    await db.collection(`workspaces/${WORKSPACE_ID}/transactions`)
-      .where('description', '==', 'Aporte pré-vinculado E2E').get()
-  ).size).toBe(1);
-  await expect.poll(async () => (
-    await db.doc(`workspaces/${WORKSPACE_ID}/goals/${GOAL_ID}`).get()
-  ).data()?.currentAmount).toBe(150.25);
-
-  await page.reload();
-  await expect(page.getByText('Saldo Atual')).toBeVisible({timeout: 30_000});
-  expect((await db.collection('workspaces').where('ownerId', '==', OWNER_UID).get()).size).toBe(1);
-  expect((await db.collection(`workspaces/${WORKSPACE_ID}/transactions`)
-    .where('description', '==', 'Aporte pré-vinculado E2E').get()).size).toBe(1);
+  // O vínculo retroativo por transação não existe mais.
+  await expect(page.getByRole('button', {name: 'Vincular Existente'})).toHaveCount(0);
 });

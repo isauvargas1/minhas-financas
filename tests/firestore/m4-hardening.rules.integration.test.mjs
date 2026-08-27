@@ -66,8 +66,11 @@ const BACKEND_ONLY_COLLECTIONS = [
   'investment_summaries',
   'investment_report_periods',
   'investment_allocation_summaries',
-  'investment_audit_logs',
   'investment_idempotency_keys',
+  // Coleções sem bloco `match` próprio: precisam cair negadas no catch-all de
+  // `investment_*`, e não herdar leitura/escrita de membro.
+  'investment_audit_logs',
+  'investment_operation_leases',
 ];
 
 /** Payload exatamente como `buildTransactionPayload` do frontend o monta. */
@@ -299,7 +302,7 @@ test('M4 — admin não reescreve ownerId, type nem features do workspace', asyn
     for (const patch of [
       {ownerId: users.adminA.uid},
       {type: 'PJ'},
-      {features: {investmentsV2: {enabled: true}}},
+      {features: {qualquerRecurso: {enabled: true}}},
     ]) {
       await assert.rejects(
         () => updateDoc(doc(adminA.db, `workspaces/${wsA}`), patch),
@@ -556,38 +559,34 @@ test('M4 — owner legítimo mantém a gestão de membros', async () => {
   assert.equal((await db.doc(`workspaces/${wsA}/members/${users.removedA.uid}`).get()).exists, false);
 });
 
-// -------------------------------------------- trilha legada sob a flag V2
+// ------------------------------- escrita direta de investimento pelo cliente
 //
-// Com `investmentsV2` ligada, os relatórios leem só as projeções, mas o fluxo
-// de caixa continua somando `transactions`. Uma transação de investimento
-// gravada direto pelo cliente nesse estado sai do caixa e nunca chega ao
-// patrimônio — divergência silenciosa entre as duas fontes.
+// O patrimônio é `investment_movements`, e toda transação `investimento`
+// legítima é o espelho de caixa gravado pelo backend com o Admin SDK. Uma
+// transação de investimento gravada direto pelo cliente sai do caixa e nunca
+// chega ao patrimônio — divergência silenciosa entre as duas fontes. A negação
+// é incondicional: não depende de estado nenhum do workspace.
 
-test('M4 — flag V2 ligada bloqueia escrita direta de transação de investimento', async () => {
+test('M4 — escrita direta de transação de investimento é sempre negada', async () => {
   await seed();
-  const db = getAdmin().firestore();
-  await db.doc(`workspaces/${wsA}`).set(
-    {features: {investmentsV2: {enabled: true}}},
-    {merge: true},
-  );
 
   await withClients(['ownerA', 'memberA'], async ({ownerA, memberA}) => {
     const aporte = (uid) => ({
-      type: 'investimento', description: 'Aporte pela trilha legada',
+      type: 'investimento', description: 'Aporte gravado pelo cliente',
       category: 'CDB', value: 100, date: '2026-08-20',
       userId: uid, workspaceId: wsA, profileId: wsA, isPaid: true,
       createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
     });
     await assert.rejects(
       () => setDoc(doc(ownerA.db, `workspaces/${wsA}/transactions/legacy-v2-1`), aporte(users.ownerA.uid)),
-      'owner não pode gravar investimento pela trilha legada com V2 ligada',
+      'owner não pode gravar transação de investimento direto',
     );
     await assert.rejects(
       () => setDoc(doc(memberA.db, `workspaces/${wsA}/transactions/legacy-v2-2`), aporte(users.memberA.uid)),
-      'member não pode gravar investimento pela trilha legada com V2 ligada',
+      'member não pode gravar transação de investimento direto',
     );
 
-    // Receita e despesa seguem inalteradas: o gate é só do tipo investimento.
+    // Receita e despesa seguem inalteradas: a negação é só do tipo investimento.
     await setDoc(doc(ownerA.db, `workspaces/${wsA}/transactions/receita-v2-1`), {
       type: 'receita', description: 'Salário', category: 'Salário',
       value: 500, date: '2026-08-20', userId: users.ownerA.uid,
@@ -597,37 +596,16 @@ test('M4 — flag V2 ligada bloqueia escrita direta de transação de investimen
   });
 });
 
-test('M4 — flag V2 desligada preserva a trilha legada de investimento', async () => {
-  await seed();
-  await withClients(['ownerA'], async ({ownerA}) => {
-    await setDoc(doc(ownerA.db, `workspaces/${wsA}/transactions/legacy-off-1`), {
-      type: 'investimento', description: 'Aporte legado', category: 'CDB',
-      value: 100, date: '2026-08-20', userId: users.ownerA.uid,
-      workspaceId: wsA, profileId: wsA, isPaid: true,
-      createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
-    });
-  });
-  const db = getAdmin().firestore();
-  assert.equal(
-    (await db.doc(`workspaces/${wsA}/transactions/legacy-off-1`).get()).exists,
-    true,
-  );
-});
-
 // ------------------------------------------------------- INV-P1-002 / P2-049
 //
-// A barreira da trilha legada fechava apenas `create`. Com a flag V2 ligada, o
-// cliente criava uma `despesa` (aceita) e a atualizava para `investimento` —
-// aceito, porque `type` estava na lista de chaves mutáveis e nenhum dos ramos
-// de `allow update` chamava `isLegacyInvestmentWriteAllowed`.
+// A barreira fechava apenas `create`. O cliente criava uma `despesa` (aceita) e
+// a atualizava para `investimento` — aceito, porque `type` estava na lista de
+// chaves mutáveis e nenhum dos ramos de `allow update` chamava
+// `isLegacyInvestmentWriteAllowed`.
 
-test('INV-P1-002 — update de type para investimento é negado com V2 ligada, em todos os papéis', async () => {
+test('INV-P1-002 — update de type para investimento é negado em todos os papéis', async () => {
   await seed();
   const db = getAdmin().firestore();
-  await db.doc(`workspaces/${wsA}`).set(
-    {features: {investmentsV2: {enabled: true}}},
-    {merge: true},
-  );
 
   await withClients(['ownerA', 'adminA', 'memberA'], async (c) => {
     for (const [name, user] of [
@@ -656,7 +634,7 @@ test('INV-P1-002 — update de type para investimento é negado com V2 ligada, e
   });
 });
 
-test('INV-P1-002 — troca de tipo é negada mesmo com a flag V2 desligada', async () => {
+test('INV-P1-002 — troca de tipo é negada para qualquer tipo alvo', async () => {
   await seed();
   await withClients(['ownerA'], async ({ownerA}) => {
     const ref = doc(ownerA.db, `workspaces/${wsA}/transactions/tipo-imutavel`);
@@ -950,10 +928,10 @@ test('coleções novas são server-only e invisíveis entre tenants', async () =
       findingCount: 0, maxDifferenceCents: 0, positionsInspected: 1,
       detectedAt: now, expiresAt: now,
     }),
-    db.doc(`workspaces/${wsA}/investment_operation_leases/lease_legacy_migration`).set({
-      id: 'lease_legacy_migration', workspaceId: wsA, kind: 'operation_lease',
-      leaseKind: 'legacy_migration', holderId: 'x', actorId: 'x',
-      correlationId: 'corr', expiresAt: now, updatedAt: now,
+    // Coleção `investment_*` sem bloco `match` próprio: o catch-all precisa
+    // negá-la para todo papel, em vez de deixá-la herdar leitura de membro.
+    db.doc(`workspaces/${wsA}/investment_sem_bloco_proprio/doc-a`).set({
+      id: 'doc-a', workspaceId: wsA, updatedAt: now,
     }),
   ]);
 
@@ -994,17 +972,17 @@ test('coleções novas são server-only e invisíveis entre tenants', async () =
       'ownerB não lê a deriva de A',
     );
 
-    // Lease é estado operacional: ninguém lê, ninguém escreve.
+    // Coleção do domínio sem bloco próprio: ninguém lê, nem o proprietário.
     await assert.rejects(
-      () => getDoc(doc(c.ownerA.db, `workspaces/${wsA}/investment_operation_leases/lease_legacy_migration`)),
-      'nem o owner lê o lease',
+      () => getDoc(doc(c.ownerA.db, `workspaces/${wsA}/investment_sem_bloco_proprio/doc-a`)),
+      'nem o owner lê coleção de investimento sem bloco próprio',
     );
 
     // Nenhum papel escreve em nenhuma das três, nem no próprio tenant.
     for (const [name, path] of [
       ['ownerA', `workspaces/${wsA}/cash_report_periods/2026-09`],
       ['adminA', `workspaces/${wsA}/investment_drift_reports/forjado`],
-      ['memberA', `workspaces/${wsA}/investment_operation_leases/forjado`],
+      ['memberA', `workspaces/${wsA}/investment_sem_bloco_proprio/forjado`],
     ]) {
       await assert.rejects(
         () => setDoc(doc(c[name].db, path), {id: 'x', workspaceId: wsA}),
@@ -1016,6 +994,73 @@ test('coleções novas são server-only e invisíveis entre tenants', async () =
     await assert.rejects(
       () => setDoc(doc(c.ownerB.db, `workspaces/${wsA}/cash_report_periods/2026-09`), {netCents: 1}),
       'ownerB não escreve no caixa de A',
+    );
+  });
+});
+
+/**
+ * Marca de entrega do gatilho de caixa (INV-P3-001).
+ *
+ * É a única coisa entre uma reentrega do Eventarc e um delta somado duas vezes
+ * em `cash_report_periods`. Um cliente que conseguisse **criá-la** faria o
+ * gatilho legítimo pular a aplicação, e o saldo do workspace ficaria para trás
+ * em silêncio; um cliente que conseguisse **apagá-la** reabriria a duplicação.
+ * Por isso é negada nos dois sentidos, inclusive para o owner do próprio
+ * tenant — diferente de `cash_report_periods`, que o membro lê.
+ */
+test('a marca de entrega do caixa é invisível e inescrevível pelo cliente', async () => {
+  await seed();
+  const db = getAdmin().firestore();
+  const now = ts(NOW);
+  const chave = 'a'.repeat(40);
+
+  await Promise.all([
+    db.doc(`workspaces/${wsA}/cash_period_events/${chave}`).set({
+      id: chave, workspaceId: wsA, entity: 'transaction',
+      entityId: 'tx-a', action: 'CREATE', periods: ['2026-08'],
+      appliedAt: now, expiresAt: now,
+    }),
+    db.doc(`workspaces/${wsB}/cash_period_events/${chave}`).set({
+      id: chave, workspaceId: wsB, entity: 'transaction',
+      entityId: 'tx-b', action: 'CREATE', periods: ['2026-08'],
+      appliedAt: now, expiresAt: now,
+    }),
+  ]);
+
+  await withClients(['ownerA', 'adminA', 'memberA', 'ownerB'], async (c) => {
+    for (const papel of ['ownerA', 'adminA', 'memberA']) {
+      await assert.rejects(
+        () => getDoc(doc(c[papel].db, `workspaces/${wsA}/cash_period_events/${chave}`)),
+        `${papel} não lê a marca de entrega do próprio tenant`,
+      );
+      await assert.rejects(
+        () => getDocs(query(
+          collection(c[papel].db, `workspaces/${wsA}/cash_period_events`),
+          limit(10),
+        )),
+        `${papel} não lista as marcas de entrega`,
+      );
+      // Forjar a marca é o ataque que importa: ela decide se o delta é
+      // aplicado.
+      await assert.rejects(
+        () => setDoc(doc(c[papel].db, `workspaces/${wsA}/cash_period_events/forjada`), {
+          id: 'forjada', workspaceId: wsA, periods: ['2026-08'],
+        }),
+        `${papel} não forja marca de entrega`,
+      );
+      await assert.rejects(
+        () => deleteDoc(doc(c[papel].db, `workspaces/${wsA}/cash_period_events/${chave}`)),
+        `${papel} não apaga marca de entrega`,
+      );
+    }
+    // Cross-tenant, nos dois sentidos.
+    await assert.rejects(
+      () => getDoc(doc(c.ownerB.db, `workspaces/${wsA}/cash_period_events/${chave}`)),
+      'ownerB não lê a marca de A',
+    );
+    await assert.rejects(
+      () => setDoc(doc(c.ownerA.db, `workspaces/${wsB}/cash_period_events/forjada`), {id: 'x'}),
+      'ownerA não escreve marca em B',
     );
   });
 });

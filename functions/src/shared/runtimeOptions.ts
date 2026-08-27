@@ -55,9 +55,11 @@ export const DOMAIN_CALLABLE_OPTIONS: CallableOptions = {
  * Callable operacional pesada: paginada, com checkpoint e retomada.
  *
  * `maxInstances: 3` é o limite deliberado de concorrência global dessas
- * operações. Elas já são serializadas por workspace pelo lease
- * (`operationLease.ts`); o teto aqui protege o Firestore de um fan-out de
- * reconstruções simultâneas em tenants diferentes.
+ * operações. Dentro de um mesmo workspace, o que impede duas execuções de se
+ * atrapalharem é o par cerca de versão + serialização transacional — o
+ * backfill acrescenta um lease do próprio lote (`backfill.ts`). O teto aqui
+ * resolve outra coisa: protege o Firestore de um fan-out de reconstruções
+ * simultâneas em tenants **diferentes**.
  */
 export const HEAVY_CALLABLE_OPTIONS: CallableOptions = {
   region: FUNCTIONS_REGION,

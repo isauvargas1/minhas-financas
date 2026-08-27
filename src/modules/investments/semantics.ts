@@ -1,21 +1,29 @@
 import type {Transaction} from '../../types';
 
-const centsFromLegacyValue = (value: number): number => Math.round(value * 100);
+/*
+ * Semântica do espelho de caixa do domínio patrimonial em `transactions`.
+ *
+ * O patrimônio vive em `investment_movements`. Cada movimento que move
+ * dinheiro projeta um espelho aqui, marcado com `investmentMetadata` — é isso
+ * que estas funções classificam. `transactions` continua sendo o domínio de
+ * receitas, despesas e fluxo de caixa; nunca é fonte de verdade patrimonial.
+ *
+ * O ramo sem `investmentMetadata` cobre documentos anteriores ao espelho e
+ * mantém o fluxo de caixa correto sobre eles, sem nunca alimentar patrimônio.
+ */
+
+const centsFromReais = (value: number): number => Math.round(value * 100);
 
 export const isInvestmentRedemption = (transaction: Transaction): boolean =>
   transaction.type === 'investimento' &&
   transaction.investmentMetadata?.investmentOperation === 'redemption';
 
-export const isInvestmentRedemptionReversal = (transaction: Transaction): boolean =>
-  transaction.type === 'investimento' &&
-  transaction.investmentMetadata?.investmentOperation === 'redemption_reversal';
-
-export const isInvestmentContribution = (transaction: Transaction): boolean =>
+const isInvestmentContribution = (transaction: Transaction): boolean =>
   transaction.type === 'investimento' &&
   (!transaction.investmentMetadata ||
     transaction.investmentMetadata.investmentOperation === 'contribution');
 
-export const isEffectiveInvestmentMovement = (transaction: Transaction): boolean => {
+const isEffectiveInvestmentMovement = (transaction: Transaction): boolean => {
   if (transaction.type !== 'investimento') return false;
   if (!transaction.investmentMetadata) return transaction.isPaid !== false;
   return transaction.investmentMetadata.status === 'settled' ||
@@ -25,7 +33,7 @@ export const isEffectiveInvestmentMovement = (transaction: Transaction): boolean
 export const transactionCashImpactCents = (transaction: Transaction): number => {
   const valueCents = Number.isSafeInteger(transaction.valueCents)
     ? transaction.valueCents as number
-    : centsFromLegacyValue(transaction.value);
+    : centsFromReais(transaction.value);
 
   if (transaction.type === 'receita') return valueCents;
   if (transaction.type === 'despesa' || transaction.type === 'parcelado') {
@@ -45,7 +53,7 @@ export const contributionAllocationCents = (transaction: Transaction): number =>
   const principal = transaction.investmentMetadata?.principalCents;
   if (Number.isSafeInteger(principal)) return principal as number;
   if (Number.isSafeInteger(transaction.valueCents)) return transaction.valueCents as number;
-  return centsFromLegacyValue(transaction.value);
+  return centsFromReais(transaction.value);
 };
 
 export const goalInvestmentImpactCents = (transaction: Transaction): number => {
@@ -54,7 +62,7 @@ export const goalInvestmentImpactCents = (transaction: Transaction): number => {
   if (!metadata) return transaction.goalId
     ? (Number.isSafeInteger(transaction.valueCents)
         ? transaction.valueCents as number
-        : centsFromLegacyValue(transaction.value))
+        : centsFromReais(transaction.value))
     : 0;
   if (!transaction.goalId) return 0;
   if (metadata.investmentOperation === 'contribution') return metadata.principalCents;
@@ -78,10 +86,7 @@ export const transactionCashImpact = (transaction: Transaction): number =>
 export const contributionAllocation = (transaction: Transaction): number =>
   contributionAllocationCents(transaction) / 100;
 
-export const goalInvestmentImpact = (transaction: Transaction): number =>
-  goalInvestmentImpactCents(transaction) / 100;
-
-export const summarizeLegacyCashFlow = (transactions: Transaction[]) => ({
+export const summarizeCashFlow = (transactions: Transaction[]) => ({
   income: transactions
     .filter(transaction => transaction.type === 'receita')
     .reduce((total, transaction) => total + transaction.value, 0),

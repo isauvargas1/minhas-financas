@@ -41,24 +41,20 @@ service cloud.firestore {
       return value in ['receita', 'despesa', 'investimento', 'parcelado'];
     }
 
-    // Trilha legada de investimento, fechada quando o domínio oficial está
-    // ligado. Com a flag ativa os relatórios leem só as projeções, mas o fluxo
-    // de caixa continua somando `transactions`: um aporte gravado direto pelo
-    // cliente sairia do caixa e nunca chegaria ao patrimônio. O backend impõe
-    // o mesmo em `assertLegacyInvestmentTrailOpen`; aqui fecha-se a escrita
-    // direta, que não passa por callable nenhuma.
+    // Escrita direta de investimento pelo cliente: negada, sempre.
     //
-    // O `get()` só é avaliado quando o tipo é `investimento`, porque `&&`
-    // curto-circuita — receita, despesa e parcelado não pagam a leitura.
-    function investmentsV2Enabled(workspaceId) {
-      return get(/databases/$(database)/documents/workspaces/$(workspaceId))
-        .data.get('features', {})
-        .get('investmentsV2', {})
-        .get('enabled', false) == true;
-    }
-
-    function isLegacyInvestmentWriteAllowed(workspaceId, data) {
-      return data.type != 'investimento' || !investmentsV2Enabled(workspaceId);
+    // O patrimônio é `investment_movements`. Toda transação
+    // `type == 'investimento'` legítima é o espelho de caixa que o backend
+    // grava em `operationsV2.writeCashProjection` pelo Admin SDK, que não passa
+    // por estas Rules. Um documento desse tipo criado pelo cliente sairia do
+    // fluxo de caixa e nunca chegaria ao patrimônio: as duas fontes divergiriam
+    // em silêncio, sem erro para o usuário.
+    //
+    // Antes esta decisão dependia de `features.investmentsV2` no documento do
+    // workspace, o que custava um `get()` por escrita de investimento. Sem a
+    // flag, é uma comparação de igualdade e nenhuma leitura.
+    function isLegacyInvestmentWriteAllowed(data) {
+      return data.type != 'investimento';
     }
 
     // M4.A — superfície de escrita do cliente em `transactions`, fechada.
@@ -693,7 +689,7 @@ function isValidInvestmentSnapshot(data, workspaceId, docId) {
     hasValidInvestmentIdentity(data, workspaceId, docId) &&
     data.kind in [
       'position_rebuild', 'goal_rebuild',
-      'projection_rebuild', 'workspace_backfill', 'legacy_migration'
+      'projection_rebuild', 'workspace_backfill'
     ] &&
     isInvestmentString(data.targetId, 257) &&
     data.status in ['running', 'completed'] &&
@@ -826,17 +822,6 @@ function isValidInvestmentAllocationSummary(data, workspaceId, docId) {
     isInvestmentString(data.updatedBy, 128);
 }
 
-function isValidLegacyInvestmentAudit(data, workspaceId) {
-  return data.workspaceId == workspaceId &&
-    isInvestmentProfileType(data.profileType) &&
-    isInvestmentString(data.actorId, 128) &&
-    data.actorRole in ['owner', 'admin', 'member'] &&
-    isInvestmentString(data.operation, 128) &&
-    isInvestmentString(data.targetId, 257) &&
-    isInvestmentString(data.correlationId, 257) &&
-    data.details is map && data.timestamp is timestamp;
-}
-
 // Coleções cuja escrita é exclusiva do backend/Admin SDK e cuja leitura é
 // governada por um bloco `match` próprio. Derivada de prefixo, e não de uma
 // enumeração mantida à mão: uma coleção nova do domínio nasce negada no
@@ -858,7 +843,13 @@ function isBackendOwnedCollection(collectionName) {
       // Sem esta linha, o teto de 600 documentos da regra específica era
       // contornado pela catch-all, e uma listagem ilimitada reintroduzia o
       // custo linear que a projeção existe para eliminar.
-      'cash_report_periods'
+      'cash_report_periods',
+      // INV-P3-001 — marca de entrega do gatilho de caixa. É o que impede a
+      // reentrega do mesmo evento de somar o delta duas vezes. Um cliente que
+      // conseguisse criá-la faria o gatilho legítimo pular a aplicação e o
+      // saldo do workspace ficaria para trás; um cliente que conseguisse
+      // apagá-la reabriria a duplicação. Server-only nos dois sentidos.
+      'cash_period_events'
     ];
 }
 
@@ -1043,7 +1034,7 @@ function isValidCreditCardUpdate(data, previous, workspaceId) {
           (hasRole(workspaceId, ['owner', 'admin', 'member']) || isWorkspaceOwnerByParent(workspaceId)) &&
           isCommonValidTransactionPayload(request.resource.data, workspaceId) &&
           hasOnlyClientTransactionKeys(request.resource.data) &&
-          isLegacyInvestmentWriteAllowed(workspaceId, request.resource.data) &&
+          isLegacyInvestmentWriteAllowed(request.resource.data) &&
           request.resource.data.workspaceId == workspaceId &&
           request.resource.data.userId == request.auth.uid &&
           !request.resource.data.keys().hasAny([
@@ -1056,9 +1047,7 @@ function isValidCreditCardUpdate(data, previous, workspaceId) {
 
         // Ramo único: o papel do ator e as guardas de documento eram
         // idênticos nos dois ramos anteriores e eram avaliados duas vezes
-        // (INV-P2-049). Aqui cada predicado roda uma vez só, o que abriu
-        // orçamento para acrescentar `isLegacyInvestmentWriteAllowed` sem
-        // arriscar negar edição legítima por esgotamento.
+        // (INV-P2-049). Aqui cada predicado roda uma vez só.
         allow update: if
           canActOnExistingTransaction(workspaceId) &&
           isPlainClientTransaction(resource.data) &&
@@ -1069,7 +1058,7 @@ function isValidCreditCardUpdate(data, previous, workspaceId) {
             (
               changesOnlyMutableTransactionKeys() &&
               isCommonValidTransactionPayload(request.resource.data, workspaceId) &&
-              isLegacyInvestmentWriteAllowed(workspaceId, request.resource.data)
+              isLegacyInvestmentWriteAllowed(request.resource.data)
             ) ||
             isTransactionVoid()
           );
@@ -1175,14 +1164,6 @@ match /credit_card_idempotency_keys/{docId} {
         allow read, write: if false;
       }
 
-      match /investment_audit_logs/{docId} {
-        allow get: if canReadSensitiveInvestmentDomain(workspaceId) &&
-          isValidLegacyInvestmentAudit(resource.data, workspaceId);
-        allow list: if canReadSensitiveInvestmentDomain(workspaceId) &&
-          isBoundedInvestmentList();
-        allow write: if false;
-      }
-
       match /investment_accounts/{docId} {
         allow get: if canReadInvestmentDomain(workspaceId) &&
           isValidInvestmentAccount(resource.data, workspaceId, docId);
@@ -1279,7 +1260,10 @@ match /credit_card_idempotency_keys/{docId} {
         allow write: if false;
       }
 
-      match /investment_operation_leases/{docId} {
+      // INV-P3-001 — marca de entrega do gatilho de caixa. Escrita e leitura
+      // exclusivas do Admin SDK: o cliente não pode nem conferir nem forjar a
+      // marca que decide se um delta financeiro é aplicado.
+      match /cash_period_events/{docId} {
         allow read, write: if false;
       }
 

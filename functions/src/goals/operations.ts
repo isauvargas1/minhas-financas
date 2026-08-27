@@ -4,24 +4,17 @@ import {FieldValue, Timestamp} from "firebase-admin/firestore";
 
 import {CreditCardApplicationError} from "../creditCards/errors";
 import type {WorkspaceAuthorizationContext} from "../creditCards/auth";
-import {assertLegacyInvestmentTrailOpen} from "../shared/featureFlags";
 import type {
   ArchiveGoalPayload,
   CreateGoalPayload,
-  RebuildGoalProgressPayload,
-  SaveGoalContributionPayload,
   SeedLegacyCatalogPayload,
-  SetGoalLinksPayload,
   UpdateGoalPayload,
 } from "./contracts";
 
 type GoalOperation =
   | "createGoal"
   | "updateGoal"
-  | "setGoalTransactionLinks"
   | "archiveGoal"
-  | "rebuildGoalProgress"
-  | "saveGoalContribution"
   | "seedLegacySettingsCatalog";
 
 interface IdempotencyReservation {
@@ -34,9 +27,6 @@ const db = () => admin.firestore();
 const workspacePath = (workspaceId: string) => `workspaces/${workspaceId}`;
 const goalRef = (workspaceId: string, goalId: string) =>
   db().doc(`${workspacePath(workspaceId)}/goals/${goalId}`);
-const transactionRef = (workspaceId: string, transactionId: string) =>
-  db().doc(`${workspacePath(workspaceId)}/transactions/${transactionId}`);
-
 const stableStringify = (value: unknown): string => {
   if (value === null || typeof value !== "object") return JSON.stringify(value);
   if (Array.isArray(value)) return `[${value.map(stableStringify).join(",")}]`;
@@ -48,6 +38,29 @@ const stableStringify = (value: unknown): string => {
 
 const sha256 = (value: string) => createHash("sha256").update(value).digest("hex");
 
+/**
+ * Conteúdo da **intenção**, para o `requestHash`.
+ *
+ * `correlationId` identifica a *tentativa*, não a intenção: a superfície
+ * operacional gera um novo a cada envio, justamente para que um replay
+ * apareça na trilha como replay. Se ele entrasse no hash, o segundo envio da
+ * mesma intenção — duplo clique, retry de rede, timeout+retry — cairia em
+ * `idempotency_conflict` em vez de devolver o resultado anterior, que é
+ * exatamente o que a idempotência existe para evitar (INV-P1-004). O domínio
+ * de investimentos já aplica a mesma exclusão.
+ *
+ * Payloads que não trazem o campo produzem o mesmo texto de antes, então
+ * nenhum `requestHash` já persistido muda de valor.
+ */
+const intentContent = (payload: unknown): unknown => {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    return payload;
+  }
+  const {correlationId: _attempt, ...intent} =
+    payload as Record<string, unknown>;
+  return intent;
+};
+
 const reserveIdempotency = async (
   transaction: admin.firestore.Transaction,
   auth: WorkspaceAuthorizationContext,
@@ -57,7 +70,7 @@ const reserveIdempotency = async (
 ): Promise<IdempotencyReservation> => {
   const id = `${operation}_${sha256(`${auth.uid}:${idempotencyKey}`).slice(0, 32)}`;
   const ref = db().doc(`${workspacePath(auth.workspaceId)}/goal_idempotency_keys/${id}`);
-  const requestHash = sha256(stableStringify(payload));
+  const requestHash = sha256(stableStringify(intentContent(payload)));
   const snapshot = await transaction.get(ref);
 
   if (snapshot.exists) {
@@ -140,40 +153,6 @@ export const toMinorUnits = (value: number): number => {
 
 const fromMinorUnits = (value: number): number => value / 100;
 
-export const isSettledGoalContribution = (
-  data: admin.firestore.DocumentData,
-): boolean => data.type === "investimento" &&
-  data.isPaid === true &&
-  Boolean(data.goalId) &&
-  (!data.investmentMetadata ||
-    data.investmentMetadata.investmentOperation === "contribution") &&
-  (!data.investmentMetadata || data.investmentMetadata.status === "settled");
-
-export const contributionMinorUnits = (
-  data: admin.firestore.DocumentData,
-): number => {
-  if (data.type !== "investimento" || !data.goalId) return 0;
-  // Baixa lógica (INV-P2-032): o documento permanece, o fato não conta.
-  if (data.voidedAt !== undefined && data.voidedAt !== null) return 0;
-  const metadata = data.investmentMetadata;
-  if (!metadata) {
-    if (!isSettledGoalContribution(data)) return 0;
-    if (Number.isSafeInteger(data.valueCents)) return data.valueCents as number;
-    return toMinorUnits(Number(data.value));
-  }
-  if (metadata.status !== "settled" && metadata.status !== "reversed") return 0;
-  if (!Number.isSafeInteger(metadata.principalCents)) {
-    throw new CreditCardApplicationError(
-      "domain_precondition_failed",
-      "Movimento de investimento sem principal válido.",
-    );
-  }
-  if (metadata.investmentOperation === "contribution") return metadata.principalCents as number;
-  if (metadata.investmentOperation === "redemption") return -(metadata.principalCents as number);
-  if (metadata.investmentOperation === "redemption_reversal") return metadata.principalCents as number;
-  return 0;
-};
-
 const resolveGoalProgressCents = (
   goal: admin.firestore.DocumentData,
   netContributionCents: number,
@@ -183,76 +162,6 @@ const resolveGoalProgressCents = (
     if (typeof goal.currentValue === "number") return toMinorUnits(goal.currentValue);
   }
   return netContributionCents;
-};
-
-const sumGoalContributions = (
-  snapshot: admin.firestore.QuerySnapshot,
-): number => snapshot.docs.reduce(
-  (total, contribution) => total + contributionMinorUnits(contribution.data()),
-  0,
-);
-
-/**
- * Teto de aportes somados numa única transação.
- *
- * M4.E — a consulta rodava sem `limit` e sem `orderBy` dentro de uma
- * transação, custando O(histórico de movimentos) a cada escrita de meta. O M3
- * agravou isso ao espelhar cada movimento em `transactions`. O teto abaixo
- * limita o custo; ultrapassá-lo falha de forma explícita em vez de somar
- * silenciosamente um subconjunto.
- */
-export const GOAL_CONTRIBUTIONS_SCAN_LIMIT = 2_000;
-
-const goalContributionsQuery = (workspaceId: string, goalId: string) =>
-  db()
-    .collection(`${workspacePath(workspaceId)}/transactions`)
-    .where("goalId", "==", goalId)
-    .orderBy("__name__", "asc")
-    .limit(GOAL_CONTRIBUTIONS_SCAN_LIMIT + 1);
-
-/**
- * Falha alto se o histórico da meta ultrapassar o teto de varredura.
- *
- * **Chame depois do `Promise.all`, nunca dentro de um `.then()` encadeado numa
- * das leituras** (INV-P2-044). Lançar de dentro do `.then()` faz o
- * `Promise.all` rejeitar enquanto as leituras irmãs ainda estão em voo; o
- * `runTransaction` aborta e as leituras pendentes do handle abortado rejeitam
- * com `Transaction is invalid or closed`. Sob concorrência — dois aportes
- * simultâneos na mesma meta, que é justamente o cenário testado — isso
- * transformava um retry legítimo de contenção em falha intermitente da suíte.
- */
-const assertGoalContributionsWithinLimit = (
-  snapshot: admin.firestore.QuerySnapshot,
-  goalId: string,
-): admin.firestore.QuerySnapshot => {
-  if (snapshot.size > GOAL_CONTRIBUTIONS_SCAN_LIMIT) {
-    throw new CreditCardApplicationError(
-      "domain_precondition_failed",
-      `A meta ${goalId} tem mais de ${GOAL_CONTRIBUTIONS_SCAN_LIMIT} aportes ` +
-        "vinculados: refazer o vínculo de uma vez ultrapassaria o limite de " +
-        "escritas de uma transação. Ajuste os aportes individualmente.",
-    );
-  }
-  return snapshot;
-};
-
-/**
- * Base de `netContributionCents` para um recálculo (NEW-06).
- *
- * Dentro do teto de varredura, a base é a soma dos aportes — que se
- * autocorrige a cada escrita. Acima do teto, a base é o valor já publicado na
- * meta, e a escrita aplica apenas o delta desta operação; a reconciliação é
- * `rebuildGoalProgress`, que soma paginado e publica valor absoluto.
- */
-const goalNetContributionBase = (
-  goal: admin.firestore.DocumentData,
-  linkedSnapshot: admin.firestore.QuerySnapshot,
-): number => {
-  if (linkedSnapshot.size <= GOAL_CONTRIBUTIONS_SCAN_LIMIT) {
-    return sumGoalContributions(linkedSnapshot);
-  }
-  return Number.isSafeInteger(goal.netContributionCents) ?
-    goal.netContributionCents as number : 0;
 };
 
 const buildGoalPersistence = (
@@ -317,144 +226,24 @@ export const executeUpdateGoal = async (
   }
   const current = snapshot.data() ?? {};
   const editable = buildGoalPersistence(payload.goal, auth);
+  // O progresso de meta com base em aportes é publicado pelo domínio
+  // patrimonial em `investmentProgressCents`. Aqui só se resolve a base
+  // `current_value`, informada pelo próprio usuário na edição da meta.
   const nextProgressCents = resolveGoalProgressCents(
     editable,
-    Number(current.netContributionCents ?? 0),
+    Number(current.currentAmountCents ?? 0),
   );
   const result = {success: true, goalId: payload.goalId};
   transaction.update(ref, {
     ...editable,
     currentAmountCents: nextProgressCents,
     currentAmount: fromMinorUnits(nextProgressCents),
-    netContributionCents: Number(current.netContributionCents ?? 0),
     updatedBy: auth.uid,
     updatedAt: FieldValue.serverTimestamp(),
   });
   writeAudit(transaction, auth, "updateGoal", reservation.ref, payload.goalId, {
     before: current,
     after: editable,
-  });
-  completeIdempotency(transaction, reservation, result);
-  return result;
-});
-
-export const executeSetGoalTransactionLinks = async (
-  auth: WorkspaceAuthorizationContext,
-  payload: SetGoalLinksPayload,
-): Promise<Record<string, unknown>> => db().runTransaction(async (transaction) => {
-  const reservation = await reserveIdempotency(
-    transaction, auth, "setGoalTransactionLinks", payload.idempotencyKey, payload,
-  );
-  if (reservation.replay) return reservation.replay;
-  const goalDocument = goalRef(auth.workspaceId, payload.goalId);
-  const [goalSnapshot, linkedSnapshot] = await Promise.all([
-    transaction.get(goalDocument),
-    transaction.get(goalContributionsQuery(auth.workspaceId, payload.goalId)),
-  ]);
-  // Validação **depois** de todas as leituras: lançar de dentro do
-  // `Promise.all` aborta a transação com leituras irmãs em voo (INV-P2-044).
-  assertGoalContributionsWithinLimit(linkedSnapshot, payload.goalId);
-  if (!goalSnapshot.exists || goalSnapshot.data()?.archived === true) {
-    throw new CreditCardApplicationError("not_found", "Meta não encontrada.");
-  }
-
-  const selectedIds = [...new Set(payload.transactionIds)];
-  const linkedContributions = linkedSnapshot.docs.filter((item) => {
-    const operation = item.data().investmentMetadata?.investmentOperation;
-    return !operation || operation === "contribution";
-  });
-  const linkedInvestmentAdjustments = linkedSnapshot.docs.filter((item) => {
-    const operation = item.data().investmentMetadata?.investmentOperation;
-    return operation === "redemption" || operation === "redemption_reversal";
-  });
-  const linkedById = new Map<string, admin.firestore.DocumentSnapshot>(
-    linkedContributions.map((item) => [item.id, item]),
-  );
-  const missingRefs = selectedIds
-    .filter((id) => !linkedById.has(id))
-    .map((id) => transactionRef(auth.workspaceId, id));
-  const missingSnapshots = missingRefs.length > 0 ? await transaction.getAll(...missingRefs) : [];
-  const selectedById = new Map<string, admin.firestore.DocumentSnapshot>(linkedById);
-  missingSnapshots.forEach((item) => selectedById.set(item.id, item));
-
-  for (const id of selectedIds) {
-    const snapshot = selectedById.get(id);
-    const data = snapshot?.data();
-    if (!snapshot?.exists || !data || data.type !== "investimento" ||
-      (data.investmentMetadata &&
-        data.investmentMetadata.investmentOperation !== "contribution")) {
-      throw new CreditCardApplicationError(
-        "domain_precondition_failed",
-        "Um dos aportes selecionados não está disponível.",
-      );
-    }
-    if (data.goalId && data.goalId !== payload.goalId) {
-      throw new CreditCardApplicationError(
-        "domain_precondition_failed",
-        "Um dos aportes já está vinculado a outra meta.",
-      );
-    }
-  }
-
-  linkedContributions.forEach((snapshot) => {
-    if (!selectedIds.includes(snapshot.id)) {
-      if (Number(snapshot.data().redeemedPrincipalCents ?? 0) > 0) {
-        throw new CreditCardApplicationError(
-          "domain_precondition_failed",
-          "Um aporte com principal resgatado não pode ser desvinculado da meta.",
-        );
-      }
-      transaction.update(snapshot.ref, {
-        goalId: FieldValue.delete(),
-        updatedAt: FieldValue.serverTimestamp(),
-        updatedBy: auth.uid,
-      });
-    }
-  });
-  selectedIds.forEach((id) => {
-    const snapshot = selectedById.get(id)!;
-    if (snapshot.data()?.goalId !== payload.goalId) {
-      transaction.update(snapshot.ref, {
-        goalId: payload.goalId,
-        updatedAt: FieldValue.serverTimestamp(),
-        updatedBy: auth.uid,
-      });
-    }
-  });
-
-  const selectedContributionCents = selectedIds.reduce((total, id) => {
-    const data = selectedById.get(id)!.data()!;
-    return total + contributionMinorUnits({...data, goalId: payload.goalId});
-  }, 0);
-  const adjustmentCents = linkedInvestmentAdjustments.reduce(
-    (total, item) => total + contributionMinorUnits(item.data()),
-    0,
-  );
-  const netContributionCents = selectedContributionCents + adjustmentCents;
-  if (netContributionCents < 0) {
-    throw new CreditCardApplicationError(
-      "domain_precondition_failed",
-      "Os vínculos deixariam o progresso da meta inconsistente.",
-    );
-  }
-  const progressCents = resolveGoalProgressCents(goalSnapshot.data()!, netContributionCents);
-  transaction.update(goalDocument, {
-    netContributionCents,
-    currentAmountCents: progressCents,
-    currentAmount: fromMinorUnits(progressCents),
-    updatedBy: auth.uid,
-    updatedAt: FieldValue.serverTimestamp(),
-  });
-  const result = {
-    success: true,
-    goalId: payload.goalId,
-    linkedCount: selectedIds.length,
-    currentAmount: fromMinorUnits(progressCents),
-  };
-  writeAudit(transaction, auth, "setGoalTransactionLinks", reservation.ref, payload.goalId, {
-    beforeTransactionIds: linkedContributions.map((item) => item.id),
-    afterTransactionIds: selectedIds,
-    netContributionCents,
   });
   completeIdempotency(transaction, reservation, result);
   return result;
@@ -469,18 +258,17 @@ export const executeArchiveGoal = async (
   );
   if (reservation.replay) return reservation.replay;
   const ref = goalRef(auth.workspaceId, payload.goalId);
-  const [goalSnapshot, historySnapshot] = await Promise.all([
-    transaction.get(ref),
-    transaction.get(goalContributionsQuery(auth.workspaceId, payload.goalId)),
-  ]);
-  // Arquivar não depende do histórico: o número entra só na auditoria, e uma
-  // meta com histórico grande precisa poder ser arquivada (NEW-06).
-  const historyTruncated = historySnapshot.size > GOAL_CONTRIBUTIONS_SCAN_LIMIT;
-  const historyCount = historyTruncated ?
-    GOAL_CONTRIBUTIONS_SCAN_LIMIT : historySnapshot.size;
+  const goalSnapshot = await transaction.get(ref);
   if (!goalSnapshot.exists) {
     throw new CreditCardApplicationError("not_found", "Meta não encontrada.");
   }
+  // Arquivar não varre mais `transactions`. O progresso patrimonial da meta é
+  // publicado por `updateGoalProjection` a partir das posições, então o estado
+  // no momento do arquivamento já está no próprio documento: registrá-lo é
+  // mais informativo que contar linhas de caixa e não custa leitura nenhuma.
+  const archivedProgressCents = Number.isSafeInteger(
+    goalSnapshot.data()?.investmentProgressCents,
+  ) ? goalSnapshot.data()?.investmentProgressCents as number : 0;
   transaction.update(ref, {
     archived: true,
     archivedAt: FieldValue.serverTimestamp(),
@@ -489,231 +277,10 @@ export const executeArchiveGoal = async (
     status: "cancelada",
     updatedAt: FieldValue.serverTimestamp(),
   });
-  const result = {success: true, goalId: payload.goalId, historyCount, historyTruncated};
+  const result = {success: true, goalId: payload.goalId, archivedProgressCents};
   writeAudit(transaction, auth, "archiveGoal", reservation.ref, payload.goalId, {
     reason: payload.reason,
-    historyCount,
-    historyTruncated,
-  });
-  completeIdempotency(transaction, reservation, result);
-  return result;
-});
-
-/**
- * Teto absoluto de aportes que a reconstrução paginada percorre (NEW-06).
- *
- * O teto de varredura em transação (`GOAL_CONTRIBUTIONS_SCAN_LIMIT`) existe
- * porque uma transação do Firestore não pode ler o histórico inteiro. A
- * reconstrução não tem essa restrição: ela soma fora da transação, por páginas
- * com cursor, e só então publica o valor absoluto. Este teto é o limite real
- * do produto, e ultrapassá-lo é erro nomeado — nunca soma parcial silenciosa.
- */
-export const GOAL_CONTRIBUTIONS_REBUILD_LIMIT = 100_000;
-
-/**
- * Soma paginada dos aportes de uma meta.
- *
- * Ordena por `__name__`, que é único e sempre presente: o cursor nunca pula
- * nem repete documento. A soma acontece **fora** da transação justamente para
- * não herdar o teto dela; o valor publicado é o do instante da varredura, e
- * uma execução seguinte converge se houver escrita concorrente.
- */
-const sumGoalContributionsPaged = async (
-  workspaceId: string,
-  goalId: string,
-  pageSize: number,
-): Promise<{netContributionCents: number; contributionCount: number}> => {
-  const collectionRef = db()
-    .collection(`${workspacePath(workspaceId)}/transactions`)
-    .where("goalId", "==", goalId)
-    .orderBy(admin.firestore.FieldPath.documentId());
-
-  let netContributionCents = 0;
-  let contributionCount = 0;
-  let cursor: string | undefined;
-
-  for (;;) {
-    const query = cursor ?
-      collectionRef.startAfter(cursor).limit(pageSize) :
-      collectionRef.limit(pageSize);
-    const page = await query.get();
-    for (const entry of page.docs) {
-      netContributionCents += contributionMinorUnits(entry.data());
-    }
-    contributionCount += page.size;
-    if (contributionCount > GOAL_CONTRIBUTIONS_REBUILD_LIMIT) {
-      throw new CreditCardApplicationError(
-        "domain_precondition_failed",
-        `A meta ${goalId} ultrapassou ${GOAL_CONTRIBUTIONS_REBUILD_LIMIT} ` +
-          "aportes vinculados. Nenhum valor parcial foi publicado.",
-      );
-    }
-    if (page.size < pageSize) break;
-    cursor = page.docs[page.docs.length - 1]?.id;
-    if (!cursor) break;
-  }
-
-  return {netContributionCents, contributionCount};
-};
-
-export const executeRebuildGoalProgress = async (
-  auth: WorkspaceAuthorizationContext,
-  payload: RebuildGoalProgressPayload,
-): Promise<Record<string, unknown>> => {
-  // A varredura vem antes da transação: é ela que remove o beco sem saída de
-  // uma meta acima do teto de transação, que antes não tinha caminho de volta.
-  const {netContributionCents, contributionCount} = await sumGoalContributionsPaged(
-    auth.workspaceId, payload.goalId, payload.pageSize,
-  );
-
-  return db().runTransaction(async (transaction) => {
-    const reservation = await reserveIdempotency(
-      transaction, auth, "rebuildGoalProgress", payload.idempotencyKey, payload,
-    );
-    if (reservation.replay) return reservation.replay;
-    const ref = goalRef(auth.workspaceId, payload.goalId);
-    const goalSnapshot = await transaction.get(ref);
-    if (!goalSnapshot.exists) {
-      throw new CreditCardApplicationError("not_found", "Meta não encontrada.");
-    }
-    const progressCents = resolveGoalProgressCents(goalSnapshot.data()!, netContributionCents);
-    transaction.update(ref, {
-      progressBasis: goalSnapshot.data()?.progressBasis ?? "net_contributions",
-      netContributionCents,
-      currentAmountCents: progressCents,
-      currentAmount: fromMinorUnits(progressCents),
-      contributionCount,
-      lastProgressRebuildAt: FieldValue.serverTimestamp(),
-      updatedAt: FieldValue.serverTimestamp(),
-    });
-    const result = {
-      success: true,
-      goalId: payload.goalId,
-      currentAmount: fromMinorUnits(progressCents),
-      contributionCount,
-    };
-    writeAudit(transaction, auth, "rebuildGoalProgress", reservation.ref, payload.goalId, {
-      reason: payload.reason,
-      contributionCount,
-      netContributionCents,
-    });
-    completeIdempotency(transaction, reservation, result);
-    return result;
-  });
-};
-
-export const executeSaveGoalContribution = async (
-  auth: WorkspaceAuthorizationContext,
-  payload: SaveGoalContributionPayload,
-): Promise<Record<string, unknown>> => db().runTransaction(async (transaction) => {
-  const reservation = await reserveIdempotency(
-    transaction, auth, "saveGoalContribution", payload.idempotencyKey, payload,
-  );
-  if (reservation.replay) return reservation.replay;
-  const contributionId = payload.transactionId ?? db()
-    .collection(`${workspacePath(auth.workspaceId)}/transactions`).doc().id;
-  const contributionDocument = transactionRef(auth.workspaceId, contributionId);
-  const goalDocument = goalRef(auth.workspaceId, payload.contribution.goalId);
-  const contributionSnapshot = await transaction.get(contributionDocument);
-  const [goalSnapshot, linkedSnapshot, workspaceSnapshot] = await Promise.all([
-    transaction.get(goalDocument),
-    transaction.get(goalContributionsQuery(auth.workspaceId, payload.contribution.goalId)),
-    transaction.get(db().doc(workspacePath(auth.workspaceId))),
-  ]);
-  // Com o domínio oficial ligado, o progresso da meta vem de
-  // `investmentProgressCents`, alimentado pelas posições. Um aporte gravado
-  // aqui sairia do caixa e não apareceria na meta nem no patrimônio.
-  assertLegacyInvestmentTrailOpen(workspaceSnapshot.data());
-  if (!goalSnapshot.exists || goalSnapshot.data()?.archived === true) {
-    throw new CreditCardApplicationError("not_found", "Meta não encontrada.");
-  }
-  const previous = contributionSnapshot.data();
-  if (previous && (previous.type !== "investimento" ||
-    (previous.investmentMetadata &&
-      previous.investmentMetadata.investmentOperation !== "contribution") ||
-    (previous.goalId && previous.goalId !== payload.contribution.goalId))) {
-    throw new CreditCardApplicationError(
-      "domain_precondition_failed",
-      "O aporte não pode ser movido entre metas durante a edição.",
-    );
-  }
-  const valueCents = toMinorUnits(payload.contribution.value);
-  const previousRedeemedPrincipalCents = previous?.redeemedPrincipalCents;
-  const redeemedPrincipalCents = Number.isSafeInteger(previousRedeemedPrincipalCents) ?
-    previousRedeemedPrincipalCents as number : 0;
-  if (valueCents < redeemedPrincipalCents) {
-    throw new CreditCardApplicationError(
-      "domain_precondition_failed",
-      "O aporte não pode ficar abaixo do principal já resgatado.",
-    );
-  }
-  if (redeemedPrincipalCents > 0 && !payload.contribution.isPaid) {
-    throw new CreditCardApplicationError(
-      "domain_precondition_failed",
-      "Um aporte com principal resgatado deve permanecer liquidado.",
-    );
-  }
-  const settlementTimestamp = Timestamp.fromDate(
-    new Date(`${payload.contribution.date}T12:00:00.000Z`),
-  );
-  const persisted = {
-    ...payload.contribution,
-    type: "investimento",
-    valueCents,
-    workspaceId: auth.workspaceId,
-    profileId: auth.workspaceId,
-    userId: previous?.userId ?? auth.uid,
-    transactionDate: settlementTimestamp,
-    redeemedPrincipalCents,
-    remainingPrincipalCents: valueCents - redeemedPrincipalCents,
-    investmentMetadata: {
-      currency: "BRL",
-      investmentOperation: "contribution",
-      cashImpact: payload.contribution.isPaid ? "outflow" : "none",
-      investmentImpact: payload.contribution.isPaid ? "increase" : "none",
-      principalCents: valueCents,
-      gainCents: 0,
-      feesCents: 0,
-      taxCents: 0,
-      ...(payload.contribution.isPaid ? {settlementDate: settlementTimestamp} : {}),
-      status: payload.contribution.isPaid ? "settled" : "pending",
-      sourceMovementId: contributionId,
-      idempotencyKey: payload.idempotencyKey,
-    },
-    updatedBy: auth.uid,
-    updatedAt: FieldValue.serverTimestamp(),
-  };
-  if (contributionSnapshot.exists) {
-    transaction.update(contributionDocument, persisted);
-  } else {
-    transaction.create(contributionDocument, {
-      ...persisted,
-      createdBy: auth.uid,
-      createdAt: FieldValue.serverTimestamp(),
-    });
-  }
-  let netContributionCents = goalNetContributionBase(goalSnapshot.data()!, linkedSnapshot);
-  if (previous && isSettledGoalContribution(previous)) {
-    netContributionCents -= contributionMinorUnits(previous);
-  }
-  if (payload.contribution.isPaid) netContributionCents += valueCents;
-  const progressCents = resolveGoalProgressCents(goalSnapshot.data()!, netContributionCents);
-  transaction.update(goalDocument, {
-    netContributionCents,
-    currentAmountCents: progressCents,
-    currentAmount: fromMinorUnits(progressCents),
-    updatedAt: FieldValue.serverTimestamp(),
-  });
-  const result = {
-    success: true,
-    goalId: payload.contribution.goalId,
-    transactionId: contributionId,
-    currentAmount: fromMinorUnits(progressCents),
-  };
-  writeAudit(transaction, auth, "saveGoalContribution", reservation.ref, contributionId, {
-    goalId: payload.contribution.goalId,
-    before: previous ?? null,
-    after: persisted,
+    archivedProgressCents,
   });
   completeIdempotency(transaction, reservation, result);
   return result;

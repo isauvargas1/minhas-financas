@@ -4,7 +4,7 @@ import { Transaction, Goal, CreditCard, EntityItem } from '../types.ts';
 import { ReportIcon, DashboardIcon, ChartBarIcon, SparklesIcon } from './Icons.tsx';
 import { useTheme } from '../contexts/ThemeContext.tsx';
 import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
-import { useFullTransactionHistory } from '../modules/transactions/hooks.ts';
+import { useFullTransactionHistory, useTransactions } from '../modules/transactions/hooks.ts';
 import { useFinancialReportSnapshot } from '../modules/reports/hooks.ts';
 import { useReceivables, useClients } from '../modules/clients/hooks.ts';
 import { ReportTimeRange } from '../modules/reports/types.ts';
@@ -51,12 +51,21 @@ const ReportsView: React.FC<ReportsViewProps> = ({ transactions, goals, creditCa
      * e ela agora o carrega **sob demanda**, paginado, em vez de a aplicação
      * inteira manter o histórico do workspace em memória o tempo todo.
      */
+    // Chamada incondicional: o resultado é usado condicionalmente, o hook não.
+    const defaultWindow = useTransactions(activeWorkspace.id);
     const needsFullHistory = timeRange === 'all';
     const fullHistory = useFullTransactionHistory(activeWorkspace.id, needsFullHistory);
     const rangeTransactions = needsFullHistory
         ? fullHistory.data?.items ?? transactions
         : transactions;
     const historyTruncated = needsFullHistory && fullHistory.data?.truncated === true;
+    /*
+     * A janela padrão de doze meses também tem teto de páginas, e o sinal dela
+     * era descartado antes de chegar à tela: as faixas curtas apresentavam
+     * agregados incompletos como totais. O aviso passa a valer para as duas
+     * origens, cada uma com a saída que resolve o caso.
+     */
+    const windowTruncated = !needsFullHistory && defaultWindow.isTruncated;
 
     const { data: snapshot, isLoading, isError } = useFinancialReportSnapshot(
         rangeTransactions,
@@ -153,6 +162,13 @@ const ReportsView: React.FC<ReportsViewProps> = ({ transactions, goals, creditCa
                     O histórico completo atingiu o limite seguro de leitura e os totais desta
                     faixa não cobrem todo o período. Selecione uma faixa menor para uma análise
                     completa.
+                </p>
+            )}
+
+            {windowTruncated && (
+                <p role="alert" className="mb-4 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+                    A janela de doze meses atingiu o limite seguro de leitura e os totais desta
+                    faixa não cobrem todo o período.
                 </p>
             )}
 

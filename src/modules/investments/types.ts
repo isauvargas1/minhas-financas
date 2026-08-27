@@ -76,6 +76,15 @@ export interface InvestmentMovement {
   taxCents: number;
   quantityMicros: number;
   reversedByMovementId?: string;
+  /**
+   * Efeito assinado deste movimento sobre o valor investido da meta.
+   *
+   * É o mesmo número que o backend aplica em `investmentNetContributionCents`
+   * (`operationsV2.updateGoalProjection`). Ler o sinal daqui, e não inferi-lo
+   * da operação, é o que faz resgate, estorno e desvínculo aparecerem como
+   * saída no histórico da meta em vez de como mais um aporte.
+   */
+  goalNetContributionDeltaCents?: number;
   occurredAt: Timestamp;
 }
 

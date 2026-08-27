@@ -45,6 +45,13 @@ const GoalCard: React.FC<GoalCardProps> = ({ goal, onClick, mode, transactions }
     const needsGlobalBalance = isPJ && goal.isAutomatic && goal.businessType === 'caixa_minimo';
     const cashPeriods = useCashPeriods(workspaceId, needsGlobalBalance);
     const cashBalance = cashBalanceFromPeriods(cashPeriods.data);
+    /*
+     * Projeção cortada no teto de leitura: o saldo acumulado sairia menor que
+     * o real, e com ele o progresso desta meta. A tela declara a limitação em
+     * vez de exibir um número incompleto como se fosse o saldo.
+     */
+    const cashBalanceIncomplete =
+        needsGlobalBalance && cashPeriods.data?.truncated === true;
 
     // --- BUSINESS LOGIC ---
     const currentVal = useMemo(() => {
@@ -166,6 +173,11 @@ const GoalCard: React.FC<GoalCardProps> = ({ goal, onClick, mode, transactions }
                     <div className="w-32 mr-6 hidden sm:block">
                         <div className="flex justify-between text-xs mb-1">
                             <span className="font-medium text-on-surface">{percentage > 100 ? '100%+' : `${percentage.toFixed(0)}%`}</span>
+                            {cashBalanceIncomplete && (
+                                <span role="alert" className="text-[10px] font-bold text-amber-700">
+                                    saldo incompleto
+                                </span>
+                            )}
                         </div>
                         <div className="h-2 w-full bg-background rounded-full overflow-hidden relative">
                             <MotionDiv 

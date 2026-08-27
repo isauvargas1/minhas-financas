@@ -621,24 +621,6 @@
       ]
     },
     {
-      "collectionGroup": "transactions",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "type",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "date",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "__name__",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
       "collectionGroup": "investment_movements",
       "queryScope": "COLLECTION",
       "fields": [
@@ -687,20 +669,6 @@
       ]
     },
     {
-      "collectionGroup": "investment_movements",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "migrationId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "__name__",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
       "collectionGroup": "investment_drift_reports",
       "queryScope": "COLLECTION",
       "fields": [
@@ -710,24 +678,6 @@
         },
         {
           "fieldPath": "detectedAt",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "__name__",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "investment_movements",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "migrationId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "occurredAt",
           "order": "DESCENDING"
         },
         {
@@ -793,6 +743,118 @@
         {
           "fieldPath": "__name__",
           "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "recurring_expenses",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "gerarDespesaAutomaticamente",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "loans",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "type",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "currentBalance",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "loan_movements",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "loanId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "date",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "recurring_occurrences",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "recurringExpenseId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "dataPrevista",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "split_invites",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "groupId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "split_invites",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "codigoConvite",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "ASCENDING"
         }
       ]
     }

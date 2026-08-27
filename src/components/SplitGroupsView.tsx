@@ -18,7 +18,13 @@ interface SplitGroupsViewProps {
 }
 
 const SplitGroupsView: React.FC<SplitGroupsViewProps> = ({ onSelectGroup }) => {
-    const { data: groups, isLoading: isGroupsLoading } = useSplitGroups();
+    const {
+        data: groups,
+        isLoading: isGroupsLoading,
+        hasNextPage,
+        fetchNextPage,
+        isFetchingNextPage,
+    } = useSplitGroups();
     const createGroupMutation = useCreateSplitGroup();
     const updateGroupMutation = useUpdateSplitGroup();
     const deleteGroupMutation = useDeleteSplitGroup();
@@ -245,6 +251,19 @@ const SplitGroupsView: React.FC<SplitGroupsViewProps> = ({ onSelectGroup }) => {
                             onEdit={(group) => openEditModal(group)}
                             onDelete={(group) => setGroupToDelete(group)}
                         />
+                    )}
+
+                    {hasNextPage && (
+                        <div className="mt-6 flex justify-center">
+                            <button
+                                type="button"
+                                onClick={() => fetchNextPage()}
+                                disabled={isFetchingNextPage}
+                                className="rounded-xl border border-border px-5 py-2.5 text-sm font-bold text-on-surface disabled:opacity-60"
+                            >
+                                {isFetchingNextPage ? 'Carregando…' : 'Carregar mais grupos'}
+                            </button>
+                        </div>
                     )}
 
                     {filteredGroups.length === 0 && (

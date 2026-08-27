@@ -30,7 +30,13 @@ const paidPriceIds = async (sessionId: string): Promise<string[]> => {
 
 export const stripeWebhook = onRequest({
   region: FUNCTIONS_REGION,
-  secrets: ["STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET"],
+  // O webhook também consulta a allowlist de preço antes de conceder o plano
+  // (`stripe.ts:75`), então precisa declará-la para que ela seja montada.
+  secrets: [
+    "STRIPE_SECRET_KEY",
+    "STRIPE_WEBHOOK_SECRET",
+    "STRIPE_ALLOWED_PRICE_IDS",
+  ],
   cors: true,
 }, async (req, res) => {
   const sig = req.headers["stripe-signature"];

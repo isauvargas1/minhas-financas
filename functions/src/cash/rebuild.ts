@@ -1,5 +1,5 @@
 import * as admin from "firebase-admin";
-import {FieldValue, Timestamp} from "firebase-admin/firestore";
+import {FieldPath, FieldValue, Timestamp} from "firebase-admin/firestore";
 import {onCall} from "firebase-functions/v2/https";
 import {z} from "zod";
 
@@ -39,24 +39,23 @@ const payloadSchema = z.object({
   correlationId: z.string().trim().min(3).max(200),
   pageSize: z.number().int().min(1).max(500).default(300),
   reason: z.string().trim().min(3).max(500),
+  /*
+   * Simulação: percorre o ledger e devolve os totais **sem publicar**.
+   *
+   * Um backfill que só existe em modo "aplicar" obriga a descobrir o resultado
+   * depois de já o ter escrito. Com a simulação, o operador compara os totais
+   * calculados com o saldo que o workspace exibia antes de tocar em qualquer
+   * documento — que é a conferência que o runbook de staging exige antes de
+   * aplicar em cima de dados reais.
+   *
+   * A simulação usa um checkpoint separado, pelo mesmo motivo que a migração
+   * legada separa os lotes (INV-P1-003): simular não pode consumir o
+   * checkpoint da execução real, nem o contrário.
+   */
+  dryRun: z.boolean().default(false),
 }).strict();
 
 type Payload = z.infer<typeof payloadSchema>;
-
-const REBUILD_STATE_ID = "cash_periods_rebuild";
-
-const rebuildStateRef = (
-  workspaceId: string,
-): admin.firestore.DocumentReference =>
-  admin.firestore().doc(
-    `workspaces/${workspaceId}/${CASH_PERIODS_COLLECTION}/${REBUILD_STATE_ID}`,
-  );
-
-const RATE_LIMIT = {
-  operation: "rebuildCashPeriods",
-  limit: 100,
-  windowSeconds: 60 * 60,
-};
 
 const emptyTotals = (): CashPeriodDelta => ({
   incomeCents: 0,
@@ -66,6 +65,55 @@ const emptyTotals = (): CashPeriodDelta => ({
   transactionCount: 0,
 });
 
+const REBUILD_STATE_ID = "cash_periods_rebuild";
+const DRY_RUN_STATE_ID = "cash_periods_rebuild_dry_run";
+
+const rebuildStateRef = (
+  workspaceId: string,
+  dryRun = false,
+): admin.firestore.DocumentReference =>
+  admin.firestore().doc(
+    `workspaces/${workspaceId}/${CASH_PERIODS_COLLECTION}/` +
+      `${dryRun ? DRY_RUN_STATE_ID : REBUILD_STATE_ID}`,
+  );
+
+/**
+ * Documentos de estado da reconstrução, que não são períodos.
+ *
+ * `listCashPeriods` no cliente já descarta o de execução real pelo ID; a
+ * simulação acrescenta um segundo, e ambos precisam ficar de fora de qualquer
+ * soma de saldo.
+ */
+export const CASH_REBUILD_STATE_IDS = [
+  REBUILD_STATE_ID,
+  DRY_RUN_STATE_ID,
+] as const;
+
+const isRebuildState = (id: string): boolean =>
+  (CASH_REBUILD_STATE_IDS as readonly string[]).includes(id);
+
+/** Soma dos períodos acumulados — a conferência que o operador compara. */
+const reconciliationOf = (
+  accumulated: Record<string, CashPeriodDelta>,
+): CashPeriodDelta & {periodCount: number} => {
+  const total = {...emptyTotals(), periodCount: 0};
+  for (const totals of Object.values(accumulated)) {
+    total.incomeCents += totals.incomeCents;
+    total.expenseCents += totals.expenseCents;
+    total.investmentOutflowCents += totals.investmentOutflowCents;
+    total.netCents += totals.netCents;
+    total.transactionCount += totals.transactionCount;
+    total.periodCount += 1;
+  }
+  return total;
+};
+
+const RATE_LIMIT = {
+  operation: "rebuildCashPeriods",
+  limit: 100,
+  windowSeconds: 60 * 60,
+};
+
 export const executeRebuildCashPeriods = async (
   workspaceId: string,
   actorId: string,
@@ -73,7 +121,7 @@ export const executeRebuildCashPeriods = async (
 ): Promise<Record<string, unknown>> => {
   const db = admin.firestore();
 
-  const state = (await rebuildStateRef(workspaceId).get()).data();
+  const state = (await rebuildStateRef(workspaceId, payload.dryRun).get()).data();
   const cursorId = typeof state?.cursor === "string" ? state.cursor : undefined;
   const accumulated = (state?.periods ?? {}) as Record<string, CashPeriodDelta>;
   const processed = Number.isSafeInteger(state?.processed) ?
@@ -82,7 +130,7 @@ export const executeRebuildCashPeriods = async (
 
   let query = db
     .collection(`workspaces/${workspaceId}/transactions`)
-    .orderBy(admin.firestore.FieldPath.documentId())
+    .orderBy(FieldPath.documentId())
     .limit(payload.pageSize);
   if (cursorId) query = query.startAfter(cursorId);
 
@@ -116,10 +164,11 @@ export const executeRebuildCashPeriods = async (
   const lastId = page.docs[page.docs.length - 1]?.id;
 
   if (!completed) {
-    await rebuildStateRef(workspaceId).set({
-      id: REBUILD_STATE_ID,
+    await rebuildStateRef(workspaceId, payload.dryRun).set({
+      id: payload.dryRun ? DRY_RUN_STATE_ID : REBUILD_STATE_ID,
       workspaceId,
       kind: "cash_periods_rebuild",
+      dryRun: payload.dryRun,
       status: "running",
       cursor: lastId ?? cursorId ?? null,
       processed: processed + page.size,
@@ -130,8 +179,27 @@ export const executeRebuildCashPeriods = async (
     return {
       success: true,
       completed: false,
+      dryRun: payload.dryRun,
       processed: processed + page.size,
       periods: Object.keys(accumulated).length,
+    };
+  }
+
+  /*
+   * Simulação concluída: devolve a conferência e **não** publica nada.
+   *
+   * O checkpoint da simulação é apagado para que a próxima simulação parta do
+   * começo; o da execução real nunca é tocado por este ramo.
+   */
+  if (payload.dryRun) {
+    await rebuildStateRef(workspaceId, true).delete();
+    return {
+      success: true,
+      completed: true,
+      dryRun: true,
+      processed: processed + page.size,
+      periods: Object.keys(accumulated).length,
+      reconciliation: reconciliationOf(accumulated),
     };
   }
 
@@ -154,7 +222,7 @@ export const executeRebuildCashPeriods = async (
     });
   }
   for (const entry of existing.docs) {
-    if (entry.id === REBUILD_STATE_ID) continue;
+    if (isRebuildState(entry.id)) continue;
     if (accumulated[entry.id]) continue;
     batch.set(entry.ref, {
       ...emptyTotals(),
@@ -169,8 +237,10 @@ export const executeRebuildCashPeriods = async (
   return {
     success: true,
     completed: true,
+    dryRun: false,
     processed: processed + page.size,
     periods: Object.keys(accumulated).length,
+    reconciliation: reconciliationOf(accumulated),
   };
 };
 

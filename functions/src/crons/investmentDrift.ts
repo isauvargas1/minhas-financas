@@ -210,20 +210,23 @@ export const inspectWorkspaceDrift = async (
   workspaceId: string,
   correlationId: string,
 ): Promise<{findings: DriftFinding[]; inconclusive: boolean}> => {
-  const [summarySnapshot, positions, latestClosing] = await Promise.all([
-    investmentDoc(
-      workspaceId,
-      INVESTMENT_COLLECTIONS.summaries,
-      "current",
-    ).get(),
+  // O resumo é lido primeiro, sozinho, e não em paralelo com as demais
+  // leituras: ele é a peneira do rodízio. Sem ele o workspace nunca processou
+  // movimento e não há o que conferir, então varrer posições e fechamentos
+  // antes de saber disso gastaria três leituras onde uma basta.
+  const summarySnapshot = await investmentDoc(
+    workspaceId,
+    INVESTMENT_COLLECTIONS.summaries,
+    "current",
+  ).get();
+
+  const summary = summarySnapshot.data();
+  if (!summary) return {findings: [], inconclusive: false};
+
+  const [positions, latestClosing] = await Promise.all([
     readPositionTotals(workspaceId),
     readLatestClosing(workspaceId),
   ]);
-
-  const summary = summarySnapshot.data();
-  // Sem resumo, não há o que conferir: o workspace ainda não processou
-  // movimento nenhum.
-  if (!summary) return {findings: [], inconclusive: false};
 
   const findings = positions.truncated ?
     [] :
@@ -307,9 +310,11 @@ const nextWorkspaceSlice = async (): Promise<{
       .get();
   }
 
-  const ids = page.docs
-    .filter((entry) => entry.data()?.features?.investmentsV2?.enabled === true)
-    .map((entry) => entry.id);
+  // O rodízio cobre todos os workspaces: o domínio patrimonial é único e não
+  // há mais flag para filtrar. O custo continua limitado porque
+  // `inspectWorkspaceDrift` sai na primeira leitura quando o workspace nunca
+  // processou movimento — um workspace sem investimentos custa 1 leitura.
+  const ids = page.docs.map((entry) => entry.id);
 
   return {
     ids,

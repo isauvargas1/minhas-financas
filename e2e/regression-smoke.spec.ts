@@ -5,12 +5,12 @@ const require = createRequire(import.meta.url);
 const admin = require('../functions/node_modules/firebase-admin') as typeof import('../functions/node_modules/firebase-admin');
 
 /**
- * Smoke de regressão com a flag desligada e ligada.
+ * Smoke de regressão do produto inteiro.
  *
- * A remediação tocou Rules, leitura de transações, projeções, relatórios,
- * metas e cadastro. O que este smoke prova é que **nenhuma superfície do
- * produto quebrou** em nenhum dos dois estados da flag — inclusive as que não
- * têm nada a ver com investimentos, como recorrências, cartões e carteiras.
+ * A unificação do domínio de investimentos tocou Rules, leitura de transações,
+ * projeções, relatórios, metas e cadastro. O que este smoke prova é que
+ * **nenhuma superfície do produto quebrou** — inclusive as que não têm nada a
+ * ver com investimentos, como recorrências, cartões e carteiras.
  *
  * Cada percurso é raso de propósito: profundidade é papel das suítes de
  * domínio. Aqui o que se verifica é que a tela monta, carrega dados e não
@@ -53,7 +53,7 @@ const firebaseAdmin = () => {
  * Semeia um workspace com um exemplar de cada tipo de lançamento, mais um
  * segundo workspace do mesmo dono, para exercitar a troca de workspace.
  */
-const seed = async (persona: Persona, investmentsV2Enabled: boolean) => {
+const seed = async (persona: Persona) => {
   const sdk = firebaseAdmin();
   const db = sdk.firestore();
   const secondWorkspace = `${persona.workspace}-secundario`;
@@ -89,7 +89,6 @@ const seed = async (persona: Persona, investmentsV2Enabled: boolean) => {
       name: persona.type === 'PJ' ? 'Empresa Smoke' : 'Pessoal Smoke',
       type: persona.type,
       currency: 'BRL',
-      features: { investmentsV2: { enabled: investmentsV2Enabled } },
       createdAt: now,
       updatedAt: now,
     }),
@@ -182,8 +181,7 @@ const seed = async (persona: Persona, investmentsV2Enabled: boolean) => {
     }),
   ]);
 
-  if (investmentsV2Enabled) {
-    await Promise.all([
+  await Promise.all([
       db.doc(`workspaces/${persona.workspace}/investment_summaries/current`).set({
         id: 'current', workspaceId: persona.workspace, profileType: persona.type,
         currency: 'BRL', positionCount: 1, principalCents: 200_000,
@@ -209,8 +207,7 @@ const seed = async (persona: Persona, investmentsV2Enabled: boolean) => {
         cashDeltaCents: -200_000, settledMovementCount: 1,
         closingCurrentValueCents: 220_000, updatedAt: now, updatedBy: persona.uid,
       }),
-    ]);
-  }
+  ]);
 };
 
 /**
@@ -266,7 +263,6 @@ const expectNoErrorBanner = async (page: import('@playwright/test').Page) => {
 const walkSurfaces = async (
   page: import('@playwright/test').Page,
   persona: Persona,
-  investmentsV2Enabled: boolean,
 ) => {
   const isPJ = persona.type === 'PJ';
 
@@ -278,20 +274,15 @@ const walkSurfaces = async (
   await expect(page.getByText('Compra parcelada do smoke').first()).toBeVisible();
   await expectNoErrorBanner(page);
 
-  // Investimentos: V2 com a flag ligada, trilha legada com ela desligada.
+  // Investimentos: uma arquitetura só, sempre a tela patrimonial.
   await openSection(page, 'Investimentos');
-  if (investmentsV2Enabled) {
-    await expect(page.getByRole('heading', { name: 'Patrimônio e investimentos' })).toBeVisible();
-    await page.getByRole('tab', { name: 'Alocação' }).click();
-    await expect(
-      page.getByRole('heading', {
-        name: isPJ ? 'Alocação contábil do patrimônio' : 'Diagnóstico de alocação',
-      }),
-    ).toBeVisible();
-  } else {
-    await expect(page.getByRole('button', { name: 'Nova Transação' })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Patrimônio e investimentos' })).toHaveCount(0);
-  }
+  await expect(page.getByRole('heading', { name: 'Patrimônio e investimentos' })).toBeVisible();
+  await page.getByRole('tab', { name: 'Alocação' }).click();
+  await expect(
+    page.getByRole('heading', {
+      name: isPJ ? 'Alocação contábil do patrimônio' : 'Diagnóstico de alocação',
+    }),
+  ).toBeVisible();
   await expectNoErrorBanner(page);
 
   // Metas.
@@ -329,18 +320,15 @@ const walkSurfaces = async (
 };
 
 for (const persona of [PF, PJ]) {
-  for (const investmentsV2Enabled of [false, true]) {
-    const estado = investmentsV2Enabled ? 'ligada' : 'desligada';
-    test(`smoke ${persona.type} com a flag ${estado}`, async ({ page }) => {
-      await seed(persona, investmentsV2Enabled);
-      await login(page, persona);
-      await walkSurfaces(page, persona, investmentsV2Enabled);
-    });
-  }
+  test(`smoke ${persona.type}`, async ({ page }) => {
+    await seed(persona);
+    await login(page, persona);
+    await walkSurfaces(page, persona);
+  });
 }
 
 test('troca de workspace mantém o produto funcional', async ({ page }) => {
-  await seed(PF, true);
+  await seed(PF);
   await login(page, PF);
 
   // O workspace ativo é o pessoal, com os lançamentos semeados.

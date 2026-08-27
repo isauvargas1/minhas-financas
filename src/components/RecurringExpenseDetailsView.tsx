@@ -53,7 +53,14 @@ const RecurringExpenseDetailsView: React.FC<RecurringExpenseDetailsViewProps> = 
         return { start, end };
     }, []);
 
-    const { data: occurrences, isLoading: isOccurrencesLoading } = useRecurringOccurrences(range.start, range.end);
+    /*
+     * A página é de **uma** assinatura, mas a consulta não filtrava por
+     * assinatura nenhuma: listava as ocorrências projetadas de todas as
+     * assinaturas do workspace, e pagava a leitura da coleção inteira para
+     * montá-las.
+     */
+    const { data: occurrences, isLoading: isOccurrencesLoading } =
+        useRecurringOccurrences(range.start, range.end, expenseId);
     const { playSound } = useTheme();
 
     // Adjustment State

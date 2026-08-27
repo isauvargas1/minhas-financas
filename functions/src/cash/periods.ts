@@ -1,7 +1,9 @@
+import {createHash} from "node:crypto";
 import * as admin from "firebase-admin";
 import {FieldValue, Timestamp} from "firebase-admin/firestore";
 
 import {saoPauloMonthKey, saoPauloMonthStart} from "../shared/dateKeys";
+import {RETENTION_DAYS, expiresInDays} from "../shared/retention";
 
 /**
  * Projeção mensal de caixa por workspace (INV-P1-011).
@@ -27,6 +29,23 @@ import {saoPauloMonthKey, saoPauloMonthStart} from "../shared/dateKeys";
  */
 
 export const CASH_PERIODS_COLLECTION = "cash_report_periods";
+
+/**
+ * Marca de entrega já aplicada (INV-P3-001).
+ *
+ * O gatilho de transações é entregue **pelo menos** uma vez: o Eventarc
+ * reentrega o mesmo `event.id` quando a execução anterior não confirmou a
+ * tempo. O período é mantido por `FieldValue.increment`, então uma reentrega
+ * somava o mesmo delta de novo e o saldo acumulado do workspace passava a
+ * mentir — sem erro, sem log, e sem nada que o distinguisse de um lançamento
+ * real. `rebuildCashPeriods` corrigia, mas reconciliação não é defesa: ela é o
+ * que se roda **depois** de já se ter percebido a divergência.
+ *
+ * A defesa é esta coleção. Cada entrega grava um documento cujo ID é o
+ * `event.id` **em hash**, na mesma transação em que o delta é aplicado. A
+ * segunda entrega encontra a marca e não aplica nada.
+ */
+export const CASH_PERIOD_EVENTS_COLLECTION = "cash_period_events";
 
 export interface CashPeriodDelta {
   incomeCents: number;
@@ -188,8 +207,8 @@ const writeDelta = (
   workspaceId: string,
   period: string,
   delta: CashPeriodDelta,
-): void => {
-  if (isZero(delta)) return;
+): boolean => {
+  if (isZero(delta)) return false;
   writer.set(
     cashPeriodRef(workspaceId, period),
     {
@@ -208,6 +227,7 @@ const writeDelta = (
     },
     {merge: true},
   );
+  return true;
 };
 
 /**
@@ -217,20 +237,25 @@ const writeDelta = (
  * de mês** e exclusão — com a mesma expressão: retira o efeito de `before` do
  * mês de `before` e soma o efeito de `after` no mês de `after`. Quando o mês
  * não muda, os dois se combinam num único incremento.
+ *
+ * Devolve os períodos **efetivamente escritos**, que é o que a marca de
+ * entrega registra para diagnóstico e o que uma reconciliação dirigida
+ * precisaria reprocessar.
  */
 export const applyCashPeriodWrite = (
   writer: CashPeriodWriter,
   workspaceId: string,
   before: admin.firestore.DocumentData | undefined,
   after: admin.firestore.DocumentData | undefined,
-): void => {
+): string[] => {
   const beforePeriod = cashPeriodKeyFor(before);
   const afterPeriod = cashPeriodKeyFor(after);
   const beforeDelta = negate(cashPeriodDeltaFor(before));
   const afterDelta = cashPeriodDeltaFor(after);
+  const written: string[] = [];
 
   if (beforePeriod && beforePeriod === afterPeriod) {
-    writeDelta(writer, workspaceId, beforePeriod, {
+    if (writeDelta(writer, workspaceId, beforePeriod, {
       incomeCents: beforeDelta.incomeCents + afterDelta.incomeCents,
       expenseCents: beforeDelta.expenseCents + afterDelta.expenseCents,
       investmentOutflowCents:
@@ -238,9 +263,101 @@ export const applyCashPeriodWrite = (
       netCents: beforeDelta.netCents + afterDelta.netCents,
       transactionCount:
         beforeDelta.transactionCount + afterDelta.transactionCount,
-    });
-    return;
+    })) {
+      written.push(beforePeriod);
+    }
+    return written;
   }
-  if (beforePeriod) writeDelta(writer, workspaceId, beforePeriod, beforeDelta);
-  if (afterPeriod) writeDelta(writer, workspaceId, afterPeriod, afterDelta);
+  if (
+    beforePeriod &&
+    writeDelta(writer, workspaceId, beforePeriod, beforeDelta)
+  ) {
+    written.push(beforePeriod);
+  }
+  if (afterPeriod && writeDelta(writer, workspaceId, afterPeriod, afterDelta)) {
+    written.push(afterPeriod);
+  }
+  return written;
+};
+
+/**
+ * Identificador da entrega, derivado do `event.id` por hash.
+ *
+ * O `event.id` do Eventarc não é segredo, mas também não é grandeza deste
+ * domínio: ele carrega o caminho do documento de origem e, com ele, o ID da
+ * transação. O hash mantém a propriedade que importa — mesma entrega, mesmo
+ * ID; entregas distintas, IDs distintos — sem colocar identificador de dado
+ * financeiro no nome de um documento de coleção operacional.
+ */
+export const cashPeriodEventKey = (eventId: string): string =>
+  createHash("sha256").update(eventId).digest("hex").slice(0, 40);
+
+export const cashPeriodEventRef = (
+  workspaceId: string,
+  eventKey: string,
+): admin.firestore.DocumentReference =>
+  admin.firestore().doc(
+    `workspaces/${workspaceId}/${CASH_PERIOD_EVENTS_COLLECTION}/${eventKey}`,
+  );
+
+export interface CashPeriodEventContext {
+  /** Documento de origem, só para diagnóstico da marca. */
+  transactionId: string;
+  action: "CREATE" | "UPDATE" | "DELETE";
+}
+
+export interface CashPeriodEventOutcome {
+  /** `false` quando a entrega já tinha sido aplicada. */
+  applied: boolean;
+  periods: string[];
+}
+
+const readPeriods = (value: unknown): string[] =>
+  Array.isArray(value) ? value.filter((item): item is string =>
+    typeof item === "string") : [];
+
+/**
+ * Aplica a variação **uma única vez por entrega** (INV-P3-001).
+ *
+ * A leitura da marca, o incremento do período e a criação da marca acontecem
+ * na mesma transação do Firestore: ou os três valem, ou nenhum vale. Não há
+ * janela entre "conferi que ainda não apliquei" e "apliquei".
+ *
+ * `create` em vez de `set` de propósito: se a marca aparecer entre a leitura e
+ * o commit — o que a serialização da transação já impede —, a escrita falha em
+ * vez de sobrescrever. Falha fechada é o comportamento correto aqui, porque o
+ * gatilho é reentregue e uma execução perdida é reparável; um delta a mais,
+ * não.
+ *
+ * Custo: uma leitura por documento, endereçada por ID. Nenhuma consulta, nenhum
+ * índice, nenhuma varredura.
+ */
+export const applyCashPeriodWriteOnce = async (
+  transaction: admin.firestore.Transaction,
+  workspaceId: string,
+  eventKey: string,
+  before: admin.firestore.DocumentData | undefined,
+  after: admin.firestore.DocumentData | undefined,
+  context: CashPeriodEventContext,
+): Promise<CashPeriodEventOutcome> => {
+  const markerRef = cashPeriodEventRef(workspaceId, eventKey);
+  const marker = await transaction.get(markerRef);
+  if (marker.exists) {
+    return {applied: false, periods: readPeriods(marker.data()?.periods)};
+  }
+
+  const periods = applyCashPeriodWrite(transaction, workspaceId, before, after);
+  transaction.create(markerRef, {
+    id: eventKey,
+    workspaceId,
+    entity: "transaction",
+    entityId: context.transactionId,
+    action: context.action,
+    periods,
+    appliedAt: FieldValue.serverTimestamp(),
+    // Retenção: marca operacional, não fato financeiro. Ver
+    // `docs/investments/TTL_MANIFEST.md`.
+    expiresAt: expiresInDays(RETENTION_DAYS.cashPeriodEvents),
+  });
+  return {applied: true, periods};
 };

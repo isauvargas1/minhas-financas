@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { useRecurringExpenses, useCreateRecurringExpense, useUpdateRecurringExpense } from '../modules/recurring-expenses/hooks.ts';
+import { useRecurringExpenses, useActiveRecurringExpenses, useCreateRecurringExpense, useUpdateRecurringExpense } from '../modules/recurring-expenses/hooks.ts';
 import { RecurringExpense } from '../modules/recurring-expenses/types.ts';
 import { RepeatIcon, PlusIcon, SearchIcon, FilterIcon, LayoutGridIcon, ListIcon, CreditCardIcon, DynamicIcon, FileInvoiceIcon } from './Icons.tsx';
 import { useTheme } from '../contexts/ThemeContext.tsx';
@@ -34,7 +34,19 @@ const itemVariants = {
 };
 
 const RecurringExpensesView: React.FC<RecurringExpensesViewProps> = ({ onSelectExpense, creditCards, categories, onAddTransaction }) => {
-    const { data: expenses, isLoading } = useRecurringExpenses();
+    const {
+        data: expenses,
+        isLoading,
+        hasNextPage,
+        fetchNextPage,
+        isFetchingNextPage,
+    } = useRecurringExpenses();
+    /*
+     * O resumo sai da consulta de ativas, não da página carregada: somar a
+     * lista paginada daria um total silenciosamente parcial.
+     */
+    const { data: activeExpenses, isTruncated: isSummaryTruncated } =
+        useActiveRecurringExpenses();
     const createExpenseMutation = useCreateRecurringExpense();
     const updateExpenseMutation = useUpdateRecurringExpense();
     const { playSound } = useTheme();
@@ -57,13 +69,13 @@ const RecurringExpensesView: React.FC<RecurringExpensesViewProps> = ({ onSelectE
 
     // Calculate Summary
     const summary = useMemo(() => {
-        if (!expenses) return { totalMonthly: 0, activeCount: 0, byMethod: {} };
+        if (!activeExpenses) return { totalMonthly: 0, activeCount: 0, byMethod: {} };
 
         let totalMonthly = 0;
         let activeCount = 0;
         const byMethod: Record<string, number> = {};
 
-        expenses.forEach(curr => {
+        activeExpenses.forEach(curr => {
             if (curr.status !== 'ativo') return;
             
             activeCount++;
@@ -85,7 +97,7 @@ const RecurringExpensesView: React.FC<RecurringExpensesViewProps> = ({ onSelectE
         });
 
         return { totalMonthly, activeCount, byMethod };
-    }, [expenses]);
+    }, [activeExpenses]);
 
     // Filter Logic
     const filteredExpenses = useMemo(() => {
@@ -322,6 +334,26 @@ const RecurringExpensesView: React.FC<RecurringExpensesViewProps> = ({ onSelectE
                         <p className="text-muted">Nenhuma assinatura encontrada com os filtros atuais.</p>
                         <button className="mt-2 text-primary font-medium hover:underline" onClick={() => { setFilterStatus('todos'); setFilterType('todos'); setSearchQuery(''); }}>
                             Limpar filtros
+                        </button>
+                    </div>
+                )}
+
+                {isSummaryTruncated && (
+                    <p role="alert" className="mt-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-900">
+                        O resumo atingiu o limite seguro de leitura e não cobre todas as
+                        assinaturas ativas deste workspace.
+                    </p>
+                )}
+
+                {hasNextPage && (
+                    <div className="mt-6 flex justify-center">
+                        <button
+                            type="button"
+                            onClick={() => fetchNextPage()}
+                            disabled={isFetchingNextPage}
+                            className="rounded-xl border border-border px-5 py-2.5 text-sm font-bold text-on-surface disabled:opacity-60"
+                        >
+                            {isFetchingNextPage ? 'Carregando…' : 'Carregar mais assinaturas'}
                         </button>
                     </div>
                 )}

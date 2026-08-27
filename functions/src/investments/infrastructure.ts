@@ -35,16 +35,9 @@ export type InvestmentBackendOperation =
   | "recalculateGoalInvestmentProgress"
   | "rebuildInvestmentProjections"
   | "backfillInvestmentWorkspace"
-  | "migrateLegacyInvestments"
-  | "rollbackLegacyInvestmentMigration"
-  | "enableInvestmentsV2Flag"
   | "registerInvestmentImportBatch"
   | "archiveInvestmentAccount"
-  | "archiveInvestmentAsset"
-  // Trilha legada do M2, mantida separada e documentada por estado da flag.
-  | "saveInvestmentRedemption"
-  | "cancelInvestmentRedemption"
-  | "reverseInvestmentRedemption";
+  | "archiveInvestmentAsset";
 
 export interface InvestmentIdempotencyReservation {
   ref: admin.firestore.DocumentReference;

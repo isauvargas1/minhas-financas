@@ -32,7 +32,6 @@ test.beforeEach(async () => {
     // INV-P2-025 — o cadastro patrimonial só existe com o domínio ligado.
     db.doc(`workspaces/${WORKSPACE}`).set({
       ownerId: UID, name: 'Patrimônio PF', type: 'PF',
-      features: {investmentsV2: {enabled: true}},
       createdAt: now, updatedAt: now,
     }),
     db.doc(`workspaces/${WORKSPACE}/members/${UID}`).set({uid: UID, role: 'owner', status: 'active'}),
@@ -141,15 +140,15 @@ test('Cadastros gerencia conta e ativo de investimento sem tocar carteiras de ca
   await expect(registry.getByText('Tesouro Cadastros E2E')).toBeVisible();
 });
 
-// INV-P2-025 — com o domínio patrimonial desligado, o cadastro patrimonial não
-// aparece: ele oferecia cadastro para um domínio que nada no produto lê.
-test('cadastro patrimonial não aparece com o domínio patrimonial desligado', async ({page}) => {
-  const db = sdk().firestore();
-  await db.doc(`workspaces/${WORKSPACE}`).set(
-    {features: {investmentsV2: {enabled: false}}},
-    {merge: true},
-  );
-
+/*
+ * O cadastro patrimonial não depende de preparo nenhum.
+ *
+ * Antes ele só aparecia com a flag ligada, e um workspace novo precisava passar
+ * por Configurações → Operações para habilitar o domínio. Agora Cadastros
+ * mostra o catálogo do produto e o cadastro patrimonial lado a lado, num
+ * workspace sem campo `features`.
+ */
+test('cadastro patrimonial aparece em workspace novo, sem preparo', async ({page}) => {
   await page.goto(`/?e2eEmail=${encodeURIComponent(EMAIL)}&e2ePassword=${PASSWORD}`);
   await page.getByTestId('e2e-login-button').click();
   await expect(page.getByText('Saldo Atual')).toBeVisible({timeout: 30_000});
@@ -157,8 +156,8 @@ test('cadastro patrimonial não aparece com o domínio patrimonial desligado', a
   await page.getByText('Configurações', {exact: true}).first().click();
   await page.getByRole('heading', {name: 'Cadastros', exact: true}).click();
 
-  // O legado continua inteiro.
+  // O catálogo do produto e o cadastro patrimonial convivem.
   await expect(page.getByText('Produtos e Serviços')).toBeVisible();
-  await expect(page.getByRole('heading', {name: 'Cadastros patrimoniais'})).toHaveCount(0);
-  await expect(page.getByRole('button', {name: 'Preparar padrões de investimentos'})).toHaveCount(0);
+  await expect(page.getByRole('heading', {name: 'Cadastros patrimoniais'})).toBeVisible();
+  await expect(page.getByRole('button', {name: 'Preparar padrões de investimentos'})).toBeVisible();
 });

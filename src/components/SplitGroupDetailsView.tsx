@@ -27,9 +27,17 @@ const SplitGroupDetailsView: React.FC<SplitGroupDetailsViewProps> = ({
     const isPJ = activeWorkspace.type === 'PJ';
 
     const { data: group, isLoading: isGroupLoading } = useSplitGroup(groupId);
-    const { data: bills, isLoading: isBillsLoading } = useSplitBills(groupId);
+    const {
+        data: bills,
+        isLoading: isBillsLoading,
+        isTruncated: areBillsTruncated,
+    } = useSplitBills(groupId);
     const { data: participants } = useSplitParticipants(groupId);
-    const { data: shares, isLoading: isSharesLoading } = useSplitGroupShares(groupId);
+    const {
+        data: shares,
+        isLoading: isSharesLoading,
+        isTruncated: areSharesTruncated,
+    } = useSplitGroupShares(groupId);
     
     const createBillMutation = useCreateSplitBill();
     const updateBillMutation = useUpdateSplitBill();
@@ -365,6 +373,18 @@ const SplitGroupDetailsView: React.FC<SplitGroupDetailsViewProps> = ({
                         initial="hidden"
                         animate="show"
                     >
+                        {/*
+                          O teto de leitura é declarado, nunca silencioso: os
+                          totais deste grupo saem desta lista, e um número
+                          financeiro parcial exibido como completo é pior que
+                          um aviso.
+                        */}
+                        {(areBillsTruncated || areSharesTruncated) && (
+                            <p role="alert" className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">
+                                Este grupo atingiu o limite seguro de leitura. Os totais exibidos
+                                não cobrem todos os lançamentos.
+                            </p>
+                        )}
                         {bills && bills.length > 0 ? (
                             bills.map((bill) => {
                                 const payer = participants.find(p => p.id === bill.pagadorPrincipalId);

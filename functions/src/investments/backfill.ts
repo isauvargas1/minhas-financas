@@ -1,5 +1,5 @@
 import * as admin from "firebase-admin";
-import {FieldValue, Timestamp} from "firebase-admin/firestore";
+import {FieldPath, FieldValue, Timestamp} from "firebase-admin/firestore";
 
 import type {WorkspaceAuthorizationContext} from "../creditCards/auth";
 import {CreditCardApplicationError} from "../creditCards/errors";
@@ -27,11 +27,10 @@ import {
 /**
  * Backfill operacional por workspace (M3.E).
  *
- * Os riscos residuais do M5 e do M7 exigem reconstruir as projeções antes de
- * habilitar `features.investmentsV2.enabled`, mas só existiam callables por
- * entidade: nenhuma rotina percorria o workspace. Este orquestrador fecha essa
- * lacuna reutilizando as máquinas de rebuild já existentes — não é um segundo
- * motor de reconstrução.
+ * Reconstruir as projeções de um workspace inteiro exigia chamar uma callable
+ * por entidade: nenhuma rotina percorria o workspace. Este orquestrador fecha
+ * essa lacuna reutilizando as máquinas de rebuild já existentes — não é um
+ * segundo motor de reconstrução.
  *
  * Ordem obrigatória: posições a partir do ledger, depois metas a partir das
  * posições, depois as projeções acumuladas. Inverter a ordem publicaria um
@@ -88,7 +87,17 @@ const readState = (
   };
 };
 
-/** Executa todas as páginas internas de um rebuild até concluir. */
+/**
+ * Executa todas as páginas internas de um rebuild até concluir.
+ *
+ * O critério é `hasMore === false`, e não `completed`: o recálculo de posição
+ * e o de progresso de meta devolvem `hasMore`/`status`, nunca `completed` —
+ * quem devolve `completed` é o rebuild de projeções. Com o
+ * critério errado a primeira página concluía o alvo e marcava o snapshot como
+ * `completed`, e a segunda volta do laço batia em "Esta reconstrução já foi
+ * concluída". O defeito só era alcançável num workspace que tivesse posição ou
+ * meta a reconstruir, e nenhuma suíte exercitava esse caso.
+ */
 const runToCompletion = async (
   run: (idempotencyKey: string) => Promise<Record<string, unknown>>,
   baseKey: string,
@@ -97,7 +106,7 @@ const runToCompletion = async (
 ): Promise<void> => {
   for (let page = 0; page < MAX_PAGES_PER_TARGET; page += 1) {
     const result = await run(derivedKey(baseKey, kind, targetId, page));
-    if (result.completed === true) return;
+    if (result.hasMore === false || result.completed === true) return;
   }
   throw new CreditCardApplicationError(
     "domain_precondition_failed",
@@ -152,7 +161,18 @@ export const executeBackfillInvestmentWorkspace = async (
   // transação curta sobre o próprio snapshot, com prazo de expiração para não
   // travar o backfill se um processo morrer no meio.
   const leaseMs = 10 * 60 * 1000;
-  const leaseToken = `${auth.uid}:${payload.correlationId}:${payload.idempotencyKey}`;
+  /*
+   * O lease identifica a **execução**, não a página.
+   *
+   * Com `idempotencyKey` no token, cada página levava um token diferente e a
+   * própria execução era recusada a partir da segunda página
+   * ("já existe uma execução de backfill em andamento") — e a chave *precisa*
+   * variar por página, senão a reserva de idempotência devolve a página 1 como
+   * replay para sempre. As duas exigências só coexistem se o lease se ancorar
+   * no `correlationId`, que é estável dentro de uma execução e novo entre
+   * execuções, que é exatamente o que o lease quer distinguir.
+   */
+  const leaseToken = `${auth.uid}:${payload.correlationId}`;
   await investmentFirestore().runTransaction(async (transaction) => {
     // INV-P3-052 — o papel é revalidado **dentro** da transação, como nas
     // demais operações do domínio. O wrapper da callable já autorizou, mas o
@@ -277,7 +297,7 @@ const backfillPositionsPage = async (
     auth.workspaceId,
     INVESTMENT_COLLECTIONS.positions,
   )
-    .orderBy(admin.firestore.FieldPath.documentId(), "asc")
+    .orderBy(FieldPath.documentId(), "asc")
     .limit(payload.pageSize + 1);
   if (state.cursor) query = query.startAfter(state.cursor);
   const page = await query.get();

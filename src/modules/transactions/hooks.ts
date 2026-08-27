@@ -5,7 +5,6 @@ import {
   deleteTransaction,
   getFullTransactionHistory,
   getTransactions,
-  listInvestmentTransactions,
   updateTransaction,
   type TransactionPage
 } from "./api";
@@ -36,12 +35,18 @@ const invalidateTransactionDependents = async (
  * que o produto consulta sem pedido explícito do usuário.
  */
 export const useTransactions = (workspaceId: string) => {
-  return useQuery({
+  const queryResult = useQuery({
     queryKey: transactionKey(workspaceId),
     queryFn: () => getTransactions(workspaceId),
     enabled: isWorkspaceReady(workspaceId),
     staleTime: 1000 * 60 * 5
   });
+  return {
+    ...queryResult,
+    data: queryResult.data?.items,
+    /** A janela bateu no teto de páginas: os agregados não cobrem tudo. */
+    isTruncated: queryResult.data?.truncated === true,
+  };
 };
 
 /**
@@ -69,17 +74,6 @@ export const useFullTransactionHistory = (
  * Consulta específica por propósito, carregada só quando o formulário
  * correspondente está aberto.
  */
-export const useInvestmentTransactions = (
-  workspaceId: string,
-  enabled: boolean,
-) =>
-  useQuery({
-    queryKey: ["investment-transactions", workspaceId],
-    queryFn: () => listInvestmentTransactions(workspaceId),
-    enabled: enabled && isWorkspaceReady(workspaceId),
-    staleTime: 1000 * 60 * 2
-  });
-
 export const useCreateTransaction = (workspaceId: string) => {
   const queryClient = useQueryClient();
 

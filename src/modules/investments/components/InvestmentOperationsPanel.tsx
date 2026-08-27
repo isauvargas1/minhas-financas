@@ -1,37 +1,40 @@
 import React, { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { collection, doc, getDoc, getDocs, limit, query, where } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 
 import { auth, db } from '../../../lib/firebase';
 
 import { useFinancialIntent } from '../hooks/useIntentNonce';
 import {
   backfillInvestmentWorkspace,
-  enableInvestmentsV2Flag,
-  migrateLegacyInvestments,
+  noMorePages,
+  pagedRunIds,
   rebuildCashPeriods,
   rebuildInvestmentProjections,
-  reconcileLegacyMigration,
-  rollbackLegacyInvestmentMigration,
+  recalculateGoalInvestmentProgress,
   runPaged,
   type OperationResult,
 } from '../persistence/operationsApi';
+import { listGoals } from '../../goals/api';
 import { Dialog, money, safeError } from './shared';
 
 /**
  * Área operacional do domínio patrimonial (INV-P1-006).
  *
- * Antes desta tela, migração, reconciliação, rollback, habilitação da flag,
- * reconstrução de projeções e backfill **só eram invocáveis por teste de
+ * Antes desta tela, reconstrução de projeções e backfill **só eram invocáveis por teste de
  * integração**. Não havia procedimento executável para colocar um workspace
  * legado em produção, nem para reverter — e o relatório chegava a pedir uma
  * reconstrução que nenhum controle disparava.
  *
  * Decisões de desenho, todas ditadas por serem operações de efeito amplo:
  *
- * - **owner apenas**. O backend já restringe pela matriz de papéis; a tela não
- *   é oferecida a quem não pode executá-la, para não expor um caminho que
- *   termina em recusa;
+ * - **papel por ação, igual ao backend**. Migração, reversão e habilitação da
+ *   flag trocam a fonte oficial de patrimônio do workspace e seguem restritas
+ *   ao proprietário. As reconstruções de progresso de meta são corretivas e o
+ *   backend as aceita para `owner` e `admin`; a tela passa a oferecê-las aos
+ *   mesmos papéis, em vez de ser mais restritiva que a regra e deixar o
+ *   administrador sem caminho executável. Quem não pode executar ação nenhuma
+ *   não vê a área, para não expor um caminho que termina em recusa;
  * - **impacto antes da confirmação**. Cada ação declara o que faz, o que
  *   preserva e o que não é reversível, no diálogo de confirmação;
  * - **motivo obrigatório**. Vai para a trilha de auditoria do backend junto
@@ -42,10 +45,18 @@ import { Dialog, money, safeError } from './shared';
  *   INV-P1-004 — repetir um clique é replay, não uma segunda execução.
  */
 
+type OperatorRole = 'owner' | 'admin';
+
 interface Props {
   workspaceId: string;
-  isOwner: boolean;
-  investmentsV2Enabled: boolean;
+  /**
+   * Papel do espelho de leitura (`users/{uid}/workspaces/{id}.role`).
+   *
+   * É a checagem barata, usada só para não disparar a consulta autoritativa
+   * quando o papel espelhado já exclui a operação. Quem decide é
+   * `useAuthoritativeRole`.
+   */
+  myRole?: string;
 }
 
 /**
@@ -58,52 +69,33 @@ interface Props {
  * verificação evita é oferecer na tela um caminho que termina em recusa —
  * e sugerir a quem não pode operar que poderia.
  */
-const useAuthoritativeOwnership = (workspaceId: string) =>
+const useAuthoritativeRole = (workspaceId: string) =>
   useQuery({
     queryKey: ['workspace-authoritative-role', workspaceId],
     enabled: workspaceId.length > 0,
-    queryFn: async () => {
+    queryFn: async (): Promise<OperatorRole | null> => {
       const uid = auth.currentUser?.uid;
-      if (!uid) return false;
+      if (!uid) return null;
       const [membership, workspace] = await Promise.all([
         getDoc(doc(db, 'workspaces', workspaceId, 'members', uid)),
         getDoc(doc(db, 'workspaces', workspaceId)),
       ]);
-      if (workspace.data()?.ownerId === uid) return true;
-      return membership.data()?.role === 'owner';
-    },
-  });
-
-/**
- * Existe histórico legado de investimento neste workspace?
- *
- * Consulta com `limit(1)`: a resposta é booleana, e ler a coleção inteira só
- * para saber se ela tem ao menos uma linha é exatamente o padrão de custo que
- * o domínio combate.
- */
-const useHasLegacyInvestments = (workspaceId: string, enabled: boolean) =>
-  useQuery({
-    queryKey: ['legacy-investments-presence', workspaceId],
-    enabled,
-    queryFn: async () => {
-      const snapshot = await getDocs(query(
-        collection(db, 'workspaces', workspaceId, 'transactions'),
-        where('type', '==', 'investimento'),
-        limit(1),
-      ));
-      return !snapshot.empty;
+      if (workspace.data()?.ownerId === uid) return 'owner';
+      const role = membership.data()?.role;
+      if (role === 'owner') return 'owner';
+      if (role === 'admin') return 'admin';
+      return null;
     },
   });
 
 type Action =
-  | 'migration-dry-run'
-  | 'migration-apply'
-  | 'reconcile'
-  | 'enable-flag'
-  | 'rollback'
   | 'rebuild'
   | 'backfill'
-  | 'rebuild-cash';
+  | 'rebuild-cash'
+  | 'goal-rebuild-investments';
+
+const OWNER_ONLY: OperatorRole[] = ['owner'];
+const OWNER_OR_ADMIN: OperatorRole[] = ['owner', 'admin'];
 
 interface ActionSpec {
   id: Action;
@@ -111,72 +103,23 @@ interface ActionSpec {
   summary: string;
   impact: string[];
   danger?: boolean;
-  needsMigrationId?: boolean;
+  /** Exige escolher a meta alvo antes de confirmar. */
+  needsGoal?: boolean;
+  /**
+   * Papéis que podem executar — o mesmo conjunto que o backend aceita.
+   *
+   * A reconstrução de projeções e o backfill percorrem o workspace inteiro e
+   * ficam restritos ao proprietário. A reconstrução de progresso de meta é
+   * corretiva, não muda fonte de verdade e é aceita pelo backend para
+   * `owner` e `admin`
+   * (`INVESTMENT_BACKEND_WRITE_PLANS.recalculateGoalInvestmentProgress`) — a
+   * tela passa a refletir isso em vez de ser mais restritiva que a regra.
+   */
+  roles: OperatorRole[];
   confirmLabel: string;
 }
 
 const ACTIONS: ActionSpec[] = [
-  {
-    id: 'migration-dry-run',
-    title: 'Simular migração do histórico legado',
-    summary:
-      'Varre as transações de investimento e calcula o que seria migrado, sem gravar nada no domínio patrimonial.',
-    impact: [
-      'Nenhum movimento, posição ou projeção é criado.',
-      'A flag de investimentos não é alterada.',
-      'O lote de simulação é separado do lote de aplicação: simular não bloqueia migrar.',
-    ],
-    confirmLabel: 'Simular migração',
-  },
-  {
-    id: 'migration-apply',
-    title: 'Aplicar migração do histórico legado',
-    summary:
-      'Cria os movimentos do domínio patrimonial a partir das transações legadas de investimento, em ordem cronológica.',
-    impact: [
-      'Cria movimentos, posições, série mensal e cortes de alocação.',
-      'Não cria espelho de caixa: as transações legadas continuam sendo o registro de caixa.',
-      'Nenhuma transação legada é alterada ou apagada.',
-      'É retomável e idempotente: repetir não duplica.',
-    ],
-    confirmLabel: 'Aplicar migração',
-  },
-  {
-    id: 'reconcile',
-    title: 'Conferir reconciliação',
-    summary:
-      'Compara o principal e o resultado realizado do histórico legado com os do domínio patrimonial, em centavos.',
-    impact: ['Somente leitura. Nada é gravado.'],
-    confirmLabel: 'Conferir agora',
-  },
-  {
-    id: 'enable-flag',
-    title: 'Habilitar o domínio patrimonial (flag V2)',
-    summary:
-      'Passa a fonte oficial de patrimônio, relatórios e alocação para o domínio patrimonial.',
-    impact: [
-      'Exige migração aplicada e concluída quando houver histórico legado.',
-      'Exige reconciliação fechada em centavos.',
-      'Fecha a trilha legada: novas transações de investimento passam a ser recusadas.',
-      'Reversível pelo rollback, que também desliga a flag.',
-    ],
-    confirmLabel: 'Habilitar domínio patrimonial',
-  },
-  {
-    id: 'rollback',
-    title: 'Reverter a migração aplicada',
-    summary:
-      'Emite um movimento compensatório para cada movimento criado pela migração e desliga a flag.',
-    impact: [
-      'Nada é apagado: cada movimento migrado ganha um estorno vinculado.',
-      'Posições, patrimônio, série mensal e progresso de metas voltam ao estado anterior à migração.',
-      'A flag é desligada e o produto volta a ler o histórico legado.',
-      'Libera uma nova tentativa: é possível migrar de novo depois.',
-    ],
-    danger: true,
-    needsMigrationId: true,
-    confirmLabel: 'Reverter migração',
-  },
   {
     id: 'rebuild',
     title: 'Reconstruir projeções',
@@ -188,6 +131,7 @@ const ACTIONS: ActionSpec[] = [
       'Poda períodos e faixas de alocação sem lastro no histórico.',
       'Nenhum movimento ou valoração é alterado.',
     ],
+    roles: OWNER_ONLY,
     confirmLabel: 'Reconstruir projeções',
   },
   {
@@ -201,6 +145,7 @@ const ACTIONS: ActionSpec[] = [
       'Nenhuma transação é alterada.',
       'É o backfill para históricos anteriores à projeção.',
     ],
+    roles: OWNER_ONLY,
     confirmLabel: 'Reconstruir fluxo de caixa',
   },
   {
@@ -212,15 +157,27 @@ const ACTIONS: ActionSpec[] = [
       'Recalcula posição por posição e meta por meta, sem alterar fatos.',
       'É retomável por página e idempotente.',
     ],
+    roles: OWNER_ONLY,
     confirmLabel: 'Recalcular',
+  },
+  {
+    id: 'goal-rebuild-investments',
+    title: 'Recalcular o progresso patrimonial de uma meta',
+    summary:
+      'Recalcula o valor investido e o valor de mercado que a meta acumula, a partir das posições vinculadas a ela.',
+    impact: [
+      'Publica valor absoluto das posições vinculadas, calculado do zero.',
+      'Corrige deriva entre o progresso publicado na meta e as posições do domínio patrimonial.',
+      'Nenhum movimento, valoração ou posição é alterado.',
+      'É retomável por página e idempotente.',
+    ],
+    needsGoal: true,
+    roles: OWNER_OR_ADMIN,
+    confirmLabel: 'Recalcular progresso patrimonial',
   },
 ];
 
 const RESULT_LABELS: Record<string, string> = {
-  scanned: 'Linhas varridas',
-  migrated: 'Movimentos criados',
-  alreadyMigrated: 'Já migrados',
-  reversedCount: 'Compensações emitidas',
   processedPositions: 'Posições processadas',
   processedMovements: 'Movimentos processados',
   processedValuations: 'Valorações processadas',
@@ -228,48 +185,62 @@ const RESULT_LABELS: Record<string, string> = {
   prunedCount: 'Faixas de alocação podadas',
   prunedPeriodCount: 'Períodos podados',
   restartCount: 'Reinícios por escrita concorrente',
-  attempt: 'Tentativa de migração',
   processedCount: 'Registros processados',
-  processed: 'Transações processadas',
   periods: 'Meses reconstruídos',
+  goalId: 'Meta',
+  pageProcessedCount: 'Posições nesta página',
 };
 
+/**
+ * Chaves cujo valor vem em centavos e precisa de formatação monetária.
+ *
+ * São as grandezas que o recálculo de progresso patrimonial de meta publica.
+ */
 const CENTS_KEYS = new Set([
-  'legacyPrincipalCents',
-  'domainPrincipalCents',
-  'legacyRealizedGainCents',
-  'domainRealizedGainCents',
+  'netContributionCents',
+  'currentValueCents',
 ]);
 
 const CENTS_LABELS: Record<string, string> = {
-  legacyPrincipalCents: 'Principal no histórico legado',
-  domainPrincipalCents: 'Principal no domínio patrimonial',
-  legacyRealizedGainCents: 'Resultado realizado no legado',
-  domainRealizedGainCents: 'Resultado realizado no domínio',
+  netContributionCents: 'Valor investido na meta',
+  currentValueCents: 'Valor de mercado na meta',
 };
 
 export const InvestmentOperationsPanel: React.FC<Props> = ({
-  workspaceId, isOwner, investmentsV2Enabled,
+  workspaceId, myRole,
 }) => {
   const client = useQueryClient();
-  const ownership = useAuthoritativeOwnership(workspaceId);
-  // `isOwner` (do contexto) é a checagem barata; a de membership é a que vale.
-  const canOperate = isOwner && ownership.data === true;
-  const legacyPresence = useHasLegacyInvestments(workspaceId, canOperate);
-  const hasLegacyInvestments = legacyPresence.data === true;
+  // O espelho é a checagem barata; a de membership é a que vale.
+  const mirrorAllows = myRole === 'owner' || myRole === 'admin';
+  const authoritative = useAuthoritativeRole(workspaceId);
+  const role = mirrorAllows ? authoritative.data ?? null : null;
+  const canOperate = role !== null;
   const [pending, setPending] = useState<ActionSpec | null>(null);
   const [reason, setReason] = useState('');
-  const [migrationId, setMigrationId] = useState('');
+  const [goalId, setGoalId] = useState('');
   const [progress, setProgress] = useState('');
   const [notice, setNotice] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null);
   const [result, setResult] = useState<OperationResult | null>(null);
 
   const intent = useFinancialIntent(pending ? `ops:${pending.id}` : null);
 
+  /*
+   * Metas do workspace, carregadas só quando há uma ação de meta para operar.
+   *
+   * `listGoals` já é a consulta do produto: filtro de arquivadas no servidor,
+   * ordem determinística e `limit` — não é uma leitura nova nem uma varredura.
+   */
+  const needsGoalPicker = pending?.needsGoal === true;
+  const goals = useQuery({
+    queryKey: ['goals', workspaceId],
+    enabled: canOperate && needsGoalPicker,
+    queryFn: () => listGoals(workspaceId),
+  });
+
   const closeDialog = () => {
     setPending(null);
     setReason('');
-    setMigrationId('');
+    setGoalId('');
     setProgress('');
   };
 
@@ -283,46 +254,54 @@ export const InvestmentOperationsPanel: React.FC<Props> = ({
         );
       };
 
+      /*
+       * Identidade da execução paginada (ver `pagedRunIds`).
+       *
+       * `ids(index)` dá correlação estável na execução inteira e chave nova
+       * por página. `carryBatchId` guarda o identificador do lote que a
+       * primeira página devolve e o reenvia nas seguintes: sem ele, o backend
+       * derivaria um lote novo a cada página e nenhuma execução com mais de
+       * uma página chegaria ao fim.
+       */
+      const ids = pagedRunIds(action.id, nonce);
+      let batchId: string | undefined;
+      const carryBatchId = (field: string) => (page: OperationResult) => {
+        const value = page[field];
+        if (typeof value === 'string' && value.length > 0) batchId = value;
+        return page;
+      };
+
       switch (action.id) {
-        case 'migration-dry-run':
-          return runPaged(
-            () => migrateLegacyInvestments({
-              workspaceId, nonce, dryRun: true, reason: trimmedReason,
-            }),
-            onProgress,
-          );
-        case 'migration-apply':
-          return runPaged(
-            () => migrateLegacyInvestments({
-              workspaceId, nonce, dryRun: false, reason: trimmedReason,
-            }),
-            onProgress,
-          );
-        case 'reconcile':
-          return reconcileLegacyMigration(workspaceId, nonce);
-        case 'enable-flag':
-          return enableInvestmentsV2Flag(workspaceId, nonce, trimmedReason);
-        case 'rollback':
-          return runPaged(
-            () => rollbackLegacyInvestmentMigration(
-              workspaceId, nonce, migrationId.trim(), trimmedReason,
-            ),
-            onProgress,
-          );
         case 'rebuild':
           return runPaged(
-            () => rebuildInvestmentProjections(workspaceId, nonce, trimmedReason),
+            (index) => rebuildInvestmentProjections(
+              workspaceId, nonce, trimmedReason, 50, batchId, ids(index),
+            ).then(carryBatchId('rebuildId')),
             onProgress,
           );
         case 'backfill':
           return runPaged(
-            () => backfillInvestmentWorkspace(workspaceId, nonce, trimmedReason),
+            (index) => backfillInvestmentWorkspace(
+              workspaceId, nonce, trimmedReason, 20, batchId, ids(index),
+            ).then(carryBatchId('backfillId')),
             onProgress,
           );
         case 'rebuild-cash':
+          // Sem lote próprio: o checkpoint é um documento fixo por workspace,
+          // e a rotina não reserva idempotência.
           return runPaged(
-            () => rebuildCashPeriods(workspaceId, nonce, trimmedReason),
+            (index) => rebuildCashPeriods(workspaceId, `${nonce}:p${index}`, trimmedReason),
             onProgress,
+          );
+        case 'goal-rebuild-investments':
+          // Devolve `hasMore`, não `completed` — o critério é explícito.
+          return runPaged(
+            (index) => recalculateGoalInvestmentProgress(
+              workspaceId, nonce, goalId.trim(), trimmedReason, 50, batchId, ids(index),
+            ).then(carryBatchId('rebuildId')),
+            onProgress,
+            500,
+            noMorePages,
           );
         default:
           throw new Error('Operação desconhecida.');
@@ -336,6 +315,7 @@ export const InvestmentOperationsPanel: React.FC<Props> = ({
         client.invalidateQueries({ queryKey: ['investment-summary', workspaceId] }),
         client.invalidateQueries({ queryKey: ['investment-positions', workspaceId] }),
         client.invalidateQueries({ queryKey: ['investment-movements', workspaceId] }),
+        client.invalidateQueries({ queryKey: ['goals', workspaceId] }),
         client.invalidateQueries({ queryKey: ['workspaces'] }),
       ]);
     },
@@ -348,9 +328,12 @@ export const InvestmentOperationsPanel: React.FC<Props> = ({
 
   if (!canOperate) return null;
 
+  const visibleActions = ACTIONS.filter((action) => action.roles.includes(role));
+  if (visibleActions.length === 0) return null;
+
   const reasonValid = reason.trim().length >= 3;
-  const migrationIdValid = !pending?.needsMigrationId || migrationId.trim().length > 0;
-  const canConfirm = reasonValid && migrationIdValid && !mutation.isPending;
+  const goalValid = !pending?.needsGoal || goalId.trim().length > 0;
+  const canConfirm = reasonValid && goalValid && !mutation.isPending;
 
   return (
     <section
@@ -362,17 +345,9 @@ export const InvestmentOperationsPanel: React.FC<Props> = ({
           Operação do domínio patrimonial
         </h2>
         <p className="mt-1 text-sm text-muted">
-          Ações administrativas de efeito amplo, restritas ao proprietário do workspace.
-          Cada uma exige confirmação e registra o motivo na trilha de auditoria.
-        </p>
-        <p className="mt-2 text-sm">
-          <strong>Estado atual:</strong>{' '}
-          {investmentsV2Enabled
-            ? 'domínio patrimonial habilitado (flag V2 ligada).'
-            : 'domínio patrimonial desligado — o produto lê o histórico legado.'}
-          {hasLegacyInvestments
-            ? ' Há histórico legado de investimentos neste workspace.'
-            : ' Nenhum histórico legado de investimentos encontrado.'}
+          {role === 'owner'
+            ? 'Ações administrativas de efeito amplo, restritas ao proprietário do workspace. Cada uma exige confirmação e registra o motivo na trilha de auditoria.'
+            : 'Ações corretivas disponíveis para administradores. Cada uma exige confirmação e registra o motivo na trilha de auditoria. A reconstrução de projeções e o backfill são restritos ao proprietário.'}
         </p>
       </div>
 
@@ -390,7 +365,7 @@ export const InvestmentOperationsPanel: React.FC<Props> = ({
       )}
 
       <ul className="grid gap-3 md:grid-cols-2">
-        {ACTIONS.map((action) => (
+        {visibleActions.map((action) => (
           <li
             key={action.id}
             className="flex flex-col justify-between gap-3 rounded-xl border border-border p-4"
@@ -420,40 +395,21 @@ export const InvestmentOperationsPanel: React.FC<Props> = ({
           <h3 className="font-semibold text-on-surface">Resultado da última operação</h3>
           <dl className="mt-3 grid gap-2 sm:grid-cols-2">
             {Object.entries(result).flatMap(([key, value]) => {
-              if (key === 'reconciliation' && value && typeof value === 'object') {
-                return Object.entries(value as Record<string, unknown>).map(
-                  ([innerKey, innerValue]) => (
-                    <div key={`rec-${innerKey}`} className="text-sm">
-                      <dt className="text-muted">
-                        {CENTS_LABELS[innerKey] ?? RESULT_LABELS[innerKey] ?? innerKey}
-                      </dt>
-                      <dd className="font-semibold">
-                        {CENTS_KEYS.has(innerKey)
-                          ? money(Number(innerValue))
-                          : String(innerValue)}
-                      </dd>
-                    </div>
-                  ),
-                );
-              }
               if (typeof value !== 'number' && typeof value !== 'string' && typeof value !== 'boolean') {
                 return [];
               }
-              const label = RESULT_LABELS[key];
+              const label = CENTS_LABELS[key] ?? RESULT_LABELS[key];
               if (!label) return [];
               return [(
                 <div key={key} className="text-sm">
                   <dt className="text-muted">{label}</dt>
-                  <dd className="font-semibold">{String(value)}</dd>
+                  <dd className="font-semibold">
+                    {CENTS_KEYS.has(key) ? money(Number(value)) : String(value)}
+                  </dd>
                 </div>
               )];
             })}
           </dl>
-          {typeof result.migrationId === 'string' && (
-            <p className="mt-3 text-xs text-muted">
-              Identificador do lote: <code>{result.migrationId}</code>
-            </p>
-          )}
         </div>
       )}
 
@@ -475,17 +431,28 @@ export const InvestmentOperationsPanel: React.FC<Props> = ({
               </ul>
             </div>
 
-            {pending.needsMigrationId && (
+            {pending.needsGoal && (
               <label className="grid gap-1 text-sm font-medium">
-                Identificador do lote de migração
-                <input
-                  value={migrationId}
-                  onChange={(event) => setMigrationId(event.target.value)}
+                Meta
+                <select
+                  value={goalId}
+                  onChange={(event) => setGoalId(event.target.value)}
                   required
                   className="rounded-lg border border-border bg-surface px-3 py-2"
-                />
+                >
+                  <option value="">
+                    {goals.isLoading ? 'Carregando metas…' : 'Selecione a meta'}
+                  </option>
+                  {(goals.data ?? []).map((goal) => (
+                    <option key={goal.id} value={goal.id}>{goal.name}</option>
+                  ))}
+                </select>
                 <span className="text-xs font-normal text-muted">
-                  Aparece no resultado da migração aplicada e no conferidor de reconciliação.
+                  {goals.isError
+                    ? 'Não foi possível carregar as metas. Feche e tente novamente.'
+                    : (goals.data ?? []).length === 0 && !goals.isLoading
+                      ? 'Nenhuma meta ativa neste workspace.'
+                      : 'A operação recalcula somente a meta escolhida.'}
                 </span>
               </label>
             )}

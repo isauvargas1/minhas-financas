@@ -18,7 +18,12 @@ interface PJLoanDetailsViewProps {
 
 const PJLoanDetailsView: React.FC<PJLoanDetailsViewProps> = ({ loanId, onBack, onAddTransaction }) => {
     const { data: loan, isLoading } = useLoan(loanId);
-    const { data: movements } = useLoanMovements(loanId);
+    const {
+        data: movements,
+        hasNextPage: hasMoreMovements,
+        fetchNextPage: fetchMoreMovements,
+        isFetchingNextPage: isFetchingMoreMovements,
+    } = useLoanMovements(loanId);
     const updateLoanMutation = useUpdateLoan();
     const deleteLoanMutation = useDeleteLoan();
     const createMovementMutation = useCreateMovement();
@@ -268,6 +273,17 @@ const PJLoanDetailsView: React.FC<PJLoanDetailsViewProps> = ({ loanId, onBack, o
                                             </div>
                                          </div>
                                      ))}
+
+                                     {hasMoreMovements && (
+                                         <button
+                                             type="button"
+                                             onClick={() => fetchMoreMovements()}
+                                             disabled={isFetchingMoreMovements}
+                                             className="w-full rounded-xl border border-border px-4 py-2.5 text-sm font-bold text-on-surface disabled:opacity-60"
+                                         >
+                                             {isFetchingMoreMovements ? 'Carregando…' : 'Carregar movimentações anteriores'}
+                                         </button>
+                                     )}
                                  </div>
                              ) : (
                                  <div className="flex flex-col items-center justify-center h-full text-muted opacity-40 py-20">

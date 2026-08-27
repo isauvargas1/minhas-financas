@@ -199,8 +199,6 @@ const movementBase = z
     importBatchId: investmentString(240).optional(),
     // Procedência da migração do legado: aponta para a transação de origem e
     // para o lote que a trouxe.
-    migratedFromTransactionId: investmentString(240).optional(),
-    migrationId: investmentString(240).optional(),
     correlationId: investmentString(200),
     idempotencyKeyHash: investmentString(128),
     occurredAt: materializedTimestamp,

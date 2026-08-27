@@ -18,7 +18,7 @@
     "emulators:functions": "npm run functions:build && firebase emulators:start --only functions --project minhas-financas-local",
     "emulators": "npm run functions:build && firebase emulators:start --only firestore,functions --project minhas-financas-local",
     "predeploy:check": "npm run verify:fast && npm run test:integration:emulator",
-    "predeploy:rules": "firebase emulators:exec --only auth,firestore --project minhas-financas-local \"npm run test:rules:goals && npm run test:rules:investments && npm run test:rules:investment-domain && npm run test:rules:investment-m3 && npm run test:rules:m4\"",
+    "predeploy:rules": "firebase emulators:exec --only auth,firestore --project minhas-financas-local \"npm run test:rules:goals && npm run test:rules:investments && npm run test:rules:investment-domain && npm run test:rules:investment-m3 && npm run test:rules:m4 && npm run test:rules:adjacent\"",
     "deploy:firestore": "npm run predeploy:rules && firebase deploy --only firestore:rules,firestore:indexes",
     "deploy:functions": "npm run verify:fast && firebase deploy --only functions",
     "deploy:safe": "npm run predeploy:check && firebase deploy --only firestore:rules,firestore:indexes,functions",
@@ -30,11 +30,12 @@
     "test:rules:goals": "node --test tests/firestore/goals.rules.integration.test.mjs",
     "test:rules:investments": "node --test tests/firestore/investment-redemptions.rules.integration.test.mjs",
     "test:rules:investment-domain": "node --test tests/firestore/investment-domain.rules.integration.test.mjs",
-    "test:integration:emulator": "firebase emulators:exec --only auth,firestore --project minhas-financas-local \"npm run functions:test:integration:emulator && npm run test:rules:goals && npm run test:rules:investments && npm run test:rules:investment-domain && npm run test:rules:investment-m3 && npm run test:rules:m4\"",
+    "test:integration:emulator": "firebase emulators:exec --only auth,firestore --project minhas-financas-local \"npm run functions:test:integration:emulator && npm run test:rules:goals && npm run test:rules:investments && npm run test:rules:investment-domain && npm run test:rules:investment-m3 && npm run test:rules:m4 && npm run test:rules:adjacent\"",
     "verify:fast": "npm run typecheck && npm run functions:lint && npm run build && npm run functions:build && npm run functions:test:unit && npm run test:unit:investments",
     "verify:all": "npm run verify:fast && npm run test:integration:emulator && npm run test:e2e",
     "test:rules:investment-m3": "node --test tests/firestore/investment-m3.rules.integration.test.mjs",
-    "test:rules:m4": "node --test tests/firestore/m4-hardening.rules.integration.test.mjs"
+    "test:rules:m4": "node --test tests/firestore/m4-hardening.rules.integration.test.mjs",
+    "test:rules:adjacent": "node --test tests/firestore/adjacent-modules.rules.integration.test.mjs"
   },
   "dependencies": {
     "@phosphor-icons/react": "2.1.4",

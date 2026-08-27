@@ -13,7 +13,6 @@ import { motion } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
 import { calculateBusinessGoalProgress, getGoalPaceStatus, getPeriodDates } from '../modules/goals/logic.ts';
-import { goalInvestmentImpact } from '../modules/investments/semantics.ts';
 import { cashBalanceFromPeriods, useCashPeriods } from '../modules/transactions/cashPeriods.ts';
 import { listGoalInvestmentMovements } from '../modules/investments/persistence/readApi.ts';
 
@@ -31,10 +30,19 @@ interface GoalDetailsViewProps {
     transactions: Transaction[];
     onBack: () => void;
     onEdit: (goal: Goal) => void;
-    onLink: (goal: Goal) => void;
     onDelete: (goalId: string) => void;
     onUpdateStatus?: (goal: Goal, status: GoalStatus) => void;
-    onAddInvestment: (goalId: string) => void;
+    onAddInvestment: () => void;
+}
+
+/** Uma linha do histórico patrimonial da meta. */
+interface GoalMovementRow {
+    id: string;
+    description: string;
+    operationLabel: string;
+    date: string;
+    /** Efeito assinado sobre o valor investido da meta, em reais. */
+    impact: number;
 }
 
 const adjustBrightness = (color: string, amount: number) => {
@@ -42,19 +50,23 @@ const adjustBrightness = (color: string, amount: number) => {
 }
 
 const GoalDetailsView: React.FC<GoalDetailsViewProps> = ({ 
-    goal, transactions, onBack, onEdit, onLink, onDelete, onUpdateStatus, onAddInvestment 
+    goal, transactions, onBack, onEdit, onDelete, onUpdateStatus, onAddInvestment 
 }) => {
     const { theme } = useTheme();
     const { activeWorkspace } = useWorkspace();
     const isPJ = activeWorkspace.type === 'PJ';
     const MotionDiv = motion.div as any;
-    const investmentsV2Enabled =
-        activeWorkspace.features?.investmentsV2?.enabled === true;
-
-    // Movimentos oficiais do domínio patrimonial vinculados a esta meta.
-    const goalMovements = useQuery({
+    /*
+     * Histórico patrimonial da meta, direto do ledger.
+     *
+     * O sinal de cada linha vem de `goalNetContributionDeltaCents`, que é o
+     * valor que o backend aplicou no progresso da meta. Derivar o sinal da
+     * operação no cliente é o que fazia resgate, estorno e desvínculo entrarem
+     * como aporte positivo na previsão, na linha do tempo e na tabela.
+     */
+    const goalMovements = useQuery<GoalMovementRow[]>({
         queryKey: ['goal-investment-movements', activeWorkspace.id, goal.id],
-        enabled: investmentsV2Enabled && Boolean(goal.id),
+        enabled: Boolean(goal.id),
         queryFn: async () => {
             const movements = await listGoalInvestmentMovements(
                 activeWorkspace.id,
@@ -62,12 +74,12 @@ const GoalDetailsView: React.FC<GoalDetailsViewProps> = ({
             );
             return movements.map((movement) => ({
                 id: movement.id,
-                type: 'investimento' as const,
                 description: movement.description,
-                category: MOVEMENT_LABELS[movement.operation] ?? 'Movimentação',
-                value: movement.principalCents / 100,
+                operationLabel: MOVEMENT_LABELS[movement.operation] ?? 'Movimentação',
                 date: movement.occurredAt?.toDate().toISOString().slice(0, 10) ?? '',
-                goalId: String(goal.id),
+                impact: Number.isSafeInteger(movement.goalNetContributionDeltaCents)
+                    ? movement.goalNetContributionDeltaCents! / 100
+                    : 0,
             }));
         },
     });
@@ -77,6 +89,13 @@ const GoalDetailsView: React.FC<GoalDetailsViewProps> = ({
     const needsGlobalBalance = isPJ && goal.isAutomatic && goal.businessType === 'caixa_minimo';
     const cashPeriods = useCashPeriods(activeWorkspace.id, needsGlobalBalance);
     const cashBalance = cashBalanceFromPeriods(cashPeriods.data);
+    /*
+     * Projeção cortada no teto de leitura: o saldo acumulado sairia menor que
+     * o real, e com ele o progresso desta meta. A tela declara a limitação em
+     * vez de exibir um número incompleto como se fosse o saldo.
+     */
+    const cashBalanceIncomplete =
+        needsGlobalBalance && cashPeriods.data?.truncated === true;
 
     const currentVal = useMemo(() => {
         if (isPJ && goal.isAutomatic) {
@@ -116,18 +135,10 @@ const GoalDetailsView: React.FC<GoalDetailsViewProps> = ({
         ];
 
         /*
-         * INV-P2-029 — a lista de movimentações acompanha a fonte do número.
-         *
-         * Com o domínio patrimonial ligado, o progresso vem de
-         * `investmentProgressCents`, mas a lista continuava vindo de
-         * `transactions` filtrada por `goalId`. O vínculo retroativo não gera
-         * espelho de caixa, então a meta mostrava progresso positivo com lista
-         * vazia — o usuário via um número que nada na tela explicava.
+         * INV-P2-029 — a lista de movimentações e o número do progresso saem da
+         * mesma fonte: os movimentos do ledger vinculados à meta.
          */
-        const goalTransactions = (investmentsV2Enabled
-            ? goalMovements.data ?? []
-            : transactions
-                .filter(t => t.goalId === goal.id && t.type === 'investimento'))
+        const goalTransactions = (goalMovements.data ?? [])
             .slice()
             .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
@@ -149,7 +160,7 @@ const GoalDetailsView: React.FC<GoalDetailsViewProps> = ({
             const recent = goalTransactions.filter(t => new Date(t.date) >= sixMonthsAgo);
             const distinctMonths = new Set(recent.map(t => t.date.substring(0, 7))).size;
             const divider = Math.max(1, distinctMonths);
-            const avgMonthly = recent.reduce((acc, transaction) => acc + goalInvestmentImpact(transaction), 0) / divider;
+            const avgMonthly = recent.reduce((acc, row) => acc + row.impact, 0) / divider;
             if (avgMonthly <= 0) return null;
             const monthsNeeded = remaining / avgMonthly;
             if (monthsNeeded > 120) return "> 10 anos";
@@ -167,7 +178,7 @@ const GoalDetailsView: React.FC<GoalDetailsViewProps> = ({
             let milestones = [0.25, 0.50, 0.75, 1.0];
             let nextMilestoneIdx = 0;
             chronological.forEach(t => {
-                const impact = goalInvestmentImpact(t);
+                const impact = t.impact;
                 runningTotal += impact;
                 const progress = runningTotal / goal.targetAmount;
                 while (nextMilestoneIdx < milestones.length && progress >= milestones[nextMilestoneIdx]) {
@@ -249,6 +260,12 @@ onClick={() => { if (option.key === 'alcancada' && !isActive) handleComplete(); 
                                 <div><span className="text-sm text-gray-500 dark:text-gray-400">Progresso Atual</span><div className="text-3xl font-bold text-gray-800 dark:text-white flex items-baseline gap-2">{formatValue(goal.currentAmount)}<span className="text-sm font-medium text-gray-400">/ {formatValue(goal.targetAmount)}</span></div></div>
                                 <div className="text-right"><span className="text-2xl font-bold" style={{ color: goal.visual.color }}>{percentage.toFixed(1)}%</span></div>
                             </div>
+                            {cashBalanceIncomplete && (
+                                <p role="alert" className="mb-2 rounded-lg bg-amber-50 p-3 text-sm text-amber-900">
+                                    A projeção de caixa atingiu o limite seguro de leitura. O saldo
+                                    acumulado desta meta não cobre todo o histórico.
+                                </p>
+                            )}
                             <div className="h-4 bg-gray-100 dark:bg-dark-200 rounded-full overflow-hidden">
                                 <MotionDiv className="h-full rounded-full relative" initial={{ width: 0 }} animate={{ width: `${Math.min(100, percentage)}%` }} transition={{ duration: 1 }} style={{ backgroundColor: goal.visual.color }}><div className="absolute inset-0 bg-white/20 animate-pulse"></div></MotionDiv>
                             </div>
@@ -277,8 +294,7 @@ onClick={() => { if (option.key === 'alcancada' && !isActive) handleComplete(); 
                         <div className="flex justify-between items-center mb-4">
                             <h3 className="font-bold text-lg text-gray-800 dark:text-white flex items-center gap-2"><HistoryIcon className="h-5 w-5 text-gray-400" /> Histórico da Meta</h3>
                             <div className="flex gap-2">
-                                <button onClick={() => onLink(goal)} className="text-xs bg-gray-100 hover:bg-gray-200 dark:bg-dark-200 dark:hover:bg-dark-300 text-gray-700 dark:text-gray-300 px-3 py-1.5 rounded-lg transition-colors">Vincular Existente</button>
-                                <button onClick={() => onAddInvestment(goal.id)} className="text-xs bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1"><PlusIcon className="h-3 w-3" /> Novo Aporte</button>
+                                <button onClick={() => onAddInvestment()} className="text-xs bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1"><PlusIcon className="h-3 w-3" /> Novo Aporte</button>
                             </div>
                         </div>
                         <div className="bg-white dark:bg-dark-100 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex-1 overflow-hidden flex flex-col">
@@ -288,20 +304,15 @@ onClick={() => { if (option.key === 'alcancada' && !isActive) handleComplete(); 
                                         <thead className="bg-gray-50 dark:bg-dark-200 text-gray-500 dark:text-gray-400 font-medium sticky top-0"><tr><th className="px-5 py-3">Descrição</th><th className="px-5 py-3">Categoria</th><th className="px-5 py-3">Data</th><th className="px-5 py-3 text-right">Valor</th></tr></thead>
                                         <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                                             {goalTransactions.map(t => {
-                                                const impact = goalInvestmentImpact(t);
-                                                const operation = t.investmentMetadata?.investmentOperation;
-                                                const operationLabel = operation === 'redemption'
-                                                    ? 'Resgate'
-                                                    : operation === 'redemption_reversal'
-                                                        ? 'Estorno de resgate'
-                                                        : 'Aporte';
+                                                const impact = t.impact;
+                                                const operationLabel = t.operationLabel;
                                                 return (
                                                     <tr key={t.id} className="hover:bg-gray-50 dark:hover:bg-dark-200 transition-colors">
                                                         <td className="px-5 py-3 text-gray-800 dark:text-gray-200 font-medium">
                                                             {t.description}
                                                             <span className="block text-xs font-normal text-gray-500 dark:text-gray-400">{operationLabel}</span>
                                                         </td>
-                                                        <td className="px-5 py-3 text-gray-500 dark:text-gray-400">{t.category}</td>
+                                                        <td className="px-5 py-3 text-gray-500 dark:text-gray-400">{operationLabel}</td>
                                                         <td className="px-5 py-3 text-gray-500 dark:text-gray-400">{new Date(t.date).toLocaleDateString('pt-BR')}</td>
                                                         <td className="px-5 py-3 text-right font-bold text-gray-800 dark:text-white">
                                                             {impact > 0 ? '+' : impact < 0 ? '-' : '•'} {formatValue(Math.abs(impact))}

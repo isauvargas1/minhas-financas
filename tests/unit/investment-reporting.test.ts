@@ -69,7 +69,7 @@ test('PF sem meta permanece não classificado e PJ usa finalidade explícita', (
   );
 });
 
-test('feature flag preserva valor legado e ativa a projeção oficial da meta', () => {
+test('progresso da meta vem da projeção patrimonial, com recuo para o valor informado', () => {
   // Fixture completa: o `as` anterior escondia campos obrigatórios ausentes e
   // um `category` que nem existe no enum ('outros' em vez de 'outro').
   const goal: Omit<Goal, 'id'> & { investmentProgressCents: number } = {
@@ -87,8 +87,13 @@ test('feature flag preserva valor legado e ativa a projeção oficial da meta', 
     createdAt: '2026-01-01T00:00:00.000Z',
     updatedAt: '2026-01-01T00:00:00.000Z',
   };
-  assert.equal(mapGoalDocument('goal-a', goal, false).currentAmount, 250);
-  assert.equal(mapGoalDocument('goal-a', goal, true).currentAmount, 750);
+  // Com projeção publicada, é ela que vale — nunca o `currentAmount` gravado.
+  assert.equal(mapGoalDocument('goal-a', goal).currentAmount, 750);
+
+  // Meta que nunca recebeu movimento não tem projeção: o valor informado pelo
+  // usuário continua respondendo, e não vira zero.
+  const {investmentProgressCents: _semProjecao, ...semProjecao} = goal;
+  assert.equal(mapGoalDocument('goal-a', semProjecao).currentAmount, 250);
 });
 
 test('filtros em dias usam buckets diários sem incluir valores anteriores', () => {

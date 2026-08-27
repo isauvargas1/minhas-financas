@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { useLoans, useCreateLoan } from '../modules/loans/hooks.ts';
+import { useLoans, useCreateLoan, useLoanTotals } from '../modules/loans/hooks.ts';
 import { Loan, LoanType, LoanStatus } from '../modules/loans/types.ts';
 // Added TrendingUpIcon and ArrowDownIcon to the imports below
 import { HandshakeIcon, PlusIcon, SearchIcon, FilterIcon, LayoutGridIcon, ListIcon, WarningIcon, TrendingUpIcon, ArrowDownIcon } from './Icons.tsx';
@@ -16,7 +16,13 @@ interface LoansViewProps {
 }
 
 const LoansView: React.FC<LoansViewProps> = ({ onSelectLoan, onAddTransaction }) => {
-    const { data: loans, isLoading } = useLoans();
+    const { data: loans, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } = useLoans();
+    /*
+     * Os indicadores vêm de agregado do servidor, não da lista carregada.
+     * A lista é paginada; somá-la daria um total silenciosamente parcial —
+     * exatamente o que um número financeiro na tela não pode ser.
+     */
+    const { data: totals, isError: totalsFailed } = useLoanTotals();
     const createLoanMutation = useCreateLoan();
     const { playSound } = useTheme();
     const { activeWorkspace } = useWorkspace();
@@ -39,14 +45,11 @@ const LoansView: React.FC<LoansViewProps> = ({ onSelectLoan, onAddTransaction })
         });
     }, [loans, searchQuery, filterType, filterStatus]);
 
-    const stats = useMemo(() => {
-        if (!loans) return { lend: 0, borrow: 0, overdue: 0 };
-        return {
-            lend: loans.filter(l => l.type === 'lend' && l.status !== 'paid').reduce((a, b) => a + b.currentBalance, 0),
-            borrow: loans.filter(l => l.type === 'borrow' && l.status !== 'paid').reduce((a, b) => a + b.currentBalance, 0),
-            overdue: loans.filter(l => l.status === 'overdue').length
-        };
-    }, [loans]);
+    const stats = useMemo(() => ({
+        lend: totals?.lend ?? 0,
+        borrow: totals?.borrow ?? 0,
+        overdue: totals?.overdue ?? 0,
+    }), [totals]);
 
     const handleSaveLoan = (newLoan: Loan) => {
         createLoanMutation.mutate(newLoan, {
@@ -137,6 +140,12 @@ const LoansView: React.FC<LoansViewProps> = ({ onSelectLoan, onAddTransaction })
 
             {/* Stats Summary */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                {totalsFailed && (
+                    <p role="alert" className="md:col-span-3 rounded-lg bg-amber-50 p-3 text-sm text-amber-900">
+                        Não foi possível calcular os totais agora. Os valores exibidos não
+                        representam o saldo real.
+                    </p>
+                )}
                 <div className="bg-surface p-4 rounded-xl border border-border shadow-sm flex items-center gap-4">
                     <div className="p-3 bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-400 rounded-lg"><TrendingUpIcon className="w-6 h-6" /></div>
                     <div><p className="text-[10px] font-bold text-muted uppercase">A Receber</p><p className="text-lg font-bold text-green-600">{formatCurrency(stats.lend)}</p></div>
@@ -205,6 +214,20 @@ const LoansView: React.FC<LoansViewProps> = ({ onSelectLoan, onAddTransaction })
                         <p className="text-muted">Nenhum empréstimo encontrado.</p>
                     </div>
                 )}
+
+                {hasNextPage && (
+                    <div className="mt-6 flex justify-center">
+                        <button
+                            type="button"
+                            onClick={() => fetchNextPage()}
+                            disabled={isFetchingNextPage}
+                            className="rounded-xl border border-border px-5 py-2.5 text-sm font-bold text-on-surface disabled:opacity-60"
+                        >
+                            {isFetchingNextPage ? 'Carregando…' : 'Carregar mais empréstimos'}
+                        </button>
+                    </div>
+                )}
+
             </div>
 
             <LoanFormModal 
