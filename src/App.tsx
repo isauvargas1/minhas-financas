@@ -28,7 +28,7 @@ import LoansView from "./components/LoansView";
 import LoanDetailsView from "./components/LoanDetailsView";
 import PJLoansView from "./components/PJLoansView";
 import PJLoanDetailsView from "./components/PJLoanDetailsView";
-import { useGoals, useCreateGoal, useUpdateGoal, useArchiveGoal, useSetGoalTransactionLinks } from "./modules/goals/hooks";
+import { useGoals, useCreateGoal, useUpdateGoal, useArchiveGoal } from "./modules/goals/hooks";
 import type { GoalWriteInput } from "./modules/goals/api";
 import { AdminDashboard } from './components/AdminDashboard';
 import { PricingTable } from './modules/billing/components/PricingTable';
@@ -62,7 +62,6 @@ import { LoginView } from "./components/auth/LoginView";
 // --- HOOKS MIGRADOS ---
 import {
     useTransactions,
-    useInvestmentTransactions,
     useCreateTransaction,
     useCreateTransactionsBatch,
     useUpdateTransaction,
@@ -81,7 +80,7 @@ import {
     useCreditCardInvoiceTransactionProjections,
 } from "./modules/credit-cards/compatibility";
 import {
-    summarizeLegacyCashFlow,
+    summarizeCashFlow,
 } from "./modules/investments/semantics";
 const InvestmentsPortfolioView = React.lazy(
     () => import("./modules/investments/components/InvestmentsPortfolioView"),
@@ -111,7 +110,6 @@ const AppContent: React.FC = () => {
     const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
     const [transactionModalDefaultType, setTransactionModalDefaultType] = useState<TransactionType | null>(null);
     const [transactionModalAllowedTypes, setTransactionModalAllowedTypes] = useState<TransactionType[] | null>(null);
-    const [transactionModalDefaultGoalId, setTransactionModalDefaultGoalId] = useState<string | null>(null);
     const [notification, setNotification] = useState<{ message: string; visible: boolean }>({ message: '', visible: false });
     const [view, setView] = useState<'dashboard' | 'receita' | 'despesa' | 'investimento' | 'settings' | 'cards' | 'personalizacao' | 'goals' | 'goal_details' | 'shared_expenses' | 'split_group_details' | 'recurring' | 'recurring_details' | 'reports' | 'clients_receivables' | 'loans' | 'loan_details' | 'admin' | 'planos'>('dashboard'); const [isConfirmationOpen, setIsConfirmationOpen] = useState(false);
     const [currentDate, setCurrentDate] = useState(new Date());
@@ -120,23 +118,18 @@ const AppContent: React.FC = () => {
         setTransactionToEdit(null);
         setTransactionModalDefaultType(null);
         setTransactionModalAllowedTypes(null);
-        setTransactionModalDefaultGoalId(null);
         setIsModalOpen(true);
     };
 
-    const openScopedTransactionModal = (viewType: 'receita' | 'despesa' | 'investimento') => {
+    const openScopedTransactionModal = (viewType: 'receita' | 'despesa') => {
         setTransactionToEdit(null);
-        setTransactionModalDefaultGoalId(null);
 
         if (viewType === 'receita') {
             setTransactionModalDefaultType('receita');
             setTransactionModalAllowedTypes(['receita']);
-        } else if (viewType === 'despesa') {
+        } else {
             setTransactionModalDefaultType('despesa');
             setTransactionModalAllowedTypes(['despesa', 'parcelado']);
-        } else {
-            setTransactionModalDefaultType('investimento');
-            setTransactionModalAllowedTypes(['investimento']);
         }
 
         setIsModalOpen(true);
@@ -149,7 +142,6 @@ const AppContent: React.FC = () => {
         }
 
         setTransactionToEdit(transaction);
-        setTransactionModalDefaultGoalId(null);
         setTransactionModalDefaultType(transaction.type);
         setTransactionModalAllowedTypes([transaction.type]);
         setIsModalOpen(true);
@@ -160,23 +152,13 @@ const AppContent: React.FC = () => {
         setTransactionToEdit(null);
         setTransactionModalDefaultType(null);
         setTransactionModalAllowedTypes(null);
-        setTransactionModalDefaultGoalId(null);
     };
 
-    const openGoalContributionModal = (goalId: string) => {
-        // Com o domínio patrimonial oficial ligado, o progresso da meta vem das
-        // posições, não de transações. Levar ao lançamento legado daria um
-        // aporte que sai do caixa e não aparece na meta, então a ação leva
-        // direto à tela onde o vínculo é feito.
-        if (activeWorkspace.features?.investmentsV2?.enabled === true) {
-            setView('investimento');
-            return;
-        }
-        setTransactionToEdit(null);
-        setTransactionModalDefaultType('investimento');
-        setTransactionModalAllowedTypes(['investimento']);
-        setTransactionModalDefaultGoalId(goalId);
-        setIsModalOpen(true);
+    // O progresso da meta vem das posições do domínio patrimonial, não de
+    // transações: aportar é criar um movimento em Investimentos e vinculá-lo à
+    // meta. A ação leva direto à tela onde isso acontece.
+    const openGoalContributionModal = () => {
+        setView('investimento');
     };
 
     // --- INTEGRACAO COM FIRESTORE (HOOKS) ---
@@ -211,7 +193,6 @@ const AppContent: React.FC = () => {
     const createGoalMutation = useCreateGoal();
     const updateGoalMutation = useUpdateGoal();
     const archiveGoalMutation = useArchiveGoal();
-    const setGoalLinksMutation = useSetGoalTransactionLinks();
     const goals = useMemo(() => goalsData || [], [goalsData]);
     const [productsServices, setProductsServices] = useState<EntityItem[]>(initialProductsServices);
     const [expenseTypes, setExpenseTypes] = useState<EntityItem[]>(initialExpenseTypes);
@@ -234,26 +215,7 @@ const AppContent: React.FC = () => {
 
     const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
 
-    /*
-     * INV-P1-011 — universo de aportes carregado por propósito.
-     *
-     * O modal de transação (para escolher a origem de um resgate) e o de metas
-     * (para vínculo retroativo) precisam de **todo** o histórico de
-     * investimento, não da janela de doze meses. Antes isso era a razão de a
-     * aplicação inteira carregar a subcoleção completa; agora é uma consulta
-     * própria, com filtro por tipo e limite, feita só quando um dos dois
-     * formulários está aberto.
-     */
-    const { data: investmentTransactionsData } = useInvestmentTransactions(
-        workspaceId,
-        isModalOpen || isGoalModalOpen,
-    );
-    const investmentTransactions = useMemo(
-        () => investmentTransactionsData ?? [],
-        [investmentTransactionsData],
-    );
     const [goalToEdit, setGoalToEdit] = useState<Goal | null>(null);
-    const [goalModalInitialSection, setGoalModalInitialSection] = useState<'details' | 'linking'>('details');
     const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
     const [selectedRecurringExpenseId, setSelectedRecurringExpenseId] = useState<string | null>(null);
     const [selectedLoanId, setSelectedLoanId] = useState<string | null>(null);
@@ -505,21 +467,6 @@ const AppContent: React.FC = () => {
         }
     };
 
-    const handleLinkGoalTransactions = async (
-        transactionIds: string[],
-        goalId: string,
-        idempotencyKey: string,
-    ) => {
-        try {
-            await setGoalLinksMutation.mutateAsync({goalId, transactionIds, idempotencyKey});
-            showNotification('Aportes vinculados com sucesso!');
-        } catch (error) {
-            console.error('Erro ao vincular aportes:', error);
-            showNotification('Não foi possível atualizar os vínculos da meta.');
-            throw error;
-        }
-    };
-
     const handleDeleteGoal = async (id: string) => {
         if (confirm('Tem certeza que deseja arquivar esta meta? O histórico de aportes será preservado.')) {
             try {
@@ -582,7 +529,7 @@ const AppContent: React.FC = () => {
     );
 
     const summaryData: SummaryData = useMemo(() => {
-        return summarizeLegacyCashFlow(currentMonthCashFlowTransactions);
+        return summarizeCashFlow(currentMonthCashFlowTransactions);
     }, [currentMonthCashFlowTransactions]);
 
     if (isLoading) return <div className="flex h-screen items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div></div>;
@@ -601,11 +548,9 @@ const AppContent: React.FC = () => {
                             <SummaryCard title="Despesas" value={summaryData.expenses} trend="Mensal" icon={<ArrowDownIcon />} color="red" isClickable onClick={() => handleNavigate('despesa')} />
                             <SummaryCard title="Investimentos" value={summaryData.investments} trend="Mensal" icon={<ChartBarIcon />} color="indigo" isClickable onClick={() => handleNavigate('investimento')} />
                         </div>
-                        {activeWorkspace.features?.investmentsV2?.enabled === true && (
-                            <React.Suspense fallback={<div role="status" className="rounded-card border border-border bg-surface p-5">Carregando patrimônio…</div>}>
-                                <InvestmentDashboardOverview workspaceId={workspaceId} />
-                            </React.Suspense>
-                        )}
+                        <React.Suspense fallback={<div role="status" className="rounded-card border border-border bg-surface p-5">Carregando patrimônio…</div>}>
+                            <InvestmentDashboardOverview workspaceId={workspaceId} />
+                        </React.Suspense>
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                             <div className="flex flex-col gap-6">
                                 <TransactionsChart transactions={currentMonthCashFlowTransactions} />
@@ -624,7 +569,7 @@ const AppContent: React.FC = () => {
                     <GoalsView
                         transactions={transactions}
                         onSelectGoal={(g) => { setSelectedGoal(g); setView('goal_details'); }}
-                        onOpenGoalModal={(g) => { setGoalToEdit(g || null); setGoalModalInitialSection('details'); setIsGoalModalOpen(true); }}
+                        onOpenGoalModal={(g) => { setGoalToEdit(g || null); setIsGoalModalOpen(true); }}
                     />
                 )}
                 {view === 'goal_details' && selectedGoal && (
@@ -632,13 +577,12 @@ const AppContent: React.FC = () => {
                         goal={selectedGoal}
                         transactions={transactions}
                         onBack={() => setView('goals')}
-                        onEdit={g => { setGoalToEdit(g); setGoalModalInitialSection('details'); setIsGoalModalOpen(true); }}
-                        onLink={g => { setGoalToEdit(g); setGoalModalInitialSection('linking'); setIsGoalModalOpen(true); }}
+                        onEdit={g => { setGoalToEdit(g); setIsGoalModalOpen(true); }}
                         onDelete={handleDeleteGoal}
                         onAddInvestment={openGoalContributionModal}
                     />
                 )}
-                {view === 'investimento' && activeWorkspace.features?.investmentsV2?.enabled === true && (
+                {view === 'investimento' && (
                     <React.Suspense fallback={<div className="p-6 text-sm text-gray-600">Carregando investimentos...</div>}>
                         <InvestmentsPortfolioView
                             workspaceId={workspaceId}
@@ -649,7 +593,7 @@ const AppContent: React.FC = () => {
                         />
                     </React.Suspense>
                 )}
-                {(view === 'receita' || view === 'despesa' || (view === 'investimento' && activeWorkspace.features?.investmentsV2?.enabled !== true)) && <TransactionsView
+                {(view === 'receita' || view === 'despesa') && <TransactionsView
                     viewType={view}
                     transactions={
                         view === 'despesa'
@@ -662,7 +606,6 @@ const AppContent: React.FC = () => {
                     onAddTransaction={() => openScopedTransactionModal(view)}
                     onEditTransaction={openEditTransactionModal}
                     onDeleteTransaction={confirmDeleteTransaction}
-                    goals={goals}
                 />}
                 {view === 'settings' && <SettingsView data={{ productsServices, expenseTypes, categories, paymentTypes, incomeTypes, wallets, costCenters }} onUpdate={handleSettingsUpdate} />}
 
@@ -715,8 +658,6 @@ const AppContent: React.FC = () => {
                 paymentTypes={paymentTypes}
                 incomeTypes={incomeTypes}
                 goals={goals}
-                transactions={investmentTransactions}
-                defaultGoalId={transactionModalDefaultGoalId}
             />
             <ConfirmationModal
                 isOpen={isConfirmationOpen}
@@ -731,7 +672,7 @@ const AppContent: React.FC = () => {
                         : 'Estornar este resgate liquidado? Será criado um movimento compensatório.'
                     : 'Excluir permanentemente?'}
             />
-            <GoalFormModal isOpen={isGoalModalOpen} onClose={() => setIsGoalModalOpen(false)} onSave={handleSaveGoal} onLinkTransactions={handleLinkGoalTransactions} initialSection={goalModalInitialSection} goalToEdit={goalToEdit} wallets={wallets} transactions={investmentTransactions} />
+            <GoalFormModal isOpen={isGoalModalOpen} onClose={() => setIsGoalModalOpen(false)} onSave={handleSaveGoal} goalToEdit={goalToEdit} wallets={wallets} />
             <Notification message={notification.message} isVisible={notification.visible} />
         </div>
     );

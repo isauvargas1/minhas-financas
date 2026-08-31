@@ -5,23 +5,9 @@ export const investmentDocumentIdSchema = z
   .min(1)
   .max(240)
   .refine((value) => !value.includes("/"), "Identificador inválido.");
-const documentIdSchema = investmentDocumentIdSchema;
 export const investmentWorkspaceIdSchema = investmentDocumentIdSchema;
-const workspaceIdSchema = investmentWorkspaceIdSchema;
 export const investmentIdempotencyKeySchema = z.string().min(16).max(200);
-const idempotencyKeySchema = investmentIdempotencyKeySchema;
 export const investmentCorrelationIdSchema = z.string().min(8).max(200);
-const dateOnlySchema = z
-  .string()
-  .regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida.")
-  .refine((value) => {
-    const parsed = new Date(`${value}T12:00:00.000Z`);
-    return (
-      !Number.isNaN(parsed.getTime()) &&
-      parsed.toISOString().slice(0, 10) === value
-    );
-  }, "Data inválida.");
-const moneySchema = z.number().finite().nonnegative().max(90_000_000_000_000);
 const centsSchema = z
   .number()
   .int()
@@ -42,14 +28,6 @@ const entityNameSchema = z.string().trim().min(2).max(120);
 /** Referência a item do catálogo do workspace (`settings_catalog`). */
 const investmentCatalogRefSchema = z.string().trim().min(1).max(160);
 const catalogLabelSchema = z.string().trim().min(1).max(160);
-
-// M3.B: a trilha legada passa a exigir `correlationId` do cliente em vez de
-// sintetizá-lo a partir do ID da chave de idempotência.
-const baseSchema = z.object({
-  workspaceId: workspaceIdSchema,
-  idempotencyKey: idempotencyKeySchema,
-  correlationId: investmentCorrelationIdSchema,
-});
 
 const v2BaseShape = {
   workspaceId: investmentWorkspaceIdSchema,
@@ -248,47 +226,6 @@ export const recalculateGoalInvestmentProgressPayloadSchema = rebuildSchema
 
 export const rebuildInvestmentProjectionsPayloadSchema = rebuildSchema.strict();
 
-export const migrateLegacyInvestmentsPayloadSchema = z
-  .object({
-    ...v2BaseShape,
-    migrationId: investmentDocumentIdSchema.optional(),
-    // Teto de 100 para o snapshot de checkpoint continuar dentro do validador
-    // de leitura das Rules (`isValidInvestmentSnapshot`, pageSize <= 100).
-    pageSize: z.number().int().min(1).max(100).default(100),
-    dryRun: z.boolean().default(true),
-    reason: reasonSchema,
-  })
-  .strict();
-
-export const rollbackLegacyInvestmentMigrationPayloadSchema = z
-  .object({
-    ...v2BaseShape,
-    migrationId: investmentDocumentIdSchema,
-    // INV-P1-012 — o rollback emite um movimento compensatório por movimento
-    // migrado, então é paginado e retomável como as demais operações pesadas.
-    pageSize: z.number().int().min(1).max(50).default(20),
-    reason: reasonSchema,
-  })
-  .strict();
-
-export const reconcileLegacyMigrationPayloadSchema = z
-  .object({
-    ...v2BaseShape,
-    pageSize: z.number().int().min(1).max(200).default(100),
-  })
-  .strict();
-
-export const enableInvestmentsV2FlagPayloadSchema = z
-  .object({
-    ...v2BaseShape,
-    // INV-P2-021 — o lote aplicado é pré-condição verificável. Omitido, o
-    // backend deriva o lote padrão da tentativa corrente.
-    migrationId: investmentDocumentIdSchema.optional(),
-    pageSize: z.number().int().min(1).max(200).default(100),
-    reason: reasonSchema,
-  })
-  .strict();
-
 export const backfillInvestmentWorkspacePayloadSchema = z
   .object({
     ...v2BaseShape,
@@ -406,66 +343,6 @@ export const onboardInvestmentWorkspacePayloadSchema = z
   .object(v2BaseShape)
   .strict();
 
-export const saveInvestmentRedemptionPayloadSchema = baseSchema
-  .extend({
-    transactionId: documentIdSchema.optional(),
-    redemption: z
-      .object({
-        sourceMovementId: documentIdSchema,
-        description: z.string().trim().min(1).max(240),
-        principal: moneySchema.positive(),
-        gain: moneySchema,
-        fees: moneySchema,
-        tax: moneySchema,
-        settlementDate: dateOnlySchema,
-        status: z.enum(["pending", "settled"]),
-      })
-      .strict(),
-  })
-  .strict()
-  .superRefine((payload, context) => {
-    const {principal, gain, fees, tax} = payload.redemption;
-    if (tax > gain) {
-      context.addIssue({
-        code: "custom",
-        path: ["redemption", "tax"],
-        message: "O imposto não pode superar o ganho realizado.",
-      });
-    }
-    if (fees + tax >= principal + gain) {
-      context.addIssue({
-        code: "custom",
-        path: ["redemption", "fees"],
-        message:
-          "Taxas e impostos devem ser menores que o valor bruto do resgate.",
-      });
-    }
-  });
-
-export const cancelInvestmentRedemptionPayloadSchema = baseSchema
-  .extend({
-    transactionId: documentIdSchema,
-    reason: z.string().trim().min(3).max(500),
-  })
-  .strict();
-
-export const reverseInvestmentRedemptionPayloadSchema = baseSchema
-  .extend({
-    transactionId: documentIdSchema,
-    reversalDate: dateOnlySchema,
-    reason: z.string().trim().min(3).max(500),
-  })
-  .strict();
-
-export type SaveInvestmentRedemptionPayload = z.infer<
-  typeof saveInvestmentRedemptionPayloadSchema
->;
-export type CancelInvestmentRedemptionPayload = z.infer<
-  typeof cancelInvestmentRedemptionPayloadSchema
->;
-export type ReverseInvestmentRedemptionPayload = z.infer<
-  typeof reverseInvestmentRedemptionPayloadSchema
->;
 export type CreateInvestmentContributionPayload = z.infer<
   typeof createInvestmentContributionPayloadSchema
 >;
@@ -523,16 +400,4 @@ export type RebuildInvestmentProjectionsPayload = z.infer<
 >;
 export type BackfillInvestmentWorkspacePayload = z.infer<
   typeof backfillInvestmentWorkspacePayloadSchema
->;
-export type MigrateLegacyInvestmentsPayload = z.infer<
-  typeof migrateLegacyInvestmentsPayloadSchema
->;
-export type RollbackLegacyInvestmentMigrationPayload = z.infer<
-  typeof rollbackLegacyInvestmentMigrationPayloadSchema
->;
-export type ReconcileLegacyMigrationPayload = z.infer<
-  typeof reconcileLegacyMigrationPayloadSchema
->;
-export type EnableInvestmentsV2FlagPayload = z.infer<
-  typeof enableInvestmentsV2FlagPayloadSchema
 >;

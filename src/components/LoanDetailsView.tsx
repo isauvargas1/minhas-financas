@@ -18,7 +18,12 @@ interface LoanDetailsViewProps {
 
 const LoanDetailsView: React.FC<LoanDetailsViewProps> = ({ loanId, onBack, onAddTransaction }) => {
     const { data: loan, isLoading } = useLoan(loanId);
-    const { data: movements } = useLoanMovements(loanId);
+    const {
+        data: movements,
+        hasNextPage: hasMoreMovements,
+        fetchNextPage: fetchMoreMovements,
+        isFetchingNextPage: isFetchingMoreMovements,
+    } = useLoanMovements(loanId);
     const deleteLoanMutation = useDeleteLoan();
     const createMovementMutation = useCreateMovement();
     
@@ -206,6 +211,17 @@ const LoanDetailsView: React.FC<LoanDetailsViewProps> = ({ loanId, onBack, onAdd
                                             </div>
                                          </div>
                                      ))}
+
+                                     {hasMoreMovements && (
+                                         <button
+                                             type="button"
+                                             onClick={() => fetchMoreMovements()}
+                                             disabled={isFetchingMoreMovements}
+                                             className="w-full rounded-xl border border-border px-4 py-2.5 text-sm font-bold text-on-surface disabled:opacity-60"
+                                         >
+                                             {isFetchingMoreMovements ? 'Carregando…' : 'Carregar movimentações anteriores'}
+                                         </button>
+                                     )}
                                  </div>
                              ) : (
                                  <div className="flex flex-col items-center justify-center h-48 text-muted opacity-50">

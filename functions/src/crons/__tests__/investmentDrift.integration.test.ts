@@ -35,7 +35,6 @@ const seed = async (summaryOverrides: Record<string, number> = {}) => {
   await db().recursiveDelete(db().doc(`workspaces/${WORKSPACE}`));
   await db().doc(`workspaces/${WORKSPACE}`).set({
     ownerId: OWNER, type: "PF", name: "Drift", currency: "BRL",
-    features: {investmentsV2: {enabled: true}},
   });
   // Duas posições somando 150.000 de principal e de valor atual.
   for (const [id, principal] of [["p1", 100_000], ["p2", 50_000]] as const) {
@@ -179,7 +178,6 @@ test("workspace sem resumo não gera registro nem falso positivo", {
   await db().recursiveDelete(db().doc(`workspaces/${WORKSPACE}`));
   await db().doc(`workspaces/${WORKSPACE}`).set({
     ownerId: OWNER, type: "PF", name: "Drift", currency: "BRL",
-    features: {investmentsV2: {enabled: true}},
   });
 
   const result = await inspectWorkspaceDrift(WORKSPACE, "corr-drift-empty");

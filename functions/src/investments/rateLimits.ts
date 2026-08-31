@@ -37,9 +37,6 @@ const REGISTRY_POLICY = {limit: 200, windowSeconds: 60 * 60};
 const POLICY_BY_OPERATION: Partial<
   Record<InvestmentBackendOperation, {limit: number; windowSeconds: number}>
 > = {
-  migrateLegacyInvestments: HEAVY_POLICY,
-  rollbackLegacyInvestmentMigration: ADMIN_POLICY,
-  enableInvestmentsV2Flag: ADMIN_POLICY,
   rebuildInvestmentProjections: HEAVY_POLICY,
   backfillInvestmentWorkspace: HEAVY_POLICY,
   recalculateInvestmentPosition: HEAVY_POLICY,
@@ -52,9 +49,6 @@ const POLICY_BY_OPERATION: Partial<
   cancelInvestmentMovement: MUTATION_POLICY,
   reverseInvestmentMovement: MUTATION_POLICY,
   recordInvestmentValuation: MUTATION_POLICY,
-  saveInvestmentRedemption: MUTATION_POLICY,
-  cancelInvestmentRedemption: MUTATION_POLICY,
-  reverseInvestmentRedemption: MUTATION_POLICY,
 
   saveInvestmentAccount: REGISTRY_POLICY,
   saveInvestmentAsset: REGISTRY_POLICY,

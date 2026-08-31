@@ -5,7 +5,10 @@ import {Timestamp} from "firebase-admin/firestore";
 
 import {
   applyCashPeriodWrite,
+  applyCashPeriodWriteOnce,
   cashPeriodDeltaFor,
+  cashPeriodEventKey,
+  cashPeriodEventRef,
   cashPeriodKeyFor,
 } from "../periods";
 import {executeRebuildCashPeriods} from "../rebuild";
@@ -67,6 +70,29 @@ const applyWrite = async (
       after,
     );
   });
+};
+
+/**
+ * Uma entrega do gatilho, exatamente como `onTransactionWrite` a executa:
+ * dedupe e incremento na mesma transação, endereçados pelo `event.id`.
+ */
+const deliver = async (
+  eventId: string,
+  before: Record<string, unknown> | undefined,
+  after: Record<string, unknown> | undefined,
+  transactionId = "tx-entrega",
+) => {
+  const action = !before ? "CREATE" : !after ? "DELETE" : "UPDATE";
+  return db().runTransaction((tx) =>
+    applyCashPeriodWriteOnce(
+      tx,
+      WORKSPACE,
+      cashPeriodEventKey(eventId),
+      before,
+      after,
+      {transactionId, action},
+    ),
+  );
 };
 
 test("classificação de caixa espelha a semântica do produto", () => {
@@ -185,6 +211,7 @@ test("reconstrução reproduz o caminho incremental e é idempotente", async () 
     correlationId: "corr-cash-rebuild",
     pageSize: 2,
     reason: "Reconstrução de teste",
+    dryRun: false,
   });
   // Página pequena de propósito: exercita a retomada por cursor.
   let result = first;
@@ -195,6 +222,7 @@ test("reconstrução reproduz o caminho incremental e é idempotente", async () 
       correlationId: "corr-cash-rebuild",
       pageSize: 2,
       reason: "Reconstrução de teste",
+    dryRun: false,
     });
   }
   assert.equal(result.completed, true);
@@ -242,6 +270,7 @@ test("reconstrução zera período órfão sem lastro no ledger", async () => {
     correlationId: "corr-cash-rebuild-orfao",
     pageSize: 100,
     reason: "Reconstrução de teste",
+    dryRun: false,
   });
   assert.equal(result.completed, true);
 
@@ -262,4 +291,160 @@ test("chave mensal usa o fuso oficial do produto, não UTC", () => {
     cashPeriodKeyFor({date: "2026-08-31"}),
     "2026-08",
   );
+});
+
+/**
+ * Reentrega do gatilho (INV-P3-001).
+ *
+ * O Eventarc entrega **pelo menos** uma vez: quando a execução anterior não
+ * confirma a tempo, o mesmo `event.id` volta. Como o período é mantido por
+ * `FieldValue.increment`, a segunda entrega somava o mesmo delta de novo — e o
+ * saldo acumulado do workspace passava a mentir sem erro e sem log.
+ *
+ * O teste executa o **mesmo evento duas vezes** em cada um dos três formatos
+ * de escrita e exige que o resultado financeiro seja idêntico ao de uma
+ * aplicação única.
+ */
+test("a mesma entrega executada duas vezes move o caixa só uma vez", async () => {
+  await reset();
+
+  const receita = transaction({type: "receita", value: 500});
+
+  // CREATE, entregue duas vezes.
+  const primeira = await deliver("evt-create-0001", undefined, receita);
+  const reentrega = await deliver("evt-create-0001", undefined, receita);
+
+  assert.equal(primeira.applied, true, "a primeira entrega aplica");
+  assert.equal(reentrega.applied, false, "a reentrega não aplica");
+  // A marca devolve os períodos da aplicação original, não uma lista vazia.
+  assert.deepEqual(reentrega.periods, primeira.periods);
+  assert.equal((await period("2026-08"))?.netCents, 50_000);
+  assert.equal((await period("2026-08"))?.incomeCents, 50_000);
+  assert.equal((await period("2026-08"))?.transactionCount, 1);
+
+  // UPDATE com troca de mês, entregue duas vezes: o efeito precisa sair de
+  // agosto e entrar em julho exatamente uma vez, nos dois períodos.
+  const movida = {
+    ...receita,
+    value: 300,
+    date: "2026-07-05",
+    transactionDate: at("2026-07-05T15:00:00.000Z"),
+  };
+  await deliver("evt-update-0001", receita, movida);
+  await deliver("evt-update-0001", receita, movida);
+  assert.equal((await period("2026-08"))?.netCents, 0);
+  assert.equal((await period("2026-08"))?.transactionCount, 0);
+  assert.equal((await period("2026-07"))?.netCents, 30_000);
+  assert.equal((await period("2026-07"))?.transactionCount, 1);
+
+  // DELETE, entregue duas vezes: o caixa não pode ficar negativo por retirar
+  // o mesmo lançamento duas vezes.
+  await deliver("evt-delete-0001", movida, undefined);
+  await deliver("evt-delete-0001", movida, undefined);
+  assert.equal((await period("2026-07"))?.netCents, 0);
+  assert.equal((await period("2026-07"))?.transactionCount, 0);
+
+  await reset();
+});
+
+test("a marca de entrega é por workspace e não guarda o event.id", async () => {
+  await reset();
+
+  const eventId = "projects/p/databases/(default)/documents/" +
+    "workspaces/w/transactions/tx-sensivel-0001";
+  const chave = cashPeriodEventKey(eventId);
+
+  await deliver(eventId, undefined, transaction({type: "receita", value: 100}));
+
+  const marca = await cashPeriodEventRef(WORKSPACE, chave).get();
+  assert.equal(marca.exists, true);
+  assert.equal(marca.data()?.workspaceId, WORKSPACE);
+  // O ID é hash: nem o caminho do documento nem o ID da transação aparecem.
+  assert.match(chave, /^[0-9a-f]{40}$/);
+  assert.equal(chave.includes("tx-sensivel-0001"), false);
+  assert.equal(JSON.stringify(marca.data()?.id).includes("tx-sensivel"), false);
+  // Retenção marcada: a coleção é operacional, não é fato financeiro.
+  assert.ok(marca.data()?.expiresAt, "a marca precisa de expiresAt");
+
+  // A mesma entrega noutro workspace é outra marca: o dedupe não vaza tenant.
+  const outro = await db().doc(
+    `workspaces/outro-workspace/cash_period_events/${chave}`,
+  ).get();
+  assert.equal(outro.exists, false);
+
+  await reset();
+});
+
+test("duas entregas legítimas distintas são ambas aplicadas", async () => {
+  await reset();
+
+  const salario = transaction(
+    {type: "receita", value: 500, description: "Salário"});
+  const aluguel = transaction(
+    {type: "despesa", value: 120, description: "Aluguel"});
+
+  const um = await deliver(
+    "evt-legitimo-0001", undefined, salario, "tx-salario");
+  const dois = await deliver(
+    "evt-legitimo-0002", undefined, aluguel, "tx-aluguel");
+
+  assert.equal(um.applied, true);
+  assert.equal(dois.applied, true, "evento distinto precisa ser aplicado");
+
+  const agosto = await period("2026-08");
+  assert.equal(agosto?.incomeCents, 50_000);
+  assert.equal(agosto?.expenseCents, 12_000);
+  assert.equal(agosto?.netCents, 50_000 - 12_000);
+  assert.equal(agosto?.transactionCount, 2, "os dois lançamentos contam");
+
+  // Reentregar as duas não muda nada: idempotência por evento, não por
+  // documento.
+  await deliver("evt-legitimo-0001", undefined, salario, "tx-salario");
+  await deliver("evt-legitimo-0002", undefined, aluguel, "tx-aluguel");
+  const depois = await period("2026-08");
+  assert.equal(depois?.netCents, agosto?.netCents);
+  assert.equal(depois?.transactionCount, 2);
+
+  await reset();
+});
+
+/**
+ * A reconstrução continua sendo reconciliação, e não a defesa contra
+ * duplicação: ela fecha nos mesmos valores que o caminho deduplicado publicou.
+ */
+test("a reconstrução confere o caixa deduplicado sem alterá-lo", async () => {
+  await reset();
+
+  const linhas = [
+    {id: "tx-a", evento: "evt-rec-0001",
+      dados: transaction({type: "receita", value: 1_000})},
+    {id: "tx-b", evento: "evt-rec-0002",
+      dados: transaction({type: "despesa", value: 250})},
+  ];
+  for (const linha of linhas) {
+    await db().doc(`workspaces/${WORKSPACE}/transactions/${linha.id}`)
+      .set(linha.dados);
+    await deliver(linha.evento, undefined, linha.dados, linha.id);
+    // Reentrega imediata, como um retry do Eventarc.
+    await deliver(linha.evento, undefined, linha.dados, linha.id);
+  }
+
+  const antes = await period("2026-08");
+  assert.equal(antes?.netCents, 100_000 - 25_000);
+
+  const resultado = await executeRebuildCashPeriods(WORKSPACE, ACTOR, {
+    workspaceId: WORKSPACE,
+    idempotencyKey: "cash-rebuild-dedupe-0001",
+    correlationId: "corr-cash-rebuild-dedupe",
+    pageSize: 100,
+    reason: "Conferência do caminho deduplicado",
+    dryRun: false,
+  });
+  assert.equal(resultado.completed, true);
+
+  const depois = await period("2026-08");
+  assert.equal(depois?.netCents, antes?.netCents);
+  assert.equal(depois?.transactionCount, antes?.transactionCount);
+
+  await reset();
 });

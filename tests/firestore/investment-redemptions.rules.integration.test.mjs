@@ -82,17 +82,6 @@ const seed = async () => {
     db.doc(`workspaces/${workspaceA}/transactions/source-a`).set(contribution),
     db.doc(`workspaces/${workspaceA}/transactions/redemption-a`).set(redemption),
     db.doc(`workspaces/${workspaceB}/transactions/redemption-b`).set({...redemption, workspaceId: workspaceB, userId: users.ownerB.uid}),
-    db.doc(`workspaces/${workspaceA}/investment_audit_logs/audit-a`).set({
-      workspaceId: workspaceA,
-      profileType: 'PF',
-      actorId: users.ownerA.uid,
-      actorRole: 'owner',
-      operation: 'saveInvestmentRedemption',
-      targetId: 'redemption-a',
-      correlationId: 'audit-a',
-      details: {},
-      timestamp: firebaseAdmin.firestore.Timestamp.fromDate(new Date('2026-08-18T12:00:00.000Z')),
-    }),
     db.doc(`workspaces/${workspaceA}/investment_idempotency_keys/key-a`).set({status: 'completed'}),
     // M3.B: documento cujo único marcador de investimento é `settlementDate`.
     // Antes do M3 o pré-teste de update e o de delete não citavam esse campo,
@@ -228,12 +217,17 @@ test('documento marcado apenas por settlementDate não é editável nem apagáve
   });
 });
 
-test('trilha de auditoria é privilegiada e idempotência nunca é exposta', async () => {
+/*
+ * `investment_audit_logs` era a trilha exclusiva das três callables legadas de
+ * resgate e não tem mais gravador nem bloco `match`: cai no catch-all, que nega
+ * leitura de toda coleção `investment_*`. A trilha do domínio é
+ * `investment_event_logs`, com privilégio próprio coberto em
+ * `investment-domain.rules.integration.test.mjs`.
+ */
+test('coleção de auditoria legada não é mais legível e idempotência nunca é exposta', async () => {
   await seed();
-  await withClients(['ownerA', 'adminA', 'memberA'], async ({ownerA, adminA, memberA}) => {
-    assert.equal((await getDoc(doc(ownerA.db, `workspaces/${workspaceA}/investment_audit_logs/audit-a`))).exists(), true);
-    assert.equal((await getDoc(doc(adminA.db, `workspaces/${workspaceA}/investment_audit_logs/audit-a`))).exists(), true);
-    await assert.rejects(() => getDoc(doc(memberA.db, `workspaces/${workspaceA}/investment_audit_logs/audit-a`)));
+  await withClients(['ownerA'], async ({ownerA}) => {
+    await assert.rejects(() => getDoc(doc(ownerA.db, `workspaces/${workspaceA}/investment_audit_logs/audit-a`)));
     await assert.rejects(() => getDoc(doc(ownerA.db, `workspaces/${workspaceA}/investment_idempotency_keys/key-a`)));
   });
 });

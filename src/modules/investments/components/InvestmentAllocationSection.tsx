@@ -8,16 +8,14 @@ import { money } from './shared';
 /**
  * Diagnóstico de alocação PF e PJ na tela patrimonial (INV-P1-008).
  *
- * Ligar a flag **removia do produto** os dois diagnósticos de alocação: eles
- * só montavam dentro de `TransactionsView` com `viewType === 'investimento'`,
- * e essa tela deixa de ser montada quando o domínio patrimonial assume. Era
- * regressão funcional visível ao usuário — grave em PJ, onde a classificação
- * contábil é o principal valor do módulo.
+ * Os diagnósticos legados só montavam dentro de `TransactionsView` com
+ * `viewType === 'investimento'`, classificavam por `category` da transação e
+ * recebiam apenas transações de investimento — a receita chegava sempre zero.
+ * Esta seção os substitui com os cortes que o domínio calcula de fato.
  *
- * A fonte agora é `investment_allocation_summaries`, que o backend já
- * calculava com exatamente estes cortes e que ninguém consumia. Nada é
- * derivado de `transactions`: com a flag ligada, a projeção oficial existe e é
- * a única fonte.
+ * A fonte é `investment_allocation_summaries`, que o backend já calculava com
+ * exatamente estes cortes e que ninguém consumia. Nada é derivado de
+ * `transactions`: a projeção oficial é a única fonte.
  */
 
 interface Props {
@@ -60,6 +58,18 @@ const PF_DIMENSIONS: DimensionSpec[] = [
     title: 'Por liquidez',
     description: 'Quanto do patrimônio está disponível em cada prazo de resgate.',
   },
+  {
+    dimension: 'risk',
+    title: 'Por risco',
+    description:
+      'Concentração por perfil de risco do ativo. O risco é cadastrado em Ativos e é o corte que mostra exposição acima do perfil declarado.',
+  },
+  {
+    dimension: 'indexer',
+    title: 'Por indexador',
+    description:
+      'Exposição a CDI, IPCA, prefixado e demais indexadores cadastrados — o corte que revela dependência de um único índice.',
+  },
 ];
 
 /**
@@ -90,6 +100,17 @@ const PJ_DIMENSIONS: DimensionSpec[] = [
     dimension: 'account',
     title: 'Por instituição',
     description: 'Concentração do patrimônio por conta de custódia.',
+  },
+  {
+    dimension: 'risk',
+    title: 'Por risco',
+    description:
+      'Concentração por perfil de risco do ativo — o corte que sustenta a política de aplicação da empresa.',
+  },
+  {
+    dimension: 'indexer',
+    title: 'Por indexador',
+    description: 'Exposição da tesouraria a cada indexador cadastrado.',
   },
 ];
 

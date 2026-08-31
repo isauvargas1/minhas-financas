@@ -1,5 +1,5 @@
 import * as admin from "firebase-admin";
-import {FieldValue, Timestamp} from "firebase-admin/firestore";
+import {FieldPath, FieldValue, Timestamp} from "firebase-admin/firestore";
 
 import type {WorkspaceAuthorizationContext} from "../creditCards/auth";
 import {CreditCardApplicationError} from "../creditCards/errors";
@@ -157,12 +157,14 @@ interface TimelineState {
 /**
  * Serialização do estado da linha do tempo.
  *
- * Campos ausentes viram `null` **explícito**, nunca omissão. O snapshot é
- * gravado com `{merge: true}`, e num merge um mapa aninhado é combinado campo
- * a campo: omitir `positionId` e `movementCursor` ao concluir uma posição
- * deixava os valores da página anterior sobreviverem, e a reconstrução
- * reprocessava a mesma posição a partir de um cursor obsoleto, para sempre.
- * `undefined` também não serve — o Firestore o rejeita.
+ * Campos ausentes viram `null` **explícito**, nunca omissão. O defeito que
+ * originou a regra: com o snapshot ainda gravado em `merge`, omitir
+ * `positionId` e `movementCursor` ao concluir uma posição deixava os valores
+ * da página anterior sobreviverem, e a reconstrução reprocessava a mesma
+ * posição a partir de um cursor obsoleto, para sempre. Hoje o snapshot é
+ * sobrescrito por inteiro (INV-P3-002), mas a serialização continua explícita:
+ * o contrato do documento não depende do modo de escrita, e `undefined` o
+ * Firestore rejeita de qualquer forma.
  */
 const serializeTimeline = (
   timeline: TimelineState,
@@ -760,9 +762,11 @@ export const executeRebuildInvestmentProjections = async (
         status: completed ? "completed" : "running",
         phase: state.phase,
         cutoffAt: state.cutoffAt,
-        ...(state.cursor ? {cursor: state.cursor} : {cursor: FieldValue.delete()}),
-        // O Firestore rejeita `undefined`: os cursores da linha do tempo são
-        // opcionais e precisam sair do documento em vez de ir como undefined.
+        // O Firestore rejeita `undefined`: cursor ausente é `null` explícito,
+        // e `readState` já trata `null` como "sem cursor".
+        cursor: state.cursor ?? null,
+        // Os cursores da linha do tempo seguem a mesma regra, por
+        // `serializeTimeline`.
         timeline: serializeTimeline(state.timeline),
         processedPositions: state.processedPositions,
         processedMovements: state.processedMovements,
@@ -794,13 +798,29 @@ export const executeRebuildInvestmentProjections = async (
         calculationVersion: INVESTMENT_CALCULATION_VERSION,
         correlationId: payload.correlationId,
         createdBy: auth.uid,
-        createdAt: snapshotDoc.exists ?
-          (snapshotDoc.data()?.createdAt as Timestamp) :
+        createdAt: (snapshotDoc.data()?.createdAt as Timestamp | undefined) ??
           FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp(),
         ...(completed ? {completedAt: FieldValue.serverTimestamp()} : {}),
       },
-      {merge: true},
+      /*
+       * Sobrescrita total, **não** `merge` (INV-P3-002).
+       *
+       * `allocations` e `periods` são mapas cujas chaves nascem da acumulação.
+       * Com `merge: true`, gravar o mapa vazio de um estado reiniciado não
+       * apaga chave nenhuma: as faixas da tentativa anterior sobrevivem no
+       * documento, a página seguinte as relê por `readState` e acumula as
+       * mesmas posições **por cima delas**. O resultado publicado saía com o
+       * dobro do principal por faixa de alocação e por período, enquanto o
+       * resumo — que é mapa de chaves fixas, todas reescritas com zero —
+       * continuava certo. Uma divergência que só aparecia depois de um
+       * reinício por escrita concorrente, e que a reconciliação não acusava
+       * porque o total do resumo fechava.
+       *
+       * A escrita já monta o documento **inteiro** a cada página. Sobrescrever
+       * é a semântica correta e a única que torna o reinício um reinício.
+       */
+      {merge: false},
     );
 
     const result: Record<string, unknown> = {
@@ -859,7 +879,7 @@ const accumulatePositionsPage = async (
   let query = investmentCollection(workspaceId, INVESTMENT_COLLECTIONS.positions)
     .where("updatedAt", "<=", state.cutoffAt)
     .orderBy("updatedAt", "asc")
-    .orderBy(admin.firestore.FieldPath.documentId(), "asc")
+    .orderBy(FieldPath.documentId(), "asc")
     .limit(pageSize + 1);
   if (state.cursor) {
     query = query.startAfter(state.cursor.orderedAt, state.cursor.documentId);
@@ -939,7 +959,7 @@ const accumulateTimelinePage = async (
       workspaceId,
       INVESTMENT_COLLECTIONS.positions,
     )
-      .orderBy(admin.firestore.FieldPath.documentId(), "asc")
+      .orderBy(FieldPath.documentId(), "asc")
       .limit(1);
     if (timeline.positionCursor) {
       positionQuery = positionQuery.startAfter(timeline.positionCursor);
@@ -979,7 +999,7 @@ const accumulateTimelinePage = async (
     .where("status", "==", "settled")
     .where("settlementAt", "<=", state.cutoffAt)
     .orderBy("settlementAt", "asc")
-    .orderBy(admin.firestore.FieldPath.documentId(), "asc")
+    .orderBy(FieldPath.documentId(), "asc")
     .limit(pageSize + 1);
   if (timeline.movementCursor) {
     movementQuery = movementQuery.startAfter(
@@ -996,7 +1016,7 @@ const accumulateTimelinePage = async (
     .where("assetId", "==", assetId)
     .where("effectiveAt", "<=", state.cutoffAt)
     .orderBy("effectiveAt", "asc")
-    .orderBy(admin.firestore.FieldPath.documentId(), "asc")
+    .orderBy(FieldPath.documentId(), "asc")
     .limit(pageSize + 1);
   if (timeline.valuationCursor) {
     valuationQuery = valuationQuery.startAfter(
@@ -1338,7 +1358,7 @@ const pruneAllocationsPage = async (
     workspaceId,
     INVESTMENT_COLLECTIONS.allocationSummaries,
   )
-    .orderBy(admin.firestore.FieldPath.documentId(), "asc")
+    .orderBy(FieldPath.documentId(), "asc")
     .limit(pageSize + 1);
   if (state.cursor) {
     query = query.startAfter(state.cursor.documentId);
@@ -1399,7 +1419,7 @@ const prunePeriodsPage = async (
     workspaceId,
     INVESTMENT_COLLECTIONS.reportPeriods,
   )
-    .orderBy(admin.firestore.FieldPath.documentId(), "asc")
+    .orderBy(FieldPath.documentId(), "asc")
     .limit(pageSize + 1);
   if (state.cursor) {
     query = query.startAfter(state.cursor.documentId);

@@ -15,12 +15,6 @@ export const INVESTMENT_COLLECTIONS = {
   allocationSummaries: "investment_allocation_summaries",
   operationalMetrics: "investment_operational_metrics",
   /**
-   * Leases de operação pesada (INV-P2-043). Coleção própria, e não um
-   * documento em `investment_snapshots`: o validador de snapshot das Rules
-   * exige a forma de checkpoint, e um lease não é um checkpoint.
-   */
-  operationLeases: "investment_operation_leases",
-  /**
    * Registro de deriva detectada pela rotina agendada (INV-P2-019).
    */
   driftReports: "investment_drift_reports",

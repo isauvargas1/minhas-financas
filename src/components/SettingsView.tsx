@@ -177,8 +177,6 @@ const SettingsView: React.FC<SettingsViewProps> = () => {
     const { activeWorkspace, reloadWorkspaces, canManageActiveWorkspace } = useWorkspace();
     const updateWorkspaceMutation = useUpdateWorkspace();
     const isPJ = activeWorkspace.type === 'PJ';
-    const investmentsV2Enabled =
-        activeWorkspace.features?.investmentsV2?.enabled === true;
 
     const [isMembersModalOpen, setIsMembersModalOpen] = useState(false);
     const canManageMembers = ['owner', 'admin'].includes(activeWorkspace.myRole || '');
@@ -725,38 +723,28 @@ const sortedItems = useMemo(() => {
                     </div>
                 </div>
 
-                {/*
-                  INV-P2-025 — o cadastro patrimonial só existe quando o
-                  domínio patrimonial está ligado. Com a flag desligada, contas
-                  e ativos de investimento não alimentam nada que o produto
-                  exiba: a seção ficava órfã, oferecendo cadastro para um
-                  domínio que ninguém lê.
-                */}
-                {investmentsV2Enabled && (
-                    <>
-                        <InvestmentOnboardingCard
-                            workspaceId={activeWorkspace.id}
-                            profileType={activeWorkspace.type}
-                            isOwner={activeWorkspace.myRole === 'owner'}
-                        />
+                <InvestmentOnboardingCard
+                    workspaceId={activeWorkspace.id}
+                    profileType={activeWorkspace.type}
+                    isOwner={activeWorkspace.myRole === 'owner'}
+                />
 
-                        <InvestmentRegistrySection
-                            workspaceId={activeWorkspace.id}
-                            profileType={activeWorkspace.type}
-                            canManage={canManageActiveWorkspace}
-                        />
-                    </>
-                )}
+                <InvestmentRegistrySection
+                    workspaceId={activeWorkspace.id}
+                    profileType={activeWorkspace.type}
+                    canManage={canManageActiveWorkspace}
+                />
 
                 {/*
                   Superfície operacional do domínio patrimonial (INV-P1-006).
-                  Só o proprietário do workspace a vê: são ações de efeito
-                  amplo, e o backend as restringe pela mesma matriz de papéis.
+                  O painel decide por ação quais papéis a veem, com o mesmo
+                  conjunto que o backend aceita: reconstrução de projeções e
+                  backfill são restritas ao proprietário; a reconstrução de
+                  progresso de meta é aberta ao administrador.
                 */}
                 <InvestmentOperationsPanel
                     workspaceId={activeWorkspace.id}
-                    isOwner={activeWorkspace.myRole === 'owner'}
-                    investmentsV2Enabled={investmentsV2Enabled}
+                    myRole={activeWorkspace.myRole}
                 />
 
            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

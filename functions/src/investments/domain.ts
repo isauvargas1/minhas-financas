@@ -118,9 +118,6 @@ export interface InvestmentMovement {
   settlementAt?: Timestamp;
   settlementCorrelationId?: string;
   importBatchId?: string;
-  /** Transação legada que originou este movimento na migração. */
-  migratedFromTransactionId?: string;
-  migrationId?: string;
   createdBy: string;
   createdAt: Timestamp;
   settledBy?: string;

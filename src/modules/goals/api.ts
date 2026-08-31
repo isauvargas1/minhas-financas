@@ -30,7 +30,7 @@ const callGoalFunction = async <TInput extends Record<string, unknown>, TResult>
   return response.data;
 };
 
-export const listGoals = async (workspaceId?: string, investmentsV2Enabled = false): Promise<Goal[]> => {
+export const listGoals = async (workspaceId?: string): Promise<Goal[]> => {
   if (!workspaceId || workspaceId === 'loading') return [];
   /*
    * INV-P2-033 — o filtro de arquivadas acontecia **depois** do `limit(100)`,
@@ -64,7 +64,6 @@ export const listGoals = async (workspaceId?: string, investmentsV2Enabled = fal
       return mapGoalDocument(
         item.id,
         data as Omit<Goal, 'id'> & {investmentProgressCents?: number},
-        investmentsV2Enabled,
       );
     })
     .filter((goal) => goal.archived !== true);
@@ -112,20 +111,6 @@ export const updateGoal = async (
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
-};
-
-export const setGoalTransactionLinks = async (
-  goalId: string,
-  transactionIds: string[],
-  workspaceId: string,
-  idempotencyKey: string,
-): Promise<void> => {
-  await callGoalFunction('setGoalTransactionLinks', {
-    workspaceId,
-    idempotencyKey,
-    goalId,
-    transactionIds,
-  });
 };
 
 export const archiveGoal = async (

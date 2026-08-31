@@ -960,7 +960,279 @@ valorado posição.
 
 ## Critério para iniciar M1
 
-- Baseline em [BASELINE.md](BASELINE.md) revisado.
+- Baseline do M0 registrado no histórico Git (documento removido no encerramento do domínio único).
 - `npm run verify:fast` verde.
 - Resultado de `verify:all` registrado sem promover etapas não executadas a sucesso.
 - Nenhuma mudança de domínio de investimentos misturada ao commit do M0.
+
+---
+
+# Fase de prontidão de rollout em STAGING
+
+Fase posterior à auditoria final (`PRODUCTION_READINESS_AUDIT_FINAL.md`).
+Escopo: fechar pendências de código e preparar o ensaio de rollout, sem tocar
+produção. Relatório removido no encerramento do domínio único; ver `INVESTMENTS_SINGLE_DOMAIN_FINALIZATION.md`.
+
+## Decisões
+
+1. **A superfície de reconstrução de meta entra no painel existente**, com
+   papel declarado por ação em vez de um gate único de proprietário. Migração,
+   reversão e habilitação da flag continuam owner-only; as duas reconstruções
+   de meta seguem a matriz do backend (`owner` + `admin`). Alternativa
+   descartada: manter a tela mais restritiva que a regra, o que deixaria o
+   administrador sem caminho executável para a operação que ele pode fazer.
+2. **`correlationId` sai do `requestHash` no módulo de metas.** Ele identifica
+   a tentativa, não a intenção; dentro do hash, um retry vira
+   `idempotency_conflict` em vez de replay. Payloads sem o campo produzem o
+   mesmo texto de antes, então nenhum hash já persistido muda.
+3. **O agendador de recorrentes passa a ler o esquema que o produto grava** e a
+   gerar apenas para `gerarDespesaAutomaticamente: true`. É mudança de
+   comportamento — a rotina era um no-op — e está registrada como tal.
+4. **`FieldPath` passa a vir de `firebase-admin/firestore`** em todos os
+   caminhos paginados.
+5. **O lease do backfill ancora no `correlationId`**, não na chave de
+   idempotência, porque a chave precisa variar por página.
+6. **Os totais das telas de empréstimo viram agregados do servidor.** Paginar a
+   listagem sem separar os totais os transformaria em somas parciais.
+
+## Achados desta fase
+
+| ID | Severidade | O que era | Estado |
+| -- | ---------- | --------- | ------ |
+| STG-01 | P1 | `rebuildGoalProgress` sem nenhum chamador no produto; os dois caminhos que abandonam a soma exata apontavam para ela | FIXED |
+| STG-02 | P1 | `admin.firestore.FieldPath` chega `undefined` no runtime do emulador: cinco superfícies paginadas nunca puderam ser exercitadas de ponta a ponta | FIXED |
+| STG-03 | P1 | `runPaged` repetia a chave de idempotência por página: a página 2 era replay da 1 e a execução travava até o teto | FIXED |
+| STG-04 | P1 | Lease do backfill ancorado na chave de idempotência: a própria execução era recusada na segunda página | FIXED |
+| STG-05 | P1 | `processRecurring` consultava `status == "active"` e `nextDueDate`, que o produto nunca grava — agendador financeiro em no-op silencioso | FIXED |
+| STG-06 | P1 | A despesa gerada saía com `date` fora do contrato, sem `userId` e sem `workspaceId`: ficava fora da projeção de caixa e não podia ser editada | FIXED |
+| STG-07 | P1 | Consulta de grupo de coleção de `recurring_expenses` sem índice: falharia em produção | FIXED |
+| STG-08 | P1 | `STRIPE_ALLOWED_PRICE_IDS` e `APP_ALLOWED_ORIGINS` lidas sem serem declaradas: provisioná-las não as montaria e o checkout falharia fechado | FIXED |
+| STG-09 | P2 | Sete callables de metas sem tempo limite, incluindo a que soma até 100.000 aportes | FIXED |
+| STG-10 | P2 | Cron de faturas sem recurso declarado: 60 s para paginar 10.000 faturas | FIXED |
+| STG-11 | P2 | `split_shares` varrida inteira por cartão de grupo exibido | FIXED |
+| STG-12 | P2 | `loans`, `recurring_expenses` e `split_groups` lidos sem `limit` | FIXED |
+| STG-13 | P2 | Tela de detalhe de assinatura listava ocorrências de todas as assinaturas | FIXED |
+| STG-14 | P2 | Teto de 600 períodos de caixa truncava o saldo em silêncio | FIXED |
+| STG-15 | P2 | Janela padrão de transações descartava o sinal de truncamento | FIXED |
+| STG-16 | P2 | Backfill de caixa sem simulação nem bloco de reconciliação | FIXED |
+| STG-17 | P3 | Cascata de exclusão de empréstimo montava um lote acima do limite de 500 escritas | FIXED |
+| STG-18 | P1 | Filtrar rateios por `aPagar` fazia a edição de um título apagar em definitivo o rateio de quem já pagou | FIXED |
+| STG-19 | P1 | Cursor de movimentações usava só o ID numa consulta ordenada por `date`: a página seguinte repetia a primeira para sempre | FIXED |
+| STG-20 | P1 | Primeira execução real do agendador geraria uma despesa retroativa por dia até alcançar o presente | FIXED |
+| STG-21 | P1 | Agendador duplicaria a despesa que a tela de detalhe já gera para a mesma ocorrência | FIXED |
+| STG-22 | P2 | `deleteSplitGroup` montava até 601 escritas num lote de 500: grupo grande não podia ser excluído | FIXED |
+| STG-23 | P2 | Índice do agregado de empréstimos não incluía o campo somado | FIXED |
+| STG-24 | P2 | Categoria da despesa gerada recebia o **ID** do vínculo e apareceria assim no gráfico | FIXED |
+| STG-25 | P2 | Sonda de truncamento da projeção de caixa acusava corte com exatamente 600 períodos | FIXED |
+
+## Riscos residuais
+
+| Risco | Impacto | Tratamento |
+| ----- | ------- | ---------- |
+| Busca e filtros das listagens paginadas cobrem só as páginas carregadas | Um contrato na página 2 não aparece na busca até "Carregar mais" | Inerente à paginação; busca no servidor é trabalho de produto, não de prontidão |
+| Contrato de empréstimo sem `status` (anterior ao campo) sai dos totais | Divergência entre listagem e indicadores | `in` e `not-in` omitem documento sem o campo; só varredura o encontraria, que é o que a mudança elimina |
+| Não existe projeto de STAGING; o único acessível é produção, e é o padrão do `.firebaserc` | Um `firebase deploy` sem `--project` acerta produção | Criar o projeto antes do primeiro deploy; o script do ensaio recusa produção por construção |
+| `processRecurring` deixa de ser no-op | Passa a gerar despesa onde nunca gerou | Só com `gerarDespesaAutomaticamente: true`; validar em staging antes de produção |
+| Lease do backfill é por lote, não por workspace | Dois lotes do mesmo workspace podem intercalar | Converge (valor absoluto), custo é trabalho repetido; mensagem em pt-BR é mais ampla que o comportamento |
+| Cursor do cron de faturas não é persistido | Execução truncada recomeça do início da janela | Registrado; o cron agora tem 540 s, o que torna o corte improvável |
+| `monthsAgoDateOnly` calcula em UTC | Até um dia de diferença na borda da janela padrão | Severidade baixa; nenhum agregado publicado depende dela |
+| Fan-out N+1 de consultas por cartão de grupo | N consultas indexadas por renderização | Deixou de ser N varreduras completas; hoistar é refatoração de UI fora deste escopo |
+
+## Rollback
+
+Tudo é revertível por `git revert` dos commits desta fase. Nenhuma coleção
+nova, nenhuma migração de dado, nenhum campo removido. O único ponto com efeito
+observável em ambiente já implantado é `processRecurring`, que passa a gerar
+despesas: reverter o commit devolve o comportamento anterior, e as despesas já
+geradas são transações comuns, editáveis e passíveis de baixa lógica pelo
+usuário.
+
+
+---
+
+# Encerramento — Investimentos como domínio único
+
+**Decisão.** A coexistência legado ↔ V2 acabou. Não existe mais
+`features.investmentsV2`, migração, reconciliação, rollback de migração nem
+trilha legada de escrita. `investment_movements` é a fonte de verdade
+patrimonial; `transactions` permanece como domínio de receita, despesa e caixa,
+e recebe o espelho unidirecional dos movimentos que movem dinheiro.
+
+**Contexto que autorizou.** Sistema em desenvolvimento, projeto Firebase sem
+dados financeiros de clientes, nenhum usuário dependente do fluxo legado e
+nenhuma compatibilidade histórica a preservar. Sem base a migrar, a camada de
+coexistência deixou de proteger e passou a ser só superfície.
+
+**Progresso.**
+- 16 arquivos removidos (4.603 linhas), mais as remoções dentro de arquivos que
+  ficaram — cerca de 4.600 linhas de código morto de coexistência no total.
+- 10 callables retiradas da superfície implantada: 53 → 43 funções.
+- Rules sem leitura de `features`; a negação de escrita direta de investimento
+  virou incondicional e economiza um `get()` por escrita.
+- 3 índices compostos removidos (50 → 47).
+- Aporte em meta migrou para `createInvestmentContribution` com `goalId`; o
+  vínculo retroativo por transação saiu junto, porque não era gateado e podia
+  carimbar `goalId` num espelho de caixa, contando o aporte duas vezes.
+- Diagnóstico de alocação PF/PJ passou a exibir também os cortes por **risco** e
+  por **indexador**, que o backend já materializava e nenhuma tela lia.
+
+**Evidências.** `npm run typecheck`, `npm run build`,
+`npm --prefix functions run build`, `npm --prefix functions run lint` (0 erros),
+`npm --prefix functions run test:unit` (100), `npm run test:unit:investments`
+(35), `npm run test:integration:emulator` (174 entre integração e Rules) e
+`npm run test:e2e` (26) — todos verdes.
+
+**Defeito corrigido no caminho.** `backfill.ts` → `runToCompletion` decidia o
+fim de um rebuild interno por `completed`, mas o recálculo de posição e o de
+progresso de meta devolvem `hasMore`. A primeira página concluía o alvo e a
+segunda batia em "Esta reconstrução já foi concluída": o backfill falhava em
+qualquer workspace que tivesse posição a reconstruir. Nenhuma suíte exercitava
+esse caso — todas rodavam o backfill sobre um domínio vazio. Corrigido e coberto
+por `pagedRunContract.integration.test.ts`.
+
+**Riscos residuais.** Reentrega do gatilho de transações reaplicando delta em
+`cash_report_periods` (pré-existente, reconciliável por `rebuildCashPeriods`);
+ausência de lease em `rebuild.ts` e `projectionRebuild.ts` depois da remoção de
+`operationLease.ts`; ausência de alias de staging no `.firebaserc`. Detalhe em
+`INVESTMENTS_SINGLE_DOMAIN_FINALIZATION.md` §13.
+
+**Rollback.** Somente de código (`git revert`). Não há rollback de arquitetura:
+a trilha legada não volta porque não existe dado que dependa dela. Reverter
+reintroduz as 10 callables e a leitura de `features.investmentsV2` nas Rules —
+e como nenhum workspace tem esse campo, todo workspace passaria a abrir a tela
+legada, que não tem dado nenhum.
+
+**Documento.** `docs/investments/INVESTMENTS_SINGLE_DOMAIN_FINALIZATION.md`.
+
+---
+
+## Fechamento dos riscos residuais antes do deployment (INV-P3)
+
+**Decisão.** Fechar os dois riscos bloqueantes que a finalização do domínio
+único deixou registrados, sem reintroduzir nenhuma camada de coexistência.
+Registro completo em `INVESTMENTS_SINGLE_DOMAIN_FINALIZATION.md` §§15–19.
+
+**INV-P3-001 — idempotência do gatilho de caixa.** `applyCashPeriodWrite`
+somava delta por `FieldValue.increment` sem deduplicar por `event.id`, numa
+entrega que é at-least-once: a reentrega mentia no saldo acumulado, em
+silêncio. `applyCashPeriodWriteOnce` passa a ler e criar a marca
+`cash_period_events/{sha256(event.id)}` **na mesma transação** do incremento.
+Escopada por workspace, ID em hash, `expiresAt` de 90 dias, `allow read, write:
+if false` nas Rules e na lista de `isBackendOwnedCollection`, acesso por ID sem
+consulta nenhuma. `rebuildCashPeriods` permanece reconciliação — e ganhou um
+teste que exige que feche nos valores que o caminho deduplicado publicou.
+
+**INV-P3-002 — concorrência de reconstrução.** A prova exigida encontrou um
+defeito real. O snapshot de reconstrução era gravado com `{merge: true}`, e
+`allocations`/`periods` são mapas de chaves abertas: gravar o mapa vazio de um
+estado **reiniciado** não apagava chave nenhuma, a página seguinte relia as
+faixas da tentativa anterior e acumulava por cima. O principal por faixa e por
+período saía publicado em dobro — com o resumo certo, porque é mapa de chaves
+fixas, de modo que a conferência de total fechava e nada acusava. Alcançável
+por duas reconstruções concorrentes e, mais fácil, por qualquer aporte feito
+durante uma reconstrução. Corrigido com `{merge: false}` e `cursor: null`
+explícito. Com isso, `expectedProjectionVersion` + serialização transacional do
+Firestore são atomicamente suficientes: **nenhum lease foi introduzido**, e o
+motivo está documentado.
+
+**INV-P3-003 — utilitário de limpeza.** `--include-legacy-investment-transactions`
+remove também as transações `type: 'investimento'` **sem** marcador do domínio,
+sob confirmação própria (`--confirmar-legado`), porque não são reconstruíveis.
+`--projeto` explícito, opção desconhecida recusada, classificação impressa por
+documento, limpeza de metas paginada.
+
+**Progresso.**
+- `functions/src/cash/periods.ts`: `applyCashPeriodWriteOnce`,
+  `cashPeriodEventKey`, `cashPeriodEventRef`; `applyCashPeriodWrite` passa a
+  devolver os períodos escritos.
+- `functions/src/triggers/transactions.ts`: gatilho reescrito sobre o caminho
+  deduplicado.
+- `functions/src/shared/retention.ts`: `RETENTION_DAYS.cashPeriodEvents = 90`.
+- `firestore.rules`: `cash_period_events` server-only nos dois sentidos.
+- `functions/src/investments/projectionRebuild.ts`: snapshot sobrescrito, não
+  mesclado.
+- `functions/src/shared/runtimeOptions.ts`: comentário que ainda citava
+  `operationLease.ts` corrigido.
+- `tools/investments/limpar-investimentos.mjs`: opção de legado, `--projeto`,
+  classificação com motivo, paginação de metas.
+
+**Evidências.** 3 arquivos de teste novos ou ampliados: 4 casos de reentrega em
+`cash/__tests__/periods.integration.test.ts`; 4 de concorrência em
+`investments/__tests__/rebuildConcurrency.integration.test.ts` (o de reinício
+reprova a versão anterior do código e foi executado 4 vezes sem oscilação); 1
+de fonte única em `investments/__tests__/goalSingleSource.integration.test.ts`;
+1 de Rules em `m4-hardening`. Gates: `typecheck`, `build`, `functions build`,
+`functions lint` (0 erros), `functions test:unit` (100),
+`test:unit:investments` (35), `test:integration:emulator` (116 integração + 69
+Rules) e `test:e2e` (26) — todos verdes, sem skip novo.
+
+**Riscos residuais.** Recursos de runtime de `onTransactionWrite` e
+`stripeWebhook` fora do contrato de implantação; ausência de alias de staging;
+`investment_snapshots` com `status: rolled_back` antigo; publicação parcial de
+uma reconstrução abandonada (retomável, nunca divergente); TTL de
+`cash_period_events` depende de ativação no projeto. Detalhe em
+`INVESTMENTS_SINGLE_DOMAIN_FINALIZATION.md` §13.
+
+**Rollback.** Somente de código (`git revert`). Reverter reabre a duplicação
+por reentrega do gatilho de caixa e o defeito de reinício da reconstrução;
+nenhum dado gravado por esta mudança impede a reversão — `cash_period_events`
+fica órfã e expira sozinha.
+
+---
+
+## Preparação operacional do deployment de desenvolvimento
+
+**Decisão.** Nenhuma lógica de negócio, cálculo financeiro ou arquitetura foi
+tocada. Só o que faltava para o deployment ser executável. Procedimento
+completo, com comandos preenchidos, em
+`INVESTMENTS_SINGLE_DOMAIN_FINALIZATION.md` §20.
+
+**Override de reset no Project ID real.** `sistema-financeiro-pesso-20698` é o
+único projeto e ainda é o ambiente de desenvolvimento, mas o utilitário de
+limpeza o recusava pelo ID literal. A recusa **permanece**; foi acrescentada
+uma porta com quatro fechaduras, todas em argv e nenhuma com valor padrão:
+`--projeto` na linha de comando (a variável `PROJETO` não abre),
+`--allow-development-reset-on-project` com o mesmo ID, `--workspace`, e
+`--apply` + `--confirmar` + `--confirmar-projeto` para escrever. Vale só para
+esse ID; qualquer outro é recusado com mensagem própria. Sob override,
+`FIRESTORE_EMULATOR_HOST` deixa de ser atenuante. `--include-legacy-...`
+continua exigindo `--confirmar-legado`. Banner em destaque quando ativo.
+`COLECOES_PROIBIDAS` + `assegurarColecaoPermitida` transformam "nunca apaga
+cartão/empréstimo/rateio/transação" em verificação antes da escrita.
+
+**Hosting.** Bloco `hosting` acrescentado a `firebase.json` por edição textual,
+preservando `firestore`, `functions` e `emulators` byte a byte — sem
+`firebase init`. `public: dist`, rewrite de SPA, `immutable` de um ano em
+`/assets/**` (todo asset do Vite tem hash de conteúdo) e `no-cache` em
+`/index.html`. Sem `predeploy`, de propósito: as `VITE_FIREBASE_*` decidem o
+projeto do bundle, e o build fica sendo passo explícito. `vite.config.ts`,
+`src/lib/firebase.ts` e `FUNCTIONS_REGION` intocados.
+
+**Deploy safety.** `.firebaserc` inalterado, sem staging. Os scripts de deploy
+passaram a fixar `--project sistema-financeiro-pesso-20698` em vez de confiar
+no alias `default`; `deploy:hosting` e `deploy:webhook` foram acrescentados.
+
+**Progresso.**
+- `tools/investments/limpar-investimentos.mjs`: override, invariante de
+  coleções proibidas, banner.
+- `tests/tools/limpar-investimentos.guard.test.mjs` (novo): 15 casos, só
+  Emulator, ligado a `test:integration:emulator` e a `test:tools:limpeza`.
+- `firebase.json`: bloco `hosting`.
+- `package.json`: `--project` explícito, `deploy:hosting`, `deploy:webhook`,
+  `test:tools:limpeza`.
+
+**Evidências.** `npm run typecheck`, `npm run build`,
+`npm --prefix functions run build`, `npm run test:integration:emulator`
+(116 integração + 15 guard + 69 Rules) e `npm run test:e2e` (26) — verdes.
+
+**Riscos residuais.** `dist/` é compartilhado por `build` e `build:e2e`, e
+publicar o segundo entrega um aplicativo apontado para `127.0.0.1`;
+`deploy:hosting` reconstrói sempre e o §20.7-I traz a conferência. Projeto
+único, sem alias de staging: ensaio só no Emulator. `gcloud` não está instalado
+no Codespace — o TTL é ativado pelo Console, procedimento no §20.4.
+
+**Rollback.** `git revert` do commit. O bloco `hosting` e o `--project` dos
+scripts não deixam estado no projeto Firebase; o override do utilitário some
+com o arquivo e a recusa padrão volta a ser incondicional.
+
+**Nada foi implantado, removido ou apagado.**

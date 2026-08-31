@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Goal, Transaction } from '../types.ts';
+import { Transaction } from '../types.ts';
 import { transactionTypeColors } from '../constants.ts';
 import {
     PlusIcon,
@@ -8,14 +8,10 @@ import {
     DeleteIcon,
     SortUpIcon,
     SortDownIcon,
-    TargetIcon,
     SearchIcon,
     FilterIcon,
     CloseIcon,
 } from './Icons.tsx';
-import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
-import AllocationAnalysis from './AllocationAnalysis.tsx';
-import BusinessAllocationAnalysis from './BusinessAllocationAnalysis.tsx';
 import { usePlan } from '../hooks/usePlan.ts';
 import CatalogVisualChip from './CatalogVisualChip.tsx';
 import { useSettingsCatalog } from '../modules/settings-catalog/hooks.ts';
@@ -27,16 +23,15 @@ import {
     isCreditCardInvoiceCompatibleTransaction,
     isCreditCardInvoicePaymentCashTransaction,
 } from '../modules/credit-cards/compatibility';
-import { isInvestmentRedemption, transactionCashImpactCents } from '../modules/investments/semantics.ts';
+import { transactionCashImpactCents } from '../modules/investments/semantics.ts';
 
 interface TransactionsViewProps {
-    viewType: 'receita' | 'despesa' | 'investimento';
+    viewType: 'receita' | 'despesa';
     transactions: Transaction[];
     onBack: () => void;
     onAddTransaction: () => void;
     onEditTransaction: (transaction: Transaction) => void;
     onDeleteTransaction: (transaction: Transaction) => void;
-    goals?: Goal[];
 }
 
 type SortableKeys =
@@ -92,11 +87,7 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({
     onAddTransaction,
     onEditTransaction,
     onDeleteTransaction,
-    goals = [],
 }) => {
-    const { activeWorkspace } = useWorkspace();
-    const isPF = activeWorkspace.type === 'PF';
-    const isPJ = activeWorkspace.type === 'PJ';
 
     const catalogQuery = useSettingsCatalog({ includeInactive: true });
     const catalogItems = catalogQuery.data ?? [];
@@ -142,15 +133,7 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({
     const viewTitles = {
         receita: 'Receitas',
         despesa: 'Despesas e Parcelamentos',
-        investimento: 'Investimentos',
     };
-
-    const goalNameById = useMemo<Record<string, string>>(() => {
-        return goals.reduce<Record<string, string>>((acc, goal) => {
-            acc[goal.id] = goal.name;
-            return acc;
-        }, {});
-    }, [goals]);
 
     const categoryOptions = useMemo<string[]>(() => {
         return Array.from(
@@ -163,26 +146,16 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({
     }, [transactions]);
 
     const secondaryFilterLabel =
-        viewType === 'receita'
-            ? 'Tipo de receita'
-            : viewType === 'despesa'
-                ? 'Tipo de despesa'
-                : 'Meta';
+        viewType === 'receita' ? 'Tipo de receita' : 'Tipo de despesa';
 
     const getSecondaryFilterValue = (transaction: Transaction): string => {
         if (viewType === 'receita') {
             return transaction.incomeType || '';
         }
 
-        if (viewType === 'despesa') {
-            return transaction.type === 'parcelado'
-                ? 'Parcelamento'
-                : transaction.expenseType || '';
-        }
-
-        return transaction.goalId
-            ? goalNameById[transaction.goalId] || 'Meta removida'
-            : 'Sem meta';
+        return transaction.type === 'parcelado'
+            ? 'Parcelamento'
+            : transaction.expenseType || '';
     };
 
     const secondaryOptions = useMemo<string[]>(() => {
@@ -193,7 +166,7 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({
                     .filter((value): value is string => Boolean(value)),
             ),
         ).sort((a: string, b: string) => a.localeCompare(b, 'pt-BR'));
-    }, [transactions, viewType, goalNameById]);
+    }, [transactions, viewType]);
 
     const filteredTransactions = useMemo(() => {
         const normalizedSearch = normalizeText(searchTerm);
@@ -215,11 +188,7 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({
                 transaction.paymentMethod || (transaction.cardId ? 'Cartão de Crédito' : ''),
                 getSecondaryFilterValue(transaction),
                 transaction.type === 'parcelado' ? 'Parcelamento' : '',
-                transaction.isPaid
-                    ? viewType === 'investimento'
-                        ? 'Depositado'
-                        : 'Pago'
-                    : 'Pendente',
+                transaction.isPaid ? 'Pago' : 'Pendente',
             ];
 
             const matchesSearch =
@@ -256,7 +225,6 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({
         secondaryFilter,
         paymentStatusFilter,
         viewType,
-        goalNameById,
     ]);
 
     const sortedTransactions = useMemo(() => {
@@ -315,39 +283,6 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({
 
         return sortableItems;
     }, [filteredTransactions, sortConfig]);
-
-    const investmentSummary = useMemo(() => {
-        if (viewType !== 'investimento') return null;
-
-        const summary: Record<
-            string,
-            { name: string; total: number; color: string; icon: string }
-        > = {};
-        let noGoalTotal = 0;
-
-        transactions.forEach((transaction) => {
-            if (transaction.goalId) {
-                const goal = goals.find((g) => g.id === transaction.goalId);
-                if (goal) {
-                    if (!summary[goal.id]) {
-                        summary[goal.id] = {
-                            name: goal.name,
-                            total: 0,
-                            color: goal.visual.color,
-                            icon: goal.visual.emoji || '',
-                        };
-                    }
-                    summary[goal.id].total += transaction.value;
-                } else {
-                    noGoalTotal += transaction.value;
-                }
-            } else {
-                noGoalTotal += transaction.value;
-            }
-        });
-
-        return { goals: Object.values(summary), noGoalTotal };
-    }, [transactions, viewType, goals]);
 
     const filteredTotal = useMemo(
         () =>
@@ -440,62 +375,6 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({
 
     return (
         <div className="h-full animate-fade-in flex flex-col gap-6">
-            {viewType === 'investimento' && isPF && (
-                <AllocationAnalysis
-                    transactions={transactions}
-                    goals={goals}
-                    periodLabel="este período"
-                />
-            )}
-
-            {viewType === 'investimento' && isPJ && (
-                <BusinessAllocationAnalysis
-                    transactions={transactions}
-                    goals={goals}
-                />
-            )}
-
-            {viewType === 'investimento' && investmentSummary && (
-                <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-                    <div className="bg-white dark:bg-dark-100 rounded-xl shadow-md p-6 border-l-4 border-gray-400 dark:border-gray-500">
-                        <div className="flex items-center justify-between mb-2">
-                            <span className="text-gray-500 dark:text-gray-400 font-medium text-sm">
-                                Sem Meta Definida
-                            </span>
-                            <div className="bg-gray-100 dark:bg-dark-800 p-1.5 rounded-full text-gray-500">
-                                <TargetIcon className="w-4 h-4 opacity-50" />
-                            </div>
-                        </div>
-                        <p className="text-2xl font-bold text-gray-800 dark:text-white">
-                            {formatCurrency(investmentSummary.noGoalTotal)}
-                        </p>
-                    </div>
-
-                    {investmentSummary.goals.map((item, idx) => (
-                        <div
-                            key={idx}
-                            className="bg-white dark:bg-dark-100 rounded-xl shadow-md p-6 border-l-4"
-                            style={{ borderLeftColor: item.color }}
-                        >
-                            <div className="flex items-center justify-between mb-2">
-                                <span className="text-gray-500 dark:text-gray-400 font-medium text-sm truncate pr-2">
-                                    {item.name}
-                                </span>
-                                <div
-                                    className="p-1.5 rounded-full text-white text-xs flex items-center justify-center w-7 h-7"
-                                    style={{ backgroundColor: item.color }}
-                                >
-                                    {item.icon || <TargetIcon className="w-3 h-3" />}
-                                </div>
-                            </div>
-                            <p className="text-2xl font-bold text-gray-800 dark:text-white">
-                                {formatCurrency(item.total)}
-                            </p>
-                        </div>
-                    ))}
-                </div>
-            )}
-
             <div className="bg-white dark:bg-dark-100 rounded-xl shadow-md p-6 flex-1">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
                     <div className="flex items-center gap-4">
@@ -599,9 +478,7 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({
                         {viewType !== 'receita' && (
                             <div className="xl:col-span-2">
                                 <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                                    {viewType === 'investimento'
-                                        ? 'Status do aporte'
-                                        : 'Status'}
+                                    Status
                                 </label>
                                 <select
                                     value={paymentStatusFilter}
@@ -613,11 +490,7 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({
                                     className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-dark-100 px-3 py-2.5 text-sm text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                                 >
                                     <option value="todos">Todos</option>
-                                    <option value="paid">
-                                        {viewType === 'investimento'
-                                            ? 'Depositados'
-                                            : 'Pagos'}
-                                    </option>
+                                    <option value="paid">Pagos</option>
                                     <option value="pending">Pendentes</option>
                                 </select>
                             </div>
@@ -640,7 +513,7 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({
 
                         {viewType !== 'receita' && (
                             <span className="inline-flex items-center rounded-full bg-white dark:bg-dark-100 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 shadow-sm ring-1 ring-gray-200 dark:ring-gray-800">
-                                {viewType === 'investimento' ? 'Depositados' : 'Pagos'}{' '}
+                                Pagos{' '}
                                 {paidTransactionsCount}
                             </span>
                         )}
@@ -703,15 +576,6 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({
                                     const creditCardInvoiceSecondaryText = isCreditCardInvoiceProjection
                                         ? getCreditCardInvoiceSecondaryText(transaction)
                                         : null;
-                                    const redemptionStatus = isInvestmentRedemption(transaction)
-                                        ? transaction.investmentMetadata?.status
-                                        : undefined;
-                                    const isRedemptionReversal = transaction.investmentMetadata?.investmentOperation === 'redemption_reversal';
-                                    const redemptionCannotEdit = isRedemptionReversal ||
-                                        (redemptionStatus !== undefined && redemptionStatus !== 'pending');
-                                    const redemptionCannotReverse = isRedemptionReversal ||
-                                        redemptionStatus === 'cancelled' || redemptionStatus === 'reversed';
-
                                     return (
                                         <tr
                                             key={transaction.id}
@@ -819,12 +683,6 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({
                                                                         PARCELA {transaction.currentInstallment}/{transaction.installments}
                                                                     </span>
                                                                 ) : null}
-
-                                                                {transaction.goalId && viewType === 'investimento' && (
-                                                                    <span className="inline-flex rounded-full bg-indigo-100 dark:bg-indigo-900/30 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-indigo-800 dark:text-indigo-300">
-                                                                        Meta vinculada
-                                                                    </span>
-                                                                )}
                                                             </div>
                                                         </div>
                                                     </td>
@@ -881,32 +739,6 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({
                                                         </>
                                                     )}
 
-                                                    {viewType === 'investimento' && (
-                                                        <td className="py-4 px-4 text-center">
-                                                            {transaction.investmentMetadata?.status === 'cancelled' ? (
-                                                                <span className="inline-flex rounded-full bg-gray-100 dark:bg-gray-800 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
-                                                                    Cancelado
-                                                                </span>
-                                                            ) : transaction.investmentMetadata?.status === 'reversed' ? (
-                                                                <span className="inline-flex rounded-full bg-gray-100 dark:bg-gray-800 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
-                                                                    Estornado
-                                                                </span>
-                                                            ) : transaction.investmentMetadata?.investmentOperation === 'redemption_reversal' ? (
-                                                                <span className="inline-flex rounded-full bg-purple-100 dark:bg-purple-900/30 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-purple-800 dark:text-purple-300">
-                                                                    Estorno liquidado
-                                                                </span>
-                                                            ) : transaction.isPaid ? (
-                                                                <span className="inline-flex rounded-full bg-blue-100 dark:bg-blue-900/30 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-blue-800 dark:text-blue-400">
-                                                                    {isInvestmentRedemption(transaction) ? 'Liquidado' : 'Depositado'}
-                                                                </span>
-                                                            ) : (
-                                                                <span className="inline-flex rounded-full bg-amber-100 dark:bg-amber-900/30 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-amber-800 dark:text-amber-400">
-                                                                    Pendente
-                                                                </span>
-                                                            )}
-                                                        </td>
-                                                    )}
-
                                                     <td className="py-4 px-4 text-gray-600 dark:text-gray-300 whitespace-nowrap">
                                                         {formatDate(transaction.date)}
                                                     </td>
@@ -924,38 +756,30 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({
                                                         <div className="flex items-center justify-center gap-2">
                                                             <button
                                                                 onClick={() => onEditTransaction(transaction)}
-                                                                disabled={isCreditCardInvoiceProjection || redemptionCannotEdit}
-                                                                className={`p-2 rounded-full transition-colors ${isCreditCardInvoiceProjection || redemptionCannotEdit
+                                                                disabled={isCreditCardInvoiceProjection}
+                                                                className={`p-2 rounded-full transition-colors ${isCreditCardInvoiceProjection
                                                                     ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
                                                                     : 'text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30'
                                                                     }`}
                                                                 aria-label={
                                                                     isCreditCardInvoiceProjection
                                                                         ? 'Fatura de cartão não pode ser editada como transação'
-                                                                        : redemptionCannotEdit
-                                                                            ? 'Movimento de resgate não pode ser editado'
-                                                                            : 'Editar'
+                                                                        : 'Editar'
                                                                 }
                                                             >
                                                                 <EditIcon />
                                                             </button>
                                                             <button
                                                                 onClick={() => onDeleteTransaction(transaction)}
-                                                                disabled={isCreditCardInvoiceProjection || redemptionCannotReverse}
-                                                                className={`p-2 rounded-full transition-colors ${isCreditCardInvoiceProjection || redemptionCannotReverse
+                                                                disabled={isCreditCardInvoiceProjection}
+                                                                className={`p-2 rounded-full transition-colors ${isCreditCardInvoiceProjection
                                                                     ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
                                                                     : 'text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30'
                                                                     }`}
                                                                 aria-label={
                                                                     isCreditCardInvoiceProjection
                                                                         ? 'Fatura de cartão não pode ser excluída como transação'
-                                                                        : redemptionStatus === 'pending'
-                                                                            ? 'Cancelar resgate'
-                                                                            : redemptionStatus === 'settled'
-                                                                                ? 'Estornar resgate'
-                                                                                : redemptionCannotReverse
-                                                                                    ? 'Movimento de resgate já encerrado'
-                                                                                    : 'Deletar'
+                                                                        : 'Deletar'
                                                                 }
                                                             >
                                                                 <DeleteIcon />

@@ -10,9 +10,6 @@ interface GoalFormModalProps {
     onSave: (goal: Omit<Goal, 'id'> & { id?: string }, idempotencyKey: string) => Promise<Goal>;
     goalToEdit?: Goal | null;
     wallets: EntityItem[]; 
-    transactions?: Transaction[];
-    onLinkTransactions?: (transactionIds: string[], goalId: string, idempotencyKey: string) => Promise<void>;
-    initialSection?: 'details' | 'linking';
 }
 
 const GOAL_CATEGORIES: { value: GoalCategory, label: string }[] = [
@@ -51,7 +48,6 @@ const adjustBrightness = (color: string, amount: number) => {
 
 const GoalFormModal: React.FC<GoalFormModalProps> = ({ 
     isOpen, onClose, onSave, goalToEdit, wallets, 
-    transactions = [], onLinkTransactions, initialSection = 'details' 
 }) => {
     const { activeWorkspace } = useWorkspace();
     const isPJ = activeWorkspace.type === 'PJ';
@@ -99,7 +95,6 @@ const GoalFormModal: React.FC<GoalFormModalProps> = ({
     const [monthlySuggestion, setMonthlySuggestion] = useState<number | null>(null);
 
     // Retroactive Linking State
-    const [selectedTransactionIds, setSelectedTransactionIds] = useState<string[]>([]);
     const [isSaving, setIsSaving] = useState(false);
     const [saveError, setSaveError] = useState<string | null>(null);
 
@@ -108,7 +103,6 @@ const GoalFormModal: React.FC<GoalFormModalProps> = ({
     const titleRef = useRef<HTMLHeadingElement>(null);
     const previousFocusRef = useRef<HTMLElement | null>(null);
     const saveRequestId = useRef(crypto.randomUUID());
-    const linkRequestId = useRef(crypto.randomUUID());
 
     useEffect(() => {
         if (isOpen) {
@@ -132,13 +126,6 @@ const GoalFormModal: React.FC<GoalFormModalProps> = ({
                 setPeriod(goalToEdit.period || 'custom');
                 setCostCenter(goalToEdit.costCenter || '');
                 
-                // Transactions
-                const linked = transactions.filter(t =>
-                    t.type === 'investimento' &&
-                    (!t.investmentMetadata || t.investmentMetadata.investmentOperation === 'contribution') &&
-                    t.goalId === goalToEdit.id
-                ).map(t => String(t.id));
-                setSelectedTransactionIds(linked);
             } else {
                 // Reset
                 setName('');
@@ -159,7 +146,6 @@ const GoalFormModal: React.FC<GoalFormModalProps> = ({
                 setBusinessType(isPJ ? 'faturamento' : 'investimento');
                 setPeriod(isPJ ? 'mensal' : 'custom');
                 setCostCenter('');
-                setSelectedTransactionIds([]);
             }
             // Reset Picker
             setIsIconPickerOpen(false);
@@ -167,7 +153,6 @@ const GoalFormModal: React.FC<GoalFormModalProps> = ({
             setSaveError(null);
             setIsSaving(false);
             saveRequestId.current = crypto.randomUUID();
-            linkRequestId.current = crypto.randomUUID();
         }
     }, [isOpen, goalToEdit, isPJ]);
 
@@ -191,16 +176,6 @@ const GoalFormModal: React.FC<GoalFormModalProps> = ({
             setMonthlySuggestion(null);
         }
     }, [targetAmount, currentAmount, deadline]);
-
-    // Scroll handling for PF Modal
-    useEffect(() => {
-        if (isOpen && initialSection === 'linking') {
-            setTimeout(() => {
-                const el = document.getElementById('linking-section');
-                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }, 300);
-        }
-    }, [isOpen, initialSection]);
 
     useEffect(() => {
         if (!isOpen) return;
@@ -294,10 +269,7 @@ const GoalFormModal: React.FC<GoalFormModalProps> = ({
         };
 
         try {
-            const persistedGoal = await onSave(newGoal, saveRequestId.current);
-            if (onLinkTransactions) {
-                await onLinkTransactions(selectedTransactionIds, persistedGoal.id, linkRequestId.current);
-            }
+            await onSave(newGoal, saveRequestId.current);
             onClose();
         } catch (error) {
             console.error('Falha ao salvar meta:', error);
@@ -305,19 +277,6 @@ const GoalFormModal: React.FC<GoalFormModalProps> = ({
         } finally {
             setIsSaving(false);
         }
-    };
-
-    const availableInvestments = transactions.filter(t => 
-        t.type === 'investimento' && 
-        (!t.investmentMetadata || t.investmentMetadata.investmentOperation === 'contribution') &&
-        (t.goalId === undefined || (goalToEdit && t.goalId === goalToEdit.id))
-    );
-
-    const toggleTransactionSelection = (id: string | number) => {
-        const stringId = String(id);
-        setSelectedTransactionIds(prev => 
-            prev.includes(stringId) ? prev.filter(tid => tid !== stringId) : [...prev, stringId]
-        );
     };
 
     if (!isOpen) return null;
@@ -739,7 +698,7 @@ const GoalFormModal: React.FC<GoalFormModalProps> = ({
                                     disabled
                                 />
                                 <p className="text-xs text-gray-500 mt-1">
-                                    O saldo é calculado somando os investimentos vinculados abaixo.
+                                    O saldo vem das posições de investimento vinculadas à meta, em Investimentos.
                                 </p>
                             </div>
                             <div>
@@ -752,80 +711,6 @@ const GoalFormModal: React.FC<GoalFormModalProps> = ({
                                 />
                             </div>
                         </div>
-                    </section>
-
-                    <hr className="border-gray-200 dark:border-gray-700" />
-
-                    {/* Section 4: Retroactive Linking */}
-                    <section id="linking-section" className="space-y-4">
-                         <div className="flex justify-between items-center">
-                            <h4 className="text-sm font-bold text-gray-500 uppercase tracking-wider">Investimentos Vinculados</h4>
-                            {selectedTransactionIds.length > 0 && (
-                                <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20 px-2 py-1 rounded">
-                                    {selectedTransactionIds.length} selecionados
-                                </span>
-                            )}
-                         </div>
-                         <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">
-                            Selecione quais investimentos existentes fazem parte desta meta:
-                         </p>
-                         
-                         {availableInvestments.length > 0 ? (
-                             <div className="border border-gray-300 dark:border-gray-600 rounded-xl overflow-hidden max-h-60 overflow-y-auto">
-                                <table className="w-full text-sm text-left">
-                                    <thead className="bg-gray-50 dark:bg-dark-200 text-gray-500 dark:text-gray-400 font-medium">
-                                        <tr>
-                                            <th className="px-4 py-2 w-10">Selecionar</th>
-                                            <th className="px-4 py-2">Descrição</th>
-                                            <th className="px-4 py-2">Data</th>
-                                            <th className="px-4 py-2 text-right">Valor</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                                        {availableInvestments.map(t => {
-                                            const isSelected = selectedTransactionIds.includes(String(t.id));
-                                            return (
-                                                <tr 
-                                                    key={t.id} 
-                                                    onClick={() => toggleTransactionSelection(t.id)}
-                                                    className={`cursor-pointer transition-colors ${isSelected ? 'bg-indigo-50 dark:bg-indigo-900/20' : 'hover:bg-gray-50 dark:hover:bg-dark-200'}`}
-                                                >
-                                                    <td className="px-4 py-3">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={isSelected}
-                                                            onChange={() => toggleTransactionSelection(t.id)}
-                                                            onClick={(event) => event.stopPropagation()}
-                                                            aria-label={`Vincular ${t.description}`}
-                                                            className="h-5 w-5 rounded border-gray-400 text-indigo-600 focus:ring-indigo-500"
-                                                        />
-                                                    </td>
-                                                    <td className="px-4 py-3 text-gray-800 dark:text-gray-200">
-                                                        <div className="font-medium">{t.description}</div>
-                                                        <div className="text-xs text-gray-500">{t.category}</div>
-                                                    </td>
-                                                    <td className="px-4 py-3 text-gray-600 dark:text-gray-300 whitespace-nowrap">
-                                                        {new Date(t.date).toLocaleDateString('pt-BR')}
-                                                    </td>
-                                                    <td className="px-4 py-3 text-right font-bold text-gray-800 dark:text-white">
-                                                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(t.value)}
-                                                    </td>
-                                                </tr>
-                                            );
-                                        })}
-                                    </tbody>
-                                </table>
-                             </div>
-                         ) : (
-                             <div className="text-center py-6 bg-gray-50 dark:bg-dark-200 rounded-xl border border-dashed border-gray-300 dark:border-gray-700">
-                                 <p className="text-gray-500 dark:text-gray-400 text-sm">
-                                     Não há investimentos disponíveis para vincular no momento.
-                                 </p>
-                             </div>
-                         )}
-                         <p className="text-xs text-gray-400 mt-2">
-                             Investimentos já vinculados a OUTRAS metas não aparecem aqui. Desvincule-os na outra meta primeiro se necessário.
-                         </p>
                     </section>
 
                 </form>

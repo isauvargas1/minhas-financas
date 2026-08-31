@@ -18,7 +18,7 @@ const firebaseAdmin = () => {
   return admin;
 };
 
-const seed = async (enabled: boolean) => {
+const seed = async (comProjecoes: boolean) => {
   const sdk = firebaseAdmin();
   const db = sdk.firestore();
   await db.recursiveDelete(db.doc(`workspaces/${WORKSPACE}`));
@@ -29,13 +29,14 @@ const seed = async (enabled: boolean) => {
   const now = sdk.firestore.Timestamp.now();
   await Promise.all([
     db.doc(`workspaces/${WORKSPACE}`).set({
+      // Workspace novo, sem campo `features`: Investimentos abre assim mesmo.
       ownerId: UID, name: 'Patrimônio E2E', type: 'PF',
-      features: { investmentsV2: { enabled } }, createdAt: now, updatedAt: now,
+      createdAt: now, updatedAt: now,
     }),
     db.doc(`workspaces/${WORKSPACE}/members/${UID}`).set({ uid: UID, role: 'owner', status: 'active' }),
     db.doc(`users/${UID}/workspaces/${WORKSPACE}`).set({ workspaceId: WORKSPACE, role: 'owner' }),
   ]);
-  if (enabled) {
+  if (comProjecoes) {
     await Promise.all([
       db.doc(`workspaces/${WORKSPACE}/investment_summaries/current`).set({
         id: 'current', workspaceId: WORKSPACE, profileType: 'PF', currency: 'BRL',
@@ -90,14 +91,22 @@ const login = async (page: import('@playwright/test').Page) => {
   await page.getByText('Investimentos', { exact: true }).first().click();
 };
 
-test('flag desligada preserva a experiência legada', async ({ page }) => {
+/*
+ * Workspace novo abre Investimentos sem nenhum preparo.
+ *
+ * Não existe flag, não existe migração e não existe passo em Configurações: o
+ * documento do workspace nasce sem o campo `features` e a tela patrimonial é
+ * a única superfície de investimentos do produto.
+ */
+test('workspace novo abre Investimentos sem flag e sem migração', async ({ page }) => {
   await seed(false);
   await login(page);
-  await expect(page.getByRole('button', { name: 'Nova Transação' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Patrimônio e investimentos' })).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'Patrimônio e investimentos' })).toBeVisible();
+  // A tela legada de transações nunca mais responde por investimento.
+  await expect(page.getByRole('button', { name: 'Nova Transação' })).toHaveCount(0);
 });
 
-test('flag ligada exibe V2 responsiva e cria conta somente via callable', async ({ page }) => {
+test('a tela patrimonial é responsiva e cria conta somente via callable', async ({ page }) => {
   await seed(true);
   await page.setViewportSize({ width: 390, height: 844 });
   await login(page);
@@ -118,7 +127,7 @@ test('flag ligada exibe V2 responsiva e cria conta somente via callable', async 
   await expect(page.getByText('Conta E2E')).toBeVisible();
 });
 
-test('V2 apresenta patrimônio no dashboard e relatório oficial sem misturar caixa', async ({ page }) => {
+test('o patrimônio aparece no dashboard e no relatório sem misturar caixa', async ({ page }) => {
   await seed(true);
   await page.goto(`/?e2eEmail=${encodeURIComponent(EMAIL)}&e2ePassword=${PASSWORD}`);
   await page.getByTestId('e2e-login-button').click();
@@ -211,12 +220,10 @@ const loginToDashboard = async (page: import('@playwright/test').Page) => {
   await expect(page.getByText('Saldo Atual')).toBeVisible({ timeout: 30_000 });
 };
 
-test('flag ligada fecha a trilha legada no lançamento de transação', async ({ page }) => {
-  // Com V2 ativa os relatórios leem só as projeções, mas o fluxo de caixa
-  // continua somando `transactions`. Um aporte lançado pela trilha legada
-  // sairia do caixa e nunca chegaria ao patrimônio — as Rules e as callables
-  // recusam, e a interface precisa explicar em vez de deixar o usuário
-  // esbarrar num erro de permissão.
+test('o lançamento de transação não oferece investimento', async ({ page }) => {
+  // O patrimônio é o ledger, e é ele que projeta o espelho de caixa. Um aporte
+  // lançado como transação sairia do caixa e nunca chegaria ao patrimônio — as
+  // Rules recusam a escrita, e a interface não a oferece.
   await seed(true);
   await loginToDashboard(page);
   await page.getByRole('button', { name: 'Nova Transação' }).click();
@@ -225,14 +232,6 @@ test('flag ligada fecha a trilha legada no lançamento de transação', async ({
   await expect(page.getByRole('button', { name: 'Receita', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Despesa', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Investimento', exact: true })).toHaveCount(0);
-});
-
-test('flag desligada mantém a aba de investimento no lançamento', async ({ page }) => {
-  await seed(false);
-  await loginToDashboard(page);
-  await page.getByRole('button', { name: 'Nova Transação' }).click();
-  await expect(page.getByRole('dialog')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Investimento', exact: true })).toBeVisible();
 });
 
 // INV-P1-007 — valoração pelo produto. Sem esta superfície, nenhuma posição
@@ -334,8 +333,9 @@ test('duplo clique em Confirmar aporte cria um único movimento', async ({ page 
   ).docs[0]?.data()?.principalCents).toBe(75_000);
 });
 
-// INV-P1-008 — ligar a flag removia do produto os diagnósticos de alocação.
-test('alocação PF aparece na tela patrimonial com a flag ligada', async ({ page }) => {
+// INV-P1-008 — o diagnóstico de alocação vive na tela patrimonial e lê os
+// cortes que o backend calcula, não categorias de transação.
+test('alocação PF aparece na tela patrimonial', async ({ page }) => {
   await seed(true);
   await login(page);
   await expect(page.getByRole('heading', { name: 'Patrimônio e investimentos' })).toBeVisible();

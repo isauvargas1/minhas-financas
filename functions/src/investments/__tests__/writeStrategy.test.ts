@@ -70,14 +70,6 @@ test("matriz de papéis por operação é a esperada pelo domínio", () => {
     registerInvestmentImportBatch: ["owner", "admin"],
     archiveInvestmentAccount: ["owner", "admin"],
     archiveInvestmentAsset: ["owner", "admin"],
-    saveInvestmentRedemption: ["owner", "admin", "member"],
-    cancelInvestmentRedemption: ["owner", "admin", "member"],
-    // M3.B: alinhada à equivalente V2; antes aceitava `member`.
-    reverseInvestmentRedemption: ["owner", "admin"],
-    // Migração, rollback e ligar a flag são atos de titularidade.
-    migrateLegacyInvestments: ["owner"],
-    rollbackLegacyInvestmentMigration: ["owner"],
-    enableInvestmentsV2Flag: ["owner"],
   };
   assert.deepEqual(
     operations.slice().sort(),
@@ -91,13 +83,6 @@ test("matriz de papéis por operação é a esperada pelo domínio", () => {
       `Papéis divergentes em ${operation}.`,
     );
   }
-});
-
-test("estorno V2 e estorno legado exigem o mesmo papel", () => {
-  assert.deepEqual(
-    investmentOperationRoles("reverseInvestmentMovement"),
-    investmentOperationRoles("reverseInvestmentRedemption"),
-  );
 });
 
 test("operações que movem caixa declaram espelho em transactions", () => {
@@ -141,10 +126,10 @@ test("toda mutação registra evento e conclui idempotência", () => {
       plan.writes.includes("investment_idempotency_keys"),
       `${operation} não declara escrita da chave de idempotência.`,
     );
-    const audits =
-      plan.writes.includes("investment_event_logs") ||
-      plan.writes.includes("investment_audit_logs");
-    assert.ok(audits, `${operation} não declara trilha de auditoria.`);
+    assert.ok(
+      plan.writes.includes("investment_event_logs"),
+      `${operation} não declara trilha de auditoria.`,
+    );
   }
 });
 
@@ -181,24 +166,6 @@ test("nenhum plano declara escrita direta do cliente em coleção do domínio", 
       );
     }
   }
-});
-
-test("a migração do legado nunca declara escrita de caixa", () => {
-  // A transação legada já é o registro de caixa do evento migrado; escrever
-  // espelho duplicaria o fluxo.
-  const plan = getInvestmentBackendWritePlan("migrateLegacyInvestments");
-  assert.equal(plan.affectsCashProjection, false);
-  assert.ok(!plan.writes.includes("transactions"));
-  assert.ok(plan.appendsToLedger);
-});
-
-test("rollback não declara escrita no ledger nem em projeção", () => {
-  // Reverter desliga a flag e marca o lote; não apaga nem reescreve histórico.
-  const plan = getInvestmentBackendWritePlan("rollbackLegacyInvestmentMigration");
-  assert.equal(plan.appendsToLedger, false);
-  assert.equal(plan.updatesProjections, false);
-  assert.ok(!plan.writes.includes("investment_movements"));
-  assert.ok(!plan.writes.includes("investment_positions"));
 });
 
 // INV-P3-052 — quatro operações não revalidavam o papel dentro da transação.

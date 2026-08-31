@@ -6,7 +6,7 @@ import {
   contributionAllocationCents,
   goalInvestmentImpactCents,
   realizedInvestmentGainCents,
-  summarizeLegacyCashFlow,
+  summarizeCashFlow,
   transactionCashImpactCents,
 } from '../../src/modules/investments/semantics.ts';
 
@@ -53,7 +53,7 @@ test('pending não afeta caixa, meta ou alocação', () => {
 test('resgate liquidado entra no caixa, reduz meta pelo principal e não vira receita ou aporte', () => {
   const contribution = movement('contribution', 'settled', 'outflow', 100_000, 100_000);
   const redemption = movement('redemption', 'settled', 'inflow', 40_000, 43_500);
-  const summary = summarizeLegacyCashFlow([contribution, redemption]);
+  const summary = summarizeCashFlow([contribution, redemption]);
   assert.equal(transactionCashImpactCents(redemption), 43_500);
   assert.equal(goalInvestmentImpactCents(redemption), -40_000);
   assert.equal(realizedInvestmentGainCents(redemption), 2_000);

@@ -90,58 +90,14 @@ export const updateGoalPayloadSchema = baseSchema.extend({
   goal: goalDataSchema,
 }).strict();
 
-export const setGoalLinksPayloadSchema = baseSchema.extend({
-  goalId: documentIdSchema,
-  transactionIds: z.array(documentIdSchema).max(400),
-}).strict();
-
 export const archiveGoalPayloadSchema = baseSchema.extend({
   goalId: documentIdSchema,
   reason: z.string().trim().min(3).max(500),
-}).strict();
-
-export const rebuildGoalProgressPayloadSchema = baseSchema.extend({
-  goalId: documentIdSchema,
-  reason: z.string().trim().min(3).max(500),
-  // A soma é paginada: o tamanho da página é do chamador, com teto próprio.
-  pageSize: z.number().int().min(1).max(500).default(300),
-}).strict();
-
-const transactionSnapshotSchema = z.object({
-  group: z.string().min(1).max(80),
-  label: z.string().min(1).max(120),
-  normalizedLabel: z.string().min(1).max(120),
-  icon: z.string().max(80).optional(),
-  color: z.string().max(20).optional(),
-  stroke: z.number().finite().optional(),
-  transactionSubtype: z.string().max(40).optional(),
-}).strict();
-
-export const saveGoalContributionPayloadSchema = baseSchema.extend({
-  transactionId: documentIdSchema.optional(),
-  contribution: z.object({
-    goalId: documentIdSchema,
-    description: z.string().trim().min(1).max(240),
-    category: z.string().trim().min(1).max(120),
-    value: z.number().finite().positive(),
-    date: dateOnlySchema,
-    walletId: z.union([z.string(), z.number()]).transform(String).optional(),
-    isPaid: z.boolean(),
-    supplier: z.string().trim().max(240).optional(),
-    costCenter: z.string().trim().max(120).optional(),
-    displaySnapshots: z.object({
-      categorySnapshot: transactionSnapshotSchema.optional(),
-      walletSnapshot: transactionSnapshotSchema.optional(),
-    }).strict().optional(),
-  }).strict(),
 }).strict();
 
 export const seedLegacyCatalogPayloadSchema = baseSchema.strict();
 
 export type CreateGoalPayload = z.infer<typeof createGoalPayloadSchema>;
 export type UpdateGoalPayload = z.infer<typeof updateGoalPayloadSchema>;
-export type SetGoalLinksPayload = z.infer<typeof setGoalLinksPayloadSchema>;
 export type ArchiveGoalPayload = z.infer<typeof archiveGoalPayloadSchema>;
-export type RebuildGoalProgressPayload = z.infer<typeof rebuildGoalProgressPayloadSchema>;
-export type SaveGoalContributionPayload = z.infer<typeof saveGoalContributionPayloadSchema>;
 export type SeedLegacyCatalogPayload = z.infer<typeof seedLegacyCatalogPayloadSchema>;

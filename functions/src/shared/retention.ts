@@ -35,6 +35,15 @@ export const RETENTION_DAYS = {
   rateLimits: 2,
   /** Checkpoint de operação já concluída. */
   completedCheckpoints: 30,
+  /**
+   * Marca de entrega já aplicada pelo gatilho de caixa (INV-P3-001).
+   *
+   * Mesma classe das chaves de idempotência, e pelo mesmo motivo: precisa
+   * sobreviver com folga à janela de reentrega do Eventarc — o teto de retry
+   * de um gatilho do Firestore é de 7 dias — e não tem valor depois disso. O
+   * fato financeiro vive na transação e no período, que nunca expiram.
+   */
+  cashPeriodEvents: 90,
 } as const;
 
 /** Instante de expiração a partir de agora, em dias. */

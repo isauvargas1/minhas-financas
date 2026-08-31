@@ -1,4 +1,9 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+    useInfiniteQuery,
+    useMutation,
+    useQuery,
+    useQueryClient,
+} from '@tanstack/react-query';
 import { 
     listSplitGroups, getSplitGroup, createSplitGroup, updateSplitGroup, deleteSplitGroup, leaveSplitGroup,
     listSplitParticipants, addSplitParticipant,
@@ -21,13 +26,28 @@ export const KEYS = {
 
 // --- GROUPS ---
 
+/**
+ * Grupos, uma página por vez.
+ *
+ * `data` continua sendo o array de grupos já carregados, para que as telas não
+ * precisem conhecer a paginação; `hasNextPage`/`fetchNextPage` existem para
+ * quem quiser oferecer "carregar mais".
+ */
 export const useSplitGroups = () => {
     const { activeWorkspace } = useWorkspace();
-    return useQuery({
+    const queryResult = useInfiniteQuery({
         queryKey: KEYS.groups(activeWorkspace.id),
-        queryFn: () => listSplitGroups(activeWorkspace.id),
-        enabled: !!activeWorkspace.id
+        enabled: !!activeWorkspace.id,
+        initialPageParam: undefined as string | undefined,
+        queryFn: ({ pageParam }) =>
+            listSplitGroups(activeWorkspace.id, { cursor: pageParam }),
+        getNextPageParam: (lastPage) =>
+            lastPage.hasMore ? lastPage.nextCursor : undefined,
     });
+    return {
+        ...queryResult,
+        data: queryResult.data?.pages.flatMap((page) => page.items),
+    };
 };
 
 export const useSplitGroup = (groupId: string | undefined) => {
@@ -100,13 +120,25 @@ export const useLeaveSplitGroup = () => {
 
 // --- BILLS ---
 
+/**
+ * Títulos de um grupo.
+ *
+ * `data` é o array, como antes; `isTruncated` diz quando a leitura bateu no
+ * teto — os totais da tela derivam desta lista, e um total parcial precisa ser
+ * declarado em vez de exibido como se fosse completo.
+ */
 export const useSplitBills = (groupId: string) => {
     const { activeWorkspace } = useWorkspace();
-    return useQuery({
+    const queryResult = useQuery({
         queryKey: KEYS.bills(activeWorkspace.id, groupId),
         queryFn: () => listSplitBillsByGroup(groupId, activeWorkspace.id),
         enabled: !!activeWorkspace.id && !!groupId
     });
+    return {
+        ...queryResult,
+        data: queryResult.data?.items,
+        isTruncated: queryResult.data?.truncated === true,
+    };
 };
 
 export const useCreateSplitBill = () => {
@@ -164,13 +196,25 @@ export const useSplitShares = (billId: string) => {
     });
 };
 
+/**
+ * Rateios do grupo, por consulta indexada em `billId`.
+ *
+ * Devolve **todos** os rateios dos títulos do grupo, e não só os em aberto: o
+ * mesmo resultado alimenta a edição de título, que reescreve os rateios a
+ * partir dele. Ver a justificativa em `listSplitSharesByGroup`.
+ */
 export const useSplitGroupShares = (groupId: string) => {
     const { activeWorkspace } = useWorkspace();
-    return useQuery({
+    const queryResult = useQuery({
         queryKey: KEYS.groupShares(activeWorkspace.id, groupId),
         queryFn: () => listSplitSharesByGroup(groupId, activeWorkspace.id),
         enabled: !!activeWorkspace.id && !!groupId
     });
+    return {
+        ...queryResult,
+        data: queryResult.data?.items,
+        isTruncated: queryResult.data?.truncated === true,
+    };
 };
 
 export const useUpdateSplitShare = () => {

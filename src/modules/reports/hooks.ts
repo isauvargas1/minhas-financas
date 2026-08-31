@@ -141,7 +141,6 @@ export const useFinancialReportSnapshot = (
 
 
     const workspaceId = activeWorkspace?.id;
-    const investmentsV2Enabled = activeWorkspace?.features?.investmentsV2?.enabled === true;
 
     const investmentDomainQuery = useQuery({
         queryKey: workspaceId && workspaceId !== 'loading'
@@ -150,8 +149,7 @@ export const useFinancialReportSnapshot = (
         queryFn: () => getOfficialInvestmentReportData(workspaceId!, {
             periodLimit: range === 'all' ? 100 : range === '12m' || range === 'ytd' ? 14 : range === '90d' ? 5 : 3,
         }),
-        enabled: Boolean(workspaceId) && workspaceId !== 'loading' &&
-            investmentsV2Enabled && includeInvestmentDomain,
+        enabled: Boolean(workspaceId) && workspaceId !== 'loading' && includeInvestmentDomain,
         staleTime: 1000 * 60 * 2,
     });
 
@@ -222,7 +220,7 @@ export const useFinancialReportSnapshot = (
         buildReceivablesVersion(receivables),
         buildClientsVersion(clients),
         buildCreditCardDomainVersion(creditCardDomainData),
-        investmentsV2Enabled ? String(investmentDomainQuery.dataUpdatedAt) : 'legacy-investments',
+        String(investmentDomainQuery.dataUpdatedAt),
     ].join('::');
 
     return useQuery({
@@ -230,7 +228,7 @@ export const useFinancialReportSnapshot = (
             ? [...reportKeys.snapshot(range, workspaceId), dataVersion]
             : ['financialReportSnapshot', range, 'disabled', dataVersion],
         queryFn: () => {
-            if (investmentsV2Enabled && investmentDomainQuery.isError) {
+            if (includeInvestmentDomain && investmentDomainQuery.isError) {
                 throw new Error('Não foi possível carregar o domínio patrimonial.');
             }
             return api.getFinancialReportSnapshot(
@@ -242,12 +240,12 @@ export const useFinancialReportSnapshot = (
                 receivables,
                 clients,
                 creditCardDomainData,
-                investmentsV2Enabled ? investmentDomainQuery.data : undefined,
+                investmentDomainQuery.data,
             );
         },
         enabled: Boolean(workspaceId) && workspaceId !== 'loading' &&
             !creditCardDomainQuery.isLoading &&
-            (!investmentsV2Enabled || !investmentDomainQuery.isLoading),
+            (!includeInvestmentDomain || !investmentDomainQuery.isLoading),
         staleTime: 1000 * 60 * 5
     });
 };

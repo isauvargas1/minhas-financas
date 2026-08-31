@@ -11,6 +11,7 @@ import {
 import {
   enqueueCreditCardDomainNotifications,
 } from "../creditCards/domainNotifications";
+import {SCHEDULED_FUNCTION_OPTIONS} from "../shared/runtimeOptions";
 
 interface InvoiceData {
   id?: string;
@@ -42,9 +43,9 @@ const ACTIVE_INVOICE_STATUSES = [
 
 const SYSTEM_ACTOR_ID = "system:credit-card-invoice-automation";
 
-const normalizeIsoDate = (value: string): string => value.slice(0, 10);
+export const normalizeIsoDate = (value: string): string => value.slice(0, 10);
 
-const getSaoPauloTodayIsoDate = (): string => {
+export const getSaoPauloTodayIsoDate = (): string => {
   const formatter = new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/Sao_Paulo",
     year: "numeric",
@@ -55,7 +56,7 @@ const getSaoPauloTodayIsoDate = (): string => {
   return formatter.format(new Date());
 };
 
-const addDaysToIsoDate = (
+export const addDaysToIsoDate = (
   isoDate: string,
   days: number
 ): string => {
@@ -65,7 +66,7 @@ const addDaysToIsoDate = (
   return date.toISOString().slice(0, 10);
 };
 
-const diffInCalendarDays = (
+export const diffInCalendarDays = (
   fromIsoDate: string,
   toIsoDate: string
 ): number => {
@@ -313,6 +314,12 @@ const processInvoiceOverdue = async (
 
 export const processCreditCardInvoiceOperationalAlerts = onSchedule(
   {
+    // A rotina não declarava recurso nenhum e herdava o padrão de callable:
+    // 60 s e 256 MiB para paginar até 10.000 faturas rodando uma transação do
+    // Firestore por fatura. O corte por tempo aconteceria no meio da
+    // varredura, sem cursor persistido para retomar. As demais rotinas
+    // agendadas já usam este perfil.
+    ...SCHEDULED_FUNCTION_OPTIONS,
     schedule: "every day 07:00",
     timeZone: "America/Sao_Paulo",
   },

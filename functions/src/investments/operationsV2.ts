@@ -1439,8 +1439,6 @@ export const executeReverseInvestmentMovement = async (
         "Posição não encontrada.",
       );
     }
-    const isMigratedMovement =
-      typeof original.migratedFromTransactionId === "string";
     const deltas = {
       quantityMicros: negateExact(
         original.quantityDeltaMicros,
@@ -1513,18 +1511,7 @@ export const executeReverseInvestmentMovement = async (
       currentValueDeltaCents: next.currentValueCents - current.currentValueCents,
       ...(goalId ? {goalId} : {}),
       ...(original.walletId ? {walletId: original.walletId} : {}),
-      // Movimento migrado do legado não tem espelho próprio: a transação
-      // legada **é** o registro de caixa. O estorno aponta para a mesma
-      // origem e não cria um segundo documento em `transactions`.
-      ...(isMigratedMovement ?
-        {
-          transactionId: String(original.transactionId ?? projectionId),
-          migratedFromTransactionId: String(original.migratedFromTransactionId),
-          ...(typeof original.migrationId === "string" ?
-            {migrationId: original.migrationId} :
-            {}),
-        } :
-        {transactionId: projectionId}),
+      transactionId: projectionId,
       reversedMovementId: payload.movementId,
       reversalReason: payload.reason,
       correlationId: payload.correlationId,
@@ -1598,23 +1585,16 @@ export const executeReverseInvestmentMovement = async (
       reversal.goalCurrentValueDeltaCents,
       auth.uid,
     );
-    // Estorno de movimento migrado não escreve espelho de caixa: a transação
-    // legada de origem permanece em `transactions` e continua sendo o único
-    // registro de caixa daquele evento. Escrever um espelho compensatório
-    // criaria um segundo lançamento de caixa para um fato que o legado já
-    // contabiliza — dupla contagem no rollback da migração (INV-P1-012).
-    if (!isMigratedMovement) {
-      writeCashProjection(
-        transaction,
-        auth,
-        authorization.profileType,
-        reversal,
-        original.operation === "redemption" ?
-          "redemption_reversal" :
-          "redemption",
-        "settled",
-      );
-    }
+    writeCashProjection(
+      transaction,
+      auth,
+      authorization.profileType,
+      reversal,
+      original.operation === "redemption" ?
+        "redemption_reversal" :
+        "redemption",
+      "settled",
+    );
     const result = {
       success: true,
       movementId: payload.movementId,

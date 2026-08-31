@@ -15,9 +15,8 @@ import {
   where,
   writeBatch
 } from "firebase/firestore";
-import { httpsCallable } from "firebase/functions";
 
-import { auth, db, functions } from "../../lib/firebase";
+import { auth, db } from "../../lib/firebase";
 import type { Transaction } from "../../types";
 import { toDateOnlyString, toFirestoreDateTimestamp } from "../../utils/date";
 
@@ -107,80 +106,6 @@ const buildTransactionPayload = (
     workspaceId,
     profileId: transaction.profileId ?? workspaceId
   });
-};
-
-const newIdempotencyKey = () => crypto.randomUUID();
-
-const callInvestmentFunction = async <TResult>(
-  name: string,
-  payload: Record<string, unknown>,
-): Promise<TResult> => {
-  const callable = httpsCallable<Record<string, unknown>, TResult>(functions, name);
-  const result = await callable(payload);
-  return result.data;
-};
-
-const saveRedemption = async (
-  workspaceId: string,
-  transaction: Omit<Transaction, "id">,
-  transactionId?: string,
-): Promise<{transactionId: string}> => {
-  const metadata = transaction.investmentMetadata;
-  if (!metadata || metadata.investmentOperation !== "redemption") {
-    throw new Error("Resgate inválido.");
-  }
-  return callInvestmentFunction("saveInvestmentRedemption", {
-    workspaceId,
-    idempotencyKey: metadata.idempotencyKey,
-    correlationId: `transaction-ui-${metadata.idempotencyKey}`,
-    ...(transactionId ? {transactionId} : {}),
-    redemption: {
-      sourceMovementId: metadata.sourceMovementId,
-      description: transaction.description,
-      principal: metadata.principalCents / 100,
-      gain: metadata.gainCents / 100,
-      fees: metadata.feesCents / 100,
-      tax: metadata.taxCents / 100,
-      settlementDate: metadata.settlementDate ?? transaction.date,
-      status: metadata.status,
-    },
-  });
-};
-
-const saveLinkedContribution = async (
-  workspaceId: string,
-  transaction: Omit<Transaction, "id">,
-  transactionId?: string,
-): Promise<{transactionId: string}> => {
-  if (transaction.type !== "investimento" || !transaction.goalId) {
-    throw new Error("Aporte vinculado inválido.");
-  }
-  const displaySnapshots = transaction.displaySnapshots
-    ? stripUndefined({
-        categorySnapshot: transaction.displaySnapshots.categorySnapshot,
-        walletSnapshot: transaction.displaySnapshots.walletSnapshot,
-      })
-    : undefined;
-  const contribution = stripUndefined({
-    goalId: transaction.goalId,
-    description: transaction.description,
-    category: transaction.category,
-    value: transaction.value,
-    date: transaction.date,
-    walletId: transaction.walletId,
-    isPaid: transaction.isPaid === true,
-    supplier: transaction.supplier,
-    costCenter: transaction.costCenter,
-    displaySnapshots,
-  });
-  const callable = httpsCallable(functions, "saveGoalContribution");
-  const result = await callable({
-    workspaceId,
-    idempotencyKey: newIdempotencyKey(),
-    ...(transactionId ? {transactionId} : {}),
-    contribution,
-  });
-  return result.data as {transactionId: string};
 };
 
 /**
@@ -291,11 +216,23 @@ export const getTransactionWindow = async (
 export const getTransactions = async (
   workspaceId: string,
   months = DEFAULT_TRANSACTION_WINDOW_MONTHS,
-): Promise<Transaction[]> => {
+): Promise<TransactionPage> => {
   const page = await getTransactionWindow(workspaceId, {
     since: monthsAgoDateOnly(months),
   });
-  return page.items.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+  /*
+   * O sinal de truncamento era descartado aqui.
+   *
+   * A faixa "tudo" do relatório já avisava quando o teto de páginas era
+   * atingido, mas a janela padrão — que alimenta painel, metas, alocações e
+   * relatórios de período — devolvia só o array e perdia a informação. Um
+   * workspace acima do teto veria agregados incompletos apresentados como
+   * totais, sem nada na tela dizendo isso.
+   */
+  return {
+    items: page.items.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0)),
+    truncated: page.truncated,
+  };
 };
 
 /**
@@ -310,45 +247,11 @@ export const getFullTransactionHistory = (
   workspaceId: string,
 ): Promise<TransactionPage> => getTransactionWindow(workspaceId, {});
 
-/**
- * Transações de investimento do histórico, para vínculo retroativo e para
- * escolher a origem de um resgate.
- *
- * Consulta específica por propósito: os dois formulários precisam do universo
- * de aportes, não do histórico inteiro de caixa.
- */
-export const listInvestmentTransactions = async (
-  workspaceId: string,
-  max = TRANSACTION_PAGE_SIZE,
-): Promise<Transaction[]> => {
-  assertValidWorkspaceId(workspaceId);
-  const snapshot = await getDocs(query(
-    txCol(workspaceId),
-    where('type', '==', 'investimento'),
-    orderBy('date', 'desc'),
-    orderBy(documentId(), 'desc'),
-    limit(Math.min(max, TRANSACTION_PAGE_SIZE)),
-  ));
-  return snapshot.docs
-    .filter((document) => !isVoidedTransaction(document.data()))
-    .map(normalizeTransaction);
-};
-
 export const createTransaction = async (
   workspaceId: string,
   transaction: Omit<Transaction, "id">
 ): Promise<Transaction> => {
   assertValidWorkspaceId(workspaceId);
-
-  if (transaction.investmentMetadata?.investmentOperation === "redemption") {
-    const result = await saveRedemption(workspaceId, transaction);
-    return {id: result.transactionId, ...transaction, workspaceId, profileId: workspaceId};
-  }
-
-  if (transaction.type === "investimento" && transaction.goalId) {
-    const result = await saveLinkedContribution(workspaceId, transaction);
-    return {id: result.transactionId, ...transaction, workspaceId, profileId: workspaceId};
-  }
 
   const normalizedTransaction = buildTransactionPayload(workspaceId, transaction);
 
@@ -415,15 +318,6 @@ export const updateTransaction = async (
 
   const { id, ...data } = transaction;
 
-  if (transaction.investmentMetadata?.investmentOperation === "redemption") {
-    await saveRedemption(workspaceId, data, String(id));
-    return;
-  }
-
-  if (transaction.type === "investimento" && transaction.goalId) {
-    await saveLinkedContribution(workspaceId, data, String(id));
-    return;
-  }
   const docRef = doc(db, "workspaces", workspaceId, "transactions", String(id));
 
   await updateDoc(
@@ -449,32 +343,6 @@ export const deleteTransaction = async (
   transaction: Transaction,
 ): Promise<void> => {
   assertValidWorkspaceId(workspaceId);
-
-  if (transaction.investmentMetadata?.investmentOperation === "redemption") {
-    const idempotencyKey = newIdempotencyKey();
-    if (transaction.investmentMetadata.status === "pending") {
-      await callInvestmentFunction("cancelInvestmentRedemption", {
-        workspaceId,
-        idempotencyKey,
-        correlationId: `transaction-ui-${idempotencyKey}`,
-        transactionId: String(transaction.id),
-        reason: "Cancelado pelo usuário",
-      });
-      return;
-    }
-    if (transaction.investmentMetadata.status === "settled") {
-      await callInvestmentFunction("reverseInvestmentRedemption", {
-        workspaceId,
-        idempotencyKey,
-        correlationId: `transaction-ui-${idempotencyKey}`,
-        transactionId: String(transaction.id),
-        reversalDate: new Date().toISOString().slice(0, 10),
-        reason: "Estornado pelo usuário",
-      });
-      return;
-    }
-    throw new Error("Este resgate não pode ser alterado novamente.");
-  }
 
   const docRef = doc(db, "workspaces", workspaceId, "transactions", String(transaction.id));
   const actorId = auth.currentUser?.uid;

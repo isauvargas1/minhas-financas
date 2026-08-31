@@ -9,36 +9,24 @@ import {
   archiveInvestmentAccountPayloadSchema,
   archiveInvestmentAssetPayloadSchema,
   cancelInvestmentMovementPayloadSchema,
-  cancelInvestmentRedemptionPayloadSchema,
   createInvestmentContributionPayloadSchema,
   createInvestmentRedemptionPayloadSchema,
   changeInvestmentGoalPayloadSchema,
   linkInvestmentToGoalPayloadSchema,
   onboardInvestmentWorkspacePayloadSchema,
   backfillInvestmentWorkspacePayloadSchema,
-  enableInvestmentsV2FlagPayloadSchema,
-  migrateLegacyInvestmentsPayloadSchema,
-  reconcileLegacyMigrationPayloadSchema,
-  rollbackLegacyInvestmentMigrationPayloadSchema,
   rebuildInvestmentProjectionsPayloadSchema,
   recalculateGoalInvestmentProgressPayloadSchema,
   recalculateInvestmentPositionPayloadSchema,
   recordInvestmentValuationPayloadSchema,
   registerInvestmentImportBatchPayloadSchema,
-  reverseInvestmentRedemptionPayloadSchema,
   reverseInvestmentMovementPayloadSchema,
-  saveInvestmentRedemptionPayloadSchema,
   saveInvestmentAccountPayloadSchema,
   saveInvestmentAssetPayloadSchema,
   settleInvestmentRedemptionPayloadSchema,
   unlinkInvestmentFromGoalPayloadSchema,
 } from "./contracts";
 import {toInvestmentHttpsError} from "./errors";
-import {
-  executeCancelInvestmentRedemption,
-  executeReverseInvestmentRedemption,
-  executeSaveInvestmentRedemption,
-} from "./operations";
 import {
   executeArchiveInvestmentAccount,
   executeArchiveInvestmentAsset,
@@ -61,12 +49,6 @@ import {
 } from "./rebuild";
 import {executeRebuildInvestmentProjections} from "./projectionRebuild";
 import {executeBackfillInvestmentWorkspace} from "./backfill";
-import {
-  executeEnableInvestmentsV2Flag,
-  executeMigrateLegacyInvestments,
-  executeReconcileLegacyMigration,
-  executeRollbackLegacyInvestmentMigration,
-} from "./legacyMigration";
 import {executeOnboardInvestmentWorkspace} from "./onboarding";
 import {
   DOMAIN_CALLABLE_OPTIONS,
@@ -113,24 +95,6 @@ const investmentCallable = <TPayload extends { workspaceId: string }>(
         throw toInvestmentHttpsError(error);
       }
     });
-
-export const saveInvestmentRedemption = investmentCallable(
-  "saveInvestmentRedemption",
-  saveInvestmentRedemptionPayloadSchema,
-  executeSaveInvestmentRedemption,
-);
-
-export const cancelInvestmentRedemption = investmentCallable(
-  "cancelInvestmentRedemption",
-  cancelInvestmentRedemptionPayloadSchema,
-  executeCancelInvestmentRedemption,
-);
-
-export const reverseInvestmentRedemption = investmentCallable(
-  "reverseInvestmentRedemption",
-  reverseInvestmentRedemptionPayloadSchema,
-  executeReverseInvestmentRedemption,
-);
 
 export const onboardInvestmentWorkspace = investmentCallable(
   "onboardInvestmentWorkspace",
@@ -248,31 +212,4 @@ export const backfillInvestmentWorkspace = investmentCallable(
   backfillInvestmentWorkspacePayloadSchema,
   executeBackfillInvestmentWorkspace,
   HEAVY_CALLABLE_OPTIONS,
-);
-
-export const migrateLegacyInvestments = investmentCallable(
-  "migrateLegacyInvestments",
-  migrateLegacyInvestmentsPayloadSchema,
-  executeMigrateLegacyInvestments,
-  HEAVY_CALLABLE_OPTIONS,
-);
-
-export const rollbackLegacyInvestmentMigration = investmentCallable(
-  "rollbackLegacyInvestmentMigration",
-  rollbackLegacyInvestmentMigrationPayloadSchema,
-  executeRollbackLegacyInvestmentMigration,
-  HEAVY_CALLABLE_OPTIONS,
-);
-
-export const reconcileLegacyMigration = investmentCallable(
-  "enableInvestmentsV2Flag",
-  reconcileLegacyMigrationPayloadSchema,
-  executeReconcileLegacyMigration,
-  HEAVY_CALLABLE_OPTIONS,
-);
-
-export const enableInvestmentsV2Flag = investmentCallable(
-  "enableInvestmentsV2Flag",
-  enableInvestmentsV2FlagPayloadSchema,
-  executeEnableInvestmentsV2Flag,
 );

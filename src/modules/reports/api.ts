@@ -21,7 +21,7 @@ import { Transaction, Goal, CreditCard, Loan } from '../../types';
 // CORRECTED IMPORT
 import { Workspace } from '../workspaces/types';
 import { Receivable, Client } from '../clients/types';
-import { listLoans } from '../loans/api';
+import { getLoanTotals } from '../loans/api';
 import type { OfficialInvestmentReportData } from '../investments/types';
 import { buildInvestmentOverview } from './investments';
 
@@ -40,17 +40,23 @@ export const getFinancialReportSnapshot = async (
     // Simulate network delay (optional)
     await new Promise(resolve => setTimeout(resolve, 600));
 
-    // Load loans for context if workspace exists
-    let loans: Loan[] = [];
-    if (workspace?.id) {
+    /*
+     * Dívida bancária do relatório PJ.
+     *
+     * O relatório lia a coleção inteira de empréstimos — de todo workspace,
+     * inclusive PF, que nem exibe o indicador — para reduzi-la a uma soma.
+     * Agora é um agregado do servidor, pedido só quando o indicador existe.
+     */
+    let bankDebtTotal = 0;
+    if (workspace?.id && workspace.type === 'PJ') {
         try {
-            loans = await listLoans(workspace.id);
+            bankDebtTotal = (await getLoanTotals(workspace.id)).borrow;
         } catch (error) {
-            console.error("Error fetching loans:", error);
+            console.error("Error fetching loan totals:", error);
         }
     }
 
-    const kpis = calculateKPIs(transactions, range, workspace, receivables, loans);
+    const kpis = calculateKPIs(transactions, range, workspace, receivables, bankDebtTotal);
     const cashFlow = calculateCashFlow(transactions);
     const expenseCategories = calculateCategoryBreakdown(transactions, range);
     const debtProfile = calculateDebtProfile(
@@ -69,20 +75,46 @@ export const getFinancialReportSnapshot = async (
     const investmentOverview = officialInvestmentData
         ? buildInvestmentOverview(officialInvestmentData, range)
         : undefined;
+    /*
+     * `kpi-investments` e `kpi-savings` medem a mesma grandeza — o quanto foi
+     * aportado no período — e precisam vir da mesma fonte.
+     *
+     * `buildPersonalKPIs` deriva os dois de `transactions`. Substituir só o
+     * primeiro deixava a taxa de poupança calculada sobre outro número, com
+     * outra janela (`reportWindowStart` conta 30 dias, `rangeStart` conta 29):
+     * dois percentuais diferentes para o mesmo período, na mesma tela.
+     */
     const effectiveKpis = investmentOverview
-        ? kpis.map((kpi) => kpi.id === 'kpi-investments' ? {
-            ...kpi,
-            value: investmentOverview.contributions,
-            formattedValue: new Intl.NumberFormat('pt-BR', {
-                style: 'currency',
-                currency: 'BRL',
-            }).format(investmentOverview.contributions),
-            description: 'Aportes liquidados no domínio patrimonial oficial.',
-            // Continua sendo contribuição, não patrimônio: o número é o que
-            // saiu do caixa para investimento no período, e por isso segue
-            // comparável com receitas, despesas e fluxo líquido (INV-P2-024).
-            nature: 'contribuicao' as const,
-        } : kpi)
+        ? (() => {
+            const contributions = investmentOverview.contributions;
+            const income = kpis.find((kpi) => kpi.id === 'kpi-income')?.value ?? 0;
+            const savingsRate = income > 0 ? (contributions / income) * 100 : 0;
+            return kpis.map((kpi) => {
+                if (kpi.id === 'kpi-investments') {
+                    return {
+                        ...kpi,
+                        value: contributions,
+                        formattedValue: new Intl.NumberFormat('pt-BR', {
+                            style: 'currency',
+                            currency: 'BRL',
+                        }).format(contributions),
+                        description: 'Aportes liquidados no domínio patrimonial.',
+                        // Continua sendo contribuição, não patrimônio: o número é o que
+                        // saiu do caixa para investimento no período, e por isso segue
+                        // comparável com receitas, despesas e fluxo líquido (INV-P2-024).
+                        nature: 'contribuicao' as const,
+                    };
+                }
+                if (kpi.id === 'kpi-savings') {
+                    return {
+                        ...kpi,
+                        value: savingsRate,
+                        formattedValue: `${savingsRate.toFixed(1)}%`,
+                    };
+                }
+                return kpi;
+            });
+        })()
         : kpis;
 
     if (officialInvestmentData && !investmentOverview) {

@@ -1,24 +1,21 @@
 import {onCall} from "firebase-functions/v2/https";
+import type {CallableOptions} from "firebase-functions/v2/https";
 import {z} from "zod";
+
+import {DOMAIN_CALLABLE_OPTIONS} from "../shared/runtimeOptions";
 
 import {requireWorkspaceRole} from "../creditCards/auth";
 import {toHttpsError} from "../creditCards/errors";
 import {
   archiveGoalPayloadSchema,
   createGoalPayloadSchema,
-  rebuildGoalProgressPayloadSchema,
-  saveGoalContributionPayloadSchema,
   seedLegacyCatalogPayloadSchema,
-  setGoalLinksPayloadSchema,
   updateGoalPayloadSchema,
 } from "./contracts";
 import {
   executeArchiveGoal,
   executeCreateGoal,
-  executeRebuildGoalProgress,
-  executeSaveGoalContribution,
   executeSeedLegacySettingsCatalog,
-  executeSetGoalTransactionLinks,
   executeUpdateGoal,
 } from "./operations";
 
@@ -32,11 +29,24 @@ const buildContext = async <TPayload extends {workspaceId: string}>(
   return {payload, auth};
 };
 
+/**
+ * As callables de metas não declaravam recurso nenhum.
+ *
+ * `setGlobalOptions` fixa região e `maxInstances`, mas não tempo limite nem
+ * memória: as sete rodavam no padrão da plataforma, 60 s e 256 MiB. Serve para
+ * criar e editar meta; **não** serve para `rebuildGoalProgress`, que soma os
+ * aportes fora da transação, por páginas com cursor, até o teto de 100.000 —
+ * mais de trezentas consultas sequenciais no pior caso. O corte por tempo
+ * aconteceria no meio da varredura, e a reconciliação que a área operacional
+ * oferece falharia justamente nas metas grandes, que são as únicas que
+ * precisam dela.
+ */
 const callable = <TPayload extends {workspaceId: string}>(
   schema: z.ZodType<TPayload>,
   allowedRoles: Array<"owner" | "admin" | "member">,
   operation: (auth: Awaited<ReturnType<typeof requireWorkspaceRole>>, payload: TPayload) => Promise<Record<string, unknown>>,
-) => onCall(async (request) => {
+  options: CallableOptions = DOMAIN_CALLABLE_OPTIONS,
+) => onCall(options, async (request) => {
   try {
     const context = await buildContext(request, schema, allowedRoles);
     return await operation(context.auth, context.payload);
@@ -45,50 +55,51 @@ const callable = <TPayload extends {workspaceId: string}>(
   }
 });
 
-const ALL_ACTIVE_ROLES: Array<"owner" | "admin" | "member"> = [
-  "owner",
-  "admin",
-  "member",
-];
+type GoalRole = "owner" | "admin" | "member";
+
+const ALL_ACTIVE_ROLES: GoalRole[] = ["owner", "admin", "member"];
+/** Operações administrativas de meta. */
+const PRIVILEGED_ROLES: GoalRole[] = ["owner", "admin"];
+
+/**
+ * Matriz declarativa de papéis das callables de metas.
+ *
+ * Segue o formato de `investments/writeStrategy.ts`. Antes, o papel de cada
+ * operação vivia solto no ponto de construção da callable, sem nada que
+ * pudesse ser afirmado por teste: `rebuildGoalProgress` aceitava `member`
+ * enquanto a contraparte do domínio patrimonial exigia `owner`/`admin`, e a
+ * divergência não aparecia em lugar nenhum.
+ *
+ * A matriz é a única fonte, e o teste percorre ela inteira — uma callable nova
+ * sem entrada aqui não compila.
+ */
+export const GOAL_OPERATION_ROLES = {
+  createGoal: ALL_ACTIVE_ROLES,
+  updateGoal: ALL_ACTIVE_ROLES,
+  archiveGoal: ALL_ACTIVE_ROLES,
+  seedLegacySettingsCatalog: PRIVILEGED_ROLES,
+} as const satisfies Record<string, readonly GoalRole[]>;
 
 export const createGoal = callable(
   createGoalPayloadSchema,
-  ALL_ACTIVE_ROLES,
+  [...GOAL_OPERATION_ROLES.createGoal],
   executeCreateGoal,
 );
 
 export const updateGoal = callable(
   updateGoalPayloadSchema,
-  ALL_ACTIVE_ROLES,
+  [...GOAL_OPERATION_ROLES.updateGoal],
   executeUpdateGoal,
-);
-
-export const setGoalTransactionLinks = callable(
-  setGoalLinksPayloadSchema,
-  ALL_ACTIVE_ROLES,
-  executeSetGoalTransactionLinks,
 );
 
 export const archiveGoal = callable(
   archiveGoalPayloadSchema,
-  ALL_ACTIVE_ROLES,
+  [...GOAL_OPERATION_ROLES.archiveGoal],
   executeArchiveGoal,
-);
-
-export const rebuildGoalProgress = callable(
-  rebuildGoalProgressPayloadSchema,
-  ALL_ACTIVE_ROLES,
-  executeRebuildGoalProgress,
-);
-
-export const saveGoalContribution = callable(
-  saveGoalContributionPayloadSchema,
-  ALL_ACTIVE_ROLES,
-  executeSaveGoalContribution,
 );
 
 export const seedLegacySettingsCatalog = callable(
   seedLegacyCatalogPayloadSchema,
-  ["owner", "admin"],
+  [...GOAL_OPERATION_ROLES.seedLegacySettingsCatalog],
   executeSeedLegacySettingsCatalog,
 );

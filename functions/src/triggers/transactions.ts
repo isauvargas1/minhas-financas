@@ -1,12 +1,11 @@
-import {createHash} from "node:crypto";
 import * as admin from "firebase-admin";
 import {FieldValue, Timestamp} from "firebase-admin/firestore";
 import {onDocumentWritten} from "firebase-functions/v2/firestore";
 
 import {
-  contributionMinorUnits,
-} from "../goals/operations";
-import {applyCashPeriodWrite} from "../cash/periods";
+  applyCashPeriodWriteOnce,
+  cashPeriodEventKey,
+} from "../cash/periods";
 
 const db = () => admin.firestore();
 
@@ -33,112 +32,6 @@ const getSignedBalanceValue = (data?: admin.firestore.DocumentData) => {
   return numericValue;
 };
 
-const linkedGoalId = (data?: admin.firestore.DocumentData): string | null => {
-  if (!data || data.type !== "investimento" || typeof data.goalId !== "string") return null;
-  return data.goalId;
-};
-
-/**
- * Teto de aportes somados numa recomposição de meta (INV-P2-030).
- *
- * A consulta rodava **sem `limit` e sem `orderBy`** dentro de uma transação,
- * a cada escrita de transação vinculada a meta: custo O(histórico da meta) por
- * escrita, e o espelho do domínio de investimentos engorda a mesma coleção.
- * Espelha o teto que `goals/operations.ts` já aplicava no caminho de callable.
- * Ultrapassá-lo falha explicitamente em vez de somar um subconjunto.
- */
-const GOAL_PROGRESS_SCAN_LIMIT = 2_000;
-
-/**
- * Efeito desta escrita sobre o progresso de **uma** meta (NEW-06).
- *
- * A transação pode ter entrado na meta, saído dela, ou mudado de valor dentro
- * dela: os três casos são a diferença entre o que o documento valia antes e o
- * que vale agora, para aquela meta.
- */
-const goalContributionDelta = (
-  goalId: string,
-  before: admin.firestore.DocumentData | undefined,
-  after: admin.firestore.DocumentData | undefined,
-): number => {
-  const previous = linkedGoalId(before) === goalId && before ?
-    contributionMinorUnits(before) : 0;
-  const current = linkedGoalId(after) === goalId && after ?
-    contributionMinorUnits(after) : 0;
-  return current - previous;
-};
-
-const rebuildGoalProgress = async (
-  workspaceId: string,
-  goalId: string,
-  deltaCents: number,
-) => {
-  const goalDocument = db().doc(`workspaces/${workspaceId}/goals/${goalId}`);
-  const contributionsQuery = db()
-    .collection(`workspaces/${workspaceId}/transactions`)
-    .where("goalId", "==", goalId)
-    .orderBy("__name__", "asc")
-    .limit(GOAL_PROGRESS_SCAN_LIMIT + 1);
-
-  await db().runTransaction(async (transaction) => {
-    const [goalSnapshot, contributions] = await Promise.all([
-      transaction.get(goalDocument),
-      transaction.get(contributionsQuery),
-    ]);
-    if (!goalSnapshot.exists) return;
-    if (contributions.size > GOAL_PROGRESS_SCAN_LIMIT) {
-      /*
-       * Acima do teto de varredura, o progresso passa a ser mantido por
-       * **delta** — exatamente como a projeção mensal de caixa neste mesmo
-       * gatilho (NEW-06).
-       *
-       * Lançar aqui, como antes, deixava a meta permanentemente congelada: a
-       * escrita da transação já aconteceu, o gatilho não repete por padrão, e
-       * a rotina de reconstrução citada no erro tinha o mesmo teto. O delta é
-       * exato — a diferença sai do próprio par antes/depois — e
-       * `rebuildGoalProgress` (paginado) é o caminho de reconciliação.
-       */
-      const goal = goalSnapshot.data() ?? {};
-      if (deltaCents === 0) return;
-      const previousNet = Number.isSafeInteger(goal.netContributionCents) ?
-        goal.netContributionCents as number : 0;
-      const netContributionCents = previousNet + deltaCents;
-      const progressCents = (goal.progressBasis ?? "net_contributions") === "current_value" ?
-        (Number.isSafeInteger(goal.currentValueCents) ?
-          goal.currentValueCents as number :
-          Math.round(Number(goal.currentValue ?? 0) * 100)) :
-        netContributionCents;
-      transaction.update(goalDocument, {
-        progressBasis: goal.progressBasis ?? "net_contributions",
-        netContributionCents,
-        currentAmountCents: progressCents,
-        currentAmount: progressCents / 100,
-        lastProgressDeltaAt: FieldValue.serverTimestamp(),
-        updatedAt: FieldValue.serverTimestamp(),
-      });
-      return;
-    }
-    const goal = goalSnapshot.data() ?? {};
-    const netContributionCents = contributions.docs.reduce(
-      (total, contribution) => total + contributionMinorUnits(contribution.data()),
-      0,
-    );
-    const currentValueCents = Number.isSafeInteger(goal.currentValueCents) ?
-      goal.currentValueCents as number :
-      Math.round(Number(goal.currentValue ?? 0) * 100);
-    const progressCents = (goal.progressBasis ?? "net_contributions") === "current_value" ?
-      currentValueCents : netContributionCents;
-    transaction.update(goalDocument, {
-      progressBasis: goal.progressBasis ?? "net_contributions",
-      netContributionCents,
-      currentAmountCents: progressCents,
-      currentAmount: progressCents / 100,
-      lastProgressRebuildAt: FieldValue.serverTimestamp(),
-      updatedAt: FieldValue.serverTimestamp(),
-    });
-  });
-};
-
 export const onTransactionWrite = onDocumentWritten(
   "workspaces/{workspaceId}/transactions/{transactionId}",
   async (event) => {
@@ -146,38 +39,45 @@ export const onTransactionWrite = onDocumentWritten(
     const {workspaceId, transactionId} = event.params;
     const beforeData = event.data.before.data();
     const afterData = event.data.after.data();
-    const projectionAlreadyApplied = Boolean(
-      beforeData?.investmentMetadata || afterData?.investmentMetadata,
-    );
-    const affectedGoalIds = new Set<string>();
-    const beforeGoalId = linkedGoalId(beforeData);
-    const afterGoalId = linkedGoalId(afterData);
-    if (beforeGoalId) affectedGoalIds.add(beforeGoalId);
-    if (afterGoalId) affectedGoalIds.add(afterGoalId);
 
-    if (!projectionAlreadyApplied) {
-      for (const goalId of affectedGoalIds) {
-        await rebuildGoalProgress(
-          workspaceId,
-          goalId,
-          goalContributionDelta(goalId, beforeData, afterData),
-        );
-      }
-    }
+    /*
+     * O progresso patrimonial da meta não é mais recomposto aqui.
+     *
+     * `goals` só recebe `goalId` numa transação pelo espelho de caixa que o
+     * domínio patrimonial grava (`operationsV2.writeCashProjection`), e o
+     * progresso correspondente já foi aplicado na mesma transação do ledger
+     * por `updateGoalProjection`, a partir das posições. Recompor aqui, a
+     * partir de `transactions`, seria uma segunda fonte para a mesma grandeza.
+     * A reconciliação é `recalculateGoalInvestmentProgress`.
+     */
+
+    const action = !event.data.before.exists ? "CREATE" :
+      !event.data.after.exists ? "DELETE" : "UPDATE";
+    const description = afterData?.description ?? beforeData?.description ?? "Transação";
+    const eventKey = cashPeriodEventKey(event.id);
 
     // INV-P1-011 — projeção mensal de caixa mantida por delta.
     //
     // É o que permite ao produto parar de varrer a subcoleção inteira de
     // transações para responder "qual é o saldo acumulado": o agregado global
     // passa a ser a soma de um punhado de documentos mensais.
+    //
+    // INV-P3-001 — a entrega é **pelo menos** uma vez. Um delta é somado; um
+    // delta somado duas vezes é saldo errado. `applyCashPeriodWriteOnce`
+    // registra a entrega na mesma transação em que a aplica, então a reentrega
+    // do mesmo `event.id` não soma nada. `rebuildCashPeriods` continua sendo a
+    // reconciliação — não é mais o que segura a duplicação.
     await db().runTransaction(async (transaction) => {
-      applyCashPeriodWrite(transaction, workspaceId, beforeData, afterData);
+      await applyCashPeriodWriteOnce(
+        transaction,
+        workspaceId,
+        eventKey,
+        beforeData,
+        afterData,
+        {transactionId, action},
+      );
     });
 
-    const action = !event.data.before.exists ? "CREATE" :
-      !event.data.after.exists ? "DELETE" : "UPDATE";
-    const description = afterData?.description ?? beforeData?.description ?? "Transação";
-    const eventKey = createHash("sha256").update(event.id).digest("hex").slice(0, 40);
     /*
      * Trilha de atividade enxuta.
      *

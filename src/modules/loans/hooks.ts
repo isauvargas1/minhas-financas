@@ -1,22 +1,68 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { listLoans, createLoan, updateLoan, deleteLoan, listMovements, createMovement, getLoan } from './api';
+import {
+    useInfiniteQuery,
+    useMutation,
+    useQuery,
+    useQueryClient,
+} from '@tanstack/react-query';
+import {
+    listLoans,
+    createLoan,
+    updateLoan,
+    deleteLoan,
+    listMovements,
+    createMovement,
+    getLoan,
+    getLoanTotals,
+    type LoanMovementCursor,
+} from './api';
 import { Loan, LoanMovement } from './types';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
 
 export const KEYS = {
     allLoans: (ws: string) => ['loans', ws],
+    loanTotals: (ws: string) => ['loans', ws, 'totals'],
     loan: (ws: string, id: string) => ['loans', ws, id],
     movements: (ws: string, loanId: string) => ['loan_movements', ws, loanId],
 };
 
 // --- LOANS ---
 
+/**
+ * Empréstimos, uma página por vez.
+ *
+ * `data` continua sendo o array de contratos já carregados, para que as telas
+ * não precisem conhecer a paginação para renderizar. Quem quiser oferecer
+ * "carregar mais" usa `hasNextPage`/`fetchNextPage`.
+ */
 export const useLoans = () => {
     const { activeWorkspace } = useWorkspace();
-    return useQuery({
+    const queryResult = useInfiniteQuery({
         queryKey: KEYS.allLoans(activeWorkspace.id),
-        queryFn: () => listLoans(activeWorkspace.id),
-        enabled: !!activeWorkspace.id
+        enabled: !!activeWorkspace.id,
+        initialPageParam: undefined as string | undefined,
+        queryFn: ({ pageParam }) => listLoans(activeWorkspace.id, { cursor: pageParam }),
+        getNextPageParam: (lastPage) =>
+            lastPage.hasMore ? lastPage.nextCursor : undefined,
+    });
+    return {
+        ...queryResult,
+        data: queryResult.data?.pages.flatMap((page) => page.items),
+    };
+};
+
+/**
+ * Totais dos contratos, do servidor.
+ *
+ * Separado da listagem de propósito: as telas mostram saldo a receber, saldo a
+ * pagar e atrasados, e esses números precisam cobrir **todos** os contratos,
+ * não só a página carregada.
+ */
+export const useLoanTotals = () => {
+    const { activeWorkspace } = useWorkspace();
+    return useQuery({
+        queryKey: KEYS.loanTotals(activeWorkspace.id),
+        queryFn: () => getLoanTotals(activeWorkspace.id),
+        enabled: !!activeWorkspace.id,
     });
 };
 
@@ -68,13 +114,27 @@ export const useDeleteLoan = () => {
 
 // --- MOVEMENTS ---
 
+/**
+ * Movimentações de um contrato, paginadas e já ordenadas pelo servidor.
+ *
+ * A ordenação era feita em memória sobre o histórico inteiro do contrato.
+ * Agora o servidor ordena e corta, e a tela pede a próxima página.
+ */
 export const useLoanMovements = (loanId: string) => {
     const { activeWorkspace } = useWorkspace();
-    return useQuery({
+    const queryResult = useInfiniteQuery({
         queryKey: KEYS.movements(activeWorkspace.id, loanId),
-        queryFn: () => listMovements(loanId, activeWorkspace.id),
-        enabled: !!activeWorkspace.id && !!loanId
+        enabled: !!activeWorkspace.id && !!loanId,
+        initialPageParam: undefined as LoanMovementCursor | undefined,
+        queryFn: ({ pageParam }) =>
+            listMovements(loanId, activeWorkspace.id, { cursor: pageParam }),
+        getNextPageParam: (lastPage) =>
+            lastPage.hasMore ? lastPage.nextCursor : undefined,
     });
+    return {
+        ...queryResult,
+        data: queryResult.data?.pages.flatMap((page) => page.items),
+    };
 };
 
 export const useCreateMovement = () => {

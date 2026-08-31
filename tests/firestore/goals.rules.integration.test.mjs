@@ -55,7 +55,7 @@ const seed = async () => {
     await db.doc(`workspaces/${workspaceId}/goals/server-goal-id`).set({name: 'Meta protegida'});
   }
   await db.doc(`workspaces/${workspaceA}/transactions/unlinked-transaction-id`).set({
-    type: 'investimento', description: 'Sem vínculo', category: 'CDB', value: 10,
+    type: 'despesa', description: 'Sem vínculo', category: 'Moradia', value: 10,
     date: '2026-08-01', userId: ownerA.uid, workspaceId: workspaceA,
   });
 };
@@ -70,10 +70,17 @@ const signedClient = async (user, suffix) => {
   return {app, db};
 };
 
+/*
+ * Transação gravável pelo cliente.
+ *
+ * `investimento` não entra aqui: esse tipo é negado ao cliente em qualquer
+ * estado (`isLegacyInvestmentWriteAllowed`), e o que estes testes verificam é
+ * o vínculo de meta — que precisa continuar negado mesmo num tipo permitido.
+ */
 const transactionPayload = (workspaceId, uid, extra = {}) => ({
-  type: 'investimento',
-  description: 'Aporte por regra',
-  category: 'CDB',
+  type: 'despesa',
+  description: 'Despesa por regra',
+  category: 'Moradia',
   value: 10,
   date: '2026-08-01',
   userId: uid,
