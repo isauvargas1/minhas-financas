@@ -290,7 +290,11 @@ function isValidOwnProfilePayload(data) {
         'investment_risk',
         'investment_liquidity',
         'investment_indexer',
-        'investment_strategy'
+        'investment_strategy',
+        // Etapa 1 — instituições do modo simples. Escopo 'both', como os
+        // demais grupos de investimento, e portanto coberto pelo ramo padrão
+        // de `isCatalogWorkspaceScopeConsistent`.
+        'investment_institution'
       ];
     }
 
@@ -507,6 +511,10 @@ function isValidInvestmentAccount(data, workspaceId, docId) {
     hasValidInvestmentIdentity(data, workspaceId, docId) &&
     isInvestmentString(data.name, 160) &&
     isInvestmentString(data.institutionName, 160) &&
+    // Etapa 1 — identidade estável da instituição. Opcional: contas
+    // anteriores não têm o campo, e o default de leitura mantém a validação
+    // verdadeira sem afrouxar nada para quem o tem.
+    data.get('institutionId', 'x') is string &&
     isInvestmentCurrency(data.currency) &&
     data.status in ['active', 'archived'] &&
     isInvestmentString(data.createdBy, 128) &&
@@ -549,6 +557,11 @@ function isValidInvestmentAsset(data, workspaceId, docId) {
     data.get('liquidityName', 'x') is string &&
     data.get('indexerId', 'x') is string &&
     data.get('indexerName', 'x') is string &&
+    // Etapa 1 — categoria por catálogo e regime de acompanhamento. O regime
+    // ausente vale 'quantity': é o que preserva todo ativo já gravado.
+    data.get('typeId', 'x') is string &&
+    data.get('typeName', 'x') is string &&
+    data.get('trackingMode', 'quantity') in ['value', 'quantity'] &&
     isInvestmentCurrency(data.currency) &&
     data.status in ['active', 'archived'] &&
     isInvestmentString(data.createdBy, 128) &&
@@ -599,6 +612,16 @@ function isValidInvestmentMovement(data, workspaceId, docId) {
     isInvestmentInteger(data.quantityDeltaMicros) &&
     isInvestmentInteger(data.goalNetContributionDeltaCents) &&
     isInvestmentInteger(data.goalCurrentValueDeltaCents) &&
+    // Etapa 1 — rótulos fotografados na escrita, para a listagem simples não
+    // precisar de uma leitura por linha. Todos opcionais: movimentos
+    // anteriores não os têm.
+    data.get('institutionId', 'x') is string &&
+    data.get('institutionName', 'x') is string &&
+    data.get('classId', 'x') is string &&
+    data.get('className', 'x') is string &&
+    data.get('typeId', 'x') is string &&
+    data.get('typeName', 'x') is string &&
+    data.get('assetName', 'x') is string &&
     isInvestmentString(data.correlationId, 128) &&
     isInvestmentString(data.idempotencyKeyHash, 128) &&
     data.occurredAt is timestamp && data.createdAt is timestamp &&
@@ -1279,24 +1302,31 @@ match /credit_card_idempotency_keys/{docId} {
       }
 
       match /investment_summaries/{docId} {
-        allow get: if docId == 'current' &&
-          canReadInvestmentDomain(workspaceId) &&
-          resource.data.workspaceId == workspaceId &&
-          resource.data.id == docId &&
-          isInvestmentProfileType(resource.data.profileType) &&
-          resource.data.currency == 'BRL' &&
-          isNonNegativeInvestmentInteger(resource.data.positionCount) &&
-          isNonNegativeInvestmentInteger(resource.data.principalCents) &&
-          isNonNegativeInvestmentInteger(resource.data.currentValueCents) &&
-          isNonNegativeInvestmentInteger(resource.data.realizedGainCents) &&
-          isNonNegativeInvestmentInteger(
-            resource.data.get('realizedLossCents', 0)) &&
-          isNonNegativeInvestmentInteger(resource.data.feesCents) &&
-          isNonNegativeInvestmentInteger(resource.data.taxCents) &&
-          resource.data.unrealizedAppreciationCents is int &&
-          resource.data.updatedAt is timestamp;
-        allow list, write: if false;
-      }
+  allow get: if docId == 'current' &&
+    canReadInvestmentDomain(workspaceId) &&
+    (
+      !exists(
+        /databases/$(database)/documents/workspaces/$(workspaceId)/investment_summaries/$(docId)
+      ) ||
+      (
+        resource.data.workspaceId == workspaceId &&
+        resource.data.id == docId &&
+        isInvestmentProfileType(resource.data.profileType) &&
+        resource.data.currency == 'BRL' &&
+        isNonNegativeInvestmentInteger(resource.data.positionCount) &&
+        isNonNegativeInvestmentInteger(resource.data.principalCents) &&
+        isNonNegativeInvestmentInteger(resource.data.currentValueCents) &&
+        isNonNegativeInvestmentInteger(resource.data.realizedGainCents) &&
+        isNonNegativeInvestmentInteger(
+          resource.data.get('realizedLossCents', 0)) &&
+        isNonNegativeInvestmentInteger(resource.data.feesCents) &&
+        isNonNegativeInvestmentInteger(resource.data.taxCents) &&
+        resource.data.unrealizedAppreciationCents is int &&
+        resource.data.updatedAt is timestamp
+      )
+    );
+  allow list, write: if false;
+}
 
       match /investment_report_periods/{docId} {
         allow get: if canReadInvestmentDomain(workspaceId) &&

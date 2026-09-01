@@ -11,7 +11,7 @@
     "functions:build": "npm --prefix functions run build",
     "functions:test:unit": "npm --prefix functions run test:unit",
     "functions:lint": "npm --prefix functions run lint",
-    "test:unit:investments": "node --experimental-strip-types --test tests/unit/investment-semantics.test.ts tests/unit/investment-reporting.test.ts tests/unit/ai-backend-only.test.ts tests/unit/investment-idempotency.test.ts tests/unit/report-window.test.ts",
+    "test:unit:investments": "node --experimental-strip-types --test tests/unit/investment-semantics.test.ts tests/unit/investment-reporting.test.ts tests/unit/ai-backend-only.test.ts tests/unit/investment-idempotency.test.ts tests/unit/report-window.test.ts tests/unit/investment-simple-rows.test.ts tests/unit/investment-simple-form.test.ts tests/unit/investment-simple-summary.test.ts tests/unit/investment-simple-guards.test.ts tests/unit/investment-allocation.test.ts tests/unit/investment-goal-link.test.ts tests/unit/investment-goal-history.test.ts",
     "functions:test:integration": "npm --prefix functions run test:integration",
     "functions:test:integration:emulator": "FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 GCLOUD_PROJECT=minhas-financas-local npm --prefix functions run test:integration",
     "emulators:firestore": "firebase emulators:start --only firestore --project minhas-financas-local",

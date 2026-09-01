@@ -146,8 +146,17 @@ export const useFinancialReportSnapshot = (
         queryKey: workspaceId && workspaceId !== 'loading'
             ? reportKeys.investmentDomain(range, workspaceId)
             : ['financialReportInvestmentDomain', 'disabled'],
+        /*
+         * Sem os cortes de alocação (Etapa 3, §4 e §9).
+         *
+         * O relatório deixou de exibir a taxonomia por conta, ativo, risco,
+         * liquidez, indexador e finalidade — a distribuição por carteira mora
+         * na tela de Investimentos. Pedi-los aqui custava oito consultas por
+         * abertura do relatório para alimentar uma seção que ninguém vê.
+         */
         queryFn: () => getOfficialInvestmentReportData(workspaceId!, {
             periodLimit: range === 'all' ? 100 : range === '12m' || range === 'ytd' ? 14 : range === '90d' ? 5 : 3,
+            includeAllocations: false,
         }),
         enabled: Boolean(workspaceId) && workspaceId !== 'loading' && includeInvestmentDomain,
         staleTime: 1000 * 60 * 2,

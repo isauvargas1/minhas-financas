@@ -1,5 +1,5 @@
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Goal, Transaction, GoalStatus } from '../types.ts';
 import { 
@@ -15,15 +15,9 @@ import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
 import { calculateBusinessGoalProgress, getGoalPaceStatus, getPeriodDates } from '../modules/goals/logic.ts';
 import { cashBalanceFromPeriods, useCashPeriods } from '../modules/transactions/cashPeriods.ts';
 import { listGoalInvestmentMovements } from '../modules/investments/persistence/readApi.ts';
-
-/** Rótulo em pt-BR de cada operação do domínio patrimonial. */
-const MOVEMENT_LABELS: Record<string, string> = {
-    contribution: 'Aporte',
-    redemption: 'Resgate',
-    reversal: 'Estorno',
-    goal_link: 'Vínculo com a meta',
-    goal_unlink: 'Desvínculo da meta',
-};
+import { toGoalHistoryRows, type GoalHistoryRow } from '../modules/investments/simple/goalHistory.ts';
+import NewInvestmentModal from '../modules/investments/simple/components/NewInvestmentModal.tsx';
+import LinkGoalInvestmentsModal from '../modules/investments/simple/components/LinkGoalInvestmentsModal.tsx';
 
 interface GoalDetailsViewProps {
     goal: Goal;
@@ -32,17 +26,6 @@ interface GoalDetailsViewProps {
     onEdit: (goal: Goal) => void;
     onDelete: (goalId: string) => void;
     onUpdateStatus?: (goal: Goal, status: GoalStatus) => void;
-    onAddInvestment: () => void;
-}
-
-/** Uma linha do histórico patrimonial da meta. */
-interface GoalMovementRow {
-    id: string;
-    description: string;
-    operationLabel: string;
-    date: string;
-    /** Efeito assinado sobre o valor investido da meta, em reais. */
-    impact: number;
 }
 
 const adjustBrightness = (color: string, amount: number) => {
@@ -50,10 +33,22 @@ const adjustBrightness = (color: string, amount: number) => {
 }
 
 const GoalDetailsView: React.FC<GoalDetailsViewProps> = ({ 
-    goal, transactions, onBack, onEdit, onDelete, onUpdateStatus, onAddInvestment 
+    goal, transactions, onBack, onEdit, onDelete, onUpdateStatus 
 }) => {
     const { theme } = useTheme();
-    const { activeWorkspace } = useWorkspace();
+    const { activeWorkspace, activeWorkspaceRole } = useWorkspace();
+    /*
+     * "Novo Aporte" e "Vincular Existente" abrem aqui dentro (Etapa 3, §2.A).
+     *
+     * Até a Etapa 2, "Novo Aporte" navegava para a tela de Investimentos com a
+     * meta pré-selecionada e exigia um segundo clique em "Novo investimento" —
+     * a pessoa saía da meta para voltar a ela. Agora o formulário abre sobre o
+     * detalhe da meta, com a meta travada, e nenhuma transação é criada
+     * diretamente: o destino continua sendo `createSimpleInvestment`.
+     */
+    const [isContributionOpen, setContributionOpen] = useState(false);
+    const [isLinkOpen, setLinkOpen] = useState(false);
+    const [feedback, setFeedback] = useState<string>();
     const isPJ = activeWorkspace.type === 'PJ';
     const MotionDiv = motion.div as any;
     /*
@@ -64,24 +59,13 @@ const GoalDetailsView: React.FC<GoalDetailsViewProps> = ({
      * operação no cliente é o que fazia resgate, estorno e desvínculo entrarem
      * como aporte positivo na previsão, na linha do tempo e na tabela.
      */
-    const goalMovements = useQuery<GoalMovementRow[]>({
+    const goalMovements = useQuery<GoalHistoryRow[]>({
         queryKey: ['goal-investment-movements', activeWorkspace.id, goal.id],
         enabled: Boolean(goal.id),
-        queryFn: async () => {
-            const movements = await listGoalInvestmentMovements(
-                activeWorkspace.id,
-                String(goal.id),
-            );
-            return movements.map((movement) => ({
-                id: movement.id,
-                description: movement.description,
-                operationLabel: MOVEMENT_LABELS[movement.operation] ?? 'Movimentação',
-                date: movement.occurredAt?.toDate().toISOString().slice(0, 10) ?? '',
-                impact: Number.isSafeInteger(movement.goalNetContributionDeltaCents)
-                    ? movement.goalNetContributionDeltaCents! / 100
-                    : 0,
-            }));
-        },
+        queryFn: async () => toGoalHistoryRows(await listGoalInvestmentMovements(
+            activeWorkspace.id,
+            String(goal.id),
+        )),
     });
 
     // INV-P1-011 — saldo de caixa acumulado vem da projeção mensal, não da
@@ -139,7 +123,14 @@ const GoalDetailsView: React.FC<GoalDetailsViewProps> = ({
          * mesma fonte: os movimentos do ledger vinculados à meta.
          */
         const goalTransactions = (goalMovements.data ?? [])
-            .slice()
+            .map((row) => ({
+                ...row,
+                date: row.occurredAt ? row.occurredAt.toISOString().slice(0, 10) : '',
+                /** Efeito no progresso, em reais — zero enquanto o lançamento é pendente. */
+                impact: row.impactCents / 100,
+                /** Valor do lançamento, que é o que o pendente tem a mostrar. */
+                value: row.valueCents / 100,
+            }))
             .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
         const remaining = Math.max(0, goal.targetAmount - goal.currentAmount);
@@ -292,34 +283,46 @@ onClick={() => { if (option.key === 'alcancada' && !isActive) handleComplete(); 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 flex-1 min-h-0">
                     <div className="lg:col-span-2 flex flex-col min-h-0">
                         <div className="flex justify-between items-center mb-4">
-                            <h3 className="font-bold text-lg text-gray-800 dark:text-white flex items-center gap-2"><HistoryIcon className="h-5 w-5 text-gray-400" /> Histórico da Meta</h3>
+                            <h3 className="font-bold text-lg text-gray-800 dark:text-white flex items-center gap-2"><HistoryIcon className="h-5 w-5 text-gray-400" /> Histórico de investimentos</h3>
                             <div className="flex gap-2">
-                                <button onClick={() => onAddInvestment()} className="text-xs bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1"><PlusIcon className="h-3 w-3" /> Novo Aporte</button>
+                                <button onClick={() => { setFeedback(undefined); setLinkOpen(true); }} className="text-xs bg-gray-100 hover:bg-gray-200 dark:bg-dark-200 dark:hover:bg-dark-300 text-gray-700 dark:text-gray-300 px-3 py-1.5 rounded-lg transition-colors">Vincular Existente</button>
+                                <button onClick={() => { setFeedback(undefined); setContributionOpen(true); }} className="text-xs bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1"><PlusIcon className="h-3 w-3" /> Novo Aporte</button>
                             </div>
                         </div>
+                        {feedback && (
+                            <div role="status" className="mb-3 rounded-lg border border-green-200 dark:border-green-900/40 bg-green-50 dark:bg-green-900/20 px-3 py-2 text-sm text-green-700 dark:text-green-300">
+                                {feedback}
+                            </div>
+                        )}
                         <div className="bg-white dark:bg-dark-100 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex-1 overflow-hidden flex flex-col">
                             <div className="overflow-y-auto custom-scrollbar flex-1">
                                 {goalTransactions.length > 0 ? (
                                     <table className="w-full text-sm text-left">
                                         <thead className="bg-gray-50 dark:bg-dark-200 text-gray-500 dark:text-gray-400 font-medium sticky top-0"><tr><th className="px-5 py-3">Descrição</th><th className="px-5 py-3">Categoria</th><th className="px-5 py-3">Data</th><th className="px-5 py-3 text-right">Valor</th></tr></thead>
                                         <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                                            {goalTransactions.map(t => {
-                                                const impact = t.impact;
-                                                const operationLabel = t.operationLabel;
-                                                return (
-                                                    <tr key={t.id} className="hover:bg-gray-50 dark:hover:bg-dark-200 transition-colors">
-                                                        <td className="px-5 py-3 text-gray-800 dark:text-gray-200 font-medium">
-                                                            {t.description}
-                                                            <span className="block text-xs font-normal text-gray-500 dark:text-gray-400">{operationLabel}</span>
-                                                        </td>
-                                                        <td className="px-5 py-3 text-gray-500 dark:text-gray-400">{operationLabel}</td>
-                                                        <td className="px-5 py-3 text-gray-500 dark:text-gray-400">{new Date(t.date).toLocaleDateString('pt-BR')}</td>
-                                                        <td className="px-5 py-3 text-right font-bold text-gray-800 dark:text-white">
-                                                            {impact > 0 ? '+' : impact < 0 ? '-' : '•'} {formatValue(Math.abs(impact))}
-                                                        </td>
-                                                    </tr>
-                                                );
-                                            })}
+                                            {goalTransactions.map(t => (
+                                                /*
+                                                 * O que a linha mostra é o fato, não a operação
+                                                 * técnica (Etapa 3, §2.B): "Aporte depositado",
+                                                 * "Retirada aguardando recebimento". O lançamento
+                                                 * que ainda não moveu o progresso aparece em
+                                                 * cinza, com o valor do lançamento e sem sinal —
+                                                 * um "+ R$ 0,00" seria uma promessa que a meta
+                                                 * ainda não recebeu.
+                                                 */
+                                                <tr key={t.id} className="hover:bg-gray-50 dark:hover:bg-dark-200 transition-colors">
+                                                    <td className="px-5 py-3 text-gray-800 dark:text-gray-200 font-medium">
+                                                        {t.description}
+                                                    </td>
+                                                    <td className="px-5 py-3 text-gray-500 dark:text-gray-400">{t.label}</td>
+                                                    <td className="px-5 py-3 text-gray-500 dark:text-gray-400">{t.date ? new Date(t.date).toLocaleDateString('pt-BR') : '—'}</td>
+                                                    <td className={`px-5 py-3 text-right font-bold ${t.effective ? 'text-gray-800 dark:text-white' : 'text-gray-400 dark:text-gray-500'}`}>
+                                                        {t.effective
+                                                            ? `${t.impact < 0 ? '−' : '+'} ${formatValue(Math.abs(t.impact))}`
+                                                            : formatValue(t.value)}
+                                                    </td>
+                                                </tr>
+                                            ))}
                                         </tbody>
                                     </table>
                                 ) : (
@@ -347,6 +350,31 @@ onClick={() => { if (option.key === 'alcancada' && !isActive) handleComplete(); 
                         </div>
                     </div>
                 </div>
+
+                {/*
+                  Modais da meta. `createSimpleInvestment` continua sendo o
+                  único destino do aporte — nenhuma transação é escrita aqui —,
+                  e o vínculo retroativo usa as operações autoritativas de meta.
+                */}
+                <NewInvestmentModal
+                    open={isContributionOpen}
+                    workspaceId={activeWorkspace.id}
+                    goals={[goal]}
+                    initialGoalId={String(goal.id)}
+                    goalLocked
+                    onClose={() => setContributionOpen(false)}
+                    onSuccess={setFeedback}
+                />
+
+                <LinkGoalInvestmentsModal
+                    open={isLinkOpen}
+                    workspaceId={activeWorkspace.id}
+                    goalId={String(goal.id)}
+                    goalName={goal.name}
+                    role={activeWorkspaceRole}
+                    onClose={() => setLinkOpen(false)}
+                    onSuccess={setFeedback}
+                />
             </div>
         );
     }

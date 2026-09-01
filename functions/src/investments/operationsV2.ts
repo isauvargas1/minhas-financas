@@ -9,6 +9,10 @@ import type {
   CancelInvestmentMovementPayload,
   CreateInvestmentContributionPayload,
   CreateInvestmentRedemptionV2Payload,
+  CreateSimpleInvestmentPayload,
+  SettleInvestmentContributionPayload,
+  SettleSimpleWithdrawalPayload,
+  WithdrawSimpleInvestmentPayload,
   RecordInvestmentValuationPayload,
   RegisterInvestmentImportBatchPayload,
   ChangeInvestmentGoalPayload,
@@ -46,6 +50,15 @@ import {
   negateExact,
   positionValueCents,
 } from "./math";
+import {
+  assertQuantityOperationAllowed,
+  assetTrackingMode,
+  assetTypeForCatalogItemId,
+  institutionAccountId,
+  movementPresentationSnapshot,
+  resolveInvestmentCatalogItem,
+  valueModeQuantityMicros,
+} from "./simpleMode";
 import {
   readInvestmentPeriodContext,
   writeInvestmentAllocationProjections,
@@ -456,8 +469,18 @@ const writeCashProjection = (
   const settlementAt = movement.settlementAt as Timestamp | undefined;
   const effectiveAt = settlementAt ?? occurredAt;
   const cashDeltaCents = movement.cashDeltaCents as number;
+  /*
+   * Num movimento liquidado o valor exibido é o efeito de caixa. Num pendente
+   * o efeito ainda é zero, e o que o espelho precisa mostrar é o valor
+   * anunciado: custo mais rendimento informado. Usar só o principal faria uma
+   * retirada pendente de R$ 11.000 com R$ 1.000 de rendimento aparecer como
+   * R$ 10.000. Para todo movimento sem rendimento o resultado é idêntico ao
+   * anterior.
+   */
   const valueCents = Math.abs(
-    cashDeltaCents || (movement.principalCents as number),
+    cashDeltaCents ||
+      ((movement.principalCents as number) +
+        ((movement.gainCents as number) ?? 0)),
   );
   const isSettled = status === "settled";
   const data = {
@@ -475,6 +498,9 @@ const writeCashProjection = (
     profileType,
     userId: auth.uid,
     ...(movement.walletId ? {walletId: movement.walletId} : {}),
+    // O espelho declara a meta do movimento. Numa liquidação em que a posição
+    // perdeu o vínculo a chave simplesmente não é escrita — e como a gravação
+    // substitui o documento inteiro, a meta antiga do pedido não sobrevive.
     ...(movement.goalId ? {goalId: movement.goalId} : {}),
     investmentMetadata: {
       domainVersion: INVESTMENT_DOMAIN_VERSION,
@@ -508,11 +534,122 @@ const writeCashProjection = (
     updatedBy: auth.uid,
     updatedAt: FieldValue.serverTimestamp(),
   };
+  /*
+   * Substituição integral, sem `merge` (INV-P2-051).
+   *
+   * O identificador do espelho é determinístico e derivado de
+   * `(operação, uid, idempotencyKey)` — tudo conhecido pelo cliente. As Rules
+   * permitem que um membro crie `transactions/{docId}` com o ID que quiser, e
+   * a lista de chaves autorizadas inclui justamente campos que este payload
+   * não escreve: `cardId`, `source`, `creditCardCompatibility`,
+   * `creditCardInvoicePaymentId`, `installments`. Com `merge` esses campos —
+   * e um `voidedAt` obtido pela baixa lógica enquanto o documento ainda era
+   * uma transação comum — sobreviviam à escrita do backend.
+   *
+   * O dano não era hipotético: `cashPeriodDeltaFor` zera o efeito de caixa de
+   * qualquer documento com `voidedAt`, antes de olhar o `type`, e a
+   * reconstrução de períodos repete o mesmo zero — um aporte desapareceria do
+   * caixa sem erro e sem caminho de volta. Os campos de cartão reclassificam o
+   * espelho nas projeções de compatibilidade, que não checam `type`.
+   *
+   * A escrita completa termina sempre na forma autoritativa do domínio: o que
+   * não está neste payload não existe no documento. O lifecycle é preservado —
+   * é o mesmo `transactionId` do pedido à liquidação, e cada estado publica a
+   * forma inteira, não um remendo sobre a anterior.
+   */
   transaction.set(
     investmentTransactionDoc(auth.workspaceId, transactionId),
     data,
-    {merge: true},
   );
+};
+
+interface ContributionTarget {
+  accountId: string;
+  assetId: string;
+  positionId: string;
+  positionSnapshot: admin.firestore.DocumentSnapshot;
+}
+
+/**
+ * Resolve o investimento alvo de um aporte.
+ *
+ * A interface simples identifica um investimento por um identificador só —
+ * `positionId` — e não deve precisar saber que por baixo existem uma conta e
+ * um ativo técnicos. O par `accountId`/`assetId` continua sendo aceito, e é o
+ * caminho de todo chamador anterior a esta etapa.
+ *
+ * `positionId` é derivado de `(accountId, assetId)` e não é invertível: a
+ * posição é lida para descobrir o par. A derivação é reconferida depois, para
+ * que um documento de posição incoerente não redirecione um aporte para outro
+ * ativo.
+ */
+const resolveContributionTarget = async (
+  transaction: admin.firestore.Transaction,
+  workspaceId: string,
+  payload: {accountId?: string; assetId?: string; positionId?: string},
+): Promise<ContributionTarget> => {
+  const positionId = payload.accountId && payload.assetId ?
+    investmentPositionId(payload.accountId, payload.assetId) :
+    String(payload.positionId);
+  const positionSnapshot = await transaction.get(
+    investmentDoc(workspaceId, INVESTMENT_COLLECTIONS.positions, positionId),
+  );
+  if (payload.accountId && payload.assetId) {
+    return {
+      accountId: payload.accountId,
+      assetId: payload.assetId,
+      positionId,
+      positionSnapshot,
+    };
+  }
+  const position = assertWorkspaceDocument(
+    positionSnapshot,
+    workspaceId,
+    "Investimento",
+  );
+  const accountId = String(position.accountId);
+  const assetId = String(position.assetId);
+  if (investmentPositionId(accountId, assetId) !== positionId) {
+    throw new CreditCardApplicationError(
+      "domain_precondition_failed",
+      "A posição informada é incoerente com a conta e o ativo que declara.",
+    );
+  }
+  return {accountId, assetId, positionId, positionSnapshot};
+};
+
+/**
+ * Quantidade do aporte, conforme o regime do ativo.
+ *
+ * No regime por valor a quantidade **nunca** vem do chamador: é derivada do
+ * custo, para que a cota sintética permaneça em proporção exata com o
+ * principal em qualquer sequência de aportes e resgates. Aceitar uma
+ * quantidade arbitrária aqui quebraria essa proporção em silêncio e faria o
+ * resgate total falhar na invariante de encerramento da posição.
+ */
+const contributionQuantityMicros = (
+  asset: admin.firestore.DocumentData | undefined,
+  principalCents: number,
+  supplied: number | undefined,
+): number => {
+  if (assetTrackingMode(asset) === "value") {
+    if (supplied !== undefined) {
+      throw new CreditCardApplicationError(
+        "domain_precondition_failed",
+        "Um investimento controlado por valor não aceita quantidade: o " +
+          "aporte é definido apenas pelo valor.",
+      );
+    }
+    return valueModeQuantityMicros(principalCents);
+  }
+  if (supplied === undefined) {
+    throw new CreditCardApplicationError(
+      "domain_precondition_failed",
+      "Um investimento controlado por quantidade exige a quantidade " +
+        "aportada.",
+    );
+  }
+  return supplied;
 };
 
 export const executeCreateInvestmentContribution = async (
@@ -526,7 +663,10 @@ export const executeCreateInvestmentContribution = async (
     payload.idempotencyKey,
   );
   const projectionId = `investment_${movementId}`;
-  const occurredAt = parseTimestamp(payload.occurredAt);
+  const occurredAt = assertNotFuture(
+    parseTimestamp(payload.occurredAt),
+    "occurredAt",
+  );
   return investmentFirestore().runTransaction(async (transaction) => {
     const authorization = await authorizeInvestmentTransaction(
       transaction,
@@ -542,32 +682,31 @@ export const executeCreateInvestmentContribution = async (
       payload,
     );
     if (reservation.replay) return reservation.replay;
-    const positionId = investmentPositionId(payload.accountId, payload.assetId);
+    const target = await resolveContributionTarget(
+      transaction,
+      auth.workspaceId,
+      payload,
+    );
+    const {accountId, assetId, positionId, positionSnapshot} = target;
     const accountRef = investmentDoc(
       auth.workspaceId,
       INVESTMENT_COLLECTIONS.accounts,
-      payload.accountId,
+      accountId,
     );
     const assetRef = investmentDoc(
       auth.workspaceId,
       INVESTMENT_COLLECTIONS.assets,
-      payload.assetId,
-    );
-    const positionRef = investmentDoc(
-      auth.workspaceId,
-      INVESTMENT_COLLECTIONS.positions,
-      positionId,
+      assetId,
     );
     const movementRef = investmentDoc(
       auth.workspaceId,
       INVESTMENT_COLLECTIONS.movements,
       movementId,
     );
-    const [accountSnapshot, assetSnapshot, positionSnapshot, movementSnapshot] =
+    const [accountSnapshot, assetSnapshot, movementSnapshot] =
       await Promise.all([
         transaction.get(accountRef),
         transaction.get(assetRef),
-        transaction.get(positionRef),
         transaction.get(movementRef),
       ]);
     ensureAccountAndAsset(
@@ -576,6 +715,11 @@ export const executeCreateInvestmentContribution = async (
       auth.workspaceId,
       authorization.profileType,
       true,
+    );
+    const quantityMicros = contributionQuantityMicros(
+      assetSnapshot.data(),
+      payload.principalCents,
+      payload.quantityMicros,
     );
     const importBatchRef = payload.importBatchId ?
       investmentDoc(
@@ -632,67 +776,103 @@ export const executeCreateInvestmentContribution = async (
     if (goalSnapshot) {
       assertWorkspaceDocument(goalSnapshot, auth.workspaceId, "Meta");
     }
-    const periodContext = await readInvestmentPeriodContext(
-      transaction,
-      auth.workspaceId,
-      occurredAt,
-    );
+    const settled = payload.settled !== false;
+    // Um aporte pendente não move nada, então não precisa — nem deve — abrir o
+    // contexto do período: ele só existe para acumular deltas liquidados.
+    const periodContext = settled ?
+      await readInvestmentPeriodContext(
+        transaction,
+        auth.workspaceId,
+        occurredAt,
+      ) :
+      undefined;
     const cashOutCents = addExact(
       addExact(payload.principalCents, payload.feesCents, "cashOutCents"),
       payload.taxCents,
       "cashOutCents",
     );
-    const next = applyPositionDeltas(current, {
-      quantityMicros: payload.quantityMicros,
-      principalCents: payload.principalCents,
-      realizedGainCents: 0,
-      feesCents: payload.feesCents,
-      taxCents: payload.taxCents,
-    });
-    next.goalId = goalId;
+    const next = settled ?
+      applyPositionDeltas(current, {
+        quantityMicros,
+        principalCents: payload.principalCents,
+        realizedGainCents: 0,
+        feesCents: payload.feesCents,
+        taxCents: payload.taxCents,
+      }) :
+      current;
+    if (settled) next.goalId = goalId;
+    const presentation = movementPresentationSnapshot(
+      accountSnapshot.data(),
+      assetSnapshot.data(),
+    );
+    /*
+     * Deltas do aporte pendente são todos zero — invariante do contrato de
+     * documento e das Rules, e a razão pela qual um pendente pode ser
+     * cancelado sem apagar fato financeiro nenhum.
+     */
+    const effects = settled ?
+      {
+        cashDeltaCents: negateExact(cashOutCents, "cashDeltaCents"),
+        principalDeltaCents: payload.principalCents,
+        feesDeltaCents: payload.feesCents,
+        taxDeltaCents: payload.taxCents,
+        quantityDeltaMicros: quantityMicros,
+        goalNetContributionDeltaCents: goalId ? payload.principalCents : 0,
+        goalCurrentValueDeltaCents: goalId ?
+          next.currentValueCents - current.currentValueCents :
+          0,
+        currentValueDeltaCents:
+          next.currentValueCents - current.currentValueCents,
+      } :
+      {
+        cashDeltaCents: 0,
+        principalDeltaCents: 0,
+        feesDeltaCents: 0,
+        taxDeltaCents: 0,
+        quantityDeltaMicros: 0,
+        goalNetContributionDeltaCents: 0,
+        goalCurrentValueDeltaCents: 0,
+        currentValueDeltaCents: 0,
+      };
     const movement = {
       id: movementId,
       workspaceId: auth.workspaceId,
       profileType: authorization.profileType,
       domainVersion: INVESTMENT_DOMAIN_VERSION,
       calculationVersion: INVESTMENT_CALCULATION_VERSION,
-      accountId: payload.accountId,
-      assetId: payload.assetId,
+      accountId,
+      assetId,
       positionId,
       operation: "contribution",
-      status: "settled",
+      status: settled ? "settled" : "pending",
       currency: "BRL",
       description: payload.description,
       principalCents: payload.principalCents,
       gainCents: 0,
       feesCents: payload.feesCents,
       taxCents: payload.taxCents,
-      quantityMicros: payload.quantityMicros,
-      cashDeltaCents: negateExact(cashOutCents, "cashDeltaCents"),
-      principalDeltaCents: payload.principalCents,
+      quantityMicros,
       realizedGainDeltaCents: 0,
-      feesDeltaCents: payload.feesCents,
-      taxDeltaCents: payload.taxCents,
-      quantityDeltaMicros: payload.quantityMicros,
-      goalNetContributionDeltaCents: goalId ? payload.principalCents : 0,
-      goalCurrentValueDeltaCents: goalId ?
-        next.currentValueCents - current.currentValueCents :
-        0,
-      currentValueDeltaCents: next.currentValueCents - current.currentValueCents,
+      ...effects,
       ...(goalId ? {goalId} : {}),
       ...(payload.walletId ? {walletId: payload.walletId} : {}),
       ...(payload.importBatchId ?
         {importBatchId: payload.importBatchId} :
         {}),
+      ...presentation,
       transactionId: projectionId,
       correlationId: payload.correlationId,
       idempotencyKeyHash: reservation.keyHash,
       occurredAt,
-      settlementAt: occurredAt,
+      ...(settled ?
+        {
+          settlementAt: occurredAt,
+          settledBy: auth.uid,
+          settledAt: FieldValue.serverTimestamp(),
+        } :
+        {}),
       createdBy: auth.uid,
       createdAt: FieldValue.serverTimestamp(),
-      settledBy: auth.uid,
-      settledAt: FieldValue.serverTimestamp(),
     };
     transaction.create(
       movementRef,
@@ -705,68 +885,70 @@ export const executeCreateInvestmentContribution = async (
         updatedAt: FieldValue.serverTimestamp(),
       });
     }
-    writePosition(
-      transaction,
-      positionSnapshot,
-      auth.workspaceId,
-      authorization.profileType,
-      payload.accountId,
-      payload.assetId,
-      next,
-      movementId,
-      occurredAt,
-      auth.uid,
-    );
-    writeInvestmentAllocationProjections(
-      transaction,
-      auth.workspaceId,
-      authorization.profileType,
-      auth.uid,
-      accountSnapshot.data() ?? {},
-      assetSnapshot.data() ?? {},
-      current,
-      next,
-      {next: goalSnapshot?.data()?.name as string | undefined},
-    );
-    writeInvestmentReportPeriod(
-      transaction,
-      auth.workspaceId,
-      authorization.profileType,
-      auth.uid,
-      occurredAt,
-      {
-        operation: "contribution",
-        principalCents: payload.principalCents,
-        gainCents: 0,
-        feesCents: payload.feesCents,
-        taxCents: payload.taxCents,
-        cashDeltaCents: movement.cashDeltaCents,
-        currentValueDeltaCents:
-          next.currentValueCents - current.currentValueCents,
-      },
-      periodContext,
-    );
-    updateGoalProjection(
-      transaction,
-      goalSnapshot,
-      movement.goalNetContributionDeltaCents,
-      movement.goalCurrentValueDeltaCents,
-      auth.uid,
-    );
+    if (settled && periodContext) {
+      writePosition(
+        transaction,
+        positionSnapshot,
+        auth.workspaceId,
+        authorization.profileType,
+        accountId,
+        assetId,
+        next,
+        movementId,
+        occurredAt,
+        auth.uid,
+      );
+      writeInvestmentAllocationProjections(
+        transaction,
+        auth.workspaceId,
+        authorization.profileType,
+        auth.uid,
+        accountSnapshot.data() ?? {},
+        assetSnapshot.data() ?? {},
+        current,
+        next,
+        {next: goalSnapshot?.data()?.name as string | undefined},
+      );
+      writeInvestmentReportPeriod(
+        transaction,
+        auth.workspaceId,
+        authorization.profileType,
+        auth.uid,
+        occurredAt,
+        {
+          operation: "contribution",
+          principalCents: payload.principalCents,
+          gainCents: 0,
+          feesCents: payload.feesCents,
+          taxCents: payload.taxCents,
+          cashDeltaCents: movement.cashDeltaCents,
+          currentValueDeltaCents:
+            next.currentValueCents - current.currentValueCents,
+        },
+        periodContext,
+      );
+      updateGoalProjection(
+        transaction,
+        goalSnapshot,
+        movement.goalNetContributionDeltaCents,
+        movement.goalCurrentValueDeltaCents,
+        auth.uid,
+      );
+    }
     writeCashProjection(
       transaction,
       auth,
       authorization.profileType,
       movement,
       "contribution",
-      "settled",
+      settled ? "settled" : "pending",
     );
     const result = {
       success: true,
       movementId,
       positionId,
       transactionId: projectionId,
-      status: "settled",
+      status: movement.status,
       cashDeltaCents: movement.cashDeltaCents,
       principalCents: next.principalCents,
       currentValueCents: next.currentValueCents,
@@ -790,8 +972,8 @@ export const executeCreateInvestmentContribution = async (
       movementId,
       {
         positionId,
-        accountId: payload.accountId,
-        assetId: payload.assetId,
+        accountId,
+        assetId,
         goalId: goalId ?? null,
       },
     );
@@ -818,7 +1000,21 @@ export const executeCreateInvestmentRedemptionV2 = async (
     payload.idempotencyKey,
   );
   const projectionId = `investment_${movementId}`;
-  const requestedAt = parseTimestamp(payload.requestedAt);
+  /*
+   * INV-P2-022 — `requestedAt` vira o `occurredAt` do movimento e serve de
+   * piso para o `assertNotBefore` da liquidação. Um pedido nascido no futuro
+   * exigiria um `settledAt` simultaneamente posterior ao pedido e não futuro:
+   * o resgate ficaria pendente e inliquidável, com o caixa esperado preso.
+   * É a mesma guarda que a retirada do modo simples já aplica.
+   *
+   * `expectedSettlementAt` é a previsão de D+N informada pela instituição, não
+   * um fato: continua podendo apontar para o futuro e não entra em nenhum
+   * cálculo — é só o campo exibido no pedido pendente.
+   */
+  const requestedAt = assertNotFuture(
+    parseTimestamp(payload.requestedAt),
+    "requestedAt",
+  );
   const expectedSettlementAt = payload.expectedSettlementAt ?
     parseTimestamp(payload.expectedSettlementAt) :
     undefined;
@@ -874,6 +1070,20 @@ export const executeCreateInvestmentRedemptionV2 = async (
       authorization.profileType,
       false,
     );
+    /*
+     * O fluxo detalhado de resgate é quantitativo: quem chama informa
+     * quantidade, ganho, perda, taxas e imposto. Num ativo de regime por
+     * valor a quantidade é uma cota sintética amarrada ao custo
+     * (`quantityMicros == principalCents * VALUE_MODE_MICROS_PER_CENT`), e
+     * aceitar uma quantidade arbitrária aqui romperia essa proporção em
+     * silêncio — o mesmo defeito que a valoração já recusa. A guarda fecha o
+     * caminho lateral: uma retirada por valor só é criada e liquidada pelas
+     * operações do modo simples.
+     */
+    assertQuantityOperationAllowed(
+      assetSnapshot.data(),
+      "O resgate detalhado",
+    );
     const current = positionState(positionSnapshot);
     if (
       !positionSnapshot.exists ||
@@ -920,6 +1130,10 @@ export const executeCreateInvestmentRedemptionV2 = async (
       currentValueDeltaCents: 0,
       ...(current.goalId ? {goalId: current.goalId} : {}),
       ...(payload.walletId ? {walletId: payload.walletId} : {}),
+      ...movementPresentationSnapshot(
+        accountSnapshot.data(),
+        assetSnapshot.data(),
+      ),
       transactionId: projectionId,
       correlationId: payload.correlationId,
       idempotencyKeyHash: reservation.keyHash,
@@ -1078,6 +1292,20 @@ export const executeSettleInvestmentRedemption = async (
       authorization.profileType,
       false,
     );
+    /*
+     * O fluxo detalhado de resgate é quantitativo: quem chama informa
+     * quantidade, ganho, perda, taxas e imposto. Num ativo de regime por
+     * valor a quantidade é uma cota sintética amarrada ao custo
+     * (`quantityMicros == principalCents * VALUE_MODE_MICROS_PER_CENT`), e
+     * aceitar uma quantidade arbitrária aqui romperia essa proporção em
+     * silêncio — o mesmo defeito que a valoração já recusa. A guarda fecha o
+     * caminho lateral: uma retirada por valor só é criada e liquidada pelas
+     * operações do modo simples.
+     */
+    assertQuantityOperationAllowed(
+      assetSnapshot.data(),
+      "A liquidação detalhada de resgate",
+    );
     const current = positionState(positionSnapshot);
     const next = applyPositionDeltas(current, {
       quantityMicros: negateExact(
@@ -1093,7 +1321,26 @@ export const executeSettleInvestmentRedemption = async (
       feesCents: payload.settlement.feesCents,
       taxCents: payload.settlement.taxCents,
     });
+    /*
+     * Vínculo de meta do movimento liquidado.
+     *
+     * Os deltas acima são apurados contra a meta da posição **no instante da
+     * liquidação**, e o documento precisa declarar essa mesma meta. Entre o
+     * pedido e o recebimento a posição pode ter sido desvinculada ou movida
+     * para outra meta; conservar o `goalId` gravado na abertura do pendente
+     * faria o resgate aparecer no histórico de uma meta que não sofreu efeito
+     * nenhum, porque `listGoalInvestmentMovements` filtra exatamente por esse
+     * campo. Sem meta o campo **sai** do documento: string vazia não é
+     * ausência, e o contrato declara `goalId` opcional — nunca vazio.
+     *
+     * O vínculo do pedido não se perde. O evento de liquidação registra os
+     * dois lados, e os movimentos `goal_link`/`goal_unlink` da posição
+     * continuam no ledger.
+     */
     const goalId = current.goalId;
+    const requestedGoalId = typeof movement.goalId === "string" ?
+      movement.goalId :
+      undefined;
     const goalSnapshot = goalId ?
       await transaction.get(investmentGoalDoc(auth.workspaceId, goalId)) :
       undefined;
@@ -1180,7 +1427,7 @@ export const executeSettleInvestmentRedemption = async (
         next.currentValueCents - current.currentValueCents :
         0,
       currentValueDeltaCents: next.currentValueCents - current.currentValueCents,
-      ...(goalId ? {goalId} : {}),
+      goalId,
       settlementAt: settledAt,
       settledBy: auth.uid,
       settledAt: FieldValue.serverTimestamp(),
@@ -1210,7 +1457,7 @@ export const executeSettleInvestmentRedemption = async (
         settledMovement.goalNetContributionDeltaCents,
       goalCurrentValueDeltaCents: settledMovement.goalCurrentValueDeltaCents,
       currentValueDeltaCents: settledMovement.currentValueDeltaCents,
-      ...(goalId ? {goalId} : {}),
+      goalId: goalId ?? FieldValue.delete(),
       settlementAt: settledMovement.settlementAt,
       settledBy: auth.uid,
       settledAt: FieldValue.serverTimestamp(),
@@ -1315,6 +1562,8 @@ export const executeSettleInvestmentRedemption = async (
         positionId: movement.positionId,
         beforeStatus: "pending",
         afterStatus: "settled",
+        requestedGoalId: requestedGoalId ?? null,
+        settledGoalId: goalId ?? null,
       },
     );
     completeInvestmentIdempotency(
@@ -1511,6 +1760,13 @@ export const executeReverseInvestmentMovement = async (
       currentValueDeltaCents: next.currentValueCents - current.currentValueCents,
       ...(goalId ? {goalId} : {}),
       ...(original.walletId ? {walletId: original.walletId} : {}),
+      // A fotografia de apresentação acompanha o estorno: ele aparece na mesma
+      // listagem, e reler o cadastro atual mostraria um rótulo que talvez não
+      // fosse o do movimento estornado.
+      ...movementPresentationSnapshot(
+        accountSnapshot.data(),
+        assetSnapshot.data(),
+      ),
       transactionId: projectionId,
       reversedMovementId: payload.movementId,
       reversalReason: payload.reason,
@@ -1647,7 +1903,20 @@ const executeGoalLinkChange = async (
     auth.uid,
     payload.idempotencyKey,
   );
-  const occurredAt = parseTimestamp(payload.occurredAt);
+  /*
+   * INV-P2-022 — vincular ou desvincular não é agendável: a interface envia o
+   * instante da própria ação (`intent.occurredAt()`) e o vínculo move o
+   * progresso da meta imediatamente. O `occurredAt` vira `occurredAt` e
+   * `settlementAt` do movimento e é o carimbo que `writePosition` grava, então
+   * uma data futura abriria o período do mês futuro e deslocaria o
+   * `lastMovementAt` da posição. `changeInvestmentGoal`, que emite exatamente
+   * este par de movimentos, já recusa data futura — a guarda aqui fecha a
+   * assimetria entre os dois caminhos.
+   */
+  const occurredAt = assertNotFuture(
+    parseTimestamp(payload.occurredAt),
+    "occurredAt",
+  );
   return investmentFirestore().runTransaction(async (transaction) => {
     const authorization = await authorizeInvestmentTransaction(
       transaction,
@@ -2262,7 +2531,17 @@ const executeSaveEntity = async (
         (before?.allocationPurpose ?? "unassigned") !==
           allocationPurpose
       );
-      if (classificationChanged) {
+      /*
+       * Trocar o regime de acompanhamento reinterpreta a quantidade já
+       * gravada: no regime por valor ela é uma cota sintética amarrada ao
+       * custo, no quantitativo é quantidade real. Com posição viva, a troca
+       * mudaria o significado do patrimônio sem mover um centavo — e o
+       * caminho de conversão segura não existe. Sem posição, é só cadastro.
+       */
+      const trackingModeChanged = snapshot.exists &&
+        assetPayload.trackingMode !== undefined &&
+        assetTrackingMode(before) !== assetPayload.trackingMode;
+      if (classificationChanged || trackingModeChanged) {
         const position = await transaction.get(
           investmentCollection(
             auth.workspaceId,
@@ -2275,8 +2554,12 @@ const executeSaveEntity = async (
         if (!position.empty) {
           throw new CreditCardApplicationError(
             "domain_precondition_failed",
-            "A classificação não pode mudar enquanto o ativo possui posição; " +
-              "preserve o histórico e cadastre um novo ativo.",
+            trackingModeChanged ?
+              "O regime de acompanhamento não pode mudar enquanto o ativo " +
+                "possui posição: a quantidade já registrada passaria a " +
+                "significar outra coisa." :
+              "A classificação não pode mudar enquanto o ativo possui " +
+                "posição; preserve o histórico e cadastre um novo ativo.",
           );
         }
       }
@@ -2285,6 +2568,10 @@ const executeSaveEntity = async (
       name: payload.name,
       institutionName:
         (payload as SaveInvestmentAccountPayload).institutionName,
+      ...((payload as SaveInvestmentAccountPayload).institutionId ? {
+        institutionId:
+          (payload as SaveInvestmentAccountPayload).institutionId,
+      } : {}),
     } : {
       name: payload.name,
       ...((payload as SaveInvestmentAssetPayload).symbol ? {
@@ -2301,6 +2588,9 @@ const executeSaveEntity = async (
       // renomear ou inativar o item não apague o rótulo histórico da faixa de
       // alocação já publicada.
       ...catalogClassification(payload as SaveInvestmentAssetPayload),
+      ...((payload as SaveInvestmentAssetPayload).trackingMode ? {
+        trackingMode: (payload as SaveInvestmentAssetPayload).trackingMode,
+      } : {}),
     };
     const common = {
       id: entityId,
@@ -2379,6 +2669,8 @@ const catalogClassification = (
     ["liquidityName", payload.liquidityName],
     ["indexerId", payload.indexerId],
     ["indexerName", payload.indexerName],
+    ["typeId", payload.typeId],
+    ["typeName", payload.typeName],
   ];
   return Object.fromEntries(
     entries.filter((entry): entry is [string, string] => Boolean(entry[1])),
@@ -2417,7 +2709,17 @@ export const executeCancelInvestmentMovement = async (
   payload: CancelInvestmentMovementPayload,
 ): Promise<Record<string, unknown>> => {
   const operation = "cancelInvestmentMovement" as const;
-  const occurredAt = parseTimestamp(payload.occurredAt);
+  /*
+   * INV-P2-022 — não existe cancelamento agendado: a interface envia o
+   * instante da ação e o efeito (`status: 'cancelled'`) é imediato. O
+   * `occurredAt` é o carimbo que o log de evento publica como momento do
+   * cancelamento, e aceitar futuro gravaria no histórico um cancelamento
+   * datado depois do próprio `cancelledAt` do servidor.
+   */
+  const occurredAt = assertNotFuture(
+    parseTimestamp(payload.occurredAt),
+    "occurredAt",
+  );
   return investmentFirestore().runTransaction(async (transaction) => {
     const authorization = await authorizeInvestmentTransaction(
       transaction,
@@ -2595,6 +2897,13 @@ export const executeRecordInvestmentValuation = async (
       authorization.profileType,
       false,
     );
+    /*
+     * Valoração é operação quantitativa: multiplica quantidade por preço
+     * unitário. Num ativo de regime por valor a quantidade é uma cota
+     * sintética amarrada ao custo, e aplicar um preço de mercado sobre ela
+     * publicaria um patrimônio inventado. A recusa é explícita.
+     */
+    assertQuantityOperationAllowed(assetSnapshot.data(), "A valoração");
     if (!positionSnapshot.exists) {
       throw new CreditCardApplicationError(
         "domain_precondition_failed",
@@ -2886,6 +3195,1483 @@ export const executeRegisterInvestmentImportBatch = async (
       "importBatch",
       batchId,
       {status: payload.status, source: payload.source},
+    );
+    completeInvestmentIdempotency(
+      transaction,
+      auth,
+      operation,
+      payload.correlationId,
+      reservation,
+      result,
+    );
+    return result;
+  });
+};
+
+/**
+ * Liquidação de um aporte pendente (Etapa 1, §7).
+ *
+ * O aporte pendente já fixou principal, taxas, imposto e quantidade na
+ * criação; o que faltava era o dinheiro sair. Por isso a liquidação não
+ * recebe valores — receberia significaria editar um fato financeiro por uma
+ * porta lateral — e sim a data em que o depósito aconteceu.
+ *
+ * `occurredAt` é preservado (é a data do lançamento) e `settlementAt` passa a
+ * ser a data do efeito de caixa: é ela que o espelho em `transactions` e a
+ * série mensal usam.
+ */
+export const executeSettleInvestmentContribution = async (
+  auth: WorkspaceAuthorizationContext,
+  payload: SettleInvestmentContributionPayload,
+): Promise<Record<string, unknown>> => {
+  const operation = "settleInvestmentContribution" as const;
+  const settledAt = assertNotFuture(
+    parseTimestamp(payload.settledAt),
+    "settledAt",
+  );
+  return investmentFirestore().runTransaction(async (transaction) => {
+    const authorization = await authorizeInvestmentTransaction(
+      transaction,
+      auth,
+      investmentOperationRoles(operation),
+    );
+    const reservation = await reserveInvestmentIdempotency(
+      transaction,
+      auth,
+      operation,
+      payload.idempotencyKey,
+      payload.correlationId,
+      payload,
+    );
+    if (reservation.replay) return reservation.replay;
+    const movementRef = investmentDoc(
+      auth.workspaceId,
+      INVESTMENT_COLLECTIONS.movements,
+      payload.movementId,
+    );
+    const movementSnapshot = await transaction.get(movementRef);
+    const movement = assertWorkspaceDocument(
+      movementSnapshot,
+      auth.workspaceId,
+      "Aporte",
+    );
+    /*
+     * Segunda liquidação é impossível por construção: o movimento já não está
+     * `pending`. A idempotência cobre o retry da *mesma* intenção; esta guarda
+     * cobre uma intenção nova sobre um aporte já liquidado.
+     */
+    if (
+      movement.operation !== "contribution" ||
+      movement.status !== "pending"
+    ) {
+      throw new CreditCardApplicationError(
+        "domain_precondition_failed",
+        "Somente um aporte pendente pode ser liquidado.",
+      );
+    }
+    assertNotBefore(
+      settledAt,
+      movement.occurredAt as Timestamp,
+      "settledAt",
+      "ao registro do aporte",
+    );
+    const refs = {
+      account: investmentDoc(
+        auth.workspaceId,
+        INVESTMENT_COLLECTIONS.accounts,
+        String(movement.accountId),
+      ),
+      asset: investmentDoc(
+        auth.workspaceId,
+        INVESTMENT_COLLECTIONS.assets,
+        String(movement.assetId),
+      ),
+      position: investmentDoc(
+        auth.workspaceId,
+        INVESTMENT_COLLECTIONS.positions,
+        String(movement.positionId),
+      ),
+    };
+    const [accountSnapshot, assetSnapshot, positionSnapshot] =
+      await Promise.all([
+        transaction.get(refs.account),
+        transaction.get(refs.asset),
+        transaction.get(refs.position),
+      ]);
+    ensureAccountAndAsset(
+      accountSnapshot,
+      assetSnapshot,
+      auth.workspaceId,
+      authorization.profileType,
+      true,
+    );
+    const current = positionState(positionSnapshot);
+    /*
+     * As guardas de meta são reavaliadas aqui, e não só na criação: entre o
+     * registro do aporte e a liquidação a posição pode ter sido vinculada a
+     * outra meta, e aplicar o progresso na meta errada é irreversível sem
+     * estorno.
+     */
+    const intendedGoalId = typeof movement.goalId === "string" ?
+      movement.goalId :
+      undefined;
+    if (current.goalId && intendedGoalId && current.goalId !== intendedGoalId) {
+      throw new CreditCardApplicationError(
+        "domain_precondition_failed",
+        "A posição já está vinculada a outra meta.",
+      );
+    }
+    if (!current.goalId && intendedGoalId && current.principalCents > 0) {
+      throw new CreditCardApplicationError(
+        "domain_precondition_failed",
+        "Use a operação de vínculo para associar uma posição já existente.",
+      );
+    }
+    const goalId = current.goalId ?? intendedGoalId;
+    const goalSnapshot = goalId ?
+      await transaction.get(investmentGoalDoc(auth.workspaceId, goalId)) :
+      undefined;
+    if (goalSnapshot) {
+      assertWorkspaceDocument(goalSnapshot, auth.workspaceId, "Meta");
+    }
+    const periodContext = await readInvestmentPeriodContext(
+      transaction,
+      auth.workspaceId,
+      settledAt,
+    );
+    const principalCents = integerOrZero(movement.principalCents);
+    const feesCents = integerOrZero(movement.feesCents);
+    const taxCents = integerOrZero(movement.taxCents);
+    const quantityMicros = integerOrZero(movement.quantityMicros);
+    const next = applyPositionDeltas(current, {
+      quantityMicros,
+      principalCents,
+      realizedGainCents: 0,
+      feesCents,
+      taxCents,
+    });
+    next.goalId = goalId;
+    const cashOutCents = addExact(
+      addExact(principalCents, feesCents, "cashOutCents"),
+      taxCents,
+      "cashOutCents",
+    );
+    const currentValueDeltaCents =
+      next.currentValueCents - current.currentValueCents;
+    const settledMovement = {
+      ...movement,
+      status: "settled",
+      cashDeltaCents: negateExact(cashOutCents, "cashDeltaCents"),
+      principalDeltaCents: principalCents,
+      realizedGainDeltaCents: 0,
+      feesDeltaCents: feesCents,
+      taxDeltaCents: taxCents,
+      quantityDeltaMicros: quantityMicros,
+      goalNetContributionDeltaCents: goalId ? principalCents : 0,
+      goalCurrentValueDeltaCents: goalId ? currentValueDeltaCents : 0,
+      currentValueDeltaCents,
+      ...(goalId ? {goalId} : {}),
+      settlementAt: settledAt,
+      settledBy: auth.uid,
+      settledAt: FieldValue.serverTimestamp(),
+      settlementCorrelationId: payload.correlationId,
+      updatedAt: FieldValue.serverTimestamp(),
+    };
+    // O documento resultante é validado inteiro, e não só o patch: é a mesma
+    // verificação que as Rules fazem na leitura.
+    assertInvestmentDocument("movement", settledMovement, auth.workspaceId);
+    transaction.update(movementRef, {
+      status: settledMovement.status,
+      cashDeltaCents: settledMovement.cashDeltaCents,
+      principalDeltaCents: settledMovement.principalDeltaCents,
+      realizedGainDeltaCents: settledMovement.realizedGainDeltaCents,
+      feesDeltaCents: settledMovement.feesDeltaCents,
+      taxDeltaCents: settledMovement.taxDeltaCents,
+      quantityDeltaMicros: settledMovement.quantityDeltaMicros,
+      goalNetContributionDeltaCents:
+        settledMovement.goalNetContributionDeltaCents,
+      goalCurrentValueDeltaCents: settledMovement.goalCurrentValueDeltaCents,
+      currentValueDeltaCents: settledMovement.currentValueDeltaCents,
+      ...(goalId ? {goalId} : {}),
+      settlementAt: settledMovement.settlementAt,
+      settledBy: auth.uid,
+      settledAt: FieldValue.serverTimestamp(),
+      settlementCorrelationId: payload.correlationId,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+    writePosition(
+      transaction,
+      positionSnapshot,
+      auth.workspaceId,
+      authorization.profileType,
+      String(movement.accountId),
+      String(movement.assetId),
+      next,
+      payload.movementId,
+      settledAt,
+      auth.uid,
+    );
+    writeInvestmentAllocationProjections(
+      transaction,
+      auth.workspaceId,
+      authorization.profileType,
+      auth.uid,
+      accountSnapshot.data() ?? {},
+      assetSnapshot.data() ?? {},
+      current,
+      next,
+      {next: goalSnapshot?.data()?.name as string | undefined},
+    );
+    writeInvestmentReportPeriod(
+      transaction,
+      auth.workspaceId,
+      authorization.profileType,
+      auth.uid,
+      settledAt,
+      {
+        operation: "contribution",
+        principalCents,
+        gainCents: 0,
+        feesCents,
+        taxCents,
+        cashDeltaCents: settledMovement.cashDeltaCents,
+        currentValueDeltaCents,
+      },
+      periodContext,
+    );
+    updateGoalProjection(
+      transaction,
+      goalSnapshot,
+      settledMovement.goalNetContributionDeltaCents,
+      settledMovement.goalCurrentValueDeltaCents,
+      auth.uid,
+    );
+    writeCashProjection(
+      transaction,
+      auth,
+      authorization.profileType,
+      settledMovement,
+      "contribution",
+      "settled",
+    );
+    const result = {
+      success: true,
+      movementId: payload.movementId,
+      positionId: String(movement.positionId),
+      transactionId: movement.transactionId ?? null,
+      status: "settled",
+      cashDeltaCents: settledMovement.cashDeltaCents,
+      principalCents: next.principalCents,
+      currentValueCents: next.currentValueCents,
+    };
+    recordInvestmentOperationMetric(transaction, {
+      workspaceId: auth.workspaceId,
+      operation,
+      actorId: auth.uid,
+      correlationId: payload.correlationId,
+      idempotencyKey: payload.idempotencyKey,
+    });
+    recordInvestmentEvent(
+      transaction,
+      auth,
+      authorization.role,
+      authorization.profileType,
+      operation,
+      reservation,
+      payload.correlationId,
+      "movement",
+      payload.movementId,
+      {
+        positionId: String(movement.positionId),
+        beforeStatus: "pending",
+        afterStatus: "settled",
+      },
+    );
+    completeInvestmentIdempotency(
+      transaction,
+      auth,
+      operation,
+      payload.correlationId,
+      reservation,
+      result,
+    );
+    return result;
+  });
+};
+
+/**
+ * Novo investimento no modo simples (Etapa 1, §§1-4 e 6-7).
+ *
+ * A operação cobre, numa transação só: resolver instituição, carteira e
+ * categoria no catálogo do workspace; garantir a conta técnica da
+ * instituição; criar o ativo técnico **próprio deste investimento**; e
+ * registrar o primeiro aporte, liquidado ou pendente.
+ *
+ * ## Identidade
+ *
+ * O ativo nasce com identidade própria derivada da **intenção**
+ * (`operation:uid:idempotencyKey`), nunca de texto. Dois comandos distintos
+ * com a mesma descrição criam dois investimentos distintos — que é o
+ * comportamento correto: "Tesouro Selic" na corretora A e na corretora B são
+ * duas coisas. Retry e duplo clique repetem a mesma chave e, portanto, o
+ * mesmo identificador, e a reserva de idempotência devolve o resultado
+ * anterior sem escrever nada.
+ *
+ * A conta, ao contrário, é **compartilhada por instituição**: o identificador
+ * deriva do ID do item de catálogo, que é estável. Renomear "BTG" para
+ * "BTG Pactual" continua apontando para a mesma conta e para o mesmo
+ * histórico.
+ */
+export const executeCreateSimpleInvestment = async (
+  auth: WorkspaceAuthorizationContext,
+  payload: CreateSimpleInvestmentPayload,
+): Promise<Record<string, unknown>> => {
+  const operation = "createSimpleInvestment" as const;
+  const movementId = deterministicDocumentId(
+    operation,
+    auth.uid,
+    payload.idempotencyKey,
+  );
+  const assetId = deterministicDocumentId(
+    `${operation}:asset`,
+    auth.uid,
+    payload.idempotencyKey,
+  );
+  const projectionId = `investment_${movementId}`;
+  const occurredAt = assertNotFuture(
+    parseTimestamp(payload.occurredAt),
+    "occurredAt",
+  );
+  const settled = payload.settled !== false;
+  return investmentFirestore().runTransaction(async (transaction) => {
+    const authorization = await authorizeInvestmentTransaction(
+      transaction,
+      auth,
+      investmentOperationRoles(operation),
+    );
+    const reservation = await reserveInvestmentIdempotency(
+      transaction,
+      auth,
+      operation,
+      payload.idempotencyKey,
+      payload.correlationId,
+      payload,
+    );
+    if (reservation.replay) return reservation.replay;
+    const [institution, portfolio, category] = await Promise.all([
+      resolveInvestmentCatalogItem(
+        transaction,
+        auth.workspaceId,
+        "investment_institution",
+        payload.institutionId,
+      ),
+      resolveInvestmentCatalogItem(
+        transaction,
+        auth.workspaceId,
+        "investment_class",
+        payload.classId,
+      ),
+      resolveInvestmentCatalogItem(
+        transaction,
+        auth.workspaceId,
+        "investment_type",
+        payload.typeId,
+      ),
+    ]);
+    const accountId = institutionAccountId(auth.workspaceId, institution.id);
+    const positionId = investmentPositionId(accountId, assetId);
+    const refs = {
+      account: investmentDoc(
+        auth.workspaceId,
+        INVESTMENT_COLLECTIONS.accounts,
+        accountId,
+      ),
+      asset: investmentDoc(
+        auth.workspaceId,
+        INVESTMENT_COLLECTIONS.assets,
+        assetId,
+      ),
+      position: investmentDoc(
+        auth.workspaceId,
+        INVESTMENT_COLLECTIONS.positions,
+        positionId,
+      ),
+      movement: investmentDoc(
+        auth.workspaceId,
+        INVESTMENT_COLLECTIONS.movements,
+        movementId,
+      ),
+    };
+    const [accountSnapshot, assetSnapshot, positionSnapshot, movementSnapshot] =
+      await Promise.all([
+        transaction.get(refs.account),
+        transaction.get(refs.asset),
+        transaction.get(refs.position),
+        transaction.get(refs.movement),
+      ]);
+    if (
+      assetSnapshot.exists ||
+      movementSnapshot.exists ||
+      positionSnapshot.exists
+    ) {
+      throw new CreditCardApplicationError(
+        "idempotency_conflict",
+        "Investimento já existente.",
+      );
+    }
+    const goalSnapshot = payload.goalId ?
+      await transaction.get(
+        investmentGoalDoc(auth.workspaceId, payload.goalId),
+      ) :
+      undefined;
+    if (goalSnapshot) {
+      assertWorkspaceDocument(goalSnapshot, auth.workspaceId, "Meta");
+    }
+    const periodContext = settled ?
+      await readInvestmentPeriodContext(
+        transaction,
+        auth.workspaceId,
+        occurredAt,
+      ) :
+      undefined;
+
+    const accountBefore = accountSnapshot.data();
+    if (accountSnapshot.exists) {
+      if (accountBefore?.workspaceId !== auth.workspaceId) {
+        throw new CreditCardApplicationError(
+          "domain_precondition_failed",
+          "A conta da instituição não pertence ao workspace autorizado.",
+        );
+      }
+      if (accountBefore?.status !== "active") {
+        throw new CreditCardApplicationError(
+          "domain_precondition_failed",
+          "A conta desta instituição está inativa. Reative-a antes de " +
+            "registrar um novo investimento.",
+        );
+      }
+      if (accountBefore?.profileType !== authorization.profileType) {
+        throw new CreditCardApplicationError(
+          "domain_precondition_failed",
+          "A conta da instituição não pertence ao contexto PF/PJ do " +
+            "workspace.",
+        );
+      }
+    }
+    /*
+     * O rótulo da conta acompanha o cadastro; a identidade, não. Renomear a
+     * instituição atualiza o nome exibido nas faixas de alocação sem criar
+     * conta nova e sem tocar em nenhum movimento já gravado — que carrega a
+     * própria fotografia do nome no instante em que foi escrito.
+     */
+    const accountDocument = {
+      id: accountId,
+      workspaceId: auth.workspaceId,
+      profileType: authorization.profileType,
+      name: institution.name,
+      institutionName: institution.name,
+      institutionId: institution.id,
+      currency: "BRL",
+      status: "active",
+      createdBy: accountSnapshot.exists ?
+        String(accountBefore?.createdBy) :
+        auth.uid,
+      createdAt: accountSnapshot.exists ?
+        (accountBefore?.createdAt as Timestamp) :
+        FieldValue.serverTimestamp(),
+      updatedBy: auth.uid,
+      updatedAt: FieldValue.serverTimestamp(),
+    };
+    assertInvestmentDocument("account", accountDocument, auth.workspaceId);
+    if (!accountSnapshot.exists) {
+      transaction.create(refs.account, accountDocument);
+    } else if (
+      accountBefore?.institutionName !== institution.name ||
+      accountBefore?.name !== institution.name ||
+      accountBefore?.institutionId !== institution.id
+    ) {
+      transaction.update(refs.account, {
+        name: institution.name,
+        institutionName: institution.name,
+        institutionId: institution.id,
+        updatedBy: auth.uid,
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+    }
+
+    /*
+     * `allocationPurpose` é obrigatório no documento e o conjunto válido
+     * difere entre PF e PJ. Nada é presumido: sem meta vinculada o ativo fica
+     * explicitamente "não classificado", que é o diagnóstico que a faixa de
+     * alocação precisa mostrar.
+     */
+    const allocationPurpose =
+      authorization.profileType === "PF" && payload.goalId ?
+        "goal" :
+        "unassigned";
+    const assetDocument = {
+      id: assetId,
+      workspaceId: auth.workspaceId,
+      profileType: authorization.profileType,
+      name: payload.description,
+      // Classificação técnica derivada do **identificador** da categoria, e
+      // nunca do rótulo: renomear a categoria não reclassifica o ativo.
+      assetType: assetTypeForCatalogItemId(category.id),
+      allocationPurpose,
+      classId: portfolio.id,
+      className: portfolio.name,
+      typeId: category.id,
+      typeName: category.name,
+      trackingMode: "value",
+      currency: "BRL",
+      status: "active",
+      createdBy: auth.uid,
+      createdAt: FieldValue.serverTimestamp(),
+      updatedBy: auth.uid,
+      updatedAt: FieldValue.serverTimestamp(),
+    };
+    transaction.create(
+      refs.asset,
+      assertInvestmentDocument("asset", assetDocument, auth.workspaceId),
+    );
+
+    const goalId = payload.goalId;
+    const quantityMicros = valueModeQuantityMicros(payload.valueCents);
+    const current = positionState(positionSnapshot);
+    const next = settled ?
+      applyPositionDeltas(current, {
+        quantityMicros,
+        principalCents: payload.valueCents,
+        realizedGainCents: 0,
+        feesCents: 0,
+        taxCents: 0,
+      }) :
+      current;
+    if (settled) next.goalId = goalId;
+    const currentValueDeltaCents =
+      next.currentValueCents - current.currentValueCents;
+    const effects = settled ?
+      {
+        cashDeltaCents: negateExact(payload.valueCents, "cashDeltaCents"),
+        principalDeltaCents: payload.valueCents,
+        quantityDeltaMicros: quantityMicros,
+        goalNetContributionDeltaCents: goalId ? payload.valueCents : 0,
+        goalCurrentValueDeltaCents: goalId ? currentValueDeltaCents : 0,
+        currentValueDeltaCents,
+      } :
+      {
+        cashDeltaCents: 0,
+        principalDeltaCents: 0,
+        quantityDeltaMicros: 0,
+        goalNetContributionDeltaCents: 0,
+        goalCurrentValueDeltaCents: 0,
+        currentValueDeltaCents: 0,
+      };
+    const movement = {
+      id: movementId,
+      workspaceId: auth.workspaceId,
+      profileType: authorization.profileType,
+      domainVersion: INVESTMENT_DOMAIN_VERSION,
+      calculationVersion: INVESTMENT_CALCULATION_VERSION,
+      accountId,
+      assetId,
+      positionId,
+      operation: "contribution",
+      status: settled ? "settled" : "pending",
+      currency: "BRL",
+      description: payload.description,
+      principalCents: payload.valueCents,
+      gainCents: 0,
+      // Modo simples é controle de capital: nada de taxa ou imposto
+      // inventado para preencher schema.
+      feesCents: 0,
+      taxCents: 0,
+      quantityMicros,
+      realizedGainDeltaCents: 0,
+      feesDeltaCents: 0,
+      taxDeltaCents: 0,
+      ...effects,
+      ...(goalId ? {goalId} : {}),
+      ...(payload.walletId ? {walletId: payload.walletId} : {}),
+      ...movementPresentationSnapshot(accountDocument, assetDocument),
+      transactionId: projectionId,
+      correlationId: payload.correlationId,
+      idempotencyKeyHash: reservation.keyHash,
+      occurredAt,
+      ...(settled ?
+        {
+          settlementAt: occurredAt,
+          settledBy: auth.uid,
+          settledAt: FieldValue.serverTimestamp(),
+        } :
+        {}),
+      createdBy: auth.uid,
+      createdAt: FieldValue.serverTimestamp(),
+    };
+    transaction.create(
+      refs.movement,
+      assertInvestmentDocument("movement", movement, auth.workspaceId),
+    );
+    if (settled && periodContext) {
+      writePosition(
+        transaction,
+        positionSnapshot,
+        auth.workspaceId,
+        authorization.profileType,
+        accountId,
+        assetId,
+        next,
+        movementId,
+        occurredAt,
+        auth.uid,
+      );
+      writeInvestmentAllocationProjections(
+        transaction,
+        auth.workspaceId,
+        authorization.profileType,
+        auth.uid,
+        accountDocument,
+        assetDocument,
+        current,
+        next,
+        {next: goalSnapshot?.data()?.name as string | undefined},
+      );
+      writeInvestmentReportPeriod(
+        transaction,
+        auth.workspaceId,
+        authorization.profileType,
+        auth.uid,
+        occurredAt,
+        {
+          operation: "contribution",
+          principalCents: payload.valueCents,
+          gainCents: 0,
+          feesCents: 0,
+          taxCents: 0,
+          cashDeltaCents: movement.cashDeltaCents,
+          currentValueDeltaCents,
+        },
+        periodContext,
+      );
+      updateGoalProjection(
+        transaction,
+        goalSnapshot,
+        movement.goalNetContributionDeltaCents,
+        movement.goalCurrentValueDeltaCents,
+        auth.uid,
+      );
+    }
+    writeCashProjection(
+      transaction,
+      auth,
+      authorization.profileType,
+      movement,
+      "contribution",
+      settled ? "settled" : "pending",
+    );
+    const result = {
+      success: true,
+      movementId,
+      positionId,
+      assetId,
+      accountId,
+      transactionId: projectionId,
+      status: movement.status,
+      cashDeltaCents: movement.cashDeltaCents,
+      principalCents: next.principalCents,
+      currentValueCents: next.currentValueCents,
+    };
+    recordInvestmentOperationMetric(transaction, {
+      workspaceId: auth.workspaceId,
+      operation,
+      actorId: auth.uid,
+      correlationId: payload.correlationId,
+      idempotencyKey: payload.idempotencyKey,
+    });
+    recordInvestmentEvent(
+      transaction,
+      auth,
+      authorization.role,
+      authorization.profileType,
+      operation,
+      reservation,
+      payload.correlationId,
+      "movement",
+      movementId,
+      {
+        positionId,
+        accountId,
+        assetId,
+        institutionId: institution.id,
+        classId: portfolio.id,
+        typeId: category.id,
+        goalId: goalId ?? null,
+        status: movement.status,
+      },
+    );
+    completeInvestmentIdempotency(
+      transaction,
+      auth,
+      operation,
+      payload.correlationId,
+      reservation,
+      result,
+    );
+    return result;
+  });
+};
+
+/**
+ * Retirada no modo simples (Etapa 1, §8).
+ *
+ * Cobre os dois estados numa transação só. `received: false` grava o pedido
+ * como pendente, com todos os deltas em zero — nenhum efeito em caixa,
+ * posição ou meta. `received: true` grava o resgate já liquidado.
+ *
+ * ## Por que não passa por `settleInvestmentRedemption`
+ *
+ * Aquela operação existe para liquidar um pedido informando **quanto** de
+ * ganho, perda, taxa e imposto a liquidação teve. No modo simples esses
+ * valores não existem: o usuário informa um valor e nada mais. Encadear as
+ * duas callables tornaria a conclusão não atômica — um pendente órfão se a
+ * segunda falhasse. A retirada simples é, portanto, uma entrada própria que
+ * compõe exatamente os mesmos primitivos de projeção do resto do domínio.
+ *
+ * ## Limitação assumida
+ *
+ * O que sai da posição é **custo**, nunca rendimento: `gainCents`,
+ * `lossCents`, `feesCents` e `taxCents` são zero por contrato, e o caixa
+ * recebido é igual ao custo retirado. Um resgate acima do custo não pode ser
+ * representado sem informação que a UX simples não coleta, e por isso é
+ * recusado com erro de domínio — nunca estimado.
+ */
+interface SimpleWithdrawalComponents {
+  /** Parcela de rendimento do total retirado. Zero quando não informada. */
+  gainCents: number;
+  /** Parcela de custo do total retirado. É o que reduz o capital investido. */
+  principalCents: number;
+  quantityMicros: number;
+}
+
+const negatedCents = (value: number, field: string): number =>
+  value === 0 ? 0 : negateExact(value, field);
+
+/**
+ * Decompõe uma retirada simples em custo e rendimento.
+ *
+ * O usuário informa o **total retirado**. Sem `gainCents`, o comportamento é
+ * conservador: o total inteiro é custo, e retirar acima do capital aplicado é
+ * recusado — o sistema não adivinha rentabilidade. Com `gainCents`, o custo é
+ * a diferença, e é só ele que sai da posição.
+ *
+ * A quantidade continua derivada do custo, nunca do total: é o custo que a
+ * cota sintética representa. Numa retirada que zera o custo, a quantidade
+ * inteira da posição é usada, o que garante o encerramento simultâneo exigido
+ * por `applyPositionDeltas`.
+ */
+const simpleWithdrawalComponents = (
+  current: PositionState,
+  valueCents: number,
+  suppliedGainCents: number | undefined,
+): SimpleWithdrawalComponents => {
+  const gainCents = suppliedGainCents ?? 0;
+  if (!Number.isSafeInteger(gainCents) || gainCents < 0) {
+    throw new CreditCardApplicationError(
+      "domain_precondition_failed",
+      "O rendimento informado precisa ser um valor não negativo.",
+    );
+  }
+  const principalCents = addExact(
+    valueCents,
+    -gainCents,
+    "principalCents",
+  );
+  if (principalCents < 0) {
+    throw new CreditCardApplicationError(
+      "domain_precondition_failed",
+      "O rendimento informado não pode superar o valor total retirado.",
+    );
+  }
+  if (principalCents > current.principalCents) {
+    throw new CreditCardApplicationError(
+      "domain_precondition_failed",
+      "O capital retirado supera o capital investido disponível neste " +
+        "investimento. Se parte do valor é rendimento, informe quanto: o " +
+        "sistema não estima rentabilidade.",
+    );
+  }
+  const isTotal =
+    principalCents > 0 && principalCents === current.principalCents;
+  const quantityMicros = isTotal ?
+    current.quantityMicros :
+    valueModeQuantityMicros(principalCents);
+  if (quantityMicros > current.quantityMicros) {
+    throw new CreditCardApplicationError(
+      "domain_precondition_failed",
+      "A retirada supera o saldo disponível na posição.",
+    );
+  }
+  return {gainCents, principalCents, quantityMicros};
+};
+
+/**
+ * Efeitos de uma retirada simples liquidada.
+ *
+ * O caixa recebe o total — custo mais rendimento. A posição perde só o custo,
+ * e o rendimento vira ganho realizado, que é a mesma grandeza que
+ * `settleInvestmentRedemption` publica. A meta é reduzida apenas pelo custo:
+ * `investmentNetContributionCents` mede capital aportado, e rendimento
+ * retirado nunca foi aporte.
+ */
+const simpleWithdrawalSettledEffects = (
+  components: SimpleWithdrawalComponents,
+  currentValueDeltaCents: number,
+  goalId: string | undefined,
+) => ({
+  cashDeltaCents: addExact(
+    components.principalCents,
+    components.gainCents,
+    "cashDeltaCents",
+  ),
+  principalDeltaCents: negatedCents(
+    components.principalCents,
+    "principalDeltaCents",
+  ),
+  realizedGainDeltaCents: components.gainCents,
+  quantityDeltaMicros: negatedCents(
+    components.quantityMicros,
+    "quantityDeltaMicros",
+  ),
+  goalNetContributionDeltaCents: goalId ?
+    negatedCents(components.principalCents, "goalNetContributionDeltaCents") :
+    0,
+  goalCurrentValueDeltaCents: goalId ? currentValueDeltaCents : 0,
+  currentValueDeltaCents,
+});
+
+const SIMPLE_WITHDRAWAL_PENDING_EFFECTS = {
+  cashDeltaCents: 0,
+  principalDeltaCents: 0,
+  realizedGainDeltaCents: 0,
+  quantityDeltaMicros: 0,
+  goalNetContributionDeltaCents: 0,
+  goalCurrentValueDeltaCents: 0,
+  currentValueDeltaCents: 0,
+} as const;
+
+export const executeWithdrawSimpleInvestment = async (
+  auth: WorkspaceAuthorizationContext,
+  payload: WithdrawSimpleInvestmentPayload,
+): Promise<Record<string, unknown>> => {
+  const operation = "withdrawSimpleInvestment" as const;
+  const movementId = deterministicDocumentId(
+    operation,
+    auth.uid,
+    payload.idempotencyKey,
+  );
+  const projectionId = `investment_${movementId}`;
+  const occurredAt = assertNotFuture(
+    parseTimestamp(payload.occurredAt),
+    "occurredAt",
+  );
+  const received = payload.received !== false;
+  return investmentFirestore().runTransaction(async (transaction) => {
+    const authorization = await authorizeInvestmentTransaction(
+      transaction,
+      auth,
+      investmentOperationRoles(operation),
+    );
+    const reservation = await reserveInvestmentIdempotency(
+      transaction,
+      auth,
+      operation,
+      payload.idempotencyKey,
+      payload.correlationId,
+      payload,
+    );
+    if (reservation.replay) return reservation.replay;
+    const positionRef = investmentDoc(
+      auth.workspaceId,
+      INVESTMENT_COLLECTIONS.positions,
+      payload.positionId,
+    );
+    const movementRef = investmentDoc(
+      auth.workspaceId,
+      INVESTMENT_COLLECTIONS.movements,
+      movementId,
+    );
+    const [positionSnapshot, movementSnapshot] = await Promise.all([
+      transaction.get(positionRef),
+      transaction.get(movementRef),
+    ]);
+    const position = assertWorkspaceDocument(
+      positionSnapshot,
+      auth.workspaceId,
+      "Investimento",
+    );
+    if (movementSnapshot.exists) {
+      throw new CreditCardApplicationError(
+        "idempotency_conflict",
+        "Movimento já existente.",
+      );
+    }
+    const accountId = String(position.accountId);
+    const assetId = String(position.assetId);
+    if (investmentPositionId(accountId, assetId) !== payload.positionId) {
+      throw new CreditCardApplicationError(
+        "domain_precondition_failed",
+        "A posição informada é incoerente com a conta e o ativo que declara.",
+      );
+    }
+    const [accountSnapshot, assetSnapshot] = await Promise.all([
+      transaction.get(investmentDoc(
+        auth.workspaceId,
+        INVESTMENT_COLLECTIONS.accounts,
+        accountId,
+      )),
+      transaction.get(investmentDoc(
+        auth.workspaceId,
+        INVESTMENT_COLLECTIONS.assets,
+        assetId,
+      )),
+    ]);
+    ensureAccountAndAsset(
+      accountSnapshot,
+      assetSnapshot,
+      auth.workspaceId,
+      authorization.profileType,
+      false,
+    );
+    /*
+     * A retirada simples só sabe operar por valor. Num ativo quantitativo o
+     * custo retirado não determina a quantidade — é preciso informá-la — e
+     * derivá-la aqui seria inventar dado. O caminho correto é a operação
+     * avançada de resgate.
+     */
+    if (assetTrackingMode(assetSnapshot.data()) !== "value") {
+      throw new CreditCardApplicationError(
+        "domain_precondition_failed",
+        "Este investimento é controlado por quantidade. Use o resgate " +
+          "detalhado, que recebe quantidade e resultado realizado.",
+      );
+    }
+    const current = positionState(positionSnapshot);
+    const {gainCents, principalCents, quantityMicros} =
+      simpleWithdrawalComponents(
+        current,
+        payload.valueCents,
+        payload.gainCents,
+      );
+    const goalId = current.goalId;
+    const goalSnapshot = received && goalId ?
+      await transaction.get(investmentGoalDoc(auth.workspaceId, goalId)) :
+      undefined;
+    if (goalSnapshot) {
+      assertWorkspaceDocument(goalSnapshot, auth.workspaceId, "Meta");
+    }
+    const periodContext = received ?
+      await readInvestmentPeriodContext(
+        transaction,
+        auth.workspaceId,
+        occurredAt,
+      ) :
+      undefined;
+    const next = received ?
+      applyPositionDeltas(current, {
+        quantityMicros: negateExact(quantityMicros, "quantityDeltaMicros"),
+        principalCents: negateExact(principalCents, "principalDeltaCents"),
+        realizedGainCents: gainCents,
+        realizedLossCents: 0,
+        feesCents: 0,
+        taxCents: 0,
+      }) :
+      current;
+    const currentValueDeltaCents =
+      next.currentValueCents - current.currentValueCents;
+    const description = payload.description ??
+      `Retirada de ${String(assetSnapshot.data()?.name ?? "investimento")}`;
+    const effects = received ?
+      simpleWithdrawalSettledEffects(
+        {gainCents, principalCents, quantityMicros},
+        currentValueDeltaCents,
+        goalId,
+      ) :
+      SIMPLE_WITHDRAWAL_PENDING_EFFECTS;
+    const movement = {
+      id: movementId,
+      workspaceId: auth.workspaceId,
+      profileType: authorization.profileType,
+      domainVersion: INVESTMENT_DOMAIN_VERSION,
+      calculationVersion: INVESTMENT_CALCULATION_VERSION,
+      accountId,
+      assetId,
+      positionId: payload.positionId,
+      operation: "redemption",
+      status: received ? "settled" : "pending",
+      currency: "BRL",
+      description,
+      // `principalCents` é o **componente de custo** do total retirado, e é
+      // ele que reduz o capital investido. O total recebido é
+      // `principalCents + gainCents`, e aparece no caixa.
+      principalCents,
+      requestedPrincipalCents: principalCents,
+      requestedQuantityMicros: quantityMicros,
+      ...(received ?
+        {residualPrincipalCents: 0, residualQuantityMicros: 0} :
+        {}),
+      // Rendimento só existe quando informado. Perda, taxa e imposto seguem
+      // fora da UX simples e não são inventados.
+      gainCents,
+      lossCents: 0,
+      feesCents: 0,
+      taxCents: 0,
+      quantityMicros,
+      realizedLossDeltaCents: 0,
+      feesDeltaCents: 0,
+      taxDeltaCents: 0,
+      ...effects,
+      ...(goalId ? {goalId} : {}),
+      ...(payload.walletId ? {walletId: payload.walletId} : {}),
+      ...movementPresentationSnapshot(
+        accountSnapshot.data(),
+        assetSnapshot.data(),
+      ),
+      transactionId: projectionId,
+      correlationId: payload.correlationId,
+      idempotencyKeyHash: reservation.keyHash,
+      occurredAt,
+      ...(received ?
+        {
+          settlementAt: occurredAt,
+          settledBy: auth.uid,
+          settledAt: FieldValue.serverTimestamp(),
+        } :
+        {}),
+      createdBy: auth.uid,
+      createdAt: FieldValue.serverTimestamp(),
+    };
+    transaction.create(
+      movementRef,
+      assertInvestmentDocument("movement", movement, auth.workspaceId),
+    );
+    if (received && periodContext) {
+      writePosition(
+        transaction,
+        positionSnapshot,
+        auth.workspaceId,
+        authorization.profileType,
+        accountId,
+        assetId,
+        next,
+        movementId,
+        occurredAt,
+        auth.uid,
+      );
+      writeInvestmentAllocationProjections(
+        transaction,
+        auth.workspaceId,
+        authorization.profileType,
+        auth.uid,
+        accountSnapshot.data() ?? {},
+        assetSnapshot.data() ?? {},
+        current,
+        next,
+        {
+          previous: goalSnapshot?.data()?.name as string | undefined,
+          next: goalSnapshot?.data()?.name as string | undefined,
+        },
+      );
+      writeInvestmentReportPeriod(
+        transaction,
+        auth.workspaceId,
+        authorization.profileType,
+        auth.uid,
+        occurredAt,
+        {
+          operation: "redemption",
+          principalCents,
+          gainCents,
+          lossCents: 0,
+          feesCents: 0,
+          taxCents: 0,
+          cashDeltaCents: movement.cashDeltaCents,
+          currentValueDeltaCents,
+        },
+        periodContext,
+      );
+      updateGoalProjection(
+        transaction,
+        goalSnapshot,
+        movement.goalNetContributionDeltaCents,
+        movement.goalCurrentValueDeltaCents,
+        auth.uid,
+      );
+    }
+    writeCashProjection(
+      transaction,
+      auth,
+      authorization.profileType,
+      movement,
+      "redemption",
+      received ? "settled" : "pending",
+    );
+    const result = {
+      success: true,
+      movementId,
+      positionId: payload.positionId,
+      transactionId: projectionId,
+      status: movement.status,
+      cashDeltaCents: movement.cashDeltaCents,
+      principalCents,
+      gainCents,
+      remainingPrincipalCents: next.principalCents,
+    };
+    recordInvestmentOperationMetric(transaction, {
+      workspaceId: auth.workspaceId,
+      operation,
+      actorId: auth.uid,
+      correlationId: payload.correlationId,
+      idempotencyKey: payload.idempotencyKey,
+    });
+    recordInvestmentEvent(
+      transaction,
+      auth,
+      authorization.role,
+      authorization.profileType,
+      operation,
+      reservation,
+      payload.correlationId,
+      "movement",
+      movementId,
+      {
+        positionId: payload.positionId,
+        status: movement.status,
+        valueCents: payload.valueCents,
+        principalCents,
+        gainCents,
+      },
+    );
+    completeInvestmentIdempotency(
+      transaction,
+      auth,
+      operation,
+      payload.correlationId,
+      reservation,
+      result,
+    );
+    return result;
+  });
+};
+
+/**
+ * Liquidação de uma retirada simples pendente.
+ *
+ * Espelha `executeSettleInvestmentContribution`: não recebe valores — total e
+ * rendimento já foram fixados no pedido —, preserva `occurredAt` como a data
+ * do pedido e registra `settlementAt` como a data em que o dinheiro entrou.
+ *
+ * Os componentes são **revalidados contra a posição no instante da
+ * liquidação**: entre o pedido e o recebimento outra retirada pode ter
+ * reduzido o capital, e aplicar o custo antigo deixaria a posição negativa ou
+ * o patrimônio fantasma.
+ *
+ * Só liquida retirada de investimento em regime por valor. Um pedido de
+ * resgate do fluxo avançado continua sendo liquidado por
+ * `settleInvestmentRedemption`, que é onde quantidade, perda, taxas e imposto
+ * são informados.
+ */
+export const executeSettleSimpleWithdrawal = async (
+  auth: WorkspaceAuthorizationContext,
+  payload: SettleSimpleWithdrawalPayload,
+): Promise<Record<string, unknown>> => {
+  const operation = "settleSimpleWithdrawal" as const;
+  const settledAt = assertNotFuture(
+    parseTimestamp(payload.settledAt),
+    "settledAt",
+  );
+  return investmentFirestore().runTransaction(async (transaction) => {
+    const authorization = await authorizeInvestmentTransaction(
+      transaction,
+      auth,
+      investmentOperationRoles(operation),
+    );
+    const reservation = await reserveInvestmentIdempotency(
+      transaction,
+      auth,
+      operation,
+      payload.idempotencyKey,
+      payload.correlationId,
+      payload,
+    );
+    if (reservation.replay) return reservation.replay;
+    const movementRef = investmentDoc(
+      auth.workspaceId,
+      INVESTMENT_COLLECTIONS.movements,
+      payload.movementId,
+    );
+    const movementSnapshot = await transaction.get(movementRef);
+    const movement = assertWorkspaceDocument(
+      movementSnapshot,
+      auth.workspaceId,
+      "Retirada",
+    );
+    if (
+      movement.operation !== "redemption" ||
+      movement.status !== "pending"
+    ) {
+      throw new CreditCardApplicationError(
+        "domain_precondition_failed",
+        "Somente uma retirada pendente pode ser liquidada.",
+      );
+    }
+    assertNotBefore(
+      settledAt,
+      movement.occurredAt as Timestamp,
+      "settledAt",
+      "à solicitação da retirada",
+    );
+    const refs = {
+      account: investmentDoc(
+        auth.workspaceId,
+        INVESTMENT_COLLECTIONS.accounts,
+        String(movement.accountId),
+      ),
+      asset: investmentDoc(
+        auth.workspaceId,
+        INVESTMENT_COLLECTIONS.assets,
+        String(movement.assetId),
+      ),
+      position: investmentDoc(
+        auth.workspaceId,
+        INVESTMENT_COLLECTIONS.positions,
+        String(movement.positionId),
+      ),
+    };
+    const [accountSnapshot, assetSnapshot, positionSnapshot] =
+      await Promise.all([
+        transaction.get(refs.account),
+        transaction.get(refs.asset),
+        transaction.get(refs.position),
+      ]);
+    ensureAccountAndAsset(
+      accountSnapshot,
+      assetSnapshot,
+      auth.workspaceId,
+      authorization.profileType,
+      false,
+    );
+    if (assetTrackingMode(assetSnapshot.data()) !== "value") {
+      throw new CreditCardApplicationError(
+        "domain_precondition_failed",
+        "Este resgate é de um investimento controlado por quantidade. Use a " +
+          "liquidação detalhada, que recebe quantidade e resultado realizado.",
+      );
+    }
+    const current = positionState(positionSnapshot);
+    const requestedGainCents = integerOrZero(movement.gainCents);
+    const requestedTotalCents = addExact(
+      integerOrZero(movement.principalCents),
+      requestedGainCents,
+      "requestedTotalCents",
+    );
+    const components = simpleWithdrawalComponents(
+      current,
+      requestedTotalCents,
+      requestedGainCents,
+    );
+    /*
+     * Vínculo de meta do movimento liquidado.
+     *
+     * Os deltas acima são apurados contra a meta da posição **no instante da
+     * liquidação**, e o documento precisa declarar essa mesma meta. Entre o
+     * pedido e o recebimento a posição pode ter sido desvinculada ou movida
+     * para outra meta; conservar o `goalId` gravado na abertura do pendente
+     * faria o resgate aparecer no histórico de uma meta que não sofreu efeito
+     * nenhum, porque `listGoalInvestmentMovements` filtra exatamente por esse
+     * campo. Sem meta o campo **sai** do documento: string vazia não é
+     * ausência, e o contrato declara `goalId` opcional — nunca vazio.
+     *
+     * O vínculo do pedido não se perde. O evento de liquidação registra os
+     * dois lados, e os movimentos `goal_link`/`goal_unlink` da posição
+     * continuam no ledger.
+     */
+    const goalId = current.goalId;
+    const requestedGoalId = typeof movement.goalId === "string" ?
+      movement.goalId :
+      undefined;
+    const goalSnapshot = goalId ?
+      await transaction.get(investmentGoalDoc(auth.workspaceId, goalId)) :
+      undefined;
+    if (goalSnapshot) {
+      assertWorkspaceDocument(goalSnapshot, auth.workspaceId, "Meta");
+    }
+    const periodContext = await readInvestmentPeriodContext(
+      transaction,
+      auth.workspaceId,
+      settledAt,
+    );
+    const next = applyPositionDeltas(current, {
+      quantityMicros: negatedCents(
+        components.quantityMicros,
+        "quantityDeltaMicros",
+      ),
+      principalCents: negatedCents(
+        components.principalCents,
+        "principalDeltaCents",
+      ),
+      realizedGainCents: components.gainCents,
+      realizedLossCents: 0,
+      feesCents: 0,
+      taxCents: 0,
+    });
+    const currentValueDeltaCents =
+      next.currentValueCents - current.currentValueCents;
+    const effects = simpleWithdrawalSettledEffects(
+      components,
+      currentValueDeltaCents,
+      goalId,
+    );
+    const settledMovement = {
+      ...movement,
+      status: "settled",
+      principalCents: components.principalCents,
+      gainCents: components.gainCents,
+      quantityMicros: components.quantityMicros,
+      residualPrincipalCents: 0,
+      residualQuantityMicros: 0,
+      realizedLossDeltaCents: 0,
+      feesDeltaCents: 0,
+      taxDeltaCents: 0,
+      ...effects,
+      goalId,
+      settlementAt: settledAt,
+      settledBy: auth.uid,
+      settledAt: FieldValue.serverTimestamp(),
+      settlementCorrelationId: payload.correlationId,
+      updatedAt: FieldValue.serverTimestamp(),
+    };
+    assertInvestmentDocument("movement", settledMovement, auth.workspaceId);
+    transaction.update(movementRef, {
+      status: settledMovement.status,
+      principalCents: settledMovement.principalCents,
+      gainCents: settledMovement.gainCents,
+      quantityMicros: settledMovement.quantityMicros,
+      residualPrincipalCents: 0,
+      residualQuantityMicros: 0,
+      realizedLossDeltaCents: 0,
+      feesDeltaCents: 0,
+      taxDeltaCents: 0,
+      cashDeltaCents: settledMovement.cashDeltaCents,
+      principalDeltaCents: settledMovement.principalDeltaCents,
+      realizedGainDeltaCents: settledMovement.realizedGainDeltaCents,
+      quantityDeltaMicros: settledMovement.quantityDeltaMicros,
+      goalNetContributionDeltaCents:
+        settledMovement.goalNetContributionDeltaCents,
+      goalCurrentValueDeltaCents: settledMovement.goalCurrentValueDeltaCents,
+      currentValueDeltaCents: settledMovement.currentValueDeltaCents,
+      goalId: goalId ?? FieldValue.delete(),
+      settlementAt: settledMovement.settlementAt,
+      settledBy: auth.uid,
+      settledAt: FieldValue.serverTimestamp(),
+      settlementCorrelationId: payload.correlationId,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+    writePosition(
+      transaction,
+      positionSnapshot,
+      auth.workspaceId,
+      authorization.profileType,
+      String(movement.accountId),
+      String(movement.assetId),
+      next,
+      payload.movementId,
+      settledAt,
+      auth.uid,
+    );
+    writeInvestmentAllocationProjections(
+      transaction,
+      auth.workspaceId,
+      authorization.profileType,
+      auth.uid,
+      accountSnapshot.data() ?? {},
+      assetSnapshot.data() ?? {},
+      current,
+      next,
+      {
+        previous: goalSnapshot?.data()?.name as string | undefined,
+        next: goalSnapshot?.data()?.name as string | undefined,
+      },
+    );
+    writeInvestmentReportPeriod(
+      transaction,
+      auth.workspaceId,
+      authorization.profileType,
+      auth.uid,
+      settledAt,
+      {
+        operation: "redemption",
+        principalCents: components.principalCents,
+        gainCents: components.gainCents,
+        lossCents: 0,
+        feesCents: 0,
+        taxCents: 0,
+        cashDeltaCents: settledMovement.cashDeltaCents,
+        currentValueDeltaCents,
+      },
+      periodContext,
+    );
+    updateGoalProjection(
+      transaction,
+      goalSnapshot,
+      settledMovement.goalNetContributionDeltaCents,
+      settledMovement.goalCurrentValueDeltaCents,
+      auth.uid,
+    );
+    writeCashProjection(
+      transaction,
+      auth,
+      authorization.profileType,
+      settledMovement,
+      "redemption",
+      "settled",
+    );
+    const result = {
+      success: true,
+      movementId: payload.movementId,
+      positionId: String(movement.positionId),
+      transactionId: movement.transactionId ?? null,
+      status: "settled",
+      cashDeltaCents: settledMovement.cashDeltaCents,
+      principalCents: components.principalCents,
+      gainCents: components.gainCents,
+      remainingPrincipalCents: next.principalCents,
+    };
+    recordInvestmentOperationMetric(transaction, {
+      workspaceId: auth.workspaceId,
+      operation,
+      actorId: auth.uid,
+      correlationId: payload.correlationId,
+      idempotencyKey: payload.idempotencyKey,
+    });
+    recordInvestmentEvent(
+      transaction,
+      auth,
+      authorization.role,
+      authorization.profileType,
+      operation,
+      reservation,
+      payload.correlationId,
+      "movement",
+      payload.movementId,
+      {
+        positionId: String(movement.positionId),
+        beforeStatus: "pending",
+        afterStatus: "settled",
+        principalCents: components.principalCents,
+        gainCents: components.gainCents,
+        requestedGoalId: requestedGoalId ?? null,
+        settledGoalId: goalId ?? null,
+      },
     );
     completeInvestmentIdempotency(
       transaction,

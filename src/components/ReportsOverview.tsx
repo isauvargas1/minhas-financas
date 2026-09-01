@@ -211,53 +211,44 @@ const ReportsOverview: React.FC<ReportsOverviewProps> = ({ snapshot, isLoading }
                 ))}
             </div>
 
+            {/*
+              Área de investimentos do relatório (Etapa 3, §4).
+
+              O baseline tinha **um** número — "Investimentos" —, e ele era a
+              soma bruta de toda transação de investimento do período. Agora há
+              retirada e rendimento, e os três precisam aparecer separados;
+              nada além disso precisa. Preço médio, marcação a mercado, risco,
+              liquidez, indexador e ganho não realizado saíram: são taxonomia
+              profissional que o ZIP não tinha, e a distribuição por carteira
+              passou a morar na própria tela de Investimentos, onde o usuário
+              a procura.
+
+              Rendimento, taxas e impostos só aparecem quando existem: um
+              "R$ 0,00" fixo faria o relatório afirmar que houve apuração de
+              rendimento quando não houve nenhuma.
+            */}
             {snapshot.investmentOverview && (
                 <section aria-labelledby="investment-overview-title" className="space-y-5 rounded-card border border-border bg-surface p-5 shadow-sm">
                     <div>
                         <h3 id="investment-overview-title" className="font-bold text-on-surface">Patrimônio de investimentos</h3>
-                        <p className="text-xs text-muted">Caixa, principal e rendimentos são apresentados separadamente a partir do domínio patrimonial oficial.</p>
+                        <p className="text-xs text-muted">Aportes, retiradas e rendimento aparecem separados do saldo em caixa.</p>
                     </div>
-                    <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-                        {[
-                            ['Patrimônio atual', snapshot.investmentOverview.currentValue],
-                            ['Custo atual', snapshot.investmentOverview.cost],
-                            ['Aportes', snapshot.investmentOverview.contributions],
-                            ['Principal resgatado', snapshot.investmentOverview.redeemedPrincipal],
-                            ['Resgate líquido', snapshot.investmentOverview.redemptionNet],
-                            ['Ganho realizado', snapshot.investmentOverview.realizedGain],
-                            // INV-P1-009 — perda realizada tem linha própria, e o
-                            // resultado com sinal é exibido separado do ganho bruto.
-                            ['Perda realizada', snapshot.investmentOverview.realizedLoss],
-                            ['Resultado realizado', snapshot.investmentOverview.realizedResult],
-                            ['Renda de investimento', snapshot.investmentOverview.investmentIncome],
-                            ['Ganho não realizado', snapshot.investmentOverview.unrealizedGain],
-                            ['Taxas', snapshot.investmentOverview.fees],
-                            ['Impostos', snapshot.investmentOverview.taxes],
-                        ].map(([label, value]) => (
-                            <article key={String(label)} className="rounded-xl border border-border bg-background p-3">
+                    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                        {([
+                            ['Patrimônio atual', snapshot.investmentOverview.currentValue, true],
+                            ['Aportes', snapshot.investmentOverview.contributions, true],
+                            ['Retiradas', snapshot.investmentOverview.redeemedPrincipal, true],
+                            ['Rendimento realizado', snapshot.investmentOverview.realizedResult,
+                                snapshot.investmentOverview.realizedResult !== 0],
+                            ['Taxas', snapshot.investmentOverview.fees,
+                                snapshot.investmentOverview.fees !== 0],
+                            ['Impostos', snapshot.investmentOverview.taxes,
+                                snapshot.investmentOverview.taxes !== 0],
+                        ] as [string, number, boolean][]).filter(([, , visible]) => visible).map(([label, value]) => (
+                            <article key={label} className="rounded-xl border border-border bg-background p-3">
                                 <p className="text-xs text-muted">{label}</p>
                                 <p className="mt-1 font-bold text-on-surface">{formatCurrency(Number(value))}</p>
                             </article>
-                        ))}
-                    </div>
-                    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                        {snapshot.investmentOverview.allocations.map((allocation) => (
-                            <section key={allocation.dimension} aria-label={`Alocação por ${allocation.label.toLowerCase()}`} className="rounded-xl border border-border p-4">
-                                <h4 className="font-semibold text-on-surface">Por {allocation.label.toLowerCase()}</h4>
-                                {allocation.items.length === 0 ? (
-                                    <p className="mt-3 text-sm text-muted">Sem valores para esta classificação.</p>
-                                ) : (
-                                    <ul className="mt-3 space-y-2">
-                                        {allocation.items.slice(0, 5).map((item) => (
-                                            <li key={item.key} className="flex items-center justify-between gap-3 text-sm">
-                                                <span className="truncate text-muted">{item.label}</span>
-                                                <span className="whitespace-nowrap font-medium">{formatCurrency(item.amount)} · {item.percentage.toFixed(1)}%</span>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                )}
-                                {allocation.truncated && <p className="mt-2 text-xs text-muted">Os menores valores foram agrupados em Outros.</p>}
-                            </section>
                         ))}
                     </div>
                 </section>

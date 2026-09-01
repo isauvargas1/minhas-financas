@@ -44,6 +44,10 @@ const POLICY_BY_OPERATION: Partial<
   onboardInvestmentWorkspace: ADMIN_POLICY,
 
   createInvestmentContribution: MUTATION_POLICY,
+  createSimpleInvestment: MUTATION_POLICY,
+  settleInvestmentContribution: MUTATION_POLICY,
+  withdrawSimpleInvestment: MUTATION_POLICY,
+  settleSimpleWithdrawal: MUTATION_POLICY,
   createInvestmentRedemption: MUTATION_POLICY,
   settleInvestmentRedemption: MUTATION_POLICY,
   cancelInvestmentMovement: MUTATION_POLICY,

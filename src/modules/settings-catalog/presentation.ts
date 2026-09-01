@@ -18,7 +18,8 @@ export type SettingsCatalogSectionKey =
   | 'investmentRisks'
   | 'investmentLiquidity'
   | 'investmentIndexers'
-  | 'investmentStrategies';
+  | 'investmentStrategies'
+  | 'investmentInstitutions';
 
 export interface SettingsCatalogSectionDefinition {
   key: SettingsCatalogSectionKey;
@@ -120,15 +121,40 @@ export const SETTINGS_CATALOG_SECTION_LIST: SettingsCatalogSectionDefinition[] =
     supportsTransactionSubtype: false,
     workspaceTypes: ['PJ']
   },
+  /*
+   * Cadastros de investimento do usuário comum (Etapa 2, §3).
+   *
+   * Os três primeiros são os que a tela simples consome — carteira,
+   * instituição e categoria — e por isso vêm antes dos avançados. Os rótulos
+   * mudaram, os **grupos técnicos não**: `investment_class` continua sendo
+   * `investment_class` e `investment_type` continua sendo `investment_type`.
+   * Renomear campo técnico por causa de rótulo quebraria todo documento já
+   * gravado e toda faixa de alocação já publicada.
+   *
+   * "Carteiras de investimento" não é "Carteiras de caixa": aquela classifica
+   * o patrimônio, esta é onde o dinheiro do dia a dia circula. Os dois nomes
+   * ficam por extenso justamente para não se confundirem na navegação.
+   */
   {
-    key: 'investmentTypes', group: 'investment_type', title: 'Tipos de investimento', shortTitle: 'Tipos de investimento',
-    description: 'Tipos customizáveis para classificar ativos, sem substituir o cadastro do ativo.', emptyTitle: 'Nenhum tipo de investimento cadastrado',
-    emptyDescription: 'Crie um tipo para organizar os ativos do workspace.', searchPlaceholder: 'Buscar tipo de investimento', supportsTransactionSubtype: false, workspaceTypes: ['PF', 'PJ']
+    key: 'investmentClasses', group: 'investment_class', title: 'Carteiras de investimento', shortTitle: 'Carteiras de investimento',
+    description: 'Para que serve cada investimento: aposentadoria, reserva de emergência, reserva de oportunidade, objetivos. Não confunda com as carteiras de caixa do dia a dia.',
+    emptyTitle: 'Nenhuma carteira de investimento cadastrada',
+    emptyDescription: 'Crie carteiras como Aposentadoria, Reserva de emergência ou Objetivos.',
+    searchPlaceholder: 'Buscar carteira de investimento', supportsTransactionSubtype: false, workspaceTypes: ['PF', 'PJ']
   },
   {
-    key: 'investmentClasses', group: 'investment_class', title: 'Classes patrimoniais', shortTitle: 'Classes patrimoniais',
-    description: 'Classes adequadas ao contexto PF ou PJ.', emptyTitle: 'Nenhuma classe patrimonial cadastrada',
-    emptyDescription: 'Crie uma classe para estruturar o patrimônio.', searchPlaceholder: 'Buscar classe patrimonial', supportsTransactionSubtype: false, workspaceTypes: ['PF', 'PJ']
+    key: 'investmentInstitutions', group: 'investment_institution', title: 'Instituições', shortTitle: 'Instituições',
+    description: 'Bancos e corretoras onde o dinheiro fica aplicado. A instituição é o vínculo estável do investimento: renomeá-la preserva todo o histórico.',
+    emptyTitle: 'Nenhuma instituição cadastrada',
+    emptyDescription: 'Cadastre as instituições usadas pelo workspace, como BTG, Banco do Brasil ou XP.',
+    searchPlaceholder: 'Buscar instituição', supportsTransactionSubtype: false, workspaceTypes: ['PF', 'PJ']
+  },
+  {
+    key: 'investmentTypes', group: 'investment_type', title: 'Categorias de investimento', shortTitle: 'Categorias de investimento',
+    description: 'O que é o investimento: ações, fundos, CDB, Tesouro Direto, previdência, ETF, criptoativos, entre outros.',
+    emptyTitle: 'Nenhuma categoria de investimento cadastrada',
+    emptyDescription: 'Crie categorias como Ações, Renda fixa, Fundos ou Criptoativos.',
+    searchPlaceholder: 'Buscar categoria de investimento', supportsTransactionSubtype: false, workspaceTypes: ['PF', 'PJ']
   },
   {
     key: 'investmentRisks', group: 'investment_risk', title: 'Níveis de risco', shortTitle: 'Risco',

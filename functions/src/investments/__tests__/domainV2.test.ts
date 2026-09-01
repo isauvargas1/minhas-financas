@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   createInvestmentContributionPayloadSchema,
   createInvestmentRedemptionPayloadSchema,
+  createSimpleInvestmentPayloadSchema,
   settleInvestmentRedemptionPayloadSchema,
   saveInvestmentAccountPayloadSchema,
   saveInvestmentAssetPayloadSchema,
@@ -176,3 +177,79 @@ test(
     assert.throws(() => profileTypeFromWorkspace({}), /PF ou PJ/i);
   },
 );
+
+// ---------------------------------------------------------------------------
+// Identificadores de catálogo
+// ---------------------------------------------------------------------------
+
+/**
+ * Uma referência de catálogo é um **ID de documento**, e vira `.doc(id)` ao
+ * ser resolvida. Com "/" no meio o valor deixa de ser um ID e passa a ser um
+ * caminho: ou aponta para uma subcoleção fora do catálogo, ou quebra com erro
+ * de infraestrutura por número ímpar de segmentos — nunca com erro de domínio.
+ * A regra é a mesma dos demais identificadores do contrato.
+ */
+const simpleBase = {
+  ...common,
+  institutionId: "cat-institution-btg",
+  classId: "cat-class-aposentadoria",
+  typeId: "cat-type-renda-fixa",
+  description: "Tesouro Selic 2029",
+  valueCents: 100_000,
+  occurredAt: "2026-08-18T12:00:00.000Z",
+};
+
+test("referência de catálogo aceita ID de documento comum", () => {
+  const parsed = createSimpleInvestmentPayloadSchema.parse(simpleBase);
+  assert.equal(parsed.institutionId, "cat-institution-btg");
+  assert.equal(parsed.classId, "cat-class-aposentadoria");
+  assert.equal(parsed.typeId, "cat-type-renda-fixa");
+  // O default do contrato continua liquidando o lançamento.
+  assert.equal(parsed.settled, true);
+});
+
+test("referência de catálogo com \"/\" é recusada no contrato", () => {
+  for (const campo of ["institutionId", "classId", "typeId"] as const) {
+    assert.throws(
+      () =>
+        createSimpleInvestmentPayloadSchema.parse({
+          ...simpleBase,
+          [campo]: "cat-institution-btg/../../outro-workspace",
+        }),
+      /Identificador inválido/,
+      `${campo} deveria recusar caminho`,
+    );
+    // Uma barra só já basta: o valor deixa de ser um ID de documento.
+    assert.throws(
+      () =>
+        createSimpleInvestmentPayloadSchema.parse({
+          ...simpleBase,
+          [campo]: "grupo/item",
+        }),
+      /Identificador inválido/,
+    );
+  }
+});
+
+test("referência de catálogo vazia continua recusada", () => {
+  assert.throws(() =>
+    createSimpleInvestmentPayloadSchema.parse({
+      ...simpleBase,
+      institutionId: "   ",
+    }),
+  );
+  assert.throws(() =>
+    createSimpleInvestmentPayloadSchema.parse({
+      ...simpleBase,
+      typeId: "x".repeat(161),
+    }),
+  );
+  // O limite atual permanece: 160 caracteres continuam válidos.
+  assert.equal(
+    createSimpleInvestmentPayloadSchema.parse({
+      ...simpleBase,
+      typeId: "x".repeat(160),
+    }).typeId,
+    "x".repeat(160),
+  );
+});

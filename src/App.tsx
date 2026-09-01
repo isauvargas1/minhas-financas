@@ -82,12 +82,27 @@ import {
 import {
     summarizeCashFlow,
 } from "./modules/investments/semantics";
-const InvestmentsPortfolioView = React.lazy(
-    () => import("./modules/investments/components/InvestmentsPortfolioView"),
+/*
+ * Investimentos abre na experiência simples (Etapa 2).
+ *
+ * A tela profissional (`InvestmentsPortfolioView`) continua no código e segue
+ * sendo a superfície de conta, ativo, posição, alocação e valoração — mas ela
+ * deixou de ser o que o usuário comum encontra ao clicar em Investimentos.
+ * Nenhum botão de "modo avançado" foi criado: a infraestrutura é invisível no
+ * fluxo cotidiano, por decisão de produto.
+ */
+const SimpleInvestmentsView = React.lazy(
+    () => import("./modules/investments/simple/components/SimpleInvestmentsView"),
 );
-const InvestmentDashboardOverview = React.lazy(
-    () => import("./modules/investments/components/InvestmentDashboardOverview"),
-);
+/*
+ * O painel patrimonial profissional saiu do Dashboard (Etapa 3, §3.B).
+ *
+ * Ele não existia no baseline e trazia vocabulário de custo, patrimônio e
+ * resultado não realizado para a primeira tela de quem só queria ver o mês. O
+ * componente e o backend continuam íntegros — o que saiu foi o ponto de
+ * montagem, e com ele o aviso "Não foi possível carregar o resumo patrimonial"
+ * numa tela que não usa mais esse resumo.
+ */
 // ----------------------
 
 const queryClient = new QueryClient({
@@ -101,7 +116,7 @@ const queryClient = new QueryClient({
 
 const AppContent: React.FC = () => {
     const { theme, toggleMode, playSound } = useTheme();
-    const { activeWorkspace, isLoading, canManageActiveWorkspace } = useWorkspace();
+    const { activeWorkspace, isLoading, activeWorkspaceRole } = useWorkspace();
     const workspaceId = activeWorkspace?.id ?? "";
     const { user } = useAuth();
 
@@ -152,13 +167,6 @@ const AppContent: React.FC = () => {
         setTransactionToEdit(null);
         setTransactionModalDefaultType(null);
         setTransactionModalAllowedTypes(null);
-    };
-
-    // O progresso da meta vem das posições do domínio patrimonial, não de
-    // transações: aportar é criar um movimento em Investimentos e vinculá-lo à
-    // meta. A ação leva direto à tela onde isso acontece.
-    const openGoalContributionModal = () => {
-        setView('investimento');
     };
 
     // --- INTEGRACAO COM FIRESTORE (HOOKS) ---
@@ -548,9 +556,6 @@ const AppContent: React.FC = () => {
                             <SummaryCard title="Despesas" value={summaryData.expenses} trend="Mensal" icon={<ArrowDownIcon />} color="red" isClickable onClick={() => handleNavigate('despesa')} />
                             <SummaryCard title="Investimentos" value={summaryData.investments} trend="Mensal" icon={<ChartBarIcon />} color="indigo" isClickable onClick={() => handleNavigate('investimento')} />
                         </div>
-                        <React.Suspense fallback={<div role="status" className="rounded-card border border-border bg-surface p-5">Carregando patrimônio…</div>}>
-                            <InvestmentDashboardOverview workspaceId={workspaceId} />
-                        </React.Suspense>
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                             <div className="flex flex-col gap-6">
                                 <TransactionsChart transactions={currentMonthCashFlowTransactions} />
@@ -579,16 +584,15 @@ const AppContent: React.FC = () => {
                         onBack={() => setView('goals')}
                         onEdit={g => { setGoalToEdit(g); setIsGoalModalOpen(true); }}
                         onDelete={handleDeleteGoal}
-                        onAddInvestment={openGoalContributionModal}
                     />
                 )}
                 {view === 'investimento' && (
                     <React.Suspense fallback={<div className="p-6 text-sm text-gray-600">Carregando investimentos...</div>}>
-                        <InvestmentsPortfolioView
+                        <SimpleInvestmentsView
                             workspaceId={workspaceId}
                             profileType={activeWorkspace.type}
-                            canManage={canManageActiveWorkspace}
                             goals={goals}
+                            role={activeWorkspaceRole}
                             onBack={() => setView('dashboard')}
                         />
                     </React.Suspense>

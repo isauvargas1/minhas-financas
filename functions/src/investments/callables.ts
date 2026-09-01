@@ -11,6 +11,10 @@ import {
   cancelInvestmentMovementPayloadSchema,
   createInvestmentContributionPayloadSchema,
   createInvestmentRedemptionPayloadSchema,
+  createSimpleInvestmentPayloadSchema,
+  settleInvestmentContributionPayloadSchema,
+  settleSimpleWithdrawalPayloadSchema,
+  withdrawSimpleInvestmentPayloadSchema,
   changeInvestmentGoalPayloadSchema,
   linkInvestmentToGoalPayloadSchema,
   onboardInvestmentWorkspacePayloadSchema,
@@ -33,6 +37,10 @@ import {
   executeCancelInvestmentMovement,
   executeCreateInvestmentContribution,
   executeCreateInvestmentRedemptionV2,
+  executeCreateSimpleInvestment,
+  executeSettleInvestmentContribution,
+  executeSettleSimpleWithdrawal,
+  executeWithdrawSimpleInvestment,
   executeChangeInvestmentGoal,
   executeLinkInvestmentToGoal,
   executeRecordInvestmentValuation,
@@ -106,6 +114,39 @@ export const createInvestmentContribution = investmentCallable(
   "createInvestmentContribution",
   createInvestmentContributionPayloadSchema,
   executeCreateInvestmentContribution,
+);
+
+/**
+ * Superfície simples do domínio patrimonial (Etapa 1).
+ *
+ * As três callables abaixo existem para que a interface possa registrar um
+ * investimento, confirmar um aporte e retirar dinheiro sem conhecer conta
+ * técnica, ativo técnico, quantidade, preço unitário, custo médio, resultado
+ * realizado, valoração ou reconstrução. O ledger, as projeções e as garantias
+ * são exatamente os mesmos do restante do domínio.
+ */
+export const createSimpleInvestment = investmentCallable(
+  "createSimpleInvestment",
+  createSimpleInvestmentPayloadSchema,
+  executeCreateSimpleInvestment,
+);
+
+export const settleInvestmentContribution = investmentCallable(
+  "settleInvestmentContribution",
+  settleInvestmentContributionPayloadSchema,
+  executeSettleInvestmentContribution,
+);
+
+export const withdrawSimpleInvestment = investmentCallable(
+  "withdrawSimpleInvestment",
+  withdrawSimpleInvestmentPayloadSchema,
+  executeWithdrawSimpleInvestment,
+);
+
+export const settleSimpleWithdrawal = investmentCallable(
+  "settleSimpleWithdrawal",
+  settleSimpleWithdrawalPayloadSchema,
+  executeSettleSimpleWithdrawal,
 );
 
 export const createInvestmentRedemption = investmentCallable(

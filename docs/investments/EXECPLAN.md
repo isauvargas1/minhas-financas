@@ -1236,3 +1236,926 @@ scripts não deixam estado no projeto Firebase; o override do utilitário some
 com o arquivo e a recusa padrão volta a ser incondicional.
 
 **Nada foi implantado, removido ou apagado.**
+
+---
+
+# Reestruturação da UX de Investimentos — Etapa 1 (backend), 2026-08-31
+
+**Escopo.** Camada de caso de uso simples **sobre** o domínio autoritativo.
+Nenhuma interface foi criada ou alterada. `investment_movements` continua sendo
+o ledger, `investment_positions` a posição, e `transactions` apenas espelho de
+caixa — o cliente segue sem poder escrever `type: 'investimento'`.
+
+## Decisões
+
+**Carteira = `investment_class`.** O grupo já existia, já vinha semeado com
+"Aposentadoria", "Reserva de emergência" e "Objetivos" (PF) e já alimentava a
+dimensão de alocação `class`. Nenhum campo novo, nenhum grupo
+`investment_portfolio`. O `wallet` do catálogo continua sendo caixa e não foi
+tocado. Persistência em `asset.classId`/`className`, que já eram fotografados.
+
+**Instituição = novo grupo `investment_institution`.** A identidade técnica é o
+**ID do item de catálogo**, nunca o nome normalizado: a conta é
+`deterministicDocumentId("institution-account", workspaceId, institutionId)`.
+Renomear "BTG" para "BTG Pactual" mantém a mesma `InvestmentAccount`, atualiza
+o rótulo vivo da conta e não toca movimento nenhum — cada movimento carrega a
+própria fotografia do nome. `account.institutionId` é opcional no contrato:
+contas anteriores continuam válidas.
+
+**Categoria = `investment_type`.** O ativo ganhou `typeId`/`typeName`; o enum
+técnico `assetType` passou a ser **derivado** do nome da categoria
+(`deriveAssetTypeFromCategoryName`), com `other` como queda — nunca um tipo
+específico errado, que distorceria a faixa de alocação.
+
+**Identidade do investimento.** A proposta de `hash(classId+typeId+description)`
+foi **descartada**: descrição é mutável e dois investimentos podem ter a mesma.
+Cada "Novo investimento" cria um `InvestmentAsset` próprio derivado da
+**intenção** (`operation:uid:idempotencyKey`). Descrição igual não funde nada;
+retry e duplo clique repetem a chave, e a reserva de idempotência devolve o
+resultado anterior sem escrever.
+
+**Regime de acompanhamento (`asset.trackingMode`).** Menor separação possível
+entre o simples e o avançado, tipada e retrocompatível: ausência vale
+`"quantity"`, então **todo ativo já gravado segue quantitativo**. No regime
+`"value"` a quantidade nunca vem do chamador — é derivada por cota sintética de
+R$ 1,00 (`quantityMicros = principalCents × 10_000`). A convenção foi adotada
+só depois de verificar que `applyPositionDeltas` rejeita quantidade zero com
+custo diferente de zero: um regime por valor precisa de alguma quantidade que
+se mova junto com o custo, e amarrá-la ao custo mantém a proporção exata em
+qualquer sequência — inclusive no encerramento, em que ambos zeram juntos.
+Valoração a mercado e aporte com quantidade explícita são **recusados** em
+ativo de regime por valor; a retirada simples é recusada em ativo quantitativo.
+
+**Aporte pendente.** `createInvestmentContribution` ganhou `settled`. Pendente
+grava movimento com todos os deltas em zero — invariante que o contrato de
+documento e as Rules já impunham e que só o resgate usava. Liquidação por
+`settleInvestmentContribution`, que não recebe valores (recebê-los seria editar
+fato financeiro por porta lateral) e preserva `occurredAt`, registrando
+`settlementAt`. Cancelamento reaproveita `cancelInvestmentMovement`, que já era
+agnóstico de operação.
+
+**Retirada simples.** `withdrawSimpleInvestment` cobre pendente e recebida numa
+transação só, compondo os mesmos primitivos de projeção do resto do domínio.
+Não encadeia `createInvestmentRedemption` + `settleInvestmentRedemption` porque
+duas transações deixariam pendente órfão se a segunda falhasse, e porque a
+liquidação daquela operação existe para informar ganho, perda, taxa e imposto —
+que o modo simples não coleta. **Nada é inventado**: os quatro ficam em zero, o
+caixa recebido é igual ao custo retirado, e pedir mais que o capital aplicado é
+erro de domínio.
+
+## Progresso
+
+- `functions/src/investments/simpleMode.ts` (novo): regime, cota sintética,
+  resolução de catálogo por ID, derivação de `assetType`, fotografia de
+  apresentação.
+- `operationsV2.ts`: aporte com alvo por `positionId`, quantidade derivável e
+  estado pendente; `executeSettleInvestmentContribution`,
+  `executeCreateSimpleInvestment` e `executeWithdrawSimpleInvestment`; guarda de
+  valoração; `typeId`/`typeName`/`trackingMode`/`institutionId` no cadastro;
+  fotografia propagada ao estorno.
+- `contracts.ts`, `documentContracts.ts`, `callables.ts`, `writeStrategy.ts`,
+  `infrastructure.ts`, `rateLimits.ts`: três operações novas, com matriz de
+  papéis, teto de frequência e plano de escrita declarados.
+- `firestore.rules`: grupo `investment_institution`; validação dos campos novos
+  de conta, ativo e movimento — todos opcionais, nenhuma regra afrouxada.
+- `src/modules/settings-catalog/{types,constants,presentation}.ts`: registro do
+  cadastro de Instituições, único ponto visível ao usuário nesta etapa, exigido
+  para que o grupo seja administrável.
+
+## Evidências
+
+`npm run verify:fast` verde (typecheck, lint com 0 erros, build, build de
+Functions, 100 unitários de Functions, 35 unitários de investimentos).
+`npm run test:integration:emulator` verde: **134** de integração (116 anteriores
++ 18 novos em `simpleMode.integration.test.ts`), 15 de guarda de limpeza e
+**73** de Rules (69 anteriores + 1 pré-existente de resumo inexistente + 3
+novos). Total 222, zero falhas. E2E não executado nesta etapa, por instrução.
+
+## Riscos residuais
+
+- **Retirada não resgata valorização.** Sem informação adicional o domínio não
+  sabe separar principal de rendimento, e o modo simples recusa em vez de
+  estimar. Enquanto ninguém usar valoração, `currentValue ≡ principal` e a
+  recusa nunca aparece; um produto que precise resgatar rendimento vai exigir
+  um campo a mais na UX ou uma operação avançada.
+- **Investimento pendente não tem posição.** O primeiro aporte só cria posição
+  ao liquidar, então até lá o investimento é endereçável por `accountId`/
+  `assetId` (devolvidos por `createSimpleInvestment`), não por `positionId`.
+- **Cancelar o primeiro aporte deixa o ativo cadastrado sem movimento.** Não é
+  fato financeiro nem lixo transacional, mas a listagem da Etapa 2 precisa
+  decidir se o exibe.
+- **`assetType` é heurístico.** Uma categoria com nome inesperado cai em
+  `other`; a autoridade é `typeId`, e a faixa por classe não depende disso.
+
+## Rollback
+
+`git revert` do commit. Os campos acrescentados são todos opcionais em
+documento e em Rules, então documentos gravados por esta etapa continuam
+legíveis pela versão anterior — exceto `trackingMode`, cuja ausência já
+significa o regime quantitativo. Nenhuma migração foi executada e nenhum dado
+foi reescrito.
+
+## Hardening da Etapa 1 — 2026-08-31
+
+Duas correções bloqueantes antes de qualquer trabalho de interface. Nenhuma
+decisão da Etapa 1 foi revista e nenhuma UI foi tocada.
+
+**Retirada simples com rendimento.** `withdrawSimpleInvestment` recebia só o
+total e tratava tudo como capital, o que impedia representar o caso real —
+aportar R$ 10.000 e retirar R$ 11.000. O contrato ganhou `gainCents`
+**opcional**: `principalCents = valueCents − gainCents`. Sem ele, nada muda e o
+comportamento segue conservador; com ele, só o capital reduz a posição e a meta,
+o rendimento vai para `realizedGainCents` — a mesma grandeza que
+`settleInvestmentRedemption` já publica — e o caixa recebe o total. Perda, taxas
+e imposto continuam fora da UX simples e não são inventados. Uma retirada acima
+do capital sem informar rendimento continua recusada, agora com mensagem que diz
+o que falta.
+
+`settleSimpleWithdrawal` fecha o ciclo pendente→liquidado da retirada sem exigir
+quantidade: a liquidação avançada existe para informar quantidade, perda, taxa e
+imposto, que a UX simples não coleta. Os componentes são **revalidados contra a
+posição no instante em que os efeitos são aplicados** — entre o pedido e o
+recebimento outra retirada pode ter consumido o capital.
+
+O espelho de caixa de um pendente passou a exibir `principal + ganho` em vez de
+só o principal: o efeito continua zero, mas o valor anunciado agora é o valor
+pedido. Para todo movimento sem rendimento o resultado é idêntico ao anterior.
+
+**`assetType` deixou de depender do rótulo.** A derivação por palavra-chave do
+nome da categoria foi removida: renomear "Ações" para "Bolsa brasileira"
+reclassificaria o ativo, e uma categoria criada pelo usuário chamada "Ações"
+ganharia classificação só pelo texto. A autoridade passou a ser o **ID do item
+de catálogo**, que nunca muda num rename — `updateSettingsCatalogItem` reescreve
+`name`, `normalizedName` e `dedupeKey`, nunca o documento. As categorias
+semeadas e a classificação de cada uma vivem numa lista só
+(`INVESTMENT_TYPE_SEEDS`, em `simpleMode.ts`), da qual o onboarding semeia e o
+domínio resolve; `investmentCatalogSeedDocumentId` é a única derivação do
+identificador determinístico. Categoria personalizada resolve `other` — o
+catálogo não tem campo estável de classificação técnica, e inventar um não era
+opção. Nenhuma coleção nova.
+
+**Guardas confirmadas.** Converter `trackingMode` com posição viva passou a ser
+recusado: a quantidade já gravada mudaria de significado sem mover um centavo.
+Sem posição, é só cadastro e a troca é permitida. As duas guardas anteriores
+(valoração e aporte com quantidade em ativo por valor) seguem em pé.
+`updatesProjections` foi verificado como **metadado declarativo** — só o teste de
+`writeStrategy` o consome, nenhum caminho de runtime ramifica nele — e por isso
+permanece descrevendo o teto de efeito da operação.
+
+**Evidências.** `npm run typecheck`, `npm run functions:lint` (0 erros),
+`npm run build`, `npm run functions:build`, 100 unitários de Functions e 35 de
+investimentos, todos verdes. `npm run test:integration:emulator`: **144** de
+integração (134 + 10 novos), 15 de guarda e 73 de Rules — 232 no total, zero
+falhas. Nenhuma Rule mudou nesta etapa. E2E não executado, por instrução.
+
+**Riscos residuais.** Fechar uma posição **abaixo** do custo continua exigindo o
+resgate detalhado: o modo simples não coleta perda realizada, e uma retirada
+parcial nunca a caracteriza. Uma categoria padrão que já existisse no catálogo
+antes do onboarding — criada à mão com o mesmo nome — fica com identificador
+próprio e resolve `other`; é conservador e visível, não silencioso.
+
+---
+
+# Reestruturação da UX de Investimentos — Etapa 2 (interface), 2026-08-31
+
+**Escopo.** A tela comum de Investimentos volta a ser a experiência simples do
+baseline visual `3395f465`, agora sobre o domínio autoritativo e as callables da
+Etapa 1. Nenhuma escrita de investimento em `transactions`, nenhum hard delete,
+nenhuma reintrodução da arquitetura antiga.
+
+## Decisões
+
+**Modal próprio, não a aba do `TransactionModal` (§2 → alternativa A).** A aba de
+investimento não existe mais no `TransactionModal` do HEAD: `resolvedAllowedTypes`
+é `receita | despesa | parcelado` e `renderFields` não tem ramo de investimento.
+Reabrir aquele ramo significaria ou ressuscitar a escrita em `transactions`, ou
+fazer um componente de quatro tipos falar com dois domínios no mesmo `submit`.
+`NewInvestmentModal` reusa o **visual** do baseline — mesma sobreposição, mesmo
+painel `max-w-lg`, mesmo `commonInputClasses` com anel azul, mesmo bloco cinza
+do "já foi depositado?" — e chama exclusivamente `createSimpleInvestment`.
+
+**Tela própria, não um terceiro `viewType` no `TransactionsView`.** Aquele
+componente é tipado `'receita' | 'despesa'` e todo o corpo opera sobre
+`Transaction`. `SimpleInvestmentsView` reproduz a composição do baseline (cards
+por meta, barra de filtros, chips, tabela de seis colunas, estado vazio) lendo
+`investment_movements`. O ganho é direto: a tela de receitas e despesas não
+carrega um segundo domínio, e o baseline continua sendo a referência visual.
+
+**A linha é o movimento, não o ativo.** É isso que faz o aporte pendente aparecer
+desde o primeiro instante, mesmo sem `InvestmentPosition`, e faz um ativo cujo
+único movimento foi cancelado nunca posar de investimento ativo. `reversal`,
+`goal_link` e `goal_unlink` não viram linha; o lançamento estornado passa a
+**Desfeito**, e a palavra técnica não chega à tela.
+
+**Nenhuma consulta nova, nenhum índice novo.** A listagem usa o
+`listInvestmentMovements` que já existia (`occurredAt desc`, 20 por página,
+cursor) — coberto pelo índice de campo único. Instituição, carteira, categoria e
+nome saem da fotografia gravada no movimento pela Etapa 1. A única leitura
+acrescentada é `resolveInvestmentPositions`, `documentId() in` em blocos de 30:
+**uma** consulta por página, para saber quais investimentos podem ser retirados.
+`firestore.indexes.json` não foi tocado.
+
+**Semântica dos chips corrigida, layout preservado (§12).** O chip `Total` do
+baseline somava toda transação do mês, paga ou não — com retirada e cancelamento
+no mesmo lugar, isso vira número falso. Passou a `Aportes` (liquidados) mais um
+chip novo `Retiradas`; `Média` virou `Aporte médio`, sobre aportes liquidados. O
+card por meta mostra **capital líquido**: aporte liquidado menos capital
+retirado. Rendimento retirado não reduz capital, porque nunca foi aporte.
+
+**Cadastros do usuário comum (§3).** `investment_class` passou a se chamar
+"Carteiras de investimento", `investment_type` "Categorias de investimento", e
+"Instituições" (Etapa 1B) ficou entre as duas. **Nenhum grupo técnico foi
+renomeado** — só o rótulo. As superfícies técnicas (contas e ativos, semeadura,
+painel operacional) continuam completas, recolhidas atrás de "Administração
+técnica de investimentos": deixaram de dominar a primeira tela de quem só queria
+renomear uma categoria de despesa, sem que nada fosse removido nem afrouxado.
+
+**Editar pendente = cancelar + nova intenção (§11).** Nesta ordem, e não na
+inversa: se a criação falhar, o pendente anterior fica cancelado e o usuário vê o
+erro com o formulário aberto; na ordem oposta, uma falha no cancelamento deixaria
+duas intenções vivas. Não é atômico entre as duas chamadas — é a limitação
+assumida, e nenhum fato financeiro se perde, já que um pendente tem todos os
+deltas em zero.
+
+**Data do campo → instante.** Ancorada ao meio-dia local, como o baseline já
+fazia ao exibir datas, para nenhum fuso mudar o dia. Quando o dia escolhido é
+hoje e o meio-dia ainda não chegou, o instante enviado é o agora: as liquidações
+recusam data futura com tolerância de cinco minutos, e "Confirmar depósito" às 9h
+seria recusado por uma data que o usuário nem escolheu.
+
+## Progresso
+
+- `src/modules/investments/simple/` (novo): `rows.ts`, `summary.ts`, `form.ts`,
+  `permissions.ts` — puros, sem React e sem SDK, que é o que permite testá-los
+  com o runner do Node; `api.ts` com a leitura paginada e a mutação com
+  identidade de intenção; `components/` com a tela e os três modais.
+- `src/modules/investments/errors.ts` (novo): tradução de erro de callable,
+  extraída de `components/shared.tsx` sem duplicação — `safeError` passou a
+  reexportá-la. O prefixo removido virou **só** o técnico: a versão anterior
+  cortava tudo até o primeiro `:` e entregava a mensagem mais importante do modo
+  simples pela metade, sem a causa e sem a orientação.
+- `src/App.tsx`: `view === 'investimento'` monta a tela simples; `initialGoalId`
+  chega do detalhe da meta.
+- `src/modules/investments/types.ts`, `persistence/readApi.ts`: fotografia de
+  apresentação no tipo do movimento e resolução de posições em bloco.
+- `src/modules/settings-catalog/presentation.ts`, `src/components/SettingsView.tsx`:
+  rótulos, ordem e recolhimento da área técnica.
+- `e2e/`: especificações atualizadas para a tela nova e
+  `investments-simple.spec.ts` cobrindo o roteiro do §17.
+
+## Evidências
+
+`npm run verify:fast` verde: typecheck de cliente e Functions, `eslint` das
+Functions com **0 erros**, build do cliente em 35 s, build das Functions, 100
+unitários de Functions e 95 de investimentos. A tela simples sai como `chunk`
+próprio de 39 KB, carregado sob demanda; a tela profissional deixou de entrar no
+`bundle` por não ser mais importada.
+
+`npm run test:unit:investments`: **95** testes, de 35 para 95 — 60 novos em
+quatro arquivos, cobrindo mapeamento de movimento em linha, estados do §7,
+invariantes dos cards e chips, máscara e payloads dos formulários, chave de
+idempotência do duplo envio, matriz de papéis e tradução de erro. Somam-se três
+guardas estruturais: nenhuma tela grava investimento em `transactions`, a tela
+simples só chama as callables do modo simples, e a leitura simples não resolve
+nome por linha nem consulta Firestore sem limite.
+
+E2E com emuladores, por especificação:
+
+| Especificação | Resultado |
+| --- | --- |
+| `investments-simple.spec.ts` (nova) | 7 de 7 |
+| `investments-v2.spec.ts` | 7 de 7 + 1 marcada |
+| `investment-onboarding.spec.ts` | 3 de 3 |
+| `investment-operations.spec.ts` | 6 de 6 |
+| `regression-smoke.spec.ts` | 3 de 3 (PF, PJ e troca de workspace) |
+
+A nova especificação percorre o roteiro do §17 em runtime — abrir Investimentos,
+conferir campos e rótulos do formulário, criar pendente, confirmar depósito,
+criar depositado, retirar sem receber, confirmar recebimento, cancelar, editar,
+desfazer e checar a viewport de celular — e confere o **ledger** depois de cada
+passo, não só a tela.
+
+A marcada é a valoração a mercado: a operação continua íntegra e coberta em
+`m3Lifecycle.integration.test.ts`, mas a tela que a oferecia saiu da navegação
+comum por decisão do §1. O teste ficou registrado, e não apagado.
+
+**Ambiente.** `vite build` foi morto por falta de memória em várias tentativas,
+inclusive numa árvore limpa em `HEAD` — é limitação do contêiner, não da
+mudança. Depois de liberar processos ociosos, o build passou a concluir com
+saída 0.
+
+## Riscos residuais
+
+- **A faixa de alocação não está montada em lugar nenhum.** `InvestmentAllocationSection`
+  só era alcançada pela aba "Alocação" da tela profissional. Ela lê projeções
+  autoritativas e continua correta; o que falta é onde exibi-la sem trazer de
+  volta o vocabulário profissional que o §1 tira da navegação comum. A composição
+  do baseline reserva o espaço acima dos cards. **É a pendência principal para a
+  Etapa 3**, junto da integração PF/PJ.
+- **`InvestmentsPortfolioView` ficou sem ponto de montagem.** Continua no
+  repositório, íntegra, e saiu do bundle por não ser mais importada. Contas e
+  ativos técnicos seguem administráveis por Configurações › Cadastros.
+- **Filtros e busca cobrem o que já foi carregado.** A paginação é a do domínio,
+  20 por página, com "Carregar mais" e aviso explícito na tela — o mesmo critério
+  já adotado no catálogo de Cadastros.
+- **Editar pendente não é atômico** entre cancelar e recriar, como descrito acima.
+
+## Rollback
+
+`git revert` do commit. Nenhuma migração, nenhum índice, nenhuma escrita de dado
+e nenhuma mudança de contrato de backend: reverter devolve a tela profissional ao
+`view === 'investimento'` e os rótulos anteriores em Cadastros. Documentos
+gravados pela tela simples continuam válidos — são movimentos comuns do domínio.
+
+# Reestruturação da UX de Investimentos — Etapa 3 (integrações finais), 2026-09-01
+
+Fecha a reestruturação: a meta volta a financiar-se por dentro, a alocação volta
+ao lugar visual que ocupava no baseline `3395f465`, o Dashboard volta a ser o do
+ZIP e o relatório passa a separar aporte, retirada e rendimento. Nenhuma escrita
+financeira voltou ao frontend, nenhum índice novo foi criado e nenhum
+`test.fixme` desta migração sobreviveu.
+
+## Decisões
+
+**O sinal da retirada passou a descrever o dinheiro investido (§0.A).** Nesta
+tela a moldura é o patrimônio, não o caixa: aporte aumenta, retirada reduz.
+Marcar a retirada com `+` porque o caixa cresceu dizia, dentro de
+Investimentos, o contrário do que aconteceu. O aporte passou de `- R$ X`
+(baseline, moldura de caixa) para `+ R$ X` — manter os dois com o mesmo glifo
+seria trocar uma ambiguidade por outra. No caixa, o resgate liquidado continua
+sendo entrada, e é lá que essa moldura é a correta.
+
+**A administração técnica saiu do ponto de montagem, não do repositório (§0.B).**
+`InvestmentOnboardingCard`, `InvestmentRegistrySection` e
+`InvestmentOperationsPanel` continuam íntegros, com as mesmas regras de papel e
+o mesmo backend. O que saiu foi o `<details>` em Cadastros. Não foi criado
+"modo avançado": a experiência comum voltou a ser equivalente à do ZIP.
+
+**Estado e meta desceram para a consulta; texto continua na página (§0.C).** As
+combinações aplicadas no servidor são exatamente as cobertas por índice **já
+existente** — `status+operation+occurredAt`, `status+occurredAt` e
+`goalId+occurredAt`. Meta não se combina com estado: seria um índice novo para
+uma consulta que nenhuma tela faz. "Desfeitos" não desce porque o estado vem de
+presença de campo, não de igualdade. O escopo da busca textual é declarado na
+tela **sempre**, e não só quando há próxima página.
+
+**O filtro de meta passou a usar identificador (§0.C).** O valor era o rótulo, e
+duas metas homônimas colapsavam numa opção só — além de impedir qualquer recorte
+no servidor. O rótulo exibido continua o do baseline.
+
+**"Novo Aporte" abre o formulário sobre a meta, com a meta travada (§2.A).** Até
+a Etapa 2 a ação navegava para Investimentos com a meta pré-selecionada e exigia
+um segundo clique: a pessoa saía da meta para voltar a ela. O destino continua
+sendo `createSimpleInvestment` — nenhuma transação é criada diretamente.
+
+**"Vincular Existente" deixou de ser `() => {}`.** O botão existia no baseline
+ligado a uma função vazia. Agora abre a lista de posições ativas do workspace,
+com duas seções: o que já está na meta, com "Remover da meta"
+(`unlinkInvestmentFromGoal`), e o que pode entrar (`linkInvestmentToGoal`).
+Investimento vinculado a outra meta aparece, mas nunca troca em silêncio:
+`changeInvestmentGoal` passa por confirmação explícita, porque a meta anterior
+perde aquele capital no mesmo instante. Ficam de fora a posição arquivada, a
+posição sem capital e sem valor — ativo técnico do onboarding ou investimento
+inteiramente retirado — e o aporte pendente, que não tem posição e já recebe
+meta pelo próprio formulário.
+
+**A alocação voltou com a composição do baseline e outra aritmética (§5/§6/§7).**
+A versão antiga classificava por `transaction.category` comparando strings e
+somava investimento **sem meta** em "Aposentadoria" — uma afirmação sobre a
+intenção do usuário que ninguém fez. A fonte agora é
+`investment_allocation_summaries`, e três garantias saem de graça daí: só
+liquidado entra, retirada reduz, cancelado não conta. A autoridade do balde é o
+`key` do catálogo, nunca o rótulo. Os modelos de alvo do baseline ("70/30",
+"50/30/20") não voltaram: descreviam orçamento doméstico, não alocação de
+investimento, e pintavam de vermelho quem fugisse deles. Sem alvo declarado
+pelo usuário, a faixa mostra a distribuição real e se cala sobre o que deveria
+ser. Sem patrimônio liquidado, mostra estado vazio — nunca uma porcentagem
+inventada.
+
+**PF e PJ continuam componentes distintos.** PF distribui por carteira e traz um
+segundo corte por meta; PJ distribui pelas carteiras da empresa e só mostra
+finalidade contábil **quando alguém a declarou** — no modo simples todo ativo
+nasce "Não classificado", e uma faixa inteira repetindo isso sugeriria uma
+classificação que não existe.
+
+**O relatório perdeu a taxonomia profissional (§4).** Preço médio, marcação a
+mercado, risco, liquidez, indexador e ganho não realizado saíram: não existiam
+no ZIP e não descrevem investimento simples sem valoração. Ficaram patrimônio
+atual, aportes, retiradas e — só quando há valor conhecido — rendimento
+realizado, taxas e impostos. Um "R$ 0,00" fixo faria o relatório afirmar que
+houve apuração de rendimento quando não houve nenhuma.
+
+**Os roteiros de E2E da superfície técnica mudaram de gatilho, não de camada.**
+Com a administração técnica fora da navegação, o clique deixou de existir; o
+defeito que aqueles testes pegavam (`admin.firestore.FieldPath` chegando
+`undefined` no runtime das Functions, com os testes de integração passando por
+chamarem os executores diretamente) só aparece com o runtime no meio. Passaram
+a chamar as callables por HTTP no emulador, com token real do emulador de Auth.
+De quebra, a autoridade passou a ser verificada onde ela mora: papel sem
+permissão recebe `PERMISSION_DENIED` do servidor, o que é mais forte do que
+confirmar que o botão estava escondido.
+
+## Progresso
+
+- `src/modules/investments/simple/`: `allocation.ts`, `goalLink.ts` e
+  `goalHistory.ts` (novos, puros e testáveis pelo runner do Node);
+  `components/AllocationPanels.tsx` e `components/LinkGoalInvestmentsModal.tsx`;
+  `rows.ts` com recorte de servidor e filtro de meta por identificador;
+  `api.ts` com as consultas de alocação e de candidatos a vínculo.
+- `src/components/GoalDetailsView.tsx`: "Novo Aporte" e "Vincular Existente"
+  abrem modais na própria meta; histórico renomeado e traduzido para o
+  vocabulário do usuário.
+- `src/App.tsx`: painel patrimonial fora do Dashboard; `profileType` chega à
+  tela de Investimentos para escolher a faixa PF ou PJ.
+- `src/components/SettingsView.tsx`: administração técnica sem ponto de montagem.
+- `src/components/ReportsOverview.tsx`, `src/modules/reports/{api,hooks}.ts`:
+  área de investimentos enxuta e oito consultas de alocação a menos por abertura
+  do relatório.
+- `src/modules/investments/persistence/readApi.ts`: recorte por meta na listagem
+  de movimentos e leitura focada de alocação.
+- `functions/src/investments/__tests__/goalProgressRebuild.integration.test.ts`
+  (novo); `e2e/goal-investments.spec.ts` (novo); `e2e/support/callables.ts`
+  (novo).
+
+## Evidências
+
+`npm run verify:fast` verde: typecheck de cliente e Functions, `eslint` das
+Functions com **0 erros**, build do cliente em 34 s, build das Functions, **100**
+unitários de Functions e **140** de investimentos — de 95 para 140, com 45 novos
+em três arquivos (alocação PF/PJ, vínculo de meta, histórico da meta) mais os
+recortes de servidor e as guardas estruturais da experiência final.
+
+`npm run test:integration:emulator` verde: **147** de integração das Functions
+(três novos, do recálculo de progresso de meta) e as seis suítes de Rules —
+15 + 5 + 7 + 18 + 7 + 31 + 5.
+
+E2E com emuladores: **35 de 35**, em oito especificações. Nenhuma marcada.
+
+| Especificação | Resultado |
+| --- | --- |
+| `goal-investments.spec.ts` (nova) | 3 de 3 |
+| `goal-contributions.spec.ts` (reescrita) | 1 de 1 |
+| `investments-simple.spec.ts` | 7 de 7 |
+| `investments-v2.spec.ts` | 8 de 8 |
+| `investment-onboarding.spec.ts` | 3 de 3 |
+| `investment-operations.spec.ts` | 5 de 5 |
+| `regression-smoke.spec.ts` | 3 de 3 |
+| demais especificações do produto | verdes |
+
+**`firestore.indexes.json` não foi tocado.** Todo recorte novo cai em índice já
+publicado; a leitura de alocação usa `dimension + currentValueCents desc`, que já
+servia ao relatório oficial.
+
+**Ambiente.** `vite build` foi morto por falta de memória duas vezes. A causa era
+um servidor de linguagem TypeScript ocioso com 1,1 GB residentes e um servidor de
+desenvolvimento do Vite esquecido — nenhum deles da mudança. Encerrados os dois
+processos locais, o build concluiu em 34 s. Nada de código ou configuração foi
+alterado para mascarar o OOM.
+
+## Riscos residuais
+
+- **A administração técnica não tem mais superfície executável.** Reconstruir
+  projeções, refazer o fluxo de caixa mensal, recalcular posições e corrigir a
+  deriva de uma meta continuam íntegros e continuam cobertos, mas hoje só são
+  acionáveis por chamada direta à callable. É consequência direta do requisito
+  do §0.B, e é a decisão de produto que merece uma segunda superfície própria —
+  administrativa, fora de Cadastros — se a operação precisar dela em produção.
+- **A busca textual continua sobre a página carregada.** Estado e meta descem
+  para a consulta; o texto não. O escopo está declarado na tela, e nenhuma
+  infraestrutura de full-text foi criada nesta fase.
+- **Finalidade contábil PJ depende de classificação manual.** O modo simples
+  cria todo ativo como "Não classificado", então o segundo corte do painel PJ só
+  aparece para quem classificou ativos pela superfície técnica — que agora não
+  está montada. A distribuição por carteira, que é a principal, não depende
+  disso.
+- **A troca de meta não é atômica com a confirmação da interface.**
+  `changeInvestmentGoal` é atômico no backend; o que não é transacional é a
+  sequência de duas ações distintas na mesma lista, se o usuário encadear.
+
+## Rollback
+
+`git revert` do commit. Nenhuma migração, nenhum índice, nenhuma escrita de dado
+e nenhuma mudança de contrato de backend: reverter devolve o painel patrimonial
+ao Dashboard, a taxonomia completa ao relatório, a administração técnica a
+Cadastros e a meta ao comportamento da Etapa 2. Todo documento gravado nesta
+etapa — inclusive `goal_link` e `goal_unlink` — é movimento comum do domínio e
+continua válido.
+
+
+# Hardening residual do módulo simples — 2026-09-01
+
+Etapa curta, posterior ao code review transversal da Etapa 3. Três P3
+relatados, confirmados no código antes de qualquer edição, mais uma
+investigação somente-leitura que não virou mudança.
+
+## Decisões
+
+**1. `goalId` obsoleto na retirada pendente — corrigido.** Confirmado em
+`operationsV2.ts`: `executeSettleSimpleWithdrawal` e
+`executeSettleInvestmentRedemption` apuravam os deltas contra
+`current.goalId` — a meta da posição no instante da liquidação, que sempre
+esteve certo — mas gravavam o vínculo com `...(goalId ? {goalId} : {})`. Com a
+posição desvinculada entre o pedido e o recebimento, a chave simplesmente não
+entrava no `update` e o `goalId` da abertura do pendente **permanecia** no
+documento. Como `listGoalInvestmentMovements` filtra exatamente por esse campo,
+a retirada continuava no histórico de uma meta que não sofreu efeito nenhum:
+progresso e histórico da mesma meta contando histórias diferentes.
+
+A semântica final é a do invariante: no instante da liquidação o movimento
+declara a meta efetivamente responsável pelos deltas.
+
+- posição na mesma meta: `goalId` preservado;
+- posição em outra meta: `goalId` passa a ser a meta atual — já era o
+  comportamento, porque a chave entrava no `update` com o valor novo;
+- posição sem meta: o campo **sai** do documento, via `FieldValue.delete()`.
+
+Ausência real, e não string vazia: `investmentMovementDocumentSchema` declara
+`goalId` opcional (`investmentString(128).optional()`), e `investmentString`
+recusa vazio. `isValidInvestmentMovement` não lista `goalId` em `hasAll` e não
+o referencia em nenhum predicado — a ausência já era válida nas Rules, que não
+foram tocadas. O padrão é o mesmo que `writePosition` já usava: a validação de
+contrato roda sobre a visão final do documento, e o `delete()` só aparece na
+escrita.
+
+O espelho de caixa segue a mesma regra em `writeCashProjection`, pelo mesmo
+motivo: ele é gravado com `merge`, então omitir a chave conservaria a meta
+antiga no documento criado no pedido.
+
+**Trilha preservada.** O pedido não é reescrito à revelia: o evento de
+liquidação em `investment_event_logs` passa a registrar `requestedGoalId` (o
+vínculo de quando a retirada foi pedida) e `settledGoalId` (o do momento em que
+foi liquidada), e os movimentos `goal_link`/`goal_unlink` da posição continuam
+no ledger.
+
+**2. Cards sob filtro de estado — fonte trocada.** Confirmado em
+`SimpleInvestmentsView`: `buildSimpleGoalCards` somava `rows`, que é a página do
+ledger **já recortada no servidor** por `simpleMovementQueryFilter`. Escolher
+"Pendentes" ou "Cancelados" devolvia uma página sem nenhum movimento liquidado
+e zerava todo card — R$ 0,00 afirmando que não há investimento na meta quando
+só a tabela tinha sido filtrada. A mesma soma também dependia de quantas páginas
+o usuário tinha rolado.
+
+O baseline `3395f465` (`TransactionsView.tsx`) separava as duas coisas de
+propósito: `investmentSummary` percorria `transactions` inteiro e
+`filteredTotal`/`filteredAverage` percorriam `filteredTransactions`. É a
+semântica preferida — cards descrevem a carteira, chips descrevem o recorte — e
+é a que passa a valer.
+
+Fonte dos cards: `investment_allocation_summaries` no corte `goal`, projeção que
+o backend já mantém por delta a partir das posições e que o painel PF já lê. Sem
+consulta nova de estrutura, sem índice novo (`dimension + currentValueCents desc`
+já existia), sem full scan e sem carregar páginas: uma leitura limitada a
+`ALLOCATION_LIMIT + 1`. Dela saem de graça as invariantes que a soma manual
+perseguia — pendente nunca tocou posição, cancelado nunca virou posição, retirada
+liquidada decrementa. Enquanto a projeção não chega, ou se falhar, a faixa de
+cards some, como a de alocação: renderizar R$ 0,00 seria reintroduzir a mentira.
+Os chips continuam sobre as linhas filtradas.
+
+**3. Comentário invertido em `types.ts` — corrigido.** Confirmado contra
+`operationsV2.ts`: o estorno grava `reversedMovementId: payload.movementId` em
+si mesmo e `reversedByMovementId: reversalId` no original. O campo é "movimento
+que **este** estornou", não "movimento que estornou este". Só o comentário mudou.
+
+**4. `institutionAccountId` × PF/PJ — risco descartado com evidência.** A conta
+técnica é determinística por `workspace + institutionId` e não carrega PF/PJ.
+Investigado somente em leitura, e o risco não é material porque `profileType` é
+efetivamente imutável na vida do workspace:
+
+- ele vem de `workspace.type` (`profileTypeFromWorkspace`), e as Rules mudaram
+  para allowlist em INV-P3-053: `changesOnlyMutableWorkspaceKeys()` aceita
+  apenas `name`, `slug`, `cnpj`, `logoUrl`, `themeColor`, `pjAccentColor`,
+  `currency`, `alertPreferences` e `updatedAt`. `type` só pode ser escrito no
+  `create`. Já coberto por `m4-hardening.rules.integration.test.mjs` ("admin não
+  reescreve ownerId, type nem features do workspace");
+- nenhuma Cloud Function grava `workspace.type` — as únicas ocorrências fora de
+  testes são leitura;
+- não existe UI nem callable de conversão PF↔PJ. `SettingsView` reenvia
+  `type: currentWorkspace.type`, valor inalterado, e o campo não é editável;
+- ainda que mudasse, não haveria conta duplicada silenciosa nem histórico
+  misturado: `executeCreateSimpleInvestment` recusa uma conta de instituição
+  existente cujo `profileType` divirja do workspace, e `ensureAccountAndAsset`
+  faz a mesma guarda em toda operação.
+
+Nada foi alterado, e nenhum teste PF→PJ foi criado: inventar cobertura para uma
+transição que o produto não oferece descreveria um suporte inexistente.
+
+## Progresso
+
+- `functions/src/investments/operationsV2.ts` — vínculo de meta do movimento
+  liquidado nas duas liquidações, `goalId` no espelho de caixa e os dois lados
+  do vínculo no evento de auditoria.
+- `src/modules/investments/simple/summary.ts` — `buildSimpleGoalCards` passa a
+  consumir a faixa de alocação por meta.
+- `src/modules/investments/simple/components/SimpleInvestmentsView.tsx` — leitura
+  da projeção e faixa de cards omitida enquanto ela não existe.
+- `src/modules/investments/types.ts` — comentário de `reversedMovementId`.
+- `functions/src/investments/__tests__/simpleMode.integration.test.ts` — dois
+  cenários novos (desvínculo e troca de meta antes da liquidação).
+- `tests/unit/investment-simple-summary.test.ts` — cards sobre a projeção, com a
+  regressão do filtro fixada.
+
+## Evidências
+
+`npm run test:unit:investments`: **141 de 141**. `npm --prefix functions run
+test:unit`: **100 de 100**. `tsc --noEmit` e `functions build` limpos;
+`functions lint` com **0 erros**. `vite build` em 32 s.
+
+Integração no Emulator: **81 de 81** em `investments/__tests__` (dois novos),
+**11 de 11** em `goals/__tests__` mais `investmentDrift`. Rules do domínio
+patrimonial: **18 de 18** — executadas porque a forma do documento mudou, ainda
+que por remoção de campo já opcional; `firestore.rules` não foi tocado.
+
+E2E não executado nesta etapa: os cenários direcionados provam as correções, e a
+suíte ampla é do release gate.
+
+## Riscos residuais
+
+- **Uma leitura de resumo a mais na tela PF.** `useInvestmentAllocation` devolve
+  sempre `summary` junto do corte, então a tela passa a ler
+  `investment_summaries/current` duas vezes — uma pela faixa de alocação, outra
+  pelos cards. É um documento, com `staleTime` de 60 s. Unificar exigiria subir a
+  consulta da faixa para a tela e mudar as props do painel: mais diff do que o
+  ganho justifica nesta etapa.
+- **Cards limitados a `ALLOCATION_LIMIT`.** A projeção devolve no máximo dez
+  faixas por corte, ordenadas por valor atual. Um workspace com mais de dez metas
+  investidas não verá card para a cauda. Antes o limite era outro — a página
+  carregada — e igualmente silencioso.
+- **Movimentos liquidados antes desta correção não são reescritos.** Um resgate
+  já liquidado cujo `goalId` ficou obsoleto continua obsoleto; a correção vale da
+  liquidação em diante. `recalculateGoalInvestmentProgress` reconcilia o
+  progresso da meta, que é a grandeza financeira, mas não reescreve o vínculo
+  histórico do movimento.
+
+## Rollback
+
+`git revert` do commit. Nenhuma migração, nenhum índice, nenhuma mudança de
+Rules e nenhuma mudança de contrato: o campo removido já era opcional em Zod e
+nas Rules, e o corte `goal` da projeção já era lido pelo painel PF.
+
+# Hardening final pré-release gate — 2026-09-01
+
+Auditoria independente fechou em PASS com achados LOW/INFO. Esta etapa trata os
+três LOW com efeito financeiro ou de integridade e registra o resto como dívida.
+
+## Decisões
+
+### LOW-1 — referência de catálogo é identificador de documento
+
+`investmentCatalogRefSchema` era `z.string().trim().min(1).max(160)`, sem a
+recusa de `"/"` que `investmentDocumentIdSchema` já fazia. O valor vai direto
+para `.doc(itemId)` em `resolveInvestmentCatalogItem`: com barra ele deixa de
+ser um ID e vira caminho — aponta para fora do catálogo, ou quebra com erro de
+infraestrutura por número ímpar de segmentos, nunca com erro de domínio.
+
+A regra dos dois schemas passou a ser a mesma constante (`hasNoPathSeparator`,
+`DOCUMENT_ID_ERROR`), sem regex nova. Vazio, `trim` e o teto de 160 continuam
+como estavam, e `institutionId`, `classId` e `typeId` compartilham a regra.
+A geração de IDs não foi tocada.
+
+### LOW-2 — política temporal única, também na criação
+
+`assertNotFuture` (tolerância de relógio de `FUTURE_DATE_TOLERANCE_MS`) existia
+só nas liquidações, estornos e valorações. `executeCreateSimpleInvestment`,
+`executeWithdrawSimpleInvestment` e `executeCreateInvestmentContribution`
+chamavam `parseTimestamp` cru.
+
+A combinação era um beco sem saída: a liquidação exige `settledAt` **posterior
+ao pedido** (`assertNotBefore`) e **não futuro** (`assertNotFuture`). Uma
+retirada pendente nascida com `occurredAt` no futuro não admitia nenhum
+`settledAt` válido — ficava permanentemente inliquidável, com período de caixa e
+série patrimonial abertos num mês que ainda não aconteceu.
+
+As três operações passaram a reusar `assertNotFuture`. Nenhuma segunda
+tolerância foi criada, e o frontend não foi alterado: `dateInputToInstant` já
+colapsava "hoje ao meio-dia" no instante corrente exatamente por causa dessa
+guarda. O backend continua sendo a autoridade.
+
+### LOW-3 — o espelho de caixa passa a ser escrita integral
+
+Confirmado com impacto material, não teórico. O ID do espelho é
+`investment_<deterministicDocumentId(operação, uid, idempotencyKey)>` — nenhum
+segredo de servidor entra na conta. As Rules deixam um membro criar
+`transactions/{docId}` com o ID que quiser (`firestore.rules`, sem guarda sobre
+`docId`) e `hasOnlyClientTransactionKeys` autoriza justamente os campos que o
+payload do espelho não escreve. Com `{merge: true}` todos sobreviviam:
+
+- **`voidedAt`** (obtido pela baixa lógica, permitida enquanto o documento ainda
+  era transação comum): `cashPeriodDeltaFor` zera o efeito de caixa **antes** de
+  olhar o `type`, e `rebuildCashPeriods` repete o mesmo zero. Um aporte sumia do
+  caixa sem erro e sem caminho de reconciliação. `isVoidedTransaction` também o
+  removia de toda leitura do produto.
+- **`cardId`**: `CreditCardsView` soma `transactions.filter(t => t.cardId === …)`
+  no relatório PJ do cartão sem checar `type`.
+- **`source` / `creditCardCompatibility` / `creditCardInvoicePaymentId`**: as
+  projeções de compatibilidade classificam por esses campos sem checar `type`, e
+  esses filtros alimentam `summarizeCashFlow` e os relatórios em regime de caixa.
+
+Sem impacto material: `installments`/`currentInstallment` (todos os leitores
+exigem `type === 'parcelado'`), `creditCardInvoiceId` (só chave de cache),
+`transactionSubtype`/`recurringId`/`splitId` (não existem em `transactions`).
+
+Correção adotada — opção A, `set` sem `merge` com o payload completo. É também a
+opção C: `crons/recurring.ts` já grava sua transação determinística com
+`batch.set` sem merge; o espelho patrimonial era o ponto fora da curva.
+`create()` foi descartado porque impediria o mesmo `transactionId` de atravessar
+`pending → settled`. `goalId` deixou de usar `FieldValue.delete()` (ilegal fora
+de `merge`) e voltou a ser chave condicional — a substituição integral já
+descarta a meta antiga. As Rules **não** foram alteradas: quem garante a forma
+final é o writer.
+
+### Registrado como dívida técnica, não tratado aqui
+
+LOW-4 (`assertWorkspaceDocument` redundante), LOW-5 (`isTransactionVoid` sem type
+guard), LOW-6 (membership sem `status` tratada como ativa), INFO do histórico
+limitado a 20, INFO do `exists()` em `investment_summaries`, e as Rules de
+`loans`/`loan_movements`/`receivables`/`clients`/`splits`/`recurring`.
+
+## Progresso
+
+- `functions/src/investments/contracts.ts` — regra única de ID de documento,
+  aplicada também à referência de catálogo.
+- `functions/src/investments/operationsV2.ts` — `assertNotFuture` nas três
+  operações de criação; espelho de caixa gravado por substituição integral.
+- `functions/src/investments/__tests__/domainV2.test.ts` — três contratos de ID
+  de catálogo (aceito, com `"/"`, vazio/limite).
+- `functions/src/investments/__tests__/simpleMode.integration.test.ts` — cinco
+  cenários temporais e dois adversariais de pré-empção do espelho.
+- `tests/firestore/investment-domain.rules.integration.test.mjs` — precondição do
+  ataque provada nas Rules reais, e o fecho do espelho depois da gravação.
+
+## Evidências
+
+Controle negativo executado: com `{merge: true}` reintroduzido, os dois testes
+adversariais falham em `cardId sobreviveu ao espelho`; com a correção, passam.
+
+`npm --prefix functions run test:unit`: **103 de 103**.
+`npm run test:unit:investments`: **141 de 141**.
+`tsc --noEmit` e `functions build` limpos; `functions lint` com **0 erros**.
+`vite build` em 36 s.
+
+Emulator, cadeia completa de `test:integration:emulator` (exit 0): Functions
+integration **156 de 156**; limpeza **15 de 15**; Rules `goals` **5 de 5**,
+`investments` **7 de 7**, `investment-domain` **19 de 19** (uma nova), `m3`
+**7 de 7**, `m4` **31 de 31**, `adjacent` **5 de 5**.
+
+E2E e release gate não executados nesta etapa.
+
+## Riscos residuais
+
+- **As Rules continuam deixando o cliente ocupar `transactions/investment_*`.**
+  A forma final do documento é garantida pelo writer, e depois da gravação o
+  espelho sai do alcance do cliente. O que sobra é uma janela em que um
+  documento comum ocupa o ID e conta como despesa no caixa até o backend
+  gravar — a entrega por delta do gatilho corrige sozinha na escrita seguinte.
+  Fechar isso exigiria uma guarda de `docId` nas Rules, com matriz de teste
+  própria; ficou fora desta etapa.
+- **Movimentos gravados antes desta correção não são reescritos.** Um espelho
+  que já carregue campo residual continua carregando; a substituição integral
+  vale da próxima escrita daquele documento em diante. `rebuildCashPeriods`
+  reconcilia o agregado, não a forma do documento.
+- **`recurringTransactionId` tem a mesma previsibilidade de ID.** O writer de
+  recorrência já grava sem `merge`, então a pré-empção não sobrevive lá — mas a
+  classe de risco existe em qualquer futuro writer determinístico que use
+  `merge` sobre `transactions`.
+- **A tolerância temporal é de relógio, não de fuso.** `FUTURE_DATE_TOLERANCE_MS`
+  são cinco minutos; um cliente com relógio muito adiantado passa a receber erro
+  de domínio na criação, como já recebia na liquidação.
+
+## Rollback
+
+`git revert` do commit. Nenhuma migração, nenhum índice, nenhuma mudança de
+Rules, de RBAC ou de contrato de callable: a validação de ID só recusa valor que
+já era inválido a jusante, a guarda temporal só recusa fato futuro, e o espelho
+mantém coleção, ID determinístico e lifecycle `pending → settled`.
+
+# Consistência temporal do domínio detalhado — 2026-09-01
+
+Etapa cirúrgica. O hardening anterior (LOW-2) fechou a política temporal do
+**modo simples**; a auditoria seguinte confirmou a mesma classe de defeito em
+três mutations do **domínio detalhado**. Escopo: só a guarda temporal e os
+testes que a fixam. Nenhuma mudança de UI, RBAC, Rules, contrato de callable
+ou arquitetura.
+
+## Decisões
+
+### A política é a que já existe, não uma segunda
+
+`assertNotFuture` e `FUTURE_DATE_TOLERANCE_MS` (`infrastructure.ts`) continuam
+sendo a única política: fato criado agora aceita presente e passado, recusa
+futuro além da tolerância de cinco minutos de relógio; `assertNotBefore`
+mantém `settlementAt >= ocorrido/solicitado`. Nenhum helper novo, nenhum
+`Date.now()` espalhado, nenhuma troca de `Timestamp` por `Date` na
+persistência.
+
+### `createInvestmentRedemptionV2` — `requestedAt` guardado
+
+`requestedAt` vira o `occurredAt` do movimento e é o piso do `assertNotBefore`
+da liquidação. Um pedido nascido no futuro exigia, para liquidar, um
+`settledAt` **posterior ao pedido** e **não futuro** ao mesmo tempo — o que não
+existe enquanto o pedido não vira passado. O resgate ficava pendente e
+inliquidável, com o caixa esperado preso e o período do mês futuro já aberto.
+É o mesmo beco sem saída que a retirada do modo simples já recusava; o
+resgate detalhado agora é coerente com ela.
+
+`expectedSettlementAt` **continua aceitando futuro** e foi classificado como
+exceção deliberada: é a previsão de D+N informada pela instituição, opcional,
+gravada no documento do pedido e lida por ninguém — não entra em período, em
+posição, em meta nem em espelho de caixa (`operationsV2.ts`, único uso em
+`...(expectedSettlementAt ? {expectedSettlementAt} : {})`). Amarrá-la ao
+presente inverteria o significado do campo.
+
+### `linkInvestmentToGoal` / `unlinkInvestmentFromGoal` — `occurredAt` guardado
+
+Não existe vínculo agendado. A interface envia o instante da própria ação
+(`intent.occurredAt()` em `LinkGoalInvestmentsModal`) e o vínculo move o
+progresso da meta na mesma transação. O `occurredAt` vira `occurredAt` e
+`settlementAt` do movimento e é o carimbo que `writePosition` grava em
+`lastMovementAt`, então data futura abriria o período do mês futuro.
+`changeInvestmentGoal`, que emite exatamente este par de movimentos e é
+chamado pela mesma tela, já recusava futuro: a guarda fecha a assimetria entre
+os dois caminhos, não inventa regra.
+
+### `cancelInvestmentMovement` — `occurredAt` guardado
+
+Cancelamento é ação executada, não intenção agendada: o efeito
+(`status: 'cancelled'`) é imediato e `cancelledAt` é `serverTimestamp()`. O
+`occurredAt` do cliente é o instante publicado no log de evento; aceitar futuro
+gravava no histórico um cancelamento datado depois do próprio carimbo do
+servidor. Pending-only, idempotência e preservação do documento seguem
+intactos.
+
+## Auditoria da classe de bug
+
+Inventário completo dos timestamps que **o cliente fornece** ao domínio de
+investimentos (`contracts.ts`, 14 campos `isoTimestampSchema`), classificado
+contra o código em `operationsV2.ts`:
+
+| Mutation | Campo | Classe |
+| --- | --- | --- |
+| `createInvestmentContribution` | `occurredAt` | A — já guardado |
+| `settleInvestmentContribution` | `settledAt` | A — `assertNotFuture` + `assertNotBefore` |
+| `createSimpleInvestment` | `occurredAt` | A — LOW-2 |
+| `withdrawSimpleInvestment` | `occurredAt` | A — LOW-2 |
+| `settleSimpleWithdrawal` | `settledAt` | A — `assertNotFuture` + `assertNotBefore` |
+| `createInvestmentRedemption` | `requestedAt` | **corrigido nesta etapa** |
+| `createInvestmentRedemption` | `expectedSettlementAt` | B — previsão, futuro é o significado do campo |
+| `settleInvestmentRedemption` | `settledAt` | A — `assertNotFuture` + `assertNotBefore` |
+| `reverseInvestmentMovement` | `reversedAt` | A — já guardado |
+| `changeInvestmentGoal` | `occurredAt` | A — já guardado |
+| `linkInvestmentToGoal` / `unlinkInvestmentFromGoal` | `occurredAt` | **corrigido nesta etapa** |
+| `cancelInvestmentMovement` | `occurredAt` | **corrigido nesta etapa** |
+| `recordInvestmentValuation` | `effectiveAt` | A — já guardado |
+| `registerInvestmentImportBatch`, `recalculate*`, `rebuild*`, `backfill*`, onboarding, `saveInvestment*`, `archive*` | — | C — não recebem instante do cliente |
+
+Varredura de apoio por `parseTimestamp(`, `Timestamp.fromDate(` e `new Date(`
+no domínio: fora de `infrastructure.parseTimestamp`, os únicos usos são
+`projectionRebuild.ts:1239` e `reporting.ts:230`, ambos derivando início de mês
+de uma chave de período já materializada — servidor, classe C.
+
+Resultado: **nenhuma mutation do domínio aceita data futura sem regra de
+negócio explícita.**
+
+## Progresso
+
+- `functions/src/investments/operationsV2.ts` — `assertNotFuture` em
+  `requestedAt` (`executeCreateInvestmentRedemptionV2`), `occurredAt`
+  (`executeGoalLinkChange`) e `occurredAt`
+  (`executeCancelInvestmentMovement`).
+- `functions/src/investments/__tests__/domainV2.integration.test.ts` — cinco
+  testes novos no Emulator cobrindo futuro recusado, presente e passado
+  aceitos, `settledAt >= requestedAt`, `settledAt` não futuro, idempotência do
+  vínculo e do cancelamento, pending-only e progresso da meta.
+
+## Evidências
+
+`node --test lib/investments/__tests__/domainV2.integration.test.js`:
+**18 de 18** (13 anteriores + 5 novos).
+`m3Lifecycle` + `goalSingleSource` + `simpleMode`: **50 de 50**.
+`m7Reports` + `rebuildConcurrency` + `goalProgressRebuild` +
+`pagedRunContract`: **25 de 25**.
+`npm --prefix functions run test:unit`: **103 de 103**.
+`npm run test:unit:investments`: **141 de 141**.
+`npm run typecheck` limpo; `functions build` limpo; `functions lint` com
+**0 erros**.
+
+Frontend build não executado: nenhum tipo compartilhado mudou. E2E, Rules e
+release gate não executados nesta etapa.
+
+## Riscos residuais
+
+- **A tolerância continua sendo de relógio, não de fuso.** Um cliente com
+  relógio adiantado mais de cinco minutos passa a receber erro de domínio ao
+  criar resgate, vincular meta ou cancelar pedido — como já recebia ao
+  liquidar, estornar ou valorar.
+- **`expectedSettlementAt` segue sem piso.** Nada impede uma previsão anterior
+  ao próprio `requestedAt`. Amarrá-las é regra de produto nova, não a política
+  já estabelecida; ficou fora desta etapa.
+- **Documentos gravados antes desta correção não são reescritos.** Um resgate
+  pendente que já tenha nascido com `requestedAt` futuro continua
+  inliquidável até a data chegar; a guarda vale da próxima criação em diante.
+
+## Rollback
+
+`git revert` do commit. Nenhuma migração, nenhum índice, nenhuma mudança de
+Rules, RBAC, UI ou contrato de callable: as três guardas só recusam fato
+futuro e não alteram cálculo financeiro, lifecycle, idempotência ou histórico.

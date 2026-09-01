@@ -56,6 +56,14 @@ test("matriz de papéis por operação é a esperada pelo domínio", () => {
     // INV-P2-028 — troca de meta: mesma matriz de vínculo e desvínculo.
     changeInvestmentGoal: ["owner", "admin", "member"],
     createInvestmentContribution: ["owner", "admin", "member"],
+    // Etapa 1 — superfície simples: mesma matriz do aporte e do resgate.
+    // Registrar, confirmar e retirar são operações do dia a dia de quem
+    // participa do workspace; corrigir fato liquidado continua exigindo
+    // estorno, restrito a owner/admin.
+    createSimpleInvestment: ["owner", "admin", "member"],
+    settleInvestmentContribution: ["owner", "admin", "member"],
+    withdrawSimpleInvestment: ["owner", "admin", "member"],
+    settleSimpleWithdrawal: ["owner", "admin", "member"],
     createInvestmentRedemption: ["owner", "admin", "member"],
     cancelInvestmentMovement: ["owner", "admin", "member"],
     settleInvestmentRedemption: ["owner", "admin", "member"],

@@ -150,6 +150,130 @@ export const INVESTMENT_BACKEND_WRITE_PLANS: Record<
     affectsCashProjection: true,
     clientDirectWriteAllowed: false,
   },
+  /**
+   * Novo investimento no modo simples.
+   *
+   * Escreve conta e ativo técnicos **na mesma transação** do aporte: se o
+   * aporte falha, nada é criado. É por isso que a operação declara
+   * `investment_accounts` e `investment_assets` além do que um aporte comum
+   * escreve — e por isso ela não pode ser decomposta em duas chamadas.
+   */
+  createSimpleInvestment: {
+    operation: "createSimpleInvestment",
+    allowedRoles: MUTATION_ROLES,
+    requiresAuthentication: true,
+    requiresWorkspaceMembership: true,
+    requiresIdempotencyKey: true,
+    requiresCorrelationId: true,
+    requiresFirestoreTransaction: true,
+    revalidatesRoleInTransaction: true,
+    writes: [
+      "investment_accounts",
+      "investment_assets",
+      "investment_movements",
+      "investment_positions",
+      "investment_summaries",
+      "investment_report_periods",
+      "investment_allocation_summaries",
+      "goals",
+      "transactions",
+      "investment_event_logs",
+      "investment_idempotency_keys",
+      "investment_operational_metrics",
+    ],
+    appendsToLedger: true,
+    // Um investimento criado como pendente não atualiza projeção nenhuma; a
+    // matriz declara o teto de efeito da operação, não o de cada chamada.
+    updatesProjections: true,
+    affectsCashProjection: true,
+    clientDirectWriteAllowed: false,
+  },
+  settleInvestmentContribution: {
+    operation: "settleInvestmentContribution",
+    allowedRoles: MUTATION_ROLES,
+    requiresAuthentication: true,
+    requiresWorkspaceMembership: true,
+    requiresIdempotencyKey: true,
+    requiresCorrelationId: true,
+    requiresFirestoreTransaction: true,
+    revalidatesRoleInTransaction: true,
+    writes: [
+      "investment_movements",
+      "investment_positions",
+      "investment_summaries",
+      "investment_report_periods",
+      "investment_allocation_summaries",
+      "goals",
+      "transactions",
+      "investment_event_logs",
+      "investment_idempotency_keys",
+      "investment_operational_metrics",
+    ],
+    appendsToLedger: false,
+    updatesProjections: true,
+    affectsCashProjection: true,
+    clientDirectWriteAllowed: false,
+  },
+  /**
+   * Retirada no modo simples.
+   *
+   * Cobre os dois estados numa transação só: pendente (deltas zero) ou já
+   * recebida (liquidada de imediato). Não passa pela liquidação de resgate
+   * porque não há valores de liquidação a informar — ganho, perda, taxas e
+   * imposto são zero por contrato.
+   */
+  withdrawSimpleInvestment: {
+    operation: "withdrawSimpleInvestment",
+    allowedRoles: MUTATION_ROLES,
+    requiresAuthentication: true,
+    requiresWorkspaceMembership: true,
+    requiresIdempotencyKey: true,
+    requiresCorrelationId: true,
+    requiresFirestoreTransaction: true,
+    revalidatesRoleInTransaction: true,
+    writes: [
+      "investment_movements",
+      "investment_positions",
+      "investment_summaries",
+      "investment_report_periods",
+      "investment_allocation_summaries",
+      "goals",
+      "transactions",
+      "investment_event_logs",
+      "investment_idempotency_keys",
+      "investment_operational_metrics",
+    ],
+    appendsToLedger: true,
+    updatesProjections: true,
+    affectsCashProjection: true,
+    clientDirectWriteAllowed: false,
+  },
+  settleSimpleWithdrawal: {
+    operation: "settleSimpleWithdrawal",
+    allowedRoles: MUTATION_ROLES,
+    requiresAuthentication: true,
+    requiresWorkspaceMembership: true,
+    requiresIdempotencyKey: true,
+    requiresCorrelationId: true,
+    requiresFirestoreTransaction: true,
+    revalidatesRoleInTransaction: true,
+    writes: [
+      "investment_movements",
+      "investment_positions",
+      "investment_summaries",
+      "investment_report_periods",
+      "investment_allocation_summaries",
+      "goals",
+      "transactions",
+      "investment_event_logs",
+      "investment_idempotency_keys",
+      "investment_operational_metrics",
+    ],
+    appendsToLedger: false,
+    updatesProjections: true,
+    affectsCashProjection: true,
+    clientDirectWriteAllowed: false,
+  },
   createInvestmentRedemption: {
     operation: "createInvestmentRedemption",
     allowedRoles: MUTATION_ROLES,

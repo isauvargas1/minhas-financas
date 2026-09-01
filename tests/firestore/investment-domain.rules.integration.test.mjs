@@ -18,6 +18,7 @@ import {
   serverTimestamp,
   setDoc,
   startAfter,
+  Timestamp,
   updateDoc,
   where,
 } from 'firebase/firestore';
@@ -334,6 +335,38 @@ test('Rules M4 mantêm o resumo consolidado somente leitura para membros e sem l
   });
 });
 
+test('Rules permitem consultar resumo ainda inexistente sem abrir acesso entre workspaces', async () => {
+  await seed();
+
+  const summaryPath =
+    `workspaces/${workspaceA}/investment_summaries/current`;
+
+  await getAdmin().firestore().doc(summaryPath).delete();
+
+  await withClients(
+    ['ownerA', 'memberA', 'ownerB', 'viewerA'],
+    async ({ownerA, memberA, ownerB, viewerA}) => {
+      assert.equal(
+        (await getDoc(doc(ownerA.db, summaryPath))).exists(),
+        false,
+      );
+
+      assert.equal(
+        (await getDoc(doc(memberA.db, summaryPath))).exists(),
+        false,
+      );
+
+      await assert.rejects(
+        () => getDoc(doc(ownerB.db, summaryPath)),
+      );
+
+      await assert.rejects(
+        () => getDoc(doc(viewerA.db, summaryPath)),
+      );
+    },
+  );
+});
+
 test('Rules M4 mantêm projeções de período e alocação somente leitura para o workspace dono', async () => {
   await seed();
   await withClients(['ownerA', 'ownerB', 'adminA', 'memberA'], async ({ownerA, ownerB, adminA, memberA}) => {
@@ -600,4 +633,264 @@ test('Rules M4 preservam isolamento de metas e compras de cartão entre workspac
       `workspaces/${workspaceA}/credit_card_purchases/forged`,
     ), {workspaceId: workspaceA, amountCents: 1}));
   });
+});
+
+test('Rules aceitam o cadastro de instituições e preservam a fronteira do workspace', async () => {
+  await seed();
+  await withClients(
+    ['ownerA', 'adminA', 'memberA', 'ownerB'],
+    async ({ownerA, adminA, memberA, ownerB}) => {
+      const institutionPath =
+        `workspaces/${workspaceA}/settings_catalog/institution-btg`;
+      const institution = (name, actorId) => ({
+        workspaceId: workspaceA,
+        group: 'investment_institution',
+        name,
+        normalizedName: name.toLowerCase(),
+        dedupeKey: `investment_institution::all::both::${name.toLowerCase()}`,
+        workspaceScope: 'both',
+        sortOrder: 10,
+        status: 'active',
+        createdBy: users.ownerA.uid,
+        updatedBy: actorId,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+
+      await setDoc(doc(ownerA.db, institutionPath), institution('BTG', users.ownerA.uid));
+      assert.equal((await getDoc(doc(memberA.db, institutionPath))).exists(), true);
+
+      // Renomear é edição do mesmo documento: a identidade não muda, e é ela
+      // que amarra a conta técnica do domínio.
+      await updateDoc(doc(adminA.db, institutionPath), {
+        name: 'BTG Pactual',
+        normalizedName: 'btg pactual',
+        updatedBy: users.adminA.uid,
+        updatedAt: serverTimestamp(),
+      });
+      assert.equal(
+        (await getDoc(doc(ownerA.db, institutionPath))).data().name,
+        'BTG Pactual',
+      );
+
+      // Membro não administra catálogo; outro workspace não enxerga.
+      await assert.rejects(() => setDoc(
+        doc(memberA.db, `workspaces/${workspaceA}/settings_catalog/institution-xp`),
+        institution('XP', users.memberA.uid),
+      ));
+      await assert.rejects(() => getDoc(doc(ownerB.db, institutionPath)));
+      await assert.rejects(() => setDoc(
+        doc(ownerB.db, `workspaces/${workspaceA}/settings_catalog/institution-forjada`),
+        institution('Forjada', users.ownerB.uid),
+      ));
+      // Cadastro não é apagado pelo cliente.
+      await assert.rejects(() => deleteDoc(doc(ownerA.db, institutionPath)));
+    },
+  );
+});
+
+test('Rules validam categoria e regime de acompanhamento do ativo', async () => {
+  await seed();
+  const db = getAdmin().firestore();
+  const now = getAdmin().firestore.Timestamp.fromDate(
+    new Date('2026-08-18T12:00:00.000Z'),
+  );
+  const base = {
+    workspaceId: workspaceA, profileType: 'PF', name: 'Tesouro Selic',
+    assetType: 'fixed_income', currency: 'BRL', status: 'active',
+    createdBy: users.ownerA.uid, createdAt: now,
+    updatedBy: users.ownerA.uid, updatedAt: now,
+  };
+  await Promise.all([
+    db.doc(`workspaces/${workspaceA}/investment_assets/asset-simple`).set({
+      ...base, id: 'asset-simple',
+      classId: 'cat-class', className: 'Aposentadoria',
+      typeId: 'cat-type', typeName: 'CDB', trackingMode: 'value',
+    }),
+    db.doc(`workspaces/${workspaceA}/investment_assets/asset-tracking-broken`).set({
+      ...base, id: 'asset-tracking-broken', trackingMode: 'cotas',
+    }),
+    db.doc(`workspaces/${workspaceA}/investment_assets/asset-type-broken`).set({
+      ...base, id: 'asset-type-broken', typeId: 42,
+    }),
+  ]);
+
+  await withClients(['memberA'], async ({memberA}) => {
+    const legivel = await getDoc(doc(
+      memberA.db, `workspaces/${workspaceA}/investment_assets/asset-simple`,
+    ));
+    assert.equal(legivel.data().trackingMode, 'value');
+    assert.equal(legivel.data().typeName, 'CDB');
+
+    // Regime desconhecido e categoria com tipo errado não passam na validação.
+    await assert.rejects(() => getDoc(doc(
+      memberA.db,
+      `workspaces/${workspaceA}/investment_assets/asset-tracking-broken`,
+    )));
+    await assert.rejects(() => getDoc(doc(
+      memberA.db,
+      `workspaces/${workspaceA}/investment_assets/asset-type-broken`,
+    )));
+  });
+});
+
+test('Rules aceitam aporte pendente com deltas zero e recusam pendente com efeito', async () => {
+  await seed();
+  const db = getAdmin().firestore();
+  const now = getAdmin().firestore.Timestamp.fromDate(
+    new Date('2026-08-18T12:00:00.000Z'),
+  );
+  const pendingContribution = (id, overrides = {}) => ({
+    id, workspaceId: workspaceA, profileType: 'PF', domainVersion: 2,
+    calculationVersion: 'investment-v2-cents-micros-half-up',
+    accountId: 'account-1', assetId: 'asset-1',
+    positionId: 'account-1__asset-1',
+    operation: 'contribution', status: 'pending', currency: 'BRL',
+    description: 'Aporte a depositar', principalCents: 10_000, gainCents: 0,
+    feesCents: 0, taxCents: 0, quantityMicros: 100_000_000,
+    cashDeltaCents: 0, principalDeltaCents: 0, realizedGainDeltaCents: 0,
+    feesDeltaCents: 0, taxDeltaCents: 0, quantityDeltaMicros: 0,
+    goalNetContributionDeltaCents: 0, goalCurrentValueDeltaCents: 0,
+    institutionId: 'cat-institution', institutionName: 'BTG',
+    classId: 'cat-class', className: 'Aposentadoria',
+    typeId: 'cat-type', typeName: 'CDB', assetName: 'Tesouro Selic',
+    correlationId: `correlation-${id}`, idempotencyKeyHash: `hash-${id}`,
+    occurredAt: now, createdBy: users.ownerA.uid, createdAt: now,
+    ...overrides,
+  });
+  await Promise.all([
+    db.doc(`workspaces/${workspaceA}/investment_movements/pending-ok`)
+      .set(pendingContribution('pending-ok')),
+    db.doc(`workspaces/${workspaceA}/investment_movements/pending-com-efeito`)
+      .set(pendingContribution('pending-com-efeito', {cashDeltaCents: -10_000})),
+  ]);
+
+  await withClients(['memberA', 'ownerB'], async ({memberA, ownerB}) => {
+    const legivel = await getDoc(doc(
+      memberA.db, `workspaces/${workspaceA}/investment_movements/pending-ok`,
+    ));
+    assert.equal(legivel.data().status, 'pending');
+    assert.equal(legivel.data().institutionName, 'BTG');
+    assert.equal(legivel.data().typeName, 'CDB');
+
+    // Um pendente com efeito financeiro é documento inválido, e as Rules o
+    // recusam na leitura como recusariam na escrita.
+    await assert.rejects(() => getDoc(doc(
+      memberA.db,
+      `workspaces/${workspaceA}/investment_movements/pending-com-efeito`,
+    )));
+
+    // O cliente segue sem escrever no ledger, pendente ou não. O payload usa
+    // `Timestamp` do SDK cliente: um objeto do Admin SDK é recusado antes de
+    // chegar às Rules, e o teste passaria sem provar nada.
+    const clientNow = Timestamp.fromDate(new Date('2026-08-18T12:00:00.000Z'));
+    await assert.rejects(() => setDoc(
+      doc(memberA.db, `workspaces/${workspaceA}/investment_movements/forjado`),
+      pendingContribution('forjado', {
+        occurredAt: clientNow, createdAt: clientNow,
+      }),
+    ));
+    await assert.rejects(() => getDoc(doc(
+      ownerB.db, `workspaces/${workspaceA}/investment_movements/pending-ok`,
+    )));
+  });
+});
+
+/*
+ * Pré-empção do espelho de caixa (INV-P2-051).
+ *
+ * O ID do espelho é `investment_<id determinístico>`, derivado de
+ * `(operação, uid, idempotencyKey)` — nada aí é segredo do servidor. Este
+ * teste prova a precondição do ataque nas Rules reais (o cliente **consegue**
+ * ocupar o ID antes do backend, e consegue baixá-lo logicamente) e prova o
+ * fecho: depois que o domínio grava o espelho por substituição integral, nada
+ * do cliente sobrevive e o documento sai do alcance dele.
+ *
+ * As Rules não são alteradas por isto: quem garante a forma final é o writer,
+ * que passou a gravar o documento inteiro em vez de remendar o anterior.
+ */
+test('Rules deixam o cliente ocupar o ID do espelho, e o espelho gravado pelo backend fica fora do alcance dele', async () => {
+  await seed();
+  const espelhoId = 'investment_inv_pre_empcao_espelho';
+  const caminho = `workspaces/${workspaceA}/transactions/${espelhoId}`;
+  await getAdmin().firestore().doc(caminho).delete();
+
+  await withClients(['memberA'], async ({memberA}) => {
+    // 1. Nada amarra o ID do documento ao backend: o membro ocupa o ID que o
+    //    espelho vai usar, com os campos de cartão que a lista autoriza.
+    await setDoc(doc(memberA.db, caminho), {
+      type: 'despesa',
+      description: 'Compra no cartão',
+      category: 'Outros',
+      value: 9.99,
+      date: '2026-08-05',
+      isPaid: true,
+      workspaceId: workspaceA,
+      profileId: workspaceA,
+      userId: users.memberA.uid,
+      cardId: 'card-forjado',
+      installments: 12,
+      currentInstallment: 3,
+      creditCardInvoiceId: 'fatura-forjada',
+      creditCardInvoicePaymentId: 'pagamento-forjado',
+      source: 'credit_card_invoice_payment',
+      creditCardCompatibility: {source: 'credit_card_invoice'},
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+
+    // 2. E a baixa lógica é um segundo passo permitido enquanto o documento
+    //    ainda é transação comum. `voidedAt` zera o efeito de caixa antes de
+    //    qualquer checagem de `type`: era o campo mais perigoso de sobreviver.
+    await updateDoc(doc(memberA.db, caminho), {
+      voidedAt: Timestamp.fromDate(new Date('2026-08-05T13:00:00.000Z')),
+      voidedBy: users.memberA.uid,
+      voidReason: 'sumir do caixa',
+      updatedAt: serverTimestamp(),
+    });
+  });
+
+  // 3. O backend grava o espelho substituindo o documento inteiro.
+  await getAdmin().firestore().doc(caminho).set({
+    type: 'investimento',
+    description: 'Tesouro Selic 2029',
+    category: 'Investimentos',
+    value: 1500,
+    valueCents: 150_000,
+    date: '2026-08-10',
+    isPaid: true,
+    workspaceId: workspaceA,
+    profileId: workspaceA,
+    userId: users.ownerA.uid,
+    goalId: 'meta-a',
+    investmentMetadata: {domainMovementId: 'inv-espelho', status: 'settled'},
+  });
+
+  await withClients(['memberA', 'ownerA'], async ({memberA, ownerA}) => {
+    const gravado = (await getDoc(doc(memberA.db, caminho))).data();
+    assert.equal(gravado.type, 'investimento');
+    assert.equal(gravado.valueCents, 150_000);
+    for (const residual of [
+      'cardId', 'installments', 'currentInstallment', 'creditCardInvoiceId',
+      'creditCardInvoicePaymentId', 'source', 'creditCardCompatibility',
+      'voidedAt', 'voidedBy', 'voidReason',
+    ]) {
+      assert.equal(gravado[residual], undefined, `${residual} sobreviveu`);
+    }
+
+    // 4. Fecho: nem o autor original nem o owner reabrem o espelho.
+    await assert.rejects(() => updateDoc(doc(memberA.db, caminho), {
+      voidedAt: Timestamp.fromDate(new Date('2026-08-11T13:00:00.000Z')),
+      voidedBy: users.memberA.uid,
+      voidReason: 'segunda tentativa',
+      updatedAt: serverTimestamp(),
+    }));
+    await assert.rejects(() => updateDoc(doc(ownerA.db, caminho), {
+      cardId: 'card-forjado',
+      updatedAt: serverTimestamp(),
+    }));
+    await assert.rejects(() => deleteDoc(doc(ownerA.db, caminho)));
+  });
+
+  await getAdmin().firestore().doc(caminho).delete();
 });

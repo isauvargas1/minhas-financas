@@ -6,6 +6,7 @@ import {Timestamp} from "firebase-admin/firestore";
 import type {WorkspaceAuthorizationContext} from "../../creditCards/auth";
 import {CreditCardApplicationError} from "../../creditCards/errors";
 import {
+  FUTURE_DATE_TOLERANCE_MS,
   deterministicDocumentId,
   investmentPositionId,
   sha256,
@@ -13,6 +14,7 @@ import {
 import {
   executeArchiveInvestmentAccount,
   executeArchiveInvestmentAsset,
+  executeCancelInvestmentMovement,
   executeCreateInvestmentContribution,
   executeCreateInvestmentRedemptionV2,
   executeLinkInvestmentToGoal,
@@ -1342,3 +1344,363 @@ test("retry da mesma intenção sob concorrência não duplica o fato", async ()
     .get()).data();
   assert.equal(position?.principalCents, 40_000);
 });
+
+// ---------------------------------------------------------------------------
+// Hardening — política temporal do domínio detalhado (INV-P2-022)
+// ---------------------------------------------------------------------------
+
+/*
+ * A política temporal do domínio é uma só: nenhum fato financeiro ou
+ * operacional nasce no futuro, e a liquidação nunca precede o pedido que a
+ * originou. Aporte, liquidação, estorno, valoração, troca de meta e todo o
+ * modo simples já a aplicavam; o resgate detalhado, o vínculo/desvínculo de
+ * meta e o cancelamento liam o instante do cliente sem nenhuma checagem.
+ *
+ * O buraco não era cosmético. `requestedAt` vira o `occurredAt` do resgate e
+ * é o piso do `assertNotBefore` da liquidação: um pedido no futuro exigia um
+ * `settledAt` ao mesmo tempo posterior ao pedido e não futuro — impossível
+ * enquanto o pedido não virasse passado. O resgate ficava pendente para
+ * sempre, com o caixa esperado preso e o mês futuro já com período aberto.
+ *
+ * A tolerância de relógio (`FUTURE_DATE_TOLERANCE_MS`) continua a mesma para
+ * todos os caminhos: não existe segunda política.
+ */
+
+/** Instante além da tolerância de relógio — futuro para o domínio. */
+const noFuturo = (): string =>
+  new Date(Date.now() + FUTURE_DATE_TOLERANCE_MS + 60_000).toISOString();
+
+/** Instante logo atrás do relógio — o "agora" que a interface envia. */
+const agora = (): string => new Date(Date.now() - 1_000).toISOString();
+
+const erro = async (run: () => Promise<unknown>): Promise<string> => {
+  try {
+    await run();
+  } catch (error) {
+    assert.ok(
+      error instanceof CreditCardApplicationError,
+      "A recusa precisa ser de domínio, não exceção genérica.",
+    );
+    return (error as CreditCardApplicationError).message;
+  }
+  throw new Error("A operação deveria ter sido recusada.");
+};
+
+const semearComPosicao = async (chave: string): Promise<void> => {
+  await seedWorkspace(WORKSPACE_A, OWNER_A);
+  await Promise.all([seedCatalog(WORKSPACE_A, "PF"), seedGoal()]);
+  await executeCreateInvestmentContribution(
+    auth(),
+    contributionPayload(chave, {
+      principalCents: 100_000,
+      quantityMicros: 1_000_000,
+    }),
+  );
+};
+
+const resgate = (
+  chave: string,
+  requestedAt: string,
+): Parameters<typeof executeCreateInvestmentRedemptionV2>[1] => ({
+  workspaceId: WORKSPACE_A,
+  idempotencyKey: chave,
+  correlationId: `corr-${chave}`,
+  accountId: ACCOUNT,
+  assetId: ASSET,
+  walletId: "wallet-a",
+  description: "Resgate detalhado",
+  requestedPrincipalCents: 40_000,
+  requestedQuantityMicros: 400_000,
+  requestedAt,
+});
+
+const liquidacao = (
+  chave: string,
+  movementId: string,
+  settledAt: string,
+): Parameters<typeof executeSettleInvestmentRedemption>[1] => ({
+  workspaceId: WORKSPACE_A,
+  idempotencyKey: chave,
+  correlationId: `corr-${chave}`,
+  movementId,
+  settlement: {
+    principalCents: 40_000,
+    quantityMicros: 400_000,
+    gainCents: 0,
+    lossCents: 0,
+    feesCents: 0,
+    taxCents: 0,
+  },
+  settledAt,
+});
+
+test("resgate detalhado com requestedAt futuro é recusado", async () => {
+  await semearComPosicao("temporal-contrib-0001");
+
+  const falha = await erro(() =>
+    executeCreateInvestmentRedemptionV2(
+      auth(),
+      resgate("temporal-redemption-0001", noFuturo()),
+    ),
+  );
+  assert.match(falha, /requestedAt/);
+  assert.match(falha, /futuro/i);
+
+  // Nada nasceu: nem movimento de resgate, nem espelho de caixa pendente.
+  const movements = await db()
+    .collection(`workspaces/${WORKSPACE_A}/investment_movements`)
+    .get();
+  assert.equal(
+    movements.docs.filter((m) => m.data().operation === "redemption").length,
+    0,
+    "O pedido futuro não pode deixar documento pendente.",
+  );
+  const mirrors = await db()
+    .collection(`workspaces/${WORKSPACE_A}/transactions`)
+    .where("investmentMetadata.operation", "==", "redemption")
+    .get();
+  assert.equal(mirrors.size, 0);
+});
+
+test("resgate detalhado aceita requestedAt de agora e do passado", async () => {
+  await semearComPosicao("temporal-contrib-0002");
+
+  const doAgora = await executeCreateInvestmentRedemptionV2(
+    auth(),
+    resgate("temporal-redemption-0002", agora()),
+  );
+  assert.equal(doAgora.status, "pending");
+
+  const doPassado = await executeCreateInvestmentRedemptionV2(
+    auth(),
+    resgate("temporal-redemption-0003", "2026-08-12T12:00:00.000Z"),
+  );
+  assert.equal(doPassado.status, "pending");
+
+  // A data retroativa é preservada como está: a guarda recusa futuro, não
+  // reescreve o passado.
+  const movement = await db()
+    .doc(
+      `workspaces/${WORKSPACE_A}/investment_movements/` +
+        String(doPassado.movementId),
+    )
+    .get();
+  assert.equal(
+    (movement.data()?.occurredAt as Timestamp).toDate().toISOString(),
+    "2026-08-12T12:00:00.000Z",
+  );
+});
+
+test(
+  "liquidação do resgate detalhado exige settledAt >= pedido e não futuro",
+  async () => {
+    await semearComPosicao("temporal-contrib-0003");
+    const pendente = await executeCreateInvestmentRedemptionV2(
+      auth(),
+      resgate("temporal-redemption-0004", "2026-08-12T12:00:00.000Z"),
+    );
+    const movementId = String(pendente.movementId);
+
+    // Anterior ao pedido: recusado.
+    const anterior = await erro(() =>
+      executeSettleInvestmentRedemption(
+        auth(),
+        liquidacao(
+          "temporal-settle-0001",
+          movementId,
+          "2026-08-11T12:00:00.000Z",
+        ),
+      ),
+    );
+    assert.match(anterior, /settledAt/);
+    assert.match(anterior, /anterior/i);
+
+    // Futuro: recusado.
+    const futuro = await erro(() =>
+      executeSettleInvestmentRedemption(
+        auth(),
+        liquidacao("temporal-settle-0002", movementId, noFuturo()),
+      ),
+    );
+    assert.match(futuro, /settledAt/);
+    assert.match(futuro, /futuro/i);
+
+    // O pedido continua pendente e liquidável no presente — que é exatamente
+    // o que o `requestedAt` futuro tornava impossível.
+    assert.equal(
+      (await db()
+        .doc(`workspaces/${WORKSPACE_A}/investment_movements/${movementId}`)
+        .get()).data()?.status,
+      "pending",
+    );
+
+    const liquidado = await executeSettleInvestmentRedemption(
+      auth(),
+      liquidacao("temporal-settle-0003", movementId, agora()),
+    );
+    assert.equal(liquidado.status, "settled");
+    assert.equal(
+      (await db()
+        .doc(
+          `workspaces/${WORKSPACE_A}/investment_positions/` +
+            investmentPositionId(ACCOUNT, ASSET),
+        )
+        .get()).data()?.principalCents,
+      60_000,
+    );
+  },
+);
+
+test(
+  "vínculo e desvínculo de meta recusam data futura e preservam o progresso",
+  async () => {
+    await semearComPosicao("temporal-contrib-0004");
+    const positionId = investmentPositionId(ACCOUNT, ASSET);
+    const vinculo = (chave: string, occurredAt: string) => ({
+      workspaceId: WORKSPACE_A,
+      idempotencyKey: chave,
+      correlationId: `corr-${chave}`,
+      accountId: ACCOUNT,
+      assetId: ASSET,
+      goalId: GOAL,
+      occurredAt,
+      reason: "Planejamento patrimonial",
+    });
+
+    // Vincular não é agendável: não existe fluxo que marque um vínculo para
+    // acontecer depois. `changeInvestmentGoal` já recusava; link e unlink não.
+    const falhaLink = await erro(() =>
+      executeLinkInvestmentToGoal(
+        auth(),
+        vinculo("temporal-link-0001", noFuturo()),
+      ),
+    );
+    assert.match(falhaLink, /occurredAt/);
+    assert.match(falhaLink, /futuro/i);
+    assert.equal(
+      (await db().doc(`workspaces/${WORKSPACE_A}/goals/${GOAL}`).get())
+        .data()?.investmentNetContributionCents,
+      0,
+      "A recusa não pode ter movido o progresso da meta.",
+    );
+
+    // Passado é aceito — vincular retroativamente é o caso real.
+    const linkInput = vinculo("temporal-link-0002", "2026-08-20T12:00:00.000Z");
+    const vinculado = await executeLinkInvestmentToGoal(auth(), linkInput);
+    assert.deepEqual(
+      await executeLinkInvestmentToGoal(auth(), linkInput),
+      vinculado,
+      "O retry da mesma intenção continua devolvendo o mesmo resultado.",
+    );
+    assert.equal(
+      (await db().doc(`workspaces/${WORKSPACE_A}/goals/${GOAL}`).get())
+        .data()?.investmentNetContributionCents,
+      100_000,
+      "O vínculo move o progresso uma única vez.",
+    );
+
+    const falhaUnlink = await erro(() =>
+      executeUnlinkInvestmentFromGoal(
+        auth(),
+        vinculo("temporal-unlink-0001", noFuturo()),
+      ),
+    );
+    assert.match(falhaUnlink, /occurredAt/);
+    assert.match(falhaUnlink, /futuro/i);
+    assert.equal(
+      (await db()
+        .doc(`workspaces/${WORKSPACE_A}/investment_positions/${positionId}`)
+        .get()).data()?.goalId,
+      GOAL,
+      "A recusa não pode ter desfeito o vínculo existente.",
+    );
+
+    // Presente é aceito e devolve o progresso ao estado anterior.
+    await executeUnlinkInvestmentFromGoal(
+      auth(),
+      vinculo("temporal-unlink-0002", agora()),
+    );
+    assert.equal(
+      (await db().doc(`workspaces/${WORKSPACE_A}/goals/${GOAL}`).get())
+        .data()?.investmentNetContributionCents,
+      0,
+    );
+    assert.equal(
+      (await db()
+        .doc(`workspaces/${WORKSPACE_A}/investment_positions/${positionId}`)
+        .get()).data()?.goalId,
+      undefined,
+    );
+  },
+);
+
+test(
+  "cancelamento recusa data futura e continua pending-only e idempotente",
+  async () => {
+    await semearComPosicao("temporal-contrib-0005");
+    const contribuicaoId = (await db()
+      .collection(`workspaces/${WORKSPACE_A}/investment_movements`)
+      .where("operation", "==", "contribution")
+      .get()).docs[0].id;
+    const pendente = await executeCreateInvestmentRedemptionV2(
+      auth(),
+      resgate("temporal-redemption-0005", "2026-08-12T12:00:00.000Z"),
+    );
+    const movementId = String(pendente.movementId);
+    const cancelamento = (
+      chave: string,
+      occurredAt: string,
+      alvo = movementId,
+    ) => ({
+      workspaceId: WORKSPACE_A,
+      idempotencyKey: chave,
+      correlationId: `corr-${chave}`,
+      movementId: alvo,
+      occurredAt,
+      reason: "Pedido desfeito pelo usuário",
+    });
+
+    // Cancelar é ação executada, não intenção agendada.
+    const falha = await erro(() =>
+      executeCancelInvestmentMovement(
+        auth(),
+        cancelamento("temporal-cancel-0001", noFuturo()),
+      ),
+    );
+    assert.match(falha, /occurredAt/);
+    assert.match(falha, /futuro/i);
+    assert.equal(
+      (await db()
+        .doc(`workspaces/${WORKSPACE_A}/investment_movements/${movementId}`)
+        .get()).data()?.status,
+      "pending",
+      "A recusa não pode ter cancelado o pedido.",
+    );
+
+    // Movimento liquidado permanece não cancelável, independentemente da data.
+    const liquidado = await erro(() =>
+      executeCancelInvestmentMovement(
+        auth(),
+        cancelamento("temporal-cancel-0002", agora(), contribuicaoId),
+      ),
+    );
+    assert.match(liquidado, /pendente/i);
+
+    // Presente é aceito, e o retry da mesma intenção devolve o mesmo fato.
+    const payload = cancelamento("temporal-cancel-0003", agora());
+    const cancelado = await executeCancelInvestmentMovement(auth(), payload);
+    assert.equal(cancelado.status, "cancelled");
+    assert.deepEqual(
+      await executeCancelInvestmentMovement(auth(), payload),
+      cancelado,
+    );
+
+    // Histórico preservado: o documento continua existindo, agora cancelado.
+    const movimento = (await db()
+      .doc(`workspaces/${WORKSPACE_A}/investment_movements/${movementId}`)
+      .get()).data();
+    assert.equal(movimento?.status, "cancelled");
+    assert.equal(movimento?.cancellationReason, payload.reason);
+    assert.ok(movimento?.cancelledAt, "O instante do servidor é registrado.");
+  },
+);

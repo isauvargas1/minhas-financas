@@ -25,6 +25,8 @@ import {
  */
 import {
     IconAlertTriangle,
+    IconBuildingBank,
+    IconCategory,
     IconChartBar,
     IconChevronRight,
     IconCircleCheck,
@@ -32,6 +34,7 @@ import {
     IconDatabase,
     IconLayoutGrid,
     IconPackage,
+    IconPigMoney,
     IconReceipt2,
     IconShape,
     IconTags,
@@ -46,9 +49,6 @@ import { useUpdateWorkspace } from '../modules/workspaces/hooks.ts';
 import { useSettingsCatalogScreen } from '../modules/settings-catalog/useSettingsCatalogScreen.ts';
 import type { SettingsCatalogItem, SettingsCatalogStatus, SettingsCatalogTransactionSubtype } from '../modules/settings-catalog/types.ts';
 import { createPortal } from 'react-dom';
-import {InvestmentOnboardingCard} from '../modules/investments/components/InvestmentOnboardingCard.tsx';
-import {InvestmentRegistrySection} from '../modules/investments/components/InvestmentRegistrySection.tsx';
-import {InvestmentOperationsPanel} from '../modules/investments/components/InvestmentOperationsPanel.tsx';
 
 interface SettingsViewProps {
     data?: {
@@ -119,6 +119,21 @@ const SECTION_SIDEBAR_META: Record<
         icon: IconWallet,
         shortDescription: 'Contas e reservas.',
     },
+    // Cadastros de investimento do usuário comum (Etapa 2, §3). A chave é o
+    // `shortTitle` da seção: sem entrada aqui, a navegação cai no ícone
+    // genérico de banco de dados.
+    'Carteiras de investimento': {
+        icon: IconPigMoney,
+        shortDescription: 'Para que serve cada investimento.',
+    },
+    'Instituições': {
+        icon: IconBuildingBank,
+        shortDescription: 'Bancos e corretoras.',
+    },
+    'Categorias de investimento': {
+        icon: IconCategory,
+        shortDescription: 'O que é o investimento.',
+    },
 };
 
 const getSectionSidebarMeta = (shortTitle?: string) => {
@@ -174,7 +189,7 @@ const renderInPortal = (children: React.ReactNode) => {
 };
 
 const SettingsView: React.FC<SettingsViewProps> = () => {
-    const { activeWorkspace, reloadWorkspaces, canManageActiveWorkspace } = useWorkspace();
+    const { activeWorkspace, reloadWorkspaces } = useWorkspace();
     const updateWorkspaceMutation = useUpdateWorkspace();
     const isPJ = activeWorkspace.type === 'PJ';
 
@@ -723,29 +738,19 @@ const sortedItems = useMemo(() => {
                     </div>
                 </div>
 
-                <InvestmentOnboardingCard
-                    workspaceId={activeWorkspace.id}
-                    profileType={activeWorkspace.type}
-                    isOwner={activeWorkspace.myRole === 'owner'}
-                />
-
-                <InvestmentRegistrySection
-                    workspaceId={activeWorkspace.id}
-                    profileType={activeWorkspace.type}
-                    canManage={canManageActiveWorkspace}
-                />
-
                 {/*
-                  Superfície operacional do domínio patrimonial (INV-P1-006).
-                  O painel decide por ação quais papéis a veem, com o mesmo
-                  conjunto que o backend aceita: reconstrução de projeções e
-                  backfill são restritas ao proprietário; a reconstrução de
-                  progresso de meta é aberta ao administrador.
+                  Administração técnica de investimentos saiu da configuração
+                  comum (Etapa 3, §0.B).
+
+                  `InvestmentOnboardingCard`, `InvestmentRegistrySection` e
+                  `InvestmentOperationsPanel` continuam íntegros no repositório,
+                  com as mesmas regras de papel e o mesmo backend. O que saiu é
+                  o ponto de montagem: conta técnica, ativo técnico, semeadura
+                  de padrões, reconstrução de projeções e backfill não são
+                  vocabulário de quem entra em Cadastros para renomear uma
+                  categoria. A experiência comum volta a ser equivalente à do
+                  baseline, sem "modo avançado" e sem nada removido.
                 */}
-                <InvestmentOperationsPanel
-                    workspaceId={activeWorkspace.id}
-                    myRole={activeWorkspace.myRole}
-                />
 
            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
     <div className="group relative overflow-hidden rounded-2xl border border-border bg-surface p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/20 hover:shadow-[0_14px_28px_rgba(2,6,23,0.16)]">

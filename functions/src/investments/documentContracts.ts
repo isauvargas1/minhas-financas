@@ -64,6 +64,17 @@ export const investmentAccountDocumentSchema = z
     ...identity,
     name: investmentString(160),
     institutionName: investmentString(160),
+    /*
+     * Identidade estável da instituição (Etapa 1).
+     *
+     * Aponta para o item de `settings_catalog` do grupo
+     * `investment_institution`. É o ID, e nunca o nome normalizado, que amarra
+     * a conta técnica à instituição: renomear "BTG" para "BTG Pactual" precisa
+     * continuar sendo a mesma conta e o mesmo histórico.
+     *
+     * Opcional: contas criadas antes desta etapa não têm o campo.
+     */
+    institutionId: investmentString(160).optional(),
     currency,
     status: lifecycleStatus,
     createdBy: investmentString(128),
@@ -92,6 +103,18 @@ export const investmentAssetDocumentSchema = z
     liquidityName: investmentString(160).optional(),
     indexerId: investmentString(160).optional(),
     indexerName: investmentString(160).optional(),
+    /*
+     * Categoria do investimento (Etapa 1), item de `settings_catalog` do
+     * grupo `investment_type`. `assetType` continua obrigatório e passa a ser
+     * a projeção técnica desta categoria, derivada no backend.
+     */
+    typeId: investmentString(160).optional(),
+    typeName: investmentString(160).optional(),
+    /*
+     * Regime de acompanhamento (Etapa 1). Ausência vale `"quantity"`: todo
+     * ativo gravado antes desta etapa continua quantitativo.
+     */
+    trackingMode: z.enum(["value", "quantity"]).optional(),
     // Obrigatório no documento: antes do M3 o onboarding não gravava o campo e
     // a finalidade só existia pelo default defensivo do leitor.
     allocationPurpose,
@@ -182,6 +205,20 @@ const movementBase = z
     currentValueDeltaCents: safeInt.optional(),
     goalId: investmentString(128).optional(),
     walletId: investmentString(128).optional(),
+    /*
+     * Fotografia de apresentação (Etapa 1, §10).
+     *
+     * Sustenta a listagem simples sem N leituras por página e sem consultar
+     * `transactions` como autoridade. IDs mandam; nomes são o rótulo do
+     * instante da escrita e não são reescritos quando o cadastro muda.
+     */
+    institutionId: investmentString(160).optional(),
+    institutionName: investmentString(160).optional(),
+    classId: investmentString(160).optional(),
+    className: investmentString(160).optional(),
+    typeId: investmentString(160).optional(),
+    typeName: investmentString(160).optional(),
+    assetName: investmentString(160).optional(),
     transactionId: investmentString(240).optional(),
     reversedMovementId: investmentString(240).optional(),
     reversalOfOperation: z

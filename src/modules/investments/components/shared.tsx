@@ -19,27 +19,7 @@ import React, { useEffect, useRef } from 'react';
  * descartado. Quando o backend devolve uma pré-condição de domínio, a
  * mensagem dele **é** a explicação e vale mais que uma frase genérica.
  */
-export const safeError = (error: unknown): string => {
-  const code = typeof error === 'object' && error && 'code' in error ? String(error.code) : '';
-  const message =
-    typeof error === 'object' && error && 'message' in error
-      ? String((error as { message?: unknown }).message ?? '')
-      : '';
-
-  if (code.includes('permission-denied')) return 'Você não tem permissão para concluir esta ação.';
-  if (code.includes('unauthenticated')) return 'Sua sessão expirou. Entre novamente para continuar.';
-  if (code.includes('invalid-argument')) return 'Revise os dados informados e tente novamente.';
-  if (code.includes('failed-precondition')) {
-    // Pré-condição de domínio já vem em pt-BR e explica a causa; trocá-la por
-    // uma frase genérica esconderia exatamente a informação que o operador
-    // precisa para decidir o passo seguinte.
-    const clean = message.replace(/^.*?:\s*/, '').trim();
-    return clean.length > 0 && clean.length <= 400
-      ? clean
-      : 'A operação não pôde ser concluída no estado atual.';
-  }
-  return 'Não foi possível concluir a operação. Tente novamente.';
-};
+export { safeInvestmentError as safeError } from '../errors';
 
 export const Dialog: React.FC<{
   title: string;

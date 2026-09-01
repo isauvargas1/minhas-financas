@@ -1,10 +1,19 @@
 import {z} from "zod";
 
+/**
+ * Um identificador de documento não pode conter "/": a barra transformaria o
+ * valor num caminho e faria a referência apontar para fora da coleção
+ * pretendida — ou quebrar com erro de infraestrutura em vez de erro de
+ * domínio, quando o número de segmentos fica ímpar.
+ */
+const DOCUMENT_ID_ERROR = "Identificador inválido.";
+const hasNoPathSeparator = (value: string): boolean => !value.includes("/");
+
 export const investmentDocumentIdSchema = z
   .string()
   .min(1)
   .max(240)
-  .refine((value) => !value.includes("/"), "Identificador inválido.");
+  .refine(hasNoPathSeparator, DOCUMENT_ID_ERROR);
 export const investmentWorkspaceIdSchema = investmentDocumentIdSchema;
 export const investmentIdempotencyKeySchema = z.string().min(16).max(200);
 export const investmentCorrelationIdSchema = z.string().min(8).max(200);
@@ -26,7 +35,12 @@ const descriptionSchema = z.string().trim().min(1).max(240);
 const reasonSchema = z.string().trim().min(3).max(500);
 const entityNameSchema = z.string().trim().min(2).max(120);
 /** Referência a item do catálogo do workspace (`settings_catalog`). */
-const investmentCatalogRefSchema = z.string().trim().min(1).max(160);
+const investmentCatalogRefSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(160)
+  .refine(hasNoPathSeparator, DOCUMENT_ID_ERROR);
 const catalogLabelSchema = z.string().trim().min(1).max(160);
 
 const v2BaseShape = {
@@ -110,21 +124,154 @@ const financialAmountsSchema = z
     }
   });
 
+/**
+ * Aporte em um investimento **já existente**.
+ *
+ * Etapa 1 acrescentou três coisas, todas retrocompatíveis:
+ *
+ * - **alvo por `positionId`**: a interface simples identifica o investimento
+ *   por um identificador opaco só dele, sem precisar entender que por baixo
+ *   existem uma conta e um ativo técnicos. O par `accountId`/`assetId`
+ *   continua aceito e é o que todo chamador existente usa.
+ * - **`quantityMicros` opcional**: obrigatório no regime por quantidade,
+ *   derivado do custo no regime por valor. Quem já informava continua
+ *   informando.
+ * - **`settled`**: `false` cria o aporte pendente, sem nenhum efeito
+ *   financeiro. O default é `true`, que é o comportamento anterior.
+ */
 export const createInvestmentContributionPayloadSchema = z
   .object({
     ...v2BaseShape,
-    accountId: investmentDocumentIdSchema,
-    assetId: investmentDocumentIdSchema,
+    accountId: investmentDocumentIdSchema.optional(),
+    assetId: investmentDocumentIdSchema.optional(),
+    positionId: investmentDocumentIdSchema.optional(),
     goalId: investmentDocumentIdSchema.optional(),
     walletId: investmentDocumentIdSchema.optional(),
     // Procedência: vincula o aporte a um lote de importação aberto.
     importBatchId: investmentDocumentIdSchema.optional(),
     description: descriptionSchema,
     principalCents: positiveCentsSchema,
-    quantityMicros: quantityMicrosSchema,
+    quantityMicros: quantityMicrosSchema.optional(),
     feesCents: centsSchema.default(0),
     taxCents: centsSchema.default(0),
+    settled: z.boolean().default(true),
     occurredAt: isoTimestampSchema,
+  })
+  .strict()
+  .superRefine((values, context) => {
+    const hasPair = Boolean(values.accountId && values.assetId);
+    const hasPosition = Boolean(values.positionId);
+    if (hasPair === hasPosition) {
+      context.addIssue({
+        code: "custom",
+        path: ["positionId"],
+        message:
+          "Informe o investimento por positionId ou pelo par " +
+          "accountId/assetId, nunca pelos dois nem por nenhum.",
+      });
+    }
+    if (!hasPair && (values.accountId || values.assetId)) {
+      context.addIssue({
+        code: "custom",
+        path: ["assetId"],
+        message: "accountId e assetId precisam ser informados juntos.",
+      });
+    }
+  });
+
+/**
+ * Liquidação de um aporte pendente.
+ *
+ * Não recebe valores: o aporte pendente já fixou principal, taxas, imposto e
+ * quantidade na criação, e alterá-los na liquidação seria editar um fato
+ * financeiro por uma porta lateral. O que a liquidação acrescenta é a data em
+ * que o dinheiro efetivamente saiu.
+ */
+export const settleInvestmentContributionPayloadSchema = z
+  .object({
+    ...v2BaseShape,
+    movementId: investmentDocumentIdSchema,
+    settledAt: isoTimestampSchema,
+  })
+  .strict();
+
+/**
+ * Novo investimento no modo simples.
+ *
+ * Carteira, instituição e categoria vêm do catálogo do workspace por ID; a
+ * conta e o ativo técnicos são criados pelo backend, na mesma transação do
+ * aporte. Nada de quantidade, preço unitário ou enum técnico de ativo.
+ */
+export const createSimpleInvestmentPayloadSchema = z
+  .object({
+    ...v2BaseShape,
+    institutionId: investmentCatalogRefSchema,
+    classId: investmentCatalogRefSchema,
+    typeId: investmentCatalogRefSchema,
+    description: descriptionSchema,
+    valueCents: positiveCentsSchema,
+    settled: z.boolean().default(true),
+    occurredAt: isoTimestampSchema,
+    goalId: investmentDocumentIdSchema.optional(),
+    walletId: investmentDocumentIdSchema.optional(),
+  })
+  .strict();
+
+/**
+ * Retirada no modo simples.
+ *
+ * O usuário informa sempre o **valor total retirado**, a data e se o dinheiro
+ * já foi recebido. `gainCents` é a única informação opcional: quanto desse
+ * total é rendimento.
+ *
+ * - **Sem `gainCents`** — comportamento conservador: o total inteiro é
+ *   principal, e uma retirada acima do capital aplicado é recusada. O sistema
+ *   não adivinha rendimento.
+ * - **Com `gainCents`** — `principalCents = valueCents − gainCents`. Só o
+ *   componente de principal reduz o capital investido; o rendimento entra no
+ *   ganho realizado, que é a semântica que o domínio já usa em
+ *   `settleInvestmentRedemption`. O caixa recebe o total.
+ *
+ * Taxas e imposto continuam fora da UX simples e **não** são inventados: quem
+ * precisa lançá-los usa o resgate detalhado.
+ */
+export const withdrawSimpleInvestmentPayloadSchema = z
+  .object({
+    ...v2BaseShape,
+    positionId: investmentDocumentIdSchema,
+    valueCents: positiveCentsSchema,
+    /** Parcela do total retirado que é rendimento. Zero quando ausente. */
+    gainCents: centsSchema.optional(),
+    received: z.boolean().default(true),
+    occurredAt: isoTimestampSchema,
+    description: descriptionSchema.optional(),
+    walletId: investmentDocumentIdSchema.optional(),
+  })
+  .strict()
+  .superRefine((values, context) => {
+    if ((values.gainCents ?? 0) > values.valueCents) {
+      context.addIssue({
+        code: "custom",
+        path: ["gainCents"],
+        message:
+          "O rendimento informado não pode superar o valor total retirado.",
+      });
+    }
+  });
+
+/**
+ * Liquidação de uma retirada simples pendente.
+ *
+ * Como na liquidação do aporte, não recebe valores: total e rendimento já
+ * foram fixados no pedido. O que a liquidação acrescenta é a data em que o
+ * dinheiro entrou. Os componentes são revalidados contra a posição no instante
+ * em que os efeitos são aplicados.
+ */
+export const settleSimpleWithdrawalPayloadSchema = z
+  .object({
+    ...v2BaseShape,
+    movementId: investmentDocumentIdSchema,
+    settledAt: isoTimestampSchema,
   })
   .strict();
 
@@ -292,6 +439,8 @@ export const saveInvestmentAccountPayloadSchema = z
     accountId: investmentDocumentIdSchema.optional(),
     name: entityNameSchema,
     institutionName: entityNameSchema,
+    // Vínculo estável com o item de catálogo da instituição (Etapa 1).
+    institutionId: investmentCatalogRefSchema.optional(),
   })
   .strict();
 
@@ -336,6 +485,11 @@ export const saveInvestmentAssetPayloadSchema = z
     liquidityName: catalogLabelSchema.optional(),
     indexerId: investmentCatalogRefSchema.optional(),
     indexerName: catalogLabelSchema.optional(),
+    // Etapa 1 — categoria por catálogo (`investment_type`) e regime de
+    // acompanhamento. `trackingMode` ausente permanece `"quantity"`.
+    typeId: investmentCatalogRefSchema.optional(),
+    typeName: catalogLabelSchema.optional(),
+    trackingMode: z.enum(["value", "quantity"]).optional(),
   })
   .strict();
 
@@ -343,8 +497,33 @@ export const onboardInvestmentWorkspacePayloadSchema = z
   .object(v2BaseShape)
   .strict();
 
-export type CreateInvestmentContributionPayload = z.infer<
-  typeof createInvestmentContributionPayloadSchema
+/**
+ * Payload do aporte com os campos de default marcados como opcionais.
+ *
+ * `z.infer` devolve o tipo de **saída** do schema, em que um campo com default
+ * é obrigatório. A callable sempre entrega o payload já parseado e satisfaz
+ * isso; os testes de integração e os caminhos operacionais chamam o executor
+ * direto e não deveriam ser obrigados a repetir o default. Marcar `settled`
+ * como opcional aqui mantém as duas portas de entrada com o mesmo
+ * comportamento — o executor lê `payload.settled !== false`.
+ */
+export type CreateInvestmentContributionPayload = Omit<
+  z.infer<typeof createInvestmentContributionPayloadSchema>,
+  "settled"
+> & {settled?: boolean};
+export type SettleInvestmentContributionPayload = z.infer<
+  typeof settleInvestmentContributionPayloadSchema
+>;
+export type CreateSimpleInvestmentPayload = Omit<
+  z.infer<typeof createSimpleInvestmentPayloadSchema>,
+  "settled"
+> & {settled?: boolean};
+export type WithdrawSimpleInvestmentPayload = Omit<
+  z.infer<typeof withdrawSimpleInvestmentPayloadSchema>,
+  "received"
+> & {received?: boolean};
+export type SettleSimpleWithdrawalPayload = z.infer<
+  typeof settleSimpleWithdrawalPayloadSchema
 >;
 export type CreateInvestmentRedemptionV2Payload = z.infer<
   typeof createInvestmentRedemptionPayloadSchema

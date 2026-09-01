@@ -85,6 +85,32 @@ export interface InvestmentMovement {
    * saída no histórico da meta em vez de como mais um aporte.
    */
   goalNetContributionDeltaCents?: number;
+  goalId?: string;
+  walletId?: string;
+  /**
+   * Fotografia de apresentação gravada na escrita (Etapa 1, §10).
+   *
+   * A listagem simples precisa de instituição, carteira, categoria e nome do
+   * investimento por linha. Resolver isso na leitura custaria uma consulta por
+   * linha e ainda mostraria o rótulo **atual** num histórico que já mudou de
+   * nome. Os identificadores continuam sendo a autoridade; os nomes são o
+   * rótulo do instante da escrita.
+   */
+  institutionId?: string;
+  institutionName?: string;
+  classId?: string;
+  className?: string;
+  typeId?: string;
+  typeName?: string;
+  assetName?: string;
+  /**
+   * Movimento que **este** estornou. Presente só no próprio estorno.
+   *
+   * O sentido inverso — quem estornou este lançamento — é
+   * `reversedByMovementId`, e é ele que marca a linha como desfeita.
+   */
+  reversedMovementId?: string;
+  settlementAt?: Timestamp;
   occurredAt: Timestamp;
 }
 

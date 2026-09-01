@@ -13,7 +13,8 @@ export type SettingsCatalogGroup =
   | 'investment_risk'
   | 'investment_liquidity'
   | 'investment_indexer'
-  | 'investment_strategy';
+  | 'investment_strategy'
+  | 'investment_institution';
 
 export type SettingsCatalogStatus = 'active' | 'inactive';
 

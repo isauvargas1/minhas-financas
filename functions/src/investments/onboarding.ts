@@ -11,7 +11,6 @@ import {
   deterministicDocumentId,
   recordInvestmentEvent,
   reserveInvestmentIdempotency,
-  sha256,
 } from "./infrastructure";
 import {
   INVESTMENT_COLLECTIONS,
@@ -19,6 +18,11 @@ import {
   investmentDoc,
   investmentFirestore,
 } from "./paths";
+import {
+  INVESTMENT_TYPE_SEEDS,
+  investmentCatalogSeedDocumentId,
+  normalizeCatalogName,
+} from "./simpleMode";
 
 interface CatalogSeed {
   group: "investment_type" | "investment_class" | "investment_risk" |
@@ -28,8 +32,12 @@ interface CatalogSeed {
 }
 
 const COMMON_SEEDS: CatalogSeed[] = [
-  ...["Renda fixa", "Fundos", "Ações", "ETF", "Criptoativos", "Outros"]
-    .map((name) => ({group: "investment_type" as const, name, scope: "both" as const})),
+  // A lista de categorias vive em `simpleMode`, junto da classificação
+  // técnica que cada uma implica: duas listas divergiriam no primeiro item
+  // acrescentado, e o `assetType` passaria a depender de qual delas foi
+  // atualizada.
+  ...INVESTMENT_TYPE_SEEDS
+    .map(({name}) => ({group: "investment_type" as const, name, scope: "both" as const})),
   ...["Baixo", "Moderado", "Alto"]
     .map((name) => ({group: "investment_risk" as const, name, scope: "both" as const})),
   ...["Diária", "No vencimento"]
@@ -53,8 +61,7 @@ const PROFILE_SEEDS: Record<"PF" | "PJ", CatalogSeed[]> = {
   ],
 };
 
-const normalize = (value: string): string => value.normalize("NFD")
-  .replace(/[\u0300-\u036f]/g, "").trim().replace(/\s+/g, " ").toLowerCase();
+const normalize = normalizeCatalogName;
 
 export const executeOnboardInvestmentWorkspace = async (
   auth: WorkspaceAuthorizationContext,
@@ -104,7 +111,9 @@ export const executeOnboardInvestmentWorkspace = async (
   prepared.forEach((entry, index) => {
     if (uniqueSnapshots[index].exists) return;
     const existingItem = catalogSnapshots[index].docs[0];
-    const itemId = existingItem?.id ?? `investment_default_${sha256(entry.dedupeKey).slice(0, 24)}`;
+    const itemId = existingItem?.id ?? investmentCatalogSeedDocumentId(
+      entry.seed.group, entry.seed.scope, entry.seed.name,
+    );
     const audit = {
       createdBy: auth.uid,
       updatedBy: auth.uid,

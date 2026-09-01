@@ -67,5 +67,6 @@ export const SETTINGS_CATALOG_GROUP_CONFIG: Record<
   investment_risk: { workspaceScope: 'both', requiresTransactionSubtype: false, allowedTransactionSubtypes: [] },
   investment_liquidity: { workspaceScope: 'both', requiresTransactionSubtype: false, allowedTransactionSubtypes: [] },
   investment_indexer: { workspaceScope: 'both', requiresTransactionSubtype: false, allowedTransactionSubtypes: [] },
-  investment_strategy: { workspaceScope: 'both', requiresTransactionSubtype: false, allowedTransactionSubtypes: [] }
+  investment_strategy: { workspaceScope: 'both', requiresTransactionSubtype: false, allowedTransactionSubtypes: [] },
+  investment_institution: { workspaceScope: 'both', requiresTransactionSubtype: false, allowedTransactionSubtypes: [] }
 };

@@ -98,7 +98,9 @@ export const getFinancialReportSnapshot = async (
                             style: 'currency',
                             currency: 'BRL',
                         }).format(contributions),
-                        description: 'Aportes liquidados no domínio patrimonial.',
+                        // Rótulo em linguagem de usuário (Etapa 3, §4.D): o que
+                        // o número é, sem o nome interno do domínio.
+                        description: 'Aportes já depositados no período.',
                         // Continua sendo contribuição, não patrimônio: o número é o que
                         // saiu do caixa para investimento no período, e por isso segue
                         // comparável com receitas, despesas e fluxo líquido (INV-P2-024).

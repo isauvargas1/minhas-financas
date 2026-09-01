@@ -274,15 +274,16 @@ const walkSurfaces = async (
   await expect(page.getByText('Compra parcelada do smoke').first()).toBeVisible();
   await expectNoErrorBanner(page);
 
-  // Investimentos: uma arquitetura só, sempre a tela patrimonial.
+  /*
+   * Investimentos: um domínio só, agora com a experiência simples na frente.
+   *
+   * A tela vale para PF e PJ sem ramo próprio — o que muda entre os dois é o
+   * catálogo de carteiras, não a composição da página.
+   */
   await openSection(page, 'Investimentos');
-  await expect(page.getByRole('heading', { name: 'Patrimônio e investimentos' })).toBeVisible();
-  await page.getByRole('tab', { name: 'Alocação' }).click();
-  await expect(
-    page.getByRole('heading', {
-      name: isPJ ? 'Alocação contábil do patrimônio' : 'Diagnóstico de alocação',
-    }),
-  ).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Investimentos' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Novo investimento' })).toBeVisible();
+  await expect(page.getByRole('columnheader', { name: 'Descrição' })).toBeVisible();
   await expectNoErrorBanner(page);
 
   // Metas.

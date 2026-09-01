@@ -13,7 +13,10 @@ export type CatalogDisplayGroup =
     | 'payment_method'
     | 'income_type'
     | 'wallet'
-    | 'cost_center';
+    | 'cost_center'
+    // Categoria de investimento (Etapa 2): a listagem simples desenha o mesmo
+    // chip colorido do baseline para a categoria do lançamento.
+    | 'investment_type';
 
 export interface ResolvedCatalogVisual {
     group: CatalogDisplayGroup;
@@ -33,6 +36,7 @@ const FALLBACK_COLORS: Record<CatalogDisplayGroup, string> = {
     income_type: '#10b981',
     wallet: '#3b82f6',
     cost_center: '#f59e0b',
+    investment_type: '#2563eb',
 };
 
 const toResolvedVisual = (
@@ -76,8 +80,15 @@ const resolveFromCatalog = (params: {
     });
 };
 
+/*
+ * O grupo aqui é o do **snapshot persistido na transação**, que é um
+ * subconjunto de `CatalogDisplayGroup`: `investment_type` classifica
+ * investimento e nunca é gravado numa transação. Amarrar o parâmetro ao tipo
+ * persistido impede que um grupo novo de exibição vaze para dentro de um
+ * documento antigo.
+ */
 export const buildVisualSnapshotFromCatalogItem = (
-    group: CatalogDisplayGroup,
+    group: TransactionCatalogVisualSnapshot['group'],
     item: SettingsCatalogItem,
 ): TransactionCatalogVisualSnapshot => ({
     group,
