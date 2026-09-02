@@ -206,12 +206,28 @@ test('nenhuma tela grava investimento direto em transactions', () => {
   assert.deepEqual(offenders, [], `Escrita direta reintroduzida em: ${offenders.join(', ')}`);
 });
 
-test('o modal de transações não voltou a ter aba de investimento', () => {
+test('a aba de investimento do modal não ressuscitou a escrita antiga', () => {
+  /*
+   * A aba voltou como ponto de entrada; a arquitetura antiga, não. O que o
+   * baseline fazia era montar campos de investimento **dentro** do formulário
+   * comum e gravar um documento de `transactions` com `type: 'investimento'`.
+   * Hoje a aba monta `SimpleInvestmentForm`, cujo destino é
+   * `createSimpleInvestment`, e o submit comum tem guarda explícita.
+   */
   const modal = readFileSync('src/components/TransactionModal.tsx', 'utf8');
-  // Os mapas de estilo continuam com a chave `investimento` porque são
-  // `Record<TransactionType, …>`; o que não pode voltar é o ramo de campos.
-  assert.doesNotMatch(modal, /activeTab === 'investimento'/);
   assert.doesNotMatch(modal, /transactionData\.isPaid = isDeposited/);
+  assert.doesNotMatch(modal, /type:\s*['"]investimento['"]/);
+  assert.match(modal, /<SimpleInvestmentForm/);
+  assert.match(
+    modal,
+    /const handleSubmit = async \(e: FormEvent\) => \{[\s\S]{0,400}?if \(activeTab === 'investimento'\) return;/,
+  );
+  // Nenhum ramo de campos de investimento dentro do formulário comum: o
+  // `renderFields` cobre parcelado, receita e despesa, e devolve nulo no resto.
+  const inicio = modal.indexOf('const renderFields =');
+  const renderFields = modal.slice(inicio, modal.indexOf('        return null;\n    };', inicio));
+  assert.ok(renderFields.length > 0);
+  assert.doesNotMatch(renderFields, /activeTab === 'investimento'/);
 });
 
 test('a tela simples só chama as callables do modo simples', () => {

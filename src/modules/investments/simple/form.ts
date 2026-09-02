@@ -90,7 +90,12 @@ export interface NewInvestmentFormState {
   classId: string;
   institutionId: string;
   description: string;
-  /** Categoria — item de `investment_type`. */
+  /**
+   * Categoria — item de `category` com `transactionSubtype: "investimento"`.
+   *
+   * Um pendente aberto antes da unificação traz aqui o identificador do grupo
+   * histórico `investment_type`, que o backend continua aceitando.
+   */
   typeId: string;
   amount: string;
   deposited: boolean;
@@ -112,7 +117,7 @@ export type SimpleFormErrors = Record<string, string>;
 
 export const validateNewInvestment = (state: NewInvestmentFormState): SimpleFormErrors => {
   const errors: SimpleFormErrors = {};
-  if (!state.classId) errors.classId = 'Escolha a carteira do investimento.';
+  if (!state.classId) errors.classId = 'Escolha a carteira de investimento.';
   if (!state.institutionId) errors.institutionId = 'Escolha a instituição.';
   const description = state.description.trim();
   if (description.length === 0) errors.description = 'Descreva o investimento.';
@@ -127,6 +132,70 @@ export const validateNewInvestment = (state: NewInvestmentFormState): SimpleForm
   return errors;
 };
 
+export interface CategorySelectOption {
+  value: string;
+  label: string;
+}
+
+/**
+ * Rótulo da opção de compatibilidade quando o movimento não fotografou nome.
+ */
+export const LEGACY_CATEGORY_FALLBACK_LABEL = 'Categoria atual';
+
+/**
+ * Opções do seletor de categoria do investimento.
+ *
+ * A lista vem exclusivamente do cadastro atual — `category` com
+ * `transactionSubtype: "investimento"`, que é Configurações › Cadastros ›
+ * Categorias › Investimentos. Há **uma** exceção: o item já selecionado que
+ * não está mais nessa lista.
+ *
+ * Isso acontece com um pendente aberto antes da unificação, cujo identificador
+ * é do grupo histórico `investment_type`: a pessoa abriu a edição para
+ * corrigir outra coisa — uma data, um valor —, e exigir uma recategorização
+ * para isso transformaria uma correção trivial numa decisão de classificação
+ * que ninguém pediu.
+ *
+ * O mesmo desenho alcança a categoria **inativada** depois do lançamento, e
+ * aí ele não é só visual: a correção do pendente envia `replacesMovementId`, e
+ * o backend tolera a inatividade **daquele** identificador — o que o
+ * movimento substituído já carrega — dentro da mesma transação que o cancela.
+ * Corrigir a descrição de um pendente cuja categoria foi aposentada continua
+ * possível, sem recategorizar. Escolher **outra** categoria inativa não: a
+ * exceção tem o tamanho de um identificador, e a lista abaixo só oferece as
+ * ativas mais a que já estava selecionada.
+ *
+ * A compatibilidade tem o tamanho exato do problema: **uma** opção, rotulada
+ * com o nome que o próprio movimento fotografou, e nunca o catálogo antigo
+ * inteiro. Escolher qualquer categoria da lista atual faz a opção de
+ * compatibilidade desaparecer — o lançamento passa a usar o identificador
+ * novo e não há caminho de volta ao cadastro que saiu da experiência comum.
+ *
+ * O vínculo é sempre por identificador. Nada aqui compara rótulos.
+ */
+export const buildCategoryOptions = (
+  items: Array<{ id: string; name: string }> | undefined,
+  selectedId: string,
+  selectedFallbackLabel?: string,
+): CategorySelectOption[] => {
+  const current = (items ?? []).map((item) => ({
+    value: item.id,
+    label: item.name,
+  }));
+
+  if (!selectedId || current.some((option) => option.value === selectedId)) {
+    return current;
+  }
+
+  return [
+    {
+      value: selectedId,
+      label: selectedFallbackLabel?.trim() || LEGACY_CATEGORY_FALLBACK_LABEL,
+    },
+    ...current,
+  ];
+};
+
 export interface CreateSimpleInvestmentInput {
   institutionId: string;
   classId: string;
@@ -136,6 +205,15 @@ export interface CreateSimpleInvestmentInput {
   settled: boolean;
   occurredAt: string;
   goalId?: string;
+  /**
+   * Aporte pendente que este lançamento substitui (§11).
+   *
+   * Presente só na correção de um pendente. É o que faz o backend cancelar o
+   * antecessor e criar o substituto na **mesma** transação: uma edição
+   * recusada devolve o pendente original intacto, em vez de deixá-lo
+   * cancelado sem substituto.
+   */
+  replacesMovementId?: string;
 }
 
 /**
@@ -145,10 +223,15 @@ export interface CreateSimpleInvestmentInput {
  * financeiro: `Sim` liquida, `Não` cria a intenção pendente, sem mover
  * patrimônio nem caixa. `walletId` não é enviado — é informação operacional
  * opcional no backend, e o §4 proíbe transformá-la em campo obrigatório.
+ *
+ * `replacesMovementId` só viaja na correção de um pendente, e entra no digest
+ * da intenção como qualquer outro campo: retry e duplo clique da **mesma**
+ * correção repetem a mesma chave e produzem um fato financeiro só.
  */
 export const buildCreateSimpleInvestmentInput = (
   state: NewInvestmentFormState,
   now: Date,
+  replacesMovementId?: string,
 ): CreateSimpleInvestmentInput => ({
   institutionId: state.institutionId,
   classId: state.classId,
@@ -158,6 +241,7 @@ export const buildCreateSimpleInvestmentInput = (
   settled: state.deposited,
   occurredAt: dateInputToInstant(state.date, now),
   ...(state.goalId ? { goalId: state.goalId } : {}),
+  ...(replacesMovementId ? { replacesMovementId } : {}),
 });
 
 // ---------------------------------------------------------------------------

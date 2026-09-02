@@ -54,6 +54,9 @@ import {
   assertQuantityOperationAllowed,
   assetTrackingMode,
   assetTypeForCatalogItemId,
+  INVESTMENT_CATEGORY_SELECTOR,
+  INVESTMENT_CLASS_SELECTOR,
+  INVESTMENT_INSTITUTION_SELECTOR,
   institutionAccountId,
   movementPresentationSnapshot,
   resolveInvestmentCatalogItem,
@@ -3500,6 +3503,82 @@ export const executeSettleInvestmentContribution = async (
 };
 
 /**
+ * Aporte pendente que uma correção substitui, já validado.
+ *
+ * Só o que a substituição precisa: a referência para o cancelamento, o
+ * documento lido — que é a base do documento cancelado — e a categoria à qual
+ * ele já está vinculado, que é a única inatividade tolerável na resolução do
+ * catálogo.
+ */
+interface ReplacedPendingContribution {
+  ref: admin.firestore.DocumentReference;
+  data: admin.firestore.DocumentData;
+  /** `typeId` fotografado no movimento. Ausente em movimento sem fotografia. */
+  typeId?: string;
+}
+
+/**
+ * Lê e valida o pendente que a correção vai substituir (§11).
+ *
+ * Autoridade é do servidor, e a lista é fechada: o documento existe, está no
+ * workspace autorizado, é um **aporte**, ainda está `pending` e pertence ao
+ * mesmo contexto PF/PJ. Nada aqui confia no que a interface afirmou — ela
+ * envia um identificador, e só.
+ *
+ * O que **não** está aqui, de propósito: nenhuma tolerância a movimento
+ * liquidado. Corrigir um lançamento já depositado continua exigindo estorno
+ * compensatório, que é operação própria e mexe em posição, meta e caixa.
+ */
+const readReplacedPendingContribution = async (
+  transaction: admin.firestore.Transaction,
+  auth: WorkspaceAuthorizationContext,
+  profileType: "PF" | "PJ",
+  movementId: string,
+): Promise<ReplacedPendingContribution> => {
+  const ref = investmentDoc(
+    auth.workspaceId,
+    INVESTMENT_COLLECTIONS.movements,
+    movementId,
+  );
+  const snapshot = await transaction.get(ref);
+  const data = assertWorkspaceDocument(
+    snapshot,
+    auth.workspaceId,
+    "Movimento de investimento",
+  );
+  if (data.operation !== "contribution") {
+    throw new CreditCardApplicationError(
+      "domain_precondition_failed",
+      "Somente um aporte pode ser corrigido por substituição.",
+    );
+  }
+  if (data.status === "cancelled") {
+    throw new CreditCardApplicationError(
+      "domain_precondition_failed",
+      "Este lançamento já foi cancelado. Atualize a lista antes de corrigi-lo.",
+    );
+  }
+  if (data.status !== "pending") {
+    throw new CreditCardApplicationError(
+      "domain_precondition_failed",
+      "Somente um lançamento pendente pode ser corrigido. " +
+        "Lançamento já depositado exige estorno compensatório.",
+    );
+  }
+  if (data.profileType !== profileType) {
+    throw new CreditCardApplicationError(
+      "domain_precondition_failed",
+      "O lançamento não pertence ao contexto PF/PJ do workspace.",
+    );
+  }
+  return {
+    ref,
+    data,
+    typeId: typeof data.typeId === "string" ? data.typeId : undefined,
+  };
+};
+
+/**
  * Novo investimento no modo simples (Etapa 1, §§1-4 e 6-7).
  *
  * A operação cobre, numa transação só: resolver instituição, carteira e
@@ -3521,6 +3600,25 @@ export const executeSettleInvestmentContribution = async (
  * deriva do ID do item de catálogo, que é estável. Renomear "BTG" para
  * "BTG Pactual" continua apontando para a mesma conta e para o mesmo
  * histórico.
+ *
+ * ## Correção de um pendente (`replacesMovementId`)
+ *
+ * Corrigir um aporte pendente é cancelar a intenção anterior e abrir outra —
+ * nunca editar um fato financeiro no lugar. O que mudou é que as duas metades
+ * acontecem **nesta** transação, e não em duas callables encadeadas pela
+ * interface.
+ *
+ * A ordem anterior — cancelar, depois criar — tinha um estado parcial
+ * alcançável: o cancelamento respondia, a criação era recusada, e o usuário
+ * perdia o pendente por ter tentado corrigir a descrição. A ordem inversa
+ * seria pior: uma falha no cancelamento deixaria **dois** pendentes vivos
+ * para o mesmo dinheiro. Não existe ordem segura entre duas transações
+ * independentes; existe uma transação só.
+ *
+ * Por isso a substituição não é uma segunda arquitetura de edição: é a mesma
+ * criação de sempre, com o cancelamento do antecessor amarrado ao mesmo
+ * commit. Ou os dois valem, ou nenhum — e uma edição recusada devolve o
+ * pendente original intacto, com os mesmos efeitos zero que ele já tinha.
  */
 export const executeCreateSimpleInvestment = async (
   auth: WorkspaceAuthorizationContext,
@@ -3558,24 +3656,54 @@ export const executeCreateSimpleInvestment = async (
       payload,
     );
     if (reservation.replay) return reservation.replay;
+    /*
+     * O antecessor é lido **antes** do catálogo porque é ele quem autoriza a
+     * única exceção de categoria inativa que existe: a do vínculo que o
+     * próprio pendente já tem.
+     */
+    const replaced = payload.replacesMovementId ?
+      await readReplacedPendingContribution(
+        transaction,
+        auth,
+        authorization.profileType,
+        payload.replacesMovementId,
+      ) :
+      undefined;
     const [institution, portfolio, category] = await Promise.all([
       resolveInvestmentCatalogItem(
         transaction,
         auth.workspaceId,
-        "investment_institution",
+        INVESTMENT_INSTITUTION_SELECTOR,
         payload.institutionId,
       ),
       resolveInvestmentCatalogItem(
         transaction,
         auth.workspaceId,
-        "investment_class",
+        INVESTMENT_CLASS_SELECTOR,
         payload.classId,
       ),
+      /*
+       * A categoria vem de `category`/`investimento`, o cadastro que o usuário
+       * administra em Configurações › Cadastros › Categorias › Investimentos.
+       * O seletor também aceita o grupo histórico `investment_type`, para que
+       * a correção de um pendente antigo não exija recategorizar.
+       */
       resolveInvestmentCatalogItem(
         transaction,
         auth.workspaceId,
-        "investment_type",
+        INVESTMENT_CATEGORY_SELECTOR,
         payload.typeId,
+        /*
+         * A categoria inativada depois do lançamento continua servindo ao
+         * pendente que já a usa — e só a ele. A tolerância exige que o
+         * identificador enviado seja **exatamente** o que o movimento
+         * substituído carrega: trocar para outra categoria, inativa ou não,
+         * volta a passar pela regra normal, que exige cadastro ativo. Um
+         * lançamento novo nunca chega aqui com `replaced` definido.
+         */
+        replaced?.typeId === payload.typeId ?
+          {preservedInactiveItemId: replaced.typeId} :
+          undefined,
       ),
     ]);
     const accountId = institutionAccountId(auth.workspaceId, institution.id);
@@ -3812,6 +3940,43 @@ export const executeCreateSimpleInvestment = async (
       refs.movement,
       assertInvestmentDocument("movement", movement, auth.workspaceId),
     );
+    /*
+     * O antecessor é aposentado no mesmo commit que cria o substituto.
+     *
+     * É exatamente o cancelamento de `executeCancelInvestmentMovement` —
+     * mesmos campos, mesma preservação do documento, mesmo espelho reescrito
+     * como cancelado. Nada de hard delete e nada de estado intermediário
+     * visível: um leitor concorrente vê ou o pendente antigo sozinho, ou o
+     * novo pendente com o antigo já cancelado.
+     */
+    if (replaced) {
+      const cancellation = {
+        status: "cancelled" as const,
+        cancelledAt: FieldValue.serverTimestamp(),
+        cancelledBy: auth.uid,
+        cancellationReason:
+          "Substituído pela correção do lançamento pendente " +
+          `(movimento ${movementId}).`,
+        cancellationCorrelationId: payload.correlationId,
+        updatedAt: FieldValue.serverTimestamp(),
+      };
+      const cancelledMovement = assertInvestmentDocument(
+        "movement",
+        {...replaced.data, ...cancellation},
+        auth.workspaceId,
+      );
+      transaction.update(replaced.ref, cancellation);
+      if (typeof replaced.data.transactionId === "string") {
+        writeCashProjection(
+          transaction,
+          auth,
+          authorization.profileType,
+          cancelledMovement,
+          "contribution",
+          "cancelled",
+        );
+      }
+    }
     if (settled && periodContext) {
       writePosition(
         transaction,
@@ -3880,6 +4045,7 @@ export const executeCreateSimpleInvestment = async (
       cashDeltaCents: movement.cashDeltaCents,
       principalCents: next.principalCents,
       currentValueCents: next.currentValueCents,
+      ...(replaced ? {replacedMovementId: replaced.ref.id} : {}),
     };
     recordInvestmentOperationMetric(transaction, {
       workspaceId: auth.workspaceId,
@@ -3907,6 +4073,14 @@ export const executeCreateSimpleInvestment = async (
         typeId: category.id,
         goalId: goalId ?? null,
         status: movement.status,
+        // Trilha da substituição: o evento é o que amarra o cancelado ao
+        // substituto sem inventar campo novo no contrato do movimento.
+        ...(replaced ?
+          {
+            replacedMovementId: replaced.ref.id,
+            replacedMovementStatus: "cancelled",
+          } :
+          {}),
       },
     );
     completeInvestmentIdempotency(

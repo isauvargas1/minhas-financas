@@ -1,4 +1,4 @@
-import { SETTINGS_CATALOG_GROUP_CONFIG } from './constants';
+import { SETTINGS_CATALOG_GROUP_CONFIG } from './constants.ts';
 import type {
   SettingsCatalogCreateInput,
   SettingsCatalogGroup,

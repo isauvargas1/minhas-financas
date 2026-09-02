@@ -37,13 +37,17 @@ const sdk = () => {
   return admin;
 };
 
-const catalogo = (id: string, group: string, name: string, normalizedName: string) => ({
+const catalogo = (
+  id: string, group: string, name: string, normalizedName: string,
+  transactionSubtype?: string,
+) => ({
   id,
   workspaceId: WORKSPACE,
   group,
   name,
   normalizedName,
-  dedupeKey: `${group}::all::both::${normalizedName}`,
+  ...(transactionSubtype ? { transactionSubtype } : {}),
+  dedupeKey: `${group}::${transactionSubtype ?? 'all'}::both::${normalizedName}`,
   workspaceScope: 'both',
   sortOrder: 1,
   status: 'active',
@@ -106,7 +110,7 @@ test.beforeEach(async () => {
       ...catalogo(INSTITUICAO, 'investment_institution', 'BTG', 'btg'), ...stamps,
     }),
     db.doc(`workspaces/${WORKSPACE}/settings_catalog/${CATEGORIA}`).set({
-      ...catalogo(CATEGORIA, 'investment_type', 'Renda fixa', 'renda fixa'), ...stamps,
+      ...catalogo(CATEGORIA, 'category', 'Renda fixa', 'renda fixa', 'investimento'), ...stamps,
     }),
   ]);
 });
@@ -142,7 +146,7 @@ const preencher = async (
 ) => {
   const dialogo = page.getByRole('dialog');
   await expect(dialogo).toBeVisible();
-  await dialogo.getByLabel('Carteira').selectOption({ label: 'Reserva de emergência' });
+  await dialogo.getByLabel('Carteira de investimento').selectOption({ label: 'Reserva de emergência' });
   await dialogo.getByLabel('Instituição').selectOption({ label: 'BTG' });
   await dialogo.getByLabel('Descrição').fill(descricao);
   await dialogo.getByLabel('Categoria').selectOption({ label: 'Renda fixa' });

@@ -24,7 +24,12 @@ const WORKSPACE = 'e2e-investments-simple-workspace';
 
 const CARTEIRA = 'catalog-class-reserva';
 const INSTITUICAO = 'catalog-institution-btg';
-const CATEGORIA = 'catalog-type-renda-fixa';
+/*
+ * Categoria do investimento: catálogo genérico `category` com
+ * `transactionSubtype: "investimento"` — Configurações › Cadastros ›
+ * Categorias › Investimentos, a fonte única desde a unificação.
+ */
+const CATEGORIA = 'catalog-category-renda-fixa';
 
 const sdk = () => {
   process.env.GCLOUD_PROJECT = PROJECT;
@@ -40,13 +45,15 @@ const catalogo = (
   name: string,
   normalizedName: string,
   sortOrder: number,
+  transactionSubtype?: string,
 ) => ({
   id,
   workspaceId: WORKSPACE,
   group,
   name,
   normalizedName,
-  dedupeKey: `${group}::all::both::${normalizedName}`,
+  ...(transactionSubtype ? { transactionSubtype } : {}),
+  dedupeKey: `${group}::${transactionSubtype ?? 'all'}::both::${normalizedName}`,
   workspaceScope: 'both',
   sortOrder,
   status: 'active',
@@ -87,16 +94,20 @@ test.beforeEach(async () => {
       ...stamps,
     }),
     db.doc(`workspaces/${WORKSPACE}/settings_catalog/${CATEGORIA}`).set({
-      ...catalogo(CATEGORIA, 'investment_type', 'Renda fixa', 'renda fixa', 1),
+      ...catalogo(CATEGORIA, 'category', 'Renda fixa', 'renda fixa', 1, 'investimento'),
       ...stamps,
     }),
   ]);
 });
 
-const abrirInvestimentos = async (page: Page) => {
+const abrirPainel = async (page: Page) => {
   await page.goto(`/?e2eEmail=${encodeURIComponent(EMAIL)}&e2ePassword=${PASSWORD}`);
   await page.getByTestId('e2e-login-button').click();
   await expect(page.getByText('Saldo Atual')).toBeVisible({ timeout: 30_000 });
+};
+
+const abrirInvestimentos = async (page: Page) => {
+  await abrirPainel(page);
   await page.getByText('Investimentos', { exact: true }).first().click();
   await expect(page.getByRole('heading', { name: 'Investimentos' })).toBeVisible();
 };
@@ -114,7 +125,7 @@ const preencherNovoInvestimento = async (
   await page.getByRole('button', { name: 'Novo investimento' }).click();
   const dialogo = page.getByRole('dialog');
   await expect(dialogo).toBeVisible();
-  await dialogo.getByLabel('Carteira').selectOption({ label: 'Reserva de emergência' });
+  await dialogo.getByLabel('Carteira de investimento').selectOption({ label: 'Reserva de emergência' });
   await dialogo.getByLabel('Instituição').selectOption({ label: 'BTG' });
   await dialogo.getByLabel('Descrição').fill(descricao);
   await dialogo.getByLabel('Categoria').selectOption({ label: 'Renda fixa' });
@@ -131,7 +142,7 @@ test('o formulário simples pede exatamente os campos do fluxo comum', async ({ 
 
   // Ordem e rótulos do §4, em pt-BR e sem termo técnico.
   await expect(dialogo.getByLabel('Meta (opcional)')).toBeVisible();
-  await expect(dialogo.getByLabel('Carteira')).toBeVisible();
+  await expect(dialogo.getByLabel('Carteira de investimento')).toBeVisible();
   await expect(dialogo.getByLabel('Instituição')).toBeVisible();
   await expect(dialogo.getByLabel('Descrição')).toBeVisible();
   await expect(dialogo.getByLabel('Categoria')).toBeVisible();
@@ -139,7 +150,7 @@ test('o formulário simples pede exatamente os campos do fluxo comum', async ({ 
   await expect(dialogo.getByText('Esse valor já foi depositado?')).toBeVisible();
 
   // As opções vêm dos grupos certos do catálogo.
-  await expect(dialogo.getByLabel('Carteira')).toContainText('Reserva de emergência');
+  await expect(dialogo.getByLabel('Carteira de investimento')).toContainText('Reserva de emergência');
   await expect(dialogo.getByLabel('Instituição')).toContainText('BTG');
   await expect(dialogo.getByLabel('Categoria')).toContainText('Renda fixa');
 
@@ -267,7 +278,7 @@ test('editar um pendente cancela a intenção anterior e abre outra', async ({ p
   // O formulário reabre com a intenção original, não em branco.
   await expect(dialogo.getByLabel('Descrição')).toHaveValue('CDB com valor errado');
   await expect(dialogo.getByLabel('Valor do investimento')).toHaveValue('100,00');
-  await expect(dialogo.getByLabel('Carteira')).toHaveValue(CARTEIRA);
+  await expect(dialogo.getByLabel('Carteira de investimento')).toHaveValue(CARTEIRA);
   await expect(dialogo.getByLabel('Instituição')).toHaveValue(INSTITUICAO);
   await expect(dialogo.getByLabel('Categoria')).toHaveValue(CATEGORIA);
 
@@ -322,4 +333,186 @@ test('a tela responde em viewport de celular', async ({ page }) => {
     () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
   );
   expect(estouro).toBeLessThanOrEqual(1);
+});
+
+
+/*
+ * O aporte lançado pelo botão global do painel (§17).
+ *
+ * "Nova Transação" é onde a pessoa procura lançar qualquer coisa, e a aba de
+ * investimento devolve o mesmo formulário simples da tela de Investimentos. O
+ * teste confere o **ledger**: o destino continua sendo `createSimpleInvestment`,
+ * e nenhuma transação é escrita pelo cliente.
+ */
+test('"Nova Transação" registra o aporte pelo ledger simples, e não por transações', async ({ page }) => {
+  await abrirPainel(page);
+
+  await page.getByRole('button', { name: 'Nova Transação' }).click();
+  const dialogo = page.getByRole('dialog');
+  await expect(dialogo).toBeVisible();
+  await dialogo.getByRole('button', { name: 'Investimento', exact: true }).click();
+
+  // Os catálogos são os mesmos três grupos do formulário da tela específica.
+  await dialogo.getByLabel('Carteira de investimento').selectOption({ label: 'Reserva de emergência' });
+  await dialogo.getByLabel('Instituição').selectOption({ label: 'BTG' });
+  await dialogo.getByLabel('Descrição').fill('CDB pelo painel');
+  await dialogo.getByLabel('Categoria').selectOption({ label: 'Renda fixa' });
+  await dialogo.getByLabel('Valor do investimento').fill('120000');
+  await dialogo.getByRole('radio', { name: 'Não' }).check();
+  await dialogo.getByRole('button', { name: 'Salvar' }).click();
+
+  // A modal principal fecha e o aviso é o da própria aplicação.
+  await expect(dialogo).toHaveCount(0);
+  await expect(page.getByText('Investimento registrado como pendente.')).toBeVisible();
+
+  // Um movimento no ledger, pendente, sem posição e sem tocar o caixa.
+  await expect.poll(async () => (await movimentos()).length).toBe(1);
+  const movimento = (await movimentos())[0];
+  expect(movimento.description).toBe('CDB pelo painel');
+  expect(movimento.operation).toBe('contribution');
+  expect(movimento.status).toBe('pending');
+  expect(movimento.cashDeltaCents).toBe(0);
+  expect((await sdk().firestore()
+    .collection(`workspaces/${WORKSPACE}/investment_positions`).get()).size).toBe(0);
+
+  // E o mesmo lançamento aparece na tela de Investimentos: um domínio só.
+  await page.getByText('Investimentos', { exact: true }).first().click();
+  await expect(page.getByRole('row').filter({ hasText: 'CDB pelo painel' })).toBeVisible();
+});
+
+
+/*
+ * Fonte única da categoria de investimento.
+ *
+ * Havia dois cadastros de categoria de investimento na experiência comum,
+ * ambos semeados no primeiro acesso do workspace, e só um deles chegava a
+ * algum formulário. O que este teste percorre em runtime é o resultado da
+ * unificação: a pessoa cadastra a categoria uma vez, no mesmo lugar em que
+ * cadastra as de receita e despesa, e ela aparece nos **dois** pontos de
+ * entrada de investimento — sem que a de receita vaze para nenhum deles.
+ */
+
+const CATEGORIA_SMOKE = 'SMOKE Categoria Investimento';
+const CATEGORIA_RECEITA_SMOKE = 'SMOKE Categoria Receita';
+
+const abrirCadastros = async (page: Page) => {
+  await page.getByText('Configurações', { exact: true }).first().click();
+  await page.getByRole('heading', { name: 'Cadastros', exact: true }).click();
+};
+
+const criarCategoria = async (page: Page, aba: string, nome: string) => {
+  const painel = page.getByRole('main');
+  await painel.getByText('Categorias', { exact: true }).first().click();
+  await painel.getByRole('button', { name: aba, exact: true }).click();
+  await painel.getByRole('button', { name: 'Novo cadastro' }).first().click();
+
+  /*
+   * A modal de Cadastros é um portal sem `role="dialog"`; o campo e o botão
+   * de confirmação só existem nela, então o escopo da página já é preciso.
+   */
+  const nomeDoCadastro = page.getByPlaceholder(
+    'Ex.: Cartão corporativo, Fornecedor A, Alimentação...',
+  );
+  await expect(nomeDoCadastro).toBeVisible();
+  await nomeDoCadastro.fill(nome);
+  await page.getByRole('button', { name: 'Criar cadastro' }).click();
+  await expect(page.getByRole('button', { name: 'Criar cadastro' })).toHaveCount(0);
+  await expect(painel.getByText(nome, { exact: true }).first()).toBeVisible();
+};
+
+/** Confere as opções do seletor de categoria do formulário simples. */
+const conferirCategorias = async (dialogo: ReturnType<Page['getByRole']>) => {
+  const categoria = dialogo.getByLabel('Categoria');
+  await expect(
+    categoria.getByRole('option', { name: CATEGORIA_SMOKE }),
+  ).toHaveCount(1);
+  // A categoria de receita existe no mesmo grupo `category` e não é oferecida
+  // aqui: o recorte é por subtipo, não por grupo.
+  await expect(
+    categoria.getByRole('option', { name: CATEGORIA_RECEITA_SMOKE }),
+  ).toHaveCount(0);
+};
+
+test('a categoria cadastrada uma vez alimenta os dois pontos de entrada', async ({ page }) => {
+  /*
+   * Uma jornada só, de propósito: o ponto do teste é que a **mesma** categoria
+   * criada uma vez aparece nos dois formulários, e verificar isso em testes
+   * separados exigiria criá-la duas vezes — o que deixaria de provar o que
+   * importa. A jornada passa por Configurações, cria dois cadastros e abre
+   * dois formulários, e por isso pede mais que o teto padrão de 45 segundos.
+   */
+  test.setTimeout(120_000);
+  await abrirPainel(page);
+  await abrirCadastros(page);
+
+  const painel = page.getByRole('main');
+
+  // Cenário 4 — a experiência comum tem só os cadastros decididos.
+  for (const titulo of [
+    'Categorias', 'Carteiras', 'Carteiras de investimento', 'Instituições',
+  ]) {
+    await expect(painel.getByText(titulo, { exact: true }).first()).toBeVisible();
+  }
+  for (const titulo of [
+    'Categorias de investimento', 'Risco', 'Liquidez', 'Indexadores',
+    'Estratégias',
+  ]) {
+    await expect(painel.getByText(titulo, { exact: true })).toHaveCount(0);
+  }
+
+  // Cenário 1 — a categoria nasce em Categorias › Investimentos...
+  await criarCategoria(page, 'Investimentos', CATEGORIA_SMOKE);
+  // ...e uma categoria de receita é criada para provar que ela não vaza.
+  await criarCategoria(page, 'Receitas', CATEGORIA_RECEITA_SMOKE);
+
+  /*
+   * Sair de Cadastros antes de navegar.
+   *
+   * Dentro de Configurações existe uma aba "Investimentos" — a do subtipo de
+   * categoria —, e ela é o primeiro texto exato com esse nome na página. A
+   * navegação do menu lateral só fica inequívoca depois de deixar a tela.
+   */
+  await page.getByText('Dashboard', { exact: true }).first().click();
+  await expect(page.getByText('Saldo Atual')).toBeVisible();
+
+  // Cenário 2 e 3 — a aba Investimento de "Nova Transação".
+  await page.getByRole('button', { name: 'Nova Transação' }).click();
+  const modalTransacao = page.getByRole('dialog');
+  await expect(modalTransacao).toBeVisible();
+  await modalTransacao.getByRole('button', { name: 'Investimento', exact: true }).click();
+  await conferirCategorias(modalTransacao);
+
+  /*
+   * E a categoria de receita continua servindo à aba de Receita, intacta.
+   *
+   * O seletor da aba comum não tem `label`/`for` — é a marcação do baseline,
+   * que esta etapa não toca —, então a opção é buscada pelo papel dentro da
+   * própria modal, onde ela só existe no seletor de categoria.
+   */
+  await modalTransacao.getByRole('button', { name: 'Receita', exact: true }).click();
+  await expect(
+    modalTransacao.getByRole('option', { name: CATEGORIA_RECEITA_SMOKE }),
+  ).toHaveCount(1);
+  await modalTransacao.getByRole('button', { name: 'Fechar' }).first().click();
+  await expect(modalTransacao).toHaveCount(0);
+
+  /*
+   * Cenário 1 e 3 — o formulário específico de Investimentos, mesma fonte.
+   *
+   * A navegação é pelo menu lateral, e não por `abrirInvestimentos`: aquele
+   * ajudante recarrega a página e refaz o login, e a sessão desta jornada já
+   * está aberta.
+   */
+  await page.getByText('Investimentos', { exact: true }).first().click();
+  await expect(page.getByRole('heading', { name: 'Investimentos' })).toBeVisible();
+  await page.getByRole('button', { name: 'Novo investimento' }).click();
+  const modalInvestimento = page.getByRole('dialog');
+  await expect(modalInvestimento).toBeVisible();
+  await conferirCategorias(modalInvestimento);
+  // O rótulo da carteira patrimonial não se confunde com carteira de caixa, e
+  // nenhum campo de caixa foi acrescentado ao formulário.
+  await expect(modalInvestimento.getByLabel('Carteira de investimento')).toBeVisible();
+  await expect(
+    modalInvestimento.getByText(/carteira de caixa|conta de origem/i),
+  ).toHaveCount(0);
 });

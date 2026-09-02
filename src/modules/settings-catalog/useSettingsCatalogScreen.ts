@@ -9,8 +9,7 @@ import {
 } from './hooks';
 import {
   buildSettingsCatalogStats,
-  filterSectionsByWorkspaceType,
-  getSettingsCatalogSectionByKey,
+  listCommonSettingsCatalogSections,
   matchesSettingsCatalogSearch,
   sortSettingsCatalogForDisplay,
   type SettingsCatalogSectionKey
@@ -47,8 +46,14 @@ const DEFAULT_CATEGORY_SUBTYPE: SettingsCatalogTransactionSubtype = 'despesa';
 export const useSettingsCatalogScreen = () => {
   const { activeWorkspace } = useWorkspace();
 
+  /*
+   * Configurações › Cadastros lista o catálogo da experiência comum: o que o
+   * perfil do workspace permite **e** o que a própria seção declara como
+   * `audience: 'common'`. Risco, liquidez, indexadores e estratégias seguem
+   * definidos no domínio e fora daqui.
+   */
   const sections = useMemo(
-    () => filterSectionsByWorkspaceType(activeWorkspace.type),
+    () => listCommonSettingsCatalogSections(activeWorkspace.type),
     [activeWorkspace.type]
   );
 
@@ -74,8 +79,11 @@ export const useSettingsCatalogScreen = () => {
     }
   }, [activeSectionKey, sections]);
 
+  // A seção ativa sai da lista visível: nada fora dela pode virar a tela
+  // aberta, nem por um render enquanto o efeito acima ainda não corrigiu a
+  // chave.
   const activeSection =
-    getSettingsCatalogSectionByKey(activeSectionKey) ?? sections[0];
+    sections.find((section) => section.key === activeSectionKey) ?? sections[0];
 
   const query = useSettingsCatalogPage({
     group: activeSection?.group,

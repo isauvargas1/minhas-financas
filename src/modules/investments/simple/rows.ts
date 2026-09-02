@@ -56,7 +56,13 @@ export interface SimpleInvestmentRow {
   kind: SimpleInvestmentKind;
   status: SimpleInvestmentStatus;
   description: string;
-  /** Categoria do investimento (`investment_type`), já fotografada. */
+  /**
+   * Categoria do investimento, já fotografada no movimento.
+   *
+   * Lançamentos novos apontam para `category`/`investimento`; os anteriores à
+   * unificação, para o grupo histórico `investment_type`. A linha não precisa
+   * saber de qual: o nome vem gravado e o ID é a autoridade.
+   */
   category: string;
   /** Identificador da categoria — autoridade do vínculo, ao contrário do nome. */
   categoryId?: string;

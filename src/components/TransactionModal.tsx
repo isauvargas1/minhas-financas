@@ -16,12 +16,20 @@ import { CloseIcon, TargetIcon, BriefcaseIcon, BuildingIcon, SparklesIcon, Micro
 import CatalogCombobox from './CatalogCombobox.tsx';
 import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
 import { useTransactionCatalogOptions } from '../modules/settings-catalog/useTransactionCatalogOptions.ts';
+import SimpleInvestmentForm from '../modules/investments/simple/components/SimpleInvestmentForm.tsx';
 import { useCreateSettingsCatalogItem } from '../modules/settings-catalog/hooks.ts';
 import { normalizeSettingsCatalogName } from '../modules/settings-catalog/utils.ts';
 
 interface ExtendedTransactionModalProps extends TransactionModalProps {
     goals?: Goal[];
     defaultGoalId?: string | null;
+    /**
+     * Feedback do aporte criado pela aba "Investimento".
+     *
+     * É o `showNotification` do `App.tsx` — o mesmo mecanismo que as
+     * transações comuns já usam. A aba nova não traz sistema de aviso próprio.
+     */
+    onInvestmentSuccess?: (message: string) => void;
 }
 
 const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
@@ -46,6 +54,7 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
     goals = [],
     transactions = [],
     defaultGoalId = null,
+    onInvestmentSuccess,
     onAddProductService
 }) => {
     const { activeWorkspace } = useWorkspace();
@@ -63,8 +72,18 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
      *
      * O patrimônio é o ledger `investment_movements`, e é ele que projeta o
      * espelho de caixa em `transactions`. Um aporte gravado por aqui sairia do
-     * caixa e nunca chegaria ao patrimônio. Este modal cobre receita, despesa
-     * e parcelamento; investimento se registra em Investimentos.
+     * caixa e nunca chegaria ao patrimônio.
+     *
+     * A aba "Investimento" existe de novo porque o ponto de entrada é o que a
+     * pessoa procura, e ele estava só dentro de Investimentos. O que **não**
+     * voltou é a escrita antiga: a aba não monta `transactionData`, não chama
+     * `onAddTransaction`/`onAddTransactions` e não conhece `transactions`. Ela
+     * monta o mesmo `SimpleInvestmentForm` da tela de Investimentos, cujo
+     * único destino é `createSimpleInvestment`.
+     *
+     * Só na criação. Editar uma transação continua restrito ao tipo do
+     * documento aberto: espelho de investimento não é editável como transação
+     * comum, e transação comum não vira aporte.
      */
     const resolvedAllowedTypes = useMemo<TransactionType[]>(() => {
         if (isEditing && transactionToEdit) {
@@ -79,7 +98,7 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
             return [defaultType];
         }
 
-        return ['receita', 'despesa', 'parcelado'];
+        return ['receita', 'despesa', 'investimento', 'parcelado'];
     }, [allowedTypes, defaultType, isEditing, transactionToEdit]);
 
     // State for form fields
@@ -102,6 +121,36 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
     const [valueType, setValueType] = useState<'total' | 'installment'>('total');
     const [purchaseDate, setPurchaseDate] = useState(new Date().toISOString().split('T')[0]);
 
+    /*
+     * Envio de aporte em curso na aba "Investimento".
+     *
+     * O formulário simples desabilita o próprio botão, mas quem fecha esta
+     * modal é a moldura — X, fundo e Escape — e quem a troca de conteúdo é a
+     * faixa de abas. Fechar ou trocar no meio da chamada desmonta o
+     * formulário, e o erro da mutation morre com ele: a pessoa fica sem saber
+     * se o aporte entrou. `NewInvestmentModal` já trava o fechamento por este
+     * mesmo sinal; a aba passa a travar também.
+     *
+     * O espelho em `ref` existe porque o ouvinte de Escape é registrado uma
+     * vez por abertura e leria um valor congelado do estado.
+     */
+    const [investmentPending, setInvestmentPending] = useState(false);
+    const investmentPendingRef = useRef(false);
+    const activeTabRef = useRef<TransactionType>(activeTab);
+
+    useEffect(() => {
+        investmentPendingRef.current = investmentPending;
+    }, [investmentPending]);
+
+    useEffect(() => {
+        activeTabRef.current = activeTab;
+    }, [activeTab]);
+
+    const requestClose = () => {
+        if (investmentPendingRef.current) return;
+        onClose();
+    };
+
     useEffect(() => {
         if (!isOpen) return;
         previousFocusRef.current = document.activeElement instanceof HTMLElement
@@ -109,7 +158,7 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
             : null;
         requestAnimationFrame(() => titleRef.current?.focus());
         const handleKeyDown = (event: KeyboardEvent) => {
-            if (event.key === 'Escape') onClose();
+            if (event.key === 'Escape') requestClose();
             if (event.key !== 'Tab' || !modalRef.current) return;
             const focusable = Array.from(modalRef.current.querySelectorAll<HTMLElement>(
                 'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
@@ -562,8 +611,28 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
 
     const handleTabChange = (newTab: TransactionType) => {
         if (!resolvedAllowedTypes.includes(newTab)) return;
+        // Um aporte em curso não pode ter o próprio formulário desmontado por
+        // uma troca de aba: a chamada seguiria viva sem ninguém para mostrar
+        // o resultado.
+        if (investmentPendingRef.current) return;
 
         setActiveTab(newTab);
+
+        /*
+         * A aba de investimento tem estado próprio e catálogos próprios. Trocar
+         * para ela não prepara, não limpa e não envia nada do formulário comum
+         * — e voltar dela reencontra o formulário comum como estava.
+         */
+        if (newTab === 'investimento') {
+            /*
+             * A captura por voz não vive no painel de IA: o reconhecedor é do
+             * componente. Esconder o painel deixaria o microfone aberto sem
+             * botão de parar e, pior, o resultado chamaria `applyAIData`, que
+             * troca a aba de volta e desmontaria o aporte meio preenchido.
+             */
+            recognitionRef.current?.stop();
+            return;
+        }
 
         const catOptions = getCategoryOptions(newTab);
         setCategory(catOptions.length > 0 ? catOptions[0].name : '');
@@ -581,6 +650,14 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
     // --- AI LOGIC: Common Form Pre-filler ---
     const applyAIData = (data: any) => {
         if (!data) return;
+        /*
+         * Um resultado de voz ou de imagem que chega depois de a pessoa ter ido
+         * para a aba de investimento não pode arrastá-la de volta nem
+         * sobrescrever o formulário comum pelas costas. O `ref` é lido porque
+         * quem chama esta função é um callback preso ao instante em que a
+         * captura começou.
+         */
+        if (activeTabRef.current === 'investimento') return;
         if (data.type && (['receita', 'despesa', 'parcelado'].includes(data.type))) {
             setActiveTab(data.type);
         }
@@ -715,6 +792,13 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
 
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
+
+        /*
+         * Guarda de contrato. O formulário comum nem chega a ser renderizado na
+         * aba de investimento, mas nenhum caminho pode terminar em
+         * `onAddTransaction` com o tipo que o backend escreve sozinho.
+         */
+        if (activeTab === 'investimento') return;
 
         let resolvedDescription = description;
 
@@ -1198,17 +1282,26 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
     };
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4 transition-opacity" onClick={onClose}>
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4 transition-opacity" onClick={requestClose}>
             <div ref={modalRef} role="dialog" aria-modal="true" aria-labelledby="transaction-modal-title" className="bg-white dark:bg-dark-100 rounded-xl shadow-lg w-full max-w-lg transition-transform transform scale-95 animate-scale-in max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
                 <div className="flex justify-between items-center p-6 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-dark-100 z-10">
                     <h3 id="transaction-modal-title" ref={titleRef} tabIndex={-1} className="text-xl font-bold text-gray-800 dark:text-white outline-none">{isEditing ? 'Editar Transação' : 'Nova Transação'}</h3>
-                    <button type="button" onClick={onClose} aria-label="Fechar" className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
+                    <button type="button" onClick={requestClose} disabled={investmentPending} aria-label="Fechar" className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 disabled:opacity-50">
                         <CloseIcon />
                     </button>
                 </div>
 
-                {/* AI Entry Panel */}
-                {!isEditing && (
+                {/*
+                  Assistente de IA (§5).
+
+                  Ele preenche exclusivamente o formulário comum —
+                  `applyAIData` escreve descrição, valor, data, parcelas,
+                  fornecedor e categoria de transação. Na aba de investimento
+                  esses campos não existem, e deixá-lo visível ofereceria um
+                  preenchimento que cairia num estado que ninguém vê. Nada de
+                  IA/OCR/voz mudou para receita, despesa e cartão.
+                */}
+                {!isEditing && activeTab !== 'investimento' && (
                     <div className="p-4 bg-indigo-50 dark:bg-indigo-900/10 border-b border-indigo-100 dark:border-indigo-900/30 flex flex-col gap-3">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
@@ -1267,6 +1360,16 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
                                 </button>
                             )}
 
+                            {resolvedAllowedTypes.includes('investimento') && (
+                                <button
+                                    onClick={() => handleTabChange('investimento')}
+                                    className={tabClasses('investimento')}
+                                    type="button"
+                                >
+                                    Investimento
+                                </button>
+                            )}
+
                             {resolvedAllowedTypes.includes('parcelado') && (
                                 <button
                                     onClick={() => handleTabChange('parcelado')}
@@ -1280,25 +1383,44 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
                     </div>
                 )}
 
-                {isCatalogLoading && (
+                {isCatalogLoading && activeTab !== 'investimento' && (
                     <div className="px-6 pt-4 text-xs font-medium text-indigo-600 dark:text-indigo-300">
                         Atualizando cadastros do workspace...
                     </div>
                 )}
 
                 <div className="p-6">
-                    <form onSubmit={handleSubmit}>
-                        <div className="space-y-4">
-                            {renderFields()}
-                        </div>
-                        <div className="mt-6">
-                            <button type="submit" className={`w-full disabled:opacity-60 text-white font-medium py-3 px-4 rounded-lg shadow-md transition-colors duration-200 ${buttonClasses[activeTab]}`}>
-                                {isEditing
-                                    ? 'Salvar Alterações'
-                                    : `Revisar e Adicionar ${activeTab === 'receita' ? 'Receita' : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}`}
-                            </button>
-                        </div>
-                    </form>
+                    {/*
+                      Um formulário ou o outro, nunca os dois: `SimpleInvestmentForm`
+                      traz o seu próprio `<form>` e o seu próprio botão, e aninhá-lo
+                      no formulário comum seria HTML inválido além de deixar o submit
+                      de transação alcançável a partir do aporte.
+                    */}
+                    {activeTab === 'investimento' ? (
+                        <SimpleInvestmentForm
+                            open={isOpen}
+                            workspaceId={activeWorkspace.id}
+                            goals={goals}
+                            initialGoalId={defaultGoalId}
+                            idPrefix="transaction-investment"
+                            onPendingChange={setInvestmentPending}
+                            onClose={onClose}
+                            onSuccess={(message) => onInvestmentSuccess?.(message)}
+                        />
+                    ) : (
+                        <form onSubmit={handleSubmit}>
+                            <div className="space-y-4">
+                                {renderFields()}
+                            </div>
+                            <div className="mt-6">
+                                <button type="submit" className={`w-full disabled:opacity-60 text-white font-medium py-3 px-4 rounded-lg shadow-md transition-colors duration-200 ${buttonClasses[activeTab]}`}>
+                                    {isEditing
+                                        ? 'Salvar Alterações'
+                                        : `Revisar e Adicionar ${activeTab === 'receita' ? 'Receita' : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}`}
+                                </button>
+                            </div>
+                        </form>
+                    )}
                 </div>
             </div>
             <style>{`

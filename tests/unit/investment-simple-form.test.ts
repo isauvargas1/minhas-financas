@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  buildCategoryOptions,
   buildCreateSimpleInvestmentInput,
   buildWithdrawSimpleInvestmentInput,
   dateInputToInstant,
@@ -10,6 +11,7 @@ import {
   emptyWithdrawForm,
   formatCentsInput,
   isValidDateInput,
+  LEGACY_CATEGORY_FALLBACK_LABEL,
   maskCurrencyInput,
   parseCurrencyInput,
   validateNewInvestment,
@@ -89,6 +91,40 @@ test('meta escolhida viaja como goalId', () => {
     amount: maskCurrencyInput('50000'),
   };
   assert.equal(buildCreateSimpleInvestmentInput(form, AGORA).goalId, 'meta-viagem');
+});
+
+/**
+ * Correção de pendente: o antecessor viaja no payload da criação.
+ *
+ * Cancelar o pendente e criar o substituto em duas chamadas deixava um estado
+ * parcial alcançável — pendente cancelado, substituto recusado — e o usuário
+ * perdia o lançamento. O formulário passa a declarar qual pendente está sendo
+ * substituído, e o domínio resolve as duas metades na mesma transação.
+ */
+test('correção de pendente declara o movimento substituído', () => {
+  const base = {
+    ...emptyNewInvestmentForm(AGORA),
+    classId: 'c', institutionId: 'i', typeId: 't',
+    description: 'CDB corrigido', amount: maskCurrencyInput('25000'),
+    deposited: false,
+  };
+
+  // Lançamento novo: o campo simplesmente não existe no payload.
+  assert.equal('replacesMovementId' in buildCreateSimpleInvestmentInput(base, AGORA), false);
+  assert.equal(
+    'replacesMovementId' in buildCreateSimpleInvestmentInput(base, AGORA, ''), false,
+    'string vazia virou substituição',
+  );
+
+  // Correção: viaja o identificador do pendente, e nada mais muda.
+  const correcao = buildCreateSimpleInvestmentInput(base, AGORA, 'mov-antigo');
+  assert.equal(correcao.replacesMovementId, 'mov-antigo');
+  assert.equal(correcao.settled, false);
+  assert.deepEqual(
+    {...correcao, replacesMovementId: undefined},
+    {...buildCreateSimpleInvestmentInput(base, AGORA), replacesMovementId: undefined},
+    'a substituição alterou algum outro campo do payload',
+  );
 });
 
 test('depositado Sim cria liquidado; depositado Não cria pendente', () => {
@@ -228,4 +264,85 @@ test('retirada repetida na mesma intenção também converge para uma chave', as
     buildWithdrawSimpleInvestmentInput(form, 'pos-1', AGORA),
   );
   assert.equal(chave(), chave());
+});
+
+
+// ---------------------------------------------------------------------------
+// Categoria — fonte única, com compatibilidade do tamanho exato do problema
+// ---------------------------------------------------------------------------
+
+/**
+ * O cadastro visível é `category` + `transactionSubtype: "investimento"`. O
+ * que a função recebe já é esse recorte; o que ela decide é o que fazer com
+ * um identificador selecionado que não está nele.
+ */
+const CADASTRO_ATUAL = [
+  {id: 'legacy_acoes', name: 'Ações'},
+  {id: 'legacy_cdb', name: 'CDB'},
+  {id: 'custom-cripto', name: 'Cripto'},
+];
+
+test('as opções da categoria são exatamente o cadastro atual', () => {
+  assert.deepEqual(buildCategoryOptions(CADASTRO_ATUAL, ''), [
+    {value: 'legacy_acoes', label: 'Ações'},
+    {value: 'legacy_cdb', label: 'CDB'},
+    {value: 'custom-cripto', label: 'Cripto'},
+  ]);
+  // Um item do cadastro já selecionado não é duplicado.
+  assert.deepEqual(
+    buildCategoryOptions(CADASTRO_ATUAL, 'legacy_cdb').map((o) => o.value),
+    ['legacy_acoes', 'legacy_cdb', 'custom-cripto'],
+  );
+  // Catálogo ainda carregando: nada é inventado.
+  assert.deepEqual(buildCategoryOptions(undefined, ''), []);
+});
+
+test('pendente legado preserva a própria categoria, e só ela', () => {
+  const opcoes = buildCategoryOptions(
+    CADASTRO_ATUAL, 'investment_default_antigo', 'Renda fixa',
+  );
+  assert.deepEqual(opcoes[0], {
+    value: 'investment_default_antigo', label: 'Renda fixa',
+  });
+  // Uma opção de compatibilidade, nunca o catálogo antigo inteiro.
+  assert.equal(opcoes.length, CADASTRO_ATUAL.length + 1);
+  assert.deepEqual(
+    opcoes.slice(1).map((o) => o.value),
+    ['legacy_acoes', 'legacy_cdb', 'custom-cripto'],
+  );
+});
+
+test('sem rótulo fotografado, a opção legada ainda é identificável', () => {
+  const semNome = buildCategoryOptions(CADASTRO_ATUAL, 'id-orfao');
+  assert.equal(semNome[0].label, LEGACY_CATEGORY_FALLBACK_LABEL);
+  const nomeVazio = buildCategoryOptions(CADASTRO_ATUAL, 'id-orfao', '   ');
+  assert.equal(nomeVazio[0].label, LEGACY_CATEGORY_FALLBACK_LABEL);
+});
+
+test('escolher uma categoria do cadastro atual encerra a compatibilidade', () => {
+  // O usuário estava no item legado...
+  const antes = buildCategoryOptions(
+    CADASTRO_ATUAL, 'investment_default_antigo', 'Renda fixa',
+  );
+  assert.equal(antes.length, 4);
+  // ...e escolheu uma categoria da lista. A opção antiga some, e não há
+  // caminho de volta ao cadastro que saiu da experiência comum.
+  const depois = buildCategoryOptions(
+    CADASTRO_ATUAL, 'legacy_acoes', 'Renda fixa',
+  );
+  assert.equal(depois.length, 3);
+  assert.equal(
+    depois.some((o) => o.value === 'investment_default_antigo'), false,
+  );
+});
+
+test('a compatibilidade não usa rótulo para reconhecer o item', () => {
+  /*
+   * Um item legado chamado "Ações" e uma categoria atual chamada "Ações" são
+   * documentos diferentes. A função não os funde: a identidade é o ID.
+   */
+  const opcoes = buildCategoryOptions(CADASTRO_ATUAL, 'investment_default_x', 'Ações');
+  assert.equal(opcoes.length, 4);
+  assert.equal(opcoes[0].value, 'investment_default_x');
+  assert.equal(opcoes[1].value, 'legacy_acoes');
 });

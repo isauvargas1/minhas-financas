@@ -214,6 +214,20 @@ export const createSimpleInvestmentPayloadSchema = z
     occurredAt: isoTimestampSchema,
     goalId: investmentDocumentIdSchema.optional(),
     walletId: investmentDocumentIdSchema.optional(),
+    /**
+     * Aporte **pendente** que este lançamento substitui (correção do §11).
+     *
+     * Editar um pendente é cancelar a intenção anterior e abrir outra. Fazê-lo
+     * em duas callables deixava a substituição sem atomicidade: o cancelamento
+     * respondia, a criação era recusada — categoria inativada no cadastro
+     * depois do lançamento, por exemplo — e o usuário perdia o pendente por
+     * ter tentado corrigir outro campo. Declarado aqui, o par cancelar/criar
+     * acontece na mesma transação: ou os dois valem, ou nenhum.
+     *
+     * É também o único contexto em que a categoria já vinculada ao pendente
+     * pode ser preservada mesmo inativa — nunca a escolha de outra.
+     */
+    replacesMovementId: investmentDocumentIdSchema.optional(),
   })
   .strict();
 

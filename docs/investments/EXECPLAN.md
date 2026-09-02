@@ -2159,3 +2159,237 @@ release gate não executados nesta etapa.
 `git revert` do commit. Nenhuma migração, nenhum índice, nenhuma mudança de
 Rules, RBAC, UI ou contrato de callable: as três guardas só recusam fato
 futuro e não alteram cálculo financeiro, lifecycle, idempotência ou histórico.
+
+# Fonte única da categoria de investimento — 2026-09-02
+
+Duas telas ofereciam "categoria de investimento" na experiência comum, ambas
+semeadas no primeiro acesso do workspace (`WorkspaceContext` dispara
+`seedLegacySettingsCatalog` **e** `onboardInvestmentWorkspace`), e apenas uma
+delas chegava a algum formulário. `Configurações › Cadastros › Categorias ›
+Investimentos` — `category` com `transactionSubtype: "investimento"` — existia,
+era editável e não era lida por ninguém; `Categorias de investimento`
+(`investment_type`) era a fonte real do formulário simples.
+
+## Decisões
+
+### A fonte visível passa a ser o catálogo genérico
+
+`SimpleInvestmentForm` lê `useSettingsCatalog({group: 'category',
+transactionSubtype: 'investimento'})` — a mesma consulta já cacheada que
+alimenta receita, despesa e parcelado, recortada em memória. Nenhuma consulta
+nova, nenhum índice novo: `group + transactionSubtype + status + sortOrder +
+normalizedName` já estava publicado. Como o formulário é um só, montado pelo
+modal de Investimentos e pela aba de "Nova Transação", a troca vale para os
+dois pontos de entrada de uma vez.
+
+### `investment_type` fica legível, não oferecido
+
+A seção virou `audience: 'advanced'`. O grupo, o schema, as Rules e todo
+documento gravado seguem intactos, e o backend continua aceitando os
+identificadores antigos. Esconder não é remover: é o que permite que um ativo
+ou um pendente anterior à unificação continue íntegro sem migração.
+
+### O resolver passou a receber um seletor, não um grupo
+
+`resolveInvestmentCatalogItem` recebia um literal de grupo. Um papel do
+formulário deixou de corresponder a um grupo só, então o parâmetro virou
+`InvestmentCatalogSelector` — rótulo, grupos aceitos e, para `category`, o
+subtipo exigido. `INVESTMENT_CATEGORY_SELECTOR` aceita
+`category`+`investimento` e `investment_type`; um identificador de categoria de
+receita, despesa ou parcelado é recusado com `domain_precondition_failed`, que
+é a guarda que o grupo genérico exige e o grupo dedicado dispensava.
+
+### `assetType` continua saindo do identificador
+
+`SEEDED_ASSET_TYPE_BY_ITEM_ID` ganhou as sementes de `category`/`investimento`
+(`legacy_<hash do dedupeKey>`, mesma mecânica de hash das de
+`investment_default_`) **sem perder** as antigas. Ações→`stock`, Fundos
+Imobiliários→`fund`, Tesouro Direto/CDB/Poupança→`fixed_income`. Categoria
+criada pelo usuário nasce com identificador aleatório e cai em `other` por
+construção. Nenhuma comparação de rótulo, em nenhum ponto.
+
+### Pendente legado edita sem recategorizar
+
+`buildCategoryOptions` (função pura, em `form.ts`) devolve o cadastro atual e,
+quando o item selecionado não está nele, acrescenta **uma** opção com o rótulo
+que o movimento fotografou. Cobre tanto o `typeId` de `investment_type` quanto
+uma categoria inativada depois do lançamento. Escolher qualquer categoria da
+lista encerra a compatibilidade: não há caminho de volta ao cadastro que saiu
+da navegação comum.
+
+## Progresso
+
+- Backend: seletor tipado, guarda de subtipo, mapa de `assetType` estendido.
+- Frontend: fonte única no formulário compartilhado, rótulo "Carteira de
+  investimento", chip da listagem resolvendo os dois grupos por ID.
+- Configurações: `investmentTypes` fora da lista comum.
+- Testes: 4 casos novos de integração, 5 unitários de `buildCategoryOptions`,
+  7 de fiação, 1 e2e cobrindo os quatro cenários de produto.
+
+## Evidências
+
+`functions` integration com Emulator local: **165 de 165**
+(`simpleMode.integration` **41 de 41**). `functions:test:unit`: **103 de 103**.
+`npm run test:unit:investments`: **169 de 169**. `npm run typecheck` limpo;
+`functions build` limpo; `functions lint` com **0 erros**. Frontend build
+limpo. E2E com Emulator local: `investments-simple` **9 de 9** (inclui o
+cenário novo, que cria a categoria em Configurações e a encontra nos dois
+formulários); `investments-v2` + `goal-investments` + `goal-contributions`
+**12 de 12**.
+
+`firestore.rules` **não alterado**; `firestore.indexes.json` **não alterado**;
+**nenhuma migração e nenhum backfill**.
+
+## Riscos residuais
+
+- **A lista de sementes vive em dois arquivos.** `INVESTMENT_CATEGORY_SEEDS`
+  (`simpleMode`) reproduz os nomes de `LEGACY_CATALOG_SEEDS`
+  (`goals/operations`). A divergência é detectável — o teste de integração
+  semeia de verdade e confere item a item —, mas não é impossível.
+- **`saveInvestmentAsset` continua sem validar o grupo de `typeId`.** Gap
+  anterior a esta etapa, no caminho profissional; não foi tocado.
+- **Workspace que renomeou ou inativou uma das cinco categorias semeadas.** O
+  identificador sobrevive ao rename e a classificação segue correta; inativada,
+  ela é recusada para lançamento novo, que é a política vigente.
+
+## Rollback
+
+`git revert` do commit. Nada a desfazer fora do código: nenhum documento foi
+reescrito, nenhum grupo foi removido e os identificadores de `investment_type`
+continuam aceitos pelo backend antes e depois.
+
+---
+
+# Correção — substituição atômica do aporte pendente
+
+## Problema
+
+A edição de um aporte pendente era feita pela interface em **duas** callables
+encadeadas: `cancelInvestmentMovement` e depois `createSimpleInvestment`. Entre
+uma e outra existia um estado alcançável em que o pendente já estava cancelado
+e o substituto não existia. O gatilho real era banal: a categoria do lançamento
+tinha sido inativada no cadastro **depois** dele, `resolveInvestmentCatalogItem`
+recusava a criação e o usuário perdia o pendente por ter tentado corrigir a
+descrição. Melhorar a mensagem não resolvia — a perda já tinha acontecido.
+
+Inverter a ordem trocaria o defeito por outro pior: uma falha no cancelamento
+deixaria **dois** pendentes vivos para o mesmo dinheiro.
+
+## Decisão
+
+Não existe ordem segura entre duas transações independentes; existe uma
+transação só. `createSimpleInvestmentPayloadSchema` ganhou
+`replacesMovementId` (opcional), e `executeCreateSimpleInvestment` passou a
+cancelar o antecessor no **mesmo commit** que cria o substituto.
+
+Nenhuma callable nova, nenhuma segunda arquitetura de edição: é a criação de
+sempre, com o cancelamento amarrado ao mesmo commit. O cancelamento reproduz
+literalmente o de `executeCancelInvestmentMovement` — `cancelledAt`,
+`cancelledBy`, motivo, `cancellationCorrelationId` e espelho de caixa
+reescrito como `cancelled`. Sem hard delete, sem campo novo no contrato de
+documento do movimento (a trilha `replacedMovementId` fica no event log e no
+motivo do cancelamento).
+
+`cancelInvestmentMovement` continua existindo e é a callable do botão
+"Cancelar lançamento". Os dois caminhos usam `MUTATION_ROLES`; não há
+escalação de papel.
+
+## Categoria inativa: exceção do tamanho de um identificador
+
+`resolveInvestmentCatalogItem` ganhou `options.preservedInactiveItemId`. A
+comparação é contra o **ID do documento lido**, nunca contra o que o chamador
+pediu e nunca por nome. O único ponto que passa a opção é a resolução da
+categoria dentro de `executeCreateSimpleInvestment`, e só quando
+`replaced?.typeId === payload.typeId`.
+
+- **Investimento novo** — categoria precisa estar ativa. Inalterado.
+- **Correção de pendente, mesma categoria** — inatividade tolerada.
+- **Correção de pendente, outra categoria** — regra normal: precisa estar ativa.
+
+Grupo, subtipo (`category`/`investimento`), workspace e nome continuam
+conferidos em todos os casos. `investment_type` legado segue aceito pelo mesmo
+seletor, inclusive inativado.
+
+O alvo da substituição é validado no servidor: existe, é do workspace
+autorizado, é `contribution`, está `pending` e é do mesmo `profileType`.
+Liquidado é recusado com "estorno compensatório"; cancelado, com "já foi
+cancelado".
+
+## Consistência financeira
+
+Pendente tem todos os deltas em zero, por contrato de documento. A correção
+troca um pendente por outro: nenhuma posição é criada, nenhuma meta se move,
+nenhum período de caixa é escrito, nenhum resumo é publicado, nenhuma despesa
+ou receita nasce. Espelho: um documento por movimento, o antigo reescrito como
+`cancelled` (`isPaid: false`, `cashImpact: "none"`), sem duplicata.
+
+Idempotência: **uma** chave para a edição inteira, e `replacesMovementId` entra
+no `requestHash`. Retry e duplo clique devolvem replay. Duas intenções
+distintas sobre o mesmo alvo disputam o mesmo documento na transação: uma
+vence, a outra relê `cancelled` e é recusada — nunca dois pendentes.
+
+Falha de qualquer natureza aborta o commit inteiro: o pendente original
+continua `pending`, com os mesmos efeitos zero, e permanece liquidável.
+
+## Progresso
+
+- Backend: `replacesMovementId` no contrato, leitura/validação do alvo,
+  cancelamento no mesmo commit, `preservedInactiveItemId` no resolvedor.
+- Frontend: `SimpleInvestmentForm` faz **uma** chamada; `previousCancelled` e a
+  mensagem de "pendente anterior já foi cancelado" deixaram de existir porque o
+  cenário deixou de existir.
+- `firestore.rules`, `firestore.indexes.json` e `writeStrategy` intocados.
+
+## Evidências
+
+`typecheck` limpo. `functions build` limpo. `functions lint` **0 erros**
+(warnings de `max-len` pré-existentes). `functions:test:unit` **103 de 103**.
+`npm run test:unit:investments` **173 de 173**.
+
+Integração com Emulator local, execução conjunta: **174 de 174** em
+`functions` (`simpleMode.integration` **50 de 50**, com **9 casos novos** de
+substituição) e **89 de 89** nas cinco suítes de Rules — 8 suítes, **0 falhas**,
+sem flake nesta execução (o `rebuildConcurrency` que falhou na execução
+anterior passou aqui em conjunto).
+
+E2E com Emulator local: `investments-simple` **9 de 9**, incluindo "editar um
+pendente cancela a intenção anterior e abre outra", "Nova Transação registra o
+aporte pelo ledger simples" e "a categoria cadastrada uma vez alimenta os dois
+pontos de entrada".
+
+## Limitações ambientais desta execução
+
+- **Build de produção.** O script oficial (`NODE_OPTIONS=--max-old-space-size=4096
+  vite build`) foi tentado primeiro e morreu com SIGTERM do supervisor de
+  memória do Codespace na fase de *rendering chunks*, com ~2,9 GB disponíveis.
+  O mesmo build passou com `--max-old-space-size=1400` (mesma configuração de
+  Vite, apenas o teto de heap muda): **12.159 módulos, 45 s, dist completo**.
+  `package.json` **não** foi alterado — a limitação é do ambiente.
+- **E2E parcial.** `investments-simple` rodou verde. As demais suítes
+  (`investment-onboarding`, `investment-operations`, `goal-investments`,
+  `goal-contributions`, `investments-v2`, `credit-card-flow`,
+  `regression-smoke`) **não foram executadas**: o emulador do Firestore da
+  própria execução anterior do Playwright ficou órfão segurando 8080/9150 e o
+  encerramento não foi autorizado. A porta 5173 estava livre; nenhum processo
+  do usuário foi encerrado.
+
+## Riscos residuais
+
+- **Ativo técnico do pendente cancelado permanece.** Comportamento anterior a
+  esta correção e idêntico ao do cancelamento avulso: o ativo é referenciado
+  pelo movimento preservado e apagá-lo seria hard delete. Sem posição, ele não
+  aparece em nenhuma projeção patrimonial.
+- **Pendente sem fotografia de `typeId`.** Movimento gravado antes do §10 não
+  carrega `typeId`; a tolerância de categoria inativa não se aplica e a edição
+  exige escolher uma categoria ativa. É o comportamento seguro, e a interface
+  também não teria o que pré-selecionar.
+- **`saveInvestmentAsset` continua sem validar o grupo de `typeId`.** Gap
+  anterior a esta etapa, no caminho profissional; não foi tocado.
+- **Regressão de Receita/Despesa/Cartão não reexecutada em E2E** nesta rodada,
+  pelo motivo de ambiente acima. Nenhum arquivo desses fluxos foi tocado.
+
+## Rollback
+
+`git revert` do commit. `replacesMovementId` é opcional: um cliente antigo que
+não o envia continua criando investimento exatamente como antes, e nenhum
+documento gravado muda de forma.

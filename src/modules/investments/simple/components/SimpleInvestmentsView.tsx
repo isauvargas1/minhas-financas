@@ -179,11 +179,21 @@ const SimpleInvestmentsView: React.FC<SimpleInvestmentsViewProps> = ({
         [goalAllocation.data, goals],
     );
 
+    /*
+     * Chip da categoria, resolvido pelo **identificador** do movimento sobre o
+     * catálogo já carregado — uma consulta para a tela inteira, nunca uma por
+     * linha, e nunca uma correspondência por rótulo.
+     *
+     * O item pode estar em `category` (cadastro atual) ou em `investment_type`
+     * (lançamentos anteriores à unificação); o grupo sai do próprio documento
+     * encontrado. A cor de fallback continua sendo a do investimento, para que
+     * a listagem não mude de identidade visual conforme a origem do cadastro.
+     */
     const categoryVisual = (row: SimpleInvestmentRow): ResolvedCatalogVisual | null => {
         const item = (catalogQuery.data ?? []).find((entry) => entry.id === row.categoryId);
         if (!item) return null;
         return {
-            group: 'investment_type',
+            group: item.group === 'category' ? 'category' : 'investment_type',
             label: item.name,
             normalizedLabel: item.normalizedName,
             icon: item.icon,
@@ -267,6 +277,10 @@ const SimpleInvestmentsView: React.FC<SimpleInvestmentsViewProps> = ({
                                 classId: row.portfolioId,
                                 institutionId: row.institutionId,
                                 typeId: row.categoryId,
+                                // Rótulo fotografado no movimento: sustenta a
+                                // opção de compatibilidade quando a categoria
+                                // do pendente não está mais no cadastro.
+                                typeName: row.category,
                                 valueCents: row.valueCents,
                                 goalId: row.goalId,
                                 occurredAt: row.occurredAt,

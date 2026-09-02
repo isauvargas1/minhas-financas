@@ -92,15 +92,20 @@ const seedCatalog = async () => {
  */
 const SIMPLE_CLASS = 'e2e-class-reserva';
 const SIMPLE_INSTITUTION = 'e2e-institution-btg';
-const SIMPLE_TYPE = 'e2e-type-renda-fixa';
+/** Categoria em `category` + subtipo `investimento`: a fonte única. */
+const SIMPLE_TYPE = 'e2e-category-renda-fixa';
 
 const seedSimpleCatalog = async () => {
   const sdk = firebaseAdmin();
   const db = sdk.firestore();
   const now = sdk.firestore.Timestamp.now();
-  const item = (id: string, group: string, name: string, normalizedName: string) => ({
+  const item = (
+    id: string, group: string, name: string, normalizedName: string,
+    transactionSubtype?: string,
+  ) => ({
     id, workspaceId: WORKSPACE, group, name, normalizedName,
-    dedupeKey: `${group}::all::both::${normalizedName}`,
+    ...(transactionSubtype ? { transactionSubtype } : {}),
+    dedupeKey: `${group}::${transactionSubtype ?? 'all'}::both::${normalizedName}`,
     workspaceScope: 'both', sortOrder: 1, status: 'active',
     createdBy: UID, updatedBy: UID, createdAt: now, updatedAt: now,
   });
@@ -110,7 +115,7 @@ const seedSimpleCatalog = async () => {
     db.doc(`workspaces/${WORKSPACE}/settings_catalog/${SIMPLE_INSTITUTION}`)
       .set(item(SIMPLE_INSTITUTION, 'investment_institution', 'BTG', 'btg')),
     db.doc(`workspaces/${WORKSPACE}/settings_catalog/${SIMPLE_TYPE}`)
-      .set(item(SIMPLE_TYPE, 'investment_type', 'Renda fixa', 'renda fixa')),
+      .set(item(SIMPLE_TYPE, 'category', 'Renda fixa', 'renda fixa', 'investimento')),
   ]);
 };
 
@@ -123,7 +128,7 @@ const novoInvestimento = async (
   await page.getByRole('button', { name: 'Novo investimento' }).click();
   const dialogo = page.getByRole('dialog');
   await expect(dialogo).toBeVisible();
-  await dialogo.getByLabel('Carteira').selectOption(SIMPLE_CLASS);
+  await dialogo.getByLabel('Carteira de investimento').selectOption(SIMPLE_CLASS);
   await dialogo.getByLabel('Instituição').selectOption(SIMPLE_INSTITUTION);
   await dialogo.getByLabel('Descrição').fill(descricao);
   await dialogo.getByLabel('Categoria').selectOption(SIMPLE_TYPE);
@@ -271,18 +276,60 @@ const loginToDashboard = async (page: import('@playwright/test').Page) => {
   await expect(page.getByText('Saldo Atual')).toBeVisible({ timeout: 30_000 });
 };
 
-test('o lançamento de transação não oferece investimento', async ({ page }) => {
-  // O patrimônio é o ledger, e é ele que projeta o espelho de caixa. Um aporte
-  // lançado como transação sairia do caixa e nunca chegaria ao patrimônio — as
-  // Rules recusam a escrita, e a interface não a oferece.
+test('a aba Investimento de "Nova Transação" abre o formulário simples', async ({ page }) => {
+  /*
+   * O ponto de entrada voltou; a escrita antiga, não.
+   *
+   * O patrimônio é o ledger, e é ele que projeta o espelho de caixa. Um aporte
+   * lançado como transação sairia do caixa e nunca chegaria ao patrimônio — e
+   * as Rules recusam a escrita. O que a aba oferece é o mesmo formulário da
+   * tela de Investimentos, com o mesmo destino.
+   */
   await seed(true);
+  await seedSimpleCatalog();
   await loginToDashboard(page);
   await page.getByRole('button', { name: 'Nova Transação' }).click();
-  await expect(page.getByRole('dialog')).toBeVisible();
+  const dialogo = page.getByRole('dialog');
+  await expect(dialogo).toBeVisible();
 
-  await expect(page.getByRole('button', { name: 'Receita', exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Despesa', exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Investimento', exact: true })).toHaveCount(0);
+  // Quatro abas, nesta ordem.
+  const abas = ['Receita', 'Despesa', 'Investimento', 'Cartão'];
+  for (const aba of abas) {
+    await expect(dialogo.getByRole('button', { name: aba, exact: true })).toBeVisible();
+  }
+  const posicoes = await Promise.all(abas.map(async (aba) => {
+    const caixa = await dialogo.getByRole('button', { name: aba, exact: true })
+      .first().boundingBox();
+    return caixa?.x ?? 0;
+  }));
+  expect([...posicoes].sort((a, b) => a - b)).toEqual(posicoes);
+
+  await dialogo.getByRole('button', { name: 'Investimento', exact: true }).click();
+
+  // O formulário simples, com os mesmos campos da tela de Investimentos.
+  for (const rotulo of [
+    'Carteira', 'Instituição', 'Descrição', 'Categoria', 'Valor do investimento',
+  ]) {
+    await expect(dialogo.getByLabel(rotulo)).toBeVisible();
+  }
+  await expect(dialogo.getByText('Esse valor já foi depositado?')).toBeVisible();
+  await expect(dialogo.getByRole('button', { name: 'Salvar' })).toBeVisible();
+
+  // E nada do formulário de transação comum: nem campos, nem submit, nem o
+  // assistente de IA, que só sabe preencher receita, despesa e cartão.
+  for (const ausente of ['Tipo de Receita', 'Tipo de Despesa', 'Forma de Pagamento']) {
+    await expect(dialogo.getByText(ausente, { exact: true })).toHaveCount(0);
+  }
+  await expect(dialogo.getByRole('button', { name: /Revisar e Adicionar/ })).toHaveCount(0);
+  await expect(dialogo.getByText('Assistente de Preenchimento IA')).toHaveCount(0);
+
+  // Um overlay só: o formulário simples entra no painel, sem modal aninhada.
+  await expect(page.getByRole('dialog')).toHaveCount(1);
+
+  // Voltar para Receita reencontra o formulário comum, sem nada submetido.
+  await dialogo.getByRole('button', { name: 'Receita', exact: true }).click();
+  await expect(dialogo.getByText('Tipo de Receita')).toBeVisible();
+  await expect(dialogo.getByLabel('Valor do investimento')).toHaveCount(0);
 });
 
 // INV-P1-007 — valoração pelo produto.

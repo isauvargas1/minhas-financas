@@ -97,13 +97,15 @@ const seed = async () => {
     }),
     // Cadastros do formulário simples: carteira, instituição e categoria.
     ...[
-      ['goal-e2e-class', 'investment_class', 'Reserva de emergência', 'reserva de emergencia'],
-      ['goal-e2e-institution', 'investment_institution', 'BTG', 'btg'],
-      ['goal-e2e-type', 'investment_type', 'Renda fixa', 'renda fixa'],
-    ].map(([id, group, name, normalizedName]) =>
+      ['goal-e2e-class', 'investment_class', 'Reserva de emergência', 'reserva de emergencia', ''],
+      ['goal-e2e-institution', 'investment_institution', 'BTG', 'btg', ''],
+      // Categoria: catálogo genérico, subtipo investimento.
+      ['goal-e2e-category', 'category', 'Renda fixa', 'renda fixa', 'investimento'],
+    ].map(([id, group, name, normalizedName, transactionSubtype]) =>
       db.doc(`workspaces/${WORKSPACE_ID}/settings_catalog/${id}`).set({
         id, workspaceId: WORKSPACE_ID, group, name, normalizedName,
-        dedupeKey: `${group}::all::both::${normalizedName}`,
+        ...(transactionSubtype ? { transactionSubtype } : {}),
+        dedupeKey: `${group}::${transactionSubtype || 'all'}::both::${normalizedName}`,
         workspaceScope: 'both', sortOrder: 1, status: 'active',
         createdBy: OWNER_UID, updatedBy: OWNER_UID, createdAt: now, updatedAt: now,
       })),
@@ -146,7 +148,7 @@ test('aporte nascido na meta publica progresso e projeta caixa uma vez', async (
   await expect(dialogo).toBeVisible();
   // A meta vem escolhida e travada: nenhum aporte cai em outra meta por engano.
   await expect(dialogo.getByLabel('Meta', {exact: true})).toBeDisabled();
-  await dialogo.getByLabel('Carteira').selectOption({label: 'Reserva de emergência'});
+  await dialogo.getByLabel('Carteira de investimento').selectOption({label: 'Reserva de emergência'});
   await dialogo.getByLabel('Instituição').selectOption({label: 'BTG'});
   await dialogo.getByLabel('Descrição').fill('Aporte vinculado E2E');
   await dialogo.getByLabel('Categoria').selectOption({label: 'Renda fixa'});

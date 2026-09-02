@@ -28,9 +28,11 @@ import {
 } from "../infrastructure";
 import {
   investmentCatalogSeedDocumentId,
+  legacyCatalogSeedDocumentId,
   normalizeCatalogName,
   VALUE_MODE_MICROS_PER_CENT,
 } from "../simpleMode";
+import {executeSeedLegacySettingsCatalog} from "../../goals/operations";
 
 /**
  * Superfície simples do domínio patrimonial (Etapa 1).
@@ -71,17 +73,42 @@ const INSTITUTION = "cat-institution-btg";
 const INSTITUTION_2 = "cat-institution-bb";
 const PORTFOLIO = "cat-class-aposentadoria";
 /*
- * Categoria **semeada**: o identificador é o mesmo que o onboarding grava, e é
- * dele — nunca do rótulo — que sai a classificação técnica.
+ * Categoria **semeada** no catálogo genérico — `category` com
+ * `transactionSubtype: "investimento"`, que é Configurações › Cadastros ›
+ * Categorias › Investimentos, a fonte visível desde a unificação. O
+ * identificador é o mesmo que `seedLegacySettingsCatalog` grava, e é dele —
+ * nunca do rótulo — que sai a classificação técnica.
  */
-const CATEGORY = investmentCatalogSeedDocumentId(
-  "investment_type", "both", "Renda fixa",
+const CATEGORY = legacyCatalogSeedDocumentId(
+  "category", "investimento", "both", "Tesouro Direto",
 );
-const CATEGORY_STOCK = investmentCatalogSeedDocumentId(
-  "investment_type", "both", "Ações",
+const CATEGORY_STOCK = legacyCatalogSeedDocumentId(
+  "category", "investimento", "both", "Ações",
 );
 /** Categoria criada pelo usuário: sem autoridade técnica, cai em `other`. */
-const CATEGORY_CUSTOM = "cat-type-personalizada";
+const CATEGORY_CUSTOM = "cat-category-personalizada";
+/**
+ * Categoria do grupo **histórico**.
+ *
+ * Continua aceita pelo backend: todo ativo e todo pendente aberto antes da
+ * unificação aponta para um identificador deste grupo, e recusá-lo obrigaria
+ * a recategorizar um lançamento só para corrigir a data dele.
+ */
+const CATEGORY_LEGACY = investmentCatalogSeedDocumentId(
+  "investment_type", "both", "Renda fixa",
+);
+/*
+ * Categorias do mesmo grupo `category` e de outros subtipos. Existem no
+ * cadastro, o usuário as vê em Configurações, e nenhuma delas serve como
+ * categoria de investimento.
+ */
+const CATEGORY_RECEITA = "cat-category-receita";
+const CATEGORY_DESPESA = "cat-category-despesa";
+const CATEGORY_PARCELADO = "cat-category-parcelado";
+/** Categoria de investimento sem subtipo gravado: documento incoerente. */
+const CATEGORY_SEM_SUBTIPO = "cat-category-sem-subtipo";
+/** Categoria de investimento inativada depois de existir. */
+const CATEGORY_INATIVA = "cat-category-inativa";
 const INSTITUTION_B = "cat-institution-workspace-b";
 
 const db = (): admin.firestore.Firestore => {
@@ -103,18 +130,31 @@ const catalogItem = async (
   group: string,
   name: string,
   status = "active",
+  transactionSubtype?: string,
 ) => {
   const normalizedName = normalizeCatalogName(name);
   await db().doc(`workspaces/${workspaceId}/settings_catalog/${id}`).set({
     workspaceId, group, name,
     normalizedName,
-    dedupeKey: `${group}::all::both::${normalizedName}`,
+    dedupeKey: [
+      group, transactionSubtype ?? "all", "both", normalizedName,
+    ].join("::"),
     workspaceScope: "both", sortOrder: 10, status,
+    ...(transactionSubtype ? {transactionSubtype} : {}),
     createdBy: "seed", updatedBy: "seed",
     createdAt: at("2026-08-01T00:00:00.000Z"),
     updatedAt: at("2026-08-01T00:00:00.000Z"),
   });
 };
+
+/** Item de `category`, que é o único grupo que carrega subtipo. */
+const categoryItem = (
+  workspaceId: string,
+  id: string,
+  name: string,
+  transactionSubtype = "investimento",
+  status = "active",
+) => catalogItem(workspaceId, id, "category", name, status, transactionSubtype);
 
 const seed = async (): Promise<void> => {
   await Promise.all([
@@ -148,9 +188,16 @@ const seed = async (): Promise<void> => {
     catalogItem(WS_A, INSTITUTION, "investment_institution", "BTG"),
     catalogItem(WS_A, INSTITUTION_2, "investment_institution", "Banco do Brasil"),
     catalogItem(WS_A, PORTFOLIO, "investment_class", "Aposentadoria"),
-    catalogItem(WS_A, CATEGORY, "investment_type", "Renda fixa"),
-    catalogItem(WS_A, CATEGORY_STOCK, "investment_type", "Ações"),
-    catalogItem(WS_A, CATEGORY_CUSTOM, "investment_type", "CDB"),
+    categoryItem(WS_A, CATEGORY, "Tesouro Direto"),
+    categoryItem(WS_A, CATEGORY_STOCK, "Ações"),
+    categoryItem(WS_A, CATEGORY_CUSTOM, "CDB"),
+    categoryItem(WS_A, CATEGORY_INATIVA, "Previdência", "investimento", "inactive"),
+    categoryItem(WS_A, CATEGORY_RECEITA, "Salário", "receita"),
+    categoryItem(WS_A, CATEGORY_DESPESA, "Alimentação", "despesa"),
+    categoryItem(WS_A, CATEGORY_PARCELADO, "Eletrônicos", "parcelado"),
+    catalogItem(WS_A, CATEGORY_SEM_SUBTIPO, "category", "Sem subtipo"),
+    // Grupo histórico: preservado e ainda aceito.
+    catalogItem(WS_A, CATEGORY_LEGACY, "investment_type", "Renda fixa"),
     catalogItem(WS_B, INSTITUTION_B, "investment_institution", "XP"),
   ]);
 };
@@ -165,6 +212,8 @@ interface NovoInvestimento {
   categoriaId?: string;
   quando?: string;
   contexto?: WorkspaceAuthorizationContext;
+  /** Aporte pendente que este lançamento substitui (correção do §11). */
+  substitui?: string;
 }
 
 const novoInvestimento = (opcoes: NovoInvestimento) =>
@@ -180,6 +229,7 @@ const novoInvestimento = (opcoes: NovoInvestimento) =>
     settled: opcoes.liquidado ?? true,
     occurredAt: opcoes.quando ?? "2026-08-10T12:00:00.000Z",
     ...(opcoes.metaId ? {goalId: opcoes.metaId} : {}),
+    ...(opcoes.substitui ? {replacesMovementId: opcoes.substitui} : {}),
     walletId: "wallet-a",
   });
 
@@ -344,7 +394,7 @@ test("o ativo criado guarda carteira, categoria e regime por valor", async () =>
   assert.equal(ativo?.classId, PORTFOLIO);
   assert.equal(ativo?.className, "Aposentadoria");
   assert.equal(ativo?.typeId, CATEGORY);
-  assert.equal(ativo?.typeName, "Renda fixa");
+  assert.equal(ativo?.typeName, "Tesouro Direto");
   assert.equal(ativo?.trackingMode, "value");
   // O enum técnico vem do identificador da categoria semeada, nunca do
   // rótulo, e nunca é pedido ao usuário.
@@ -1394,9 +1444,7 @@ test("a classificação técnica vem do identificador, não do rótulo", async (
   assert.equal(ativoAcoes?.typeName, "Ações");
 
   // 2. Renomear a categoria não reclassifica nada.
-  await catalogItem(
-    WS_A, CATEGORY_STOCK, "investment_type", "Bolsa brasileira",
-  );
+  await categoryItem(WS_A, CATEGORY_STOCK, "Bolsa brasileira");
   const depois = await novoInvestimento({
     chave: "type-key-0000000002", categoriaId: CATEGORY_STOCK,
     descricao: "Segunda carteira",
@@ -1435,7 +1483,7 @@ test("rótulos iguais em workspaces distintos não compartilham autoridade", asy
   // O workspace B recebe uma categoria **personalizada** com o mesmo rótulo da
   // semente do workspace A, e um vínculo de instituição próprio.
   await Promise.all([
-    catalogItem(WS_B, "cat-type-acoes-custom", "investment_type", "Ações"),
+    categoryItem(WS_B, "cat-type-acoes-custom", "Ações"),
     catalogItem(WS_B, PORTFOLIO, "investment_class", "Aposentadoria"),
   ]);
   await db().doc(`workspaces/${WS_B}/goals/ignorada`).set({id: "ignorada"});
@@ -1583,6 +1631,159 @@ test(
         `a categoria semeada "${nome}" resolveu ${ativo?.assetType}`,
       );
       assert.equal(ativo?.typeId, itemId);
+    }
+  },
+);
+
+
+// ---------------------------------------------------------------------------
+// Fonte única da categoria — `category` com subtipo `investimento`
+// ---------------------------------------------------------------------------
+
+/**
+ * A categoria do investimento passou a ser cadastrada onde já se cadastram as
+ * de receita e despesa. O grupo é genérico, e é justamente por isso que o
+ * subtipo precisa ser conferido: sem essa checagem, o identificador de uma
+ * categoria de despesa — que o usuário vê, conhece e pode copiar — passaria
+ * como categoria de investimento.
+ */
+test(
+  "categoria de outro subtipo é recusada, ainda que exista no cadastro",
+  async () => {
+    await seed();
+
+    const recusadas: Array<[string, string]> = [
+      ["receita", CATEGORY_RECEITA],
+      ["despesa", CATEGORY_DESPESA],
+      ["parcelado", CATEGORY_PARCELADO],
+      ["sem subtipo", CATEGORY_SEM_SUBTIPO],
+    ];
+
+    let indice = 1;
+    for (const [subtipo, categoriaId] of recusadas) {
+      assert.match(
+        await erro(() => novoInvestimento({
+          chave: `subtype-key-000000${indice++}`, categoriaId,
+        })),
+        /não é do tipo investimento/i,
+        `a categoria de ${subtipo} foi aceita`,
+      );
+    }
+
+    // Recusa é recusa: nada foi gravado por nenhuma das tentativas.
+    const ativos = await db()
+      .collection(`workspaces/${WS_A}/investment_assets`).get();
+    assert.equal(ativos.size, 0);
+    const movimentos = await db()
+      .collection(`workspaces/${WS_A}/investment_movements`).get();
+    assert.equal(movimentos.size, 0);
+  },
+);
+
+test("categoria de investimento inativa não serve a lançamento novo", async () => {
+  await seed();
+  assert.match(
+    await erro(() => novoInvestimento({
+      chave: "inactive-key-0000001", categoriaId: CATEGORY_INATIVA,
+    })),
+    /inativa/i,
+  );
+});
+
+/**
+ * Compatibilidade do grupo histórico.
+ *
+ * Um pendente aberto antes da unificação carrega um `typeId` de
+ * `investment_type`. Corrigir a data desse pendente reenvia o mesmo
+ * identificador, e recusá-lo obrigaria a recategorizar um lançamento por causa
+ * de uma mudança de cadastro que o usuário não pediu.
+ */
+test("categoria do grupo histórico continua aceita e classificada", async () => {
+  await seed();
+  const criado = await novoInvestimento({
+    chave: "legacy-key-00000001", categoriaId: CATEGORY_LEGACY,
+    descricao: "Pendente antigo corrigido",
+  });
+  const ativo = (await db().doc(
+    `workspaces/${WS_A}/investment_assets/${criado.assetId}`,
+  ).get()).data();
+  assert.equal(ativo?.typeId, CATEGORY_LEGACY);
+  assert.equal(ativo?.typeName, "Renda fixa");
+  assert.equal(
+    ativo?.assetType, "fixed_income",
+    "o identificador histórico perdeu a classificação técnica",
+  );
+  // E o efeito financeiro é o mesmo de qualquer aporte liquidado.
+  assert.equal(criado.cashDeltaCents, -100_000);
+});
+
+/**
+ * Prova de ponta a ponta de que as duas derivações do identificador concordam,
+ * agora do lado do catálogo genérico: `seedLegacySettingsCatalog` grava o item
+ * e a resolução técnica encontra a classificação a partir do ID daquele
+ * documento. Se a lista de sementes e o mapa divergirem — um nome trocado, um
+ * item novo — o documento esperado não existe e o teste falha, em vez de a
+ * classificação virar `other` silenciosamente em produção.
+ *
+ * Roda no workspace B porque o A já tem categorias gravadas com os mesmos
+ * identificadores determinísticos, e a semeadura cria documentos.
+ */
+test(
+  "as categorias semeadas em Categorias › Investimentos classificam por ID",
+  async () => {
+    await seed();
+    await catalogItem(WS_B, PORTFOLIO, "investment_class", "Aposentadoria");
+
+    const contextoB = auth(WS_B, OWNER_B);
+    await executeSeedLegacySettingsCatalog(contextoB, {
+      workspaceId: WS_B,
+      idempotencyKey: "legacy-catalog-seed-b-0001",
+    });
+
+    const esperado: Array<[string, string]> = [
+      ["Ações", "stock"],
+      ["Fundos Imobiliários", "fund"],
+      ["Tesouro Direto", "fixed_income"],
+      ["CDB", "fixed_income"],
+      ["Poupança", "fixed_income"],
+    ];
+
+    let indice = 1;
+    for (const [nome, assetType] of esperado) {
+      const itemId = legacyCatalogSeedDocumentId(
+        "category", "investimento", "both", nome,
+      );
+      const item = await db()
+        .doc(`workspaces/${WS_B}/settings_catalog/${itemId}`).get();
+      assert.ok(
+        item.exists,
+        `o seed não gravou "${nome}" no identificador determinístico`,
+      );
+      assert.equal(item.data()?.name, nome);
+      assert.equal(item.data()?.group, "category");
+      assert.equal(item.data()?.transactionSubtype, "investimento");
+
+      const criado = await executeCreateSimpleInvestment(contextoB, {
+        workspaceId: WS_B,
+        idempotencyKey: `catseed-key-b-000000${indice++}`,
+        correlationId: `corr-catseed-b-000000${indice}`,
+        institutionId: INSTITUTION_B,
+        classId: PORTFOLIO,
+        typeId: itemId,
+        description: `Investimento ${nome}`,
+        valueCents: 100_000,
+        settled: true,
+        occurredAt: "2026-08-10T12:00:00.000Z",
+      });
+      const ativo = (await db().doc(
+        `workspaces/${WS_B}/investment_assets/${criado.assetId}`,
+      ).get()).data();
+      assert.equal(
+        ativo?.assetType, assetType,
+        `a categoria semeada "${nome}" resolveu ${ativo?.assetType}`,
+      );
+      assert.equal(ativo?.typeId, itemId);
+      assert.equal(ativo?.typeName, nome);
     }
   },
 );
@@ -2159,3 +2360,459 @@ test(
     assert.equal(periodo?.netCents, 100_000);
   },
 );
+
+// ---------------------------------------------------------------------------
+// L. Correção de aporte pendente (substituição atômica)
+// ---------------------------------------------------------------------------
+
+/**
+ * Editar um pendente é cancelar a intenção anterior e abrir outra. O que estes
+ * testes fixam é que as duas metades acontecem **no mesmo commit**.
+ *
+ * O caminho anterior encadeava duas callables: cancelar e depois criar. Entre
+ * uma e outra havia um estado alcançável em que o pendente já estava cancelado
+ * e o substituto não existia — bastava a criação ser recusada, e o caso real
+ * era banal: a categoria do lançamento tinha sido inativada no cadastro depois
+ * dele. O usuário perdia um pendente por ter tentado corrigir a descrição.
+ * Inverter a ordem trocaria o defeito por outro pior: dois pendentes vivos
+ * para o mesmo dinheiro.
+ *
+ * A regra de produto é a única aceitável: **edição que falha devolve o
+ * pendente original intacto**.
+ */
+
+/** Todos os deltas de um pendente ou cancelado são zero, por contrato. */
+const DELTAS = [
+  "cashDeltaCents", "principalDeltaCents", "realizedGainDeltaCents",
+  "feesDeltaCents", "taxDeltaCents", "quantityDeltaMicros",
+  "goalNetContributionDeltaCents", "goalCurrentValueDeltaCents",
+  "currentValueDeltaCents",
+] as const;
+
+const assertSemEfeito = (
+  documento: admin.firestore.DocumentData | undefined,
+  rotulo: string,
+): void => {
+  for (const campo of DELTAS) {
+    assert.equal(documento?.[campo], 0, `${rotulo}: ${campo} não é zero`);
+  }
+};
+
+const movimentosDe = async (workspaceId = WS_A) =>
+  (await db()
+    .collection(`workspaces/${workspaceId}/investment_movements`)
+    .get()).docs.map((doc) => doc.data());
+
+test("corrigir um pendente cancela e cria no mesmo commit", async () => {
+  await seed();
+  const original = await novoInvestimento({
+    chave: "replace-key-00000001", descricao: "CDB com valor errado",
+    valorCents: 10_000, liquidado: false, metaId: GOAL,
+  });
+
+  const corrigido = await novoInvestimento({
+    chave: "replace-key-00000002", descricao: "CDB corrigido",
+    valorCents: 250_000, liquidado: false, metaId: GOAL,
+    substitui: String(original.movementId),
+  });
+
+  assert.equal(corrigido.status, "pending");
+  assert.equal(corrigido.replacedMovementId, String(original.movementId));
+
+  // O anterior é preservado como cancelado — nunca apagado.
+  const antigo = await movimento(WS_A, String(original.movementId));
+  assert.ok(antigo, "a correção apagou o pendente anterior");
+  assert.equal(antigo?.status, "cancelled");
+  assert.equal(antigo?.cancelledBy, OWNER_A);
+  assert.ok(antigo?.cancelledAt, "o cancelamento não registrou instante");
+  const motivo = String(antigo?.cancellationReason);
+  assert.match(motivo, /Substituído pela correção do lançamento pendente/);
+  assert.ok(
+    motivo.includes(String(corrigido.movementId)),
+    "o cancelado não aponta para o substituto",
+  );
+  assertSemEfeito(antigo, "cancelado");
+
+  const novo = await movimento(WS_A, String(corrigido.movementId));
+  assert.equal(novo?.status, "pending");
+  assert.equal(novo?.description, "CDB corrigido");
+  assert.equal(novo?.principalCents, 250_000);
+  assert.equal(novo?.goalId, GOAL);
+  assertSemEfeito(novo, "substituto");
+
+  // Dois documentos, um pendente só. Nunca dois pendentes visíveis.
+  const movimentos = await movimentosDe();
+  assert.equal(movimentos.length, 2);
+  assert.deepEqual(
+    movimentos.map((mov) => mov.status).sort(), ["cancelled", "pending"],
+  );
+
+  // O espelho do cancelado é reescrito como cancelado, sem efeito de caixa.
+  const espelhoAntigo = await espelho(WS_A, String(original.transactionId));
+  assert.equal(espelhoAntigo?.isPaid, false);
+  assert.equal(espelhoAntigo?.investmentMetadata?.status, "cancelled");
+  assert.equal(espelhoAntigo?.investmentMetadata?.cashImpact, "none");
+  assert.equal(espelhoAntigo?.investmentMetadata?.investmentImpact, "none");
+  // E o do substituto nasce pendente, sem duplicar documento.
+  const espelhoNovo = await espelho(WS_A, String(corrigido.transactionId));
+  assert.equal(espelhoNovo?.isPaid, false);
+  assert.equal(espelhoNovo?.investmentMetadata?.status, "pending");
+  assert.equal(espelhoNovo?.valueCents, 250_000);
+  const espelhos = await db()
+    .collection(`workspaces/${WS_A}/transactions`).get();
+  assert.equal(espelhos.size, 2, "a correção duplicou espelho de caixa");
+});
+
+test("corrigir um pendente não move caixa, posição nem meta", async () => {
+  await seed();
+  const original = await novoInvestimento({
+    chave: "replace-key-00000003", valorCents: 90_000, liquidado: false,
+    metaId: GOAL,
+  });
+  const espelhoPendente = await espelho(WS_A, String(original.transactionId));
+
+  const corrigido = await novoInvestimento({
+    chave: "replace-key-00000004", valorCents: 120_000, liquidado: false,
+    metaId: GOAL, substitui: String(original.movementId),
+  });
+
+  // Nenhuma posição nasce de intenção pendente, nem antes nem depois.
+  const posicoes = await db()
+    .collection(`workspaces/${WS_A}/investment_positions`).get();
+  assert.equal(posicoes.size, 0, "a correção criou posição");
+  const progresso = await meta();
+  assert.equal(progresso?.investmentNetContributionCents, 0);
+  assert.equal(progresso?.investmentCurrentValueCents, 0);
+  assert.equal(progresso?.investmentProgressCents, 0);
+  assert.equal(
+    (await db().doc(`workspaces/${WS_A}/investment_summaries/current`).get())
+      .data(), undefined,
+    "a correção publicou resumo patrimonial",
+  );
+
+  // O caixa não recebe nada: nem despesa, nem receita, nem saída.
+  const espelhoCancelado = await espelho(WS_A, String(original.transactionId));
+  const espelhoNovo = await espelho(WS_A, String(corrigido.transactionId));
+  await entregarGatilho(
+    "evt-replace-1", String(original.transactionId),
+    undefined, espelhoPendente,
+  );
+  await entregarGatilho(
+    "evt-replace-2", String(original.transactionId),
+    espelhoPendente, espelhoCancelado,
+  );
+  await entregarGatilho(
+    "evt-replace-3", String(corrigido.transactionId), undefined, espelhoNovo,
+  );
+  assert.equal(
+    await periodoCaixa("2026-08"), undefined,
+    "a correção de um pendente moveu o caixa",
+  );
+});
+
+test("edição recusada devolve o pendente original intacto", async () => {
+  await seed();
+  const original = await novoInvestimento({
+    chave: "replace-key-00000005", descricao: "CDB a preservar",
+    valorCents: 70_000, liquidado: false, metaId: GOAL,
+  });
+
+  /*
+   * Três recusas em pontos diferentes da transação: catálogo (categoria de
+   * outro subtipo), catálogo inexistente no workspace e leitura posterior à
+   * resolução (meta inexistente). Em todas, o commit inteiro é abortado.
+   */
+  const recusas: Array<[string, NovoInvestimento, RegExp]> = [
+    ["categoria de despesa", {
+      chave: "replace-key-00000006", categoriaId: CATEGORY_DESPESA,
+    }, /não é do tipo investimento/i],
+    ["instituição de outro workspace", {
+      chave: "replace-key-00000007", instituicaoId: INSTITUTION_B,
+    }, /não encontrada no cadastro deste workspace/i],
+    ["meta inexistente", {
+      chave: "replace-key-00000008", metaId: "meta-que-nao-existe",
+    }, /não encontrado/i],
+  ];
+
+  for (const [rotulo, opcoes, esperado] of recusas) {
+    assert.match(
+      await erro(() => novoInvestimento({
+        ...opcoes, descricao: "CDB corrigido", liquidado: false,
+        substitui: String(original.movementId),
+      })),
+      esperado,
+      `a recusa por ${rotulo} não veio como erro de domínio`,
+    );
+
+    // O pendente anterior continua pendente e com os mesmos efeitos zero.
+    const antigo = await movimento(WS_A, String(original.movementId));
+    assert.equal(antigo?.status, "pending", `${rotulo}: o pendente sumiu`);
+    assert.equal(antigo?.cancelledAt, undefined);
+    assert.equal(antigo?.principalCents, 70_000);
+    assertSemEfeito(antigo, rotulo);
+    // E nada foi criado pela tentativa.
+    assert.equal((await movimentosDe()).length, 1, `${rotulo}: sobrou lixo`);
+    assert.equal(
+      (await db().collection(`workspaces/${WS_A}/investment_assets`).get())
+        .size, 1, `${rotulo}: o ativo do substituto foi criado`,
+    );
+  }
+
+  // E o pendente preservado continua operacionalmente utilizável.
+  const liquidado = await executeSettleInvestmentContribution(auth(), {
+    workspaceId: WS_A,
+    idempotencyKey: "replace-key-00000009",
+    correlationId: "corr-replace-00000009",
+    movementId: String(original.movementId),
+    settledAt: "2026-08-15T12:00:00.000Z",
+  });
+  assert.equal(liquidado.status, "settled");
+  assert.equal((await meta())?.investmentNetContributionCents, 70_000);
+});
+
+test("categoria inativada depois não bloqueia a correção", async () => {
+  await seed();
+  const original = await novoInvestimento({
+    chave: "replace-key-00000010", descricao: "Tesouro com nome errado",
+    valorCents: 50_000, liquidado: false, categoriaId: CATEGORY,
+  });
+  // O cadastro é aposentado **depois** de o lançamento existir.
+  await categoryItem(
+    WS_A, CATEGORY, "Tesouro Direto", "investimento", "inactive",
+  );
+
+  // A regra normal não afrouxa: lançamento novo com ela continua recusado.
+  assert.match(
+    await erro(() => novoInvestimento({
+      chave: "replace-key-00000011", categoriaId: CATEGORY,
+    })),
+    /inativa/i,
+    "a exceção vazou para um lançamento novo",
+  );
+
+  // C. Só a descrição muda; a categoria histórica é preservada.
+  const descricaoCorrigida = await novoInvestimento({
+    chave: "replace-key-00000012", descricao: "Tesouro Selic 2029",
+    valorCents: 50_000, liquidado: false, categoriaId: CATEGORY,
+    substitui: String(original.movementId),
+  });
+  assert.equal(descricaoCorrigida.status, "pending");
+  const apos = await movimento(WS_A, String(descricaoCorrigida.movementId));
+  assert.equal(apos?.description, "Tesouro Selic 2029");
+  assert.equal(apos?.typeId, CATEGORY);
+  assert.equal(apos?.typeName, "Tesouro Direto");
+  assert.equal(
+    (await movimento(WS_A, String(original.movementId)))?.status, "cancelled",
+  );
+
+  // D. E o valor também, preservando a mesma categoria inativa.
+  const valorCorrigido = await novoInvestimento({
+    chave: "replace-key-00000013", descricao: "Tesouro Selic 2029",
+    valorCents: 65_000, liquidado: false, categoriaId: CATEGORY,
+    substitui: String(descricaoCorrigida.movementId),
+  });
+  assert.equal(valorCorrigido.status, "pending");
+  assert.equal(
+    (await movimento(WS_A, String(valorCorrigido.movementId)))
+      ?.principalCents, 65_000,
+  );
+  const estados = (await movimentosDe()).map((mov) => mov.status).sort();
+  assert.deepEqual(estados, ["cancelled", "cancelled", "pending"]);
+});
+
+test("a exceção de categoria inativa não alcança outra categoria", async () => {
+  await seed();
+  const original = await novoInvestimento({
+    chave: "replace-key-00000014", valorCents: 40_000, liquidado: false,
+    categoriaId: CATEGORY,
+  });
+  await categoryItem(
+    WS_A, CATEGORY, "Tesouro Direto", "investimento", "inactive",
+  );
+
+  // Trocar por **outra** categoria inativa é recategorização, não preservação.
+  assert.match(
+    await erro(() => novoInvestimento({
+      chave: "replace-key-00000015", liquidado: false,
+      categoriaId: CATEGORY_INATIVA, substitui: String(original.movementId),
+    })),
+    /inativa/i,
+  );
+  assert.equal(
+    (await movimento(WS_A, String(original.movementId)))?.status, "pending",
+    "a recusa consumiu o pendente original",
+  );
+  assert.equal((await movimentosDe()).length, 1);
+
+  // Trocar por uma categoria **ativa** continua funcionando normalmente.
+  const recategorizado = await novoInvestimento({
+    chave: "replace-key-00000016", liquidado: false,
+    categoriaId: CATEGORY_STOCK, substitui: String(original.movementId),
+  });
+  const novo = await movimento(WS_A, String(recategorizado.movementId));
+  assert.equal(novo?.typeId, CATEGORY_STOCK);
+  assert.equal(novo?.typeName, "Ações");
+});
+
+test("pendente do grupo histórico corrige preservando typeId", async () => {
+  await seed();
+  const original = await novoInvestimento({
+    chave: "replace-key-00000017", descricao: "Pendente antigo",
+    valorCents: 30_000, liquidado: false, categoriaId: CATEGORY_LEGACY,
+  });
+  assert.equal(
+    (await movimento(WS_A, String(original.movementId)))?.typeId,
+    CATEGORY_LEGACY,
+  );
+  // O item histórico também pode ter sido inativado desde então.
+  await catalogItem(
+    WS_A, CATEGORY_LEGACY, "investment_type", "Renda fixa", "inactive",
+  );
+
+  const corrigido = await novoInvestimento({
+    chave: "replace-key-00000018", descricao: "Pendente antigo corrigido",
+    valorCents: 30_000, liquidado: false, categoriaId: CATEGORY_LEGACY,
+    substitui: String(original.movementId),
+  });
+  assert.equal(corrigido.status, "pending");
+  const novo = await movimento(WS_A, String(corrigido.movementId));
+  assert.equal(novo?.typeId, CATEGORY_LEGACY);
+  assert.equal(novo?.typeName, "Renda fixa");
+  // A classificação técnica continua vindo do identificador.
+  const ativo = (await db().doc(
+    `workspaces/${WS_A}/investment_assets/${corrigido.assetId}`,
+  ).get()).data();
+  assert.equal(ativo?.assetType, "fixed_income");
+  assert.equal(
+    (await movimento(WS_A, String(original.movementId)))?.status, "cancelled",
+  );
+});
+
+test("retry da correção devolve o mesmo resultado e não duplica", async () => {
+  await seed();
+  const original = await novoInvestimento({
+    chave: "replace-key-00000019", valorCents: 80_000, liquidado: false,
+    metaId: GOAL,
+  });
+  const corrigir = () => novoInvestimento({
+    chave: "replace-key-00000020", descricao: "Corrigido uma vez",
+    valorCents: 95_000, liquidado: false, metaId: GOAL,
+    substitui: String(original.movementId),
+  });
+
+  const primeiro = await corrigir();
+  const replay = await corrigir();
+  assert.deepEqual(replay, primeiro, "o retry não foi replay da idempotência");
+
+  const movimentos = await movimentosDe();
+  assert.equal(movimentos.length, 2, "o retry duplicou movimento");
+  assert.deepEqual(
+    movimentos.map((mov) => mov.status).sort(), ["cancelled", "pending"],
+  );
+  assert.equal(
+    (await db().collection(`workspaces/${WS_A}/investment_assets`).get()).size,
+    2, "o retry duplicou ativo",
+  );
+  assert.equal(
+    (await db().collection(`workspaces/${WS_A}/transactions`).get()).size, 2,
+    "o retry duplicou espelho",
+  );
+  assert.equal((await meta())?.investmentNetContributionCents, 0);
+});
+
+test("duas correções concorrentes não deixam dois pendentes", async () => {
+  await seed();
+  const original = await novoInvestimento({
+    chave: "replace-key-00000021", valorCents: 60_000, liquidado: false,
+  });
+
+  // Intenções distintas — duas abas, não duplo clique — sobre o mesmo alvo.
+  const disputa = await Promise.allSettled([
+    novoInvestimento({
+      chave: "replace-key-00000022", descricao: "Correção da aba A",
+      valorCents: 61_000, liquidado: false,
+      substitui: String(original.movementId),
+    }),
+    novoInvestimento({
+      chave: "replace-key-00000023", descricao: "Correção da aba B",
+      valorCents: 62_000, liquidado: false,
+      substitui: String(original.movementId),
+    }),
+  ]);
+
+  const vencedoras = disputa.filter((r) => r.status === "fulfilled");
+  assert.equal(vencedoras.length, 1, "as duas correções passaram");
+
+  const movimentos = await movimentosDe();
+  const pendentes = movimentos.filter((mov) => mov.status === "pending");
+  assert.equal(pendentes.length, 1, "sobraram dois pendentes vivos");
+  assert.equal(movimentos.length, 2);
+  assert.equal(
+    (await movimento(WS_A, String(original.movementId)))?.status, "cancelled",
+  );
+
+  // A perdedora é recusada por precondição de domínio, não por escrita parcial.
+  const perdedora = disputa.find((r) => r.status === "rejected");
+  assert.match(
+    String((perdedora as PromiseRejectedResult).reason?.message),
+    /já foi cancelado|pendente pode ser corrigido/i,
+  );
+});
+
+test("substituição recusa alvo liquidado, cancelado ou alheio", async () => {
+  await seed();
+  const liquidado = await novoInvestimento({
+    chave: "replace-key-00000024", valorCents: 20_000,
+  });
+  const cancelado = await novoInvestimento({
+    chave: "replace-key-00000025", valorCents: 20_000, liquidado: false,
+  });
+  await executeCancelInvestmentMovement(auth(), {
+    workspaceId: WS_A,
+    idempotencyKey: "replace-key-00000026",
+    correlationId: "corr-replace-00000026",
+    movementId: String(cancelado.movementId),
+    occurredAt: "2026-08-11T12:00:00.000Z",
+    reason: "Depósito não aconteceu.",
+  });
+
+  // Um lançamento já depositado exige estorno, nunca substituição silenciosa.
+  assert.match(
+    await erro(() => novoInvestimento({
+      chave: "replace-key-00000027", liquidado: false,
+      substitui: String(liquidado.movementId),
+    })),
+    /estorno compensatório/i,
+  );
+  assert.equal(
+    (await movimento(WS_A, String(liquidado.movementId)))?.status, "settled",
+    "a tentativa alterou um movimento liquidado",
+  );
+
+  assert.match(
+    await erro(() => novoInvestimento({
+      chave: "replace-key-00000028", liquidado: false,
+      substitui: String(cancelado.movementId),
+    })),
+    /já foi cancelado/i,
+  );
+
+  // Isolamento: o identificador de outro tenant simplesmente não existe aqui.
+  await catalogItem(WS_B, PORTFOLIO, "investment_class", "Aposentadoria");
+  await categoryItem(WS_B, CATEGORY, "Tesouro Direto");
+  const pendenteB = await novoInvestimento({
+    chave: "replace-key-00000029", liquidado: false,
+    instituicaoId: INSTITUTION_B, contexto: auth(WS_B, OWNER_B),
+  });
+  assert.match(
+    await erro(() => novoInvestimento({
+      chave: "replace-key-00000030", liquidado: false,
+      substitui: String(pendenteB.movementId),
+    })),
+    /não encontrado/i,
+  );
+  assert.equal(
+    (await movimento(WS_B, String(pendenteB.movementId)))?.status, "pending",
+    "o pendente do outro workspace foi tocado",
+  );
+});

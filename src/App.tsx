@@ -662,6 +662,7 @@ const AppContent: React.FC = () => {
                 paymentTypes={paymentTypes}
                 incomeTypes={incomeTypes}
                 goals={goals}
+                onInvestmentSuccess={showNotification}
             />
             <ConfirmationModal
                 isOpen={isConfirmationOpen}
