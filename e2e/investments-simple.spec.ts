@@ -449,13 +449,16 @@ test('a categoria cadastrada uma vez alimenta os dois pontos de entrada', async 
 
   // Cenário 4 — a experiência comum tem só os cadastros decididos.
   for (const titulo of [
-    'Categorias', 'Carteiras', 'Carteiras de investimento', 'Instituições',
+    'Categorias', 'Carteiras de investimento', 'Instituições',
   ]) {
     await expect(painel.getByText(titulo, { exact: true }).first()).toBeVisible();
   }
   for (const titulo of [
     'Categorias de investimento', 'Risco', 'Liquidez', 'Indexadores',
     'Estratégias',
+    // Carteira de caixa: saiu da navegação comum. O grupo `wallet` e os
+    // documentos gravados continuam íntegros no domínio.
+    'Carteiras',
   ]) {
     await expect(painel.getByText(titulo, { exact: true })).toHaveCount(0);
   }

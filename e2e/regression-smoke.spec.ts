@@ -163,11 +163,27 @@ const seed = async (persona: Persona) => {
       createdAt: now, updatedAt: now,
     }),
 
-    // Carteira, no catálogo de cadastros.
+    /*
+     * Carteira de caixa, no catálogo de cadastros.
+     *
+     * O grupo `wallet` saiu da navegação comum, não do domínio: o documento
+     * continua sendo gravado e lido como antes. Quem prova a listagem de
+     * Cadastros na tela é a carteira de investimento, semeada abaixo.
+     */
     db.doc(`workspaces/${persona.workspace}/settings_catalog/smoke-carteira`).set({
       workspaceId: persona.workspace, group: 'wallet', name: 'Carteira do smoke',
       normalizedName: 'carteira do smoke',
       dedupeKey: `${persona.workspace}|wallet|carteira do smoke`,
+      workspaceScope: persona.type, sortOrder: 1, status: 'active',
+      createdBy: persona.uid, updatedBy: persona.uid, createdAt: now, updatedAt: now,
+    }),
+
+    // Carteira de investimento, cadastro comum exercitado na tela.
+    db.doc(`workspaces/${persona.workspace}/settings_catalog/smoke-carteira-inv`).set({
+      workspaceId: persona.workspace, group: 'investment_class',
+      name: 'Carteira de investimento do smoke',
+      normalizedName: 'carteira de investimento do smoke',
+      dedupeKey: `${persona.workspace}|investment_class|carteira de investimento do smoke`,
       workspaceScope: persona.type, sortOrder: 1, status: 'active',
       createdBy: persona.uid, updatedBy: persona.uid, createdAt: now, updatedAt: now,
     }),
@@ -306,12 +322,21 @@ const walkSurfaces = async (
   await expect(page.getByText(isPJ ? 'Faturamento' : 'Receita Total').first()).toBeVisible();
   await expectNoErrorBanner(page);
 
-  // Configurações e cadastros, incluindo carteiras.
+  /*
+   * Configurações e cadastros.
+   *
+   * "Carteiras" (caixa) saiu da navegação comum; a carteira semeada acima
+   * continua gravada no catálogo, só não é mais oferecida aqui. A seção
+   * exercitada passa a ser "Carteiras de investimento", que segue comum.
+   */
   await openSection(page, 'Configurações');
   await page.getByRole('heading', { name: 'Cadastros', exact: true }).click();
   await expect(page.getByText('Produtos e Serviços')).toBeVisible();
-  await page.getByText('Carteiras', { exact: true }).first().click();
-  await expect(page.getByText('Carteira do smoke').first()).toBeVisible();
+  await expect(page.getByText('Carteiras', { exact: true })).toHaveCount(0);
+  await page.getByText('Carteiras de investimento', { exact: true }).first().click();
+  await expect(
+    page.getByText('Carteira de investimento do smoke').first(),
+  ).toBeVisible();
   await expectNoErrorBanner(page);
 
   // Volta ao painel: a navegação inteira permanece funcional.

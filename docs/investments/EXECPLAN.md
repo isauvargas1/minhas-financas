@@ -2393,3 +2393,94 @@ pontos de entrada".
 `git revert` do commit. `replacesMovementId` é opcional: um cliente antigo que
 não o envia continua criando investimento exatamente como antes, e nenhum
 documento gravado muda de forma.
+
+---
+
+# "Carteiras de caixa" fora de Configurações › Cadastros — 2026-09-02
+
+Decisão de produto: o cadastro de carteira de caixa deixa de ser oferecido na
+navegação comum, em PF e em PJ. "Carteiras de investimento"
+(`investment_class`) continua exatamente como estava, e nenhum outro cadastro
+muda.
+
+## Decisões
+
+### A ocultação usa o mecanismo declarativo que já existia
+
+`wallets` passou de `audience: 'common'` para `audience: 'advanced'` em
+`SETTINGS_CATALOG_SECTION_LIST`. É o mesmo mecanismo aplicado antes a
+`investment_type`, risco, liquidez, indexadores e estratégias:
+`listCommonSettingsCatalogSections` filtra por `audience`, e
+`useSettingsCatalogScreen` só entrega à tela o que recebe. `SettingsView` não
+ganhou condição por `key`, `group` ou rótulo — o teste "F. a tela não decide
+visibilidade por string solta" passou a cobrir também `Carteiras`, `'wallets'`
+e `'wallet'`.
+
+### Esconder não é remover: o domínio `wallet` fica inteiro
+
+A definição continua em `SETTINGS_CATALOG_SECTION_LIST` com `group: 'wallet'`,
+`shortTitle: 'Carteiras'` e `title: 'Carteiras de caixa'`. Seguem intocados:
+`walletId` nas transações e nos cartões, `SETTINGS_CATALOG_GROUP_CONFIG.wallet`,
+`transactionFormAdapters` (que continua entregando `wallets` ao formulário de
+transação), `LEGACY_CATALOG_SEEDS` no backend, `firestore.rules`,
+`firestore.indexes.json`, Cloud Functions e todo documento já gravado. Nenhuma
+migração, nenhum delete.
+
+## Progresso
+
+- `presentation.ts`: `audience` de `wallets` e três comentários que afirmavam a
+  navegação anterior.
+- `useSettingsCatalogScreen.ts`: comentário da lista comum.
+- `tests/unit/investment-transaction-entry.test.ts`: E, F, G e I passam a
+  afirmar a nova regra — ausência em PF e PJ, permanência da definição técnica e
+  separação entre `wallet` e `investment_class`.
+- `e2e/investments-simple.spec.ts` e `e2e/regression-smoke.spec.ts`: expectativa
+  invertida; o smoke passou a exercitar a listagem por "Carteiras de
+  investimento", com uma semente `investment_class` ao lado da de `wallet`, que
+  continua gravada para provar que o documento sobrevive à ocultação.
+
+## Evidências
+
+`verify:fast` verde: typecheck (frontend + Functions), `functions lint` **0
+erros** (warnings de `max-len` pré-existentes), build de produção **37 s**,
+`functions build`, `functions:test:unit` **103/103**, `test:unit:investments`
+**174/174**.
+
+Emulator local (`test:integration:emulator`), 8 suítes: **263 testes, 0 falhas,
+0 skipped** — integração de Functions **174/174** e as cinco suítes de Rules
+mais o guard de limpeza.
+
+E2E com Emulator local, **suíte completa** (10 specs, em três lotes):
+**36 verdes**, incluindo `regression-smoke` PF e PJ, `investments-simple`,
+`goal-contributions`, `investment-operations`, `credit-card-flow`,
+`goal-investments` e `investments-v2`.
+
+`investment-onboarding` tinha **1 falha pré-existente**, reproduzida em `HEAD`
+limpo (`git stash`): o teste exigia "Categorias de investimento" visível em
+Cadastros, que a etapa "Fonte única da categoria de investimento" moveu para
+`audience: 'advanced'` sem atualizar o E2E. **Corrigida em seguida**, no próprio
+spec: a expectativa passou a ser a regra vigente — `Categorias` visível (a fonte
+única, aba "Investimentos") e `Categorias de investimento` com `toHaveCount(0)`,
+asserção de ausência que não existia em nenhum ponto do E2E. Spec verde, **3 de
+3**, e o pipeline oficial `verify:all` foi reexecutado inteiro sobre o worktree
+final.
+
+## Riscos residuais
+
+- **Carteiras seguem semeadas e selecionáveis, sem tela de administração.**
+  `LEGACY_CATALOG_SEEDS` continua criando quatro carteiras por workspace e o
+  formulário de transação continua oferecendo `wallets`
+  (`transactionFormAdapters`), mas não há mais UI comum para criar, renomear ou
+  inativar uma carteira. É a consequência direta da decisão, não um defeito.
+- **Renderer do Chromium cai com a suíte E2E inteira em um processo só.**
+  `verify:all` terminou com três "Page crashed"/"Target crashed"
+  (`investment-onboarding` e `investment-operations`), nenhuma delas falha de
+  asserção; as três passaram ao serem reexecutadas em lote menor no mesmo
+  ambiente (**8 de 8**). É o limite de memória do Codespace que a própria
+  `playwright.config.ts` documenta — JVM do emulador, runtime das Functions,
+  `vite preview` e Chromium disputando ~4 GB —, não regressão do produto.
+
+## Rollback
+
+Trocar `audience: 'advanced'` de volta para `'common'` em `wallets`. Uma linha,
+sem efeito em dado gravado — nada foi migrado nem apagado.

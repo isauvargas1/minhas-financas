@@ -253,21 +253,44 @@ const comuns = (tipo: 'PF' | 'PJ' = 'PF') =>
 test('E. os cadastros do dia a dia estão na lista comum', () => {
   for (const tipo of ['PF', 'PJ'] as const) {
     for (const titulo of [
-      'Categorias', 'Carteiras', 'Carteiras de investimento', 'Instituições',
+      'Categorias', 'Carteiras de investimento', 'Instituições',
     ]) {
       assert.ok(comuns(tipo).includes(titulo), `${titulo} sumiu de Cadastros (${tipo})`);
     }
   }
 });
 
-test('E. "Carteiras" e "Carteiras de investimento" continuam separadas', () => {
+test('E. "Carteiras" saiu de Cadastros e a de investimento ficou', () => {
+  for (const tipo of ['PF', 'PJ'] as const) {
+    assert.equal(
+      comuns(tipo).includes('Carteiras'), false,
+      `Carteiras continua em Cadastros (${tipo})`,
+    );
+    assert.ok(
+      comuns(tipo).includes('Carteiras de investimento'),
+      `Carteiras de investimento sumiu de Cadastros (${tipo})`,
+    );
+  }
+});
+
+test('E. "Carteiras" continua definida no domínio, e separada da de investimento', () => {
+  /*
+   * A carteira de caixa saiu da navegação; o cadastro **não** saiu do sistema.
+   * `walletId`, os lançamentos, os cartões e todo documento já gravado seguem
+   * apontando para o grupo `wallet`, que continua sendo outro grupo que o
+   * `investment_class` das carteiras de investimento.
+   */
   const caixa = SETTINGS_CATALOG_SECTION_LIST.find((s) => s.key === 'wallets');
   const patrimonio = SETTINGS_CATALOG_SECTION_LIST.find((s) => s.key === 'investmentClasses');
+  assert.ok(caixa, 'a definição de wallets foi removida do catálogo');
   assert.equal(caixa?.group, 'wallet');
   assert.equal(caixa?.shortTitle, 'Carteiras');
   assert.equal(caixa?.title, 'Carteiras de caixa');
+  assert.equal(caixa?.audience, 'advanced');
+  assert.equal(isCommonSettingsCatalogSection(caixa!), false);
   assert.equal(patrimonio?.group, 'investment_class');
   assert.equal(patrimonio?.shortTitle, 'Carteiras de investimento');
+  assert.equal(patrimonio?.audience, 'common');
   assert.notEqual(caixa?.group, patrimonio?.group);
 });
 
@@ -278,6 +301,9 @@ test('F. os cadastros técnicos e o histórico saíram da lista comum', () => {
       // Cadastro **anterior** de categoria de investimento. Continua definido
       // e legível; deixou de ser oferecido, porque era a segunda fonte.
       'Categorias de investimento',
+      // Carteira de caixa: retirada da navegação comum por decisão de
+      // produto. O grupo `wallet` e os documentos seguem intactos.
+      'Carteiras',
     ]) {
       assert.equal(
         comuns(tipo).includes(titulo), false,
@@ -289,15 +315,21 @@ test('F. os cadastros técnicos e o histórico saíram da lista comum', () => {
 
 test('F. a tela não decide visibilidade por string solta', () => {
   const settings = readFileSync('src/components/SettingsView.tsx', 'utf8');
-  for (const titulo of ['Risco', 'Liquidez', 'Indexadores', 'Estratégias']) {
+  for (const titulo of [
+    'Risco', 'Liquidez', 'Indexadores', 'Estratégias', 'Carteiras',
+  ]) {
     assert.doesNotMatch(settings, new RegExp(`['"\`]${titulo}['"\`]\\s*(?:!==|===)`));
   }
+  // Nem por chave nem por grupo: a regra fica na definição da seção.
+  assert.doesNotMatch(settings, /['"`]wallets['"`]\s*(?:!==|===)/);
+  assert.doesNotMatch(settings, /['"`]wallet['"`]\s*(?:!==|===)/);
   const hook = readFileSync('src/modules/settings-catalog/useSettingsCatalogScreen.ts', 'utf8');
   assert.match(hook, /listCommonSettingsCatalogSections\(activeWorkspace\.type\)/);
 });
 
 test('G. os grupos fora da navegação comum continuam definidos', () => {
   const tecnicos = [
+    ['wallets', 'wallet'],
     ['investmentTypes', 'investment_type'],
     ['investmentRisks', 'investment_risk'],
     ['investmentLiquidity', 'investment_liquidity'],
@@ -427,13 +459,15 @@ test('I. Cadastros comuns mostram exatamente a experiência decidida', () => {
   for (const tipo of ['PF', 'PJ'] as const) {
     const lista = comuns(tipo);
     for (const titulo of [
-      'Categorias', 'Carteiras', 'Carteiras de investimento', 'Instituições',
+      'Categorias', 'Carteiras de investimento', 'Instituições',
     ]) {
       assert.ok(lista.includes(titulo), `${titulo} sumiu de Cadastros (${tipo})`);
     }
     for (const titulo of [
       'Categorias de investimento', 'Risco', 'Liquidez', 'Indexadores',
       'Estratégias',
+      // Carteira de caixa: fora da navegação comum, viva no domínio.
+      'Carteiras',
     ]) {
       assert.equal(
         lista.includes(titulo), false,

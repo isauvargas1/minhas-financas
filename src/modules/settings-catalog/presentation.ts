@@ -29,8 +29,9 @@ export type SettingsCatalogSectionKey =
  * e pelas telas profissionais — só não é oferecida na navegação comum, por um
  * de dois motivos: ou é vocabulário técnico que não pertence a quem entra ali
  * para renomear uma categoria (risco, liquidez, indexador, estratégia), ou é
- * um cadastro que foi **substituído** e permanece apenas para o histórico
- * (`investment_type`, hoje representado por Categorias › Investimentos).
+ * um cadastro que saiu da navegação comum por decisão de produto e permanece
+ * pelo histórico e pela compatibilidade (`investment_type`, hoje representado
+ * por Categorias › Investimentos, e `wallet`, a carteira de caixa).
  * Esconder não é remover: os grupos, os schemas e os documentos já gravados
  * seguem intactos, e o backend continua aceitando os identificadores antigos.
  */
@@ -118,6 +119,15 @@ export const SETTINGS_CATALOG_SECTION_LIST: SettingsCatalogSectionDefinition[] =
     workspaceTypes: ['PF', 'PJ'],
     audience: 'common'
   },
+  /*
+   * Carteira de caixa: fora da navegação comum, inteira no domínio.
+   *
+   * O cadastro deixou de ser oferecido em Configurações › Cadastros. A
+   * definição continua aqui — e o grupo `wallet` continua sendo `wallet` —
+   * porque `walletId`, os lançamentos, os cartões, o onboarding do backend e
+   * todo documento já gravado seguem apontando para ela. Não confundir com
+   * `investmentClasses`: aquela é "Carteiras de investimento", segue comum.
+   */
   {
     key: 'wallets',
     group: 'wallet',
@@ -129,7 +139,7 @@ export const SETTINGS_CATALOG_SECTION_LIST: SettingsCatalogSectionDefinition[] =
     searchPlaceholder: 'Buscar carteira',
     supportsTransactionSubtype: false,
     workspaceTypes: ['PF', 'PJ'],
-    audience: 'common'
+    audience: 'advanced'
   },
   {
     key: 'costCenters',
@@ -159,8 +169,8 @@ export const SETTINGS_CATALOG_SECTION_LIST: SettingsCatalogSectionDefinition[] =
    * todo documento já gravado e toda faixa de alocação já publicada.
    *
    * "Carteiras de investimento" não é "Carteiras de caixa": aquela classifica
-   * o patrimônio, esta é onde o dinheiro do dia a dia circula. Os dois nomes
-   * ficam por extenso justamente para não se confundirem na navegação.
+   * o patrimônio, esta é onde o dinheiro do dia a dia circula. A de caixa saiu
+   * da navegação comum; a de investimento continua, com o nome por extenso.
    */
   {
     key: 'investmentClasses', group: 'investment_class', title: 'Carteiras de investimento', shortTitle: 'Carteiras de investimento',

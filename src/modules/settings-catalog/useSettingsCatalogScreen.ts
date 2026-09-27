@@ -49,8 +49,8 @@ export const useSettingsCatalogScreen = () => {
   /*
    * Configurações › Cadastros lista o catálogo da experiência comum: o que o
    * perfil do workspace permite **e** o que a própria seção declara como
-   * `audience: 'common'`. Risco, liquidez, indexadores e estratégias seguem
-   * definidos no domínio e fora daqui.
+   * `audience: 'common'`. Carteiras de caixa, risco, liquidez, indexadores e
+   * estratégias seguem definidos no domínio e fora daqui.
    */
   const sections = useMemo(
     () => listCommonSettingsCatalogSections(activeWorkspace.type),

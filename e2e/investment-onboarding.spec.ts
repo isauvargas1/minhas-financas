@@ -164,8 +164,13 @@ test('conta e ativo são criados, editados e inativados sem hard delete', async 
  * Antes o cadastro patrimonial dividia a tela com o catálogo do produto; a
  * Etapa 2 o recolheu atrás de um `<details>`; a Etapa 3 tirou o ponto de
  * montagem. O que precisa aparecer ali são os cadastros que o usuário comum
- * usa — carteira, instituição e categoria de investimento —, e é isso que este
+ * usa — carteira de investimento, instituição e categoria —, e é isso que este
  * teste passa a garantir.
+ *
+ * A categoria de investimento entra por `Categorias`, na aba "Investimentos":
+ * a unificação deixou uma fonte só. O cadastro anterior, `investment_type`,
+ * continua definido no domínio como `audience: 'advanced'` e por isso não é
+ * oferecido aqui — esconder não é remover.
  */
 test('Cadastros mostra os cadastros de investimento do usuário comum', async ({page}) => {
   await page.goto(`/?e2eEmail=${encodeURIComponent(EMAIL)}&e2ePassword=${PASSWORD}`);
@@ -176,11 +181,14 @@ test('Cadastros mostra os cadastros de investimento do usuário comum', async ({
   await page.getByRole('heading', {name: 'Cadastros', exact: true}).click();
 
   await expect(page.getByText('Produtos e Serviços')).toBeVisible();
-  for (const grupo of [
-    'Carteiras de investimento', 'Instituições', 'Categorias de investimento',
-  ]) {
+  for (const grupo of ['Carteiras de investimento', 'Instituições']) {
     await expect(page.getByText(grupo).first()).toBeVisible();
   }
+
+  // A fonte da categoria de investimento é `Categorias` › Investimentos, e é
+  // só ela: o cadastro anterior não volta à navegação comum.
+  await expect(page.getByText('Categorias', {exact: true}).first()).toBeVisible();
+  await expect(page.getByText('Categorias de investimento')).toHaveCount(0);
 
   // E nada da administração técnica (§0.B).
   await expect(page.getByRole('heading', {name: 'Cadastros patrimoniais'})).toHaveCount(0);
