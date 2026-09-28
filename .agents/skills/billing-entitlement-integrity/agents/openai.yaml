@@ -1,0 +1,4 @@
+interface:
+  display_name: "Billing and Entitlement Integrity"
+  short_description: "Valida Stripe, assinatura, entitlements e quotas"
+  default_prompt: "Use $billing-entitlement-integrity para validar billing, assinatura, entitlements e quotas desta mudança e emitir PASS ou FAIL com evidências."

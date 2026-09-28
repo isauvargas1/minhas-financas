@@ -5,6 +5,28 @@ description: Execute um gate rigoroso de regressão antes de concluir milestone,
 
 # Regression Release Gate
 
+## Contexto do projeto
+
+- Comandos oficiais (ver `package.json` e `.github/workflows/quality-gate.yml`): `npm run verify:fast` (typecheck, lint das Functions, build do frontend e das Functions, unitários), `npm run test:integration:emulator` (integração das Functions e todas as suítes de Rules em `tests/firestore/` no Emulator) e `npm run test:e2e` (build E2E + Playwright contra Emulator). `npm run verify:all` executa os três.
+- Emulator sempre com projeto `minhas-financas-local`. Qualquer comando, variável ou script que aponte para o projeto de produção (`sistema-financeiro-pesso-20698`) durante o gate é violação e `FAIL`. Scripts `deploy:*` nunca fazem parte do gate.
+- O plano mestre é `docs/production/PRODUCTION_READINESS_PLAN.md`. Um milestone só é concluído com este gate em `PASS` e com o plano atualizado com evidências.
+
+## Skills de domínio exigidas pelo tipo de mudança
+
+Este gate não substitui as skills de domínio. Quando o diff tocar a superfície abaixo, o relatório deve conter o veredito `PASS` da skill correspondente sobre o estado final, emitido no escopo definido na seção "Escopo da avaliação" da skill (quando houver); veredito ausente ou `FAIL` implica `FAIL` deste gate.
+
+| Superfície tocada | Skill obrigatória |
+| --- | --- |
+| Dados, cálculos, eventos, saldos, relatórios financeiros, substituição de domínio financeiro | `financial-domain-integrity` |
+| Queries, listeners, schema, índices, agregados, jobs sobre coleções | `firestore-scale-cost-review` |
+| Auth, workspaces, membership, RBAC, Rules, callables, Storage | `multi-tenant-security-review` |
+| Stripe, planos, assinatura, webhook, entitlements, quotas | `billing-entitlement-integrity` |
+| Ambientes, `firebase.json`, runtime/exports de Functions, App Check, segredos, IAM, backup/restore | `firebase-production-readiness` |
+| Dados pessoais, aceite/consentimento, retenção, exportação/exclusão, subprocessadores | `privacy-lgpd-data-lifecycle` |
+| Logging, correlação, métricas, alertas, auditoria, reconciliação, incidentes, DR | `observability-incident-readiness` |
+| Landing, preços, cadastro, checkout, páginas legais, footer, SEO, afirmações públicas | `saas-commercial-readiness` |
+| Qualquer conteúdo renderizado ao usuário | `ptbr-product-ui-review` |
+
 ## Executar o gate
 
 1. Ler integralmente [references/release-checklist.md](references/release-checklist.md) antes de validar.

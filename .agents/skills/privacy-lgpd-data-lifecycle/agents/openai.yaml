@@ -1,0 +1,4 @@
+interface:
+  display_name: "Privacy, LGPD and Data Lifecycle"
+  short_description: "Valida inventário, bases legais, direitos e retenção"
+  default_prompt: "Use $privacy-lgpd-data-lifecycle para validar privacidade, LGPD e ciclo de vida de dados desta mudança e emitir PASS ou FAIL com evidências."

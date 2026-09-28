@@ -18,6 +18,12 @@ Falhar ao detectar, sem justificativa de requisito explícita e cobertura equiva
 - tipo, schema, regra de segurança, autorização, validação de entrada ou invariante relaxada;
 - caminho crítico convertido em no-op, fallback permissivo ou feature flag que evita o comportamento testado.
 
+Falhar também ao detectar:
+
+- caminho legado, fallback, adapter, flag de alternância ou fonte de verdade concorrente que o milestone substitui (declarado ou evidenciado pelo diff) e que continua referenciado no código, nas Rules, nos índices, nas Functions exportadas ou nos testes (neste projeto não há dados reais de produção; compatibilidade mantida só para dados de teste não é justificativa);
+- comando, script, variável ou configuração do gate apontando para o projeto de produção;
+- milestone declarado concluído sem atualização de `docs/production/PRODUCTION_READINESS_PLAN.md` com evidências.
+
 Pesquisar mecanismos equivalentes do framework, não apenas palavras literais. Todo skip deve ter teste identificado, motivo, evidência ambiental reproduzível e impacto. Motivo funcional, flakiness ou falta de tempo não é causa ambiental.
 
 ## 3. Matriz obrigatória de execução
@@ -33,6 +39,8 @@ Descobrir os comandos em manifests, configuração e CI. Preferir comandos ofici
 7. **Firestore Rules tests:** executar a suíte de regras contra Emulator. Ausência da suíte quando regras ou acesso Firestore estão no escopo é `FAIL` e risco explícito.
 8. **Playwright E2E:** executar a suíte relevante e, para mudança ampla/crítica, a suíte completa. Preservar traces, screenshots e vídeos de falha.
 9. **Smoke adjacente:** testar o fluxo alterado, um fluxo anterior/posterior, estados de erro e ao menos uma funcionalidade que compartilhe rota, componente, contrato, coleção ou Function.
+
+Neste repositório: 1–4 e unitários do frontend via `npm run verify:fast`; 5–7 via `npm run test:integration:emulator` (projeto `minhas-financas-local`, emuladores auth e firestore); 8 via `npm run test:e2e`. Novas suítes de Rules ou unitárias precisam estar ligadas a esses scripts e ao CI; suíte existente fora dos scripts oficiais não conta como executada pelo gate e é lacuna.
 
 Se uma camada obrigatória não tiver script, localizar a configuração/suíte e executar diretamente. Se ela realmente não existir, não inventar um teste superficial: registrar lacuna e emitir `FAIL`.
 
@@ -67,5 +75,6 @@ Incluir:
 5. **Mudanças de superfície:** UI, textos, rotas e contratos, inclusive “nenhuma” com fundamento.
 6. **Riscos residuais:** apenas riscos que permanecem após o gate, com impacto e mitigação; usar “nenhum identificado” se apropriado.
 7. **Bloqueadores para PASS:** ações objetivas necessárias quando a decisão for `FAIL`.
+8. **Skills de domínio:** veredito de cada skill exigida pela superfície tocada (tabela do `SKILL.md`), com referência ao relatório correspondente.
 
 Não suavizar `FAIL` como “passou com ressalvas”. Avisos só podem coexistir com `PASS` quando não representam etapa omitida, regressão, perda de cobertura, skip injustificado ou risco material não validado.

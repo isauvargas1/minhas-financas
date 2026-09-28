@@ -7,6 +7,13 @@ description: Review Firestore changes for tenant isolation, query scalability, r
 
 Act as a blocking architecture gate. Inspect the repository and the actual diff or implementation; never approve from a description alone.
 
+## Project context
+
+- Tenant data lives under `workspaces/{workspaceId}/...`; Rules in `firestore.rules`, indexes and TTL-related field overrides in `firestore.indexes.json`. Both are versioned deliverables of the change, never follow-up work.
+- Emulator suites: `npm run test:integration:emulator` (Functions integration plus every Rules suite under `tests/firestore/`) using project `minhas-financas-local`. Never run queries against the production project.
+- Target model and known gaps: `docs/production/DATA_MODEL.md` and `docs/production/PRODUCTION_READINESS_PLAN.md` (targets, not proof).
+- Boundaries: authorization semantics and cross-tenant attack paths are gated by `multi-tenant-security-review`; financial correctness of aggregates by `financial-domain-integrity`; retention policy (how long data must or may live) by `privacy-lgpd-data-lifecycle` — this skill verifies that growing collections have an implemented, bounded retention mechanism.
+
 ## Workflow
 
 1. Read [review-checklist.md](references/review-checklist.md) completely.

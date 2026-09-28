@@ -16,6 +16,8 @@ Apply every item to each affected operation. Cite implementation, Security Rules
 - Derive effective role and workspace membership from trusted backend data or verified claims with safe revocation semantics. Never authorize from client-provided role, workspace, ownership, or hidden UI controls.
 - Restrict sensitive writes—membership/role changes, ownership transfer, billing, secrets, audit data, workspace deletion, privileged flags, and equivalent operations—to trusted backend entry points.
 - Prevent self-promotion, removal of required last owner, unauthorized invitations, membership reassignment, and confused-deputy behavior.
+- Bind invitations to a server-issued, single-use, expiring token bound to the invited e-mail; acceptance requires an authenticated UID whose verified e-mail matches the invitation, and the membership is keyed by that UID. Reject memberships keyed by client-generated or placeholder identifiers. Invitation acceptance, membership creation, role changes, and removal must be atomic with their audit record and with any quota/entitlement check.
+- Treat server-to-server helpers (shared authorization functions, internal callables, triggers acting on behalf of a user) as trust boundaries: take identity only from the entry point's verified auth context, propagated unchanged, and re-derive membership and role from trusted data inside the operation; never from client-supplied or otherwise unverified parameters.
 
 ## Data integrity and input handling
 

@@ -1,0 +1,4 @@
+interface:
+  display_name: "SaaS Commercial Readiness"
+  short_description: "Valida funil público, preços, páginas legais e SEO"
+  default_prompt: "Use $saas-commercial-readiness para validar a prontidão comercial desta mudança e emitir PASS ou FAIL com evidências."

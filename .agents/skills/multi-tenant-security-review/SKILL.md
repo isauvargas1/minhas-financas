@@ -7,6 +7,14 @@ description: Review multi-tenant authentication, authorization, tenant isolation
 
 Act as a read-only security gate. Inspect the actual implementation, callers, rules, configuration, and tests. During a review, never edit code, configuration, rules, tests, or generated files unless the user explicitly authorizes implementation of fixes.
 
+## Project context
+
+- Roles are `owner`, `admin`, and `member`, stored per workspace membership. Tenant data lives under `workspaces/{workspaceId}/...`. Target model and known gaps: `docs/production/AUTH_RBAC_WORKSPACES.md`, `docs/production/SECURITY_MODEL.md`, and `docs/production/THREAT_MODEL.md` (targets, not proof).
+- Rules suites run in the Emulator (`npm run test:integration:emulator`, project `minhas-financas-local`). Never test against the production project.
+- The official Firebase Agent Skill `firebase:firebase-security-rules-auditor` (Firebase plugin) is a complementary checklist for Rules; loading it does not replace this gate.
+- App Check is an additional abuse-prevention layer, never a substitute for authentication, membership, or RBAC checks. Platform enforcement settings (App Check enforcement, IAM, Secret Manager) are gated by `firebase-production-readiness`.
+- There is no real production data: legacy authorization paths, permissive compatibility Rules, or client-side membership writes kept only for test data must be removed, not preserved.
+
 ## Workflow
 
 1. Read [security-checklist.md](references/security-checklist.md) completely.

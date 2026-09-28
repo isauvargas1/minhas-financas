@@ -1,0 +1,4 @@
+interface:
+  display_name: "Observability and Incident Readiness"
+  short_description: "Valida logs, alertas, auditoria, incidentes e DR"
+  default_prompt: "Use $observability-incident-readiness para validar observabilidade, auditoria e prontidão para incidentes desta mudança e emitir PASS ou FAIL com evidências."

@@ -28,6 +28,12 @@ Apply every item to each affected path. Cite the exact implementation, rules, in
 - Reject documents, arrays, maps, logs, counters, or embedded histories that grow without a hard bound. Check document-size, index-entry, write-rate, and hotspot implications; model growing data as bounded/chunked documents or subcollections.
 - Use a batch when multiple independent writes must commit atomically; use a transaction when correctness depends on current values or concurrent updates. Verify idempotency and retry safety for functions/jobs.
 - Check bulk operations for platform limits, chunking, backpressure, partial failure handling, and resumability.
+- Require an implemented retention mechanism (TTL policy on a timestamp field, or a bounded, idempotent cleanup job) for every append-only operational collection that grows with usage — idempotency keys, rate-limit buckets, operational metrics, webhook event logs, notifications — with the TTL field, policy, and retention period documented. Financial history and audit trails are retained per policy, never silently expired.
+- Scheduled jobs and triggers that iterate tenants must be bounded per execution (cursor/shard/rotation), resumable, and must not scan all workspaces or a global collection group on every run.
+
+## Legacy removal
+
+- When a query path, collection, or document shape is replaced, remove the obsolete queries, listeners, composite indexes, field overrides, and Rules blocks in the same change, or cite the new-domain consumer that still needs each one. Unused indexes cost write amplification and storage; orphaned Rules blocks keep attack surface open.
 
 ## Cost and high-volume compatibility
 

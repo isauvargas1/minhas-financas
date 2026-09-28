@@ -1,0 +1,4 @@
+interface:
+  display_name: "Firebase Production Readiness"
+  short_description: "Valida ambientes, App Check, segredos, Functions e backups"
+  default_prompt: "Use $firebase-production-readiness para validar a prontidão da plataforma Firebase desta mudança e emitir PASS ou FAIL com evidências."
