@@ -71,6 +71,9 @@ jobs:
       - name: Testes unitários do frontend
         run: npm run test:unit:investments
 
+      - name: Testes unitários de dinheiro, sessão e workspaces
+        run: npm run test:unit:p1
+
   integration-and-rules:
     name: Integração e Firestore Rules
     runs-on: ubuntu-latest

@@ -48,7 +48,7 @@ Não existem dados reais de produção. Compatibilidade com código, schema ou f
 | Milestone | Escopo | Estado |
 | --- | --- | --- |
 | **P0** | Fundação: instruções, skills, documentação, auditoria, plano | Em fechamento nesta entrega (§14) |
-| **P1** | Auth, workspaces, memberships, RBAC, convites, ciclo de vida de conta + kernel compartilhado do backend | Em andamento — código, testes e skills concluídos; falta um `verify:all` limpo (E2E) para o gate (§16) |
+| **P1** | Auth, workspaces, memberships, RBAC, convites, ciclo de vida de conta + kernel compartilhado do backend | Concluído — `regression-release-gate` `PASS` em 2026-09-29 (§16.3); blockers fechados (§16.4) |
 | **P2** | Billing Stripe, entitlements e quotas | Não iniciado |
 | **P3** | Caixa autoritativo (transactions), Empréstimos, Clientes/Recebíveis | Não iniciado |
 | **P4** | Convergência de Recorrentes, Divisão de contas, Cartões e Transações | Não iniciado |
@@ -122,13 +122,13 @@ Resumo auditado por domínio. O detalhe (CURRENT/TARGET/GAP completos, MEDIUM/LO
 ### 5.1 Authentication/account lifecycle — [AUTH_RBAC_WORKSPACES.md](AUTH_RBAC_WORKSPACES.md)
 - **CURRENT:** login só Google (`signInWithPopup`), mais um login e-mail/senha de E2E com credenciais fixas ativado por flag de build (`src/contexts/AuthContext.tsx:94-114`). Não há blocking functions, custom claims, verificação de e-mail, revogação, desativação, reautenticação nem exclusão de conta. O perfil `users/{uid}` só é criado pelo webhook Stripe (`functions/src/webhooks/stripe.ts:97-106`). As Rules impedem o cliente de gravar campos de plano/admin, com teste.
 - **CURRENT (P1, §16):** `bootstrapAccount` cria numa transação perfil server-owned, workspace pessoal já provisionado, membership owner, índice e auditoria (`functions/src/workspaces/lifecycle.ts:106`); suspensão com Auth desativado e revogação de sessões (`functions/src/workspaces/suspension.ts:36`); toda callable do kernel recusa conta suspensa e as Rules negam leitura/escrita de dados de workspace a conta `suspended` (`firestore.rules:31-45`). O texto acima descreve o baseline de P0.
-- **GAP:** PR-AUTH-01, PR-AUTH-02, PR-AUTH-04 (PR-AUTH-03 corrigido em P1, pendente do gate (PLAN §16)).
+- **GAP:** PR-AUTH-01, PR-AUTH-02, PR-AUTH-04 (PR-AUTH-03 fechado em P1, PLAN §16.4).
 - **TARGET:** identidade só do token verificado; `bootstrapAccount` idempotente cria perfil server-owned, workspace pessoal determinístico e membership; suspensão com revogação; exclusão/exportação (P8). Sequência do aceite: P1 prepara o `bootstrapAccount` para receber o registro de aceite; P8 define documentos, versões e o registro server-side de aceite e consentimentos; P9 torna o aceite obrigatório no cadastro.
 
 ### 5.2 Workspaces/memberships/RBAC/invites — [AUTH_RBAC_WORKSPACES.md](AUTH_RBAC_WORKSPACES.md)
 - **CURRENT:** criar workspace, adicionar/remover membro e trocar papel são escritas do cliente (`src/modules/workspaces/api.ts:180-273`), sem callable, transação, auditoria ou quota. Rules M4.C validam papel e bloqueiam autopromoção, com testes. Autoridade dupla `ownerId` × membership e dois resolvedores de papel no backend (`functions/src/creditCards/auth.ts`, `functions/src/investments/infrastructure.ts`).
 - **CURRENT (P1, §16):** 11 callables de conta/workspace/membership no kernel (`functions/src/workspaces/callables.ts:68-232`); resolvedor único por membership ativo relido na transação (`functions/src/shared/workspaceAuth.ts:121-214`); Rules `write: false` em workspace, members, convites, auditoria e índice (`firestore.rules:936-976,1398-1402`); listas paginadas por cursor sob demanda (`src/modules/workspaces/api.ts:69,131,190`). O texto acima descreve o baseline de P0.
-- **GAP:** nenhum de P1 (PR-WS-01…PR-WS-06 corrigidos em P1, pendentes do gate (PLAN §16)). A quota de workspaces/membros é P2 (D-01).
+- **GAP:** nenhum de P1 (PR-WS-01…PR-WS-06 fechados em P1, PLAN §16.4). A quota de workspaces/membros é P2 (D-01).
 - **TARGET:** callables de ciclo de vida de workspace e membership; convites com token de uso único vinculado ao e-mail verificado; membership ativo como fonte única de papel; índice do usuário mantido pelo backend.
 
 ### 5.3 Transactions/cash — [FINANCIAL_DOMAIN_MODEL.md](FINANCIAL_DOMAIN_MODEL.md)
@@ -229,7 +229,7 @@ Resumo auditado por domínio. O detalhe (CURRENT/TARGET/GAP completos, MEDIUM/LO
 
 ### 5.25 Transversais — plataforma e dinheiro
 - **Plataforma (CURRENT):** um único projeto Firebase (`.firebaserc`), usado também como desenvolvimento; Hosting sem headers de segurança; Tailwind Play CDN, Google Fonts e sons do Mixkit carregados de terceiros em runtime; importmap `esm.sh` publicado no HTML (requisição em runtime não comprovada). **GAP:** PR-PLAT-01…PR-PLAT-03, PR-AUTH-04.
-- **Dinheiro (CURRENT):** módulo `money` único em centavos (`functions/src/shared/money.ts`, espelhado em `src/lib/money.ts`, vetores compartilhados em `tests/fixtures/money-vectors.json`) e datas civis em `America/Sao_Paulo` (`functions/src/shared/dateKeys.ts`), entregues em P1. A adoção por domínio segue pendente: metas gravam float e centavos lado a lado; os demais domínios usam reais em float. **GAP:** itens de adoção de cada domínio (P3–P5); PR-MONEY-01 corrigido em P1, pendente do gate (PLAN §16) quanto ao módulo e à política.
+- **Dinheiro (CURRENT):** módulo `money` único em centavos (`functions/src/shared/money.ts`, espelhado em `src/lib/money.ts`, vetores compartilhados em `tests/fixtures/money-vectors.json`) e datas civis em `America/Sao_Paulo` (`functions/src/shared/dateKeys.ts`), entregues em P1. A adoção por domínio segue pendente: metas gravam float e centavos lado a lado; os demais domínios usam reais em float. **GAP:** itens de adoção de cada domínio (P3–P5); PR-MONEY-01 fechado em P1 quanto ao módulo e à política (PLAN §16.4).
 
 ---
 
@@ -243,19 +243,11 @@ Itens BLOCKER e HIGH consolidados, mais quatro MEDIUM (três ligados a alegaçõ
 | --- | --- | --- | --- | --- | --- |
 | PR-AUTH-01 | BLOCKER | P8 | Sem exclusão de conta, exportação de dados nem cancelamento de assinatura na saída do titular | `functions/src/index.ts:13-37 - sem auth trigger/callable de conta`<br>`firestore.rules:1467 - users delete false; sem allow delete em workspaces (990-1008)` | AUTH-01, PRIV-02, PRIV-03 · C26 |
 | PR-AUTH-02 | BLOCKER | P9 | Cadastro sem Termos de Uso, Política de Privacidade e registro server-side de aceite versionado | `src/components/auth/LoginView.tsx:15-53 - só botão Google e 'Ambiente seguro © 2024'`<br>`grep 'Termos\|Privacidade\|LGPD' em src: 0` | AUTH-02, PRIV-01 · C26 |
-| PR-AUTH-03 | HIGH | P1 | **Corrigido em P1 (pendente do gate, PLAN §16).** Bootstrap de conta e do primeiro workspace no cliente, não atômico e não idempotente; perfil users/{uid} sem dono server-side | `functions/src/workspaces/lifecycle.ts:106-218 — bootstrap transacional e idempotente`<br>`functions/src/workspaces/provisioning.ts:155 — provisionamento na mesma transação`<br>`src/contexts/WorkspaceContext.tsx:105 — cliente só chama o callable` | AUTH-03, AUTH-12, WS-07 |
 | PR-AUTH-04 | HIGH | P6 | Login E2E com credenciais fixas no código de produção e artefato de Hosting compartilhado com o build E2E | `src/contexts/AuthContext.tsx:94-114`<br>`src/lib/firebase.ts:47-62 - sem assert E2E=>emulador` | AUTH-13, REL-05 |
 
 #### Workspaces/memberships/RBAC/invites
 
-| ID | Sev. | Milestone | Blocker | Evidência (HEAD `9c3ab46`) | Achados de origem |
-| --- | --- | --- | --- | --- | --- |
-| PR-WS-01 | BLOCKER | P1 | **Corrigido em P1 (pendente do gate, PLAN §16).** Convite de membro inexistente: UID fictício gerado no cliente, sem token, expiração, e-mail ou aceite | `functions/src/workspaces/memberships.ts:104,231 — convite com hash do token, aceite pelo uid da sessão e e-mail verificado`<br>`functions/src/workspaces/inviteTokens.ts:13-15 — 256 bits, 7 dias` | WS-01, AUTH-05, RULES-07 · C05 |
-| PR-WS-02 | HIGH | P1 | **Corrigido em P1 (pendente do gate, PLAN §16).** Mutações de membership no cliente, não atômicas, com escrita parcial determinística e sem auditoria | `functions/src/workspaces/memberships.ts:385,436,485,536 — papel, remoção, saída e transferência transacionais com auditoria`<br>`firestore.rules:951-958 — members write false` | WS-02, FEW-08, WS-11, ENTRY-09 · C04 |
-| PR-WS-03 | HIGH | P1 | **Corrigido em P1 (pendente do gate, PLAN §16).** Fontes concorrentes de papel: espelho autogravado, fallback collectionGroup morto, ownerId × membership e resolvedores duplicados | `functions/src/shared/workspaceAuth.ts:121-214 — resolvedor único, sem fallback ownerId`<br>`src/modules/workspaces/api.ts:148-152 — papel lido só do membership ativo` | WS-03, WS-10, AUTH-07, READ-14, RULES-18 |
-| PR-WS-04 | HIGH | P1 | **Corrigido em P1 (pendente do gate, PLAN §16).** ownerId pode ser trancado fora do próprio workspace via status (co-owner/admin) | `firestore.rules:9-45 — sem regime ownerId; isMember exige conta ativa`<br>`tests/firestore/workspaces-p1.rules.integration.test.mjs:192 — trancamento do owner negado` | WS-04, RULES-08 |
-| PR-WS-05 | HIGH | P1 | **Corrigido em P1 (pendente do gate, PLAN §16).** Criação de workspace pelo cliente sem validar type PF/PJ e com falhas de payload (a quota é tratada em PR-ENT-01) | `functions/src/workspaces/lifecycle.ts:222 — createWorkspace com Zod estrito, PF/PJ e CNPJ`<br>`firestore.rules:936-945 — create/update/delete false` | AUTH-04, RULES-06, FEW-10, WS-08 |
-| PR-WS-06 | HIGH | P1 | **Corrigido em P1 (pendente do gate, PLAN §16).** Sem testes de membership/workspace (Rules cross-tenant, espelho, convites, criação) | `functions/src/workspaces/__tests__/*.integration.test.ts — conta, ciclo de vida, convites, membros, ownership, provisionamento`<br>`tests/firestore/workspaces-p1.rules.integration.test.mjs — cross-tenant A↔B, viewer, suspenso, paginação; e2e/workspace-membership.spec.ts` | WS-06, AUTH-16 |
+Nenhum item aberto. PR-WS-01…PR-WS-06 foram fechados em P1 e saíram deste registro. A evidência de cada um está em §16.4.
 
 #### Transactions/cash
 
@@ -456,9 +448,7 @@ Itens BLOCKER e HIGH consolidados, mais quatro MEDIUM (três ligados a alegaçõ
 
 #### Representação monetária
 
-| ID | Sev. | Milestone | Blocker | Evidência (HEAD `9c3ab46`) | Achados de origem |
-| --- | --- | --- | --- | --- | --- |
-| PR-MONEY-01 | HIGH | P1 | **Corrigido em P1 (pendente do gate, PLAN §16).** Sem módulo Money único: float em reais na maioria dos domínios e helpers de arredondamento divergentes (adoção por domínio segue em P3–P5) | `functions/src/shared/money.ts:87,122 — parse e alocação por maior resto`<br>`src/lib/money.ts:67,88 — espelho no frontend` | MONEY-11 |
+Nenhum item aberto. PR-MONEY-01 foi fechado em P1 quanto ao módulo e à política e saiu deste registro. A evidência está em §16.4. A adoção por domínio continua nos itens de P3–P5 (§5.25).
 
 #### Documentação
 
@@ -517,7 +507,7 @@ Cada milestone termina somente com: testes direcionados verdes, remoção provad
 - **Objetivo:** identidade e autorização autoritativas no backend e kernel compartilhado para os milestones seguintes.
 - **Kernel (D-ORD-02):** resolvedor único de membership/papel relido dentro da transação, sem fallback `ownerId`; wrapper de callable (autenticação, política de `email_verified`, Zod estrito com IDs sem `/`, rate limit, idempotência, mapeador de erros pt-BR, ponto de extensão para App Check; sem consulta a plano, quota ou entitlement, que P2 acrescenta — D-01); gravador de auditoria append-only; contrato de logger estruturado e correlation ID; módulo `money` (centavos, parse, alocação por maior resto) espelhado no frontend; política de datas civis em `America/Sao_Paulo`.
 - **Domínio:** `bootstrapAccount`, `createWorkspace`, `updateWorkspaceSettings`, convites (token, expiração, e-mail verificado), aceite, revogação, troca de papel, remoção lógica, saída voluntária, transferência de ownership, arquivamento de workspace; Rules `write: false` em `members`, índice do usuário e criação de workspace; suspensão com revogação de sessão; logout limpando estado local.
-- **Blockers:** PR-AUTH-03, PR-WS-01…PR-WS-06, PR-MONEY-01 (módulo e política; adoção por domínio em P3–P5).
+- **Blockers:** PR-AUTH-03, PR-WS-01…PR-WS-06, PR-MONEY-01 (módulo e política; adoção por domínio em P3–P5). Todos fechados em 2026-09-29 (§16.4).
 - **Achados MEDIUM também fechados em P1:** AUTH-08 (política de `email_verified`/provedor), AUTH-09 (suspensão e revogação de sessão no backend; as ferramentas administrativas ficam em PR-ADMIN-01/P7), AUTH-10 (erros de login e de carga em pt-BR), AUTH-11 (logout limpa cache e armazenamento local; a migração do histórico de IA para o servidor fica em PR-AI-04/P5), WS-09, WS-11, WS-13, WS-15.
 - **Índice do usuário:** mantém o caminho `users/{uid}/workspaces`, passando a ser gravado só pelo backend (sem renomear a coleção).
 - **Depende de decisões:** nenhuma pendente. Tomadas: D-02, D-03, D-04, D-05, D-06, D-16, D-17, D-22, D-34 e D-P1-SUSP (§9.1). P1 **não** depende de D-01 e não contém quota, plano provisório, fallback de entitlement nem motor parcial; P2 adiciona quota/entitlement nas mesmas transações de `createWorkspace`, `inviteWorkspaceMember` e `acceptWorkspaceInvite`.
@@ -737,12 +727,15 @@ Documentos OUTDATED não devem orientar implementação nem operação. Os runbo
 | --- | --- | --- |
 | 2026-09-27 | P0 | Auditoria do HEAD `9c3ab46`; registro §6 criado (30 BLOCKER, 60 HIGH); skills, `CLAUDE.md`, proteções e `docs/production/` entregues. Validação em 2026-09-28: `verify:all` verde sobre o working tree final (§14); `regression-release-gate` executado no fechamento. |
 | 2026-09-29 | P1 | Lacunas de fechamento resolvidas (provisionamento server-side transacional, tenant confiável no log, erros no contrato compartilhado, paginação por cursor, contrato cliente das 11 callables, limpeza de legado); skills `PASS` no escopo; gate `FAIL` por E2E sem execução completa verde (§16.2). P1 permanece em andamento. |
+| 2026-09-29 | P1 | `verify:all` nº 3 verde aceito como evidência (sem mudança funcional depois dele); `regression-release-gate` `FAIL`: a suíte unitária nova `test:unit:p1` roda em `verify:fast`, mas não no CI (§16.3). P1 permanece em andamento. |
+| 2026-09-29 | P1 | `test:unit:p1` foi ligado ao job `build-and-unit` do CI, nas versões Node 22 e 24, e passou 128/128. Só o workflow e este plano mudaram. P1 permanece em andamento e aguarda apenas a reexecução do `regression-release-gate` (§16.3). |
+| 2026-09-29 | P1 | `regression-release-gate` reexecutado: **PASS** (§16.3). P1 **concluído**. PR-AUTH-03, PR-WS-01…PR-WS-06 e PR-MONEY-01 fechados e retirados de §6, com a evidência em §16.4. P2 não foi iniciado. |
 
 ---
 
 ## 16. P1 — execução e evidências
 
-**Estado:** Em andamento. Todas as lacunas de código de P1 foram resolvidas e todas as skills aplicáveis emitiram `PASS` no escopo do diff; o `regression-release-gate` está em `FAIL` porque nenhuma execução completa de `verify:all` terminou verde (bloqueador em §16.2). Os blockers de §6 estão corrigidos no código e só saem do registro quando o gate passar. Nada foi implantado (D-ORD-04); toda validação foi feita no Emulator `minhas-financas-local`.
+**Estado:** Concluído em 2026-09-29. Todas as lacunas de código de P1 foram resolvidas e todas as skills aplicáveis emitiram `PASS` no escopo do diff. `verify:all` terminou verde (§16.2). O `regression-release-gate` emitiu `FAIL` por uma lacuna de CI e, depois da correção, `PASS` (§16.3). Os blockers de P1 saíram de §6, com a evidência em §16.4. Nada foi implantado (D-ORD-04); toda validação foi feita no Emulator `minhas-financas-local`.
 
 ### 16.1 Fechamento (2026-09-29)
 
@@ -775,9 +768,40 @@ Ambiente: Node 22, 2 CPUs, 7,9 GB sem swap; Emulator `minhas-financas-local`. Li
 | Testes direcionados (durante o fechamento) | Integração P1 + goals + investimentos no Emulator 155/155; Rules P1 10/10; unitários Functions 328/328; unitários P1 do frontend 128/128 |
 | `verify:all` nº 1 | Tudo verde até as Rules; E2E 38/40: `workspace-pagination.spec.ts` (bug do próprio teste ao fechar o menu, corrigido) e `workspace-membership.spec.ts:121` (`page.reload: Page crashed`) |
 | `verify:all` nº 2 (final) | typecheck, lint, builds OK; unitários Functions 328/328, investimentos 174/174, P1 128/128; integração 252/252; guarda de limpeza 15/15; Rules goals 5, investments 7, investment-domain 19, investment-m3 7, m4 36, adjacent 5, workspaces 10 (todas verdes); E2E **39/40**: `workspace-membership.spec.ts:121` com `locator.click: Target crashed` no mesmo ponto (após `page.reload()`) |
+| `verify:all` nº 3 (2026-09-29, exit 0, 11m45s, log `/tmp/p1-verify-all.log`) | typecheck 0 erros; lint das Functions 0 erros e 1.971 avisos (baseline 2.076); builds do frontend e das Functions OK; unitários Functions 328/328, investimentos 174/174, P1 128/128; integração 252/252; guarda de limpeza 15/15; Rules goals 5, investments 7, investment-domain 19, investment-m3 7, m4 36, adjacent 5, workspaces 10 (89/89); E2E **40/40** (4,3 min), incluindo `workspace-membership.spec.ts:121`. Nenhum skipped/falha/crash. Memória disponível no início: 4.381 MB. Sem mudança de código, timeout, retry ou configuração. |
 | Diagnóstico | Os dois specs de workspace isolados: 3/3. Rodada completa com amostragem de memória: 14/40, com 13 falhas de crash de renderer/navegador espalhadas por specs não relacionados; memória disponível caiu de 4.480 MB para 763 MB, com processos duplicados do servidor do VS Code e um `playwright test-server` da IDE ativos durante a rodada. Nenhum `oom_kill` registrado no cgroup, portanto a causa ambiental não está provada |
 | Comparação visual | Screenshots HEAD × working tree (build E2E, mesma semente): modal de membros idêntico pixel a pixel em 1280×800 e 390×844; menu do seletor idêntico em 1280×800 |
 
-**Skills (escopo do diff de P1):** `multi-tenant-security-review` PASS; `firestore-scale-cost-review` PASS; `ptbr-product-ui-review` PASS; `financial-domain-integrity` PASS; `billing-entitlement-integrity` PASS (só a migração de erro; P2 fora do escopo); `firebase-production-readiness` PASS (remoção de export; P6 fora do escopo); `observability-incident-readiness` PASS (contrato de log; registro do alvo não confiável de tentativas negadas como evento de segurança fica para P7). `regression-release-gate`: **FAIL**.
+**Skills (escopo do diff de P1):** `multi-tenant-security-review` PASS; `firestore-scale-cost-review` PASS; `ptbr-product-ui-review` PASS; `financial-domain-integrity` PASS; `billing-entitlement-integrity` PASS (só a migração de erro; P2 fora do escopo); `firebase-production-readiness` PASS (remoção de export; P6 fora do escopo); `observability-incident-readiness` PASS (contrato de log; registro do alvo não confiável de tentativas negadas como evento de segurança fica para P7). `regression-release-gate`: **FAIL** (§16.3).
 
-**Bloqueador restante (único):** obter uma execução completa de `npm run verify:all` verde, com `e2e/workspace-membership.spec.ts:121` passando na suíte completa, num ambiente com memória livre equivalente à de P0 (≈ 4,5 GB disponíveis em repouso). Se a falha se repetir com memória folgada, tratá-la como regressão de produto e investigar o carregamento pós-`reload` do owner com dois workspaces provisionados. Depois do `PASS`, mover P1 para Concluído e retirar de §6 PR-AUTH-03, PR-WS-01…PR-WS-06 e PR-MONEY-01.
+### 16.3 Gate de regressão (2026-09-29)
+
+Base `60f2b7d` (fechamento de P0) → `HEAD` `35314b1`; worktree com alteração só neste plano. O `verify:all` nº 3 (log criado às 14:52:33 e encerrado às 15:04:18 UTC, depois do commit `HEAD` das 14:25:53) foi aceito como evidência: desde o início da rodada, o único arquivo versionado alterado é este plano, sem arquivos untracked. No log: typecheck OK; lint 0 erros; builds OK; unitários 328 + 174 + 128; integração 252; guarda de limpeza 15; Rules 89; E2E 40/40; nenhum skipped, falha ou crash; Emulator só em `minhas-financas-local`, sem referência ao projeto de produção. No diff: nenhum skip/`only`, nenhuma perda líquida de asserções em testes modificados, timeouts novos só nos specs novos (no padrão de 20–60 s já usado), scripts alterados só por adição (`test:unit:p1`, `test:rules:workspaces`) e busca de legado sem ocorrências.
+
+**Bloqueador (FAIL):** a suíte unitária nova `test:unit:p1` (`tests/unit/money.test.ts`, `session-cleanup.test.ts`, `workspace-callables.test.ts`; 128 testes) está em `verify:fast` (`package.json:15`), mas não no CI. O job de unitários de `.github/workflows/quality-gate.yml:68-72` executa só `functions:test:unit` e `test:unit:investments`, e não chama `verify:fast`. O checklist do gate (§3) exige que toda suíte unitária nova esteja ligada aos scripts oficiais **e** ao CI. Sem isso, uma regressão no espelho `src/lib/money.ts` (PR-MONEY-01), na limpeza de sessão (AUTH-11) ou no contrato cliente das 11 callables passaria no CI. `test:rules:workspaces` não tem essa lacuna: roda dentro de `test:integration:emulator`, que o CI executa.
+
+**Correção do bloqueador (2026-09-29):** `test:unit:p1` agora roda no CI, no passo "Testes unitários de dinheiro, sessão e workspaces" (`.github/workflows/quality-gate.yml:74-75`). O passo fica no job `build-and-unit`, logo depois de `test:unit:investments`, e por isso roda nas duas versões da matriz, Node 22 e 24. Aproveita a instalação, o cache e a política de falha que o job já tinha. O workflow continua válido: foi reinterpretado com o `js-yaml` que já está em `functions/node_modules`, com três jobs e o passo novo no índice 10. `npm run test:unit:p1` passou 128/128 (Node 22, 0 falhas, 0 skipped). A mudança se limita ao workflow e a este plano. Nenhum código funcional, teste, Rule ou script foi alterado, e por isso o `verify:all` nº 3 continua valendo como evidência.
+
+**Reexecução do gate (2026-09-29): PASS.** O worktree tinha só duas alterações sobre `HEAD` `35314b1`: `.github/workflows/quality-gate.yml` (+3 linhas) e este plano. Nenhum arquivo untracked. Fora do diretório de dependências e dos artefatos de build, esses dois são os únicos arquivos modificados depois do início do `verify:all` nº 3 (14:52:33 UTC), e por isso o `verify:all` nº 3 continua valendo. O log confirma: 328, 174, 128, 252, 15 e 89 testes passando nas suítes do Node, e E2E 40/40. Nenhum `fail`, `skipped` ou `todo`. Só aparece o Emulator `minhas-financas-local`, com zero ocorrências do projeto de produção.
+
+- O workflow foi reinterpretado com `js-yaml`. O passo `npm run test:unit:p1` é o índice 10 do job `build-and-unit`, que roda na matriz Node 22/24 com `fail-fast: false`.
+- O passo não tem `if:` nem `continue-on-error`, e o workflow inteiro não tem `|| true` nem `set +e`. O único `if:` do arquivo é o `if: failure()` do upload de artefatos do E2E, que já existia.
+- O script `test:unit:p1` (`package.json:15`) continua com os três arquivos e roda em `verify:fast`. A reexecução passou 128/128, sem falhas, `skipped` ou `todo`.
+- A mudança não toca nenhuma superfície que exija skill de domínio além das que já emitiram `PASS` sobre o diff funcional (§16.2). Nenhum blocker novo de P1.
+
+### 16.4 Blockers fechados (2026-09-29)
+
+Os itens abaixo saíram de §6 com o gate `PASS` (§16.3). A evidência é do `HEAD` `35314b1` e foi validada pelo `verify:all` nº 3 (§16.2).
+
+| ID | Sev. | Blocker de origem | Evidência do fechamento | Achados de origem |
+| --- | --- | --- | --- | --- |
+| PR-AUTH-03 | HIGH | Bootstrap de conta e do primeiro workspace no cliente, não atômico e não idempotente; perfil users/{uid} sem dono server-side | `functions/src/workspaces/lifecycle.ts:106-218 — bootstrap transacional e idempotente`<br>`functions/src/workspaces/provisioning.ts:155 — provisionamento na mesma transação`<br>`src/contexts/WorkspaceContext.tsx:105 — cliente só chama o callable` | AUTH-03, AUTH-12, WS-07 |
+| PR-WS-01 | BLOCKER | Convite de membro inexistente: UID fictício gerado no cliente, sem token, expiração, e-mail ou aceite | `functions/src/workspaces/memberships.ts:104,231 — convite com hash do token, aceite pelo uid da sessão e e-mail verificado`<br>`functions/src/workspaces/inviteTokens.ts:13-15 — 256 bits, 7 dias` | WS-01, AUTH-05, RULES-07 · C05 |
+| PR-WS-02 | HIGH | Mutações de membership no cliente, não atômicas, com escrita parcial determinística e sem auditoria | `functions/src/workspaces/memberships.ts:385,436,485,536 — papel, remoção, saída e transferência transacionais com auditoria`<br>`firestore.rules:951-958 — members write false` | WS-02, FEW-08, WS-11, ENTRY-09 · C04 |
+| PR-WS-03 | HIGH | Fontes concorrentes de papel: espelho autogravado, fallback collectionGroup morto, ownerId × membership e resolvedores duplicados | `functions/src/shared/workspaceAuth.ts:121-214 — resolvedor único, sem fallback ownerId`<br>`src/modules/workspaces/api.ts:148-152 — papel lido só do membership ativo` | WS-03, WS-10, AUTH-07, READ-14, RULES-18 |
+| PR-WS-04 | HIGH | ownerId pode ser trancado fora do próprio workspace via status (co-owner/admin) | `firestore.rules:9-45 — sem regime ownerId; isMember exige conta ativa`<br>`tests/firestore/workspaces-p1.rules.integration.test.mjs:192 — trancamento do owner negado` | WS-04, RULES-08 |
+| PR-WS-05 | HIGH | Criação de workspace pelo cliente sem validar type PF/PJ e com falhas de payload (a quota é tratada em PR-ENT-01, P2) | `functions/src/workspaces/lifecycle.ts:222 — createWorkspace com Zod estrito, PF/PJ e CNPJ`<br>`firestore.rules:936-945 — create/update/delete false` | AUTH-04, RULES-06, FEW-10, WS-08 |
+| PR-WS-06 | HIGH | Sem testes de membership/workspace (Rules cross-tenant, espelho, convites, criação) | `functions/src/workspaces/__tests__/*.integration.test.ts — conta, ciclo de vida, convites, membros, ownership, provisionamento`<br>`tests/firestore/workspaces-p1.rules.integration.test.mjs — cross-tenant A↔B, viewer, suspenso, paginação; e2e/workspace-membership.spec.ts` | WS-06, AUTH-16 |
+| PR-MONEY-01 | HIGH | Sem módulo Money único: float em reais na maioria dos domínios e helpers de arredondamento divergentes. Fechado quanto ao módulo e à política; a adoção por domínio segue em P3–P5 | `functions/src/shared/money.ts:87,122 — parse e alocação por maior resto`<br>`src/lib/money.ts:67,88 — espelho no frontend`<br>`tests/unit/money.test.ts — em test:unit:p1, no CI` | MONEY-11 |
+
+Os documentos de referência de `docs/production/` ainda marcam esses itens como "pendente do gate (PLAN §16)". Essa referência agora aponta para este fechamento.
