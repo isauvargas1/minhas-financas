@@ -1,5 +1,16 @@
 import * as admin from "firebase-admin";
 
+import {
+  requireFirestoreEmulator,
+  seedActiveAccount,
+  seedMember,
+  seedWorkspace,
+} from "../../shared/testSupport/kernelTestSupport";
+import type {
+  WorkspaceActor,
+  WorkspaceRole,
+} from "../../shared/workspaceAuth";
+
 export interface SeedCreditCardIntegrationWorkspaceInput {
   workspaceId: string;
   ownerId: string;
@@ -9,7 +20,7 @@ export interface SeedCreditCardIntegrationWorkspaceInput {
 export interface SeedCreditCardIntegrationMemberInput {
   workspaceId: string;
   userId: string;
-  role: "owner" | "admin" | "member" | "viewer";
+  role: WorkspaceRole;
 }
 
 const CREDIT_CARD_TEST_COLLECTIONS = [
@@ -29,19 +40,22 @@ const CREDIT_CARD_TEST_COLLECTIONS = [
   "transactions",
 ];
 
-export const getIntegrationFirestore = (): admin.firestore.Firestore => {
-  if (!process.env.FIRESTORE_EMULATOR_HOST) {
-    throw new Error("FIRESTORE_EMULATOR_HOST não configurado.");
-  }
+/**
+ * Firestore do Emulator para os testes de integração.
+ *
+ * Sem Emulator a suíte **falha** em vez de pular (FIRE-13), e o projeto é
+ * sempre o local: nenhum `GCLOUD_PROJECT` herdado aponta o Admin SDK para um
+ * projeto real.
+ */
+export const getIntegrationFirestore = (): admin.firestore.Firestore =>
+  requireFirestoreEmulator();
 
-  if (!admin.apps.length) {
-    admin.initializeApp({
-      projectId: process.env.GCLOUD_PROJECT || "minhas-financas-local",
-    });
-  }
-
-  return admin.firestore();
-};
+/** Ator como a pré-checagem do kernel o entregaria à operação. */
+export const creditCardTestActor = (
+  workspaceId: string,
+  uid: string,
+  role: WorkspaceRole = "owner",
+): WorkspaceActor => ({uid, workspaceId, role});
 
 const deleteCollectionDocuments = async (
   db: admin.firestore.Firestore,
@@ -76,11 +90,26 @@ export const resetCreditCardIntegrationWorkspace = async (
     ),
   );
 
+  const members = await db.collection(`workspaces/${workspaceId}/members`)
+    .get();
+
+  await Promise.all(
+    members.docs.map((member) =>
+      db.doc(`users/${member.id}/workspaces/${workspaceId}`).delete(),
+    ),
+  );
+
   await deleteCollectionDocuments(db, `workspaces/${workspaceId}/members`);
 
   await db.doc(`workspaces/${workspaceId}`).delete();
 };
 
+/**
+ * Workspace ativo com o owner canônico: perfil ativo, membership ativo e
+ * entrada no índice do usuário — o mesmo estado que o bootstrap produz. O
+ * `ownerId` do documento é só dado denormalizado; a autorização vem do
+ * membership.
+ */
 export const seedCreditCardIntegrationWorkspace = async ({
   workspaceId,
   ownerId,
@@ -89,23 +118,14 @@ export const seedCreditCardIntegrationWorkspace = async ({
   const db = getIntegrationFirestore();
   const now = admin.firestore.Timestamp.now();
 
-  const batch = db.batch();
-
-  batch.set(db.doc(`workspaces/${workspaceId}`), {
-    id: workspaceId,
-    name: "Workspace Integração Cartão",
-    type: "PF",
+  await seedActiveAccount(ownerId);
+  await seedWorkspace({
+    workspaceId,
     ownerId,
-    createdAt: now,
-    updatedAt: now,
+    name: "Workspace Integração Cartão",
   });
 
-  batch.set(db.doc(`workspaces/${workspaceId}/members/${ownerId}`), {
-    uid: ownerId,
-    role: "owner",
-    status: "active",
-    joinedAt: now,
-  });
+  const batch = db.batch();
 
   batch.set(db.doc(`workspaces/${workspaceId}/credit_cards/${cardId}`), {
     id: cardId,
@@ -120,30 +140,27 @@ export const seedCreditCardIntegrationWorkspace = async ({
     updatedAt: now,
   });
 
-  batch.set(db.doc(`workspaces/${workspaceId}/card_limit_snapshots/${cardId}`), {
-    cardId,
-    workspaceId,
-    limitTotal: 5000,
-    limitUsed: 0,
-    limitAvailable: 5000,
-    updatedAt: now,
-  });
+  batch.set(
+    db.doc(`workspaces/${workspaceId}/card_limit_snapshots/${cardId}`),
+    {
+      cardId,
+      workspaceId,
+      limitTotal: 5000,
+      limitUsed: 0,
+      limitAvailable: 5000,
+      updatedAt: now,
+    },
+  );
 
   await batch.commit();
 };
 
+/** Membro com perfil ativo e membership ativo no papel informado. */
 export const seedCreditCardIntegrationMember = async ({
   workspaceId,
   userId,
   role,
 }: SeedCreditCardIntegrationMemberInput): Promise<void> => {
-  const db = getIntegrationFirestore();
-  const now = admin.firestore.Timestamp.now();
-
-  await db.doc(`workspaces/${workspaceId}/members/${userId}`).set({
-    uid: userId,
-    role,
-    status: "active",
-    joinedAt: now,
-  });
+  await seedActiveAccount(userId);
+  await seedMember(workspaceId, userId, role);
 };

@@ -41,9 +41,9 @@ Rótulos conforme a tabela de classificação do plano: **CURRENT** (existe no H
 Detalhe em [AUTH_RBAC_WORKSPACES.md](AUTH_RBAC_WORKSPACES.md) §2 e §10.1.
 
 - **CURRENT:** nas Rules, `signedIn()` é só `request.auth != null` (`firestore.rules:5-7`). No backend, `requireAuthenticatedUser` exige apenas `uid` e lê `email` do token (`functions/src/creditCards/auth.ts:36-52`). Nenhuma checagem de `email_verified` ou de provedor; o checkout envia `token.email` ao Stripe (`functions/src/callables/billing.ts:139`). Sem blocking functions nem gatilho de Auth (`functions/src/index.ts:13-37`). Sem `revokeRefreshTokens` nem status de conta (AUTH-09). Login e-mail/senha de E2E com credenciais fixas no `AuthContext` (`src/contexts/AuthContext.tsx:94-114`).
-- **TARGET:** o wrapper do kernel (D-ORD-02) aplica a política de token: `email_verified` e `sign_in_provider` na allowlist do ambiente, `auth_time` recente nas operações sensíveis, recusa de conta suspensa e de token anterior a `tokensValidAfterTime`. Blocking functions restringem provedores por ambiente. MFA obrigatória para administradores de plataforma. As Rules ganham um helper equivalente para `email_verified` se D-06 o exigir.
+- **TARGET:** o wrapper do kernel (D-ORD-02) aplica a política de token: `email_verified` nas callables definidas por D-06, `sign_in_provider` na allowlist do ambiente (só Google), `auth_time` nos últimos 10 minutos em `transferWorkspaceOwnership` e `archiveWorkspace`, recusa de conta suspensa e de token anterior a `tokensValidAfterTime`. Blocking functions restringem provedores por ambiente. Sem MFA para usuários comuns; MFA obrigatória para administradores de plataforma (P7). D-06 define a exigência de `email_verified` por callable e não prevê helper equivalente nas Rules.
 - **GAP:** PR-AUTH-04 (P6); AUTH-08, ENTRY-23, AUTH-17; suspensão em PR-ADMIN-01 (P7), com mecanismo em P1 (D-ORD-03); contenção e revogação de sessão em incidente: PR-OBS-02 (P7).
-- **DECISION:** D-06. **EXTERNAL CONFIGURATION REQUIRED:** E-03 (NÃO VERIFICADO).
+- **DECISION:** D-06 (tomada, §9.1 do plano). **EXTERNAL CONFIGURATION REQUIRED:** E-03 (NÃO VERIFICADO).
 
 ---
 
@@ -101,7 +101,7 @@ O wrapper do kernel (D-ORD-02, entregue em P1) executa, nesta ordem:
 3. Zod `.strict()`: IDs com o schema único (sem `/`, tamanho máximo), dinheiro em centavos inteiros, strings com teto.
 4. Abertura da transação e `authorizeInTransaction(tx, workspaceId, uid, allowedRoles)` ([ARCHITECTURE.md](ARCHITECTURE.md)): exige que o `workspaceId` do payload seja o autorizado, relê `workspaces/{id}` e `members/{uid}`, exige membership `active` e workspace não arquivado e aplica a matriz declarativa da operação.
 5. Rate limit por ator e workspace, e por usuário quando o recurso é global (IA).
-6. Entitlement e quota (motor de P2, PR-ENT-01).
+6. Entitlement e quota (motor de P2, PR-ENT-01). As callables de P1 não consultam quota; P2 a insere nas transações de `createWorkspace`, `inviteWorkspaceMember` e `acceptWorkspaceInvite` (D-01).
 7. Reserva de idempotência presa a ator, workspace, operação e hash do payload.
 8. Escritas de domínio, projeções e evento de auditoria append-only no mesmo commit.
 9. Erros mapeados por um único módulo, com códigos canônicos (`resource-exhausted`, `already-exists`, `permission-denied`), mensagem em pt-BR, `details` sanitizados e correlation ID de servidor; erro inesperado registrado no logger estruturado antes da conversão.
@@ -143,7 +143,7 @@ Exposição:
 - Um `match` explícito por coleção, `get` e `list` separados, `list` sempre com `request.query.limit`, papel mínimo por coleção e nenhum catch-all. Um teste enumera as coleções usadas pelo código e falha se alguma não tiver regra explícita.
 - Um único helper de papel baseado no membership ativo, sem `isWorkspaceOwnerByParent` ([AUTH_RBAC_WORKSPACES.md](AUTH_RBAC_WORKSPACES.md) §6.3).
 - `storage.rules` com deny-all versionado, ou remoção de `getStorage`.
-- Suíte por coleção cobrindo owner, admin, member, `viewer` (D-02), removido, não membro e não autenticado, com create, update, delete, get e list, cross-tenant nos dois sentidos e payload inválido.
+- Suíte por coleção cobrindo owner, admin, member, `viewer` (somente leitura, D-02), removido, não membro e não autenticado, com create, update, delete, get e list, cross-tenant nos dois sentidos e payload inválido.
 
 ---
 
@@ -177,7 +177,7 @@ Riscos intra-workspace (o member ou admin é o atacante):
 
 ## 8. RBAC
 
-Papéis `owner`, `admin` e `member` por membership de workspace; a permanência de `viewer` é DECISION D-02. As matrizes atual e alvo, as invariantes de owner e último owner (D-03), os poderes do admin (D-04) e o resolvedor único estão em [AUTH_RBAC_WORKSPACES.md](AUTH_RBAC_WORKSPACES.md) §6 e §7.
+Papéis `owner`, `admin`, `member` e `viewer` por membership de workspace, com `viewer` estritamente somente leitura (D-02, tomada). As matrizes atual e alvo, a invariante de um único owner canônico (D-03), os poderes de owner e admin (D-04) e o resolvedor único estão em [AUTH_RBAC_WORKSPACES.md](AUTH_RBAC_WORKSPACES.md) §6 e §7.
 
 Pontos de segurança: as Rules M4.C já bloqueiam autopromoção e concessão de `owner` por admin, com testes (`tests/firestore/m4-hardening.rules.integration.test.mjs:257-356`). O regime duplo `ownerId` × membership diverge entre Rules e backend (PR-WS-03, P1). O papel exibido na UI vem de um espelho autogravado e não deve ser usado para nenhuma decisão (PR-WS-03, P1).
 

@@ -1,9 +1,7 @@
 import * as admin from "firebase-admin";
 import { FieldValue } from "firebase-admin/firestore";
 
-import type {
-  CreditCardCallableExecutionContext,
-} from "./callable";
+import type {CreditCardOperationContext} from "./callable";
 
 import type {
   RebuildCardInvoicesForCardPayload,
@@ -21,8 +19,9 @@ import {
 } from "./adminPaths";
 
 import {
-  CreditCardApplicationError,
-} from "./errors";
+  ApplicationError,
+} from "../shared/errors";
+import {reassertWorkspaceActor} from "../shared/workspaceAuth";
 
 import {
   markIdempotencyKeyCompleted,
@@ -171,7 +170,7 @@ const assertValidBillingDay = (
     numericValue < 1 ||
     numericValue > 31
   ) {
-    throw new CreditCardApplicationError(
+    throw new ApplicationError(
       "domain_precondition_failed",
       "O cartão possui regra de ciclo inválida.",
       { field, value }
@@ -286,15 +285,17 @@ const buildResult = (
 });
 
 export const executeRebuildCardInvoicesForCard = async (
-  context: CreditCardCallableExecutionContext<
+  context: CreditCardOperationContext<
     RebuildCardInvoicesForCardPayload
   >
 ): Promise<RebuildCardInvoicesForCardResult | Record<string, unknown>> => {
-  const { payload, auth } = context;
+  const {payload, actor} = context;
   const db = getFirestore();
   const operation = "rebuildCardInvoicesForCard";
 
   return db.runTransaction(async (transaction) => {
+    await reassertWorkspaceActor(transaction, actor);
+
     const workspaceId = payload.workspaceId;
     const cardRef = creditCardDoc(workspaceId, payload.cardId);
     const installmentsQuery = workspaceCollection(
@@ -317,7 +318,7 @@ export const executeRebuildCardInvoicesForCard = async (
     ]);
 
     if (!cardSnapshot.exists) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "not_found",
         "Cartão não encontrado.",
         { cardId: payload.cardId }
@@ -327,7 +328,7 @@ export const executeRebuildCardInvoicesForCard = async (
     const cardData = cardSnapshot.data() as CreditCardData | undefined;
 
     if (!cardData) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "internal",
         "Cartão existente sem dados carregados.",
         { cardId: payload.cardId }
@@ -338,7 +339,7 @@ export const executeRebuildCardInvoicesForCard = async (
       cardData.workspaceId !== undefined &&
       cardData.workspaceId !== workspaceId
     ) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "O cartão não pertence ao workspace informado.",
         { cardId: payload.cardId }
@@ -370,7 +371,7 @@ export const executeRebuildCardInvoicesForCard = async (
     );
 
     if (scopedInstallments.length === 0) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "Nenhuma parcela encontrada para reconstrução de faturas.",
         {
@@ -388,7 +389,7 @@ export const executeRebuildCardInvoicesForCard = async (
     );
 
     if (invalidInstallment) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "Existe parcela inválida no escopo de reconstrução.",
         { installmentId: invalidInstallment.id }
@@ -404,7 +405,7 @@ export const executeRebuildCardInvoicesForCard = async (
     );
 
     if (invoiceDrafts.length === 0) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "Nenhuma fatura faturável foi gerada para reconstrução.",
         { cardId: payload.cardId }
@@ -472,7 +473,7 @@ export const executeRebuildCardInvoicesForCard = async (
     );
 
     if (invalidPayment) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "Há pagamento inválido no escopo de reconstrução.",
         { paymentId: invalidPayment.id }
@@ -484,7 +485,7 @@ export const executeRebuildCardInvoicesForCard = async (
     );
 
     if (activePayment) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "Não é permitido reconstruir faturas com pagamentos registrados.",
         {
@@ -500,7 +501,7 @@ export const executeRebuildCardInvoicesForCard = async (
     );
 
     if (blockedInvoice) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "Não é permitido reconstruir fatura paga ou parcialmente paga.",
         {
@@ -666,7 +667,7 @@ export const executeRebuildCardInvoicesForCard = async (
       correlationId: payload.correlationId,
       idempotencyKey: payload.idempotencyKey,
       createdAt: serverTimestamp,
-      actorId: auth.uid,
+      actorId: actor.uid,
     }));
 
     enqueueCreditCardDomainNotifications(transaction, {
@@ -675,13 +676,13 @@ export const executeRebuildCardInvoicesForCard = async (
       cardId: payload.cardId,
       eventType: "reconciliation_warning",
       payload: eventPayload,
-      actorId: auth.uid,
+      actorId: actor.uid,
     });
 
     recordCreditCardAuditLog(transaction, {
       workspaceId,
       action: "card_invoices_rebuilt",
-      actorId: auth.uid,
+      actorId: actor.uid,
       entityType: "card",
       entityId: payload.cardId,
       cardId: payload.cardId,
@@ -695,7 +696,7 @@ export const executeRebuildCardInvoicesForCard = async (
     recordCreditCardOperationMetric(transaction, {
   workspaceId,
   operation: "card_invoices_rebuilt",
-  actorId: auth.uid,
+  actorId: actor.uid,
   cardId: payload.cardId,
   correlationId: payload.correlationId,
   idempotencyKey: payload.idempotencyKey,

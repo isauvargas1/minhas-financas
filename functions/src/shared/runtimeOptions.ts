@@ -89,3 +89,19 @@ export const SCHEDULED_FUNCTION_OPTIONS = {
   memory: "512MiB",
   maxInstances: 1,
 } as const;
+
+/**
+ * Gatilho de propagação do índice do usuário (P1).
+ *
+ * Idempotente (grava o estado atual do workspace, não o delta do evento), por
+ * isso pode ter `retry` ligado: uma falha no meio da paginação é refeita do
+ * início sem efeito duplicado. `maxInstances` baixo: renomear e arquivar são
+ * raros, e o custo por execução é linear no número de membros ativos.
+ */
+export const WORKSPACE_INDEX_SYNC_OPTIONS = {
+  region: FUNCTIONS_REGION,
+  timeoutSeconds: 120,
+  memory: "256MiB",
+  maxInstances: 5,
+  retry: true,
+} as const;

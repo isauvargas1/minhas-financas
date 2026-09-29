@@ -1,6 +1,8 @@
 import {expect, test} from '@playwright/test';
 import {createRequire} from 'node:module';
 
+import {seedOwnedWorkspace} from './support/workspaceSeed';
+
 const require = createRequire(import.meta.url);
 const admin = require('../functions/node_modules/firebase-admin') as typeof import('../functions/node_modules/firebase-admin');
 
@@ -36,29 +38,15 @@ const seed = async () => {
     emailVerified: true,
   });
   const now = admin.firestore.FieldValue.serverTimestamp();
-  await workspaceRef.set({
-    ownerId: OWNER_UID,
-    userId: OWNER_UID,
+  await seedOwnedWorkspace({
+    uid: OWNER_UID,
+    email: OWNER_EMAIL,
+    workspaceId: WORKSPACE_ID,
     name: 'Workspace Meta M1',
     type: 'PF',
-    themeColor: '#4f46e5',
-    createdAt: now,
-    updatedAt: now,
+    extra: {themeColor: '#4f46e5'},
   });
   await Promise.all([
-    db.doc(`workspaces/${WORKSPACE_ID}/members/${OWNER_UID}`).set({
-      uid: OWNER_UID,
-      email: OWNER_EMAIL,
-      role: 'owner',
-      status: 'active',
-      joinedAt: now,
-    }),
-    db.doc(`users/${OWNER_UID}/workspaces/${WORKSPACE_ID}`).set({
-      workspaceId: WORKSPACE_ID,
-      role: 'owner',
-      createdAt: now,
-      updatedAt: now,
-    }),
     db.doc(`workspaces/${WORKSPACE_ID}/goals/${GOAL_ID}`).set({
       workspaceId: WORKSPACE_ID,
       profileId: WORKSPACE_ID,

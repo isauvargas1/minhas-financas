@@ -3,7 +3,7 @@ import test from "node:test";
 
 import {Timestamp} from "firebase-admin/firestore";
 
-import {CreditCardApplicationError} from "../../creditCards/errors";
+import {ApplicationError} from "../../shared/errors";
 import {assertInvestmentDocument} from "../documentContracts";
 import {
   INVESTMENT_CALCULATION_VERSION,
@@ -56,7 +56,7 @@ const rejects = (fn: () => unknown, hint: string) => {
   assert.throws(
     fn,
     (error: unknown) =>
-      error instanceof CreditCardApplicationError &&
+      error instanceof ApplicationError &&
       error.code === "domain_precondition_failed",
     hint,
   );

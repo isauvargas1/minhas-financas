@@ -13,9 +13,6 @@ const TEST_CARD_ID = "card-credit-card-integration-test";
 
 test(
   "Firestore Emulator deve permitir seed isolado do workspace de cartão",
-  {
-    skip: !process.env.FIRESTORE_EMULATOR_HOST,
-  },
   async () => {
     const db = getIntegrationFirestore();
 
@@ -48,8 +45,15 @@ test(
     assert.equal(cardSnapshot.exists, true);
     assert.equal(limitSnapshot.exists, true);
 
+    const profileSnapshot = await db.doc(`users/${TEST_OWNER_ID}`).get();
+
+    // O seed reproduz o estado que o resolvedor canônico exige: perfil ativo,
+    // workspace ativo e membership ativo. `ownerId` é só dado denormalizado.
+    assert.equal(profileSnapshot.data()?.status, "active");
+    assert.equal(workspaceSnapshot.data()?.status, "active");
     assert.equal(workspaceSnapshot.data()?.ownerId, TEST_OWNER_ID);
     assert.equal(memberSnapshot.data()?.role, "owner");
+    assert.equal(memberSnapshot.data()?.status, "active");
     assert.equal(cardSnapshot.data()?.workspaceId, TEST_WORKSPACE_ID);
     assert.equal(cardSnapshot.data()?.limitTotal, 5000);
     assert.equal(limitSnapshot.data()?.limitAvailable, 5000);

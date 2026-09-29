@@ -21,6 +21,44 @@ const dayFormatter = new Intl.DateTimeFormat("en-CA", {
 export const saoPauloDayKey = (value: Date = new Date()): string =>
   dayFormatter.format(value);
 
+/** Valida o formato `YYYY-MM-DD` e a existência da data no calendário. */
+export const isDayKey = (value: unknown): value is string => {
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return false;
+  }
+  const [year, month, day] = value.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return date.getUTCFullYear() === year &&
+    date.getUTCMonth() === month - 1 &&
+    date.getUTCDate() === day;
+};
+
+const pad = (value: number, size: number): string =>
+  String(value).padStart(size, "0");
+
+/**
+ * Chave `YYYY-MM-DD` de uma data civil ancorada em UTC.
+ *
+ * Para aritmética de calendário: a data é construída com `Date.UTC` a partir
+ * de ano, mês e dia civis, e lida de volta pelos mesmos campos UTC. Não é
+ * conversão de fuso — um instante real (`new Date()`, `Timestamp`) usa
+ * `saoPauloDayKey`. Substitui `toISOString().slice(0, 10)`, que fazia a mesma
+ * leitura mas era indistinguível, no código, da derivação errada de dia civil
+ * a partir de um instante (D-17).
+ */
+export const utcAnchoredDayKey = (date: Date): string =>
+  `${pad(date.getUTCFullYear(), 4)}-${pad(date.getUTCMonth() + 1, 2)}-` +
+  pad(date.getUTCDate(), 2);
+
+/** Soma `days` dias corridos a uma chave `YYYY-MM-DD`. */
+export const addDaysToDayKey = (dayKey: string, days: number): string => {
+  if (!isDayKey(dayKey) || !Number.isSafeInteger(days)) {
+    throw new Error(`Chave de dia inválida: ${dayKey}`);
+  }
+  const [year, month, day] = dayKey.split("-").map(Number);
+  return utcAnchoredDayKey(new Date(Date.UTC(year, month - 1, day + days)));
+};
+
 /** Chave `YYYY-MM` do instante informado em `America/Sao_Paulo`. */
 export const saoPauloMonthKey = (value: Date = new Date()): string =>
   saoPauloDayKey(value).slice(0, 7);

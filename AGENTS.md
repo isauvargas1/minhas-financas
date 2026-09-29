@@ -3,7 +3,7 @@
 - Produção SaaS multiworkspace; nunca assumir single-user.
 - Toda leitura/escrita deve preservar isolamento por workspace.
 - Operações financeiras críticas ficam no backend.
-- RBAC owner/admin/member deve ser validado server-side.
+- RBAC owner/admin/member/viewer (viewer somente leitura) deve ser validado server-side.
 - Não fazer hard delete de histórico financeiro.
 - Toda operação suscetível a retry deve ser idempotente.
 - Evitar full scans, N+1, queries sem limit/paginação e listeners desnecessários.

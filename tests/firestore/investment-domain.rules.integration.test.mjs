@@ -60,6 +60,10 @@ const seed = async () => {
       if (error?.code !== 'auth/user-not-found') throw error;
     }
     await firebaseAdmin.auth().createUser({...user, password, emailVerified: true});
+    // P1: a autorização exige perfil de conta ativo (gravado pelo backend).
+    // Viewer e membro removido também têm perfil ativo: quem os nega é o papel
+    // ou o membership, não a conta.
+    await db.doc(`users/${user.uid}`).set({uid: user.uid, status: 'active'});
   }
   await Promise.all([
     db.recursiveDelete(db.doc(`workspaces/${workspaceA}`)),
@@ -67,9 +71,9 @@ const seed = async () => {
     db.recursiveDelete(db.doc(`workspaces/${workspaceWithoutMembership}`)),
   ]);
   await Promise.all([
-    db.doc(`workspaces/${workspaceA}`).set({ownerId: users.ownerA.uid, type: 'PF'}),
-    db.doc(`workspaces/${workspaceB}`).set({ownerId: users.ownerB.uid, type: 'PJ'}),
-    db.doc(`workspaces/${workspaceWithoutMembership}`).set({ownerId: users.ownerA.uid, type: 'PF'}),
+    db.doc(`workspaces/${workspaceA}`).set({ownerId: users.ownerA.uid, type: 'PF', status: 'active'}),
+    db.doc(`workspaces/${workspaceB}`).set({ownerId: users.ownerB.uid, type: 'PJ', status: 'active'}),
+    db.doc(`workspaces/${workspaceWithoutMembership}`).set({ownerId: users.ownerA.uid, type: 'PF', status: 'active'}),
   ]);
   await Promise.all([
     db.doc(`workspaces/${workspaceA}/members/${users.ownerA.uid}`).set({uid: users.ownerA.uid, role: 'owner', status: 'active'}),
@@ -291,25 +295,66 @@ test('Rules M4 restringem leitura das coleções operacionais por papel e bloque
   );
 });
 
-test('M4 — owner sem documento de membership lê o próprio domínio, e só ele', async () => {
+test('P1 — ownerId sem membership ativo não concede acesso ao domínio', async () => {
   await seed();
-  // Decisão do M4: as Rules acompanham o backend, que concede `owner` a quem é
-  // `ownerId` do workspace mesmo sem documento de membership. Antes, essa
-  // pessoa escrevia na carteira pelas callables e via a tela vazia.
+  // P1 (D-03): `workspace.ownerId` é só desnormalizado e não concede nada. O
+  // regime anterior (M4), em que o ownerId sem documento de membership lia o
+  // próprio domínio, deixou de existir: a única fonte de papel é
+  // `members/{uid}` com `status == 'active'`.
+  const db = getAdmin().firestore();
+  const path = `workspaces/${workspaceWithoutMembership}/investment_accounts/document-orphan`;
+  const ownerMembership = db.doc(`workspaces/${workspaceWithoutMembership}/members/${users.ownerA.uid}`);
   await withClients(['ownerA', 'ownerB', 'memberA'], async ({ownerA, ownerB, memberA}) => {
-    const path = `workspaces/${workspaceWithoutMembership}/investment_accounts/document-orphan`;
-    const snapshot = await getDoc(doc(ownerA.db, path));
-    assert.equal(snapshot.exists(), true, 'O ownerId do workspace precisa ler o próprio domínio.');
-
-    // O fallback vale só para o ownerId real: qualquer outro segue negado.
+    await assert.rejects(
+      () => getDoc(doc(ownerA.db, path)),
+      'O ownerId sem documento de membership não lê o domínio.',
+    );
+    await assert.rejects(
+      () => getDocs(query(
+        collection(ownerA.db, `workspaces/${workspaceWithoutMembership}/investment_accounts`),
+        limit(10),
+      )),
+      'O ownerId sem documento de membership não lista o domínio.',
+    );
+    await assert.rejects(
+      () => getDoc(doc(ownerA.db, `workspaces/${workspaceWithoutMembership}`)),
+      'O ownerId sem documento de membership não lê o workspace.',
+    );
     await assert.rejects(
       () => getDoc(doc(ownerB.db, path)),
-      'Owner de outro tenant não pode ler pelo fallback.',
+      'Owner de outro tenant não lê o workspace alheio.',
     );
     await assert.rejects(
       () => getDoc(doc(memberA.db, path)),
-      'Membro de outro workspace não pode ler pelo fallback.',
+      'Membro de outro workspace não lê o workspace alheio.',
     );
+
+    // Membership de owner que não está ativo também não concede nada, mesmo
+    // com o ownerId apontando para a pessoa: `removed` é a remoção lógica do
+    // backend, e qualquer outro valor diferente de `active` nega igual.
+    for (const status of ['removed', 'inactive']) {
+      await ownerMembership.set({uid: users.ownerA.uid, role: 'owner', status});
+      await assert.rejects(
+        () => getDoc(doc(ownerA.db, path)),
+        `Membership de owner com status ${status} não concede leitura.`,
+      );
+      await assert.rejects(
+        () => setDoc(
+          doc(ownerA.db, `workspaces/${workspaceWithoutMembership}/transactions/tx-${status}`),
+          {
+            type: 'despesa', description: 'Sem membership ativo', category: 'Casa',
+            value: 10, date: '2026-08-18', userId: users.ownerA.uid,
+            workspaceId: workspaceWithoutMembership,
+          },
+        ),
+        `Membership de owner com status ${status} não concede escrita.`,
+      );
+    }
+
+    // Controle positivo: é o membership ativo, e só ele, que concede acesso.
+    await ownerMembership.set({uid: users.ownerA.uid, role: 'owner', status: 'active'});
+    assert.equal((await getDoc(doc(ownerA.db, path))).exists(), true);
+    await assert.rejects(() => getDoc(doc(ownerB.db, path)));
   });
 });
 

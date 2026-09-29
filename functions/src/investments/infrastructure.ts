@@ -1,22 +1,14 @@
-import {createHash} from "node:crypto";
 import * as admin from "firebase-admin";
 import {FieldValue, Timestamp} from "firebase-admin/firestore";
 
-import type {
-  WorkspaceAuthorizationContext,
-  WorkspaceMemberRole,
-} from "../creditCards/auth";
-import {CreditCardApplicationError} from "../creditCards/errors";
+import {ApplicationError} from "../shared/errors";
+import {sha256, stableStringify} from "../shared/hashing";
 import {reserveRateLimit} from "../shared/rateLimit";
 import {RETENTION_DAYS, expiresInDays} from "../shared/retention";
+import type {WorkspaceActor, WorkspaceRole} from "../shared/workspaceAuth";
 import type {InvestmentProfileType} from "./domain";
 import {investmentRateLimitPolicy} from "./rateLimits";
-import {
-  INVESTMENT_COLLECTIONS,
-  investmentDoc,
-  investmentMemberDoc,
-  investmentWorkspaceRef,
-} from "./paths";
+import {INVESTMENT_COLLECTIONS, investmentDoc} from "./paths";
 
 export type InvestmentBackendOperation =
   | "onboardInvestmentWorkspace"
@@ -58,17 +50,7 @@ export interface InvestmentIdempotencyReservation {
   commitRateLimit?: () => void;
 }
 
-export const sha256 = (value: string): string =>
-  createHash("sha256").update(value).digest("hex");
-
-export const stableStringify = (value: unknown): string => {
-  if (value === null || typeof value !== "object") return JSON.stringify(value);
-  if (Array.isArray(value)) return `[${value.map(stableStringify).join(",")}]`;
-  return `{${Object.entries(value as Record<string, unknown>)
-    .sort(([left], [right]) => left.localeCompare(right))
-    .map(([key, entry]) => `${JSON.stringify(key)}:${stableStringify(entry)}`)
-    .join(",")}}`;
-};
+export {sha256, stableStringify};
 
 export const deterministicDocumentId = (...parts: string[]): string =>
   `inv_${sha256(parts.join(":")).slice(0, 36)}`;
@@ -99,7 +81,7 @@ export const assertNotFuture = (
   field: string,
 ): Timestamp => {
   if (value.toMillis() > Date.now() + FUTURE_DATE_TOLERANCE_MS) {
-    throw new CreditCardApplicationError(
+    throw new ApplicationError(
       "domain_precondition_failed",
       `A data informada em ${field} está no futuro.`,
     );
@@ -121,7 +103,7 @@ export const assertNotBefore = (
   floorLabel: string,
 ): Timestamp => {
   if (value.toMillis() < floor.toMillis()) {
-    throw new CreditCardApplicationError(
+    throw new ApplicationError(
       "domain_precondition_failed",
       `A data informada em ${field} é anterior ${floorLabel}.`,
     );
@@ -132,7 +114,7 @@ export const assertNotBefore = (
 export const parseTimestamp = (value: string): Timestamp => {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
-    throw new CreditCardApplicationError("invalid_payload", "Data inválida.");
+    throw new ApplicationError("invalid_payload", "Data inválida.");
   }
   return Timestamp.fromDate(date);
 };
@@ -143,72 +125,10 @@ export const profileTypeFromWorkspace = (
   if (workspace.type === "PF" || workspace.type === "PJ") {
     return workspace.type;
   }
-  throw new CreditCardApplicationError(
+  throw new ApplicationError(
     "domain_precondition_failed",
     "O workspace precisa declarar explicitamente o contexto PF ou PJ.",
   );
-};
-
-const isRole = (value: unknown): value is WorkspaceMemberRole =>
-  value === "owner" ||
-  value === "admin" ||
-  value === "member" ||
-  value === "viewer";
-
-export const authorizeInvestmentTransaction = async (
-  transaction: admin.firestore.Transaction,
-  auth: WorkspaceAuthorizationContext,
-  allowedRoles: WorkspaceMemberRole[],
-): Promise<{
-  workspace: admin.firestore.DocumentData;
-  profileType: InvestmentProfileType;
-  role: WorkspaceMemberRole;
-}> => {
-  const [workspaceSnapshot, memberSnapshot] = await Promise.all([
-    transaction.get(investmentWorkspaceRef(auth.workspaceId)),
-    transaction.get(investmentMemberDoc(auth.workspaceId, auth.uid)),
-  ]);
-  if (!workspaceSnapshot.exists) {
-    throw new CreditCardApplicationError(
-      "workspace_not_found",
-      "Workspace não encontrado.",
-    );
-  }
-  const workspace = workspaceSnapshot.data() ?? {};
-  const member = memberSnapshot.data();
-  if (
-    memberSnapshot.exists &&
-    member?.status !== undefined &&
-    member.status !== "active"
-  ) {
-    throw new CreditCardApplicationError(
-      "workspace_membership_required",
-      "A participação do usuário neste workspace não está ativa.",
-    );
-  }
-  const persistedRole =
-    memberSnapshot.exists && isRole(member?.role) ?
-      member.role :
-      workspace.ownerId === auth.uid ?
-        "owner" :
-        undefined;
-  if (!persistedRole) {
-    throw new CreditCardApplicationError(
-      "workspace_membership_required",
-      "Usuário não pertence a este workspace.",
-    );
-  }
-  if (!allowedRoles.includes(persistedRole)) {
-    throw new CreditCardApplicationError(
-      "workspace_role_denied",
-      "Usuário não possui permissão para executar esta operação.",
-    );
-  }
-  return {
-    workspace,
-    profileType: profileTypeFromWorkspace(workspace),
-    role: persistedRole,
-  };
 };
 
 /**
@@ -230,7 +150,7 @@ export const idempotencyIdentityPayload = (payload: unknown): unknown => {
 
 export const reserveInvestmentIdempotency = async (
   transaction: admin.firestore.Transaction,
-  auth: WorkspaceAuthorizationContext,
+  auth: WorkspaceActor,
   operation: InvestmentBackendOperation,
   idempotencyKey: string,
   correlationId: string,
@@ -241,7 +161,7 @@ export const reserveInvestmentIdempotency = async (
       (payload as Record<string, unknown>).workspaceId :
       undefined;
   if (payloadWorkspaceId !== auth.workspaceId) {
-    throw new CreditCardApplicationError(
+    throw new ApplicationError(
       "permission_denied",
       "O workspace do payload não corresponde ao contexto autorizado.",
     );
@@ -276,7 +196,7 @@ export const reserveInvestmentIdempotency = async (
     data.operation !== operation ||
     data.requestHash !== requestHash
   ) {
-    throw new CreditCardApplicationError(
+    throw new ApplicationError(
       "idempotency_conflict",
       "A chave de idempotência já foi usada com outros dados.",
     );
@@ -286,7 +206,7 @@ export const reserveInvestmentIdempotency = async (
     typeof data.result !== "object" ||
     !data.result
   ) {
-    throw new CreditCardApplicationError(
+    throw new ApplicationError(
       "idempotency_conflict",
       "Esta solicitação já está em processamento.",
     );
@@ -301,7 +221,7 @@ export const reserveInvestmentIdempotency = async (
 
 export const completeInvestmentIdempotency = (
   transaction: admin.firestore.Transaction,
-  auth: WorkspaceAuthorizationContext,
+  auth: WorkspaceActor,
   operation: InvestmentBackendOperation,
   correlationId: string,
   reservation: InvestmentIdempotencyReservation,
@@ -329,8 +249,8 @@ export const completeInvestmentIdempotency = (
 
 export const recordInvestmentEvent = (
   transaction: admin.firestore.Transaction,
-  auth: WorkspaceAuthorizationContext,
-  role: WorkspaceMemberRole,
+  auth: WorkspaceActor,
+  role: WorkspaceRole,
   profileType: InvestmentProfileType,
   operation: InvestmentBackendOperation,
   reservation: InvestmentIdempotencyReservation,
@@ -366,14 +286,14 @@ export const assertWorkspaceDocument = (
   label: string,
 ): admin.firestore.DocumentData => {
   if (!snapshot.exists) {
-    throw new CreditCardApplicationError(
+    throw new ApplicationError(
       "not_found",
       `${label} não encontrado.`,
     );
   }
   const data = snapshot.data() ?? {};
   if (data.workspaceId !== undefined && data.workspaceId !== workspaceId) {
-    throw new CreditCardApplicationError(
+    throw new ApplicationError(
       "domain_precondition_failed",
       `${label} não pertence ao workspace autorizado.`,
     );

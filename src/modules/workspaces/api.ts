@@ -1,275 +1,208 @@
 import {
   collection,
-  collectionGroup,
-  deleteDoc,
   doc,
   getDoc,
   getDocs,
+  limit,
+  orderBy,
   query,
-  serverTimestamp,
-  setDoc,
-  updateDoc,
-  where
-} from "firebase/firestore";
-import { db } from "@/lib/firebase";
-import { Workspace, WorkspaceMember, WorkspaceRole } from "./types";
+  where,
+} from 'firebase/firestore';
+import { httpsCallable } from 'firebase/functions';
 
-const COLLECTION_NAME = "workspaces";
+import { db, functions } from '../../lib/firebase';
+import type {
+  Workspace,
+  WorkspaceAlertPreferences,
+  WorkspaceMember,
+  WorkspaceRole,
+  WorkspaceType,
+} from './types';
 
-const syncUserWorkspaceMembership = async (
-  userId: string,
-  workspaceId: string,
-  role: WorkspaceRole
-) => {
-  await setDoc(
-    doc(db, "users", userId, "workspaces", workspaceId),
-    {
-      workspaceId,
-      role,
-      updatedAt: serverTimestamp()
-    },
-    { merge: true }
-  );
+/**
+ * Acesso a conta, workspaces e membros (P1).
+ *
+ * Toda escrita passa pelas callables do kernel; o cliente não grava
+ * `workspaces`, `members`, convites nem o índice do usuário (as Rules negam).
+ * A leitura segue a mesma autoridade do backend:
+ *
+ * - a lista de workspaces vem do índice `users/{uid}/workspaces`, gravado só
+ *   pelo backend e com os dados de exibição — uma consulta, com `limit`;
+ * - o papel vem **só** de `workspaces/{id}/members/{uid}` ativo; o índice não
+ *   tem papel e `ownerId` não autoriza nada.
+ */
+
+/** Teto de workspaces listados (o mesmo das Rules do índice). */
+export const WORKSPACE_LIST_LIMIT = 50;
+
+/** Teto de membros listados por página (o mesmo das Rules de `members`). */
+export const MEMBER_LIST_LIMIT = 200;
+
+const call = async <TInput extends Record<string, unknown>, TResult>(
+  name: string,
+  input: TInput,
+): Promise<TResult> => {
+  const callable = httpsCallable<TInput, TResult>(functions, name);
+  const payload = Object.fromEntries(
+    Object.entries(input).filter(([, value]) => value !== undefined),
+  ) as TInput;
+  return (await callable(payload)).data;
 };
 
-const ensureOwnerMembership = async (userId: string, workspaceId: string) => {
-  await Promise.all([
-    setDoc(
-      doc(db, COLLECTION_NAME, workspaceId, "members", userId),
-      {
-        uid: userId,
-        email: "",
-        role: "owner",
-        joinedAt: serverTimestamp(),
-        displayName: "Owner"
-      },
-      { merge: true }
-    ),
-    setDoc(
-      doc(db, "users", userId, "workspaces", workspaceId),
-      {
-        workspaceId,
-        role: "owner",
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
-      },
-      { merge: true }
-    )
-  ]);
-};
+/** Chave de idempotência de uma intenção do usuário. */
+export const newIdempotencyKey = (): string =>
+  globalThis.crypto?.randomUUID?.() ??
+  `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
 
-export const listWorkspaces = async (userId: string): Promise<Workspace[]> => {
-  try {
-    const roleByWorkspaceId = new Map<string, WorkspaceRole>();
-    const workspaceIds = new Set<string>();
-
-    const membershipsRef = collection(db, "users", userId, "workspaces");
-
-    try {
-      const membershipsSnap = await getDocs(membershipsRef);
-
-      membershipsSnap.docs.forEach((membershipDoc) => {
-        const data = membershipDoc.data() as {
-          workspaceId?: string;
-          role?: WorkspaceRole;
-        };
-
-        const workspaceId = data.workspaceId || membershipDoc.id;
-        const role = data.role ?? "member";
-
-        workspaceIds.add(workspaceId);
-        roleByWorkspaceId.set(workspaceId, role);
-      });
-    } catch (error) {
-      console.warn("Falha ao ler users/{uid}/workspaces:", error);
-    }
-
-    try {
-      const ownedWorkspacesQuery = query(
-        collection(db, COLLECTION_NAME),
-        where("ownerId", "==", userId)
-      );
-
-      const ownedWorkspacesSnap = await getDocs(ownedWorkspacesQuery);
-
-      await Promise.all(
-        ownedWorkspacesSnap.docs.map(async (workspaceDoc) => {
-          workspaceIds.add(workspaceDoc.id);
-          roleByWorkspaceId.set(workspaceDoc.id, "owner");
-
-          await ensureOwnerMembership(userId, workspaceDoc.id);
-        })
-      );
-    } catch (error) {
-      console.warn("Falha ao buscar workspaces por ownerId:", error);
-    }
-
-    try {
-      const fallbackMembersQuery = query(
-        collectionGroup(db, "members"),
-        where("uid", "==", userId)
-      );
-
-      const fallbackMembersSnap = await getDocs(fallbackMembersQuery);
-
-      await Promise.all(
-        fallbackMembersSnap.docs.map(async (memberDoc) => {
-          const workspaceId = memberDoc.ref.parent.parent?.id;
-          const memberData = memberDoc.data() as WorkspaceMember;
-
-          if (!workspaceId) return;
-
-          workspaceIds.add(workspaceId);
-          roleByWorkspaceId.set(workspaceId, memberData.role ?? "member");
-
-          await setDoc(
-            doc(db, "users", userId, "workspaces", workspaceId),
-            {
-              workspaceId,
-              role: memberData.role ?? "member",
-              createdAt: serverTimestamp(),
-              updatedAt: serverTimestamp()
-            },
-            { merge: true }
-          );
-        })
-      );
-    } catch (error) {
-      console.warn("Falha ao buscar memberships legados:", error);
-    }
-
-    const resolvedWorkspaces = await Promise.all(
-      Array.from(workspaceIds).map(async (workspaceId): Promise<Workspace | null> => {
-        try {
-          const workspaceRef = doc(db, COLLECTION_NAME, workspaceId);
-          const workspaceSnap = await getDoc(workspaceRef);
-
-          if (!workspaceSnap.exists()) {
-            return null;
-          }
-
-          const workspaceData = workspaceSnap.data() as Omit<Workspace, "id">;
-          const resolvedRole =
-            workspaceData.ownerId === userId
-              ? "owner"
-              : roleByWorkspaceId.get(workspaceId) ?? "member";
-
-          if (workspaceData.ownerId === userId) {
-            await ensureOwnerMembership(userId, workspaceId);
-          }
-
-          return {
-            id: workspaceSnap.id,
-            ...workspaceData,
-            myRole: resolvedRole
-          } as Workspace;
-        } catch (error) {
-          console.warn(`Workspace ignorado por falta de permissão ou inconsciência: ${workspaceId}`, error);
-          return null;
-        }
-      })
-    );
-
-    return resolvedWorkspaces.filter(
-      (workspace): workspace is Workspace => workspace !== null
-    );
-  } catch (error) {
-    console.error("Erro ao listar workspaces:", error);
-    throw error;
+const toIso = (value: unknown): string => {
+  if (value && typeof value === 'object' && 'toDate' in value) {
+    return (value as { toDate: () => Date }).toDate().toISOString();
   }
+  return typeof value === 'string' ? value : '';
 };
+
+const isRole = (value: unknown): value is WorkspaceRole =>
+  value === 'owner' || value === 'admin' || value === 'member' || value === 'viewer';
+
+export interface BootstrapAccountResult {
+  created: boolean;
+  workspaceId: string | null;
+}
+
+/** Garante perfil e ao menos um workspace ativo (idempotente). */
+export const bootstrapAccount = (): Promise<BootstrapAccountResult> =>
+  call<Record<string, never>, BootstrapAccountResult>('bootstrapAccount', {});
+
+/** Workspaces ativos do usuário, pelo índice mantido no backend. */
+export const listWorkspaces = async (userId: string): Promise<Workspace[]> => {
+  const snapshot = await getDocs(query(
+    collection(db, 'users', userId, 'workspaces'),
+    where('status', '==', 'active'),
+    where('workspaceStatus', '==', 'active'),
+    orderBy('joinedAt', 'asc'),
+    limit(WORKSPACE_LIST_LIMIT),
+  ));
+  return snapshot.docs.map((entry) => {
+    const data = entry.data();
+    return {
+      id: entry.id,
+      name: typeof data.name === 'string' ? data.name : '',
+      type: data.type === 'PJ' ? 'PJ' : 'PF',
+      createdAt: toIso(data.joinedAt),
+      updatedAt: toIso(data.updatedAt),
+    };
+  });
+};
+
+/**
+ * Documento completo do workspace com o papel do usuário, lido do membership
+ * ativo. Sem membership ativo, o workspace não é aberto.
+ */
+export const loadWorkspace = async (
+  workspaceId: string,
+  userId: string,
+): Promise<Workspace> => {
+  const membership = await getDoc(doc(db, 'workspaces', workspaceId, 'members', userId));
+  const role = membership.data()?.role;
+  if (!membership.exists() || membership.data()?.status !== 'active' || !isRole(role)) {
+    throw new Error('workspace-access-lost');
+  }
+  const snapshot = await getDoc(doc(db, 'workspaces', workspaceId));
+  const data = snapshot.data();
+  if (!data || data.status === 'archived') throw new Error('workspace-access-lost');
+  return {
+    id: snapshot.id,
+    ownerId: typeof data.ownerId === 'string' ? data.ownerId : undefined,
+    type: data.type === 'PJ' ? 'PJ' : 'PF',
+    name: typeof data.name === 'string' ? data.name : '',
+    cnpj: typeof data.cnpj === 'string' ? data.cnpj : null,
+    themeColor: typeof data.themeColor === 'string' ? data.themeColor : undefined,
+    alertPreferences: data.alertPreferences as WorkspaceAlertPreferences | undefined,
+    createdAt: toIso(data.createdAt),
+    updatedAt: toIso(data.updatedAt),
+    myRole: role,
+  };
+};
+
+export interface CreateWorkspaceInput {
+  type: WorkspaceType;
+  name: string;
+  cnpj?: string | null;
+  themeColor?: string;
+}
 
 export const createWorkspace = async (
-  workspaceData: Omit<Workspace, "id" | "createdAt" | "updatedAt">,
-  userEmail: string
-): Promise<Workspace> => {
-  try {
-    const ownerUid = workspaceData.ownerId;
-    const workspaceRef = doc(collection(db, COLLECTION_NAME));
+  input: CreateWorkspaceInput,
+  idempotencyKey = newIdempotencyKey(),
+): Promise<{ workspaceId: string }> =>
+  call('createWorkspace', {
+    type: input.type,
+    name: input.name,
+    cnpj: input.cnpj || undefined,
+    themeColor: input.themeColor,
+    idempotencyKey,
+  });
 
-    const workspacePayload = {
-      ...workspaceData,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
-    };
+export interface WorkspaceSettingsInput {
+  name?: string;
+  cnpj?: string | null;
+  themeColor?: string;
+  alertPreferences?: WorkspaceAlertPreferences;
+}
 
-    await setDoc(workspaceRef, workspacePayload);
+export const updateWorkspaceSettings = async (
+  workspaceId: string,
+  settings: WorkspaceSettingsInput,
+): Promise<{ updated: boolean }> =>
+  call('updateWorkspaceSettings', { workspaceId, ...settings });
 
-    if (ownerUid) {
-      await Promise.all([
-        setDoc(doc(db, COLLECTION_NAME, workspaceRef.id, "members", ownerUid), {
-          uid: ownerUid,
-          email: userEmail,
-          role: "owner",
-          joinedAt: serverTimestamp(),
-          displayName: "Owner"
-        }),
-        setDoc(doc(db, "users", ownerUid, "workspaces", workspaceRef.id), {
-          workspaceId: workspaceRef.id,
-          role: "owner",
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp()
-        })
-      ]);
-    }
-
-    return {
-      id: workspaceRef.id,
-      ...workspaceData,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      myRole: "owner"
-    };
-  } catch (error) {
-    console.error("ERRO CRÍTICO ao criar workspace:", error);
-    throw error;
-  }
+/** Membros ativos, em ordem de entrada, com teto por página. */
+export const listWorkspaceMembers = async (workspaceId: string): Promise<WorkspaceMember[]> => {
+  const snapshot = await getDocs(query(
+    collection(db, 'workspaces', workspaceId, 'members'),
+    where('status', '==', 'active'),
+    orderBy('joinedAt', 'asc'),
+    limit(MEMBER_LIST_LIMIT),
+  ));
+  return snapshot.docs.flatMap((entry) => {
+    const data = entry.data();
+    if (!isRole(data.role)) return [];
+    return [{
+      uid: entry.id,
+      email: typeof data.email === 'string' ? data.email : '',
+      displayName: typeof data.displayName === 'string' ? data.displayName : undefined,
+      role: data.role,
+      joinedAt: toIso(data.joinedAt),
+    }];
+  });
 };
 
-export const listWorkspaceMembers = async (
-  workspaceId: string
-): Promise<WorkspaceMember[]> => {
-  const snapshot = await getDocs(collection(db, COLLECTION_NAME, workspaceId, "members"));
-  return snapshot.docs.map((d) => d.data() as WorkspaceMember);
-};
+export type InvitableRole = Exclude<WorkspaceRole, 'owner'>;
 
-export const addMember = async (workspaceId: string, member: WorkspaceMember) => {
-  await setDoc(
-    doc(db, COLLECTION_NAME, workspaceId, "members", member.uid),
-    {
-      ...member,
-      joinedAt: serverTimestamp()
-    },
-    { merge: true }
-  );
+export const inviteWorkspaceMember = async (
+  workspaceId: string,
+  email: string,
+  role: InvitableRole,
+  idempotencyKey = newIdempotencyKey(),
+): Promise<{ inviteId: string; expiresAt: string }> =>
+  call('inviteWorkspaceMember', { workspaceId, email, role, idempotencyKey });
 
-  await syncUserWorkspaceMembership(member.uid, workspaceId, member.role);
-};
-
-export const removeMember = async (workspaceId: string, memberId: string) => {
-  await deleteDoc(doc(db, COLLECTION_NAME, workspaceId, "members", memberId));
-  await deleteDoc(doc(db, "users", memberId, "workspaces", workspaceId));
-};
-
-export const updateMemberRole = async (
+export const changeWorkspaceMemberRole = async (
   workspaceId: string,
   memberId: string,
-  newRole: WorkspaceRole
-) => {
-  await updateDoc(doc(db, COLLECTION_NAME, workspaceId, "members", memberId), {
-    role: newRole
-  });
+  role: InvitableRole,
+): Promise<{ role: InvitableRole; changed: boolean }> =>
+  call('changeWorkspaceMemberRole', { workspaceId, memberId, role });
 
-  await syncUserWorkspaceMembership(memberId, workspaceId, newRole);
-};
+export const removeWorkspaceMember = async (
+  workspaceId: string,
+  memberId: string,
+): Promise<{ status: 'removed'; changed: boolean }> =>
+  call('removeWorkspaceMember', { workspaceId, memberId });
 
-export const updateWorkspace = async (
-  id: string,
-  data: Partial<Workspace>
-): Promise<void> => {
-  const docRef = doc(db, COLLECTION_NAME, id);
-  await updateDoc(docRef, {
-    ...data,
-    updatedAt: serverTimestamp()
-  });
-};
+export const transferWorkspaceOwnership = async (
+  workspaceId: string,
+  newOwnerId: string,
+  idempotencyKey = newIdempotencyKey(),
+): Promise<{ ownerId: string }> =>
+  call('transferWorkspaceOwnership', { workspaceId, newOwnerId, idempotencyKey });

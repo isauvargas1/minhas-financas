@@ -176,3 +176,71 @@ test("nenhuma callable legada de investimento é exportada", () => {
     assert.ok(!names.includes(name), `${name} voltou à superfície implantada`);
   }
 });
+
+const P1_CALLABLES = [
+  "bootstrapAccount",
+  "createWorkspace",
+  "updateWorkspaceSettings",
+  "archiveWorkspace",
+  "inviteWorkspaceMember",
+  "acceptWorkspaceInvite",
+  "revokeWorkspaceInvite",
+  "changeWorkspaceMemberRole",
+  "removeWorkspaceMember",
+  "leaveWorkspace",
+  "transferWorkspaceOwnership",
+];
+
+test("P1: callables de conta e membership com perfil de domínio", () => {
+  for (const name of P1_CALLABLES) {
+    const endpoint = endpointOf(name);
+    assert.ok(endpoint.callableTrigger, `${name} não é callable`);
+    assert.deepEqual(endpoint.region, [FUNCTIONS_REGION], `região de ${name}`);
+    assert.equal(endpoint.timeoutSeconds, 60, `tempo limite de ${name}`);
+    assert.equal(endpoint.availableMemoryMb, 256, `memória de ${name}`);
+    assert.equal(endpoint.maxInstances, 20, `concorrência de ${name}`);
+    assert.deepEqual(secretsOf(name), [], `${name} não lê segredo`);
+  }
+});
+
+test("P1: gatilho do índice do usuário é idempotente e limitado", () => {
+  const endpoint = endpointOf("onWorkspaceDisplayChange") as Endpoint & {
+    eventTrigger?: {retry?: boolean; eventFilterPathPatterns?: unknown};
+  };
+  assert.deepEqual(endpoint.region, [FUNCTIONS_REGION]);
+  assert.equal(endpoint.timeoutSeconds, 120);
+  assert.equal(endpoint.availableMemoryMb, 256);
+  assert.equal(endpoint.maxInstances, 5);
+  assert.equal(endpoint.eventTrigger?.retry, true);
+});
+
+test("P1: nenhum módulo de teste é alcançável pelo entrypoint", () => {
+  // O seam de convites e os helpers de seed vivem em `testSupport/`. Se algum
+  // módulo de produção os importasse, entrariam no runtime implantado.
+  const loaded = Object.keys(require.cache).filter((path) =>
+    path.includes("/lib/") && !path.endsWith("deploymentContract.test.js"));
+  const offenders = loaded.filter((path) =>
+    /\/(testSupport|__tests__)\/|\.test\.js$|manual[A-Za-z]*Test\.js$/
+      .test(path));
+  assert.deepEqual(offenders, []);
+  for (const name of Object.keys(deployed)) {
+    assert.ok(!/test|seam/i.test(name), `export de teste: ${name}`);
+  }
+});
+
+test("P1: o deploy não envia código exclusivo de teste", () => {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const firebaseJson = require("../../../firebase.json") as {
+    functions: Array<{source: string; ignore: string[]}>;
+  };
+  const config = firebaseJson.functions.find((f) => f.source === "functions");
+  assert.ok(config);
+  for (const pattern of [
+    "lib/**/__tests__/**",
+    "lib/**/testSupport/**",
+    "lib/**/*.test.js",
+    "src/**/testSupport/**",
+  ]) {
+    assert.ok(config.ignore.includes(pattern), `ignore sem ${pattern}`);
+  }
+});

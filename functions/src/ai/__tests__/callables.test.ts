@@ -2,13 +2,17 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  AI_OPERATION_ROLES,
   AI_SECRETS,
   analysisPayloadSchema,
+  analyzeFinancialQuestion,
   buildPrompt,
+  extractTransactionFromContent,
   extractionPayloadSchema,
   readApiKey,
 } from "../callables";
-import {CreditCardApplicationError} from "../../creditCards/errors";
+import {ApplicationError} from "../../shared/errors";
+import {AI_CALLABLE_OPTIONS} from "../../shared/runtimeOptions";
 
 /**
  * Comportamento das callables de IA (INV-P2-020).
@@ -41,6 +45,28 @@ test("o segredo do provider é declarado pelas callables", () => {
   assert.deepEqual([...AI_SECRETS], ["GOOGLE_AI_API_KEY"]);
 });
 
+test("as callables do kernel mantêm segredo, recursos e papéis de escrita",
+  () => {
+    for (const callable of [
+      analyzeFinancialQuestion,
+      extractTransactionFromContent,
+    ]) {
+      const endpoint = (callable as unknown as {
+        __endpoint: {
+          timeoutSeconds?: number;
+          secretEnvironmentVariables?: Array<{key: string}>;
+        };
+      }).__endpoint;
+      assert.equal(endpoint.timeoutSeconds, AI_CALLABLE_OPTIONS.timeoutSeconds);
+      assert.deepEqual(
+        (endpoint.secretEnvironmentVariables ?? []).map((entry) => entry.key),
+        [...AI_SECRETS],
+      );
+    }
+    // `viewer` é somente leitura: não consome a cota externa do workspace.
+    assert.deepEqual([...AI_OPERATION_ROLES], ["owner", "admin", "member"]);
+  });
+
 test("sem segredo configurado, a recusa é explícita e em pt-BR", () => {
   const previous = process.env.GOOGLE_AI_API_KEY;
   delete process.env.GOOGLE_AI_API_KEY;
@@ -48,7 +74,7 @@ test("sem segredo configurado, a recusa é explícita e em pt-BR", () => {
     assert.throws(
       () => readApiKey(),
       (error: unknown) =>
-        error instanceof CreditCardApplicationError &&
+        error instanceof ApplicationError &&
         error.code === "domain_precondition_failed" &&
         /não está configurada/i.test(error.message),
     );

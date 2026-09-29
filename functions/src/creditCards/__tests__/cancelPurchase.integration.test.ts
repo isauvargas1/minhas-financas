@@ -12,6 +12,7 @@ import {
 } from "../createPurchase";
 
 import {
+  creditCardTestActor,
   getIntegrationFirestore,
   resetCreditCardIntegrationWorkspace,
   seedCreditCardIntegrationWorkspace,
@@ -47,9 +48,6 @@ const sumField = (
 
 test(
   "cancelCreditCardPurchase deve cancelar compra, parcelas, faturas abertas e recompor limite",
-  {
-    skip: !process.env.FIRESTORE_EMULATOR_HOST,
-  },
   async () => {
     const db = getIntegrationFirestore();
 
@@ -62,9 +60,7 @@ test(
     });
 
     const purchaseResult = await executeCreateCreditCardPurchase({
-      auth: {
-        uid: TEST_OWNER_ID,
-      },
+      actor: creditCardTestActor(TEST_WORKSPACE_ID, TEST_OWNER_ID),
       payload: {
         workspaceId: TEST_WORKSPACE_ID,
         cardId: TEST_CARD_ID,
@@ -85,7 +81,7 @@ test(
         idempotencyKey: "integration-cancel-purchase-create-001",
         correlationId: "integration-cancel-purchase-create",
       },
-    } as any) as CreateCreditCardPurchaseResult;
+    }) as CreateCreditCardPurchaseResult;
 
     assert.equal(purchaseResult.success, true);
     assert.equal(purchaseResult.installmentIds.length, 3);
@@ -99,9 +95,7 @@ test(
     assert.equal(limitAfterPurchaseSnapshot.data()?.limitAvailable, 3800);
 
     const cancellationResult = await executeCancelCreditCardPurchase({
-      auth: {
-        uid: TEST_OWNER_ID,
-      },
+      actor: creditCardTestActor(TEST_WORKSPACE_ID, TEST_OWNER_ID),
       payload: {
         workspaceId: TEST_WORKSPACE_ID,
         cardId: TEST_CARD_ID,
@@ -111,7 +105,7 @@ test(
         idempotencyKey: "integration-cancel-purchase-001",
         correlationId: "integration-cancel-purchase",
       },
-    } as any) as CancelCreditCardPurchaseResult;
+    }) as CancelCreditCardPurchaseResult;
 
     assert.equal(cancellationResult.success, true);
     assert.equal(cancellationResult.purchaseId, purchaseResult.purchaseId);

@@ -162,8 +162,8 @@ CURRENT geral: os limites existem só em `src/constants/plans.ts:1-33` e são ap
 
 | Recurso | Limite hoje (Free / Pro / Business) | Aplicação CURRENT | Aplicação TARGET | Milestone | GAP |
 | --- | --- | --- | --- | --- | --- |
-| Workspaces por titular | 1 / 5 / 999 | Só UI, contando participações (`src/components/Header.tsx:58`); criação por `setDoc` do cliente (`src/modules/workspaces/api.ts:196`); Rules sem quota (`firestore.rules:991-994`) | `createWorkspace` (callable de P1) verifica a quota na transação, com contador por titular ou entidade pagadora (D-01, D-22) | P2 | PR-ENT-01 (P2→P5), PR-WS-05 |
-| Membros por workspace | 2 / 10 / 999 | Nenhuma, nem na UI (`src/components/MembersManagerModal.tsx:60-66`); Rules sem quota (`firestore.rules:1021`) | Callables de convite e aceite (P1) contam membros ativos e convites pendentes na transação | P2 | PR-ENT-01 (P2→P5), PR-WS-01 |
+| Workspaces por titular | 1 / 5 / 999 | Só UI, contando participações (`src/components/Header.tsx:58`); criação por `setDoc` do cliente (`src/modules/workspaces/api.ts:196`); Rules sem quota (`firestore.rules:991-994`) | `createWorkspace` (callable de P1, sem verificação de quota) recebe em P2 a verificação da quota dentro da mesma transação, com contador por titular ou entidade pagadora (D-01, D-22) | P2 | PR-ENT-01 (P2→P5), PR-WS-05 |
+| Membros por workspace | 2 / 10 / 999 | Nenhuma, nem na UI (`src/components/MembersManagerModal.tsx:60-66`); Rules sem quota (`firestore.rules:1021`) | Callables de convite e aceite (P1) não verificam quota; P2 insere nas mesmas transações a contagem de membros ativos e convites pendentes (D-01) | P2 | PR-ENT-01 (P2→P5), PR-WS-01 |
 | Lançamentos por mês | 50 / 1000 / 99999 | Só UI, com duas contagens sobre a janela carregada (`src/components/TransactionsView.tsx:97-116`; `src/components/RecentTransactions.tsx:47-57`); importação em lote sem checagem (`src/App.tsx:276-290`); Rules sem quota (`firestore.rules:1056-1057`) | Callable de lançamento de caixa incrementa `usage` por workspace e mês na mesma transação; D-08 decide se recorrência, empréstimo, recebimento e divisão contam | P3 | PR-ENT-01 (P2→P5), PR-TX-01 |
 | Grupos de divisão | 2 / 10 / 999 | Só UI (`src/components/SplitGroupsView.tsx:39`); criação por transação do cliente (`src/modules/split-bills/api.ts:145-147`) | Callable do módulo `splitBills` com contador transacional | P4 | PR-ENT-01 (P2→P5), PR-SPLIT-01 |
 | IA: análise | 20/h por workspace+ator, igual para todos | Rate limit fixo (`functions/src/ai/callables.ts:44-48`; `functions/src/shared/rateLimit.ts:49-66`); contornável criando workspaces | Quota por plano e por entidade pagadora, `maxOutputTokens`, registro de uso de tokens; valores em D-11; App Check em P6 (PR-APPCHK-01) | P2 | PR-AI-03 (P2) |
@@ -298,17 +298,17 @@ Relacionados, registrados em outros documentos: segredos por projeto (E-05, [FIR
 
 | ID | Classificação | O que decide para billing |
 | --- | --- | --- |
-| D-01 | DECISION | Entidade pagadora, caminho do estado canônico, quem contrata e gere, contagem de workspaces compartilhados e convites |
+| D-01 | DECISION (pendente; bloqueia só P2) | Entidade pagadora, caminho do estado canônico, quem contrata e gere, contagem de workspaces compartilhados e convites. Removida das dependências de P1 (§9.1 do plano) |
 | D-07 | DECISION | Cancelamento da assinatura e destino do customer Stripe na exclusão de conta ou workspace (executado em P8, PR-AUTH-01) |
 | D-08 | DECISION | Planos, preços, intervalos, limites, trial, grace period, proration, downgrade com excedente, reembolso, disputa, meios de pagamento, fiscal |
 | D-11 | DECISION | Quotas de IA por plano e tier do provedor |
-| D-16 | DECISION | Somente BRL ou multimoeda (o catálogo alvo assume BRL) |
+| D-16 | DECISION (tomada, §9.1 do plano) | Somente BRL; o catálogo alvo usa BRL |
 | D-21 | DECISION | Identificação do fornecedor e canal de suporte exibidos no Stripe e no produto |
-| D-22 | DECISION | Workspace PF com membros; afeta a quota de membros por tipo |
+| D-22 | DECISION (tomada, §9.1 do plano) | Workspaces PF e PJ podem ter membros; CNPJ opcional e não único |
 | D-ORD-04 | DECISION (tomada, §9 do plano) | Nenhum artefato de P2 é implantado em projeto remoto antes de P6 |
 | D-ORD-05 | DECISION (tomada, §9 do plano) | Ordem incremental de PR-ENT-01 (§9) |
 
-Dependências: P1 entrega as callables de workspace e membership e o kernel (wrapper, resolvedor de papel, auditoria, logger, módulo `money`) sobre o qual P2 aplica a quota; P6 entrega ambientes isolados, segredos por ambiente e App Check nas callables de billing e IA; P7 entrega alertas, fila e replay de webhook, reconciliação e runbook ([RUNBOOKS.md](RUNBOOKS.md)); P8 cancela a assinatura na saída do titular; P9 publica preços a partir do catálogo e as políticas comerciais.
+Dependências: P1 entrega as callables de workspace e membership, sem verificação de quota, e o kernel (wrapper, resolvedor de papel, auditoria, logger, módulo `money`); P2 insere a verificação de quota nas transações de `createWorkspace`, `inviteWorkspaceMember` e `acceptWorkspaceInvite` antes de qualquer deploy remoto (D-01, D-ORD-04); P6 entrega ambientes isolados, segredos por ambiente e App Check nas callables de billing e IA; P7 entrega alertas, fila e replay de webhook, reconciliação e runbook ([RUNBOOKS.md](RUNBOOKS.md)); P8 cancela a assinatura na saída do titular; P9 publica preços a partir do catálogo e as políticas comerciais.
 
 ---
 

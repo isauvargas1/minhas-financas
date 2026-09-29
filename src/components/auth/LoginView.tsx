@@ -1,8 +1,40 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+
+/**
+ * Falhas de login em pt-BR (AUTH-10). Fechar a janela do Google é escolha do
+ * usuário, não erro, e não gera mensagem.
+ */
+const loginErrorMessage = (error: unknown): string | null => {
+    const code = typeof error === 'object' && error !== null && 'code' in error
+        ? String((error as { code?: unknown }).code)
+        : '';
+    switch (code) {
+        case 'auth/popup-closed-by-user':
+        case 'auth/cancelled-popup-request':
+            return null;
+        case 'auth/popup-blocked':
+            return 'O navegador bloqueou a janela de login. Permita pop-ups para este site e tente novamente.';
+        case 'auth/network-request-failed':
+            return 'Sem conexão com o serviço de login. Verifique sua internet e tente novamente.';
+        case 'auth/user-disabled':
+            return 'Esta conta está desativada. Entre em contato com o suporte.';
+        default:
+            return 'Não foi possível entrar agora. Tente novamente em instantes.';
+    }
+};
 
 export const LoginView: React.FC = () => {
    const { signInWithGoogle, signInForE2E, loading } = useAuth();
+    const [loginError, setLoginError] = useState<string | null>(null);
+    const handleGoogleLogin = async () => {
+        setLoginError(null);
+        try {
+            await signInWithGoogle();
+        } catch (error) {
+            setLoginError(loginErrorMessage(error));
+        }
+    };
     const isE2EMode = import.meta.env.VITE_E2E_MODE === 'true';
     const e2eSearchParams = typeof window !== 'undefined'
         ? new URLSearchParams(window.location.search)
@@ -25,7 +57,7 @@ export const LoginView: React.FC = () => {
                 </div>
                 <div className="mt-8 space-y-6">
                     <button
-                        onClick={signInWithGoogle}
+                        onClick={() => void handleGoogleLogin()}
                         className="group relative flex w-full justify-center rounded-md border border-transparent bg-indigo-600 py-3 px-4 text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-all"
                     >
                         <span className="absolute inset-y-0 left-0 flex items-center pl-3">
@@ -44,6 +76,9 @@ export const LoginView: React.FC = () => {
                         >
                             Entrar em modo E2E
                         </button>
+                    )}
+                    {loginError && (
+                        <p className="text-center text-sm text-red-600" role="alert">{loginError}</p>
                     )}
                 </div>
             </div>

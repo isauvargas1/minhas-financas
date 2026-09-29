@@ -11,6 +11,7 @@ import {
 } from "../registerInvoicePayment";
 
 import {
+  creditCardTestActor,
   getIntegrationFirestore,
   resetCreditCardIntegrationWorkspace,
   seedCreditCardIntegrationWorkspace,
@@ -46,9 +47,6 @@ const sumField = (
 
 test(
   "registerCreditCardInvoicePayment deve permitir pagamento parcial e total com recomposição de limite",
-  {
-    skip: !process.env.FIRESTORE_EMULATOR_HOST,
-  },
   async () => {
     const db = getIntegrationFirestore();
 
@@ -61,9 +59,7 @@ test(
     });
 
     const purchaseResult = await executeCreateCreditCardPurchase({
-      auth: {
-        uid: TEST_OWNER_ID,
-      },
+      actor: creditCardTestActor(TEST_WORKSPACE_ID, TEST_OWNER_ID),
       payload: {
         workspaceId: TEST_WORKSPACE_ID,
         cardId: TEST_CARD_ID,
@@ -84,7 +80,7 @@ test(
         idempotencyKey: "integration-payment-purchase-001",
         correlationId: "integration-payment-purchase",
       },
-    } as any) as CreateCreditCardPurchaseResult;
+    }) as CreateCreditCardPurchaseResult;
 
     assert.equal(purchaseResult.success, true);
 
@@ -100,9 +96,7 @@ test(
     assert.equal(invoiceBeforePaymentSnapshot.data()?.paidAmount, 0);
 
     await executeRegisterCreditCardInvoicePayment({
-      auth: {
-        uid: TEST_OWNER_ID,
-      },
+      actor: creditCardTestActor(TEST_WORKSPACE_ID, TEST_OWNER_ID),
       payload: {
         workspaceId: TEST_WORKSPACE_ID,
         cardId: TEST_CARD_ID,
@@ -113,7 +107,7 @@ test(
         idempotencyKey: "integration-payment-partial-001",
         correlationId: "integration-payment-partial",
       },
-    } as any);
+    });
 
     const invoiceAfterPartialPaymentSnapshot = await db
       .doc(`workspaces/${TEST_WORKSPACE_ID}/credit_card_invoices/${invoiceId}`)
@@ -132,9 +126,7 @@ test(
     assert.equal(limitAfterPartialPaymentSnapshot.data()?.limitAvailable, 4050);
 
     await executeRegisterCreditCardInvoicePayment({
-      auth: {
-        uid: TEST_OWNER_ID,
-      },
+      actor: creditCardTestActor(TEST_WORKSPACE_ID, TEST_OWNER_ID),
       payload: {
         workspaceId: TEST_WORKSPACE_ID,
         cardId: TEST_CARD_ID,
@@ -145,7 +137,7 @@ test(
         idempotencyKey: "integration-payment-total-001",
         correlationId: "integration-payment-total",
       },
-    } as any);
+    });
 
     const invoiceAfterTotalPaymentSnapshot = await db
       .doc(`workspaces/${TEST_WORKSPACE_ID}/credit_card_invoices/${invoiceId}`)

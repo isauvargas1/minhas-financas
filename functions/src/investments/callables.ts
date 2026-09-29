@@ -1,7 +1,17 @@
-import {onCall} from "firebase-functions/v2/https";
-import {z} from "zod";
+import type {CallableOptions} from "firebase-functions/v2/https";
+import type {z} from "zod";
 
-import {requireWorkspaceRole} from "../creditCards/auth";
+import {
+  defineCallable,
+  type CallableDefinition,
+  type CallableFailure,
+} from "../shared/callable";
+import {ApplicationError} from "../shared/errors";
+import {
+  DOMAIN_CALLABLE_OPTIONS,
+  HEAVY_CALLABLE_OPTIONS,
+} from "../shared/runtimeOptions";
+import type {WorkspaceActor} from "../shared/workspaceAuth";
 import type {InvestmentBackendOperation} from "./infrastructure";
 import {recordInvestmentCallableFailureSafely} from "./observability";
 import {investmentOperationRoles} from "./writeStrategy";
@@ -30,7 +40,6 @@ import {
   settleInvestmentRedemptionPayloadSchema,
   unlinkInvestmentFromGoalPayloadSchema,
 } from "./contracts";
-import {toInvestmentHttpsError} from "./errors";
 import {
   executeArchiveInvestmentAccount,
   executeArchiveInvestmentAsset,
@@ -58,62 +67,72 @@ import {
 import {executeRebuildInvestmentProjections} from "./projectionRebuild";
 import {executeBackfillInvestmentWorkspace} from "./backfill";
 import {executeOnboardInvestmentWorkspace} from "./onboarding";
-import {
-  DOMAIN_CALLABLE_OPTIONS,
-  HEAVY_CALLABLE_OPTIONS,
-} from "../shared/runtimeOptions";
+
+const INVESTMENT_INTERNAL_MESSAGE =
+  "Erro interno ao processar operação de investimento.";
 
 /**
- * Wrapper único de callable do domínio.
+ * O registro de falha só grava no workspace que a pré-checagem do kernel
+ * autorizou (`CallableFailure.workspaceId`); antes dela o valor é `null` e o
+ * registrador não escreve em tenant nenhum.
+ */
+const recordFailure = (backendOperation: InvestmentBackendOperation) =>
+  async (failure: CallableFailure): Promise<void> => {
+    await recordInvestmentCallableFailureSafely(
+      backendOperation,
+      failure.request,
+      failure.error,
+      failure.workspaceId ?? undefined,
+    );
+  };
+
+/**
+ * Definição de callable do domínio sobre o wrapper único do kernel.
  *
  * Os papéis vêm da matriz declarativa (`writeStrategy.ts`), nunca de literais
- * locais, e a mesma entrada é relida dentro da transação pelas operações.
+ * locais: o kernel faz a pré-checagem com eles e as operações releem a mesma
+ * entrada dentro da transação (`reassertWorkspaceActor`), que é a decisão que
+ * vale.
  */
-const investmentCallable = <TPayload extends { workspaceId: string }>(
+const investmentDefinition = <TPayload extends {workspaceId: string}>(
   backendOperation: InvestmentBackendOperation,
   schema: z.ZodType<TPayload>,
   operation: (
-    auth: Awaited<ReturnType<typeof requireWorkspaceRole>>,
+    auth: WorkspaceActor,
     payload: TPayload,
   ) => Promise<Record<string, unknown>>,
-  runtime = DOMAIN_CALLABLE_OPTIONS,
-) =>
-    onCall(runtime, async (request) => {
-      // Só existe workspace autorizado depois que `requireWorkspaceRole`
-      // devolve. A observabilidade de falha usa exclusivamente este valor:
-      // ler `workspaceId` do payload deixava qualquer chamador gravar no
-      // domínio de outro tenant pelo caminho de erro.
-      let authorizedWorkspaceId: string | undefined;
-      try {
-        const payload = schema.parse(request.data);
-        const auth = await requireWorkspaceRole(
-          request,
-          payload.workspaceId,
-          investmentOperationRoles(backendOperation),
-        );
-        authorizedWorkspaceId = auth.workspaceId;
-        return await operation(auth, payload);
-      } catch (error) {
-        await recordInvestmentCallableFailureSafely(
-          backendOperation,
-          request,
-          error,
-          authorizedWorkspaceId,
-        );
-        throw toInvestmentHttpsError(error);
+  runtime: CallableOptions = DOMAIN_CALLABLE_OPTIONS,
+): CallableDefinition<TPayload, Record<string, unknown>> => {
+  return {
+    operation: backendOperation,
+    schema,
+    runtime,
+    workspaceRoles: investmentOperationRoles(backendOperation),
+    internalMessage: INVESTMENT_INTERNAL_MESSAGE,
+    onFailure: recordFailure(backendOperation),
+    handler: async ({payload, actor}) => {
+      if (!actor) {
+        throw new ApplicationError("internal", INVESTMENT_INTERNAL_MESSAGE);
       }
-    });
+      return operation(actor, payload);
+    },
+  };
+};
 
-export const onboardInvestmentWorkspace = investmentCallable(
-  "onboardInvestmentWorkspace",
-  onboardInvestmentWorkspacePayloadSchema,
-  executeOnboardInvestmentWorkspace,
+export const onboardInvestmentWorkspace = defineCallable(
+  investmentDefinition(
+    "onboardInvestmentWorkspace",
+    onboardInvestmentWorkspacePayloadSchema,
+    executeOnboardInvestmentWorkspace,
+  ),
 );
 
-export const createInvestmentContribution = investmentCallable(
-  "createInvestmentContribution",
-  createInvestmentContributionPayloadSchema,
-  executeCreateInvestmentContribution,
+export const createInvestmentContribution = defineCallable(
+  investmentDefinition(
+    "createInvestmentContribution",
+    createInvestmentContributionPayloadSchema,
+    executeCreateInvestmentContribution,
+  ),
 );
 
 /**
@@ -125,132 +144,174 @@ export const createInvestmentContribution = investmentCallable(
  * realizado, valoração ou reconstrução. O ledger, as projeções e as garantias
  * são exatamente os mesmos do restante do domínio.
  */
-export const createSimpleInvestment = investmentCallable(
-  "createSimpleInvestment",
-  createSimpleInvestmentPayloadSchema,
-  executeCreateSimpleInvestment,
+export const createSimpleInvestment = defineCallable(
+  investmentDefinition(
+    "createSimpleInvestment",
+    createSimpleInvestmentPayloadSchema,
+    executeCreateSimpleInvestment,
+  ),
 );
 
-export const settleInvestmentContribution = investmentCallable(
-  "settleInvestmentContribution",
-  settleInvestmentContributionPayloadSchema,
-  executeSettleInvestmentContribution,
+export const settleInvestmentContribution = defineCallable(
+  investmentDefinition(
+    "settleInvestmentContribution",
+    settleInvestmentContributionPayloadSchema,
+    executeSettleInvestmentContribution,
+  ),
 );
 
-export const withdrawSimpleInvestment = investmentCallable(
-  "withdrawSimpleInvestment",
-  withdrawSimpleInvestmentPayloadSchema,
-  executeWithdrawSimpleInvestment,
+export const withdrawSimpleInvestment = defineCallable(
+  investmentDefinition(
+    "withdrawSimpleInvestment",
+    withdrawSimpleInvestmentPayloadSchema,
+    executeWithdrawSimpleInvestment,
+  ),
 );
 
-export const settleSimpleWithdrawal = investmentCallable(
-  "settleSimpleWithdrawal",
-  settleSimpleWithdrawalPayloadSchema,
-  executeSettleSimpleWithdrawal,
+export const settleSimpleWithdrawal = defineCallable(
+  investmentDefinition(
+    "settleSimpleWithdrawal",
+    settleSimpleWithdrawalPayloadSchema,
+    executeSettleSimpleWithdrawal,
+  ),
 );
 
-export const createInvestmentRedemption = investmentCallable(
-  "createInvestmentRedemption",
-  createInvestmentRedemptionPayloadSchema,
-  executeCreateInvestmentRedemptionV2,
+export const createInvestmentRedemption = defineCallable(
+  investmentDefinition(
+    "createInvestmentRedemption",
+    createInvestmentRedemptionPayloadSchema,
+    executeCreateInvestmentRedemptionV2,
+  ),
 );
 
-export const settleInvestmentRedemption = investmentCallable(
-  "settleInvestmentRedemption",
-  settleInvestmentRedemptionPayloadSchema,
-  executeSettleInvestmentRedemption,
+export const settleInvestmentRedemption = defineCallable(
+  investmentDefinition(
+    "settleInvestmentRedemption",
+    settleInvestmentRedemptionPayloadSchema,
+    executeSettleInvestmentRedemption,
+  ),
 );
 
-export const reverseInvestmentMovement = investmentCallable(
-  "reverseInvestmentMovement",
-  reverseInvestmentMovementPayloadSchema,
-  executeReverseInvestmentMovement,
+export const reverseInvestmentMovement = defineCallable(
+  investmentDefinition(
+    "reverseInvestmentMovement",
+    reverseInvestmentMovementPayloadSchema,
+    executeReverseInvestmentMovement,
+  ),
 );
 
-export const changeInvestmentGoal = investmentCallable(
-  "changeInvestmentGoal",
-  changeInvestmentGoalPayloadSchema,
-  executeChangeInvestmentGoal,
+export const changeInvestmentGoal = defineCallable(
+  investmentDefinition(
+    "changeInvestmentGoal",
+    changeInvestmentGoalPayloadSchema,
+    executeChangeInvestmentGoal,
+  ),
 );
 
-export const linkInvestmentToGoal = investmentCallable(
-  "linkInvestmentToGoal",
-  linkInvestmentToGoalPayloadSchema,
-  executeLinkInvestmentToGoal,
+export const linkInvestmentToGoal = defineCallable(
+  investmentDefinition(
+    "linkInvestmentToGoal",
+    linkInvestmentToGoalPayloadSchema,
+    executeLinkInvestmentToGoal,
+  ),
 );
 
-export const unlinkInvestmentFromGoal = investmentCallable(
-  "unlinkInvestmentFromGoal",
-  unlinkInvestmentFromGoalPayloadSchema,
-  executeUnlinkInvestmentFromGoal,
+export const unlinkInvestmentFromGoal = defineCallable(
+  investmentDefinition(
+    "unlinkInvestmentFromGoal",
+    unlinkInvestmentFromGoalPayloadSchema,
+    executeUnlinkInvestmentFromGoal,
+  ),
 );
 
-export const recalculateInvestmentPosition = investmentCallable(
-  "recalculateInvestmentPosition",
-  recalculateInvestmentPositionPayloadSchema,
-  executeRecalculateInvestmentPosition,
-  HEAVY_CALLABLE_OPTIONS,
+export const recalculateInvestmentPosition = defineCallable(
+  investmentDefinition(
+    "recalculateInvestmentPosition",
+    recalculateInvestmentPositionPayloadSchema,
+    executeRecalculateInvestmentPosition,
+    HEAVY_CALLABLE_OPTIONS,
+  ),
 );
 
-export const recalculateGoalInvestmentProgress = investmentCallable(
-  "recalculateGoalInvestmentProgress",
-  recalculateGoalInvestmentProgressPayloadSchema,
-  executeRecalculateGoalInvestmentProgress,
-  HEAVY_CALLABLE_OPTIONS,
+export const recalculateGoalInvestmentProgress = defineCallable(
+  investmentDefinition(
+    "recalculateGoalInvestmentProgress",
+    recalculateGoalInvestmentProgressPayloadSchema,
+    executeRecalculateGoalInvestmentProgress,
+    HEAVY_CALLABLE_OPTIONS,
+  ),
 );
 
-export const archiveInvestmentAccount = investmentCallable(
-  "archiveInvestmentAccount",
-  archiveInvestmentAccountPayloadSchema,
-  executeArchiveInvestmentAccount,
+export const archiveInvestmentAccount = defineCallable(
+  investmentDefinition(
+    "archiveInvestmentAccount",
+    archiveInvestmentAccountPayloadSchema,
+    executeArchiveInvestmentAccount,
+  ),
 );
 
-export const archiveInvestmentAsset = investmentCallable(
-  "archiveInvestmentAsset",
-  archiveInvestmentAssetPayloadSchema,
-  executeArchiveInvestmentAsset,
+export const archiveInvestmentAsset = defineCallable(
+  investmentDefinition(
+    "archiveInvestmentAsset",
+    archiveInvestmentAssetPayloadSchema,
+    executeArchiveInvestmentAsset,
+  ),
 );
 
-export const saveInvestmentAccount = investmentCallable(
-  "saveInvestmentAccount",
-  saveInvestmentAccountPayloadSchema,
-  executeSaveInvestmentAccount,
+export const saveInvestmentAccount = defineCallable(
+  investmentDefinition(
+    "saveInvestmentAccount",
+    saveInvestmentAccountPayloadSchema,
+    executeSaveInvestmentAccount,
+  ),
 );
 
-export const saveInvestmentAsset = investmentCallable(
-  "saveInvestmentAsset",
-  saveInvestmentAssetPayloadSchema,
-  executeSaveInvestmentAsset,
+export const saveInvestmentAsset = defineCallable(
+  investmentDefinition(
+    "saveInvestmentAsset",
+    saveInvestmentAssetPayloadSchema,
+    executeSaveInvestmentAsset,
+  ),
 );
 
-export const cancelInvestmentMovement = investmentCallable(
-  "cancelInvestmentMovement",
-  cancelInvestmentMovementPayloadSchema,
-  executeCancelInvestmentMovement,
+export const cancelInvestmentMovement = defineCallable(
+  investmentDefinition(
+    "cancelInvestmentMovement",
+    cancelInvestmentMovementPayloadSchema,
+    executeCancelInvestmentMovement,
+  ),
 );
 
-export const recordInvestmentValuation = investmentCallable(
-  "recordInvestmentValuation",
-  recordInvestmentValuationPayloadSchema,
-  executeRecordInvestmentValuation,
+export const recordInvestmentValuation = defineCallable(
+  investmentDefinition(
+    "recordInvestmentValuation",
+    recordInvestmentValuationPayloadSchema,
+    executeRecordInvestmentValuation,
+  ),
 );
 
-export const registerInvestmentImportBatch = investmentCallable(
-  "registerInvestmentImportBatch",
-  registerInvestmentImportBatchPayloadSchema,
-  executeRegisterInvestmentImportBatch,
+export const registerInvestmentImportBatch = defineCallable(
+  investmentDefinition(
+    "registerInvestmentImportBatch",
+    registerInvestmentImportBatchPayloadSchema,
+    executeRegisterInvestmentImportBatch,
+  ),
 );
 
-export const rebuildInvestmentProjections = investmentCallable(
-  "rebuildInvestmentProjections",
-  rebuildInvestmentProjectionsPayloadSchema,
-  executeRebuildInvestmentProjections,
-  HEAVY_CALLABLE_OPTIONS,
+export const rebuildInvestmentProjections = defineCallable(
+  investmentDefinition(
+    "rebuildInvestmentProjections",
+    rebuildInvestmentProjectionsPayloadSchema,
+    executeRebuildInvestmentProjections,
+    HEAVY_CALLABLE_OPTIONS,
+  ),
 );
 
-export const backfillInvestmentWorkspace = investmentCallable(
-  "backfillInvestmentWorkspace",
-  backfillInvestmentWorkspacePayloadSchema,
-  executeBackfillInvestmentWorkspace,
-  HEAVY_CALLABLE_OPTIONS,
+export const backfillInvestmentWorkspace = defineCallable(
+  investmentDefinition(
+    "backfillInvestmentWorkspace",
+    backfillInvestmentWorkspacePayloadSchema,
+    executeBackfillInvestmentWorkspace,
+    HEAVY_CALLABLE_OPTIONS,
+  ),
 );

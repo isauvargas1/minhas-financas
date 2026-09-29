@@ -16,30 +16,7 @@ export * from './modules/settings-catalog/types.ts';
 export * from './modules/settings-catalog/types.ts';
 export * from './modules/settings-catalog/display.ts';
 
-export type WorkspaceType = 'PF' | 'PJ';
-
-export interface Workspace {
-    id: string;
-    userId: string;
-    ownerId: string;
-    type: WorkspaceType;
-    name: string;
-    slug?: string;
-    cnpj?: string | null;
-
-    logoUrl?: string;
-    themeColor?: string;
-    currency?: string;
-    pjAccentColor?: string;
-    alertPreferences?: {
-        billing: boolean;
-        accountsPayable: boolean;
-        delinquency: boolean;
-        lowMargin: boolean;
-    };
-    createdAt: string;
-    updatedAt: string;
-}
+export type { WorkspaceType } from './modules/workspaces/types.ts';
 
 export type TransactionType = 'receita' | 'despesa' | 'investimento' | 'parcelado';
 

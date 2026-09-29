@@ -1,8 +1,11 @@
 import * as admin from "firebase-admin";
 import {FieldValue, Timestamp} from "firebase-admin/firestore";
 
-import type {WorkspaceAuthorizationContext} from "../creditCards/auth";
-import {CreditCardApplicationError} from "../creditCards/errors";
+import {ApplicationError} from "../shared/errors";
+import {
+  reassertWorkspaceActor,
+  type WorkspaceActor,
+} from "../shared/workspaceAuth";
 import type {
   ArchiveInvestmentAccountPayload,
   ArchiveInvestmentAssetPayload,
@@ -35,11 +38,11 @@ import {
   assertNotBefore,
   assertNotFuture,
   assertWorkspaceDocument,
-  authorizeInvestmentTransaction,
   completeInvestmentIdempotency,
   deterministicDocumentId,
   investmentPositionId,
   parseTimestamp,
+  profileTypeFromWorkspace,
   recordInvestmentEvent,
   reserveInvestmentIdempotency,
   sha256,
@@ -196,7 +199,7 @@ const applyPositionDeltas = (
     feesCents < 0 ||
     taxCents < 0
   ) {
-    throw new CreditCardApplicationError(
+    throw new ApplicationError(
       "domain_precondition_failed",
       "O movimento deixaria a posição de investimento inconsistente.",
     );
@@ -208,7 +211,7 @@ const applyPositionDeltas = (
   // correto para resgatar abaixo do custo é retirar o custo inteiro e lançar
   // a diferença em `lossCents`.
   if (quantityMicros === 0 && principalCents !== 0) {
-    throw new CreditCardApplicationError(
+    throw new ApplicationError(
       "domain_precondition_failed",
       "Ao zerar a quantidade da posição, o custo resgatado precisa ser o " +
         "custo total. Lance a diferença como perda realizada.",
@@ -250,7 +253,7 @@ const ensureAccountAndAsset = (
     "Ativo de investimento",
   );
   if (account.currency !== "BRL" || asset.currency !== "BRL") {
-    throw new CreditCardApplicationError(
+    throw new ApplicationError(
       "domain_precondition_failed",
       "Conta e ativo precisam usar a moeda BRL neste domínio.",
     );
@@ -259,7 +262,7 @@ const ensureAccountAndAsset = (
     account.profileType !== profileType ||
     asset.profileType !== profileType
   ) {
-    throw new CreditCardApplicationError(
+    throw new ApplicationError(
       "domain_precondition_failed",
       "Conta e ativo não pertencem ao contexto PF/PJ do workspace.",
     );
@@ -268,7 +271,7 @@ const ensureAccountAndAsset = (
     requireActive &&
     (account.status !== "active" || asset.status !== "active")
   ) {
-    throw new CreditCardApplicationError(
+    throw new ApplicationError(
       "domain_precondition_failed",
       "Conta e ativo precisam estar ativos para esta operação.",
     );
@@ -305,7 +308,7 @@ export const updateGoalProjection = (
     "investmentCurrentValueCents",
   );
   if (nextNet < 0 || nextCurrent < 0) {
-    throw new CreditCardApplicationError(
+    throw new ApplicationError(
       "domain_precondition_failed",
       "O movimento deixaria o progresso de investimentos " +
         "da meta inconsistente.",
@@ -461,7 +464,7 @@ const transactionDate = (timestamp: Timestamp): string =>
 
 const writeCashProjection = (
   transaction: admin.firestore.Transaction,
-  auth: WorkspaceAuthorizationContext,
+  auth: WorkspaceActor,
   profileType: "PF" | "PJ",
   movement: Record<string, unknown>,
   investmentOperation: "contribution" | "redemption" | "redemption_reversal",
@@ -613,7 +616,7 @@ const resolveContributionTarget = async (
   const accountId = String(position.accountId);
   const assetId = String(position.assetId);
   if (investmentPositionId(accountId, assetId) !== positionId) {
-    throw new CreditCardApplicationError(
+    throw new ApplicationError(
       "domain_precondition_failed",
       "A posição informada é incoerente com a conta e o ativo que declara.",
     );
@@ -637,7 +640,7 @@ const contributionQuantityMicros = (
 ): number => {
   if (assetTrackingMode(asset) === "value") {
     if (supplied !== undefined) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "Um investimento controlado por valor não aceita quantidade: o " +
           "aporte é definido apenas pelo valor.",
@@ -646,7 +649,7 @@ const contributionQuantityMicros = (
     return valueModeQuantityMicros(principalCents);
   }
   if (supplied === undefined) {
-    throw new CreditCardApplicationError(
+    throw new ApplicationError(
       "domain_precondition_failed",
       "Um investimento controlado por quantidade exige a quantidade " +
         "aportada.",
@@ -656,7 +659,7 @@ const contributionQuantityMicros = (
 };
 
 export const executeCreateInvestmentContribution = async (
-  auth: WorkspaceAuthorizationContext,
+  auth: WorkspaceActor,
   payload: CreateInvestmentContributionPayload,
 ): Promise<Record<string, unknown>> => {
   const operation = "createInvestmentContribution" as const;
@@ -671,11 +674,15 @@ export const executeCreateInvestmentContribution = async (
     "occurredAt",
   );
   return investmentFirestore().runTransaction(async (transaction) => {
-    const authorization = await authorizeInvestmentTransaction(
+    const access = await reassertWorkspaceActor(
       transaction,
       auth,
       investmentOperationRoles(operation),
     );
+    const authorization = {
+      role: access.role,
+      profileType: profileTypeFromWorkspace(access.workspace),
+    };
     const reservation = await reserveInvestmentIdempotency(
       transaction,
       auth,
@@ -741,33 +748,33 @@ export const executeCreateInvestmentContribution = async (
         "Lote de importação",
       );
       if (batch.status === "completed" || batch.status === "failed") {
-        throw new CreditCardApplicationError(
+        throw new ApplicationError(
           "domain_precondition_failed",
           "O lote de importação informado não está aberto.",
         );
       }
       if (batch.profileType !== authorization.profileType) {
-        throw new CreditCardApplicationError(
+        throw new ApplicationError(
           "domain_precondition_failed",
           "O lote de importação não pertence ao contexto PF/PJ do workspace.",
         );
       }
     }
     if (movementSnapshot.exists) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "idempotency_conflict",
         "Movimento já existente.",
       );
     }
     const current = positionState(positionSnapshot);
     if (current.goalId && payload.goalId && current.goalId !== payload.goalId) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "A posição já está vinculada a outra meta.",
       );
     }
     if (!current.goalId && payload.goalId && current.principalCents > 0) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "Use a operação de vínculo para associar uma posição já existente.",
       );
@@ -993,7 +1000,7 @@ export const executeCreateInvestmentContribution = async (
 };
 
 export const executeCreateInvestmentRedemptionV2 = async (
-  auth: WorkspaceAuthorizationContext,
+  auth: WorkspaceActor,
   payload: CreateInvestmentRedemptionV2Payload,
 ): Promise<Record<string, unknown>> => {
   const operation = "createInvestmentRedemption" as const;
@@ -1022,11 +1029,15 @@ export const executeCreateInvestmentRedemptionV2 = async (
     parseTimestamp(payload.expectedSettlementAt) :
     undefined;
   return investmentFirestore().runTransaction(async (transaction) => {
-    const authorization = await authorizeInvestmentTransaction(
+    const access = await reassertWorkspaceActor(
       transaction,
       auth,
       investmentOperationRoles(operation),
     );
+    const authorization = {
+      role: access.role,
+      profileType: profileTypeFromWorkspace(access.workspace),
+    };
     const reservation = await reserveInvestmentIdempotency(
       transaction,
       auth,
@@ -1093,13 +1104,13 @@ export const executeCreateInvestmentRedemptionV2 = async (
       current.principalCents < payload.requestedPrincipalCents ||
       current.quantityMicros < payload.requestedQuantityMicros
     ) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "O resgate solicitado supera o saldo disponível na posição.",
       );
     }
     if (movementSnapshot.exists) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "idempotency_conflict",
         "Movimento já existente.",
       );
@@ -1193,7 +1204,7 @@ export const executeCreateInvestmentRedemptionV2 = async (
 };
 
 export const executeSettleInvestmentRedemption = async (
-  auth: WorkspaceAuthorizationContext,
+  auth: WorkspaceActor,
   payload: SettleInvestmentRedemptionPayload,
 ): Promise<Record<string, unknown>> => {
   const operation = "settleInvestmentRedemption" as const;
@@ -1202,11 +1213,15 @@ export const executeSettleInvestmentRedemption = async (
     "settledAt",
   );
   return investmentFirestore().runTransaction(async (transaction) => {
-    const authorization = await authorizeInvestmentTransaction(
+    const access = await reassertWorkspaceActor(
       transaction,
       auth,
       investmentOperationRoles(operation),
     );
+    const authorization = {
+      role: access.role,
+      profileType: profileTypeFromWorkspace(access.workspace),
+    };
     const reservation = await reserveInvestmentIdempotency(
       transaction,
       auth,
@@ -1228,7 +1243,7 @@ export const executeSettleInvestmentRedemption = async (
       "Resgate",
     );
     if (movement.operation !== "redemption" || movement.status !== "pending") {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "Somente um resgate pendente pode ser liquidado.",
       );
@@ -1237,7 +1252,7 @@ export const executeSettleInvestmentRedemption = async (
       payload.settlement.principalCents > movement.principalCents ||
       payload.settlement.quantityMicros > movement.quantityMicros
     ) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "A liquidação supera os valores solicitados no resgate.",
       );
@@ -1254,13 +1269,13 @@ export const executeSettleInvestmentRedemption = async (
     // integração e pelos caminhos operacionais, e a invariante financeira não
     // pode depender de quem construiu o payload.
     if (payload.settlement.gainCents > 0 && payload.settlement.lossCents > 0) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "Uma liquidação tem ganho ou perda realizada, nunca os dois.",
       );
     }
     if (payload.settlement.lossCents > payload.settlement.principalCents) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "A perda realizada não pode superar o custo resgatado.",
       );
@@ -1381,7 +1396,7 @@ export const executeSettleInvestmentRedemption = async (
     // Zero é admissível: uma perda igual ao custo é baixa total do ativo, com
     // caixa nulo. Negativo não é — um resgate não pode consumir dinheiro.
     if (cashDeltaCents < 0) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "Perda, taxas e impostos somados não podem superar o valor bruto " +
           "do resgate.",
@@ -1582,7 +1597,7 @@ export const executeSettleInvestmentRedemption = async (
 };
 
 export const executeReverseInvestmentMovement = async (
-  auth: WorkspaceAuthorizationContext,
+  auth: WorkspaceActor,
   payload: ReverseInvestmentMovementPayload,
 ): Promise<Record<string, unknown>> => {
   const operation = "reverseInvestmentMovement" as const;
@@ -1597,11 +1612,15 @@ export const executeReverseInvestmentMovement = async (
     "reversedAt",
   );
   return investmentFirestore().runTransaction(async (transaction) => {
-    const authorization = await authorizeInvestmentTransaction(
+    const access = await reassertWorkspaceActor(
       transaction,
       auth,
       investmentOperationRoles(operation),
     );
+    const authorization = {
+      role: access.role,
+      profileType: profileTypeFromWorkspace(access.workspace),
+    };
     const reservation = await reserveInvestmentIdempotency(
       transaction,
       auth,
@@ -1635,13 +1654,13 @@ export const executeReverseInvestmentMovement = async (
       (original.operation !== "contribution" &&
         original.operation !== "redemption")
     ) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "Somente um aporte ou resgate liquidado pode ser estornado.",
       );
     }
     if (original.reversedByMovementId || reversalSnapshot.exists) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "Este movimento já foi estornado.",
       );
@@ -1686,7 +1705,7 @@ export const executeReverseInvestmentMovement = async (
     );
     const current = positionState(positionSnapshot);
     if (!positionSnapshot.exists) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "not_found",
         "Posição não encontrada.",
       );
@@ -1894,7 +1913,7 @@ export const executeReverseInvestmentMovement = async (
 };
 
 const executeGoalLinkChange = async (
-  auth: WorkspaceAuthorizationContext,
+  auth: WorkspaceActor,
   payload: LinkInvestmentToGoalPayload | UnlinkInvestmentFromGoalPayload,
   link: boolean,
 ): Promise<Record<string, unknown>> => {
@@ -1921,11 +1940,15 @@ const executeGoalLinkChange = async (
     "occurredAt",
   );
   return investmentFirestore().runTransaction(async (transaction) => {
-    const authorization = await authorizeInvestmentTransaction(
+    const access = await reassertWorkspaceActor(
       transaction,
       auth,
       investmentOperationRoles(operation),
     );
+    const authorization = {
+      role: access.role,
+      profileType: profileTypeFromWorkspace(access.workspace),
+    };
     const reservation = await reserveInvestmentIdempotency(
       transaction,
       auth,
@@ -1981,26 +2004,26 @@ const executeGoalLinkChange = async (
     );
     assertWorkspaceDocument(goalSnapshot, auth.workspaceId, "Meta");
     if (movementSnapshot.exists) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "idempotency_conflict",
         "Movimento já existente.",
       );
     }
     const current = positionState(positionSnapshot);
     if (!positionSnapshot.exists) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "not_found",
         "Posição não encontrada.",
       );
     }
     if (link && current.goalId) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "A posição já está vinculada a uma meta.",
       );
     }
     if (!link && current.goalId !== payload.goalId) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "A posição não está vinculada à meta informada.",
       );
@@ -2135,12 +2158,12 @@ const executeGoalLinkChange = async (
  * a trilha explica a troca em vez de mostrar um desvínculo solto.
  */
 export const executeChangeInvestmentGoal = async (
-  auth: WorkspaceAuthorizationContext,
+  auth: WorkspaceActor,
   payload: ChangeInvestmentGoalPayload,
 ): Promise<Record<string, unknown>> => {
   const operation = "changeInvestmentGoal" as const;
   if (payload.goalId === payload.previousGoalId) {
-    throw new CreditCardApplicationError(
+    throw new ApplicationError(
       "invalid_payload",
       "A meta de destino precisa ser diferente da meta atual.",
     );
@@ -2158,11 +2181,15 @@ export const executeChangeInvestmentGoal = async (
   );
 
   return investmentFirestore().runTransaction(async (transaction) => {
-    const authorization = await authorizeInvestmentTransaction(
+    const access = await reassertWorkspaceActor(
       transaction,
       auth,
       investmentOperationRoles(operation),
     );
+    const authorization = {
+      role: access.role,
+      profileType: profileTypeFromWorkspace(access.workspace),
+    };
     const reservation = await reserveInvestmentIdempotency(
       transaction, auth, operation,
       payload.idempotencyKey, payload.correlationId, payload,
@@ -2209,20 +2236,20 @@ export const executeChangeInvestmentGoal = async (
     assertWorkspaceDocument(previousGoalSnapshot, auth.workspaceId, "Meta");
     assertWorkspaceDocument(nextGoalSnapshot, auth.workspaceId, "Meta");
     if (unlinkSnapshot.exists || linkSnapshot.exists) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "idempotency_conflict",
         "Movimento já existente.",
       );
     }
     if (!positionSnapshot.exists) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "not_found",
         "Posição não encontrada.",
       );
     }
     const current = positionState(positionSnapshot);
     if (current.goalId !== payload.previousGoalId) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "A posição não está vinculada à meta informada como atual.",
       );
@@ -2348,19 +2375,19 @@ export const executeChangeInvestmentGoal = async (
 };
 
 export const executeLinkInvestmentToGoal = (
-  auth: WorkspaceAuthorizationContext,
+  auth: WorkspaceActor,
   payload: LinkInvestmentToGoalPayload,
 ): Promise<Record<string, unknown>> =>
   executeGoalLinkChange(auth, payload, true);
 
 export const executeUnlinkInvestmentFromGoal = (
-  auth: WorkspaceAuthorizationContext,
+  auth: WorkspaceActor,
   payload: UnlinkInvestmentFromGoalPayload,
 ): Promise<Record<string, unknown>> =>
   executeGoalLinkChange(auth, payload, false);
 
 const executeArchive = async (
-  auth: WorkspaceAuthorizationContext,
+  auth: WorkspaceActor,
   payload: ArchiveInvestmentAccountPayload | ArchiveInvestmentAssetPayload,
   entityType: "account" | "asset",
 ): Promise<Record<string, unknown>> => {
@@ -2377,11 +2404,15 @@ const executeArchive = async (
       (payload as ArchiveInvestmentAccountPayload).accountId :
       (payload as ArchiveInvestmentAssetPayload).assetId;
   return investmentFirestore().runTransaction(async (transaction) => {
-    const authorization = await authorizeInvestmentTransaction(
+    const access = await reassertWorkspaceActor(
       transaction,
       auth,
       investmentOperationRoles(operation),
     );
+    const authorization = {
+      role: access.role,
+      profileType: profileTypeFromWorkspace(access.workspace),
+    };
     const reservation = await reserveInvestmentIdempotency(
       transaction,
       auth,
@@ -2401,7 +2432,7 @@ const executeArchive = async (
         "Ativo de investimento",
     );
     if (current.status === "archived") {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         entityType === "account" ?
           "A conta já está arquivada." :
@@ -2453,17 +2484,17 @@ const executeArchive = async (
 };
 
 export const executeArchiveInvestmentAccount = (
-  auth: WorkspaceAuthorizationContext,
+  auth: WorkspaceActor,
   payload: ArchiveInvestmentAccountPayload,
 ): Promise<Record<string, unknown>> => executeArchive(auth, payload, "account");
 
 export const executeArchiveInvestmentAsset = (
-  auth: WorkspaceAuthorizationContext,
+  auth: WorkspaceActor,
   payload: ArchiveInvestmentAssetPayload,
 ): Promise<Record<string, unknown>> => executeArchive(auth, payload, "asset");
 
 const executeSaveEntity = async (
-  auth: WorkspaceAuthorizationContext,
+  auth: WorkspaceActor,
   payload: SaveInvestmentAccountPayload | SaveInvestmentAssetPayload,
   entityType: "account" | "asset",
 ): Promise<Record<string, unknown>> => {
@@ -2481,11 +2512,15 @@ const executeSaveEntity = async (
     payload.idempotencyKey,
   );
   return investmentFirestore().runTransaction(async (transaction) => {
-    const authorization = await authorizeInvestmentTransaction(
+    const access = await reassertWorkspaceActor(
       transaction,
       auth,
       investmentOperationRoles(operation),
     );
+    const authorization = {
+      role: access.role,
+      profileType: profileTypeFromWorkspace(access.workspace),
+    };
     const reservation = await reserveInvestmentIdempotency(
       transaction,
       auth,
@@ -2499,13 +2534,13 @@ const executeSaveEntity = async (
     const snapshot = await transaction.get(ref);
     const before = snapshot.data();
     if (snapshot.exists && before?.workspaceId !== auth.workspaceId) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "O registro não pertence ao workspace autorizado.",
       );
     }
     if (snapshot.exists && before?.status === "archived") {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         entityType === "account" ?
           "Uma conta inativada não pode ser editada." :
@@ -2524,7 +2559,7 @@ const executeSaveEntity = async (
           "fixed_asset",
         ] : ["unassigned", "retirement", "goal"];
       if (!allowedPurposes.includes(allocationPurpose)) {
-        throw new CreditCardApplicationError(
+        throw new ApplicationError(
           "domain_precondition_failed",
           "A finalidade do ativo não é compatível com o contexto PF/PJ.",
         );
@@ -2555,7 +2590,7 @@ const executeSaveEntity = async (
             .limit(1),
         );
         if (!position.empty) {
-          throw new CreditCardApplicationError(
+          throw new ApplicationError(
             "domain_precondition_failed",
             trackingModeChanged ?
               "O regime de acompanhamento não pode mudar enquanto o ativo " +
@@ -2681,13 +2716,13 @@ const catalogClassification = (
 };
 
 export const executeSaveInvestmentAccount = (
-  auth: WorkspaceAuthorizationContext,
+  auth: WorkspaceActor,
   payload: SaveInvestmentAccountPayload,
 ): Promise<Record<string, unknown>> =>
   executeSaveEntity(auth, payload, "account");
 
 export const executeSaveInvestmentAsset = (
-  auth: WorkspaceAuthorizationContext,
+  auth: WorkspaceActor,
   payload: SaveInvestmentAssetPayload,
 ): Promise<Record<string, unknown>> =>
   executeSaveEntity(auth, payload, "asset");
@@ -2708,7 +2743,7 @@ export const investmentIdempotencyKeyHash = (key: string): string =>
  * com `cancelledAt`/`cancelledBy`/motivo — não há hard delete.
  */
 export const executeCancelInvestmentMovement = async (
-  auth: WorkspaceAuthorizationContext,
+  auth: WorkspaceActor,
   payload: CancelInvestmentMovementPayload,
 ): Promise<Record<string, unknown>> => {
   const operation = "cancelInvestmentMovement" as const;
@@ -2724,11 +2759,15 @@ export const executeCancelInvestmentMovement = async (
     "occurredAt",
   );
   return investmentFirestore().runTransaction(async (transaction) => {
-    const authorization = await authorizeInvestmentTransaction(
+    const access = await reassertWorkspaceActor(
       transaction,
       auth,
       investmentOperationRoles(operation),
     );
+    const authorization = {
+      role: access.role,
+      profileType: profileTypeFromWorkspace(access.workspace),
+    };
     const reservation = await reserveInvestmentIdempotency(
       transaction,
       auth,
@@ -2750,13 +2789,13 @@ export const executeCancelInvestmentMovement = async (
       "Movimento de investimento",
     );
     if (movement.status === "cancelled") {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "Este movimento já está cancelado.",
       );
     }
     if (movement.status !== "pending") {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "Somente um movimento pendente pode ser cancelado. " +
           "Movimento liquidado exige estorno compensatório.",
@@ -2846,7 +2885,7 @@ export const executeCancelInvestmentMovement = async (
  * intacto. Só o valor atual e a apreciação não realizada mudam.
  */
 export const executeRecordInvestmentValuation = async (
-  auth: WorkspaceAuthorizationContext,
+  auth: WorkspaceActor,
   payload: RecordInvestmentValuationPayload,
 ): Promise<Record<string, unknown>> => {
   const operation = "recordInvestmentValuation" as const;
@@ -2855,11 +2894,15 @@ export const executeRecordInvestmentValuation = async (
     "effectiveAt",
   );
   return investmentFirestore().runTransaction(async (transaction) => {
-    const authorization = await authorizeInvestmentTransaction(
+    const access = await reassertWorkspaceActor(
       transaction,
       auth,
       investmentOperationRoles(operation),
     );
+    const authorization = {
+      role: access.role,
+      profileType: profileTypeFromWorkspace(access.workspace),
+    };
     const reservation = await reserveInvestmentIdempotency(
       transaction,
       auth,
@@ -2908,14 +2951,14 @@ export const executeRecordInvestmentValuation = async (
      */
     assertQuantityOperationAllowed(assetSnapshot.data(), "A valoração");
     if (!positionSnapshot.exists) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "Não existe posição para valorar nesta conta e ativo.",
       );
     }
     const current = positionState(positionSnapshot);
     if (current.quantityMicros <= 0) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "Posição sem quantidade não pode ser valorada.",
       );
@@ -2924,7 +2967,7 @@ export const executeRecordInvestmentValuation = async (
       current.valuationEffectiveAt &&
       current.valuationEffectiveAt.toMillis() > effectiveAt.toMillis()
     ) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "Já existe valoração mais recente para esta posição.",
       );
@@ -2941,7 +2984,7 @@ export const executeRecordInvestmentValuation = async (
     );
     const valuationSnapshot = await transaction.get(valuationRef);
     if (valuationSnapshot.exists) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "idempotency_conflict",
         "Esta valoração já foi registrada.",
       );
@@ -3100,16 +3143,20 @@ export const executeRecordInvestmentValuation = async (
  * explícito e contadores atualizados na mesma transação do aporte.
  */
 export const executeRegisterInvestmentImportBatch = async (
-  auth: WorkspaceAuthorizationContext,
+  auth: WorkspaceActor,
   payload: RegisterInvestmentImportBatchPayload,
 ): Promise<Record<string, unknown>> => {
   const operation = "registerInvestmentImportBatch" as const;
   return investmentFirestore().runTransaction(async (transaction) => {
-    const authorization = await authorizeInvestmentTransaction(
+    const access = await reassertWorkspaceActor(
       transaction,
       auth,
       investmentOperationRoles(operation),
     );
+    const authorization = {
+      role: access.role,
+      profileType: profileTypeFromWorkspace(access.workspace),
+    };
     const reservation = await reserveInvestmentIdempotency(
       transaction,
       auth,
@@ -3136,7 +3183,7 @@ export const executeRegisterInvestmentImportBatch = async (
       ) :
       undefined;
     if (existing && existing.status === "completed") {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "Lote de importação concluído não pode ser reaberto.",
       );
@@ -3224,7 +3271,7 @@ export const executeRegisterInvestmentImportBatch = async (
  * série mensal usam.
  */
 export const executeSettleInvestmentContribution = async (
-  auth: WorkspaceAuthorizationContext,
+  auth: WorkspaceActor,
   payload: SettleInvestmentContributionPayload,
 ): Promise<Record<string, unknown>> => {
   const operation = "settleInvestmentContribution" as const;
@@ -3233,11 +3280,15 @@ export const executeSettleInvestmentContribution = async (
     "settledAt",
   );
   return investmentFirestore().runTransaction(async (transaction) => {
-    const authorization = await authorizeInvestmentTransaction(
+    const access = await reassertWorkspaceActor(
       transaction,
       auth,
       investmentOperationRoles(operation),
     );
+    const authorization = {
+      role: access.role,
+      profileType: profileTypeFromWorkspace(access.workspace),
+    };
     const reservation = await reserveInvestmentIdempotency(
       transaction,
       auth,
@@ -3267,7 +3318,7 @@ export const executeSettleInvestmentContribution = async (
       movement.operation !== "contribution" ||
       movement.status !== "pending"
     ) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "Somente um aporte pendente pode ser liquidado.",
       );
@@ -3319,13 +3370,13 @@ export const executeSettleInvestmentContribution = async (
       movement.goalId :
       undefined;
     if (current.goalId && intendedGoalId && current.goalId !== intendedGoalId) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "A posição já está vinculada a outra meta.",
       );
     }
     if (!current.goalId && intendedGoalId && current.principalCents > 0) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "Use a operação de vínculo para associar uma posição já existente.",
       );
@@ -3531,7 +3582,7 @@ interface ReplacedPendingContribution {
  */
 const readReplacedPendingContribution = async (
   transaction: admin.firestore.Transaction,
-  auth: WorkspaceAuthorizationContext,
+  auth: WorkspaceActor,
   profileType: "PF" | "PJ",
   movementId: string,
 ): Promise<ReplacedPendingContribution> => {
@@ -3547,26 +3598,26 @@ const readReplacedPendingContribution = async (
     "Movimento de investimento",
   );
   if (data.operation !== "contribution") {
-    throw new CreditCardApplicationError(
+    throw new ApplicationError(
       "domain_precondition_failed",
       "Somente um aporte pode ser corrigido por substituição.",
     );
   }
   if (data.status === "cancelled") {
-    throw new CreditCardApplicationError(
+    throw new ApplicationError(
       "domain_precondition_failed",
       "Este lançamento já foi cancelado. Atualize a lista antes de corrigi-lo.",
     );
   }
   if (data.status !== "pending") {
-    throw new CreditCardApplicationError(
+    throw new ApplicationError(
       "domain_precondition_failed",
       "Somente um lançamento pendente pode ser corrigido. " +
         "Lançamento já depositado exige estorno compensatório.",
     );
   }
   if (data.profileType !== profileType) {
-    throw new CreditCardApplicationError(
+    throw new ApplicationError(
       "domain_precondition_failed",
       "O lançamento não pertence ao contexto PF/PJ do workspace.",
     );
@@ -3621,7 +3672,7 @@ const readReplacedPendingContribution = async (
  * pendente original intacto, com os mesmos efeitos zero que ele já tinha.
  */
 export const executeCreateSimpleInvestment = async (
-  auth: WorkspaceAuthorizationContext,
+  auth: WorkspaceActor,
   payload: CreateSimpleInvestmentPayload,
 ): Promise<Record<string, unknown>> => {
   const operation = "createSimpleInvestment" as const;
@@ -3642,11 +3693,15 @@ export const executeCreateSimpleInvestment = async (
   );
   const settled = payload.settled !== false;
   return investmentFirestore().runTransaction(async (transaction) => {
-    const authorization = await authorizeInvestmentTransaction(
+    const access = await reassertWorkspaceActor(
       transaction,
       auth,
       investmentOperationRoles(operation),
     );
+    const authorization = {
+      role: access.role,
+      profileType: profileTypeFromWorkspace(access.workspace),
+    };
     const reservation = await reserveInvestmentIdempotency(
       transaction,
       auth,
@@ -3742,7 +3797,7 @@ export const executeCreateSimpleInvestment = async (
       movementSnapshot.exists ||
       positionSnapshot.exists
     ) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "idempotency_conflict",
         "Investimento já existente.",
       );
@@ -3766,20 +3821,20 @@ export const executeCreateSimpleInvestment = async (
     const accountBefore = accountSnapshot.data();
     if (accountSnapshot.exists) {
       if (accountBefore?.workspaceId !== auth.workspaceId) {
-        throw new CreditCardApplicationError(
+        throw new ApplicationError(
           "domain_precondition_failed",
           "A conta da instituição não pertence ao workspace autorizado.",
         );
       }
       if (accountBefore?.status !== "active") {
-        throw new CreditCardApplicationError(
+        throw new ApplicationError(
           "domain_precondition_failed",
           "A conta desta instituição está inativa. Reative-a antes de " +
             "registrar um novo investimento.",
         );
       }
       if (accountBefore?.profileType !== authorization.profileType) {
-        throw new CreditCardApplicationError(
+        throw new ApplicationError(
           "domain_precondition_failed",
           "A conta da instituição não pertence ao contexto PF/PJ do " +
             "workspace.",
@@ -4150,7 +4205,7 @@ const simpleWithdrawalComponents = (
 ): SimpleWithdrawalComponents => {
   const gainCents = suppliedGainCents ?? 0;
   if (!Number.isSafeInteger(gainCents) || gainCents < 0) {
-    throw new CreditCardApplicationError(
+    throw new ApplicationError(
       "domain_precondition_failed",
       "O rendimento informado precisa ser um valor não negativo.",
     );
@@ -4161,13 +4216,13 @@ const simpleWithdrawalComponents = (
     "principalCents",
   );
   if (principalCents < 0) {
-    throw new CreditCardApplicationError(
+    throw new ApplicationError(
       "domain_precondition_failed",
       "O rendimento informado não pode superar o valor total retirado.",
     );
   }
   if (principalCents > current.principalCents) {
-    throw new CreditCardApplicationError(
+    throw new ApplicationError(
       "domain_precondition_failed",
       "O capital retirado supera o capital investido disponível neste " +
         "investimento. Se parte do valor é rendimento, informe quanto: o " +
@@ -4180,7 +4235,7 @@ const simpleWithdrawalComponents = (
     current.quantityMicros :
     valueModeQuantityMicros(principalCents);
   if (quantityMicros > current.quantityMicros) {
-    throw new CreditCardApplicationError(
+    throw new ApplicationError(
       "domain_precondition_failed",
       "A retirada supera o saldo disponível na posição.",
     );
@@ -4234,7 +4289,7 @@ const SIMPLE_WITHDRAWAL_PENDING_EFFECTS = {
 } as const;
 
 export const executeWithdrawSimpleInvestment = async (
-  auth: WorkspaceAuthorizationContext,
+  auth: WorkspaceActor,
   payload: WithdrawSimpleInvestmentPayload,
 ): Promise<Record<string, unknown>> => {
   const operation = "withdrawSimpleInvestment" as const;
@@ -4250,11 +4305,15 @@ export const executeWithdrawSimpleInvestment = async (
   );
   const received = payload.received !== false;
   return investmentFirestore().runTransaction(async (transaction) => {
-    const authorization = await authorizeInvestmentTransaction(
+    const access = await reassertWorkspaceActor(
       transaction,
       auth,
       investmentOperationRoles(operation),
     );
+    const authorization = {
+      role: access.role,
+      profileType: profileTypeFromWorkspace(access.workspace),
+    };
     const reservation = await reserveInvestmentIdempotency(
       transaction,
       auth,
@@ -4284,7 +4343,7 @@ export const executeWithdrawSimpleInvestment = async (
       "Investimento",
     );
     if (movementSnapshot.exists) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "idempotency_conflict",
         "Movimento já existente.",
       );
@@ -4292,7 +4351,7 @@ export const executeWithdrawSimpleInvestment = async (
     const accountId = String(position.accountId);
     const assetId = String(position.assetId);
     if (investmentPositionId(accountId, assetId) !== payload.positionId) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "A posição informada é incoerente com a conta e o ativo que declara.",
       );
@@ -4323,7 +4382,7 @@ export const executeWithdrawSimpleInvestment = async (
      * avançada de resgate.
      */
     if (assetTrackingMode(assetSnapshot.data()) !== "value") {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "Este investimento é controlado por quantidade. Use o resgate " +
           "detalhado, que recebe quantidade e resultado realizado.",
@@ -4555,7 +4614,7 @@ export const executeWithdrawSimpleInvestment = async (
  * são informados.
  */
 export const executeSettleSimpleWithdrawal = async (
-  auth: WorkspaceAuthorizationContext,
+  auth: WorkspaceActor,
   payload: SettleSimpleWithdrawalPayload,
 ): Promise<Record<string, unknown>> => {
   const operation = "settleSimpleWithdrawal" as const;
@@ -4564,11 +4623,15 @@ export const executeSettleSimpleWithdrawal = async (
     "settledAt",
   );
   return investmentFirestore().runTransaction(async (transaction) => {
-    const authorization = await authorizeInvestmentTransaction(
+    const access = await reassertWorkspaceActor(
       transaction,
       auth,
       investmentOperationRoles(operation),
     );
+    const authorization = {
+      role: access.role,
+      profileType: profileTypeFromWorkspace(access.workspace),
+    };
     const reservation = await reserveInvestmentIdempotency(
       transaction,
       auth,
@@ -4593,7 +4656,7 @@ export const executeSettleSimpleWithdrawal = async (
       movement.operation !== "redemption" ||
       movement.status !== "pending"
     ) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "Somente uma retirada pendente pode ser liquidada.",
       );
@@ -4635,7 +4698,7 @@ export const executeSettleSimpleWithdrawal = async (
       false,
     );
     if (assetTrackingMode(assetSnapshot.data()) !== "value") {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "Este resgate é de um investimento controlado por quantidade. Use a " +
           "liquidação detalhada, que recebe quantidade e resultado realizado.",

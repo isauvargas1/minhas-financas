@@ -2,7 +2,12 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import * as admin from "firebase-admin";
 
-import type {WorkspaceAuthorizationContext} from "../../creditCards/auth";
+import type {WorkspaceActor} from "../../shared/workspaceAuth";
+import {
+  requireFirestoreEmulator,
+  seedActiveAccount,
+  seedWorkspace as seedKernelWorkspace,
+} from "../../shared/testSupport/kernelTestSupport";
 import {executeBackfillInvestmentWorkspace} from "../backfill";
 import {investmentPositionId} from "../infrastructure";
 import {executeRebuildInvestmentProjections} from "../projectionRebuild";
@@ -30,21 +35,15 @@ import {executeRebuildInvestmentProjections} from "../projectionRebuild";
  * forma errada, para que a regressão falhe aqui em vez de na produção.
  */
 
-if (!process.env.FIRESTORE_EMULATOR_HOST) {
-  throw new Error("FIRESTORE_EMULATOR_HOST é obrigatório.");
-}
-
-const PROJECT = process.env.GCLOUD_PROJECT || "minhas-financas-local";
 const WORKSPACE = "paged-run-contract";
 const OWNER = "paged-run-owner";
 const MAX_PAGES = 40;
 
-const db = (): admin.firestore.Firestore => {
-  if (!admin.apps.length) admin.initializeApp({projectId: PROJECT});
-  return admin.firestore();
-};
+// Sem o Emulator a suíte falha ao carregar, em vez de pular.
+const firestore = requireFirestoreEmulator();
+const db = (): admin.firestore.Firestore => firestore;
 
-const auth = (): WorkspaceAuthorizationContext => ({
+const auth = (): WorkspaceActor => ({
   workspaceId: WORKSPACE,
   uid: OWNER,
   role: "owner",
@@ -52,14 +51,11 @@ const auth = (): WorkspaceAuthorizationContext => ({
 
 const seed = async (): Promise<void> => {
   await db().recursiveDelete(db().doc(`workspaces/${WORKSPACE}`));
-  await db().doc(`workspaces/${WORKSPACE}`).set({
+  await seedActiveAccount(OWNER);
+  await seedKernelWorkspace({
+    workspaceId: WORKSPACE,
     ownerId: OWNER,
     type: "PJ",
-    currency: "BRL",
-    name: WORKSPACE,
-  });
-  await db().doc(`workspaces/${WORKSPACE}/members/${OWNER}`).set({
-    uid: OWNER, role: "owner", status: "active",
   });
 };
 

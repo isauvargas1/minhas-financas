@@ -1,8 +1,5 @@
 import React, { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { doc, getDoc } from 'firebase/firestore';
-
-import { auth, db } from '../../../lib/firebase';
 
 import { useFinancialIntent } from '../hooks/useIntentNonce';
 import {
@@ -50,43 +47,13 @@ type OperatorRole = 'owner' | 'admin';
 interface Props {
   workspaceId: string;
   /**
-   * Papel do espelho de leitura (`users/{uid}/workspaces/{id}.role`).
-   *
-   * É a checagem barata, usada só para não disparar a consulta autoritativa
-   * quando o papel espelhado já exclui a operação. Quem decide é
-   * `useAuthoritativeRole`.
+   * Papel do usuário no workspace, como o `WorkspaceContext` o expõe: lido de
+   * `workspaces/{id}/members/{uid}` ativo (P1). O índice do usuário não tem
+   * papel e `ownerId` não autoriza nada. O backend recusa a operação de
+   * qualquer forma; aqui só não se oferece o caminho que termina em recusa.
    */
   myRole?: string;
 }
-
-/**
- * Papel autoritativo do usuário no workspace.
- *
- * `activeWorkspace.myRole` pode vir de `users/{uid}/workspaces/{id}.role`, que
- * é um **espelho de leitura** que o próprio usuário escreve. A fonte de
- * verdade é `workspaces/{id}/members/{uid}`, onde as Rules impedem
- * autopromoção. O backend recusa a operação de qualquer forma; o que esta
- * verificação evita é oferecer na tela um caminho que termina em recusa —
- * e sugerir a quem não pode operar que poderia.
- */
-const useAuthoritativeRole = (workspaceId: string) =>
-  useQuery({
-    queryKey: ['workspace-authoritative-role', workspaceId],
-    enabled: workspaceId.length > 0,
-    queryFn: async (): Promise<OperatorRole | null> => {
-      const uid = auth.currentUser?.uid;
-      if (!uid) return null;
-      const [membership, workspace] = await Promise.all([
-        getDoc(doc(db, 'workspaces', workspaceId, 'members', uid)),
-        getDoc(doc(db, 'workspaces', workspaceId)),
-      ]);
-      if (workspace.data()?.ownerId === uid) return 'owner';
-      const role = membership.data()?.role;
-      if (role === 'owner') return 'owner';
-      if (role === 'admin') return 'admin';
-      return null;
-    },
-  });
 
 type Action =
   | 'rebuild'
@@ -210,10 +177,8 @@ export const InvestmentOperationsPanel: React.FC<Props> = ({
   workspaceId, myRole,
 }) => {
   const client = useQueryClient();
-  // O espelho é a checagem barata; a de membership é a que vale.
-  const mirrorAllows = myRole === 'owner' || myRole === 'admin';
-  const authoritative = useAuthoritativeRole(workspaceId);
-  const role = mirrorAllows ? authoritative.data ?? null : null;
+  const role: OperatorRole | null =
+    myRole === 'owner' || myRole === 'admin' ? myRole : null;
   const canOperate = role !== null;
   const [pending, setPending] = useState<ActionSpec | null>(null);
   const [reason, setReason] = useState('');

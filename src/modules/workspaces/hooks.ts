@@ -1,26 +1,24 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as api from './api';
-import { Workspace, WorkspaceMember, WorkspaceRole, WorkspaceType } from './types';
-import {onboardInvestmentWorkspace} from '../investments/persistence/callableApi';
+import type { WorkspaceType } from './types';
+import { onboardInvestmentWorkspace } from '../investments/persistence/callableApi';
 
 export const keys = {
     all: ['workspaces'],
     members: (workspaceId: string) => ['workspaces', workspaceId, 'members']
 };
 
-
 export const useCreateWorkspace = () => {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: async (input: { type: WorkspaceType; name: string; ownerId: string; email: string; cnpj?: string }) => {
-            const workspace = await api.createWorkspace({
-                type: input.type, 
-                name: input.name, 
-                ownerId: input.ownerId,
-                cnpj: input.cnpj
-            }, input.email);
-            await onboardInvestmentWorkspace(workspace.id);
-            return workspace;
+        mutationFn: async (input: { type: WorkspaceType; name: string; cnpj?: string }) => {
+            const { workspaceId } = await api.createWorkspace({
+                type: input.type,
+                name: input.name,
+                cnpj: input.cnpj,
+            });
+            await onboardInvestmentWorkspace(workspaceId);
+            return { id: workspaceId };
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: keys.all });
@@ -28,32 +26,38 @@ export const useCreateWorkspace = () => {
     });
 };
 
-// NOVOS HOOKS DE MEMBROS
-
 export const useWorkspaceMembers = (workspaceId: string) => {
     return useQuery({
         queryKey: keys.members(workspaceId),
         queryFn: () => api.listWorkspaceMembers(workspaceId),
-        enabled: !!workspaceId
+        enabled: !!workspaceId && workspaceId !== 'loading'
     });
 };
 
-export const useAddMember = (workspaceId: string) => {
-    const queryClient = useQueryClient();
+export const useInviteMember = (workspaceId: string) => {
     return useMutation({
-        mutationFn: (member: WorkspaceMember) => api.addMember(workspaceId, member),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: keys.members(workspaceId) });
-        }
+        mutationFn: ({ email, role }: { email: string; role: api.InvitableRole }) =>
+            api.inviteWorkspaceMember(workspaceId, email, role),
     });
 };
 
 export const useUpdateMemberRole = (workspaceId: string) => {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: ({ memberId, role }: { memberId: string, role: WorkspaceRole }) => 
-            api.updateMemberRole(workspaceId, memberId, role),
-        onSuccess: () => {
+        mutationFn: ({ memberId, role }: { memberId: string; role: api.InvitableRole }) =>
+            api.changeWorkspaceMemberRole(workspaceId, memberId, role),
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: keys.members(workspaceId) });
+        }
+    });
+};
+
+export const useTransferOwnership = (workspaceId: string) => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (newOwnerId: string) =>
+            api.transferWorkspaceOwnership(workspaceId, newOwnerId),
+        onSettled: () => {
             queryClient.invalidateQueries({ queryKey: keys.members(workspaceId) });
         }
     });
@@ -62,17 +66,18 @@ export const useUpdateMemberRole = (workspaceId: string) => {
 export const useRemoveMember = (workspaceId: string) => {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (memberId: string) => api.removeMember(workspaceId, memberId),
-        onSuccess: () => {
+        mutationFn: (memberId: string) => api.removeWorkspaceMember(workspaceId, memberId),
+        onSettled: () => {
             queryClient.invalidateQueries({ queryKey: keys.members(workspaceId) });
         }
     });
 };
 
-export const useUpdateWorkspace = () => {
+export const useUpdateWorkspaceSettings = (workspaceId: string) => {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (workspace: Workspace) => api.updateWorkspace(workspace.id, workspace),
+        mutationFn: (settings: api.WorkspaceSettingsInput) =>
+            api.updateWorkspaceSettings(workspaceId, settings),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: keys.all });
         }

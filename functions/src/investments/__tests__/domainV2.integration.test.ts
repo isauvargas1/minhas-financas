@@ -3,8 +3,21 @@ import test from "node:test";
 import * as admin from "firebase-admin";
 import {Timestamp} from "firebase-admin/firestore";
 
-import type {WorkspaceAuthorizationContext} from "../../creditCards/auth";
-import {CreditCardApplicationError} from "../../creditCards/errors";
+import {HttpsError} from "firebase-functions/v2/https";
+
+import {ApplicationError} from "../../shared/errors";
+import {
+  callableRequest,
+  requireFirestoreEmulator,
+  seedActiveAccount,
+  seedMember as seedKernelMember,
+  seedWorkspace as seedKernelWorkspace,
+} from "../../shared/testSupport/kernelTestSupport";
+import {
+  resolveWorkspaceActor,
+  type WorkspaceActor,
+} from "../../shared/workspaceAuth";
+import {createInvestmentContribution} from "../callables";
 import {
   FUTURE_DATE_TOLERANCE_MS,
   deterministicDocumentId,
@@ -29,14 +42,8 @@ import {
   executeRecalculateInvestmentPosition,
 } from "../rebuild";
 import {executeOnboardInvestmentWorkspace} from "../onboarding";
+import {investmentOperationRoles} from "../writeStrategy";
 
-if (!process.env.FIRESTORE_EMULATOR_HOST) {
-  throw new Error(
-    "FIRESTORE_EMULATOR_HOST é obrigatório para os testes do domínio M3.",
-  );
-}
-
-const PROJECT = process.env.GCLOUD_PROJECT ?? "minhas-financas-local";
 const WORKSPACE_A = "investment-v2-workspace-a";
 const WORKSPACE_B = "investment-v2-workspace-b";
 const OWNER_A = "investment-v2-owner-a";
@@ -51,33 +58,31 @@ const SECOND_ACCOUNT = "investment-account-second";
 const SECOND_ASSET = "investment-asset-second";
 const GOAL = "investment-goal-a";
 
-const db = (): admin.firestore.Firestore => {
-  if (!admin.apps.length) admin.initializeApp({projectId: PROJECT});
-  return admin.firestore();
-};
+// Sem o Emulator a suíte falha ao carregar, em vez de pular.
+const firestore = requireFirestoreEmulator();
+const db = (): admin.firestore.Firestore => firestore;
 
 const auth = (
   workspaceId = WORKSPACE_A,
   uid = OWNER_A,
-  role: WorkspaceAuthorizationContext["role"] = "owner",
-): WorkspaceAuthorizationContext => ({workspaceId, uid, role});
+  role: WorkspaceActor["role"] = "owner",
+): WorkspaceActor => ({workspaceId, uid, role});
 
+/**
+ * Workspace ativo com o owner canônico como membership ativo e perfil ativo:
+ * é o que o resolvedor do kernel exige, inclusive dentro da transação.
+ */
 const seedWorkspace = async (
   workspaceId: string,
-  ownerId: string,
+  ownerUid: string,
   profileType: "PF" | "PJ" = "PF",
 ): Promise<void> => {
   await db().recursiveDelete(db().doc(`workspaces/${workspaceId}`));
-  await db().doc(`workspaces/${workspaceId}`).set({
-    ownerId,
+  await seedActiveAccount(ownerUid);
+  await seedKernelWorkspace({
+    workspaceId,
+    ownerId: ownerUid,
     type: profileType,
-    currency: "BRL",
-    name: workspaceId,
-  });
-  await db().doc(`workspaces/${workspaceId}/members/${ownerId}`).set({
-    uid: ownerId,
-    role: "owner",
-    status: "active",
   });
 };
 
@@ -85,11 +90,10 @@ const seedMember = async (
   workspaceId: string,
   uid: string,
   role: "admin" | "member" | "viewer",
-  status = "active",
+  status: "active" | "removed" = "active",
 ): Promise<void> => {
-  await db()
-    .doc(`workspaces/${workspaceId}/members/${uid}`)
-    .set({uid, role, status});
+  await seedActiveAccount(uid);
+  await seedKernelMember(workspaceId, uid, role, status);
 };
 
 const seedCatalog = async (
@@ -144,6 +148,24 @@ const seedGoal = async (
     investmentProgressCents: 0,
     investmentProjectionVersion: 0,
   });
+};
+
+/** Coleções criadas pelo seed; qualquer outra foi escrita pela operação. */
+const SEEDED_COLLECTIONS = new Set([
+  "members",
+  "investment_accounts",
+  "investment_assets",
+]);
+
+/** Prova de que a operação recusada não gravou nada no workspace. */
+const assertNothingWritten = async (workspaceId: string): Promise<void> => {
+  const collections = await db().doc(`workspaces/${workspaceId}`)
+    .listCollections();
+  const written = collections
+    .map((collection) => collection.id)
+    .filter((id) => !SEEDED_COLLECTIONS.has(id))
+    .sort();
+  assert.deepEqual(written, []);
 };
 
 const contributionPayload = (
@@ -378,7 +400,7 @@ test(
           correlationId: "corr-m3-redemption-reverse-again-0001",
         }),
       (error: unknown) =>
-        error instanceof CreditCardApplicationError &&
+        error instanceof ApplicationError &&
       error.code === "domain_precondition_failed",
     );
   },
@@ -886,7 +908,7 @@ test(
           }),
         ),
       (error: unknown) =>
-        error instanceof CreditCardApplicationError &&
+        error instanceof ApplicationError &&
       error.code === "workspace_role_denied",
     );
     await assert.rejects(
@@ -898,7 +920,7 @@ test(
           }),
         ),
       (error: unknown) =>
-        error instanceof CreditCardApplicationError &&
+        error instanceof ApplicationError &&
       error.code === "workspace_membership_required",
     );
     await assert.rejects(
@@ -910,7 +932,7 @@ test(
           }),
         ),
       (error: unknown) =>
-        error instanceof CreditCardApplicationError &&
+        error instanceof ApplicationError &&
       error.code === "workspace_membership_required",
     );
     await assert.rejects(
@@ -923,7 +945,7 @@ test(
           }),
         ),
       (error: unknown) =>
-        error instanceof CreditCardApplicationError &&
+        error instanceof ApplicationError &&
       error.code === "workspace_membership_required",
     );
     await assert.rejects(
@@ -936,7 +958,7 @@ test(
           }),
         ),
       (error: unknown) =>
-        error instanceof CreditCardApplicationError &&
+        error instanceof ApplicationError &&
       error.code === "permission_denied",
     );
     const pj = await executeCreateInvestmentContribution(
@@ -970,7 +992,7 @@ test(
           reason: "Tentativa sem privilégio",
         }),
       (error: unknown) =>
-        error instanceof CreditCardApplicationError &&
+        error instanceof ApplicationError &&
       error.code === "workspace_role_denied",
     );
     const deterministic = deterministicDocumentId(
@@ -979,6 +1001,83 @@ test(
       "m3-rbac-member-contribution-0001",
     );
     assert.equal(deterministic, memberContribution.movementId);
+  },
+);
+
+test(
+  "owner só pelo campo ownerId, sem membership, é recusado sem gravar nada",
+  async () => {
+    await seedWorkspace(WORKSPACE_A, OWNER_A);
+    await seedCatalog(WORKSPACE_A, "PF");
+    // O campo denormalizado continua apontando para o dono; só o membership
+    // deixa de existir. O resolvedor antigo do domínio caía em
+    // `workspace.ownerId` e autorizava como owner.
+    await db().doc(`workspaces/${WORKSPACE_A}/members/${OWNER_A}`).delete();
+    const workspace = await db().doc(`workspaces/${WORKSPACE_A}`).get();
+    assert.equal(workspace.data()?.ownerId, OWNER_A);
+
+    const input = contributionPayload("m3-rbac-owner-id-only-0001", {
+      principalCents: 1_000,
+    });
+    await assert.rejects(
+      () => executeCreateInvestmentContribution(auth(), input),
+      (error: unknown) =>
+        error instanceof ApplicationError &&
+        error.code === "workspace_membership_required",
+    );
+    await assert.rejects(
+      () => createInvestmentContribution.run(callableRequest(OWNER_A, input)),
+      (error: unknown) =>
+        error instanceof HttpsError && error.code === "permission-denied",
+    );
+    await assertNothingWritten(WORKSPACE_A);
+  },
+);
+
+test(
+  "membro rebaixado ou removido depois da pré-checagem é recusado sem gravar",
+  async () => {
+    await seedWorkspace(WORKSPACE_A, OWNER_A);
+    await seedCatalog(WORKSPACE_A, "PF");
+    await seedMember(WORKSPACE_A, MEMBER_A, "member");
+    const roles = investmentOperationRoles("createInvestmentContribution");
+
+    // Pré-checagem do wrapper aprovada com papel `member`; o membro é
+    // rebaixado a `viewer` antes de a transação da mutação começar.
+    const demoted = await resolveWorkspaceActor(MEMBER_A, WORKSPACE_A, roles);
+    assert.equal(demoted.role, "member");
+    await seedMember(WORKSPACE_A, MEMBER_A, "viewer");
+    await assert.rejects(
+      () =>
+        executeCreateInvestmentContribution(
+          demoted,
+          contributionPayload("m3-rbac-demoted-after-precheck-0001", {
+            principalCents: 1_000,
+          }),
+        ),
+      (error: unknown) =>
+        error instanceof ApplicationError &&
+        error.code === "workspace_role_denied",
+    );
+
+    // Mesma janela, agora com o membership removido.
+    await seedMember(WORKSPACE_A, MEMBER_A, "member");
+    const removed = await resolveWorkspaceActor(MEMBER_A, WORKSPACE_A, roles);
+    assert.equal(removed.role, "member");
+    await seedMember(WORKSPACE_A, MEMBER_A, "member", "removed");
+    await assert.rejects(
+      () =>
+        executeCreateInvestmentContribution(
+          removed,
+          contributionPayload("m3-rbac-removed-after-precheck-0001", {
+            principalCents: 1_000,
+          }),
+        ),
+      (error: unknown) =>
+        error instanceof ApplicationError &&
+        error.code === "workspace_membership_required",
+    );
+    await assertNothingWritten(WORKSPACE_A);
   },
 );
 
@@ -1123,7 +1222,7 @@ test("o caminho que criava principal fantasma passa a ser recusado", async () =>
       taxCents: 0,
     }),
     (error: unknown) =>
-      error instanceof CreditCardApplicationError &&
+      error instanceof ApplicationError &&
       error.code === "domain_precondition_failed",
   );
 
@@ -1378,10 +1477,10 @@ const erro = async (run: () => Promise<unknown>): Promise<string> => {
     await run();
   } catch (error) {
     assert.ok(
-      error instanceof CreditCardApplicationError,
+      error instanceof ApplicationError,
       "A recusa precisa ser de domínio, não exceção genérica.",
     );
-    return (error as CreditCardApplicationError).message;
+    return (error as ApplicationError).message;
   }
   throw new Error("A operação deveria ter sido recusada.");
 };

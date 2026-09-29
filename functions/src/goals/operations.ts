@@ -2,8 +2,11 @@ import {createHash} from "node:crypto";
 import * as admin from "firebase-admin";
 import {FieldValue, Timestamp} from "firebase-admin/firestore";
 
-import {CreditCardApplicationError} from "../creditCards/errors";
-import type {WorkspaceAuthorizationContext} from "../creditCards/auth";
+import {ApplicationError} from "../shared/errors";
+import {
+  reassertWorkspaceActor,
+  type WorkspaceActor,
+} from "../shared/workspaceAuth";
 import type {
   ArchiveGoalPayload,
   CreateGoalPayload,
@@ -36,7 +39,8 @@ const stableStringify = (value: unknown): string => {
     .join(",")}}`;
 };
 
-const sha256 = (value: string) => createHash("sha256").update(value).digest("hex");
+const sha256 = (value: string) =>
+  createHash("sha256").update(value).digest("hex");
 
 /**
  * Conteúdo da **intenção**, para o `requestHash`.
@@ -63,20 +67,23 @@ const intentContent = (payload: unknown): unknown => {
 
 const reserveIdempotency = async (
   transaction: admin.firestore.Transaction,
-  auth: WorkspaceAuthorizationContext,
+  actor: WorkspaceActor,
   operation: GoalOperation,
   idempotencyKey: string,
   payload: unknown,
 ): Promise<IdempotencyReservation> => {
-  const id = `${operation}_${sha256(`${auth.uid}:${idempotencyKey}`).slice(0, 32)}`;
-  const ref = db().doc(`${workspacePath(auth.workspaceId)}/goal_idempotency_keys/${id}`);
+  const keyHash = sha256(`${actor.uid}:${idempotencyKey}`).slice(0, 32);
+  const id = `${operation}_${keyHash}`;
+  const ref = db().doc(
+    `${workspacePath(actor.workspaceId)}/goal_idempotency_keys/${id}`,
+  );
   const requestHash = sha256(stableStringify(intentContent(payload)));
   const snapshot = await transaction.get(ref);
 
   if (snapshot.exists) {
     const data = snapshot.data();
-    if (data?.requestHash !== requestHash || data?.actorId !== auth.uid) {
-      throw new CreditCardApplicationError(
+    if (data?.requestHash !== requestHash || data?.actorId !== actor.uid) {
+      throw new ApplicationError(
         "idempotency_conflict",
         "Esta solicitação já foi usada com outros dados.",
       );
@@ -84,7 +91,7 @@ const reserveIdempotency = async (
     if (data?.status === "completed") {
       return {ref, replay: data.result as Record<string, unknown>};
     }
-    throw new CreditCardApplicationError(
+    throw new ApplicationError(
       "idempotency_conflict",
       "Esta solicitação já está em processamento.",
     );
@@ -93,8 +100,8 @@ const reserveIdempotency = async (
   return {
     ref,
     record: {
-      workspaceId: auth.workspaceId,
-      actorId: auth.uid,
+      workspaceId: actor.workspaceId,
+      actorId: actor.uid,
       operation,
       requestHash,
       idempotencyKeyHash: sha256(idempotencyKey),
@@ -119,19 +126,19 @@ const completeIdempotency = (
 
 const writeAudit = (
   transaction: admin.firestore.Transaction,
-  auth: WorkspaceAuthorizationContext,
+  actor: WorkspaceActor,
   operation: GoalOperation,
   idempotencyRef: admin.firestore.DocumentReference,
   targetId: string,
   details: Record<string, unknown>,
 ) => {
   const ref = db().doc(
-    `${workspacePath(auth.workspaceId)}/goal_audit_logs/${idempotencyRef.id}`,
+    `${workspacePath(actor.workspaceId)}/goal_audit_logs/${idempotencyRef.id}`,
   );
   transaction.set(ref, {
-    workspaceId: auth.workspaceId,
-    actorId: auth.uid,
-    actorRole: auth.role,
+    workspaceId: actor.workspaceId,
+    actorId: actor.uid,
+    actorRole: actor.role,
     operation,
     targetId,
     correlationId: idempotencyRef.id,
@@ -143,7 +150,7 @@ const writeAudit = (
 export const toMinorUnits = (value: number): number => {
   const cents = Math.round(value * 100);
   if (!Number.isSafeInteger(cents) || Math.abs(value - cents / 100) > 1e-9) {
-    throw new CreditCardApplicationError(
+    throw new ApplicationError(
       "invalid_payload",
       "Valores monetários devem ter no máximo duas casas decimais.",
     );
@@ -158,133 +165,175 @@ const resolveGoalProgressCents = (
   netContributionCents: number,
 ): number => {
   if ((goal.progressBasis ?? "net_contributions") === "current_value") {
-    if (Number.isSafeInteger(goal.currentValueCents)) return goal.currentValueCents as number;
-    if (typeof goal.currentValue === "number") return toMinorUnits(goal.currentValue);
+    if (Number.isSafeInteger(goal.currentValueCents)) {
+      return goal.currentValueCents as number;
+    }
+    if (typeof goal.currentValue === "number") {
+      return toMinorUnits(goal.currentValue);
+    }
   }
   return netContributionCents;
 };
 
+const middayTimestamp = (dateOnly: string) =>
+  Timestamp.fromDate(new Date(`${dateOnly}T12:00:00.000Z`));
+
 const buildGoalPersistence = (
   input: CreateGoalPayload["goal"],
-  auth: WorkspaceAuthorizationContext,
+  actor: WorkspaceActor,
 ) => {
   const targetAmountCents = toMinorUnits(input.targetAmount);
-  const currentValueCents = input.currentValue === undefined ? undefined : toMinorUnits(input.currentValue);
+  const currentValueCents = input.currentValue === undefined ?
+    undefined :
+    toMinorUnits(input.currentValue);
+  const tracksCurrentValue = input.progressBasis === "current_value";
   return {
     ...input,
-    startDateTimestamp: Timestamp.fromDate(new Date(`${input.startDate}T12:00:00.000Z`)),
-    deadlineTimestamp: Timestamp.fromDate(new Date(`${input.deadline}T12:00:00.000Z`)),
+    startDateTimestamp: middayTimestamp(input.startDate),
+    deadlineTimestamp: middayTimestamp(input.deadline),
     progressBasis: input.progressBasis ?? "net_contributions",
     targetAmountCents,
     ...(currentValueCents !== undefined ? {currentValueCents} : {}),
-    currentAmountCents: input.progressBasis === "current_value" ? currentValueCents ?? 0 : 0,
-    currentAmount: input.progressBasis === "current_value" ? input.currentValue ?? 0 : 0,
-    workspaceId: auth.workspaceId,
-    profileId: input.profileId ?? auth.workspaceId,
+    currentAmountCents: tracksCurrentValue ? currentValueCents ?? 0 : 0,
+    currentAmount: tracksCurrentValue ? input.currentValue ?? 0 : 0,
+    workspaceId: actor.workspaceId,
+    profileId: input.profileId ?? actor.workspaceId,
   };
 };
 
+/**
+ * Releitura de autorização na fase de leitura de cada transação de meta.
+ *
+ * O wrapper faz a pré-checagem, mas entre ela e o commit o membro pode ter
+ * sido removido ou rebaixado. Reler o perfil, o workspace e o membership aqui,
+ * antes da idempotência e de qualquer escrita, torna a decisão atômica com a
+ * mutação — inclusive o replay, que não devolve resultado a quem perdeu o
+ * acesso.
+ */
+const runGoalTransaction = <T>(
+  actor: WorkspaceActor,
+  body: (
+    transaction: admin.firestore.Transaction,
+    workspace: admin.firestore.DocumentData,
+  ) => Promise<T>,
+): Promise<T> => {
+  return db().runTransaction(async (transaction) => {
+    const {workspace} = await reassertWorkspaceActor(transaction, actor);
+    return body(transaction, workspace);
+  });
+};
+
 export const executeCreateGoal = async (
-  auth: WorkspaceAuthorizationContext,
+  actor: WorkspaceActor,
   payload: CreateGoalPayload,
-): Promise<Record<string, unknown>> => db().runTransaction(async (transaction) => {
-  const reservation = await reserveIdempotency(
-    transaction, auth, "createGoal", payload.idempotencyKey, payload,
-  );
-  if (reservation.replay) return reservation.replay;
+): Promise<Record<string, unknown>> =>
+  runGoalTransaction(actor, async (transaction) => {
+    const reservation = await reserveIdempotency(
+      transaction, actor, "createGoal", payload.idempotencyKey, payload,
+    );
+    if (reservation.replay) return reservation.replay;
 
-  const ref = db().collection(`${workspacePath(auth.workspaceId)}/goals`).doc();
-  const persisted = buildGoalPersistence(payload.goal, auth);
-  const result = {success: true, goalId: ref.id};
+    const ref = db()
+      .collection(`${workspacePath(actor.workspaceId)}/goals`)
+      .doc();
+    const persisted = buildGoalPersistence(payload.goal, actor);
+    const result = {success: true, goalId: ref.id};
 
-  transaction.create(ref, {
-    ...persisted,
-    createdBy: auth.uid,
-    updatedBy: auth.uid,
-    createdAt: FieldValue.serverTimestamp(),
-    updatedAt: FieldValue.serverTimestamp(),
+    transaction.create(ref, {
+      ...persisted,
+      createdBy: actor.uid,
+      updatedBy: actor.uid,
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+    writeAudit(transaction, actor, "createGoal", reservation.ref, ref.id, {
+      after: persisted,
+    });
+    completeIdempotency(transaction, reservation, result);
+    return result;
   });
-  writeAudit(transaction, auth, "createGoal", reservation.ref, ref.id, {
-    after: persisted,
-  });
-  completeIdempotency(transaction, reservation, result);
-  return result;
-});
 
 export const executeUpdateGoal = async (
-  auth: WorkspaceAuthorizationContext,
+  actor: WorkspaceActor,
   payload: UpdateGoalPayload,
-): Promise<Record<string, unknown>> => db().runTransaction(async (transaction) => {
-  const reservation = await reserveIdempotency(
-    transaction, auth, "updateGoal", payload.idempotencyKey, payload,
-  );
-  if (reservation.replay) return reservation.replay;
-  const ref = goalRef(auth.workspaceId, payload.goalId);
-  const snapshot = await transaction.get(ref);
-  if (!snapshot.exists || snapshot.data()?.archived === true) {
-    throw new CreditCardApplicationError("not_found", "Meta não encontrada.");
-  }
-  const current = snapshot.data() ?? {};
-  const editable = buildGoalPersistence(payload.goal, auth);
-  // O progresso de meta com base em aportes é publicado pelo domínio
-  // patrimonial em `investmentProgressCents`. Aqui só se resolve a base
-  // `current_value`, informada pelo próprio usuário na edição da meta.
-  const nextProgressCents = resolveGoalProgressCents(
-    editable,
-    Number(current.currentAmountCents ?? 0),
-  );
-  const result = {success: true, goalId: payload.goalId};
-  transaction.update(ref, {
-    ...editable,
-    currentAmountCents: nextProgressCents,
-    currentAmount: fromMinorUnits(nextProgressCents),
-    updatedBy: auth.uid,
-    updatedAt: FieldValue.serverTimestamp(),
+): Promise<Record<string, unknown>> =>
+  runGoalTransaction(actor, async (transaction) => {
+    const reservation = await reserveIdempotency(
+      transaction, actor, "updateGoal", payload.idempotencyKey, payload,
+    );
+    if (reservation.replay) return reservation.replay;
+    const ref = goalRef(actor.workspaceId, payload.goalId);
+    const snapshot = await transaction.get(ref);
+    if (!snapshot.exists || snapshot.data()?.archived === true) {
+      throw new ApplicationError("not_found", "Meta não encontrada.");
+    }
+    const current = snapshot.data() ?? {};
+    const editable = buildGoalPersistence(payload.goal, actor);
+    // O progresso de meta com base em aportes é publicado pelo domínio
+    // patrimonial em `investmentProgressCents`. Aqui só se resolve a base
+    // `current_value`, informada pelo próprio usuário na edição da meta.
+    const nextProgressCents = resolveGoalProgressCents(
+      editable,
+      Number(current.currentAmountCents ?? 0),
+    );
+    const result = {success: true, goalId: payload.goalId};
+    transaction.update(ref, {
+      ...editable,
+      currentAmountCents: nextProgressCents,
+      currentAmount: fromMinorUnits(nextProgressCents),
+      updatedBy: actor.uid,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+    writeAudit(
+      transaction, actor, "updateGoal", reservation.ref, payload.goalId,
+      {before: current, after: editable},
+    );
+    completeIdempotency(transaction, reservation, result);
+    return result;
   });
-  writeAudit(transaction, auth, "updateGoal", reservation.ref, payload.goalId, {
-    before: current,
-    after: editable,
-  });
-  completeIdempotency(transaction, reservation, result);
-  return result;
-});
 
 export const executeArchiveGoal = async (
-  auth: WorkspaceAuthorizationContext,
+  actor: WorkspaceActor,
   payload: ArchiveGoalPayload,
-): Promise<Record<string, unknown>> => db().runTransaction(async (transaction) => {
-  const reservation = await reserveIdempotency(
-    transaction, auth, "archiveGoal", payload.idempotencyKey, payload,
-  );
-  if (reservation.replay) return reservation.replay;
-  const ref = goalRef(auth.workspaceId, payload.goalId);
-  const goalSnapshot = await transaction.get(ref);
-  if (!goalSnapshot.exists) {
-    throw new CreditCardApplicationError("not_found", "Meta não encontrada.");
-  }
-  // Arquivar não varre mais `transactions`. O progresso patrimonial da meta é
-  // publicado por `updateGoalProjection` a partir das posições, então o estado
-  // no momento do arquivamento já está no próprio documento: registrá-lo é
-  // mais informativo que contar linhas de caixa e não custa leitura nenhuma.
-  const archivedProgressCents = Number.isSafeInteger(
-    goalSnapshot.data()?.investmentProgressCents,
-  ) ? goalSnapshot.data()?.investmentProgressCents as number : 0;
-  transaction.update(ref, {
-    archived: true,
-    archivedAt: FieldValue.serverTimestamp(),
-    archivedBy: auth.uid,
-    archiveReason: payload.reason,
-    status: "cancelada",
-    updatedAt: FieldValue.serverTimestamp(),
+): Promise<Record<string, unknown>> =>
+  runGoalTransaction(actor, async (transaction) => {
+    const reservation = await reserveIdempotency(
+      transaction, actor, "archiveGoal", payload.idempotencyKey, payload,
+    );
+    if (reservation.replay) return reservation.replay;
+    const ref = goalRef(actor.workspaceId, payload.goalId);
+    const goalSnapshot = await transaction.get(ref);
+    if (!goalSnapshot.exists) {
+      throw new ApplicationError("not_found", "Meta não encontrada.");
+    }
+    // Arquivar não varre mais `transactions`. O progresso patrimonial da meta
+    // é publicado por `updateGoalProjection` a partir das posições, então o
+    // estado no momento do arquivamento já está no próprio documento:
+    // registrá-lo é mais informativo que contar linhas de caixa e não custa
+    // leitura nenhuma.
+    const archivedProgressCents = Number.isSafeInteger(
+      goalSnapshot.data()?.investmentProgressCents,
+    ) ? goalSnapshot.data()?.investmentProgressCents as number : 0;
+    transaction.update(ref, {
+      archived: true,
+      archivedAt: FieldValue.serverTimestamp(),
+      archivedBy: actor.uid,
+      archiveReason: payload.reason,
+      status: "cancelada",
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+    const result = {
+      success: true,
+      goalId: payload.goalId,
+      archivedProgressCents,
+    };
+    writeAudit(
+      transaction, actor, "archiveGoal", reservation.ref, payload.goalId,
+      {reason: payload.reason, archivedProgressCents},
+    );
+    completeIdempotency(transaction, reservation, result);
+    return result;
   });
-  const result = {success: true, goalId: payload.goalId, archivedProgressCents};
-  writeAudit(transaction, auth, "archiveGoal", reservation.ref, payload.goalId, {
-    reason: payload.reason,
-    archivedProgressCents,
-  });
-  completeIdempotency(transaction, reservation, result);
-  return result;
-});
 
 interface LegacyCatalogSeed {
   group: string;
@@ -312,82 +361,97 @@ const normalizeName = (name: string) => name.normalize("NFD")
   .replace(/[\u0300-\u036f]/g, "").trim().replace(/\s+/g, " ").toLowerCase();
 
 export const executeSeedLegacySettingsCatalog = async (
-  auth: WorkspaceAuthorizationContext,
+  actor: WorkspaceActor,
   payload: SeedLegacyCatalogPayload,
-): Promise<Record<string, unknown>> => db().runTransaction(async (transaction) => {
-  const reservation = await reserveIdempotency(
-    transaction, auth, "seedLegacySettingsCatalog", payload.idempotencyKey, payload,
-  );
-  if (reservation.replay) return reservation.replay;
-  const workspaceSnapshot = await transaction.get(db().doc(workspacePath(auth.workspaceId)));
-  if (!workspaceSnapshot.exists) {
-    throw new CreditCardApplicationError("workspace_not_found", "Workspace não encontrado.");
-  }
-  const workspaceType = workspaceSnapshot.data()?.type === "PJ" ? "PJ" : "PF";
-  const seeds = LEGACY_CATALOG_SEEDS.filter(
-    (item) => item.workspaceScope === "both" || workspaceType === "PJ",
-  );
-  const prepared = seeds.map((item, index) => {
-    const normalizedName = normalizeName(item.name);
-    const dedupeKey = [
-      item.group,
-      item.transactionSubtype ?? "all",
-      item.workspaceScope,
-      normalizedName,
-    ].join("::");
-    return {
-      item,
-      index,
-      normalizedName,
-      dedupeKey,
-      uniqueRef: db().doc(`${workspacePath(auth.workspaceId)}/settings_catalog_uniques/${dedupeKey}`),
-    };
-  });
-  const uniqueSnapshots = await transaction.getAll(...prepared.map((item) => item.uniqueRef));
-  let createdCount = 0;
-  prepared.forEach((entry, index) => {
-    if (uniqueSnapshots[index].exists) return;
-    const itemId = `legacy_${sha256(entry.dedupeKey).slice(0, 24)}`;
-    const itemRef = db().doc(`${workspacePath(auth.workspaceId)}/settings_catalog/${itemId}`);
-    const auditFields = {
-      createdBy: auth.uid,
-      updatedBy: auth.uid,
-      createdAt: FieldValue.serverTimestamp(),
-      updatedAt: FieldValue.serverTimestamp(),
-    };
-    const itemData = {
-      workspaceId: auth.workspaceId,
-      group: entry.item.group,
-      name: entry.item.name,
-      normalizedName: entry.normalizedName,
-      dedupeKey: entry.dedupeKey,
-      workspaceScope: entry.item.workspaceScope,
-      ...(entry.item.transactionSubtype ? {transactionSubtype: entry.item.transactionSubtype} : {}),
-      ...auditFields,
-    };
-    transaction.create(itemRef, {
-      ...itemData,
-      sortOrder: (entry.index + 1) * 10,
-      status: "active",
+): Promise<Record<string, unknown>> =>
+  runGoalTransaction(actor, async (transaction, workspace) => {
+    const reservation = await reserveIdempotency(
+      transaction,
+      actor,
+      "seedLegacySettingsCatalog",
+      payload.idempotencyKey,
+      payload,
+    );
+    if (reservation.replay) return reservation.replay;
+    // O tipo vem do workspace relido pela autorização transacional, que já
+    // garante que ele existe e não está arquivado.
+    const workspaceType = workspace.type === "PJ" ? "PJ" : "PF";
+    const root = workspacePath(actor.workspaceId);
+    const seeds = LEGACY_CATALOG_SEEDS.filter(
+      (item) => item.workspaceScope === "both" || workspaceType === "PJ",
+    );
+    const prepared = seeds.map((item, index) => {
+      const normalizedName = normalizeName(item.name);
+      const dedupeKey = [
+        item.group,
+        item.transactionSubtype ?? "all",
+        item.workspaceScope,
+        normalizedName,
+      ].join("::");
+      return {
+        item,
+        index,
+        normalizedName,
+        dedupeKey,
+        uniqueRef: db().doc(`${root}/settings_catalog_uniques/${dedupeKey}`),
+      };
     });
-    transaction.create(entry.uniqueRef, {
-      dedupeKey: entry.dedupeKey,
-      catalogItemId: itemId,
-      workspaceId: auth.workspaceId,
-      group: entry.item.group,
-      normalizedName: entry.normalizedName,
-      ...auditFields,
+    const uniqueSnapshots = await transaction.getAll(
+      ...prepared.map((item) => item.uniqueRef),
+    );
+    let createdCount = 0;
+    prepared.forEach((entry, index) => {
+      if (uniqueSnapshots[index].exists) return;
+      const itemId = `legacy_${sha256(entry.dedupeKey).slice(0, 24)}`;
+      const itemRef = db().doc(`${root}/settings_catalog/${itemId}`);
+      const auditFields = {
+        createdBy: actor.uid,
+        updatedBy: actor.uid,
+        createdAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+      };
+      const itemData = {
+        workspaceId: actor.workspaceId,
+        group: entry.item.group,
+        name: entry.item.name,
+        normalizedName: entry.normalizedName,
+        dedupeKey: entry.dedupeKey,
+        workspaceScope: entry.item.workspaceScope,
+        ...(entry.item.transactionSubtype ?
+          {transactionSubtype: entry.item.transactionSubtype} :
+          {}),
+        ...auditFields,
+      };
+      transaction.create(itemRef, {
+        ...itemData,
+        sortOrder: (entry.index + 1) * 10,
+        status: "active",
+      });
+      transaction.create(entry.uniqueRef, {
+        dedupeKey: entry.dedupeKey,
+        catalogItemId: itemId,
+        workspaceId: actor.workspaceId,
+        group: entry.item.group,
+        normalizedName: entry.normalizedName,
+        ...auditFields,
+      });
+      createdCount += 1;
     });
-    createdCount += 1;
+    const result = {
+      success: true,
+      workspaceId: actor.workspaceId,
+      workspaceType,
+      createdCount,
+      existingCount: seeds.length - createdCount,
+    };
+    writeAudit(
+      transaction,
+      actor,
+      "seedLegacySettingsCatalog",
+      reservation.ref,
+      actor.workspaceId,
+      result,
+    );
+    completeIdempotency(transaction, reservation, result);
+    return result;
   });
-  const result = {
-    success: true,
-    workspaceId: auth.workspaceId,
-    workspaceType,
-    createdCount,
-    existingCount: seeds.length - createdCount,
-  };
-  writeAudit(transaction, auth, "seedLegacySettingsCatalog", reservation.ref, auth.workspaceId, result);
-  completeIdempotency(transaction, reservation, result);
-  return result;
-});

@@ -13,6 +13,7 @@ import {
 } from "../rebuildInvoices";
 
 import {
+  creditCardTestActor,
   getIntegrationFirestore,
   resetCreditCardIntegrationWorkspace,
   seedCreditCardIntegrationWorkspace,
@@ -38,9 +39,6 @@ const listCollectionRecords = async (
 
 test(
   "rebuildCardInvoicesForCard deve reconstruir faturas, corrigir parcelas e cancelar projeções obsoletas",
-  {
-    skip: !process.env.FIRESTORE_EMULATOR_HOST,
-  },
   async () => {
     const db = getIntegrationFirestore();
 
@@ -53,9 +51,7 @@ test(
     });
 
     const purchaseResult = await executeCreateCreditCardPurchase({
-      auth: {
-        uid: TEST_OWNER_ID,
-      },
+      actor: creditCardTestActor(TEST_WORKSPACE_ID, TEST_OWNER_ID),
       payload: {
         workspaceId: TEST_WORKSPACE_ID,
         cardId: TEST_CARD_ID,
@@ -76,7 +72,7 @@ test(
         idempotencyKey: "integration-rebuild-purchase-001",
         correlationId: "integration-rebuild-purchase",
       },
-    } as any) as CreateCreditCardPurchaseResult;
+    }) as CreateCreditCardPurchaseResult;
 
     assert.equal(purchaseResult.success, true);
     assert.equal(purchaseResult.installmentIds.length, 3);
@@ -169,9 +165,7 @@ test(
       });
 
     const rebuildResult = await executeRebuildCardInvoicesForCard({
-      auth: {
-        uid: TEST_OWNER_ID,
-      },
+      actor: creditCardTestActor(TEST_WORKSPACE_ID, TEST_OWNER_ID),
       payload: {
         workspaceId: TEST_WORKSPACE_ID,
         cardId: TEST_CARD_ID,
@@ -181,7 +175,7 @@ test(
         idempotencyKey: "integration-rebuild-invoices-001",
         correlationId: "integration-rebuild-invoices",
       },
-    } as any) as RebuildCardInvoicesForCardResult;
+    }) as RebuildCardInvoicesForCardResult;
 
     assert.equal(rebuildResult.success, true);
     assert.equal(rebuildResult.cardId, TEST_CARD_ID);

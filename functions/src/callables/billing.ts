@@ -1,10 +1,15 @@
-import {onCall, HttpsError} from "firebase-functions/v2/https";
+import {HttpsError} from "firebase-functions/v2/https";
 import * as admin from "firebase-admin";
 import Stripe from "stripe";
 import {z} from "zod";
 
+import {defineCallable} from "../shared/callable";
 import {reserveUserRateLimit} from "../shared/rateLimit";
 import {DOMAIN_CALLABLE_OPTIONS} from "../shared/runtimeOptions";
+import {
+  assertActiveAccountSnapshot,
+  userProfileRef,
+} from "../shared/workspaceAuth";
 
 const stripeKey = process.env.STRIPE_SECRET_KEY || "sk_test_placeholder";
 const stripe = new Stripe(stripeKey, {
@@ -73,75 +78,83 @@ const CHECKOUT_RATE_LIMIT = {
   windowSeconds: 60 * 60,
 };
 
-export const createCheckoutSession = onCall({
-  ...DOMAIN_CALLABLE_OPTIONS,
-  /*
-   * As três precisam ser **declaradas**, não só existirem no projeto.
-   *
-   * `STRIPE_ALLOWED_PRICE_IDS` e `APP_ALLOWED_ORIGINS` eram lidas de
-   * `process.env` sem constar aqui. O Cloud Functions só monta no ambiente da
-   * função os segredos que a função declara, então provisioná-las (que é o que
-   * o checklist de implantação manda fazer) não as tornava visíveis: as duas
-   * listas chegariam vazias em produção, e o código falha fechado quando estão
-   * vazias — nenhum preço seria aceito e nenhum `returnUrl` seria válido. O
-   * checkout do plano pago ficaria inoperante, com aparência de recusa
-   * deliberada.
-   */
-  secrets: [
-    "STRIPE_SECRET_KEY",
-    "STRIPE_ALLOWED_PRICE_IDS",
-    "APP_ALLOWED_ORIGINS",
-  ],
-}, async (request) => {
-  if (!request.auth) {
-    throw new HttpsError("unauthenticated", "Sessão não iniciada");
-  }
+/**
+ * Checkout de assinatura: operação do **usuário**, sem workspace.
+ *
+ * Sem `workspaceRoles`, o wrapper do kernel exige autenticação, a política de
+ * token e perfil `users/{uid}` ativo — conta suspensa não abre checkout.
+ */
+export const createCheckoutSession = defineCallable({
+  operation: CHECKOUT_RATE_LIMIT.operation,
+  schema: checkoutSchema,
+  runtime: {
+    ...DOMAIN_CALLABLE_OPTIONS,
+    /*
+     * As três precisam ser **declaradas**, não só existirem no projeto.
+     *
+     * `STRIPE_ALLOWED_PRICE_IDS` e `APP_ALLOWED_ORIGINS` eram lidas de
+     * `process.env` sem constar aqui. O Cloud Functions só monta no ambiente
+     * da função os segredos que a função declara, então provisioná-las (que é
+     * o que o checklist de implantação manda fazer) não as tornava visíveis:
+     * as duas listas chegariam vazias em produção, e o código falha fechado
+     * quando estão vazias — nenhum preço seria aceito e nenhum `returnUrl`
+     * seria válido. O checkout do plano pago ficaria inoperante, com
+     * aparência de recusa deliberada.
+     */
+    secrets: [
+      "STRIPE_SECRET_KEY",
+      "STRIPE_ALLOWED_PRICE_IDS",
+      "APP_ALLOWED_ORIGINS",
+    ],
+  },
+  handler: async ({caller, payload}) => {
+    const {priceId, returnUrl} = payload;
 
-  const parsed = checkoutSchema.safeParse(request.data);
-  if (!parsed.success) {
-    throw new HttpsError(
-      "invalid-argument",
-      "Dados de checkout inválidos.",
-    );
-  }
-  const {priceId, returnUrl} = parsed.data;
+    const priceIds = allowedStripePriceIds();
+    if (priceIds.length === 0) {
+      console.error("billing_price_allowlist_missing");
+      throw new HttpsError(
+        "failed-precondition",
+        "Cobrança indisponível no momento. Tente novamente mais tarde.",
+      );
+    }
+    if (!priceIds.includes(priceId)) {
+      throw new HttpsError("invalid-argument", "Plano indisponível.");
+    }
 
-  const priceIds = allowedStripePriceIds();
-  if (priceIds.length === 0) {
-    console.error("billing_price_allowlist_missing");
-    throw new HttpsError(
-      "failed-precondition",
-      "Cobrança indisponível no momento. Tente novamente mais tarde.",
-    );
-  }
-  if (!priceIds.includes(priceId)) {
-    throw new HttpsError("invalid-argument", "Plano indisponível.");
-  }
+    if (!isAllowedReturnUrl(returnUrl, allowedReturnOrigins())) {
+      throw new HttpsError(
+        "invalid-argument",
+        "Endereço de retorno inválido.",
+      );
+    }
 
-  if (!isAllowedReturnUrl(returnUrl, allowedReturnOrigins())) {
-    throw new HttpsError("invalid-argument", "Endereço de retorno inválido.");
-  }
+    // O limite vive sob o próprio usuário: checkout não tem workspace. O
+    // perfil é relido na mesma transação: uma suspensão entre a pré-checagem
+    // e o consumo do limite recusa o checkout.
+    const actorId = caller.uid;
+    await admin.firestore().runTransaction(async (transaction) => {
+      assertActiveAccountSnapshot(
+        await transaction.get(userProfileRef(actorId)),
+      );
+      const rateLimit = await reserveUserRateLimit(
+        transaction,
+        actorId,
+        CHECKOUT_RATE_LIMIT,
+      );
+      rateLimit.commit();
+    });
 
-  // O limite vive sob o próprio usuário: checkout não tem workspace.
-  const actorId = request.auth.uid;
-  await admin.firestore().runTransaction(async (transaction) => {
-    const rateLimit = await reserveUserRateLimit(
-      transaction,
-      actorId,
-      CHECKOUT_RATE_LIMIT,
-    );
-    rateLimit.commit();
-  });
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ["card"],
+      mode: "subscription",
+      customer_email: caller.email ?? undefined,
+      line_items: [{price: priceId, quantity: 1}],
+      success_url: `${returnUrl}?billing=success`,
+      cancel_url: `${returnUrl}?billing=canceled`,
+      metadata: {userId: caller.uid, priceId},
+    });
 
-  const session = await stripe.checkout.sessions.create({
-    payment_method_types: ["card"],
-    mode: "subscription",
-    customer_email: request.auth.token.email,
-    line_items: [{price: priceId, quantity: 1}],
-    success_url: `${returnUrl}?billing=success`,
-    cancel_url: `${returnUrl}?billing=canceled`,
-    metadata: {userId: request.auth.uid, priceId},
-  });
-
-  return {url: session.url};
+    return {url: session.url};
+  },
 });

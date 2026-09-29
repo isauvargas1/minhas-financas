@@ -1,6 +1,7 @@
 import {expect, test} from '@playwright/test';
 import {callCallable, emulatorIdToken} from './support/callables';
 import {createRequire} from 'node:module';
+import {seedOwnedWorkspace} from './support/workspaceSeed';
 
 const require = createRequire(import.meta.url);
 const admin = require('../functions/node_modules/firebase-admin') as typeof import('../functions/node_modules/firebase-admin');
@@ -29,14 +30,11 @@ test.beforeEach(async () => {
   }
   await firebaseAdmin.auth().createUser({uid: UID, email: EMAIL, password: PASSWORD, emailVerified: true});
   const now = firebaseAdmin.firestore.Timestamp.now();
+  // INV-P2-025 — o cadastro patrimonial só existe com o domínio ligado.
+  await seedOwnedWorkspace({
+    uid: UID, email: EMAIL, workspaceId: WORKSPACE, name: 'Patrimônio PF', type: 'PF',
+  });
   await Promise.all([
-    // INV-P2-025 — o cadastro patrimonial só existe com o domínio ligado.
-    db.doc(`workspaces/${WORKSPACE}`).set({
-      ownerId: UID, name: 'Patrimônio PF', type: 'PF',
-      createdAt: now, updatedAt: now,
-    }),
-    db.doc(`workspaces/${WORKSPACE}/members/${UID}`).set({uid: UID, role: 'owner', status: 'active'}),
-    db.doc(`users/${UID}/workspaces/${WORKSPACE}`).set({workspaceId: WORKSPACE, role: 'owner'}),
     db.doc(`workspaces/${WORKSPACE}/investment_accounts/archived-account`).set({
       id: 'archived-account', workspaceId: WORKSPACE, profileType: 'PF', name: 'Conta encerrada',
       institutionName: 'Banco antigo', currency: 'BRL', status: 'archived', createdBy: UID,

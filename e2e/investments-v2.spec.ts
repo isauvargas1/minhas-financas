@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
+import { seedOwnedWorkspace } from './support/workspaceSeed';
 
 const require = createRequire(import.meta.url);
 const admin = require('../functions/node_modules/firebase-admin') as typeof import('../functions/node_modules/firebase-admin');
@@ -27,15 +28,10 @@ const seed = async (comProjecoes: boolean) => {
   }
   await sdk.auth().createUser({ uid: UID, email: EMAIL, password: PASSWORD, emailVerified: true });
   const now = sdk.firestore.Timestamp.now();
-  await Promise.all([
-    db.doc(`workspaces/${WORKSPACE}`).set({
-      // Workspace novo, sem campo `features`: Investimentos abre assim mesmo.
-      ownerId: UID, name: 'Patrimônio E2E', type: 'PF',
-      createdAt: now, updatedAt: now,
-    }),
-    db.doc(`workspaces/${WORKSPACE}/members/${UID}`).set({ uid: UID, role: 'owner', status: 'active' }),
-    db.doc(`users/${UID}/workspaces/${WORKSPACE}`).set({ workspaceId: WORKSPACE, role: 'owner' }),
-  ]);
+  // Workspace novo, sem campo `features`: Investimentos abre assim mesmo.
+  await seedOwnedWorkspace({
+    uid: UID, email: EMAIL, workspaceId: WORKSPACE, name: 'Patrimônio E2E', type: 'PF',
+  });
   if (comProjecoes) {
     await Promise.all([
       db.doc(`workspaces/${WORKSPACE}/investment_summaries/current`).set({

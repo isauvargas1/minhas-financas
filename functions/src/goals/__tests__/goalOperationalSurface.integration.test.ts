@@ -1,10 +1,17 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import * as admin from "firebase-admin";
 import {Timestamp} from "firebase-admin/firestore";
 
-import type {WorkspaceAuthorizationContext} from "../../creditCards/auth";
-import {executeRecalculateGoalInvestmentProgress} from "../../investments/rebuild";
+import {
+  requireFirestoreEmulator,
+  seedActiveAccount,
+  seedMember,
+  seedWorkspace as seedKernelWorkspace,
+} from "../../shared/testSupport/kernelTestSupport";
+import type {WorkspaceActor} from "../../shared/workspaceAuth";
+import {
+  executeRecalculateGoalInvestmentProgress,
+} from "../../investments/rebuild";
 import {investmentOperationRoles} from "../../investments/writeStrategy";
 import * as goalCallables from "../callables";
 import {GOAL_OPERATION_ROLES} from "../callables";
@@ -22,11 +29,10 @@ import {executeCreateGoal} from "../operations";
  * tentativa, trilha de auditoria, idempotência e papéis.
  */
 
-if (!process.env.FIRESTORE_EMULATOR_HOST) {
-  throw new Error("FIRESTORE_EMULATOR_HOST é obrigatório.");
-}
+// Suíte de integração sem Emulator falha em vez de pular.
+const firestore = requireFirestoreEmulator();
+const db = () => firestore;
 
-const PROJECT = process.env.GCLOUD_PROJECT || "minhas-financas-local";
 const WORKSPACE = "goal-ops-surface";
 const OWNER = "goal-ops-owner";
 const ADMIN = "goal-ops-admin";
@@ -34,31 +40,25 @@ const MEMBER = "goal-ops-member";
 const GOAL_POSITION_ACCOUNT = "goal-ops-account";
 const GOAL_POSITION_ASSET = "goal-ops-asset";
 
-const db = (): admin.firestore.Firestore => {
-  if (!admin.apps.length) admin.initializeApp({projectId: PROJECT});
-  return admin.firestore();
-};
-
 const auth = (
   uid = OWNER,
-  role: WorkspaceAuthorizationContext["role"] = "owner",
-): WorkspaceAuthorizationContext => ({workspaceId: WORKSPACE, uid, role});
+  role: WorkspaceActor["role"] = "owner",
+): WorkspaceActor => ({workspaceId: WORKSPACE, uid, role});
 
+/** Perfis ativos, workspace `active` e memberships ativos (kernel). */
 const seedWorkspace = async (): Promise<void> => {
   await db().recursiveDelete(db().doc(`workspaces/${WORKSPACE}`));
-  await db().doc(`workspaces/${WORKSPACE}`).set({
+  await Promise.all(
+    [OWNER, ADMIN, MEMBER].map((uid) => seedActiveAccount(uid)),
+  );
+  await seedKernelWorkspace({
+    workspaceId: WORKSPACE,
     ownerId: OWNER,
     type: "PF",
-    currency: "BRL",
-    name: WORKSPACE,
   });
   await Promise.all([
-    db().doc(`workspaces/${WORKSPACE}/members/${OWNER}`)
-      .set({uid: OWNER, role: "owner", status: "active"}),
-    db().doc(`workspaces/${WORKSPACE}/members/${ADMIN}`)
-      .set({uid: ADMIN, role: "admin", status: "active"}),
-    db().doc(`workspaces/${WORKSPACE}/members/${MEMBER}`)
-      .set({uid: MEMBER, role: "member", status: "active"}),
+    seedMember(WORKSPACE, ADMIN, "admin"),
+    seedMember(WORKSPACE, MEMBER, "member"),
   ]);
 };
 

@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState, ReactNode } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { 
     GoogleAuthProvider, 
     createUserWithEmailAndPassword,
@@ -9,6 +10,7 @@ import {
 } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore'; // IMPORT ADICIONADO
 import { auth, db } from '../lib/firebase'; // IMPORT ATUALIZADO (adicionado o db)
+import { clearUserScopedStorage } from '../lib/sessionCleanup';
 
 // 1. Criamos um tipo customizado que inclui o isAdmin
 export interface AppUser {
@@ -44,10 +46,27 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // 3. O estado agora armazena o AppUser
     const [user, setUser] = useState<AppUser | null>(null);
     const [loading, setLoading] = useState(true);
+    const queryClient = useQueryClient();
+    const previousUid = useRef<string | null>(null);
+
+    /**
+     * Nada da sessão anterior sobrevive à troca de conta (AUTH-11): cache do
+     * React Query e chaves locais por usuário/workspace. Vale para o logout
+     * explícito e também para uma troca de conta sem logout.
+     */
+    const clearSessionState = () => {
+        queryClient.clear();
+        clearUserScopedStorage();
+    };
 
     useEffect(() => {
         // Escuta mudanças na autenticação em tempo real
         const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+            const nextUid = currentUser?.uid ?? null;
+            if (previousUid.current && previousUid.current !== nextUid) {
+                clearSessionState();
+            }
+            previousUid.current = nextUid;
             if (currentUser) {
                 let isAdmin = false;
                 
@@ -118,6 +137,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             await signOut(auth);
         } catch (error) {
             console.error("Erro no logout:", error);
+        } finally {
+            clearSessionState();
         }
     };
 

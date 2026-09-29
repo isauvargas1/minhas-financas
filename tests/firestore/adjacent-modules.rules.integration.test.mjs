@@ -71,10 +71,14 @@ const seed = async () => {
       if (error?.code !== 'auth/user-not-found') throw error;
     }
     await firebaseAdmin.auth().createUser({...user, password, emailVerified: true});
+    // P1: a autorização exige perfil de conta ativo (gravado pelo backend).
+    await db.doc(`users/${user.uid}`).set({uid: user.uid, status: 'active'});
   }
   for (const [workspaceId, owner] of [[workspaceA, ownerA], [workspaceB, ownerB]]) {
     await db.recursiveDelete(db.doc(`workspaces/${workspaceId}`));
-    await db.doc(`workspaces/${workspaceId}`).set({ownerId: owner.uid, type: 'PJ', name: workspaceId});
+    await db.doc(`workspaces/${workspaceId}`).set({
+      ownerId: owner.uid, type: 'PJ', name: workspaceId, status: 'active',
+    });
     await db.doc(`workspaces/${workspaceId}/members/${owner.uid}`)
       .set({uid: owner.uid, role: 'owner', status: 'active'});
 

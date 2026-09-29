@@ -1,8 +1,11 @@
 import * as admin from "firebase-admin";
 import {FieldPath, FieldValue, Timestamp} from "firebase-admin/firestore";
 
-import type {WorkspaceAuthorizationContext} from "../creditCards/auth";
-import {CreditCardApplicationError} from "../creditCards/errors";
+import {ApplicationError} from "../shared/errors";
+import {
+  reassertWorkspaceActor,
+  type WorkspaceActor,
+} from "../shared/workspaceAuth";
 import type {
   RecalculateGoalInvestmentProgressPayload,
   RecalculateInvestmentPositionPayload,
@@ -10,10 +13,10 @@ import type {
 import {INVESTMENT_CALCULATION_VERSION} from "./domain";
 import {
   assertWorkspaceDocument,
-  authorizeInvestmentTransaction,
   completeInvestmentIdempotency,
   deterministicDocumentId,
   investmentPositionId,
+  profileTypeFromWorkspace,
   recordInvestmentEvent,
   reserveInvestmentIdempotency,
 } from "./infrastructure";
@@ -90,13 +93,13 @@ const assertRebuildSnapshot = (
     data.createdBy !== actorId ||
     data.pageSize !== pageSize
   ) {
-    throw new CreditCardApplicationError(
+    throw new ApplicationError(
       "idempotency_conflict",
       "O identificador de reconstrução já está associado a outro contexto.",
     );
   }
   if (data.status === "completed") {
-    throw new CreditCardApplicationError(
+    throw new ApplicationError(
       "domain_precondition_failed",
       "Esta reconstrução já foi concluída.",
     );
@@ -113,7 +116,7 @@ const assertNonNegativePositionTotals = (totals: RebuildTotals): void => {
     totals.feesCents < 0 ||
     totals.taxCents < 0
   ) {
-    throw new CreditCardApplicationError(
+    throw new ApplicationError(
       "domain_precondition_failed",
       "O ledger contém uma sequência de movimentos inconsistente.",
     );
@@ -121,7 +124,7 @@ const assertNonNegativePositionTotals = (totals: RebuildTotals): void => {
   // INV-P1-009 — a mesma invariante do caminho incremental precisa valer na
   // reconstrução, senão o rebuild republicaria o principal fantasma.
   if (totals.quantityMicros === 0 && totals.principalCents !== 0) {
-    throw new CreditCardApplicationError(
+    throw new ApplicationError(
       "domain_precondition_failed",
       "O ledger encerra a posição com custo remanescente. Reveja as " +
         "liquidações abaixo do custo antes de reconstruir.",
@@ -130,7 +133,7 @@ const assertNonNegativePositionTotals = (totals: RebuildTotals): void => {
 };
 
 export const executeRecalculateInvestmentPosition = async (
-  auth: WorkspaceAuthorizationContext,
+  auth: WorkspaceActor,
   payload: RecalculateInvestmentPositionPayload,
 ): Promise<Record<string, unknown>> => {
   const operation = "recalculateInvestmentPosition" as const;
@@ -144,11 +147,15 @@ export const executeRecalculateInvestmentPosition = async (
       payload.correlationId,
     );
   return investmentFirestore().runTransaction(async (transaction) => {
-    const authorization = await authorizeInvestmentTransaction(
+    const access = await reassertWorkspaceActor(
       transaction,
       auth,
       investmentOperationRoles(operation),
     );
+    const authorization = {
+      role: access.role,
+      profileType: profileTypeFromWorkspace(access.workspace),
+    };
     const reservation = await reserveInvestmentIdempotency(
       transaction,
       auth,
@@ -201,7 +208,7 @@ export const executeRecalculateInvestmentPosition = async (
       account.profileType !== authorization.profileType ||
       asset.profileType !== authorization.profileType
     ) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "Conta e ativo não pertencem ao contexto PF/PJ do workspace.",
       );
@@ -223,7 +230,7 @@ export const executeRecalculateInvestmentPosition = async (
       integerOrZero(existingRebuild.expectedProjectionVersion) :
       currentPosition.version;
     if (currentPosition.version !== expectedVersion) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "A posição mudou durante a reconstrução; inicie uma nova reconstrução.",
       );
@@ -356,7 +363,7 @@ export const executeRecalculateInvestmentPosition = async (
       valuationUnitPriceMicros,
     );
     if (!hasMore && currentPosition.goalId !== linkedGoalId) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "O vínculo da posição diverge do ledger; " +
           "reconcilie o vínculo antes de publicar o rebuild.",
@@ -509,7 +516,7 @@ export const executeRecalculateInvestmentPosition = async (
 };
 
 export const executeRecalculateGoalInvestmentProgress = async (
-  auth: WorkspaceAuthorizationContext,
+  auth: WorkspaceActor,
   payload: RecalculateGoalInvestmentProgressPayload,
 ): Promise<Record<string, unknown>> => {
   const operation = "recalculateGoalInvestmentProgress" as const;
@@ -522,11 +529,15 @@ export const executeRecalculateGoalInvestmentProgress = async (
       payload.correlationId,
     );
   return investmentFirestore().runTransaction(async (transaction) => {
-    const authorization = await authorizeInvestmentTransaction(
+    const access = await reassertWorkspaceActor(
       transaction,
       auth,
       investmentOperationRoles(operation),
     );
+    const authorization = {
+      role: access.role,
+      profileType: profileTypeFromWorkspace(access.workspace),
+    };
     const reservation = await reserveInvestmentIdempotency(
       transaction,
       auth,
@@ -568,7 +579,7 @@ export const executeRecalculateGoalInvestmentProgress = async (
       integerOrZero(existingRebuild.expectedProjectionVersion) :
       currentVersion;
     if (currentVersion !== expectedVersion) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "A projeção da meta mudou durante a reconstrução; " +
           "inicie uma nova reconstrução.",

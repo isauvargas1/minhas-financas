@@ -1,6 +1,8 @@
 import { expect, test, type Page } from '@playwright/test';
 import { createRequire } from 'node:module';
 
+import { seedOwnedWorkspace } from './support/workspaceSeed';
+
 /**
  * Fluxo simples de Investimentos (Etapa 2, §17).
  *
@@ -75,16 +77,10 @@ test.beforeEach(async () => {
   });
   const now = firebaseAdmin.firestore.Timestamp.now();
   const stamps = { createdAt: now, updatedAt: now };
+  await seedOwnedWorkspace({
+    uid: UID, email: EMAIL, workspaceId: WORKSPACE, name: 'Patrimônio Simples', type: 'PF',
+  });
   await Promise.all([
-    db.doc(`workspaces/${WORKSPACE}`).set({
-      ownerId: UID, name: 'Patrimônio Simples', type: 'PF', ...stamps,
-    }),
-    db.doc(`workspaces/${WORKSPACE}/members/${UID}`).set({
-      uid: UID, role: 'owner', status: 'active',
-    }),
-    db.doc(`users/${UID}/workspaces/${WORKSPACE}`).set({
-      workspaceId: WORKSPACE, role: 'owner',
-    }),
     db.doc(`workspaces/${WORKSPACE}/settings_catalog/${CARTEIRA}`).set({
       ...catalogo(CARTEIRA, 'investment_class', 'Reserva de emergência', 'reserva de emergencia', 1),
       ...stamps,

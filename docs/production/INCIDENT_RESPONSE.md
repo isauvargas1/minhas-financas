@@ -329,7 +329,7 @@ Nenhum exercício foi feito (**CURRENT**). **TARGET:** tabletop dos playbooks e 
 
 - **D-21:** identidade jurídica do fornecedor, encarregado e canal de suporte (P7, P9).
 - **D-10:** painel administrativo.
-- **D-06:** MFA e política de sessão.
+- **D-06 (tomada, §9.1 do plano):** sem MFA para usuários comuns; MFA de administradores de plataforma em P7 (E-03); `auth_time` recente em transferência de ownership e arquivamento de workspace.
 - **D-18:** retenção de logs, auditoria, registro de incidentes e backups.
 - **D-19:** mapeamento de ambientes, que define onde os drills rodam.
 - **D-32:** tempos de acionamento e contenção por SEV, página de status e procedimento de *break-glass* em PROD.

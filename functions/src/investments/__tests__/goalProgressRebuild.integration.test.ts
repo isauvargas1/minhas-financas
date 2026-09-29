@@ -2,7 +2,12 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import * as admin from "firebase-admin";
 
-import type {WorkspaceAuthorizationContext} from "../../creditCards/auth";
+import type {WorkspaceActor} from "../../shared/workspaceAuth";
+import {
+  requireFirestoreEmulator,
+  seedActiveAccount,
+  seedWorkspace as seedKernelWorkspace,
+} from "../../shared/testSupport/kernelTestSupport";
 import {executeRecalculateGoalInvestmentProgress} from "../rebuild";
 import {investmentPositionId} from "../infrastructure";
 
@@ -25,19 +30,17 @@ import {investmentPositionId} from "../infrastructure";
  * - repetir a chamada com a mesma chave não move a meta duas vezes.
  */
 
-const PROJECT = process.env.GCLOUD_PROJECT ?? "minhas-financas-local";
 const WORKSPACE = "ws-goal-progress-rebuild";
 const OWNER = "owner-goal-progress-rebuild";
 const GOAL = "meta-em-deriva";
 const ACCOUNT = "conta-rebuild";
 const MAX_PAGES = 40;
 
-const db = (): admin.firestore.Firestore => {
-  if (!admin.apps.length) admin.initializeApp({projectId: PROJECT});
-  return admin.firestore();
-};
+// Sem o Emulator a suíte falha ao carregar, em vez de pular.
+const firestore = requireFirestoreEmulator();
+const db = (): admin.firestore.Firestore => firestore;
 
-const auth = (): WorkspaceAuthorizationContext => ({
+const auth = (): WorkspaceActor => ({
   workspaceId: WORKSPACE,
   uid: OWNER,
   role: "owner",
@@ -57,12 +60,8 @@ const seed = async (): Promise<void> => {
     createdBy: OWNER, updatedBy: OWNER, createdAt: now, updatedAt: now,
   };
 
-  await db().doc(`workspaces/${WORKSPACE}`).set({
-    ownerId: OWNER, type: "PF", currency: "BRL", name: WORKSPACE,
-  });
-  await db().doc(`workspaces/${WORKSPACE}/members/${OWNER}`).set({
-    uid: OWNER, role: "owner", status: "active",
-  });
+  await seedActiveAccount(OWNER);
+  await seedKernelWorkspace({workspaceId: WORKSPACE, ownerId: OWNER});
 
   await db().doc(`workspaces/${WORKSPACE}/goals/${GOAL}`).set({
     ...base,

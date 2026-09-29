@@ -14,6 +14,7 @@ import {
 } from "../recalculateCardLimit";
 
 import {
+  creditCardTestActor,
   getIntegrationFirestore,
   resetCreditCardIntegrationWorkspace,
   seedCreditCardIntegrationWorkspace,
@@ -52,9 +53,6 @@ const findSuccessMetric = (
 
 test(
   "recalculateCardLimit deve recalcular limite a partir do ledger e registrar evento, auditoria e métrica",
-  {
-    skip: !process.env.FIRESTORE_EMULATOR_HOST,
-  },
   async () => {
     const db = getIntegrationFirestore();
 
@@ -67,9 +65,7 @@ test(
     });
 
     const purchaseResult = await executeCreateCreditCardPurchase({
-      auth: {
-        uid: TEST_OWNER_ID,
-      },
+      actor: creditCardTestActor(TEST_WORKSPACE_ID, TEST_OWNER_ID),
       payload: {
         workspaceId: TEST_WORKSPACE_ID,
         cardId: TEST_CARD_ID,
@@ -90,7 +86,7 @@ test(
         idempotencyKey: "integration-recalculate-limit-create-001",
         correlationId: "integration-recalculate-limit-create",
       },
-    } as any) as CreateCreditCardPurchaseResult;
+    }) as CreateCreditCardPurchaseResult;
 
     assert.equal(purchaseResult.success, true);
 
@@ -105,9 +101,7 @@ test(
       );
 
     const recalculateResult = await executeRecalculateCardLimit({
-      auth: {
-        uid: TEST_OWNER_ID,
-      },
+      actor: creditCardTestActor(TEST_WORKSPACE_ID, TEST_OWNER_ID),
       payload: {
         workspaceId: TEST_WORKSPACE_ID,
         cardId: TEST_CARD_ID,
@@ -115,7 +109,7 @@ test(
         idempotencyKey: "integration-recalculate-limit-001",
         correlationId: "integration-recalculate-limit",
       },
-    } as any) as RecalculateCardLimitResult;
+    }) as RecalculateCardLimitResult;
 
     assert.equal(recalculateResult.success, true);
     assert.equal(recalculateResult.cardId, TEST_CARD_ID);

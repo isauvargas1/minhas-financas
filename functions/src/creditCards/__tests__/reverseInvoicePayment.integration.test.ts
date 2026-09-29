@@ -17,6 +17,7 @@ import {
 } from "../reverseInvoicePayment";
 
 import {
+  creditCardTestActor,
   getIntegrationFirestore,
   resetCreditCardIntegrationWorkspace,
   seedCreditCardIntegrationWorkspace,
@@ -52,9 +53,6 @@ const sumField = (
 
 test(
   "reverseCreditCardInvoicePayment deve reabrir fatura, reverter caixa e consumir limite novamente",
-  {
-    skip: !process.env.FIRESTORE_EMULATOR_HOST,
-  },
   async () => {
     const db = getIntegrationFirestore();
 
@@ -67,9 +65,7 @@ test(
     });
 
     const purchaseResult = await executeCreateCreditCardPurchase({
-      auth: {
-        uid: TEST_OWNER_ID,
-      },
+      actor: creditCardTestActor(TEST_WORKSPACE_ID, TEST_OWNER_ID),
       payload: {
         workspaceId: TEST_WORKSPACE_ID,
         cardId: TEST_CARD_ID,
@@ -90,16 +86,14 @@ test(
         idempotencyKey: "integration-reversal-purchase-001",
         correlationId: "integration-reversal-purchase",
       },
-    } as any) as CreateCreditCardPurchaseResult;
+    }) as CreateCreditCardPurchaseResult;
 
     assert.equal(purchaseResult.success, true);
 
     const invoiceId = `${TEST_CARD_ID}_2026-04`;
 
     const paymentResult = await executeRegisterCreditCardInvoicePayment({
-      auth: {
-        uid: TEST_OWNER_ID,
-      },
+      actor: creditCardTestActor(TEST_WORKSPACE_ID, TEST_OWNER_ID),
       payload: {
         workspaceId: TEST_WORKSPACE_ID,
         cardId: TEST_CARD_ID,
@@ -110,7 +104,7 @@ test(
         idempotencyKey: "integration-reversal-payment-001",
         correlationId: "integration-reversal-payment",
       },
-    } as any) as RegisterCreditCardInvoicePaymentResult;
+    }) as RegisterCreditCardInvoicePaymentResult;
 
     assert.equal(paymentResult.success, true);
     assert.equal(paymentResult.invoice.status, "paid");
@@ -125,9 +119,7 @@ test(
     assert.equal(limitAfterPaymentSnapshot.data()?.limitAvailable, 4200);
 
     const reversalResult = await executeReverseCreditCardInvoicePayment({
-      auth: {
-        uid: TEST_OWNER_ID,
-      },
+      actor: creditCardTestActor(TEST_WORKSPACE_ID, TEST_OWNER_ID),
       payload: {
         workspaceId: TEST_WORKSPACE_ID,
         cardId: TEST_CARD_ID,
@@ -138,7 +130,7 @@ test(
         idempotencyKey: "integration-reversal-payment-reversal-001",
         correlationId: "integration-reversal-payment-reversal",
       },
-    } as any) as ReverseCreditCardInvoicePaymentResult;
+    }) as ReverseCreditCardInvoicePaymentResult;
 
     assert.equal(reversalResult.success, true);
     assert.equal(reversalResult.paymentId, paymentResult.paymentId);

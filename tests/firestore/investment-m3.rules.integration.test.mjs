@@ -80,13 +80,15 @@ const seed = async () => {
       if (error?.code !== 'auth/user-not-found') throw error;
     }
     await firebaseAdmin.auth().createUser({...user, password, emailVerified: true});
+    // P1: a autorização exige perfil de conta ativo (gravado pelo backend).
+    await db.doc(`users/${user.uid}`).set({uid: user.uid, status: 'active'});
   }
   await Promise.all([
     db.recursiveDelete(db.doc(`workspaces/${workspace}`)),
     db.recursiveDelete(db.doc(`workspaces/${foreign}`)),
   ]);
-  await db.doc(`workspaces/${workspace}`).set({ownerId: users.owner.uid, type: 'PF'});
-  await db.doc(`workspaces/${foreign}`).set({ownerId: users.outsider.uid, type: 'PJ'});
+  await db.doc(`workspaces/${workspace}`).set({ownerId: users.owner.uid, type: 'PF', status: 'active'});
+  await db.doc(`workspaces/${foreign}`).set({ownerId: users.outsider.uid, type: 'PJ', status: 'active'});
   await Promise.all([
     db.doc(`workspaces/${workspace}/members/${users.owner.uid}`).set({uid: users.owner.uid, role: 'owner', status: 'active'}),
     db.doc(`workspaces/${workspace}/members/${users.admin.uid}`).set({uid: users.admin.uid, role: 'admin', status: 'active'}),

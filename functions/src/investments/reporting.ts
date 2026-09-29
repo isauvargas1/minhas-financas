@@ -3,7 +3,7 @@ import {FieldValue, Timestamp} from "firebase-admin/firestore";
 
 import type {PositionState} from "./operationsV2";
 import {sha256} from "./infrastructure";
-import {CreditCardApplicationError} from "../creditCards/errors";
+import {ApplicationError} from "../shared/errors";
 import {
   INVESTMENT_COLLECTIONS,
   investmentCollection,
@@ -185,7 +185,7 @@ export const readInvestmentPeriodContext = async (
       .orderBy("period", "asc").limit(MAX_RETROACTIVE_PERIODS + 1),
   );
   if (laterPeriods.size > MAX_RETROACTIVE_PERIODS) {
-    throw new CreditCardApplicationError(
+    throw new ApplicationError(
       "domain_precondition_failed",
       `O lançamento em ${period} exigiria corrigir mais de ` +
         `${MAX_RETROACTIVE_PERIODS} meses posteriores. Reconstrua a série ` +

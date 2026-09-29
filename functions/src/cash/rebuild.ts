@@ -1,13 +1,16 @@
 import * as admin from "firebase-admin";
 import {FieldPath, FieldValue, Timestamp} from "firebase-admin/firestore";
-import {onCall} from "firebase-functions/v2/https";
 import {z} from "zod";
 
-import {requireWorkspaceRole} from "../creditCards/auth";
-import {CreditCardApplicationError} from "../creditCards/errors";
-import {toHttpsError} from "../creditCards/errors";
+import {defineCallable} from "../shared/callable";
+import {ApplicationError} from "../shared/errors";
 import {reserveRateLimit} from "../shared/rateLimit";
 import {HEAVY_CALLABLE_OPTIONS} from "../shared/runtimeOptions";
+import {
+  reassertWorkspaceActor,
+  type WorkspaceActor,
+  type WorkspaceRole,
+} from "../shared/workspaceAuth";
 import {
   CASH_PERIODS_COLLECTION,
   cashPeriodDeltaFor,
@@ -153,7 +156,7 @@ export const executeRebuildCashPeriods = async (
   // Um workspace com mais de 600 meses de histórico é impossível na prática;
   // atingir o teto é erro nomeado, nunca truncamento silencioso.
   if (Object.keys(accumulated).length > 600) {
-    throw new CreditCardApplicationError(
+    throw new ApplicationError(
       "domain_precondition_failed",
       "A reconstrução do fluxo de caixa excedeu 600 períodos mensais. " +
         "Nenhum dado foi truncado.",
@@ -244,31 +247,34 @@ export const executeRebuildCashPeriods = async (
   };
 };
 
-export const rebuildCashPeriods = onCall(
-  HEAVY_CALLABLE_OPTIONS,
-  async (request) => {
-    try {
-      const payload = payloadSchema.parse(request.data);
-      const auth = await requireWorkspaceRole(request, payload.workspaceId, [
-        "owner",
-        "admin",
-      ]);
-      await admin.firestore().runTransaction(async (transaction) => {
-        const reservation = await reserveRateLimit(
-          transaction,
-          auth.workspaceId,
-          auth.uid,
-          RATE_LIMIT,
-        );
-        reservation.commit();
-      });
-      return await executeRebuildCashPeriods(
-        auth.workspaceId,
-        auth.uid,
-        payload,
+/** Reconstrução é operação administrativa do workspace. */
+export const CASH_REBUILD_ROLES: readonly WorkspaceRole[] = ["owner", "admin"];
+
+/** Com `workspaceRoles`, o kernel sempre entrega o ator resolvido. */
+const requireActor = (actor: WorkspaceActor | null): WorkspaceActor => {
+  if (!actor) throw new Error("cash_rebuild_without_actor");
+  return actor;
+};
+
+export const rebuildCashPeriods = defineCallable({
+  operation: RATE_LIMIT.operation,
+  schema: payloadSchema,
+  runtime: HEAVY_CALLABLE_OPTIONS,
+  workspaceRoles: CASH_REBUILD_ROLES,
+  handler: async ({actor: resolved, payload}) => {
+    const actor = requireActor(resolved);
+    await admin.firestore().runTransaction(async (transaction) => {
+      // Autorização relida na fase de leitura, antes de consumir o limite:
+      // quem foi removido ou rebaixado depois da pré-checagem não reconstrói.
+      await reassertWorkspaceActor(transaction, actor);
+      const reservation = await reserveRateLimit(
+        transaction,
+        actor.workspaceId,
+        actor.uid,
+        RATE_LIMIT,
       );
-    } catch (error) {
-      throw toHttpsError(error);
-    }
+      reservation.commit();
+    });
+    return executeRebuildCashPeriods(actor.workspaceId, actor.uid, payload);
   },
-);
+});

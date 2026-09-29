@@ -1,16 +1,19 @@
 import * as admin from "firebase-admin";
 import {FieldPath, FieldValue, Timestamp} from "firebase-admin/firestore";
 
-import type {WorkspaceAuthorizationContext} from "../creditCards/auth";
-import {CreditCardApplicationError} from "../creditCards/errors";
+import {ApplicationError} from "../shared/errors";
+import {
+  reassertWorkspaceActor,
+  type WorkspaceActor,
+} from "../shared/workspaceAuth";
 import {saoPauloDayKey, saoPauloMonthKey, saoPauloMonthStart} from "../shared/dateKeys";
 import type {RebuildInvestmentProjectionsPayload} from "./contracts";
 import {INVESTMENT_CALCULATION_VERSION} from "./domain";
 import {
   assertWorkspaceDocument,
-  authorizeInvestmentTransaction,
   completeInvestmentIdempotency,
   deterministicDocumentId,
+  profileTypeFromWorkspace,
   recordInvestmentEvent,
   reserveInvestmentIdempotency,
 } from "./infrastructure";
@@ -115,7 +118,7 @@ const FIXED_WRITES_PER_REBUILD_TRANSACTION = 4;
 const assertPageWithinWriteBudget = (pageSize: number): void => {
   const worstCase = pageSize + FIXED_WRITES_PER_REBUILD_TRANSACTION;
   if (worstCase > MAX_WRITES_PER_REBUILD_TRANSACTION) {
-    throw new CreditCardApplicationError(
+    throw new ApplicationError(
       "domain_precondition_failed",
       `Página de ${pageSize} excede o teto de ` +
         `${MAX_WRITES_PER_REBUILD_TRANSACTION} escritas por transação.`,
@@ -389,13 +392,13 @@ const assertSnapshotContext = (
     data.createdBy !== actorId ||
     data.pageSize !== pageSize
   ) {
-    throw new CreditCardApplicationError(
+    throw new ApplicationError(
       "domain_precondition_failed",
       "A reconstrução informada pertence a outro contexto de execução.",
     );
   }
   if (data.status === "completed") {
-    throw new CreditCardApplicationError(
+    throw new ApplicationError(
       "domain_precondition_failed",
       "Esta reconstrução já foi concluída.",
     );
@@ -490,7 +493,7 @@ const accumulatePosition = (
     state.allocations[id] = bucket;
   }
   if (Object.keys(state.allocations).length > MAX_ALLOCATION_BUCKETS) {
-    throw new CreditCardApplicationError(
+    throw new ApplicationError(
       "domain_precondition_failed",
       `A reconstrução excedeu o teto de ${MAX_ALLOCATION_BUCKETS} faixas de ` +
         "alocação. Nenhum dado foi truncado; reduza o escopo do workspace ou " +
@@ -521,7 +524,7 @@ const commitBuckets = (
   period.daily[dayKey] = daily;
   state.periods[monthKey] = period;
   if (Object.keys(state.periods).length > MAX_REPORT_PERIODS) {
-    throw new CreditCardApplicationError(
+    throw new ApplicationError(
       "domain_precondition_failed",
       `A reconstrução excedeu o teto de ${MAX_REPORT_PERIODS} períodos ` +
         "mensais. Nenhum dado foi truncado.",
@@ -532,7 +535,7 @@ const commitBuckets = (
     0,
   );
   if (dailyCount > MAX_DAILY_BUCKETS) {
-    throw new CreditCardApplicationError(
+    throw new ApplicationError(
       "domain_precondition_failed",
       `A reconstrução excedeu o teto de ${MAX_DAILY_BUCKETS} dias com ` +
         "movimento acumulados no checkpoint, que é o limite de tamanho do " +
@@ -624,7 +627,7 @@ const reversalOriginOf = (
     "redemption";
 
 export const executeRebuildInvestmentProjections = async (
-  auth: WorkspaceAuthorizationContext,
+  auth: WorkspaceActor,
   payload: RebuildInvestmentProjectionsPayload,
 ): Promise<Record<string, unknown>> => {
   const operation = "rebuildInvestmentProjections" as const;
@@ -638,11 +641,15 @@ export const executeRebuildInvestmentProjections = async (
     );
   assertPageWithinWriteBudget(payload.pageSize);
   return investmentFirestore().runTransaction(async (transaction) => {
-    const authorization = await authorizeInvestmentTransaction(
+    const access = await reassertWorkspaceActor(
       transaction,
       auth,
       investmentOperationRoles(operation),
     );
+    const authorization = {
+      role: access.role,
+      profileType: profileTypeFromWorkspace(access.workspace),
+    };
     const reservation = await reserveInvestmentIdempotency(
       transaction,
       auth,
@@ -703,7 +710,7 @@ export const executeRebuildInvestmentProjections = async (
     // escrita contínua a ponto de esgotar o teto de reinícios.
     if (state.expectedProjectionVersion !== liveProjectionVersion) {
       if (state.restartCount >= MAX_REBUILD_RESTARTS) {
-        throw new CreditCardApplicationError(
+        throw new ApplicationError(
           "domain_precondition_failed",
           `A reconstrução reiniciou ${MAX_REBUILD_RESTARTS} vezes por escrita ` +
             "concorrente e não conseguiu concluir. Repita em uma janela de " +
@@ -1135,7 +1142,7 @@ const accumulateTimelinePage = async (
     // Nem um evento consumido com fluxos ainda abertos significaria laço
     // infinito. Só acontece se `pageSize` for insuficiente para a marca
     // d'água — falha explícita em vez de girar em falso.
-    throw new CreditCardApplicationError(
+    throw new ApplicationError(
       "domain_precondition_failed",
       "A reconstrução não conseguiu avançar na linha do tempo da posição " +
         `${timeline.positionId}. Aumente o tamanho da página.`,
@@ -1335,7 +1342,7 @@ const fillPeriodGaps = (
       year += 1;
     }
   }
-  throw new CreditCardApplicationError(
+  throw new ApplicationError(
     "domain_precondition_failed",
     `A série densa excedeu ${MAX_REPORT_PERIODS} períodos mensais. ` +
       "Nenhum dado foi truncado.",

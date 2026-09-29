@@ -2,7 +2,7 @@
 import { FieldValue } from "firebase-admin/firestore";
 
 import type {
-  CreditCardCallableExecutionContext,
+  CreditCardOperationContext,
 } from "./callable";
 
 import type {
@@ -10,8 +10,8 @@ import type {
 } from "./contracts";
 
 import {
-  CreditCardApplicationError,
-} from "./errors";
+  ApplicationError,
+} from "../shared/errors";
 
 import {
   cardFinancialEventDoc,
@@ -41,20 +41,20 @@ const getNumberDetail = (
     : undefined;
 };
 
-const isLimitExceededError = (error: unknown): error is CreditCardApplicationError =>
-  error instanceof CreditCardApplicationError &&
+const isLimitExceededError = (error: unknown): error is ApplicationError =>
+  error instanceof ApplicationError &&
   error.code === "domain_precondition_failed" &&
   error.message === "Limite disponível insuficiente para esta compra.";
 
 export const recordPurchaseLimitExceededEvent = async (
-  context: CreditCardCallableExecutionContext<CreateCreditCardPurchasePayload>,
+  context: CreditCardOperationContext<CreateCreditCardPurchasePayload>,
   error: unknown
 ): Promise<void> => {
   if (!isLimitExceededError(error)) {
     return;
   }
 
-  const {payload, auth} = context;
+  const {payload, actor} = context;
   const db = getFirestore();
   const workspaceId = payload.workspaceId;
   const cardId = payload.cardId;
@@ -98,7 +98,7 @@ export const recordPurchaseLimitExceededEvent = async (
       correlationId: payload.correlationId,
       idempotencyKey: payload.idempotencyKey,
       createdAt: FieldValue.serverTimestamp(),
-      actorId: auth.uid,
+      actorId: actor.uid,
     });
 
     enqueueCreditCardDomainNotifications(transaction, {
@@ -107,7 +107,7 @@ export const recordPurchaseLimitExceededEvent = async (
       cardId,
       eventType: "purchase_limit_exceeded",
       payload: eventPayload,
-      actorId: auth.uid,
+      actorId: actor.uid,
     });
   });
 };

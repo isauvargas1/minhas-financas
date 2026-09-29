@@ -116,9 +116,9 @@ const queryClient = new QueryClient({
 
 const AppContent: React.FC = () => {
     const { theme, toggleMode, playSound } = useTheme();
-    const { activeWorkspace, isLoading, activeWorkspaceRole } = useWorkspace();
+    const { activeWorkspace, isLoading, loadError, activeWorkspaceRole } = useWorkspace();
     const workspaceId = activeWorkspace?.id ?? "";
-    const { user } = useAuth();
+    const { user, logout } = useAuth();
 
     // Estados de UI
     const [isSidebarExpanded, setIsSidebarExpanded] = useState<boolean>(false);
@@ -541,6 +541,14 @@ const AppContent: React.FC = () => {
     }, [currentMonthCashFlowTransactions]);
 
     if (isLoading) return <div className="flex h-screen items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div></div>;
+    // P1 (AUTH-10): sem workspace válido o app não é renderizado sobre um
+    // pseudo-workspace; a falha aparece em pt-BR, com saída da conta.
+    if (loadError) return (
+        <div className="flex h-screen flex-col items-center justify-center gap-4 p-6 text-center">
+            <p className="max-w-md text-sm text-on-surface" role="alert">{loadError}</p>
+            <button type="button" onClick={() => void logout()} className="text-sm font-medium text-primary hover:underline">Sair</button>
+        </div>
+    );
 
     return (
         <div className="flex min-h-screen bg-background text-on-surface font-sans">

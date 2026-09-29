@@ -12,7 +12,7 @@ Apply every item to each affected operation. Cite implementation, Security Rules
 
 ## RBAC and privileged operations
 
-- Build an explicit owner/admin/member matrix per operation and verify default deny. Test both permitted and forbidden role transitions and resources.
+- Build an explicit owner/admin/member/viewer matrix per operation (`viewer` is strictly read-only) and verify default deny. Test both permitted and forbidden role transitions and resources.
 - Derive effective role and workspace membership from trusted backend data or verified claims with safe revocation semantics. Never authorize from client-provided role, workspace, ownership, or hidden UI controls.
 - Restrict sensitive writes—membership/role changes, ownership transfer, billing, secrets, audit data, workspace deletion, privileged flags, and equivalent operations—to trusted backend entry points.
 - Prevent self-promotion, removal of required last owner, unauthorized invitations, membership reassignment, and confused-deputy behavior.

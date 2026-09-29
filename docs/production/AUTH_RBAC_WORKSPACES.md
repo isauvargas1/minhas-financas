@@ -37,9 +37,9 @@ GAPs do domínio: PR-AUTH-01, PR-AUTH-02, PR-AUTH-03, PR-AUTH-04 e PR-WS-01 a PR
 | Blocking functions e gatilhos de Auth | CURRENT | Inexistentes | `functions/src/index.ts:13-37` |
 | Logout | CURRENT | Só `signOut`, com erro engolido; cache do React Query e histórico de IA no `localStorage` permanecem | `src/contexts/AuthContext.tsx:116-122`; `src/App.tsx:108-115`; `src/modules/reports/hooks.ts:343-358` |
 | Mensagens de falha | CURRENT | Popup bloqueado ou falha de rede sem mensagem pt-BR; falha ao carregar workspaces renderiza o pseudo-workspace `loading` | `src/components/auth/LoginView.tsx:28`; `src/contexts/WorkspaceContext.tsx:22-30,76-80` |
-| Identidade | TARGET | Identidade vem só do ID token verificado. O wrapper de callable do kernel (D-ORD-02) aplica a política de `email_verified` e uma allowlist de `sign_in_provider` por ambiente | D-06 |
-| Provedores por ambiente | TARGET | Blocking functions `beforeUserCreated`/`beforeUserSignedIn` recusam provedor fora da allowlist e, se D-06 exigir, conta sem e-mail verificado (requer Identity Platform) | D-06; E-03 |
-| Política de sessão | TARGET | Janela máxima de `auth_time` para operações sensíveis (troca de papel para admin, transferência de ownership, arquivamento de workspace, exclusão de conta); MFA conforme D-06, obrigatória para admin de plataforma | D-06; E-03 |
+| Identidade | TARGET | Identidade vem só do ID token verificado. O wrapper de callable do kernel (D-ORD-02) aplica a política de `email_verified` por callable (§9) e uma allowlist de `sign_in_provider` por ambiente (só Google) | D-06 |
+| Provedores por ambiente | TARGET | Só Google; sem e-mail/senha, sem Apple e sem redesign do login. Blocking functions `beforeUserCreated`/`beforeUserSignedIn` recusam provedor fora da allowlist (requer Identity Platform). O login não exige e-mail verificado; a exigência fica nas callables da §9 | D-06; E-03 |
+| Política de sessão | TARGET | `auth_time` nos últimos 10 minutos em `transferWorkspaceOwnership` e `archiveWorkspace` (P1) e na exclusão de conta (P8); o frontend reautentica com Google só quando necessário. Sem MFA para usuários comuns; MFA de admin de plataforma em P7 | D-06; E-03 |
 | Login de teste | TARGET | Fora do bundle de produção: módulo exclusivo de teste ou custom token do Emulator; build falha se E2E ou Emulator estiverem ligados fora do modo de teste | PR-AUTH-04 (P6) |
 | Logout | TARGET | Limpa o `QueryClient` e as chaves locais por usuário/workspace; o histórico de IA sai do `localStorage` | escopo de P1 no plano; PR-AI-04 (P5) |
 | Erros | TARGET | Códigos `auth/*` mapeados para pt-BR, com alternativa por redirect quando o popup falha; nunca renderizar o app sem workspace válido | AUTH-10, AUTH-15 |
@@ -47,7 +47,7 @@ GAPs do domínio: PR-AUTH-01, PR-AUTH-02, PR-AUTH-03, PR-AUTH-04 e PR-WS-01 a PR
 | GAP | GAP | Sem `email_verified` nem restrição de provedor | AUTH-08, ENTRY-23 (MEDIUM/LOW) |
 | GAP | GAP | Sessão sem política, reautenticação ou MFA | AUTH-17 (LOW) |
 
-**DECISION D-06:** provedores (só Google, e-mail/senha, Apple), MFA (opcional ou obrigatória para owners/PJ) e política de sessão. E-mail/senha exige verificação, redefinição de senha e textos pt-BR.
+**DECISION D-06 (tomada, §9.1 do plano):** só Google. `email_verified` exigido em `createWorkspace`, `inviteWorkspaceMember`, `acceptWorkspaceInvite`, `revokeWorkspaceInvite`, `changeWorkspaceMemberRole`, `removeWorkspaceMember`, `transferWorkspaceOwnership` e `archiveWorkspace`; não exigido em `bootstrapAccount`, `updateWorkspaceSettings` e `leaveWorkspace`. `transferWorkspaceOwnership` e `archiveWorkspace` exigem `auth_time` nos últimos 10 minutos. Sem MFA para usuários comuns; MFA administrativa em P7 (E-03).
 
 ---
 
@@ -61,7 +61,7 @@ GAPs do domínio: PR-AUTH-01, PR-AUTH-02, PR-AUTH-03, PR-AUTH-04 e PR-WS-01 a PR
 | `rate_limits` do usuário | CURRENT | Leitura e escrita negadas ao cliente | `firestore.rules:1472-1474` |
 | Leitura | CURRENT | O mesmo documento é lido duas vezes: `getDoc` para `isAdmin` e `onSnapshot` para o plano | `src/contexts/AuthContext.tsx:56-57`; `src/hooks/usePlan.ts:20` |
 | Workspace ativo | CURRENT | `activeWorkspaceId` é editável e não é usado; o app guarda o último workspace em `localStorage` | `firestore.rules:155`; `src/contexts/WorkspaceContext.tsx:67,95` |
-| Perfil server-owned | TARGET | `bootstrapAccount` cria `users/{uid}` com `email` copiado do token verificado, `createdAt`, `status` (`active`/`suspended`), `locale` e `timezone`. `email` e `status` saem da allowlist do cliente. O cliente edita só preferências de exibição | PR-AUTH-03 (P1) |
+| Perfil server-owned | TARGET | `bootstrapAccount` cria `users/{uid}` com `email` copiado do token verificado, `createdAt`, `status` (`active`/`suspended`, D-P1-SUSP), `locale` e `timezone`. `email` e `status` saem da allowlist do cliente. O cliente edita só preferências de exibição | PR-AUTH-03 (P1) |
 | Aceite legal | TARGET | O registro versionado de aceite (termos e política) é construído em P8 e exigido no cadastro em P9. `bootstrapAccount` é o ponto de integração | PR-AUTH-02 (P9) |
 | Fonte única | TARGET | Um único provider de perfil no cliente e uma única fonte de workspace ativo | AUTH-12 (origem de PR-AUTH-03) |
 | GAP | GAP | Perfil sem dono server-side | PR-AUTH-03 (P1) |
@@ -83,10 +83,10 @@ Consequências: duas abas ou uma falha transitória de leitura criam workspaces 
 
 Callable idempotente chamada uma vez após o login. O cliente só chama e lê o resultado; erro de leitura vira estado de erro, nunca criação.
 
-1. Wrapper do kernel: autenticação, política de `email_verified` (D-06), rate limit por usuário, chave de idempotência derivada do `uid`.
+1. Wrapper do kernel: autenticação (sem exigir `email_verified`, D-06), recusa de conta suspensa, rate limit por usuário, chave de idempotência derivada do `uid`.
 2. Numa transação: lê `users/{uid}`. Se o bootstrap já foi concluído, devolve o resultado gravado (replay).
 3. Cria `users/{uid}` server-owned (§3).
-4. Cria o workspace pessoal com ID determinístico (proposta: `personal_{uid}`), `type` PF, `ownerId = uid`, `status: 'active'`.
+4. Cria o workspace pessoal com ID determinístico (proposta: `personal_{uid}`), `type` PF, `ownerId = uid` (desnormalizado, D-03), `status: 'active'`.
 5. Cria `workspaces/{id}/members/{uid}` com `role: 'owner'`, `status: 'active'` e `email`/`displayName` do token.
 6. Cria a entrada do índice do usuário `users/{uid}/workspaces/{id}` (§6.4).
 7. Provisiona catálogo e cadastros de investimentos no próprio backend, de forma idempotente, substituindo o seed e o onboarding disparados pelo cliente.
@@ -107,11 +107,11 @@ Pendente de **DECISION**: criar automaticamente o workspace PF ou deixar o usuá
 | Exclusão | CURRENT | Não há `allow delete` em `workspaces/{id}` (negado por padrão) nem fluxo de arquivamento | `firestore.rules:990-1009` |
 | Falhas de payload | CURRENT | Configurações envia o objeto inteiro (com `id`, `userId` e campos `undefined`) e criar PJ sem CNPJ envia `cnpj: undefined`; o SDK está sem `ignoreUndefinedProperties` | `src/components/SettingsView.tsx:441-469`; `src/components/CreateWorkspaceModal.tsx:33`; `src/lib/firebase.ts:38` |
 | Quota | CURRENT | Limite de workspaces só na UI | `src/components/Header.tsx:58`; `src/constants/plans.ts:5-7` |
-| `createWorkspace` | TARGET | Callable com Zod estrito (`name`, `type` ∈ {PF, PJ}, `cnpj` conforme D-22, `themeColor`, `idempotencyKey`). Numa transação: workspace, `members/{uid}` owner ativo, índice do usuário, provisionamento, evento de auditoria e chamada ao motor de entitlements | PR-WS-05 (P1); quota em PR-ENT-01 (P2) |
+| `createWorkspace` | TARGET | Callable com Zod estrito (`name`, `type` ∈ {PF, PJ}, `cnpj` conforme D-22, `themeColor`, `idempotencyKey`). Exige `email_verified` (D-06). Numa transação: workspace (`status: 'active'`, `ownerId` desnormalizado), `members/{uid}` owner ativo, índice do usuário, provisionamento e evento de auditoria. P1 não consulta quota nem entitlement; P2 adiciona a quota nesta transação (D-01) | PR-WS-05 (P1); quota em PR-ENT-01 (P2) |
 | `updateWorkspaceSettings` | TARGET | Callable com schema estrito dos campos mutáveis e papel owner/admin. Com ela no ar, o cliente perde create/update de `workspaces/{id}` nas Rules, pela política de legado (sem caminho de escrita concorrente) | PR-WS-05 (P1) |
-| `archiveWorkspace` | TARGET | Só owner, com `auth_time` recente. Grava `status: 'archived'`, `archivedAt` e `archivedBy`; nunca apaga. O documento-pai permanece como marcador, o que impede recriar o mesmo ID sobre subcoleções órfãs (RULES-06) | WS-09 |
-| `currency` | DECISION | Campo gravável e ignorado; manter só BRL ou multimoeda | D-16 (P3) |
-| PF com membros e CNPJ | DECISION | PF pode ter membros ou compartilhamento só em PJ; CNPJ obrigatório e único em PJ | D-22 |
+| `archiveWorkspace` | TARGET | Só owner, com `email_verified` e `auth_time` nos últimos 10 minutos (D-06). Grava `status: 'archived'`, `archivedAt` e `archivedBy`; nunca apaga. O documento-pai permanece como marcador, o que impede recriar o mesmo ID sobre subcoleções órfãs (RULES-06) | WS-09 |
+| `currency` | TARGET | Somente BRL: o campo gravável e ignorado deixa de ser aceito do cliente | D-16 (tomada, §9.1 do plano) |
+| PF com membros e CNPJ | TARGET | Workspaces PF e PJ podem ter membros. CNPJ opcional; se informado, formato e dígitos verificadores são validados; não é globalmente único | D-22 (tomada, §9.1 do plano) |
 | GAP | GAP | Criação pelo cliente sem validar `type`, sem quota e com falhas de payload | PR-WS-05 (P1); quota em PR-ENT-01 (P2), conforme D-ORD-05 |
 
 ---
@@ -139,7 +139,7 @@ Pendente de **DECISION**: criar automaticamente o workspace PF ou deixar o usuá
 ### 6.3 TARGET: membership como fonte única
 
 - `workspaces/{wid}/members/{uid}` é a única fonte de papel. `status` é obrigatório e fechado: `active` ou `removed`, com `removedAt` e `removedBy`. Só o backend grava. Rules: `allow write: if false`; leitura pelo próprio uid ou por membro ativo, com `limit` (RULES-11).
-- `ownerId` continua no workspace como dado denormalizado do owner canônico, gravado só por `createWorkspace` e `transferWorkspaceOwnership`. Não é consultado para autorização. O helper `isWorkspaceOwnerByParent` e o fallback `ownerId` do backend são removidos (política de legado, §11).
+- Exatamente um owner canônico ativo por workspace (D-03). `ownerId` continua no workspace só como dado denormalizado desse owner, gravado só na criação (`bootstrapAccount`/`createWorkspace`) e por `transferWorkspaceOwnership`. Nunca é consultado para autorização nem usado como fallback. O helper `isWorkspaceOwnerByParent` e o fallback `ownerId` do backend são removidos (política de legado, §11).
 - Resolvedor único no kernel (D-ORD-02), no módulo proposto em [ARCHITECTURE.md](ARCHITECTURE.md) (`functions/src/shared/workspaceAuth.ts`, função `authorizeInTransaction(tx, workspaceId, uid, allowedRoles)`). Ele valida o formato de `workspaceId` (sem `/`, tamanho máximo), exige que o `workspaceId` do payload seja o autorizado, relê `workspaces/{id}` e `members/{uid}` dentro da transação, exige membership `active` e workspace não arquivado, aplica a matriz da operação e é usado por todos os domínios. Substitui `functions/src/creditCards/auth.ts` e `functions/src/investments/infrastructure.ts:158-212` (ENTRY-11, ENTRY-20, WS-15).
 - Um único helper nas Rules, baseado no membership ativo.
 
@@ -192,27 +192,30 @@ Achados que a matriz evidencia: um admin cria membership com papel `admin` para 
 
 ### 7.2 TARGET: ciclo de vida de workspace e membership
 
-Papéis alvo: owner, admin, member. A permanência de `viewer` depende de **DECISION D-02**. As operações financeiras seguem as matrizes declarativas de cada domínio (`writeStrategy.ts` e equivalentes), revisadas em P3–P5 conforme [FINANCIAL_DOMAIN_MODEL.md](FINANCIAL_DOMAIN_MODEL.md). O escopo do plano, e portanto quem contrata, depende de D-01 ([BILLING_ENTITLEMENTS.md](BILLING_ENTITLEMENTS.md)).
+Papéis alvo (D-02, tomada): owner, admin, member e viewer; `viewer` é estritamente somente leitura. As operações financeiras seguem as matrizes declarativas de cada domínio (`writeStrategy.ts` e equivalentes), que P1 não altera (`viewer` continua recusado onde hoje é recusado) e que são revisadas em P3–P5 conforme [FINANCIAL_DOMAIN_MODEL.md](FINANCIAL_DOMAIN_MODEL.md). O escopo do plano, e portanto quem contrata, depende de D-01, pendente e restrita a P2 ([BILLING_ENTITLEMENTS.md](BILLING_ENTITLEMENTS.md)).
 
-| Operação (callable) | owner | admin | member | Observação |
-| --- | --- | --- | --- | --- |
-| Ler dados e membros do workspace | sim | sim | sim | `viewer`: D-02 |
-| `updateWorkspaceSettings` | sim | sim | não | |
-| `archiveWorkspace` | sim | não | não | `auth_time` recente |
-| `transferWorkspaceOwnership` | sim | não | não | Destino: membro ativo; regra de owner único ou múltiplos: **DECISION D-03** |
-| `inviteWorkspaceMember` com papel `member` | sim | sim | não | Quota de membros (PR-ENT-01, P2) |
-| `inviteWorkspaceMember` com papel `admin` | sim | **DECISION D-04** | não | |
-| `revokeWorkspaceInvite` | sim | sim, nos convites que poderia criar (D-04) | não | |
-| `acceptWorkspaceInvite` | quem foi convidado, autenticado, com e-mail verificado igual ao do convite | | | §8 |
-| `changeWorkspaceMemberRole` entre `member` e `admin` | sim | **DECISION D-04** | não | Ninguém altera o próprio papel |
-| Conceder ou retirar `owner` | só por `transferWorkspaceOwnership` | não | não | D-03 |
-| `removeWorkspaceMember` de `member` | sim | sim | não | Remoção lógica |
-| `removeWorkspaceMember` de `admin` | sim | **DECISION D-04** | não | |
-| Remover o owner canônico ou o último owner | não | não | não | Invariante |
-| `leaveWorkspace` | sim, se não for o último owner | sim | sim | |
-| Ler eventos de membership | sim | sim | não | |
+Matriz de gestão (D-04, tomada): ninguém altera o próprio papel; saída voluntária só por `leaveWorkspace`, e o owner transfere a ownership antes.
 
-Invariantes alvo, verificados em teste: (1) existe sempre pelo menos um owner ativo, e exatamente um owner canônico se D-03 assim decidir; (2) ninguém altera o próprio papel nem o próprio status, exceto pela saída voluntária; (3) o papel é relido na mesma transação que grava a mudança; (4) toda mudança grava o evento de auditoria na mesma transação; (5) o membership é criado com `uid = request.auth.uid` de quem aceita, nunca com identificador fornecido pelo cliente.
+| Operação (callable) | owner | admin | member | viewer | Observação |
+| --- | --- | --- | --- | --- | --- |
+| Ler dados e membros do workspace | sim | sim | sim | sim | `viewer` só lê |
+| `updateWorkspaceSettings` | sim | sim | não | não | |
+| `archiveWorkspace` | sim | não | não | não | `auth_time` nos últimos 10 minutos (D-06) |
+| `transferWorkspaceOwnership` | sim | não | não | não | Destino: membro ativo; exatamente um owner canônico (D-03); `auth_time` nos últimos 10 minutos (D-06) |
+| `inviteWorkspaceMember` com papel `member` ou `viewer` | sim | sim | não | não | P2 adiciona a quota de membros nesta transação (D-01, PR-ENT-01) |
+| `inviteWorkspaceMember` com papel `admin` | sim | não | não | não | D-04 |
+| `revokeWorkspaceInvite` | sim | sim, nos convites que poderia criar (`member`/`viewer`) | não | não | D-04 |
+| `acceptWorkspaceInvite` | quem foi convidado, autenticado, com e-mail verificado igual ao do convite | | | | §8 |
+| `changeWorkspaceMemberRole` entre `member` e `viewer` | sim | sim | não | não | Ninguém altera o próprio papel |
+| `changeWorkspaceMemberRole` para ou de `admin` | sim | não | não | não | Admin não promove a admin nem rebaixa outro admin (D-04) |
+| Conceder ou retirar `owner` | só por `transferWorkspaceOwnership` | não | não | não | D-03 |
+| `removeWorkspaceMember` de `member` ou `viewer` | sim | sim | não | não | Remoção lógica |
+| `removeWorkspaceMember` de `admin` | sim | não | não | não | D-04 |
+| Remover, rebaixar ou alterar o owner canônico | não | não | não | não | Invariante; o owner não se remove, não sai nem se rebaixa enquanto owner (D-04) |
+| `leaveWorkspace` | não; transfere antes | sim | sim | sim | |
+| Ler eventos de membership | sim | sim | não | não | |
+
+Invariantes alvo, verificados em teste: (1) existe sempre exatamente um owner canônico ativo (D-03), e `workspace.ownerId` o espelha sem ser fonte de autorização; (2) ninguém altera o próprio papel nem o próprio status, exceto pela saída voluntária; (3) o papel é relido na mesma transação que grava a mudança; (4) toda mudança grava o evento de auditoria na mesma transação; (5) o membership é criado com `uid = request.auth.uid` de quem aceita, nunca com identificador fornecido pelo cliente.
 
 ---
 
@@ -229,9 +232,9 @@ Invariantes alvo, verificados em teste: (1) existe sempre pelo menos um owner at
 
 Coleção `workspaces/{wid}/invites/{inviteId}` com `emailNormalized`, `role`, `tokenHash`, `status` (`pending`, `accepted`, `revoked`, `expired`), `expiresAt`, `createdBy`, `createdAt`, `acceptedBy`, `acceptedAt`, `revokedBy` e `revokedAt`. Rules: leitura por owner/admin, `write: false`. O convidado não lê convites pelas Rules.
 
-1. **Emissão (`inviteWorkspaceMember`).** Owner/admin chama com `workspaceId`, `email`, `role` e `idempotencyKey`. Na transação: `authorizeInTransaction`, matriz da §7.2, verificação de que o e-mail não é membro ativo, rate limit por ator, chamada ao motor de entitlements (quota de membros, PR-ENT-01, P2), geração de token aleatório de pelo menos 128 bits por CSPRNG, persistência apenas do hash (com pepper do Secret Manager) e evento de auditoria. O token não vai para log nem para outros membros.
-2. **Entrega.** E-mail transacional com link contendo o token (D-05, E-11). A UX (link ou código, prazo, convite para e-mail ainda sem conta) é **DECISION D-05**.
-3. **Aceite (`acceptWorkspaceInvite`).** Exige autenticação, `email_verified` e e-mail do token igual a `emailNormalized`. Na transação: busca pelo hash; exige `pending` e não expirado; cria ou reativa `members/{auth.uid}` com o papel do convite; atualiza o índice do usuário; marca o convite `accepted` (uso único); revalida a quota; grava auditoria. Token inválido, expirado, revogado ou de outro e-mail recebe a mesma resposta genérica em pt-BR, para não permitir enumeração. As tentativas consomem rate limit mesmo quando falham, com o contador gravado fora do caminho que lança erro.
+1. **Emissão (`inviteWorkspaceMember`).** Owner/admin chama com `workspaceId`, `email`, `role` e `idempotencyKey`. Na transação: `authorizeInTransaction`, matriz da §7.2, verificação de que o e-mail normalizado não é membro ativo, rate limit por ator, geração de token opaco de 256 bits por CSPRNG em base64url (URL-safe), `expiresAt` em 7 dias, persistência apenas do SHA-256 do token (sem pepper) e evento de auditoria. P2 adiciona a quota nesta transação (D-01). O token não vai para log nem para outros membros. O convite pode existir antes de o destinatário ter conta; a emissão não cria membership (sem `fakeUid`).
+2. **Entrega.** Link contendo o token (D-05, tomada). O envio real por e-mail transacional depende de E-11 e não é simulado em P1: sem envio mock nem mensagem de "e-mail enviado". No Emulator, o fluxo é testado por um seam exclusivo de teste, fora do bundle e dos exports de produção.
+3. **Aceite (`acceptWorkspaceInvite`).** Exige autenticação, `email_verified` e e-mail do token igual a `emailNormalized`. Na transação: busca pelo SHA-256 do token; exige `pending` e não expirado; cria ou reativa `members/{auth.uid}` com o papel do convite; atualiza o índice do usuário; marca o convite `accepted` (uso único); grava auditoria. P2 adiciona a quota nesta transação (D-01). Token inválido, expirado, revogado ou de outro e-mail recebe a mesma resposta genérica em pt-BR, para não permitir enumeração. As tentativas consomem rate limit mesmo quando falham, com o contador gravado fora do caminho que lança erro.
 4. **Revogação (`revokeWorkspaceInvite`).** Muda o status para `revoked`, com auditoria.
 5. **Expiração.** Verificada no aceite, qualquer que seja o TTL; limpeza por TTL em `expiresAt` declarado em `firestore.indexes.json` (`fieldOverrides`).
 6. **Reconvite de removido.** Novo convite; o aceite reativa o membership com o papel do convite.
@@ -240,21 +243,21 @@ Coleção `workspaces/{wid}/invites/{inviteId}` com `emailNormalized`, `role`, `
 
 ## 9. Callables alvo de ciclo de vida
 
-Todas passam pelo wrapper do kernel (D-ORD-02): autenticação, política de `email_verified`, Zod `.strict()` com IDs sem `/`, rate limit, idempotência, mapeador de erros em pt-BR, ponto de extensão para App Check, gravador de auditoria append-only e logger estruturado com correlation ID. Todas rodam em `southamerica-east1` com opções de runtime declaradas e cobertas pelo teste de contrato (`functions/src/shared/deploymentContract.test.ts`).
+Todas passam pelo wrapper do kernel (D-ORD-02): autenticação, recusa de conta suspensa (D-P1-SUSP), política de `email_verified` e de `auth_time` (D-06, §2), Zod `.strict()` com IDs sem `/`, rate limit, idempotência, mapeador de erros em pt-BR, ponto de extensão para App Check, gravador de auditoria append-only e logger estruturado com correlation ID. Todas rodam em `southamerica-east1` com opções de runtime declaradas e cobertas pelo teste de contrato (`functions/src/shared/deploymentContract.test.ts`). Nenhuma consulta plano, quota ou entitlement em P1; P2 adiciona a quota dentro das transações de `createWorkspace`, `inviteWorkspaceMember` e `acceptWorkspaceInvite` antes de qualquer deploy remoto (D-01, D-ORD-04).
 
 | Callable | Quem | Efeitos na mesma transação | Substitui (legado) | Milestone |
 | --- | --- | --- | --- | --- |
 | `bootstrapAccount` | usuário autenticado | perfil, workspace pessoal determinístico, membership owner, índice, provisionamento, auditoria | criação automática em `WorkspaceContext`; `ensureOwnerMembership` | P1 |
-| `createWorkspace` | usuário autenticado | workspace, membership owner, índice, provisionamento, auditoria, entitlement | `createWorkspace` do cliente e Rule de create | P1 (quota em P2) |
+| `createWorkspace` | usuário autenticado com e-mail verificado | workspace, membership owner, índice, provisionamento, auditoria | `createWorkspace` do cliente e Rule de create | P1 (P2 adiciona a quota nesta transação, D-01) |
 | `updateWorkspaceSettings` | owner, admin | campos mutáveis validados, auditoria | `updateWorkspace` do cliente e Rule de update | P1 |
-| `inviteWorkspaceMember` | owner, admin (D-04) | convite com hash, auditoria, quota | `fakeUid` e `addMember` | P1 |
-| `acceptWorkspaceInvite` | convidado verificado | membership, índice, convite `accepted`, auditoria, quota | nenhum | P1 |
-| `revokeWorkspaceInvite` | owner, admin | convite `revoked`, auditoria | nenhum | P1 |
+| `inviteWorkspaceMember` | owner, admin (D-04) | convite com SHA-256 do token, auditoria | `fakeUid` e `addMember` | P1 (P2 adiciona a quota nesta transação, D-01) |
+| `acceptWorkspaceInvite` | convidado verificado | membership, índice, convite `accepted`, auditoria | nenhum | P1 (P2 adiciona a quota nesta transação, D-01) |
+| `revokeWorkspaceInvite` | owner, admin (D-04) | convite `revoked`, auditoria | nenhum | P1 |
 | `changeWorkspaceMemberRole` | owner, admin (D-04) | membership, auditoria | `updateMemberRole` e `syncUserWorkspaceMembership` | P1 |
 | `removeWorkspaceMember` | owner, admin (D-04) | `status: 'removed'`, índice, auditoria | `removeMember` (hard delete) | P1 |
-| `leaveWorkspace` | qualquer papel, exceto último owner | `status: 'removed'`, índice, auditoria | nenhum | P1 |
-| `transferWorkspaceOwnership` | owner, com `auth_time` recente | `ownerId`, papéis de origem e destino, auditoria | comentário em `firestore.rules:996-999` | P1 (D-03) |
-| `archiveWorkspace` | owner, com `auth_time` recente | `status: 'archived'`, auditoria | nenhum | P1 |
+| `leaveWorkspace` | admin, member, viewer; o owner transfere antes (D-04) | `status: 'removed'`, índice, auditoria | nenhum | P1 |
+| `transferWorkspaceOwnership` | owner, com `auth_time` nos últimos 10 minutos | `ownerId`, papéis de origem e destino, auditoria | comentário em `firestore.rules:996-999` | P1 (D-03) |
+| `archiveWorkspace` | owner, com `auth_time` nos últimos 10 minutos | `status: 'archived'`, auditoria | nenhum | P1 |
 | `requestAccountDeletion`, `exportAccountData` | o próprio titular | §10.2 | nenhum | P8 |
 | Suspensão de conta | operador de plataforma | §10.1 | nenhum | mecanismo em P1; superfície administrativa em P7 |
 
@@ -267,7 +270,7 @@ Eventos de membership vão para `workspaces/{wid}/membership_events` (nome propo
 ### 10.1 Suspensão e revogação
 
 - **CURRENT:** não há `revokeRefreshTokens`, `disabled` nem status de conta em `functions/src` (AUTH-09). Uma conta desativada pelo console mantém o ID token vigente por até cerca de uma hora em Rules e callables.
-- **TARGET:** `users/{uid}.status` server-owned. A suspensão faz `updateUser({disabled: true})`, `revokeRefreshTokens` e grava `status: 'suspended'` com auditoria. O wrapper recusa conta suspensa e ID token emitido antes de `tokensValidAfterTime`. As Rules continuam aceitando o ID token vigente até expirar. Se D-06 não aceitar essa janela residual, as Rules passam a consultar o status da conta. Pelo plano (D-ORD-03), o mecanismo entra em P1. A operação por um administrador de plataforma entra em P7, em PR-ADMIN-01 (P7), que consolida AUTH-09.
+- **TARGET (D-P1-SUSP, tomada):** `users/{uid}.status` server-owned (`active` | `suspended`). O mecanismo interno via Admin SDK grava `status: 'suspended'`, faz `updateUser({disabled: true})` e `revokeRefreshTokens` e prepara o registro de auditoria para P7. O wrapper recusa conta suspensa em toda callable e ID token emitido antes de `tokensValidAfterTime`. As Rules continuam aceitando o ID token vigente até expirar; D-P1-SUSP define a recusa no backend e não inclui consulta ao status da conta nas Rules. Pelo plano (D-ORD-03), o mecanismo entra em P1. A operação por um administrador de plataforma entra em P7, em PR-ADMIN-01 (P7), que consolida AUTH-09.
 
 ### 10.2 Exclusão e exportação de conta (P8)
 
@@ -334,11 +337,11 @@ MEDIUM/LOW de origem tratados neste domínio:
 
 ### 13.2 TARGET: exigidos para fechar P1
 
-1. Suítes de Rules no Emulator com tenants A e B, cobrindo owner, admin, member, `viewer` (se mantido), removido, não membro e não autenticado: negação de escrita do cliente em `members`, `invites`, `membership_events`, índice do usuário e create/update de `workspaces`; leitura cross-tenant negada nos dois sentidos.
-2. Integração das callables da §9: matriz permitida e negada; `workspaceId` com `/` rejeitado; papel forjado no payload ignorado.
+1. Suítes de Rules no Emulator com tenants A e B, cobrindo owner, admin, member, `viewer` (somente leitura, D-02), removido, não membro e não autenticado: negação de escrita do cliente em `members`, `invites`, `membership_events`, índice do usuário e create/update de `workspaces`; leitura cross-tenant negada nos dois sentidos.
+2. Integração das callables da §9: matriz permitida e negada (D-04); `workspaceId` com `/` rejeitado; papel forjado no payload ignorado; `email_verified` e `auth_time` conforme D-06; conta suspensa recusada.
 3. `bootstrapAccount`: replay idempotente; duas chamadas concorrentes produzem um único workspace pessoal; falha no meio não deixa estado parcial.
-4. Convites: reuso de token, token expirado, revogado, e-mail divergente, e-mail não verificado, aceite duplo concorrente, rate limit consumido em tentativa inválida, quota no limite (quando P2 entregar o motor).
-5. Invariantes: último owner não sai nem é removido; cenário de trancamento de PR-WS-04 negado; duas trocas de papel concorrentes; membro removido durante a chamada é recusado.
+4. Convites: reuso de token, token expirado, revogado, e-mail divergente, e-mail não verificado, aceite duplo concorrente, rate limit consumido em tentativa inválida, resposta genérica idêntica nos casos de falha, só o SHA-256 persistido e token ausente dos logs. Quota no limite é teste de P2 (D-01).
+5. Invariantes: o owner não sai, não é removido nem é rebaixado; admin não cria, promove, rebaixa nem remove admin; cenário de trancamento de PR-WS-04 negado; duas trocas de papel concorrentes; membro removido durante a chamada é recusado.
 6. Toda mutação grava exatamente um evento de auditoria na mesma transação. O teste verifica o estado final e a auditoria, não só o código de resposta.
 7. E2E com duas contas no Emulator: convite, aceite, troca de papel, remoção e perda de acesso; logout seguido de login com outro usuário sem dados residuais.
 8. As suítes de integração falham, em vez de pular, quando o CI roda sem Emulator (FIRE-13).
@@ -367,21 +370,22 @@ Conforme a política de legado e §7 do [plano mestre](PRODUCTION_READINESS_PLAN
 
 | ID | Classificação | Tema | Efeito neste documento |
 | --- | --- | --- | --- |
-| D-01 | DECISION | Plano por usuário ou por workspace | Quem contrata; se convites pendentes contam na quota de membros |
-| D-02 | DECISION | Manter `viewer` | Coluna `viewer` da §7.2 e enum de papel |
-| D-03 | DECISION | Owner único ou múltiplos; transferência; último owner | `transferWorkspaceOwnership` e invariantes |
-| D-04 | DECISION | Poderes do admin sobre outros admins | Linhas marcadas na §7.2 |
-| D-05 | DECISION | UX do convite, expiração, convite sem conta, provedor de e-mail | §8.2 |
-| D-06 | DECISION | Provedores, MFA, política de sessão | §2 e §10.1 |
+| D-01 | DECISION (pendente; bloqueia só P2) | Plano por usuário ou por workspace | Quem contrata; se convites pendentes contam na quota de membros. P1 não aplica quota; P2 a adiciona nas transações de `createWorkspace`, `inviteWorkspaceMember` e `acceptWorkspaceInvite` |
+| D-02 | DECISION (tomada, §9.1 do plano) | `viewer` mantido, somente leitura | Coluna `viewer` da §7.2 e enum de papel |
+| D-03 | DECISION (tomada, §9.1 do plano) | Exatamente um owner canônico ativo; `ownerId` só desnormalizado | `transferWorkspaceOwnership`, §6.3 e invariantes |
+| D-04 | DECISION (tomada, §9.1 do plano) | Poderes de owner e admin na gestão de membros | Matriz da §7.2 |
+| D-05 | DECISION (tomada, §9.1 do plano) | Convite por link: token de 256 bits, 7 dias, uso único, SHA-256 sem pepper; envio real depende de E-11 | §8.2 |
+| D-06 | DECISION (tomada, §9.1 do plano) | Só Google; `email_verified` e `auth_time` por callable; sem MFA para usuários comuns | §2 e §9 |
+| D-P1-SUSP | DECISION (tomada, §9.1 do plano) | Suspensão server-owned com revogação de sessão | §10.1 |
 | D-07 | DECISION | Exclusão de conta: destino de workspaces, retenção × eliminação, anonimização | §10.2 |
 | D-10 | DECISION | Painel administrativo | §11 |
-| D-22 | DECISION | PF com membros; CNPJ em PJ | §5 e §8 |
+| D-16 | DECISION (tomada, §9.1 do plano) | Somente BRL | §5 |
+| D-22 | DECISION (tomada, §9.1 do plano) | PF e PJ com membros; CNPJ opcional, validado e não único | §5 |
 
 | ID | Classificação | Item deste domínio | Estado |
 | --- | --- | --- | --- |
-| E-03 | EXTERNAL CONFIGURATION REQUIRED | Provedores habilitados por ambiente (desabilitar e-mail/senha e anônimo se não usados); domínios autorizados sem `localhost` em PROD; proteção contra enumeração de e-mail; templates pt-BR; tela de consentimento OAuth; Identity Platform se houver blocking functions ou MFA; MFA para administradores | NÃO VERIFICADO |
+| E-03 | EXTERNAL CONFIGURATION REQUIRED | Só Google habilitado por ambiente (D-06; e-mail/senha e anônimo desabilitados); domínios autorizados sem `localhost` em PROD; proteção contra enumeração de e-mail; templates pt-BR; tela de consentimento OAuth; Identity Platform se houver blocking functions ou MFA; MFA para administradores | NÃO VERIFICADO |
 | E-11 | EXTERNAL CONFIGURATION REQUIRED | E-mail transacional para convites, com SPF/DKIM/DMARC no domínio do produto | NÃO VERIFICADO |
-| E-05 | EXTERNAL CONFIGURATION REQUIRED | Segredo (pepper) do hash do token de convite no Secret Manager de cada ambiente | NÃO VERIFICADO |
 | E-02 | EXTERNAL CONFIGURATION REQUIRED | App Check com enforcement nas callables de membership | NÃO VERIFICADO |
 | E-04 | EXTERNAL CONFIGURATION REQUIRED | MFA dos operadores humanos que concedem `platformAdmin` | NÃO VERIFICADO |
 | E-09 | EXTERNAL CONFIGURATION REQUIRED | Termos e política cobrindo o compartilhamento de dados financeiros com membros convidados e o papel de controlador em workspaces PJ | NÃO VERIFICADO |

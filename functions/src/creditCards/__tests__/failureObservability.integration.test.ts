@@ -1,9 +1,21 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import {HttpsError} from "firebase-functions/v2/https";
+
 import {
-  CreditCardApplicationError,
-} from "../errors";
+  ApplicationError,
+} from "../../shared/errors";
+
+import {
+  callableRequest,
+  seedActiveAccount,
+} from "../../shared/testSupport/kernelTestSupport";
+
+import {
+  createCreditCardPurchase,
+  registerCreditCardInvoicePayment,
+} from "../callables";
 
 import {
   recordCreditCardCallableFailureSafely,
@@ -14,6 +26,7 @@ import {idempotencyKeyDigest} from "../../shared/observabilityKeys";
 import {
   getIntegrationFirestore,
   resetCreditCardIntegrationWorkspace,
+  seedCreditCardIntegrationMember,
   seedCreditCardIntegrationWorkspace,
 } from "../testSupport/emulatorFirestore";
 
@@ -28,6 +41,13 @@ const VICTIM_CARD_ID = "card-credit-card-failure-cross-tenant";
 const BOUNDED_WORKSPACE_ID = "workspace-credit-card-failure-bounded-events";
 const BOUNDED_OWNER_ID = "user-credit-card-failure-bounded-owner";
 const BOUNDED_CARD_ID = "card-credit-card-failure-bounded";
+
+const CALLABLE_WORKSPACE_ID = "workspace-credit-card-failure-callable";
+const CALLABLE_OWNER_ID = "user-credit-card-failure-callable-owner";
+const CALLABLE_MEMBER_ID = "user-credit-card-failure-callable-member";
+const CALLABLE_VIEWER_ID = "user-credit-card-failure-callable-viewer";
+const CALLABLE_OUTSIDER_ID = "user-credit-card-failure-callable-outsider";
+const CALLABLE_CARD_ID = "card-credit-card-failure-callable";
 
 type FirestoreRecord = Record<string, unknown> & {id: string};
 
@@ -45,9 +65,6 @@ const listCollectionRecords = async (
 
 test(
   "falha de operação crítica deve gerar métrica, evento e notificação de processamento",
-  {
-    skip: !process.env.FIRESTORE_EMULATOR_HOST,
-  },
   async () => {
     await resetCreditCardIntegrationWorkspace(TEST_WORKSPACE_ID);
 
@@ -68,7 +85,7 @@ test(
         correlationId: "failure-observability-payment",
       },
       TEST_OWNER_ID,
-      new CreditCardApplicationError(
+      new ApplicationError(
         "domain_precondition_failed",
         "Fatura não aceita pagamento neste estado.",
         {
@@ -141,9 +158,6 @@ test(
 );
 test(
   "chamador não autenticado com workspaceId de vítima não grava documento algum",
-  {
-    skip: !process.env.FIRESTORE_EMULATOR_HOST,
-  },
   async () => {
     // INV-P0-001. `recordCreditCardCallableFailure` roda no `catch` de todas
     // as callables de cartão, e esse `catch` também captura
@@ -192,7 +206,7 @@ test(
         },
         // Sem token: nem sequer há `uid`.
         undefined,
-        new CreditCardApplicationError(
+        new ApplicationError(
           "unauthenticated",
           "Usuário não autenticado."
         ),
@@ -222,9 +236,6 @@ test(
 
 test(
   "ID do evento de falha não cresce com o correlationId do chamador",
-  {
-    skip: !process.env.FIRESTORE_EMULATOR_HOST,
-  },
   async () => {
     // INV-P2-039: o ID vinha do `correlationId`, que muda a cada tentativa —
     // cada retry criava um documento novo em `financial_events`, sem teto.
@@ -248,7 +259,7 @@ test(
           correlationId: `retry-${attempt}`,
         },
         BOUNDED_OWNER_ID,
-        new CreditCardApplicationError(
+        new ApplicationError(
           "domain_precondition_failed",
           "Fatura não aceita pagamento neste estado."
         ),
@@ -271,5 +282,220 @@ test(
     );
 
     await resetCreditCardIntegrationWorkspace(BOUNDED_WORKSPACE_ID);
+  }
+);
+
+const callablePurchasePayload = (
+  workspaceId: string,
+  cardId: string,
+  idempotencyKey: string,
+  totalAmount: number,
+) => ({
+  workspaceId,
+  cardId,
+  description: "Compra acima do limite",
+  categorySnapshot: {label: "Testes"},
+  purchaseDate: "2026-04-05",
+  totalAmount,
+  installmentsCount: 1,
+  amountType: "total",
+  source: "manual",
+  idempotencyKey,
+  correlationId: `${idempotencyKey}-correlation`,
+});
+
+test(
+  "callable: falha de domínio de chamador autorizado grava evento de " +
+    "domínio, métrica e evento de falha no workspace dele",
+  async () => {
+    await resetCreditCardIntegrationWorkspace(CALLABLE_WORKSPACE_ID);
+
+    await seedCreditCardIntegrationWorkspace({
+      workspaceId: CALLABLE_WORKSPACE_ID,
+      ownerId: CALLABLE_OWNER_ID,
+      cardId: CALLABLE_CARD_ID,
+    });
+
+    await seedCreditCardIntegrationMember({
+      workspaceId: CALLABLE_WORKSPACE_ID,
+      userId: CALLABLE_MEMBER_ID,
+      role: "member",
+    });
+
+    await assert.rejects(
+      () => createCreditCardPurchase.run(callableRequest(
+        CALLABLE_MEMBER_ID,
+        callablePurchasePayload(
+          CALLABLE_WORKSPACE_ID,
+          CALLABLE_CARD_ID,
+          "failure-callable-limit-exceeded-001",
+          999999,
+        ),
+      )),
+      (error: unknown) =>
+        error instanceof HttpsError &&
+        error.code === "failed-precondition" &&
+        error.message === "Limite disponível insuficiente para esta compra.",
+    );
+
+    await assert.rejects(
+      () => registerCreditCardInvoicePayment.run(callableRequest(
+        CALLABLE_OWNER_ID,
+        {
+          workspaceId: CALLABLE_WORKSPACE_ID,
+          cardId: CALLABLE_CARD_ID,
+          invoiceId: `${CALLABLE_CARD_ID}_2030-01`,
+          paymentDate: "2030-01-20",
+          amount: 100,
+          paymentMethod: "external",
+          idempotencyKey: "failure-callable-missing-invoice-001",
+          correlationId: "failure-callable-missing-invoice",
+        },
+      )),
+      (error: unknown) =>
+        error instanceof HttpsError && error.code === "not-found",
+    );
+
+    const events = await listCollectionRecords(
+      `workspaces/${CALLABLE_WORKSPACE_ID}/financial_events`
+    );
+
+    const limitExceededEvent = events.find(
+      (event) => event.eventType === "purchase_limit_exceeded"
+    );
+
+    assert.ok(limitExceededEvent);
+    assert.equal(limitExceededEvent.actorId, CALLABLE_MEMBER_ID);
+    assert.equal(limitExceededEvent.cardId, CALLABLE_CARD_ID);
+
+    const failureEvents = events.filter(
+      (event) => event.eventType === "processing_failure"
+    );
+
+    assert.deepEqual(
+      failureEvents.map((event) => event.actorId).sort(),
+      [CALLABLE_MEMBER_ID, CALLABLE_OWNER_ID].sort(),
+    );
+
+    const metrics = await listCollectionRecords(
+      `workspaces/${CALLABLE_WORKSPACE_ID}/credit_card_operational_metrics`
+    );
+
+    const purchaseFailureMetric = metrics.find(
+      (metric) =>
+        metric.operation === "purchase_created" &&
+        metric.status === "failure"
+    );
+    const paymentFailureMetric = metrics.find(
+      (metric) =>
+        metric.operation === "invoice_payment_posted" &&
+        metric.status === "failure"
+    );
+
+    assert.equal(purchaseFailureMetric?.lastActorId, CALLABLE_MEMBER_ID);
+    assert.equal(paymentFailureMetric?.lastActorId, CALLABLE_OWNER_ID);
+
+    // A falha não consumiu limite nem criou compra.
+    const purchases = await listCollectionRecords(
+      `workspaces/${CALLABLE_WORKSPACE_ID}/credit_card_purchases`
+    );
+    const limitSnapshot = await getIntegrationFirestore()
+      .doc(
+        `workspaces/${CALLABLE_WORKSPACE_ID}/card_limit_snapshots/` +
+          CALLABLE_CARD_ID
+      )
+      .get();
+
+    assert.equal(purchases.length, 0);
+    assert.equal(limitSnapshot.get("limitUsed"), 0);
+    assert.equal(limitSnapshot.get("limitAvailable"), 5000);
+
+    await resetCreditCardIntegrationWorkspace(CALLABLE_WORKSPACE_ID);
+  }
+);
+
+test(
+  "callable: chamada sem token, de não membro ou de papel negado não grava " +
+    "nada no workspace alvo",
+  async () => {
+    // INV-P0-001 de ponta a ponta: o `workspaceId` que o kernel entrega ao
+    // `onFailure` é o do payload, ainda não autorizado. Nenhuma dessas falhas
+    // pode virar métrica, evento ou notificação no workspace alvo.
+    await resetCreditCardIntegrationWorkspace(CALLABLE_WORKSPACE_ID);
+
+    await seedCreditCardIntegrationWorkspace({
+      workspaceId: CALLABLE_WORKSPACE_ID,
+      ownerId: CALLABLE_OWNER_ID,
+      cardId: CALLABLE_CARD_ID,
+    });
+
+    await seedCreditCardIntegrationMember({
+      workspaceId: CALLABLE_WORKSPACE_ID,
+      userId: CALLABLE_MEMBER_ID,
+      role: "member",
+    });
+
+    await seedCreditCardIntegrationMember({
+      workspaceId: CALLABLE_WORKSPACE_ID,
+      userId: CALLABLE_VIEWER_ID,
+      role: "viewer",
+    });
+
+    await seedActiveAccount(CALLABLE_OUTSIDER_ID);
+
+    const attackPayload = callablePurchasePayload(
+      CALLABLE_WORKSPACE_ID,
+      CALLABLE_CARD_ID,
+      "failure-callable-attack-001",
+      99999999,
+    );
+
+    await assert.rejects(
+      () => createCreditCardPurchase.run(callableRequest(null, attackPayload)),
+      (error: unknown) =>
+        error instanceof HttpsError && error.code === "unauthenticated",
+    );
+
+    for (const uid of [CALLABLE_OUTSIDER_ID, CALLABLE_VIEWER_ID]) {
+      await assert.rejects(
+        () => createCreditCardPurchase.run(callableRequest(uid, attackPayload)),
+        (error: unknown) =>
+          error instanceof HttpsError && error.code === "permission-denied",
+      );
+    }
+
+    await assert.rejects(
+      () => registerCreditCardInvoicePayment.run(callableRequest(
+        CALLABLE_MEMBER_ID,
+        {
+          workspaceId: CALLABLE_WORKSPACE_ID,
+          cardId: CALLABLE_CARD_ID,
+          invoiceId: `${CALLABLE_CARD_ID}_2026-04`,
+          paymentDate: "2026-04-20",
+          amount: 99999999,
+          paymentMethod: "external",
+          idempotencyKey: "failure-callable-attack-payment-001",
+          correlationId: "failure-callable-attack-payment",
+        },
+      )),
+      (error: unknown) =>
+        error instanceof HttpsError && error.code === "permission-denied",
+    );
+
+    for (const collectionName of [
+      "credit_card_operational_metrics",
+      "financial_events",
+      "notifications",
+      "credit_card_purchases",
+      "credit_card_idempotency_keys",
+    ]) {
+      const records = await listCollectionRecords(
+        `workspaces/${CALLABLE_WORKSPACE_ID}/${collectionName}`
+      );
+
+      assert.equal(records.length, 0, collectionName);
+    }
+
+    await resetCreditCardIntegrationWorkspace(CALLABLE_WORKSPACE_ID);
   }
 );

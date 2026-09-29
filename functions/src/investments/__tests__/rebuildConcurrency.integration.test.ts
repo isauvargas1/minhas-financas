@@ -3,7 +3,12 @@ import test from "node:test";
 import * as admin from "firebase-admin";
 import {Timestamp} from "firebase-admin/firestore";
 
-import type {WorkspaceAuthorizationContext} from "../../creditCards/auth";
+import type {WorkspaceActor} from "../../shared/workspaceAuth";
+import {
+  requireFirestoreEmulator,
+  seedActiveAccount,
+  seedWorkspace as seedKernelWorkspace,
+} from "../../shared/testSupport/kernelTestSupport";
 import {
   executeCreateInvestmentContribution,
   executeCreateInvestmentRedemptionV2,
@@ -45,11 +50,6 @@ import {
  * exatamente isso que a cerca de versão impede.
  */
 
-if (!process.env.FIRESTORE_EMULATOR_HOST) {
-  throw new Error("FIRESTORE_EMULATOR_HOST é obrigatório.");
-}
-
-const PROJECT = process.env.GCLOUD_PROJECT ?? "minhas-financas-local";
 const WORKSPACE = "rebuild-concurrency-workspace";
 const OWNER = "rebuild-concurrency-owner";
 const ACCOUNT = "rebuild-concurrency-account";
@@ -58,12 +58,11 @@ const ASSET_B = "rebuild-concurrency-asset-b";
 const GOAL = "rebuild-concurrency-goal";
 const MAX_PAGES = 60;
 
-const db = (): admin.firestore.Firestore => {
-  if (!admin.apps.length) admin.initializeApp({projectId: PROJECT});
-  return admin.firestore();
-};
+// Sem o Emulator a suíte falha ao carregar, em vez de pular.
+const firestore = requireFirestoreEmulator();
+const db = (): admin.firestore.Firestore => firestore;
 
-const auth = (): WorkspaceAuthorizationContext => ({
+const auth = (): WorkspaceActor => ({
   workspaceId: WORKSPACE,
   uid: OWNER,
   role: "owner",
@@ -73,12 +72,8 @@ const at = (iso: string) => Timestamp.fromDate(new Date(iso));
 
 const seedWorkspace = async (): Promise<void> => {
   await db().recursiveDelete(db().doc(`workspaces/${WORKSPACE}`));
-  await db().doc(`workspaces/${WORKSPACE}`).set({
-    ownerId: OWNER, type: "PF", currency: "BRL", name: WORKSPACE,
-  });
-  await db().doc(`workspaces/${WORKSPACE}/members/${OWNER}`).set({
-    uid: OWNER, role: "owner", status: "active",
-  });
+  await seedActiveAccount(OWNER);
+  await seedKernelWorkspace({workspaceId: WORKSPACE, ownerId: OWNER});
   const now = at("2026-08-01T00:00:00.000Z");
   await db().doc(`workspaces/${WORKSPACE}/investment_accounts/${ACCOUNT}`).set({
     id: ACCOUNT, workspaceId: WORKSPACE, profileType: "PF",

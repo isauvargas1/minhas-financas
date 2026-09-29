@@ -2,7 +2,11 @@ import {onSchedule} from "firebase-functions/v2/scheduler";
 import * as admin from "firebase-admin";
 import {FieldPath, Timestamp} from "firebase-admin/firestore";
 
-import {saoPauloDayKey, saoPauloDayStart} from "../shared/dateKeys";
+import {
+  saoPauloDayKey,
+  saoPauloDayStart,
+  utcAnchoredDayKey,
+} from "../shared/dateKeys";
 import {SCHEDULED_FUNCTION_OPTIONS} from "../shared/runtimeOptions";
 
 /**
@@ -106,7 +110,7 @@ const parseDayKey = (dayKey: string): [number, number, number] => {
   return [year, month, day];
 };
 
-const toDayKey = (date: Date): string => date.toISOString().slice(0, 10);
+const toDayKey = utcAnchoredDayKey;
 
 /**
  * Avança uma data `YYYY-MM-DD` por um período de cobrança.

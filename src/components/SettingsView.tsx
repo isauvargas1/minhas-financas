@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import type { EntityItem, Workspace } from '../types.ts';
+import type { EntityItem } from '../types.ts';
 import {
     PlusIcon,
     EditIcon,
@@ -45,7 +45,8 @@ import {
 import PersonalizationView from './PersonalizationView.tsx';
 import MembersManagerModal from './MembersManagerModal.tsx';
 import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
-import { useUpdateWorkspace } from '../modules/workspaces/hooks.ts';
+import { useUpdateWorkspaceSettings } from '../modules/workspaces/hooks.ts';
+import { workspaceErrorMessage } from '../modules/workspaces/errors.ts';
 import { useSettingsCatalogScreen } from '../modules/settings-catalog/useSettingsCatalogScreen.ts';
 import type { SettingsCatalogItem, SettingsCatalogStatus, SettingsCatalogTransactionSubtype } from '../modules/settings-catalog/types.ts';
 import { createPortal } from 'react-dom';
@@ -189,12 +190,14 @@ const renderInPortal = (children: React.ReactNode) => {
 };
 
 const SettingsView: React.FC<SettingsViewProps> = () => {
-    const { activeWorkspace, reloadWorkspaces } = useWorkspace();
-    const updateWorkspaceMutation = useUpdateWorkspace();
+    const { activeWorkspace, activeWorkspaceRole, reloadWorkspaces } = useWorkspace();
+    const updateWorkspaceMutation = useUpdateWorkspaceSettings(activeWorkspace.id);
     const isPJ = activeWorkspace.type === 'PJ';
 
     const [isMembersModalOpen, setIsMembersModalOpen] = useState(false);
-    const canManageMembers = ['owner', 'admin'].includes(activeWorkspace.myRole || '');
+    // Papel lido do membership ativo; o backend aplica a mesma regra.
+    const canManageMembers = activeWorkspaceRole === 'owner' || activeWorkspaceRole === 'admin';
+    const [workspaceSaveError, setWorkspaceSaveError] = useState<string | null>(null);
 
     const [viewMode, setViewMode] = useState<ViewMode>('main');
     const [catalogViewMode, setCatalogViewMode] = useState<CatalogViewMode>('cards');
@@ -438,36 +441,24 @@ const sortedItems = useMemo(() => {
         setItemToDelete(null);
     };
 
-    const buildWorkspacePayload = (): Workspace => {
-    const currentWorkspace = activeWorkspace as Partial<Workspace> & {
-        id: string;
-        type: Workspace['type'];
-        name: string;
-    };
-
-    return {
-        id: currentWorkspace.id,
-        userId: currentWorkspace.userId ?? currentWorkspace.ownerId ?? '',
-        ownerId: currentWorkspace.ownerId ?? currentWorkspace.userId ?? '',
-        type: currentWorkspace.type,
-        name: wsName,
-        slug: currentWorkspace.slug,
-        cnpj: wsCnpj || null,
-        logoUrl: currentWorkspace.logoUrl,
-        themeColor: wsColor,
-        currency: currentWorkspace.currency,
-        pjAccentColor: currentWorkspace.pjAccentColor,
-        alertPreferences: wsAlerts,
-        createdAt: currentWorkspace.createdAt ?? new Date().toISOString(),
-        updatedAt: currentWorkspace.updatedAt ?? new Date().toISOString(),
-    };
-};
-
+    // Só os campos editáveis vão ao backend (allowlist de
+    // `updateWorkspaceSettings`); dono, tipo, status e cobrança não são
+    // alteráveis por aqui.
     const handleSaveWorkspace = async () => {
-    const updatedWs = buildWorkspacePayload();
-    await updateWorkspaceMutation.mutateAsync(updatedWs);
-    await reloadWorkspaces();
-    setViewMode('main');
+    setWorkspaceSaveError(null);
+    try {
+        await updateWorkspaceMutation.mutateAsync({
+            name: wsName,
+            cnpj: wsCnpj.trim() || null,
+            themeColor: wsColor,
+            alertPreferences: wsAlerts,
+        });
+        await reloadWorkspaces();
+        setViewMode('main');
+    } catch (error) {
+        console.error(error);
+        setWorkspaceSaveError(workspaceErrorMessage(error, 'Não foi possível salvar as alterações. Tente novamente.'));
+    }
 };
 
     if (viewMode === 'personalizacao') {
@@ -617,10 +608,14 @@ const sortedItems = useMemo(() => {
 
                         <button
                             onClick={handleSaveWorkspace}
-                            className="w-full py-3 bg-primary hover:bg-primary/90 text-white rounded-xl font-bold shadow-md transition-all active:scale-95"
+                            disabled={!canManageMembers || updateWorkspaceMutation.isPending}
+                            className="w-full py-3 bg-primary hover:bg-primary/90 text-white rounded-xl font-bold shadow-md transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             Salvar Alterações
                         </button>
+                        {workspaceSaveError && (
+                            <p className="text-sm text-red-600 text-center" role="alert">{workspaceSaveError}</p>
+                        )}
                     </div>
                 </div>
             </div>

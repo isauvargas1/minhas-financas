@@ -3,7 +3,7 @@ import test from "node:test";
 import * as admin from "firebase-admin";
 import {Timestamp} from "firebase-admin/firestore";
 
-import {CreditCardApplicationError} from "../../creditCards/errors";
+import {ApplicationError} from "../errors";
 import {reserveRateLimit, rateLimitDocumentId} from "../rateLimit";
 
 if (!process.env.FIRESTORE_EMULATOR_HOST) {
@@ -58,7 +58,7 @@ test("consome o limite e nega ao atingir o teto", async () => {
   await assert.rejects(
     () => consume(),
     (error: unknown) =>
-      error instanceof CreditCardApplicationError &&
+      error instanceof ApplicationError &&
       error.code === "domain_precondition_failed" &&
       /muitas solicitações/i.test(error.message),
   );

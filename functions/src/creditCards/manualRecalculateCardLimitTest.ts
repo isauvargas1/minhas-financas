@@ -64,17 +64,23 @@ const seedTestData = async (): Promise<{
       id: workspaceId,
       name: "Workspace Teste Recálculo de Limite",
       ownerId: uid,
+      type: "PF",
+      status: "active",
       createdAt: now,
       updatedAt: now,
     },
     {merge: true}
   );
 
+  // P1: autorização exige perfil ativo e membership ativo.
+  await db.doc(`users/${uid}`).set({uid, status: "active"}, {merge: true});
+
   await workspaceRef.collection("members").doc(uid).set(
     {
       uid,
       email: "teste-recalculo-limite@example.com",
       role: "owner",
+      status: "active",
       createdAt: now,
       updatedAt: now,
     },
@@ -168,7 +174,7 @@ const createPurchase = async (
 
   const context = {
     payload,
-    auth: buildAuth(workspaceId, uid),
+    actor: buildAuth(workspaceId, uid),
     plan: getCreditCardBackendWritePlan("createCreditCardPurchase"),
   };
 
@@ -196,7 +202,7 @@ const registerPayment = async (
 
   const context = {
     payload,
-    auth: buildAuth(workspaceId, uid),
+    actor: buildAuth(workspaceId, uid),
     plan: getCreditCardBackendWritePlan(
       "registerCreditCardInvoicePayment"
     ),
@@ -227,7 +233,7 @@ const reversePayment = async (
 
   const context = {
     payload,
-    auth: buildAuth(workspaceId, uid),
+    actor: buildAuth(workspaceId, uid),
     plan: getCreditCardBackendWritePlan(
       "reverseCreditCardInvoicePayment"
     ),
@@ -275,7 +281,7 @@ const recalculateLimit = async (
 
   const context = {
     payload,
-    auth: buildAuth(workspaceId, uid),
+    actor: buildAuth(workspaceId, uid),
     plan: getCreditCardBackendWritePlan("recalculateCardLimit"),
   };
 

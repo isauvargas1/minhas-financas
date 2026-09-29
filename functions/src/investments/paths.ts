@@ -57,9 +57,3 @@ export const investmentGoalDoc = (
   goalId: string,
 ): admin.firestore.DocumentReference =>
   investmentWorkspaceRef(workspaceId).collection("goals").doc(goalId);
-
-export const investmentMemberDoc = (
-  workspaceId: string,
-  userId: string,
-): admin.firestore.DocumentReference =>
-  investmentWorkspaceRef(workspaceId).collection("members").doc(userId);

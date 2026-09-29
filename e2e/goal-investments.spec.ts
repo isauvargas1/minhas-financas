@@ -1,6 +1,8 @@
 import { expect, test, type Page } from '@playwright/test';
 import { createRequire } from 'node:module';
 
+import { seedOwnedWorkspace } from './support/workspaceSeed';
+
 /**
  * Integração final entre Metas e Investimentos (Etapa 3, §2, §11 e §12).
  *
@@ -70,16 +72,10 @@ test.beforeEach(async () => {
   const now = firebaseAdmin.firestore.Timestamp.now();
   const stamps = { createdAt: now, updatedAt: now };
 
+  await seedOwnedWorkspace({
+    uid: UID, email: EMAIL, workspaceId: WORKSPACE, name: 'Metas e Investimentos', type: 'PF',
+  });
   await Promise.all([
-    db.doc(`workspaces/${WORKSPACE}`).set({
-      ownerId: UID, name: 'Metas e Investimentos', type: 'PF', ...stamps,
-    }),
-    db.doc(`workspaces/${WORKSPACE}/members/${UID}`).set({
-      uid: UID, role: 'owner', status: 'active',
-    }),
-    db.doc(`users/${UID}/workspaces/${WORKSPACE}`).set({
-      workspaceId: WORKSPACE, role: 'owner',
-    }),
     db.doc(`workspaces/${WORKSPACE}/goals/${GOAL}`).set({
       id: GOAL,
       workspaceId: WORKSPACE,

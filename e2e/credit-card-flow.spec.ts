@@ -1,6 +1,8 @@
 import { expect, Page, test } from '@playwright/test';
 import { createRequire } from 'node:module';
 
+import { seedAccountProfile, seedMembership, seedWorkspaceDocument } from './support/workspaceSeed';
+
 const require = createRequire(import.meta.url);
 const admin = require('../functions/node_modules/firebase-admin') as typeof import('../functions/node_modules/firebase-admin');
 
@@ -96,26 +98,19 @@ const createAuthUser = async ({ uid, email }: Pick<SeedUserInput, 'uid' | 'email
   });
 };
 
-const seedWorkspaceMembership = async ({ uid, email, role }: SeedUserInput): Promise<void> => {
-  const db = getDb();
-  const now = admin.firestore.FieldValue.serverTimestamp();
+const WORKSPACE_NAME = 'Workspace E2E Cartão';
 
-  await Promise.all([
-    db.doc(`workspaces/${WORKSPACE_ID}/members/${uid}`).set({
-      uid,
-      email,
-      displayName: email,
-      role,
-      status: 'active',
-      joinedAt: now,
-    }),
-    db.doc(`users/${uid}/workspaces/${WORKSPACE_ID}`).set({
-      workspaceId: WORKSPACE_ID,
-      role,
-      createdAt: now,
-      updatedAt: now,
-    }),
-  ]);
+/** Perfil ativo, membership ativo e índice no formato do backend (P1). */
+const seedWorkspaceMembership = async ({ uid, email, role }: SeedUserInput): Promise<void> => {
+  await seedAccountProfile({ uid, email });
+  await seedMembership({
+    workspaceId: WORKSPACE_ID,
+    uid,
+    email,
+    role,
+    name: WORKSPACE_NAME,
+    type: 'PF',
+  });
 };
 
 const normalizeSettingsCatalogNameForE2E = (value: string): string =>
@@ -185,18 +180,12 @@ const seedSettingsCatalog = async (): Promise<void> => {
 };
 
 const seedWorkspace = async (): Promise<void> => {
-  const db = getDb();
-  const now = admin.firestore.FieldValue.serverTimestamp();
-
-  await db.doc(`workspaces/${WORKSPACE_ID}`).set({
-    name: 'Workspace E2E Cartão',
-    type: 'PF',
-    userId: OWNER_UID,
+  await seedWorkspaceDocument({
+    workspaceId: WORKSPACE_ID,
     ownerId: OWNER_UID,
-    themeColor: '#4f46e5',
-    currency: 'BRL',
-    createdAt: now,
-    updatedAt: now,
+    name: WORKSPACE_NAME,
+    type: 'PF',
+    extra: { themeColor: '#4f46e5' },
   });
 
   await Promise.all([

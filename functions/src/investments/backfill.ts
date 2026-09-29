@@ -1,12 +1,14 @@
 import * as admin from "firebase-admin";
 import {FieldPath, FieldValue, Timestamp} from "firebase-admin/firestore";
 
-import type {WorkspaceAuthorizationContext} from "../creditCards/auth";
-import {CreditCardApplicationError} from "../creditCards/errors";
+import {ApplicationError} from "../shared/errors";
+import {
+  reassertWorkspaceActor,
+  type WorkspaceActor,
+} from "../shared/workspaceAuth";
 import type {BackfillInvestmentWorkspacePayload} from "./contracts";
 import {INVESTMENT_CALCULATION_VERSION} from "./domain";
 import {
-  authorizeInvestmentTransaction,
   profileTypeFromWorkspace,
   sha256,
 } from "./infrastructure";
@@ -108,7 +110,7 @@ const runToCompletion = async (
     const result = await run(derivedKey(baseKey, kind, targetId, page));
     if (result.hasMore === false || result.completed === true) return;
   }
-  throw new CreditCardApplicationError(
+  throw new ApplicationError(
     "domain_precondition_failed",
     `A reconstrução de ${kind} ${targetId} excedeu ` +
       `${MAX_PAGES_PER_TARGET} páginas.`,
@@ -116,7 +118,7 @@ const runToCompletion = async (
 };
 
 export const executeBackfillInvestmentWorkspace = async (
-  auth: WorkspaceAuthorizationContext,
+  auth: WorkspaceActor,
   payload: BackfillInvestmentWorkspacePayload,
 ): Promise<Record<string, unknown>> => {
   const backfillId =
@@ -129,7 +131,7 @@ export const executeBackfillInvestmentWorkspace = async (
   );
   const workspaceSnapshot = await investmentWorkspaceRef(auth.workspaceId).get();
   if (!workspaceSnapshot.exists) {
-    throw new CreditCardApplicationError(
+    throw new ApplicationError(
       "workspace_not_found",
       "Workspace não encontrado.",
     );
@@ -139,7 +141,7 @@ export const executeBackfillInvestmentWorkspace = async (
   if (snapshotDoc.exists) {
     const data = snapshotDoc.data() ?? {};
     if (data.workspaceId !== auth.workspaceId || data.kind !== SNAPSHOT_KIND) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "O identificador de backfill pertence a outra execução.",
       );
@@ -178,7 +180,7 @@ export const executeBackfillInvestmentWorkspace = async (
     // demais operações do domínio. O wrapper da callable já autorizou, mas o
     // backfill é longo: uma revogação de papel entre a autorização e a reserva
     // do lease deixava a execução seguir com privilégio que já não existe.
-    await authorizeInvestmentTransaction(
+    await reassertWorkspaceActor(
       transaction,
       auth,
       investmentOperationRoles("backfillInvestmentWorkspace"),
@@ -193,7 +195,7 @@ export const executeBackfillInvestmentWorkspace = async (
       heldBy !== leaseToken &&
       heldUntil > Date.now()
     ) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "Já existe uma execução de backfill em andamento para este workspace.",
       );
@@ -229,53 +231,66 @@ export const executeBackfillInvestmentWorkspace = async (
   }
 
   const completed = state.phase === "completed";
-  await snapshotRef.set(
-    {
-      id: backfillId,
-      workspaceId: auth.workspaceId,
-      profileType,
-      kind: SNAPSHOT_KIND,
-      targetId: auth.workspaceId,
-      status: completed ? "completed" : "running",
-      phase: state.phase,
-      // Campos exigidos pelo contrato de snapshot; o backfill não acumula
-      // totais próprios, quem os reconstrói é o rebuild de projeções.
-      cutoffAt: snapshotDoc.exists ?
-        (snapshotDoc.data()?.cutoffAt as Timestamp) :
-        Timestamp.now(),
-      processedCount: state.processedPositions + state.processedGoals,
-      expectedProjectionVersion: 0,
-      totals: {
-        quantityMicros: 0,
-        principalCents: 0,
-        realizedGainCents: 0,
-        feesCents: 0,
-        taxCents: 0,
-        netContributionCents: 0,
-        currentValueCents: 0,
+  // O estado da página (cursor, fase, contadores) é gravado na mesma
+  // transação que relê a autorização: um membro removido ou rebaixado
+  // durante a página não avança o backfill com o poder antigo.
+  await investmentFirestore().runTransaction(async (transaction) => {
+    await reassertWorkspaceActor(
+      transaction,
+      auth,
+      investmentOperationRoles("backfillInvestmentWorkspace"),
+    );
+    transaction.set(
+      snapshotRef,
+      {
+        id: backfillId,
+        workspaceId: auth.workspaceId,
+        profileType,
+        kind: SNAPSHOT_KIND,
+        targetId: auth.workspaceId,
+        status: completed ? "completed" : "running",
+        phase: state.phase,
+        // Campos exigidos pelo contrato de snapshot; o backfill não acumula
+        // totais próprios, quem os reconstrói é o rebuild de projeções.
+        cutoffAt: snapshotDoc.exists ?
+          (snapshotDoc.data()?.cutoffAt as Timestamp) :
+          Timestamp.now(),
+        processedCount: state.processedPositions + state.processedGoals,
+        expectedProjectionVersion: 0,
+        totals: {
+          quantityMicros: 0,
+          principalCents: 0,
+          realizedGainCents: 0,
+          feesCents: 0,
+          taxCents: 0,
+          netContributionCents: 0,
+          currentValueCents: 0,
+        },
+        ...(state.cursor ?
+          {cursor: state.cursor} :
+          {cursor: FieldValue.delete()}),
+        processedPositions: state.processedPositions,
+        processedGoals: state.processedGoals,
+        goalIds: state.goalIds,
+        goalIndex: state.goalIndex,
+        projectionCalls: state.projectionCalls,
+        pageSize: payload.pageSize,
+        calculationVersion: INVESTMENT_CALCULATION_VERSION,
+        correlationId: payload.correlationId,
+        createdBy: auth.uid,
+        createdAt: snapshotDoc.exists ?
+          (snapshotDoc.data()?.createdAt as Timestamp) :
+          FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+        leaseToken: completed ? FieldValue.delete() : leaseToken,
+        leaseUntil: completed ?
+          FieldValue.delete() :
+          Timestamp.fromMillis(Date.now() + leaseMs),
+        ...(completed ? {completedAt: FieldValue.serverTimestamp()} : {}),
       },
-      ...(state.cursor ? {cursor: state.cursor} : {cursor: FieldValue.delete()}),
-      processedPositions: state.processedPositions,
-      processedGoals: state.processedGoals,
-      goalIds: state.goalIds,
-      goalIndex: state.goalIndex,
-      projectionCalls: state.projectionCalls,
-      pageSize: payload.pageSize,
-      calculationVersion: INVESTMENT_CALCULATION_VERSION,
-      correlationId: payload.correlationId,
-      createdBy: auth.uid,
-      createdAt: snapshotDoc.exists ?
-        (snapshotDoc.data()?.createdAt as Timestamp) :
-        FieldValue.serverTimestamp(),
-      updatedAt: FieldValue.serverTimestamp(),
-      leaseToken: completed ? FieldValue.delete() : leaseToken,
-      leaseUntil: completed ?
-        FieldValue.delete() :
-        Timestamp.fromMillis(Date.now() + leaseMs),
-      ...(completed ? {completedAt: FieldValue.serverTimestamp()} : {}),
-    },
-    {merge: true},
-  );
+      {merge: true},
+    );
+  });
 
   return {
     success: true,
@@ -289,7 +304,7 @@ export const executeBackfillInvestmentWorkspace = async (
 };
 
 const backfillPositionsPage = async (
-  auth: WorkspaceAuthorizationContext,
+  auth: WorkspaceActor,
   payload: BackfillInvestmentWorkspacePayload,
   state: BackfillState,
 ): Promise<void> => {
@@ -337,7 +352,7 @@ const backfillPositionsPage = async (
 };
 
 const backfillGoalsPage = async (
-  auth: WorkspaceAuthorizationContext,
+  auth: WorkspaceActor,
   payload: BackfillInvestmentWorkspacePayload,
   state: BackfillState,
 ): Promise<void> => {
@@ -369,7 +384,7 @@ const backfillGoalsPage = async (
 };
 
 const backfillProjections = async (
-  auth: WorkspaceAuthorizationContext,
+  auth: WorkspaceActor,
   payload: BackfillInvestmentWorkspacePayload,
   state: BackfillState,
 ): Promise<unknown> => {
@@ -394,7 +409,7 @@ const backfillProjections = async (
       return drift;
     }
   }
-  throw new CreditCardApplicationError(
+  throw new ApplicationError(
     "domain_precondition_failed",
     "A reconstrução de projeções excedeu o teto de páginas.",
   );

@@ -1,6 +1,8 @@
 import { expect, test } from '@playwright/test';
 import { createRequire } from 'node:module';
 
+import { seedMembership, seedOwnedWorkspace, seedWorkspaceDocument } from './support/workspaceSeed';
+
 const require = createRequire(import.meta.url);
 const admin = require('../functions/node_modules/firebase-admin') as typeof import('../functions/node_modules/firebase-admin');
 
@@ -83,36 +85,31 @@ const seed = async (persona: Persona) => {
     updatedAt: now,
   };
 
+  /*
+   * A listagem ordena por `joinedAt`: o workspace da persona entra antes do
+   * segundo, com instantes explícitos, para ser o primeiro listado e o aberto
+   * no login.
+   */
+  const primaryName = persona.type === 'PJ' ? 'Empresa Smoke' : 'Pessoal Smoke';
+  await seedOwnedWorkspace({
+    uid: persona.uid, email: persona.email, workspaceId: persona.workspace,
+    name: primaryName, type: persona.type,
+    joinedAt: new Date('2026-01-01T12:00:00.000Z'),
+  });
+
+  // Segundo workspace, para a troca. Sempre PJ: a troca de workspace passa a
+  // exercitar também a virada de perfil — rótulos, painéis e leituras mudam
+  // entre PF e PJ.
+  await seedWorkspaceDocument({
+    workspaceId: secondWorkspace, ownerId: persona.uid, name: 'Segundo Workspace', type: 'PJ',
+  });
+  await seedMembership({
+    workspaceId: secondWorkspace, uid: persona.uid, email: persona.email, role: 'owner',
+    name: 'Segundo Workspace', type: 'PJ',
+    joinedAt: new Date('2026-01-02T12:00:00.000Z'),
+  });
+
   await Promise.all([
-    db.doc(`workspaces/${persona.workspace}`).set({
-      ownerId: persona.uid,
-      name: persona.type === 'PJ' ? 'Empresa Smoke' : 'Pessoal Smoke',
-      type: persona.type,
-      currency: 'BRL',
-      createdAt: now,
-      updatedAt: now,
-    }),
-    db.doc(`workspaces/${persona.workspace}/members/${persona.uid}`).set({
-      uid: persona.uid, role: 'owner', status: 'active',
-    }),
-    db.doc(`users/${persona.uid}/workspaces/${persona.workspace}`).set({
-      workspaceId: persona.workspace, role: 'owner',
-    }),
-
-    // Segundo workspace, para a troca.
-    db.doc(`workspaces/${secondWorkspace}`).set({
-      // Sempre PJ: a troca de workspace passa a exercitar também a virada de
-      // perfil — rótulos, painéis e leituras mudam entre PF e PJ.
-      ownerId: persona.uid, name: 'Segundo Workspace', type: 'PJ',
-      currency: 'BRL', createdAt: now, updatedAt: now,
-    }),
-    db.doc(`workspaces/${secondWorkspace}/members/${persona.uid}`).set({
-      uid: persona.uid, role: 'owner', status: 'active',
-    }),
-    db.doc(`users/${persona.uid}/workspaces/${secondWorkspace}`).set({
-      workspaceId: secondWorkspace, role: 'owner',
-    }),
-
     // Receita, despesa e parcelada: os três tipos do fluxo de caixa legado.
     db.doc(`workspaces/${persona.workspace}/transactions/smoke-receita`).set({
       ...base, type: 'receita', description: 'Receita do smoke',

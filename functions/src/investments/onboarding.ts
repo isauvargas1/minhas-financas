@@ -1,14 +1,17 @@
 import {FieldValue} from "firebase-admin/firestore";
 
-import type {WorkspaceAuthorizationContext} from "../creditCards/auth";
+import {
+  reassertWorkspaceActor,
+  type WorkspaceActor,
+} from "../shared/workspaceAuth";
 import type {OnboardInvestmentWorkspacePayload} from "./contracts";
 import {assertInvestmentDocument} from "./documentContracts";
 import {recordInvestmentOperationMetric} from "./observability";
 import {investmentOperationRoles} from "./writeStrategy";
 import {
-  authorizeInvestmentTransaction,
   completeInvestmentIdempotency,
   deterministicDocumentId,
+  profileTypeFromWorkspace,
   recordInvestmentEvent,
   reserveInvestmentIdempotency,
 } from "./infrastructure";
@@ -64,15 +67,19 @@ const PROFILE_SEEDS: Record<"PF" | "PJ", CatalogSeed[]> = {
 const normalize = normalizeCatalogName;
 
 export const executeOnboardInvestmentWorkspace = async (
-  auth: WorkspaceAuthorizationContext,
+  auth: WorkspaceActor,
   payload: OnboardInvestmentWorkspacePayload,
 ): Promise<Record<string, unknown>> => investmentFirestore().runTransaction(async (transaction) => {
   const operation = "onboardInvestmentWorkspace" as const;
-  const authorization = await authorizeInvestmentTransaction(
+  const access = await reassertWorkspaceActor(
     transaction,
     auth,
     investmentOperationRoles(operation),
   );
+  const authorization = {
+    role: access.role,
+    profileType: profileTypeFromWorkspace(access.workspace),
+  };
   const reservation = await reserveInvestmentIdempotency(
     transaction, auth, operation, payload.idempotencyKey, payload.correlationId, payload,
   );

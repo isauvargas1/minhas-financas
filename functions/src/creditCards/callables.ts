@@ -1,9 +1,21 @@
-import { onCall } from "firebase-functions/v2/https";
+import type {CallableOptions} from "firebase-functions/v2/https";
+import type {z} from "zod";
+
+import {defineCallable, type CallableFailure} from "../shared/callable";
+import {errorCodeOf} from "../shared/errors";
+import {
+  CREDIT_CARD_CALLABLE_OPTIONS,
+  HEAVY_CREDIT_CARD_CALLABLE_OPTIONS,
+} from "../shared/runtimeOptions";
 
 import {
-  buildCreditCardCallableContext,
+  buildCreditCardOperationContext,
+  CREDIT_CARD_INTERNAL_ERROR_MESSAGE,
+  creditCardWorkspaceRoles,
+  type CreditCardOperationContext,
 } from "./callable";
-
+import {executeCancelCreditCardPurchase} from "./cancelPurchase";
+import {executeCloseCreditCardInvoice} from "./closeInvoice";
 import {
   cancelCreditCardPurchasePayloadSchema,
   closeCreditCardInvoicePayloadSchema,
@@ -15,179 +27,190 @@ import {
   reverseCreditCardInvoicePaymentPayloadSchema,
   updateCreditCardPurchasePayloadSchema,
 } from "./contracts";
-
-import {
-  executeCreateCreditCardPurchase,
-} from "./createPurchase";
-
-import {
-  executeUpdateCreditCardPurchase,
-} from "./updatePurchase";
-
-import {
-  executeCancelCreditCardPurchase,
-} from "./cancelPurchase";
-
-import {
-  executeCloseCreditCardInvoice,
-} from "./closeInvoice";
-
+import {executeCreateCreditCardPurchase} from "./createPurchase";
+import {recordCreditCardCallableFailureSafely} from "./observability";
+import {recordPurchaseLimitExceededEvent} from "./purchaseFailureEvents";
+import {executeRebuildCardInvoicesForCard} from "./rebuildInvoices";
+import {executeRecalculateCardLimit} from "./recalculateCardLimit";
 import {
   executeRegisterCreditCardInvoicePayment,
 } from "./registerInvoicePayment";
-
-import {
-  executeReopenCreditCardInvoice,
-} from "./reopenInvoice";
-
-import {
-  executeRebuildCardInvoicesForCard,
-} from "./rebuildInvoices";
-
-import {
-  executeRecalculateCardLimit,
-} from "./recalculateCardLimit";
-
+import {executeReopenCreditCardInvoice} from "./reopenInvoice";
 import {
   executeReverseCreditCardInvoicePayment,
 } from "./reverseInvoicePayment";
-
-import {
-  toHttpsError,
-} from "./errors";
-
-import {
-  recordCreditCardCallableFailureSafely,
-} from "./observability";
-
-import type {
-  CreditCardBackendWriteOperation,
-} from "./writeStrategy";
-
-import type {
-  CreditCardCallableExecutionContext,
-} from "./callable";
-
-import {
-  recordPurchaseLimitExceededEvent,
-} from "./purchaseFailureEvents";
-
-import {
-  CREDIT_CARD_CALLABLE_OPTIONS,
-  HEAVY_CREDIT_CARD_CALLABLE_OPTIONS,
-} from "../shared/runtimeOptions";
-
-import type { z } from "zod";
+import {executeUpdateCreditCardPurchase} from "./updatePurchase";
+import type {CreditCardBackendWriteOperation} from "./writeStrategy";
 
 /**
- * Wrapper único das callables de cartão.
- *
- * Antes, cada callable montava o próprio `try/catch` e o `catch` chamava a
- * observabilidade passando `request.data` cru — de onde o `workspaceId` era
- * lido. Como o `catch` também captura `unauthenticated` e
- * `workspace_role_denied`, um chamador **sem token** gravava métricas, eventos
- * financeiros e notificações no workspace de qualquer tenant (INV-P0-001).
- *
- * Aqui o workspace só existe depois que `buildCreditCardCallableContext`
- * devolve — isto é, depois de `requireWorkspaceRole`. É esse valor, e nenhum
- * outro, que chega à observabilidade. É o mesmo padrão já aplicado em
- * `investments/callables.ts`.
+ * Códigos que só nascem da autenticação ou da autorização. Uma falha com um
+ * deles nunca é gravada em workspace: o `workspaceId` não foi autorizado — ou
+ * deixou de ser, na releitura transacional.
  */
-const creditCardCallable = <TPayload extends { workspaceId: string }>(
+const ACCESS_FAILURE_CODES: ReadonlySet<string> = new Set([
+  "unauthenticated",
+  "permission_denied",
+  "email_not_verified",
+  "recent_login_required",
+  "account_suspended",
+  "account_not_initialized",
+  "workspace_not_found",
+  "workspace_archived",
+  "workspace_membership_required",
+  "workspace_role_denied",
+]);
+
+type DomainFailureRecorder<TPayload> = (
+  context: CreditCardOperationContext<TPayload>,
+  error: unknown,
+) => Promise<void>;
+
+/**
+ * Contexto autorizado para registrar a falha, ou `null`.
+ *
+ * Gravar a falha num `workspaceId` não autorizado era o vetor INV-P0-001: um
+ * chamador sem token escrevia métricas, eventos financeiros e notificações no
+ * workspace de outro tenant. O destino é só o do ator que passou pela
+ * pré-checagem do kernel (`failure.actor`); se a própria falha é de acesso —
+ * membro removido ou rebaixado na releitura transacional —, nada é gravado.
+ */
+const authorizedFailureContext = <TPayload extends {workspaceId: string}>(
+  schema: z.ZodType<TPayload>,
+  failure: CallableFailure,
+): CreditCardOperationContext<TPayload> | null => {
+  const actor = failure.actor;
+
+  if (!actor || ACCESS_FAILURE_CODES.has(errorCodeOf(failure.error))) {
+    return null;
+  }
+
+  const parsed = schema.safeParse(failure.request.data);
+
+  if (!parsed.success || parsed.data.workspaceId !== actor.workspaceId) {
+    return null;
+  }
+
+  return {payload: parsed.data, actor};
+};
+
+const recordCreditCardFailure = async <
+  TPayload extends {workspaceId: string},
+>(
   operation: CreditCardBackendWriteOperation,
   schema: z.ZodType<TPayload>,
-  execute: (
-    context: CreditCardCallableExecutionContext<TPayload>
-  ) => Promise<unknown>,
-  options: {
-    runtime?: typeof CREDIT_CARD_CALLABLE_OPTIONS;
-    onFailure?: (
-      context: CreditCardCallableExecutionContext<TPayload>,
-      error: unknown
-    ) => Promise<void>;
-  } = {}
-) =>
-  onCall(options.runtime ?? CREDIT_CARD_CALLABLE_OPTIONS, async (request) => {
-    let context: CreditCardCallableExecutionContext<TPayload> | null = null;
+  failure: CallableFailure,
+  recordDomainFailure?: DomainFailureRecorder<TPayload>,
+): Promise<void> => {
+  const context = authorizedFailureContext(schema, failure);
 
+  if (context && recordDomainFailure) {
     try {
-      context = await buildCreditCardCallableContext(
-        request,
-        schema,
-        operation
-      );
-
-      return await execute(context);
-    } catch (error) {
-      if (context && options.onFailure) {
-        await options.onFailure(context, error);
-      }
-
-      await recordCreditCardCallableFailureSafely(
+      await recordDomainFailure(context, failure.error);
+    } catch (domainFailureError) {
+      console.error("credit_card_domain_failure_record_failed", {
         operation,
-        request.data,
-        request.auth?.uid,
-        error,
-        context?.auth.workspaceId
-      );
-
-      throw toHttpsError(error);
+        requestId: failure.requestId,
+        errorCode: errorCodeOf(domainFailureError),
+      });
     }
+  }
+
+  await recordCreditCardCallableFailureSafely(
+    operation,
+    failure.request.data,
+    failure.uid ?? undefined,
+    failure.error,
+    context?.actor.workspaceId,
+  );
+};
+
+/**
+ * Callable de cartão sobre o wrapper único do kernel (`defineCallable`).
+ *
+ * O kernel autentica, aplica a política de token, valida o payload e faz a
+ * pré-checagem de papel com a matriz de `writeStrategy.ts`. Cada operação
+ * relê a autorização dentro da própria transação (`reassertWorkspaceActor`).
+ */
+const creditCardCallable = <TPayload extends {workspaceId: string}, TResult>(
+  operation: CreditCardBackendWriteOperation,
+  schema: z.ZodType<TPayload>,
+  execute: (context: CreditCardOperationContext<TPayload>) => Promise<TResult>,
+  options: {
+    runtime?: CallableOptions;
+    recordDomainFailure?: DomainFailureRecorder<TPayload>;
+  } = {},
+) => {
+  return defineCallable<TPayload, TResult>({
+    operation,
+    schema,
+    runtime: options.runtime ?? CREDIT_CARD_CALLABLE_OPTIONS,
+    workspaceRoles: creditCardWorkspaceRoles(operation),
+    internalMessage: CREDIT_CARD_INTERNAL_ERROR_MESSAGE,
+    onFailure: (failure) =>
+      recordCreditCardFailure(
+        operation,
+        schema,
+        failure,
+        options.recordDomainFailure,
+      ),
+    handler: ({payload, actor}) =>
+      execute(buildCreditCardOperationContext(payload, actor)),
   });
+};
 
 export const createCreditCardPurchase = creditCardCallable(
   "createCreditCardPurchase",
   createCreditCardPurchasePayloadSchema,
   executeCreateCreditCardPurchase,
-  { onFailure: recordPurchaseLimitExceededEvent }
+  {recordDomainFailure: recordPurchaseLimitExceededEvent},
 );
 
 export const registerCreditCardInvoicePayment = creditCardCallable(
   "registerCreditCardInvoicePayment",
   registerCreditCardInvoicePaymentPayloadSchema,
-  executeRegisterCreditCardInvoicePayment
+  executeRegisterCreditCardInvoicePayment,
 );
 
 export const reverseCreditCardInvoicePayment = creditCardCallable(
   "reverseCreditCardInvoicePayment",
   reverseCreditCardInvoicePaymentPayloadSchema,
-  executeReverseCreditCardInvoicePayment
+  executeReverseCreditCardInvoicePayment,
 );
 
 export const cancelCreditCardPurchase = creditCardCallable(
   "cancelCreditCardPurchase",
   cancelCreditCardPurchasePayloadSchema,
-  executeCancelCreditCardPurchase
+  executeCancelCreditCardPurchase,
 );
 
 export const recalculateCardLimit = creditCardCallable(
   "recalculateCardLimit",
   recalculateCardLimitPayloadSchema,
   executeRecalculateCardLimit,
-  { runtime: HEAVY_CREDIT_CARD_CALLABLE_OPTIONS }
+  {runtime: HEAVY_CREDIT_CARD_CALLABLE_OPTIONS},
 );
 
 export const closeCreditCardInvoice = creditCardCallable(
   "closeCreditCardInvoice",
   closeCreditCardInvoicePayloadSchema,
-  executeCloseCreditCardInvoice
+  executeCloseCreditCardInvoice,
 );
 
 export const reopenCreditCardInvoice = creditCardCallable(
   "reopenCreditCardInvoice",
   reopenCreditCardInvoicePayloadSchema,
-  executeReopenCreditCardInvoice
+  executeReopenCreditCardInvoice,
 );
 
 export const rebuildCardInvoicesForCard = creditCardCallable(
   "rebuildCardInvoicesForCard",
   rebuildCardInvoicesForCardPayloadSchema,
   executeRebuildCardInvoicesForCard,
-  { runtime: HEAVY_CREDIT_CARD_CALLABLE_OPTIONS }
+  {runtime: HEAVY_CREDIT_CARD_CALLABLE_OPTIONS},
 );
 
 export const updateCreditCardPurchase = creditCardCallable(
   "updateCreditCardPurchase",
   updateCreditCardPurchasePayloadSchema,
-  executeUpdateCreditCardPurchase
+  executeUpdateCreditCardPurchase,
 );

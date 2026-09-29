@@ -46,11 +46,11 @@ Rótulos: **CURRENT** existe no HEAD auditado, com evidência `arquivo:linha`; *
 | Arredondamento | TARGET | Só em cálculo derivado (valoração, juros), com uma regra única half-up sobre inteiros e `BigInt` quando o produto passar de 2^53. CURRENT: a valoração de investimentos já segue isso (`functions/src/investments/math.ts:29-42`; versão `investment-v2-cents-micros-half-up` em `functions/src/investments/domain.ts:4-5`). |
 | Soma e comparação | TARGET | Sempre em inteiros com verificação de overflow. CURRENT em investimentos: `addExact`/`negateExact` (`functions/src/investments/math.ts:23-27`). |
 | Sinal | TARGET | O valor persistido é positivo, e a direção vem do tipo do movimento ou de `cashImpact` (`inflow`/`outflow`/`none`), como já faz o espelho de investimentos (`functions/src/cash/periods.ts:120-149`). |
-| Moeda | DECISION (D-16) | Recomendado: só BRL, com remoção de `Workspace.currency`. CURRENT: o campo é gravável e nenhum formatador o lê (`src/types.ts:32`; `firestore.rules:102-104,132-133`); investimentos exigem `BRL` (`firestore.rules:487-489`). GAP: MONEY-13 (LOW). |
+| Moeda | DECISION (D-16, tomada) | Somente BRL; `Workspace.currency` gravável deixa de ser aceito do cliente. CURRENT: o campo é gravável e nenhum formatador o lê (`src/types.ts:32`; `firestore.rules:102-104,132-133`); investimentos exigem `BRL` (`firestore.rules:487-489`). GAP: MONEY-13 (LOW). |
 | Formatação | TARGET | `Intl.NumberFormat('pt-BR', {currency: 'BRL'})` só na exibição. |
 | Módulo único | GAP (PR-MONEY-01) | TARGET: `functions/src/shared/money.ts` e `src/lib/money.ts`, com o mesmo contrato e teste de paridade (P1). CURRENT: não existe. Há 12 cópias de `normalizeMoney` nas Functions e 4 no frontend, além de `Math.round(v*100)` e `toFixed`, e os três divergem (1,005 vira 1,01, 100 centavos ou 1,00) (MONEY-11). |
 
-**DECISION D-34 (pendente, bloqueia P1):** quem absorve o centavo residual (primeiro item, último item ou maior resto puro) e se a API recusa ou arredonda entrada com mais de 2 casas. Hoje metas recusam e cartões arredondam. A recomendação é recusar e usar maior resto com desempate por índice.
+**DECISION D-34 (tomada, §9.1 do plano):** centavos inteiros com `Number.isSafeInteger`; entrada com fração abaixo do centavo é recusada; a divisão usa o maior resto, as partes sempre somam exatamente o total e os empates são resolvidos pelo menor índice primeiro. Hoje metas recusam e cartões arredondam.
 
 ### 2.2 Estado por domínio (varredura monetária)
 
@@ -74,7 +74,7 @@ Rótulos: **CURRENT** existe no HEAD auditado, com evidência `arquivo:linha`; *
 
 | Regra | Classificação | Definição |
 | --- | --- | --- |
-| Fuso canônico | DECISION (D-17, recomendada) | `America/Sao_Paulo` para toda chave de data civil, em todos os domínios. |
+| Fuso canônico | DECISION (D-17, tomada) | `America/Sao_Paulo` para toda chave de data civil, em todos os domínios; nunca derivar data civil com `toISOString()`. |
 | Data civil de negócio | TARGET | Competência do lançamento, vencimento, recebimento, compra e início/fim de recorrência usam a chave `YYYY-MM-DD`, validada no servidor. O mês de competência (`YYYY-MM`) é derivado dela pela mesma função. |
 | Instante | TARGET | `createdAt`, `occurredAt`, `settledAt`, `voidedAt` e `archivedAt` são `Timestamp` do servidor, nunca do relógio do cliente. |
 | Um campo por fato | TARGET | Cada fato tem uma data civil. Sai a dupla `date` + `transactionDate` de `transactions` (TX-12). |
@@ -459,13 +459,15 @@ A remoção de legado segue o inventário do [plano §7](PRODUCTION_READINESS_PL
 | D-13 | DECISION (pendente) | Amortização (Price, SAC, simples), juros e diferenças PF/PJ | §4, §7.5 |
 | D-14 | DECISION (pendente) | Participantes da divisão de contas e reembolso PJ | §7.4 |
 | D-15 | DECISION (pendente) | 13 callables e UI profissional de investimentos | §7.7 |
-| D-16 | DECISION (pendente) | Somente BRL | §2.1 |
-| D-17 | DECISION (pendente, recomendada) | Fuso `America/Sao_Paulo` para chaves civis | §3 |
+| D-16 | DECISION (tomada, §9.1 do plano) | Somente BRL | §2.1 |
+| D-17 | DECISION (tomada, §9.1 do plano) | Fuso `America/Sao_Paulo` para chaves civis | §3 |
+| D-34 | DECISION (tomada, §9.1 do plano) | Resíduo de centavo pelo maior resto (empate pelo menor índice) e recusa de fração | §2.1 |
+| D-02 | DECISION (tomada para P1, §9.1 do plano) | `viewer` mantido e somente leitura; as matrizes financeiras das callables existentes não mudam em P1 | §4, §7 |
 | D-18, D-07 | DECISION (pendente) | Retenção por categoria; exclusão de conta × histórico financeiro | §7.6, P8 |
-| D-29, D-30, D-31, D-34, D-35, D-36, D-37, D-38, D-02, D-13, D-24 | DECISION (pendente) | Regime de caixa × competência (D-29); contas/carteiras e transferências (D-30); `current_value` e metas KPI PJ (D-31); resíduo de centavo e recusa de fração (D-34); correção de lançamento (D-35); casos de borda de cartão (D-36); KPIs de relatório (D-37); via única da projeção de caixa (D-38); matriz de papéis por operação financeira (D-02); classificação do principal de empréstimo (D-13); visibilidade de PII de clientes (D-24) | §2–§7 |
+| D-29, D-30, D-31, D-35, D-36, D-37, D-38, D-13, D-24 | DECISION (pendente) | Regime de caixa × competência (D-29); contas/carteiras e transferências (D-30); `current_value` e metas KPI PJ (D-31); correção de lançamento (D-35); casos de borda de cartão (D-36); KPIs de relatório (D-37); via única da projeção de caixa (D-38); classificação do principal de empréstimo (D-13); visibilidade de PII de clientes (D-24) | §2–§7 |
 | D-39, D-36, D-13 | DECISION (pendente) | Recebimento parcial, juros, multa e desconto de recebível (D-39); fechamento automático de fatura, `manual_adjustment` e conta de origem do pagamento (D-36); caixa obrigatório na contratação de empréstimo (D-13) | §7 |
 | E-07 | EXTERNAL CONFIGURATION REQUIRED — NÃO VERIFICADO | PITR, backups e TTL (`expiresAt` de chaves de idempotência, eventos e `cash_period_events`) antes de o histórico passar a não ser apagável | §6, §7 |
 | E-08 | EXTERNAL CONFIGURATION REQUIRED — NÃO VERIFICADO | Alertas de deriva e reconciliação, truncamento de crons e falhas do gatilho de caixa | §5, §7 |
 | E-01 | EXTERNAL CONFIGURATION REQUIRED — NÃO VERIFICADO | Crons (`processRecurring`, faturas, deriva) e índices implantados por ambiente isolado | §7.2, §7.3 |
 
-Todas as decisões deste documento têm ID na §10 do plano mestre e precisam ser tomadas antes do milestone que as consome.
+Todas as decisões deste documento têm ID no plano mestre: pendentes na §10, tomadas na §9 e na §9.1. As pendentes precisam ser tomadas antes do milestone que as consome.

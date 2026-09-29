@@ -26,7 +26,7 @@ Referência completa: [ARCHITECTURE.md](ARCHITECTURE.md). Princípios que todo m
 
 1. SaaS multiworkspace real, com isolamento rigoroso de tenant em `workspaces/{workspaceId}/...`.
 2. Operações financeiras críticas autoritativas **exclusivamente** no backend (callables com Admin SDK, schema estrito, transação, idempotência, auditoria).
-3. RBAC owner/admin/member validado server-side por um único resolvedor; Firestore Rules como segunda camada independente que nega escrita do cliente em dados autoritativos.
+3. RBAC owner/admin/member/viewer (viewer somente leitura) validado server-side por um único resolvedor; Firestore Rules como segunda camada independente que nega escrita do cliente em dados autoritativos.
 4. Valores monetários em centavos inteiros (`*Cents`, `Number.isSafeInteger`), sem autoridade financeira em ponto flutuante.
 5. Operações compostas transacionais; idempotência em toda operação sujeita a retry; concorrência explicitamente testada.
 6. Nenhum hard delete de histórico financeiro; cancelamento, estorno e arquivamento como registros compensatórios.
@@ -513,12 +513,12 @@ Cada milestone termina somente com: testes direcionados verdes, remoção provad
 
 ### P1 — Auth, workspaces, RBAC e ciclo de vida de conta
 - **Objetivo:** identidade e autorização autoritativas no backend e kernel compartilhado para os milestones seguintes.
-- **Kernel (D-ORD-02):** resolvedor único de membership/papel relido dentro da transação, sem fallback `ownerId`; wrapper de callable (autenticação, política de `email_verified`, Zod estrito com IDs sem `/`, rate limit, idempotência, mapeador de erros pt-BR, ponto de extensão para App Check); gravador de auditoria append-only; contrato de logger estruturado e correlation ID; módulo `money` (centavos, parse, alocação por maior resto) espelhado no frontend; política de datas civis em `America/Sao_Paulo`.
+- **Kernel (D-ORD-02):** resolvedor único de membership/papel relido dentro da transação, sem fallback `ownerId`; wrapper de callable (autenticação, política de `email_verified`, Zod estrito com IDs sem `/`, rate limit, idempotência, mapeador de erros pt-BR, ponto de extensão para App Check; sem consulta a plano, quota ou entitlement, que P2 acrescenta — D-01); gravador de auditoria append-only; contrato de logger estruturado e correlation ID; módulo `money` (centavos, parse, alocação por maior resto) espelhado no frontend; política de datas civis em `America/Sao_Paulo`.
 - **Domínio:** `bootstrapAccount`, `createWorkspace`, `updateWorkspaceSettings`, convites (token, expiração, e-mail verificado), aceite, revogação, troca de papel, remoção lógica, saída voluntária, transferência de ownership, arquivamento de workspace; Rules `write: false` em `members`, índice do usuário e criação de workspace; suspensão com revogação de sessão; logout limpando estado local.
 - **Blockers:** PR-AUTH-03, PR-WS-01…PR-WS-06, PR-MONEY-01 (módulo e política; adoção por domínio em P3–P5).
 - **Achados MEDIUM também fechados em P1:** AUTH-08 (política de `email_verified`/provedor), AUTH-09 (suspensão e revogação de sessão no backend; as ferramentas administrativas ficam em PR-ADMIN-01/P7), AUTH-10 (erros de login e de carga em pt-BR), AUTH-11 (logout limpa cache e armazenamento local; a migração do histórico de IA para o servidor fica em PR-AI-04/P5), WS-09, WS-11, WS-13, WS-15.
 - **Índice do usuário:** mantém o caminho `users/{uid}/workspaces`, passando a ser gravado só pelo backend (sem renomear a coleção).
-- **Depende de decisões:** D-01, D-02, D-03, D-04, D-05, D-06, D-17, D-22, D-34.
+- **Depende de decisões:** nenhuma pendente. Tomadas: D-02, D-03, D-04, D-05, D-06, D-16, D-17, D-22, D-34 e D-P1-SUSP (§9.1). P1 **não** depende de D-01 e não contém quota, plano provisório, fallback de entitlement nem motor parcial; P2 adiciona quota/entitlement nas mesmas transações de `createWorkspace`, `inviteWorkspaceMember` e `acceptWorkspaceInvite`.
 - **Skills:** `multi-tenant-security-review`, `firestore-scale-cost-review`, `financial-domain-integrity` (módulo `money`), `firebase-production-readiness` (novos exports de Functions), `ptbr-product-ui-review`, `observability-incident-readiness` (contrato de logging e auditoria), `regression-release-gate`.
 
 ### P2 — Billing, entitlements e quotas
@@ -601,18 +601,30 @@ Cada milestone termina somente com: testes direcionados verdes, remoção provad
 | D-ORD-05 | PR-ENT-01 fecha de forma incremental: P2 entrega o motor de entitlements e o enforcement em workspaces, membros, checkout e IA; P3–P5 aplicam a quota em cada callable novo; o item fecha ao final de P5. | Quotas de lançamentos, grupos e recebíveis dependem de callables que só existirão em P3–P5. |
 | D-ORD-06 | A rotação da chave Gemini (PR-AI-02) é ação externa imediata, independente de milestone. | Exposição histórica no bundle público (`vite.config.ts:14-19` documenta a remoção); não há evidência de rotação. |
 
+### 9.1 Decisões de produto tomadas para P1
+
+| ID | Decisão | Consequência |
+| --- | --- | --- |
+| D-02 | Mantém `viewer`. Papéis: owner/admin/member/viewer; `viewer` é estritamente somente leitura. | As matrizes de permissão financeira das callables existentes não mudam em P1 (`viewer` continua recusado onde hoje é recusado). |
+| D-03 | Exatamente um owner canônico ativo por workspace. `workspace.ownerId` é campo apenas desnormalizado. | `ownerId` nunca é fonte de autorização nem fallback; só `bootstrapAccount`/`createWorkspace` (criação) e `transferWorkspaceOwnership` o alteram. A autorização vem sempre de `workspaces/{id}/members/{uid}` ativo. |
+| D-04 | OWNER: convida admin/member/viewer; promove e rebaixa entre admin/member/viewer; remove admin/member/viewer; transfere ownership; não se remove, não sai nem se rebaixa enquanto owner. ADMIN: convida só member/viewer; alterna member↔viewer; remove member/viewer; não cria admin, não promove a admin, não rebaixa nem remove outro admin e não toca o owner. MEMBER e VIEWER: sem gestão de membros. | Ninguém altera o próprio papel; saída voluntária só por `leaveWorkspace` (o owner transfere antes). |
+| D-05 | Convite por link com token opaco CSPRNG de 256 bits, URL-safe (base64url), válido por 7 dias, de uso único e vinculado ao e-mail normalizado; o convite pode existir antes de o destinatário ter conta. | Persiste-se só o SHA-256 do token, sem pepper; o token nunca aparece em logs. Resposta genérica em pt-BR para token inválido, expirado, revogado ou de outro e-mail (sem enumeração). Sem fakeUid; membership criado só no aceite, com `request.auth.uid`. O envio real de e-mail depende de E-11 e não é simulado em P1 (sem envio mock nem mensagem de "e-mail enviado"). No Emulator, o fluxo é testado por um seam exclusivo de teste, fora do bundle e dos exports de produção. |
+| D-06 | Login só com Google (sem e-mail/senha, sem Apple, sem redesign do login). E-mail verificado (`email_verified`) exigido em convites e mutações sensíveis: `createWorkspace`, `inviteWorkspaceMember`, `acceptWorkspaceInvite`, `revokeWorkspaceInvite`, `changeWorkspaceMemberRole`, `removeWorkspaceMember`, `transferWorkspaceOwnership`, `archiveWorkspace`. Não exigido em `bootstrapAccount`, `updateWorkspaceSettings` e `leaveWorkspace`. | `transferWorkspaceOwnership` e `archiveWorkspace` exigem autenticação recente (`auth_time` nos últimos 10 minutos); o frontend reautentica com Google só quando necessário. Sem MFA para usuários comuns; MFA administrativa fica em P7 (E-03). |
+| D-P1-SUSP | `users/{uid}.status` é server-owned (`active` \| `suspended`); o backend recusa conta suspensa em toda callable. | Mecanismo interno via Admin SDK: grava o status, desativa o usuário no Auth, executa `revokeRefreshTokens` e prepara o registro de auditoria para P7. A superfície administrativa (painel/ferramentas) fica em P7 (PR-ADMIN-01). |
+| D-16 | Somente BRL. | Sem multimoeda; o `Workspace.currency` gravável e ignorado deixa de ser aceito do cliente. |
+| D-17 | Datas civis em `America/Sao_Paulo`. | Nunca derivar data civil com `toISOString()`. A política entra no kernel de P1; a adoção por domínio segue em P3–P4. |
+| D-22 | Workspaces PF e PJ podem ter membros. | CNPJ opcional; se informado, formato e dígitos verificadores são validados; não é globalmente único. |
+| D-34 | Centavos inteiros; frações abaixo do centavo recusadas na entrada; `Number.isSafeInteger`. | Divisão pelo maior resto; as partes sempre somam exatamente o total; empates resolvidos pelo menor índice primeiro. |
+
+D-01 foi removida das dependências de P1: segue pendente (§10) e bloqueia só P2. P1 não cria quota, plano provisório, fallback de entitlement nem motor parcial. P2 adiciona o enforcement de quota/entitlement dentro das mesmas transações de `createWorkspace`, `inviteWorkspaceMember` e `acceptWorkspaceInvite` antes de qualquer deploy remoto; nada de P1 é implantado antes do fechamento de P6 (D-ORD-04).
+
 ---
 
 ## 10. Decisões pendentes (DECISION)
 
 | ID | Decisão | Bloqueia | Opções levantadas pela auditoria |
 | --- | --- | --- | --- |
-| D-01 | Escopo do plano: por usuário (hoje `users/{uid}.planId`) ou por workspace (entidade pagadora) | P1, P2 | Por workspace simplifica PJ faturado por empresa e quotas de membros; definir quem conta no limite de workspaces compartilhados e convites pendentes. |
-| D-02 | Modelo de papéis: manter `viewer` (presente em tipos, Rules e backend) ou reduzir para owner/admin/member; matriz de papéis por operação financeira (quem cria, edita, estorna e arquiva em cada domínio) | P1 | A UI rotula `member` como "Membro (Editor)". |
-| D-03 | Owner canônico único ou múltiplos owners; regras de transferência e de último owner | P1 | — |
-| D-04 | Poderes do admin sobre outros admins (promover, rebaixar, remover) | P1 | — |
-| D-05 | UX de convite: link com token por e-mail ou código; expiração; convite para e-mail sem conta; provedor de e-mail transacional | P1 | Exige E-11. |
-| D-06 | Provedores de login (só Google, e-mail/senha, Apple), MFA (opcional ou obrigatória para owners/PJ), política de sessão | P1 | E-mail/senha exige verificação, reset e textos pt-BR. |
+| D-01 | Escopo do plano: por usuário (hoje `users/{uid}.planId`) ou por workspace (entidade pagadora) | P2 | Por workspace simplifica PJ faturado por empresa e quotas de membros; definir quem conta no limite de workspaces compartilhados e convites pendentes. Removida das dependências de P1 (§9.1): P2 adiciona quotas/entitlements dentro das transações das callables de P1 (`createWorkspace`, `inviteWorkspaceMember`, `acceptWorkspaceInvite`). |
 | D-07 | Exclusão de conta: destino de workspaces próprios e compartilhados, retenção fiscal × eliminação LGPD, anonimização do ator em histórico compartilhado | P2, P8 | Resolver o conflito entre "sem hard delete de histórico" e eliminação a pedido. |
 | D-08 | Catálogo comercial: planos, preços, limites, trial, grace period, proration, downgrade com excedente, reembolso, tratamento fiscal (NFS-e/ISS, Stripe Tax) | P2, P9 | Hoje Pro = Business no código. |
 | D-09 | Mensagens: remover do produto até existir backend real, ou implementar | P5 | A auditoria recomenda remover no lançamento (funcionalidade simulada exposta). Remover altera a UI e exige aprovação. |
@@ -622,13 +634,10 @@ Cada milestone termina somente com: testes direcionados verdes, remoção provad
 | D-13 | Empréstimos: modelos de amortização (Price, SAC, simples), juros, diferenças PF/PJ classificação contábil do principal (hoje gravado como receita/despesa de consumo) e obrigatoriedade de lançamento de caixa na contratação | P3 | — |
 | D-14 | Divisão de contas: participantes precisam ser membros do workspace? participantes externos; fluxo de reembolso PJ | P4 | — |
 | D-15 | Investimentos: manter ou remover as 13 callables e a UI profissional sem ponto de montagem | P4 | Política de legado favorece remover se o produto não as oferece. |
-| D-16 | Moeda: somente BRL (remover `Workspace.currency` gravável e ignorado) ou multimoeda | P3 | — |
-| D-17 | Fuso canônico `America/Sao_Paulo` para chaves de data civil em todos os domínios | P1, P3, P4 | Recomendado; hoje há três definições de janela. |
 | D-18 | Prazos de retenção por categoria (conta, dados financeiros, dados de terceiros, logs, auditoria, backups, pós-cancelamento) | P5, P8 | Validar com jurídico. |
 | D-19 | Mapeamento de ambientes: o projeto atual `sistema-financeiro-pesso-20698` vira DEV/STAGING e cria-se um PROD novo, ou o contrário | P6 | O código e os documentos já tratam o projeto atual como desenvolvimento; ele contém apenas dados de teste. |
 | D-20 | Troca do Tailwind Play CDN por Tailwind compilado, com critério de paridade visual | P6 | Risco de alteração visual; exige comparação por screenshot. |
 | D-21 | Identidade jurídica do fornecedor (razão social, CNPJ, endereço), encarregado de dados e canal de suporte | P7, P9 | Necessário para rodapé, páginas legais e LGPD. |
-| D-22 | Workspace PF pode ter membros ou compartilhamento é só PJ; CNPJ obrigatório e único para PJ | P1, P9 | — |
 | D-23 | Catálogo de configurações (`settings_catalog`): escrita por callables ou mantida no cliente com Rules estritas (schema, sem delete) | P4 | Hoje o cliente grava e o renomear é negado pelas Rules (PR-RULES-03); a escolha define se o catálogo entra no kernel de callables. |
 | D-24 | Visibilidade de dados pessoais de clientes (CPF/CNPJ, e-mail, telefone) por papel: todos os membros ou só owner/admin | P3, P8 | Hoje qualquer membro vê (CR-07). |
 | D-25 | Monitoramento de erros do frontend: serviço de terceiro (novo subprocessador) ou coleta própria via backend | P7 | Afeta SUBPROCESSORS.md e a política de privacidade. |
@@ -640,7 +649,6 @@ Cada milestone termina somente com: testes direcionados verdes, remoção provad
 | D-31 | Metas: semântica de `progressBasis current_value` e das metas KPI PJ | P5 | Ver PR-GOAL-01 e PR-GOAL-03. |
 | D-32 | Tempos de resposta por severidade, página de status e acesso de emergência (break-glass) | P7 | Base de INCIDENT_RESPONSE.md. |
 | D-33 | Rollout do App Check: período de monitoramento, ordem de enforcement (Functions, Firestore, Auth) e critério de rollback | P6 | Ver FIREBASE_PRODUCTION.md. |
-| D-34 | Política de centavo residual na divisão de valores (maior resto, primeiro ou último item) e recusa de frações abaixo do centavo na entrada | P1 | Parte do módulo `money` do kernel (D-ORD-02). |
 | D-35 | Correção de lançamento: edição livre, estorno + novo lançamento, ou bloqueio após fechamento de período | P3 | Define a trilha de auditoria de PR-TX-05. |
 | D-36 | Casos de borda de cartão: compra retroativa em ciclo fechado, pagamento antecipado, estorno de compra parcelada, fechamento automático de fatura, ajuste manual (`manual_adjustment`) e conta de origem do pagamento | P4 | Define a máquina de estados de PR-CC-05. |
 | D-37 | Definição e regime dos KPIs de relatório (ex.: taxa de poupança, lucro líquido PJ) | P5 | Base de `getFinancialReport` (PR-RPT-02, PR-RPT-03). |

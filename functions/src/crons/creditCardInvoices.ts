@@ -11,6 +11,7 @@ import {
 import {
   enqueueCreditCardDomainNotifications,
 } from "../creditCards/domainNotifications";
+import {addDaysToDayKey, saoPauloDayKey} from "../shared/dateKeys";
 import {SCHEDULED_FUNCTION_OPTIONS} from "../shared/runtimeOptions";
 
 interface InvoiceData {
@@ -44,27 +45,6 @@ const ACTIVE_INVOICE_STATUSES = [
 const SYSTEM_ACTOR_ID = "system:credit-card-invoice-automation";
 
 export const normalizeIsoDate = (value: string): string => value.slice(0, 10);
-
-export const getSaoPauloTodayIsoDate = (): string => {
-  const formatter = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Sao_Paulo",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  });
-
-  return formatter.format(new Date());
-};
-
-export const addDaysToIsoDate = (
-  isoDate: string,
-  days: number
-): string => {
-  const [year, month, day] = isoDate.split("-").map(Number);
-  const date = new Date(Date.UTC(year, month - 1, day + days));
-
-  return date.toISOString().slice(0, 10);
-};
 
 export const diffInCalendarDays = (
   fromIsoDate: string,
@@ -325,8 +305,8 @@ export const processCreditCardInvoiceOperationalAlerts = onSchedule(
   },
   async () => {
     const db = getFirestore();
-    const todayIsoDate = getSaoPauloTodayIsoDate();
-    const windowEndIsoDate = addDaysToIsoDate(todayIsoDate, DUE_SOON_DAYS);
+    const todayIsoDate = saoPauloDayKey();
+    const windowEndIsoDate = addDaysToDayKey(todayIsoDate, DUE_SOON_DAYS);
 
     // A consulta já é seletiva por status e vencimento, mas rodava sem
     // `limit`: uma base grande traria todas as faturas de todos os tenants

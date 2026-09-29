@@ -1,19 +1,21 @@
 import React, { useState } from 'react';
 import { useWorkspace } from '../contexts/WorkspaceContext';
-import { 
-    useWorkspaceMembers, 
-    useAddMember, 
-    useUpdateMemberRole, 
-    useRemoveMember 
+import { useAuth } from '../contexts/AuthContext';
+import {
+    useWorkspaceMembers,
+    useInviteMember,
+    useUpdateMemberRole,
+    useRemoveMember,
+    useTransferOwnership,
 } from '../modules/workspaces/hooks';
-import { WorkspaceRole, WorkspaceMember } from '../modules/workspaces/types';
+import { WorkspaceRole } from '../modules/workspaces/types';
+import { workspaceErrorMessage, withRecentLogin } from '../modules/workspaces/errors';
 import { 
     CloseIcon, 
     UsersIcon, 
     UserPlusIcon,
     DeleteIcon,
     ShieldCheckIcon,
-    CheckIcon
 } from './Icons';
 
 interface MembersManagerModalProps {
@@ -27,61 +29,103 @@ const ROLE_LABELS: Record<WorkspaceRole, string> = {
     viewer: 'Visualizador'
 };
 
+type ManageableRole = Exclude<WorkspaceRole, 'owner'>;
+
+/**
+ * Alçada de gestão por papel (D-04), a mesma que o backend aplica: a tela só
+ * oferece o que a callable aceitaria. A decisão continua sendo do backend.
+ */
+const MANAGED_BY: Record<WorkspaceRole, ManageableRole[]> = {
+    owner: ['admin', 'member', 'viewer'],
+    admin: ['member', 'viewer'],
+    member: [],
+    viewer: [],
+};
+
 const MembersManagerModal: React.FC<MembersManagerModalProps> = ({ onClose }) => {
-    const { activeWorkspace } = useWorkspace();
+    const { activeWorkspace, activeWorkspaceRole, reloadWorkspaces } = useWorkspace();
+    const { user } = useAuth();
     const { data: members, isLoading } = useWorkspaceMembers(activeWorkspace.id);
-    
-    const addMemberMutation = useAddMember(activeWorkspace.id);
+
+    const inviteMutation = useInviteMember(activeWorkspace.id);
     const updateRoleMutation = useUpdateMemberRole(activeWorkspace.id);
     const removeMemberMutation = useRemoveMember(activeWorkspace.id);
+    const transferMutation = useTransferOwnership(activeWorkspace.id);
 
     const [newEmail, setNewEmail] = useState('');
-    const [isAdding, setIsAdding] = useState(false);
+    const [isInviting, setIsInviting] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [notice, setNotice] = useState<string | null>(null);
 
-    // Segurança na UI: Apenas Owner e Admin podem ver controles sensíveis
-    const canManage = ['owner', 'admin'].includes(activeWorkspace.myRole || 'viewer');
+    // Papel lido do membership ativo (WorkspaceContext), nunca do índice.
+    const actorRole: WorkspaceRole = activeWorkspaceRole ?? 'viewer';
+    const manageable = MANAGED_BY[actorRole];
+    const canManage = manageable.length > 0;
+
+    const canEditMember = (memberId: string, role: WorkspaceRole) =>
+        canManage && memberId !== user?.uid && role !== 'owner' && manageable.includes(role);
 
     const handleInvite = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!newEmail.trim()) return;
-        
+        const email = newEmail.trim();
+        if (!email) return;
+
         setError(null);
-        setIsAdding(true);
+        setNotice(null);
+        setIsInviting(true);
 
         try {
-            // OBS: Em produção, isso dispararia um Cloud Function para enviar e-mail.
-            // Aqui, simulamos adicionando direto (assumindo que o e-mail é a chave ou que temos o UID).
-            // Para o MVP funcionar, vamos gerar um ID fake baseado no email se não tivermos auth real de busca.
-            const fakeUid = newEmail.replace(/[^a-zA-Z0-9]/g, ''); 
-            
-            const newMember: WorkspaceMember = {
-                uid: fakeUid, // Num sistema real, buscaríamos o UID pelo email via Cloud Function
-                email: newEmail,
-                role: 'viewer', // Padrão seguro
-                displayName: newEmail.split('@')[0],
-                joinedAt: new Date().toISOString()
-            };
-
-            await addMemberMutation.mutateAsync(newMember);
+            // Convite pendente vinculado ao e-mail (D-05). O membership só é
+            // criado quando a própria pessoa aceita, com a conta dela.
+            await inviteMutation.mutateAsync({ email, role: 'viewer' });
             setNewEmail('');
+            setNotice(`Convite registrado para ${email}.`);
         } catch (err) {
             console.error(err);
-            setError("Falha ao adicionar membro. Verifique se o e-mail é válido.");
+            setError(workspaceErrorMessage(err, 'Não foi possível registrar o convite. Tente novamente.'));
         } finally {
-            setIsAdding(false);
+            setIsInviting(false);
         }
     };
 
-    const handleRoleChange = (memberId: string, newRole: WorkspaceRole) => {
-        if (!canManage) return;
-        updateRoleMutation.mutate({ memberId, role: newRole });
+    const handleTransfer = async (memberId: string, label: string) => {
+        if (!confirm(`Transferir a titularidade do espaço para ${label}? Você passará a ser administrador.`)) {
+            return;
+        }
+        try {
+            await withRecentLogin(() => transferMutation.mutateAsync(memberId));
+            await reloadWorkspaces();
+        } catch (err) {
+            console.error(err);
+            setError(workspaceErrorMessage(err, 'Não foi possível transferir a titularidade. Tente novamente.'));
+        }
+    };
+
+    const handleRoleChange = (memberId: string, label: string, newRole: WorkspaceRole) => {
+        setError(null);
+        setNotice(null);
+        if (newRole === 'owner') {
+            if (actorRole === 'owner') void handleTransfer(memberId, label);
+            return;
+        }
+        updateRoleMutation.mutate({ memberId, role: newRole }, {
+            onError: (err) => {
+                console.error(err);
+                setError(workspaceErrorMessage(err, 'Não foi possível alterar o papel. Tente novamente.'));
+            },
+        });
     };
 
     const handleRemove = (memberId: string) => {
-        if (!canManage) return;
+        setError(null);
+        setNotice(null);
         if (confirm('Tem certeza que deseja remover este membro? Ele perderá acesso imediatamente.')) {
-            removeMemberMutation.mutate(memberId);
+            removeMemberMutation.mutate(memberId, {
+                onError: (err) => {
+                    console.error(err);
+                    setError(workspaceErrorMessage(err, 'Não foi possível remover o membro. Tente novamente.'));
+                },
+            });
         }
     };
 
@@ -123,13 +167,14 @@ const MembersManagerModal: React.FC<MembersManagerModalProps> = ({ onClose }) =>
                                 />
                                 <button 
                                     type="submit" 
-                                    disabled={isAdding}
+                                    disabled={isInviting}
                                     className="bg-primary hover:bg-primary/90 text-white px-6 py-2 rounded-lg font-bold disabled:opacity-50 transition-all"
                                 >
-                                    {isAdding ? 'Adicionando...' : 'Convidar'}
+                                    {isInviting ? 'Convidando...' : 'Convidar'}
                                 </button>
                             </form>
-                            {error && <p className="text-red-500 text-xs mt-2">{error}</p>}
+                            {error && <p className="text-red-500 text-xs mt-2" role="alert">{error}</p>}
+                            {notice && <p className="text-xs text-muted mt-2">{notice}</p>}
                             <p className="text-xs text-muted mt-2">
                                 * Novos membros entram como "Visualizador" por padrão. Você pode alterar o papel abaixo.
                             </p>
@@ -162,16 +207,22 @@ const MembersManagerModal: React.FC<MembersManagerModalProps> = ({ onClose }) =>
                                         <div className="flex items-center gap-4">
                                             <select 
                                                 value={member.role}
-                                                onChange={(e) => handleRoleChange(member.uid, e.target.value as WorkspaceRole)}
-                                                disabled={!canManage || member.role === 'owner'} 
+                                                onChange={(e) => handleRoleChange(member.uid, member.displayName || member.email, e.target.value as WorkspaceRole)}
+                                                disabled={!canEditMember(member.uid, member.role)} 
                                                 className="bg-background border border-border rounded px-2 py-1 text-xs text-on-surface focus:ring-1 focus:ring-primary outline-none disabled:opacity-50 cursor-pointer"
                                             >
-                                                {Object.entries(ROLE_LABELS).map(([key, label]) => (
-                                                    <option key={key} value={key}>{label}</option>
-                                                ))}
+                                                {(Object.entries(ROLE_LABELS) as Array<[WorkspaceRole, string]>)
+                                                    .filter(([key]) =>
+                                                        !canEditMember(member.uid, member.role) ||
+                                                        key === member.role ||
+                                                        manageable.includes(key as ManageableRole) ||
+                                                        (key === 'owner' && actorRole === 'owner'))
+                                                    .map(([key, label]) => (
+                                                        <option key={key} value={key}>{label}</option>
+                                                    ))}
                                             </select>
 
-                                            {canManage && member.role !== 'owner' && (
+                                            {canEditMember(member.uid, member.role) && (
                                                 <button 
                                                     onClick={() => handleRemove(member.uid)}
                                                     className="p-2 text-muted hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"

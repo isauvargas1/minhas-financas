@@ -1,7 +1,7 @@
 import * as admin from "firebase-admin";
 import {FieldValue, Timestamp} from "firebase-admin/firestore";
 
-import {CreditCardApplicationError} from "../creditCards/errors";
+import {ApplicationError} from "./errors";
 import {saoPauloDayKey} from "./dateKeys";
 import {RETENTION_DAYS, expiresInDays} from "./retention";
 
@@ -118,7 +118,7 @@ const reserveRateLimitAt = async (
 
   if (used >= policy.limit) {
     const resetsAt = Timestamp.fromMillis(windowStartMs + windowMs);
-    throw new CreditCardApplicationError(
+    throw new ApplicationError(
       "domain_precondition_failed",
       "Muitas solicitações em pouco tempo. Aguarde alguns instantes e " +
         "tente novamente.",
@@ -152,4 +152,40 @@ const reserveRateLimitAt = async (
     resetsAt: Timestamp.fromMillis(nextWindowStartMs + windowMs),
     commit,
   };
+};
+
+/**
+ * Consome uma unidade do limite do usuário numa transação **própria**.
+ *
+ * Para as operações em que a tentativa inválida precisa gastar orçamento —
+ * aceite de convite é o caso: quem tenta adivinhar tokens falha em todas as
+ * tentativas. Reservado dentro da transação da operação, o contador seria
+ * desfeito junto com ela a cada falha e o limite não limitaria nada. Aqui ele
+ * é confirmado antes de a operação começar, e a falha posterior não o desfaz.
+ */
+export const consumeUserRateLimit = async (
+  userId: string,
+  policy: RateLimitPolicy,
+): Promise<void> => {
+  await admin.firestore().runTransaction(async (transaction) => {
+    const reservation = await reserveUserRateLimit(transaction, userId, policy);
+    reservation.commit();
+  });
+};
+
+/** Mesmo contrato de `consumeUserRateLimit`, com chave workspace + ator. */
+export const consumeWorkspaceRateLimit = async (
+  workspaceId: string,
+  actorId: string,
+  policy: RateLimitPolicy,
+): Promise<void> => {
+  await admin.firestore().runTransaction(async (transaction) => {
+    const reservation = await reserveRateLimit(
+      transaction,
+      workspaceId,
+      actorId,
+      policy,
+    );
+    reservation.commit();
+  });
 };

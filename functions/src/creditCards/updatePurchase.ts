@@ -1,9 +1,7 @@
 import * as admin from "firebase-admin";
 import { FieldValue } from "firebase-admin/firestore";
 
-import type {
-  CreditCardCallableExecutionContext,
-} from "./callable";
+import type {CreditCardOperationContext} from "./callable";
 
 import type {
   UpdateCreditCardPurchasePayload,
@@ -23,8 +21,9 @@ import {
 } from "./adminPaths";
 
 import {
-  CreditCardApplicationError,
-} from "./errors";
+  ApplicationError,
+} from "../shared/errors";
+import {reassertWorkspaceActor} from "../shared/workspaceAuth";
 
 import {
   markIdempotencyKeyCompleted,
@@ -187,7 +186,7 @@ const parseIsoDateParts = (
   const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
 
   if (!match) {
-    throw new CreditCardApplicationError(
+    throw new ApplicationError(
       "invalid_payload",
       "Data da compra inválida.",
       {field: "purchaseDate"}
@@ -201,7 +200,7 @@ const parseIsoDateParts = (
   const lastDay = lastDayOfMonth(year, monthIndex);
 
   if (month < 1 || month > 12 || day < 1 || day > lastDay) {
-    throw new CreditCardApplicationError(
+    throw new ApplicationError(
       "invalid_payload",
       "Data da compra inválida.",
       {field: "purchaseDate"}
@@ -277,7 +276,7 @@ const calculateInstallmentAmounts = (
   }
 
   if (sumMoney(amounts) !== normalizeMoney(totalAmount)) {
-    throw new CreditCardApplicationError(
+    throw new ApplicationError(
       "domain_precondition_failed",
       "A soma das parcelas não fecha com o valor total da compra.",
       {totalAmount}
@@ -413,13 +412,15 @@ const buildResult = (
 });
 
 export const executeUpdateCreditCardPurchase = async (
-  context: CreditCardCallableExecutionContext<UpdateCreditCardPurchasePayload>
+  context: CreditCardOperationContext<UpdateCreditCardPurchasePayload>
 ): Promise<UpdateCreditCardPurchaseResult | Record<string, unknown>> => {
-  const {payload, auth} = context;
+  const {payload, actor} = context;
   const db = getFirestore();
   const operation = "updateCreditCardPurchase";
 
   return db.runTransaction(async (transaction) => {
+    await reassertWorkspaceActor(transaction, actor);
+
     const workspaceId = payload.workspaceId;
     const purchaseRef = creditCardPurchaseDoc(
       workspaceId,
@@ -445,7 +446,7 @@ export const executeUpdateCreditCardPurchase = async (
     ]);
 
     if (!purchaseSnapshot.exists) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "not_found",
         "Compra de cartão não encontrada.",
         {purchaseId: payload.purchaseId}
@@ -453,7 +454,7 @@ export const executeUpdateCreditCardPurchase = async (
     }
 
     if (!limitSnapshot.exists) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "not_found",
         "Snapshot de limite do cartão não encontrado.",
         {cardId: payload.cardId}
@@ -471,7 +472,7 @@ export const executeUpdateCreditCardPurchase = async (
     ) as InstallmentData[];
 
     if (!purchaseData) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "internal",
         "Compra existente sem dados carregados.",
         {purchaseId: payload.purchaseId}
@@ -479,7 +480,7 @@ export const executeUpdateCreditCardPurchase = async (
     }
 
     if (!limitSnapshotData) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "internal",
         "Snapshot de limite existente sem dados carregados.",
         {cardId: payload.cardId}
@@ -487,7 +488,7 @@ export const executeUpdateCreditCardPurchase = async (
     }
 
     if (oldInstallments.length === 0) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "A compra não possui parcelas para edição.",
         {purchaseId: payload.purchaseId}
@@ -506,7 +507,7 @@ export const executeUpdateCreditCardPurchase = async (
     );
 
     if (!currentPurchaseDate) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "A compra existente não possui data válida.",
         {purchaseId: payload.purchaseId}
@@ -612,7 +613,7 @@ export const executeUpdateCreditCardPurchase = async (
     }
 
     if (purchaseData.workspaceId !== workspaceId) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "A compra não pertence ao workspace informado.",
         {purchaseId: payload.purchaseId}
@@ -620,7 +621,7 @@ export const executeUpdateCreditCardPurchase = async (
     }
 
     if (purchaseData.cardId !== payload.cardId) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "A compra não pertence ao cartão informado.",
         {purchaseId: payload.purchaseId, cardId: payload.cardId}
@@ -628,7 +629,7 @@ export const executeUpdateCreditCardPurchase = async (
     }
 
     if (purchaseData.status !== "active") {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "Somente compras ativas podem ser editadas.",
         {purchaseId: payload.purchaseId, status: purchaseData.status}
@@ -642,7 +643,7 @@ export const executeUpdateCreditCardPurchase = async (
     );
 
     if (invalidInstallment) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "Todas as parcelas precisam pertencer à compra, cartão e workspace.",
         {installmentId: invalidInstallment.id}
@@ -655,7 +656,7 @@ export const executeUpdateCreditCardPurchase = async (
     );
 
     if (paidInstallment) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "Não é permitido editar compra com parcela já paga.",
         {installmentId: paidInstallment.id}
@@ -667,7 +668,7 @@ export const executeUpdateCreditCardPurchase = async (
     );
 
     if (activePayment) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "Não é permitido editar compra com pagamento em fatura afetada.",
         {
@@ -694,7 +695,7 @@ export const executeUpdateCreditCardPurchase = async (
     );
 
     if (invalidInvoice) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "As faturas afetadas precisam pertencer ao mesmo cartão e workspace.",
         {invoiceId: invalidInvoice.id}
@@ -706,7 +707,7 @@ export const executeUpdateCreditCardPurchase = async (
     );
 
     if (nonOpenInvoice) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "Edição conservadora exige que todas as faturas afetadas estejam abertas.",
         {invoiceId: nonOpenInvoice.id, status: nonOpenInvoice.data?.status}
@@ -871,7 +872,7 @@ export const executeUpdateCreditCardPurchase = async (
     const deltaAmount = normalizeMoney(nextTotalAmount - currentTotalAmount);
 
     if (deltaAmount > 0 && currentLimitAvailable < deltaAmount) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "Limite disponível insuficiente para aumentar esta compra.",
         {
@@ -899,7 +900,7 @@ export const executeUpdateCreditCardPurchase = async (
         amount: Math.abs(deltaAmount),
         balanceAfter: newLimitAvailable,
         createdAt: serverTimestamp,
-        actorId: auth.uid,
+        actorId: actor.uid,
         idempotencyKey: payload.idempotencyKey,
       });
     }
@@ -925,7 +926,7 @@ transaction.update(purchaseRef, toFirestoreData({
   installmentsCount: nextInstallmentsCount,
   amountType: nextAmountType,
   firstInvoiceCompetence: newFirstInvoiceCompetence,
-  updatedBy: auth.uid,
+  updatedBy: actor.uid,
   updatedAt: serverTimestamp,
 }));
 
@@ -952,13 +953,13 @@ transaction.update(purchaseRef, toFirestoreData({
       correlationId: payload.correlationId,
       idempotencyKey: payload.idempotencyKey,
       createdAt: serverTimestamp,
-      actorId: auth.uid,
+      actorId: actor.uid,
     }));
 
     recordCreditCardAuditLog(transaction, {
       workspaceId,
       action: "purchase_updated",
-      actorId: auth.uid,
+      actorId: actor.uid,
       entityType: "purchase",
       entityId: payload.purchaseId,
       cardId: payload.cardId,
@@ -983,7 +984,7 @@ transaction.update(purchaseRef, toFirestoreData({
      recordCreditCardOperationMetric(transaction, {
       workspaceId,
       operation: "purchase_updated",
-      actorId: auth.uid,
+      actorId: actor.uid,
       cardId: payload.cardId,
       purchaseId: payload.purchaseId,
       amount: Math.abs(deltaAmount),

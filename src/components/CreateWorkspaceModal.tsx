@@ -4,7 +4,7 @@ import { CloseIcon, BriefcaseIcon } from './Icons.tsx';
 import { useCreateWorkspace } from '../modules/workspaces/hooks.ts';
 import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
 import { useTheme } from '../contexts/ThemeContext.tsx';
-import { useAuth } from '../contexts/AuthContext.tsx';
+import { workspaceErrorMessage } from '../modules/workspaces/errors.ts';
 
 interface CreateWorkspaceModalProps {
     isOpen: boolean;
@@ -14,25 +14,25 @@ interface CreateWorkspaceModalProps {
 const CreateWorkspaceModal: React.FC<CreateWorkspaceModalProps> = ({ isOpen, onClose }) => {
     const [name, setName] = useState('');
     const [cnpj, setCnpj] = useState('');
-    
+    const [error, setError] = useState<string | null>(null);
+
     const { mutate: createWorkspace, isPending } = useCreateWorkspace();
     const { reloadWorkspaces, switchWorkspace } = useWorkspace();
     const { playSound } = useTheme();
-    const { user } = useAuth();
 
     if (!isOpen) return null;
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         
-        if (!name.trim() || !user) return;
+        if (!name.trim()) return;
+        setError(null);
 
-        createWorkspace({ 
-            type: 'PJ', 
-            name, 
-            cnpj: cnpj || undefined,
-            ownerId: user.uid,
-            email: user.email || 'usuario-sem-email@sistema'
+        // Dono, e-mail e identidade vêm do token no backend (P1).
+        createWorkspace({
+            type: 'PJ',
+            name,
+            cnpj: cnpj.trim() || undefined,
         }, {
             onSuccess: async (newWorkspace) => {
                 playSound('success');
@@ -42,8 +42,9 @@ const CreateWorkspaceModal: React.FC<CreateWorkspaceModalProps> = ({ isOpen, onC
                 setName('');
                 setCnpj('');
             },
-            onError: () => {
+            onError: (failure) => {
                 playSound('error');
+                setError(workspaceErrorMessage(failure, 'Não foi possível criar a empresa. Tente novamente.'));
             }
         });
     };
@@ -88,6 +89,8 @@ const CreateWorkspaceModal: React.FC<CreateWorkspaceModalProps> = ({ isOpen, onC
                             placeholder="00.000.000/0001-00"
                         />
                     </div>
+
+                    {error && <p className="text-sm text-red-600" role="alert">{error}</p>}
 
                     <div className="pt-4 flex justify-end gap-3">
                         <button 

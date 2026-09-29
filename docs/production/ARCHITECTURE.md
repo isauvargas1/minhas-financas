@@ -64,7 +64,7 @@ Todos os milestones P2–P5 criam callables. O kernel é construído em P1 e con
 ### 2.1 Resolvedor único de membership e papel
 
 - **CURRENT:** `requireWorkspaceRole` vive no módulo de cartões (`functions/src/creditCards/auth.ts:103-125`) e é importado por investimentos, metas, IA, divisão e rebuild de caixa (`functions/src/investments/callables.ts:4`, `functions/src/goals/callables.ts:28`, `functions/src/ai/callables.ts:129`, `functions/src/callables/splitGroups.ts:109`, `functions/src/cash/rebuild.ts:252`). Investimentos têm cópia transacional (`functions/src/investments/infrastructure.ts:152-205`). Ambos caem para `ownerId` quando não há membership (`functions/src/creditCards/auth.ts:73-94`); as Rules repetem o regime duplo (`firestore.rules:27-34`). Cartões e metas checam o papel fora da transação (`functions/src/creditCards/callable.ts:57-61`).
-- **TARGET:** `authorizeInTransaction(tx, workspaceId, uid, allowedRoles)` lê `workspaces/{id}` e `members/{uid}` dentro da transação da mutação; exige membership `active`, papel na matriz declarada da operação e workspace não arquivado; sem fallback `ownerId`. `workspaceId` do payload precisa ser igual ao autorizado (padrão já existente em `functions/src/investments/infrastructure.ts:239-248`). As Rules usam um helper equivalente, sem owner-by-parent. O conjunto de papéis segue D-02.
+- **TARGET:** `authorizeInTransaction(tx, workspaceId, uid, allowedRoles)` lê `workspaces/{id}` e `members/{uid}` dentro da transação da mutação; exige membership `active`, papel na matriz declarada da operação e workspace não arquivado; sem fallback `ownerId`. `workspaceId` do payload precisa ser igual ao autorizado (padrão já existente em `functions/src/investments/infrastructure.ts:239-248`). As Rules usam um helper equivalente, sem owner-by-parent. Papéis owner/admin/member/viewer, com `viewer` somente leitura (D-02); exatamente um owner canônico, e `ownerId` só desnormalizado, nunca consultado (D-03).
 - **GAP:** PR-WS-03, PR-WS-04, WS-10, ENTRY-20.
 
 ### 2.2 Wrapper de callable
@@ -73,10 +73,10 @@ Todos os milestones P2–P5 criam callables. O kernel é construído em P1 e con
 - **TARGET:** toda callable é declarada pelo wrapper, que aplica em ordem:
   1. opções de runtime da classe (`DOMAIN_CALLABLE_OPTIONS`, `HEAVY_CALLABLE_OPTIONS`, `AI_CALLABLE_OPTIONS`);
   2. ponto de App Check (`enforceAppCheck`, e `consumeAppCheckToken` em IA e checkout), ativado em P6;
-  3. autenticação e política de `email_verified`/provedor (D-06);
+  3. autenticação, recusa de conta suspensa (D-P1-SUSP) e política de `email_verified`, `auth_time` e provedor por callable (D-06);
   4. Zod `.strict()` com esquema de ID sem `/`, `*Cents` como `int().safe()` com teto, strings com tamanho máximo;
   5. geração de `requestId` e contexto de log;
-  6. transação com `authorizeInTransaction`, rate limit, idempotência e entitlement (§3);
+  6. transação com `authorizeInTransaction`, rate limit, idempotência e, a partir de P2, entitlement (§2.8; as callables de P1 não consultam quota, D-01) (§3);
   7. mapeamento único de erros: códigos estáveis (`invalid-argument`, `permission-denied`, `not-found`, `failed-precondition`, `resource-exhausted` para rate limit e quota, `aborted` para conflito) e mensagem pt-BR sem detalhes internos;
   8. log estruturado do resultado.
 - **GAP:** ENTRY-11, ENTRY-21, ENTRY-23, FEW-18; ativação de App Check em P6 (PR-APPCHK-01).
@@ -102,19 +102,19 @@ Todos os milestones P2–P5 criam callables. O kernel é construído em P1 e con
 ### 2.6 Módulo money
 
 - **CURRENT:** centavos e micros inteiros só em investimentos (`functions/src/investments/math.ts:12-45`, `functions/src/investments/contracts.ts:20-32`, `src/modules/investments/simple/form.ts:36-40`); metas convertem com `toMinorUnits` e gravam float ao lado (`functions/src/goals/operations.ts:143-152,167-185`); cartões arredondam com `normalizeMoney` (`functions/src/creditCards/createPurchase.ts:99-100`) e o front tem arredondamentos divergentes (`src/components/TransactionModal.tsx:393-394`, `src/components/CreditCardsView.tsx:320`).
-- **TARGET:** `functions/src/shared/money.ts` e `src/lib/money.ts` com o mesmo contrato: parse de string para centavos recusando fração de centavo, soma exata com `Number.isSafeInteger`, alocação por maior resto, formatação pt-BR só na exibição, moeda BRL (D-16); regra de lint contra `parseFloat`/`toFixed` em campo monetário. P1 entrega o módulo; a adoção acontece por domínio em P3–P5. Semântica em [FINANCIAL_DOMAIN_MODEL.md](FINANCIAL_DOMAIN_MODEL.md).
+- **TARGET:** `functions/src/shared/money.ts` e `src/lib/money.ts` com o mesmo contrato: parse de string para centavos recusando fração de centavo, soma exata com `Number.isSafeInteger`, alocação por maior resto com empate resolvido pelo menor índice e partes somando exatamente o total (D-34), formatação pt-BR só na exibição, moeda BRL (D-16); regra de lint contra `parseFloat`/`toFixed` em campo monetário. P1 entrega o módulo; a adoção acontece por domínio em P3–P5. Semântica em [FINANCIAL_DOMAIN_MODEL.md](FINANCIAL_DOMAIN_MODEL.md).
 - **GAP:** PR-MONEY-01 (P1), MONEY-13.
 
 ### 2.7 Política de datas civis
 
 - **CURRENT:** o backend já calcula chaves `YYYY-MM-DD`/`YYYY-MM` em `America/Sao_Paulo` (`functions/src/shared/dateKeys.ts:11,21-26`), usadas por caixa, investimentos e crons; o front tem cópia só em relatórios (`src/modules/reports/dateWindow.ts:16,26`). Coexistem três definições de janela e fusos mistos (`src/modules/reports/logic.ts:358,517-553`) e datas de recorrência gravadas à meia-noite UTC (`src/modules/recurring-expenses/api.ts:198-199`).
-- **TARGET:** data civil persistida como date-key `YYYY-MM-DD` em `America/Sao_Paulo`; instante como timestamp do servidor; uma única definição de janela no backend, espelhada no front; nenhum `toISOString()` para derivar dia. Fuso canônico pendente de D-17 (recomendado).
+- **TARGET:** data civil persistida como date-key `YYYY-MM-DD` em `America/Sao_Paulo`; instante como timestamp do servidor; uma única definição de janela no backend, espelhada no front; nenhum `toISOString()` para derivar dia. Fuso canônico `America/Sao_Paulo` (D-17, tomada).
 - **GAP:** PR-REC-05, PR-GOAL-03, RPTAI-12.
 
 ### 2.8 Entitlements (entregue em P2, consumido pelo wrapper)
 
 - **CURRENT:** limites de plano só no cliente (`src/hooks/usePlan.ts:36-38`); os rate limits do servidor não dependem de plano (`functions/src/shared/rateLimit.ts:55-155`).
-- **TARGET:** `resolveEntitlements(plano, status, datas)` no backend e checagem de quota dentro da transação que cria o recurso, com contadores por workspace e período; cada callable nova de P3–P5 declara sua quota no wrapper.
+- **TARGET:** `resolveEntitlements(plano, status, datas)` no backend e checagem de quota dentro da transação que cria o recurso, com contadores por workspace e período; cada callable nova de P3–P5 declara sua quota no wrapper. As callables de P1 não consultam quota; P2 insere a checagem nas transações de `createWorkspace`, `inviteWorkspaceMember` e `acceptWorkspaceInvite` (D-01).
 - **GAP:** PR-ENT-01 (P2, fecha em P5 conforme D-ORD-05), PR-AI-03.
 
 ---
@@ -249,26 +249,20 @@ Regra completa em [PRODUCTION_READINESS_PLAN.md](PRODUCTION_READINESS_PLAN.md#po
 
 | ID | Efeito na arquitetura |
 | --- | --- |
-| D-01 | Onde vive o estado de assinatura e contra quem a quota é contada |
-| D-02 | Matriz de papéis do resolvedor e das Rules (com ou sem `viewer`) |
-| D-03 | Invariantes de owner no resolvedor e papel de `ownerId` |
-| D-06 | Política de provedor e `email_verified` no wrapper |
+| D-01 | Onde vive o estado de assinatura e contra quem a quota é contada (bloqueia só P2) |
 | D-09 | Remoção de Mensagens ou novo backend |
 | D-10 | Existência da camada administrativa (`platformAdmin`) |
 | D-11 | Provedor de IA, SDK e fluxo de dados para terceiros |
 | D-15 | Superfície profissional de investimentos mantida ou removida |
-| D-16 | BRL fixo no módulo money ou multimoeda |
-| D-17 | Fuso canônico da política de datas |
 | D-19 | Mapeamento dos projetos DEV/STAGING/PROD |
 | D-20 | Build de CSS e paridade visual |
 | D-23 | Catálogo de configurações por callable ou cliente com Rules estritas |
 | D-29 | Função única de efeito de caixa (regime de caixa × competência) |
 | D-33 | Rollout do App Check no wrapper, em Firestore e em Auth |
-| D-34 | Contrato de alocação do resíduo e recusa de fração no módulo money |
 | D-35 | Correção de lançamento e trilha de auditoria de caixa |
 | D-38 | Via única de atualização da projeção de caixa |
 
-**DECISION (tomadas):** D-ORD-01 (caixa autoritativo abre P3), D-ORD-02 (kernel em P1), D-ORD-04 (nada remoto antes de P6), D-ORD-05 (quotas incrementais P2–P5).
+**DECISION (tomadas):** D-ORD-01 (caixa autoritativo abre P3), D-ORD-02 (kernel em P1), D-ORD-04 (nada remoto antes de P6), D-ORD-05 (quotas incrementais P2–P5). Para P1 ([plano §9.1](PRODUCTION_READINESS_PLAN.md#91-decisões-de-produto-tomadas-para-p1)): D-02 (papéis owner/admin/member/viewer no resolvedor e nas Rules, `viewer` somente leitura), D-03 (um owner canônico; `ownerId` desnormalizado, fora da autorização), D-04 (matriz de gestão de membros), D-05 (convite com token de 256 bits, só SHA-256 persistido, sem pepper), D-06 (só Google; `email_verified` e `auth_time` por callable no wrapper), D-16 (BRL fixo no módulo money), D-17 (datas civis em `America/Sao_Paulo`), D-22 (PF e PJ com membros; CNPJ opcional validado), D-34 (maior resto, empate pelo menor índice, recusa de fração no módulo money). D-01 segue pendente e bloqueia só P2.
 
 ---
 

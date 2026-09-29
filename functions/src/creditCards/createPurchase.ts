@@ -1,9 +1,7 @@
 import * as admin from "firebase-admin";
 import { FieldValue } from "firebase-admin/firestore";
 
-import type {
-    CreditCardCallableExecutionContext,
-} from "./callable";
+import type {CreditCardOperationContext} from "./callable";
 
 import type {
     CreateCreditCardPurchasePayload,
@@ -23,8 +21,9 @@ import {
 } from "./adminPaths";
 
 import {
-    CreditCardApplicationError,
-} from "./errors";
+    ApplicationError,
+} from "../shared/errors";
+import {reassertWorkspaceActor} from "../shared/workspaceAuth";
 
 import {
     markIdempotencyKeyCompleted,
@@ -140,7 +139,7 @@ const assertPositiveNumber = (
     const numberValue = Number(value);
 
     if (!Number.isFinite(numberValue) || numberValue <= 0) {
-        throw new CreditCardApplicationError(
+        throw new ApplicationError(
             "domain_precondition_failed",
             message,
             { code }
@@ -162,7 +161,7 @@ const assertValidDay = (
         numberValue < 1 ||
         numberValue > 31
     ) {
-        throw new CreditCardApplicationError(
+        throw new ApplicationError(
             "domain_precondition_failed",
             message,
             { code }
@@ -178,7 +177,7 @@ const parseIsoDateParts = (
     const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
 
     if (!match) {
-        throw new CreditCardApplicationError(
+        throw new ApplicationError(
             "invalid_payload",
             "Data da compra inválida.",
             { field: "purchaseDate" }
@@ -192,7 +191,7 @@ const parseIsoDateParts = (
     const lastDay = new Date(Date.UTC(year, monthIndex + 1, 0)).getUTCDate();
 
     if (month < 1 || month > 12 || day < 1 || day > lastDay) {
-        throw new CreditCardApplicationError(
+        throw new ApplicationError(
             "invalid_payload",
             "Data da compra inválida.",
             { field: "purchaseDate" }
@@ -284,7 +283,7 @@ export const calculateInstallmentAmounts = (
     const calculatedTotal = sumMoney(amounts);
 
     if (calculatedTotal !== normalizeMoney(totalAmount)) {
-        throw new CreditCardApplicationError(
+        throw new ApplicationError(
             "domain_precondition_failed",
             "A soma das parcelas não fecha com o valor total da compra.",
             { totalAmount, calculatedTotal }
@@ -425,13 +424,15 @@ const buildResult = (
 });
 
 export const executeCreateCreditCardPurchase = async (
-    context: CreditCardCallableExecutionContext<CreateCreditCardPurchasePayload>
+    context: CreditCardOperationContext<CreateCreditCardPurchasePayload>
 ): Promise<CreateCreditCardPurchaseResult | Record<string, unknown>> => {
-    const { payload, auth } = context;
+    const {payload, actor} = context;
     const db = getFirestore();
     const operation = "createCreditCardPurchase";
 
     return db.runTransaction(async (transaction) => {
+        await reassertWorkspaceActor(transaction, actor);
+
         const workspaceId = payload.workspaceId;
         const cardRef = creditCardDoc(workspaceId, payload.cardId);
         const cardSnapshotRef = cardLimitSnapshotDoc(
@@ -445,7 +446,7 @@ export const executeCreateCreditCardPurchase = async (
         ]);
 
         if (!cardSnapshot.exists) {
-            throw new CreditCardApplicationError(
+            throw new ApplicationError(
                 "not_found",
                 "Cartão não encontrado.",
                 { cardId: payload.cardId }
@@ -455,7 +456,7 @@ export const executeCreateCreditCardPurchase = async (
         const cardData = cardSnapshot.data() as CreditCardDocumentData;
 
         if (cardData.status !== "active") {
-            throw new CreditCardApplicationError(
+            throw new ApplicationError(
                 "domain_precondition_failed",
                 "A compra só pode ser lançada em cartão ativo.",
                 { cardId: payload.cardId, status: cardData.status }
@@ -493,7 +494,7 @@ export const executeCreateCreditCardPurchase = async (
         );
 
         if (currentLimitAvailable < purchaseTotalAmount) {
-            throw new CreditCardApplicationError(
+            throw new ApplicationError(
                 "domain_precondition_failed",
                 "Limite disponível insuficiente para esta compra.",
                 {
@@ -573,8 +574,8 @@ export const executeCreateCreditCardPurchase = async (
             firstInvoiceCompetence,
             source: payload.source,
             status: "active",
-            createdBy: auth.uid,
-            updatedBy: auth.uid,
+            createdBy: actor.uid,
+            updatedBy: actor.uid,
             idempotencyKey: payload.idempotencyKey,
             createdAt: serverTimestamp,
             updatedAt: serverTimestamp,
@@ -599,7 +600,7 @@ export const executeCreateCreditCardPurchase = async (
                 const existingData = existingInvoice.data();
 
                 if (!existingData) {
-                    throw new CreditCardApplicationError(
+                    throw new ApplicationError(
                         "internal",
                         "Fatura existente sem dados carregados.",
                         { invoiceId: invoice.id }
@@ -612,7 +613,7 @@ export const executeCreateCreditCardPurchase = async (
                     isReusableCancelledInvoice(existingData);
 
                 if (!canReceivePurchase) {
-                    throw new CreditCardApplicationError(
+                    throw new ApplicationError(
                         "domain_precondition_failed",
                         "Não é permitido adicionar compra em fatura não aberta.",
                         { invoiceId: invoice.id, status: existingStatus }
@@ -712,7 +713,7 @@ export const executeCreateCreditCardPurchase = async (
             amount: purchaseTotalAmount,
             balanceAfter: newLimitAvailable,
             createdAt: serverTimestamp,
-            actorId: auth.uid,
+            actorId: actor.uid,
             idempotencyKey: payload.idempotencyKey,
         }));
 
@@ -751,7 +752,7 @@ export const executeCreateCreditCardPurchase = async (
             correlationId: payload.correlationId,
             idempotencyKey: payload.idempotencyKey,
             createdAt: serverTimestamp,
-            actorId: auth.uid,
+            actorId: actor.uid,
         }));
 
         enqueueCreditCardDomainNotifications(transaction, {
@@ -762,13 +763,13 @@ export const executeCreateCreditCardPurchase = async (
             purchaseId,
             ledgerEntryId,
             payload: eventPayload,
-            actorId: auth.uid,
+            actorId: actor.uid,
         });
 
         recordCreditCardAuditLog(transaction, {
             workspaceId,
             action: "purchase_created",
-            actorId: auth.uid,
+            actorId: actor.uid,
             entityType: "purchase",
             entityId: purchaseId,
             cardId: payload.cardId,
@@ -783,7 +784,7 @@ export const executeCreateCreditCardPurchase = async (
         recordCreditCardOperationMetric(transaction, {
     workspaceId,
     operation: "purchase_created",
-    actorId: auth.uid,
+    actorId: actor.uid,
     cardId: payload.cardId,
     purchaseId,
     amount: purchaseTotalAmount,

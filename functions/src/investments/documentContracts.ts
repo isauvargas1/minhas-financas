@@ -1,7 +1,7 @@
 import {FieldValue, Timestamp} from "firebase-admin/firestore";
 import {z} from "zod";
 
-import {CreditCardApplicationError} from "../creditCards/errors";
+import {ApplicationError} from "../shared/errors";
 import {
   INVESTMENT_CALCULATION_VERSION,
   INVESTMENT_DOMAIN_VERSION,
@@ -409,7 +409,7 @@ export const assertInvestmentDocument = <T extends Record<string, unknown>>(
     expectedWorkspaceId !== undefined &&
     document.workspaceId !== expectedWorkspaceId
   ) {
-    throw new CreditCardApplicationError(
+    throw new ApplicationError(
       "domain_precondition_failed",
       `Documento de ${LABELS[kind]} declara workspace divergente do caminho.`,
       {expected: expectedWorkspaceId, received: String(document.workspaceId)},
@@ -420,7 +420,7 @@ export const assertInvestmentDocument = <T extends Record<string, unknown>>(
     const issues = result.error.issues
       .map((issue) => `${issue.path.join(".") || "(raiz)"}: ${issue.message}`)
       .join("; ");
-    throw new CreditCardApplicationError(
+    throw new ApplicationError(
       "domain_precondition_failed",
       `Documento de ${LABELS[kind]} fora do contrato: ${issues}`,
       {issues},

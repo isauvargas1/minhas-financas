@@ -1,9 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import type {
-  CreditCardCallableExecutionContext,
-} from "../callable";
+import type {CreditCardOperationContext} from "../callable";
 
 import type {
   CreateCreditCardPurchasePayload,
@@ -15,15 +13,11 @@ import {
 } from "../createPurchase";
 
 import {
-  CreditCardApplicationError,
-} from "../errors";
+  ApplicationError,
+} from "../../shared/errors";
 
 import {
-  getCreditCardBackendWritePlan,
-  type CreditCardBackendWriteOperation,
-} from "../writeStrategy";
-
-import {
+  creditCardTestActor,
   getIntegrationFirestore,
   resetCreditCardIntegrationWorkspace,
   seedCreditCardIntegrationWorkspace,
@@ -34,16 +28,10 @@ const TEST_OWNER_ID = "user-credit-card-idempotency-replay-owner";
 const TEST_CARD_ID = "card-credit-card-idempotency-replay-test";
 
 const buildContext = <TPayload extends {workspaceId: string}>(
-  payload: TPayload,
-  operation: CreditCardBackendWriteOperation
-): CreditCardCallableExecutionContext<TPayload> => ({
+  payload: TPayload
+): CreditCardOperationContext<TPayload> => ({
   payload,
-  auth: {
-    uid: TEST_OWNER_ID,
-    workspaceId: payload.workspaceId,
-    role: "owner",
-  },
-  plan: getCreditCardBackendWritePlan(operation),
+  actor: creditCardTestActor(payload.workspaceId, TEST_OWNER_ID),
 });
 
 const countCollection = async (
@@ -82,16 +70,13 @@ const expectIdempotencyConflict = async (
   await assert.rejects(
     operation,
     (error: unknown) =>
-      error instanceof CreditCardApplicationError &&
+      error instanceof ApplicationError &&
       error.code === "idempotency_conflict"
   );
 };
 
 test(
   "mesma idempotencyKey com mesmo payload deve retornar replay sem duplicar efeitos financeiros",
-  {
-    skip: !process.env.FIRESTORE_EMULATOR_HOST,
-  },
   async () => {
     await resetCreditCardIntegrationWorkspace(TEST_WORKSPACE_ID);
 
@@ -102,7 +87,7 @@ test(
     });
 
     const payload = buildPurchasePayload();
-    const context = buildContext(payload, "createCreditCardPurchase");
+    const context = buildContext(payload);
 
     const firstResult = await executeCreateCreditCardPurchase(
       context
@@ -138,9 +123,6 @@ test(
 
 test(
   "mesma idempotencyKey com payload diferente deve bloquear replay incompatível",
-  {
-    skip: !process.env.FIRESTORE_EMULATOR_HOST,
-  },
   async () => {
     await resetCreditCardIntegrationWorkspace(TEST_WORKSPACE_ID);
 
@@ -161,12 +143,12 @@ test(
     });
 
     await executeCreateCreditCardPurchase(
-      buildContext(originalPayload, "createCreditCardPurchase")
+      buildContext(originalPayload)
     );
 
     await expectIdempotencyConflict(() =>
       executeCreateCreditCardPurchase(
-        buildContext(conflictingPayload, "createCreditCardPurchase")
+        buildContext(conflictingPayload)
       )
     );
 

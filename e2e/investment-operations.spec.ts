@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { callCallable, emulatorIdToken, runPagedCallable } from './support/callables';
 import { createRequire } from 'node:module';
+import { seedOwnedWorkspace } from './support/workspaceSeed';
 
 const require = createRequire(import.meta.url);
 const admin = require('../functions/node_modules/firebase-admin') as typeof import('../functions/node_modules/firebase-admin');
@@ -42,13 +43,10 @@ const seedWorkspace = async () => {
   const now = sdk.firestore.Timestamp.now();
   const at = (iso: string) => sdk.firestore.Timestamp.fromDate(new Date(iso));
 
+  await seedOwnedWorkspace({
+    uid: UID, email: EMAIL, workspaceId: WORKSPACE, name: 'Empresa E2E', type: 'PJ',
+  });
   await Promise.all([
-    db.doc(`workspaces/${WORKSPACE}`).set({
-      ownerId: UID, name: 'Empresa E2E', type: 'PJ',
-      createdAt: now, updatedAt: now,
-    }),
-    db.doc(`workspaces/${WORKSPACE}/members/${UID}`).set({ uid: UID, role: 'owner', status: 'active' }),
-    db.doc(`users/${UID}/workspaces/${WORKSPACE}`).set({ workspaceId: WORKSPACE, role: 'owner' }),
     // Caixa de receita e despesa: continua sendo domínio de `transactions`.
     db.doc(`workspaces/${WORKSPACE}/transactions/caixa-1`).set({
       type: 'receita', description: 'Faturamento do mês', category: 'Serviços',

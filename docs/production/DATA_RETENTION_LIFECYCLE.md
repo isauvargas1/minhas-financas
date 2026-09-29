@@ -83,7 +83,7 @@ Fora da tabela, `activity_logs` recebe `expiresAt` de 365 dias por constante pr�
 | --- | --- | --- | --- | --- |
 | Conta | Usuário no Firebase Auth, sessões | Enquanto a conta existir; após a exclusão, só o que D-07 reter | Callable de exclusão com reautenticação: revoga sessões e exclui o usuário do Auth | P8 (PR-AUTH-01) |
 | Perfil | `users/{uid}` (nome, e-mail, foto, telefone, preferências) | Até a exclusão da conta: **DECISION D-18** | Eliminação ou anonimização no job de exclusão | P1 (perfil server-owned), P8 |
-| Membership | `members`, `users/{uid}/workspaces`, convites, `membership_events` | Vínculo ativo; registro removido e convite expirado: **DECISION D-18** (expiração do convite em D-05) | Remoção lógica (`status`), convite com `expiresAt` e TTL, trilha append-only | P1 (PR-WS-01, PR-WS-02), P8 |
+| Membership | `members`, `users/{uid}/workspaces`, convites, `membership_events` | Vínculo ativo; registro removido e convite expirado: **DECISION D-18** (o convite expira em 7 dias, D-05) | Remoção lógica (`status`), convite com `expiresAt` e TTL, trilha append-only | P1 (PR-WS-01, PR-WS-02), P8 |
 | Dados financeiros do workspace | `transactions`, `cash_report_periods`, domínio de cartões, `investment_*` (fatos), `goals`, `loans`, `loan_movements`, `receivables`, `recurring_*`, `split_*` | Nunca expiram enquanto o workspace existir (regra CURRENT de `retention.ts:11-15`). Após encerramento ou pedido de eliminação: **DECISION D-18** (obrigação fiscal a confirmar, E-09) e **D-07** | Arquivamento, cancelamento e estorno (§5); job de eliminação do workspace inteiro ao fim da retenção | P3–P5 (semântica), P8 (eliminação) |
 | Dados de terceiros | `clients` (CPF/CNPJ, e-mail, telefone, observações), contrapartes em `loans` (`personName`, `personContact`, `cnpjCpf`), nomes de participantes em `split_*`, textos livres | Enquanto necessários à finalidade do workspace: **DECISION D-18** | Anonimização sob pedido preservando valores; eliminação junto com o workspace | P8 (PR-CR-05, LOAN-16; D-14) |
 | Auditoria | `goal_audit_logs`, `credit_card_audit_logs`, eventos de sucesso em `investment_event_logs`, trilha de caixa (P3), `membership_events`, auditoria de billing, `admin_audit_logs`; destino de `activity_logs` | **DECISION D-18** (vinculado à obrigação legal). `activity_logs` tem 365 dias no HEAD | Imutável; ator anonimizado na exclusão de conta (D-07); TTL ou job só depois de definido o prazo; diff mínimo sem texto livre (GOAL-14) | P3, P7, P8 |
@@ -191,7 +191,8 @@ MEDIUM/LOW de origem: PRIV-08 (sem política de retenção de dados pessoais), R
 | D-18 | Prazos por categoria (§4), inclusive backups e pós-cancelamento | DECISION pendente (P5, P8) |
 | D-27 | RPO/RTO, política de backup e janela de PITR | DECISION pendente (P7) |
 | D-01, D-08 | Entidade pagadora e downgrade/cancelamento, que definem o que acontece com os dados após o fim da assinatura | DECISION pendente (P2) |
-| D-03, D-05, D-09, D-11, D-14, D-21 | Último owner, expiração de convite, Mensagens, IA, participantes externos, encarregado e canal | DECISION pendente |
+| D-03, D-05 | Owner canônico único; convite válido por 7 dias | DECISION tomada (§9.1 do plano) |
+| D-09, D-11, D-14, D-21 | Mensagens, IA, participantes externos, encarregado e canal | DECISION pendente |
 | D-ORD-03 | Exclusão e exportação em P8 | DECISION tomada |
 
 | ID | Item EXTERNAL CONFIGURATION REQUIRED | Ambiente | Valor esperado | Estado | Data | Responsável |

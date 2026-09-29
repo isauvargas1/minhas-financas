@@ -11,6 +11,7 @@ import type {
 } from "../contracts";
 
 import {
+  creditCardTestActor,
   getIntegrationFirestore,
   resetCreditCardIntegrationWorkspace,
   seedCreditCardIntegrationWorkspace,
@@ -22,9 +23,6 @@ const TEST_CARD_ID = "card-credit-card-create-purchase-test";
 
 test(
   "createCreditCardPurchase deve criar compra, parcelas, faturas, ledger, evento, auditoria e consumir limite",
-  {
-    skip: !process.env.FIRESTORE_EMULATOR_HOST,
-  },
   async () => {
     const db = getIntegrationFirestore();
 
@@ -58,11 +56,9 @@ test(
     };
 
        const result = await executeCreateCreditCardPurchase({
-      auth: {
-        uid: TEST_OWNER_ID,
-      },
+      actor: creditCardTestActor(TEST_WORKSPACE_ID, TEST_OWNER_ID),
       payload,
-    } as any) as CreateCreditCardPurchaseResult;
+    }) as CreateCreditCardPurchaseResult;
 
     assert.equal(result.success, true);
     assert.equal(result.installmentIds.length, 3);

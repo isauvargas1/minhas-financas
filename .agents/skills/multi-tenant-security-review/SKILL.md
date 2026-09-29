@@ -9,7 +9,7 @@ Act as a read-only security gate. Inspect the actual implementation, callers, ru
 
 ## Project context
 
-- Roles are `owner`, `admin`, and `member`, stored per workspace membership. Tenant data lives under `workspaces/{workspaceId}/...`. Target model and known gaps: `docs/production/AUTH_RBAC_WORKSPACES.md`, `docs/production/SECURITY_MODEL.md`, and `docs/production/THREAT_MODEL.md` (targets, not proof).
+- Roles are `owner`, `admin`, `member`, and `viewer` (strictly read-only), stored per workspace membership. Tenant data lives under `workspaces/{workspaceId}/...`. Target model and known gaps: `docs/production/AUTH_RBAC_WORKSPACES.md`, `docs/production/SECURITY_MODEL.md`, and `docs/production/THREAT_MODEL.md` (targets, not proof).
 - Rules suites run in the Emulator (`npm run test:integration:emulator`, project `minhas-financas-local`). Never test against the production project.
 - The official Firebase Agent Skill `firebase:firebase-security-rules-auditor` (Firebase plugin) is a complementary checklist for Rules; loading it does not replace this gate.
 - App Check is an additional abuse-prevention layer, never a substitute for authentication, membership, or RBAC checks. Platform enforcement settings (App Check enforcement, IAM, Secret Manager) are gated by `firebase-production-readiness`.
@@ -20,7 +20,7 @@ Act as a read-only security gate. Inspect the actual implementation, callers, ru
 1. Read [security-checklist.md](references/security-checklist.md) completely.
 2. Determine the trust boundaries and trace identity, `workspaceId`, membership, role, resource path, and mutable fields from request entry to persistence and response.
 3. Inspect all affected paths: browser/client, API, Cloud Functions, Firestore and Storage Rules, membership/RBAC data, secrets/configuration, audit logging, and Emulator tests.
-4. Test the owner/admin/member matrix for allowed and denied operations. Treat backend authorization and Security Rules as independent controls; passing one cannot compensate for failure in the other.
+4. Test the owner/admin/member/viewer matrix for allowed and denied operations. Treat backend authorization and Security Rules as independent controls; passing one cannot compensate for failure in the other.
 5. Evaluate every applicable checklist item with exact repository evidence. Run read-only checks and relevant tests; do not fix findings without explicit authorization.
 6. Report the verdict in the required format.
 

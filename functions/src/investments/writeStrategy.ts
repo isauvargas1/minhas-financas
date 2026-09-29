@@ -1,4 +1,4 @@
-import type {WorkspaceMemberRole} from "../creditCards/auth";
+import type {WorkspaceRole} from "../shared/workspaceAuth";
 import type {InvestmentBackendOperation} from "./infrastructure";
 
 /**
@@ -36,7 +36,7 @@ export type InvestmentWriteTarget =
 
 export interface InvestmentBackendWritePlan {
   operation: InvestmentBackendOperation;
-  allowedRoles: WorkspaceMemberRole[];
+  allowedRoles: WorkspaceRole[];
   requiresAuthentication: true;
   requiresWorkspaceMembership: true;
   requiresIdempotencyKey: boolean;
@@ -54,9 +54,9 @@ export interface InvestmentBackendWritePlan {
   clientDirectWriteAllowed: false;
 }
 
-const MUTATION_ROLES: WorkspaceMemberRole[] = ["owner", "admin", "member"];
-const PRIVILEGED_ROLES: WorkspaceMemberRole[] = ["owner", "admin"];
-const OWNER_ROLES: WorkspaceMemberRole[] = ["owner"];
+const MUTATION_ROLES: WorkspaceRole[] = ["owner", "admin", "member"];
+const PRIVILEGED_ROLES: WorkspaceRole[] = ["owner", "admin"];
+const OWNER_ROLES: WorkspaceRole[] = ["owner"];
 
 export const INVESTMENT_BACKEND_WRITE_PLANS: Record<
   InvestmentBackendOperation,
@@ -633,5 +633,5 @@ export const getInvestmentBackendWritePlan = (
 /** Papéis autorizados a executar a operação, em wrapper e em transação. */
 export const investmentOperationRoles = (
   operation: InvestmentBackendOperation,
-): WorkspaceMemberRole[] =>
+): WorkspaceRole[] =>
   INVESTMENT_BACKEND_WRITE_PLANS[operation].allowedRoles;

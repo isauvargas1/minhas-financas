@@ -29,6 +29,7 @@ import {
 } from "../reverseInvoicePayment";
 
 import {
+  creditCardTestActor,
   getIntegrationFirestore,
   resetCreditCardIntegrationWorkspace,
   seedCreditCardIntegrationWorkspace,
@@ -67,9 +68,6 @@ const findSuccessMetric = (
 
 test(
   "operações críticas devem registrar métricas operacionais por workspace",
-  {
-    skip: !process.env.FIRESTORE_EMULATOR_HOST,
-  },
   async () => {
     const db = getIntegrationFirestore();
 
@@ -82,9 +80,7 @@ test(
     });
 
     const purchaseForPaymentResult = await executeCreateCreditCardPurchase({
-      auth: {
-        uid: TEST_OWNER_ID,
-      },
+      actor: creditCardTestActor(TEST_WORKSPACE_ID, TEST_OWNER_ID),
       payload: {
         workspaceId: TEST_WORKSPACE_ID,
         cardId: TEST_CARD_ID,
@@ -105,16 +101,14 @@ test(
         idempotencyKey: "integration-metrics-purchase-payment-001",
         correlationId: "integration-metrics-purchase-payment",
       },
-    } as any) as CreateCreditCardPurchaseResult;
+    }) as CreateCreditCardPurchaseResult;
 
     assert.equal(purchaseForPaymentResult.success, true);
 
     const invoiceId = `${TEST_CARD_ID}_2026-04`;
 
     const paymentResult = await executeRegisterCreditCardInvoicePayment({
-      auth: {
-        uid: TEST_OWNER_ID,
-      },
+      actor: creditCardTestActor(TEST_WORKSPACE_ID, TEST_OWNER_ID),
       payload: {
         workspaceId: TEST_WORKSPACE_ID,
         cardId: TEST_CARD_ID,
@@ -125,14 +119,12 @@ test(
         idempotencyKey: "integration-metrics-payment-001",
         correlationId: "integration-metrics-payment",
       },
-    } as any) as RegisterCreditCardInvoicePaymentResult;
+    }) as RegisterCreditCardInvoicePaymentResult;
 
     assert.equal(paymentResult.success, true);
 
     const reversalResult = await executeReverseCreditCardInvoicePayment({
-      auth: {
-        uid: TEST_OWNER_ID,
-      },
+      actor: creditCardTestActor(TEST_WORKSPACE_ID, TEST_OWNER_ID),
       payload: {
         workspaceId: TEST_WORKSPACE_ID,
         cardId: TEST_CARD_ID,
@@ -143,14 +135,12 @@ test(
         idempotencyKey: "integration-metrics-reversal-001",
         correlationId: "integration-metrics-reversal",
       },
-    } as any) as ReverseCreditCardInvoicePaymentResult;
+    }) as ReverseCreditCardInvoicePaymentResult;
 
     assert.equal(reversalResult.success, true);
 
     const purchaseForCancellationResult = await executeCreateCreditCardPurchase({
-      auth: {
-        uid: TEST_OWNER_ID,
-      },
+      actor: creditCardTestActor(TEST_WORKSPACE_ID, TEST_OWNER_ID),
       payload: {
         workspaceId: TEST_WORKSPACE_ID,
         cardId: TEST_CARD_ID,
@@ -171,14 +161,12 @@ test(
         idempotencyKey: "integration-metrics-purchase-cancel-001",
         correlationId: "integration-metrics-purchase-cancel",
       },
-    } as any) as CreateCreditCardPurchaseResult;
+    }) as CreateCreditCardPurchaseResult;
 
     assert.equal(purchaseForCancellationResult.success, true);
 
     const cancellationResult = await executeCancelCreditCardPurchase({
-      auth: {
-        uid: TEST_OWNER_ID,
-      },
+      actor: creditCardTestActor(TEST_WORKSPACE_ID, TEST_OWNER_ID),
       payload: {
         workspaceId: TEST_WORKSPACE_ID,
         cardId: TEST_CARD_ID,
@@ -188,14 +176,12 @@ test(
         idempotencyKey: "integration-metrics-cancel-001",
         correlationId: "integration-metrics-cancel",
       },
-    } as any) as CancelCreditCardPurchaseResult;
+    }) as CancelCreditCardPurchaseResult;
 
     assert.equal(cancellationResult.success, true);
 
     const rebuildResult = await executeRebuildCardInvoicesForCard({
-      auth: {
-        uid: TEST_OWNER_ID,
-      },
+      actor: creditCardTestActor(TEST_WORKSPACE_ID, TEST_OWNER_ID),
       payload: {
         workspaceId: TEST_WORKSPACE_ID,
         cardId: TEST_CARD_ID,
@@ -205,7 +191,7 @@ test(
         idempotencyKey: "integration-metrics-rebuild-001",
         correlationId: "integration-metrics-rebuild",
       },
-    } as any) as RebuildCardInvoicesForCardResult;
+    }) as RebuildCardInvoicesForCardResult;
 
     assert.equal(rebuildResult.success, true);
 

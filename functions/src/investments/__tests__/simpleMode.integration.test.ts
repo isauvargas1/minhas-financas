@@ -3,7 +3,13 @@ import test from "node:test";
 import * as admin from "firebase-admin";
 import {Timestamp} from "firebase-admin/firestore";
 
-import type {WorkspaceAuthorizationContext} from "../../creditCards/auth";
+import type {WorkspaceActor} from "../../shared/workspaceAuth";
+import {
+  requireFirestoreEmulator,
+  seedActiveAccount,
+  seedMember as seedKernelMember,
+  seedWorkspace as seedKernelWorkspace,
+} from "../../shared/testSupport/kernelTestSupport";
 import {
   applyCashPeriodWriteOnce,
   cashPeriodEventKey,
@@ -57,11 +63,6 @@ import {executeSeedLegacySettingsCatalog} from "../../goals/operations";
  *   do que o capital aplicado é erro de domínio, não uma estimativa.
  */
 
-if (!process.env.FIRESTORE_EMULATOR_HOST) {
-  throw new Error("FIRESTORE_EMULATOR_HOST é obrigatório.");
-}
-
-const PROJECT = process.env.GCLOUD_PROJECT ?? "minhas-financas-local";
 const WS_A = "simple-mode-workspace-a";
 const WS_B = "simple-mode-workspace-b";
 const OWNER_A = "simple-mode-owner-a";
@@ -111,16 +112,15 @@ const CATEGORY_SEM_SUBTIPO = "cat-category-sem-subtipo";
 const CATEGORY_INATIVA = "cat-category-inativa";
 const INSTITUTION_B = "cat-institution-workspace-b";
 
-const db = (): admin.firestore.Firestore => {
-  if (!admin.apps.length) admin.initializeApp({projectId: PROJECT});
-  return admin.firestore();
-};
+// Sem o Emulator a suíte falha ao carregar, em vez de pular.
+const firestore = requireFirestoreEmulator();
+const db = (): admin.firestore.Firestore => firestore;
 
 const auth = (
   workspaceId = WS_A,
   uid = OWNER_A,
   role: "owner" | "admin" | "member" = "owner",
-): WorkspaceAuthorizationContext => ({workspaceId, uid, role});
+): WorkspaceActor => ({workspaceId, uid, role});
 
 const at = (iso: string) => Timestamp.fromDate(new Date(iso));
 
@@ -161,22 +161,15 @@ const seed = async (): Promise<void> => {
     db().recursiveDelete(db().doc(`workspaces/${WS_A}`)),
     db().recursiveDelete(db().doc(`workspaces/${WS_B}`)),
   ]);
-  await db().doc(`workspaces/${WS_A}`).set({
-    ownerId: OWNER_A, type: "PF", currency: "BRL", name: WS_A,
-  });
-  await db().doc(`workspaces/${WS_B}`).set({
-    ownerId: OWNER_B, type: "PF", currency: "BRL", name: WS_B,
-  });
+  await Promise.all(
+    [OWNER_A, MEMBER_A, OWNER_B].map((uid) => seedActiveAccount(uid)),
+  );
   await Promise.all([
-    db().doc(`workspaces/${WS_A}/members/${OWNER_A}`).set({
-      uid: OWNER_A, role: "owner", status: "active",
-    }),
-    db().doc(`workspaces/${WS_A}/members/${MEMBER_A}`).set({
-      uid: MEMBER_A, role: "member", status: "active",
-    }),
-    db().doc(`workspaces/${WS_B}/members/${OWNER_B}`).set({
-      uid: OWNER_B, role: "owner", status: "active",
-    }),
+    seedKernelWorkspace({workspaceId: WS_A, ownerId: OWNER_A}),
+    seedKernelWorkspace({workspaceId: WS_B, ownerId: OWNER_B}),
+  ]);
+  await Promise.all([
+    seedKernelMember(WS_A, MEMBER_A, "member"),
     db().doc(`workspaces/${WS_A}/goals/${GOAL}`).set({
       id: GOAL, workspaceId: WS_A, name: "Meta simples",
       progressBasis: "net_contributions",
@@ -211,7 +204,7 @@ interface NovoInvestimento {
   instituicaoId?: string;
   categoriaId?: string;
   quando?: string;
-  contexto?: WorkspaceAuthorizationContext;
+  contexto?: WorkspaceActor;
   /** Aporte pendente que este lançamento substitui (correção do §11). */
   substitui?: string;
 }
@@ -1113,7 +1106,7 @@ const retirar = (
     rendimentoCents?: number;
     recebido?: boolean;
     quando?: string;
-    contexto?: WorkspaceAuthorizationContext;
+    contexto?: WorkspaceActor;
   } = {},
 ) =>
   executeWithdrawSimpleInvestment(extras.contexto ?? auth(), {

@@ -1,9 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import type {
-  CreditCardCallableExecutionContext,
-} from "../callable";
+import type {CreditCardOperationContext} from "../callable";
 
 import type {
   CancelCreditCardPurchasePayload,
@@ -22,8 +20,8 @@ import {
 } from "../createPurchase";
 
 import {
-  CreditCardApplicationError,
-} from "../errors";
+  ApplicationError,
+} from "../../shared/errors";
 
 import {
   executeRegisterCreditCardInvoicePayment,
@@ -35,11 +33,7 @@ import {
 } from "../reverseInvoicePayment";
 
 import {
-  getCreditCardBackendWritePlan,
-  type CreditCardBackendWriteOperation,
-} from "../writeStrategy";
-
-import {
+  creditCardTestActor,
   getIntegrationFirestore,
   resetCreditCardIntegrationWorkspace,
   seedCreditCardIntegrationWorkspace,
@@ -50,16 +44,10 @@ const TEST_OWNER_ID = "user-credit-card-concurrency-owner";
 const TEST_CARD_ID = "card-credit-card-concurrency-test";
 
 const buildContext = <TPayload extends {workspaceId: string}>(
-  payload: TPayload,
-  operation: CreditCardBackendWriteOperation
-): CreditCardCallableExecutionContext<TPayload> => ({
+  payload: TPayload
+): CreditCardOperationContext<TPayload> => ({
   payload,
-  auth: {
-    uid: TEST_OWNER_ID,
-    workspaceId: payload.workspaceId,
-    role: "owner",
-  },
-  plan: getCreditCardBackendWritePlan(operation),
+  actor: creditCardTestActor(payload.workspaceId, TEST_OWNER_ID),
 });
 
 const countCollection = async (
@@ -135,7 +123,7 @@ const createSingleInstallmentPurchase = async (
   };
 
   return await executeCreateCreditCardPurchase(
-    buildContext(payload, "createCreditCardPurchase")
+    buildContext(payload)
   ) as CreateCreditCardPurchaseResult;
 };
 
@@ -155,7 +143,7 @@ const payInvoice = async (
   };
 
   return await executeRegisterCreditCardInvoicePayment(
-    buildContext(payload, "registerCreditCardInvoicePayment")
+    buildContext(payload)
   ) as RegisterCreditCardInvoicePaymentResult;
 };
 
@@ -176,7 +164,7 @@ const reversePayment = async (
   };
 
   return executeReverseCreditCardInvoicePayment(
-    buildContext(payload, "reverseCreditCardInvoicePayment")
+    buildContext(payload)
   );
 };
 
@@ -186,16 +174,13 @@ const expectDomainPreconditionFailure = async (
   await assert.rejects(
     operation,
     (error: unknown) =>
-      error instanceof CreditCardApplicationError &&
+      error instanceof ApplicationError &&
       error.code === "domain_precondition_failed"
   );
 };
 
 test(
   "dois pagamentos simultâneos na mesma fatura devem preservar consistência financeira",
-  {
-    skip: !process.env.FIRESTORE_EMULATOR_HOST,
-  },
   async () => {
     await setupWorkspace();
 
@@ -237,9 +222,6 @@ test(
 
 test(
   "dois estornos simultâneos do mesmo pagamento devem preservar fatura, limite, ledger e caixa",
-  {
-    skip: !process.env.FIRESTORE_EMULATOR_HOST,
-  },
   async () => {
     await setupWorkspace();
 
@@ -298,9 +280,6 @@ test(
 
 test(
   "cancelamento de compra com fatura paga deve ser bloqueado",
-  {
-    skip: !process.env.FIRESTORE_EMULATOR_HOST,
-  },
   async () => {
     await setupWorkspace();
 
@@ -327,7 +306,7 @@ test(
 
     await expectDomainPreconditionFailure(() =>
       executeCancelCreditCardPurchase(
-        buildContext(cancelPayload, "cancelCreditCardPurchase")
+        buildContext(cancelPayload)
       )
     );
 

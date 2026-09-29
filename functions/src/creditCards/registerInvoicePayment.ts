@@ -1,9 +1,7 @@
 import * as admin from "firebase-admin";
 import { FieldValue } from "firebase-admin/firestore";
 
-import type {
-    CreditCardCallableExecutionContext,
-} from "./callable";
+import type {CreditCardOperationContext} from "./callable";
 
 import type {
     RegisterCreditCardInvoicePaymentPayload,
@@ -20,8 +18,9 @@ import {
 } from "./adminPaths";
 
 import {
-    CreditCardApplicationError,
-} from "./errors";
+    ApplicationError,
+} from "../shared/errors";
+import {reassertWorkspaceActor} from "../shared/workspaceAuth";
 
 import {
     markIdempotencyKeyCompleted,
@@ -178,15 +177,17 @@ const buildResult = (
 });
 
 export const executeRegisterCreditCardInvoicePayment = async (
-    context: CreditCardCallableExecutionContext<
+    context: CreditCardOperationContext<
         RegisterCreditCardInvoicePaymentPayload
     >
 ): Promise<RegisterCreditCardInvoicePaymentResult | Record<string, unknown>> => {
-    const { payload, auth } = context;
+    const {payload, actor} = context;
     const db = getFirestore();
     const operation = "registerCreditCardInvoicePayment";
 
     return db.runTransaction(async (transaction) => {
+        await reassertWorkspaceActor(transaction, actor);
+
         const workspaceId = payload.workspaceId;
         const invoiceRef = creditCardInvoiceDoc(workspaceId, payload.invoiceId);
         const limitSnapshotRef = cardLimitSnapshotDoc(
@@ -200,7 +201,7 @@ export const executeRegisterCreditCardInvoicePayment = async (
         ]);
 
         if (!invoiceSnapshot.exists) {
-            throw new CreditCardApplicationError(
+            throw new ApplicationError(
                 "not_found",
                 "Fatura não encontrada.",
                 { invoiceId: payload.invoiceId }
@@ -208,7 +209,7 @@ export const executeRegisterCreditCardInvoicePayment = async (
         }
 
         if (!limitSnapshot.exists) {
-            throw new CreditCardApplicationError(
+            throw new ApplicationError(
                 "not_found",
                 "Snapshot de limite do cartão não encontrado.",
                 { cardId: payload.cardId }
@@ -220,7 +221,7 @@ export const executeRegisterCreditCardInvoicePayment = async (
             LimitSnapshotData | undefined;
 
         if (!invoiceData) {
-            throw new CreditCardApplicationError(
+            throw new ApplicationError(
                 "internal",
                 "Fatura existente sem dados carregados.",
                 { invoiceId: payload.invoiceId }
@@ -228,7 +229,7 @@ export const executeRegisterCreditCardInvoicePayment = async (
         }
 
         if (!limitSnapshotData) {
-            throw new CreditCardApplicationError(
+            throw new ApplicationError(
                 "internal",
                 "Snapshot de limite existente sem dados carregados.",
                 { cardId: payload.cardId }
@@ -236,7 +237,7 @@ export const executeRegisterCreditCardInvoicePayment = async (
         }
 
         if (invoiceData.workspaceId !== workspaceId) {
-            throw new CreditCardApplicationError(
+            throw new ApplicationError(
                 "domain_precondition_failed",
                 "A fatura não pertence ao workspace informado.",
                 { invoiceId: payload.invoiceId }
@@ -244,7 +245,7 @@ export const executeRegisterCreditCardInvoicePayment = async (
         }
 
         if (invoiceData.cardId !== payload.cardId) {
-            throw new CreditCardApplicationError(
+            throw new ApplicationError(
                 "domain_precondition_failed",
                 "A fatura não pertence ao cartão informado.",
                 { invoiceId: payload.invoiceId, cardId: payload.cardId }
@@ -263,7 +264,7 @@ export const executeRegisterCreditCardInvoicePayment = async (
         }
 
         if (invoiceData.status === "cancelled") {
-            throw new CreditCardApplicationError(
+            throw new ApplicationError(
                 "domain_precondition_failed",
                 "Não é permitido pagar fatura cancelada.",
                 { invoiceId: payload.invoiceId }
@@ -271,7 +272,7 @@ export const executeRegisterCreditCardInvoicePayment = async (
         }
 
         if (invoiceData.status === "paid") {
-            throw new CreditCardApplicationError(
+            throw new ApplicationError(
                 "domain_precondition_failed",
                 "A fatura já está paga.",
                 { invoiceId: payload.invoiceId }
@@ -291,7 +292,7 @@ export const executeRegisterCreditCardInvoicePayment = async (
         const paymentAmount = normalizeMoney(payload.amount);
 
         if (paymentAmount > currentRemainingAmount) {
-            throw new CreditCardApplicationError(
+            throw new ApplicationError(
                 "domain_precondition_failed",
                 "O pagamento não pode exceder o saldo restante da fatura.",
                 {
@@ -351,7 +352,7 @@ export const executeRegisterCreditCardInvoicePayment = async (
             status: "posted",
             cashTransactionId: cashTransactionRef?.id,
             idempotencyKey: payload.idempotencyKey,
-            createdBy: auth.uid,
+            createdBy: actor.uid,
             createdAt: serverTimestamp,
             updatedAt: serverTimestamp,
         }));
@@ -391,7 +392,7 @@ export const executeRegisterCreditCardInvoicePayment = async (
             amount: paymentAmount,
             balanceAfter: newLimitAvailable,
             createdAt: serverTimestamp,
-            actorId: auth.uid,
+            actorId: actor.uid,
             idempotencyKey: payload.idempotencyKey,
         });
 
@@ -409,7 +410,7 @@ export const executeRegisterCreditCardInvoicePayment = async (
                 id: cashTransactionRef.id,
                 workspaceId,
                 profileId: workspaceId,
-                userId: auth.uid,
+                userId: actor.uid,
                 type: "despesa",
                 description: `Pagamento de fatura ${payload.invoiceId}`,
                 category: "Pagamento de Cartão",
@@ -449,7 +450,7 @@ export const executeRegisterCreditCardInvoicePayment = async (
             correlationId: payload.correlationId,
             idempotencyKey: payload.idempotencyKey,
             createdAt: serverTimestamp,
-            actorId: auth.uid,
+            actorId: actor.uid,
         }));
 
         enqueueCreditCardDomainNotifications(transaction, {
@@ -461,13 +462,13 @@ export const executeRegisterCreditCardInvoicePayment = async (
             ledgerEntryId,
             eventType: "invoice_payment_posted",
             payload: eventPayload,
-            actorId: auth.uid,
+            actorId: actor.uid,
         });
 
         recordCreditCardAuditLog(transaction, {
             workspaceId,
             action: "invoice_payment_registered",
-            actorId: auth.uid,
+            actorId: actor.uid,
             entityType: "payment",
             entityId: paymentId,
             cardId: payload.cardId,
@@ -483,7 +484,7 @@ export const executeRegisterCreditCardInvoicePayment = async (
         recordCreditCardOperationMetric(transaction, {
     workspaceId,
     operation: "invoice_payment_posted",
-    actorId: auth.uid,
+    actorId: actor.uid,
     cardId: payload.cardId,
     invoiceId: payload.invoiceId,
     paymentId,

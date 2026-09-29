@@ -1,9 +1,7 @@
 import * as admin from "firebase-admin";
 import { FieldValue } from "firebase-admin/firestore";
 
-import type {
-  CreditCardCallableExecutionContext,
-} from "./callable";
+import type {CreditCardOperationContext} from "./callable";
 
 import type {
   CloseCreditCardInvoicePayload,
@@ -19,8 +17,9 @@ import {
 } from "./adminPaths";
 
 import {
-  CreditCardApplicationError,
-} from "./errors";
+  ApplicationError,
+} from "../shared/errors";
+import {reassertWorkspaceActor} from "../shared/workspaceAuth";
 
 import {
   markIdempotencyKeyCompleted,
@@ -153,13 +152,15 @@ const buildResult = (
 });
 
 export const executeCloseCreditCardInvoice = async (
-  context: CreditCardCallableExecutionContext<CloseCreditCardInvoicePayload>
+  context: CreditCardOperationContext<CloseCreditCardInvoicePayload>
 ): Promise<CloseCreditCardInvoiceResult | Record<string, unknown>> => {
-  const { payload, auth } = context;
+  const {payload, actor} = context;
   const db = getFirestore();
   const operation = "closeCreditCardInvoice";
 
   return db.runTransaction(async (transaction) => {
+    await reassertWorkspaceActor(transaction, actor);
+
     const workspaceId = payload.workspaceId;
     const invoiceRef = creditCardInvoiceDoc(workspaceId, payload.invoiceId);
     const installmentsQuery = workspaceCollection(
@@ -176,7 +177,7 @@ export const executeCloseCreditCardInvoice = async (
     ]);
 
     if (!invoiceSnapshot.exists) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "not_found",
         "Fatura não encontrada.",
         { invoiceId: payload.invoiceId }
@@ -186,7 +187,7 @@ export const executeCloseCreditCardInvoice = async (
     const invoiceData = invoiceSnapshot.data() as InvoiceData | undefined;
 
     if (!invoiceData) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "internal",
         "Fatura existente sem dados carregados.",
         { invoiceId: payload.invoiceId }
@@ -210,7 +211,7 @@ export const executeCloseCreditCardInvoice = async (
     }
 
     if (invoiceData.workspaceId !== workspaceId) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "A fatura não pertence ao workspace informado.",
         { invoiceId: payload.invoiceId }
@@ -218,7 +219,7 @@ export const executeCloseCreditCardInvoice = async (
     }
 
     if (invoiceData.cardId !== payload.cardId) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "A fatura não pertence ao cartão informado.",
         { invoiceId: payload.invoiceId, cardId: payload.cardId }
@@ -226,7 +227,7 @@ export const executeCloseCreditCardInvoice = async (
     }
 
     if (invoiceData.status !== "open") {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "Somente faturas abertas podem ser fechadas.",
         { invoiceId: payload.invoiceId, status: invoiceData.status }
@@ -240,7 +241,7 @@ export const executeCloseCreditCardInvoice = async (
     );
 
     if (invalidInstallment) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "Todas as parcelas da fatura precisam pertencer ao mesmo workspace e cartão.",
         { installmentId: invalidInstallment.id }
@@ -250,7 +251,7 @@ export const executeCloseCreditCardInvoice = async (
     const billableInstallments = installments.filter(isBillableInstallment);
 
     if (billableInstallments.length === 0) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "Não é permitido fechar fatura sem itens faturáveis.",
         { invoiceId: payload.invoiceId }
@@ -264,7 +265,7 @@ export const executeCloseCreditCardInvoice = async (
     const remainingAmount = normalizeMoney(totalAmount - paidAmount);
 
     if (remainingAmount < 0) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "A fatura possui valor pago maior que o total calculado.",
         {
@@ -329,7 +330,7 @@ export const executeCloseCreditCardInvoice = async (
       correlationId: payload.correlationId,
       idempotencyKey: payload.idempotencyKey,
       createdAt: serverTimestamp,
-      actorId: auth.uid,
+      actorId: actor.uid,
     }));
 
     enqueueCreditCardDomainNotifications(transaction, {
@@ -339,13 +340,13 @@ export const executeCloseCreditCardInvoice = async (
       invoiceId: payload.invoiceId,
       eventType: "invoice_closed",
       payload: eventPayload,
-      actorId: auth.uid,
+      actorId: actor.uid,
     });
 
     recordCreditCardAuditLog(transaction, {
       workspaceId,
       action: "invoice_closed",
-      actorId: auth.uid,
+      actorId: actor.uid,
       entityType: "invoice",
       entityId: payload.invoiceId,
       cardId: payload.cardId,
@@ -359,7 +360,7 @@ export const executeCloseCreditCardInvoice = async (
         recordCreditCardOperationMetric(transaction, {
       workspaceId,
       operation: "invoice_closed",
-      actorId: auth.uid,
+      actorId: actor.uid,
       cardId: payload.cardId,
       invoiceId: payload.invoiceId,
       amount: totalAmount,

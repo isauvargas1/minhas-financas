@@ -13,6 +13,10 @@ setGlobalOptions(GLOBAL_FUNCTION_OPTIONS);
 // Triggers (Gatilhos Automáticos)
 export * from "./triggers/transactions";
 
+// P1 — conta, workspaces, membership e convites (kernel de autorização).
+export * from "./workspaces/callables";
+export {onWorkspaceDisplayChange} from "./workspaces/indexSync";
+
 // Callables (APIs chamadas pelo frontend)
 export * from "./callables/splitGroups";
 export * from "./creditCards/callables";

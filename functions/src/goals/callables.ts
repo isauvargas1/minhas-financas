@@ -1,11 +1,8 @@
-import {onCall} from "firebase-functions/v2/https";
-import type {CallableOptions} from "firebase-functions/v2/https";
-import {z} from "zod";
+import type {z} from "zod";
 
+import {defineCallable} from "../shared/callable";
 import {DOMAIN_CALLABLE_OPTIONS} from "../shared/runtimeOptions";
-
-import {requireWorkspaceRole} from "../creditCards/auth";
-import {toHttpsError} from "../creditCards/errors";
+import type {WorkspaceActor, WorkspaceRole} from "../shared/workspaceAuth";
 import {
   archiveGoalPayloadSchema,
   createGoalPayloadSchema,
@@ -19,43 +16,7 @@ import {
   executeUpdateGoal,
 } from "./operations";
 
-const buildContext = async <TPayload extends {workspaceId: string}>(
-  request: Parameters<typeof requireWorkspaceRole>[0],
-  schema: z.ZodType<TPayload>,
-  allowedRoles: Array<"owner" | "admin" | "member">,
-) => {
-  const payload = schema.parse(request.data);
-  const auth = await requireWorkspaceRole(request, payload.workspaceId, allowedRoles);
-  return {payload, auth};
-};
-
-/**
- * As callables de metas não declaravam recurso nenhum.
- *
- * `setGlobalOptions` fixa região e `maxInstances`, mas não tempo limite nem
- * memória: as sete rodavam no padrão da plataforma, 60 s e 256 MiB. Serve para
- * criar e editar meta; **não** serve para `rebuildGoalProgress`, que soma os
- * aportes fora da transação, por páginas com cursor, até o teto de 100.000 —
- * mais de trezentas consultas sequenciais no pior caso. O corte por tempo
- * aconteceria no meio da varredura, e a reconciliação que a área operacional
- * oferece falharia justamente nas metas grandes, que são as únicas que
- * precisam dela.
- */
-const callable = <TPayload extends {workspaceId: string}>(
-  schema: z.ZodType<TPayload>,
-  allowedRoles: Array<"owner" | "admin" | "member">,
-  operation: (auth: Awaited<ReturnType<typeof requireWorkspaceRole>>, payload: TPayload) => Promise<Record<string, unknown>>,
-  options: CallableOptions = DOMAIN_CALLABLE_OPTIONS,
-) => onCall(options, async (request) => {
-  try {
-    const context = await buildContext(request, schema, allowedRoles);
-    return await operation(context.auth, context.payload);
-  } catch (error) {
-    throw toHttpsError(error);
-  }
-});
-
-type GoalRole = "owner" | "admin" | "member";
+type GoalRole = Extract<WorkspaceRole, "owner" | "admin" | "member">;
 
 const ALL_ACTIVE_ROLES: GoalRole[] = ["owner", "admin", "member"];
 /** Operações administrativas de meta. */
@@ -80,26 +41,65 @@ export const GOAL_OPERATION_ROLES = {
   seedLegacySettingsCatalog: PRIVILEGED_ROLES,
 } as const satisfies Record<string, readonly GoalRole[]>;
 
-export const createGoal = callable(
+type GoalOperation = keyof typeof GOAL_OPERATION_ROLES;
+
+/** Com `workspaceRoles`, o kernel sempre entrega o ator resolvido. */
+const requireActor = (actor: WorkspaceActor | null): WorkspaceActor => {
+  if (!actor) throw new Error("goal_callable_without_actor");
+  return actor;
+};
+
+/**
+ * As callables de metas não declaravam recurso nenhum.
+ *
+ * `setGlobalOptions` fixa região e `maxInstances`, mas não tempo limite nem
+ * memória: as sete rodavam no padrão da plataforma, 60 s e 256 MiB. Serve para
+ * criar e editar meta; **não** serve para `rebuildGoalProgress`, que soma os
+ * aportes fora da transação, por páginas com cursor, até o teto de 100.000 —
+ * mais de trezentas consultas sequenciais no pior caso. O corte por tempo
+ * aconteceria no meio da varredura, e a reconciliação que a área operacional
+ * oferece falharia justamente nas metas grandes, que são as únicas que
+ * precisam dela.
+ */
+const goalCallable = <TPayload extends {workspaceId: string}>(
+  operation: GoalOperation,
+  schema: z.ZodType<TPayload>,
+  execute: (
+    actor: WorkspaceActor,
+    payload: TPayload,
+  ) => Promise<Record<string, unknown>>,
+) => {
+  return defineCallable({
+    operation,
+    schema,
+    runtime: DOMAIN_CALLABLE_OPTIONS,
+    workspaceRoles: [...GOAL_OPERATION_ROLES[operation]],
+    // A pré-checagem do kernel recusa cedo; a decisão que vale é a releitura
+    // dentro da transação de cada operação (`operations.ts`).
+    handler: ({actor, payload}) => execute(requireActor(actor), payload),
+  });
+};
+
+export const createGoal = goalCallable(
+  "createGoal",
   createGoalPayloadSchema,
-  [...GOAL_OPERATION_ROLES.createGoal],
   executeCreateGoal,
 );
 
-export const updateGoal = callable(
+export const updateGoal = goalCallable(
+  "updateGoal",
   updateGoalPayloadSchema,
-  [...GOAL_OPERATION_ROLES.updateGoal],
   executeUpdateGoal,
 );
 
-export const archiveGoal = callable(
+export const archiveGoal = goalCallable(
+  "archiveGoal",
   archiveGoalPayloadSchema,
-  [...GOAL_OPERATION_ROLES.archiveGoal],
   executeArchiveGoal,
 );
 
-export const seedLegacySettingsCatalog = callable(
+export const seedLegacySettingsCatalog = goalCallable(
+  "seedLegacySettingsCatalog",
   seedLegacyCatalogPayloadSchema,
-  [...GOAL_OPERATION_ROLES.seedLegacySettingsCatalog],
   executeSeedLegacySettingsCatalog,
 );

@@ -1,9 +1,7 @@
 import * as admin from "firebase-admin";
 import { FieldValue } from "firebase-admin/firestore";
 
-import type {
-  CreditCardCallableExecutionContext,
-} from "./callable";
+import type {CreditCardOperationContext} from "./callable";
 
 import type {
   RecalculateCardLimitPayload,
@@ -19,8 +17,9 @@ import {
 } from "./adminPaths";
 
 import {
-  CreditCardApplicationError,
-} from "./errors";
+  ApplicationError,
+} from "../shared/errors";
+import {reassertWorkspaceActor} from "../shared/workspaceAuth";
 
 import {
   markIdempotencyKeyCompleted,
@@ -131,13 +130,15 @@ const buildResult = (
 });
 
 export const executeRecalculateCardLimit = async (
-  context: CreditCardCallableExecutionContext<RecalculateCardLimitPayload>
+  context: CreditCardOperationContext<RecalculateCardLimitPayload>
 ): Promise<RecalculateCardLimitResult | Record<string, unknown>> => {
-  const { payload, auth } = context;
+  const {payload, actor} = context;
   const db = getFirestore();
   const operation = "recalculateCardLimit";
 
   return db.runTransaction(async (transaction) => {
+    await reassertWorkspaceActor(transaction, actor);
+
     const workspaceId = payload.workspaceId;
     const cardRef = creditCardDoc(workspaceId, payload.cardId);
     const limitSnapshotRef = cardLimitSnapshotDoc(
@@ -160,7 +161,7 @@ export const executeRecalculateCardLimit = async (
     ]);
 
     if (!cardSnapshot.exists) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "not_found",
         "Cartão não encontrado.",
         { cardId: payload.cardId }
@@ -170,7 +171,7 @@ export const executeRecalculateCardLimit = async (
     const cardData = cardSnapshot.data() as CreditCardData | undefined;
 
     if (!cardData) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "internal",
         "Cartão existente sem dados carregados.",
         { cardId: payload.cardId }
@@ -181,7 +182,7 @@ export const executeRecalculateCardLimit = async (
       cardData.workspaceId !== undefined &&
       cardData.workspaceId !== workspaceId
     ) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "O cartão não pertence ao workspace informado.",
         { cardId: payload.cardId }
@@ -191,7 +192,7 @@ export const executeRecalculateCardLimit = async (
     const limitTotal = normalizeMoney(Number(cardData.limitTotal ?? 0));
 
     if (limitTotal <= 0) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "O limite total do cartão precisa ser maior que zero.",
         { cardId: payload.cardId, limitTotal: cardData.limitTotal }
@@ -212,7 +213,7 @@ export const executeRecalculateCardLimit = async (
     );
 
     if (invalidLedgerEntry) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "O ledger do cartão possui lançamento inválido.",
         {
@@ -280,7 +281,7 @@ export const executeRecalculateCardLimit = async (
       correlationId: payload.correlationId,
       idempotencyKey: payload.idempotencyKey,
       createdAt: serverTimestamp,
-      actorId: auth.uid,
+      actorId: actor.uid,
     }));
 
     enqueueCreditCardDomainNotifications(transaction, {
@@ -289,13 +290,13 @@ export const executeRecalculateCardLimit = async (
       cardId: payload.cardId,
       eventType: "reconciliation_warning",
       payload: eventPayload,
-      actorId: auth.uid,
+      actorId: actor.uid,
     });
 
     recordCreditCardAuditLog(transaction, {
       workspaceId,
       action: "card_limit_recalculated",
-      actorId: auth.uid,
+      actorId: actor.uid,
       entityType: "card",
       entityId: payload.cardId,
       cardId: payload.cardId,
@@ -309,7 +310,7 @@ export const executeRecalculateCardLimit = async (
     recordCreditCardOperationMetric(transaction, {
   workspaceId,
   operation: "card_limit_recalculated",
-  actorId: auth.uid,
+  actorId: actor.uid,
   cardId: payload.cardId,
   amount: limitUsed,
   correlationId: payload.correlationId,

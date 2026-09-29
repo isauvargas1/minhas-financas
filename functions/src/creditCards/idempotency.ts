@@ -7,8 +7,8 @@ import {
 } from "./adminPaths";
 
 import {
-  CreditCardApplicationError,
-} from "./errors";
+  ApplicationError,
+} from "../shared/errors";
 
 import type {
   CreditCardBackendWriteOperation,
@@ -91,7 +91,7 @@ export const reserveIdempotencyKey = async (
     const data = snapshot.data();
 
     if (data?.requestHash !== requestHash) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "idempotency_conflict",
         "A chave de idempotência já foi usada com outro payload.",
         {operation: input.operation}
@@ -107,7 +107,7 @@ export const reserveIdempotencyKey = async (
       };
     }
 
-    throw new CreditCardApplicationError(
+    throw new ApplicationError(
       "idempotency_conflict",
       "Esta operação já está em processamento.",
       {operation: input.operation}

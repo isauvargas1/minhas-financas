@@ -17,6 +17,7 @@ import {
 } from "../reopenInvoice";
 
 import {
+  creditCardTestActor,
   getIntegrationFirestore,
   resetCreditCardIntegrationWorkspace,
   seedCreditCardIntegrationWorkspace,
@@ -55,9 +56,6 @@ const findSuccessMetric = (
 
 test(
   "closeCreditCardInvoice deve fechar fatura sem baixar caixa e reopenCreditCardInvoice deve reabrir sob regra restrita",
-  {
-    skip: !process.env.FIRESTORE_EMULATOR_HOST,
-  },
   async () => {
     const db = getIntegrationFirestore();
 
@@ -70,9 +68,7 @@ test(
     });
 
     const purchaseResult = await executeCreateCreditCardPurchase({
-      auth: {
-        uid: TEST_OWNER_ID,
-      },
+      actor: creditCardTestActor(TEST_WORKSPACE_ID, TEST_OWNER_ID),
       payload: {
         workspaceId: TEST_WORKSPACE_ID,
         cardId: TEST_CARD_ID,
@@ -93,14 +89,12 @@ test(
         idempotencyKey: "integration-close-reopen-create-001",
         correlationId: "integration-close-reopen-create",
       },
-    } as any) as CreateCreditCardPurchaseResult;
+    }) as CreateCreditCardPurchaseResult;
 
     const invoiceId = purchaseResult.invoiceIds[0];
 
     const closeResult = await executeCloseCreditCardInvoice({
-      auth: {
-        uid: TEST_OWNER_ID,
-      },
+      actor: creditCardTestActor(TEST_WORKSPACE_ID, TEST_OWNER_ID),
       payload: {
         workspaceId: TEST_WORKSPACE_ID,
         cardId: TEST_CARD_ID,
@@ -109,7 +103,7 @@ test(
         idempotencyKey: "integration-close-invoice-001",
         correlationId: "integration-close-invoice",
       },
-    } as any) as CloseCreditCardInvoiceResult;
+    }) as CloseCreditCardInvoiceResult;
 
     assert.equal(closeResult.success, true);
     assert.equal(closeResult.invoiceId, invoiceId);
@@ -151,9 +145,7 @@ test(
     assert.equal(closeAuditSnapshot.data()?.invoiceId, invoiceId);
 
     const reopenResult = await executeReopenCreditCardInvoice({
-      auth: {
-        uid: TEST_OWNER_ID,
-      },
+      actor: creditCardTestActor(TEST_WORKSPACE_ID, TEST_OWNER_ID),
       payload: {
         workspaceId: TEST_WORKSPACE_ID,
         cardId: TEST_CARD_ID,
@@ -163,7 +155,7 @@ test(
         idempotencyKey: "integration-reopen-invoice-001",
         correlationId: "integration-reopen-invoice",
       },
-    } as any) as ReopenCreditCardInvoiceResult;
+    }) as ReopenCreditCardInvoiceResult;
 
     assert.equal(reopenResult.success, true);
     assert.equal(reopenResult.invoiceId, invoiceId);

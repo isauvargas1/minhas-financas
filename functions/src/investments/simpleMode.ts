@@ -1,6 +1,6 @@
 import * as admin from "firebase-admin";
 
-import {CreditCardApplicationError} from "../creditCards/errors";
+import {ApplicationError} from "../shared/errors";
 import {deterministicDocumentId, sha256} from "./infrastructure";
 import {investmentWorkspaceRef} from "./paths";
 
@@ -57,7 +57,7 @@ export const assetTrackingMode = (
 export const valueModeQuantityMicros = (principalCents: number): number => {
   const quantityMicros = principalCents * VALUE_MODE_MICROS_PER_CENT;
   if (!Number.isSafeInteger(quantityMicros)) {
-    throw new CreditCardApplicationError(
+    throw new ApplicationError(
       "domain_precondition_failed",
       "O valor informado excede a representação monetária permitida.",
     );
@@ -77,7 +77,7 @@ export const assertQuantityOperationAllowed = (
   what: string,
 ): void => {
   if (assetTrackingMode(asset) === "value") {
-    throw new CreditCardApplicationError(
+    throw new ApplicationError(
       "domain_precondition_failed",
       `${what} não se aplica a um investimento controlado por valor. ` +
         "Converta o ativo para controle por quantidade antes de usar " +
@@ -191,21 +191,21 @@ export const resolveInvestmentCatalogItem = async (
   );
   const label = selector.label;
   if (!snapshot.exists) {
-    throw new CreditCardApplicationError(
+    throw new ApplicationError(
       "domain_precondition_failed",
       `${label} não encontrada no cadastro deste workspace.`,
     );
   }
   const data = snapshot.data() ?? {};
   if (data.workspaceId !== workspaceId) {
-    throw new CreditCardApplicationError(
+    throw new ApplicationError(
       "domain_precondition_failed",
       `${label} não pertence ao workspace autorizado.`,
     );
   }
   const group = typeof data.group === "string" ? data.group : "";
   if (!selector.groups.includes(group)) {
-    throw new CreditCardApplicationError(
+    throw new ApplicationError(
       "domain_precondition_failed",
       `O item informado não é uma ${label.toLowerCase()}.`,
     );
@@ -222,7 +222,7 @@ export const resolveInvestmentCatalogItem = async (
     requiredSubtype !== undefined &&
     data.transactionSubtype !== requiredSubtype
   ) {
-    throw new CreditCardApplicationError(
+    throw new ApplicationError(
       "domain_precondition_failed",
       `A categoria informada não é do tipo ${requiredSubtype}.`,
     );
@@ -235,14 +235,14 @@ export const resolveInvestmentCatalogItem = async (
     options?.preservedInactiveItemId !== undefined &&
     options.preservedInactiveItemId === snapshot.id;
   if (data.status !== "active" && !preservesInactive) {
-    throw new CreditCardApplicationError(
+    throw new ApplicationError(
       "domain_precondition_failed",
       `${label} inativa não pode ser usada em um novo lançamento.`,
     );
   }
   const name = typeof data.name === "string" ? data.name.trim() : "";
   if (name.length === 0) {
-    throw new CreditCardApplicationError(
+    throw new ApplicationError(
       "domain_precondition_failed",
       `${label} sem nome no cadastro.`,
     );

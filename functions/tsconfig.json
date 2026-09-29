@@ -9,7 +9,8 @@
     "outDir": "lib",
     "sourceMap": true,
     "strict": true,
-    "target": "es2017"
+    "target": "es2017",
+    "lib": ["es2020", "dom", "dom.iterable", "scripthost", "webworker.importscripts"]
   },
   "compileOnSave": true,
   "include": [

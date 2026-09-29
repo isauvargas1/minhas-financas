@@ -3,8 +3,18 @@ import test from "node:test";
 import * as admin from "firebase-admin";
 import {Timestamp} from "firebase-admin/firestore";
 
-import type {WorkspaceAuthorizationContext} from "../../creditCards/auth";
-import {CreditCardApplicationError} from "../../creditCards/errors";
+import {HttpsError} from "firebase-functions/v2/https";
+
+import {ApplicationError} from "../../shared/errors";
+import {
+  callableRequest,
+  requireFirestoreEmulator,
+  seedActiveAccount,
+  seedMember as seedKernelMember,
+  seedWorkspace as seedKernelWorkspace,
+} from "../../shared/testSupport/kernelTestSupport";
+import type {WorkspaceActor} from "../../shared/workspaceAuth";
+import {createInvestmentContribution} from "../callables";
 import {investmentPositionId} from "../infrastructure";
 import {recordInvestmentCallableFailureSafely} from "../observability";
 import {
@@ -18,13 +28,6 @@ import {
 import {executeRebuildInvestmentProjections} from "../projectionRebuild";
 import {allocationDocumentId} from "../reporting";
 
-if (!process.env.FIRESTORE_EMULATOR_HOST) {
-  throw new Error(
-    "FIRESTORE_EMULATOR_HOST é obrigatório para os testes do M3.",
-  );
-}
-
-const PROJECT = process.env.GCLOUD_PROJECT ?? "minhas-financas-local";
 const WORKSPACE = "investment-m3-workspace";
 const OWNER = "investment-m3-owner";
 const MEMBER = "investment-m3-member";
@@ -32,31 +35,21 @@ const ACCOUNT = "investment-m3-account";
 const ASSET = "investment-m3-asset";
 const GOAL = "investment-m3-goal";
 
-const db = (): admin.firestore.Firestore => {
-  if (!admin.apps.length) admin.initializeApp({projectId: PROJECT});
-  return admin.firestore();
-};
+// Sem o Emulator a suíte falha ao carregar, em vez de pular.
+const firestore = requireFirestoreEmulator();
+const db = (): admin.firestore.Firestore => firestore;
 
 const auth = (
   uid = OWNER,
-  role: WorkspaceAuthorizationContext["role"] = "owner",
-): WorkspaceAuthorizationContext => ({workspaceId: WORKSPACE, uid, role});
+  role: WorkspaceActor["role"] = "owner",
+): WorkspaceActor => ({workspaceId: WORKSPACE, uid, role});
 
 const seed = async (progressBasis = "net_contributions"): Promise<void> => {
   await db().recursiveDelete(db().doc(`workspaces/${WORKSPACE}`));
   const now = Timestamp.fromDate(new Date("2026-08-01T00:00:00.000Z"));
-  await db().doc(`workspaces/${WORKSPACE}`).set({
-    ownerId: OWNER,
-    type: "PF",
-    currency: "BRL",
-    name: WORKSPACE,
-  });
-  await db()
-    .doc(`workspaces/${WORKSPACE}/members/${OWNER}`)
-    .set({uid: OWNER, role: "owner", status: "active"});
-  await db()
-    .doc(`workspaces/${WORKSPACE}/members/${MEMBER}`)
-    .set({uid: MEMBER, role: "member", status: "active"});
+  await Promise.all([OWNER, MEMBER].map((uid) => seedActiveAccount(uid)));
+  await seedKernelWorkspace({workspaceId: WORKSPACE, ownerId: OWNER});
+  await seedKernelMember(WORKSPACE, MEMBER, "member");
   await db()
     .doc(`workspaces/${WORKSPACE}/investment_accounts/${ACCOUNT}`)
     .set({
@@ -225,7 +218,7 @@ test("cancelar pendente não move posição, meta nem caixa", async () => {
         correlationId: "corr-m3-cancel-movement-2",
       }),
     (error: unknown) =>
-      error instanceof CreditCardApplicationError &&
+      error instanceof ApplicationError &&
       error.code === "domain_precondition_failed",
   );
 });
@@ -247,7 +240,7 @@ test("cancelar movimento liquidado é negado; liquidado exige estorno", async ()
         reason: "Tentativa indevida",
       }),
     (error: unknown) =>
-      error instanceof CreditCardApplicationError &&
+      error instanceof ApplicationError &&
       error.code === "domain_precondition_failed",
   );
   const movement = (
@@ -361,7 +354,7 @@ test("valoração exige papel privilegiado", async () => {
         reason: "Tentativa de member",
       }),
     (error: unknown) =>
-      error instanceof CreditCardApplicationError &&
+      error instanceof ApplicationError &&
       error.code === "workspace_role_denied",
   );
 });
@@ -547,27 +540,23 @@ test("lote de importação registra procedência e avança contador", async () =
         contribution("m3-import-contrib-0002", {importBatchId: batchId}),
       ),
     (error: unknown) =>
-      error instanceof CreditCardApplicationError &&
+      error instanceof ApplicationError &&
       error.code === "domain_precondition_failed",
   );
 });
 
 test("falha de callable deixa métrica e evento de falha", async () => {
   await seed();
-  const request = {
-    data: {
-      workspaceId: WORKSPACE,
-      correlationId: "corr-m3-failure-observability",
-      idempotencyKey: "m3-failure-observability-0001",
-      principalCents: 1_234,
-    },
-    auth: {uid: OWNER, token: {}},
-    rawRequest: {},
-  } as never;
+  const request = callableRequest(OWNER, {
+    workspaceId: WORKSPACE,
+    correlationId: "corr-m3-failure-observability",
+    idempotencyKey: "m3-failure-observability-0001",
+    principalCents: 1_234,
+  });
   await recordInvestmentCallableFailureSafely(
     "createInvestmentContribution",
     request,
-    new CreditCardApplicationError(
+    new ApplicationError(
       "domain_precondition_failed",
       "Falha simulada para observabilidade.",
     ),
@@ -640,23 +629,20 @@ test("falha sem autorização não grava no domínio de outro workspace", async 
     ownerId: "dono-legitimo", type: "PF", currency: "BRL", name: victim,
   });
 
-  // Exatamente o que o `catch` da callable faz quando `requireWorkspaceRole`
-  // recusa: sem autenticação e apontando para um workspace alheio. Antes, o
-  // `workspaceId` vinha do payload cru e este caminho criava documentos no
-  // tenant da vítima, um por `correlationId`.
+  // Exatamente o que o `onFailure` da callable faz quando a pré-checagem
+  // do kernel recusa: sem autenticação e apontando para um workspace
+  // alheio. Antes, o `workspaceId` vinha do payload cru e este caminho
+  // criava documentos no tenant da vítima, um por `correlationId`.
   for (let attempt = 0; attempt < 3; attempt += 1) {
     await recordInvestmentCallableFailureSafely(
       "createInvestmentContribution",
-      {
-        data: {
-          workspaceId: victim,
-          correlationId: `intruso-${attempt}`,
-          idempotencyKey: `intruso-${attempt}`,
-          principalCents: 99_999_999,
-        },
-        rawRequest: {},
-      } as never,
-      new CreditCardApplicationError(
+      callableRequest(null, {
+        workspaceId: victim,
+        correlationId: `intruso-${attempt}`,
+        idempotencyKey: `intruso-${attempt}`,
+        principalCents: 99_999_999,
+      }),
+      new ApplicationError(
         "unauthenticated",
         "Usuário não autenticado.",
       ),
@@ -670,4 +656,63 @@ test("falha sem autorização não grava no domínio de outro workspace", async 
     .collection(`workspaces/${victim}/investment_operational_metrics`).get();
   assert.equal(events.size, 0, "Evento gravado em workspace alheio.");
   assert.equal(metrics.size, 0, "Métrica gravada em workspace alheio.");
+});
+
+test("callable registra falha só no workspace autorizado", async () => {
+  await seed();
+  const victim = "m3-observability-callable-vitima";
+  const victimOwner = "m3-observability-callable-dono";
+  const intruder = "m3-observability-callable-intruso";
+  await db().recursiveDelete(db().doc(`workspaces/${victim}`));
+  await Promise.all(
+    [victimOwner, intruder].map((uid) => seedActiveAccount(uid)),
+  );
+  await seedKernelWorkspace({workspaceId: victim, ownerId: victimOwner});
+
+  // Intruso autenticado e com conta ativa, sem membership na vítima: a
+  // pré-checagem recusa, e o `workspaceId` do payload não pode chegar ao
+  // registro de falha.
+  await assert.rejects(
+    () =>
+      createInvestmentContribution.run(
+        callableRequest(
+          intruder,
+          contribution("m3-callable-intruso-0001", {workspaceId: victim}),
+        ),
+      ),
+    (error: unknown) =>
+      error instanceof HttpsError && error.code === "permission-denied",
+  );
+  const victimEvents = await db()
+    .collection(`workspaces/${victim}/investment_event_logs`).get();
+  const victimMetrics = await db()
+    .collection(`workspaces/${victim}/investment_operational_metrics`).get();
+  assert.equal(victimEvents.size, 0, "Evento gravado em workspace alheio.");
+  assert.equal(victimMetrics.size, 0, "Métrica gravada em workspace alheio.");
+
+  // Falha de domínio de quem passou pela pré-checagem continua registrada no
+  // próprio workspace, pela mesma callable.
+  await assert.rejects(
+    () =>
+      createInvestmentContribution.run(
+        callableRequest(
+          OWNER,
+          contribution("m3-callable-falha-0001", {
+            accountId: "investment-m3-account-inexistente",
+          }),
+        ),
+      ),
+    (error: unknown) =>
+      error instanceof HttpsError && error.code === "not-found",
+  );
+  const failures = await db()
+    .collection(`workspaces/${WORKSPACE}/investment_event_logs`)
+    .where("outcome", "==", "failed")
+    .get();
+  assert.equal(failures.size, 1);
+  assert.equal(
+    failures.docs[0].data().operation,
+    "createInvestmentContribution",
+  );
+  assert.equal(failures.docs[0].data().details?.errorCode, "not_found");
 });

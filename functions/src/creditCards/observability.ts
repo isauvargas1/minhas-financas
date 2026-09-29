@@ -21,8 +21,8 @@ import type {
 } from "./writeStrategy";
 
 import {
-  CreditCardApplicationError,
-} from "./errors";
+  ApplicationError,
+} from "../shared/errors";
 
 export type CreditCardObservedOperation =
   | "purchase_created"
@@ -153,7 +153,7 @@ const getNumberValue = (
 };
 
 const getFailureCode = (error: unknown): string => {
-  if (error instanceof CreditCardApplicationError) {
+  if (error instanceof ApplicationError) {
     return error.code;
   }
 
@@ -192,15 +192,15 @@ const buildFailureEventId = (
 /**
  * Registra a falha de uma callable de cartão.
  *
- * `authorizedWorkspaceId` é preenchido **apenas** depois que
- * `requireWorkspaceRole` devolveu — e é a única origem do workspace usado
- * aqui. Ler `workspaceId` do `request.data` cru era o vetor INV-P0-001: este
- * caminho roda no `catch` que também captura `unauthenticated` e
- * `workspace_role_denied`, então um chamador **sem token** conseguia gravar
- * métricas, eventos financeiros e notificações no workspace de outro tenant,
- * com `amount`, `errorMessage` e `correlationId` sob controle dele e sem teto
- * de documentos. Sem autorização, a falha vira log sanitizado e nada é
- * escrito.
+ * `authorizedWorkspaceId` é preenchido **apenas** depois que a
+ * pré-checagem do kernel (`resolveWorkspaceActor`) devolveu — e é a única
+ * origem do workspace usado aqui. Ler `workspaceId` do `request.data` cru
+ * era o vetor INV-P0-001: este caminho roda no `catch` que também captura
+ * `unauthenticated` e `workspace_role_denied`, então um chamador **sem
+ * token** conseguia gravar métricas, eventos financeiros e notificações no
+ * workspace de outro tenant, com `amount`, `errorMessage` e `correlationId`
+ * sob controle dele e sem teto de documentos. Sem autorização, a falha vira
+ * log sanitizado e nada é escrito.
  */
 export const recordCreditCardCallableFailure = async (
   operation: CreditCardBackendWriteOperation,

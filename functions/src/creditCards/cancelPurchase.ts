@@ -1,9 +1,7 @@
 import * as admin from "firebase-admin";
 import { FieldValue } from "firebase-admin/firestore";
 
-import type {
-  CreditCardCallableExecutionContext,
-} from "./callable";
+import type {CreditCardOperationContext} from "./callable";
 
 import type {
   CancelCreditCardPurchasePayload,
@@ -27,8 +25,9 @@ import {
 } from "./adminPaths";
 
 import {
-  CreditCardApplicationError,
-} from "./errors";
+  ApplicationError,
+} from "../shared/errors";
+import {reassertWorkspaceActor} from "../shared/workspaceAuth";
 
 import {
   markIdempotencyKeyCompleted,
@@ -212,13 +211,15 @@ const buildResult = (
 });
 
 export const executeCancelCreditCardPurchase = async (
-  context: CreditCardCallableExecutionContext<CancelCreditCardPurchasePayload>
+  context: CreditCardOperationContext<CancelCreditCardPurchasePayload>
 ): Promise<CancelCreditCardPurchaseResult | Record<string, unknown>> => {
-  const {payload, auth} = context;
+  const {payload, actor} = context;
   const db = getFirestore();
   const operation = "cancelCreditCardPurchase";
 
   return db.runTransaction(async (transaction) => {
+    await reassertWorkspaceActor(transaction, actor);
+
     const workspaceId = payload.workspaceId;
     const purchaseRef = creditCardPurchaseDoc(
       workspaceId,
@@ -244,7 +245,7 @@ export const executeCancelCreditCardPurchase = async (
     ]);
 
     if (!purchaseSnapshot.exists) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "not_found",
         "Compra de cartão não encontrada.",
         {purchaseId: payload.purchaseId}
@@ -252,7 +253,7 @@ export const executeCancelCreditCardPurchase = async (
     }
 
     if (!limitSnapshot.exists) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "not_found",
         "Snapshot de limite do cartão não encontrado.",
         {cardId: payload.cardId}
@@ -268,7 +269,7 @@ export const executeCancelCreditCardPurchase = async (
     })) as InstallmentData[];
 
     if (!purchaseData) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "internal",
         "Compra existente sem dados carregados.",
         {purchaseId: payload.purchaseId}
@@ -276,7 +277,7 @@ export const executeCancelCreditCardPurchase = async (
     }
 
     if (!limitSnapshotData) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "internal",
         "Snapshot de limite existente sem dados carregados.",
         {cardId: payload.cardId}
@@ -284,7 +285,7 @@ export const executeCancelCreditCardPurchase = async (
     }
 
     if (installments.length === 0) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "A compra não possui parcelas para cancelamento.",
         {purchaseId: payload.purchaseId}
@@ -312,7 +313,7 @@ export const executeCancelCreditCardPurchase = async (
     }
 
     if (purchaseData.workspaceId !== workspaceId) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "A compra não pertence ao workspace informado.",
         {purchaseId: payload.purchaseId}
@@ -320,7 +321,7 @@ export const executeCancelCreditCardPurchase = async (
     }
 
     if (purchaseData.cardId !== payload.cardId) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "A compra não pertence ao cartão informado.",
         {purchaseId: payload.purchaseId, cardId: payload.cardId}
@@ -328,7 +329,7 @@ export const executeCancelCreditCardPurchase = async (
     }
 
     if (purchaseData.status !== "active") {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "Somente compras ativas podem ser canceladas.",
         {purchaseId: payload.purchaseId, status: purchaseData.status}
@@ -342,7 +343,7 @@ export const executeCancelCreditCardPurchase = async (
     );
 
     if (invalidInstallment) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "Todas as parcelas precisam pertencer à compra, cartão e workspace.",
         {installmentId: invalidInstallment.id}
@@ -355,7 +356,7 @@ export const executeCancelCreditCardPurchase = async (
     );
 
     if (paidInstallment) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "Não é permitido cancelar compra com parcela já paga.",
         {installmentId: paidInstallment.id}
@@ -368,7 +369,7 @@ export const executeCancelCreditCardPurchase = async (
     );
 
     if (alreadyCancelledInstallment) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "A compra possui parcelas já canceladas ou revertidas.",
         {installmentId: alreadyCancelledInstallment.id}
@@ -377,7 +378,7 @@ export const executeCancelCreditCardPurchase = async (
 
     const invoices = invoiceSnapshots.map((invoiceSnapshot) => {
       if (!invoiceSnapshot.exists) {
-        throw new CreditCardApplicationError(
+        throw new ApplicationError(
           "not_found",
           "Fatura afetada pela compra não foi encontrada.",
           {purchaseId: payload.purchaseId}
@@ -398,7 +399,7 @@ export const executeCancelCreditCardPurchase = async (
     );
 
     if (invalidInvoice) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "As faturas afetadas precisam pertencer ao mesmo cartão e workspace.",
         {invoiceId: invalidInvoice.id}
@@ -410,7 +411,7 @@ export const executeCancelCreditCardPurchase = async (
     );
 
     if (nonOpenInvoice) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "Cancelamento conservador exige que todas as faturas estejam abertas.",
         {
@@ -445,7 +446,7 @@ export const executeCancelCreditCardPurchase = async (
       status: "cancelled",
       cancelledAt: serverTimestamp,
       cancellationReason: payload.reason,
-      updatedBy: auth.uid,
+      updatedBy: actor.uid,
       updatedAt: serverTimestamp,
     }));
 
@@ -533,7 +534,7 @@ export const executeCancelCreditCardPurchase = async (
       amount: restoredAmount,
       balanceAfter: newLimitAvailable,
       createdAt: serverTimestamp,
-      actorId: auth.uid,
+      actorId: actor.uid,
       idempotencyKey: payload.idempotencyKey,
     });
 
@@ -563,13 +564,13 @@ export const executeCancelCreditCardPurchase = async (
       correlationId: payload.correlationId,
       idempotencyKey: payload.idempotencyKey,
       createdAt: serverTimestamp,
-      actorId: auth.uid,
+      actorId: actor.uid,
     }));
 
     recordCreditCardAuditLog(transaction, {
       workspaceId,
       action: "purchase_cancelled",
-      actorId: auth.uid,
+      actorId: actor.uid,
       entityType: "purchase",
       entityId: payload.purchaseId,
       cardId: payload.cardId,
@@ -590,7 +591,7 @@ export const executeCancelCreditCardPurchase = async (
     recordCreditCardOperationMetric(transaction, {
   workspaceId,
   operation: "purchase_cancelled",
-  actorId: auth.uid,
+  actorId: actor.uid,
   cardId: payload.cardId,
   purchaseId: payload.purchaseId,
   amount: restoredAmount,

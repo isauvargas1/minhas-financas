@@ -16,10 +16,11 @@ import {
 } from "../updatePurchase";
 
 import {
-  CreditCardApplicationError,
-} from "../errors";
+  ApplicationError,
+} from "../../shared/errors";
 
 import {
+  creditCardTestActor,
   getIntegrationFirestore,
   resetCreditCardIntegrationWorkspace,
   seedCreditCardIntegrationWorkspace,
@@ -71,9 +72,7 @@ const createPurchase = async (
   totalAmount = 100
 ): Promise<CreateCreditCardPurchaseResult> =>
   await executeCreateCreditCardPurchase({
-    auth: {
-      uid: TEST_OWNER_ID,
-    },
+    actor: creditCardTestActor(TEST_WORKSPACE_ID, TEST_OWNER_ID),
     payload: {
       workspaceId: TEST_WORKSPACE_ID,
       cardId: TEST_CARD_ID,
@@ -94,7 +93,7 @@ const createPurchase = async (
       idempotencyKey,
       correlationId: idempotencyKey,
     },
-  } as any) as CreateCreditCardPurchaseResult;
+  }) as CreateCreditCardPurchaseResult;
 
 const expectDomainPreconditionFailure = async (
   operation: () => Promise<unknown>
@@ -102,16 +101,13 @@ const expectDomainPreconditionFailure = async (
   await assert.rejects(
     operation,
     (error: unknown) =>
-      error instanceof CreditCardApplicationError &&
+      error instanceof ApplicationError &&
       error.code === "domain_precondition_failed"
   );
 };
 
 test(
   "updateCreditCardPurchase deve editar compra aberta, ajustar fatura, ledger, limite, evento, auditoria e métrica",
-  {
-    skip: !process.env.FIRESTORE_EMULATOR_HOST,
-  },
   async () => {
     const db = getIntegrationFirestore();
 
@@ -123,9 +119,7 @@ test(
     );
 
     const updateResult = await executeUpdateCreditCardPurchase({
-      auth: {
-        uid: TEST_OWNER_ID,
-      },
+      actor: creditCardTestActor(TEST_WORKSPACE_ID, TEST_OWNER_ID),
       payload: {
         workspaceId: TEST_WORKSPACE_ID,
         cardId: TEST_CARD_ID,
@@ -139,7 +133,7 @@ test(
         idempotencyKey: "integration-update-purchase-open-001",
         correlationId: "integration-update-purchase-open",
       },
-    } as any) as UpdateCreditCardPurchaseResult;
+    }) as UpdateCreditCardPurchaseResult;
 
     assert.equal(updateResult.success, true);
     assert.equal(updateResult.purchaseId, purchaseResult.purchaseId);
@@ -213,9 +207,6 @@ test(
 
 test(
   "updateCreditCardPurchase deve bloquear edição quando a fatura afetada já tem pagamento",
-  {
-    skip: !process.env.FIRESTORE_EMULATOR_HOST,
-  },
   async () => {
     const db = getIntegrationFirestore();
 
@@ -229,9 +220,7 @@ test(
     const invoiceId = purchaseResult.invoiceIds[0];
 
     await executeRegisterCreditCardInvoicePayment({
-      auth: {
-        uid: TEST_OWNER_ID,
-      },
+      actor: creditCardTestActor(TEST_WORKSPACE_ID, TEST_OWNER_ID),
       payload: {
         workspaceId: TEST_WORKSPACE_ID,
         cardId: TEST_CARD_ID,
@@ -242,13 +231,11 @@ test(
         idempotencyKey: "integration-update-purchase-payment-001",
         correlationId: "integration-update-purchase-payment",
       },
-    } as any);
+    });
 
     await expectDomainPreconditionFailure(() =>
       executeUpdateCreditCardPurchase({
-        auth: {
-          uid: TEST_OWNER_ID,
-        },
+        actor: creditCardTestActor(TEST_WORKSPACE_ID, TEST_OWNER_ID),
         payload: {
           workspaceId: TEST_WORKSPACE_ID,
           cardId: TEST_CARD_ID,
@@ -262,7 +249,7 @@ test(
           idempotencyKey: "integration-update-purchase-paid-blocked-001",
           correlationId: "integration-update-purchase-paid-blocked",
         },
-      } as any)
+      })
     );
 
     const purchaseSnapshot = await db

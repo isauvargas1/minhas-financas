@@ -1,12 +1,15 @@
 import * as admin from "firebase-admin";
-import {onCall} from "firebase-functions/v2/https";
 import {z} from "zod";
 
-import {requireWorkspaceRole} from "../creditCards/auth";
-import {CreditCardApplicationError} from "../creditCards/errors";
-import {toInvestmentHttpsError} from "../investments/errors";
+import {defineCallable, type CallableFailure} from "../shared/callable";
+import {ApplicationError, errorCodeOf} from "../shared/errors";
 import {reserveRateLimit, type RateLimitPolicy} from "../shared/rateLimit";
 import {AI_CALLABLE_OPTIONS} from "../shared/runtimeOptions";
+import {
+  reassertWorkspaceActor,
+  type WorkspaceActor,
+  type WorkspaceRole,
+} from "../shared/workspaceAuth";
 
 /**
  * Segredo do provider de IA (INV-P2-020).
@@ -27,6 +30,59 @@ const AI_OPTIONS = {
   ...AI_CALLABLE_OPTIONS,
   secrets: [...AI_SECRETS],
 };
+
+/**
+ * Papéis que podem usar a IA: quem escreve no workspace. `viewer` é somente
+ * leitura e não consome a cota externa.
+ */
+export const AI_OPERATION_ROLES: readonly WorkspaceRole[] = [
+  "owner",
+  "admin",
+  "member",
+];
+
+/** Com `workspaceRoles`, o kernel sempre entrega o ator resolvido. */
+const requireActor = (actor: WorkspaceActor | null): WorkspaceActor => {
+  if (!actor) throw new Error("ai_callable_without_actor");
+  return actor;
+};
+
+/**
+ * Limite verificado e consumido atomicamente antes de gastar cota externa.
+ *
+ * `commit()` é o que grava o contador: sem ele a verificação passa e nada é
+ * contabilizado, e o teto vira decorativo. A autorização é relida na mesma
+ * transação, antes da gravação: quem perdeu o acesso depois da pré-checagem
+ * não consome limite nem chega ao provider.
+ */
+const consumeAiRateLimit = (
+  actor: WorkspaceActor,
+  policy: RateLimitPolicy,
+): Promise<void> =>
+  admin.firestore().runTransaction(async (transaction) => {
+    await reassertWorkspaceActor(transaction, actor);
+    const reservation = await reserveRateLimit(
+      transaction,
+      actor.workspaceId,
+      actor.uid,
+      policy,
+    );
+    reservation.commit();
+  });
+
+/**
+ * Registro de falha do domínio. Log sanitizado: nunca a pergunta, a
+ * transcrição, o documento, a resposta do modelo, o payload ou o erro cru.
+ */
+const logAiFailure = (event: string, operation: string) =>
+  ({uid, requestId, error}: CallableFailure): void => {
+    console.error(event, {
+      operation,
+      requestId,
+      actorId: uid ?? "anonymous",
+      errorCode: errorCodeOf(error),
+    });
+  };
 
 /**
  * Análise financeira por IA, exclusivamente no backend.
@@ -107,7 +163,7 @@ export const buildPrompt = (payload: AnalysisPayload): string => {
 export const readApiKey = (): string => {
   const key = process.env.GOOGLE_AI_API_KEY;
   if (!key || key.length < 8) {
-    throw new CreditCardApplicationError(
+    throw new ApplicationError(
       "domain_precondition_failed",
       "A análise por IA não está configurada neste ambiente.",
     );
@@ -123,41 +179,20 @@ const callGemini = async (prompt: string, apiKey: string): Promise<string> => {
   return result.response.text();
 };
 
-export const analyzeFinancialQuestion = onCall(AI_OPTIONS, async (request) => {
-  try {
-    const payload = analysisPayloadSchema.parse(request.data);
-    const auth = await requireWorkspaceRole(request, payload.workspaceId, [
-      "owner",
-      "admin",
-      "member",
-    ]);
-    // Limite verificado e consumido atomicamente antes de gastar cota externa.
-    // `commit()` é o que grava o contador: sem ele a verificação passa e nada
-    // é contabilizado, e o teto vira decorativo.
-    await admin.firestore().runTransaction(async (transaction) => {
-      const reservation = await reserveRateLimit(
-        transaction,
-        auth.workspaceId,
-        auth.uid,
-        ANALYSIS_POLICY,
-      );
-      reservation.commit();
-    });
+export const analyzeFinancialQuestion = defineCallable({
+  operation: ANALYSIS_POLICY.operation,
+  schema: analysisPayloadSchema,
+  runtime: AI_OPTIONS,
+  workspaceRoles: AI_OPERATION_ROLES,
+  onFailure: logAiFailure("ai_analysis_failed", ANALYSIS_POLICY.operation),
+  handler: async ({actor, payload}) => {
+    await consumeAiRateLimit(requireActor(actor), ANALYSIS_POLICY);
     const answer = await callGemini(buildPrompt(payload), readApiKey());
     return {
       answer: answer || "Não foi possível processar a análise agora.",
       createdAt: new Date().toISOString(),
     };
-  } catch (error) {
-    // Log sanitizado: nunca a pergunta, a resposta, o payload ou o erro cru.
-    console.error("ai_analysis_failed", {
-      operation: ANALYSIS_POLICY.operation,
-      actorId: request.auth?.uid ?? "anonymous",
-      errorCode:
-        error instanceof CreditCardApplicationError ? error.code : "unknown",
-    });
-    throw toInvestmentHttpsError(error);
-  }
+  },
 });
 
 /**
@@ -200,23 +235,14 @@ const EXTRACTION_INSTRUCTION =
   "category, supplier, costCenter, installments. Omita o campo quando não " +
   "houver informação; nunca invente valores.";
 
-export const extractTransactionFromContent = onCall(AI_OPTIONS, async (request) => {
-  try {
-    const payload = extractionPayloadSchema.parse(request.data);
-    const auth = await requireWorkspaceRole(request, payload.workspaceId, [
-      "owner",
-      "admin",
-      "member",
-    ]);
-    await admin.firestore().runTransaction(async (transaction) => {
-      const reservation = await reserveRateLimit(
-        transaction,
-        auth.workspaceId,
-        auth.uid,
-        EXTRACTION_POLICY,
-      );
-      reservation.commit();
-    });
+export const extractTransactionFromContent = defineCallable({
+  operation: EXTRACTION_POLICY.operation,
+  schema: extractionPayloadSchema,
+  runtime: AI_OPTIONS,
+  workspaceRoles: AI_OPERATION_ROLES,
+  onFailure: logAiFailure("ai_extraction_failed", EXTRACTION_POLICY.operation),
+  handler: async ({actor, payload}) => {
+    await consumeAiRateLimit(requireActor(actor), EXTRACTION_POLICY);
 
     const apiKey = readApiKey();
     const {GoogleGenerativeAI} = await import("@google/generative-ai");
@@ -241,20 +267,11 @@ export const extractTransactionFromContent = onCall(AI_OPTIONS, async (request) 
     try {
       extracted = JSON.parse(text);
     } catch {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "Não foi possível interpretar o conteúdo enviado.",
       );
     }
     return {extracted};
-  } catch (error) {
-    // Nunca registra transcrição, documento nem resposta do modelo.
-    console.error("ai_extraction_failed", {
-      operation: EXTRACTION_POLICY.operation,
-      actorId: request.auth?.uid ?? "anonymous",
-      errorCode:
-        error instanceof CreditCardApplicationError ? error.code : "unknown",
-    });
-    throw toInvestmentHttpsError(error);
-  }
+  },
 });

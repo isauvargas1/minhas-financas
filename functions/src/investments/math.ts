@@ -1,4 +1,4 @@
-import {CreditCardApplicationError} from "../creditCards/errors";
+import {ApplicationError} from "../shared/errors";
 
 const runtimeBigInt = (
   globalThis as unknown as {
@@ -12,7 +12,7 @@ const POSITION_VALUE_DIVISOR =
 
 export const assertSafeInteger = (value: number, field: string): number => {
   if (!Number.isSafeInteger(value)) {
-    throw new CreditCardApplicationError(
+    throw new ApplicationError(
       "domain_precondition_failed",
       `O campo ${field} excede a representação monetária permitida.`,
     );

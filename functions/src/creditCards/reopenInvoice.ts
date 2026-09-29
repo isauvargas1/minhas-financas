@@ -1,9 +1,7 @@
 import * as admin from "firebase-admin";
 import { FieldValue } from "firebase-admin/firestore";
 
-import type {
-  CreditCardCallableExecutionContext,
-} from "./callable";
+import type {CreditCardOperationContext} from "./callable";
 
 import type {
   ReopenCreditCardInvoicePayload,
@@ -19,8 +17,9 @@ import {
 } from "./adminPaths";
 
 import {
-  CreditCardApplicationError,
-} from "./errors";
+  ApplicationError,
+} from "../shared/errors";
+import {reassertWorkspaceActor} from "../shared/workspaceAuth";
 
 import {
   markIdempotencyKeyCompleted,
@@ -122,13 +121,15 @@ const buildResult = (
 });
 
 export const executeReopenCreditCardInvoice = async (
-  context: CreditCardCallableExecutionContext<ReopenCreditCardInvoicePayload>
+  context: CreditCardOperationContext<ReopenCreditCardInvoicePayload>
 ): Promise<ReopenCreditCardInvoiceResult | Record<string, unknown>> => {
-  const {payload, auth} = context;
+  const {payload, actor} = context;
   const db = getFirestore();
   const operation = "reopenCreditCardInvoice";
 
   return db.runTransaction(async (transaction) => {
+    await reassertWorkspaceActor(transaction, actor);
+
     const workspaceId = payload.workspaceId;
     const invoiceRef = creditCardInvoiceDoc(workspaceId, payload.invoiceId);
     const paymentsQuery = workspaceCollection(
@@ -145,7 +146,7 @@ export const executeReopenCreditCardInvoice = async (
     ]);
 
     if (!invoiceSnapshot.exists) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "not_found",
         "Fatura não encontrada.",
         {invoiceId: payload.invoiceId}
@@ -155,7 +156,7 @@ export const executeReopenCreditCardInvoice = async (
     const invoiceData = invoiceSnapshot.data() as InvoiceData | undefined;
 
     if (!invoiceData) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "internal",
         "Fatura existente sem dados carregados.",
         {invoiceId: payload.invoiceId}
@@ -179,7 +180,7 @@ export const executeReopenCreditCardInvoice = async (
     }
 
     if (invoiceData.workspaceId !== workspaceId) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "A fatura não pertence ao workspace informado.",
         {invoiceId: payload.invoiceId}
@@ -187,7 +188,7 @@ export const executeReopenCreditCardInvoice = async (
     }
 
     if (invoiceData.cardId !== payload.cardId) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "A fatura não pertence ao cartão informado.",
         {invoiceId: payload.invoiceId, cardId: payload.cardId}
@@ -195,7 +196,7 @@ export const executeReopenCreditCardInvoice = async (
     }
 
     if (invoiceData.status !== "closed") {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "Somente faturas fechadas podem ser reabertas nesta política.",
         {
@@ -213,7 +214,7 @@ export const executeReopenCreditCardInvoice = async (
     );
 
     if (invalidPayment) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "Pagamentos da fatura precisam pertencer ao mesmo workspace e cartão.",
         {paymentId: invalidPayment.id}
@@ -221,7 +222,7 @@ export const executeReopenCreditCardInvoice = async (
     }
 
     if (payments.length > 0) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "Não é permitido reabrir fatura com pagamentos registrados.",
         {
@@ -239,7 +240,7 @@ export const executeReopenCreditCardInvoice = async (
     );
 
     if (paidAmount > 0) {
-      throw new CreditCardApplicationError(
+      throw new ApplicationError(
         "domain_precondition_failed",
         "Não é permitido reabrir fatura com valor pago.",
         {
@@ -256,7 +257,7 @@ export const executeReopenCreditCardInvoice = async (
       status: "open",
       reopenedAt: serverTimestamp,
       reopenReason: payload.reason,
-      reopenedBy: auth.uid,
+      reopenedBy: actor.uid,
       closedAt: null,
       updatedAt: serverTimestamp,
     }));
@@ -295,13 +296,13 @@ export const executeReopenCreditCardInvoice = async (
       correlationId: payload.correlationId,
       idempotencyKey: payload.idempotencyKey,
       createdAt: serverTimestamp,
-      actorId: auth.uid,
+      actorId: actor.uid,
     }));
 
     recordCreditCardAuditLog(transaction, {
       workspaceId,
       action: "invoice_reopened",
-      actorId: auth.uid,
+      actorId: actor.uid,
       entityType: "invoice",
       entityId: payload.invoiceId,
       cardId: payload.cardId,
@@ -322,7 +323,7 @@ export const executeReopenCreditCardInvoice = async (
         recordCreditCardOperationMetric(transaction, {
       workspaceId,
       operation: "invoice_reopened",
-      actorId: auth.uid,
+      actorId: actor.uid,
       cardId: payload.cardId,
       invoiceId: payload.invoiceId,
       amount: totalAmount,
