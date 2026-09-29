@@ -112,7 +112,7 @@ São 47 endpoints: 42 callables, 3 crons, 1 gatilho Firestore e 1 webhook HTTP. 
 | 13 | `createGoal` | Callable | `functions/src/goals/callables.ts:83` | D | — | Não | N/A |
 | 14 | `updateGoal` | Callable | `functions/src/goals/callables.ts:89` | D | — | Não | N/A |
 | 15 | `archiveGoal` | Callable | `functions/src/goals/callables.ts:95` | D | — | Não | N/A |
-| 16 | `seedLegacySettingsCatalog` | Callable | `functions/src/goals/callables.ts:101` | D | — | Não | N/A |
+| 16 | ~~`seedLegacySettingsCatalog`~~ | Callable | Removido em P1: o provisionamento do workspace é server-side (`functions/src/workspaces/provisioning.ts:155`; PLAN §16) | — | — | — | — |
 | 17 | `onboardInvestmentWorkspace` | Callable | `functions/src/investments/callables.ts:107` | D | — | Não | N/A |
 | 18 | `createInvestmentContribution` | Callable | `functions/src/investments/callables.ts:113` | D | — | Não | N/A |
 | 19 | `createSimpleInvestment` | Callable | `functions/src/investments/callables.ts:128` | D | — | Não | N/A |

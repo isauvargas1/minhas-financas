@@ -45,7 +45,7 @@ const MANAGED_BY: Record<WorkspaceRole, ManageableRole[]> = {
 const MembersManagerModal: React.FC<MembersManagerModalProps> = ({ onClose }) => {
     const { activeWorkspace, activeWorkspaceRole, reloadWorkspaces } = useWorkspace();
     const { user } = useAuth();
-    const { data: members, isLoading } = useWorkspaceMembers(activeWorkspace.id);
+    const { data: members, isLoading, hasMore, isLoadingMore, loadMore } = useWorkspaceMembers(activeWorkspace.id);
 
     const inviteMutation = useInviteMember(activeWorkspace.id);
     const updateRoleMutation = useUpdateMemberRole(activeWorkspace.id);
@@ -183,7 +183,7 @@ const MembersManagerModal: React.FC<MembersManagerModalProps> = ({ onClose }) =>
 
                     {/* List Section */}
                     <div>
-                        <h3 className="text-sm font-bold text-on-surface uppercase mb-3">Membros Atuais ({members?.length || 0})</h3>
+                        <h3 className="text-sm font-bold text-on-surface uppercase mb-3">Membros Atuais ({members?.length || 0}{hasMore ? '+' : ''})</h3>
                         
                         {isLoading ? (
                             <div className="text-center py-8 text-muted">Carregando membros...</div>
@@ -234,6 +234,17 @@ const MembersManagerModal: React.FC<MembersManagerModalProps> = ({ onClose }) =>
                                         </div>
                                     </div>
                                 ))}
+
+                                {hasMore && (
+                                    <button
+                                        type="button"
+                                        onClick={() => void loadMore()}
+                                        disabled={isLoadingMore}
+                                        className="w-full p-2 rounded-lg transition-colors text-sm text-primary font-medium hover:bg-background disabled:opacity-50"
+                                    >
+                                        {isLoadingMore ? 'Carregando membros...' : 'Carregar mais membros'}
+                                    </button>
+                                )}
                             </div>
                         )}
                     </div>

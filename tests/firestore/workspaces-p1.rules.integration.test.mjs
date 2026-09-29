@@ -12,9 +12,12 @@ import {
   getDocs,
   getFirestore,
   limit,
+  orderBy,
   query,
   setDoc,
+  startAfter,
   updateDoc,
+  where,
 } from 'firebase/firestore';
 
 /**
@@ -44,6 +47,7 @@ const users = {
   noProfileA: user('p1-noprofile-a'),
   ownerB: user('p1-owner-b'),
   outsider: user('p1-outsider'),
+  pager: user('p1-pager'),
 };
 const wsA = 'p1-rules-ws-a';
 const wsB = 'p1-rules-ws-b';
@@ -202,7 +206,7 @@ test('members: leitura com teto, escrita sempre negada', async () => {
 
   await denied(setDoc(doc(db.ownerA, `workspaces/${wsA}/members/intruso`), {
     uid: 'intruso', role: 'member', status: 'active',
-  }), 'owner cria membership (fakeUid)');
+  }), 'owner cria membership arbitrário pelo cliente');
   await denied(updateDoc(doc(db.adminA, `workspaces/${wsA}/members/${users.adminA.uid}`), {
     role: 'owner',
   }), 'autopromoção');
@@ -308,4 +312,96 @@ test('workspace arquivado: leitura mantida, escrita negada', async () => {
   await allowed(setDoc(doc(db.ownerA, `workspaces/${wsA}/recurring_expenses/p1-control`), {
     description: 'X',
   }), 'controle: mesma escrita em workspace ativo');
+});
+
+/**
+ * Paginação real (P1): as consultas do app — mesmos filtros, mesma ordem, o
+ * teto das Rules como tamanho de página e `startAfter` no último documento —
+ * atravessam listas maiores que uma página sem perder nem repetir ninguém,
+ * inclusive com `joinedAt` empatado (o cursor desempata pelo ID).
+ */
+const pageThrough = async (base, pageSize) => {
+  const ids = [];
+  let cursor = null;
+  let pages = 0;
+  do {
+    const snapshot = await allowed(
+      getDocs(cursor ? query(base, startAfter(cursor), limit(pageSize)) : query(base, limit(pageSize))),
+      `página ${pages + 1}`,
+    );
+    pages += 1;
+    ids.push(...snapshot.docs.map((entry) => entry.id));
+    cursor = snapshot.docs.length === pageSize ? snapshot.docs[snapshot.docs.length - 1] : null;
+  } while (cursor);
+  return {ids, pages};
+};
+
+test('paginação por cursor: índice (>50) e membros (>200) sem truncar', async () => {
+  const firebaseAdmin = getAdmin();
+  const adminDb = firebaseAdmin.firestore();
+  const wsMany = 'p1-rules-ws-many';
+  const uid = users.pager.uid;
+  // Instantes repetidos em blocos de 10: empates reais de `joinedAt`.
+  const joinedAt = (index) => firebaseAdmin.firestore.Timestamp.fromMillis(
+    Date.UTC(2026, 0, 1) + Math.floor(index / 10) * 1000,
+  );
+  await adminDb.recursiveDelete(adminDb.doc(`workspaces/${wsMany}`));
+  await adminDb.recursiveDelete(adminDb.collection(`users/${uid}/workspaces`));
+  await adminDb.doc(`workspaces/${wsMany}`).set({
+    name: wsMany, type: 'PJ', ownerId: uid, status: 'active', currency: 'BRL',
+  });
+  const writer = adminDb.bulkWriter();
+  const indexTotal = 120;
+  for (let index = 0; index < indexTotal; index += 1) {
+    writer.set(adminDb.doc(`users/${uid}/workspaces/ws-idx-${String(index).padStart(3, '0')}`), {
+      workspaceId: `ws-idx-${index}`, status: 'active', name: `Espaço ${index}`, type: 'PF',
+      workspaceStatus: 'active', joinedAt: joinedAt(index),
+    });
+  }
+  // Fora do filtro: não pode aparecer nem contar.
+  writer.set(adminDb.doc(`users/${uid}/workspaces/ws-idx-removed`), {
+    workspaceId: 'ws-idx-removed', status: 'removed', workspaceStatus: 'active', joinedAt: joinedAt(0),
+  });
+  writer.set(adminDb.doc(`users/${uid}/workspaces/ws-idx-archived`), {
+    workspaceId: 'ws-idx-archived', status: 'active', workspaceStatus: 'archived', joinedAt: joinedAt(0),
+  });
+  const membersTotal = 450;
+  writer.set(adminDb.doc(`workspaces/${wsMany}/members/${uid}`), {
+    uid, role: 'owner', status: 'active', joinedAt: joinedAt(0),
+  });
+  for (let index = 1; index < membersTotal; index += 1) {
+    writer.set(adminDb.doc(`workspaces/${wsMany}/members/m-${String(index).padStart(3, '0')}`), {
+      uid: `m-${index}`, role: 'viewer', status: 'active', joinedAt: joinedAt(index),
+    });
+  }
+  writer.set(adminDb.doc(`workspaces/${wsMany}/members/m-removed`), {
+    uid: 'm-removed', role: 'member', status: 'removed', joinedAt: joinedAt(1),
+  });
+  await writer.close();
+
+  const index = await pageThrough(query(
+    collection(db.pager, `users/${uid}/workspaces`),
+    where('status', '==', 'active'),
+    where('workspaceStatus', '==', 'active'),
+    orderBy('joinedAt', 'asc'),
+  ), 50);
+  assert.equal(index.ids.length, indexTotal);
+  assert.equal(new Set(index.ids).size, indexTotal, 'nenhum workspace repetido');
+  assert.equal(index.pages, 3);
+
+  const members = await pageThrough(query(
+    collection(db.pager, `workspaces/${wsMany}/members`),
+    where('status', '==', 'active'),
+    orderBy('joinedAt', 'asc'),
+  ), 200);
+  assert.equal(members.ids.length, membersTotal);
+  assert.equal(new Set(members.ids).size, membersTotal, 'nenhum membro repetido');
+  assert.equal(members.pages, 3);
+  assert.equal(members.ids.includes('m-removed'), false);
+
+  // A página continua limitada pelo teto das Rules.
+  await denied(getDocs(query(collection(db.pager, `users/${uid}/workspaces`), limit(51))),
+    'página do índice acima do teto');
+  await denied(getDocs(query(collection(db.pager, `workspaces/${wsMany}/members`), limit(201))),
+    'página de membros acima do teto');
 });

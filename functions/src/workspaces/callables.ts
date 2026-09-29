@@ -4,7 +4,10 @@ import {
 } from "../shared/callable";
 import {ApplicationError} from "../shared/errors";
 import {consumeUserRateLimit} from "../shared/rateLimit";
-import type {WorkspaceActor} from "../shared/workspaceAuth";
+import {
+  isWorkspaceRole,
+  type WorkspaceActor,
+} from "../shared/workspaceAuth";
 import {
   acceptWorkspaceInvitePayloadSchema,
   archiveWorkspacePayloadSchema,
@@ -98,8 +101,16 @@ export const archiveWorkspace = defineCallable({
   schema: archiveWorkspacePayloadSchema,
   policy: VERIFIED_RECENT,
   internalMessage: INTERNAL_MESSAGE,
-  handler: ({caller, payload, requestId}) =>
-    executeArchiveWorkspace(caller.uid, payload.workspaceId, requestId),
+  handler: async ({caller, payload, requestId, trustWorkspace}) => {
+    const result = await executeArchiveWorkspace(
+      caller.uid,
+      payload.workspaceId,
+      requestId,
+    );
+    // Só chega aqui se a transação confirmou o membership owner ativo.
+    trustWorkspace(payload.workspaceId, "owner");
+    return result;
+  },
 });
 
 export const inviteWorkspaceMember = defineCallable({
@@ -126,11 +137,21 @@ export const acceptWorkspaceInvite = defineCallable({
   schema: acceptWorkspaceInvitePayloadSchema,
   policy: VERIFIED,
   internalMessage: INTERNAL_MESSAGE,
-  handler: async ({caller, payload, requestId}) => {
+  handler: async ({caller, payload, requestId, trustWorkspace}) => {
     // Consumido em transação própria, antes do aceite: a tentativa inválida
     // gasta orçamento mesmo que a transação do aceite falhe.
     await consumeUserRateLimit(caller.uid, ACCEPT_RATE_LIMIT);
-    return executeAcceptWorkspaceInvite(caller, payload.token, requestId);
+    const result = await executeAcceptWorkspaceInvite(
+      caller,
+      payload.token,
+      requestId,
+    );
+    // O workspace vem do convite resolvido pelo hash do token, não do payload.
+    trustWorkspace(
+      String(result.workspaceId),
+      isWorkspaceRole(result.role) ? result.role : null,
+    );
+    return result;
   },
 });
 
@@ -196,10 +217,16 @@ export const transferWorkspaceOwnership = defineCallable({
   schema: transferWorkspaceOwnershipPayloadSchema,
   policy: VERIFIED_RECENT,
   internalMessage: INTERNAL_MESSAGE,
-  handler: ({caller, payload, requestId}) =>
-    executeTransferWorkspaceOwnership(
+  handler: async ({caller, payload, requestId, trustWorkspace}) => {
+    const result = await executeTransferWorkspaceOwnership(
       {uid: caller.uid, workspaceId: payload.workspaceId, role: "owner"},
       payload,
       requestId,
-    ),
+    );
+    // Execução nova: a transação releu o papel owner. Replay: a reserva de
+    // idempotência do mesmo usuário prova a transferência já autorizada
+    // neste workspace (o hash do payload inclui o `workspaceId`).
+    trustWorkspace(payload.workspaceId, "owner");
+    return result;
+  },
 });

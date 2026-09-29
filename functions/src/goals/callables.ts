@@ -6,21 +6,17 @@ import type {WorkspaceActor, WorkspaceRole} from "../shared/workspaceAuth";
 import {
   archiveGoalPayloadSchema,
   createGoalPayloadSchema,
-  seedLegacyCatalogPayloadSchema,
   updateGoalPayloadSchema,
 } from "./contracts";
 import {
   executeArchiveGoal,
   executeCreateGoal,
-  executeSeedLegacySettingsCatalog,
   executeUpdateGoal,
 } from "./operations";
 
 type GoalRole = Extract<WorkspaceRole, "owner" | "admin" | "member">;
 
 const ALL_ACTIVE_ROLES: GoalRole[] = ["owner", "admin", "member"];
-/** Operações administrativas de meta. */
-const PRIVILEGED_ROLES: GoalRole[] = ["owner", "admin"];
 
 /**
  * Matriz declarativa de papéis das callables de metas.
@@ -38,7 +34,6 @@ export const GOAL_OPERATION_ROLES = {
   createGoal: ALL_ACTIVE_ROLES,
   updateGoal: ALL_ACTIVE_ROLES,
   archiveGoal: ALL_ACTIVE_ROLES,
-  seedLegacySettingsCatalog: PRIVILEGED_ROLES,
 } as const satisfies Record<string, readonly GoalRole[]>;
 
 type GoalOperation = keyof typeof GOAL_OPERATION_ROLES;
@@ -96,10 +91,4 @@ export const archiveGoal = goalCallable(
   "archiveGoal",
   archiveGoalPayloadSchema,
   executeArchiveGoal,
-);
-
-export const seedLegacySettingsCatalog = goalCallable(
-  "seedLegacySettingsCatalog",
-  seedLegacyCatalogPayloadSchema,
-  executeSeedLegacySettingsCatalog,
 );

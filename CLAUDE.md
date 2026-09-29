@@ -4,11 +4,23 @@
 
 ### Plano mestre
 
-- O plano mestre é [`docs/production/PRODUCTION_READINESS_PLAN.md`](docs/production/PRODUCTION_READINESS_PLAN.md): milestones P0–P10, blockers confirmados, estado e evidências. Leia-o antes de qualquer trabalho.
+- O plano mestre é [`docs/production/PRODUCTION_READINESS_PLAN.md`](docs/production/PRODUCTION_READINESS_PLAN.md): milestones P0–P10, blockers confirmados, estado e evidências. Não o leia inteiro por padrão: siga a "Política de contexto" abaixo.
 - Os documentos de referência ficam em `docs/production/`. Eles classificam cada tema como CURRENT, TARGET, GAP, DECISION ou EXTERNAL CONFIGURATION REQUIRED; descrevem alvo e lacunas, não provam implementação.
 - `docs/investments/` e `docs/credit-card-domain-phase-*.md` são registro histórico de programas anteriores. Podem orientar, mas não definem o estado atual.
 - Não inicie um milestone sem pedido explícito e não avance automaticamente para o seguinte.
 - Atualize o plano mestre somente com decisões, progresso, evidências, riscos e rollback novos.
+
+### Política de contexto
+
+- Localize primeiro apenas o milestone, blockers, decisões e dependências relacionados à tarefa corrente no plano mestre; não leia o plano inteiro por padrão e expanda a leitura só quando uma referência realmente exigir.
+- Use LSP/code intelligence antes de grep amplo.
+- Evite reler arquivos já compreendidos na mesma tarefa.
+- Skills são carregadas sob demanda, apenas as da superfície tocada.
+- CLI/tooling local tem preferência sobre MCP quando suficiente.
+- Durante a implementação, execute testes direcionados; `verify:all` somente no fechamento do conjunto coerente, salvo necessidade técnica comprovada.
+- Outputs extensos de lint/testes: resuma no contexto principal e preserve o detalhe em arquivo temporário quando necessário.
+- Subagentes econômicos em `.claude/agents/` (`repo-explorer`, `test-runner`, `implementation-worker`); decisões críticas (RBAC, Rules, autorização, concorrência, atomicidade financeira, arquitetura) permanecem no modelo principal.
+- `/compact` quando a mesma tarefa acumular contexto; `/clear` entre tarefas independentes cujos resultados já estejam persistidos.
 
 ### Proibições
 

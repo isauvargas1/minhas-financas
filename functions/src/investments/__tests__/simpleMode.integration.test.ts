@@ -38,7 +38,7 @@ import {
   normalizeCatalogName,
   VALUE_MODE_MICROS_PER_CENT,
 } from "../simpleMode";
-import {executeSeedLegacySettingsCatalog} from "../../goals/operations";
+import {writeGeneralCatalogDefaults} from "../../workspaces/provisioning";
 
 /**
  * Superfície simples do domínio patrimonial (Etapa 1).
@@ -77,7 +77,7 @@ const PORTFOLIO = "cat-class-aposentadoria";
  * Categoria **semeada** no catálogo genérico — `category` com
  * `transactionSubtype: "investimento"`, que é Configurações › Cadastros ›
  * Categorias › Investimentos, a fonte visível desde a unificação. O
- * identificador é o mesmo que `seedLegacySettingsCatalog` grava, e é dele —
+ * identificador é o mesmo que o provisionamento do workspace grava, e é dele —
  * nunca do rótulo — que sai a classificação técnica.
  */
 const CATEGORY = legacyCatalogSeedDocumentId(
@@ -1712,8 +1712,8 @@ test("categoria do grupo histórico continua aceita e classificada", async () =>
 
 /**
  * Prova de ponta a ponta de que as duas derivações do identificador concordam,
- * agora do lado do catálogo genérico: `seedLegacySettingsCatalog` grava o item
- * e a resolução técnica encontra a classificação a partir do ID daquele
+ * agora do lado do catálogo genérico: o provisionamento do workspace grava o
+ * item e a resolução técnica encontra a classificação a partir do ID daquele
  * documento. Se a lista de sementes e o mapa divergirem — um nome trocado, um
  * item novo — o documento esperado não existe e o teste falha, em vez de a
  * classificação virar `other` silenciosamente em produção.
@@ -1728,9 +1728,11 @@ test(
     await catalogItem(WS_B, PORTFOLIO, "investment_class", "Aposentadoria");
 
     const contextoB = auth(WS_B, OWNER_B);
-    await executeSeedLegacySettingsCatalog(contextoB, {
-      workspaceId: WS_B,
-      idempotencyKey: "legacy-catalog-seed-b-0001",
+    // O mesmo escritor que `bootstrapAccount`/`createWorkspace` usam.
+    await db().runTransaction(async (transaction) => {
+      writeGeneralCatalogDefaults(transaction, {
+        workspaceId: WS_B, type: "PF", uid: OWNER_B,
+      });
     });
 
     const esperado: Array<[string, string]> = [

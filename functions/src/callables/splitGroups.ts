@@ -1,11 +1,10 @@
 import {randomInt} from "node:crypto";
 
-import {HttpsError} from "firebase-functions/v2/https";
 import * as admin from "firebase-admin";
 import {z} from "zod";
 
 import {defineCallable, type CallableFailure} from "../shared/callable";
-import {errorCodeOf} from "../shared/errors";
+import {ApplicationError, errorCodeOf} from "../shared/errors";
 import {reserveRateLimit} from "../shared/rateLimit";
 import {DOMAIN_CALLABLE_OPTIONS} from "../shared/runtimeOptions";
 import {
@@ -139,15 +138,15 @@ export const createSplitGroupInvite = defineCallable({
       .get();
 
     if (snapshot.empty) {
-      throw new HttpsError(
-        "permission-denied",
+      throw new ApplicationError(
+        "permission_denied",
         "Você não faz parte deste grupo."
       );
     }
 
     if (snapshot.docs[0].data().papel !== "dono") {
-      throw new HttpsError(
-        "permission-denied",
+      throw new ApplicationError(
+        "permission_denied",
         "Apenas o dono do grupo pode gerar convites."
       );
     }
@@ -238,8 +237,8 @@ export const acceptSplitGroupInvite = defineCallable({
       rateLimit.commit();
 
       if (inviteSnapshot.empty) {
-        throw new HttpsError(
-          "not-found",
+        throw new ApplicationError(
+          "not_found",
           "Convite inválido, expirado ou já aceito."
         );
       }
@@ -249,15 +248,15 @@ export const acceptSplitGroupInvite = defineCallable({
 
       if (invite.expiraEm && new Date(invite.expiraEm) < new Date()) {
         transaction.update(inviteDoc.ref, {status: "expirado"});
-        throw new HttpsError(
-          "failed-precondition",
+        throw new ApplicationError(
+          "domain_precondition_failed",
           "Este convite já expirou."
         );
       }
 
       if (!existing.empty) {
-        throw new HttpsError(
-          "already-exists",
+        throw new ApplicationError(
+          "already_exists",
           "Você já participa deste grupo."
         );
       }

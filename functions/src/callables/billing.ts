@@ -1,9 +1,9 @@
-import {HttpsError} from "firebase-functions/v2/https";
 import * as admin from "firebase-admin";
 import Stripe from "stripe";
 import {z} from "zod";
 
 import {defineCallable} from "../shared/callable";
+import {ApplicationError} from "../shared/errors";
 import {reserveUserRateLimit} from "../shared/rateLimit";
 import {DOMAIN_CALLABLE_OPTIONS} from "../shared/runtimeOptions";
 import {
@@ -113,18 +113,18 @@ export const createCheckoutSession = defineCallable({
     const priceIds = allowedStripePriceIds();
     if (priceIds.length === 0) {
       console.error("billing_price_allowlist_missing");
-      throw new HttpsError(
-        "failed-precondition",
+      throw new ApplicationError(
+        "domain_precondition_failed",
         "Cobrança indisponível no momento. Tente novamente mais tarde.",
       );
     }
     if (!priceIds.includes(priceId)) {
-      throw new HttpsError("invalid-argument", "Plano indisponível.");
+      throw new ApplicationError("invalid_payload", "Plano indisponível.");
     }
 
     if (!isAllowedReturnUrl(returnUrl, allowedReturnOrigins())) {
-      throw new HttpsError(
-        "invalid-argument",
+      throw new ApplicationError(
+        "invalid_payload",
         "Endereço de retorno inválido.",
       );
     }

@@ -66,6 +66,177 @@ const PROFILE_SEEDS: Record<"PF" | "PJ", CatalogSeed[]> = {
 
 const normalize = normalizeCatalogName;
 
+type InvestmentProfileType = "PF" | "PJ";
+
+/** Item padrão do catálogo de investimentos, já com chave e ID estáveis. */
+interface PreparedCatalogSeed {
+  seed: CatalogSeed;
+  sortOrder: number;
+  normalizedName: string;
+  dedupeKey: string;
+  defaultItemId: string;
+}
+
+/**
+ * Padrões de investimento de um perfil, na ordem em que são semeados.
+ *
+ * Fonte única para as duas escritas: o preparo convergente
+ * (`executeOnboardInvestmentWorkspace`) e o provisionamento de workspace novo
+ * (`writeNewWorkspaceInvestmentDefaults`).
+ */
+const investmentCatalogSeedsFor = (
+  profileType: InvestmentProfileType,
+): PreparedCatalogSeed[] =>
+  [...COMMON_SEEDS, ...PROFILE_SEEDS[profileType]].map((seed, index) => {
+    const normalizedName = normalize(seed.name);
+    return {
+      seed,
+      sortOrder: (index + 1) * 10,
+      normalizedName,
+      dedupeKey: [seed.group, "all", seed.scope, normalizedName].join("::"),
+      defaultItemId: investmentCatalogSeedDocumentId(
+        seed.group, seed.scope, seed.name,
+      ),
+    };
+  });
+
+const catalogItemRef = (workspaceId: string, itemId: string) =>
+  investmentFirestore().doc(`workspaces/${workspaceId}/settings_catalog/${itemId}`);
+
+const catalogUniqueRef = (workspaceId: string, dedupeKey: string) =>
+  investmentFirestore().doc(
+    `workspaces/${workspaceId}/settings_catalog_uniques/${dedupeKey}`,
+  );
+
+const auditStamp = (uid: string) => ({
+  createdBy: uid,
+  updatedBy: uid,
+  createdAt: FieldValue.serverTimestamp(),
+  updatedAt: FieldValue.serverTimestamp(),
+});
+
+const catalogItemDocument = (
+  workspaceId: string,
+  entry: PreparedCatalogSeed,
+  uid: string,
+) => ({
+  workspaceId,
+  group: entry.seed.group,
+  name: entry.seed.name,
+  normalizedName: entry.normalizedName,
+  dedupeKey: entry.dedupeKey,
+  workspaceScope: entry.seed.scope,
+  sortOrder: entry.sortOrder,
+  status: "active",
+  ...auditStamp(uid),
+});
+
+const catalogUniqueDocument = (
+  workspaceId: string,
+  entry: PreparedCatalogSeed,
+  itemId: string,
+  uid: string,
+) => ({
+  dedupeKey: entry.dedupeKey,
+  catalogItemId: itemId,
+  workspaceId,
+  group: entry.seed.group,
+  normalizedName: entry.normalizedName,
+  ...auditStamp(uid),
+});
+
+const defaultAccountId = (workspaceId: string) =>
+  deterministicDocumentId("onboarding", workspaceId, "account");
+
+const defaultAssetId = (workspaceId: string) =>
+  deterministicDocumentId("onboarding", workspaceId, "asset");
+
+const defaultAccountDocument = (
+  workspaceId: string,
+  profileType: InvestmentProfileType,
+  uid: string,
+) => assertInvestmentDocument("account", {
+  id: defaultAccountId(workspaceId),
+  workspaceId,
+  profileType,
+  name: profileType === "PJ" ? "Conta de investimentos da empresa" : "Conta de investimentos",
+  institutionName: "Instituição a definir",
+  currency: "BRL",
+  status: "active",
+  ...auditStamp(uid),
+}, workspaceId);
+
+const defaultAssetDocument = (
+  workspaceId: string,
+  profileType: InvestmentProfileType,
+  uid: string,
+) => assertInvestmentDocument("asset", {
+  id: defaultAssetId(workspaceId),
+  workspaceId,
+  profileType,
+  name: profileType === "PJ" ? "Reserva financeira da empresa" : "Reserva de liquidez",
+  symbol: profileType === "PJ" ? "RESERVA-PJ" : "RESERVA-PF",
+  assetType: "fixed_income",
+  // PF trata reserva de liquidez como objetivo não classificado; PJ a
+  // classifica explicitamente como reserva. O campo é obrigatório no
+  // documento e não pode depender do default do leitor.
+  allocationPurpose: profileType === "PJ" ? "reserve" : "unassigned",
+  currency: "BRL",
+  status: "active",
+  ...auditStamp(uid),
+}, workspaceId);
+
+export interface NewWorkspaceInvestmentDefaults {
+  accountId: string;
+  assetId: string;
+  catalogItemCount: number;
+}
+
+/**
+ * Padrões de investimento de um workspace **recém-criado** (P1).
+ *
+ * Chamado pelo provisionamento de `bootstrapAccount`/`createWorkspace`, na
+ * mesma transação que cria o workspace. O ID do workspace acabou de ser
+ * gerado, então não há o que ler: tudo é `transaction.create`, e qualquer
+ * colisão aborta a transação inteira em vez de sobrescrever.
+ */
+export const writeNewWorkspaceInvestmentDefaults = (
+  transaction: FirebaseFirestore.Transaction,
+  input: {workspaceId: string; profileType: InvestmentProfileType; uid: string},
+): NewWorkspaceInvestmentDefaults => {
+  const entries = investmentCatalogSeedsFor(input.profileType);
+  for (const entry of entries) {
+    transaction.create(
+      catalogItemRef(input.workspaceId, entry.defaultItemId),
+      catalogItemDocument(input.workspaceId, entry, input.uid),
+    );
+    transaction.create(
+      catalogUniqueRef(input.workspaceId, entry.dedupeKey),
+      catalogUniqueDocument(
+        input.workspaceId, entry, entry.defaultItemId, input.uid,
+      ),
+    );
+  }
+  const accountId = defaultAccountId(input.workspaceId);
+  const assetId = defaultAssetId(input.workspaceId);
+  transaction.create(
+    investmentDoc(input.workspaceId, INVESTMENT_COLLECTIONS.accounts, accountId),
+    defaultAccountDocument(input.workspaceId, input.profileType, input.uid),
+  );
+  transaction.create(
+    investmentDoc(input.workspaceId, INVESTMENT_COLLECTIONS.assets, assetId),
+    defaultAssetDocument(input.workspaceId, input.profileType, input.uid),
+  );
+  return {accountId, assetId, catalogItemCount: entries.length};
+};
+
+/**
+ * Preparo convergente dos padrões de investimento de um workspace existente.
+ *
+ * Não faz parte do ciclo de vida do workspace — o provisionamento já grava
+ * os padrões na criação. Continua como operação do domínio: completa o que
+ * faltar sem duplicar o que já existe.
+ */
 export const executeOnboardInvestmentWorkspace = async (
   auth: WorkspaceActor,
   payload: OnboardInvestmentWorkspacePayload,
@@ -85,25 +256,13 @@ export const executeOnboardInvestmentWorkspace = async (
   );
   if (reservation.replay) return reservation.replay;
 
-  const seeds = [...COMMON_SEEDS, ...PROFILE_SEEDS[authorization.profileType]];
-  const prepared = seeds.map((seed) => {
-    const normalizedName = normalize(seed.name);
-    const dedupeKey = [seed.group, "all", seed.scope, normalizedName].join("::");
-    return {
-      seed,
-      normalizedName,
-      dedupeKey,
-      uniqueRef: investmentFirestore().doc(
-        `workspaces/${auth.workspaceId}/settings_catalog_uniques/${dedupeKey}`,
-      ),
-    };
-  });
+  const prepared = investmentCatalogSeedsFor(authorization.profileType);
   const readResults = await Promise.all([
     transaction.get(investmentCollection(auth.workspaceId, INVESTMENT_COLLECTIONS.accounts)
       .where("status", "==", "active").limit(1)),
     transaction.get(investmentCollection(auth.workspaceId, INVESTMENT_COLLECTIONS.assets)
       .where("status", "==", "active").limit(1)),
-    ...prepared.map((entry) => transaction.get(entry.uniqueRef)),
+    ...prepared.map((entry) => transaction.get(catalogUniqueRef(auth.workspaceId, entry.dedupeKey))),
     ...prepared.map((entry) => transaction.get(
       investmentFirestore().collection(`workspaces/${auth.workspaceId}/settings_catalog`)
         .where("dedupeKey", "==", entry.dedupeKey).limit(1),
@@ -118,81 +277,35 @@ export const executeOnboardInvestmentWorkspace = async (
   prepared.forEach((entry, index) => {
     if (uniqueSnapshots[index].exists) return;
     const existingItem = catalogSnapshots[index].docs[0];
-    const itemId = existingItem?.id ?? investmentCatalogSeedDocumentId(
-      entry.seed.group, entry.seed.scope, entry.seed.name,
-    );
-    const audit = {
-      createdBy: auth.uid,
-      updatedBy: auth.uid,
-      createdAt: FieldValue.serverTimestamp(),
-      updatedAt: FieldValue.serverTimestamp(),
-    };
+    const itemId = existingItem?.id ?? entry.defaultItemId;
     if (!existingItem) {
       transaction.create(
-        investmentFirestore().doc(`workspaces/${auth.workspaceId}/settings_catalog/${itemId}`),
-        {
-        workspaceId: auth.workspaceId,
-        group: entry.seed.group,
-        name: entry.seed.name,
-        normalizedName: entry.normalizedName,
-        dedupeKey: entry.dedupeKey,
-        workspaceScope: entry.seed.scope,
-        sortOrder: (index + 1) * 10,
-        status: "active",
-        ...audit,
-        },
+        catalogItemRef(auth.workspaceId, itemId),
+        catalogItemDocument(auth.workspaceId, entry, auth.uid),
       );
       createdCatalogCount += 1;
     }
-    transaction.create(entry.uniqueRef, {
-      dedupeKey: entry.dedupeKey,
-      catalogItemId: itemId,
-      workspaceId: auth.workspaceId,
-      group: entry.seed.group,
-      normalizedName: entry.normalizedName,
-      ...audit,
-    });
+    transaction.create(
+      catalogUniqueRef(auth.workspaceId, entry.dedupeKey),
+      catalogUniqueDocument(auth.workspaceId, entry, itemId, auth.uid),
+    );
   });
 
   let accountId: string | null = accountPage.docs[0]?.id ?? null;
   let assetId: string | null = assetPage.docs[0]?.id ?? null;
   if (!accountId) {
-    accountId = deterministicDocumentId("onboarding", auth.workspaceId, "account");
-    transaction.create(investmentDoc(auth.workspaceId, INVESTMENT_COLLECTIONS.accounts, accountId), assertInvestmentDocument("account", {
-      id: accountId,
-      workspaceId: auth.workspaceId,
-      profileType: authorization.profileType,
-      name: authorization.profileType === "PJ" ? "Conta de investimentos da empresa" : "Conta de investimentos",
-      institutionName: "Instituição a definir",
-      currency: "BRL",
-      status: "active",
-      createdBy: auth.uid,
-      updatedBy: auth.uid,
-      createdAt: FieldValue.serverTimestamp(),
-      updatedAt: FieldValue.serverTimestamp(),
-    }, auth.workspaceId));
+    accountId = defaultAccountId(auth.workspaceId);
+    transaction.create(
+      investmentDoc(auth.workspaceId, INVESTMENT_COLLECTIONS.accounts, accountId),
+      defaultAccountDocument(auth.workspaceId, authorization.profileType, auth.uid),
+    );
   }
   if (!assetId) {
-    assetId = deterministicDocumentId("onboarding", auth.workspaceId, "asset");
-    transaction.create(investmentDoc(auth.workspaceId, INVESTMENT_COLLECTIONS.assets, assetId), assertInvestmentDocument("asset", {
-      id: assetId,
-      workspaceId: auth.workspaceId,
-      profileType: authorization.profileType,
-      name: authorization.profileType === "PJ" ? "Reserva financeira da empresa" : "Reserva de liquidez",
-      symbol: authorization.profileType === "PJ" ? "RESERVA-PJ" : "RESERVA-PF",
-      assetType: "fixed_income",
-      // PF trata reserva de liquidez como objetivo não classificado; PJ a
-      // classifica explicitamente como reserva. O campo é obrigatório no
-      // documento e não pode depender do default do leitor.
-      allocationPurpose:
-        authorization.profileType === "PJ" ? "reserve" : "unassigned",
-      currency: "BRL",
-      status: "active",
-      createdBy: auth.uid,
-      updatedBy: auth.uid,
-      createdAt: FieldValue.serverTimestamp(),
-      updatedAt: FieldValue.serverTimestamp(),
-    }, auth.workspaceId));
+    assetId = defaultAssetId(auth.workspaceId);
+    transaction.create(
+      investmentDoc(auth.workspaceId, INVESTMENT_COLLECTIONS.assets, assetId),
+      defaultAssetDocument(auth.workspaceId, authorization.profileType, auth.uid),
+    );
   }
 
   const result = {
@@ -204,7 +317,7 @@ export const executeOnboardInvestmentWorkspace = async (
     createdAccount: accountPage.empty,
     createdAsset: assetPage.empty,
     createdCatalogCount,
-    existingCatalogCount: seeds.length - createdCatalogCount,
+    existingCatalogCount: prepared.length - createdCatalogCount,
   };
   recordInvestmentOperationMetric(transaction, {
     workspaceId: auth.workspaceId,

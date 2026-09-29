@@ -11,9 +11,8 @@ import {
   startAfter,
   where,
 } from 'firebase/firestore';
-import {httpsCallable} from 'firebase/functions';
 
-import {db, functions} from '../../lib/firebase';
+import {db} from '../../lib/firebase';
 import {
   SETTINGS_CATALOG_COLLECTION,
   SETTINGS_CATALOG_UNIQUES_COLLECTION
@@ -70,15 +69,6 @@ const stripUndefined = <T extends Record<string, unknown>>(obj: T) => {
   return Object.fromEntries(
     Object.entries(obj).filter(([, value]) => value !== undefined)
   ) as Partial<T>;
-};
-
-export const seedLegacySettingsCatalog = async (workspaceId: string): Promise<void> => {
-  assertValidWorkspaceId(workspaceId);
-  const callable = httpsCallable(functions, 'seedLegacySettingsCatalog');
-  await callable({
-    workspaceId,
-    idempotencyKey: `legacy-catalog-seed-v1:${workspaceId}`,
-  });
 };
 
 /**

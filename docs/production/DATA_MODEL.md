@@ -1,13 +1,13 @@
 # Modelo de dados Firestore
 
-Inventário do modelo de dados Firestore do Minhas Finanças: coleções, escritores, Rules, índices, retenção, paginação, Notifications e Messages. O documento registra o estado auditado no HEAD `9c3ab46` e o alvo por coleção, e remete ao [plano mestre](PRODUCTION_READINESS_PLAN.md) para IDs, milestones e decisões. O gate do tema é da skill `firestore-scale-cost-review`. Rules e isolamento também passam por `multi-tenant-security-review`, e retenção por `privacy-lgpd-data-lifecycle` (ver [DATA_RETENTION_LIFECYCLE.md](DATA_RETENTION_LIFECYCLE.md)).
+Inventário do modelo de dados Firestore do Minhas Finanças: coleções, escritores, Rules, índices, retenção, paginação, Notifications e Messages. O documento registra o estado auditado no HEAD `9c3ab46` (atualizado após a implementação de P1: código no repositório e testado no Emulator, nada implantado) e o alvo por coleção, e remete ao [plano mestre](PRODUCTION_READINESS_PLAN.md) para IDs, milestones e decisões. O gate do tema é da skill `firestore-scale-cost-review`. Rules e isolamento também passam por `multi-tenant-security-review`, e retenção por `privacy-lgpd-data-lifecycle` (ver [DATA_RETENTION_LIFECYCLE.md](DATA_RETENTION_LIFECYCLE.md)).
 
 ## 1. Convenções
 
 - Rótulos: **CURRENT** (existe no HEAD, com evidência `caminho:linha`), **TARGET** (alvo, não implementado), **GAP** (ID `PR-*` do [registro](PRODUCTION_READINESS_PLAN.md#6-registro-de-blockers) para BLOCKER/HIGH; ID de origem da auditoria para MEDIUM/LOW), **DECISION** (§9/§10 do plano) e **EXTERNAL CONFIGURATION REQUIRED** (§11 do plano).
 - **Escritor cliente** é o SDK web sujeito às Rules. **Escritor backend** é o Admin SDK em callable, gatilho, cron ou webhook, que não passa pelas Rules.
 - Referências de Rules apontam para `firestore.rules`. Referências de índice apontam para a linha da chave `collectionGroup` em `firestore.indexes.json`.
-- Papéis nos helpers de Rules (**CURRENT**): `canReadWorkspaceScopedData` = qualquer membro ativo, inclusive `viewer`, ou titular por `ownerId` (`firestore.rules:435-437`). `canWriteWorkspaceScopedData` = owner/admin ou titular (`firestore.rules:439-441`). `canMemberWriteWorkspaceScopedData` = owner/admin/member ou titular (`firestore.rules:443-446`). `canReadInvestmentDomain` = owner/admin/member (`firestore.rules:452-455`). `canReadSensitiveInvestmentDomain` = owner/admin (`firestore.rules:457-460`). `isMember` considera ativo o documento sem `status` (`firestore.rules:9-16`).
+- Papéis nos helpers de Rules (**CURRENT**): `isMember` = membership `active` com conta ativa (`users/{uid}.status == 'active'`), sem regime por `ownerId` (`firestore.rules:28-46`). `canReadWorkspaceScopedData` = qualquer membro ativo, inclusive `viewer` (`firestore.rules:379-381`). `canWriteWorkspaceScopedData` = owner/admin (`firestore.rules:383-385`). `canMemberWriteWorkspaceScopedData` = owner/admin/member (`firestore.rules:387-389`). `canReadInvestmentDomain` = owner/admin/member (`firestore.rules:393-395`). `canReadSensitiveInvestmentDomain` = owner/admin (`firestore.rules:397-399`). As escritas por papel exigem também workspace não arquivado (`firestore.rules:58-64`).
 
 ## 2. Princípios do modelo alvo (TARGET)
 
@@ -16,20 +16,24 @@ Inventário do modelo de dados Firestore do Minhas Finanças: coleções, escrit
 3. Nenhum hard delete de histórico financeiro. Exclusão vira arquivamento, cancelamento ou estorno ([DATA_RETENTION_LIFECYCLE.md](DATA_RETENTION_LIFECYCLE.md)).
 4. Toda query composta tem índice versionado, com teste que confere a cobertura. TTL e isenções de indexação ficam em `fieldOverrides`.
 5. Leitura de lista usa `orderBy` estável + `__name__` + `startAfter` + `limit`. Telas financeiras leem projeções agregadas pelo backend, nunca a coleção bruta.
-6. Papel efetivo vem só do membership ativo, sem regime paralelo por `ownerId` (P1, PR-WS-03, PR-WS-04).
+6. Papel efetivo vem só do membership ativo, sem regime paralelo por `ownerId` (P1, PR-WS-03, PR-WS-04; entregue em P1).
 
 ## 3. Árvore de coleções (CURRENT)
 
-Não há `match` top-level genérico: fora de `workspaces/` e `users/` tudo é negado ao cliente (`firestore.rules:1-3`, `990`, `1456`). Legenda: **[C]** escrito pelo cliente, **[B]** escrito pelo backend, **[C+B]** ambos, **(catch-all)** sem `match` próprio, lido por qualquer membro via `firestore.rules:1436-1442`.
+Não há `match` top-level genérico: fora de `workspaces/` e `users/` tudo é negado ao cliente (`firestore.rules:1-3`, `936`, `1377`). Legenda: **[C]** escrito pelo cliente, **[B]** escrito pelo backend, **[C+B]** ambos, **(catch-all)** sem `match` próprio, lido por qualquer membro via `firestore.rules:1362-1367`.
 
 ```text
-users/{uid}                                  [B]  perfil + campos de plano (webhook Stripe)
+users/{uid}                                  [B]  perfil server-owned (bootstrapAccount) + campos de plano (webhook Stripe)
   rate_limits/{id}                           [B]
-  workspaces/{workspaceId}                   [C]  índice de participação do usuário
+  idempotency_keys/{id}                      [B]  idempotência por ator das callables do kernel (P1)
+  workspaces/{workspaceId}                   [B]  índice de participação do usuário (sem papel)
 job_checkpoints/{job}                        [B]  cursor do cron de recorrentes (sem Rule → negado)
 system/{doc}                                 [B]  cursor do cron de deriva (sem Rule → negado)
-workspaces/{workspaceId}                     [C]
-  members/{uid}                              [C]
+invite_tokens/{sha256}                       [B]  ponteiro do hash do token de convite (sem Rule → negado)
+platform_audit_events/{id}                   [B]  auditoria de suspensão de conta (sem Rule → negado)
+workspaces/{workspaceId}                     [B]
+  members/{uid}                              [B]
+  invites/{inviteId} | membership_events/{eventId}   [B]
   transactions/{id}                          [C+B]
   activity_logs/{id}                         [B]  (catch-all)
   cash_report_periods/{yyyy-mm}              [B]
@@ -58,7 +62,7 @@ workspaces/{workspaceId}                     [C]
   rate_limits/{id}                           [B]  (catch-all, negado por isBackendOwnedCollection)
 ```
 
-Evidência dos caminhos sem Rule própria: `functions/src/crons/recurring.ts:84` (`job_checkpoints/recurring_expenses`), `functions/src/crons/investmentDrift.ts:66` (`system/investment_drift_scan`), `functions/src/triggers/transactions.ts:103` (`activity_logs`), `functions/src/callables/splitGroups.ts:144-146` (`split_invites`), `functions/src/shared/rateLimit.ts:55-70` (`rate_limits` de workspace). A lista de negação por prefixo está em `firestore.rules:852-877`.
+Evidência dos caminhos sem Rule própria: `functions/src/crons/recurring.ts:84` (`job_checkpoints/recurring_expenses`), `functions/src/crons/investmentDrift.ts:66` (`system/investment_drift_scan`), `functions/src/triggers/transactions.ts:103` (`activity_logs`), `functions/src/callables/splitGroups.ts:144-146` (`split_invites`), `functions/src/shared/rateLimit.ts:55-70` (`rate_limits` de workspace), `functions/src/workspaces/model.ts:33,61-62` (`invite_tokens`) e `functions/src/workspaces/suspension.ts:27,58` (`platform_audit_events`). A lista de negação por prefixo está em `firestore.rules:791-821`.
 
 ## 4. Inventário por coleção
 
@@ -68,18 +72,23 @@ Colunas: finalidade; escritor **CURRENT**; Rules **CURRENT**; índices compostos
 
 | Coleção | Finalidade | Escritor CURRENT | Rules CURRENT | Índices | Retenção CURRENT | TARGET · milestone · GAP |
 | --- | --- | --- | --- | --- | --- | --- |
-| `users/{uid}` | Perfil e, hoje, plano (`planId`, `isPro`, `stripe*`, `subscriptionStatus`) e `isAdmin` | Backend: webhook Stripe, `set` com merge (`functions/src/webhooks/stripe.ts:97-106`). O cliente só lê (`src/contexts/AuthContext.tsx:56-57`, `src/hooks/usePlan.ts:20`) | Leitura e escrita só do próprio uid, com allowlist de perfil (`firestore.rules:148-185`, `1456-1466`); `delete: false` (`1467`) | — | Sem prazo; sem exclusão | Perfil server-owned criado por `bootstrapAccount` (P1, PR-AUTH-03). Plano sai para o estado de assinatura único (P2, D-01, PR-BILL-07). `isAdmin` vira custom claim (P7, PR-ADMIN-01). Exclusão em P8 (PR-AUTH-01) |
-| `users/{uid}/rate_limits` | Contador de frequência sem workspace (checkout) | Backend (`functions/src/shared/rateLimit.ts:80-90`) | `read, write: false` (`firestore.rules:1472-1474`) | — | `expiresAt` 2 dias (`functions/src/shared/rateLimit.ts:144`) | Manter. TTL versionado (P6, RULES-13) |
-| `users/{uid}/workspaces` | Índice de participação; `role` usado como `myRole` na UI | Cliente (`src/modules/workspaces/api.ts:24-25,48-49,125-126,207,251`) | Escrita e delete pelo próprio uid, allowlist `workspaceId/role/createdAt/updatedAt` (`firestore.rules:1478-1487`) | — | Sem prazo; apagado na remoção de membro | Mantido só pelo backend, `write: false`; papel lido do membership (P1, PR-WS-03; RULES-18) |
+| `users/{uid}` | Perfil mínimo server-owned (`uid`, `email`, `displayName`, `photoURL`, `status`, `createdAt`, `updatedAt`) e, hoje, plano (`planId`, `isPro`, `stripe*`, `subscriptionStatus`) e `isAdmin` | Backend: `bootstrapAccount` cria e sincroniza o perfil (`functions/src/workspaces/lifecycle.ts:110-168`); `suspendAccount` grava `status` (`functions/src/workspaces/suspension.ts:36`); webhook Stripe, `set` com merge (`functions/src/webhooks/stripe.ts:97-107`). O cliente só lê (`src/contexts/AuthContext.tsx:75-79`, `src/hooks/usePlan.ts:20`) | Leitura só do próprio uid; create, update e delete negados (`firestore.rules:1377-1381`) | — | Sem prazo; sem exclusão | Mantido; `locale` e `timezone` não fazem parte do contrato de P1. Plano sai para o estado de assinatura único (P2, D-01, PR-BILL-07). `isAdmin` vira custom claim (P7, PR-ADMIN-01). Exclusão em P8 (PR-AUTH-01). PR-AUTH-03 corrigido em P1, pendente do gate (PLAN §16) |
+| `users/{uid}/rate_limits` | Contador de frequência sem workspace (checkout e aceite de convite) | Backend (`functions/src/shared/rateLimit.ts:80-90`; `functions/src/workspaces/callables.ts:143`) | `read, write: false` (`firestore.rules:1386-1388`) | — | `expiresAt` 2 dias (`functions/src/shared/rateLimit.ts:144`) | Manter. TTL versionado (P6, RULES-13) |
+| `users/{uid}/idempotency_keys` | Reserva de idempotência por ator das callables do kernel (`createWorkspace`, `inviteWorkspaceMember`, `transferWorkspaceOwnership`) | Backend (`functions/src/shared/idempotency.ts:37-97`) | `read, write: false` (`firestore.rules:1391-1393`) | — | `expiresAt` 90 dias (`functions/src/shared/idempotency.ts:95`; `functions/src/shared/retention.ts:29`); TTL declarado (`firestore.indexes.json:840`) | Manter. Conferir o TTL no deploy (P6, RULES-13) |
+| `users/{uid}/workspaces` | Índice de participação (`name`, `type`, `workspaceStatus`, status do vínculo, `joinedAt`, `updatedAt`); **sem papel** | Backend, na mesma transação que altera o membership; o gatilho `onWorkspaceDisplayChange` propaga nome, tipo e status (`functions/src/workspaces/model.ts:88-148`; `functions/src/workspaces/indexSync.ts:31,80`) | `get` e `list` só do próprio uid com conta ativa; `list` com `limit <= 50`; `write: false` (`firestore.rules:1398-1402`) | `firestore.indexes.json:806` | Sem prazo; vínculo removido fica com `status: 'removed'` | Mantido; papel lido do membership (P1, PR-WS-03 fechado; RULES-18) |
 | `job_checkpoints/{job}` | Cursor persistido do cron de recorrentes | Backend (`functions/src/crons/recurring.ts:84,391`) | Sem Rule: negado | — | Sem `expiresAt` | Manter server-only |
 | `system/{doc}` | Cursor do rodízio de deriva de investimentos | Backend (`functions/src/crons/investmentDrift.ts:66`) | Sem Rule: negado | — | Sem `expiresAt` | Manter server-only |
+| `platform_audit_events/{id}` | Auditoria de suspensão de conta (`account.suspended`) | Backend (`functions/src/workspaces/suspension.ts:27,58-73`) | Sem Rule: negado | — | Sem `expiresAt` (prazo: D-18) | Trilha administrativa unificada em P7 (PR-ADMIN-01) |
 
 ### 4.2 Workspace e membership
 
 | Coleção | Finalidade | Escritor CURRENT | Rules CURRENT | Índices | Retenção CURRENT | TARGET · milestone · GAP |
 | --- | --- | --- | --- | --- | --- | --- |
-| `workspaces/{id}` | Tenant PF/PJ, `ownerId`, preferências | Cliente: create com 3 `setDoc` não atômicos (`src/modules/workspaces/api.ts:182-213`), update (`266-276`) | Create com `ownerId == uid` e allowlist, sem enum de `type` (`firestore.rules:991-994`, `108-135`); update owner/admin só em chaves mutáveis (`1004-1008`); sem `allow delete` | — | Sem prazo; sem exclusão nem arquivamento | `createWorkspace`, `updateWorkspaceSettings`, `archiveWorkspace`; `status` (`active` \| `archived`); `ownerId` só desnormalizado, nunca fonte de autorização (D-03); moeda fixa BRL (D-16); `allow create: if false` (P1, PR-WS-05; WS-09). Quota adicionada em P2 na transação de `createWorkspace` (D-01, PR-ENT-01). Exclusão em P8 com tombstone que impede reuso do ID (RULES-06) |
-| `members/{uid}` | Membership e papel | Cliente: `setDoc`/`updateDoc`/`deleteDoc`, inclusive convite com `fakeUid` (`src/modules/workspaces/api.ts:37-38,200,236-265`; `src/components/MembersManagerModal.tsx:53-66`) | Escrita owner/admin com enum de papel, sem autopromoção (`firestore.rules:1021-1041`); delete owner/admin (`1046-1050`); leitura por membro ou pelo próprio uid (`1011-1014`) | — | Remoção = hard delete (WS-11) | Callables de convite, aceite, papel, remoção lógica (`status`), saída e transferência; `write: false` (P1, PR-WS-01, PR-WS-02, PR-WS-04) |
+| `workspaces/{id}` | Tenant PF/PJ, `ownerId` desnormalizado, preferências | Backend: `bootstrapAccount` e `createWorkspace` criam (`functions/src/workspaces/lifecycle.ts:106-290`), `updateWorkspaceSettings` edita (`:303`), `archiveWorkspace` arquiva (`:394`) e `transferWorkspaceOwnership` atualiza `ownerId` (`functions/src/workspaces/memberships.ts:536`) | `read` de membro ativo; `create, update, delete: false` (`firestore.rules:943-944`); workspace arquivado não aceita escrita do cliente nas subcoleções (`firestore.rules:58-64`) | — | Sem prazo; arquivamento lógico (`status: 'archived'`), sem exclusão | `status` (`active` \| `archived`); `ownerId` só desnormalizado, nunca fonte de autorização (D-03); moeda fixa BRL (D-16). Quota adicionada em P2 na transação de `createWorkspace` (D-01, PR-ENT-01). Exclusão em P8 com tombstone que impede reuso do ID (RULES-06). PR-WS-05 corrigido em P1, pendente do gate (PLAN §16) |
+| `members/{uid}` | Membership e papel: única fonte de papel (D-03) | Backend: convite aceito, troca de papel, remoção lógica, saída e transferência (`functions/src/workspaces/memberships.ts:231-604`) | `write: false`; `get` do próprio uid (conta ativa) ou de membro ativo; `list` de membro ativo com `limit <= 200` (`firestore.rules:951-958`) | `firestore.indexes.json:824` (`status`, `joinedAt`) | Remoção lógica (`status: 'removed'`, `removedAt`, `removedBy`); sem exclusão | Mantido (P1; PR-WS-01, PR-WS-02 e PR-WS-04 fechados) |
+| `invites/{inviteId}` | Convite vinculado a e-mail normalizado, com papel e expiração de 7 dias; sem token nem hash | Backend (`functions/src/workspaces/memberships.ts:104-367`) | Leitura de owner/admin, `list` com `limit <= 100`; `write: false` (`firestore.rules:962-967`) | — | `expiresAt` de 7 dias; TTL declarado (`firestore.indexes.json:852`) | Mantido; quota de membros em P2 (D-01); envio por e-mail depende de E-11 (P1, PR-WS-01 fechado) |
+| `invite_tokens/{sha256(token)}` (top-level) | Ponteiro do hash do token para o convite (`workspaceId`, `inviteId`); só o hash é persistido | Backend (`functions/src/workspaces/model.ts:33,61-62`; `functions/src/workspaces/memberships.ts:190-195`) | Sem Rule: negado ao cliente | — | `expiresAt` de 7 dias; TTL declarado (`firestore.indexes.json:846`) | Manter server-only (P1, D-05) |
+| `membership_events/{eventId}` | Auditoria append-only de conta, workspace, convite, papel, remoção, saída e transferência | Backend, na mesma transação da mudança (`functions/src/shared/audit.ts:58`) | Leitura de owner/admin, `list` com `limit <= 100`; `write: false` (`firestore.rules:971-976`) | — | Sem `expiresAt` (prazo: D-18) | Mantido; unificação da trilha em P7 (PR-OBS-01; P1, PR-WS-02 fechado) |
 
 ### 4.3 Caixa
 
@@ -125,19 +134,17 @@ Colunas: finalidade; escritor **CURRENT**; Rules **CURRENT**; índices compostos
 
 | Coleção | Finalidade | Escritor CURRENT | Rules CURRENT | Índices | Retenção CURRENT | TARGET · milestone · GAP |
 | --- | --- | --- | --- | --- | --- | --- |
-| `settings_catalog` | Categorias, tipos, carteiras, classes de investimento | Cliente `runTransaction` (`src/modules/settings-catalog/api.ts:192,250,344-354`); backend `seedLegacySettingsCatalog` (`functions/src/goals/callables.ts:101`, `functions/src/goals/operations.ts:343-351`) | Escrita owner/admin com allowlist e imutáveis; `delete: false`; leitura por membro (`firestore.rules:313-433`, `1404-1416`) | `firestore.indexes.json:322,348,370,400`; **ausente** para a leitura sem `group` (PR-RULES-03) | Nunca expira; exclusão = `status: 'inactive'` | Índice e correção do rename (P4, PR-RULES-03; RULES-12). Seed no `createWorkspace` (P1). Callable ou Rules estritas: DECISION D-23 (P4) |
-| `settings_catalog_uniques` | Reserva de nome único | Cliente e seed do backend (mesmas evidências) | Create/update owner/admin com allowlist; `delete: false` (`firestore.rules:1418-1434`) | — | Nunca expira | Idem |
+| `settings_catalog` | Categorias, tipos, carteiras, classes de investimento | Cliente `runTransaction` (`src/modules/settings-catalog/api.ts:182,240,334`); o backend semeia o catálogo padrão na criação do workspace, na mesma transação (`functions/src/workspaces/provisioning.ts:97`, `functions/src/investments/onboarding.ts:203`); o seed pelo cliente (`seedLegacySettingsCatalog`, callable e wrapper) foi removido em P1 | Escrita owner/admin com allowlist e imutáveis; `delete: false`; leitura por membro (`firestore.rules:219-376`, `1330-1342`) | `firestore.indexes.json:322,348,370,400`; **ausente** para a leitura sem `group` (PR-RULES-03) | Nunca expira; exclusão = `status: 'inactive'` | Índice e correção do rename (P4, PR-RULES-03; RULES-12). Seed no `bootstrapAccount`/`createWorkspace` entregue em P1. Callable ou Rules estritas: DECISION D-23 (P4) |
+| `settings_catalog_uniques` | Reserva de nome único | Cliente e seed do backend na criação do workspace (mesmas evidências) | Create/update owner/admin com allowlist; `delete: false` (`firestore.rules:1344-1359`) | — | Nunca expira | Idem |
 | `notifications` | Notificações in-app por workspace | Backend: domínio de cartões (§7) | Leitura por membro sem `limit`; `create: false`; update só de `read` por qualquer membro; delete owner/admin (`firestore.rules:1371-1382`) | — | Sem `expiresAt` | §7 (P5, PR-NOTIF-01) |
-| `rate_limits` (workspace) | Contador de frequência por workspace e ator | Backend (`functions/src/shared/rateLimit.ts:55-70`) | Negado pela lista `isBackendOwnedCollection` (`firestore.rules:862`) e escrita `false` no catch-all | — | `expiresAt` 2 dias (`functions/src/shared/rateLimit.ts:144`) | Rule explícita `read, write: false` quando o catch-all sair (PR-RULES-02) |
+| `rate_limits` (workspace) | Contador de frequência por workspace e ator | Backend (`functions/src/shared/rateLimit.ts:55-70`) | Negado pela lista `isBackendOwnedCollection` (`firestore.rules:808`) e escrita `false` no catch-all | — | `expiresAt` 2 dias (`functions/src/shared/rateLimit.ts:144`) | Rule explícita `read, write: false` quando o catch-all sair (PR-RULES-02) |
 
 ### 4.8 Coleções a criar (TARGET)
 
-Nomes propostos pela auditoria. O milestone confirma nome e schema antes de implementar; nada abaixo existe no HEAD.
+Nomes propostos pela auditoria. O milestone confirma nome e schema antes de implementar; nada abaixo existe no HEAD (`invites` e `membership_events`, de P1, foram implementados e estão na §4.2).
 
 | Coleção proposta | Finalidade | Escritor | Milestone · GAP/DECISION |
 | --- | --- | --- | --- |
-| `workspaces/{id}/invites` | Convite com hash de token de uso único, expiração e e-mail vinculado | Backend | P1 · PR-WS-01 · D-05 |
-| `workspaces/{id}/membership_events` | Trilha append-only de convite, papel, remoção e transferência | Backend | P1 · PR-WS-02 (WS-11) |
 | Estado de assinatura único (ex.: `workspaces/{id}/billing/subscription`) | Plano, status e datas, gravado só pelo webhook | Backend | P2 · PR-BILL-01, PR-BILL-07 · D-01 |
 | `stripe_events/{event.id}` e trilha de billing append-only | Idempotência por evento, controle de ordem e auditoria de mudança de plano | Backend | P2 · PR-BILL-06 |
 | Evento append-only por mutação de caixa | Antes/depois em centavos, ator, motivo, `correlationId` | Backend | P3 · PR-TX-05 (a auditoria propõe reutilizar `financial_events`; trilha definida por D-35, P3) |
@@ -151,7 +158,7 @@ Nomes propostos pela auditoria. O milestone confirma nome e schema antes de impl
 
 ### 5.1 CURRENT
 
-`firestore.indexes.json` tem 43 índices compostos e `"fieldOverrides": []` (`firestore.indexes.json:806`). Dois são `COLLECTION_GROUP`, ambos para crons: `credit_card_invoices (status, dueDate, __name__)` (`firestore.indexes.json:592`, consumido por `functions/src/crons/creditCardInvoices.ts:341-349`) e `recurring_expenses (status, gerarDespesaAutomaticamente, __name__)` (`firestore.indexes.json:694`, consumido por `functions/src/crons/recurring.ts:418-424`).
+`firestore.indexes.json` tem 45 índices compostos e 3 TTLs em `fieldOverrides` (`firestore.indexes.json:838-857`). Dois são `COLLECTION_GROUP`, ambos para crons: `credit_card_invoices (status, dueDate, __name__)` (`firestore.indexes.json:592`, consumido por `functions/src/crons/creditCardInvoices.ts:341-349`) e `recurring_expenses (status, gerarDespesaAutomaticamente, __name__)` (`firestore.indexes.json:694`, consumido por `functions/src/crons/recurring.ts:418-424`).
 
 | Coleção | Qtde | Linhas | Observação |
 | --- | --- | --- | --- |
@@ -171,6 +178,8 @@ Nomes propostos pela auditoria. O milestone confirma nome e schema antes de impl
 | `recurring_occurrences` | 1 | 752 | — |
 | `loans`, `loan_movements` | 2 | 712, 734 | Agregado e página de movimentos |
 | `split_invites` | 2 | 770, 788 | — |
+| `workspaces` (índice do usuário) | 1 | 806 | `status`, `workspaceStatus`, `joinedAt`; consumido por `src/modules/workspaces/api.ts:112-117` (P1) |
+| `members` | 1 | 824 | `status`, `joinedAt`; consumido por `src/modules/workspaces/api.ts:170-174` (P1) |
 
 As funções de leitura de cartão que usariam os índices sem consumidor existem, mas não têm chamador (`src/modules/credit-cards/persistence/readApi.ts:108,150,171,216,234,338,358`, READ-11). Exemplos conferidos no HEAD: `orderBy('competenceMonth','desc')` em `readApi.ts:159` e `orderBy('createdAt','desc')` em `readApi.ts:346`, ambos dentro dessas funções.
 
@@ -181,20 +190,20 @@ As funções de leitura de cartão que usariam os índices sem consumidor existe
 | Índice ausente `credit_card_audit_logs (cardId ASC, occurredAt DESC)` | `src/modules/credit-cards/persistence/readApi.ts:464-482` (`where cardId` + `orderBy occurredAt desc`); consumidor `src/components/CreditCardsView.tsx:725` | PR-CC-08 (HIGH) | P4 |
 | Índice ausente para `settings_catalog` ordenado por `sortOrder, normalizedName, __name__` sem filtro | `src/modules/settings-catalog/api.ts:115-121`; todos os índices do grupo começam por `group` | PR-RULES-03 (HIGH) | P4 |
 | Índices sem consumidor | Tabela §5.1 | RULES-17, READ-11 (LOW/MEDIUM) | Remover junto com o consumidor morto (política de legado) |
-| TTL e isenções não versionados (`fieldOverrides` vazio) | `firestore.indexes.json:806`; `functions/src/shared/retention.ts:17-20` | RULES-13, FIRE-08, INV-11, READ-18 (MEDIUM/LOW) | P6 (TTL versionado no escopo do P6) |
+| TTL e isenções parcialmente versionados: P1 declarou os TTLs de `invites`, `invite_tokens` e `idempotency_keys`; o restante da tabela de retenção segue sem TTL versionado | `firestore.indexes.json:838-857`; `functions/src/shared/retention.ts:17-20` | RULES-13, FIRE-08, INV-11, READ-18 (MEDIUM/LOW) | P6 (TTL versionado no escopo do P6) |
 | Nenhum gate confere queries contra `firestore.indexes.json`; o Emulator não exige índice composto | READ-11; `tests/unit/investment-simple-rows.test.ts:219-231` é a única menção, em comentário | READ-11 (MEDIUM) | Ao tocar a superfície (P3–P5) e P6 |
 
 ### 5.3 TARGET
 
 - Cada callable ou tela nova declara suas queries, e um teste extrai as queries do código e confere a cobertura em `firestore.indexes.json`. O índice entra no mesmo commit da query (AGENTS.md).
-- `fieldOverrides` declara `expiresAt` com `ttl: true` e `indexes: []` em cada coleção da tabela de retenção, além de isenção para mapas volumosos (`details`, `displaySnapshots`). O desenho está em [DATA_RETENTION_LIFECYCLE.md](DATA_RETENTION_LIFECYCLE.md#7-ttl-versionado-target).
+- `fieldOverrides` declara `expiresAt` com `ttl: true` e `indexes: []` em cada coleção da tabela de retenção (P1 já declarou `invites`, `invite_tokens` e `idempotency_keys`), além de isenção para mapas volumosos (`details`, `displaySnapshots`). O desenho está em [DATA_RETENTION_LIFECYCLE.md](DATA_RETENTION_LIFECYCLE.md#7-ttl-versionado-target).
 - O deploy de índices passa por STAGING antes de PROD, com espera da construção (P6, PR-PLAT-01; RULES-14). **EXTERNAL CONFIGURATION REQUIRED:** criação e conferência dos índices por ambiente, estado NÃO VERIFICADO (E-01, E-07).
 
 ## 6. Paginação, leituras e listeners
 
 ### 6.1 CURRENT
 
-As Rules só impõem `request.query.limit` em `investment_*` (`firestore.rules:473-477`) e em `cash_report_periods` (`firestore.rules:1279-1282`). As demais coleções aceitam `list` sem limite (READ-10, RULES-11).
+As Rules impõem `request.query.limit` em `investment_*` (`firestore.rules:413-415`), em `cash_report_periods` (`firestore.rules:1205-1207`) e, desde P1, em `members` (até 200), `invites` e `membership_events` (até 100) e no índice do usuário (até 50) (`firestore.rules:955,965,974,1401`). As demais coleções aceitam `list` sem limite (READ-10, RULES-11).
 
 | Superfície | Padrão CURRENT | Evidência | GAP |
 | --- | --- | --- | --- |
@@ -203,10 +212,10 @@ As Rules só impõem `request.query.limit` em `investment_*` (`firestore.rules:4
 | Investimentos | Cursor + `limit <= 100` | `src/modules/investments/persistence/readApi.ts:51-64,196-230` | — |
 | Empréstimos, recorrentes, divisão, catálogo | Cursor + limit; totais de loans por `getAggregateFromServer` | `src/modules/loans/api.ts:130-150,163-206`; `src/modules/recurring-expenses/api.ts:126-174`; `src/modules/split-bills/api.ts:109-128`; `src/modules/settings-catalog/api.ts:108-170` | N+1 nos cards de grupo (READ-15) |
 | Cartões (readApi) | Limite padrão 50, teto 200, sem cursor; relatório pede 5.000 e recebe 200 | `src/modules/credit-cards/persistence/readApi.ts:67-80`; `src/modules/reports/hooks.ts:85-90` | PR-CC-07 |
-| Sem `limit` | `clients`, `receivables`, `credit_cards`, `card_limit_snapshots`, `members`, `users/{uid}/workspaces` | `src/modules/clients/api.ts:41,98`; `src/modules/credit-cards/api.ts:53`; `src/modules/credit-cards/persistence/readApi.ts:120`; `src/modules/workspaces/api.ts:69,232` | PR-CR-04, PR-WS-03 (READ-16) |
+| Sem `limit` | `clients`, `receivables`, `credit_cards`, `card_limit_snapshots` | `src/modules/clients/api.ts:41,98`; `src/modules/credit-cards/api.ts:53`; `src/modules/credit-cards/persistence/readApi.ts:120` | PR-CR-04 (READ-16) |
 | Notificações | Coleção inteira + polling de 30 s | §7 | PR-NOTIF-01 |
 | Metas | Duas queries com `limit(100)`, sem cursor nem aviso | `src/modules/goals/api.ts:47-62` | PR-GOAL-02 (READ-19) |
-| Descoberta de workspaces | Três fontes; `collectionGroup('members')` sempre negado (não há Rule `{path=**}/members`); escrita no caminho de leitura | `src/modules/workspaces/api.ts:61-160`, `109` | PR-WS-03 (READ-14) |
+| Descoberta de workspaces | Índice do usuário mantido pelo backend: uma consulta paginada por cursor (50 por página, sob demanda) e `members` paginado (200 por página); sem `collectionGroup` nem escrita no caminho de leitura | `src/modules/workspaces/api.ts:69,112-142,170-196` | PR-WS-03 (corrigido em P1, pendente do gate (PLAN §16); READ-14) |
 | Listeners | Único `onSnapshot`: `usePlan`, um por consumidor e sem callback de erro | `src/hooks/usePlan.ts:20-33` | BILL-15 |
 | Crons | Faturas: collection group sem cursor persistido, reprocessa o backlog vencido; recorrentes: sem filtro de data; deriva: 50 workspaces por execução | `functions/src/crons/creditCardInvoices.ts:341-349`; `functions/src/crons/recurring.ts:418-424`; `functions/src/crons/investmentDrift.ts:58` | PR-CC-04; READ-12; READ-17 |
 | Transações de cartão | Leituras sem teto dentro de uma transação (ledger inteiro, todas as faturas do cartão) | `functions/src/creditCards/recalculateCardLimit.ts:147-160`; `functions/src/creditCards/rebuildInvoices.ts:300-316` | READ-13 |
@@ -250,13 +259,14 @@ As Rules só impõem `request.query.limit` em `investment_*` (`firestore.rules:4
 
 | Armazenamento | CURRENT | Evidência | TARGET · GAP |
 | --- | --- | --- | --- |
-| `localStorage`: histórico do chat de IA | Chave `finance_ai_chat_history_${workspaceId}`, sem uid; não é limpa no logout | `src/modules/reports/hooks.ts:341-358`; `src/contexts/AuthContext.tsx:116-122` | Histórico em memória ou server-side por (workspace, uid) com retenção; limpeza no logout (P5, PR-AI-04) |
+| `localStorage`: histórico do chat de IA | Chave `finance_ai_chat_history_${workspaceId}`, sem uid; apagada no logout e na troca de conta desde P1, mas persiste no navegador entre sessões | `src/modules/reports/hooks.ts:341-358`; `src/lib/sessionCleanup.ts:18-40`; `src/contexts/AuthContext.tsx:57-68,135-143` | Histórico em memória ou server-side por (workspace, uid) com retenção (P5, PR-AI-04); a limpeza no logout foi entregue em P1 |
+| `localStorage`: último workspace | Chave `lastWorkspaceId_<uid>`, por usuário; apagada no logout e na troca de conta | `src/contexts/WorkspaceContext.tsx:39,81`; `src/lib/sessionCleanup.ts:18-23` | Manter (preferência não essencial; o membership ativo decide o acesso) |
 | `localStorage`: Messages | §8 | `src/modules/messages/api.ts:29-66` | PR-MSG-01 |
 | Cloud Storage | SDK inicializado, sem uso e sem `storage` em `firebase.json` | `src/lib/firebase.ts:39`; `firebase.json:1-7` | Remover ou versionar Rules antes de usar (FIRE-12) |
 
 ## 10. Testes exigidos (TARGET)
 
-- Uma suíte de Rules por coleção, no Emulator, com owner, admin, member, viewer, não membro e membro removido; create, update, delete, get e list; cross-tenant; payload inválido; `list` com `limit` N+1. Hoje não há cobertura de escrita para `credit_cards`, `loans`, `loan_movements`, `clients`, `receivables`, `split_*`, `recurring_*`, `notifications`, `settings_catalog_uniques`, `users/{uid}/workspaces`, `activity_logs` e `split_invites` (RULES-15, em PR-REL-02).
+- Uma suíte de Rules por coleção, no Emulator, com owner, admin, member, viewer, não membro e membro removido; create, update, delete, get e list; cross-tenant; payload inválido; `list` com `limit` N+1. Hoje não há cobertura de escrita para `credit_cards`, `loans`, `loan_movements`, `clients`, `receivables`, `split_*`, `recurring_*`, `notifications`, `settings_catalog_uniques`, `activity_logs` e `split_invites` (RULES-15, em PR-REL-02).
 - Teste que enumera as coleções usadas pelo código e falha se alguma cair no catch-all (RULES-09, PR-RULES-02).
 - Teste de cobertura de índices contra `firestore.indexes.json` (READ-11) e teste que compara `fieldOverrides` com a tabela de retenção.
 - Integração no Emulator das callables que substituem cada escritor cliente, com idempotência, concorrência e prova de remoção do caminho antigo (política de legado do plano).

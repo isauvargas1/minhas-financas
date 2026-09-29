@@ -26,6 +26,7 @@ export type ApplicationErrorCode =
   | "idempotency_replay"
   | "domain_precondition_failed"
   | "not_found"
+  | "already_exists"
   | "internal";
 
 const HTTPS_CODE_BY_APPLICATION_CODE: Record<
@@ -47,6 +48,7 @@ const HTTPS_CODE_BY_APPLICATION_CODE: Record<
   idempotency_replay: "internal",
   domain_precondition_failed: "failed-precondition",
   not_found: "not-found",
+  already_exists: "already-exists",
   internal: "internal",
 };
 

@@ -1,12 +1,10 @@
 import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
-import {useQueryClient} from '@tanstack/react-query';
 import { Workspace } from '../modules/workspaces/types';
-import { bootstrapAccount, listWorkspaces, loadWorkspace } from '../modules/workspaces/api';
+import type { QueryDocumentSnapshot } from 'firebase/firestore';
+import { bootstrapAccount, listWorkspacesPage, loadWorkspace } from '../modules/workspaces/api';
 import { callableErrorReason, workspaceErrorMessage } from '../modules/workspaces/errors';
 import { useTheme } from './ThemeContext';
 import { useAuth } from './AuthContext';
-import {seedLegacySettingsCatalog} from '../modules/settings-catalog/api';
-import {onboardInvestmentWorkspace} from '../modules/investments/persistence/callableApi';
 
 interface WorkspaceContextValue {
     workspaces: Workspace[];
@@ -18,6 +16,10 @@ interface WorkspaceContextValue {
     loadError: string | null;
     switchWorkspace: (workspaceId: string) => void;
     reloadWorkspaces: () => Promise<void>;
+    /** Há mais workspaces no índice além das páginas já carregadas. */
+    hasMoreWorkspaces: boolean;
+    /** Carrega a próxima página do índice (cursor). */
+    loadMoreWorkspaces: () => Promise<void>;
 }
 
 const WorkspaceContext = createContext<WorkspaceContextValue | undefined>(undefined);
@@ -36,6 +38,12 @@ const LOAD_FAILURE_MESSAGE =
 
 const lastWorkspaceKey = (uid: string) => `lastWorkspaceId_${uid}`;
 
+/** Acrescenta sem duplicar: a entrada já conhecida (com papel) prevalece. */
+const mergeWorkspaces = (current: Workspace[], incoming: Workspace[]): Workspace[] => {
+    const known = new Set(current.map((entry) => entry.id));
+    return [...current, ...incoming.filter((entry) => !known.has(entry.id))];
+};
+
 const readLastWorkspace = (uid: string): string | null => {
     try {
         return localStorage.getItem(lastWorkspaceKey(uid));
@@ -48,23 +56,25 @@ const readLastWorkspace = (uid: string): string | null => {
  * Workspaces do usuário (P1).
  *
  * A conta é preparada por `bootstrapAccount` (idempotente, no backend) e não
- * mais pelo cliente. A lista vem do índice mantido pelo backend; o papel do
+ * mais pelo cliente; o workspace já sai do backend com os cadastros padrão, e
+ * nada é provisionado ao selecioná-lo. A lista é lida por página (cursor): a
+ * primeira ao entrar, as seguintes sob demanda. A lista vem do índice mantido pelo backend; o papel do
  * workspace ativo vem do membership ativo, relido a cada seleção. Nenhuma
  * escrita de workspace, membership ou índice parte daqui.
  */
 export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const { user } = useAuth();
     const { updateTheme, theme } = useTheme();
-    const queryClient = useQueryClient();
 
     const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
     const [activeWorkspace, setActiveWorkspace] = useState<Workspace | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [loadError, setLoadError] = useState<string | null>(null);
+    const [workspaceCursor, setWorkspaceCursor] = useState<QueryDocumentSnapshot | null>(null);
     // Carga iniciada para outro usuário não pode aplicar estado ao atual.
     const loadingUid = useRef<string | null>(null);
 
-    const applySelection = (workspace: Workspace, onboardNewWorkspace = false) => {
+    const applySelection = (workspace: Workspace) => {
         setActiveWorkspace(workspace);
         if (user) {
             try {
@@ -82,22 +92,6 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children 
                 chartIncome: workspace.type === 'PJ' ? '#0f766e' : '#22c55e'
             }
         });
-
-        if (workspace.myRole === 'owner' || workspace.myRole === 'admin') {
-            void seedLegacySettingsCatalog(workspace.id)
-                .then(() => queryClient.invalidateQueries({
-                    queryKey: ['settingsCatalog', workspace.id],
-                    refetchType: 'active',
-                }))
-                .catch((error) => {
-                    console.error('Não foi possível preparar o catálogo inicial do workspace:', error);
-                });
-        }
-        if (onboardNewWorkspace && workspace.myRole === 'owner') {
-            void onboardInvestmentWorkspace(workspace.id).catch((error) => {
-                console.error('Não foi possível preparar os cadastros de investimentos:', error);
-            });
-        }
     };
 
     const loadData = async () => {
@@ -108,31 +102,35 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children 
         setIsLoading(true);
         setLoadError(null);
         try {
-            const account = await bootstrapAccount();
-            const list = await listWorkspaces(uid);
+            await bootstrapAccount();
+            const page = await listWorkspacesPage(uid);
             if (loadingUid.current !== uid) return;
+            const list = page.items;
             if (list.length === 0) {
                 setWorkspaces([]);
+                setWorkspaceCursor(null);
                 setActiveWorkspace(null);
                 setLoadError(LOAD_FAILURE_MESSAGE);
                 return;
             }
 
+            // O último workspace usado pode estar além da primeira página:
+            // é aberto direto, e o membership ativo decide o acesso.
             const savedId = readLastWorkspace(uid);
-            const selectedId = list.find((w) => w.id === savedId)?.id ?? list[0].id;
             let selected: Workspace;
             try {
-                selected = await loadWorkspace(selectedId, uid);
+                selected = await loadWorkspace(savedId ?? list[0].id, uid);
             } catch {
                 selected = await loadWorkspace(list[0].id, uid);
             }
             if (loadingUid.current !== uid) return;
 
-            setWorkspaces(list.map((entry) => (entry.id === selected.id ? selected : entry)));
-            applySelection(
-                selected,
-                account.created && account.workspaceId === selected.id,
-            );
+            setWorkspaces(mergeWorkspaces(
+                list.map((entry) => (entry.id === selected.id ? selected : entry)),
+                [selected],
+            ));
+            setWorkspaceCursor(page.nextCursor);
+            applySelection(selected);
         } catch (error) {
             console.error("Falha ao carregar a conta e os workspaces", error);
             if (loadingUid.current !== uid) return;
@@ -153,6 +151,7 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children 
         } else {
             loadingUid.current = null;
             setWorkspaces([]);
+            setWorkspaceCursor(null);
             setActiveWorkspace(null);
             setLoadError(null);
         }
@@ -176,6 +175,19 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children 
             });
     };
 
+    const loadMoreWorkspaces = async () => {
+        if (!user || !workspaceCursor) return;
+        const uid = user.uid;
+        try {
+            const page = await listWorkspacesPage(uid, workspaceCursor);
+            if (loadingUid.current !== uid) return;
+            setWorkspaces((current) => mergeWorkspaces(current, page.items));
+            setWorkspaceCursor(page.nextCursor);
+        } catch (error) {
+            console.error('Não foi possível carregar mais espaços:', error);
+        }
+    };
+
     const resolvedActiveWorkspace = activeWorkspace || LOADING_WORKSPACE;
     const activeWorkspaceRole = activeWorkspace?.myRole;
     const canManageActiveWorkspace =
@@ -190,7 +202,9 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children 
             switchWorkspace,
             isLoading,
             loadError,
-            reloadWorkspaces: loadData
+            reloadWorkspaces: loadData,
+            hasMoreWorkspaces: workspaceCursor !== null,
+            loadMoreWorkspaces,
         }}>
             {children}
         </WorkspaceContext.Provider>

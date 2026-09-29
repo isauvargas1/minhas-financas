@@ -20,7 +20,6 @@ import {createGoal, GOAL_OPERATION_ROLES} from "../callables";
 import {
   executeArchiveGoal,
   executeCreateGoal,
-  executeSeedLegacySettingsCatalog,
 } from "../operations";
 
 // Suíte de integração sem Emulator falha em vez de pular.
@@ -28,7 +27,6 @@ const firestore = requireFirestoreEmulator();
 const getDb = () => firestore;
 
 const PF_WORKSPACE = "goal-integrity-pf";
-const PJ_WORKSPACE = "goal-integrity-pj";
 const OTHER_WORKSPACE = "goal-integrity-other";
 const LEGACY_OWNER_WORKSPACE = "goal-integrity-legacy-owner";
 const OWNER_A = "goal-owner-a";
@@ -152,50 +150,6 @@ test("arquivar preserva o histórico e registra o progresso patrimonial",
       reason: "Meta concluída no teste",
     });
     assert.deepEqual(replay, archived);
-  });
-
-test("seed legado PF/PJ é idempotente e preserva workspaces existentes",
-  async () => {
-    await Promise.all([
-      resetWorkspace(PF_WORKSPACE),
-      resetWorkspace(PJ_WORKSPACE),
-    ]);
-    await Promise.all([
-      seedGoalWorkspace(PF_WORKSPACE, OWNER_A, "PF"),
-      seedGoalWorkspace(PJ_WORKSPACE, OWNER_B, "PJ"),
-    ]);
-    const pfActor = actorFor(PF_WORKSPACE, OWNER_A);
-    const pjActor = actorFor(PJ_WORKSPACE, OWNER_B);
-    const pfSeed = await executeSeedLegacySettingsCatalog(pfActor, {
-      workspaceId: PF_WORKSPACE,
-      idempotencyKey: "seed-legacy-catalog-pf-0001",
-    });
-    const pfReplay = await executeSeedLegacySettingsCatalog(pfActor, {
-      workspaceId: PF_WORKSPACE,
-      idempotencyKey: "seed-legacy-catalog-pf-0001",
-    });
-    assert.deepEqual(pfReplay, pfSeed);
-    await executeSeedLegacySettingsCatalog(pjActor, {
-      workspaceId: PJ_WORKSPACE,
-      idempotencyKey: "seed-legacy-catalog-pj-0001",
-    });
-    const workspaces = await getDb().collection("workspaces").get();
-    assert.equal(
-      workspaces.docs.some((item) => item.id === PF_WORKSPACE),
-      true,
-    );
-    assert.equal(
-      workspaces.docs.some((item) => item.id === PJ_WORKSPACE),
-      true,
-    );
-    const costCentersOf = (workspaceId: string) => getDb()
-      .collection(`workspaces/${workspaceId}/settings_catalog`)
-      .where("group", "==", "cost_center")
-      .get();
-    const pfCostCenters = await costCentersOf(PF_WORKSPACE);
-    const pjCostCenters = await costCentersOf(PJ_WORKSPACE);
-    assert.equal(pfCostCenters.empty, true);
-    assert.equal(pjCostCenters.size, 3);
   });
 
 test("RBAC rejeita acesso cruzado nos dois sentidos", async () => {
@@ -335,16 +289,7 @@ test("ator rebaixado ou removido entre a pré-checagem e a transação é recusa
       ),
       isApplicationError("workspace_membership_required"),
     );
-    await assert.rejects(
-      () => executeSeedLegacySettingsCatalog(removed, {
-        workspaceId: PF_WORKSPACE,
-        idempotencyKey: "seed-legacy-removed-0001",
-      }),
-      isApplicationError("workspace_membership_required"),
-    );
     await assertGoalWrites(PF_WORKSPACE, 0);
-    assert.equal(await countOf(PF_WORKSPACE, "settings_catalog"), 0);
-    assert.equal(await countOf(PF_WORKSPACE, "settings_catalog_uniques"), 0);
   });
 
 test("perda de acesso também recusa o replay de uma intenção concluída",

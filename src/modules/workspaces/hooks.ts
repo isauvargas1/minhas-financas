@@ -1,7 +1,7 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import type { QueryDocumentSnapshot } from 'firebase/firestore';
 import * as api from './api';
 import type { WorkspaceType } from './types';
-import { onboardInvestmentWorkspace } from '../investments/persistence/callableApi';
 
 export const keys = {
     all: ['workspaces'],
@@ -12,12 +12,13 @@ export const useCreateWorkspace = () => {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: async (input: { type: WorkspaceType; name: string; cnpj?: string }) => {
+            // O backend devolve o workspace já provisionado (cadastros padrão
+            // na mesma transação da criação).
             const { workspaceId } = await api.createWorkspace({
                 type: input.type,
                 name: input.name,
                 cnpj: input.cnpj,
             });
-            await onboardInvestmentWorkspace(workspaceId);
             return { id: workspaceId };
         },
         onSuccess: () => {
@@ -26,12 +27,25 @@ export const useCreateWorkspace = () => {
     });
 };
 
+/**
+ * Membros ativos, página a página (cursor). Só a primeira página é lida ao
+ * abrir; `loadMore` busca a seguinte quando `hasMore` indica que ela existe.
+ */
 export const useWorkspaceMembers = (workspaceId: string) => {
-    return useQuery({
+    const query = useInfiniteQuery({
         queryKey: keys.members(workspaceId),
-        queryFn: () => api.listWorkspaceMembers(workspaceId),
+        queryFn: ({ pageParam }) => api.listWorkspaceMembersPage(workspaceId, pageParam),
+        initialPageParam: null as QueryDocumentSnapshot | null,
+        getNextPageParam: (lastPage) => lastPage.nextCursor,
         enabled: !!workspaceId && workspaceId !== 'loading'
     });
+    return {
+        data: query.data?.pages.flatMap((page) => page.items),
+        isLoading: query.isLoading,
+        hasMore: query.hasNextPage,
+        isLoadingMore: query.isFetchingNextPage,
+        loadMore: () => query.fetchNextPage(),
+    };
 };
 
 export const useInviteMember = (workspaceId: string) => {

@@ -95,9 +95,6 @@ export const archiveGoalPayloadSchema = baseSchema.extend({
   reason: z.string().trim().min(3).max(500),
 }).strict();
 
-export const seedLegacyCatalogPayloadSchema = baseSchema.strict();
-
 export type CreateGoalPayload = z.infer<typeof createGoalPayloadSchema>;
 export type UpdateGoalPayload = z.infer<typeof updateGoalPayloadSchema>;
 export type ArchiveGoalPayload = z.infer<typeof archiveGoalPayloadSchema>;
-export type SeedLegacyCatalogPayload = z.infer<typeof seedLegacyCatalogPayloadSchema>;

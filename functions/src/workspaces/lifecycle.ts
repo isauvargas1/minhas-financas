@@ -33,6 +33,7 @@ import {
   workspaceDisplayOf,
   writeActiveMembership,
 } from "./model";
+import {provisionWorkspaceDefaults} from "./provisioning";
 
 const db = () => admin.firestore();
 
@@ -90,8 +91,8 @@ export interface BootstrapAccountResult extends Record<string, unknown> {
  *
  * Garante que a conta exista e tenha ao menos um workspace ativo. Na primeira
  * chamada cria, numa única transação, o perfil, o workspace PF "Meu Espaço
- * Pessoal", o membership owner, o índice e a auditoria. Nas seguintes é
- * leitura pura.
+ * Pessoal" já provisionado com os cadastros padrão (`provisioning.ts`), o
+ * membership owner, o índice e a auditoria. Nas seguintes é leitura pura.
  *
  * Concorrência: toda chamada lê `users/{uid}` e todo caminho que cria algo
  * também escreve nesse documento. Duas chamadas simultâneas disputam o mesmo
@@ -189,6 +190,11 @@ export const executeBootstrapAccount = async (
         requestId,
       });
     }
+    const defaults = provisionWorkspaceDefaults(transaction, {
+      workspaceId: workspaceDoc.id,
+      type: "PF",
+      uid: caller.uid,
+    });
     appendMembershipEvent(transaction, {
       workspaceId: workspaceDoc.id,
       operation: "workspace.created",
@@ -196,14 +202,23 @@ export const executeBootstrapAccount = async (
       actorRole: "owner",
       targetId: workspaceDoc.id,
       before: null,
-      after: {type: "PF", status: "active", ownerId: caller.uid},
+      after: {
+        type: "PF",
+        status: "active",
+        ownerId: caller.uid,
+        defaultCatalogItems: defaults.catalogItemCount,
+      },
       reason: initialized ? "personal_workspace_restored" : "bootstrap",
       requestId,
     });
     return {created: true, workspaceId: workspaceDoc.id};
   });
 
-/** `createWorkspace` (PR-WS-05). P2 acrescenta a quota nesta transação. */
+/**
+ * `createWorkspace` (PR-WS-05): workspace, owner, índice, cadastros padrão e
+ * auditoria numa única transação idempotente. P2 acrescenta a quota nesta
+ * transação.
+ */
 export const executeCreateWorkspace = async (
   caller: CallerIdentity,
   payload: CreateWorkspacePayload,
@@ -241,6 +256,11 @@ export const executeCreateWorkspace = async (
       invitedBy: null,
       existing: false,
     });
+    const defaults = provisionWorkspaceDefaults(transaction, {
+      workspaceId: workspaceDoc.id,
+      type: payload.type,
+      uid: caller.uid,
+    });
     appendMembershipEvent(transaction, {
       workspaceId: workspaceDoc.id,
       operation: "workspace.created",
@@ -248,7 +268,12 @@ export const executeCreateWorkspace = async (
       actorRole: "owner",
       targetId: workspaceDoc.id,
       before: null,
-      after: {type: payload.type, status: "active", ownerId: caller.uid},
+      after: {
+        type: payload.type,
+        status: "active",
+        ownerId: caller.uid,
+        defaultCatalogItems: defaults.catalogItemCount,
+      },
       reason: null,
       requestId,
     });

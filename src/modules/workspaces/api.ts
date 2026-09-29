@@ -6,18 +6,30 @@ import {
   limit,
   orderBy,
   query,
+  startAfter,
   where,
+  type Query,
+  type QueryDocumentSnapshot,
 } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 
 import { db, functions } from '../../lib/firebase';
+import { createWorkspaceCallables, type Invoke } from './callables';
 import type {
   Workspace,
   WorkspaceAlertPreferences,
   WorkspaceMember,
   WorkspaceRole,
-  WorkspaceType,
 } from './types';
+
+export {
+  newIdempotencyKey,
+  type AcceptWorkspaceInviteResult,
+  type BootstrapAccountResult,
+  type CreateWorkspaceInput,
+  type InvitableRole,
+  type WorkspaceSettingsInput,
+} from './callables';
 
 /**
  * Acesso a conta, workspaces e membros (P1).
@@ -27,32 +39,65 @@ import type {
  * A leitura segue a mesma autoridade do backend:
  *
  * - a lista de workspaces vem do índice `users/{uid}/workspaces`, gravado só
- *   pelo backend e com os dados de exibição — uma consulta, com `limit`;
+ *   pelo backend e com os dados de exibição — paginada por cursor, sob demanda;
  * - o papel vem **só** de `workspaces/{id}/members/{uid}` ativo; o índice não
  *   tem papel e `ownerId` não autoriza nada.
  */
 
-/** Teto de workspaces listados (o mesmo das Rules do índice). */
+/** Tamanho da página de workspaces (o teto das Rules do índice). */
 export const WORKSPACE_LIST_LIMIT = 50;
 
-/** Teto de membros listados por página (o mesmo das Rules de `members`). */
+/** Tamanho da página de membros (o teto das Rules de `members`). */
 export const MEMBER_LIST_LIMIT = 200;
 
-const call = async <TInput extends Record<string, unknown>, TResult>(
-  name: string,
-  input: TInput,
-): Promise<TResult> => {
-  const callable = httpsCallable<TInput, TResult>(functions, name);
-  const payload = Object.fromEntries(
-    Object.entries(input).filter(([, value]) => value !== undefined),
-  ) as TInput;
-  return (await callable(payload)).data;
+export interface Page<T> {
+  items: T[];
+  /** Último documento lido; `null` quando não há próxima página. */
+  nextCursor: QueryDocumentSnapshot | null;
+}
+
+/**
+ * Uma página da consulta: uma única leitura com `limit` (o teto das Rules),
+ * continuando depois do último documento da página anterior. O cursor é o
+ * próprio snapshot, então a ordem é estável mesmo com `joinedAt` empatado — o
+ * Firestore desempata pelo ID do documento.
+ *
+ * As listas são carregadas página a página, sob demanda: o custo de abrir o
+ * seletor de espaços ou a tela de membros é constante (uma página), e nada
+ * além da página é descartado — a interface oferece a próxima quando existe.
+ */
+const readPage = async (
+  base: Query,
+  pageSize: number,
+  cursor: QueryDocumentSnapshot | null,
+): Promise<Page<QueryDocumentSnapshot>> => {
+  const snapshot = await getDocs(cursor
+    ? query(base, startAfter(cursor), limit(pageSize))
+    : query(base, limit(pageSize)));
+  const items = snapshot.docs;
+  return {
+    items,
+    nextCursor: items.length === pageSize ? items[items.length - 1] : null,
+  };
 };
 
-/** Chave de idempotência de uma intenção do usuário. */
-export const newIdempotencyKey = (): string =>
-  globalThis.crypto?.randomUUID?.() ??
-  `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+const invoke: Invoke = async <TResult>(name: string, payload: Record<string, unknown>) =>
+  (await httpsCallable<Record<string, unknown>, TResult>(functions, name)(payload)).data;
+
+/** Callables de P1 (contrato em `callables.ts`), ligadas ao SDK. */
+export const {
+  bootstrapAccount,
+  createWorkspace,
+  updateWorkspaceSettings,
+  archiveWorkspace,
+  inviteWorkspaceMember,
+  acceptWorkspaceInvite,
+  revokeWorkspaceInvite,
+  changeWorkspaceMemberRole,
+  removeWorkspaceMember,
+  leaveWorkspace,
+  transferWorkspaceOwnership,
+} = createWorkspaceCallables(invoke);
 
 const toIso = (value: unknown): string => {
   if (value && typeof value === 'object' && 'toDate' in value) {
@@ -64,35 +109,33 @@ const toIso = (value: unknown): string => {
 const isRole = (value: unknown): value is WorkspaceRole =>
   value === 'owner' || value === 'admin' || value === 'member' || value === 'viewer';
 
-export interface BootstrapAccountResult {
-  created: boolean;
-  workspaceId: string | null;
-}
+const workspaceIndexQuery = (userId: string): Query => query(
+  collection(db, 'users', userId, 'workspaces'),
+  where('status', '==', 'active'),
+  where('workspaceStatus', '==', 'active'),
+  orderBy('joinedAt', 'asc'),
+);
 
-/** Garante perfil e ao menos um workspace ativo (idempotente). */
-export const bootstrapAccount = (): Promise<BootstrapAccountResult> =>
-  call<Record<string, never>, BootstrapAccountResult>('bootstrapAccount', {});
-
-/** Workspaces ativos do usuário, pelo índice mantido no backend. */
-export const listWorkspaces = async (userId: string): Promise<Workspace[]> => {
-  const snapshot = await getDocs(query(
-    collection(db, 'users', userId, 'workspaces'),
-    where('status', '==', 'active'),
-    where('workspaceStatus', '==', 'active'),
-    orderBy('joinedAt', 'asc'),
-    limit(WORKSPACE_LIST_LIMIT),
-  ));
-  return snapshot.docs.map((entry) => {
-    const data = entry.data();
-    return {
-      id: entry.id,
-      name: typeof data.name === 'string' ? data.name : '',
-      type: data.type === 'PJ' ? 'PJ' : 'PF',
-      createdAt: toIso(data.joinedAt),
-      updatedAt: toIso(data.updatedAt),
-    };
-  });
+const toWorkspaceEntry = (entry: QueryDocumentSnapshot): Workspace => {
+  const data = entry.data();
+  return {
+    id: entry.id,
+    name: typeof data.name === 'string' ? data.name : '',
+    type: data.type === 'PJ' ? 'PJ' : 'PF',
+    createdAt: toIso(data.joinedAt),
+    updatedAt: toIso(data.updatedAt),
+  };
 };
+
+/** Uma página de workspaces ativos do usuário, pelo índice do backend. */
+export const listWorkspacesPage = async (
+  userId: string,
+  cursor: QueryDocumentSnapshot | null = null,
+): Promise<Page<Workspace>> => {
+  const page = await readPage(workspaceIndexQuery(userId), WORKSPACE_LIST_LIMIT, cursor);
+  return { items: page.items.map(toWorkspaceEntry), nextCursor: page.nextCursor };
+};
+
 
 /**
  * Documento completo do workspace com o papel do usuário, lido do membership
@@ -124,47 +167,14 @@ export const loadWorkspace = async (
   };
 };
 
-export interface CreateWorkspaceInput {
-  type: WorkspaceType;
-  name: string;
-  cnpj?: string | null;
-  themeColor?: string;
-}
+const activeMembersQuery = (workspaceId: string): Query => query(
+  collection(db, 'workspaces', workspaceId, 'members'),
+  where('status', '==', 'active'),
+  orderBy('joinedAt', 'asc'),
+);
 
-export const createWorkspace = async (
-  input: CreateWorkspaceInput,
-  idempotencyKey = newIdempotencyKey(),
-): Promise<{ workspaceId: string }> =>
-  call('createWorkspace', {
-    type: input.type,
-    name: input.name,
-    cnpj: input.cnpj || undefined,
-    themeColor: input.themeColor,
-    idempotencyKey,
-  });
-
-export interface WorkspaceSettingsInput {
-  name?: string;
-  cnpj?: string | null;
-  themeColor?: string;
-  alertPreferences?: WorkspaceAlertPreferences;
-}
-
-export const updateWorkspaceSettings = async (
-  workspaceId: string,
-  settings: WorkspaceSettingsInput,
-): Promise<{ updated: boolean }> =>
-  call('updateWorkspaceSettings', { workspaceId, ...settings });
-
-/** Membros ativos, em ordem de entrada, com teto por página. */
-export const listWorkspaceMembers = async (workspaceId: string): Promise<WorkspaceMember[]> => {
-  const snapshot = await getDocs(query(
-    collection(db, 'workspaces', workspaceId, 'members'),
-    where('status', '==', 'active'),
-    orderBy('joinedAt', 'asc'),
-    limit(MEMBER_LIST_LIMIT),
-  ));
-  return snapshot.docs.flatMap((entry) => {
+const toMembers = (docs: QueryDocumentSnapshot[]): WorkspaceMember[] =>
+  docs.flatMap((entry) => {
     const data = entry.data();
     if (!isRole(data.role)) return [];
     return [{
@@ -175,34 +185,13 @@ export const listWorkspaceMembers = async (workspaceId: string): Promise<Workspa
       joinedAt: toIso(data.joinedAt),
     }];
   });
+
+/** Uma página de membros ativos, em ordem de entrada. */
+export const listWorkspaceMembersPage = async (
+  workspaceId: string,
+  cursor: QueryDocumentSnapshot | null = null,
+): Promise<Page<WorkspaceMember>> => {
+  const page = await readPage(activeMembersQuery(workspaceId), MEMBER_LIST_LIMIT, cursor);
+  return { items: toMembers(page.items), nextCursor: page.nextCursor };
 };
 
-export type InvitableRole = Exclude<WorkspaceRole, 'owner'>;
-
-export const inviteWorkspaceMember = async (
-  workspaceId: string,
-  email: string,
-  role: InvitableRole,
-  idempotencyKey = newIdempotencyKey(),
-): Promise<{ inviteId: string; expiresAt: string }> =>
-  call('inviteWorkspaceMember', { workspaceId, email, role, idempotencyKey });
-
-export const changeWorkspaceMemberRole = async (
-  workspaceId: string,
-  memberId: string,
-  role: InvitableRole,
-): Promise<{ role: InvitableRole; changed: boolean }> =>
-  call('changeWorkspaceMemberRole', { workspaceId, memberId, role });
-
-export const removeWorkspaceMember = async (
-  workspaceId: string,
-  memberId: string,
-): Promise<{ status: 'removed'; changed: boolean }> =>
-  call('removeWorkspaceMember', { workspaceId, memberId });
-
-export const transferWorkspaceOwnership = async (
-  workspaceId: string,
-  newOwnerId: string,
-  idempotencyKey = newIdempotencyKey(),
-): Promise<{ ownerId: string }> =>
-  call('transferWorkspaceOwnership', { workspaceId, newOwnerId, idempotencyKey });

@@ -272,7 +272,7 @@ export const normalizeCatalogName = (value: string): string =>
  * `settings-catalog/utils.ts` monta a chave no cliente e é assim que ambos os
  * seeds do servidor a montam.
  */
-const catalogDedupeKey = (
+export const catalogDedupeKey = (
   group: string,
   transactionSubtype: string | undefined,
   scope: "PF" | "PJ" | "both",
@@ -300,8 +300,10 @@ export const investmentCatalogSeedDocumentId = (
   ).slice(0, 24)}`;
 
 /**
- * Identificador determinístico de um item semeado por
- * `seedLegacySettingsCatalog` (`legacy_<hash do dedupeKey>`).
+ * Identificador determinístico de um item do catálogo geral semeado pelo
+ * provisionamento do workspace (`legacy_<hash do dedupeKey>`,
+ * `functions/src/workspaces/provisioning.ts`). O prefixo é histórico; o
+ * formato não muda porque o mapa de classificação abaixo depende dele.
  *
  * É o catálogo genérico — categorias de receita, despesa e **investimento**,
  * formas de pagamento, carteiras de caixa. Aqui interessa só o terceiro
@@ -338,13 +340,11 @@ export const INVESTMENT_TYPE_SEEDS = [
  * Categorias padrão de investimento do catálogo genérico e a classificação
  * técnica de cada uma.
  *
- * Os nomes reproduzem, letra por letra, o que `seedLegacySettingsCatalog`
- * grava em `category` com `transactionSubtype: "investimento"`
- * (`functions/src/goals/operations.ts`). O vínculo continua sendo o
- * identificador determinístico, nunca o texto — e a suíte de integração semeia
- * de verdade e confere item a item, de modo que uma divergência entre as duas
- * listas aparece como `other` num teste vermelho, e não como classificação
- * silenciosamente errada em produção.
+ * É também a lista que o provisionamento do workspace semeia em `category`
+ * com `transactionSubtype: "investimento"`
+ * (`functions/src/workspaces/provisioning.ts`): uma fonte só para o item
+ * semeado e para a sua classificação. O vínculo continua sendo o identificador
+ * determinístico, nunca o texto.
  */
 export const INVESTMENT_CATEGORY_SEEDS = [
   {name: "Ações", assetType: "stock"},

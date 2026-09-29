@@ -145,11 +145,10 @@ test("o recálculo patrimonial da meta aceita owner e admin e recusa member", as
   );
 });
 
-test("toda callable de meta declara papel na matriz, e a pesada é restrita", () => {
-  assert.deepEqual(
-    [...GOAL_OPERATION_ROLES.seedLegacySettingsCatalog],
-    ["owner", "admin"],
-  );
+test("toda callable de meta declara papel na matriz, e viewer não escreve", () => {
+  for (const roles of Object.values(GOAL_OPERATION_ROLES)) {
+    assert.deepEqual([...roles], ["owner", "admin", "member"]);
+  }
 
   // Nenhuma callable de meta exportada pode ficar fora da matriz: sem isto, a
   // próxima operação nasceria com papel decidido no ponto de construção e

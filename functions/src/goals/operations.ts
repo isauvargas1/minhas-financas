@@ -10,15 +10,13 @@ import {
 import type {
   ArchiveGoalPayload,
   CreateGoalPayload,
-  SeedLegacyCatalogPayload,
   UpdateGoalPayload,
 } from "./contracts";
 
 type GoalOperation =
   | "createGoal"
   | "updateGoal"
-  | "archiveGoal"
-  | "seedLegacySettingsCatalog";
+  | "archiveGoal";
 
 interface IdempotencyReservation {
   ref: admin.firestore.DocumentReference;
@@ -330,127 +328,6 @@ export const executeArchiveGoal = async (
     writeAudit(
       transaction, actor, "archiveGoal", reservation.ref, payload.goalId,
       {reason: payload.reason, archivedProgressCents},
-    );
-    completeIdempotency(transaction, reservation, result);
-    return result;
-  });
-
-interface LegacyCatalogSeed {
-  group: string;
-  name: string;
-  transactionSubtype?: string;
-  workspaceScope: "both" | "PJ";
-}
-
-const LEGACY_CATALOG_SEEDS: LegacyCatalogSeed[] = [
-  ...["Alimentação", "Moradia", "Transporte", "Saúde", "Lazer", "Educação", "Utilidades"]
-    .map((name) => ({group: "category", name, transactionSubtype: "despesa", workspaceScope: "both" as const})),
-  ...["Salário", "Honorários", "Venda de Produto", "Reembolso", "Dividendos"]
-    .map((name) => ({group: "category", name, transactionSubtype: "receita", workspaceScope: "both" as const})),
-  ...["Ações", "Fundos Imobiliários", "Tesouro Direto", "CDB", "Poupança"]
-    .map((name) => ({group: "category", name, transactionSubtype: "investimento", workspaceScope: "both" as const})),
-  ...["Dinheiro", "Cartão de Crédito", "Cartão de Débito", "Pix", "Boleto"]
-    .map((name) => ({group: "payment_method", name, workspaceScope: "both" as const})),
-  ...["Carteira Principal", "Reserva de Emergência", "Investimentos Nubank", "Binance"]
-    .map((name) => ({group: "wallet", name, workspaceScope: "both" as const})),
-  ...["Operacional", "Comercial", "Administrativo"]
-    .map((name) => ({group: "cost_center", name, workspaceScope: "PJ" as const})),
-];
-
-const normalizeName = (name: string) => name.normalize("NFD")
-  .replace(/[\u0300-\u036f]/g, "").trim().replace(/\s+/g, " ").toLowerCase();
-
-export const executeSeedLegacySettingsCatalog = async (
-  actor: WorkspaceActor,
-  payload: SeedLegacyCatalogPayload,
-): Promise<Record<string, unknown>> =>
-  runGoalTransaction(actor, async (transaction, workspace) => {
-    const reservation = await reserveIdempotency(
-      transaction,
-      actor,
-      "seedLegacySettingsCatalog",
-      payload.idempotencyKey,
-      payload,
-    );
-    if (reservation.replay) return reservation.replay;
-    // O tipo vem do workspace relido pela autorização transacional, que já
-    // garante que ele existe e não está arquivado.
-    const workspaceType = workspace.type === "PJ" ? "PJ" : "PF";
-    const root = workspacePath(actor.workspaceId);
-    const seeds = LEGACY_CATALOG_SEEDS.filter(
-      (item) => item.workspaceScope === "both" || workspaceType === "PJ",
-    );
-    const prepared = seeds.map((item, index) => {
-      const normalizedName = normalizeName(item.name);
-      const dedupeKey = [
-        item.group,
-        item.transactionSubtype ?? "all",
-        item.workspaceScope,
-        normalizedName,
-      ].join("::");
-      return {
-        item,
-        index,
-        normalizedName,
-        dedupeKey,
-        uniqueRef: db().doc(`${root}/settings_catalog_uniques/${dedupeKey}`),
-      };
-    });
-    const uniqueSnapshots = await transaction.getAll(
-      ...prepared.map((item) => item.uniqueRef),
-    );
-    let createdCount = 0;
-    prepared.forEach((entry, index) => {
-      if (uniqueSnapshots[index].exists) return;
-      const itemId = `legacy_${sha256(entry.dedupeKey).slice(0, 24)}`;
-      const itemRef = db().doc(`${root}/settings_catalog/${itemId}`);
-      const auditFields = {
-        createdBy: actor.uid,
-        updatedBy: actor.uid,
-        createdAt: FieldValue.serverTimestamp(),
-        updatedAt: FieldValue.serverTimestamp(),
-      };
-      const itemData = {
-        workspaceId: actor.workspaceId,
-        group: entry.item.group,
-        name: entry.item.name,
-        normalizedName: entry.normalizedName,
-        dedupeKey: entry.dedupeKey,
-        workspaceScope: entry.item.workspaceScope,
-        ...(entry.item.transactionSubtype ?
-          {transactionSubtype: entry.item.transactionSubtype} :
-          {}),
-        ...auditFields,
-      };
-      transaction.create(itemRef, {
-        ...itemData,
-        sortOrder: (entry.index + 1) * 10,
-        status: "active",
-      });
-      transaction.create(entry.uniqueRef, {
-        dedupeKey: entry.dedupeKey,
-        catalogItemId: itemId,
-        workspaceId: actor.workspaceId,
-        group: entry.item.group,
-        normalizedName: entry.normalizedName,
-        ...auditFields,
-      });
-      createdCount += 1;
-    });
-    const result = {
-      success: true,
-      workspaceId: actor.workspaceId,
-      workspaceType,
-      createdCount,
-      existingCount: seeds.length - createdCount,
-    };
-    writeAudit(
-      transaction,
-      actor,
-      "seedLegacySettingsCatalog",
-      reservation.ref,
-      actor.workspaceId,
-      result,
     );
     completeIdempotency(transaction, reservation, result);
     return result;

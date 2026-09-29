@@ -134,6 +134,14 @@ test('convite, aceite, troca de papel, remoção e perda de acesso entre duas co
   expect(created.status, created.errorMessage).toBe(200);
   const workspaceId = String(created.result?.workspaceId);
 
+  // O workspace sai do backend já provisionado, antes de qualquer tela abri-lo:
+  // catálogo geral (com centros de custo, por ser PJ) e padrões de investimento.
+  const catalog = await db.collection(`workspaces/${workspaceId}/settings_catalog`).get();
+  expect(catalog.docs.filter((doc) => doc.get('group') === 'cost_center')).toHaveLength(3);
+  expect(catalog.docs.some((doc) => doc.get('group') === 'wallet')).toBe(true);
+  expect((await db.collection(`workspaces/${workspaceId}/investment_accounts`)
+    .where('status', '==', 'active').get()).size).toBe(1);
+
   // O owner abre a empresa e convida pela tela.
   await page.addInitScript(([key, value]) => localStorage.setItem(key, value), [
     `lastWorkspaceId_${owner.uid}`, workspaceId,

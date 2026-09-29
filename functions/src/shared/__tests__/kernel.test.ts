@@ -1,5 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import * as fs from "node:fs";
+import * as path from "node:path";
 import {HttpsError} from "firebase-functions/v2/https";
 import type {CallableRequest} from "firebase-functions/v2/https";
 import {z} from "zod";
@@ -161,6 +163,7 @@ const HTTPS_CODE: Record<ApplicationErrorCode, string> = {
   idempotency_replay: "internal",
   domain_precondition_failed: "failed-precondition",
   not_found: "not-found",
+  already_exists: "already-exists",
   internal: "internal",
 };
 
@@ -700,4 +703,38 @@ test("sha256 é hexadecimal de 64 caracteres e determinístico", () => {
   assert.match(sha256(""), /^[0-9a-f]{64}$/);
   assert.equal(sha256("x"), sha256("x"));
   assert.notEqual(sha256("x"), sha256("y"));
+});
+
+/* ----------------------------------------------------- contrato de erro */
+
+/**
+ * Handlers do kernel lançam `ApplicationError`; só o mapeador único
+ * (`toHttpsError`) constrói `HttpsError`. Um `new HttpsError` solto em código
+ * de produção criaria um segundo contrato de erro, com código e mensagem fora
+ * da tabela fechada.
+ */
+test("produção não constrói HttpsError fora do mapeador único", () => {
+  // `lib/shared/__tests__` → `src/`.
+  const srcRoot = path.resolve(__dirname, "../../../src");
+  const offenders: string[] = [];
+  const walk = (dir: string) => {
+    for (const entry of fs.readdirSync(dir, {withFileTypes: true})) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        if (entry.name !== "__tests__" && entry.name !== "testSupport") {
+          walk(full);
+        }
+        continue;
+      }
+      if (!entry.name.endsWith(".ts") || entry.name.endsWith(".test.ts")) {
+        continue;
+      }
+      if (full === path.join(srcRoot, "shared", "errors.ts")) continue;
+      if (/new\s+HttpsError\s*\(/.test(fs.readFileSync(full, "utf8"))) {
+        offenders.push(path.relative(srcRoot, full));
+      }
+    }
+  };
+  walk(srcRoot);
+  assert.deepEqual(offenders, []);
 });

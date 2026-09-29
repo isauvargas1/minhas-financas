@@ -119,10 +119,6 @@ test('aporte nascido na meta publica progresso e projeta caixa uma vez', async (
   await page.getByTestId('e2e-login-button').click();
   await expect(page.getByText('Saldo Atual')).toBeVisible({timeout: 30_000});
 
-  await expect.poll(async () => (
-    await db.collection(`workspaces/${WORKSPACE_ID}/settings_catalog`).where('group', '==', 'wallet').get()
-  ).size).toBeGreaterThan(0);
-
   // Abrir a meta e aportar de dentro dela, sem passar por outra tela.
   await page.getByText('Metas', {exact: true}).first().click();
   await page.getByText('Meta M1 E2E', {exact: true}).first().click();

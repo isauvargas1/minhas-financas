@@ -98,6 +98,16 @@ export interface KernelContext<TPayload> {
   payload: TPayload;
   actor: WorkspaceActor | null;
   log: OperationLogger;
+  /**
+   * Registra, no contexto de log da requisição, o workspace cuja autorização
+   * o **domínio** acabou de confirmar (releitura dentro da transação).
+   *
+   * Para operações sem pré-checagem no wrapper (arquivamento, transferência,
+   * aceite de convite): o handler chama isto só depois que a transação
+   * autorizou. O `workspaceId` do payload nunca entra no log por outro
+   * caminho.
+   */
+  trustWorkspace: (workspaceId: string, role: WorkspaceRole | null) => void;
 }
 
 /**
@@ -108,6 +118,10 @@ export interface KernelContext<TPayload> {
  * antes disso e não é confiável: gravar nele deixaria quem foi recusado — por
  * token, política ou falta de membership — escrever evento e métrica no
  * workspace de outro tenant (INV-P0-001).
+ *
+ * A mesma separação vale para o log estruturado: o campo `workspaceId` do
+ * contexto é sempre o workspace **autorizado** (pré-checagem ou
+ * `trustWorkspace`), nunca o solicitado.
  */
 export interface CallableFailure {
   request: CallableRequest<unknown>;
@@ -229,23 +243,35 @@ export const defineCallable = <TPayload, TResult>(
       operation: definition.operation,
       requestId,
       actorId: request.auth?.uid ?? null,
+      // Sem tenant até a autorização: ver `trustWorkspace`.
+      workspaceId: null,
+      actorRole: null,
       ...traceFieldFromHeader(headerOf(request, "x-cloud-trace-context")),
     });
     log.info("callable.start", {appCheck: request.app ? "present" : "absent"});
 
     let uid: string | null = request.auth?.uid ?? null;
-    let workspaceId: string | null = null;
     let authorized: WorkspaceActor | null = null;
+    // Único ponto que põe tenant no contexto de log: sempre depois de uma
+    // autorização real, nunca a partir do payload.
+    const trustWorkspace = (
+      workspaceId: string,
+      role: WorkspaceRole | null,
+    ): void => {
+      log = log.with({workspaceId, actorRole: role});
+    };
     try {
       const caller = callerFromRequest(request);
       uid = caller.uid;
       assertTokenPolicy(caller, policy);
       const payload = definition.schema.parse(request.data);
-      workspaceId = workspaceIdOf(payload);
 
       let actor: WorkspaceActor | null = null;
       if (definition.workspaceRoles) {
-        if (!workspaceId) {
+        // Solicitado pelo cliente e ainda não confiável: serve só de entrada
+        // para o resolvedor canônico e não vai para o log.
+        const requestedWorkspaceId = workspaceIdOf(payload);
+        if (!requestedWorkspaceId) {
           throw new ApplicationError(
             "invalid_payload",
             INVALID_PAYLOAD_MESSAGE,
@@ -254,12 +280,16 @@ export const defineCallable = <TPayload, TResult>(
         const roles = typeof definition.workspaceRoles === "function" ?
           definition.workspaceRoles(payload) :
           definition.workspaceRoles;
-        actor = await resolveWorkspaceActor(caller.uid, workspaceId, roles);
+        actor = await resolveWorkspaceActor(
+          caller.uid,
+          requestedWorkspaceId,
+          roles,
+        );
         authorized = actor;
+        trustWorkspace(actor.workspaceId, actor.role);
       } else if (policy.requireActiveAccount) {
         await requireActiveAccount(caller.uid);
       }
-      log = log.with({workspaceId, actorRole: actor?.role ?? null});
 
       const result = await definition.handler({
         requestId,
@@ -267,6 +297,7 @@ export const defineCallable = <TPayload, TResult>(
         payload,
         actor,
         log,
+        trustWorkspace,
       });
       log.info("callable.end", {
         outcome: "ok",
@@ -278,7 +309,6 @@ export const defineCallable = <TPayload, TResult>(
       const fields = {
         outcome: "error",
         errorCode,
-        workspaceId,
         durationMs: Date.now() - startedAt,
       };
       if (errorCode === "internal") {

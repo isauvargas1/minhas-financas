@@ -31,7 +31,7 @@ const Header: React.FC<HeaderProps> = ({
     onToggleSidebar, isSidebarExpanded, onToggleDarkMode, isDarkMode, 
     currentDate, onCurrentDateChange, onNavigate, onOpenSplitGroup 
 }) => {
-    const { activeWorkspace, workspaces, switchWorkspace } = useWorkspace();
+    const { activeWorkspace, workspaces, switchWorkspace, hasMoreWorkspaces, loadMoreWorkspaces } = useWorkspace();
     // Usa o detetive de planos
     const { checkLimit, userPlan } = usePlan();
     
@@ -348,6 +348,12 @@ const normalizedNotifications = useMemo<NotificationItem[]>(() => {
                                             {activeWorkspace.id === ws.id && <CheckIcon className="w-4 h-4" />}
                                         </button>
                                     ))}
+
+                                    {hasMoreWorkspaces && (
+                                        <button onClick={() => void loadMoreWorkspaces()} className="w-full p-2 rounded-lg transition-colors text-sm text-primary font-medium hover:bg-background">
+                                            Carregar mais espaços
+                                        </button>
+                                    )}
                                 </div>
 
                                 {/* Actions - COM A CATRACA APLICADA */}
