@@ -2,7 +2,7 @@
 
 Referência do programa de Production Readiness para autenticação, sessão, ciclo de vida de conta, workspaces PF/PJ, memberships, RBAC, convites e administração de plataforma. Baseline auditada: HEAD `9c3ab46`; atualizado após a implementação de P1 (código no repositório e testado no Emulator; nada foi implantado, D-ORD-04). O estado, a ordem e os IDs canônicos estão no plano mestre, [PRODUCTION_READINESS_PLAN.md](PRODUCTION_READINESS_PLAN.md) (§5.1, §5.2, §6 e P1 em §8). O gate do tema é a skill `multi-tenant-security-review`, acompanhada em P1 de `firestore-scale-cost-review`, `ptbr-product-ui-review` e `observability-incident-readiness` (contrato de auditoria), conforme o plano. A exclusão de conta (P8) passa também por `privacy-lgpd-data-lifecycle`.
 
-Rótulos conforme a tabela de classificação do plano: **CURRENT** (existe no HEAD, com `arquivo:linha`), **TARGET** (alvo, não implementado), **GAP** (ID do registro), **DECISION** (§9/§10 do plano) e **EXTERNAL CONFIGURATION REQUIRED** (fora do repositório, estado NÃO VERIFICADO). **Corrigido em P1 (pendente do gate, PLAN §16)** marca um GAP fechado no repositório, sem implantação remota. Controles transversais (App Check, Hosting, segredos, IA) ficam em [SECURITY_MODEL.md](SECURITY_MODEL.md); ameaças em [THREAT_MODEL.md](THREAT_MODEL.md); quotas em [BILLING_ENTITLEMENTS.md](BILLING_ENTITLEMENTS.md); exclusão e exportação em [PRIVACY_LGPD.md](PRIVACY_LGPD.md).
+Rótulos conforme a tabela de classificação do plano: **CURRENT** (existe no HEAD, com `arquivo:linha`), **TARGET** (alvo, não implementado), **GAP** (ID do registro), **DECISION** (§9/§10 do plano) e **EXTERNAL CONFIGURATION REQUIRED** (fora do repositório, estado NÃO VERIFICADO). **Fechado em P1 (PLAN §16.4)** marca um GAP fechado no repositório, sem implantação remota. Controles transversais (App Check, Hosting, segredos, IA) ficam em [SECURITY_MODEL.md](SECURITY_MODEL.md); ameaças em [THREAT_MODEL.md](THREAT_MODEL.md); quotas em [BILLING_ENTITLEMENTS.md](BILLING_ENTITLEMENTS.md); exclusão e exportação em [PRIVACY_LGPD.md](PRIVACY_LGPD.md).
 
 ---
 
@@ -20,7 +20,7 @@ Rótulos conforme a tabela de classificação do plano: **CURRENT** (existe no H
 | Isolamento entre tenants | CURRENT | Por caminho, com negativos A↔B nos dois sentidos nas Rules e nas callables; o resolvedor recusa membership ausente com a mesma resposta de um workspace inexistente | `tests/firestore/workspaces-p1.rules.integration.test.mjs:173,192,339`; `functions/src/shared/__tests__/workspaceAuth.integration.test.ts:65`; `functions/src/workspaces/__tests__/memberships.integration.test.ts:240` |
 | Pendências fora de P1 | TARGET | Quota e entitlement nas transações de criação, convite e aceite (P2); App Check e login de teste fora do bundle (P6); operação administrativa da suspensão e claim `platformAdmin` (P7); exclusão e exportação de conta (P8); aceite legal (P8/P9); envio do convite por e-mail transacional (E-11) | [PRODUCTION_READINESS_PLAN.md](PRODUCTION_READINESS_PLAN.md#p1--auth-workspaces-rbac-e-ciclo-de-vida-de-conta) |
 
-GAPs abertos do domínio: PR-AUTH-01, PR-AUTH-02 e PR-AUTH-04. Corrigidos em P1 (pendentes do gate, PLAN §16): PR-AUTH-03 e PR-WS-01 a PR-WS-06 (§12).
+GAPs abertos do domínio: PR-AUTH-01, PR-AUTH-02 e PR-AUTH-04. Fechados em P1 (PLAN §16.4): PR-AUTH-03 e PR-WS-01 a PR-WS-06 (§12).
 
 ---
 
@@ -44,8 +44,8 @@ GAPs abertos do domínio: PR-AUTH-01, PR-AUTH-02 e PR-AUTH-04. Corrigidos em P1 
 | Logout | TARGET | O histórico do chat de IA sai do `localStorage` e passa a viver no servidor (hoje só é apagado no logout e na troca de conta) | PR-AI-04 (P5) |
 | Erros | TARGET | Alternativa por redirect quando o popup é bloqueado (hoje a tela orienta permitir pop-ups); textos fora de pt-BR no painel administrativo | AUTH-15 |
 | GAP | GAP | Login E2E no código de produção | PR-AUTH-04 (P6) |
-| GAP | GAP | **Corrigido em P1 (pendente do gate, PLAN §16).** Sem `email_verified` nem restrição de provedor | AUTH-08, ENTRY-23: `functions/src/shared/callable.ts:185-215`; `functions/src/shared/__tests__/kernel.test.ts:584-634` |
-| GAP | GAP | Sessão: a política de `auth_time` e a reautenticação para operações irreversíveis foram corrigidas em P1 (pendentes do gate, PLAN §16); persistência de sessão e MFA de admin seguem abertas | AUTH-17 (LOW; P7) |
+| GAP | GAP | **Fechado em P1 (PLAN §16.4).** Sem `email_verified` nem restrição de provedor | AUTH-08, ENTRY-23: `functions/src/shared/callable.ts:185-215`; `functions/src/shared/__tests__/kernel.test.ts:584-634` |
+| GAP | GAP | Sessão: a política de `auth_time` e a reautenticação para operações irreversíveis foram fechadas em P1 (PLAN §16.4); persistência de sessão e MFA de admin seguem abertas | AUTH-17 (LOW; P7) |
 
 **DECISION D-06 (tomada, §9.1 do plano):** só Google. `email_verified` exigido em `createWorkspace`, `inviteWorkspaceMember`, `acceptWorkspaceInvite`, `revokeWorkspaceInvite`, `changeWorkspaceMemberRole`, `removeWorkspaceMember`, `transferWorkspaceOwnership` e `archiveWorkspace`; não exigido em `bootstrapAccount`, `updateWorkspaceSettings` e `leaveWorkspace`. `transferWorkspaceOwnership` e `archiveWorkspace` exigem `auth_time` nos últimos 10 minutos. Sem MFA para usuários comuns; MFA administrativa em P7 (E-03). Implementado nas políticas `VERIFIED` e `VERIFIED_RECENT` de `functions/src/workspaces/callables.ts:55-232` e coberto pelos testes de integração de `functions/src/workspaces/__tests__/`.
 
@@ -64,8 +64,8 @@ GAPs abertos do domínio: PR-AUTH-01, PR-AUTH-02 e PR-AUTH-04. Corrigidos em P1 
 | Workspace ativo | CURRENT | `activeWorkspaceId` deixou de ser gravável (o perfil é server-owned) e não é usado; o app guarda o último workspace em `localStorage` por usuário (`lastWorkspaceId_<uid>`), apagado no logout, e o membership ativo decide o acesso na abertura | `src/contexts/WorkspaceContext.tsx:39,46-53,81,118-127`; `src/lib/sessionCleanup.ts:18-23` |
 | Perfil server-owned | CURRENT | `bootstrapAccount` cria `users/{uid}` com o contrato mínimo `uid`, `email` (do token verificado), `displayName`, `photoURL`, `status` (`active`/`suspended`, D-P1-SUSP), `createdAt` e `updatedAt`. `locale` e `timezone` **não** fazem parte de P1 (o fuso canônico das datas civis é `America/Sao_Paulo`, D-17). O cliente não edita mais o perfil: `email` e `status` saíram da allowlist e a própria allowlist deixou de existir (`write: false`) | `functions/src/workspaces/model.ts:17-20`; `functions/src/workspaces/lifecycle.ts:152-168`; `firestore.rules:1377-1381` |
 | Aceite legal | TARGET | O registro versionado de aceite (termos e política) é construído em P8 e exigido no cadastro em P9. `bootstrapAccount` é o ponto de integração | PR-AUTH-02 (P9) |
-| Fonte única | TARGET | Um único provider de perfil no cliente (hoje o perfil é lido duas vezes: `getDoc` para `isAdmin` e `onSnapshot` para o plano). A fonte única de workspace ativo já vale: o `WorkspaceContext` | AUTH-12 (PR-AUTH-03 corrigido em P1, pendente do gate (PLAN §16)) |
-| GAP | GAP | **Corrigido em P1 (pendente do gate, PLAN §16).** Perfil sem dono server-side | PR-AUTH-03: `functions/src/workspaces/lifecycle.ts:106-215`; `tests/firestore/workspaces-p1.rules.integration.test.mjs:244` |
+| Fonte única | TARGET | Um único provider de perfil no cliente (hoje o perfil é lido duas vezes: `getDoc` para `isAdmin` e `onSnapshot` para o plano). A fonte única de workspace ativo já vale: o `WorkspaceContext` | AUTH-12 (PR-AUTH-03 fechado em P1 (PLAN §16.4)) |
+| GAP | GAP | **Fechado em P1 (PLAN §16.4).** Perfil sem dono server-side | PR-AUTH-03: `functions/src/workspaces/lifecycle.ts:106-215`; `tests/firestore/workspaces-p1.rules.integration.test.mjs:244` |
 
 ---
 
@@ -73,7 +73,7 @@ GAPs abertos do domínio: PR-AUTH-01, PR-AUTH-02 e PR-AUTH-04. Corrigidos em P1 
 
 ### 4.1 Baseline removido em P1
 
-Saíram do código, com busca sem ocorrências em `src/`, `functions/src/`, `firestore.rules`, `e2e/` e `tests/`: a listagem que engolia falhas e devolvia lista vazia, a criação automática do primeiro workspace no `WorkspaceProvider` (com e-mail placeholder), o `createWorkspace` do cliente com escritas separadas, `ensureOwnerMembership` e o seed do catálogo e o onboarding de investimentos disparados pelo cliente. **GAP PR-AUTH-03: Corrigido em P1 (pendente do gate, PLAN §16)** (§12).
+Saíram do código, com busca sem ocorrências em `src/`, `functions/src/`, `firestore.rules`, `e2e/` e `tests/`: a listagem que engolia falhas e devolvia lista vazia, a criação automática do primeiro workspace no `WorkspaceProvider` (com e-mail placeholder), o `createWorkspace` do cliente com escritas separadas, `ensureOwnerMembership` e o seed do catálogo e o onboarding de investimentos disparados pelo cliente. **GAP PR-AUTH-03: Fechado em P1 (PLAN §16.4)** (§12).
 
 ### 4.2 CURRENT: `bootstrapAccount`
 
@@ -107,12 +107,12 @@ Pendente de **DECISION**: criar automaticamente o workspace PF ou deixar o usuá
 | Exclusão | CURRENT | Não há delete: `archiveWorkspace` grava `status: 'archived'` e o documento-pai permanece como marcador, o que impede recriar o mesmo ID sobre subcoleções órfãs (RULES-06). Workspace arquivado segue legível pelos membros ativos e não aceita escrita do cliente nas Rules. Exclusão de conta e de workspace ficam em P8 | `functions/src/workspaces/lifecycle.ts:394-437`; `firestore.rules:58-64,943-944`; `tests/firestore/m4-hardening.rules.integration.test.mjs:1395` |
 | Payload | CURRENT | Zod `.strict()` em todas as callables; o cliente omite campos ausentes do payload (`compact`) e CNPJ vazio vira `null`; `ownerId`, `userId`, `id`, `status` e `currency` não são aceitos do cliente | `functions/src/workspaces/contracts.ts:52-125`; `src/modules/workspaces/callables.ts:42` |
 | Quota | CURRENT | Limite de workspaces só na UI | `src/components/Header.tsx:58`; `src/constants/plans.ts:5-7` |
-| `createWorkspace` | CURRENT | Callable com Zod estrito (`name`, `type` ∈ {PF, PJ}, `cnpj` conforme D-22, `themeColor`, `idempotencyKey`). Exige `email_verified` e conta ativa (D-06). Numa transação: reserva de idempotência por ator, workspace (`status: 'active'`, `ownerId` desnormalizado), `members/{uid}` owner ativo, índice do usuário, provisionamento (§4.2, item 7) e evento `workspace.created`. P1 não consulta quota nem entitlement; P2 adiciona a quota nesta transação (D-01) | `functions/src/workspaces/callables.ts:76-83`; `functions/src/workspaces/lifecycle.ts:222-290`; PR-WS-05 (corrigido em P1, pendente do gate (PLAN §16)); quota em PR-ENT-01 (P2) |
+| `createWorkspace` | CURRENT | Callable com Zod estrito (`name`, `type` ∈ {PF, PJ}, `cnpj` conforme D-22, `themeColor`, `idempotencyKey`). Exige `email_verified` e conta ativa (D-06). Numa transação: reserva de idempotência por ator, workspace (`status: 'active'`, `ownerId` desnormalizado), `members/{uid}` owner ativo, índice do usuário, provisionamento (§4.2, item 7) e evento `workspace.created`. P1 não consulta quota nem entitlement; P2 adiciona a quota nesta transação (D-01) | `functions/src/workspaces/callables.ts:76-83`; `functions/src/workspaces/lifecycle.ts:222-290`; PR-WS-05 (fechado em P1, PLAN §16.4); quota em PR-ENT-01 (P2) |
 | `updateWorkspaceSettings` | CURRENT | Callable com schema estrito dos campos mutáveis e papel owner/admin, relido na transação; sem alteração devolve `updated: false` e não audita. Com ela no ar, o cliente perdeu create/update de `workspaces/{id}` nas Rules (política de legado: sem caminho de escrita concorrente) | `functions/src/workspaces/callables.ts:85-92`; `functions/src/workspaces/lifecycle.ts:303-386`; `tests/firestore/workspaces-p1.rules.integration.test.mjs:183` |
 | `archiveWorkspace` | CURRENT | Só owner, com `email_verified` e `auth_time` nos últimos 10 minutos (D-06). Grava `status: 'archived'`, `archivedAt` e `archivedBy`; nunca apaga. Repetir sobre um workspace já arquivado pelo owner devolve o mesmo resultado, sem nova auditoria. A callable está no contrato do cliente e não tem tela própria | `functions/src/workspaces/callables.ts:99-114`; `functions/src/workspaces/lifecycle.ts:394-437`; `functions/src/workspaces/__tests__/workspaceLifecycle.integration.test.ts:260` |
 | `currency` | CURRENT | Somente BRL: o documento nasce com `currency: 'BRL'` e nenhuma callable aceita o campo | `functions/src/workspaces/lifecycle.ts:74`; `functions/src/workspaces/contracts.ts:69-75`; D-16 (tomada, §9.1 do plano) |
 | PF com membros e CNPJ | CURRENT | Workspaces PF e PJ podem ter membros. CNPJ opcional e só em PJ; se informado, formato e dígitos verificadores são validados; não é globalmente único | `functions/src/workspaces/lifecycle.ts:44-60`; `functions/src/workspaces/cnpj.ts:25`; `functions/src/workspaces/__tests__/workspaceLifecycle.integration.test.ts:117`; D-22 (tomada, §9.1 do plano) |
-| GAP | GAP | **Corrigido em P1 (pendente do gate, PLAN §16).** Criação pelo cliente sem validar `type`, sem quota e com falhas de payload | PR-WS-05 (P1): `functions/src/workspaces/lifecycle.ts:222`; a quota fecha com PR-ENT-01 (P2), conforme D-ORD-05 |
+| GAP | GAP | **Fechado em P1 (PLAN §16.4).** Criação pelo cliente sem validar `type`, sem quota e com falhas de payload | PR-WS-05 (P1): `functions/src/workspaces/lifecycle.ts:222`; a quota fecha com PR-ENT-01 (P2), conforme D-ORD-05 |
 
 ---
 
@@ -130,7 +130,7 @@ Todas são server-owned: as Rules negam a escrita do cliente em cada uma (`fires
 | `invite_tokens/{sha256(token)}` | `workspaceId`, `inviteId`, `createdAt`, `expiresAt` | Só o backend | Sem `match`: negado por padrão ao cliente |
 | `workspaces/{wid}/membership_events/{eventId}` | Ver §9 | Só o backend, na mesma transação da mudança (`functions/src/shared/audit.ts:58`) | `write: false`; leitura de owner/admin, `list` com `limit <= 100` (`firestore.rules:971-976`) |
 
-### 6.2 Problemas de autoridade da baseline (corrigidos em P1, pendentes do gate (PLAN §16))
+### 6.2 Problemas de autoridade da baseline (fechados em P1, PLAN §16.4)
 
 - **Regime duplo.** Removido (PR-WS-03). `isWorkspaceOwnerByParent` e o fallback `ownerId` do backend não existem mais; Rules e backend usam só o membership ativo (`firestore.rules:28-64`; `functions/src/shared/workspaceAuth.ts:121-153`; `functions/src/shared/__tests__/workspaceAuth.integration.test.ts:86`).
 - **Divergência entre camadas.** Removida (WS-10): as duas camadas leem o mesmo documento de membership e o papel do documento vale igualmente nas Rules e nas callables.
@@ -195,7 +195,7 @@ A listagem filtra `status == 'active'` e `workspaceStatus == 'active'`, ordena p
 | Subcoleções sem regra própria (ex.: `activity_logs`, `split_invites`) | leitura | leitura | leitura | leitura | `firestore.rules:1436-1442`; PR-RULES-02 (P6) |
 | Checkout de assinatura | qualquer usuário autenticado com conta ativa, sem workspace | | | | `functions/src/callables/billing.ts:96-98,125-126` |
 
-Achados da baseline corrigidos em P1, pendentes do gate (PLAN §16): o admin que criava membership com papel `admin` para qualquer UID e rebaixava ou removia outros admins (WS-13) não tem mais esse poder (D-04, §7.2), e o convite não usa mais UID fornecido pelo cliente. A UI rotula `member` como "Membro (Editor)" e convida como `viewer` por padrão (`src/components/MembersManagerModal.tsx:23-28,80`), sem alteração visual.
+Achados da baseline fechados em P1 (PLAN §16.4): o admin que criava membership com papel `admin` para qualquer UID e rebaixava ou removia outros admins (WS-13) não tem mais esse poder (D-04, §7.2), e o convite não usa mais UID fornecido pelo cliente. A UI rotula `member` como "Membro (Editor)" e convida como `viewer` por padrão (`src/components/MembersManagerModal.tsx:23-28,80`), sem alteração visual.
 
 ### 7.2 CURRENT (P1): ciclo de vida de workspace e membership
 
@@ -230,7 +230,7 @@ Invariantes, verificados em teste (`functions/src/workspaces/__tests__/membershi
 
 ### 8.1 CURRENT
 
-- O convite por UID fictício e a gravação de `members/{fakeUid}` pelo cliente foram removidos, e as Rules negam toda escrita em `members`. **GAP PR-WS-01: Corrigido em P1 (pendente do gate, PLAN §16).** O modal chama `inviteWorkspaceMember` com o e-mail digitado e o papel `viewer`, e mostra "Convite registrado" (`src/components/MembersManagerModal.tsx:68-83`). `acceptWorkspaceInvite`, `revokeWorkspaceInvite`, `leaveWorkspace` e `archiveWorkspace` existem no contrato do cliente (`src/modules/workspaces/callables.ts:15-30`), sem tela própria; transferência de ownership, saída e arquivamento existem no backend (WS-09 fechado).
+- O convite por UID fictício e a gravação de `members/{fakeUid}` pelo cliente foram removidos, e as Rules negam toda escrita em `members`. **GAP PR-WS-01: Fechado em P1 (PLAN §16.4).** O modal chama `inviteWorkspaceMember` com o e-mail digitado e o papel `viewer`, e mostra "Convite registrado" (`src/components/MembersManagerModal.tsx:68-83`). `acceptWorkspaceInvite`, `revokeWorkspaceInvite`, `leaveWorkspace` e `archiveWorkspace` existem no contrato do cliente (`src/modules/workspaces/callables.ts:15-30`), sem tela própria; transferência de ownership, saída e arquivamento existem no backend (WS-09 fechado).
 - Os convites de grupo de divisão (`functions/src/callables/splitGroups.ts`) são de outro domínio: exigem que o usuário já seja membro do workspace e não servem para entrar num workspace. O desenho não deve ser copiado como está: o limite de tentativas e a marcação de expiração são revertidos pelo `throw` dentro da transação (ENTRY-14, em PR-SPLIT-04, P4).
 - A tela de Configurações anuncia "Convide pessoas, gerencie permissões" (`src/components/SettingsView.tsx:668`). O convite é registrado, mas sem e-mail transacional (E-11) o destinatário não o recebe (PR-COMM-03, P9).
 
@@ -300,14 +300,14 @@ Eventos de membership vão para `workspaces/{wid}/membership_events` (`functions
 | --- | --- | --- | --- | --- |
 | PR-AUTH-01 | BLOCKER | P8 | Sem exclusão de conta, exportação nem cancelamento da assinatura na saída | §10.2 implementado e testado |
 | PR-AUTH-02 | BLOCKER | P9 | Cadastro sem termos, política e aceite server-side versionado | Aceite exigido no cadastro, lido do registro de P8 |
-| PR-AUTH-03 | HIGH | P1 | **Corrigido em P1 (pendente do gate, PLAN §16).** Bootstrap e perfil no cliente, não atômicos nem idempotentes | `bootstrapAccount` (§4.2): `functions/src/workspaces/lifecycle.ts:106-215`; `functions/src/workspaces/__tests__/account.integration.test.ts:116,146` |
+| PR-AUTH-03 | HIGH | P1 | **Fechado em P1 (PLAN §16.4).** Bootstrap e perfil no cliente, não atômicos nem idempotentes | `bootstrapAccount` (§4.2): `functions/src/workspaces/lifecycle.ts:106-215`; `functions/src/workspaces/__tests__/account.integration.test.ts:116,146` |
 | PR-AUTH-04 | HIGH | P6 | Login E2E no código de produção e artefato compartilhado | Login de teste fora do bundle; build por ambiente |
-| PR-WS-01 | BLOCKER | P1 | **Corrigido em P1 (pendente do gate, PLAN §16).** Convite inexistente (UID fictício) | §8.2: `functions/src/workspaces/memberships.ts:104,231`; `functions/src/workspaces/__tests__/invites.integration.test.ts` |
-| PR-WS-02 | HIGH | P1 | **Corrigido em P1 (pendente do gate, PLAN §16).** Mutações de membership no cliente, com escrita parcial e sem auditoria | Callables da §9; Rules `write: false` (`firestore.rules:951-958`) |
-| PR-WS-03 | HIGH | P1 | **Corrigido em P1 (pendente do gate, PLAN §16).** Fontes concorrentes de papel | §6.3 e §6.4: `functions/src/shared/workspaceAuth.ts:121-214` |
-| PR-WS-04 | HIGH | P1 | **Corrigido em P1 (pendente do gate, PLAN §16).** `ownerId` trancável via `status` | Invariantes da §7.2; `tests/firestore/workspaces-p1.rules.integration.test.mjs:192` |
-| PR-WS-05 | HIGH | P1 | **Corrigido em P1 (pendente do gate, PLAN §16).** Criação de workspace sem validar `type`, sem quota e com falhas de payload | `createWorkspace`/`updateWorkspaceSettings`: `functions/src/workspaces/lifecycle.ts:222,303`; a parte de quota fecha com PR-ENT-01 (P2) |
-| PR-WS-06 | HIGH | P1 | **Corrigido em P1 (pendente do gate, PLAN §16).** Sem testes de membership/workspace | §13.1 |
+| PR-WS-01 | BLOCKER | P1 | **Fechado em P1 (PLAN §16.4).** Convite inexistente (UID fictício) | §8.2: `functions/src/workspaces/memberships.ts:104,231`; `functions/src/workspaces/__tests__/invites.integration.test.ts` |
+| PR-WS-02 | HIGH | P1 | **Fechado em P1 (PLAN §16.4).** Mutações de membership no cliente, com escrita parcial e sem auditoria | Callables da §9; Rules `write: false` (`firestore.rules:951-958`) |
+| PR-WS-03 | HIGH | P1 | **Fechado em P1 (PLAN §16.4).** Fontes concorrentes de papel | §6.3 e §6.4: `functions/src/shared/workspaceAuth.ts:121-214` |
+| PR-WS-04 | HIGH | P1 | **Fechado em P1 (PLAN §16.4).** `ownerId` trancável via `status` | Invariantes da §7.2; `tests/firestore/workspaces-p1.rules.integration.test.mjs:192` |
+| PR-WS-05 | HIGH | P1 | **Fechado em P1 (PLAN §16.4).** Criação de workspace sem validar `type`, sem quota e com falhas de payload | `createWorkspace`/`updateWorkspaceSettings`: `functions/src/workspaces/lifecycle.ts:222,303`; a parte de quota fecha com PR-ENT-01 (P2) |
+| PR-WS-06 | HIGH | P1 | **Fechado em P1 (PLAN §16.4).** Sem testes de membership/workspace | §13.1 |
 
 Relacionados de outros domínios: PR-ENT-01 (P2, quotas de workspaces e membros; fecha ao fim de P5 por D-ORD-05), PR-ADMIN-01 (P7), PR-AI-04 (P5, histórico de IA e limpeza no logout), PR-APPCHK-01 (P6), PR-SPLIT-04 (P4), PR-COMM-03 (P9).
 
@@ -315,19 +315,19 @@ MEDIUM/LOW de origem tratados neste domínio:
 
 | ID | Lacuna | Tratamento |
 | --- | --- | --- |
-| AUTH-08 | Qualquer token aceito: sem `email_verified`, restrição de provedor ou blocking function | **Corrigido em P1 (pendente do gate, PLAN §16)** no wrapper (`functions/src/shared/callable.ts:185-215`); blocking functions seguem em E-03 (D-06) |
-| AUTH-10 | Falhas de login e de carga de workspaces silenciosas | **Corrigido em P1 (pendente do gate, PLAN §16):** mapeamento pt-BR e estado de erro (`src/components/auth/LoginView.tsx:8-26`; `src/App.tsx:544-551`) |
+| AUTH-08 | Qualquer token aceito: sem `email_verified`, restrição de provedor ou blocking function | **Fechado em P1 (PLAN §16.4)** no wrapper (`functions/src/shared/callable.ts:185-215`); blocking functions seguem em E-03 (D-06) |
+| AUTH-10 | Falhas de login e de carga de workspaces silenciosas | **Fechado em P1 (PLAN §16.4):** mapeamento pt-BR e estado de erro (`src/components/auth/LoginView.tsx:8-26`; `src/App.tsx:544-551`) |
 | AUTH-15 | Textos fora de pt-BR (painel admin em pt-PT, `lang="en"`), marca inconsistente | Revisão com `ptbr-product-ui-review` |
 | AUTH-17 | Sem política de sessão, reautenticação ou MFA | Parcial: `auth_time` e reautenticação para operações irreversíveis em P1; persistência de sessão e MFA de admin seguem abertas (D-06; P7) |
-| WS-09 | Sem transferência de ownership, saída ou arquivamento | **Corrigido em P1 (pendente do gate, PLAN §16):** callables da §9 |
-| WS-12 | Listagem com escrita a cada leitura, N+1 e sem `limit` | **Corrigido em P1 (pendente do gate, PLAN §16):** índice do usuário paginado (§6.4) |
-| WS-13 | Poderes amplos do admin sobre outros admins | **Corrigido em P1 (pendente do gate, PLAN §16):** D-04 (`functions/src/workspaces/rbac.ts:20-50`), com testes negativos |
-| WS-14 | `Owner` e e-mail placeholder visíveis; erros silenciosos | **Corrigido em P1 (pendente do gate, PLAN §16):** identidade do token no backend (`functions/src/workspaces/model.ts:67-71`); erros em pt-BR (`src/modules/workspaces/errors.ts:38-44`) |
-| WS-15, ENTRY-11 | `workspaceId` com `/` aceito pelo resolvedor e por 18 callables | **Corrigido em P1 (pendente do gate, PLAN §16)** no resolvedor, que valida o ID antes de qualquer leitura (`functions/src/shared/workspaceAuth.ts:48-64`; `functions/src/shared/__tests__/workspaceAuth.integration.test.ts:132`); a unificação dos schemas de domínio acompanha P3–P5 |
-| ENTRY-20 | Cartões e metas verificam o papel fora da transação | **Corrigido em P1 (pendente do gate, PLAN §16):** `reassertWorkspaceActor` na transação (`functions/src/creditCards/createPurchase.ts:434`; `functions/src/goals/operations.ts:219`) |
-| ENTRY-23 | Nenhum entrypoint exige e-mail verificado | **Corrigido em P1 (pendente do gate, PLAN §16)** no wrapper para as callables de workspace e membership (D-06); outras callables seguem a política de cada domínio |
-| RULES-11 | `members` listável sem `limit` | **Corrigido em P1 (pendente do gate, PLAN §16):** `list` com teto (`firestore.rules:955`) |
-| RULES-16 | `members.status` aceita qualquer string | **Corrigido em P1 (pendente do gate, PLAN §16):** enum `active`/`removed` gravado só pelo backend (`functions/src/workspaces/model.ts:36`) |
+| WS-09 | Sem transferência de ownership, saída ou arquivamento | **Fechado em P1 (PLAN §16.4):** callables da §9 |
+| WS-12 | Listagem com escrita a cada leitura, N+1 e sem `limit` | **Fechado em P1 (PLAN §16.4):** índice do usuário paginado (§6.4) |
+| WS-13 | Poderes amplos do admin sobre outros admins | **Fechado em P1 (PLAN §16.4):** D-04 (`functions/src/workspaces/rbac.ts:20-50`), com testes negativos |
+| WS-14 | `Owner` e e-mail placeholder visíveis; erros silenciosos | **Fechado em P1 (PLAN §16.4):** identidade do token no backend (`functions/src/workspaces/model.ts:67-71`); erros em pt-BR (`src/modules/workspaces/errors.ts:38-44`) |
+| WS-15, ENTRY-11 | `workspaceId` com `/` aceito pelo resolvedor e por 18 callables | **Fechado em P1 (PLAN §16.4)** no resolvedor, que valida o ID antes de qualquer leitura (`functions/src/shared/workspaceAuth.ts:48-64`; `functions/src/shared/__tests__/workspaceAuth.integration.test.ts:132`); a unificação dos schemas de domínio acompanha P3–P5 |
+| ENTRY-20 | Cartões e metas verificam o papel fora da transação | **Fechado em P1 (PLAN §16.4):** `reassertWorkspaceActor` na transação (`functions/src/creditCards/createPurchase.ts:434`; `functions/src/goals/operations.ts:219`) |
+| ENTRY-23 | Nenhum entrypoint exige e-mail verificado | **Fechado em P1 (PLAN §16.4)** no wrapper para as callables de workspace e membership (D-06); outras callables seguem a política de cada domínio |
+| RULES-11 | `members` listável sem `limit` | **Fechado em P1 (PLAN §16.4):** `list` com teto (`firestore.rules:955`) |
+| RULES-16 | `members.status` aceita qualquer string | **Fechado em P1 (PLAN §16.4):** enum `active`/`removed` gravado só pelo backend (`functions/src/workspaces/model.ts:36`) |
 
 ---
 

@@ -47,9 +47,9 @@ Não existem dados reais de produção. Compatibilidade com código, schema ou f
 
 | Milestone | Escopo | Estado |
 | --- | --- | --- |
-| **P0** | Fundação: instruções, skills, documentação, auditoria, plano | Em fechamento nesta entrega (§14) |
+| **P0** | Fundação: instruções, skills, documentação, auditoria, plano | Concluído (§14) |
 | **P1** | Auth, workspaces, memberships, RBAC, convites, ciclo de vida de conta + kernel compartilhado do backend | Concluído — `regression-release-gate` `PASS` em 2026-09-29 (§16.3); blockers fechados (§16.4) |
-| **P2** | Billing Stripe, entitlements e quotas | Não iniciado |
+| **P2** | Billing Stripe, entitlements e quotas | Em andamento — P2A (billing canônico, catálogo e lifecycle Stripe) concluída em 2026-09-29 (§17); P2B (enforcement de quotas) não iniciada |
 | **P3** | Caixa autoritativo (transactions), Empréstimos, Clientes/Recebíveis | Não iniciado |
 | **P4** | Convergência de Recorrentes, Divisão de contas, Cartões e Transações | Não iniciado |
 | **P5** | Metas, Relatórios, Notificações, Mensagens, IA | Não iniciado |
@@ -188,12 +188,12 @@ Resumo auditado por domínio. O detalhe (CURRENT/TARGET/GAP completos, MEDIUM/LO
 - **GAP:** PR-AI-01…PR-AI-05.
 
 ### 5.15 Billing/Stripe — [BILLING_ENTITLEMENTS.md](BILLING_ENTITLEMENTS.md)
-- **CURRENT:** callable de checkout com allowlist de preço e de origem e rate limit; webhook com verificação de assinatura, tratando só `checkout.session.completed` e gravando `planId: 'pro'` em `users/{uid}`. Segredos com fallback placeholder. Sem portal, cancelamento, revogação, idempotência por evento ou testes de comportamento.
-- **GAP:** PR-BILL-01…PR-BILL-08.
+- **CURRENT (P2A entregue, §17):** catálogo canônico versionado no backend (`functions/src/billing/catalog.ts:16`); estado canônico `billing_accounts/{uid}` gravado só pelo backend; `createCheckoutSession` sem assinatura duplicada, `createBillingPortalSession` e webhook com recibo idempotente por `event.id`, ordem por releitura no Stripe, grace period e auditoria; segredos sem fallback (falha fechada); Rules que negam escrita do cliente; frontend com provider único. Testes de comportamento no Emulator (§17.2).
+- **GAP:** PR-BILL-07 (entitlement do workspace pelo owner, P2B). PR-BILL-01…06 e PR-BILL-08 fechados em P2A (§17.3). E-06 (configuração Stripe) segue sem conferência.
 
 ### 5.16 Entitlements/quotas — [BILLING_ENTITLEMENTS.md](BILLING_ENTITLEMENTS.md)
-- **CURRENT:** limites só em `src/constants/plans.ts` e `checkLimit` no cliente; backend e Rules desconhecem planos.
-- **GAP:** PR-ENT-01, PR-AI-03.
+- **CURRENT (P2A):** limites no catálogo do backend (`functions/src/billing/catalog.ts:64-104`) e motor puro `resolveEntitlement`/`effectiveEntitlement`/`effectiveLimits` (`functions/src/billing/entitlements.ts:71,131,157`); nenhum callable de domínio aplica quota ainda. No cliente, `checkLimit` é só ajuda de UX (`src/modules/billing/BillingContext.tsx:82`).
+- **GAP:** PR-ENT-01, PR-AI-03 (enforcement em P2B).
 
 ### 5.17 Firestore Rules — [SECURITY_MODEL.md](SECURITY_MODEL.md)
 - **CURRENT:** 1.490 linhas com default deny fora de `workspaces/` e `users/`, helpers de membership com status, domínios de investimentos/cartão/metas server-only com teto de `limit`, allowlists em `users`, `workspaces`, `members` e `transactions`, 6 suítes no Emulator e no CI. Dez coleções financeiras adjacentes aceitam qualquer escrita de member, sem schema; catch-all de leitura em subcoleções.
@@ -217,7 +217,7 @@ Resumo auditado por domínio. O detalhe (CURRENT/TARGET/GAP completos, MEDIUM/LO
 
 ### 5.22 Landing/commercial/legal — [LAUNCH_CHECKLIST.md](LAUNCH_CHECKLIST.md)
 - **CURRENT:** nenhuma superfície pública; visitante vê só a tela de login; `index.html` com `lang="en"`; tabela de preços interna com valores fixos que o billing não implementa.
-- **GAP:** PR-COMM-01…PR-COMM-03, PR-BILL-04.
+- **GAP:** PR-COMM-01…PR-COMM-03 (PR-BILL-04 fechado em P2A: preços e limites da tabela vêm do catálogo do backend, §17.3).
 
 ### 5.23 Admin capabilities — [SECURITY_MODEL.md](SECURITY_MODEL.md), [RUNBOOKS.md](RUNBOOKS.md)
 - **CURRENT:** `isAdmin` lido pelo cliente de `users/{uid}` (não autoconcedível, com teste); painel placeholder; nenhuma callable administrativa.
@@ -369,20 +369,13 @@ Nenhum item aberto. PR-WS-01…PR-WS-06 foram fechados em P1 e saíram deste reg
 
 | ID | Sev. | Milestone | Blocker | Evidência (HEAD `9c3ab46`) | Achados de origem |
 | --- | --- | --- | --- | --- | --- |
-| PR-BILL-01 | BLOCKER | P2 | Ciclo de vida da assinatura ausente: só checkout.session.completed; plano nunca é revogado | `functions/src/webhooks/stripe.ts:60 — único evento tratado`<br>`functions/src/webhooks/stripe.ts:97-107 — grava 'active' fixo` | BILL-02, ENTRY-01 · C03 |
-| PR-BILL-02 | BLOCKER | P2 | Sem Customer Portal nem caminho de cancelamento pelo produto | `grep billingPortal em functions/src e src — sem resultado`<br>`src/components/SettingsView.tsx:252,552 — sem seção de plano` | BILL-03, COMM-02 · C03 |
-| PR-BILL-03 | BLOCKER | P2 | Checkout permite assinatura duplicada e cobrança em dobro; sem escopo de workspace | `functions/src/callables/billing.ts:136-144 — sem customer existente, sem idempotencyKey`<br>`src/modules/billing/components/PricingTable.tsx:48-63 — não usa usePlan` | BILL-04, ENTRY-05, BILL-09 |
-| PR-BILL-04 | BLOCKER | P2 | Catálogo inconsistente: Pro e Business com o mesmo priceId, preço literal na UI e Business nunca concedido | `src/constants/plans.ts:15,26 — mesmo priceId`<br>`src/modules/billing/components/PricingTable.tsx:42 — preço literal` | BILL-05, MONEY-12, COMM-03 · C02 |
-| PR-BILL-05 | HIGH | P2 | Segredos Stripe com fallback placeholder (fail-open) | `functions/src/webhooks/stripe.ts:9 — fallback whsec_placeholder`<br>`functions/src/webhooks/stripe.ts:52 — constructEvent com o fallback` | BILL-06, ENTRY-04, FIRE-10 |
-| PR-BILL-06 | HIGH | P2 | Webhook sem idempotência por event.id, sem controle de ordem e sem trilha de auditoria | `functions/src/webhooks/stripe.ts:49-110 — sem uso de event.id`<br>`functions/src/webhooks/stripe.ts:97 — set merge direto, sem transação ou registro` | BILL-07, BILL-16 · C03 |
-| PR-BILL-07 | HIGH | P2 | Entitlement por usuário, com campos concorrentes e sem RBAC de quem contrata | `functions/src/webhooks/stripe.ts:97-105 — plano em users/{uid}, isPro duplicado`<br>`src/hooks/usePlan.ts:20-26 — lê o plano do usuário que está vendo` | BILL-08 |
-| PR-BILL-08 | HIGH | P2 | Checkout e webhook sem testes de comportamento | `functions/src/callables/__tests__/billing.test.ts:1-91 — só helpers`<br>`functions/src/shared/__tests__/rateLimit.integration.test.ts:7 — importa só reserveRateLimit e rateLimitDocumentId (nenhum código de checkout/webhook)` | BILL-13, REL-08 |
+| PR-BILL-07 | HIGH | P2 (P2B) | Entitlement do workspace ainda não derivado do plano do owner: a ajuda de UX lê o billing de quem está vendo; membro não lê o billing do owner. Campos concorrentes e plano em `users/{uid}` removidos em P2A | `src/modules/billing/BillingContext.tsx:82 — checkLimit usa o billing do usuário que vê`<br>`firestore.rules:1412-1414 — só o titular lê billing_accounts/{uid}` | BILL-08 |
 
 #### Entitlements/quotas
 
 | ID | Sev. | Milestone | Blocker | Evidência (HEAD `9c3ab46`) | Achados de origem |
 | --- | --- | --- | --- | --- | --- |
-| PR-ENT-01 | BLOCKER | P2 | Quotas de plano aplicadas somente no frontend; nenhum entrypoint ou Rule aplica plano/quota | `src/hooks/usePlan.ts:36-38 — enforcement só no cliente`<br>`src/modules/workspaces/api.ts:196 — workspace criado pelo cliente` | BILL-01, ENTRY-02, WS-05, TX-10, SPLIT-07, FEW-09, INV-03, CC-14, LOAN-15, CR-15, GOAL-08, REC-14 · C01 |
+| PR-ENT-01 | BLOCKER | P2 | Quotas de plano aplicadas somente no frontend; nenhum entrypoint ou Rule aplica plano/quota (P2A entregou o catálogo e o motor de entitlements; o enforcement é P2B; `usePlan.ts` foi removido) | `src/hooks/usePlan.ts:36-38 — enforcement só no cliente`<br>`src/modules/workspaces/api.ts:196 — workspace criado pelo cliente` | BILL-01, ENTRY-02, WS-05, TX-10, SPLIT-07, FEW-09, INV-03, CC-14, LOAN-15, CR-15, GOAL-08, REC-14 · C01 |
 
 #### Firestore Rules
 
@@ -460,7 +453,7 @@ Nenhum item aberto. PR-MONEY-01 foi fechado em P1 quanto ao módulo e à políti
 
 ## 7. Legado a remover
 
-Inventário do que a política de legado (§1) manda remover quando a arquitetura substituta assumir. Nada disso é removido em P0. As seis linhas de P1 foram removidas em P1, com prova por busca em §16.
+Inventário do que a política de legado (§1) manda remover quando a arquitetura substituta assumir. Nada disso é removido em P0. As seis linhas de P1 foram removidas em P1, com prova por busca em §16. Os itens de billing removidos em P2A estão marcados abaixo, com prova por busca em §17.3.
 
 | Milestone | Caminho legado / fonte concorrente | Substituto |
 | --- | --- | --- |
@@ -470,7 +463,8 @@ Inventário do que a política de legado (§1) manda remover quando a arquitetur
 | P1 | Regime duplo `ownerId` × membership (`isWorkspaceOwnerByParent`, fallback no backend); resolvedores de papel duplicados | Membership ativo como fonte única; módulo único `functions/src/shared` |
 | P1 | Campo legado `userId` em workspace; tipos `Workspace` duplicados; placeholders `Owner` e `usuario-sem-email@sistema` | Tipo único; dados do token verificado |
 | P1 | Provisionamento preguiçoso no cliente (`seedLegacySettingsCatalog` a cada seleção, onboarding após create) | Provisionamento idempotente no `bootstrapAccount`/`createWorkspace` |
-| P2 | `src/constants/plans.ts` e `checkLimit` como fonte de limites; `planId` por usuário com campos concorrentes | Catálogo versionado no backend; estado de assinatura único; entitlements server-side |
+| P2 (removido em P2A) | `src/constants/plans.ts`, `src/hooks/usePlan.ts` e `functions/src/callables/billing.ts` (checkout por `priceId` do cliente, `STRIPE_ALLOWED_PRICE_IDS`); `planId`/`isPro`/`stripe*` em `users/{uid}`; webhook que concedia sempre `pro`; fallbacks `sk_test_placeholder`/`whsec_placeholder`; preço literal `29,90` e `priceId` no frontend | Catálogo versionado no backend (`functions/src/billing/catalog.ts`); estado único `billing_accounts/{uid}`. Prova: busca sem ocorrências em `src/`, `functions/src/`, `tests/`, `e2e/` e `firestore.rules` de `isPro`, `constants/plans`, `usePlan`, `priceId`/`price_`/`29,90` (só `src/`) e dos placeholders e de `STRIPE_ALLOWED_PRICE_IDS` fora de testes negativos (§17.3) |
+| P2 (P2B) | `checkLimit` como única aplicação de limites (hoje só ajuda de UX) | Enforcement server-side nas callables (API de quota); a UI só exibe |
 | P3 | Escrita de `transactions` pelo cliente (`addDoc`/`writeBatch`/`updateDoc`) e campo `value` float | Callables de caixa em `amountCents` |
 | P3 | CRUD de loans, loan_movements, clients e receivables no cliente; `deleteLoan`/`deleteClient` em cascata | Callables transacionais; cancelamento/arquivamento |
 | P4 | Tipo `parcelado` com `cardId` em `transactions`; camada `src/modules/credit-cards/compatibility`; fallback de limite por transações | Somente `credit_card_*` e `invoice_views` |
@@ -517,10 +511,12 @@ Cada milestone termina somente com: testes direcionados verdes, remoção provad
 ### P2 — Billing, entitlements e quotas
 - **Objetivo:** ciclo de vida comercial completo e enforcement server-side.
 - **Escopo:** catálogo de planos versionado no backend (preço por ambiente, centavos BRL, entitlements); estado de assinatura único gravado só pelo webhook; webhook com `event.id` idempotente, ordem, eventos de assinatura/fatura/reembolso/disputa, grace period e auditoria; checkout sem assinatura duplicada; Customer Portal; segredos sem fallback; função de entitlements; enforcement em workspaces, membros, checkout e IA; API de quota usada pelos callables de P3–P5.
-- **Blockers:** PR-BILL-01…PR-BILL-08, PR-AI-03; PR-ENT-01 parcial (fecha em P5, D-ORD-05).
-- **Depende de decisões:** D-01, D-07, D-08, D-11.
-- **Configuração externa:** E-06.
+- **Divisão:** P2A (catálogo, estado canônico, checkout, portal, webhook, Rules, frontend) concluída — §17; P2B (motor de quota e enforcement em `createWorkspace`, convites/aceite, transferência de ownership e IA; entitlement do workspace pelo owner) pendente.
+- **Blockers:** PR-BILL-01…PR-BILL-08, PR-AI-03; PR-ENT-01 parcial (fecha em P5, D-ORD-05). Fechados em P2A: PR-BILL-01…06 e PR-BILL-08 (§17.3). Abertos (P2B): PR-BILL-07, PR-AI-03, PR-ENT-01.
+- **Depende de decisões:** D-01 e D-08 (parcial) tomadas em §9.2; D-07 e D-11 não bloqueiam P2 (§9.2).
+- **Configuração externa:** E-06 (sem conferência; obrigatória para fechar P2).
 - **Skills:** `billing-entitlement-integrity`, `multi-tenant-security-review`, `firestore-scale-cost-review`, `firebase-production-readiness` (segredos e exports), `observability-incident-readiness` (auditoria e falhas de webhook), `ptbr-product-ui-review`, `saas-commercial-readiness` (checkout e cancelamento no produto), `regression-release-gate`.
+- **Estado:** ver §17
 
 ### P3 — Caixa autoritativo, Empréstimos e Clientes/Recebíveis
 - **Objetivo:** tornar o caixa autoritativo no backend e levar empréstimos e recebíveis para operações atômicas sobre ele (D-ORD-01).
@@ -609,7 +605,18 @@ Cada milestone termina somente com: testes direcionados verdes, remoção provad
 | D-22 | Workspaces PF e PJ podem ter membros. | CNPJ opcional; se informado, formato e dígitos verificadores são validados; não é globalmente único. |
 | D-34 | Centavos inteiros; frações abaixo do centavo recusadas na entrada; `Number.isSafeInteger`. | Divisão pelo maior resto; as partes sempre somam exatamente o total; empates resolvidos pelo menor índice primeiro. |
 
-D-01 foi removida das dependências de P1: segue pendente (§10) e bloqueia só P2. P1 não cria quota, plano provisório, fallback de entitlement nem motor parcial. P2 adiciona o enforcement de quota/entitlement dentro das mesmas transações de `createWorkspace`, `inviteWorkspaceMember` e `acceptWorkspaceInvite` antes de qualquer deploy remoto; nada de P1 é implantado antes do fechamento de P6 (D-ORD-04).
+D-01 foi removida das dependências de P1 e tomada depois, no início de P2 (§9.2). P1 não cria quota, plano provisório, fallback de entitlement nem motor parcial. P2 adiciona o enforcement de quota/entitlement dentro das mesmas transações de `createWorkspace`, `inviteWorkspaceMember` e `acceptWorkspaceInvite` antes de qualquer deploy remoto; nada de P1 é implantado antes do fechamento de P6 (D-ORD-04).
+
+### 9.2 Decisões de produto tomadas para P2
+
+Tomadas em 2026-09-29, no início de P2A.
+
+| ID | Decisão | Consequência |
+| --- | --- | --- |
+| D-01 | A assinatura pertence à conta do owner (`billing_accounts/{uid}`, uid = titular/billing owner). O owner financia os workspaces de que é owner; o convidado não precisa de plano pago; o plano do owner determina os entitlements do workspace. A transferência de ownership respeitará a capacidade do novo owner. | Só o titular contrata e gere a própria assinatura e lê o próprio billing. Não há estado de billing por workspace. O enforcement (workspaces próprios ativos, membros ativos por workspace, capacidade do novo owner) é P2B. |
+| D-08 | Catálogo em centavos BRL, cobrança mensal, sem trial (o Free substitui o trial). FREE 0: 1 workspace próprio ativo, 2 membros ativos por workspace (incl. owner), 50 lançamentos/mês, 2 grupos, 10 créditos de IA/mês. PRO 2990: 5 / 10 / 1.000 / 10 / 150. BUSINESS 5990: 20 / 50 / 10.000 / 100 / 750. Cancelamento no fim do período pago; grace de 7 dias em `past_due`. Downgrade nunca apaga dados; o excedente após downgrade bloqueia só novas operações sujeitas à quota. Sem reembolso automático em P2; arrependimento e reembolso jurídico em P9. Fonte: `functions/src/billing/catalog.ts` (`BILLING_CATALOG_VERSION = 1`). | Parcialmente tomada. Pendentes: tratamento fiscal (NFS-e/ISS, Stripe Tax), meios além de cartão, plano anual, proration e momento do downgrade configurados no portal (P9/E-06). Mudança de preço exige novo Price; como a concessão usa só o Price configurado, trocar a configuração tira o plano de quem está no Price antigo. Por isso o catálogo v1 não muda de preço até existir suporte a Prices legados por plano. |
+| D-07 | Não bloqueia P2. | Exclusão de conta (destino dos workspaces, cancelamento da assinatura, retenção fiscal × LGPD) fica em P8. |
+| D-11 | Não bloqueia P2. | IA com créditos provider-agnostic no catálogo (`aiCreditsPerMonth`); provedor e tier contratual em P5. |
 
 ---
 
@@ -617,12 +624,11 @@ D-01 foi removida das dependências de P1: segue pendente (§10) e bloqueia só 
 
 | ID | Decisão | Bloqueia | Opções levantadas pela auditoria |
 | --- | --- | --- | --- |
-| D-01 | Escopo do plano: por usuário (hoje `users/{uid}.planId`) ou por workspace (entidade pagadora) | P2 | Por workspace simplifica PJ faturado por empresa e quotas de membros; definir quem conta no limite de workspaces compartilhados e convites pendentes. Removida das dependências de P1 (§9.1): P2 adiciona quotas/entitlements dentro das transações das callables de P1 (`createWorkspace`, `inviteWorkspaceMember`, `acceptWorkspaceInvite`). |
-| D-07 | Exclusão de conta: destino de workspaces próprios e compartilhados, retenção fiscal × eliminação LGPD, anonimização do ator em histórico compartilhado | P2, P8 | Resolver o conflito entre "sem hard delete de histórico" e eliminação a pedido. |
-| D-08 | Catálogo comercial: planos, preços, limites, trial, grace period, proration, downgrade com excedente, reembolso, tratamento fiscal (NFS-e/ISS, Stripe Tax) | P2, P9 | Hoje Pro = Business no código. |
+| D-07 | Exclusão de conta: destino de workspaces próprios e compartilhados, retenção fiscal × eliminação LGPD, anonimização do ator em histórico compartilhado | P8 | Resolver o conflito entre "sem hard delete de histórico" e eliminação a pedido. |
+| D-08 | Parcialmente tomada (§9.2); pendente: tratamento fiscal (NFS-e/ISS, Stripe Tax), meios além de cartão, plano anual, proration e momento do downgrade configurados no portal, suporte a Prices legados por plano | P9 | Catálogo v1 em `functions/src/billing/catalog.ts`. |
 | D-09 | Mensagens: remover do produto até existir backend real, ou implementar | P5 | A auditoria recomenda remover no lançamento (funcionalidade simulada exposta). Remover altera a UI e exige aprovação. |
 | D-10 | Painel administrativo: implementar com custom claim e callables auditadas, ou remover | P7 | — |
-| D-11 | IA: provedor e tier contratual (Vertex AI × chave AI Studio), minimização do payload, consentimento, quotas por plano, envio de comprovantes e voz | P2, P5, P8 | Modelo atual é preview com SDK legado (FIRE-11). |
+| D-11 | IA: provedor e tier contratual (Vertex AI × chave AI Studio), minimização do payload, consentimento, quotas por plano, envio de comprovantes e voz | P5, P8 | Modelo atual é preview com SDK legado (FIRE-11). |
 | D-12 | Recorrentes: frequências suportadas; cobrança no cartão automática no vencimento ou por confirmação | P3, P4 | Hoje semanal/quinzenal perdem cobranças. |
 | D-13 | Empréstimos: modelos de amortização (Price, SAC, simples), juros, diferenças PF/PJ classificação contábil do principal (hoje gravado como receita/despesa de consumo) e obrigatoriedade de lançamento de caixa na contratação | P3 | — |
 | D-14 | Divisão de contas: participantes precisam ser membros do workspace? participantes externos; fluxo de reembolso PJ | P4 | — |
@@ -730,6 +736,7 @@ Documentos OUTDATED não devem orientar implementação nem operação. Os runbo
 | 2026-09-29 | P1 | `verify:all` nº 3 verde aceito como evidência (sem mudança funcional depois dele); `regression-release-gate` `FAIL`: a suíte unitária nova `test:unit:p1` roda em `verify:fast`, mas não no CI (§16.3). P1 permanece em andamento. |
 | 2026-09-29 | P1 | `test:unit:p1` foi ligado ao job `build-and-unit` do CI, nas versões Node 22 e 24, e passou 128/128. Só o workflow e este plano mudaram. P1 permanece em andamento e aguarda apenas a reexecução do `regression-release-gate` (§16.3). |
 | 2026-09-29 | P1 | `regression-release-gate` reexecutado: **PASS** (§16.3). P1 **concluído**. PR-AUTH-03, PR-WS-01…PR-WS-06 e PR-MONEY-01 fechados e retirados de §6, com a evidência em §16.4. P2 não foi iniciado. |
+| 2026-09-29 | P2 | P2A concluída: catálogo canônico, `billing_accounts/{uid}`, checkout sem duplicidade, Customer Portal, webhook idempotente e ordenado, segredos sem fallback, Rules e frontend sobre o estado canônico; PR-BILL-01…06 e PR-BILL-08 fechados e retirados de §6 (§17). P2B não iniciada. |
 
 ---
 
@@ -804,4 +811,91 @@ Os itens abaixo saíram de §6 com o gate `PASS` (§16.3). A evidência é do `H
 | PR-WS-06 | HIGH | Sem testes de membership/workspace (Rules cross-tenant, espelho, convites, criação) | `functions/src/workspaces/__tests__/*.integration.test.ts — conta, ciclo de vida, convites, membros, ownership, provisionamento`<br>`tests/firestore/workspaces-p1.rules.integration.test.mjs — cross-tenant A↔B, viewer, suspenso, paginação; e2e/workspace-membership.spec.ts` | WS-06, AUTH-16 |
 | PR-MONEY-01 | HIGH | Sem módulo Money único: float em reais na maioria dos domínios e helpers de arredondamento divergentes. Fechado quanto ao módulo e à política; a adoção por domínio segue em P3–P5 | `functions/src/shared/money.ts:87,122 — parse e alocação por maior resto`<br>`src/lib/money.ts:67,88 — espelho no frontend`<br>`tests/unit/money.test.ts — em test:unit:p1, no CI` | MONEY-11 |
 
-Os documentos de referência de `docs/production/` ainda marcam esses itens como "pendente do gate (PLAN §16)". Essa referência agora aponta para este fechamento.
+Os documentos de referência de `docs/production/` marcavam esses itens como "pendente do gate (PLAN §16)". As referências foram normalizadas em 2026-09-29 e agora dizem "fechado em P1 (PLAN §16.4)".
+
+---
+
+## 17. P2A — execução e evidências
+
+**Estado:** P2A concluída em 2026-09-29 no código e nos testes direcionados; P2 permanece em andamento. Entregue: catálogo canônico, estado `billing_accounts/{uid}`, checkout sem assinatura duplicada, Customer Portal, webhook idempotente e ordenado, segredos sem fallback, Rules e frontend sobre o estado canônico. Não iniciada: **P2B** (motor de quota aplicado nas callables, entitlement do workspace pelo owner e IA). Não foram rodados nesta etapa, por instrução: `verify:all`, E2E e `regression-release-gate`. Nada foi implantado (D-ORD-04); toda validação foi feita no Emulator `minhas-financas-local`, com Stripe falso, sem rede nem credenciais.
+
+### 17.1 Arquitetura entregue
+
+Módulo `functions/src/billing/`:
+
+| Peça | Resumo | Evidência |
+| --- | --- | --- |
+| Catálogo | Versionado (`BILLING_CATALOG_VERSION = 1`); `BILLING_POLICY`: BRL, mensal, `trialDays` 0, `pastDueGraceDays` 7, cancelamento `period_end`; `publicBillingCatalog()` não expõe `priceId`. Planos em centavos (workspaces próprios ativos / membros ativos por workspace incl. owner / lançamentos por mês / grupos / créditos de IA por mês): FREE 0 — 1/2/50/2/10; PRO 2990 — 5/10/1.000/10/150; BUSINESS 5990 — 20/50/10.000/100/750. Sem 999 nem 99999 | `functions/src/billing/catalog.ts:16,50,64-104,135` |
+| Configuração | Secret Manager declarado em `secrets` de cada função (padrão atual; `defineSecret` não é usado): `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_PRO_MONTHLY`, `STRIPE_PRICE_BUSINESS_MONTHLY`, `APP_ALLOWED_ORIGINS`. Sem valor padrão: ausente, vazio ou fora do formato (inclusive `sk_test_placeholder`/`whsec_placeholder`, pelo comprimento mínimo) falha fechada; Pro = Business é inválido; modo live/test derivado da chave. `STRIPE_ALLOWED_PRICE_IDS` removida | `functions/src/billing/config.ts:18-49,72-88,96-112`; `functions/src/shared/deploymentContract.test.ts:125-150` |
+| Estado canônico | `billing_accounts/{uid}` (uid = titular, D-01): `billingOwnerUid`, `catalogVersion`, `planId` (efetivo na última avaliação), `entitlementStatus` (free\|active\|grace\|restricted\|pending), `subscriptionStatus` (none + 8 status Stripe), `graceUntil`, `currentPeriodEnd`, `cancelAtPeriodEnd`, `cancelAt`, `stripeCustomerId`, `stripeSubscriptionId`, `stripePriceId`, `pendingCheckout` (lock), `lastStripeEventId`, `lastStripeEventType`, `stripeSyncedAt`, `createdAt`, `updatedAt`. Auxiliares backend-only: `billing_customers/{stripeCustomerId}` (vínculo reverso), `billing_webhook_events/{eventId}` (recibo sem payload, TTL `expiresAt` de 90 dias) e `billing_accounts/{uid}/billing_events/{id}` (trilha append-only, sem TTL) | `functions/src/billing/model.ts:29-32,97-118`; `functions/src/shared/retention.ts:53`; `firestore.indexes.json:858-861` |
+| Entitlements | `resolveEntitlement` puro: sem assinatura, `canceled` e `incomplete_expired` ⇒ Free; `active`/`trialing` ⇒ plano do Price (Free após fim agendado); `past_due` ⇒ plano até `graceUntil`, depois `restricted`; `unpaid`/`paused` ⇒ `restricted`; `incomplete` ⇒ `pending`; Price desconhecido nunca concede. `effectiveEntitlement(conta, agora)` reavalia grace e cancelamento no relógio do servidor (API para P2B); `effectiveLimits` | `functions/src/billing/entitlements.ts:71,131,157` |
+| Reconciliação | Assinatura canônica: a viva de maior prioridade, depois plano, depois recência (duplicidade é anomalia); plano só por Price com 1 item e quantidade 1; grace ancorado na finalização da fatura que falhou e que não avança no mesmo episódio; transições auditadas | `functions/src/billing/reconcile.ts:61,93-133,147-200,231` |
+| Checkout | `createCheckoutSession` `{planId: pro\|business, returnUrl, idempotencyKey}`. Valida `returnUrl` pela allowlist; confere o Price no Stripe (ativo, recorrente mensal, BRL, valor = catálogo, mesmo modo) e falha fechado; reserva transacional (idempotência do kernel em `users/{uid}/idempotency_keys`, conta ativa, recusa assinatura viva, lock `pendingCheckout` com lease de 90 s, rate limit de 10/h); Customer canônico criado com `Idempotency-Key` e vínculo reverso na mesma transação; no Stripe, recusa assinatura viva ainda não refletida e expira outras sessões abertas (sessão já concluída ⇒ recusa); cria a sessão com `Idempotency-Key` derivada do hash da chave e expiração fixada; `client_reference_id`, `metadata` e `subscription_data.metadata.billingOwnerUid`; `locale pt-BR`; só cartão; o commit final grava lock `open`, resultado idempotente e o evento `checkout.created`. Nenhum checkout concede entitlement | `functions/src/billing/checkout.ts:73,80,161-187,206,283-310,321-340,346-380,417`; `functions/src/billing/stripeGateway.ts:250-275` |
+| Portal | `createBillingPortalSession` `{returnUrl}`: só o próprio titular, conta ativa, `stripeCustomerId` obrigatório (senão "Você ainda não tem uma assinatura para gerenciar."), allowlist de retorno, rate limit de 20/h, URL criada no servidor | `functions/src/billing/portal.ts:31-43,44-81` |
+| Webhook | `stripeWebhook` sem CORS, 60 s/256 MiB/`maxInstances` 10. Assinatura sobre o raw body obrigatória (400 sem efeito, sem ecoar erro do SDK); segredo ausente ⇒ 500 sem processar; evento de outro modo ⇒ 400; recibo `billing_webhook_events/{event.id}` lido e criado na mesma transação do efeito (repetido ⇒ 200 sem efeito). **Ordem:** o conteúdo do evento nunca é aplicado; dentro da transação que lê a conta, as assinaturas do customer são relidas no Stripe (lista e assinatura referenciada por ID) e o estado atual é gravado; toda transação grava a conta, então um commit posterior sempre carrega uma leitura posterior do Stripe e um evento antigo não regride. O titular é resolvido por `billing_customers`, conferido com `stripeCustomerId` da conta e com a metadata do checkout (divergência ⇒ rejeitado, com recibo e anomalia). Falha transitória ⇒ 500 para reentrega | `functions/src/webhooks/stripe.ts:26-65`; `functions/src/billing/webhook.ts:288-320,336-383,399-433,480-522`; `functions/src/shared/runtimeOptions.ts:84-89` |
+| Eventos tratados | `checkout.session.completed`, `customer.subscription.created/updated/deleted/paused/resumed`, `invoice.paid`, `invoice.payment_succeeded` (só reconcilia), `invoice.payment_failed`, `invoice.payment_action_required`, `charge.refunded` e `charge.dispute.created/closed` (reembolso e disputa só registrados, sem mudar entitlement); demais ⇒ recibo `ignored`. Auditoria: `subscription.linked`, `billing.state_changed`, `grace.started/ended`, `cancellation.scheduled/reverted`, `subscription.canceled`, `payment.succeeded/failed/action_required`, `refund.received`, `dispute.received/closed`, `anomaly.detected`, sem payload, e-mail, cartão nem segredo | `functions/src/billing/webhook.ts:132-230`; `functions/src/billing/audit.ts:24-40` |
+| Callables e bootstrap | `getBillingCatalog`, `createCheckoutSession`, `createBillingPortalSession` (exports explícitos). `bootstrapAccount` cria o billing Free na mesma transação, idempotente, sem sobrescrever estado existente | `functions/src/billing/callables.ts:45,52,76`; `functions/src/index.ts:27-32`; `functions/src/workspaces/lifecycle.ts:125,146,176` |
+| Rules | Blocos `billing_accounts`, `billing_customers` e `billing_webhook_events`: o titular ativo faz `get` do próprio documento; sem `list`, sem leitura cruzada, sem escrita do cliente; subcoleções, vínculo e recibos negados nos dois sentidos. O perfil `users/{uid}` não tem mais plano | `firestore.rules:1412-1431`; `firestore.rules:1371-1385` |
+| Frontend | `src/modules/billing/`: `BillingContext.tsx` (provider único, listener do documento canônico e catálogo por callable), `entitlement.ts` (só exibição), `callables.ts`/`api.ts`, `hooks.ts` (`useBillingActions`). `PricingTable` com preços do catálogo (`formatCentsBRL`), rótulos pt-BR e "Gerenciar assinatura" para assinante; `BillingSuccessModal` com estados confirmando, confirmado (só quando o documento canônico mostra plano pago ativo) e em processamento (após 90 s); `checkLimit` é só ajuda de UX | `src/modules/billing/BillingContext.tsx:35,58,82`; `src/modules/billing/api.ts:47`; `src/modules/billing/components/PricingTable.tsx:77,99-101`; `src/modules/billing/components/BillingSuccessModal.tsx:8,15,40,50`; `src/App.tsx:705` |
+
+Mudança visual apenas nos textos e estados estritamente necessários: preços e limites vindos do catálogo em pt-BR, sem chaves internas; botão "Gerenciar assinatura" / "Plano Gratuito"; estados de carregamento e erro do catálogo; estados do modal. Layout, classes e identidade preservados.
+
+### 17.2 Validação (2026-09-29)
+
+Emulator `minhas-financas-local`, Stripe falso, sem rede nem credenciais.
+
+| Suíte | Resultado |
+| --- | --- |
+| `functions/src/billing/__tests__/billing.test.ts` + contrato de deploy | 34/34; unitários das Functions completos 351/351 |
+| `checkout.integration.test.ts` (20) + `webhook.integration.test.ts` (16) | 36/36; com as suítes de workspaces e do kernel: 111/111 |
+| Rules `tests/firestore/billing-p2.rules.integration.test.mjs` (script `test:rules:billing`, incluído em `test:integration:emulator` e `predeploy:rules`) | 5/5 |
+| Rules `m4-hardening` (teste INV-P1-013 migrado para `billing_accounts`) | 36/36 |
+| Rules de workspaces | 10/10 |
+| Cliente `tests/unit/billing-client.test.ts` (script `test:unit:billing`, em `verify:fast` e no CI `.github/workflows/quality-gate.yml:77-78`) | 14/14 |
+| typecheck; build do frontend; build das Functions | OK |
+| Lint das Functions | 0 erros; 1.993 avisos (baseline de P1: 1.971; +22 `max-len` só em títulos de teste) |
+| `verify:all`, E2E, `regression-release-gate` | **Não rodados** nesta etapa, por instrução |
+
+**Instabilidade observada:** 1 falha em 11 execuções do teste "bootstrap cria billing Free válido, idempotente e sob concorrência" (`functions/src/billing/__tests__/checkout.integration.test.ts:72`; erro `internal` após 16,9 s, com três bootstraps concorrentes, a suíte de webhook em paralelo e cerca de 0,9 GB livres). Não reproduzida nas 8 execuções seguintes; o teste de concorrência de P1 (5 bootstraps) passou em todas. Classificada como contenção do Emulator sob carga, sem mudança de teste; acompanhar no gate.
+
+### 17.3 Blockers fechados
+
+Os itens abaixo saíram de §6 no código e nos testes direcionados de P2A. O `regression-release-gate` de P2 ainda não foi executado; o fechamento formal só se completa com o gate de P2.
+
+| ID | Sev. | Blocker de origem | Evidência do fechamento | Achados de origem |
+| --- | --- | --- | --- | --- |
+| PR-BILL-01 | BLOCKER | Ciclo de vida da assinatura ausente: só checkout.session.completed; plano nunca é revogado | `functions/src/billing/webhook.ts:132-230 — roteamento de 13 tipos de evento; demais ignorados com recibo`<br>`functions/src/billing/reconcile.ts:147-200 — estado derivado da assinatura relida`<br>`functions/src/billing/entitlements.ts:71,131 — revogação por status, grace e fim de período`<br>`functions/src/billing/__tests__/webhook.integration.test.ts` | BILL-02, ENTRY-01 · C03 |
+| PR-BILL-02 | BLOCKER | Sem Customer Portal nem caminho de cancelamento pelo produto | `functions/src/billing/portal.ts:44 — createBillingPortalSession do próprio titular`<br>`functions/src/billing/callables.ts:76`<br>`src/modules/billing/components/PricingTable.tsx:99-101 — "Gerenciar assinatura"` | BILL-03, COMM-02 · C03 |
+| PR-BILL-03 | BLOCKER | Checkout permite assinatura duplicada e cobrança em dobro; sem escopo de workspace | `functions/src/billing/checkout.ts:206,283-310,321-340 — lock transacional, Customer canônico e expiração de sessões concorrentes`<br>`functions/src/billing/checkout.ts:417 — recusa assinatura viva; idempotência por idempotencyKey`<br>`functions/src/billing/__tests__/checkout.integration.test.ts` (20 testes). O escopo por workspace foi substituído pela decisão D-01: a assinatura pertence ao titular (§9.2) | BILL-04, ENTRY-05, BILL-09 |
+| PR-BILL-04 | BLOCKER | Catálogo inconsistente: Pro e Business com o mesmo priceId, preço literal na UI e Business nunca concedido | `functions/src/billing/catalog.ts:16,64-104 — catálogo v1 em centavos`<br>`functions/src/billing/config.ts:96-112 — Price por plano, Pro = Business inválido`<br>`src/modules/billing/components/PricingTable.tsx:77 — formatCentsBRL do catálogo` | BILL-05, MONEY-12, COMM-03 · C02 |
+| PR-BILL-05 | HIGH | Segredos Stripe com fallback placeholder (fail-open) | `functions/src/billing/config.ts:47-49,72-88 — sem padrão, formato validado, placeholders recusados`<br>`functions/src/webhooks/stripe.ts:38-50 — configuração inválida ⇒ 500 sem processar`<br>`functions/src/shared/deploymentContract.test.ts:125-150`. Fail-open fechado; FIRE-10 (configuração não secreta como parâmetro de ambiente) segue para P6 | BILL-06, ENTRY-04, FIRE-10 |
+| PR-BILL-06 | HIGH | Webhook sem idempotência por event.id, sem controle de ordem e sem trilha de auditoria | `functions/src/billing/webhook.ts:288-320 — recibo por event.id na mesma transação do efeito`<br>`functions/src/billing/webhook.ts:399-433 — estado relido no Stripe dentro da transação (ordem)`<br>`functions/src/billing/audit.ts:24-40,64 — trilha append-only` | BILL-07, BILL-16 · C03 |
+| PR-BILL-08 | HIGH | Checkout e webhook sem testes de comportamento | `functions/src/billing/__tests__/checkout.integration.test.ts` (20) e `webhook.integration.test.ts` (16)<br>`functions/src/billing/__tests__/billing.test.ts`; `tests/firestore/billing-p2.rules.integration.test.mjs`; `tests/unit/billing-client.test.ts` (§17.2) | BILL-13, REL-08 |
+
+**Prova de remoção do legado (busca em 2026-09-29):** sem ocorrências, em `src/`, `functions/src/`, `tests/`, `e2e/` e `firestore.rules`, de `isPro` (exceto asserções negativas em `tests/`), `constants/plans` e `usePlan` (exceto a guarda de ausência em `tests/unit/billing-client.test.ts`), `sk_test_placeholder` e `whsec_placeholder` (só em testes negativos e no comentário de `functions/src/billing/config.ts:14-15`) e `STRIPE_ALLOWED_PRICE_IDS` (só na asserção de ausência em `functions/src/shared/deploymentContract.test.ts:127,147`). `priceId`, `price_` e `29,90` não ocorrem em `src/`. Removidos: `src/constants/plans.ts`, `src/hooks/usePlan.ts`, `functions/src/callables/billing.ts` e seu teste, o webhook que concedia sempre `pro`, o checkout por `priceId` do cliente e `users.planId`/`isPro`.
+
+### 17.4 Abertos e riscos residuais
+
+| Item | Situação | Dono |
+| --- | --- | --- |
+| PR-BILL-07, PR-ENT-01, PR-AI-03 | Entitlement do workspace pelo owner, quotas nas callables (`createWorkspace`, convites/aceite, transferência de ownership) e teto de IA não aplicados; o motor e a API `effectiveEntitlement` existem | P2B |
+| E-06 | Configuração Stripe (Prices, endpoint, eventos, portal, versão da API) sem conferência; obrigatória para fechar P2 | Responsável externo ([BILLING_ENTITLEMENTS.md](BILLING_ENTITLEMENTS.md) §14) |
+| D-08 residual | Tratamento fiscal, meios além de cartão, plano anual, proration e momento do downgrade no portal; Prices legados por plano | P9 / E-06 |
+| FIRE-10 | Configuração não secreta ainda passa por Secret Manager | P6 |
+| Documentos com `STRIPE_ALLOWED_PRICE_IDS` | Referências em `README.md`, `FIREBASE_PRODUCTION.md`, `SUBPROCESSORS.md` e `THREAT_MODEL.md` não atualizadas nesta etapa, por escopo documental | Próxima revisão documental |
+| `tools/staging/rehearsal.sh` | Não inspecionado nesta etapa | P6 |
+| Instabilidade de Emulator | Uma falha em 11 execuções sob carga (§17.2) | Acompanhar no gate |
+
+### 17.5 Rollback
+
+Reverter o diff de P2A restaura o billing anterior (checkout por `priceId`, webhook que concedia `pro`, plano em `users/{uid}`). Não há dados reais nem migração: contas de teste são recriadas por `bootstrapAccount` e pelo Emulator. Nada foi implantado (D-ORD-04), então não há rollback remoto.
+
+### 17.6 Skills
+
+- `billing-entitlement-integrity` (escopo P2A, 2026-09-29): **PASS**. Escopo avaliado: catálogo, configuração, estado canônico, checkout, portal, webhook, Rules, bootstrap e frontend de billing (§17.1), com as suítes de §17.2.
+  - Catálogo: fonte única `functions/src/billing/catalog.ts`; o Price do ambiente é conferido contra valor, moeda, intervalo e modo antes do checkout; a UI exibe o catálogo do servidor; Pro e Business distintos na configuração e no webhook.
+  - Máquina de estados: os 8 status do Stripe e "sem assinatura" mapeados por função pura; grace de 7 dias, cancelamento no fim do período e reativação testados com eventos assinados.
+  - Replay e concorrência: evento repetido (inclusive concorrente) com um único efeito; evento antigo entregue depois não regride; eventos concorrentes convergem; checkouts concorrentes deixam uma única sessão pagável; falha transitória responde 500 e o reenvio aplica.
+  - N/A com prova: trial (`trialDays` 0, sem `trial_*` no código), pagamento assíncrono (só cartão), papel no workspace para contratar (D-01: a conta é do titular; o contrato não aceita `workspaceId`).
+  - Fora do escopo desta avaliação: PR-BILL-07, PR-ENT-01 e PR-AI-03 (P2B); E-06 (configuração externa, obrigatória para fechar P2); D-08 residual (fiscal, proration e momento do downgrade no portal, Prices legados; P9/E-06); FIRE-10 (P6); PR-COMM-02/03 (P9).
+- `regression-release-gate`, `verify:all` e E2E: não executados nesta etapa, por instrução; obrigatórios no fechamento de P2.

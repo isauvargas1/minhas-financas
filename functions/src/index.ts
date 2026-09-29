@@ -24,7 +24,12 @@ export * from "./goals/callables";
 export * from "./investments/callables";
 export * from "./ai/callables";
 
-export * from "./callables/billing";
+// P2A — billing canônico: catálogo, checkout e Customer Portal.
+export {
+  createBillingPortalSession,
+  createCheckoutSession,
+  getBillingCatalog,
+} from "./billing/callables";
 export * from "./cash/rebuild";
 
 // Cron Jobs (Tarefas agendadas)
@@ -38,4 +43,4 @@ export * from "./crons/creditCardInvoices";
 export * from "./crons/investmentDrift";
 
 // Webhooks (Recebem avisos de serviços externos)
-export * from "./webhooks/stripe";
+export {stripeWebhook} from "./webhooks/stripe";

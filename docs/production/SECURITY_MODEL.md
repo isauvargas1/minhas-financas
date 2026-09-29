@@ -14,6 +14,7 @@ Rótulos conforme a tabela de classificação do plano: **CURRENT** (existe no H
 4. **Falha fechada.** Segredo ausente, configuração vazia ou schema inválido resultam em recusa, nunca em valor padrão.
 5. **Sem terceiros executando na origem autenticada** sem necessidade, e com CSP quando necessário.
 6. **Menor privilégio** para pessoas, service accounts, ferramentas e agentes; nada toca produção fora do CD aprovado.
+7. **Dado pessoal a terceiro só o necessário.** O checkout cria o Customer no Stripe com o e-mail do usuário somente se `email_verified` (`functions/src/billing/checkout.ts:278-281`); dados de cartão nunca trafegam pela aplicação (Checkout hospedado).
 
 ---
 
@@ -21,13 +22,13 @@ Rótulos conforme a tabela de classificação do plano: **CURRENT** (existe no H
 
 | Camada | CURRENT | TARGET | GAP | Milestone |
 | --- | --- | --- | --- | --- |
-| Identidade | Google + login E2E fixo; política de `email_verified`, `auth_time` e provedor no wrapper e suspensão com revogação de sessão no backend (P1); sem blocking functions | Blocking functions e provedores por ambiente (E-03); MFA de admin | PR-AUTH-04; AUTH-17 (AUTH-08 e ENTRY-23 corrigidos em P1, pendentes do gate (PLAN §16)) | P1, P6 |
+| Identidade | Google + login E2E fixo; política de `email_verified`, `auth_time` e provedor no wrapper e suspensão com revogação de sessão no backend (P1); sem blocking functions | Blocking functions e provedores por ambiente (E-03); MFA de admin | PR-AUTH-04; AUTH-17 (AUTH-08 e ENTRY-23 fechados em P1 (PLAN §16.4)) | P1, P6 |
 | App Check | Inexistente | Cliente com reCAPTCHA Enterprise; enforcement em callables, Firestore e Auth | PR-APPCHK-01 | P6 |
-| Callables | Wrapper único `defineCallable` em todas as callables (P1); workspace e membership no backend; caixa, empréstimos, clientes, recebíveis, recorrentes e títulos de divisão ainda escritos pelo cliente | Callables autoritativas nos domínios ainda escritos pelo cliente | PR-ENT-01 e itens de domínio; ENTRY-11 (schemas de domínio), ENTRY-12, ENTRY-21 (parcial); PR-WS-02 e ENTRY-20 corrigidos em P1, pendentes do gate (PLAN §16) | P1–P5 |
-| Firestore Rules | Default deny, domínios server-only, allowlists em `transactions`; `workspaces`, `members`, convites, auditoria, perfil e índice do usuário `write: false` (P1); dez coleções abertas e catch-all de leitura | `write: false` em tudo que é autoritativo; um `match` por coleção; `list` com `limit` | PR-RULES-01, PR-RULES-02, PR-TX-02, PR-REC-01, PR-CC-02 (PR-WS-05 corrigido em P1, pendente do gate (PLAN §16)) | P1–P6 |
-| Isolamento de tenant | Por caminho; nenhum vazamento cross-tenant encontrado; negativos A↔B nos dois sentidos para workspace, membros, convites, auditoria e índice (P1) | Negativos A/B em toda operação | Riscos latentes ENTRY-11 (schemas de domínio); RULES-06 corrigido em P1, pendente do gate (PLAN §16) | P1–P6 |
-| RBAC | Membership ativo como única fonte de papel nas Rules e no backend; matriz D-04 e resolvedor único relido na transação (P1) | Mantido | PR-WS-03, PR-WS-04 (corrigidos em P1, pendentes do gate (PLAN §16)) | P1 |
-| Segredos | Secret Manager por função; chave de IA só no backend | `defineSecret` sem padrão; segredos por ambiente; rotação | PR-BILL-05, PR-AI-02 | P2, P0 |
+| Callables | Wrapper único `defineCallable` em todas as callables (P1); workspace e membership no backend; caixa, empréstimos, clientes, recebíveis, recorrentes e títulos de divisão ainda escritos pelo cliente | Callables autoritativas nos domínios ainda escritos pelo cliente | PR-ENT-01 e itens de domínio; ENTRY-11 (schemas de domínio), ENTRY-12, ENTRY-21 (parcial); PR-WS-02 e ENTRY-20 fechados em P1 (PLAN §16.4) | P1–P5 |
+| Firestore Rules | Default deny, domínios server-only, allowlists em `transactions`; `workspaces`, `members`, convites, auditoria, perfil e índice do usuário `write: false` (P1); dez coleções abertas e catch-all de leitura | `write: false` em tudo que é autoritativo; um `match` por coleção; `list` com `limit` | PR-RULES-01, PR-RULES-02, PR-TX-02, PR-REC-01, PR-CC-02 (PR-WS-05 fechado em P1 (PLAN §16.4)) | P1–P6 |
+| Isolamento de tenant | Por caminho; nenhum vazamento cross-tenant encontrado; negativos A↔B nos dois sentidos para workspace, membros, convites, auditoria e índice (P1) | Negativos A/B em toda operação | Riscos latentes ENTRY-11 (schemas de domínio); RULES-06 fechado em P1 (PLAN §16.4) | P1–P6 |
+| RBAC | Membership ativo como única fonte de papel nas Rules e no backend; matriz D-04 e resolvedor único relido na transação (P1) | Mantido | PR-WS-03, PR-WS-04 (fechados em P1, PLAN §16.4) | P1 |
+| Segredos | Secret Manager por função; chave de IA só no backend; Stripe sem valor padrão nem fallback, com falha fechada (P2A, `functions/src/billing/config.ts:72-112`) | `defineSecret` sem padrão; segredos por ambiente; rotação; configuração não secreta como parâmetro de ambiente | PR-AI-02; FIRE-10 (P6); PR-BILL-05 fechado em P2A (PLAN §17.3) | P0, P6 |
 | Hosting e supply chain | Sem headers de segurança; Tailwind Play CDN, `esm.sh`, Google Fonts | Build sem terceiros em runtime; CSP e headers | PR-PLAT-03; REL-11 | P6 |
 | Artefatos de teste | Login E2E e `dist/` compartilhado; `testSupport`, `__tests__` e `*.test.js` fora do deploy das Functions (P1), mas `manual*Test.ts` ainda no pacote | Build e pacote por ambiente, sem código de teste | PR-AUTH-04; REL-15, ENTRY-22 | P6 |
 | Ferramentas e acesso operacional | Utilitário de hard delete com override para produção; projeto único | Ferramentas só em Emulator/DEV; IAM mínimo; CD | PR-PLAT-02, PR-PLAT-01; FIRE-09, REL-12 | P6 |
@@ -42,7 +43,7 @@ Detalhe em [AUTH_RBAC_WORKSPACES.md](AUTH_RBAC_WORKSPACES.md) §2 e §10.1.
 
 - **CURRENT (P1):** o wrapper do kernel aplica a política de token por callable (`functions/src/shared/callable.ts:185-215`): `sign_in_provider` na allowlist (`google.com`; `password` só quando `FUNCTIONS_EMULATOR=true`, `:59-64`), `email_verified` nas callables definidas por D-06 e `auth_time` nos últimos 10 minutos em `transferWorkspaceOwnership` e `archiveWorkspace` (`:67`; `functions/src/workspaces/callables.ts:55-59`). Toda callable recusa conta suspensa (`account_suspended`); `suspendAccount` grava `status: 'suspended'`, desativa o usuário no Auth e revoga as sessões (`functions/src/workspaces/suspension.ts:36`), e as Rules também negam dados de workspace e do índice a conta suspensa (`firestore.rules:28-36`). Nas Rules, `signedIn()` continua sendo só `request.auth != null` (`firestore.rules:5-7`) e não há exigência de `email_verified` (D-06 não prevê helper equivalente). O checkout envia `caller.email` ao Stripe sem exigir `email_verified` (`functions/src/callables/billing.ts:151`; P2). Sem blocking functions nem gatilho de Auth (`functions/src/index.ts:14-41`). Login e-mail/senha de E2E com credenciais fixas no `AuthContext` (`src/contexts/AuthContext.tsx:35,113-133`).
 - **TARGET:** blocking functions restringem provedores por ambiente. Sem MFA para usuários comuns; MFA obrigatória para administradores de plataforma (P7).
-- **GAP:** PR-AUTH-04 (P6); AUTH-17 (parcial: `auth_time` e reautenticação em P1; MFA de admin em P7); a operação de suspensão por administrador é PR-ADMIN-01 (P7), com o mecanismo já em P1 (D-ORD-03); contenção e revogação de sessão em incidente: PR-OBS-02 (P7). AUTH-08 e ENTRY-23 corrigidos em P1, pendentes do gate (PLAN §16).
+- **GAP:** PR-AUTH-04 (P6); AUTH-17 (parcial: `auth_time` e reautenticação em P1; MFA de admin em P7); a operação de suspensão por administrador é PR-ADMIN-01 (P7), com o mecanismo já em P1 (D-ORD-03); contenção e revogação de sessão em incidente: PR-OBS-02 (P7). AUTH-08 e ENTRY-23 fechados em P1 (PLAN §16.4).
 - **DECISION:** D-06 (tomada, §9.1 do plano). **EXTERNAL CONFIGURATION REQUIRED:** E-03 (NÃO VERIFICADO).
 
 ---
@@ -59,7 +60,7 @@ Detalhe em [AUTH_RBAC_WORKSPACES.md](AUTH_RBAC_WORKSPACES.md) §2 e §10.1.
 
 ### 5.1 CURRENT
 
-O `functions/src/index.ts` exporta 58 endpoints: 2 gatilhos Firestore, 52 callables (11 de conta, workspace e membership de P1, 9 de cartões, 23 de investimentos, 3 de metas, 2 de IA, 2 de divisão de contas, 1 de checkout, 1 de rebuild de caixa), 3 crons e 1 webhook. Todos em `southamerica-east1` com `maxInstances`; callables e crons declaram timeout e memória por perfil, cobertos por teste de contrato (`functions/src/shared/runtimeOptions.ts:38-107`; `functions/src/shared/deploymentContract.test.ts`); o gatilho `onWorkspaceDisplayChange` declara região, timeout, memória, `maxInstances` e retry (`functions/src/shared/runtimeOptions.ts:101`; `functions/src/shared/deploymentContract.test.ts:205-214`); webhook e gatilho de caixa usam o padrão da plataforma (`functions/src/webhooks/stripe.ts:31-41`; `functions/src/triggers/transactions.ts:35-37`).
+O `functions/src/index.ts` exporta 60 endpoints: 2 gatilhos Firestore, 54 callables (11 de conta, workspace e membership de P1, 9 de cartões, 23 de investimentos, 3 de metas, 2 de IA, 2 de divisão de contas, 3 de billing de P2A — `getBillingCatalog`, `createCheckoutSession`, `createBillingPortalSession` —, 1 de rebuild de caixa), 3 crons e 1 webhook. Todos em `southamerica-east1` com `maxInstances`; callables e crons declaram timeout e memória por perfil, cobertos por teste de contrato (`functions/src/shared/runtimeOptions.ts:38-107`; `functions/src/shared/deploymentContract.test.ts`); o gatilho `onWorkspaceDisplayChange` declara região, timeout, memória, `maxInstances` e retry (`functions/src/shared/runtimeOptions.ts:101`; `functions/src/shared/deploymentContract.test.ts:205-214`); o webhook Stripe declara perfil próprio de runtime (60 s, 256 MiB, `maxInstances` 10: `functions/src/shared/runtimeOptions.ts:84-89`) e o gatilho de caixa usa o padrão da plataforma (`functions/src/triggers/transactions.ts:35-37`).
 
 O que já está correto e serve de modelo:
 
@@ -70,17 +71,17 @@ O que já está correto e serve de modelo:
 | Metas (3) | Zod estrito, matriz de papéis declarativa, pré-checagem do kernel e releitura na transação, `reserveIdempotency` | `functions/src/goals/callables.ts:57-76`; `functions/src/goals/operations.ts:66,219` |
 | Observabilidade de falha | Grava só no workspace já autorizado, nunca no `workspaceId` do payload (o wrapper entrega ao registro de falha apenas o workspace autorizado: `functions/src/shared/callable.ts:126-134`) | `functions/src/investments/callables.ts:82-101`; `functions/src/creditCards/observability.ts:214-223` |
 | Rate limit | Contador transacional em Firestore, por ator e workspace ou por usuário, com Rules negando o cliente | `functions/src/shared/rateLimit.ts:55-91`; `firestore.rules:808,1386-1388` |
-| Checkout | Allowlist de `priceId` e de origem de retorno por comparação de origem completa; falha fechada com listas vazias; rate limit por usuário | `functions/src/callables/billing.ts:31-68,109-134` |
+| Checkout e portal (P2A) | O cliente envia só `planId`, `returnUrl` e `idempotencyKey` (Zod estrito); o `priceId` vem da configuração do ambiente e é conferido no Stripe (ativo, mensal, BRL, valor do catálogo, mesmo modo) com falha fechada; `returnUrl` por comparação de origem completa contra `APP_ALLOWED_ORIGINS`; só o próprio titular, com conta ativa; lock transacional e idempotência contra assinatura duplicada; rate limit de 10/h (checkout) e 20/h (portal) por titular; e-mail ao Stripe só se verificado; nenhum checkout concede entitlement | `functions/src/billing/contracts.ts:17-25`; `functions/src/billing/checkout.ts:73,161-187,206,278-281,417`; `functions/src/billing/portal.ts:31-81`; `functions/src/billing/config.ts:128-158` |
 | Convites de divisão | Código por CSPRNG de 10 caracteres; membership do workspace exigida, o que fechou a escalada cross-tenant INV-P2-037 | `functions/src/callables/splitGroups.ts:33-39,106-113,183-191` |
 
 Fraquezas:
 
 | Fraqueza | Evidência | ID |
 | --- | --- | --- |
-| Sem backend para empréstimos, clientes, recebíveis e títulos de divisão; esses domínios são escritos pelo cliente | `firestore.rules:1276-1295,1310-1329` | PR-LOAN-01, PR-CR-01 (P3); PR-SPLIT-01 (P4); PR-WS-02 corrigido em P1, pendente do gate (PLAN §16) |
+| Sem backend para empréstimos, clientes, recebíveis e títulos de divisão; esses domínios são escritos pelo cliente | `firestore.rules:1276-1295,1310-1329` | PR-LOAN-01, PR-CR-01 (P3); PR-SPLIT-01 (P4); PR-WS-02 fechado em P1 (PLAN §16.4) |
 | Nenhum plano ou quota verificado no servidor | `src/hooks/usePlan.ts:36-38` | PR-ENT-01 (P2) |
-| `workspaceId` aceita `/` nos schemas de domínio de 18 callables; o resolvedor único recusa o ID antes de qualquer leitura (corrigido em P1, pendente do gate (PLAN §16)) | `functions/src/creditCards/contracts.ts:3`; `functions/src/goals/contracts.ts:5`; `functions/src/shared/workspaceAuth.ts:48-64` | ENTRY-11 (schemas de domínio); WS-15 (corrigido em P1, pendente do gate (PLAN §16)) |
-| Papel relido dentro da transação em cartões e metas (`reassertWorkspaceActor`), depois da pré-checagem do kernel | `functions/src/creditCards/createPurchase.ts:434`; `functions/src/goals/operations.ts:219` | ENTRY-20 (corrigido em P1, pendente do gate (PLAN §16)) |
+| `workspaceId` aceita `/` nos schemas de domínio de 18 callables; o resolvedor único recusa o ID antes de qualquer leitura (fechado em P1, PLAN §16.4) | `functions/src/creditCards/contracts.ts:3`; `functions/src/goals/contracts.ts:5`; `functions/src/shared/workspaceAuth.ts:48-64` | ENTRY-11 (schemas de domínio); WS-15 (fechado em P1, PLAN §16.4) |
+| Papel relido dentro da transação em cartões e metas (`reassertWorkspaceActor`), depois da pré-checagem do kernel | `functions/src/creditCards/createPurchase.ts:434`; `functions/src/goals/operations.ts:219` | ENTRY-20 (fechado em P1, PLAN §16.4) |
 | Cartões e metas sem rate limit | `functions/src/creditCards/callables.ts:163-187` | ENTRY-12 |
 | Mapeador único de erros (`toHttpsError`) e detalhes sem `role` nem `allowedRoles`; o limite atingido ainda vira `failed-precondition` | `functions/src/shared/errors.ts:141`; `functions/src/shared/rateLimit.ts:122` | ENTRY-21 (parcial: `resource-exhausted` para limite e quota segue em P2) |
 | Erros inesperados são logados pelo wrapper antes do mapeamento (P1); métricas e alertas seguem em P7 | `functions/src/shared/callable.ts:314-318`; `functions/src/cash/rebuild.ts:270-272` | PR-OBS-01 (P7) |
@@ -89,8 +90,8 @@ Fraquezas:
 
 ### 5.2 Webhook Stripe
 
-- **CURRENT:** a assinatura é verificada com `rawBody` (`functions/src/webhooks/stripe.ts:52`), mas com fallback `whsec_placeholder` quando o segredo falta (`functions/src/webhooks/stripe.ts:8-9`). O webhook declara `cors: true` e devolve `error.message` na resposta (`functions/src/webhooks/stripe.ts:40,55-56`). Não há idempotência por `event.id` nem controle de ordem.
-- **TARGET e GAP:** [BILLING_ENTITLEMENTS.md](BILLING_ENTITLEMENTS.md). IDs: PR-BILL-05 (fail-open de segredo), PR-BILL-06 (idempotência e ordem), PR-BILL-01 (ciclo de vida), todos em P2; ENTRY-21 (CORS e eco de erro).
+- **CURRENT (P2A):** o endpoint não tem CORS e não ecoa erro do SDK. A assinatura é verificada sobre o raw body e é obrigatória: ausente ou inválida ⇒ 400 sem efeito; segredo ou Price ausente ou inválido ⇒ 500 sem processar (não há segredo padrão nem fallback); evento de outro modo (test/live) ⇒ 400 (`functions/src/webhooks/stripe.ts:26-65`; `functions/src/billing/webhook.ts:480-522`). O recibo `billing_webhook_events/{event.id}` é lido e criado na mesma transação do efeito (evento repetido ⇒ 200 sem efeito) e o conteúdo do evento nunca é aplicado: o estado é relido no Stripe dentro da transação, então evento antigo não regride (`functions/src/billing/webhook.ts:288-320,399-478`). O titular é resolvido por `billing_customers` e conferido com a conta e com a metadata do checkout; divergência ⇒ rejeitado, com recibo e anomalia auditada (`functions/src/billing/webhook.ts:336-383`). Auditoria sem payload, e-mail, cartão nem segredo (`functions/src/billing/audit.ts:24-40`). Falha transitória ⇒ 500 para reentrega.
+- **TARGET e GAP:** [BILLING_ENTITLEMENTS.md](BILLING_ENTITLEMENTS.md). PR-BILL-01, PR-BILL-05 e PR-BILL-06 fechados em P2A (PLAN §17.3); ENTRY-21 (CORS e eco de erro) fechado para o webhook. Reconciliação periódica, fila/replay e alertas de falha em P7; alerta de configuração ausente em P7 (E-08).
 
 ### 5.3 Ordem de verificação de toda callable (CURRENT em P1, salvo onde indicado TARGET)
 
@@ -101,7 +102,7 @@ O wrapper do kernel (D-ORD-02, entregue em P1) executa, nesta ordem:
 3. Zod `.strict()`: IDs com o schema único (sem `/`, tamanho máximo), dinheiro em centavos inteiros, strings com teto.
 4. Pré-checagem `resolveWorkspaceActor` no wrapper e, dentro da transação da mutação, `reassertWorkspaceActor` ([ARCHITECTURE.md](ARCHITECTURE.md)): relê `users/{uid}`, `workspaces/{id}` e `members/{uid}`, exige conta ativa, membership `active` e workspace não arquivado e aplica a matriz declarativa da operação; o `workspaceId` do payload só é solicitado, e o do log é o autorizado.
 5. Rate limit por ator e workspace, e por usuário quando o recurso é global (IA).
-6. Entitlement e quota (motor de P2, PR-ENT-01). As callables de P1 não consultam quota; P2 a insere nas transações de `createWorkspace`, `inviteWorkspaceMember` e `acceptWorkspaceInvite` (D-01).
+6. Entitlement e quota (motor entregue em P2A: `functions/src/billing/entitlements.ts:131,157`; enforcement em P2B, PR-ENT-01). As callables de P1 não consultam quota; P2B a insere nas transações de `createWorkspace`, `inviteWorkspaceMember`, `acceptWorkspaceInvite` e na transferência de ownership, lendo o plano do owner (D-01).
 7. Reserva de idempotência presa a ator, workspace, operação e hash do payload.
 8. Escritas de domínio, projeções e evento de auditoria append-only no mesmo commit.
 9. Erros mapeados por um único módulo (`toHttpsError`), com códigos fechados, mensagem em pt-BR, `details` sanitizados e correlation ID de servidor; erro inesperado registrado no logger estruturado antes da conversão. **TARGET:** `resource-exhausted` para limite e quota (P2); hoje o limite responde `failed-precondition`.
@@ -114,7 +115,7 @@ O wrapper do kernel (D-ORD-02, entregue em P1) executa, nesta ordem:
 
 Base sólida:
 
-- Default deny fora de `workspaces/{id}` e `users/{uid}`: não existe `match` de nível superior genérico (`firestore.rules:1-3,936,1377`).
+- Default deny fora de `workspaces/{id}`, `users/{uid}` e `billing_accounts/{uid}` (`get` só do próprio titular; sem `list`, escrita nem leitura cruzada; subcoleção, `billing_customers` e `billing_webhook_events` negados nos dois sentidos, `firestore.rules:1412-1431`): não existe `match` de nível superior genérico (`firestore.rules:1-3,936,1378`).
 - Helpers de membership exigem `status == 'active'` e conta ativa (`firestore.rules:28-64`); `workspaces`, `members`, `invites`, `membership_events`, `users/{uid}` e o índice do usuário são `write: false`, com `list` limitado (`firestore.rules:936-976,1377-1402`).
 - Domínios de cartões (compras, parcelas, faturas, pagamentos, ledger e snapshot de limite, eventos, visões), metas e investimentos são `write: false`. Investimentos validam conteúdo no `get` e exigem `limit` de até 100 no `list`; `cash_report_periods` exige `limit` de até 600; chaves de idempotência e `cash_period_events` são negadas nos dois sentidos (`firestore.rules:413-415,1046-1275`).
 - Allowlist de chaves em `transactions` (`users`, `workspaces` e `members` são server-owned desde P1); `type` de transação imutável; `delete` de `transactions` negado, com baixa lógica (`firestore.rules:97-99,145,1019`).
@@ -127,14 +128,14 @@ Exposição:
 | Escrita livre de member, sem schema, com delete | `recurring_expenses`, `recurring_occurrences`, `loans`, `loan_movements`, `clients`, `receivables`, `split_groups`, `split_participants`, `split_bills`, `split_shares` | `allow write: if canMemberWriteWorkspaceScopedData` (`firestore.rules:1097-1105,1351-1369,1384-1402`) | PR-RULES-01 (P3/P4) |
 | Caixa escrito pelo cliente | `transactions` | Create/update pelo cliente em float; espelhos gravados pelo backend editáveis e vínculos de origem forjáveis (`firestore.rules:67-76,243-248,1056-1087`) | PR-TX-01, PR-TX-02 (P3) |
 | Configuração de cartão | `credit_cards` | Limite, ciclo e status gravados por owner/admin; delete físico (`firestore.rules:966-988,1118`) | PR-CC-01, PR-CC-02 (P4) |
-| Controle de acesso | `workspaces`, `members`, `users/{uid}/workspaces` | **Corrigido em P1 (pendente do gate, PLAN §16):** `write: false`; papel só do membership ativo; sem espelho autogravado nem regime `ownerId` (`firestore.rules:936-976,1377-1402`) | PR-WS-01…PR-WS-05 (corrigidos em P1, pendentes do gate (PLAN §16)) |
+| Controle de acesso | `workspaces`, `members`, `users/{uid}/workspaces` | **Fechado em P1 (PLAN §16.4):** `write: false`; papel só do membership ativo; sem espelho autogravado nem regime `ownerId` (`firestore.rules:936-976,1377-1402`) | PR-WS-01…PR-WS-05 (fechados em P1, PLAN §16.4) |
 | Catch-all de leitura | Toda subcoleção fora de `isBackendOwnedCollection`, hoje `activity_logs` (autor e saldos) e `split_invites` (códigos de convite); `members`, `invites` e `membership_events` (P1) têm bloco próprio e ficam fora do catch-all | Legível por qualquer membro, inclusive `viewer`, sem `limit` (`firestore.rules:791-820,1362-1367`) | PR-RULES-02 (P6) |
 | Listagem sem teto | `transactions`, `notifications`, adjacentes, `credit_cards`, `activity_logs` (`members` e o índice do usuário ganharam teto em P1) | Sem `request.query.limit` | RULES-11 |
-| Validação fraca | Timestamps livres, strings e mapas sem teto (`members.status` foi corrigido em P1, pendente do gate (PLAN §16): enum gravado só pelo backend) | `firestore.rules:97-99` | RULES-16 |
+| Validação fraca | Timestamps livres, strings e mapas sem teto (`members.status` foi fechado em P1 (PLAN §16.4): enum gravado só pelo backend) | `firestore.rules:97-99` | RULES-16 |
 | Storage | Bucket padrão | `getStorage` exportado sem uso, sem `storage.rules` versionado (`src/lib/firebase.ts:4,39`) | FIRE-12 |
 | Testes | Adjacentes, cartões, notificações | Sem teste de escrita nem negação (`tests/firestore/adjacent-modules.rules.integration.test.mjs:129-243` só lê); o índice do usuário passou a ter teste em P1 | PR-REL-02 (P3); RULES-15 |
 
-**Nota do checklist `firebase-security-rules-auditor`:** a auditoria `firestore-rules` da baseline atribuiu **1 (Critical)**; os itens de workspace e membership foram corrigidos em P1, pendentes do gate (PLAN §16). O motivo é o cliente continuar gravando dados financeiros autoritativos sem schema, com hard delete, apesar da base sólida.
+**Nota do checklist `firebase-security-rules-auditor`:** a auditoria `firestore-rules` da baseline atribuiu **1 (Critical)**; os itens de workspace e membership foram fechados em P1 (PLAN §16.4). O motivo é o cliente continuar gravando dados financeiros autoritativos sem schema, com hard delete, apesar da base sólida.
 
 ### 6.2 TARGET
 
@@ -151,8 +152,8 @@ Exposição:
 
 - **CURRENT:** o isolamento é por caminho (`workspaces/{workspaceId}/...`), e as Rules resolvem membership pelo `workspaceId` do caminho. A auditoria não encontrou vazamento cross-tenant nos domínios de conta e workspaces, transações, investimentos, metas, cartões, recorrentes, empréstimos, divisão de contas e clientes/recebíveis. Evidências: `tests/firestore/m4-hardening.rules.integration.test.mjs:246`; suítes `investment-*.rules` e `goals.rules`; `tests/firestore/investment-domain.rules.integration.test.mjs:615-635`; o cron de recorrentes deriva o workspace do caminho (`functions/src/crons/recurring.ts:436`); os convites de divisão exigem membership (`functions/src/callables/splitGroups.ts:106-113`); a observabilidade de falha só grava no workspace autorizado (§5.1); o rate limit é isolado por ator e workspace (`functions/src/shared/__tests__/rateLimit.integration.test.ts`).
 - **Riscos latentes (não explorados):**
-  - `workspaceId` com `/` apontava para documento aninhado e permitia um pseudo-tenant sob um workspace real, com papel `owner` derivado de um `ownerId` gravado numa coleção sem schema (ENTRY-11, WS-15). Corrigido em P1 (pendente do gate, PLAN §16) no resolvedor: o ID é validado antes da leitura e o `ownerId` não autoriza (`functions/src/shared/workspaceAuth.ts:48-64`; `functions/src/shared/__tests__/workspaceAuth.integration.test.ts:86,132`). Os schemas de domínio ainda aceitam a string até o resolvedor (ENTRY-11).
-  - RULES-06 (corrigido em P1, pendente do gate (PLAN §16)): o create de workspace é negado ao cliente (`firestore.rules:944`) e `archiveWorkspace` mantém o documento-pai como marcador, o que impede recriar um ID liberado e assumir subcoleções órfãs (`functions/src/workspaces/lifecycle.ts:394-437`).
+  - `workspaceId` com `/` apontava para documento aninhado e permitia um pseudo-tenant sob um workspace real, com papel `owner` derivado de um `ownerId` gravado numa coleção sem schema (ENTRY-11, WS-15). Fechado em P1 (PLAN §16.4) no resolvedor: o ID é validado antes da leitura e o `ownerId` não autoriza (`functions/src/shared/workspaceAuth.ts:48-64`; `functions/src/shared/__tests__/workspaceAuth.integration.test.ts:86,132`). Os schemas de domínio ainda aceitam a string até o resolvedor (ENTRY-11).
+  - RULES-06 (fechado em P1, PLAN §16.4): o create de workspace é negado ao cliente (`firestore.rules:944`) e `archiveWorkspace` mantém o documento-pai como marcador, o que impede recriar um ID liberado e assumir subcoleções órfãs (`functions/src/workspaces/lifecycle.ts:394-437`).
   - Criação ilimitada de workspaces multiplica todo limite por workspace (PR-AI-03, P2).
 
 Riscos intra-workspace (o member ou admin é o atacante):
@@ -163,10 +164,10 @@ Riscos intra-workspace (o member ou admin é o atacante):
 | Owner/admin editam ou anulam espelhos de caixa gravados pelo backend; member forja vínculo de pagamento de fatura | `firestore.rules:67-76,243-248` | PR-TX-02 (P3) |
 | Member marca ocorrências futuras como geradas e o cron deixa de cobrar | `firestore.rules:1102-1105` | PR-REC-01 (P4) |
 | Member se declara dono de grupo de divisão | `firestore.rules:1389-1392` | PR-SPLIT-04 (P4) |
-| Co-owner ou admin tranca o owner fora do workspace (corrigido em P1, pendente do gate (PLAN §16): ninguém altera o próprio papel e o owner só muda por transferência) | `functions/src/workspaces/rbac.ts:20-50`; `firestore.rules:951-958` | PR-WS-04 (corrigido em P1, pendente do gate (PLAN §16)) |
-| Admin cria outros admins e remove admins sem trilha (corrigido em P1, pendente do gate (PLAN §16): admin não gere admin, D-04, e toda mutação gera `membership_events`) | `functions/src/workspaces/rbac.ts:20-50`; `functions/src/shared/audit.ts:58` | WS-13 (corrigido em P1, pendente do gate (PLAN §16)) |
+| Co-owner ou admin tranca o owner fora do workspace (fechado em P1 (PLAN §16.4): ninguém altera o próprio papel e o owner só muda por transferência) | `functions/src/workspaces/rbac.ts:20-50`; `firestore.rules:951-958` | PR-WS-04 (fechado em P1, PLAN §16.4) |
+| Admin cria outros admins e remove admins sem trilha (fechado em P1 (PLAN §16.4): admin não gere admin, D-04, e toda mutação gera `membership_events`) | `functions/src/workspaces/rbac.ts:20-50`; `functions/src/shared/audit.ts:58` | WS-13 (fechado em P1, PLAN §16.4) |
 | Qualquer membro lê `activity_logs` e códigos de `split_invites` | `firestore.rules:1436-1442` | PR-RULES-02 (P6) |
-| Membro gravava papel falso no próprio espelho e recebia a UI de gestão (corrigido em P1, pendente do gate (PLAN §16): o índice não tem papel e é `write: false`; a UI lê o papel do membership) | `firestore.rules:1398-1402`; `src/modules/workspaces/api.ts:144-168` | PR-WS-03 (corrigido em P1, pendente do gate (PLAN §16)) |
+| Membro gravava papel falso no próprio espelho e recebia a UI de gestão (fechado em P1 (PLAN §16.4): o índice não tem papel e é `write: false`; a UI lê o papel do membership) | `firestore.rules:1398-1402`; `src/modules/workspaces/api.ts:144-168` | PR-WS-03 (fechado em P1, PLAN §16.4) |
 | Categoria criada por um membro injeta instrução no prompt de IA do owner | `functions/src/ai/callables.ts:55-70,93-103` | PR-AI-05 (P5) |
 | Histórico de chat de IA no `localStorage` sem `uid`, apagado no logout e na troca de conta desde P1 (`src/lib/sessionCleanup.ts:18-40`); a migração para o servidor segue em P5 | `src/modules/reports/hooks.ts:343-358` | PR-AI-04 (P5) |
 | `activity_logs` atribui a alteração ao criador, não ao ator | `functions/src/triggers/transactions.ts:108` | ENTRY-17 |
@@ -179,7 +180,7 @@ Riscos intra-workspace (o member ou admin é o atacante):
 
 Papéis `owner`, `admin`, `member` e `viewer` por membership de workspace, com `viewer` estritamente somente leitura (D-02, tomada). As matrizes atual e alvo, a invariante de um único owner canônico (D-03), os poderes de owner e admin (D-04) e o resolvedor único estão em [AUTH_RBAC_WORKSPACES.md](AUTH_RBAC_WORKSPACES.md) §6 e §7.
 
-Pontos de segurança (P1): as Rules negam toda escrita em `members` e a matriz D-04 é aplicada no backend, com testes (`functions/src/workspaces/__tests__/memberships.integration.test.ts:61,98`; `tests/firestore/workspaces-p1.rules.integration.test.mjs:192`). O regime duplo `ownerId` × membership foi removido (PR-WS-03 corrigido em P1, pendente do gate (PLAN §16)). O papel exibido na UI vem do membership ativo (`src/modules/workspaces/api.ts:144-168`), e as decisões de autorização continuam no servidor.
+Pontos de segurança (P1): as Rules negam toda escrita em `members` e a matriz D-04 é aplicada no backend, com testes (`functions/src/workspaces/__tests__/memberships.integration.test.ts:61,98`; `tests/firestore/workspaces-p1.rules.integration.test.mjs:192`). O regime duplo `ownerId` × membership foi removido (PR-WS-03 fechado em P1 (PLAN §16.4)). O papel exibido na UI vem do membership ativo (`src/modules/workspaces/api.ts:144-168`), e as decisões de autorização continuam no servidor.
 
 ---
 
@@ -187,24 +188,23 @@ Pontos de segurança (P1): as Rules negam toda escrita em `members` e a matriz D
 
 ### 9.1 CURRENT
 
-- Segredos declarados por função no Secret Manager: `GOOGLE_AI_API_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_ALLOWED_PRICE_IDS`, `APP_ALLOWED_ORIGINS` (`functions/src/ai/callables.ts:24-29`; `functions/src/callables/billing.ts:90-94`; `functions/src/webhooks/stripe.ts:35-39`). Runtime config legado desabilitado (`firebase.json:13`).
+- Segredos declarados por função no Secret Manager (padrão atual; `defineSecret` não é usado): `GOOGLE_AI_API_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_PRO_MONTHLY`, `STRIPE_PRICE_BUSINESS_MONTHLY`, `APP_ALLOWED_ORIGINS` (`functions/src/ai/callables.ts:24-29`; `functions/src/billing/config.ts:18-45`; `functions/src/webhooks/stripe.ts:26-30`). Sem valor padrão nem fallback: ausente, vazio ou fora do formato falha fechada, inclusive `sk_test_placeholder` e `whsec_placeholder` (recusados pelo comprimento mínimo); Pro = Business é inválido; o modo live/test é derivado da chave (`functions/src/billing/config.ts:47-49,72-112`). `STRIPE_ALLOWED_PRICE_IDS` foi removida (`functions/src/shared/deploymentContract.test.ts:127,147`). Runtime config legado desabilitado (`firebase.json:13`).
 - A chave de IA não está no cliente: o Vite neutraliza `process.env.API_KEY` e `process.env.GEMINI_API_KEY` (`vite.config.ts:14-19`); `readApiKey` falha fechada (`functions/src/ai/callables.ts:107-116`); guardas estáticas em `tests/unit/ai-backend-only.test.ts:33-90`.
 - `.env*`, chaves `.pem` e service accounts estão no `.gitignore` e nunca foram commitados (`.gitignore:30-39`). O frontend só lê `VITE_FIREBASE_*`, que é configuração pública do app web, não segredo (`src/lib/firebase.ts:7-33`).
-- `isAllowedReturnUrl` só aceita `http` para `localhost`, e ainda assim só se a origem estiver na allowlist (`functions/src/callables/billing.ts:62-67`). Em PROD, `APP_ALLOWED_ORIGINS` não pode conter `localhost`.
+- `isAllowedReturnUrl` só aceita `http` para `localhost`, e ainda assim só se a origem estiver na allowlist (`functions/src/billing/config.ts:134-152`). Em PROD, `APP_ALLOWED_ORIGINS` não pode conter `localhost`.
 
 ### 9.2 Lacunas
 
 | Lacuna | Evidência | ID |
 | --- | --- | --- |
-| Fallback `sk_test_placeholder`/`whsec_placeholder`: um segredo de webhook ausente faz o endpoint aceitar eventos assinados com uma constante pública | `functions/src/webhooks/stripe.ts:8-9,52`; `functions/src/callables/billing.ts:9` | PR-BILL-05 (P2) |
-| Configuração não secreta (`STRIPE_ALLOWED_PRICE_IDS`, `APP_ALLOWED_ORIGINS`) guardada como segredo; ausência não alertada | `functions/src/callables/billing.ts:90-94` | FIRE-10 |
+| Configuração não secreta (`APP_ALLOWED_ORIGINS`, Prices) guardada como segredo; ausência não alertada. O fallback `sk_test_placeholder`/`whsec_placeholder` (PR-BILL-05) foi fechado em P2A | `functions/src/billing/config.ts:18-45` | FIRE-10 (P6); PR-BILL-05 fechado em P2A (PLAN §17.3) |
 | Chave Gemini embutida no bundle público entre `39806fb` (2026-01-22) e `92473c8` (2026-08-24), sem rotação comprovada; presença de `GEMINI_API_KEY` em `.env.local` das estações: NÃO VERIFICADO (arquivo não versionado; ver linha 5 da §9.4) | `git show 39806fb:vite.config.ts:14-15`; `vite.config.ts:14-19` | PR-AI-02 (P0); E-00 |
 | Um único projeto e o mesmo Secret Manager para desenvolvimento e produção | `.firebaserc:3` | PR-PLAT-01 (P6) |
 | Varredura de segredos só procura o padrão `AIza`; sem gitleaks | `tests/unit/ai-backend-only.test.ts:76-89` | FIRE-13, REL-11 |
 
 ### 9.3 TARGET
 
-`defineSecret` sem valor padrão, com recusa explícita, log estruturado e alerta quando faltar; Stripe instanciado dentro do handler. Configuração não secreta em `defineString`/`defineList` por alias. Segredos separados por projeto (DEV, STAGING, PROD), contas Stripe test e live separadas, política de rotação registrada (E-05). API key web restrita por referrer e API; chave de IA restrita à API e com quota. Gitleaks no CI com padrões Google, Stripe e service account.
+`defineSecret` sem valor padrão, com recusa explícita, log estruturado e alerta quando faltar (P2A já entrega recusa explícita e log estruturado, com o padrão atual de `secrets` por função; o alerta é P7); Stripe instanciado dentro do handler (já é assim em P2A). Configuração não secreta em `defineString`/`defineList` por alias. Segredos separados por projeto (DEV, STAGING, PROD), contas Stripe test e live separadas, política de rotação registrada (E-05). API key web restrita por referrer e API; chave de IA restrita à API e com quota. Gitleaks no CI com padrões Google, Stripe e service account.
 
 ### 9.4 Registro de evidência E-00 (ação externa imediata)
 
@@ -291,10 +291,10 @@ Um controle só conta como implementado quando o teste indicado existe, roda no 
 | 7 | Política de `email_verified` e provedor | Callables e Rules | Token sem e-mail verificado recusado | Existe nas callables (P1): `functions/src/shared/__tests__/kernel.test.ts:584,606,634`; `functions/src/workspaces/__tests__/invites.integration.test.ts:223`; as Rules não exigem e-mail verificado (D-06) | P1 | `multi-tenant-security-review` |
 | 8 | Convite de uso único, com expiração e e-mail verificado | Callables | Reuso, expiração, revogação, e-mail divergente, concorrência | Existe (P1): `functions/src/workspaces/__tests__/invites.integration.test.ts:145-349` | P1 | `multi-tenant-security-review` |
 | 9 | Idempotência e replay | Callables | Replay devolve o mesmo resultado; payload diferente com a mesma chave é recusado | Parcial: cartões, investimentos, metas e callables de workspace (`functions/src/workspaces/__tests__/workspaceLifecycle.integration.test.ts:155`; `functions/src/workspaces/__tests__/ownership.integration.test.ts:135`) | P1–P5 | `financial-domain-integrity` |
-| 10 | Rate limit e quota | Callables | Teto, concorrência no limite, isolamento | Parcial: `rateLimit.integration.test.ts`; quotas não | P2 | `billing-entitlement-integrity` |
+| 10 | Rate limit e quota | Callables | Teto, concorrência no limite, isolamento | Parcial: `rateLimit.integration.test.ts` e rate limit do checkout por titular (`functions/src/billing/__tests__/checkout.integration.test.ts:396`); quotas não (P2B) | P2B | `billing-entitlement-integrity` |
 | 11 | App Check obrigatório | Functions | `deploymentContract.test.ts` exige `enforceAppCheck` em toda callable | Não existe | P6 | `firebase-production-readiness` |
-| 12 | Segredo ausente falha fechada | Functions | Webhook e checkout sem segredo recusam | Parcial: IA (`readApiKey`) e listas do checkout; Stripe não | P2 | `billing-entitlement-integrity` |
-| 13 | Webhook autenticado, idempotente e ordenado | Functions | Assinatura inválida, `event.id` repetido, eventos fora de ordem | Não existe | P2 | `billing-entitlement-integrity` |
+| 12 | Segredo ausente falha fechada | Functions | Webhook e checkout sem segredo recusam | Existe (P2A): `functions/src/billing/__tests__/billing.test.ts:117,131,153`; `functions/src/billing/__tests__/checkout.integration.test.ts:130` (checkout e portal); `functions/src/billing/__tests__/webhook.integration.test.ts:106` (endpoint real sem segredo ⇒ 500); IA (`readApiKey`) | P2A | `billing-entitlement-integrity` |
+| 13 | Webhook autenticado, idempotente e ordenado | Functions | Assinatura inválida, `event.id` repetido, eventos fora de ordem | Existe (P2A): `functions/src/billing/__tests__/webhook.integration.test.ts:78` (assinatura), `:136` (outro modo), `:167` (evento repetido), `:196` (fora de ordem), `:218` (concorrentes), `:420` (titular divergente); Rules em `tests/firestore/billing-p2.rules.integration.test.mjs:122-189` | P2A | `billing-entitlement-integrity` |
 | 14 | Headers de segurança e ausência de terceiros em runtime | Hosting | Teste de `firebase.json` e verificação do `dist/` | Não existe | P6 | `firebase-production-readiness` |
 | 15 | Bundle de produção sem login E2E nem Emulator | Build | Guard de build e busca no artefato | Não existe | P6 | `firebase-production-readiness` |
 | 16 | Pacote das Functions sem código de teste | Build | Lista do pacote sem `manual*Test`, `testSupport` e `*.test.js` | Parcial (P1): `functions/src/shared/deploymentContract.test.ts:216-246` cobre `testSupport`, `__tests__` e `*.test.js`; `manual*Test` seguem no pacote | P6 | `regression-release-gate` |
@@ -319,15 +319,14 @@ Um controle só conta como implementado quando o teste indicado existe, roda no 
 | PR-APPCHK-01 | HIGH | P6 | App Check |
 | PR-PLAT-03 | HIGH | P6 | Hosting e supply chain |
 | PR-AUTH-04 | HIGH | P6 | Artefato de teste |
-| PR-BILL-05 | HIGH | P2 | Segredos Stripe |
-| PR-AI-03 | HIGH | P2 | Custo de IA |
+| PR-AI-03 | HIGH | P2 (P2B) | Custo de IA |
 | PR-ADMIN-01 | HIGH | P7 | Admin de plataforma |
 | PR-OBS-02 | HIGH | P7 | Contenção de incidentes (revogação de sessão, interruptor por funcionalidade, modo somente leitura) |
 | PR-REL-01 | HIGH | P6 | CD e proteção de branch |
 | PR-RULES-02 | MEDIUM | P6 | Catch-all de leitura |
 | PR-AI-05 | MEDIUM | P5 | Contexto e saída da IA |
 
-GAPs de RBAC e membership (PR-WS-01 a PR-WS-06, corrigidos em P1, pendentes do gate (PLAN §16)) estão em [AUTH_RBAC_WORKSPACES.md](AUTH_RBAC_WORKSPACES.md) §12. Corrigidos em P1 (pendentes do gate, PLAN §16) entre os MEDIUM/LOW de origem: AUTH-08, ENTRY-20, ENTRY-23, RULES-11, RULES-16, WS-13 e WS-15 (ENTRY-21 parcial; ver [AUTH_RBAC_WORKSPACES.md](AUTH_RBAC_WORKSPACES.md) §12). MEDIUM/LOW de origem tratados aqui: AUTH-08, AUTH-17, ENTRY-11, ENTRY-12, ENTRY-17, ENTRY-20, ENTRY-21, ENTRY-22, ENTRY-23, FIRE-07, FIRE-09, FIRE-10, FIRE-11, FIRE-12, FIRE-13, REL-11, REL-12, REL-15, RULES-11, RULES-15, RULES-16, WS-13, WS-15.
+PR-BILL-05 (segredos Stripe) fechado em P2A (PLAN §17.3); FIRE-10 (configuração não secreta como parâmetro de ambiente) segue em P6. GAPs de RBAC e membership (PR-WS-01 a PR-WS-06, fechados em P1 (PLAN §16.4)) estão em [AUTH_RBAC_WORKSPACES.md](AUTH_RBAC_WORKSPACES.md) §12. Fechados em P1 (PLAN §16.4) entre os MEDIUM/LOW de origem: AUTH-08, ENTRY-20, ENTRY-23, RULES-11, RULES-16, WS-13 e WS-15 (ENTRY-21 parcial; ver [AUTH_RBAC_WORKSPACES.md](AUTH_RBAC_WORKSPACES.md) §12). MEDIUM/LOW de origem tratados aqui: AUTH-08, AUTH-17, ENTRY-11, ENTRY-12, ENTRY-17, ENTRY-20, ENTRY-21, ENTRY-22, ENTRY-23, FIRE-07, FIRE-09, FIRE-10, FIRE-11, FIRE-12, FIRE-13, REL-11, REL-12, REL-15, RULES-11, RULES-15, RULES-16, WS-13, WS-15.
 
 | ID | Classificação | Item de segurança | Estado |
 | --- | --- | --- | --- |

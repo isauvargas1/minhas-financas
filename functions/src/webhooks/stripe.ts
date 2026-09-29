@@ -1,111 +1,65 @@
+import {randomUUID} from "node:crypto";
 import {onRequest} from "firebase-functions/v2/https";
-import * as admin from "firebase-admin";
-import Stripe from "stripe";
 
-import {allowedStripePriceIds} from "../callables/billing";
-import {FUNCTIONS_REGION} from "../shared/runtimeOptions";
+import {
+  BillingConfigError,
+  WEBHOOK_SECRETS,
+  readPriceConfig,
+  readStripeKeyConfig,
+  readWebhookSecret,
+} from "../billing/config";
+import {createStripeGateway} from "../billing/stripeGateway";
+import {processStripeWebhook} from "../billing/webhook";
+import {createOperationLogger, traceFieldFromHeader} from "../shared/logger";
+import {STRIPE_WEBHOOK_OPTIONS} from "../shared/runtimeOptions";
 
-const stripeKey = process.env.STRIPE_SECRET_KEY || "sk_test_placeholder";
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || "whsec_placeholder";
-
-const stripe = new Stripe(stripeKey, {
-  apiVersion: "2026-02-25.clover",
-});
+const headerOf = (value: string | string[] | undefined): string | undefined =>
+  Array.isArray(value) ? value[0] : value;
 
 /**
- * Preços presentes na sessão paga.
+ * Endpoint do webhook do Stripe (P2A). Chamado só pelo Stripe: sem CORS e
+ * autenticado pela assinatura sobre o raw body (`billing/webhook.ts`).
  *
- * A sessão em si não traz os itens: é preciso expandi-los. Sem isso o webhook
- * concedia `pro` para **qualquer** `checkout.session.completed`, sem conferir
- * o que foi pago (INV-P2-038).
+ * Configuração ausente ou inválida responde 500 sem processar nada — nunca
+ * há segredo padrão. O Stripe reentrega depois que o segredo for corrigido.
  */
-const paidPriceIds = async (sessionId: string): Promise<string[]> => {
-  const lineItems = await stripe.checkout.sessions.listLineItems(sessionId, {
-    limit: 100,
-  });
-  return lineItems.data
-    .map((item) => item.price?.id)
-    .filter((id): id is string => typeof id === "string");
-};
-
 export const stripeWebhook = onRequest({
-  region: FUNCTIONS_REGION,
-  // O webhook também consulta a allowlist de preço antes de conceder o plano
-  // (`stripe.ts:75`), então precisa declará-la para que ela seja montada.
-  secrets: [
-    "STRIPE_SECRET_KEY",
-    "STRIPE_WEBHOOK_SECRET",
-    "STRIPE_ALLOWED_PRICE_IDS",
-  ],
-  cors: true,
+  ...STRIPE_WEBHOOK_OPTIONS,
+  secrets: [...WEBHOOK_SECRETS],
 }, async (req, res) => {
-  const sig = req.headers["stripe-signature"];
-
-  if (!sig) {
-    res.status(400).send("No signature found");
-    return;
-  }
-
-  let event;
-
+  const log = createOperationLogger({
+    operation: "stripeWebhook",
+    requestId: randomUUID(),
+    actorId: null,
+    workspaceId: null,
+    actorRole: null,
+    ...traceFieldFromHeader(headerOf(req.headers["x-cloud-trace-context"])),
+  });
+  let config;
   try {
-    event = stripe.webhooks.constructEvent(req.rawBody, sig, webhookSecret);
-  } catch (err) {
-    const error = err as Error;
-    console.error(`Webhook Error: ${error.message}`);
-    res.status(400).send(`Webhook Error: ${error.message}`);
+    const key = readStripeKeyConfig();
+    config = {
+      key,
+      webhookSecret: readWebhookSecret(),
+      prices: readPriceConfig(),
+    };
+  } catch (error) {
+    if (!(error instanceof BillingConfigError)) throw error;
+    log.error("billing.config_missing", error, {names: error.names.join(",")});
+    res.status(500).json({error: "Configuração de cobrança indisponível."});
     return;
   }
-
-  if (event.type === "checkout.session.completed") {
-    const session = event.data.object as Stripe.Checkout.Session;
-    const userId = session.metadata?.userId;
-
-    if (!userId) {
-      console.error("stripe_webhook_session_without_user", {
-        sessionId: session.id,
-      });
-      res.json({received: true});
-      return;
-    }
-
-    if (session.payment_status !== "paid") {
-      console.warn("stripe_webhook_session_not_paid", {
-        sessionId: session.id,
-        paymentStatus: session.payment_status,
-      });
-      res.json({received: true});
-      return;
-    }
-
-    const allowed = allowedStripePriceIds();
-    const paidPrices = await paidPriceIds(session.id);
-    const grantsPro =
-      allowed.length > 0 && paidPrices.some((id) => allowed.includes(id));
-
-    if (!grantsPro) {
-      console.error("stripe_webhook_price_not_entitled", {
-        sessionId: session.id,
-        allowlistConfigured: allowed.length > 0,
-      });
-      res.json({received: true});
-      return;
-    }
-
-    // `users/{uid}` é server-owned nestes campos: as Rules negam a escrita do
-    // cliente (INV-P1-013) e o Admin SDK aqui é a única fonte de entitlement.
-    await admin.firestore().collection("users").doc(userId).set({
-      planId: "pro",
-      isPro: true,
-      stripeCustomerId:
-        typeof session.customer === "string" ? session.customer : null,
-      stripeSubscriptionId:
-        typeof session.subscription === "string" ? session.subscription : null,
-      stripePriceId: paidPrices[0] ?? null,
-      subscriptionStatus: "active",
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-    }, {merge: true});
-  }
-
-  res.json({received: true});
+  const response = await processStripeWebhook({
+    gateway: createStripeGateway(config.key.secretKey),
+    webhookSecret: config.webhookSecret,
+    prices: config.prices,
+    livemode: config.key.livemode,
+    now: () => Date.now(),
+    log,
+  }, {
+    method: req.method,
+    rawBody: req.rawBody,
+    signature: headerOf(req.headers["stripe-signature"]),
+  });
+  res.status(response.status).json(response.body);
 });

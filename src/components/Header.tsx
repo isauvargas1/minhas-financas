@@ -13,7 +13,7 @@ import {
 } from '../modules/messages/hooks.ts';
 import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
 // NOVO IMPORT: Hook que verifica os limites do plano
-import { usePlan } from '../hooks/usePlan.ts'; 
+import { useBilling } from '../modules/billing/BillingContext';
 import type { AppNotification, NotificationItem, NotificationType } from '../types.ts';
 
 interface HeaderProps {
@@ -33,7 +33,7 @@ const Header: React.FC<HeaderProps> = ({
 }) => {
     const { activeWorkspace, workspaces, switchWorkspace, hasMoreWorkspaces, loadMoreWorkspaces } = useWorkspace();
     // Usa o detetive de planos
-    const { checkLimit, userPlan } = usePlan();
+    const { checkLimit, currentPlan } = useBilling();
     
     const [isPickerOpen, setIsPickerOpen] = useState(false);
     const [pickerYear, setPickerYear] = useState(currentDate.getFullYear());
@@ -314,7 +314,7 @@ const normalizedNotifications = useMemo<NotificationItem[]>(() => {
                                     <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg">U</div>
                                     <div>
                                         <p className="font-bold text-sm text-on-surface">Minha Conta</p>
-                                        <p className="text-xs text-indigo-600 font-semibold">{userPlan.name}</p>
+                                        <p className="text-xs text-indigo-600 font-semibold">{currentPlan?.name}</p>
                                     </div>
                                 </div>
 
@@ -379,7 +379,7 @@ const normalizedNotifications = useMemo<NotificationItem[]>(() => {
                                         
                                         {!canCreateWorkspace && (
                                             <div className="mt-1 ml-2 text-xs text-amber-600 flex items-center">
-                                                Limite de {userPlan.limits.workspaces} atingido. 
+                                                Limite de {currentPlan?.limits.workspaces} atingido. 
                                                 <span 
                                                     onClick={() => {
                                                         if (onNavigate) {

@@ -44,6 +44,13 @@ export const RETENTION_DAYS = {
    * fato financeiro vive na transação e no período, que nunca expiram.
    */
   cashPeriodEvents: 90,
+  /**
+   * Recibo idempotente de evento do Stripe (P2A). O Stripe reentrega por até
+   * 3 dias e permite reenvio manual de eventos de até 30 dias; o recibo
+   * precisa sobreviver a toda essa janela para o replay continuar sem efeito.
+   * A trilha de billing (`billing_events`) não expira.
+   */
+  billingWebhookEvents: 90,
 } as const;
 
 /** Instante de expiração a partir de agora, em dias. */

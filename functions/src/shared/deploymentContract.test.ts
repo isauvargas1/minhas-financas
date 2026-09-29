@@ -16,10 +16,10 @@ import {FUNCTIONS_REGION} from "./runtimeOptions";
  *   por fatura;
  * - as sete callables de metas também não declaravam, e entre elas está
  *   `rebuildGoalProgress`, que soma até 100.000 aportes em páginas de 300;
- * - `STRIPE_ALLOWED_PRICE_IDS` e `APP_ALLOWED_ORIGINS` eram lidas de
- *   `process.env` sem constar no `secrets` de nenhuma função. Provisioná-las
- *   não as montaria, as listas chegariam vazias, e o checkout falharia fechado
- *   em produção com aparência de recusa deliberada.
+ * - a configuração do checkout era lida de `process.env` sem constar no
+ *   `secrets` de nenhuma função. Provisioná-la não a montaria, os valores
+ *   chegariam vazios, e o checkout falharia fechado em produção com
+ *   aparência de recusa deliberada.
  *
  * O `__endpoint` é exatamente o que vai para o deploy, então o que este
  * arquivo afirma é o que o Cloud Functions vai receber.
@@ -123,24 +123,52 @@ test("toda configuração externa lida é declarada por quem a lê", () => {
     ["GOOGLE_AI_API_KEY"],
   );
 
-  const checkout = secretsOf("createCheckoutSession");
-  assert.ok(checkout.includes("STRIPE_SECRET_KEY"));
-  assert.ok(
-    checkout.includes("STRIPE_ALLOWED_PRICE_IDS"),
-    "sem a allowlist montada, nenhum preço é aceito e o checkout fica inoperante",
-  );
-  assert.ok(
-    checkout.includes("APP_ALLOWED_ORIGINS"),
-    "sem as origens montadas, nenhum returnUrl é válido",
-  );
+  // P2A: cada plano pago tem o próprio Price por ambiente; a allowlist plana
+  // `STRIPE_ALLOWED_PRICE_IDS` (sem plano associado) deixou de existir.
+  assert.deepEqual(secretsOf("createCheckoutSession").sort(), [
+    "APP_ALLOWED_ORIGINS",
+    "STRIPE_PRICE_BUSINESS_MONTHLY",
+    "STRIPE_PRICE_PRO_MONTHLY",
+    "STRIPE_SECRET_KEY",
+  ]);
+  assert.deepEqual(secretsOf("createBillingPortalSession").sort(), [
+    "APP_ALLOWED_ORIGINS",
+    "STRIPE_SECRET_KEY",
+  ]);
+  assert.deepEqual(secretsOf("getBillingCatalog"), []);
+  assert.deepEqual(secretsOf("stripeWebhook").sort(), [
+    "STRIPE_PRICE_BUSINESS_MONTHLY",
+    "STRIPE_PRICE_PRO_MONTHLY",
+    "STRIPE_SECRET_KEY",
+    "STRIPE_WEBHOOK_SECRET",
+  ]);
+  for (const [name] of endpoints()) {
+    assert.ok(
+      !secretsOf(name).includes("STRIPE_ALLOWED_PRICE_IDS"),
+      `${name} declara a allowlist legada de preços`,
+    );
+  }
+});
 
-  const webhook = secretsOf("stripeWebhook");
-  assert.ok(webhook.includes("STRIPE_SECRET_KEY"));
-  assert.ok(webhook.includes("STRIPE_WEBHOOK_SECRET"));
-  assert.ok(
-    webhook.includes("STRIPE_ALLOWED_PRICE_IDS"),
-    "o webhook confere o preço antes de conceder o plano",
-  );
+test("P2A: billing com perfil de domínio e webhook com recursos", () => {
+  for (const name of [
+    "getBillingCatalog",
+    "createCheckoutSession",
+    "createBillingPortalSession",
+  ]) {
+    const endpoint = endpointOf(name);
+    assert.ok(endpoint.callableTrigger, `${name} não é callable`);
+    assert.equal(endpoint.timeoutSeconds, 60, `tempo limite de ${name}`);
+    assert.equal(endpoint.availableMemoryMb, 256, `memória de ${name}`);
+  }
+  const webhook = endpointOf("stripeWebhook") as Endpoint & {
+    httpsTrigger?: unknown;
+  };
+  assert.ok(webhook.httpsTrigger, "stripeWebhook é HTTP");
+  assert.equal(webhook.callableTrigger, undefined);
+  assert.equal(webhook.timeoutSeconds, 60);
+  assert.equal(webhook.availableMemoryMb, 256);
+  assert.equal(webhook.maxInstances, 10);
 });
 
 test("a superfície operacional de metas está publicada", () => {

@@ -76,6 +76,18 @@ export const AI_CALLABLE_OPTIONS: CallableOptions = {
   maxInstances: 10,
 };
 
+/**
+ * Webhook do Stripe (P2A): relê a assinatura no Stripe dentro de uma
+ * transação curta. Chamado só pelo Stripe, sem CORS; concorrência baixa
+ * porque eventos do mesmo titular disputam o mesmo documento.
+ */
+export const STRIPE_WEBHOOK_OPTIONS = {
+  region: FUNCTIONS_REGION,
+  timeoutSeconds: 60,
+  memory: "256MiB",
+  maxInstances: 10,
+} as const;
+
 /** Alias de leitura para o domínio de cartões. */
 export const CREDIT_CARD_CALLABLE_OPTIONS = DOMAIN_CALLABLE_OPTIONS;
 

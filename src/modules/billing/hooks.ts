@@ -1,16 +1,30 @@
 import { useState } from 'react';
-import { httpsCallable } from 'firebase/functions';
-import { functions } from '../../lib/firebase';
-import { useAuth } from '../../contexts/AuthContext';
 
-export const useCheckout = () => {
+import { useAuth } from '../../contexts/AuthContext';
+import { workspaceErrorMessage } from '../workspaces/errors';
+import { createBillingPortalSession, createCheckoutSession } from './api';
+import type { PaidPlanId } from './types';
+
+const CHECKOUT_FALLBACK = 'Não foi possível iniciar o pagamento. Tente novamente.';
+const PORTAL_FALLBACK = 'Não foi possível abrir o gerenciamento da assinatura. Tente novamente.';
+
+const errorCode = (error: unknown): string => {
+  const code = (error as { code?: unknown } | null)?.code;
+  return typeof code === 'string' ? code : 'desconhecido';
+};
+
+/** Ações de cobrança: redirecionam para o Checkout ou o portal do provedor. */
+export const useBillingActions = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
 
-  const startCheckout = async (priceId: string) => {
+  const redirectTo = async (
+    request: () => Promise<{ url: string }>,
+    fallback: string,
+  ) => {
     if (!user) {
-      setError("Precisa de iniciar sessão para subscrever.");
+      setError('Entre na sua conta para assinar um plano.');
       return;
     }
 
@@ -18,30 +32,28 @@ export const useCheckout = () => {
     setError(null);
 
     try {
-      // Adicionamos o returnUrl na tipagem
-      const createCheckoutSession = httpsCallable<{ priceId: string, returnUrl: string }, { url: string }>(
-        functions, 
-        'createCheckoutSession'
-      );
-
-      // Passamos o URL atual da janela (window.location.origin)
-      const response = await createCheckoutSession({ 
-        priceId,
-        returnUrl: window.location.origin
-      });
-
-      if (response.data && response.data.url) {
-        window.location.assign(response.data.url);
-      } else {
-        throw new Error("Não foi possível gerar a ligação de pagamento.");
-      }
-    } catch (err: any) {
-      console.error("Erro no checkout:", err);
-      setError(err.message || "Ocorreu um erro ao processar o pagamento.");
+      const { url } = await request();
+      if (!url) throw new Error('url-ausente');
+      window.location.assign(url);
+    } catch (err) {
+      console.error('Falha na ação de cobrança', errorCode(err));
+      setError(workspaceErrorMessage(err, fallback));
     } finally {
       setIsLoading(false);
     }
   };
 
-  return { startCheckout, isLoading, error };
+  const startCheckout = (planId: PaidPlanId) =>
+    redirectTo(
+      () => createCheckoutSession({ planId, returnUrl: window.location.origin }),
+      CHECKOUT_FALLBACK,
+    );
+
+  const openPortal = () =>
+    redirectTo(
+      () => createBillingPortalSession({ returnUrl: window.location.origin }),
+      PORTAL_FALLBACK,
+    );
+
+  return { startCheckout, openPortal, isLoading, error };
 };

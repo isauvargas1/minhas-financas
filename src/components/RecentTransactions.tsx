@@ -3,7 +3,7 @@ import { Transaction, TransactionType } from '../types.ts';
 import { transactionTypeColors } from '../constants.ts';
 import { PlusIcon, SortUpIcon, SortDownIcon } from './Icons.tsx';
 import CatalogVisualChip from './CatalogVisualChip.tsx';
-import { usePlan } from '../hooks/usePlan.ts';
+import { useBilling } from '../modules/billing/BillingContext';
 import { formatDateBR, isSameMonthYear } from '../utils/date.ts';
 import { useSettingsCatalog } from '../modules/settings-catalog/hooks.ts';
 import { resolveTransactionVisuals } from '../modules/settings-catalog/display.ts';
@@ -40,7 +40,7 @@ const RecentTransactions: React.FC<RecentTransactionsProps> = ({ transactions, o
     const [sortConfig, setSortConfig] = useState<{ key: SortableKeys; direction: 'ascending' | 'descending' }>({ key: 'date', direction: 'descending' });
 
     // --- LÓGICA DE LIMITES DE PLANO ---
-    const { checkLimit } = usePlan();
+    const { checkLimit } = useBilling();
     const catalogQuery = useSettingsCatalog({ includeInactive: true });
     const catalogItems = catalogQuery.data ?? [];
 
@@ -54,7 +54,7 @@ const RecentTransactions: React.FC<RecentTransactionsProps> = ({ transactions, o
         ).length;
     }, [transactions]);
 
-    const canCreateTransaction = checkLimit('transactionsMonth', transactionsThisMonth);
+    const canCreateTransaction = checkLimit('transactionsPerMonth', transactionsThisMonth);
     // ----------------------------------
 
     const filteredTransactions = useMemo(() => {

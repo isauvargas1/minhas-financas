@@ -917,15 +917,15 @@ test('INV-P1-013 / P1 — usuário não escreve no próprio perfil, nem para con
     status: 'active',
     email: users.ownerA.email,
     displayName: 'Owner A',
-    planId: 'free',
-    isPro: false,
   };
   await db.doc(`users/${users.ownerA.uid}`).set(seeded);
 
   await withClients(['ownerA'], async ({ownerA}) => {
     const ref = doc(ownerA.db, `users/${users.ownerA.uid}`);
 
-    // P1: o perfil é server-owned (`bootstrapAccount` e webhook de cobrança).
+    // P1: o perfil é server-owned (`bootstrapAccount`). P2A: plano e
+    // cobrança vivem em `billing_accounts/{uid}`; as tentativas abaixo de
+    // gravar campos de plano no perfil continuam negadas.
     // A allowlist anterior de campos de exibição deixou de existir: qualquer
     // escrita do cliente é negada, inclusive `status`, `email` e
     // `displayName`, que agora vêm do token verificado.
@@ -960,7 +960,7 @@ test('INV-P1-013 / P1 — usuário não escreve no próprio perfil, nem para con
     );
 
     // O próprio usuário continua lendo o perfil.
-    assert.equal((await getDoc(ref)).data().planId, 'free');
+    assert.equal((await getDoc(ref)).data().displayName, 'Owner A');
 
     // O documento de outro usuário permanece inacessível.
     await assert.rejects(
@@ -998,43 +998,39 @@ test('P1 — usuário sem perfil não cria o próprio documento de perfil', asyn
   assert.equal((await db.doc(`users/${users.noProfileC.uid}`).get()).exists, false);
 });
 
-test('INV-P1-013 — backend continua sendo a fonte de entitlement', async () => {
+test('INV-P1-013 / P2A — backend continua sendo a fonte de entitlement', async () => {
   await seed();
   const db = getAdmin().firestore();
 
-  // O Admin SDK — usado pelo webhook do Stripe — ignora as Rules.
-  await db.doc(`users/${users.ownerA.uid}`).set({
-    uid: users.ownerA.uid,
-    status: 'active',
-    displayName: 'Owner A',
+  // O Admin SDK — usado pelo webhook do Stripe — ignora as Rules. O estado
+  // canônico é `billing_accounts/{uid}` (P2A), não o perfil.
+  const billing = {
+    billingOwnerUid: users.ownerA.uid,
+    catalogVersion: 1,
     planId: 'pro',
-    isPro: true,
+    entitlementStatus: 'active',
+    subscriptionStatus: 'active',
     stripeCustomerId: 'cus_legitimo',
-  });
+  };
+  await db.doc(`billing_accounts/${users.ownerA.uid}`).set(billing);
 
   await withClients(['ownerA'], async ({ownerA}) => {
-    const snapshot = await getDoc(doc(ownerA.db, `users/${users.ownerA.uid}`));
-    assert.equal(snapshot.data().planId, 'pro');
+    const ref = doc(ownerA.db, `billing_accounts/${users.ownerA.uid}`);
+    assert.equal((await getDoc(ref)).data().planId, 'pro');
 
-    // P1: nem o usuário pago edita o perfil pelo cliente, nem para rebaixar
-    // o próprio plano.
+    // Nem o titular pago altera o próprio billing, em nenhum sentido.
     await assert.rejects(
-      () => setDoc(doc(ownerA.db, `users/${users.ownerA.uid}`), {
-        displayName: 'Owner Pago',
-        updatedAt: serverTimestamp(),
-      }, {merge: true}),
-      'perfil pago também é server-owned',
+      () => setDoc(ref, {planId: 'business'}, {merge: true}),
+      'billing pago também é server-owned',
     );
     await assert.rejects(
-      () => updateDoc(doc(ownerA.db, `users/${users.ownerA.uid}`), {planId: 'free', isPro: false}),
+      () => updateDoc(ref, {planId: 'free', entitlementStatus: 'free'}),
       'cliente não altera o plano, em nenhum sentido',
     );
-
-    const after = await db.doc(`users/${users.ownerA.uid}`).get();
-    assert.equal(after.data().displayName, 'Owner A');
-    assert.equal(after.data().planId, 'pro');
-    assert.equal(after.data().isPro, true);
   });
+
+  const after = await db.doc(`billing_accounts/${users.ownerA.uid}`).get();
+  assert.deepEqual(after.data(), billing);
 });
 
 // ------------------------------------------------------------- INV-P3-053

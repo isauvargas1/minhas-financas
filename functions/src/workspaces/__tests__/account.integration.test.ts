@@ -197,14 +197,19 @@ test("conta sem nenhum workspace ativo recebe um novo espaço pessoal", async ()
   );
 });
 
-test("perfil criado pelo webhook sem status é inicializado", async () => {
-  const uid = uniqueId("boot-webhook");
-  await db().doc(`users/${uid}`).set({planId: "pro"});
+test("perfil sem status é inicializado e preserva campos do backend", async () => {
+  // P2A: o plano não vive mais no perfil (o webhook não cria `users/{uid}`);
+  // o que se preserva aqui é campo server-owned que não vem do token.
+  const uid = uniqueId("boot-nostatus");
+  await db().doc(`users/${uid}`).set({isAdmin: true});
   const result = await call<BootstrapResult>(bootstrapAccount, uid, {});
   assert.equal(result.created, true);
   const profile = (await db().doc(`users/${uid}`).get()).data();
   assert.equal(profile?.status, "active");
-  assert.equal(profile?.planId, "pro", "campos do backend são preservados");
+  assert.equal(profile?.isAdmin, true, "campos do backend são preservados");
+  assert.equal(profile?.planId, undefined);
+  const billing = (await db().doc(`billing_accounts/${uid}`).get()).data();
+  assert.equal(billing?.planId, "free");
 });
 
 test("conta suspensa é recusada e nada é criado", async () => {

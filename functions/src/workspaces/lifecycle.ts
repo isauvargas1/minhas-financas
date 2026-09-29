@@ -1,6 +1,7 @@
 import * as admin from "firebase-admin";
 import {FieldValue} from "firebase-admin/firestore";
 
+import {billingAccountRef, ensureBillingAccount} from "../billing/model";
 import {appendMembershipEvent, type AuditSnapshot} from "../shared/audit";
 import type {CallerIdentity} from "../shared/callable";
 import {ApplicationError} from "../shared/errors";
@@ -92,7 +93,10 @@ export interface BootstrapAccountResult extends Record<string, unknown> {
  * Garante que a conta exista e tenha ao menos um workspace ativo. Na primeira
  * chamada cria, numa única transação, o perfil, o workspace PF "Meu Espaço
  * Pessoal" já provisionado com os cadastros padrão (`provisioning.ts`), o
- * membership owner, o índice e a auditoria. Nas seguintes é leitura pura.
+ * membership owner, o índice, a auditoria e o estado de billing Free
+ * (`billing_accounts/{uid}`, P2A). Nas seguintes é leitura pura — salvo
+ * criar o billing Free se ele ainda não existir; um estado existente nunca é
+ * sobrescrito.
  *
  * Concorrência: toda chamada lê `users/{uid}` e todo caminho que cria algo
  * também escreve nesse documento. Duas chamadas simultâneas disputam o mesmo
@@ -117,6 +121,8 @@ export const executeBootstrapAccount = async (
         ACCOUNT_SUSPENDED_MESSAGE,
       );
     }
+    // Lido antes de qualquer escrita (regra de transação do Firestore).
+    const billing = await transaction.get(billingAccountRef(caller.uid));
     const identity = memberIdentityFrom(caller);
     const initialized = profile.exists && status === "active";
     if (initialized) {
@@ -137,6 +143,7 @@ export const executeBootstrapAccount = async (
             updatedAt: FieldValue.serverTimestamp(),
           });
         }
+        ensureBillingAccount(transaction, caller.uid, billing);
         return {created: false, workspaceId: null};
       }
     }
@@ -166,6 +173,7 @@ export const executeBootstrapAccount = async (
         updatedAt: FieldValue.serverTimestamp(),
       });
     }
+    ensureBillingAccount(transaction, caller.uid, billing);
     transaction.create(workspaceDoc, workspace);
     writeActiveMembership(transaction, {
       workspaceId: workspaceDoc.id,

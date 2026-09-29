@@ -1369,8 +1369,9 @@ match /split_shares/{docId} {
     }
 
     // P1 — perfil server-owned. `bootstrapAccount` cria o perfil a partir do
-    // token verificado; `status` (suspensão), plano, `isAdmin` e dados de
-    // cobrança são gravados só pelo backend (Admin SDK). O cliente não tem
+    // token verificado; `status` (suspensão) e `isAdmin` são gravados só pelo
+    // backend (Admin SDK). Plano e cobrança não vivem aqui: o estado canônico
+    // é `billing_accounts/{uid}` (P2A). O cliente não tem
     // mais nenhum caminho de escrita aqui: a allowlist anterior (INV-P1-013)
     // deixava o próprio usuário reescrever `email` e campos de exibição que
     // agora vêm do token.
@@ -1401,6 +1402,31 @@ match /split_shares/{docId} {
           request.query.limit <= 50;
         allow write: if false;
       }
+    }
+
+    // P2A — estado canônico de billing (D-01): um documento por titular da
+    // assinatura, gravado só pelo backend (bootstrap, checkout e webhook).
+    // O titular ativo lê o próprio estado para a interface; não há `list`
+    // (nenhuma enumeração de titulares), leitura cruzada nem escrita do
+    // cliente — plano, status e entitlement nunca são graváveis daqui.
+    match /billing_accounts/{billingOwnerUid} {
+      allow get: if hasActiveAccount() && request.auth.uid == billingOwnerUid;
+      allow list, create, update, delete: if false;
+
+      // Trilha append-only de billing: backend-only nos dois sentidos.
+      match /{document=**} {
+        allow read, write: if false;
+      }
+    }
+
+    // Vínculo customer do Stripe → titular e recibos idempotentes do
+    // webhook: coleções internas, backend-only nos dois sentidos.
+    match /billing_customers/{stripeCustomerId} {
+      allow read, write: if false;
+    }
+
+    match /billing_webhook_events/{stripeEventId} {
+      allow read, write: if false;
     }
   }
 }

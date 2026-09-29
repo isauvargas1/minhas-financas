@@ -12,7 +12,7 @@ import {
     FilterIcon,
     CloseIcon,
 } from './Icons.tsx';
-import { usePlan } from '../hooks/usePlan.ts';
+import { useBilling } from '../modules/billing/BillingContext';
 import CatalogVisualChip from './CatalogVisualChip.tsx';
 import { useSettingsCatalog } from '../modules/settings-catalog/hooks.ts';
 import { resolveTransactionVisuals } from '../modules/settings-catalog/display.ts';
@@ -92,7 +92,7 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({
     const catalogQuery = useSettingsCatalog({ includeInactive: true });
     const catalogItems = catalogQuery.data ?? [];
 
-    const { checkLimit, userPlan } = usePlan();
+    const { checkLimit, currentPlan } = useBilling();
 
     const transactionsThisMonth = useMemo(() => {
         const today = new Date();
@@ -113,7 +113,7 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({
         }).length;
     }, [transactions]);
 
-    const canCreateTransaction = checkLimit('transactionsMonth', transactionsThisMonth);
+    const canCreateTransaction = checkLimit('transactionsPerMonth', transactionsThisMonth);
 
     const [sortConfig, setSortConfig] = useState<{
         key: SortableKeys;
@@ -411,7 +411,7 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({
 
                         {!canCreateTransaction && (
                             <span className="text-[10px] text-amber-600 mt-1 absolute -bottom-5">
-                                Limite mensal ({userPlan.limits.transactionsMonth}) atingido.{' '}
+                                Limite mensal ({currentPlan?.limits.transactionsPerMonth}) atingido.{' '}
                                 <a href="/planos" className="underline font-bold">
                                     Upgrade!
                                 </a>

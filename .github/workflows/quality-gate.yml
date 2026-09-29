@@ -74,6 +74,9 @@ jobs:
       - name: Testes unitários de dinheiro, sessão e workspaces
         run: npm run test:unit:p1
 
+      - name: Testes unitários do cliente de billing
+        run: npm run test:unit:billing
+
   integration-and-rules:
     name: Integração e Firestore Rules
     runs-on: ubuntu-latest

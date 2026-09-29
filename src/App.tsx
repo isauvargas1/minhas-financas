@@ -33,6 +33,7 @@ import type { GoalWriteInput } from "./modules/goals/api";
 import { AdminDashboard } from './components/AdminDashboard';
 import { PricingTable } from './modules/billing/components/PricingTable';
 import { BillingSuccessModal } from './modules/billing/components/BillingSuccessModal';
+import { BillingProvider } from './modules/billing/BillingContext';
 
 import {
     initialProductsServices,
@@ -701,14 +702,16 @@ const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 const App: React.FC = () => (
     <QueryClientProvider client={queryClient}>
         <AuthProvider>
-            <ThemeProvider>
-                <WorkspaceProvider>
-                    <BillingSuccessModal />
-                    <AuthGuard>
-                        <AppContent />
-                    </AuthGuard>
-                </WorkspaceProvider>
-            </ThemeProvider>
+            <BillingProvider>
+                <ThemeProvider>
+                    <WorkspaceProvider>
+                        <BillingSuccessModal />
+                        <AuthGuard>
+                            <AppContent />
+                        </AuthGuard>
+                    </WorkspaceProvider>
+                </ThemeProvider>
+            </BillingProvider>
         </AuthProvider>
     </QueryClientProvider>
 );

@@ -1,0 +1,162 @@
+import type {CallerIdentity} from "../../shared/callable";
+import type {OperationLogger} from "../../shared/logger";
+import {testEmailFor} from "../../shared/testSupport/kernelTestSupport";
+import {bootstrapAccount} from "../../workspaces/callables";
+import {call, db} from "../../workspaces/testSupport/p1TestSupport";
+import type {CheckoutDependencies} from "../checkout";
+import {readPriceConfig, readWebhookSecret} from "../config";
+import type {BillingAccountDocument} from "../model";
+import type {WebhookDependencies} from "../webhook";
+import {processStripeWebhook} from "../webhook";
+import {FakeStripe, signedStripeEvent, testBillingEnv} from "./fakeStripe";
+
+/**
+ * Suporte das suítes de integração de billing (somente testes). Exige o
+ * Emulator já no carregamento: as callables usam o Admin SDK inicializado.
+ */
+db();
+
+export const silentLogger = (): OperationLogger => {
+  const logger: OperationLogger = {
+    context: {},
+    with: () => logger,
+    info: () => undefined,
+    warn: () => undefined,
+    error: () => undefined,
+  };
+  return logger;
+};
+
+export const callerFor = (uid: string): CallerIdentity => ({
+  uid,
+  email: testEmailFor(uid),
+  emailVerified: true,
+  authTime: Math.floor(Date.now() / 1000),
+  signInProvider: "google.com",
+  displayName: null,
+  photoURL: null,
+});
+
+/** Conta real criada pelo `bootstrapAccount` (perfil + billing Free). */
+export const bootstrapUser = async (uid: string): Promise<void> => {
+  await call(bootstrapAccount, uid, {});
+};
+
+export const billingAccount = async (
+  uid: string,
+): Promise<BillingAccountDocument> =>
+  (await db().doc(`billing_accounts/${uid}`).get())
+    .data() as BillingAccountDocument;
+
+export const billingEvents = async (uid: string, type?: string) =>
+  (await db().collection(`billing_accounts/${uid}/billing_events`).get())
+    .docs.map((doc) => doc.data())
+    .filter((event) => !type || event.type === type);
+
+export interface BillingHarness {
+  env: ReturnType<typeof testBillingEnv>;
+  stripe: FakeStripe;
+  clock: {now: number};
+  checkoutDeps: CheckoutDependencies;
+  webhookDeps: WebhookDependencies;
+  deliver: (input: {
+    type: string;
+    object: Record<string, unknown>;
+    id?: string;
+    created?: number;
+    livemode?: boolean;
+  }) => Promise<{status: number; id: string}>;
+}
+
+export const billingHarness = (): BillingHarness => {
+  const env = testBillingEnv();
+  const prices = readPriceConfig(env);
+  const stripe = new FakeStripe();
+  stripe.seedCatalogPrices(prices);
+  const clock = {now: Date.now()};
+  const webhookDeps: WebhookDependencies = {
+    gateway: stripe,
+    webhookSecret: readWebhookSecret(env),
+    prices,
+    livemode: false,
+    now: () => clock.now,
+    log: silentLogger(),
+  };
+  return {
+    env,
+    stripe,
+    clock,
+    checkoutDeps: {
+      gateway: stripe,
+      prices,
+      livemode: false,
+      allowedOrigins: [env.APP_ALLOWED_ORIGINS],
+      now: () => clock.now,
+    },
+    webhookDeps,
+    deliver: async (input) => {
+      const signed = signedStripeEvent(webhookDeps.webhookSecret, input);
+      const response = await processStripeWebhook(webhookDeps, {
+        method: "POST",
+        rawBody: signed.rawBody,
+        signature: signed.signature,
+      });
+      return {status: response.status, id: signed.id};
+    },
+  };
+};
+
+/** Objeto de assinatura como chega no evento (só o que o roteador lê). */
+export const subscriptionEventObject = (
+  subscriptionId: string,
+  customerId: string,
+  ownerUid: string,
+  status = "active",
+) => ({
+  id: subscriptionId,
+  object: "subscription",
+  customer: customerId,
+  status,
+  metadata: {billingOwnerUid: ownerUid},
+  items: {object: "list", data: []},
+});
+
+export const invoiceEventObject = (
+  subscriptionId: string,
+  customerId: string,
+  ownerUid: string,
+  patch: Record<string, unknown> = {},
+) => ({
+  id: `in_${subscriptionId.slice(4)}`,
+  object: "invoice",
+  customer: customerId,
+  amount_paid: 2990,
+  amount_due: 2990,
+  currency: "brl",
+  attempt_count: 1,
+  billing_reason: "subscription_cycle",
+  parent: {
+    type: "subscription_details",
+    subscription_details: {
+      subscription: subscriptionId,
+      metadata: {billingOwnerUid: ownerUid},
+    },
+  },
+  ...patch,
+});
+
+export const checkoutSessionEventObject = (
+  sessionId: string,
+  customerId: string,
+  subscriptionId: string,
+  ownerUid: string,
+) => ({
+  id: sessionId,
+  object: "checkout.session",
+  mode: "subscription",
+  customer: customerId,
+  subscription: subscriptionId,
+  client_reference_id: ownerUid,
+  payment_status: "paid",
+  metadata: {billingOwnerUid: ownerUid},
+});
