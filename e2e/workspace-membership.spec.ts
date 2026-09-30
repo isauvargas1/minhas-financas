@@ -1,7 +1,7 @@
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
 
 import { callCallable, emulatorIdToken } from './support/callables';
-import { adminSdk, issueInviteTokenForE2E } from './support/workspaceSeed';
+import { adminSdk, issueInviteTokenForE2E, seedPaidPlan } from './support/workspaceSeed';
 
 /**
  * P1 — conta, workspaces e membros de ponta a ponta, com duas contas reais no
@@ -106,10 +106,52 @@ test('primeiro login prepara a conta no backend e o logout não vaza dados para 
     key.startsWith('app_chat_')));
   expect(leftovers).toEqual([]);
 
-  // B entra sem recarregar: o cache em memória de A não pode reaparecer.
+  /*
+   * B entra sem recarregar: o cache em memória de A não pode reaparecer, e o
+   * app autenticado não pode ser montado antes do bootstrap de B. A resposta
+   * do bootstrap fica retida até a conferência, e um observador do DOM
+   * registra qualquer aparição — mesmo de um único quadro — do painel ou do
+   * dado de A.
+   */
+  let releaseBootstrap = () => {};
+  const bootstrapReleased = new Promise<void>((resolve) => { releaseBootstrap = resolve; });
+  let markBootstrapRequested = () => {};
+  const bootstrapRequested = new Promise<void>((resolve) => { markBootstrapRequested = resolve; });
+  await page.route('**/bootstrapAccount', async (route) => {
+    if (route.request().method() !== 'POST') {
+      await route.continue();
+      return;
+    }
+    markBootstrapRequested();
+    const response = await route.fetch();
+    await bootstrapReleased;
+    await route.fulfill({ response });
+  });
+  await page.evaluate(() => {
+    const seen = { dashboard: false, dataOfA: false };
+    const record = () => {
+      const text = document.body.textContent ?? '';
+      if (/Transações Recentes|Saldo Atual/i.test(text)) seen.dashboard = true;
+      if (text.includes('Receita exclusiva da conta A')) seen.dataOfA = true;
+    };
+    record();
+    new MutationObserver(record).observe(document.body, {
+      childList: true, subtree: true, characterData: true,
+    });
+    Object.assign(window, { e2eSeenAfterLogout: seen });
+  });
+  const seenAfterLogout = () => page.evaluate(() =>
+    (window as unknown as { e2eSeenAfterLogout: { dashboard: boolean; dataOfA: boolean } })
+      .e2eSeenAfterLogout);
+
   await page.getByTestId('e2e-login-button').click();
+  await bootstrapRequested;
+  expect(await seenAfterLogout(), 'app autenticado antes do bootstrap de B')
+    .toEqual({ dashboard: false, dataOfA: false });
+  releaseBootstrap();
   await expect(page.getByText(/Transações Recentes|Saldo Atual/i).first()).toBeVisible({ timeout: 45_000 });
   await expect(page.getByText('Receita exclusiva da conta A')).toHaveCount(0);
+  expect((await seenAfterLogout()).dataOfA, 'dado de A na sessão de B').toBe(false);
 
   const indexB = await workspaceIndex(b.uid);
   expect(indexB).toHaveLength(1);
@@ -128,6 +170,8 @@ test('convite, aceite, troca de papel, remoção e perda de acesso entre duas co
   // Conta do owner e uma empresa, pelas callables reais.
   const ownerToken = await tokenFor(request, owner.email);
   expect((await callCallable(request, ownerToken, 'bootstrapAccount', {})).status).toBe(200);
+  // Pessoal + empresa excede o Free (1 workspace próprio, D-08): owner Pro.
+  await seedPaidPlan(owner.uid, 'pro');
   const created = await callCallable(request, ownerToken, 'createWorkspace', {
     type: 'PJ', name: 'Empresa Convite E2E', idempotencyKey: 'e2e-p1-create-company',
   });

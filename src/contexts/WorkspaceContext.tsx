@@ -166,6 +166,9 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children 
             setWorkspaceCursor(null);
             setActiveWorkspace(null);
             setLoadError(null);
+            // Volta ao estado inicial: a próxima conta só vê o app depois do
+            // próprio bootstrap e da própria listagem.
+            setIsLoading(true);
         }
     }, [user]);
 

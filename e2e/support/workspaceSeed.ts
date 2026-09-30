@@ -99,6 +99,22 @@ export const seedAccountProfile = async ({ uid, email, displayName }: SeedAccoun
   await seedAccountBillingState(uid);
 };
 
+/**
+ * Plano pago ativo no billing semeado (P2B.1), na mesma forma do
+ * `seedPaidPlan` das suítes de integração. Para fluxos com mais workspaces
+ * ou membros do que o Free comporta; a quota em si é coberta em
+ * `functions/src/billing/__tests__`.
+ */
+export const seedPaidPlan = async (uid: string, planId: 'pro' | 'business') => {
+  await seedAccountBillingState(uid);
+  await adminSdk().firestore().doc(`billing_accounts/${uid}`).update({
+    planId,
+    entitlementStatus: 'active',
+    subscriptionStatus: 'active',
+    updatedAt: now(),
+  });
+};
+
 export interface SeedWorkspaceInput {
   workspaceId: string;
   ownerId: string;
