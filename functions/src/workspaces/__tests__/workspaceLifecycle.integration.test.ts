@@ -6,6 +6,7 @@ import {FieldValue} from "firebase-admin/firestore";
 import {
   requireFirestoreEmulator,
   seedActiveAccount,
+  seedPaidPlan,
   seedMember,
   seedWorkspace,
 } from "../../shared/testSupport/kernelTestSupport";
@@ -54,6 +55,8 @@ const team = async (type: "PF" | "PJ" = "PJ") => {
 
 test("createWorkspace cria PF e PJ com owner, índice e auditoria", async () => {
   const uid = await account("creator");
+  // Dois workspaces próprios: acima do Free (P2B.1).
+  await seedPaidPlan(uid, "pro");
   for (const type of ["PF", "PJ"] as const) {
     const result = await call<{workspaceId: string}>(createWorkspace, uid, {
       type,

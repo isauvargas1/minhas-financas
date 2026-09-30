@@ -1,8 +1,13 @@
 import { newIdempotencyKey } from '../workspaces/callables.ts';
-import type { BillingCatalog, PaidPlanId } from './types';
+import type {
+  AccountUsage,
+  BillingCatalog,
+  PaidPlanId,
+  WorkspaceEntitlement,
+} from './types';
 
 /**
- * Contrato cliente das callables de billing (P2A).
+ * Contrato cliente das callables de billing (P2A; leituras de P2B.1).
  *
  * Módulo puro: não importa o SDK. `api.ts` o liga ao `httpsCallable`; os
  * testes o ligam a um `invoke` falso. O cliente escolhe o plano (`planId`),
@@ -12,6 +17,8 @@ export const BILLING_CALLABLES = [
   'getBillingCatalog',
   'createCheckoutSession',
   'createBillingPortalSession',
+  'getWorkspaceEntitlement',
+  'getAccountUsage',
 ] as const;
 
 export type BillingCallableName = (typeof BILLING_CALLABLES)[number];
@@ -43,4 +50,11 @@ export const createBillingCallables = (invoke: Invoke) => ({
 
   createBillingPortalSession: (input: BillingPortalSessionInput) =>
     invoke<{ url: string }>('createBillingPortalSession', { returnUrl: input.returnUrl }),
+
+  /** Plano do workspace pelo owner; qualquer membro ativo consulta. */
+  getWorkspaceEntitlement: (workspaceId: string) =>
+    invoke<WorkspaceEntitlement>('getWorkspaceEntitlement', { workspaceId }),
+
+  /** Workspaces próprios ativos da conta do usuário. */
+  getAccountUsage: () => invoke<AccountUsage>('getAccountUsage', {}),
 } satisfies Record<BillingCallableName, (...args: never[]) => Promise<unknown>>);

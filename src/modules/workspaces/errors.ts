@@ -18,6 +18,8 @@ const BUSINESS_CODES = new Set([
   'functions/unauthenticated',
   'functions/invalid-argument',
   'functions/already-exists',
+  // Limite do plano (P2B): mensagem pt-BR do backend com a próxima ação.
+  'functions/resource-exhausted',
 ]);
 
 interface CallableErrorShape {

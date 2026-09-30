@@ -147,8 +147,9 @@ test("falha no meio do bootstrap não deixa estado parcial", async () => {
   const uid = uniqueId("boot-fault");
   const originalCreate = Transaction.prototype.create;
   let creates = 0;
-  // Injeção de falha: a terceira criação da transação (depois do perfil e do
-  // workspace) falha. O commit não acontece; nada pode ter sido gravado.
+  // Injeção de falha: a terceira criação da transação (depois do billing e
+  // da quota de ownership) falha. O commit não acontece; nada pode ter sido
+  // gravado.
   const faulty = {
     create(this: Transaction, ...args: Parameters<typeof originalCreate>) {
       creates += 1;
@@ -175,6 +176,9 @@ test("falha no meio do bootstrap não deixa estado parcial", async () => {
   const owned = await db().collection("workspaces")
     .where("ownerId", "==", uid).get();
   assert.equal(owned.size, 0);
+  assert.equal((await db().doc(`billing_accounts/${uid}`).get()).exists, false);
+  assert.equal((await db()
+    .doc(`billing_accounts/${uid}/quota_state/ownership`).get()).exists, false);
 });
 
 test("conta sem nenhum workspace ativo recebe um novo espaço pessoal", async () => {

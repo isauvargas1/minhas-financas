@@ -2,6 +2,17 @@ import * as admin from "firebase-admin";
 import {FieldValue} from "firebase-admin/firestore";
 
 import {billingAccountRef, ensureBillingAccount} from "../billing/model";
+import {
+  assertWithinQuota,
+  canonicalOwnerCandidate,
+  createMembershipQuota,
+  entitlementAt,
+  ownershipQuotaRef,
+  quotaStateUnavailable,
+  readOwnershipQuota,
+  releasedOwnership,
+  writeOwnershipQuota,
+} from "../billing/quota";
 import {appendMembershipEvent, type AuditSnapshot} from "../shared/audit";
 import type {CallerIdentity} from "../shared/callable";
 import {ApplicationError} from "../shared/errors";
@@ -93,10 +104,11 @@ export interface BootstrapAccountResult extends Record<string, unknown> {
  * Garante que a conta exista e tenha ao menos um workspace ativo. Na primeira
  * chamada cria, numa única transação, o perfil, o workspace PF "Meu Espaço
  * Pessoal" já provisionado com os cadastros padrão (`provisioning.ts`), o
- * membership owner, o índice, a auditoria e o estado de billing Free
- * (`billing_accounts/{uid}`, P2A). Nas seguintes é leitura pura — salvo
- * criar o billing Free se ele ainda não existir; um estado existente nunca é
- * sobrescrito.
+ * membership owner, o índice, a auditoria, o estado de billing Free
+ * (`billing_accounts/{uid}`, P2A) e o estado de quota (P2B.1): ownership do
+ * titular com 1 workspace e membership do workspace com 1 membro (o owner).
+ * Nas seguintes é leitura pura — salvo criar o billing Free se ele ainda não
+ * existir; um estado existente nunca é sobrescrito.
  *
  * Concorrência: toda chamada lê `users/{uid}` e todo caminho que cria algo
  * também escreve nesse documento. Duas chamadas simultâneas disputam o mesmo
@@ -105,7 +117,11 @@ export interface BootstrapAccountResult extends Record<string, unknown> {
  * gravado, ou nada.
  *
  * Se a conta existe mas ficou sem nenhum workspace ativo (saiu de todos,
- * arquivou o pessoal), um novo workspace pessoal é criado pelo mesmo caminho.
+ * arquivou o pessoal), um novo workspace pessoal é criado pelo mesmo caminho,
+ * que consome um slot de workspace próprio: o contador é relido na transação,
+ * o entitlement do titular é reavaliado agora e a criação acima do limite é
+ * recusada. A perdedora de duas chamadas concorrentes é repetida, encontra o
+ * workspace criado e não incrementa de novo.
  */
 export const executeBootstrapAccount = async (
   caller: CallerIdentity,
@@ -121,8 +137,11 @@ export const executeBootstrapAccount = async (
         ACCOUNT_SUSPENDED_MESSAGE,
       );
     }
-    // Lido antes de qualquer escrita (regra de transação do Firestore).
-    const billing = await transaction.get(billingAccountRef(caller.uid));
+    // Lidos antes de qualquer escrita (regra de transação do Firestore).
+    const [billing, ownership] = await transaction.getAll(
+      billingAccountRef(caller.uid),
+      ownershipQuotaRef(caller.uid),
+    );
     const identity = memberIdentityFrom(caller);
     const initialized = profile.exists && status === "active";
     if (initialized) {
@@ -146,6 +165,29 @@ export const executeBootstrapAccount = async (
         ensureBillingAccount(transaction, caller.uid, billing);
         return {created: false, workspaceId: null};
       }
+    }
+
+    if (ownership.exists) {
+      // Restauração: o slot é do plano atual do titular.
+      const quota = readOwnershipQuota(ownership);
+      assertWithinQuota({
+        resource: "workspaces",
+        entitlement: entitlementAt(billing, Date.now()),
+        used: quota.activeOwnedWorkspaces,
+        adding: 1,
+      });
+      writeOwnershipQuota(
+        transaction,
+        caller.uid,
+        quota.activeOwnedWorkspaces + 1,
+      );
+    } else if (!initialized) {
+      // Primeira preparação da conta: billing Free e quota nascem juntos.
+      ensureBillingAccount(transaction, caller.uid, billing);
+      writeOwnershipQuota(transaction, caller.uid, 1, "create");
+    } else {
+      // Conta ativa sem estado de quota: dado anterior à P2B, sem fallback.
+      throw quotaStateUnavailable();
     }
 
     const workspaceDoc = newWorkspaceRef();
@@ -173,8 +215,8 @@ export const executeBootstrapAccount = async (
         updatedAt: FieldValue.serverTimestamp(),
       });
     }
-    ensureBillingAccount(transaction, caller.uid, billing);
     transaction.create(workspaceDoc, workspace);
+    createMembershipQuota(transaction, workspaceDoc.id);
     writeActiveMembership(transaction, {
       workspaceId: workspaceDoc.id,
       uid: caller.uid,
@@ -223,9 +265,14 @@ export const executeBootstrapAccount = async (
   });
 
 /**
- * `createWorkspace` (PR-WS-05): workspace, owner, índice, cadastros padrão e
- * auditoria numa única transação idempotente. P2 acrescenta a quota nesta
- * transação.
+ * `createWorkspace` (PR-WS-05): workspace, owner, índice, cadastros padrão,
+ * auditoria e quota numa única transação idempotente.
+ *
+ * Quota (P2B.1): o contador `activeOwnedWorkspaces` do titular e o billing
+ * dele são lidos na transação; o entitlement é reavaliado pelo relógio do
+ * servidor e a criação exige `ativos < limite`. Duas criações concorrentes
+ * no último slot disputam o mesmo contador: só uma vence. O replay pela
+ * chave de idempotência devolve o resultado salvo sem incrementar de novo.
  */
 export const executeCreateWorkspace = async (
   caller: CallerIdentity,
@@ -241,8 +288,23 @@ export const executeCreateWorkspace = async (
       payload,
     });
     if (reservation.replay) return reservation.replay;
-    assertActiveAccountSnapshot(
-      await transaction.get(userProfileRef(caller.uid)),
+    const [profile, billing, ownership] = await transaction.getAll(
+      userProfileRef(caller.uid),
+      billingAccountRef(caller.uid),
+      ownershipQuotaRef(caller.uid),
+    );
+    assertActiveAccountSnapshot(profile);
+    const quota = readOwnershipQuota(ownership);
+    assertWithinQuota({
+      resource: "workspaces",
+      entitlement: entitlementAt(billing, Date.now()),
+      used: quota.activeOwnedWorkspaces,
+      adding: 1,
+    });
+    writeOwnershipQuota(
+      transaction,
+      caller.uid,
+      quota.activeOwnedWorkspaces + 1,
     );
 
     const workspaceDoc = newWorkspaceRef();
@@ -254,6 +316,7 @@ export const executeCreateWorkspace = async (
       themeColor: payload.themeColor ?? DEFAULT_THEME_COLOR[payload.type],
     });
     transaction.create(workspaceDoc, workspace);
+    createMembershipQuota(transaction, workspaceDoc.id);
     writeActiveMembership(transaction, {
       workspaceId: workspaceDoc.id,
       uid: caller.uid,
@@ -398,6 +461,11 @@ export const executeUpdateWorkspaceSettings = async (
  * apaga: o documento permanece com `status: "archived"`, o que impede recriar
  * o mesmo ID sobre subcoleções órfãs. Repetir sobre um workspace já arquivado
  * pelo próprio owner devolve o mesmo resultado, sem nova auditoria.
+ *
+ * Quota (P2B.1): arquivar é sempre permitido — é como o titular reduz um
+ * excedente depois de downgrade. Só a transição `active → archived` libera o
+ * slot do owner canônico, na mesma transação; o replay não decrementa. O
+ * estado de quota do workspace não é apagado.
  */
 export const executeArchiveWorkspace = async (
   uid: string,
@@ -405,10 +473,11 @@ export const executeArchiveWorkspace = async (
   requestId: string,
 ): Promise<Record<string, unknown>> =>
   db().runTransaction(async (transaction) => {
-    const [profile, workspace, member] = await transaction.getAll(
+    const [profile, workspace, member, ownership] = await transaction.getAll(
       userProfileRef(uid),
       workspaceRef(workspaceId),
       workspaceMemberRef(workspaceId, uid),
+      ownershipQuotaRef(uid),
     );
     if (workspace.get("status") === "archived") {
       assertActiveAccountSnapshot(profile);
@@ -419,7 +488,20 @@ export const executeArchiveWorkspace = async (
         return {status: "archived", alreadyArchived: true};
       }
     }
-    evaluateWorkspaceAccess({profile, workspace, member}, ["owner"]);
+    const access = evaluateWorkspaceAccess(
+      {profile, workspace, member},
+      ["owner"],
+    );
+    // O membership owner ativo do ator já foi conferido acima; o slot só é
+    // dele se `ownerId` apontar para ele (owner canônico).
+    if (canonicalOwnerCandidate(access.workspace) !== uid) {
+      throw quotaStateUnavailable();
+    }
+    writeOwnershipQuota(
+      transaction,
+      uid,
+      releasedOwnership(readOwnershipQuota(ownership)),
+    );
     transaction.update(workspaceRef(workspaceId), {
       status: "archived",
       archivedAt: FieldValue.serverTimestamp(),

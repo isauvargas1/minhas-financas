@@ -15,7 +15,12 @@ const admin = require('../../functions/node_modules/firebase-admin') as typeof i
  * - `workspaces/{id}`: `status: 'active'`, `ownerId` só desnormalizado;
  * - `workspaces/{id}/members/{uid}`: única fonte de papel;
  * - `users/{uid}/workspaces/{id}`: índice de listagem, **sem papel**, com
- *   `joinedAt` (a listagem ordena por ele).
+ *   `joinedAt` (a listagem ordena por ele);
+ * - P2B.1: `billing_accounts/{uid}` Free e a quota de ownership do titular
+ *   (`quota_state/ownership`), e a quota de membros do workspace
+ *   (`workspaces/{id}/quota_state/membership`), coerentes com os
+ *   workspaces e memberships semeados. Sem esse estado o backend falha
+ *   fechado nas operações sujeitas a quota.
  *
  * O seam de convite (`issueInviteTokenForE2E`) roda no processo do
  * Playwright, nunca no bundle do app: grava o ponteiro do hash de um token
@@ -43,6 +48,44 @@ export interface SeedAccountInput {
   displayName?: string;
 }
 
+const QUOTA_SCHEMA_VERSION = 1;
+
+const ignoreAlreadyExists = (error: unknown): void => {
+  const code = (error as { code?: unknown } | null)?.code;
+  if (code !== 6 && code !== 'already-exists') throw error;
+};
+
+/** Billing Free e quota de ownership, só se ainda não existirem. */
+const seedAccountBillingState = async (uid: string) => {
+  const db = adminSdk().firestore();
+  await db.doc(`billing_accounts/${uid}`).create({
+    billingOwnerUid: uid,
+    catalogVersion: 1,
+    planId: 'free',
+    entitlementStatus: 'free',
+    subscriptionStatus: 'none',
+    graceUntil: null,
+    currentPeriodEnd: null,
+    cancelAtPeriodEnd: false,
+    cancelAt: null,
+    stripeCustomerId: null,
+    stripeSubscriptionId: null,
+    stripePriceId: null,
+    pendingCheckout: null,
+    lastStripeEventId: null,
+    lastStripeEventType: null,
+    stripeSyncedAt: null,
+    createdAt: now(),
+    updatedAt: now(),
+  }).catch(ignoreAlreadyExists);
+  await db.doc(`billing_accounts/${uid}/quota_state/ownership`).create({
+    billingOwnerUid: uid,
+    activeOwnedWorkspaces: 0,
+    schemaVersion: QUOTA_SCHEMA_VERSION,
+    updatedAt: now(),
+  }).catch(ignoreAlreadyExists);
+};
+
 export const seedAccountProfile = async ({ uid, email, displayName }: SeedAccountInput) => {
   await adminSdk().firestore().doc(`users/${uid}`).set({
     uid,
@@ -53,6 +96,7 @@ export const seedAccountProfile = async ({ uid, email, displayName }: SeedAccoun
     createdAt: now(),
     updatedAt: now(),
   });
+  await seedAccountBillingState(uid);
 };
 
 export interface SeedWorkspaceInput {
@@ -64,7 +108,27 @@ export interface SeedWorkspaceInput {
 }
 
 export const seedWorkspaceDocument = async (input: SeedWorkspaceInput) => {
-  await adminSdk().firestore().doc(`workspaces/${input.workspaceId}`).set({
+  const db = adminSdk().firestore();
+  const previous = (await db.doc(`workspaces/${input.workspaceId}`).get()).data();
+  const adjustOwned = async (uid: string, delta: number) => {
+    await seedAccountBillingState(uid);
+    await db.doc(`billing_accounts/${uid}/quota_state/ownership`).update({
+      activeOwnedWorkspaces: admin.firestore.FieldValue.increment(delta),
+      updatedAt: now(),
+    });
+  };
+  if (previous?.status === 'active' && typeof previous.ownerId === 'string') {
+    await adjustOwned(previous.ownerId, -1);
+  }
+  await adjustOwned(input.ownerId, 1);
+  await db.doc(`workspaces/${input.workspaceId}/quota_state/membership`).create({
+    workspaceId: input.workspaceId,
+    activeMembers: 0,
+    pendingReservations: {},
+    schemaVersion: QUOTA_SCHEMA_VERSION,
+    updatedAt: now(),
+  }).catch(ignoreAlreadyExists);
+  await db.doc(`workspaces/${input.workspaceId}`).set({
     name: input.name,
     type: input.type,
     ownerId: input.ownerId,
@@ -94,6 +158,16 @@ export const seedMembership = async (input: {
 }) => {
   const db = adminSdk().firestore();
   const joinedAt = input.joinedAt ? admin.firestore.Timestamp.fromDate(input.joinedAt) : now();
+  const wasActive = (await db.doc(`workspaces/${input.workspaceId}/members/${input.uid}`).get())
+    .get('status') === 'active';
+  if (!wasActive) {
+    await db.doc(`workspaces/${input.workspaceId}/quota_state/membership`).set({
+      workspaceId: input.workspaceId,
+      activeMembers: admin.firestore.FieldValue.increment(1),
+      schemaVersion: QUOTA_SCHEMA_VERSION,
+      updatedAt: now(),
+    }, { merge: true });
+  }
   await Promise.all([
     db.doc(`workspaces/${input.workspaceId}/members/${input.uid}`).set({
       uid: input.uid,

@@ -33,10 +33,11 @@ const SplitGroupsView: React.FC<SplitGroupsViewProps> = ({ onSelectGroup }) => {
     const isPJ = activeWorkspace.type === 'PJ';
     
     // Usa o detetive de planos
-    const { checkLimit, currentPlan } = useBilling();
+    // Plano do WORKSPACE ativo (do owner), não o de quem está vendo.
+    const { checkWorkspaceLimit, workspaceEntitlement } = useBilling();
     
     // VERIFICA O LIMITE (Compara quantos grupos existem com o limite do plano)
-    const canCreateGroup = groups ? checkLimit('splitGroups', groups.length) : true;
+    const canCreateGroup = groups ? checkWorkspaceLimit('splitGroups', groups.length) : true;
     
     const [searchQuery, setSearchQuery] = useState('');
     const [viewMode, setViewMode] = useState<'card' | 'list'>('card');
@@ -116,7 +117,7 @@ const SplitGroupsView: React.FC<SplitGroupsViewProps> = ({ onSelectGroup }) => {
                     {/* AVISO DE LIMITE ATINGIDO */}
                     {!canCreateGroup && (
                         <div className="mt-2 text-xs font-medium text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 px-3 py-1.5 rounded-lg inline-flex items-center">
-                            Atingiu o limite de {currentPlan?.limits.splitGroups} grupos do seu plano.
+                            Atingiu o limite de {workspaceEntitlement?.limits.splitGroups} grupos do seu plano.
                             <a href="/planos" className="ml-2 font-bold underline hover:text-amber-800 dark:hover:text-amber-300 cursor-pointer">
                                 Fazer Upgrade
                             </a>

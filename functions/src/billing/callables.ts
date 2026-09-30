@@ -1,5 +1,7 @@
 import type {OperationLogger} from "../shared/logger";
 import {defineCallable} from "../shared/callable";
+import {ApplicationError} from "../shared/errors";
+import {WORKSPACE_ROLES} from "../shared/workspaceAuth";
 import {DOMAIN_CALLABLE_OPTIONS} from "../shared/runtimeOptions";
 import {publicBillingCatalog} from "./catalog";
 import {executeCreateCheckoutSession} from "./checkout";
@@ -15,10 +17,16 @@ import {
 import {
   createBillingPortalSessionPayloadSchema,
   createCheckoutSessionPayloadSchema,
+  getAccountUsagePayloadSchema,
   getBillingCatalogPayloadSchema,
+  getWorkspaceEntitlementPayloadSchema,
 } from "./contracts";
 import {executeCreateBillingPortalSession} from "./portal";
 import {createStripeGateway} from "./stripeGateway";
+import {
+  executeGetAccountUsage,
+  executeGetWorkspaceEntitlement,
+} from "./workspaceEntitlement";
 
 /**
  * Callables de billing (P2A). Operações do **titular**, sem workspace: o
@@ -28,6 +36,9 @@ import {createStripeGateway} from "./stripeGateway";
  * A configuração é lida a cada chamada e falha fechada com mensagem pt-BR;
  * o log registra só os **nomes** ausentes.
  */
+const INTERNAL_MESSAGE =
+  "Não foi possível consultar o plano agora. Tente novamente em instantes.";
+
 const withBillingConfig = <T>(log: OperationLogger, read: () => T): T => {
   try {
     return read();
@@ -84,4 +95,27 @@ export const createBillingPortalSession = defineCallable({
     }));
     return executeCreateBillingPortalSession(deps, {caller, payload, log});
   },
+});
+
+/**
+ * Entitlement do workspace pelo plano do owner (P2B.1, PR-BILL-07): qualquer
+ * membro ativo, inclusive `viewer`. Somente leitura, sem segredo.
+ */
+export const getWorkspaceEntitlement = defineCallable({
+  operation: "getWorkspaceEntitlement",
+  schema: getWorkspaceEntitlementPayloadSchema,
+  runtime: DOMAIN_CALLABLE_OPTIONS,
+  workspaceRoles: WORKSPACE_ROLES,
+  handler: async ({actor}) => {
+    if (!actor) throw new ApplicationError("internal", INTERNAL_MESSAGE);
+    return executeGetWorkspaceEntitlement(actor);
+  },
+});
+
+/** Uso da própria conta (workspaces próprios ativos). Somente leitura. */
+export const getAccountUsage = defineCallable({
+  operation: "getAccountUsage",
+  schema: getAccountUsagePayloadSchema,
+  runtime: DOMAIN_CALLABLE_OPTIONS,
+  handler: async ({caller}) => executeGetAccountUsage(caller.uid),
 });

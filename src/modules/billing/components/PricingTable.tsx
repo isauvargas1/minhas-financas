@@ -29,7 +29,7 @@ const limitLabels = (limits: PlanLimits): Array<[keyof PlanLimits, string]> => [
 
 export const PricingTable = () => {
   // Planos e preços vêm do catálogo do servidor; o estado da assinatura, do documento canônico
-  const { catalog, catalogStatus, account, entitlement } = useBilling();
+  const { catalog, catalogStatus, account, accountEntitlement } = useBilling();
   const { startCheckout, openPortal, isLoading, error } = useBillingActions();
   const canManage = hasManageableSubscription(account);
 
@@ -96,7 +96,7 @@ export const PricingTable = () => {
                   {isLoading && plan.planId !== 'free' ? (
                     <Loader2 className="w-5 h-5 animate-spin" />
                   ) : plan.planId === 'free' ? (
-                    entitlement.planId === 'free' ? 'Plano Atual' : 'Plano Gratuito'
+                    accountEntitlement.planId === 'free' ? 'Plano Atual' : 'Plano Gratuito'
                   ) : canManage ? (
                     'Gerenciar assinatura'
                   ) : (

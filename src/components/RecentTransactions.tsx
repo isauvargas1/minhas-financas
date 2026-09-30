@@ -40,7 +40,8 @@ const RecentTransactions: React.FC<RecentTransactionsProps> = ({ transactions, o
     const [sortConfig, setSortConfig] = useState<{ key: SortableKeys; direction: 'ascending' | 'descending' }>({ key: 'date', direction: 'descending' });
 
     // --- LÓGICA DE LIMITES DE PLANO ---
-    const { checkLimit } = useBilling();
+    // Plano do WORKSPACE ativo (do owner), não o de quem está vendo.
+    const { checkWorkspaceLimit } = useBilling();
     const catalogQuery = useSettingsCatalog({ includeInactive: true });
     const catalogItems = catalogQuery.data ?? [];
 
@@ -54,7 +55,7 @@ const RecentTransactions: React.FC<RecentTransactionsProps> = ({ transactions, o
         ).length;
     }, [transactions]);
 
-    const canCreateTransaction = checkLimit('transactionsPerMonth', transactionsThisMonth);
+    const canCreateTransaction = checkWorkspaceLimit('transactionsPerMonth', transactionsThisMonth);
     // ----------------------------------
 
     const filteredTransactions = useMemo(() => {

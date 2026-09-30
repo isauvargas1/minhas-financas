@@ -32,8 +32,8 @@ const Header: React.FC<HeaderProps> = ({
     currentDate, onCurrentDateChange, onNavigate, onOpenSplitGroup 
 }) => {
     const { activeWorkspace, workspaces, switchWorkspace, hasMoreWorkspaces, loadMoreWorkspaces } = useWorkspace();
-    // Usa o detetive de planos
-    const { checkLimit, currentPlan } = useBilling();
+    // Plano da CONTA do usuário: é ele que limita os workspaces próprios.
+    const { checkAccountLimit, accountPlan } = useBilling();
     
     const [isPickerOpen, setIsPickerOpen] = useState(false);
     const [pickerYear, setPickerYear] = useState(currentDate.getFullYear());
@@ -54,8 +54,8 @@ const Header: React.FC<HeaderProps> = ({
     const archiveNotification = useArchiveNotification();
     const unreadMessages = useUnreadMessagesCount();
 
-    // VERIFICA O LIMITE (Se tem menos workspaces do que o limite do plano permite)
-    const canCreateWorkspace = checkLimit('workspaces', workspaces.length);
+    // Workspaces próprios ativos × limite do plano da conta (ajuda de UX; o backend decide)
+    const canCreateWorkspace = checkAccountLimit('workspaces');
 
     const formattedDate = currentDate.toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
     const capitalizedDate = formattedDate.charAt(0).toUpperCase() + formattedDate.slice(1);
@@ -314,7 +314,7 @@ const normalizedNotifications = useMemo<NotificationItem[]>(() => {
                                     <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg">U</div>
                                     <div>
                                         <p className="font-bold text-sm text-on-surface">Minha Conta</p>
-                                        <p className="text-xs text-indigo-600 font-semibold">{currentPlan?.name}</p>
+                                        <p className="text-xs text-indigo-600 font-semibold">{accountPlan?.name}</p>
                                     </div>
                                 </div>
 
@@ -379,7 +379,7 @@ const normalizedNotifications = useMemo<NotificationItem[]>(() => {
                                         
                                         {!canCreateWorkspace && (
                                             <div className="mt-1 ml-2 text-xs text-amber-600 flex items-center">
-                                                Limite de {currentPlan?.limits.workspaces} atingido. 
+                                                Limite de {accountPlan?.limits.workspaces} atingido. 
                                                 <span 
                                                     onClick={() => {
                                                         if (onNavigate) {

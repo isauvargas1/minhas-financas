@@ -25,10 +25,13 @@ export * from "./investments/callables";
 export * from "./ai/callables";
 
 // P2A — billing canônico: catálogo, checkout e Customer Portal.
+// P2B.1 — entitlement do workspace pelo owner e uso da conta (leitura).
 export {
   createBillingPortalSession,
   createCheckoutSession,
+  getAccountUsage,
   getBillingCatalog,
+  getWorkspaceEntitlement,
 } from "./billing/callables";
 export * from "./cash/rebuild";
 

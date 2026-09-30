@@ -92,7 +92,8 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({
     const catalogQuery = useSettingsCatalog({ includeInactive: true });
     const catalogItems = catalogQuery.data ?? [];
 
-    const { checkLimit, currentPlan } = useBilling();
+    // Plano do WORKSPACE ativo (do owner), não o de quem está vendo.
+    const { checkWorkspaceLimit, workspaceEntitlement } = useBilling();
 
     const transactionsThisMonth = useMemo(() => {
         const today = new Date();
@@ -113,7 +114,7 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({
         }).length;
     }, [transactions]);
 
-    const canCreateTransaction = checkLimit('transactionsPerMonth', transactionsThisMonth);
+    const canCreateTransaction = checkWorkspaceLimit('transactionsPerMonth', transactionsThisMonth);
 
     const [sortConfig, setSortConfig] = useState<{
         key: SortableKeys;
@@ -411,7 +412,7 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({
 
                         {!canCreateTransaction && (
                             <span className="text-[10px] text-amber-600 mt-1 absolute -bottom-5">
-                                Limite mensal ({currentPlan?.limits.transactionsPerMonth}) atingido.{' '}
+                                Limite mensal ({workspaceEntitlement?.limits.transactionsPerMonth}) atingido.{' '}
                                 <a href="/planos" className="underline font-bold">
                                     Upgrade!
                                 </a>

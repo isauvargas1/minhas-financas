@@ -1,6 +1,24 @@
 import * as admin from "firebase-admin";
 import {FieldValue, Timestamp} from "firebase-admin/firestore";
 
+import {billingAccountRef} from "../billing/model";
+import {
+  assertCanonicalOwnerMembership,
+  assertWithinQuota,
+  canonicalOwnerCandidate,
+  entitlementAt,
+  liveReservations,
+  membershipQuotaRef,
+  ownershipQuotaRef,
+  quotaStateUnavailable,
+  readMembershipQuota,
+  readOwnershipQuota,
+  releasedMember,
+  releasedOwnership,
+  transferQuotaExceeded,
+  writeMembershipQuota,
+  writeOwnershipQuota,
+} from "../billing/quota";
 import {appendMembershipEvent} from "../shared/audit";
 import type {CallerIdentity} from "../shared/callable";
 import {ApplicationError} from "../shared/errors";
@@ -100,6 +118,13 @@ export interface InviteResult extends Record<string, unknown> {
  *
  * Um convite pendente anterior para o mesmo e-mail é revogado na mesma
  * transação: há no máximo um convite válido por pessoa e workspace.
+ *
+ * Quota (P2B.1): o convite reserva uma vaga até expirar (mesmo `expiresAt`).
+ * Na transação: owner canônico, billing dele e quota de membros do
+ * workspace; reservas vencidas e as dos convites substituídos saem do
+ * cálculo; exige `ativos + reservas + 1 <= membersPerWorkspace` do plano
+ * efetivo do owner. Substituir o convite do mesmo e-mail não consome vaga
+ * extra.
  */
 export const executeInviteWorkspaceMember = async (
   actor: WorkspaceActor,
@@ -117,7 +142,7 @@ export const executeInviteWorkspaceMember = async (
     });
     if (reservation.replay) return reservation.replay;
 
-    const {role} = await reassertWorkspaceActor(
+    const {role, workspace} = await reassertWorkspaceActor(
       transaction,
       actor,
       ["owner", "admin"],
@@ -142,6 +167,26 @@ export const executeInviteWorkspaceMember = async (
         "Esta pessoa já participa deste espaço.",
       );
     }
+    const nowMs = Date.now();
+    const ownerUid = canonicalOwnerCandidate(workspace);
+    const [ownerMember, billing, membershipQuota] = await transaction.getAll(
+      workspaceMemberRef(actor.workspaceId, ownerUid),
+      billingAccountRef(ownerUid),
+      membershipQuotaRef(actor.workspaceId),
+    );
+    assertCanonicalOwnerMembership(ownerMember);
+    const quota = readMembershipQuota(membershipQuota);
+    const reservations = liveReservations(
+      quota,
+      nowMs,
+      pendingInvites.docs.map((previous) => previous.id),
+    );
+    assertWithinQuota({
+      resource: "membersPerWorkspace",
+      entitlement: entitlementAt(billing, nowMs),
+      used: quota.activeMembers + reservations.size,
+      adding: 1,
+    });
     const rateLimit = await reserveRateLimit(
       transaction,
       actor.workspaceId,
@@ -150,7 +195,14 @@ export const executeInviteWorkspaceMember = async (
     );
 
     const invite = newInviteRef(actor.workspaceId);
-    const expiresAt = inviteExpiresAt(INVITE_TTL_DAYS);
+    const expiresAt = inviteExpiresAt(INVITE_TTL_DAYS, nowMs);
+    reservations.set(invite.id, expiresAt.toMillis());
+    writeMembershipQuota(
+      transaction,
+      actor.workspaceId,
+      quota.activeMembers,
+      reservations,
+    );
     for (const previous of pendingInvites.docs) {
       transaction.update(previous.ref, {
         status: "revoked",
@@ -227,6 +279,13 @@ export const executeInviteWorkspaceMember = async (
  * for o e-mail do convite. O convite é marcado `accepted` na mesma transação:
  * dois aceites concorrentes disputam o mesmo documento e só um vence. Repetir
  * o aceite pela mesma pessoa devolve o mesmo resultado.
+ *
+ * Quota (P2B.1): vale o plano **atual** do owner. Quem ainda não é membro
+ * ativo só entra com `ativos < membersPerWorkspace`; a reserva do convite é
+ * convertida em membro (sai do mapa, `activeMembers` sobe) no mesmo commit,
+ * sem aumentar a ocupação total. Downgrade entre o convite e o aceite pode
+ * recusar o aceite; nada existente é apagado. Quem já é membro ativo não
+ * conta de novo: só a reserva é liberada.
  */
 export const executeAcceptWorkspaceInvite = async (
   caller: CallerIdentity,
@@ -264,11 +323,12 @@ export const executeAcceptWorkspaceInvite = async (
       // voltar exige convite novo.
       return {workspaceId, role: member.get("role") ?? null, replay: true};
     }
+    const nowMs = Date.now();
     const expiresAt = invite.get("expiresAt");
     if (
       invite.get("status") !== "pending" ||
       !(expiresAt instanceof Timestamp) ||
-      expiresAt.toMillis() <= Date.now() ||
+      expiresAt.toMillis() <= nowMs ||
       !callerEmail ||
       invite.get("emailNormalized") !== callerEmail ||
       workspace.get("status") === "archived"
@@ -280,6 +340,36 @@ export const executeAcceptWorkspaceInvite = async (
 
     const alreadyActive = member.exists && member.get("status") === "active";
     const role = alreadyActive ? member.get("role") : inviteRole;
+    // Quem já é membro ativo não consome vaga: owner e billing só são lidos
+    // quando o aceite cria (ou reativa) um membership.
+    const ownerUid = alreadyActive ?
+      null :
+      canonicalOwnerCandidate(workspace.data() ?? {});
+    const ownerRefs = ownerUid ?
+      [workspaceMemberRef(workspaceId, ownerUid), billingAccountRef(ownerUid)] :
+      [];
+    const [membershipQuota, ownerMember, billing] = await transaction.getAll(
+      membershipQuotaRef(workspaceId),
+      ...ownerRefs,
+    );
+    const quota = readMembershipQuota(membershipQuota);
+    let activeMembers = quota.activeMembers;
+    if (ownerUid) {
+      assertCanonicalOwnerMembership(ownerMember);
+      assertWithinQuota({
+        resource: "membersPerWorkspace",
+        entitlement: entitlementAt(billing, nowMs),
+        used: activeMembers,
+        adding: 1,
+      });
+      activeMembers += 1;
+    }
+    writeMembershipQuota(
+      transaction,
+      workspaceId,
+      activeMembers,
+      liveReservations(quota, nowMs, [inviteId]),
+    );
     if (!alreadyActive) {
       writeActiveMembership(transaction, {
         workspaceId,
@@ -315,7 +405,11 @@ export const executeAcceptWorkspaceInvite = async (
   });
 };
 
-/** `revokeWorkspaceInvite`: admin revoga só convites que poderia emitir. */
+/**
+ * `revokeWorkspaceInvite`: admin revoga só convites que poderia emitir. A
+ * reserva de vaga do convite sai no mesmo commit; repetir a revogação não
+ * mexe na quota.
+ */
 export const executeRevokeWorkspaceInvite = async (
   actor: WorkspaceActor,
   inviteId: string,
@@ -345,6 +439,15 @@ export const executeRevokeWorkspaceInvite = async (
         "Este convite já foi aceito e não pode mais ser revogado.",
       );
     }
+    const quota = readMembershipQuota(
+      await transaction.get(membershipQuotaRef(actor.workspaceId)),
+    );
+    writeMembershipQuota(
+      transaction,
+      actor.workspaceId,
+      quota.activeMembers,
+      liveReservations(quota, Date.now(), [inviteId]),
+    );
     transaction.update(invite.ref, {
       status: "revoked",
       revokedBy: actor.uid,
@@ -365,6 +468,21 @@ export const executeRevokeWorkspaceInvite = async (
     });
     return {status: "revoked", changed: true};
   });
+
+/** Vaga liberada por um membro ativo que sai; reservas vencidas também. */
+const releaseMemberSeat = (
+  transaction: admin.firestore.Transaction,
+  workspaceId: string,
+  snapshot: admin.firestore.DocumentSnapshot,
+): void => {
+  const quota = readMembershipQuota(snapshot);
+  writeMembershipQuota(
+    transaction,
+    workspaceId,
+    releasedMember(quota),
+    liveReservations(quota, Date.now()),
+  );
+};
 
 const readTargetMember = async (
   transaction: admin.firestore.Transaction,
@@ -432,7 +550,10 @@ export const executeChangeWorkspaceMemberRole = async (
     return {role: nextRole, changed: true};
   });
 
-/** `removeWorkspaceMember` (D-04). Remoção lógica; repetir é no-op. */
+/**
+ * `removeWorkspaceMember` (D-04). Remoção lógica; repetir é no-op. A
+ * transição `active → removed` libera a vaga no mesmo commit (P2B.1).
+ */
 export const executeRemoveWorkspaceMember = async (
   actor: WorkspaceActor,
   memberId: string,
@@ -453,12 +574,20 @@ export const executeRemoveWorkspaceMember = async (
       memberId,
     );
     if (target.status === "removed") return {status: "removed", changed: false};
+    if (target.status !== "active") {
+      throw new ApplicationError("not_found", "Membro não encontrado.");
+    }
     if (target.role === "owner") {
       throw roleDenied("O proprietário não pode ser removido.");
     }
     if (!canRemove(role, target.role)) {
       throw roleDenied("Seu papel não permite remover este membro.");
     }
+    releaseMemberSeat(
+      transaction,
+      actor.workspaceId,
+      await transaction.get(membershipQuotaRef(actor.workspaceId)),
+    );
     writeRemovedMembership(transaction, {
       workspaceId: actor.workspaceId,
       uid: memberId,
@@ -481,6 +610,7 @@ export const executeRemoveWorkspaceMember = async (
 /**
  * `leaveWorkspace`: saída voluntária de admin, member ou viewer. O owner
  * precisa transferir a titularidade antes. Repetir depois de sair é no-op.
+ * A saída libera a vaga no mesmo commit (P2B.1).
  */
 export const executeLeaveWorkspace = async (
   uid: string,
@@ -509,6 +639,11 @@ export const executeLeaveWorkspace = async (
       {profile, workspace, member},
       ["admin", "member", "viewer"],
     );
+    releaseMemberSeat(
+      transaction,
+      workspaceId,
+      await transaction.get(membershipQuotaRef(workspaceId)),
+    );
     writeRemovedMembership(transaction, {workspaceId, uid, removedBy: uid});
     appendMembershipEvent(transaction, {
       workspaceId,
@@ -532,6 +667,14 @@ export const executeLeaveWorkspace = async (
  * Duas transferências concorrentes leem o mesmo membership da origem; a
  * perdedora é repetida, encontra a origem já rebaixada e é recusada — nunca
  * há zero nem dois owners.
+ *
+ * Quota (P2B.1, D-01): a transferência troca a entidade pagadora na hora.
+ * O destino precisa comportar, pelo plano efetivo dele agora, mais um
+ * workspace próprio e a ocupação atual do workspace (membros ativos e
+ * reservas vigentes); senão nada muda (`quota_exceeded`). A origem pode estar
+ * acima da própria quota: transferir para fora é sempre permitido. Os dois
+ * contadores de ownership mudam no mesmo commit que os papéis e o `ownerId`.
+ * O billing da origem não é lido: não decide nada nesta operação.
  */
 export const executeTransferWorkspaceOwnership = async (
   actor: WorkspaceActor,
@@ -546,16 +689,37 @@ export const executeTransferWorkspaceOwnership = async (
       payload,
     });
     if (reservation.replay) return reservation.replay;
-    await reassertWorkspaceActor(transaction, actor, ["owner"]);
+    const {workspace} = await reassertWorkspaceActor(
+      transaction,
+      actor,
+      ["owner"],
+    );
     if (payload.newOwnerId === actor.uid) {
       throw new ApplicationError(
         "invalid_payload",
         "Escolha outro membro para receber a titularidade.",
       );
     }
-    const [target, targetProfile] = await transaction.getAll(
+    // Uma única leitura para destino, owner canônico, billing do destino e
+    // os três estados de quota: menos idas ao banco dentro da transação.
+    const ownerUid = canonicalOwnerCandidate(workspace);
+    if (ownerUid !== actor.uid) throw quotaStateUnavailable();
+    const [
+      target,
+      targetProfile,
+      ownerMember,
+      previousOwnership,
+      nextBilling,
+      nextOwnership,
+      membershipQuota,
+    ] = await transaction.getAll(
       workspaceMemberRef(actor.workspaceId, payload.newOwnerId),
       userProfileRef(payload.newOwnerId),
+      workspaceMemberRef(actor.workspaceId, ownerUid),
+      ownershipQuotaRef(actor.uid),
+      billingAccountRef(payload.newOwnerId),
+      ownershipQuotaRef(payload.newOwnerId),
+      membershipQuotaRef(actor.workspaceId),
     );
     if (
       !target.exists ||
@@ -568,6 +732,30 @@ export const executeTransferWorkspaceOwnership = async (
         "A titularidade só pode ser transferida para um membro ativo.",
       );
     }
+    const nowMs = Date.now();
+    assertCanonicalOwnerMembership(ownerMember);
+    const previousQuota = readOwnershipQuota(previousOwnership);
+    const nextQuota = readOwnershipQuota(nextOwnership);
+    const nextLimits = entitlementAt(nextBilling, nowMs).limits;
+    const members = readMembershipQuota(membershipQuota);
+    if (nextQuota.activeOwnedWorkspaces + 1 > nextLimits.workspaces) {
+      throw transferQuotaExceeded("workspaces");
+    }
+    const occupancy =
+      members.activeMembers + liveReservations(members, nowMs).size;
+    if (occupancy > nextLimits.membersPerWorkspace) {
+      throw transferQuotaExceeded("membersPerWorkspace");
+    }
+    writeOwnershipQuota(
+      transaction,
+      actor.uid,
+      releasedOwnership(previousQuota),
+    );
+    writeOwnershipQuota(
+      transaction,
+      payload.newOwnerId,
+      nextQuota.activeOwnedWorkspaces + 1,
+    );
     const previousTargetRole = String(target.get("role"));
     transaction.update(target.ref, {
       role: "owner",

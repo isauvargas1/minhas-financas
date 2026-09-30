@@ -9,6 +9,7 @@ import {
 import {
   requireFirestoreEmulator,
   seedActiveAccount,
+  seedPaidPlan,
 } from "../../shared/testSupport/kernelTestSupport";
 import {bootstrapAccount, createWorkspace} from "../callables";
 import {GENERAL_CATALOG_SEEDS} from "../provisioning";
@@ -80,6 +81,8 @@ const assertProvisioned = async (workspaceId: string, type: "PF" | "PJ") => {
 test("createWorkspace entrega PF e PJ já provisionados", async () => {
   const uid = uniqueId("prov-create");
   await seedActiveAccount(uid);
+  // Dois workspaces próprios: acima do Free (P2B.1).
+  await seedPaidPlan(uid, "pro");
   for (const type of ["PF", "PJ"] as const) {
     const {workspaceId} = await call<{workspaceId: string}>(
       createWorkspace,

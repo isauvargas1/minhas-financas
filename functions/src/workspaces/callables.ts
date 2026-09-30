@@ -45,9 +45,9 @@ import {
  * Política de token por operação (D-06): e-mail verificado em convites e
  * mutações sensíveis; autenticação recente (10 min) em transferência e
  * arquivamento. `bootstrapAccount` não exige e-mail verificado nem conta já
- * existente — é ela que cria a conta. Nenhuma consulta plano, quota ou
- * entitlement: P2 acrescenta a quota dentro das transações de criação de
- * workspace, convite e aceite (D-01).
+ * existente — é ela que cria a conta. A quota do plano do owner (P2B.1,
+ * D-01) é decidida dentro das transações de domínio (`lifecycle.ts`,
+ * `memberships.ts`, `billing/quota.ts`), nunca no wrapper.
  */
 const INTERNAL_MESSAGE =
   "Não foi possível concluir a operação no espaço. Tente novamente.";

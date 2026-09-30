@@ -18,6 +18,8 @@ export const {
   getBillingCatalog,
   createCheckoutSession,
   createBillingPortalSession,
+  getWorkspaceEntitlement,
+  getAccountUsage,
 } = createBillingCallables(invoke);
 
 const PLAN_IDS: readonly PlanId[] = ['free', 'pro', 'business'];

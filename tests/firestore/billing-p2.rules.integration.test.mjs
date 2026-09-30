@@ -24,6 +24,10 @@ import {
  * `billing_accounts/{uid}`: o titular ativo lê só o próprio estado; ninguém
  * lista, lê o de outro titular ou escreve. Trilha de billing, vínculo de
  * customer e recibos do webhook são backend-only nos dois sentidos.
+ *
+ * P2B.1 — estado de quota: `workspaces/{id}/quota_state/*` e
+ * `billing_accounts/{uid}/quota_state/*` são backend-only nos dois sentidos,
+ * inclusive para o owner do workspace e o titular da conta.
  */
 
 const require = createRequire(import.meta.url);
@@ -46,6 +50,8 @@ const getAdmin = () => {
   if (!admin.apps.length) admin.initializeApp({projectId});
   return admin;
 };
+
+const QUOTA_WORKSPACE = 'p2b-quota-rules-ws';
 
 const billingOf = (uid, planId) => ({
   billingOwnerUid: uid,
@@ -81,6 +87,23 @@ const seed = async () => {
   });
   await db.doc(`billing_customers/cus_${users.ownerA.uid}`).set({billingOwnerUid: users.ownerA.uid});
   await db.doc('billing_webhook_events/evt_p2_rules').set({outcome: 'applied'});
+  await db.doc(`billing_accounts/${users.ownerA.uid}/quota_state/ownership`).set({
+    billingOwnerUid: users.ownerA.uid, activeOwnedWorkspaces: 1, schemaVersion: 1,
+  });
+  await db.recursiveDelete(db.doc(`workspaces/${QUOTA_WORKSPACE}`));
+  await db.doc(`workspaces/${QUOTA_WORKSPACE}`).set({
+    name: 'Quota', type: 'PF', ownerId: users.ownerA.uid, status: 'active',
+  });
+  for (const [entry, role] of [[users.ownerA, 'owner'], [users.ownerB, 'viewer']]) {
+    await db.doc(`workspaces/${QUOTA_WORKSPACE}/members/${entry.uid}`).set({
+      uid: entry.uid, role, status: 'active',
+    });
+  }
+  await db.doc(`workspaces/${QUOTA_WORKSPACE}/quota_state/membership`).set({
+    workspaceId: QUOTA_WORKSPACE, activeMembers: 2, pendingReservations: {}, schemaVersion: 1,
+  });
+  // Controle positivo: subcoleção comum, lida pela regra catch-all de membro.
+  await db.doc(`workspaces/${QUOTA_WORKSPACE}/p2b_rules_control/doc-1`).set({ok: true});
 };
 
 const clients = [];
@@ -190,4 +213,44 @@ test('trilha, vínculo de customer e recibos do webhook são backend-only', asyn
     'lista recibos',
   );
   await denied(setDoc(doc(db.anon, 'billing_webhook_events/evt_forjado'), {outcome: 'applied'}), 'forja recibo');
+});
+
+test('P2B.1: quota do workspace é backend-only, mesmo para owner e membro', async () => {
+  const base = `workspaces/${QUOTA_WORKSPACE}`;
+  // A mesma leitura pela regra catch-all passa para a subcoleção comum.
+  assert.equal((await getDoc(doc(db.ownerB, `${base}/p2b_rules_control/doc-1`))).data().ok, true);
+  for (const [name, client] of [['owner', db.ownerA], ['viewer', db.ownerB], ['anônimo', db.anon]]) {
+    await denied(getDoc(doc(client, `${base}/quota_state/membership`)), `${name} lê a quota`);
+    await denied(
+      getDocs(query(collection(client, `${base}/quota_state`), limit(1))),
+      `${name} lista a quota`,
+    );
+    await denied(
+      setDoc(doc(client, `${base}/quota_state/membership`), {activeMembers: 1, pendingReservations: {}}),
+      `${name} reescreve a quota`,
+    );
+    await denied(
+      updateDoc(doc(client, `${base}/quota_state/membership`), {activeMembers: 1}),
+      `${name} altera a quota`,
+    );
+    await denied(deleteDoc(doc(client, `${base}/quota_state/membership`)), `${name} apaga a quota`);
+    await denied(setDoc(doc(client, `${base}/quota_state/novo`), {x: 1}), `${name} cria documento de quota`);
+  }
+  const persisted = await getAdmin().firestore().doc(`${base}/quota_state/membership`).get();
+  assert.equal(persisted.data().activeMembers, 2);
+});
+
+test('P2B.1: quota de ownership do titular é backend-only', async () => {
+  const path = `billing_accounts/${users.ownerA.uid}/quota_state/ownership`;
+  await denied(getDoc(doc(db.ownerA, path)), 'titular lê a própria quota');
+  await denied(
+    getDocs(query(collection(db.ownerA, `billing_accounts/${users.ownerA.uid}/quota_state`), limit(1))),
+    'titular lista a própria quota',
+  );
+  await denied(getDoc(doc(db.ownerB, path)), 'leitura cruzada');
+  await denied(setDoc(doc(db.ownerA, path), {activeOwnedWorkspaces: 0}), 'titular zera o contador');
+  await denied(updateDoc(doc(db.ownerA, path), {activeOwnedWorkspaces: 0}), 'titular altera o contador');
+  await denied(deleteDoc(doc(db.ownerA, path)), 'titular apaga o contador');
+  const persisted = await getAdmin().firestore().doc(path).get();
+  assert.equal(persisted.data().activeOwnedWorkspaces, 1);
 });

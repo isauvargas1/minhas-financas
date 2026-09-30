@@ -10,9 +10,9 @@ const CONFIRMATION_TIMEOUT_MS = 90_000;
 export const BillingSuccessModal = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [timedOut, setTimedOut] = useState(false);
-    const { entitlement, currentPlan } = useBilling();
+    const { accountEntitlement, accountPlan } = useBilling();
     // O retorno `?billing=success` não prova pagamento: só o servidor confirma.
-    const confirmed = isPaidEntitlementActive(entitlement);
+    const confirmed = isPaidEntitlementActive(accountEntitlement);
 
     useEffect(() => {
         // Verifica se a URL tem ?billing=success
@@ -43,7 +43,7 @@ export const BillingSuccessModal = () => {
         },
         confirmed: {
             title: 'Pagamento confirmado!',
-            text: `Sua assinatura do plano ${currentPlan?.name ?? ''} está ativa. Todos os recursos do plano já estão liberados para você usar! 🎉`,
+            text: `Sua assinatura do plano ${accountPlan?.name ?? ''} está ativa. Todos os recursos do plano já estão liberados para você usar! 🎉`,
             button: 'Começar a usar',
         },
         processing: {

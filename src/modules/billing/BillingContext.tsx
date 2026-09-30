@@ -3,35 +3,66 @@ import { useQuery } from '@tanstack/react-query';
 
 import { useAuth } from '../../contexts/AuthContext';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
-import { getBillingCatalog, subscribeBillingAccount } from './api';
+import {
+  getAccountUsage,
+  getBillingCatalog,
+  getWorkspaceEntitlement,
+  subscribeBillingAccount,
+} from './api';
 import { displayEntitlement } from './entitlement';
+import { billingKeys } from './queryKeys';
 import type {
+  AccountLimitKey,
+  AccountUsage,
   BillingAccount,
   BillingCatalog,
   BillingPlan,
   DisplayEntitlement,
-  PlanLimitKey,
+  WorkspaceEntitlement,
+  WorkspaceLimitKey,
 } from './types';
 
 type LoadStatus = 'loading' | 'ready' | 'error';
 
+/**
+ * Dois planos diferentes (D-01):
+ *
+ * - **conta**: o plano do próprio usuário (`billing_accounts/{uid}`). Vale
+ *   para "Meu Plano", tabela de preços, portal e criação de workspace
+ *   próprio;
+ * - **workspace**: o plano do owner do workspace ativo, avaliado pelo
+ *   servidor (`getWorkspaceEntitlement`). Vale para os recursos daquele
+ *   workspace (lançamentos, divisão de contas...), inclusive para quem é só
+ *   convidado.
+ *
+ * Tudo aqui é ajuda de UX para habilitar/desabilitar botões; a autoridade
+ * sobre limites é o backend, que decide de novo em cada operação.
+ */
 interface BillingContextValue {
   catalog: BillingCatalog | null;
   catalogStatus: LoadStatus;
   account: BillingAccount | null;
   accountStatus: LoadStatus;
-  /** Plano e status para exibição; a autoridade é o backend. */
-  entitlement: DisplayEntitlement;
-  /** Plano do catálogo correspondente ao entitlement; `null` sem catálogo. */
-  currentPlan: BillingPlan | null;
-  /**
-   * Ajuda de UX apenas: habilita/desabilita botões. NÃO é enforcement; a
-   * autoridade sobre limites será o backend (P2B).
-   */
-  checkLimit: (resource: PlanLimitKey, currentValue: number) => boolean;
+  /** Plano e status da conta do usuário, para exibição. */
+  accountEntitlement: DisplayEntitlement;
+  /** Plano do catálogo da conta do usuário; `null` sem catálogo. */
+  accountPlan: BillingPlan | null;
+  /** Uso da conta; `null` enquanto carrega ou se a leitura falhar. */
+  accountUsage: AccountUsage | null;
+  checkAccountLimit: (resource: AccountLimitKey) => boolean;
+  /** Plano do owner do workspace ativo; `null` enquanto carrega. */
+  workspaceEntitlement: WorkspaceEntitlement | null;
+  checkWorkspaceLimit: (resource: WorkspaceLimitKey, currentValue: number) => boolean;
 }
 
 const BillingContext = createContext<BillingContextValue | undefined>(undefined);
+
+/** Refaz as leituras do servidor ao voltar para a janela, no máximo a cada minuto. */
+const SERVER_READ_OPTIONS = {
+  staleTime: 60 * 1000,
+  refetchOnWindowFocus: true,
+  retry: 1,
+} as const;
 
 /**
  * Fica abaixo do `WorkspaceProvider`: catálogo e listener do documento
@@ -41,14 +72,31 @@ const BillingContext = createContext<BillingContextValue | undefined>(undefined)
  */
 export const BillingProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
-  const { isAccountReady } = useWorkspace();
+  const { isAccountReady, activeWorkspace } = useWorkspace();
   const uid = user && isAccountReady ? user.uid : null;
+  const workspaceId = uid && activeWorkspace.id !== 'loading' ? activeWorkspace.id : null;
 
   const catalogQuery = useQuery({
-    queryKey: ['billing', 'catalog', uid],
+    queryKey: billingKeys.catalog(uid),
     queryFn: getBillingCatalog,
     enabled: uid !== null,
     staleTime: Infinity,
+  });
+
+  const usageQuery = useQuery({
+    queryKey: billingKeys.accountUsage(uid),
+    queryFn: getAccountUsage,
+    enabled: uid !== null,
+    ...SERVER_READ_OPTIONS,
+  });
+
+  // A chave muda com o workspace: trocar de workspace refaz a consulta e
+  // nunca exibe o plano do workspace anterior.
+  const workspaceQuery = useQuery({
+    queryKey: billingKeys.workspaceEntitlement(uid, workspaceId),
+    queryFn: () => getWorkspaceEntitlement(workspaceId as string),
+    enabled: workspaceId !== null,
+    ...SERVER_READ_OPTIONS,
   });
 
   const [accountState, setAccountState] = useState<{
@@ -84,13 +132,23 @@ export const BillingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     ? 'error'
     : catalog ? 'ready' : 'loading';
 
-  const entitlement = displayEntitlement(current.account, Date.now());
-  const currentPlan = catalog?.plans.find((plan) => plan.planId === entitlement.planId) ?? null;
+  const accountEntitlement = displayEntitlement(current.account, Date.now());
+  const accountPlan = catalog?.plans.find((plan) => plan.planId === accountEntitlement.planId) ?? null;
+  const accountUsage = uid ? usageQuery.data ?? null : null;
+  const workspaceEntitlement = workspaceId ? workspaceQuery.data ?? null : null;
 
-  const checkLimit = useCallback(
-    (resource: PlanLimitKey, currentValue: number): boolean =>
-      currentPlan ? currentValue < currentPlan.limits[resource] : true,
-    [currentPlan],
+  const checkAccountLimit = useCallback(
+    (resource: AccountLimitKey): boolean =>
+      accountPlan && accountUsage
+        ? accountUsage.activeOwnedWorkspaces < accountPlan.limits[resource]
+        : true,
+    [accountPlan, accountUsage],
+  );
+
+  const checkWorkspaceLimit = useCallback(
+    (resource: WorkspaceLimitKey, currentValue: number): boolean =>
+      workspaceEntitlement ? currentValue < workspaceEntitlement.limits[resource] : true,
+    [workspaceEntitlement],
   );
 
   const value: BillingContextValue = {
@@ -98,9 +156,12 @@ export const BillingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     catalogStatus,
     account: current.account,
     accountStatus: current.status,
-    entitlement,
-    currentPlan,
-    checkLimit,
+    accountEntitlement,
+    accountPlan,
+    accountUsage,
+    checkAccountLimit,
+    workspaceEntitlement,
+    checkWorkspaceLimit,
   };
 
   return <BillingContext.Provider value={value}>{children}</BillingContext.Provider>;

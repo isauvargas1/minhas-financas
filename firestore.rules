@@ -813,6 +813,12 @@ function isBackendOwnedCollection(collectionName) {
       // contornado pela catch-all, e uma listagem ilimitada reintroduzia o
       // custo linear que a projeção existe para eliminar.
       'cash_report_periods',
+      // P2B.1 — estado de quota do workspace (membros ativos e reservas de
+      // convite): server-only nos dois sentidos. Fora desta lista a regra
+      // catch-all daria leitura a qualquer membro. O equivalente do titular
+      // (`billing_accounts/{uid}/quota_state`) já é negado pela regra
+      // curinga de `billing_accounts`.
+      'quota_state',
       // INV-P3-001 — marca de entrega do gatilho de caixa. É o que impede a
       // reentrega do mesmo evento de somar o delta duas vezes. Um cliente que
       // conseguisse criá-la faria o gatilho legítimo pular a aplicação e o

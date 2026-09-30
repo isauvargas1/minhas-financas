@@ -60,6 +60,27 @@ export interface BillingAccount {
   hasCustomer: boolean;
 }
 
+/**
+ * Entitlement do workspace (`getWorkspaceEntitlement`): plano do owner
+ * avaliado pelo servidor, sem nenhum dado de cobrança do owner.
+ */
+export interface WorkspaceEntitlement {
+  catalogVersion: number;
+  planId: PlanId;
+  entitlementStatus: EntitlementStatus;
+  limits: PlanLimits;
+}
+
+/** Uso da conta do usuário (`getAccountUsage`). */
+export interface AccountUsage {
+  /** Workspaces ativos dos quais o usuário é owner. */
+  activeOwnedWorkspaces: number;
+}
+
+/** Limites da conta (plano do usuário) e do workspace (plano do owner). */
+export type AccountLimitKey = Extract<PlanLimitKey, 'workspaces'>;
+export type WorkspaceLimitKey = Exclude<PlanLimitKey, 'workspaces'>;
+
 export interface DisplayEntitlement {
   planId: PlanId;
   status: EntitlementStatus;

@@ -162,6 +162,7 @@ const HTTPS_CODE: Record<ApplicationErrorCode, string> = {
   idempotency_conflict: "failed-precondition",
   idempotency_replay: "internal",
   domain_precondition_failed: "failed-precondition",
+  quota_exceeded: "resource-exhausted",
   not_found: "not-found",
   already_exists: "already-exists",
   internal: "internal",

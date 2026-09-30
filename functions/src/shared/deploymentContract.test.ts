@@ -171,6 +171,18 @@ test("P2A: billing com perfil de domínio e webhook com recursos", () => {
   assert.equal(webhook.maxInstances, 10);
 });
 
+test("P2B.1: entitlement do workspace e uso da conta, só leitura e sem " +
+  "segredo", () => {
+  for (const name of ["getWorkspaceEntitlement", "getAccountUsage"]) {
+    const endpoint = endpointOf(name);
+    assert.ok(endpoint.callableTrigger, `${name} não é callable`);
+    assert.deepEqual(endpoint.region, [FUNCTIONS_REGION], `região de ${name}`);
+    assert.equal(endpoint.timeoutSeconds, 60, `tempo limite de ${name}`);
+    assert.equal(endpoint.availableMemoryMb, 256, `memória de ${name}`);
+    assert.deepEqual(secretsOf(name), [], `${name} não lê segredo`);
+  }
+});
+
 test("a superfície operacional de metas está publicada", () => {
   // A reconstrução que a área operacional oferece precisa existir como função
   // implantada: sem ela o painel oferece um botão que não tem destino.

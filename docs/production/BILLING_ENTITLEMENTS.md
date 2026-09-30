@@ -1,8 +1,8 @@
 # Billing, assinatura e entitlements
 
-Referência do programa de Production Readiness para cobrança Stripe, catálogo de planos, estado de assinatura, entitlements e quotas do Minhas Finanças. Registra o estado após a etapa P2A (2026-09-29, sobre o working tree derivado do HEAD `main` @ `9c3ab46`), o alvo que resta e as lacunas, sempre com os IDs do [plano mestre](PRODUCTION_READINESS_PLAN.md). Este documento **não prova implementação**: antes de agir, confirme o código no HEAD. O gate do tema é a skill `billing-entitlement-integrity`, executada com `multi-tenant-security-review` (quem pode contratar e isolamento) e `saas-commercial-readiness` (o que é exibido e prometido ao cliente). A §14 é o registro de evidência de configuração Stripe (E-06) exigido pela skill.
+Referência do programa de Production Readiness para cobrança Stripe, catálogo de planos, estado de assinatura, entitlements e quotas do Minhas Finanças. Registra o estado após a etapa P2A (2026-09-29, sobre o working tree derivado do HEAD `main` @ `9c3ab46`) e a P2B.1 (2026-09-30, sobre `ecd3f11`), o alvo que resta e as lacunas, sempre com os IDs do [plano mestre](PRODUCTION_READINESS_PLAN.md). Este documento **não prova implementação**: antes de agir, confirme o código no HEAD. O gate do tema é a skill `billing-entitlement-integrity`, executada com `multi-tenant-security-review` (quem pode contratar e isolamento) e `saas-commercial-readiness` (o que é exibido e prometido ao cliente). A §14 é o registro de evidência de configuração Stripe (E-06) exigido pela skill.
 
-- **Milestone responsável:** P2 ([plano mestre §8](PRODUCTION_READINESS_PLAN.md#8-milestones)). P2A (catálogo, estado canônico, checkout, portal, webhook, Rules e frontend) está concluída ([§17 do plano](PRODUCTION_READINESS_PLAN.md#17-p2a--execução-e-evidências)); P2B (motor de quota aplicado e enforcement) está pendente. O enforcement de quotas fecha de forma incremental até P5 (D-ORD-05, [§9](PRODUCTION_READINESS_PLAN.md#9-decisões-de-ordenação-e-escopo-tomadas-em-p0)).
+- **Milestone responsável:** P2 ([plano mestre §8](PRODUCTION_READINESS_PLAN.md#8-milestones)). P2A (catálogo, estado canônico, checkout, portal, webhook, Rules e frontend) está concluída ([§17 do plano](PRODUCTION_READINESS_PLAN.md#17-p2a--execução-e-evidências)); P2B.1 (quotas de workspaces e membros, reservas de convite, transferência de ownership, entitlement do workspace pelo owner) está concluída (PLAN §17.8, 2026-09-30); P2B.2 (créditos de IA) está pendente. O enforcement de quotas fecha de forma incremental até P5 (D-ORD-05, [§9](PRODUCTION_READINESS_PLAN.md#9-decisões-de-ordenação-e-escopo-tomadas-em-p0)).
 - **Decisões:** D-01 e D-08 (parcial) tomadas em [§9.2 do plano](PRODUCTION_READINESS_PLAN.md#92-decisões-de-produto-tomadas-para-p2); D-07 (exclusão de conta, P8) e D-11 (provedor de IA, P5) não bloqueiam P2.
 - **Configuração externa:** E-05 (segredos por ambiente), E-06 (Stripe), E-08 (alertas), E-09 (jurídico).
 
@@ -16,11 +16,11 @@ Referência do programa de Production Readiness para cobrança Stripe, catálogo
 | Checkout | `createCheckoutSession` `{planId, returnUrl, idempotencyKey}`: Price conferido no Stripe, lock por titular, Customer canônico, recusa de assinatura viva, idempotência (`functions/src/billing/checkout.ts:206,417`) | Conferência do Stripe real (E-06) | PR-BILL-03 fechado (PLAN §17.3) |
 | Portal | `createBillingPortalSession` só para o próprio titular (`functions/src/billing/portal.ts:44`) | Configuração do portal no Stripe (E-06) | PR-BILL-02 fechado (PLAN §17.3) |
 | Webhook | `stripeWebhook` com assinatura sobre o raw body, recibo por `event.id` (`processing` → `processed`), estado relido no Stripe fora de transação sob lease com geração (P2A.1), 13 tipos de evento e auditoria (`functions/src/webhooks/stripe.ts:26`; `functions/src/billing/webhook.ts:178,401,575,718`) | Reconciliação periódica Stripe × Firestore, fila/replay e alertas (P7) | PR-BILL-01, PR-BILL-06 fechados (PLAN §17.3) |
-| Estado canônico | `billing_accounts/{uid}` server-owned, uid = titular (D-01); leitura só do titular; o perfil `users/{uid}` não tem plano (`functions/src/billing/model.ts:29-32,97-118`; `firestore.rules:1412-1431`) | Entitlement do workspace derivado do plano do owner; membro não lê o billing do owner (P2B) | PR-BILL-07 |
+| Estado canônico | `billing_accounts/{uid}` server-owned, uid = titular (D-01); leitura só do titular; o perfil `users/{uid}` não tem plano. Entitlement do workspace pelo plano do owner via `getWorkspaceEntitlement` (projeção pública, sem ler billing alheio no cliente) (`functions/src/billing/model.ts:29-32,97-118`; `functions/src/billing/workspaceEntitlement.ts:38`; `firestore.rules:1418-1437`) | — | PR-BILL-07 fechado em P2B.1 (PLAN §17.8) |
 | Segredos | Secret Manager por função, sem valor padrão, falha fechada; `STRIPE_ALLOWED_PRICE_IDS` removida (`functions/src/billing/config.ts:18-49,72-112`) | Configuração não secreta como parâmetro de ambiente (P6) | PR-BILL-05 fechado (PLAN §17.3); FIRE-10 (P6) |
-| Quotas | Limites no catálogo e motor puro `resolveEntitlement`/`effectiveEntitlement`/`effectiveLimits` (`functions/src/billing/entitlements.ts:71,131,157`); nenhum callable de domínio aplica quota; `checkLimit` no cliente é só ajuda de UX (`src/modules/billing/BillingContext.tsx:82`) | Enforcement server-side em workspaces, membros, transferência de ownership e IA (P2B); demais domínios em P3–P5 | PR-ENT-01 |
+| Quotas | API de quota `functions/src/billing/quota.ts` aplicada nas transações de conta, workspace, convite, aceite, remoção, saída e transferência (§10); estado `quota_state` backend-only; no cliente, `checkAccountLimit`/`checkWorkspaceLimit` são só ajuda de UX (`src/modules/billing/BillingContext.tsx`) | IA (P2B.2); lançamentos, grupos e demais domínios em P3–P5 | PR-ENT-01 (parcial) |
 | Custo de IA | Créditos por plano no catálogo (`aiCreditsPerMonth`); rate limit fixo por workspace+ator segue como está (`functions/src/ai/callables.ts:44-48,167-171`) | Quota por plano do owner, teto de tokens, App Check em P6 | PR-AI-03 (P2B) |
-| Testes | Unitários, integração no Emulator (checkout e webhook), Rules e cliente (§13) | Testes de quota e concorrência no limite (P2B) | PR-BILL-08 fechado (PLAN §17.3) |
+| Testes | Unitários, integração no Emulator (checkout, webhook e quota com concorrência no último slot), Rules e cliente (§13) | Quota de IA (P2B.2) e dos domínios de P3–P5 | PR-BILL-08 fechado (PLAN §17.3) |
 
 ---
 
@@ -77,7 +77,7 @@ Evidência: `functions/src/billing/catalog.ts:16,50-56,64-104`.
 | `billing_accounts/{uid}/billing_events/{id}` | Trilha append-only de auditoria (tipos na §6), sem TTL | Só o backend (`functions/src/billing/audit.ts:64`) | Negada nos dois sentidos (`firestore.rules:1416-1421`) |
 | `billing_accounts/{uid}/billing_sync/reconciliation` | Lease da reconciliação do titular (P2A.1): `generation` (fencing token monotônico), `holderEventId`, `leaseExpiresAt` (60 s), `acquiredAt`, `updatedAt`; um documento por titular, sem TTL (`functions/src/billing/model.ts:134-163`) | Só o webhook | Negada nos dois sentidos (`firestore.rules:1416-1421`) |
 
-Consequências: o cliente lê só o próprio `billing_accounts/{uid}`; um membro que não é o owner **não** lê o billing do owner, então a ajuda de UX (`checkLimit`) reflete o plano de quem está vendo. Derivar o entitlement do workspace a partir do plano do owner, no servidor, é P2B (PR-BILL-07). Não há estado de billing por workspace.
+Consequências: o cliente lê só o próprio `billing_accounts/{uid}`; um membro que não é o owner **não** lê o billing do owner. Desde P2B.1 o plano do workspace chega ao cliente por `getWorkspaceEntitlement` (owner canônico + `effectiveEntitlement` no servidor; resposta só com `catalogVersion`, `planId`, `entitlementStatus` e `limits`), e a ajuda de UX dos recursos do workspace usa esse plano (PR-BILL-07 fechado, PLAN §17.8). Não há estado de billing por workspace; o único estado por workspace é a quota de membros (§10).
 
 ---
 
@@ -150,12 +150,12 @@ Auditoria (`billing_accounts/{uid}/billing_events`): `checkout.created`, `subscr
 
 ## 9. Entitlements e quotas: inventário completo
 
-CURRENT geral (pós-P2A): os limites vivem no catálogo do backend (§3) e o motor de entitlements existe (§10), mas **nenhum callable de domínio nem Rule aplica quota ainda**. No cliente, `checkLimit` é só ajuda de UX e usa o billing de quem está vendo (`src/modules/billing/BillingContext.tsx:82`). Os rate limits server-side existentes são uniformes e não dependem de plano. A coluna "Aplicação CURRENT" descreve o HEAD auditado `9c3ab46` (referências a `usePlan`/`plans.ts` são históricas, removidas em P2A); a coluna de limites mostra o catálogo v1 (Free / Pro / Business).
+CURRENT geral (pós-P2B.1): os limites vivem no catálogo do backend (§3); workspaces próprios, membros e transferência de ownership são aplicados no servidor (§10). Lançamentos e grupos seguem só como ajuda de UX no cliente, agora pelo plano do owner do workspace (`checkWorkspaceLimit`), até P3/P4. Os rate limits server-side existentes são uniformes e não dependem de plano. A coluna "Aplicação CURRENT" descreve o HEAD auditado `9c3ab46` (referências a `usePlan`/`plans.ts` são históricas, removidas em P2A); a coluna de limites mostra o catálogo v1 (Free / Pro / Business).
 
 | Recurso | Limite (catálogo v1: Free / Pro / Business) | Aplicação CURRENT | Aplicação TARGET | Milestone | GAP |
 | --- | --- | --- | --- | --- | --- |
-| Workspaces próprios ativos por titular (owner) | 1 / 5 / 20 | Só UI, contando participações (`src/components/Header.tsx:58`); criação por `setDoc` do cliente (`src/modules/workspaces/api.ts:196`); Rules sem quota (`firestore.rules:991-994`) | `createWorkspace` (callable de P1, sem verificação de quota) recebe em P2 a verificação da quota dentro da mesma transação, com contador por titular ou entidade pagadora (D-01, D-22) | P2 | PR-ENT-01 (P2→P5), PR-WS-05 |
-| Membros ativos por workspace (incl. owner) | 2 / 10 / 50 | Nenhuma, nem na UI (`src/components/MembersManagerModal.tsx:60-66`); Rules sem quota (`firestore.rules:1021`) | Callables de convite e aceite (P1) não verificam quota; P2 insere nas mesmas transações a contagem de membros ativos e convites pendentes (D-01) | P2 | PR-ENT-01 (P2→P5), PR-WS-01 |
+| Workspaces próprios ativos por titular (owner) | 1 / 5 / 20 | **P2B.1:** contador `activeOwnedWorkspaces` na transação de `bootstrapAccount`, `createWorkspace`, `archiveWorkspace` e `transferWorkspaceOwnership` (`functions/src/workspaces/lifecycle.ts:168-191,288-319,470-504`); UI compara workspaces próprios com o plano da conta (`getAccountUsage`, só UX) | Mantido | P2B.1 (entregue) | — |
+| Membros ativos por workspace (incl. owner) | 2 / 10 / 50 | **P2B.1:** `activeMembers` + reservas de convite vigentes na transação de convite, revogação, aceite, remoção, saída e transferência (`functions/src/workspaces/memberships.ts`) | Mantido | P2B.1 (entregue) | — |
 | Lançamentos por mês | 50 / 1.000 / 10.000 | Só UI, com duas contagens sobre a janela carregada (`src/components/TransactionsView.tsx:97-116`; `src/components/RecentTransactions.tsx:47-57`); importação em lote sem checagem (`src/App.tsx:276-290`); Rules sem quota (`firestore.rules:1056-1057`) | Callable de lançamento de caixa incrementa `usage` por workspace e mês na mesma transação; D-08 decide se recorrência, empréstimo, recebimento e divisão contam | P3 | PR-ENT-01 (P2→P5), PR-TX-01 |
 | Grupos de divisão | 2 / 10 / 100 | Só UI (`src/components/SplitGroupsView.tsx:39`); criação por transação do cliente (`src/modules/split-bills/api.ts:145-147`) | Callable do módulo `splitBills` com contador transacional | P4 | PR-ENT-01 (P2→P5), PR-SPLIT-01 |
 | IA: análise | Créditos por mês 10 / 150 / 750 (catálogo); rate limit atual de 20/h por workspace+ator, igual para todos | Rate limit fixo (`functions/src/ai/callables.ts:44-48`; `functions/src/shared/rateLimit.ts:49-66`); contornável criando workspaces | Quota por plano e por entidade pagadora, `maxOutputTokens`, registro de uso de tokens; valores em D-11; App Check em P6 (PR-APPCHK-01) | P2 | PR-AI-03 (P2) |
@@ -182,12 +182,18 @@ Recursos sem limite no catálogo atual só ganham quota se D-08 a definir; a reg
 - **Downgrade:** nenhuma exclusão; o estado apenas passa a refletir o plano efetivo.
 - **Rules:** o cliente não tem escrita em plano, status, entitlement nem eventos de billing (`firestore.rules:1412-1431`).
 
-**TARGET em P2B (não iniciado):**
+**Entregue em P2B.1 (CURRENT, 2026-09-30; detalhes e evidências em [PLAN §17.8](PRODUCTION_READINESS_PLAN.md#178-p2b1--quotas-de-workspaces-e-membros-transferência-e-entitlement-do-workspace-2026-09-30)):**
 
-- **API de quota** para os callables: lê o `billing_accounts/{ownerUid}` do **owner** do workspace (D-01) e o contador de uso dentro da transação da criação, chama `effectiveLimits`, incrementa o contador no mesmo commit e nega com `resource-exhausted` e mensagem pt-BR com próxima ação ("Limite do plano atingido. Faça upgrade em Meu Plano."). Contadores em documento server-only por workspace e período, nunca contagem sobre a lista carregada no cliente.
-- **Aplicação inicial:** `createWorkspace` (workspaces próprios ativos do owner), `inviteWorkspaceMember` e `acceptWorkspaceInvite` (membros ativos e convites pendentes), `transferWorkspaceOwnership` (capacidade do novo owner) e IA (créditos por mês). Lançamentos, grupos e demais domínios em P3–P5 (D-ORD-05).
-- **Concorrência:** duas criações simultâneas no limite não ultrapassam a quota (transação com releitura do contador).
-- **Downgrade com excedente:** novas criações acima da quota são negadas; o excedente segue acessível e nada é apagado.
+- **API de quota** `functions/src/billing/quota.ts`: `entitlementAt(billing, agora)` (sempre `effectiveEntitlement`, nunca `planId` cru), `assertWithinQuota`, owner canônico (`ownerId` só vale com membership `active`/`owner`; divergência falha fechado, sem varredura), leitura/gravação dos contadores. Tudo dentro da transação autoritativa já existente.
+- **Schema (server-only, `schemaVersion` 1):** `billing_accounts/{ownerUid}/quota_state/ownership` (`billingOwnerUid`, `activeOwnedWorkspaces`, `updatedAt`) e `workspaces/{workspaceId}/quota_state/membership` (`workspaceId`, `activeMembers` incluindo o owner, `pendingReservations` `inviteId → expiresAt`, `updatedAt`). Nascem na mesma transação que cria a conta ou o workspace. Sem migração, varredura ou fallback: estado ausente ou malformado ⇒ `internal` ("Não foi possível verificar os limites do plano. Tente novamente em instantes."); ambientes anteriores a P2B.1 são recriados por seed.
+- **Reservas de convite:** cada convite pendente ocupa uma vaga até o mesmo `expiresAt` do convite; o convite exige `ativos + reservas vigentes + 1 <= membersPerWorkspace`; substituir o convite do mesmo e-mail não consome vaga extra; revogação e aceite liberam a reserva no mesmo commit; reservas vencidas saem na próxima operação que regrava o documento (sem cron). O mapa é limitado a 50 (maior `membersPerWorkspace` do catálogo).
+- **Aplicação:** `bootstrapAccount` (1 na primeira preparação; restauração do pessoal consome slot), `createWorkspace` (`ativos < workspaces`), `archiveWorkspace` (sempre permitido; libera o slot só na transição), `inviteWorkspaceMember`, `revokeWorkspaceInvite`, `acceptWorkspaceInvite` (plano **atual** do owner; `ativos < membersPerWorkspace`), `removeWorkspaceMember`/`leaveWorkspace` (liberam a vaga), `transferWorkspaceOwnership` (o destino precisa de mais um workspace próprio e da ocupação atual, com reservas vigentes, no plano efetivo dele; a origem pode estar acima da quota). Troca de papel não altera quota.
+- **Erro:** `quota_exceeded` → `resource-exhausted`, "Limite do plano atingido. Faça upgrade em Meu Plano para continuar.", detalhes só `resource`, `planId`, `limit`, `used`. Na transferência, mensagem voltada ao destinatário ("O plano do novo titular não comporta este espaço. Para receber a titularidade, ele precisa fazer upgrade em Meu Plano.") e detalhe só `resource`, sem dados da conta de outra pessoa.
+- **Concorrência:** criações, convites, aceites e transferências simultâneos no último slot disputam o mesmo documento de contador; só um vence (testado).
+- **Downgrade com excedente:** novas criações e aceites acima da quota são negados; nada é apagado nem arquivado; arquivar reduz o excedente.
+- **Entitlement do workspace:** `getWorkspaceEntitlement` (qualquer membro ativo) e `getAccountUsage` (uso da própria conta), só leitura (§4).
+
+**TARGET restante:** créditos de IA por plano do owner (P2B.2, PR-AI-03); quotas de lançamentos (P3), grupos de divisão e demais domínios (P3–P5), fechando PR-ENT-01 no fim de P5 (D-ORD-05).
 
 ---
 
@@ -248,12 +254,13 @@ Removido no mesmo milestone que substituiu a arquitetura (política de legado do
 
 Também: typecheck, build do frontend e build das Functions OK; lint das Functions com 0 erros. Instabilidade registrada: uma falha do teste de bootstrap concorrente em 11 execuções, sob carga do Emulator ([PLAN §17.2](PRODUCTION_READINESS_PLAN.md#172-validação-2026-09-29)). `verify:all`, E2E e `regression-release-gate` não foram executados nesta etapa.
 
-**TARGET (P2B):**
+**P2B.1 (2026-09-30):** `functions/src/billing/__tests__/quotaWorkspaces.integration.test.ts` e `quotaMembers.integration.test.ts` (limites Free/Pro/Business, último slot concorrente em criação, convite, aceite, transferência e bootstrap, replay, arquivamento, downgrade com excedente, grace e cancelamento vencidos, estado ausente, reservas, transferência com e sem capacidade, entitlement do workspace por papel e cross-tenant) — 132/132 com workspaces, checkout e webhook; Rules de `quota_state` em `billing-p2.rules` (7/7); cliente `test:unit:billing` 21/21. Detalhes em [PLAN §17.8](PRODUCTION_READINESS_PLAN.md#178-p2b1--quotas-de-workspaces-e-membros-transferência-e-entitlement-do-workspace-2026-09-30).
 
-1. Quotas: criação no limite negada em `createWorkspace`, convite e aceite; criações concorrentes no limite não ultrapassam; transferência de ownership respeita a capacidade do novo owner; downgrade com excedente segue a §10. Um teste por callable que aplica quota em P2–P5.
-2. Entitlement do workspace derivado do plano do owner (membro Free em workspace de owner Pro).
-3. Quotas de IA por plano do owner.
-4. UI (skill `ptbr-product-ui-review`): estados de limite atingido em pt-BR.
+**TARGET restante:**
+
+1. Quotas de IA por plano do owner (P2B.2).
+2. Um teste por callable que aplica quota em P3–P5.
+3. UI (skill `ptbr-product-ui-review`): estados de limite atingido em pt-BR, no gate de P2.
 
 ---
 
@@ -309,7 +316,7 @@ Relacionados, registrados em outros documentos: segredos por projeto (E-05, [FIR
 
 | ID | Classificação | O que decide para billing |
 | --- | --- | --- |
-| D-01 | DECISION (tomada, §9.2 do plano) | A assinatura pertence à conta do owner (`billing_accounts/{uid}`); o owner financia os workspaces de que é owner; o convidado não precisa de plano pago; o plano do owner determina os entitlements do workspace; a transferência de ownership respeitará a capacidade do novo owner (enforcement em P2B) |
+| D-01 | DECISION (tomada, §9.2 do plano) | A assinatura pertence à conta do owner (`billing_accounts/{uid}`); o owner financia os workspaces de que é owner; o convidado não precisa de plano pago; o plano do owner determina os entitlements do workspace; a transferência de ownership respeita a capacidade do novo owner (aplicado em P2B.1, PLAN §17.8) |
 | D-07 | DECISION (não bloqueia P2; bloqueia P8) | Cancelamento da assinatura e destino do customer Stripe na exclusão de conta ou workspace (executado em P8, PR-AUTH-01) |
 | D-08 | DECISION (parcialmente tomada, §9.2 do plano) | Tomado: catálogo v1, mensal, sem trial, cancelamento no fim do período, grace de 7 dias, downgrade sem apagar dados, sem reembolso automático em P2. Pendente (P9/E-06): tratamento fiscal (NFS-e/ISS, Stripe Tax), meios além de cartão, plano anual, proration e momento do downgrade no portal, suporte a Prices legados por plano |
 | D-11 | DECISION (não bloqueia P2; bloqueia P5, P8) | Créditos de IA provider-agnostic no catálogo; provedor e tier do provedor em P5 |
@@ -319,7 +326,7 @@ Relacionados, registrados em outros documentos: segredos por projeto (E-05, [FIR
 | D-ORD-04 | DECISION (tomada, §9 do plano) | Nenhum artefato de P2 é implantado em projeto remoto antes de P6 |
 | D-ORD-05 | DECISION (tomada, §9 do plano) | Ordem incremental de PR-ENT-01 (§9) |
 
-Dependências: P1 entregou as callables de workspace e membership, sem verificação de quota, e o kernel (wrapper, resolvedor de papel, auditoria, logger, módulo `money`); P2A entregou o billing canônico e o motor de entitlements; P2B insere a verificação de quota nas transações de `createWorkspace`, `inviteWorkspaceMember` e `acceptWorkspaceInvite` e na transferência de ownership antes de qualquer deploy remoto (D-01, D-ORD-04); P6 entrega ambientes isolados, segredos por ambiente e App Check nas callables de billing e IA; P7 entrega alertas, fila e replay de webhook, reconciliação e runbook ([RUNBOOKS.md](RUNBOOKS.md)); P8 cancela a assinatura na saída do titular; P9 publica preços a partir do catálogo e as políticas comerciais.
+Dependências: P1 entregou as callables de workspace e membership, sem verificação de quota, e o kernel (wrapper, resolvedor de papel, auditoria, logger, módulo `money`); P2A entregou o billing canônico e o motor de entitlements; P2B.1 inseriu a verificação de quota nas transações de `createWorkspace`, `inviteWorkspaceMember`, `acceptWorkspaceInvite` e na transferência de ownership, antes de qualquer deploy remoto (D-01, D-ORD-04); P2B.2 acrescenta os créditos de IA; P6 entrega ambientes isolados, segredos por ambiente e App Check nas callables de billing e IA; P7 entrega alertas, fila e replay de webhook, reconciliação e runbook ([RUNBOOKS.md](RUNBOOKS.md)); P8 cancela a assinatura na saída do titular; P9 publica preços a partir do catálogo e as políticas comerciais.
 
 ---
 
@@ -333,10 +340,10 @@ Dependências: P1 entregou as callables de workspace e membership, sem verifica�
 | PR-BILL-04 | BLOCKER | P2 | Catálogo inconsistente (C02; inclui MONEY-12) | Fechado em P2A; §3 |
 | PR-BILL-05 | HIGH | P2 | Segredos com fallback placeholder (inclui ENTRY-04) | Fechado em P2A (falha fechada); FIRE-10 segue em P6; §7, §11 |
 | PR-BILL-06 | HIGH | P2 | Sem idempotência por `event.id`, ordem e auditoria (inclui BILL-16) | Fechado em P2A; §7 |
-| PR-BILL-07 | HIGH | P2 (P2B) | Entitlement do workspace ainda não derivado do plano do owner: a ajuda de UX lê o billing de quem está vendo; membro não lê o billing do owner. Campos concorrentes e plano em `users/{uid}` removidos em P2A | Aberto (P2B); §4 |
+| PR-BILL-07 | HIGH | P2 (P2B) | Entitlement do workspace ainda não derivado do plano do owner: a ajuda de UX lê o billing de quem está vendo; membro não lê o billing do owner. Campos concorrentes e plano em `users/{uid}` removidos em P2A | Fechado em P2B.1 (`getWorkspaceEntitlement`, PLAN §17.8); §4 |
 | PR-BILL-08 | HIGH | P2 | Sem testes de comportamento (inclui REL-08) | Fechado em P2A; §13 |
-| PR-ENT-01 | BLOCKER | P2 (fecha em P5) | Quotas só no frontend | Aberto: motor entregue em P2A, enforcement em P2B e P3–P5; §9, §10 |
-| PR-AI-03 | HIGH | P2 (P2B) | Custo de IA sem teto por plano | Aberto (P2B); §9 |
+| PR-ENT-01 | BLOCKER | P2 (fecha em P5) | Quotas só no frontend | Aberto (parcial): motor em P2A; workspaces, membros e transferência aplicados em P2B.1; demais domínios em P3–P5; §9, §10 |
+| PR-AI-03 | HIGH | P2 (P2B) | Custo de IA sem teto por plano | Aberto (P2B.2); §9 |
 | E-06 | Externa | P2 | Configuração Stripe (Prices, endpoint, eventos, portal) | Sem conferência; obrigatória para fechar P2 (§14) |
 | PR-COMM-02 | BLOCKER | P9 | Política de cancelamento/arrependimento e identificação do fornecedor | Aberto; §8 |
 | PR-COMM-03 | HIGH | P9 | Retorno do checkout: o modal já lê o estado do servidor; falta tratar o retorno cancelado e o disclosure comercial (inclui BILL-10, COMM-04) | Parcial em P2A; §2, §8 |

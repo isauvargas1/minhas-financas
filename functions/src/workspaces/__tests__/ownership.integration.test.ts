@@ -5,6 +5,7 @@ import {
   requireFirestoreEmulator,
   seedActiveAccount,
   seedMember,
+  seedPaidPlan,
   seedWorkspace,
 } from "../../shared/testSupport/kernelTestSupport";
 import {
@@ -37,6 +38,10 @@ const team = async () => {
   const [owner, adminUid, member, viewer] = await Promise.all([
     account("owner"), account("admin"), account("member"), account("viewer"),
   ]);
+  // Quatro membros ativos: qualquer destino da transferência precisa de um
+  // plano que os comporte (P2B.1). A capacidade é testada em billing.
+  await Promise.all([owner, adminUid, member, viewer]
+    .map((uid) => seedPaidPlan(uid, "pro")));
   await seedWorkspace({workspaceId, ownerId: owner});
   await Promise.all([
     seedMember(workspaceId, adminUid, "admin"),

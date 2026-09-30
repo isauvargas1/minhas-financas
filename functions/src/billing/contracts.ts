@@ -1,6 +1,6 @@
 import {z} from "zod";
 
-import {idempotencyKeySchema} from "../shared/ids";
+import {idempotencyKeySchema, workspaceIdSchema} from "../shared/ids";
 import {PAID_PLAN_IDS} from "./catalog";
 
 /**
@@ -23,6 +23,13 @@ export const createCheckoutSessionPayloadSchema = z.object({
 export const createBillingPortalSessionPayloadSchema = z.object({
   returnUrl: returnUrlSchema,
 }).strict();
+
+/** P2B.1: o workspace é validado pelo resolvedor canônico (membro ativo). */
+export const getWorkspaceEntitlementPayloadSchema = z.object({
+  workspaceId: workspaceIdSchema,
+}).strict();
+
+export const getAccountUsagePayloadSchema = z.object({}).strict();
 
 export type CreateCheckoutSessionPayload =
   z.infer<typeof createCheckoutSessionPayloadSchema>;

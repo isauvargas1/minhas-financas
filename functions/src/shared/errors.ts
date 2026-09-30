@@ -25,6 +25,7 @@ export type ApplicationErrorCode =
   | "idempotency_conflict"
   | "idempotency_replay"
   | "domain_precondition_failed"
+  | "quota_exceeded"
   | "not_found"
   | "already_exists"
   | "internal";
@@ -47,6 +48,10 @@ const HTTPS_CODE_BY_APPLICATION_CODE: Record<
   idempotency_conflict: "failed-precondition",
   idempotency_replay: "internal",
   domain_precondition_failed: "failed-precondition",
+  // Limite do plano (P2B). Distinto de `domain_precondition_failed`: o
+  // cliente oferece upgrade, e os detalhes públicos são só recurso, plano,
+  // limite, uso e período (`billing/quota.ts`).
+  quota_exceeded: "resource-exhausted",
   not_found: "not-found",
   already_exists: "already-exists",
   internal: "internal",

@@ -1,5 +1,6 @@
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { QueryDocumentSnapshot } from 'firebase/firestore';
+import { billingKeys } from '../billing/queryKeys';
 import * as api from './api';
 import type { WorkspaceType } from './types';
 
@@ -23,6 +24,8 @@ export const useCreateWorkspace = () => {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: keys.all });
+            // Consome um workspace próprio da quota da conta.
+            queryClient.invalidateQueries({ queryKey: billingKeys.accountUsagePrefix });
         }
     });
 };
@@ -73,6 +76,9 @@ export const useTransferOwnership = (workspaceId: string) => {
             api.transferWorkspaceOwnership(workspaceId, newOwnerId),
         onSettled: () => {
             queryClient.invalidateQueries({ queryKey: keys.members(workspaceId) });
+            // O plano do workspace passa a ser o do novo owner, e o slot muda de conta.
+            queryClient.invalidateQueries({ queryKey: billingKeys.workspaceEntitlementPrefix });
+            queryClient.invalidateQueries({ queryKey: billingKeys.accountUsagePrefix });
         }
     });
 };

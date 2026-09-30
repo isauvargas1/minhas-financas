@@ -153,6 +153,9 @@ const seedGoal = async (
 /** Coleções criadas pelo seed; qualquer outra foi escrita pela operação. */
 const SEEDED_COLLECTIONS = new Set([
   "members",
+  // Estado de quota de membros que o seed do kernel cria com o workspace
+  // (P2B.1); nenhuma operação de investimento grava nele.
+  "quota_state",
   "investment_accounts",
   "investment_assets",
 ]);

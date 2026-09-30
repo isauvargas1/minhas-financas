@@ -16,8 +16,8 @@ import {normalizeEmail} from "./inviteTokens";
  * Todos são server-owned: as Rules negam escrita do cliente em cada um deles.
  *
  * - `users/{uid}`: perfil mínimo (`uid`, `email`, `displayName`, `photoURL`,
- *   `status`, `createdAt`, `updatedAt`). O webhook do Stripe acrescenta os
- *   campos de cobrança.
+ *   `status`, `createdAt`, `updatedAt`). Cobrança não vive aqui: o estado
+ *   canônico é `billing_accounts/{uid}`, gravado pelo backend (P2A).
  * - `workspaces/{id}`: `ownerId` é só desnormalizado (D-03); `status` é
  *   `active` ou `archived`; moeda fixa BRL (D-16).
  * - `workspaces/{id}/members/{uid}`: única fonte de papel; `status` é

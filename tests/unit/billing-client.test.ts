@@ -14,6 +14,7 @@ import {
   hasManageableSubscription,
   isPaidEntitlementActive,
 } from '../../src/modules/billing/entitlement.ts';
+import { billingKeys } from '../../src/modules/billing/queryKeys.ts';
 import type {
   BillingAccount,
   SubscriptionStatus,
@@ -70,6 +71,8 @@ test('cada wrapper envia exatamente as chaves do schema estrito do backend', asy
   await callables.getBillingCatalog();
   await callables.createCheckoutSession({ planId: 'pro', returnUrl: 'https://app.test' });
   await callables.createBillingPortalSession({ returnUrl: 'https://app.test' });
+  await callables.getWorkspaceEntitlement('ws-1');
+  await callables.getAccountUsage();
 
   assert.deepEqual(calls.map((call) => call.name), [...BILLING_CALLABLES]);
   for (const { name, payload } of calls) {
@@ -264,9 +267,92 @@ test('billing só começa depois do bootstrap: BillingProvider abaixo do Workspa
 
   // Catálogo e listener ficam desligados até a conta do usuário atual estar pronta.
   const provider = read(join(srcRoot, 'modules', 'billing', 'BillingContext.tsx'));
-  assert.match(provider, /const \{ isAccountReady \} = useWorkspace\(\);/);
+  assert.match(provider, /const \{ isAccountReady, activeWorkspace \} = useWorkspace\(\);/);
   assert.match(provider, /const uid = user && isAccountReady \? user\.uid : null;/);
   assert.match(provider, /enabled: uid !== null,/);
   const workspace = read(join(srcRoot, 'contexts', 'WorkspaceContext.tsx'));
   assert.match(workspace, /isAccountReady: user !== null && accountReadyUid === user\.uid,/);
+});
+
+// P2B.1 — plano da conta × plano do workspace.
+
+test('entitlement do workspace envia só o workspaceId; uso da conta não envia nada', async () => {
+  const { calls, callables } = recorder();
+  await callables.getWorkspaceEntitlement('ws-9');
+  await callables.getAccountUsage();
+  assert.deepEqual(calls, [
+    { name: 'getWorkspaceEntitlement', payload: { workspaceId: 'ws-9' } },
+    { name: 'getAccountUsage', payload: {} },
+  ]);
+});
+
+test('chaves de billing levam uid (e workspace): nada é reaproveitado entre sessões', () => {
+  assert.notDeepEqual(billingKeys.accountUsage('a'), billingKeys.accountUsage('b'));
+  assert.notDeepEqual(
+    billingKeys.workspaceEntitlement('a', 'ws-1'),
+    billingKeys.workspaceEntitlement('b', 'ws-1'),
+  );
+  assert.notDeepEqual(
+    billingKeys.workspaceEntitlement('a', 'ws-1'),
+    billingKeys.workspaceEntitlement('a', 'ws-2'),
+  );
+  const prefixOf = (key: readonly unknown[], prefix: readonly unknown[]) =>
+    prefix.every((part, index) => key[index] === part);
+  assert.ok(prefixOf(billingKeys.accountUsage('a'), billingKeys.accountUsagePrefix));
+  assert.ok(prefixOf(
+    billingKeys.workspaceEntitlement('a', 'ws-1'),
+    billingKeys.workspaceEntitlementPrefix,
+  ));
+});
+
+test('provider: workspace pelo owner (servidor), conta pelo próprio billing', () => {
+  const provider = read(join(srcRoot, 'modules', 'billing', 'BillingContext.tsx'));
+  assert.match(provider, /queryKey: billingKeys\.workspaceEntitlement\(uid, workspaceId\),/);
+  assert.match(provider, /queryFn: \(\) => getWorkspaceEntitlement\(workspaceId as string\),/);
+  assert.match(provider, /enabled: workspaceId !== null,/);
+  assert.match(provider, /const workspaceId = uid && activeWorkspace\.id !== 'loading' \? activeWorkspace\.id : null;/);
+  assert.match(provider, /queryKey: billingKeys\.accountUsage\(uid\),/);
+  // Sem usuário (logout) nenhum valor anterior é exposto.
+  assert.match(provider, /const accountUsage = uid \? usageQuery\.data \?\? null : null;/);
+  assert.match(provider, /const workspaceEntitlement = workspaceId \? workspaceQuery\.data \?\? null : null;/);
+  // Foco na janela refaz, sem polling.
+  assert.match(provider, /refetchOnWindowFocus: true,/);
+  assert.equal(/refetchInterval/.test(provider), false, 'sem polling');
+  // O único billing lido direto é o da própria conta (uid da sessão pronta).
+  assert.match(provider, /subscribeBillingAccount\(\s*uid,/);
+});
+
+test('consumidores usam o plano certo: conta no Header, workspace nos recursos', () => {
+  const header = read(join(srcRoot, 'components', 'Header.tsx'));
+  assert.match(header, /checkAccountLimit\('workspaces'\)/);
+  assert.equal(/checkWorkspaceLimit/.test(header), false);
+  for (const file of ['TransactionsView.tsx', 'RecentTransactions.tsx', 'SplitGroupsView.tsx']) {
+    const content = read(join(srcRoot, 'components', file));
+    assert.match(content, /checkWorkspaceLimit\('(transactionsPerMonth|splitGroups)'/, file);
+    assert.equal(/checkAccountLimit|accountPlan|currentPlan/.test(content), false, file);
+  }
+  for (const path of sourceFiles) {
+    const content = read(path);
+    assert.equal(/\bcheckLimit\b/.test(content), false, `${path}: checkLimit ambíguo`);
+    assert.equal(/\bcurrentPlan\b/.test(content) && content.includes('useBilling'), false,
+      `${path}: currentPlan ambíguo`);
+  }
+});
+
+test('criação e transferência invalidam uso da conta e plano do workspace', () => {
+  const hooks = read(join(srcRoot, 'modules', 'workspaces', 'hooks.ts'));
+  const create = hooks.slice(hooks.indexOf('useCreateWorkspace'), hooks.indexOf('useWorkspaceMembers'));
+  assert.match(create, /billingKeys\.accountUsagePrefix/);
+  const transfer = hooks.slice(hooks.indexOf('useTransferOwnership'), hooks.indexOf('useRemoveMember'));
+  assert.match(transfer, /billingKeys\.workspaceEntitlementPrefix/);
+  assert.match(transfer, /billingKeys\.accountUsagePrefix/);
+});
+
+test('limite do plano (resource-exhausted) é erro de negócio com mensagem do backend', () => {
+  // `errors.ts` importa o SDK; a guarda é estática sobre o conjunto de códigos.
+  const errors = read(join(srcRoot, 'modules', 'workspaces', 'errors.ts'));
+  const codes = /const BUSINESS_CODES = new Set\(\[([\s\S]*?)\]\);/.exec(errors);
+  assert.ok(codes, 'BUSINESS_CODES');
+  assert.match(codes[1], /'functions\/resource-exhausted'/);
+  assert.equal(/'functions\/internal'/.test(codes[1]), false);
 });
