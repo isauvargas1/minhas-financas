@@ -36,15 +36,20 @@ import {AI_CREDIT_COSTS, type AiCreditOperation} from "./policy";
  * Uma única transação decide e consome tudo, no mesmo commit:
  *
  * 1. relê a autorização do ator (conta, workspace, membership e papel);
- * 2. resolve o owner canônico do workspace e confirma o membership `owner`
- *    ativo dele (D-01: o pool de créditos é do titular);
- * 3. lê o billing do titular e deriva o plano efetivo no relógio do servidor
- *    (`effectiveEntitlement`: grace e cancelamento vencem sem webhook);
- * 4. lê o uso do mês civil de São Paulo, o recibo da chave e o rate limit
- *    horário do ator no workspace, num único `getAll`;
- * 5. recusa chave repetida (mesmo conteúdo: já processada; outro conteúdo:
- *    conflito), rate limit estourado e `usados + custo > limite`;
- * 6. grava o contador do mês, cria o recibo e confirma o rate limit.
+ * 2. resolve o owner canônico do workspace (D-01: o pool de créditos é do
+ *    titular);
+ * 3. lê, num único `getAll`, o recibo da chave (sob o **ator**), o
+ *    membership do owner, o billing do owner, o uso do mês civil de São
+ *    Paulo e o rate limit horário do ator no workspace;
+ * 4. recusa chave repetida antes de tudo (mesmo conteúdo: já processada;
+ *    outro conteúdo: conflito), qualquer que seja o owner atual — depois de
+ *    uma transferência, a mesma chave não debita o owner novo nem o antigo;
+ * 5. confirma o membership `owner` ativo e deriva o plano efetivo no relógio
+ *    do servidor (`effectiveEntitlement`: grace e cancelamento vencem sem
+ *    webhook);
+ * 6. recusa rate limit estourado e `usados + custo > limite`;
+ * 7. grava o contador do mês do owner, cria o recibo do ator (com o owner
+ *    debitado) e confirma o rate limit.
  *
  * Qualquer recusa lança antes da primeira escrita: nada é gravado, nem o
  * rate limit. Chamadas concorrentes do mesmo titular leem o mesmo documento
@@ -90,8 +95,11 @@ export const admitAiCall = (
   const operation = rateLimit.operation;
   const creditCost = AI_CREDIT_COSTS[request.creditOperation];
   // Fora da transação: o hash de um documento de até ~6 MB não é refeito a
-  // cada tentativa.
-  const receiptId = aiUsageReceiptId(actor.uid, request.idempotencyKey);
+  // cada tentativa. O recibo pertence a quem enviou a chave, não ao owner.
+  const receiptRef = aiUsageReceiptRef(
+    actor.uid,
+    aiUsageReceiptId(actor.uid, request.idempotencyKey),
+  );
   const requestHash = aiRequestHash({
     operation,
     idempotencyKey: request.idempotencyKey,
@@ -106,18 +114,14 @@ export const admitAiCall = (
     // acesso ou foi rebaixado não consome crédito nem rate limit.
     const {workspace} = await reassertWorkspaceActor(transaction, actor);
     const ownerUid = canonicalOwnerCandidate(workspace);
-    const receiptRef = aiUsageReceiptRef(ownerUid, receiptId);
-    const [ownerMember, billing, usage, receipt, rateLimitSnapshot] =
+    const [receipt, ownerMember, billing, usage, rateLimitSnapshot] =
       await transaction.getAll(
+        receiptRef,
         workspaceMemberRef(actor.workspaceId, ownerUid),
         billingAccountRef(ownerUid),
         aiUsageRef(ownerUid, periodKey),
-        receiptRef,
         workspaceRateLimitRef(actor.workspaceId, actor.uid, rateLimit),
       );
-    assertCanonicalOwnerMembership(ownerMember);
-    const entitlement = entitlementAt(billing, nowMs);
-    const used = readAiUsedCredits(usage, ownerUid, periodKey);
 
     if (receipt.exists) {
       if (
@@ -139,6 +143,9 @@ export const admitAiCall = (
       );
     }
 
+    assertCanonicalOwnerMembership(ownerMember);
+    const entitlement = entitlementAt(billing, nowMs);
+    const used = readAiUsedCredits(usage, ownerUid, periodKey);
     const rateLimitReservation = reserveRateLimitFromSnapshot(
       transaction,
       rateLimitSnapshot,
@@ -161,6 +168,7 @@ export const admitAiCall = (
       operation,
       actorId: actor.uid,
       workspaceId: actor.workspaceId,
+      billingOwnerUid: ownerUid,
       monthKey: periodKey,
       creditCost,
       requestHash,

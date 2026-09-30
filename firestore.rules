@@ -1399,6 +1399,15 @@ match /split_shares/{docId} {
         allow read, write: if false;
       }
 
+      // P2B.2 — recibos de consumo de crédito de IA, sob quem enviou a
+      // chave (a idempotência é do ator; o crédito, do titular). Só
+      // metadados e hash; server-only nos dois sentidos: nem o próprio
+      // usuário lê, lista ou grava. Nenhuma regra de collection group
+      // (`{path=**}`) alcança esta coleção.
+      match /ai_usage_receipts/{receiptId} {
+        allow read, write: if false;
+      }
+
       // Índice de participação: listagem da interface, gravado só pelo
       // backend na mesma transação que altera o membership. Não tem papel e
       // não autoriza nada; o papel é lido de `workspaces/{id}/members/{uid}`.
@@ -1419,11 +1428,11 @@ match /split_shares/{docId} {
       allow get: if hasActiveAccount() && request.auth.uid == billingOwnerUid;
       allow list, create, update, delete: if false;
 
-      // Trilha append-only de billing, estado de quota (P2B.1) e créditos
-      // de IA do titular (P2B.2: `ai_usage/{YYYY-MM}` e
-      // `ai_usage_receipts/{id}`): backend-only nos dois sentidos, sem
-      // leitura nem listagem nem para o próprio titular. Nenhuma regra de
-      // collection group (`{path=**}`) alcança essas coleções.
+      // Trilha append-only de billing, estado de quota (P2B.1) e uso mensal
+      // de créditos de IA do titular (P2B.2: `ai_usage/{YYYY-MM}`):
+      // backend-only nos dois sentidos, sem leitura nem listagem nem para o
+      // próprio titular. Nenhuma regra de collection group (`{path=**}`)
+      // alcança essas coleções.
       match /{document=**} {
         allow read, write: if false;
       }

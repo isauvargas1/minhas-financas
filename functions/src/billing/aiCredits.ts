@@ -4,28 +4,32 @@ import {FieldValue} from "firebase-admin/firestore";
 import {sha256, stableStringify} from "../shared/hashing";
 import {idempotencyIdentity} from "../shared/idempotency";
 import {RETENTION_DAYS, expiresInDays} from "../shared/retention";
+import {userProfileRef} from "../shared/workspaceAuth";
 import {billingAccountRef} from "./model";
 import {quotaStateUnavailable} from "./quota";
 
 /**
  * Estado server-owned dos créditos de IA (P2B.2, PR-AI-03, D-01, D-11).
  *
- * O pool é do **billing owner**, não do executor nem do workspace: todos os
- * membros autorizados de todos os workspaces de que o titular é owner
- * consomem o mesmo teto mensal (`aiCreditsPerMonth` do plano efetivo dele).
+ * O **crédito** é do billing owner; a **chave de idempotência** é do ator.
  *
  * - `billing_accounts/{ownerUid}/ai_usage/{YYYY-MM}`: créditos usados no mês
- *   civil de `America/Sao_Paulo`. Documento ausente = 0; a primeira chamada
- *   aceita do mês o cria. Sem cron de reset, sem varredura de meses
- *   anteriores e sem contador em memória. Meses passados não são mais
- *   escritos. Sem TTL nesta etapa (ciclo de vida em P8).
- * - `billing_accounts/{ownerUid}/ai_usage_receipts/{receiptId}`: recibo da
- *   chamada aceita, com TTL de 90 dias. Só metadados e o hash da intenção:
- *   nunca pergunta, transcrição, documento, prompt, resposta ou JSON
- *   extraído.
+ *   civil de `America/Sao_Paulo`, no pool do titular — todos os membros
+ *   autorizados de todos os workspaces de que ele é owner consomem o mesmo
+ *   teto (`aiCreditsPerMonth` do plano efetivo dele). Documento ausente = 0;
+ *   a primeira chamada aceita do mês o cria. Sem cron de reset, sem
+ *   varredura de meses anteriores e sem contador em memória. Meses passados
+ *   não são mais escritos. Sem TTL nesta etapa (ciclo de vida em P8).
+ * - `users/{actorUid}/ai_usage_receipts/{receiptId}`: recibo da chamada
+ *   aceita, sob quem enviou a chave. Continua encontrável depois de troca de
+ *   plano ou de transferência do workspace: a mesma chave nunca debita de
+ *   novo, nem o owner antigo nem o novo. Registra o `billingOwnerUid`
+ *   debitado. TTL de 90 dias. Só metadados e o hash da intenção: nunca
+ *   pergunta, transcrição, documento, prompt, resposta ou JSON extraído.
  *
  * As Rules negam leitura, listagem e escrita do cliente nos dois (curinga de
- * `billing_accounts`). Estado presente e malformado falha fechado.
+ * `billing_accounts` e regra explícita em `users/{uid}/ai_usage_receipts`).
+ * Estado presente e malformado falha fechado.
  */
 export const AI_USAGE_COLLECTION = "ai_usage";
 export const AI_USAGE_RECEIPTS_COLLECTION = "ai_usage_receipts";
@@ -39,11 +43,12 @@ export const aiUsageRef = (
 ): admin.firestore.DocumentReference =>
   billingAccountRef(ownerUid).collection(AI_USAGE_COLLECTION).doc(monthKey);
 
+/** Recibo sob o ator: independe do owner vigente do workspace. */
 export const aiUsageReceiptRef = (
-  ownerUid: string,
+  actorUid: string,
   receiptId: string,
 ): admin.firestore.DocumentReference =>
-  billingAccountRef(ownerUid)
+  userProfileRef(actorUid)
     .collection(AI_USAGE_RECEIPTS_COLLECTION)
     .doc(receiptId);
 
@@ -114,6 +119,8 @@ export interface AiUsageReceipt {
   operation: string;
   actorId: string;
   workspaceId: string;
+  /** Titular efetivamente debitado nesta chamada (auditoria). */
+  billingOwnerUid: string;
   monthKey: string;
   creditCost: number;
   requestHash: string;
@@ -129,6 +136,7 @@ export const createAiUsageReceipt = (
     operation: receipt.operation,
     actorId: receipt.actorId,
     workspaceId: receipt.workspaceId,
+    billingOwnerUid: receipt.billingOwnerUid,
     monthKey: receipt.monthKey,
     creditCost: receipt.creditCost,
     requestHash: receipt.requestHash,

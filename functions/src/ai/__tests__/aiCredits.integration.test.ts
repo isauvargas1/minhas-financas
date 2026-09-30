@@ -181,9 +181,9 @@ const setUsed = async (owner: string, used: number, period = PERIOD) => {
   });
 };
 
-const receiptsOf = async (owner: string) =>
-  (await db().collection(`billing_accounts/${owner}/ai_usage_receipts`)
-    .get()).docs;
+/** Recibos de idempotência do **ator** (não do owner). */
+const receiptsOf = async (actor: string) =>
+  (await db().collection(`users/${actor}/ai_usage_receipts`).get()).docs;
 
 const rateLimitDoc = (
   workspaceId: string,
@@ -200,7 +200,7 @@ const assertNothingConsumed = async (
   actor: string,
 ) => {
   assert.equal((await usageDoc(owner)).exists, false, "uso gravado");
-  assert.equal((await receiptsOf(owner)).length, 0, "recibo gravado");
+  assert.equal((await receiptsOf(actor)).length, 0, "recibo gravado");
   assert.equal((await rateLimitDoc(workspaceId, actor)).exists, false,
     "rate limit consumido");
 };
@@ -309,7 +309,14 @@ test("último crédito disputado por membros de dois workspaces: " +
   }
   assert.equal(await usedCredits(owner), 150);
   assert.equal(provider.calls.length, 1);
-  assert.equal((await receiptsOf(owner)).length, 1);
+  // Recibos são do ator: um só entre os três atores que disputaram.
+  const receipts = [
+    ...await receiptsOf(owner),
+    ...await receiptsOf(first),
+    ...await receiptsOf(second),
+  ];
+  assert.equal(receipts.length, 1);
+  assert.equal(receipts[0].get("billingOwnerUid"), owner);
 });
 
 test("limite atingido: provedor não é chamado e nada é gravado",
@@ -348,11 +355,15 @@ test("membro consome o pool do owner, não o próprio", async () => {
   await provider.extractText(member, workspaceId);
   assert.equal(await usedCredits(owner), 2);
   assert.equal((await usageDoc(member)).exists, false);
-  const receipts = await receiptsOf(owner);
+  // O recibo é do membro (ator); o débito, do owner.
+  assert.equal((await receiptsOf(owner)).length, 0);
+  const receipts = await receiptsOf(member);
   assert.deepEqual(receipts.map((doc) => doc.get("actorId")),
     [member, member]);
   assert.deepEqual(receipts.map((doc) => doc.get("workspaceId")),
     [workspaceId, workspaceId]);
+  assert.deepEqual(receipts.map((doc) => doc.get("billingOwnerUid")),
+    [owner, owner]);
   // Membro recusado vê só o necessário: sem o uid do titular.
   await setUsed(owner, 150);
   await expectCreditsExhausted(provider.analyze(member, workspaceId),
@@ -417,6 +428,126 @@ test("após a transferência, os usos seguintes consomem o novo owner",
     await expectCreditsExhausted(provider.analyze(ownerA, workspaceId),
       {planId: "pro", limit: 150, used: 150}, ownerB);
   });
+
+// ---------------------------------------------------------------------------
+// Idempotência do ator através da transferência de ownership
+// ---------------------------------------------------------------------------
+
+/**
+ * O membro `actor` consome com a chave `key` no workspace de A; depois o
+ * workspace é transferido para B. O recibo é do ator, então continua
+ * encontrável com o owner novo.
+ */
+const consumedThenTransferred = async (prefix: string) => {
+  const ownerA = await account(`${prefix}-a`, "pro");
+  const ownerB = await account(`${prefix}-b`, "pro");
+  const actor = await account(`${prefix}-m`);
+  const workspaceId = await newWorkspace(ownerA, [
+    [ownerB, "member"],
+    [actor, "member"],
+  ]);
+  const provider = harness();
+  const payload = analysisPayload(workspaceId);
+  await provider.analyze(actor, workspaceId, payload);
+  assert.equal(await usedCredits(ownerA), 1);
+  await call(transferWorkspaceOwnership, ownerA, {
+    workspaceId,
+    newOwnerId: ownerB,
+    idempotencyKey: idempotencyKey(),
+  });
+  assert.equal(
+    (await db().doc(`workspaces/${workspaceId}`).get()).get("ownerId"),
+    ownerB,
+  );
+  return {ownerA, ownerB, actor, workspaceId, provider, payload};
+};
+
+test("mesma chave e mesmo conteúdo depois da transferência: recusa " +
+  "idempotente, sem debitar A nem B e sem chamar o provedor", async () => {
+  const {ownerA, ownerB, actor, workspaceId, provider, payload} =
+    await consumedThenTransferred("ai-idem-tr");
+  await expectHttpsError(provider.analyze(actor, workspaceId, payload),
+    "failed-precondition", {message: AI_REQUEST_ALREADY_PROCESSED_MESSAGE});
+  assert.equal(await usedCredits(ownerA), 1, "A debitado de novo");
+  assert.equal((await usageDoc(ownerB)).exists, false, "B debitado");
+  assert.equal(provider.calls.length, 1, "provedor chamado de novo");
+  const receipts = await receiptsOf(actor);
+  assert.equal(receipts.length, 1);
+  // O recibo continua registrando quem pagou a chamada original.
+  assert.equal(receipts[0].get("billingOwnerUid"), ownerA);
+  assert.equal((await rateLimitDoc(workspaceId, actor)).get("count"), 1);
+});
+
+test("mesma chave com outro conteúdo depois da transferência: conflito, " +
+  "sem consumo nem chamada", async () => {
+  const {ownerA, ownerB, actor, workspaceId, provider, payload} =
+    await consumedThenTransferred("ai-idem-tr-conf");
+  await expectHttpsError(
+    provider.analyze(actor, workspaceId, {
+      ...payload,
+      question: "Pergunta diferente com a mesma chave?",
+    }),
+    "failed-precondition",
+    {message: AI_IDEMPOTENCY_CONFLICT_MESSAGE},
+  );
+  await expectHttpsError(
+    provider.extractText(actor, workspaceId, {
+      idempotencyKey: payload.idempotencyKey,
+    }),
+    "failed-precondition",
+    {message: AI_IDEMPOTENCY_CONFLICT_MESSAGE},
+  );
+  assert.equal(await usedCredits(ownerA), 1);
+  assert.equal((await usageDoc(ownerB)).exists, false);
+  assert.equal(provider.calls.length, 1);
+  assert.equal((await receiptsOf(actor)).length, 1);
+  assert.equal((await rateLimitDoc(workspaceId, actor)).get("count"), 1);
+});
+
+test("chave nova depois da transferência consome o novo owner e chama o " +
+  "provedor", async () => {
+  const {ownerA, ownerB, actor, workspaceId, provider, payload} =
+    await consumedThenTransferred("ai-idem-tr-new");
+  await provider.analyze(actor, workspaceId, {
+    ...payload,
+    idempotencyKey: idempotencyKey(),
+  });
+  assert.equal(await usedCredits(ownerA), 1, "antigo titular intacto");
+  assert.equal(await usedCredits(ownerB), 1);
+  assert.equal(provider.calls.length, 2);
+  assert.deepEqual(
+    (await receiptsOf(actor)).map((doc) => doc.get("billingOwnerUid")).sort(),
+    [ownerA, ownerB].sort(),
+  );
+});
+
+test("mesma chave disputada em workspaces de owners diferentes: um só " +
+  "consumo e uma só chamada", async () => {
+  const ownerA = await account("ai-idem-x-a", "pro");
+  const ownerB = await account("ai-idem-x-b", "pro");
+  const actor = await account("ai-idem-x-m");
+  const inA = await newWorkspace(ownerA, [[actor, "member"]]);
+  const inB = await newWorkspace(ownerB, [[actor, "member"]]);
+  const key = idempotencyKey();
+  const provider = harness();
+  const {fulfilled, rejectedCodes} = await settle([
+    provider.analyze(actor, inA, {idempotencyKey: key}),
+    provider.analyze(actor, inB, {idempotencyKey: key}),
+  ]);
+  assert.equal(fulfilled, 1);
+  // A perdedora encontra o recibo do ator com outro workspace (conflito) ou
+  // esgota a contenção (`aborted`). Nunca `internal`.
+  for (const code of rejectedCodes) {
+    assert.ok(["failed-precondition", "aborted"].includes(String(code)),
+      String(code));
+  }
+  assert.equal(provider.calls.length, 1);
+  assert.equal(
+    ((await usedCredits(ownerA)) ?? 0) + ((await usedCredits(ownerB)) ?? 0),
+    1,
+  );
+  assert.equal((await receiptsOf(actor)).length, 1);
+});
 
 // ---------------------------------------------------------------------------
 // Plano efetivo no relógio do servidor
@@ -594,14 +725,18 @@ test("recibo guarda só metadados e hash, com TTL de 90 dias", async () => {
     dataBase64: secrets.document,
   });
 
-  const receipts = await receiptsOf(owner);
+  // Recibos sob o ator (membro), nunca sob o titular.
+  assert.equal((await receiptsOf(owner)).length, 0);
+  const receipts = await receiptsOf(member);
   assert.equal(receipts.length, 3);
   for (const receipt of receipts) {
     assert.deepEqual(Object.keys(receipt.data()).sort(), [
-      "actorId", "createdAt", "creditCost", "expiresAt", "monthKey",
-      "operation", "requestHash", "workspaceId",
+      "actorId", "billingOwnerUid", "createdAt", "creditCost", "expiresAt",
+      "monthKey", "operation", "requestHash", "workspaceId",
     ]);
+    assert.equal(receipt.ref.parent.path, `users/${member}/ai_usage_receipts`);
     assert.equal(receipt.get("actorId"), member);
+    assert.equal(receipt.get("billingOwnerUid"), owner);
     assert.equal(receipt.get("workspaceId"), workspaceId);
     assert.equal(receipt.get("monthKey"), PERIOD);
     assert.equal(receipt.get("creditCost"), 1);

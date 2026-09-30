@@ -1,5 +1,6 @@
 import { extractTransactionFromDocument, extractTransactionFromText } from '../modules/ai/api';
 import { AI_CREDITS_EXHAUSTED_MESSAGE, isAiCreditsExhausted } from '../modules/ai/callables';
+import { readFileAsBase64 } from '../modules/ai/documentFile';
 
 import React, { useState, FormEvent, useEffect, useRef, useMemo } from 'react';
 import {
@@ -692,36 +693,27 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
         setIsAILoading(true);
         setAIStatus("Analisando comprovante...");
 
+        // Leitura e chamada são aguardadas aqui: o carregamento e os botões de
+        // IA só voltam no `finally`, depois do fim real da extração. Um único
+        // `catch` cobre erro de leitura, da callable e créditos esgotados.
         try {
-            const reader = new FileReader();
-            reader.onload = async () => {
-                // O erro da chamada acontece aqui dentro, depois da leitura do
-                // arquivo; o `catch` externo não o alcançaria.
-                try {
-                    const base64Data = (reader.result as string).split(',')[1];
-                    // A extração roda no backend: a chave do modelo nunca chega ao
-                    // navegador. Antes, `vite.config.ts` injetava a credencial real
-                    // no bundle servido a qualquer visitante. Cada envio é uma
-                    // ação nova, com chave de idempotência própria.
-                    const response = await extractTransactionFromDocument({
-                        workspaceId: activeWorkspace.id,
-                        mimeType: file.type,
-                        dataBase64: base64Data,
-                    });
-                    const result = response.extracted ?? {};
-                    applyAIData(result);
-                    setAIStatus("Comprovante lido com sucesso!");
-                    setTimeout(() => setAIStatus(null), 3000);
-                } catch (error) {
-                    console.error("AI Document Scan Error:", error);
-                    showAIError(error, "Erro ao analisar documento.");
-                }
-            };
-            reader.readAsDataURL(file);
+            const base64Data = await readFileAsBase64(file);
+            // A extração roda no backend: a chave do modelo nunca chega ao
+            // navegador. Antes, `vite.config.ts` injetava a credencial real
+            // no bundle servido a qualquer visitante. Cada envio é uma
+            // ação nova, com chave de idempotência própria.
+            const response = await extractTransactionFromDocument({
+                workspaceId: activeWorkspace.id,
+                mimeType: file.type,
+                dataBase64: base64Data,
+            });
+            const result = response.extracted ?? {};
+            applyAIData(result);
+            setAIStatus("Comprovante lido com sucesso!");
+            setTimeout(() => setAIStatus(null), 3000);
         } catch (error) {
             console.error("AI Document Scan Error:", error);
-            setAIStatus("Erro ao analisar documento.");
-            setTimeout(() => setAIStatus(null), 3000);
+            showAIError(error, "Erro ao analisar documento.");
         } finally {
             setIsAILoading(false);
             if (fileInputRef.current) fileInputRef.current.value = '';

@@ -11,6 +11,7 @@ import {
   isAiCreditsExhausted,
   type AiCallableName,
 } from '../../src/modules/ai/callables.ts';
+import { readFileAsBase64 } from '../../src/modules/ai/documentFile.ts';
 
 /**
  * Contrato cliente das callables de IA (P2B.2, PR-AI-03).
@@ -191,4 +192,89 @@ test('contenção (functions/aborted) é erro de negócio com a mensagem do back
   assert.ok(codes, 'BUSINESS_CODES');
   assert.match(codes[1], /'functions\/aborted'/);
   assert.equal(/'functions\/internal'/.test(codes[1]), false);
+});
+
+// --- Comprovante: leitura aguardada e carregamento até o fim --------------
+
+/** `FileReader` falso: o teste decide quando a leitura termina. */
+class FakeReader {
+  result: string | null = null;
+  error: Error | null = null;
+  onload: (() => void) | null = null;
+  onerror: (() => void) | null = null;
+  onabort: (() => void) | null = null;
+  started: Blob | null = null;
+  readAsDataURL(file: Blob) {
+    this.started = file;
+  }
+}
+
+const readWith = (reader: FakeReader, file = new Blob(['comprovante'])) =>
+  readFileAsBase64(file, () => reader as unknown as FileReader);
+
+test('leitura do comprovante é uma Promise que só resolve no fim da leitura', async () => {
+  const reader = new FakeReader();
+  const file = new Blob(['comprovante']);
+  let settled = false;
+  const pending = readWith(reader, file).then((value) => {
+    settled = true;
+    return value;
+  });
+  assert.equal(reader.started, file);
+  await new Promise((resolve) => setTimeout(resolve, 5));
+  assert.equal(settled, false, 'resolveu antes do onload');
+  reader.result = 'data:image/png;base64,QUJDRA==';
+  reader.onload?.();
+  assert.equal(await pending, 'QUJDRA==');
+});
+
+test('erro, cancelamento e arquivo vazio rejeitam a leitura do comprovante', async () => {
+  const failing = new FakeReader();
+  const failed = readWith(failing);
+  failing.error = new Error('NotReadableError');
+  failing.onerror?.();
+  await assert.rejects(failed, /NotReadableError/);
+
+  const aborted = new FakeReader();
+  const abortedRead = readWith(aborted);
+  aborted.onabort?.();
+  await assert.rejects(abortedRead, /document_file_read_aborted/);
+
+  const empty = new FakeReader();
+  const emptyRead = readWith(empty);
+  empty.result = 'data:,';
+  empty.onload?.();
+  await assert.rejects(emptyRead, /document_file_empty/);
+});
+
+test('comprovante: carregamento e botões de IA só voltam depois da leitura e da chamada', () => {
+  const modal = read(join(srcRoot, 'components', 'TransactionModal.tsx'));
+  assert.equal(/\.onload\s*=\s*async/.test(modal), false, 'onload assíncrono solto');
+  const handler = modal.slice(
+    modal.indexOf('const handleFileUpload'),
+    modal.indexOf('// --- AI LOGIC: Voice Entry ---'),
+  );
+  const steps = [
+    'setIsAILoading(true);',
+    'try {',
+    'await readFileAsBase64(file);',
+    'await extractTransactionFromDocument({',
+    '} catch (error) {',
+    'showAIError(error, "Erro ao analisar documento.");',
+    '} finally {',
+    'setIsAILoading(false);',
+    "if (fileInputRef.current) fileInputRef.current.value = '';",
+  ];
+  let cursor = -1;
+  for (const step of steps) {
+    const index = handler.indexOf(step, cursor + 1);
+    assert.ok(index > cursor, `ausente ou fora de ordem: ${step}`);
+    cursor = index;
+  }
+  // Nenhum outro ponto libera o carregamento ou limpa o input antes do fim.
+  assert.equal(handler.split('setIsAILoading(false)').length - 1, 1);
+  assert.equal(handler.split("fileInputRef.current.value = ''").length - 1, 1);
+  assert.equal(/new FileReader\(/.test(handler), false);
+  // Os dois botões (comprovante e voz) seguem presos ao mesmo estado.
+  assert.equal((modal.match(/disabled=\{isAILoading\}/g) ?? []).length, 2);
 });

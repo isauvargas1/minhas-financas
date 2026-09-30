@@ -30,9 +30,11 @@ import {
  * `billing_accounts/{uid}/quota_state/*` são backend-only nos dois sentidos,
  * inclusive para o owner do workspace e o titular da conta.
  *
- * P2B.2 — créditos de IA: `billing_accounts/{uid}/ai_usage/*` e
- * `billing_accounts/{uid}/ai_usage_receipts/*` são backend-only: nem o
- * titular lê, lista ou escreve; consulta de collection group é negada.
+ * P2B.2 — créditos de IA: o uso mensal do titular
+ * (`billing_accounts/{uid}/ai_usage/*`) e os recibos de idempotência do ator
+ * (`users/{uid}/ai_usage_receipts/*`) são backend-only: nem o titular nem o
+ * próprio ator leem, listam ou escrevem; leitura cruzada e consulta de
+ * collection group são negadas.
  */
 
 const require = createRequire(import.meta.url);
@@ -84,6 +86,7 @@ const seed = async () => {
       status: entry === users.suspended ? 'suspended' : 'active',
     });
     await db.recursiveDelete(db.doc(`billing_accounts/${entry.uid}`));
+    await db.recursiveDelete(db.collection(`users/${entry.uid}/ai_usage_receipts`));
   }
   await db.doc(`billing_accounts/${users.ownerA.uid}`).set(billingOf(users.ownerA.uid, 'pro'));
   await db.doc(`billing_accounts/${users.ownerB.uid}`).set(billingOf(users.ownerB.uid, 'free'));
@@ -111,9 +114,10 @@ const seed = async () => {
   await db.doc(`billing_accounts/${users.ownerA.uid}/ai_usage/2026-09`).set({
     billingOwnerUid: users.ownerA.uid, monthKey: '2026-09', usedCredits: 3, schemaVersion: 1,
   });
-  await db.doc(`billing_accounts/${users.ownerA.uid}/ai_usage_receipts/${AI_RECEIPT}`).set({
+  // Recibo sob o ator (ownerB executou no workspace de ownerA, que pagou).
+  await db.doc(`users/${users.ownerB.uid}/ai_usage_receipts/${AI_RECEIPT}`).set({
     operation: 'analyzeFinancialQuestion', actorId: users.ownerB.uid, workspaceId: QUOTA_WORKSPACE,
-    monthKey: '2026-09', creditCost: 1, requestHash: 'a'.repeat(64),
+    billingOwnerUid: users.ownerA.uid, monthKey: '2026-09', creditCost: 1, requestHash: 'a'.repeat(64),
   });
   // Controle positivo: subcoleção comum, lida pela regra catch-all de membro.
   await db.doc(`workspaces/${QUOTA_WORKSPACE}/p2b_rules_control/doc-1`).set({ok: true});
@@ -268,29 +272,19 @@ test('P2B.1: quota de ownership do titular é backend-only', async () => {
   assert.equal(persisted.data().activeOwnedWorkspaces, 1);
 });
 
-test('P2B.2: uso mensal e recibos de IA são backend-only, inclusive para o titular', async () => {
+test('P2B.2: uso mensal de IA do titular é backend-only, inclusive para o titular', async () => {
   const base = `billing_accounts/${users.ownerA.uid}`;
   const usage = `${base}/ai_usage/2026-09`;
-  const receipt = `${base}/ai_usage_receipts/${AI_RECEIPT}`;
   // ownerA é o titular do pool; ownerB é o membro que executou a chamada.
   for (const [name, client] of [['titular', db.ownerA], ['membro executor', db.ownerB], ['anônimo', db.anon]]) {
     await denied(getDoc(doc(client, usage)), `${name} lê o uso mensal`);
-    await denied(getDoc(doc(client, receipt)), `${name} lê o recibo`);
     await denied(
       getDocs(query(collection(client, `${base}/ai_usage`), limit(1))),
       `${name} lista o uso mensal`,
     );
     await denied(
-      getDocs(query(collection(client, `${base}/ai_usage_receipts`), limit(1))),
-      `${name} lista os recibos`,
-    );
-    await denied(
       getDocs(query(collectionGroup(client, 'ai_usage'), limit(1))),
       `${name} consulta o uso por collection group`,
-    );
-    await denied(
-      getDocs(query(collectionGroup(client, 'ai_usage_receipts'), limit(1))),
-      `${name} consulta os recibos por collection group`,
     );
     await denied(setDoc(doc(client, usage), {usedCredits: 0}), `${name} zera o uso`);
     await denied(updateDoc(doc(client, usage), {usedCredits: 0}), `${name} altera o uso`);
@@ -299,6 +293,34 @@ test('P2B.2: uso mensal e recibos de IA são backend-only, inclusive para o titu
       setDoc(doc(client, `${base}/ai_usage/2026-10`), {usedCredits: 0}),
       `${name} cria o mês seguinte`,
     );
+  }
+  const firestore = getAdmin().firestore();
+  assert.equal((await firestore.doc(usage).get()).data().usedCredits, 3);
+  assert.equal((await firestore.doc(`${base}/ai_usage/2026-10`).get()).exists, false);
+});
+
+test('P2B.2: recibos de IA do ator são backend-only, inclusive para o próprio ator', async () => {
+  const base = `users/${users.ownerB.uid}`;
+  const receipt = `${base}/ai_usage_receipts/${AI_RECEIPT}`;
+  // Controle positivo: o próprio perfil continua legível pelo usuário; a
+  // negação é da subcoleção de recibos, não do caminho inteiro.
+  assert.equal((await getDoc(doc(db.ownerB, base))).data().uid, users.ownerB.uid);
+  // ownerB é o ator dono do recibo; ownerA é o titular debitado (cruzado).
+  for (const [name, client] of [
+    ['ator', db.ownerB],
+    ['titular debitado', db.ownerA],
+    ['conta suspensa', db.suspended],
+    ['anônimo', db.anon],
+  ]) {
+    await denied(getDoc(doc(client, receipt)), `${name} lê o recibo`);
+    await denied(
+      getDocs(query(collection(client, `${base}/ai_usage_receipts`), limit(1))),
+      `${name} lista os recibos`,
+    );
+    await denied(
+      getDocs(query(collectionGroup(client, 'ai_usage_receipts'), limit(1))),
+      `${name} consulta os recibos por collection group`,
+    );
     await denied(deleteDoc(doc(client, receipt)), `${name} apaga o recibo`);
     await denied(updateDoc(doc(client, receipt), {requestHash: 'b'.repeat(64)}), `${name} altera o recibo`);
     await denied(
@@ -306,8 +328,21 @@ test('P2B.2: uso mensal e recibos de IA são backend-only, inclusive para o titu
       `${name} forja um recibo`,
     );
   }
+  // Cada um tenta também o próprio caminho: ninguém cria recibo para si.
+  for (const [name, entry] of [['ownerA', users.ownerA], ['ownerB', users.ownerB]]) {
+    await denied(
+      setDoc(doc(db[name], `users/${entry.uid}/ai_usage_receipts/${'d'.repeat(64)}`), {operation: 'x'}),
+      `${name} cria recibo no próprio caminho`,
+    );
+  }
   const firestore = getAdmin().firestore();
-  assert.equal((await firestore.doc(usage).get()).data().usedCredits, 3);
-  assert.equal((await firestore.doc(receipt).get()).data().requestHash, 'a'.repeat(64));
-  assert.equal((await firestore.doc(`${base}/ai_usage/2026-10`).get()).exists, false);
+  const persisted = (await firestore.doc(receipt).get()).data();
+  assert.equal(persisted.requestHash, 'a'.repeat(64));
+  assert.equal(persisted.billingOwnerUid, users.ownerA.uid);
+  for (const [id, uid] of [['e', users.ownerB.uid], ['d', users.ownerA.uid], ['d', users.ownerB.uid]]) {
+    assert.equal(
+      (await firestore.doc(`users/${uid}/ai_usage_receipts/${id.repeat(64)}`).get()).exists,
+      false,
+    );
+  }
 });
