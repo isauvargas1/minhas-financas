@@ -344,7 +344,7 @@ test("transferência: origem acima da quota ainda transfere para " +
 
 test("transferências concorrentes: um owner e contadores " +
   "coerentes", async () => {
-  for (let round = 0; round < 2; round += 1) {
+  for (let round = 0; round < 3; round += 1) {
     const owner = await account("q-t-race", "pro");
     const first = await account("q-t-a", "pro");
     const second = await account("q-t-b", "pro");
@@ -354,16 +354,26 @@ test("transferências concorrentes: um owner e contadores " +
       transfer(owner, workspaceId, second),
     ]);
     assert.equal(fulfilled, 1, "só uma transferência vence");
-    // A perdedora relê a origem já rebaixada e é recusada; sob carga, o lock
-    // pessimista pode esgotar as tentativas da transação (ABORTED ⇒
-    // `internal`), sempre sem efeito parcial — os contadores abaixo provam.
+    // A perdedora relê a origem já rebaixada e é recusada por papel; sob
+    // carga, o lock pessimista pode esgotar as tentativas do SDK (ABORTED)
+    // ou o Emulator recusar a nova tentativa da transação abortada
+    // (INVALID_ARGUMENT "Transaction is invalid or closed."): os dois chegam
+    // como `aborted` (contenção, P2B.2). `internal` nunca é resultado
+    // aceitável. Em todos os casos, sem efeito parcial: os contadores abaixo
+    // provam.
     assert.equal(rejectedCodes.length, 1);
     const loserCode = String(rejectedCodes[0]);
-    assert.ok(["permission-denied", "internal"].includes(loserCode), loserCode);
+    assert.ok(["permission-denied", "aborted"].includes(loserCode), loserCode);
     const owners = await activeOwners(workspaceId);
     assert.equal(owners.length, 1);
     const winner = owners[0];
     const loser = winner === first ? second : first;
+    assert.equal(
+      (await db().doc(`workspaces/${workspaceId}`).get()).get("ownerId"),
+      winner,
+    );
+    assert.equal((await memberOf(workspaceId, owner))?.role, "admin");
+    assert.equal((await memberOf(workspaceId, loser))?.role, "member");
     assert.equal(await ownedCount(owner), 0);
     assert.equal(await ownedCount(winner), 1);
     assert.equal(await ownedCount(loser), 0);

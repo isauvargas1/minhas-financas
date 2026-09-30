@@ -75,6 +75,15 @@ export interface WorkspaceEntitlement {
 export interface AccountUsage {
   /** Workspaces ativos dos quais o usuário é owner. */
   activeOwnedWorkspaces: number;
+  /**
+   * Créditos de IA do próprio pool no mês (P2B.2), pelo plano efetivo da
+   * própria conta. Ainda sem superfície na interface ("Meu Plano").
+   */
+  aiCreditsUsed: number;
+  aiCreditsLimit: number;
+  aiCreditsRemaining: number;
+  /** Mês do contador (`YYYY-MM`, America/Sao_Paulo). */
+  aiPeriodKey: string;
 }
 
 /** Limites da conta (plano do usuário) e do workspace (plano do owner). */

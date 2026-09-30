@@ -20,6 +20,9 @@ const BUSINESS_CODES = new Set([
   'functions/already-exists',
   // Limite do plano (P2B): mensagem pt-BR do backend com a próxima ação.
   'functions/resource-exhausted',
+  // Contenção de transação (P2B.2): nada foi gravado; a mensagem pt-BR do
+  // backend pede para atualizar e tentar de novo, sem detalhe técnico.
+  'functions/aborted',
 ]);
 
 interface CallableErrorShape {

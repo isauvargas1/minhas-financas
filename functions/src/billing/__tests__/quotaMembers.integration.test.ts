@@ -7,6 +7,7 @@ import {
   seedMember,
   seedWorkspace,
 } from "../../shared/testSupport/kernelTestSupport";
+import {saoPauloMonthKey} from "../../shared/dateKeys";
 import {WORKSPACE_ACCESS_DENIED_MESSAGE} from "../../shared/workspaceAuth";
 import {
   changeWorkspaceMemberRole,
@@ -372,11 +373,18 @@ test("grace e cancelamento vencidos são reavaliados no servidor", async () => {
 
 test("uso da conta: só o próprio contador de workspaces", async () => {
   const uid = await account("q-u");
+  // P2B.2: o uso de IA do próprio pool acompanha (mês civil de São Paulo).
+  const ai = {
+    aiCreditsUsed: 0,
+    aiCreditsLimit: 10,
+    aiCreditsRemaining: 10,
+    aiPeriodKey: saoPauloMonthKey(),
+  };
   assert.deepEqual(await call(getAccountUsage, uid, {}),
-    {activeOwnedWorkspaces: 0});
+    {activeOwnedWorkspaces: 0, ...ai});
   await workspaceOf(uid);
   assert.deepEqual(await call(getAccountUsage, uid, {}),
-    {activeOwnedWorkspaces: 1});
+    {activeOwnedWorkspaces: 1, ...ai});
   await expectHttpsError(call(getAccountUsage, uid, {uid: "outro"}),
     "invalid-argument");
   await expectHttpsError(call(getAccountUsage, null, {}), "unauthenticated");

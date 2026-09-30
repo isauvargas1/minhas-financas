@@ -5,6 +5,7 @@ import {initializeApp, deleteApp} from 'firebase/app';
 import {connectAuthEmulator, getAuth, signInWithEmailAndPassword} from 'firebase/auth';
 import {
   collection,
+  collectionGroup,
   connectFirestoreEmulator,
   deleteDoc,
   doc,
@@ -28,6 +29,10 @@ import {
  * P2B.1 — estado de quota: `workspaces/{id}/quota_state/*` e
  * `billing_accounts/{uid}/quota_state/*` são backend-only nos dois sentidos,
  * inclusive para o owner do workspace e o titular da conta.
+ *
+ * P2B.2 — créditos de IA: `billing_accounts/{uid}/ai_usage/*` e
+ * `billing_accounts/{uid}/ai_usage_receipts/*` são backend-only: nem o
+ * titular lê, lista ou escreve; consulta de collection group é negada.
  */
 
 const require = createRequire(import.meta.url);
@@ -52,6 +57,7 @@ const getAdmin = () => {
 };
 
 const QUOTA_WORKSPACE = 'p2b-quota-rules-ws';
+const AI_RECEIPT = 'f'.repeat(64);
 
 const billingOf = (uid, planId) => ({
   billingOwnerUid: uid,
@@ -101,6 +107,13 @@ const seed = async () => {
   }
   await db.doc(`workspaces/${QUOTA_WORKSPACE}/quota_state/membership`).set({
     workspaceId: QUOTA_WORKSPACE, activeMembers: 2, pendingReservations: {}, schemaVersion: 1,
+  });
+  await db.doc(`billing_accounts/${users.ownerA.uid}/ai_usage/2026-09`).set({
+    billingOwnerUid: users.ownerA.uid, monthKey: '2026-09', usedCredits: 3, schemaVersion: 1,
+  });
+  await db.doc(`billing_accounts/${users.ownerA.uid}/ai_usage_receipts/${AI_RECEIPT}`).set({
+    operation: 'analyzeFinancialQuestion', actorId: users.ownerB.uid, workspaceId: QUOTA_WORKSPACE,
+    monthKey: '2026-09', creditCost: 1, requestHash: 'a'.repeat(64),
   });
   // Controle positivo: subcoleção comum, lida pela regra catch-all de membro.
   await db.doc(`workspaces/${QUOTA_WORKSPACE}/p2b_rules_control/doc-1`).set({ok: true});
@@ -253,4 +266,48 @@ test('P2B.1: quota de ownership do titular é backend-only', async () => {
   await denied(deleteDoc(doc(db.ownerA, path)), 'titular apaga o contador');
   const persisted = await getAdmin().firestore().doc(path).get();
   assert.equal(persisted.data().activeOwnedWorkspaces, 1);
+});
+
+test('P2B.2: uso mensal e recibos de IA são backend-only, inclusive para o titular', async () => {
+  const base = `billing_accounts/${users.ownerA.uid}`;
+  const usage = `${base}/ai_usage/2026-09`;
+  const receipt = `${base}/ai_usage_receipts/${AI_RECEIPT}`;
+  // ownerA é o titular do pool; ownerB é o membro que executou a chamada.
+  for (const [name, client] of [['titular', db.ownerA], ['membro executor', db.ownerB], ['anônimo', db.anon]]) {
+    await denied(getDoc(doc(client, usage)), `${name} lê o uso mensal`);
+    await denied(getDoc(doc(client, receipt)), `${name} lê o recibo`);
+    await denied(
+      getDocs(query(collection(client, `${base}/ai_usage`), limit(1))),
+      `${name} lista o uso mensal`,
+    );
+    await denied(
+      getDocs(query(collection(client, `${base}/ai_usage_receipts`), limit(1))),
+      `${name} lista os recibos`,
+    );
+    await denied(
+      getDocs(query(collectionGroup(client, 'ai_usage'), limit(1))),
+      `${name} consulta o uso por collection group`,
+    );
+    await denied(
+      getDocs(query(collectionGroup(client, 'ai_usage_receipts'), limit(1))),
+      `${name} consulta os recibos por collection group`,
+    );
+    await denied(setDoc(doc(client, usage), {usedCredits: 0}), `${name} zera o uso`);
+    await denied(updateDoc(doc(client, usage), {usedCredits: 0}), `${name} altera o uso`);
+    await denied(deleteDoc(doc(client, usage)), `${name} apaga o uso`);
+    await denied(
+      setDoc(doc(client, `${base}/ai_usage/2026-10`), {usedCredits: 0}),
+      `${name} cria o mês seguinte`,
+    );
+    await denied(deleteDoc(doc(client, receipt)), `${name} apaga o recibo`);
+    await denied(updateDoc(doc(client, receipt), {requestHash: 'b'.repeat(64)}), `${name} altera o recibo`);
+    await denied(
+      setDoc(doc(client, `${base}/ai_usage_receipts/${'e'.repeat(64)}`), {operation: 'x'}),
+      `${name} forja um recibo`,
+    );
+  }
+  const firestore = getAdmin().firestore();
+  assert.equal((await firestore.doc(usage).get()).data().usedCredits, 3);
+  assert.equal((await firestore.doc(receipt).get()).data().requestHash, 'a'.repeat(64));
+  assert.equal((await firestore.doc(`${base}/ai_usage/2026-10`).get()).exists, false);
 });

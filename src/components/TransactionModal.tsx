@@ -1,5 +1,5 @@
-import { httpsCallable } from 'firebase/functions';
-import { functions } from '../lib/firebase';
+import { extractTransactionFromDocument, extractTransactionFromText } from '../modules/ai/api';
+import { AI_CREDITS_EXHAUSTED_MESSAGE, isAiCreditsExhausted } from '../modules/ai/callables';
 
 import React, { useState, FormEvent, useEffect, useRef, useMemo } from 'react';
 import {
@@ -677,6 +677,13 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
         }
     };
 
+    // Créditos de IA esgotados (P2B.2) têm mensagem própria, mais longa.
+    const showAIError = (error: unknown, fallback: string) => {
+        const exhausted = isAiCreditsExhausted(error);
+        setAIStatus(exhausted ? AI_CREDITS_EXHAUSTED_MESSAGE : fallback);
+        setTimeout(() => setAIStatus(null), exhausted ? 6000 : 3000);
+    };
+
     // --- AI LOGIC: Document Analysis ---
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -688,24 +695,27 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
         try {
             const reader = new FileReader();
             reader.onload = async () => {
-                const base64Data = (reader.result as string).split(',')[1];
-                // A extração roda no backend: a chave do modelo nunca chega ao
-                // navegador. Antes, `vite.config.ts` injetava a credencial real
-                // no bundle servido a qualquer visitante.
-                const callable = httpsCallable<Record<string, unknown>, { extracted: Record<string, unknown> }>(
-                    functions,
-                    'extractTransactionFromContent',
-                );
-                const response = await callable({
-                    kind: 'document',
-                    workspaceId: activeWorkspace.id,
-                    mimeType: file.type,
-                    dataBase64: base64Data,
-                });
-                const result = response.data.extracted ?? {};
-                applyAIData(result);
-                setAIStatus("Comprovante lido com sucesso!");
-                setTimeout(() => setAIStatus(null), 3000);
+                // O erro da chamada acontece aqui dentro, depois da leitura do
+                // arquivo; o `catch` externo não o alcançaria.
+                try {
+                    const base64Data = (reader.result as string).split(',')[1];
+                    // A extração roda no backend: a chave do modelo nunca chega ao
+                    // navegador. Antes, `vite.config.ts` injetava a credencial real
+                    // no bundle servido a qualquer visitante. Cada envio é uma
+                    // ação nova, com chave de idempotência própria.
+                    const response = await extractTransactionFromDocument({
+                        workspaceId: activeWorkspace.id,
+                        mimeType: file.type,
+                        dataBase64: base64Data,
+                    });
+                    const result = response.extracted ?? {};
+                    applyAIData(result);
+                    setAIStatus("Comprovante lido com sucesso!");
+                    setTimeout(() => setAIStatus(null), 3000);
+                } catch (error) {
+                    console.error("AI Document Scan Error:", error);
+                    showAIError(error, "Erro ao analisar documento.");
+                }
             };
             reader.readAsDataURL(file);
         } catch (error) {
@@ -749,23 +759,17 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
             setIsAILoading(true);
 
             try {
-                const callable = httpsCallable<Record<string, unknown>, { extracted: Record<string, unknown> }>(
-                    functions,
-                    'extractTransactionFromContent',
-                );
-                const response = await callable({
-                    kind: 'text',
+                const response = await extractTransactionFromText({
                     workspaceId: activeWorkspace.id,
                     transcript,
                 });
-                const result = response.data.extracted ?? {};
+                const result = response.extracted ?? {};
                 applyAIData(result);
                 setAIStatus("Entendido! Revise os dados preenchidos.");
                 setTimeout(() => setAIStatus(null), 3000);
             } catch (error) {
                 console.error("AI Voice Interpretation Error:", error);
-                setAIStatus("Não consegui entender muito bem. Tente novamente.");
-                setTimeout(() => setAIStatus(null), 3000);
+                showAIError(error, "Não consegui entender muito bem. Tente novamente.");
             } finally {
                 setIsAILoading(false);
             }

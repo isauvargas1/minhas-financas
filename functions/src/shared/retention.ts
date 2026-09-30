@@ -51,6 +51,13 @@ export const RETENTION_DAYS = {
    * A trilha de billing (`billing_events`) não expira.
    */
   billingWebhookEvents: 90,
+  /**
+   * Recibo de consumo de crédito de IA (P2B.2): só metadados e hash, nunca
+   * conteúdo. Precisa sobreviver a qualquer retry plausível da mesma chave;
+   * o contador mensal (`ai_usage`) não expira nesta etapa (ciclo de vida em
+   * P8).
+   */
+  aiUsageReceipts: 90,
 } as const;
 
 /** Instante de expiração a partir de agora, em dias. */

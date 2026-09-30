@@ -1,5 +1,5 @@
-import { httpsCallable } from 'firebase/functions';
-import { functions } from '../../lib/firebase';
+import { analyzeFinancialQuestion } from '../ai/api';
+import { AI_CREDITS_EXHAUSTED_MESSAGE, isAiCreditsExhausted } from '../ai/callables';
 import {
     FinancialReportSnapshot,
     ReportTimeRange,
@@ -223,11 +223,9 @@ export const askFinanceAI = async (
 ): Promise<FinanceAIAnswer> => {
     const isPJ = contextSnapshot.kpis.some(k => k.id === 'kpi-net-profit');
     try {
-        const callable = httpsCallable<Record<string, unknown>, {
-            answer: string;
-            createdAt: string;
-        }>(functions, 'analyzeFinancialQuestion');
-        const result = await callable({
+        // Cada pergunta enviada é uma ação nova: o wrapper gera a chave de
+        // idempotência (um crédito no máximo por chave).
+        const result = await analyzeFinancialQuestion({
             workspaceId,
             question,
             context: {
@@ -247,18 +245,20 @@ export const askFinanceAI = async (
         });
         return {
             id: Date.now().toString(),
-            answer: result.data.answer,
-            createdAt: result.data.createdAt,
+            answer: result.answer,
+            createdAt: result.createdAt,
         };
     } catch (error) {
         const code = typeof error === 'object' && error && 'code' in error
             ? String(error.code)
             : '';
-        const answer = code.includes('failed-precondition')
-            ? 'A análise por IA está indisponível no momento. Se o limite de uso foi atingido, tente novamente mais tarde.'
-            : code.includes('permission-denied')
-                ? 'Você não tem permissão para usar a análise por IA neste workspace.'
-                : 'Não foi possível consultar a IA agora. Tente novamente mais tarde.';
+        const answer = isAiCreditsExhausted(error)
+            ? AI_CREDITS_EXHAUSTED_MESSAGE
+            : code.includes('failed-precondition')
+                ? 'A análise por IA está indisponível no momento. Se o limite de uso foi atingido, tente novamente mais tarde.'
+                : code.includes('permission-denied')
+                    ? 'Você não tem permissão para usar a análise por IA neste workspace.'
+                    : 'Não foi possível consultar a IA agora. Tente novamente mais tarde.';
         return {id: Date.now().toString(), answer, createdAt: new Date().toISOString()};
     }
 };

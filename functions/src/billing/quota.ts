@@ -44,6 +44,8 @@ import {billingAccountRef} from "./model";
  *   cron. O mapa é limitado: um convite só nasce com
  *   `activeMembers + reservas + 1 <= membersPerWorkspace`, cujo teto no
  *   catálogo é `MAX_PENDING_RESERVATIONS`.
+ * - Créditos mensais de IA do titular (P2B.2): `aiCredits.ts`, consumidos
+ *   pela admissão de `ai/admission.ts`.
  *
  * Sem reconstrução por varredura, sem contagem de coleção e sem fallback: o
  * estado nasce com a conta e com o workspace. Estado ausente ou malformado
@@ -71,11 +73,20 @@ export const QUOTA_STATE_UNAVAILABLE_MESSAGE =
   "Não foi possível verificar os limites do plano. Tente novamente em " +
   "instantes.";
 
+/** Créditos mensais de IA esgotados no pool do titular (P2B.2). */
+export const AI_CREDITS_EXHAUSTED_MESSAGE =
+  "Os créditos de IA deste plano acabaram neste mês. Faça upgrade ou " +
+  "aguarde a renovação mensal.";
+
 /** Recursos com quota nesta etapa: nomes das chaves de `PlanLimits`. */
 export type QuotaResource = Extract<
   keyof PlanLimits,
-  "workspaces" | "membersPerWorkspace"
+  "workspaces" | "membersPerWorkspace" | "aiCreditsPerMonth"
 >;
+
+const QUOTA_MESSAGE_BY_RESOURCE: Partial<Record<QuotaResource, string>> = {
+  aiCreditsPerMonth: AI_CREDITS_EXHAUSTED_MESSAGE,
+};
 
 /** Teto do mapa de reservas: o maior `membersPerWorkspace` do catálogo. */
 export const MAX_PENDING_RESERVATIONS = Math.max(
@@ -95,15 +106,24 @@ export interface QuotaExceededDetails {
   planId: PlanId;
   limit: number;
   used: number;
+  /** Período do contador (`YYYY-MM`), só nos recursos mensais. */
+  periodKey?: string;
 }
 
 export const quotaExceeded = (details: QuotaExceededDetails) =>
-  new ApplicationError("quota_exceeded", QUOTA_EXCEEDED_MESSAGE, {
-    resource: details.resource,
-    planId: details.planId,
-    limit: details.limit,
-    used: details.used,
-  });
+  new ApplicationError(
+    "quota_exceeded",
+    QUOTA_MESSAGE_BY_RESOURCE[details.resource] ?? QUOTA_EXCEEDED_MESSAGE,
+    {
+      resource: details.resource,
+      planId: details.planId,
+      limit: details.limit,
+      used: details.used,
+      ...(details.periodKey === undefined ?
+        {} :
+        {periodKey: details.periodKey}),
+    },
+  );
 
 export const transferQuotaExceeded = (resource: QuotaResource) =>
   new ApplicationError("quota_exceeded", TRANSFER_QUOTA_EXCEEDED_MESSAGE, {
@@ -155,6 +175,7 @@ export const assertWithinQuota = (input: {
   entitlement: QuotaEntitlement;
   used: number;
   adding: number;
+  periodKey?: string;
 }): void => {
   const limit = input.entitlement.limits[input.resource];
   if (input.used + input.adding > limit) {
@@ -163,6 +184,7 @@ export const assertWithinQuota = (input: {
       planId: input.entitlement.planId,
       limit,
       used: input.used,
+      periodKey: input.periodKey,
     });
   }
 };

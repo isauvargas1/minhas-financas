@@ -504,8 +504,10 @@ test('H. receita, despesa e cartão seguem no formulário comum', () => {
 });
 
 test('H. a IA continua ligada só ao formulário que ela sabe preencher', () => {
-  // Escanear comprovante e falar transação seguem intactos nas outras abas...
-  assert.match(modal, /extractTransactionFromContent/);
+  // Escanear comprovante e falar transação seguem intactos nas outras abas
+  // (P2B.2: pelos wrappers do contrato de IA, com chave de idempotência)...
+  assert.match(modal, /await extractTransactionFromDocument\(\{/);
+  assert.match(modal, /await extractTransactionFromText\(\{/);
   assert.match(modal, /\['receita', 'despesa', 'parcelado'\]\.includes\(data\.type\)/);
   // ...e o painel some enquanto a aba de investimento está ativa.
   assert.match(modal, /\{!isEditing && activeTab !== 'investimento' && \(/);

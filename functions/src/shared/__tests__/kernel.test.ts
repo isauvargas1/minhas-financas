@@ -16,9 +16,11 @@ import {
 } from "../callable";
 import {
   ApplicationError,
+  CONCURRENT_UPDATE_MESSAGE,
   INVALID_PAYLOAD_MESSAGE,
   errorCodeOf,
   isAlreadyExistsError,
+  isContentionAbortedError,
   sanitizeZodIssues,
   toHttpsError,
   type ApplicationErrorCode,
@@ -163,6 +165,7 @@ const HTTPS_CODE: Record<ApplicationErrorCode, string> = {
   idempotency_replay: "internal",
   domain_precondition_failed: "failed-precondition",
   quota_exceeded: "resource-exhausted",
+  concurrent_update: "aborted",
   not_found: "not-found",
   already_exists: "already-exists",
   internal: "internal",
@@ -333,6 +336,82 @@ test("ALREADY_EXISTS vira failed-precondition, não internal", () => {
   for (const thrown of [{code: 5}, {code: "6"}, null, "already-exists", 6]) {
     assert.equal(isAlreadyExistsError(thrown), false);
   }
+});
+
+test("ABORTED de contenção do Firestore vira aborted, nunca internal", () => {
+  // Formato do erro gRPC que o SDK rejeita ao esgotar as tentativas.
+  const contention = Object.assign(
+    new Error("10 ABORTED: Transaction lock timeout. users/fulano@x.test"),
+    {code: 10, details: "Transaction lock timeout.", metadata: {}},
+  );
+  assert.equal(isContentionAbortedError(contention), true);
+  const error = toHttpsError(contention, {requestId: "req-10"});
+  assert.equal(error.code, "aborted");
+  assert.equal(error.message, CONCURRENT_UPDATE_MESSAGE);
+  // Sem requestId, detalhe do Firestore, caminho ou stack. O `status`
+  // "ABORTED" do JSON é o nome canônico do código HTTPS, não o erro do SDK.
+  assert.equal(error.details, undefined);
+  const text = serialized(error);
+  assert.equal(/10 ABORTED|Transaction|lock|fulano|users\/| at /.test(text),
+    false, text);
+  assert.equal(errorCodeOf(contention), "concurrent_update");
+  assert.equal(errorCodeOf({code: 10}), "concurrent_update");
+});
+
+test("transação invalidada (gRPC 3) também é contenção, sem detalhe",
+  () => {
+    // Emulator: a nova tentativa de uma transação abortada por lock timeout
+    // é recusada (`retryTransaction` de transação encerrada). Produção: a
+    // transação expirou. Nada foi gravado nos dois casos.
+    for (const message of [
+      "3 INVALID_ARGUMENT: Transaction is invalid or closed.",
+      "3 INVALID_ARGUMENT: The referenced transaction has expired or is " +
+        "no longer valid.",
+    ]) {
+      const thrown = Object.assign(new Error(message), {code: 3});
+      assert.equal(isContentionAbortedError(thrown), true, message);
+      const error = toHttpsError(thrown, {requestId: "req-3"});
+      assert.equal(error.code, "aborted");
+      assert.equal(error.message, CONCURRENT_UPDATE_MESSAGE);
+      assert.equal(error.details, undefined);
+      assert.equal(/INVALID_ARGUMENT|Transaction|transaction/.test(
+        serialized(error)), false);
+      assert.equal(errorCodeOf(thrown), "concurrent_update");
+    }
+  });
+
+test("só contenção genuína vira aborted; o resto segue internal", () => {
+  for (const thrown of [
+    {code: "10"},
+    {code: "aborted"},
+    {code: 4},
+    {code: 13},
+    {code: 14},
+    // INVALID_ARGUMENT que não é transação invalidada continua interno.
+    Object.assign(new Error("3 INVALID_ARGUMENT: Document too large."),
+      {code: 3}),
+    {code: 3},
+    {code: 3, message: 42},
+    // Mensagem de transação sem o código numérico do SDK não basta.
+    {code: "3", message: "Transaction is invalid or closed."},
+    new Error("Transaction is invalid or closed."),
+    new Error("ABORTED"),
+    "10 ABORTED",
+    10,
+    null,
+  ]) {
+    assert.equal(isContentionAbortedError(thrown), false, String(thrown));
+    assert.equal(toHttpsError(thrown).code, "internal");
+    assert.equal(errorCodeOf(thrown), "internal");
+  }
+  // HttpsError e ApplicationError mantêm o próprio mapeamento.
+  const mapped = new HttpsError("aborted", "Mensagem já mapeada.");
+  assert.equal(toHttpsError(mapped), mapped);
+  const domain = toHttpsError(
+    new ApplicationError("concurrent_update", CONCURRENT_UPDATE_MESSAGE),
+  );
+  assert.equal(domain.code, "aborted");
+  assert.equal(domain.message, CONCURRENT_UPDATE_MESSAGE);
 });
 
 test("HttpsError existente passa sem alteração", () => {

@@ -60,14 +60,34 @@ export const reserveRateLimit = async (
 ): Promise<RateLimitReservation> =>
   reserveRateLimitAt(
     transaction,
-    admin
-      .firestore()
-      .doc(
-        `workspaces/${workspaceId}/rate_limits/` +
-          rateLimitDocumentId(policy, actorId),
-      ),
+    workspaceRateLimitRef(workspaceId, actorId, policy),
     {workspaceId, actorId, policy},
   );
+
+/** Documento do contador por workspace + ator + operação. */
+export const workspaceRateLimitRef = (
+  workspaceId: string,
+  actorId: string,
+  policy: RateLimitPolicy,
+): admin.firestore.DocumentReference =>
+  admin
+    .firestore()
+    .doc(
+      `workspaces/${workspaceId}/rate_limits/` +
+        rateLimitDocumentId(policy, actorId),
+    );
+
+/**
+ * Mesma reserva de `reserveRateLimit`, a partir do snapshot de
+ * `workspaceRateLimitRef` já lido no `getAll` da transação (menos idas ao
+ * banco com o lock aberto).
+ */
+export const reserveRateLimitFromSnapshot = (
+  transaction: admin.firestore.Transaction,
+  snapshot: admin.firestore.DocumentSnapshot,
+  context: {workspaceId: string; actorId: string; policy: RateLimitPolicy},
+): RateLimitReservation =>
+  rateLimitReservation(transaction, snapshot, context);
 
 /**
  * Consome limite num documento arbitrário.
@@ -97,17 +117,26 @@ export interface RateLimitReservation {
   commit: () => void;
 }
 
+interface RateLimitContext {
+  workspaceId: string | null;
+  actorId: string;
+  policy: RateLimitPolicy;
+}
+
 const reserveRateLimitAt = async (
   transaction: admin.firestore.Transaction,
   ref: admin.firestore.DocumentReference,
-  context: {
-    workspaceId: string | null;
-    actorId: string;
-    policy: RateLimitPolicy;
-  },
-): Promise<RateLimitReservation> => {
+  context: RateLimitContext,
+): Promise<RateLimitReservation> =>
+  rateLimitReservation(transaction, await transaction.get(ref), context);
+
+const rateLimitReservation = (
+  transaction: admin.firestore.Transaction,
+  snapshot: admin.firestore.DocumentSnapshot,
+  context: RateLimitContext,
+): RateLimitReservation => {
   const {workspaceId, actorId, policy} = context;
-  const snapshot = await transaction.get(ref);
+  const ref = snapshot.ref;
   const now = Date.now();
   const windowMs = policy.windowSeconds * 1000;
   const data = snapshot.data();

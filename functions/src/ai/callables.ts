@@ -1,15 +1,21 @@
-import * as admin from "firebase-admin";
 import {z} from "zod";
 
 import {defineCallable, type CallableFailure} from "../shared/callable";
 import {ApplicationError, errorCodeOf} from "../shared/errors";
-import {reserveRateLimit, type RateLimitPolicy} from "../shared/rateLimit";
+import {idempotencyKeySchema} from "../shared/ids";
 import {AI_CALLABLE_OPTIONS} from "../shared/runtimeOptions";
+import type {WorkspaceActor} from "../shared/workspaceAuth";
+import {admitAiCall} from "./admission";
+import {createGeminiGateway, type AiGateway} from "./gateway";
 import {
-  reassertWorkspaceActor,
-  type WorkspaceActor,
-  type WorkspaceRole,
-} from "../shared/workspaceAuth";
+  AI_MAX_OUTPUT_TOKENS,
+  AI_OPERATION_ROLES,
+  ANALYSIS_RATE_LIMIT,
+  EXTRACTION_RATE_LIMIT,
+  MAX_DOCUMENT_BASE64,
+} from "./policy";
+
+export {AI_OPERATION_ROLES} from "./policy";
 
 /**
  * Segredo do provider de IA (INV-P2-020).
@@ -31,44 +37,11 @@ const AI_OPTIONS = {
   secrets: [...AI_SECRETS],
 };
 
-/**
- * Papéis que podem usar a IA: quem escreve no workspace. `viewer` é somente
- * leitura e não consome a cota externa.
- */
-export const AI_OPERATION_ROLES: readonly WorkspaceRole[] = [
-  "owner",
-  "admin",
-  "member",
-];
-
 /** Com `workspaceRoles`, o kernel sempre entrega o ator resolvido. */
 const requireActor = (actor: WorkspaceActor | null): WorkspaceActor => {
   if (!actor) throw new Error("ai_callable_without_actor");
   return actor;
 };
-
-/**
- * Limite verificado e consumido atomicamente antes de gastar cota externa.
- *
- * `commit()` é o que grava o contador: sem ele a verificação passa e nada é
- * contabilizado, e o teto vira decorativo. A autorização é relida na mesma
- * transação, antes da gravação: quem perdeu o acesso depois da pré-checagem
- * não consome limite nem chega ao provider.
- */
-const consumeAiRateLimit = (
-  actor: WorkspaceActor,
-  policy: RateLimitPolicy,
-): Promise<void> =>
-  admin.firestore().runTransaction(async (transaction) => {
-    await reassertWorkspaceActor(transaction, actor);
-    const reservation = await reserveRateLimit(
-      transaction,
-      actor.workspaceId,
-      actor.uid,
-      policy,
-    );
-    reservation.commit();
-  });
 
 /**
  * Registro de falha do domínio. Log sanitizado: nunca a pergunta, a
@@ -96,16 +69,12 @@ const logAiFailure = (event: string, operation: string) =>
  * Prompt e resposta são dado do usuário: nada disso é registrado em log. Só
  * saem identificadores, contagens e código de erro.
  */
-
-const ANALYSIS_POLICY: RateLimitPolicy = {
-  operation: "analyzeFinancialQuestion",
-  limit: 20,
-  windowSeconds: 60 * 60,
-};
-
 export const analysisPayloadSchema = z
   .object({
     workspaceId: z.string().min(1).max(240),
+    // Uma chave por ação intencional do usuário (P2B.2): o reenvio não
+    // consome outro crédito nem chama o provedor de novo.
+    idempotencyKey: idempotencyKeySchema,
     question: z.string().trim().min(3).max(2_000),
     // Resumo já calculado no cliente, apenas números e rótulos agregados.
     context: z
@@ -171,53 +140,22 @@ export const readApiKey = (): string => {
   return key;
 };
 
-const callGemini = async (prompt: string, apiKey: string): Promise<string> => {
-  const {GoogleGenerativeAI} = await import("@google/generative-ai");
-  const client = new GoogleGenerativeAI(apiKey);
-  const model = client.getGenerativeModel({model: "gemini-3-flash-preview"});
-  const result = await model.generateContent([prompt]);
-  return result.response.text();
-};
-
-export const analyzeFinancialQuestion = defineCallable({
-  operation: ANALYSIS_POLICY.operation,
-  schema: analysisPayloadSchema,
-  runtime: AI_OPTIONS,
-  workspaceRoles: AI_OPERATION_ROLES,
-  onFailure: logAiFailure("ai_analysis_failed", ANALYSIS_POLICY.operation),
-  handler: async ({actor, payload}) => {
-    await consumeAiRateLimit(requireActor(actor), ANALYSIS_POLICY);
-    const answer = await callGemini(buildPrompt(payload), readApiKey());
-    return {
-      answer: answer || "Não foi possível processar a análise agora.",
-      createdAt: new Date().toISOString(),
-    };
-  },
-});
-
 /**
  * Extração estruturada de uma transação a partir de texto falado ou de um
  * comprovante. Mesmo motivo da análise: a chave nunca vai ao cliente.
  */
-const EXTRACTION_POLICY: RateLimitPolicy = {
-  operation: "extractTransactionFromContent",
-  limit: 60,
-  windowSeconds: 60 * 60,
-};
-
-/** ~6 MB em base64, cerca de 4,5 MB de arquivo. */
-const MAX_DOCUMENT_BASE64 = 6 * 1024 * 1024;
-
 export const extractionPayloadSchema = z
   .discriminatedUnion("kind", [
     z.object({
       kind: z.literal("text"),
       workspaceId: z.string().min(1).max(240),
+      idempotencyKey: idempotencyKeySchema,
       transcript: z.string().trim().min(3).max(4_000),
     }),
     z.object({
       kind: z.literal("document"),
       workspaceId: z.string().min(1).max(240),
+      idempotencyKey: idempotencyKeySchema,
       mimeType: z.enum([
         "image/png",
         "image/jpeg",
@@ -235,43 +173,119 @@ const EXTRACTION_INSTRUCTION =
   "category, supplier, costCenter, installments. Omita o campo quando não " +
   "houver informação; nunca invente valores.";
 
-export const extractTransactionFromContent = defineCallable({
-  operation: EXTRACTION_POLICY.operation,
-  schema: extractionPayloadSchema,
-  runtime: AI_OPTIONS,
-  workspaceRoles: AI_OPERATION_ROLES,
-  onFailure: logAiFailure("ai_extraction_failed", EXTRACTION_POLICY.operation),
-  handler: async ({actor, payload}) => {
-    await consumeAiRateLimit(requireActor(actor), EXTRACTION_POLICY);
+/**
+ * Dependências externas das callables de IA: o provedor e o relógio.
+ *
+ * Em produção, `productionAiDependencies` lê e valida o segredo **antes** da
+ * admissão: configuração ausente recusa sem consumir crédito. Os testes
+ * montam as callables com um gateway falso (`createAiCallables`).
+ */
+export interface AiDependencies {
+  gateway: AiGateway;
+  now: () => number;
+}
 
-    const apiKey = readApiKey();
-    const {GoogleGenerativeAI} = await import("@google/generative-ai");
-    const model = new GoogleGenerativeAI(apiKey).getGenerativeModel({
-      model: "gemini-3-flash-preview",
-      generationConfig: {responseMimeType: "application/json"},
-    });
-    const parts = payload.kind === "text" ?
-      [{text: `${EXTRACTION_INSTRUCTION}\n\n${payload.transcript}`}] :
-      [
-        {
-          inlineData: {
-            data: payload.dataBase64,
-            mimeType: payload.mimeType,
-          },
-        },
-        {text: EXTRACTION_INSTRUCTION},
-      ];
-    const result = await model.generateContent(parts);
-    const text = result.response.text();
-    let extracted: unknown;
-    try {
-      extracted = JSON.parse(text);
-    } catch {
-      throw new ApplicationError(
-        "domain_precondition_failed",
-        "Não foi possível interpretar o conteúdo enviado.",
-      );
-    }
-    return {extracted};
-  },
+export const productionAiDependencies = (): AiDependencies => ({
+  gateway: createGeminiGateway(readApiKey()),
+  now: Date.now,
 });
+
+/**
+ * Callables de IA sobre o kernel. Ordem fixa em cada chamada: contrato e
+ * pré-checagem (kernel) → dependências (segredo) → admissão atômica (crédito,
+ * recibo e rate limit num commit) → provedor, fora de qualquer transação.
+ */
+export const createAiCallables = (dependencies: () => AiDependencies) => ({
+  analyzeFinancialQuestion: defineCallable({
+    operation: ANALYSIS_RATE_LIMIT.operation,
+    schema: analysisPayloadSchema,
+    runtime: AI_OPTIONS,
+    workspaceRoles: AI_OPERATION_ROLES,
+    onFailure: logAiFailure(
+      "ai_analysis_failed",
+      ANALYSIS_RATE_LIMIT.operation,
+    ),
+    handler: async ({actor, payload, log}) => {
+      const {gateway, now} = dependencies();
+      const admission = await admitAiCall({
+        actor: requireActor(actor),
+        creditOperation: "analysis",
+        rateLimit: ANALYSIS_RATE_LIMIT,
+        idempotencyKey: payload.idempotencyKey,
+        payload,
+        now,
+      });
+      log.info("ai.credit_consumed", {
+        periodKey: admission.periodKey,
+        creditCost: admission.creditCost,
+      });
+      // Crédito já confirmado: falha daqui em diante não o devolve.
+      const answer = await gateway.generate({
+        parts: [{text: buildPrompt(payload)}],
+        maxOutputTokens: AI_MAX_OUTPUT_TOKENS.analysis,
+      });
+      return {
+        answer: answer || "Não foi possível processar a análise agora.",
+        createdAt: new Date().toISOString(),
+      };
+    },
+  }),
+
+  extractTransactionFromContent: defineCallable({
+    operation: EXTRACTION_RATE_LIMIT.operation,
+    schema: extractionPayloadSchema,
+    runtime: AI_OPTIONS,
+    workspaceRoles: AI_OPERATION_ROLES,
+    onFailure: logAiFailure(
+      "ai_extraction_failed",
+      EXTRACTION_RATE_LIMIT.operation,
+    ),
+    handler: async ({actor, payload, log}) => {
+      const {gateway, now} = dependencies();
+      const admission = await admitAiCall({
+        actor: requireActor(actor),
+        creditOperation: payload.kind === "text" ?
+          "extractionText" :
+          "extractionDocument",
+        rateLimit: EXTRACTION_RATE_LIMIT,
+        idempotencyKey: payload.idempotencyKey,
+        payload,
+        now,
+      });
+      log.info("ai.credit_consumed", {
+        periodKey: admission.periodKey,
+        creditCost: admission.creditCost,
+      });
+      // Crédito já confirmado: falha daqui em diante não o devolve.
+      const parts = payload.kind === "text" ?
+        [{text: `${EXTRACTION_INSTRUCTION}\n\n${payload.transcript}`}] :
+        [
+          {
+            inlineData: {
+              data: payload.dataBase64,
+              mimeType: payload.mimeType,
+            },
+          },
+          {text: EXTRACTION_INSTRUCTION},
+        ];
+      const text = await gateway.generate({
+        parts,
+        maxOutputTokens: AI_MAX_OUTPUT_TOKENS.extraction,
+        json: true,
+      });
+      let extracted: unknown;
+      try {
+        extracted = JSON.parse(text);
+      } catch {
+        throw new ApplicationError(
+          "domain_precondition_failed",
+          "Não foi possível interpretar o conteúdo enviado.",
+        );
+      }
+      return {extracted};
+    },
+  }),
+});
+
+export const {analyzeFinancialQuestion, extractTransactionFromContent} =
+  createAiCallables(productionAiDependencies);

@@ -26,6 +26,7 @@ export type ApplicationErrorCode =
   | "idempotency_replay"
   | "domain_precondition_failed"
   | "quota_exceeded"
+  | "concurrent_update"
   | "not_found"
   | "already_exists"
   | "internal";
@@ -52,6 +53,9 @@ const HTTPS_CODE_BY_APPLICATION_CODE: Record<
   // cliente oferece upgrade, e os detalhes públicos são só recurso, plano,
   // limite, uso e período (`billing/quota.ts`).
   quota_exceeded: "resource-exhausted",
+  // Contenção de transação que esgotou as tentativas do SDK do Firestore
+  // (P2B.2): nada foi gravado e repetir é seguro. Não é erro interno.
+  concurrent_update: "aborted",
   not_found: "not-found",
   already_exists: "already-exists",
   internal: "internal",
@@ -119,6 +123,41 @@ export const isAlreadyExistsError = (error: unknown): boolean => {
   return code === 6 || code === "already-exists";
 };
 
+/**
+ * Transação que o Firestore invalidou (gRPC 3): a mesma família que o SDK
+ * trata como transitória. Em produção, "The referenced transaction has
+ * expired or is no longer valid"; no Emulator, a nova tentativa de uma
+ * transação abortada por lock timeout é recusada com "Transaction is invalid
+ * or closed." (o SDK só repete a primeira forma).
+ */
+const INVALIDATED_TRANSACTION_MESSAGE =
+  /transaction (has expired|is invalid or closed)/i;
+
+/**
+ * Contenção de transação do Firestore, sem efeito gravado:
+ *
+ * - `ABORTED` (gRPC 10) quando a transação perde a disputa pelos mesmos
+ *   documentos em todas as tentativas do SDK;
+ * - `INVALID_ARGUMENT` (gRPC 3) só quando a mensagem diz que a própria
+ *   transação foi invalidada (expirada, ou encerrada depois de um aborto).
+ *
+ * Só códigos numéricos do SDK contam: `HttpsError` já mapeado passa antes, e
+ * nenhum outro erro — nem outro `INVALID_ARGUMENT` — é promovido a
+ * contenção.
+ */
+export const isContentionAbortedError = (error: unknown): boolean => {
+  if (typeof error !== "object" || error === null) return false;
+  const {code, message} = error as {code?: unknown; message?: unknown};
+  if (code === 10) return true;
+  return code === 3 &&
+    typeof message === "string" &&
+    INVALIDATED_TRANSACTION_MESSAGE.test(message);
+};
+
+/** Mensagem de contenção: sem detalhe do Firestore, com a próxima ação. */
+export const CONCURRENT_UPDATE_MESSAGE =
+  "Os dados foram alterados por outra operação. Atualize e tente novamente.";
+
 export interface ToHttpsErrorOptions {
   /** Mensagem pt-BR do domínio para erro inesperado. */
   internalMessage?: string;
@@ -140,6 +179,8 @@ const DEFAULT_INTERNAL_MESSAGE =
  * - `ApplicationError` → código HTTPS fixo por código de aplicação, com a
  *   mensagem pt-BR escrita no ponto do lançamento.
  * - `ALREADY_EXISTS` da reserva de idempotência → `failed-precondition`.
+ * - Contenção de transação do Firestore (`ABORTED` ou transação invalidada,
+ *   `isContentionAbortedError`) → `aborted` (`concurrent_update`).
  * - Qualquer outra coisa → `internal` com mensagem genérica e `requestId`,
  *   sem stack, payload, e-mail ou token.
  */
@@ -177,6 +218,11 @@ export const toHttpsError = (
       "Esta solicitação já está em processamento.",
     );
   }
+  if (isContentionAbortedError(error)) {
+    // A transação perdeu a disputa em todas as tentativas do SDK, sem efeito
+    // parcial. O cliente atualiza e repete; não há stack nem detalhe do banco.
+    return new HttpsError("aborted", CONCURRENT_UPDATE_MESSAGE);
+  }
   return new HttpsError(
     "internal",
     options.internalMessage ?? DEFAULT_INTERNAL_MESSAGE,
@@ -190,5 +236,6 @@ export const errorCodeOf = (error: unknown): string => {
   if (error instanceof z.ZodError) return "invalid_payload";
   if (error instanceof HttpsError) return error.code;
   if (isAlreadyExistsError(error)) return "idempotency_conflict";
+  if (isContentionAbortedError(error)) return "concurrent_update";
   return "internal";
 };
