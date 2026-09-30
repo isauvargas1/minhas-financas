@@ -1,20 +1,34 @@
+import assert from "node:assert/strict";
+
 import type {CallerIdentity} from "../../shared/callable";
 import type {OperationLogger} from "../../shared/logger";
 import {testEmailFor} from "../../shared/testSupport/kernelTestSupport";
 import {bootstrapAccount} from "../../workspaces/callables";
-import {call, db} from "../../workspaces/testSupport/p1TestSupport";
+import {
+  call,
+  db,
+  idempotencyKey,
+  uniqueId,
+} from "../../workspaces/testSupport/p1TestSupport";
+import {executeCreateCheckoutSession} from "../checkout";
 import type {CheckoutDependencies} from "../checkout";
 import {readPriceConfig, readWebhookSecret} from "../config";
-import type {BillingAccountDocument} from "../model";
+import type {
+  BillingAccountDocument,
+  ReconciliationLeaseDocument,
+} from "../model";
 import type {WebhookDependencies} from "../webhook";
 import {processStripeWebhook} from "../webhook";
 import {FakeStripe, signedStripeEvent, testBillingEnv} from "./fakeStripe";
+import {installTransactionProbe} from "./transactionProbe";
 
 /**
  * Suporte das suítes de integração de billing (somente testes). Exige o
  * Emulator já no carregamento: as callables usam o Admin SDK inicializado.
+ * A sonda de transação vale para todas as suítes que usam este suporte:
+ * chamada ao Stripe falso de dentro de transação falha o teste.
  */
-db();
+installTransactionProbe(db());
 
 export const silentLogger = (): OperationLogger => {
   const logger: OperationLogger = {
@@ -52,6 +66,15 @@ export const billingEvents = async (uid: string, type?: string) =>
   (await db().collection(`billing_accounts/${uid}/billing_events`).get())
     .docs.map((doc) => doc.data())
     .filter((event) => !type || event.type === type);
+
+export const webhookReceipt = async (eventId: string) =>
+  (await db().doc(`billing_webhook_events/${eventId}`).get()).data();
+
+export const reconciliationLease = async (
+  uid: string,
+): Promise<ReconciliationLeaseDocument | undefined> =>
+  (await db().doc(`billing_accounts/${uid}/billing_sync/reconciliation`)
+    .get()).data() as ReconciliationLeaseDocument | undefined;
 
 export interface BillingHarness {
   env: ReturnType<typeof testBillingEnv>;
@@ -160,3 +183,34 @@ export const checkoutSessionEventObject = (
   payment_status: "paid",
   metadata: {billingOwnerUid: ownerUid},
 });
+
+/** Titular com checkout concluído no Stripe e o evento de conclusão. */
+export const subscribedUser = async (
+  harness: BillingHarness,
+  planId: "pro" | "business" = "pro",
+) => {
+  const uid = uniqueId("wh");
+  await bootstrapUser(uid);
+  await executeCreateCheckoutSession(harness.checkoutDeps, {
+    caller: callerFor(uid),
+    payload: {
+      planId,
+      returnUrl: harness.env.APP_ALLOWED_ORIGINS,
+      idempotencyKey: idempotencyKey(),
+    },
+    requestId: uniqueId("req"),
+    log: silentLogger(),
+  });
+  const account = await billingAccount(uid);
+  const customerId = account.stripeCustomerId as string;
+  const sessionId = account.pendingCheckout?.sessionId as string;
+  const subscription = harness.stripe.completeCheckoutSession(sessionId);
+  const completed = await harness.deliver({
+    type: "checkout.session.completed",
+    object: checkoutSessionEventObject(
+      sessionId, customerId, subscription.id, uid),
+  });
+  assert.equal(completed.status, 200);
+  return {uid, customerId, sessionId, subscriptionId: subscription.id,
+    completedEventId: completed.id};
+};

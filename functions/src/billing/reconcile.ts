@@ -18,9 +18,10 @@ import type {SubscriptionSnapshot} from "./stripeGateway";
 /**
  * Reconciliação pura: assinaturas do customer no Stripe → estado canônico.
  *
- * O webhook não aplica o conteúdo do evento. Ele relê no Stripe, dentro da
- * transação que lê a conta, as assinaturas atuais do customer e grava o
- * resultado desta função. Um evento antigo entregue depois de um novo apenas
+ * O webhook não aplica o conteúdo do evento. Ele relê no Stripe, fora de
+ * qualquer transação e sob o lease do titular, as assinaturas atuais do
+ * customer; o commit, que exige a geração do lease, grava o resultado desta
+ * função (`webhook.ts`). Um evento antigo entregue depois de um novo apenas
  * dispara uma nova leitura do estado atual: nunca regride a conta.
  */
 export interface BillingState {

@@ -178,15 +178,32 @@ const isStripeError = (error: unknown): error is Stripe.errors.StripeError =>
   error instanceof Stripe.errors.StripeError;
 
 /**
+ * Teto de assinaturas lidas por customer. O checkout impede duplicidade, então
+ * passar disso só acontece por operação manual no Stripe; acima do teto a
+ * leitura falha fechada (500 e reentrega) em vez de decidir o plano com uma
+ * lista incompleta.
+ */
+export const MAX_SUBSCRIPTIONS_PER_CUSTOMER = 500;
+
+export interface StripeGatewayOptions {
+  /** Somente testes: cliente HTTP falso, sem rede. */
+  httpClient?: Stripe.HttpClient;
+}
+
+/**
  * Implementação real. O cliente é criado sob demanda por quem já validou a
  * chave (`config.ts`); nunca no carregamento do módulo e nunca com valor
  * padrão.
  */
-export const createStripeGateway = (secretKey: string): StripeGateway => {
+export const createStripeGateway = (
+  secretKey: string,
+  options: StripeGatewayOptions = {},
+): StripeGateway => {
   const stripe = new Stripe(secretKey, {
     apiVersion: STRIPE_API_VERSION,
     maxNetworkRetries: 2,
     timeout: 20_000,
+    ...(options.httpClient ? {httpClient: options.httpClient} : {}),
   });
 
   const retrieveSession = async (
@@ -276,13 +293,18 @@ export const createStripeGateway = (secretKey: string): StripeGateway => {
     },
 
     async listSubscriptions(customerId) {
-      const page = await stripe.subscriptions.list({
+      // Todas as páginas, não só a primeira: uma assinatura viva além dos
+      // 100 mais recentes mudaria a assinatura canônica.
+      const subscriptions = await stripe.subscriptions.list({
         customer: customerId,
         status: "all",
         limit: 100,
         expand: ["data.latest_invoice"],
-      });
-      return page.data.map(subscriptionSnapshotFromStripe);
+      }).autoPagingToArray({limit: MAX_SUBSCRIPTIONS_PER_CUSTOMER + 1});
+      if (subscriptions.length > MAX_SUBSCRIPTIONS_PER_CUSTOMER) {
+        throw new Error("Customer com assinaturas acima do teto de leitura.");
+      }
+      return subscriptions.map(subscriptionSnapshotFromStripe);
     },
 
     async retrieveSubscription(subscriptionId) {

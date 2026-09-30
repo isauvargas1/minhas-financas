@@ -11,6 +11,7 @@ import type {
   StripeGateway,
   SubscriptionSnapshot,
 } from "../stripeGateway";
+import {insideTransaction} from "./transactionProbe";
 
 /**
  * Stripe em memória para os testes de billing (somente testes; fora dos
@@ -20,6 +21,11 @@ import type {
  * `Idempotency-Key` (mesma chave ⇒ mesmo objeto), sessões que só expiram
  * enquanto abertas, conclusão de sessão criando assinatura e leitura sempre
  * do estado atual.
+ *
+ * Toda chamada feita de dentro de uma transação do Firestore é recusada e
+ * registrada em `transactionViolations` (sonda de `transactionProbe.ts`).
+ * `hold` retém uma chamada para simular Stripe lento, processo travado ou
+ * queda entre as fases do webhook.
  */
 const randomToken = (length: number): string => {
   const alphabet =
@@ -50,6 +56,25 @@ export interface FakeCall {
   args?: unknown;
 }
 
+/**
+ * `beforeRead` segura a chamada antes de ler o estado; `afterRead` lê o
+ * estado e segura a resposta, que chega velha quando liberada.
+ */
+export type HoldPoint = "beforeRead" | "afterRead";
+
+export interface StripeHold {
+  /** Resolve quando a chamada chega ao ponto retido. */
+  reached: Promise<void>;
+  /** Libera a chamada retida. */
+  release: () => void;
+}
+
+interface PendingHold {
+  point: HoldPoint;
+  arrive: () => void;
+  gate: Promise<void>;
+}
+
 export class FakeStripe implements StripeGateway {
   readonly calls: FakeCall[] = [];
   readonly prices = new Map<string, PriceSnapshot>();
@@ -65,6 +90,9 @@ export class FakeStripe implements StripeGateway {
   private readonly idempotent = new Map<string, unknown>();
   /** Falha injetada por método (uma vez). */
   readonly failNext = new Set<string>();
+  /** Métodos chamados de dentro de uma transação do Firestore. */
+  readonly transactionViolations: string[] = [];
+  private readonly holds = new Map<string, PendingHold[]>();
 
   constructor(readonly livemode = false) {}
 
@@ -91,6 +119,40 @@ export class FakeStripe implements StripeGateway {
     return this.calls.filter((call) => call.method === method).length;
   }
 
+  /** Retém a próxima chamada de `method` no ponto indicado. */
+  hold(method: string, point: HoldPoint = "beforeRead"): StripeHold {
+    let arrive: () => void = () => undefined;
+    let release: () => void = () => undefined;
+    const reached = new Promise<void>((resolve) => {
+      arrive = resolve;
+    });
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const queue = this.holds.get(method) ?? [];
+    queue.push({point, arrive, gate});
+    this.holds.set(method, queue);
+    return {reached, release};
+  }
+
+  private async pause(method: string, point: HoldPoint): Promise<void> {
+    const queue = this.holds.get(method);
+    if (!queue || queue[0]?.point !== point) return;
+    const [entry] = queue.splice(0, 1);
+    entry.arrive();
+    await entry.gate;
+  }
+
+  /** Registra a chamada e recusa I/O externo dentro de transação. */
+  private enter(call: FakeCall): void {
+    this.calls.push(call);
+    if (insideTransaction()) {
+      this.transactionViolations.push(call.method);
+      throw new Error(
+        `${call.method} chamado dentro de transação do Firestore`);
+    }
+  }
+
   private maybeFail(method: string): void {
     if (this.failNext.delete(method)) {
       throw new Error(`falha injetada em ${method}`);
@@ -105,7 +167,7 @@ export class FakeStripe implements StripeGateway {
   }
 
   async retrievePrice(priceId: string): Promise<PriceSnapshot> {
-    this.calls.push({method: "retrievePrice", args: priceId});
+    this.enter({method: "retrievePrice", args: priceId});
     this.maybeFail("retrievePrice");
     const price = this.prices.get(priceId);
     if (!price) throw new Error("No such price");
@@ -116,7 +178,7 @@ export class FakeStripe implements StripeGateway {
     input: {billingOwnerUid: string; email: string | null},
     idempotencyKey: string,
   ): Promise<{id: string}> {
-    this.calls.push({method: "createCustomer", idempotencyKey, args: input});
+    this.enter({method: "createCustomer", idempotencyKey, args: input});
     this.maybeFail("createCustomer");
     return this.once(`customer:${idempotencyKey}`, () => {
       const id = `cus_${randomToken(14)}`;
@@ -128,7 +190,7 @@ export class FakeStripe implements StripeGateway {
   async listOpenCheckoutSessions(
     customerId: string,
   ): Promise<CheckoutSessionSnapshot[]> {
-    this.calls.push({method: "listOpenCheckoutSessions", args: customerId});
+    this.enter({method: "listOpenCheckoutSessions", args: customerId});
     return [...this.sessions.values()]
       .filter((entry) =>
         entry.customerId === customerId && entry.status === "open")
@@ -138,7 +200,7 @@ export class FakeStripe implements StripeGateway {
   async expireCheckoutSession(
     sessionId: string,
   ): Promise<CheckoutSessionSnapshot> {
-    this.calls.push({method: "expireCheckoutSession", args: sessionId});
+    this.enter({method: "expireCheckoutSession", args: sessionId});
     const session = this.sessions.get(sessionId);
     if (!session) throw new Error("No such checkout session");
     if (session.status === "open") session.status = "expired";
@@ -149,7 +211,7 @@ export class FakeStripe implements StripeGateway {
     input: CreateCheckoutSessionInput,
     idempotencyKey: string,
   ): Promise<CheckoutSessionSnapshot> {
-    this.calls.push({
+    this.enter({
       method: "createCheckoutSession",
       idempotencyKey,
       args: input,
@@ -250,30 +312,37 @@ export class FakeStripe implements StripeGateway {
   }
 
   async listSubscriptions(customerId: string): Promise<SubscriptionSnapshot[]> {
-    this.calls.push({method: "listSubscriptions", args: customerId});
+    this.enter({method: "listSubscriptions", args: customerId});
+    await this.pause("listSubscriptions", "beforeRead");
     this.maybeFail("listSubscriptions");
-    return [...this.subscriptions.values()]
+    const listed = [...this.subscriptions.values()]
       .filter((entry) => entry.customerId === customerId)
       .map((entry) => structuredClone(entry));
+    await this.pause("listSubscriptions", "afterRead");
+    return listed;
   }
 
   async retrieveSubscription(
     subscriptionId: string,
   ): Promise<SubscriptionSnapshot | null> {
-    this.calls.push({method: "retrieveSubscription", args: subscriptionId});
+    this.enter({method: "retrieveSubscription", args: subscriptionId});
+    await this.pause("retrieveSubscription", "beforeRead");
+    this.maybeFail("retrieveSubscription");
     const found = this.subscriptions.get(subscriptionId);
-    return found ? structuredClone(found) : null;
+    const snapshot = found ? structuredClone(found) : null;
+    await this.pause("retrieveSubscription", "afterRead");
+    return snapshot;
   }
 
   async createPortalSession(
     input: {customerId: string; returnUrl: string},
   ): Promise<{url: string}> {
-    this.calls.push({method: "createPortalSession", args: input});
+    this.enter({method: "createPortalSession", args: input});
     return {url: `https://billing.stripe.test/p/session/${randomUUID()}`};
   }
 
   async retrieveChargeCustomerId(chargeId: string): Promise<string | null> {
-    this.calls.push({method: "retrieveChargeCustomerId", args: chargeId});
+    this.enter({method: "retrieveChargeCustomerId", args: chargeId});
     return this.charges.get(chargeId) ?? null;
   }
 }

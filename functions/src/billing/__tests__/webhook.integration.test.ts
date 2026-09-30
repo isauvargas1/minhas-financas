@@ -1,21 +1,17 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import {db, idempotencyKey, uniqueId} from
-  "../../workspaces/testSupport/p1TestSupport";
+import {db, uniqueId} from "../../workspaces/testSupport/p1TestSupport";
 import {stripeWebhook} from "../../webhooks/stripe";
-import {executeCreateCheckoutSession} from "../checkout";
 import {processStripeWebhook} from "../webhook";
 import {signedStripeEvent} from "../testSupport/fakeStripe";
 import {
   billingAccount,
   billingEvents,
   billingHarness,
-  bootstrapUser,
-  callerFor,
-  checkoutSessionEventObject,
   invoiceEventObject,
-  silentLogger,
+  reconciliationLease,
+  subscribedUser,
   subscriptionEventObject,
   type BillingHarness,
 } from "../testSupport/billingTestSupport";
@@ -29,37 +25,6 @@ const DAY = 24 * 60 * 60 * 1000;
 
 const receipt = async (eventId: string) =>
   (await db().doc(`billing_webhook_events/${eventId}`).get()).data();
-
-/** Titular com checkout concluído no Stripe e o evento de conclusão. */
-const subscribedUser = async (
-  harness: BillingHarness,
-  planId: "pro" | "business" = "pro",
-) => {
-  const uid = uniqueId("wh");
-  await bootstrapUser(uid);
-  await executeCreateCheckoutSession(harness.checkoutDeps, {
-    caller: callerFor(uid),
-    payload: {
-      planId,
-      returnUrl: harness.env.APP_ALLOWED_ORIGINS,
-      idempotencyKey: idempotencyKey(),
-    },
-    requestId: uniqueId("req"),
-    log: silentLogger(),
-  });
-  const account = await billingAccount(uid);
-  const customerId = account.stripeCustomerId as string;
-  const sessionId = account.pendingCheckout?.sessionId as string;
-  const subscription = harness.stripe.completeCheckoutSession(sessionId);
-  const completed = await harness.deliver({
-    type: "checkout.session.completed",
-    object: checkoutSessionEventObject(
-      sessionId, customerId, subscription.id, uid),
-  });
-  assert.equal(completed.status, 200);
-  return {uid, customerId, sessionId, subscriptionId: subscription.id,
-    completedEventId: completed.id};
-};
 
 const subscriptionEvent = (
   harness: BillingHarness,
@@ -146,7 +111,8 @@ test("evento de outro modo (live em ambiente test) é recusado", async () => {
 
 // ------------------------------------------------------------- ciclo de vida
 
-test("checkout concluído vincula a assinatura e concede o plano do Price", async () => {
+test("checkout concluído vincula a assinatura e concede o plano do " +
+  "Price", async () => {
   const harness = billingHarness();
   const user = await subscribedUser(harness, "business");
   const account = await billingAccount(user.uid);
@@ -154,7 +120,8 @@ test("checkout concluído vincula a assinatura e concede o plano do Price", asyn
   assert.equal(account.entitlementStatus, "active");
   assert.equal(account.subscriptionStatus, "active");
   assert.equal(account.stripeSubscriptionId, user.subscriptionId);
-  assert.equal(account.stripePriceId, harness.env.STRIPE_PRICE_BUSINESS_MONTHLY);
+  assert.equal(account.stripePriceId,
+    harness.env.STRIPE_PRICE_BUSINESS_MONTHLY);
   assert.ok(account.currentPeriodEnd);
   assert.equal(account.pendingCheckout, null);
   assert.equal(account.lastStripeEventId, user.completedEventId);
@@ -184,12 +151,13 @@ test("evento repetido não reaplica efeito e responde sucesso", async () => {
   assert.equal((await billingEvents(user.uid, "payment.succeeded")).length, 1);
   assert.equal((await billingEvents(user.uid)).length, eventsBefore + 1);
   const stored = await receipt(signed.id);
+  assert.equal(stored?.status, "processed");
   assert.equal(stored?.outcome, "applied");
   assert.equal(stored?.billingOwnerUid, user.uid);
   assert.ok(stored?.expiresAt);
   assert.deepEqual(Object.keys(stored ?? {}).sort(), [
     "billingOwnerUid", "expiresAt", "id", "livemode", "outcome",
-    "processedAt", "reason", "stripeCreatedAt", "type",
+    "processedAt", "reason", "status", "stripeCreatedAt", "type",
   ], "o recibo não guarda payload");
 });
 
@@ -215,7 +183,8 @@ test("evento fora de ordem não regride o estado", async () => {
     1);
 });
 
-test("eventos concorrentes do mesmo titular convergem para o estado atual", async () => {
+test("eventos concorrentes do mesmo titular convergem para o estado " +
+  "atual", async () => {
   const harness = billingHarness();
   const user = await subscribedUser(harness);
   harness.stripe.updateSubscription(user.subscriptionId, {
@@ -241,7 +210,8 @@ test("eventos concorrentes do mesmo titular convergem para o estado atual", asyn
   assert.equal(account.entitlementStatus, "active");
 });
 
-test("upgrade pelo portal para Business é refletido; Price Pro nunca vira Business", async () => {
+test("upgrade pelo portal para Business é refletido; Price Pro nunca vira " +
+  "Business", async () => {
   const harness = billingHarness();
   const user = await subscribedUser(harness, "pro");
   // Metadata dizendo "business" não concede nada: só o Price decide.
@@ -285,7 +255,8 @@ test("upgrade pelo portal para Business é refletido; Price Pro nunca vira Busin
   assert.equal(downgrade?.after?.planId, "pro");
 });
 
-test("past_due mantém o plano no grace e restringe depois; pagamento regulariza", async () => {
+test("past_due mantém o plano no grace e restringe depois; pagamento " +
+  "regulariza", async () => {
   const harness = billingHarness();
   const user = await subscribedUser(harness);
   const failedAt = harness.clock.now;
@@ -390,7 +361,8 @@ test("unpaid, incomplete e canceled não concedem plano pago", async () => {
   }
 });
 
-test("reembolso e disputa são registrados sem mudar o entitlement", async () => {
+test("reembolso e disputa são registrados sem mudar o " +
+  "entitlement", async () => {
   const harness = billingHarness();
   const user = await subscribedUser(harness);
   harness.stripe.charges.set("ch_disputed", user.customerId);
@@ -417,7 +389,8 @@ test("reembolso e disputa são registrados sem mudar o entitlement", async () =>
   assert.equal(account.entitlementStatus, "active");
 });
 
-test("customer desconhecido ou titular divergente é rejeitado e registrado", async () => {
+test("customer desconhecido ou titular divergente é rejeitado e " +
+  "registrado", async () => {
   const harness = billingHarness();
   const user = await subscribedUser(harness);
   const unknown = await harness.deliver({
@@ -439,7 +412,8 @@ test("customer desconhecido ou titular divergente é rejeitado e registrado", as
   assert.equal((await billingAccount(user.uid)).planId, "pro");
 });
 
-test("assinatura com Price desconhecido não concede plano e gera anomalia", async () => {
+test("assinatura com Price desconhecido não concede plano e gera " +
+  "anomalia", async () => {
   const harness = billingHarness();
   const user = await subscribedUser(harness);
   harness.stripe.updateSubscription(user.subscriptionId, {
@@ -464,7 +438,8 @@ test("evento não tratado é registrado como ignorado", async () => {
   assert.equal(harness.stripe.calls.length, 0);
 });
 
-test("falha transitória do Stripe responde 500 e o reenvio aplica", async () => {
+test("falha transitória do Stripe responde 500 e o reenvio " +
+  "aplica", async () => {
   const harness = billingHarness();
   const user = await subscribedUser(harness);
   harness.stripe.updateSubscription(user.subscriptionId, {status: "canceled"});
@@ -479,9 +454,16 @@ test("falha transitória do Stripe responde 500 e o reenvio aplica", async () =>
   };
   assert.equal((await processStripeWebhook(harness.webhookDeps, request))
     .status, 500);
-  assert.equal(await receipt(signed.id), undefined);
+  // A falha não conclui o evento: recibo `processing`, sem resultado, e o
+  // lease devolvido para a reentrega não esperar a validade.
+  const pending = await receipt(signed.id);
+  assert.equal(pending?.status, "processing");
+  assert.equal(pending?.outcome, null);
+  assert.equal(pending?.processedAt, null);
+  assert.equal((await reconciliationLease(user.uid))?.holderEventId, null);
   assert.equal((await billingAccount(user.uid)).planId, "pro");
   assert.equal((await processStripeWebhook(harness.webhookDeps, request))
     .status, 200);
+  assert.equal((await receipt(signed.id))?.status, "processed");
   assert.equal((await billingAccount(user.uid)).planId, "free");
 });

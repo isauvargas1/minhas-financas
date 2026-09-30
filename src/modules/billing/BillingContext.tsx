@@ -2,6 +2,7 @@ import React, { createContext, useCallback, useContext, useEffect, useState } fr
 import { useQuery } from '@tanstack/react-query';
 
 import { useAuth } from '../../contexts/AuthContext';
+import { useWorkspace } from '../../contexts/WorkspaceContext';
 import { getBillingCatalog, subscribeBillingAccount } from './api';
 import { displayEntitlement } from './entitlement';
 import type {
@@ -32,14 +33,21 @@ interface BillingContextValue {
 
 const BillingContext = createContext<BillingContextValue | undefined>(undefined);
 
+/**
+ * Fica abaixo do `WorkspaceProvider`: catálogo e listener do documento
+ * canônico só começam depois que o `bootstrapAccount` do usuário atual
+ * concluiu. Antes disso as Rules negam a leitura (conta ainda inexistente no
+ * primeiro login) e o listener morreria sem ser refeito.
+ */
 export const BillingProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
-  const uid = user?.uid ?? null;
+  const { isAccountReady } = useWorkspace();
+  const uid = user && isAccountReady ? user.uid : null;
 
   const catalogQuery = useQuery({
     queryKey: ['billing', 'catalog', uid],
     queryFn: getBillingCatalog,
-    enabled: !!user,
+    enabled: uid !== null,
     staleTime: Infinity,
   });
 

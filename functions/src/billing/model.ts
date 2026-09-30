@@ -22,14 +22,19 @@ import {BILLING_CATALOG_VERSION, type PlanId} from "./catalog";
  * - `billing_customers/{stripeCustomerId}`: vínculo reverso customer → titular,
  *   criado na mesma transação que grava `stripeCustomerId` na conta.
  * - `billing_webhook_events/{stripeEventId}`: recibo idempotente de cada
- *   evento processado (sem payload), com TTL.
+ *   evento (sem payload), com TTL: `processing` enquanto a reconciliação
+ *   corre, `processed` só no commit do efeito.
  * - `billing_accounts/{uid}/billing_events/{id}`: trilha append-only das
  *   mudanças de billing.
+ * - `billing_accounts/{uid}/billing_sync/reconciliation`: lease e geração da
+ *   reconciliação do titular com o Stripe (`webhook.ts`).
  */
 export const BILLING_ACCOUNTS_COLLECTION = "billing_accounts";
 export const BILLING_CUSTOMERS_COLLECTION = "billing_customers";
 export const BILLING_WEBHOOK_EVENTS_COLLECTION = "billing_webhook_events";
 export const BILLING_EVENTS_COLLECTION = "billing_events";
+export const BILLING_SYNC_COLLECTION = "billing_sync";
+export const RECONCILIATION_LEASE_ID = "reconciliation";
 
 /** Status de assinatura do Stripe, mais `none` (sem assinatura). */
 export const STRIPE_SUBSCRIPTION_STATUSES = [
@@ -115,6 +120,29 @@ export interface BillingAccountDocument {
   updatedAt: Timestamp;
 }
 
+/**
+ * Lease da reconciliação de um titular (P2A.1). Nenhuma leitura do Stripe
+ * acontece dentro de transação: o evento adquire o lease numa transação
+ * curta, lê o Stripe fora dela e aplica o resultado numa segunda transação
+ * que exige a mesma geração.
+ *
+ * `generation` é um fencing token monotônico: toda aquisição a incrementa, e
+ * o commit de quem perdeu o lease (vencido e assumido por outro evento) é
+ * recusado. `holderEventId`/`leaseExpiresAt` nulos ⇒ lease livre; lease
+ * vencido pode ser assumido, então uma queda nunca deixa trava permanente.
+ */
+export interface ReconciliationLeaseDocument {
+  billingOwnerUid: string;
+  generation: number;
+  holderEventId: string | null;
+  leaseExpiresAt: Timestamp | null;
+  acquiredAt: Timestamp | null;
+  updatedAt: Timestamp;
+}
+
+/** `processing` nunca vale como processado: só `processed` encerra o evento. */
+export type WebhookReceiptStatus = "processing" | "processed";
+
 const db = () => admin.firestore();
 
 export const billingAccountRef = (
@@ -131,6 +159,13 @@ export const billingWebhookEventRef = (
   stripeEventId: string,
 ): admin.firestore.DocumentReference =>
   db().collection(BILLING_WEBHOOK_EVENTS_COLLECTION).doc(stripeEventId);
+
+export const billingReconciliationLeaseRef = (
+  uid: string,
+): admin.firestore.DocumentReference =>
+  billingAccountRef(uid)
+    .collection(BILLING_SYNC_COLLECTION)
+    .doc(RECONCILIATION_LEASE_ID);
 
 /**
  * Estado inicial de toda conta: Free válido, sem customer nem assinatura.

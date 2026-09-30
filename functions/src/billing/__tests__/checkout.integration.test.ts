@@ -69,7 +69,8 @@ const openSessionsOf = (harness: BillingHarness, customerId: string) =>
 
 // ------------------------------------------------------------- bootstrap
 
-test("bootstrap cria billing Free válido, idempotente e sob concorrência", async () => {
+test("bootstrap cria billing Free válido, idempotente e sob " +
+  "concorrência", async () => {
   const uid = uniqueId("bill-boot");
   await Promise.all([
     call(bootstrapAccount, uid, {}),
@@ -96,7 +97,8 @@ test("bootstrap cria billing Free válido, idempotente e sob concorrência", asy
   assert.equal("isPro" in profile, false);
 });
 
-test("conta anterior ao billing recebe o Free no próximo bootstrap", async () => {
+test("conta anterior ao billing recebe o Free no próximo " +
+  "bootstrap", async () => {
   const uid = uniqueId("bill-heal");
   await bootstrapUser(uid);
   await db().doc(`billing_accounts/${uid}`).delete();
@@ -167,7 +169,8 @@ test("catálogo público é servido pelo backend", async () => {
 
 // ------------------------------------------------------------- checkout
 
-test("checkout cria sessão para o customer canônico sem conceder plano", async () => {
+test("checkout cria sessão para o customer canônico sem conceder " +
+  "plano", async () => {
   const harness = billingHarness();
   const uid = uniqueId("bill-happy");
   await bootstrapUser(uid);
@@ -193,7 +196,8 @@ test("checkout cria sessão para o customer canônico sem conceder plano", async
   assert.equal(input.billingOwnerUid, uid);
   assert.equal(input.successUrl,
     `${harness.env.APP_ALLOWED_ORIGINS}/app?billing=success`);
-  assert.match(created?.idempotencyKey ?? "", /^billing-checkout-[0-9a-f]{40}-\d+$/);
+  assert.match(created?.idempotencyKey ?? "",
+    /^billing-checkout-[0-9a-f]{40}-\d+$/);
   assert.match(
     harness.stripe.calls.find((entry) => entry.method === "createCustomer")
       ?.idempotencyKey ?? "",
@@ -219,7 +223,8 @@ test("mesma chave de idempotência devolve a mesma sessão", async () => {
     "idempotency_conflict");
 });
 
-test("chamadas concorrentes com a mesma chave usam a mesma chave no Stripe", async () => {
+test("chamadas concorrentes com a mesma chave usam a mesma chave no " +
+  "Stripe", async () => {
   const harness = billingHarness();
   const uid = uniqueId("bill-samekey");
   await bootstrapUser(uid);
@@ -241,7 +246,8 @@ test("chamadas concorrentes com a mesma chave usam a mesma chave no Stripe", asy
   assert.equal(harness.stripe.sessions.size, 1);
 });
 
-test("checkouts concorrentes com chaves diferentes não criam duas assinaturas", async () => {
+test("checkouts concorrentes com chaves diferentes não criam duas " +
+  "assinaturas", async () => {
   const harness = billingHarness();
   const uid = uniqueId("bill-race");
   await bootstrapUser(uid);
@@ -306,7 +312,8 @@ test("titular com assinatura paga não abre segundo checkout", async () => {
   assert.equal(harness.stripe.count("createCheckoutSession"), 0);
 });
 
-test("assinatura viva no Stripe ainda não refletida bloqueia o checkout", async () => {
+test("assinatura viva no Stripe ainda não refletida bloqueia o " +
+  "checkout", async () => {
   const harness = billingHarness();
   const uid = uniqueId("bill-lag");
   await bootstrapUser(uid);
@@ -343,7 +350,8 @@ test("Price do ambiente divergente do catálogo falha fechado", async () => {
     harness.env.STRIPE_PRICE_PRO_MONTHLY,
     harness.stripe.price(harness.env.STRIPE_PRICE_PRO_MONTHLY, 1990),
   );
-  await rejectsWith(checkout(harness, uid, "pro"), "domain_precondition_failed");
+  await rejectsWith(checkout(harness, uid, "pro"),
+    "domain_precondition_failed");
   // Price live num ambiente de teste (ou o contrário) também é recusado.
   harness.stripe.prices.set(harness.env.STRIPE_PRICE_BUSINESS_MONTHLY, {
     ...harness.stripe.price(harness.env.STRIPE_PRICE_BUSINESS_MONTHLY, 5990),
@@ -400,7 +408,8 @@ test("rate limit do checkout é por titular", async () => {
   for (let index = 0; index < CHECKOUT_RATE_LIMIT.limit; index += 1) {
     await checkout(harness, uid, "pro");
   }
-  await rejectsWith(checkout(harness, uid, "pro"), "domain_precondition_failed");
+  await rejectsWith(checkout(harness, uid, "pro"),
+    "domain_precondition_failed");
 });
 
 // ------------------------------------------------------------- portal

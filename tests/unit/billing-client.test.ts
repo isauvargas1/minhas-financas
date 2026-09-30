@@ -253,3 +253,20 @@ test('o módulo de billing e a tabela de preços não têm preço nem priceId fi
     }
   }
 });
+
+test('billing só começa depois do bootstrap: BillingProvider abaixo do WorkspaceProvider', () => {
+  const app = read(join(srcRoot, 'App.tsx'));
+  const order = ['<WorkspaceProvider>', '<BillingProvider>', '</BillingProvider>', '</WorkspaceProvider>']
+    .map((tag) => app.indexOf(tag));
+  assert.ok(order.every((index) => index >= 0), 'providers montados em App.tsx');
+  assert.deepEqual([...order].sort((a, b) => a - b), order, 'BillingProvider dentro do WorkspaceProvider');
+  assert.ok(app.indexOf('<BillingSuccessModal />') > order[1], 'modal de billing dentro do BillingProvider');
+
+  // Catálogo e listener ficam desligados até a conta do usuário atual estar pronta.
+  const provider = read(join(srcRoot, 'modules', 'billing', 'BillingContext.tsx'));
+  assert.match(provider, /const \{ isAccountReady \} = useWorkspace\(\);/);
+  assert.match(provider, /const uid = user && isAccountReady \? user\.uid : null;/);
+  assert.match(provider, /enabled: uid !== null,/);
+  const workspace = read(join(srcRoot, 'contexts', 'WorkspaceContext.tsx'));
+  assert.match(workspace, /isAccountReady: user !== null && accountReadyUid === user\.uid,/);
+});

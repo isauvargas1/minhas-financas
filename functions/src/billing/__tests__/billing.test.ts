@@ -79,7 +79,8 @@ test("catálogo canônico versionado com os valores de D-08", () => {
   assert.equal(BILLING_POLICY.currency, "brl");
 });
 
-test("catálogo: centavos inteiros, planos ordenados e nenhum falso ilimitado", () => {
+test("catálogo: centavos inteiros, planos ordenados e nenhum falso " +
+  "ilimitado", () => {
   let previousRank = -1;
   for (const planId of PLAN_IDS) {
     const plan = catalogPlan(planId);
@@ -92,13 +93,15 @@ test("catálogo: centavos inteiros, planos ordenados e nenhum falso ilimitado", 
       assert.ok(![999, 9999, 99999].includes(value), `${planId}.${key}`);
     }
   }
-  assert.notEqual(catalogPlan("pro").amountCents, catalogPlan("business").amountCents);
+  assert.notEqual(catalogPlan("pro").amountCents,
+    catalogPlan("business").amountCents);
   assert.throws(() => {
     (catalogPlan("pro") as {amountCents: number}).amountCents = 1;
   });
 });
 
-test("catálogo público não expõe priceId, ordem interna nem configuração", () => {
+test("catálogo público não expõe priceId, ordem interna nem " +
+  "configuração", () => {
   const catalog = publicBillingCatalog();
   assert.equal(catalog.catalogVersion, BILLING_CATALOG_VERSION);
   assert.equal(catalog.currency, "BRL");
@@ -198,7 +201,8 @@ test("returnUrl é comparado por origem, nunca por prefixo", () => {
     false,
   );
   assert.deepEqual(
-    allowedReturnOrigins({APP_ALLOWED_ORIGINS: " https://a.test/ ,https://b.test"}),
+    allowedReturnOrigins(
+      {APP_ALLOWED_ORIGINS: " https://a.test/ ,https://b.test"}),
     ["https://a.test", "https://b.test"],
   );
 });
@@ -222,7 +226,8 @@ test("sem assinatura paga → Free", () => {
   );
 });
 
-test("active e trialing concedem o plano do Price; Pro e Business distintos", () => {
+test("active e trialing concedem o plano do Price; Pro e Business " +
+  "distintos", () => {
   assert.deepEqual(resolveEntitlement(terms({}), NOW),
     {planId: "pro", entitlementStatus: "active"});
   assert.deepEqual(resolveEntitlement(terms({paidPlanId: "business"}), NOW),
@@ -271,7 +276,8 @@ test("cancel_at_period_end mantém o plano até currentPeriodEnd", () => {
     {planId: "free", entitlementStatus: "free"});
 });
 
-test("canceled, unpaid, incomplete, incomplete_expired e paused sem plano pago", () => {
+test("canceled, unpaid, incomplete, incomplete_expired e paused sem plano " +
+  "pago", () => {
   const cases: Array<[SubscriptionTerms["status"], string]> = [
     ["canceled", "free"],
     ["incomplete_expired", "free"],
@@ -364,7 +370,8 @@ test("webhook nunca concede Business a partir de Price Pro", () => {
   assert.equal(business.state.planId, "business");
 });
 
-test("Price desconhecido ou itens inesperados viram anomalia sem plano pago", () => {
+test("Price desconhecido ou itens inesperados viram anomalia sem plano " +
+  "pago", () => {
   const unknown = deriveBillingState(
     subscription({priceId: "price_outro12345678"}), noPrevious, prices, NOW);
   assert.equal(unknown.state.planId, "free");
@@ -380,7 +387,8 @@ test("Price desconhecido ou itens inesperados viram anomalia sem plano pago", ()
     .state.planId, "free");
 });
 
-test("assinatura canônica: viva antes de encerrada; duplicidade apontada", () => {
+test("assinatura canônica: viva antes de encerrada; duplicidade " +
+  "apontada", () => {
   const oldCanceled = subscription({status: "canceled", created: 5_000});
   const live = subscription({status: "active", created: 10});
   const {canonical, duplicates} =

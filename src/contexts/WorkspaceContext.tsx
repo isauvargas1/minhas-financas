@@ -14,6 +14,11 @@ interface WorkspaceContextValue {
     isLoading: boolean;
     /** Mensagem pt-BR quando a conta ou os workspaces não puderam ser carregados. */
     loadError: string | null;
+    /**
+     * `bootstrapAccount` já confirmou a conta do usuário atual. Leituras que
+     * exigem conta ativa (billing) esperam por isto: antes, as Rules negam.
+     */
+    isAccountReady: boolean;
     switchWorkspace: (workspaceId: string) => void;
     reloadWorkspaces: () => Promise<void>;
     /** Há mais workspaces no índice além das páginas já carregadas. */
@@ -73,6 +78,8 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children 
     const [workspaceCursor, setWorkspaceCursor] = useState<QueryDocumentSnapshot | null>(null);
     // Carga iniciada para outro usuário não pode aplicar estado ao atual.
     const loadingUid = useRef<string | null>(null);
+    // UID cuja conta o bootstrap confirmou; nunca vale para outro usuário.
+    const [accountReadyUid, setAccountReadyUid] = useState<string | null>(null);
 
     const applySelection = (workspace: Workspace) => {
         setActiveWorkspace(workspace);
@@ -101,8 +108,11 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children 
 
         setIsLoading(true);
         setLoadError(null);
+        let bootstrapped = false;
         try {
             await bootstrapAccount();
+            bootstrapped = true;
+            if (loadingUid.current === uid) setAccountReadyUid(uid);
             const page = await listWorkspacesPage(uid);
             if (loadingUid.current !== uid) return;
             const list = page.items;
@@ -134,6 +144,7 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children 
         } catch (error) {
             console.error("Falha ao carregar a conta e os workspaces", error);
             if (loadingUid.current !== uid) return;
+            if (!bootstrapped) setAccountReadyUid(null);
             setActiveWorkspace(null);
             setLoadError(
                 callableErrorReason(error) === 'account_suspended'
@@ -150,6 +161,7 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children 
             loadData();
         } else {
             loadingUid.current = null;
+            setAccountReadyUid(null);
             setWorkspaces([]);
             setWorkspaceCursor(null);
             setActiveWorkspace(null);
@@ -202,6 +214,7 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children 
             switchWorkspace,
             isLoading,
             loadError,
+            isAccountReady: user !== null && accountReadyUid === user.uid,
             reloadWorkspaces: loadData,
             hasMoreWorkspaces: workspaceCursor !== null,
             loadMoreWorkspaces,

@@ -702,16 +702,17 @@ const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 const App: React.FC = () => (
     <QueryClientProvider client={queryClient}>
         <AuthProvider>
-            <BillingProvider>
-                <ThemeProvider>
-                    <WorkspaceProvider>
+            <ThemeProvider>
+                <WorkspaceProvider>
+                    {/* Billing depois do bootstrap da conta (WorkspaceProvider). */}
+                    <BillingProvider>
                         <BillingSuccessModal />
                         <AuthGuard>
                             <AppContent />
                         </AuthGuard>
-                    </WorkspaceProvider>
-                </ThemeProvider>
-            </BillingProvider>
+                    </BillingProvider>
+                </WorkspaceProvider>
+            </ThemeProvider>
         </AuthProvider>
     </QueryClientProvider>
 );
