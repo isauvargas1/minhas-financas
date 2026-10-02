@@ -3,6 +3,7 @@ import test from "node:test";
 import * as admin from "firebase-admin";
 import {Timestamp} from "firebase-admin/firestore";
 
+import {isContentionAbortedError} from "../../shared/errors";
 import type {WorkspaceActor} from "../../shared/workspaceAuth";
 import {
   requireFirestoreEmulator,
@@ -358,6 +359,13 @@ test(
     );
     for (const resultado of resultados) {
       if (resultado.status === "rejected") {
+        // O executor é chamado diretamente neste teste, portanto uma perda de
+        // disputa transacional ainda está no formato bruto do SDK. Na callable
+        // pública, defineCallable/toHttpsError converte exatamente esse caso em
+        // `aborted`. Qualquer outra rejeição continua sujeita ao contrato de
+        // domínio abaixo — não aceitamos INVALID_ARGUMENT/internal genérico.
+        if (isContentionAbortedError(resultado.reason)) continue;
+
         assert.match(
           String(resultado.reason?.message ?? resultado.reason),
           /reconstrução|concluída|contexto|andamento/i,

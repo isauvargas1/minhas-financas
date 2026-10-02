@@ -38,6 +38,16 @@ if (!process.env.FIRESTORE_EMULATOR_HOST) {
 
 const PROJECT = process.env.GCLOUD_PROJECT || "minhas-financas-local";
 const WORKSPACE = "scheduler-handler-ws";
+/*
+ * A varredura de deriva pagina `workspaces` por id global, em fatias de
+ * `DRIFT_WORKSPACES_PER_RUN`. Outras suítes deixam workspaces no Emulator,
+ * então "o workspace do teste cai na primeira fatia" não é premissa estável.
+ * O teste fixa o cursor imediatamente antes de um id reservado e adjacente, e
+ * a fatia passa a começar exatamente no workspace alvo, qualquer que seja o
+ * resto.
+ */
+const DRIFT_CURSOR_START = "zz-p2c-drift-000";
+const DRIFT_WORKSPACE = "zz-p2c-drift-001";
 
 const db = (): admin.firestore.Firestore => {
   if (!admin.apps.length) admin.initializeApp({projectId: PROJECT});
@@ -136,35 +146,51 @@ test("o corpo do gatilho de recorrentes gera a despesa vencida", async () => {
 });
 
 test("o corpo do gatilho de deriva percorre a fatia e avança o cursor", async () => {
-  await db().recursiveDelete(db().doc(`workspaces/${WORKSPACE}`));
-  await db().doc("system/investment_drift_scan").delete();
-  await db().doc(`workspaces/${WORKSPACE}`).set({
+  const scheduleTime = "2026-08-26T09:00:00.000Z";
+  await db().recursiveDelete(db().doc(`workspaces/${DRIFT_WORKSPACE}`));
+  await db().doc(`workspaces/${DRIFT_WORKSPACE}`).set({
     type: "PF",
-    name: WORKSPACE,
+    name: DRIFT_WORKSPACE,
   });
   await db()
-    .doc(`workspaces/${WORKSPACE}/investment_summaries/current`)
+    .doc(`workspaces/${DRIFT_WORKSPACE}/investment_summaries/current`)
     .set({
-      workspaceId: WORKSPACE,
+      workspaceId: DRIFT_WORKSPACE,
       positionCount: 0,
       principalCents: 0,
       currentValueCents: 0,
       updatedAt: Timestamp.now(),
     });
+  // A página começa logo depois do cursor: o alvo é o primeiro da fatia.
+  await db().doc("system/investment_drift_scan").set({
+    cursor: DRIFT_CURSOR_START,
+  });
 
-  await processInvestmentDriftScan.run(
-    scheduledEvent("2026-08-26T09:00:00.000Z"),
-  );
+  await processInvestmentDriftScan.run(scheduledEvent(scheduleTime));
 
   // A varredura registra o workspace conferido e deixa o cursor onde parou.
   const reports = await db()
-    .collection(`workspaces/${WORKSPACE}/investment_drift_reports`).get();
+    .collection(`workspaces/${DRIFT_WORKSPACE}/investment_drift_reports`).get();
   assert.equal(reports.size, 1);
-  assert.equal(reports.docs[0].data().workspaceId, WORKSPACE);
+  assert.equal(reports.docs[0].data().workspaceId, DRIFT_WORKSPACE);
   assert.equal(reports.docs[0].data().status, "clean");
   // A correlação deriva de `scheduleTime`: é o que liga o registro à execução.
-  assert.equal(typeof reports.docs[0].data().correlationId, "string");
+  assert.equal(
+    reports.docs[0].data().correlationId,
+    `drift-scan-${scheduleTime}`,
+  );
 
   const cursor = await db().doc("system/investment_drift_scan").get();
   assert.equal(cursor.exists, true);
+  // Pode haver ids posteriores na mesma fatia; o que importa é que avançou
+  // pelo menos até o alvo.
+  const nextCursor = cursor.data()?.cursor;
+  assert.equal(typeof nextCursor, "string");
+  assert.notEqual(nextCursor, DRIFT_CURSOR_START);
+  assert.ok(nextCursor >= DRIFT_WORKSPACE);
+  assert.ok(cursor.data()?.lastInspected >= 1);
+  assert.equal(
+    cursor.data()?.lastRunCorrelationId,
+    `drift-scan-${scheduleTime}`,
+  );
 });
