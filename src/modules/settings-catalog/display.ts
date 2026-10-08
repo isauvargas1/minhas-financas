@@ -74,24 +74,6 @@ const resolveFromCatalog = (params: {
     });
 };
 
-/*
- * O grupo aqui é o do **snapshot persistido na transação**: amarrar o
- * parâmetro ao tipo persistido impede que um grupo só de exibição vaze para
- * dentro de um documento.
- */
-export const buildVisualSnapshotFromCatalogItem = (
-    group: TransactionCatalogVisualSnapshot['group'],
-    item: SettingsCatalogItem,
-): TransactionCatalogVisualSnapshot => ({
-    group,
-    label: item.name,
-    normalizedLabel: normalizeSettingsCatalogName(item.name),
-    icon: item.icon,
-    color: item.color,
-    stroke: item.stroke,
-    transactionSubtype: item.transactionSubtype,
-});
-
 export const resolveCatalogVisual = (params: {
     catalogItems: SettingsCatalogItem[];
     group: CatalogDisplayGroup;

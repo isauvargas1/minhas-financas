@@ -1,0 +1,1027 @@
+{
+ "cartoes-desktop-claro": {
+  "overflow": 0,
+  "axe": [
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "count": 4,
+    "nodes": [
+     {
+      "target": [
+       ".text-teal-600"
+      ],
+      "html": "<span class=\"text-xs text-teal-600 dark:text-teal-400 font-bold uppercase tracking-wider flex items-center gap-1 mt-0.5\">"
+     },
+     {
+      "target": [
+       ".w-9"
+      ],
+      "html": "<div role=\"button\" tabindex=\"0\" aria-label=\"Abrir menu da conta\" aria-expanded=\"false\" class=\"w-9 h-9 rounded-full flex items-center justify-center text-white f"
+     },
+     {
+      "target": [
+       "div:nth-child(1) > .text-\\[10px\\].text-gray-500.uppercase"
+      ],
+      "html": "<div class=\"text-[10px] text-gray-500 uppercase\">Fechamento</div>"
+     },
+     {
+      "target": [
+       ".text-right > .text-\\[10px\\].text-gray-500.uppercase"
+      ],
+      "html": "<div class=\"text-[10px] text-gray-500 uppercase\">Melhor Dia</div>"
+     }
+    ]
+   }
+  ]
+ },
+ "modal-novo-cartao-desktop-claro": {
+  "overflow": 0,
+  "axe": [
+   {
+    "id": "button-name",
+    "impact": "critical",
+    "help": "Buttons must have discernible text",
+    "count": 1,
+    "nodes": [
+     {
+      "target": [
+       ".dark\\:hover\\:text-gray-200"
+      ],
+      "html": "<button class=\"p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors\">"
+     }
+    ]
+   },
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "count": 10,
+    "nodes": [
+     {
+      "target": [
+       ".text-teal-600"
+      ],
+      "html": "<span class=\"text-xs text-teal-600 dark:text-teal-400 font-bold uppercase tracking-wider flex items-center gap-1 mt-0.5\">"
+     },
+     {
+      "target": [
+       ".w-9"
+      ],
+      "html": "<div role=\"button\" tabindex=\"0\" aria-label=\"Abrir menu da conta\" aria-expanded=\"false\" class=\"w-9 h-9 rounded-full flex items-center justify-center text-white f"
+     },
+     {
+      "target": [
+       "div:nth-child(1) > .text-\\[10px\\].text-gray-500.uppercase"
+      ],
+      "html": "<div class=\"text-[10px] text-gray-500 uppercase\">Fechamento</div>"
+     },
+     {
+      "target": [
+       ".text-right > .text-\\[10px\\].text-gray-500.uppercase"
+      ],
+      "html": "<div class=\"text-[10px] text-gray-500 uppercase\">Melhor Dia</div>"
+     },
+     {
+      "target": [
+       ".dark\\:hover\\:text-gray-300"
+      ],
+      "html": "<button class=\"flex-1 py-4 text-sm font-bold uppercase tracking-widest transition-all text-gray-400 hover:text-gray-600 dark:hover:text-gray-300\">Estilo Visual<"
+     },
+     {
+      "target": [
+       "div:nth-child(1) > .text-indigo-500.dark\\:text-indigo-400.text-\\[10px\\]"
+      ],
+      "html": "<label class=\"block text-[10px] font-bold text-indigo-500 dark:text-indigo-400 uppercase tracking-wider mb-1.5\">Responsável pelo Cartão</label>"
+     },
+     {
+      "target": [
+       "div:nth-child(2) > .text-indigo-500.dark\\:text-indigo-400.text-\\[10px\\]"
+      ],
+      "html": "<label class=\"block text-[10px] font-bold text-indigo-500 dark:text-indigo-400 uppercase tracking-wider mb-1.5\">Centro de Custo Padrão</label>"
+     },
+     {
+      "target": [
+       "div:nth-child(3) > .text-indigo-500.dark\\:text-indigo-400.text-\\[10px\\]"
+      ],
+      "html": "<label class=\"block text-[10px] font-bold text-indigo-500 dark:text-indigo-400 uppercase tracking-wider mb-1.5\">Uso Recomendado / Regras</label>"
+     }
+    ]
+   },
+   {
+    "id": "label",
+    "impact": "critical",
+    "help": "Form elements must have labels",
+    "count": 2,
+    "nodes": [
+     {
+      "target": [
+       "input[value=\"1\"]"
+      ],
+      "html": "<input type=\"number\" class=\"w-full border border...\" min=\"1\" max=\"31\" required=\"\" value=\"1\" style=\"\">"
+     },
+     {
+      "target": [
+       "input[value=\"10\"]"
+      ],
+      "html": "<input type=\"number\" class=\"w-full border border...\" min=\"1\" max=\"31\" required=\"\" value=\"10\" style=\"\">"
+     }
+    ]
+   },
+   {
+    "id": "select-name",
+    "impact": "critical",
+    "help": "Select element must have an accessible name",
+    "count": 1,
+    "nodes": [
+     {
+      "target": [
+       "select"
+      ],
+      "html": "<select class=\"w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2.5 bg-white text-gray-900 dark:bg-dark-200 dark:text-white focus:ring-2 fo"
+     }
+    ]
+   }
+  ],
+  "focus": {
+   "initial": false,
+   "afterTabs": true
+  },
+  "escapeCloses": false
+ },
+ "modal-lancamento-cartao-desktop-claro": {
+  "overflow": 0,
+  "axe": [
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "count": 6,
+    "nodes": [
+     {
+      "target": [
+       ".text-teal-600"
+      ],
+      "html": "<span class=\"text-xs text-teal-600 dark:text-teal-400 font-bold uppercase tracking-wider flex items-center gap-1 mt-0.5\">"
+     },
+     {
+      "target": [
+       ".w-9"
+      ],
+      "html": "<div role=\"button\" tabindex=\"0\" aria-label=\"Abrir menu da conta\" aria-expanded=\"false\" class=\"w-9 h-9 rounded-full flex items-center justify-center text-white f"
+     },
+     {
+      "target": [
+       ".text-green-600.dark\\:text-green-400.mt-2 > span"
+      ],
+      "html": "<span>Mensal</span>"
+     },
+     {
+      "target": [
+       ".inline-flex > span:nth-child(2)"
+      ],
+      "html": "<span>Investimentos</span>"
+     },
+     {
+      "target": [
+       ".sm\\:grid-cols-2 > div:nth-child(2) > .uppercase"
+      ],
+      "html": "<label class=\"block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 uppercase\">Fornecedor</label>"
+     },
+     {
+      "target": [
+       "div:nth-child(3) > .uppercase"
+      ],
+      "html": "<label class=\"block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 uppercase\">Centro de Custo / Projeto</label>"
+     }
+    ]
+   },
+   {
+    "id": "label",
+    "impact": "critical",
+    "help": "Form elements must have labels",
+    "count": 3,
+    "nodes": [
+     {
+      "target": [
+       "input[type=\"date\"]"
+      ],
+      "html": "<input type=\"date\" class=\"w-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-dark-200 text-gray-800 dark:text-gray-200 rounded-lg px-4 py-2 f"
+     },
+     {
+      "target": [
+       "input[step=\"0.01\"]"
+      ],
+      "html": "<input type=\"number\" step=\"0.01\" min=\"0.01\" class=\"w-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-dark-200 text-gray-800 dark:text-gray-2"
+     },
+     {
+      "target": [
+       "input[min=\"1\"]"
+      ],
+      "html": "<input type=\"number\" min=\"1\" max=\"60\" class=\"w-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-dark-200 text-gray-800 dark:text-gray-200 rou"
+     }
+    ]
+   },
+   {
+    "id": "select-name",
+    "impact": "critical",
+    "help": "Select element must have an accessible name",
+    "count": 3,
+    "nodes": [
+     {
+      "target": [
+       ".px-3"
+      ],
+      "html": "<select class=\"border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-200 text-gray-800 dark:text-gray-200 rounded-lg px-3 py-2 text-sm focus:outline"
+     },
+     {
+      "target": [
+       ".space-y-4 > div:nth-child(2) > select"
+      ],
+      "html": "<select class=\"w-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-dark-200 text-gray-800 dark:text-gray-200 rounded-lg px-4 py-2 focus:outlin"
+     },
+     {
+      "target": [
+       "div:nth-child(4) > select"
+      ],
+      "html": "<select class=\"w-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-dark-200 text-gray-800 dark:text-gray-200 rounded-lg px-4 py-2 focus:outlin"
+     }
+    ]
+   },
+   {
+    "id": "svg-img-alt",
+    "impact": "serious",
+    "help": "<svg> elements with an img or image role must have alternative text",
+    "count": 1,
+    "nodes": [
+     {
+      "target": [
+       ".recharts-sector"
+      ],
+      "html": "<path cx=\"297\" cy=\"128\" name=\"Investimentos\" stroke=\"#fff\" fill=\"#3b82f6\" tabindex=\"-1\" class=\"recharts-sector\" d=\"M 397,128\n    A 100,100,0,\n    1,0,\n    396.9"
+     }
+    ]
+   }
+  ],
+  "focus": {
+   "initial": true,
+   "afterTabs": true
+  },
+  "escapeCloses": true
+ },
+ "recorrentes-desktop-claro": {
+  "overflow": 0,
+  "axe": [
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "count": 4,
+    "nodes": [
+     {
+      "target": [
+       ".dark\\:text-teal-400"
+      ],
+      "html": "<span class=\"text-xs text-teal-600 dark:text-teal-400 font-bold uppercase tracking-wider flex items-center gap-1 mt-0.5\">"
+     },
+     {
+      "target": [
+       ".w-9"
+      ],
+      "html": "<div role=\"button\" tabindex=\"0\" aria-label=\"Abrir menu da conta\" aria-expanded=\"false\" class=\"w-9 h-9 rounded-full flex items-center justify-center text-white f"
+     },
+     {
+      "target": [
+       ".text-white\\/80"
+      ],
+      "html": "<p class=\"text-white/80 text-sm font-medium mb-1\">Custo Mensal Estimado</p>"
+     },
+     {
+      "target": [
+       ".text-white\\/70"
+      ],
+      "html": "<p class=\"text-xs text-white/70 mt-2\">1 contratos ativos</p>"
+     }
+    ]
+   }
+  ]
+ },
+ "modal-nova-recorrencia-desktop-claro": {
+  "overflow": 0,
+  "axe": [
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "count": 4,
+    "nodes": [
+     {
+      "target": [
+       ".dark\\:text-teal-400"
+      ],
+      "html": "<span class=\"text-xs text-teal-600 dark:text-teal-400 font-bold uppercase tracking-wider flex items-center gap-1 mt-0.5\">"
+     },
+     {
+      "target": [
+       ".w-9"
+      ],
+      "html": "<div role=\"button\" tabindex=\"0\" aria-label=\"Abrir menu da conta\" aria-expanded=\"false\" class=\"w-9 h-9 rounded-full flex items-center justify-center text-white f"
+     },
+     {
+      "target": [
+       ".text-white\\/80"
+      ],
+      "html": "<p class=\"text-white/80 text-sm font-medium mb-1\">Custo Mensal Estimado</p>"
+     },
+     {
+      "target": [
+       ".text-white\\/70"
+      ],
+      "html": "<p class=\"text-xs text-white/70 mt-2\">1 contratos ativos</p>"
+     }
+    ]
+   }
+  ],
+  "focus": {
+   "initial": true,
+   "afterTabs": true
+  },
+  "escapeCloses": false
+ },
+ "divisao-desktop-claro": {
+  "overflow": 0,
+  "axe": [
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "count": 5,
+    "nodes": [
+     {
+      "target": [
+       ".text-teal-600"
+      ],
+      "html": "<span class=\"text-xs text-teal-600 dark:text-teal-400 font-bold uppercase tracking-wider flex items-center gap-1 mt-0.5\">"
+     },
+     {
+      "target": [
+       ".w-9"
+      ],
+      "html": "<div role=\"button\" tabindex=\"0\" aria-label=\"Abrir menu da conta\" aria-expanded=\"false\" class=\"w-9 h-9 rounded-full flex items-center justify-center text-white f"
+     },
+     {
+      "target": [
+       ".py-0\\.5"
+      ],
+      "html": "<span class=\"px-1.5 py-0.5 rounded font-bold uppercase bg-orange-50 text-orange-600 dark:bg-orange-900/20 dark:text-orange-300\">temporario</span>"
+     },
+     {
+      "target": [
+       ".text-red-500"
+      ],
+      "html": "<span class=\"text-[10px] text-red-500 uppercase font-bold block mb-0.5\">Devo</span>"
+     },
+     {
+      "target": [
+       ".text-green-500"
+      ],
+      "html": "<span class=\"text-[10px] text-green-500 uppercase font-bold block mb-0.5\">A Receber</span>"
+     }
+    ]
+   }
+  ]
+ },
+ "modal-novo-grupo-desktop-claro": {
+  "overflow": 0,
+  "axe": [
+   {
+    "id": "button-name",
+    "impact": "critical",
+    "help": "Buttons must have discernible text",
+    "count": 8,
+    "nodes": [
+     {
+      "target": [
+       ".border-gray-500"
+      ],
+      "html": "<button type=\"button\" class=\"w-6 h-6 rounded-full border-2 transition-transform hover:scale-110 border-gray-500 dark:border-white scale-110 shadow-sm\" style=\"ba"
+     },
+     {
+      "target": [
+       ".border-2.transition-transform.hover\\:scale-110:nth-child(2)"
+      ],
+      "html": "<button type=\"button\" class=\"w-6 h-6 rounded-full border-2 transition-transform hover:scale-110 border-transparent\" style=\"background-color: rgb(14, 165, 233);\""
+     },
+     {
+      "target": [
+       ".border-2.transition-transform.hover\\:scale-110:nth-child(3)"
+      ],
+      "html": "<button type=\"button\" class=\"w-6 h-6 rounded-full border-2 transition-transform hover:scale-110 border-transparent\" style=\"background-color: rgb(34, 197, 94);\">"
+     },
+     {
+      "target": [
+       ".border-2.transition-transform.hover\\:scale-110:nth-child(4)"
+      ],
+      "html": "<button type=\"button\" class=\"w-6 h-6 rounded-full border-2 transition-transform hover:scale-110 border-transparent\" style=\"background-color: rgb(234, 179, 8);\">"
+     },
+     {
+      "target": [
+       ".border-2.transition-transform.hover\\:scale-110:nth-child(5)"
+      ],
+      "html": "<button type=\"button\" class=\"w-6 h-6 rounded-full border-2 transition-transform hover:scale-110 border-transparent\" style=\"background-color: rgb(249, 115, 22);\""
+     },
+     {
+      "target": [
+       ".border-2.transition-transform.hover\\:scale-110:nth-child(6)"
+      ],
+      "html": "<button type=\"button\" class=\"w-6 h-6 rounded-full border-2 transition-transform hover:scale-110 border-transparent\" style=\"background-color: rgb(236, 72, 153);\""
+     },
+     {
+      "target": [
+       ".border-2.transition-transform.hover\\:scale-110:nth-child(7)"
+      ],
+      "html": "<button type=\"button\" class=\"w-6 h-6 rounded-full border-2 transition-transform hover:scale-110 border-transparent\" style=\"background-color: rgb(139, 92, 246);\""
+     },
+     {
+      "target": [
+       ".border-2.transition-transform.hover\\:scale-110:nth-child(8)"
+      ],
+      "html": "<button type=\"button\" class=\"w-6 h-6 rounded-full border-2 transition-transform hover:scale-110 border-transparent\" style=\"background-color: rgb(100, 116, 139);"
+     }
+    ]
+   },
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "count": 5,
+    "nodes": [
+     {
+      "target": [
+       ".text-teal-600"
+      ],
+      "html": "<span class=\"text-xs text-teal-600 dark:text-teal-400 font-bold uppercase tracking-wider flex items-center gap-1 mt-0.5\">"
+     },
+     {
+      "target": [
+       ".w-9"
+      ],
+      "html": "<div role=\"button\" tabindex=\"0\" aria-label=\"Abrir menu da conta\" aria-expanded=\"false\" class=\"w-9 h-9 rounded-full flex items-center justify-center text-white f"
+     },
+     {
+      "target": [
+       ".py-0\\.5"
+      ],
+      "html": "<span class=\"px-1.5 py-0.5 rounded font-bold uppercase bg-orange-50 text-orange-600 dark:bg-orange-900/20 dark:text-orange-300\">temporario</span>"
+     },
+     {
+      "target": [
+       ".text-\\[10px\\].mb-0\\.5.text-red-500"
+      ],
+      "html": "<span class=\"text-[10px] text-red-500 uppercase font-bold block mb-0.5\">Devo</span>"
+     },
+     {
+      "target": [
+       ".text-green-500"
+      ],
+      "html": "<span class=\"text-[10px] text-green-500 uppercase font-bold block mb-0.5\">A Receber</span>"
+     }
+    ]
+   },
+   {
+    "id": "label",
+    "impact": "critical",
+    "help": "Form elements must have labels",
+    "count": 1,
+    "nodes": [
+     {
+      "target": [
+       ".border-0"
+      ],
+      "html": "<input type=\"color\" class=\"w-6 h-6 rounded-full cursor-pointer p-0 border-0\" value=\"#4f46e5\" style=\"\">"
+     }
+    ]
+   },
+   {
+    "id": "select-name",
+    "impact": "critical",
+    "help": "Select element must have an accessible name",
+    "count": 3,
+    "nodes": [
+     {
+      "target": [
+       ".space-y-4 > div:nth-child(1) > select"
+      ],
+      "html": "<select class=\"w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 bg-white text-gray-900 dark:bg-dark-200 dark:text-white focus:ring-2 focu"
+     },
+     {
+      "target": [
+       ".grid-cols-2 > div:nth-child(1) > select"
+      ],
+      "html": "<select class=\"w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 bg-white text-gray-900 dark:bg-dark-200 dark:text-white focus:ring-2 focu"
+     },
+     {
+      "target": [
+       ".grid-cols-2 > div:nth-child(2) > select"
+      ],
+      "html": "<select class=\"w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 bg-white text-gray-900 dark:bg-dark-200 dark:text-white focus:ring-2 focu"
+     }
+    ]
+   }
+  ],
+  "focus": {
+   "initial": false,
+   "afterTabs": true
+  },
+  "escapeCloses": false
+ },
+ "investimentos-desktop-claro": {
+  "overflow": 0,
+  "axe": [
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "count": 3,
+    "nodes": [
+     {
+      "target": [
+       ".text-teal-600"
+      ],
+      "html": "<span class=\"text-xs text-teal-600 dark:text-teal-400 font-bold uppercase tracking-wider flex items-center gap-1 mt-0.5\">"
+     },
+     {
+      "target": [
+       ".w-9"
+      ],
+      "html": "<div role=\"button\" tabindex=\"0\" aria-label=\"Abrir menu da conta\" aria-expanded=\"false\" class=\"w-9 h-9 rounded-full flex items-center justify-center text-white f"
+     },
+     {
+      "target": [
+       ".px-2\\.5.py-1.gap-2 > span:nth-child(2)"
+      ],
+      "html": "<span>Renda fixa</span>"
+     }
+    ]
+   }
+  ]
+ },
+ "modal-novo-investimento-desktop-claro": {
+  "overflow": 0,
+  "axe": [
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "count": 3,
+    "nodes": [
+     {
+      "target": [
+       ".text-teal-600"
+      ],
+      "html": "<span class=\"text-xs text-teal-600 dark:text-teal-400 font-bold uppercase tracking-wider flex items-center gap-1 mt-0.5\">"
+     },
+     {
+      "target": [
+       ".w-9"
+      ],
+      "html": "<div role=\"button\" tabindex=\"0\" aria-label=\"Abrir menu da conta\" aria-expanded=\"false\" class=\"w-9 h-9 rounded-full flex items-center justify-center text-white f"
+     },
+     {
+      "target": [
+       ".px-2\\.5.py-1.gap-2 > span:nth-child(2)"
+      ],
+      "html": "<span>Renda fixa</span>"
+     }
+    ]
+   }
+  ],
+  "focus": {
+   "initial": true,
+   "afterTabs": true
+  },
+  "escapeCloses": true
+ },
+ "cadastros-desktop-claro": {
+  "overflow": 0,
+  "axe": [
+   {
+    "id": "button-name",
+    "impact": "critical",
+    "help": "Buttons must have discernible text",
+    "count": 1,
+    "nodes": [
+     {
+      "target": [
+       ".rounded-md.hover\\:text-on-surface.p-2"
+      ],
+      "html": "<button class=\"p-2 rounded-md bg-surface border border-border text-muted hover:text-on-surface shadow-sm transition-colors\">"
+     }
+    ]
+   },
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "count": 3,
+    "nodes": [
+     {
+      "target": [
+       ".text-teal-600"
+      ],
+      "html": "<span class=\"text-xs text-teal-600 dark:text-teal-400 font-bold uppercase tracking-wider flex items-center gap-1 mt-0.5\">"
+     },
+     {
+      "target": [
+       ".w-9"
+      ],
+      "html": "<div role=\"button\" tabindex=\"0\" aria-label=\"Abrir menu da conta\" aria-expanded=\"false\" class=\"w-9 h-9 rounded-full flex items-center justify-center text-white f"
+     },
+     {
+      "target": [
+       ".text-white\\/80.mt-1\\.5.leading-relaxed"
+      ],
+      "html": "<p class=\"text-xs mt-1.5 leading-relaxed line-clamp-2 text-white/80\">Organização por tipo.</p>"
+     }
+    ]
+   }
+  ]
+ },
+ "modal-novo-cadastro-desktop-claro": {
+  "overflow": 0,
+  "axe": [
+   {
+    "id": "button-name",
+    "impact": "critical",
+    "help": "Buttons must have discernible text",
+    "count": 74,
+    "nodes": [
+     {
+      "target": [
+       ".rounded-md.hover\\:text-on-surface.p-2"
+      ],
+      "html": "<button class=\"p-2 rounded-md bg-surface border border-border text-muted hover:text-on-surface shadow-sm transition-colors\">"
+     },
+     {
+      "target": [
+       ".border-b.p-5.justify-between > .hover\\:text-on-surface.text-muted"
+      ],
+      "html": "<button class=\"text-muted hover:text-on-surface\">"
+     },
+     {
+      "target": [
+       ".aspect-square.hover\\:border-border.border-transparent:nth-child(1)"
+      ],
+      "html": "<button type=\"button\" class=\"aspect-square rounded-xl flex items-center justify-center border transition-all border-transparent hover:border-border hover:bg-sur"
+     },
+     {
+      "target": [
+       ".aspect-square.hover\\:border-border.border-transparent:nth-child(2)"
+      ],
+      "html": "<button type=\"button\" class=\"aspect-square rounded-xl flex items-center justify-center border transition-all border-transparent hover:border-border hover:bg-sur"
+     },
+     {
+      "target": [
+       ".aspect-square.hover\\:border-border.border-transparent:nth-child(3)"
+      ],
+      "html": "<button type=\"button\" class=\"aspect-square rounded-xl flex items-center justify-center border transition-all border-transparent hover:border-border hover:bg-sur"
+     },
+     {
+      "target": [
+       ".aspect-square.hover\\:border-border.border-transparent:nth-child(4)"
+      ],
+      "html": "<button type=\"button\" class=\"aspect-square rounded-xl flex items-center justify-center border transition-all border-transparent hover:border-border hover:bg-sur"
+     },
+     {
+      "target": [
+       ".aspect-square.hover\\:border-border.border-transparent:nth-child(5)"
+      ],
+      "html": "<button type=\"button\" class=\"aspect-square rounded-xl flex items-center justify-center border transition-all border-transparent hover:border-border hover:bg-sur"
+     },
+     {
+      "target": [
+       ".aspect-square.hover\\:border-border.border-transparent:nth-child(6)"
+      ],
+      "html": "<button type=\"button\" class=\"aspect-square rounded-xl flex items-center justify-center border transition-all border-transparent hover:border-border hover:bg-sur"
+     }
+    ]
+   },
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "count": 3,
+    "nodes": [
+     {
+      "target": [
+       ".text-teal-600"
+      ],
+      "html": "<span class=\"text-xs text-teal-600 dark:text-teal-400 font-bold uppercase tracking-wider flex items-center gap-1 mt-0.5\">"
+     },
+     {
+      "target": [
+       ".w-9"
+      ],
+      "html": "<div role=\"button\" tabindex=\"0\" aria-label=\"Abrir menu da conta\" aria-expanded=\"false\" class=\"w-9 h-9 rounded-full flex items-center justify-center text-white f"
+     },
+     {
+      "target": [
+       ".text-white\\/80.mt-1\\.5.leading-relaxed"
+      ],
+      "html": "<p class=\"text-xs mt-1.5 leading-relaxed line-clamp-2 text-white/80\">Organização por tipo.</p>"
+     }
+    ]
+   }
+  ],
+  "focus": {
+   "initial": false,
+   "afterTabs": false
+  },
+  "escapeCloses": false
+ },
+ "console-desktop-claro": [
+  "Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED",
+  "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+  "Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED",
+  "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+  "Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED",
+  "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+  "Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED",
+  "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+  "Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED",
+  "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+  "Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED",
+  "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+  "Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED",
+  "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+  "Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED",
+  "Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED",
+  "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+  "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+  "Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED",
+  "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+  "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+ ],
+ "cartoes-desktop-escuro": {
+  "overflow": 0,
+  "axe": [
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "count": 3,
+    "nodes": [
+     {
+      "target": [
+       ".w-9"
+      ],
+      "html": "<div role=\"button\" tabindex=\"0\" aria-label=\"Abrir menu da conta\" aria-expanded=\"false\" class=\"w-9 h-9 rounded-full flex items-center justify-center text-white f"
+     },
+     {
+      "target": [
+       "div:nth-child(1) > .text-\\[10px\\].text-gray-500.uppercase"
+      ],
+      "html": "<div class=\"text-[10px] text-gray-500 uppercase\">Fechamento</div>"
+     },
+     {
+      "target": [
+       ".text-right > .text-\\[10px\\].text-gray-500.uppercase"
+      ],
+      "html": "<div class=\"text-[10px] text-gray-500 uppercase\">Melhor Dia</div>"
+     }
+    ]
+   }
+  ]
+ },
+ "modal-novo-cartao-desktop-escuro": {
+  "overflow": 0
+ },
+ "modal-lancamento-cartao-desktop-escuro": {
+  "overflow": 0
+ },
+ "recorrentes-desktop-escuro": {
+  "overflow": 0,
+  "axe": [
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "count": 3,
+    "nodes": [
+     {
+      "target": [
+       ".w-9"
+      ],
+      "html": "<div role=\"button\" tabindex=\"0\" aria-label=\"Abrir menu da conta\" aria-expanded=\"false\" class=\"w-9 h-9 rounded-full flex items-center justify-center text-white f"
+     },
+     {
+      "target": [
+       ".text-white\\/80"
+      ],
+      "html": "<p class=\"text-white/80 text-sm font-medium mb-1\">Custo Mensal Estimado</p>"
+     },
+     {
+      "target": [
+       ".text-white\\/70"
+      ],
+      "html": "<p class=\"text-xs text-white/70 mt-2\">1 contratos ativos</p>"
+     }
+    ]
+   }
+  ]
+ },
+ "modal-nova-recorrencia-desktop-escuro": {
+  "overflow": 0
+ },
+ "divisao-desktop-escuro": {
+  "overflow": 0,
+  "axe": [
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "count": 2,
+    "nodes": [
+     {
+      "target": [
+       ".w-9"
+      ],
+      "html": "<div role=\"button\" tabindex=\"0\" aria-label=\"Abrir menu da conta\" aria-expanded=\"false\" class=\"w-9 h-9 rounded-full flex items-center justify-center text-white f"
+     },
+     {
+      "target": [
+       ".text-red-500"
+      ],
+      "html": "<span class=\"text-[10px] text-red-500 uppercase font-bold block mb-0.5\">Devo</span>"
+     }
+    ]
+   }
+  ]
+ },
+ "modal-novo-grupo-desktop-escuro": {
+  "overflow": 0
+ },
+ "investimentos-desktop-escuro": {
+  "overflow": 0,
+  "axe": [
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "count": 2,
+    "nodes": [
+     {
+      "target": [
+       ".w-9"
+      ],
+      "html": "<div role=\"button\" tabindex=\"0\" aria-label=\"Abrir menu da conta\" aria-expanded=\"false\" class=\"w-9 h-9 rounded-full flex items-center justify-center text-white f"
+     },
+     {
+      "target": [
+       ".px-2\\.5.py-1.gap-2 > span:nth-child(2)"
+      ],
+      "html": "<span>Renda fixa</span>"
+     }
+    ]
+   }
+  ]
+ },
+ "modal-novo-investimento-desktop-escuro": {
+  "overflow": 0
+ },
+ "cadastros-desktop-escuro": {
+  "overflow": 0,
+  "axe": [
+   {
+    "id": "button-name",
+    "impact": "critical",
+    "help": "Buttons must have discernible text",
+    "count": 1,
+    "nodes": [
+     {
+      "target": [
+       ".rounded-md.hover\\:text-on-surface.p-2"
+      ],
+      "html": "<button class=\"p-2 rounded-md bg-surface border border-border text-muted hover:text-on-surface shadow-sm transition-colors\">"
+     }
+    ]
+   },
+   {
+    "id": "color-contrast",
+    "impact": "serious",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "count": 3,
+    "nodes": [
+     {
+      "target": [
+       ".w-9"
+      ],
+      "html": "<div role=\"button\" tabindex=\"0\" aria-label=\"Abrir menu da conta\" aria-expanded=\"false\" class=\"w-9 h-9 rounded-full flex items-center justify-center text-white f"
+     },
+     {
+      "target": [
+       ".px-2\\.5"
+      ],
+      "html": "<div class=\"inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-[11px] font-bold uppercase tracking-wide mb-3\">"
+     },
+     {
+      "target": [
+       ".text-white\\/80.mt-1\\.5.leading-relaxed"
+      ],
+      "html": "<p class=\"text-xs mt-1.5 leading-relaxed line-clamp-2 text-white/80\">Organização por tipo.</p>"
+     }
+    ]
+   }
+  ]
+ },
+ "modal-novo-cadastro-desktop-escuro": {
+  "overflow": 0
+ },
+ "console-desktop-escuro": [
+  "Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED",
+  "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+  "Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED",
+  "Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED",
+  "Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED",
+  "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+  "Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED",
+  "Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED",
+  "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+  "Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED",
+  "Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED",
+  "Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED",
+  "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+  "Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED",
+  "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+ ],
+ "cartoes-mobile-claro": {
+  "overflow": 0
+ },
+ "modal-novo-cartao-mobile-claro": {
+  "overflow": 0
+ },
+ "modal-lancamento-cartao-mobile-claro": {
+  "overflow": 0
+ },
+ "recorrentes-mobile-claro": {
+  "overflow": 0
+ },
+ "modal-nova-recorrencia-mobile-claro": {
+  "overflow": 0
+ },
+ "divisao-mobile-claro": {
+  "overflow": 0
+ },
+ "modal-novo-grupo-mobile-claro": {
+  "overflow": 0
+ },
+ "investimentos-mobile-claro": {
+  "overflow": 0
+ },
+ "modal-novo-investimento-mobile-claro": {
+  "overflow": 0
+ },
+ "cadastros-mobile-claro": {
+  "overflow": 0
+ },
+ "modal-novo-cadastro-mobile-claro": {
+  "overflow": 0
+ },
+ "console-mobile-claro": [
+  "Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED",
+  "Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED",
+  "Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED",
+  "Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED",
+  "Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED",
+  "Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED",
+  "Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED",
+  "Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED",
+  "Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED",
+  "Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED"
+ ],
+ "cartoes-mobile-escuro": {
+  "overflow": 0
+ },
+ "recorrentes-mobile-escuro": {
+  "overflow": 0
+ },
+ "divisao-mobile-escuro": {
+  "overflow": 0
+ },
+ "investimentos-mobile-escuro": {
+  "overflow": 0
+ },
+ "cadastros-mobile-escuro": {
+  "overflow": 0
+ },
+ "console-mobile-escuro": [
+  "Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED",
+  "Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED",
+  "Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED",
+  "Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED",
+  "Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED",
+  "Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED",
+  "Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED"
+ ]
+}

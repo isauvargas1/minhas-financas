@@ -71,10 +71,6 @@ function canWriteWorkspaceScopedData(workspaceId) {
   return hasWriteRole(workspaceId, ['owner', 'admin']);
 }
 
-function canMemberWriteWorkspaceScopedData(workspaceId) {
-  return hasWriteRole(workspaceId, ['owner', 'admin', 'member']);
-}
-
 // Leitura do domínio patrimonial: `viewer` continua fora (matriz de
 // investimentos inalterada em P1, D-02).
 function canReadInvestmentDomain(workspaceId) {

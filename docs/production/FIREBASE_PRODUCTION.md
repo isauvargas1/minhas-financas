@@ -95,7 +95,7 @@ Rótulos: **CURRENT** (existe no HEAD, com evidência), **TARGET** (alvo exigido
 
 ### 3.2 Endpoints exportados (CURRENT)
 
-`functions/src/index.ts` exporta 62 endpoints na baseline desta tabela (91 endpoints, 84 callables e 4 agendados desde a P4-A; P3-J: 87, 80 e 4): 56 callables, 3 crons, 2 gatilhos Firestore e 1 webhook HTTP (a linha 16 da tabela, riscada, não conta; desde a P4-D, as 14 callables de investimentos riscadas saíram do contrato de implantação, 23 → 9, plano §19.4, e os totais acima não foram recontados; as linhas 48 a 63 são de P1, P2A e P2B.1). Os wrappers de domínio aplicam o perfil D por padrão: cartões (P4-A) em `functions/src/cards/callables.ts`, metas em `functions/src/goals/callables.ts:44-49` e investimentos em `functions/src/investments/callables.ts`.
+`functions/src/index.ts` exporta 62 endpoints na baseline desta tabela (108 endpoints, 101 callables, 4 agendados, 2 gatilhos e 1 webhook, recontados no gate de P4, plano §19.7; P3-J: 87, 80 e 4): 56 callables, 3 crons, 2 gatilhos Firestore e 1 webhook HTTP (a linha 16 da tabela, riscada, não conta; desde a P4-D, as 14 callables de investimentos riscadas saíram do contrato de implantação, 23 → 9, plano §19.4; as linhas 48 a 63 são de P1, P2A e P2B.1). Os wrappers de domínio aplicam o perfil D por padrão: cartões (P4-A) em `functions/src/cards/callables.ts`, metas em `functions/src/goals/callables.ts:44-49` e investimentos em `functions/src/investments/callables.ts`.
 
 | # | Função | Tipo | Definição | Perfil | Segredos | App Check | Retry |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -208,7 +208,7 @@ A semântica das Rules está em [SECURITY_MODEL.md](SECURITY_MODEL.md); o invent
   | `ai_usage_receipts` | `functions/src/billing/aiCredits.ts:144` | 90 dias | Sim (P2B.2) |
   | `invites`, `invite_tokens` | `functions/src/workspaces/memberships.ts:237,247` | 7 dias (prazo do convite) | Sim (P1) |
   | `split_invites` | `functions/src/splitBills/participantOperations.ts:287` | 7 dias (prazo do convite) | Sim (P4-C) |
-  | `activity_logs` | `functions/src/triggers/transactions.ts:221` | 365 dias | **Não** (destino em D-18) |
+  | `activity_logs` | `functions/src/triggers/transactions.ts:208-210` | 365 dias | **Não** (destino em D-18) |
 
 - **CURRENT (versionado no repositório):** `firestore.indexes.json` declara 12 `fieldOverrides` com `ttl: true` e `indexes: []` em `expiresAt` — todos os grupos da tabela, menos `activity_logs`. Testes conferem parte da lista (`functions/src/cash/__tests__/projection.test.ts`, `functions/src/ai/__tests__/callables.test.ts`, `tests/unit/split-no-client-writes.test.ts`, `functions/src/investments/__tests__/documentContracts.test.ts`). O loop `gcloud` de `docs/investments/TTL_MANIFEST.md:51-70` e as contagens antigas ("sete" grupos em `docs/investments/PRODUCTION_DEPLOYMENT_CHECKLIST.md:194`, "seis" em `tools/staging/rehearsal.sh:139-142`) são registros desatualizados (OUTDATED, §13 do plano). As coleções operacionais de metas não gravam `expiresAt` (FIRE-08, GOAL-14); as coleções operacionais antigas de cartões foram removidas na P4-A.
 - **CURRENT (P3-B):** o gatilho de caixa roda com `retry: true` (reentrega por até 24 h na 2ª geração) e o comentário de `functions/src/shared/retention.ts:38-49` foi corrigido.

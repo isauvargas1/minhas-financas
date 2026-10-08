@@ -175,12 +175,12 @@ Requisitos do job (**TARGET**, P8): executado no servidor após autenticação r
 | PR-AI-01 | BLOCKER | P8 | Dados e comprovantes enviados ao Gemini sem base legal nem retenção contratual comprovada |
 | PR-BKP-01 | BLOCKER | P7 | Sem PITR, backups, delete protection nem restore |
 | PR-CR-02 | BLOCKER | P3 | **Resolvido na P3-I:** hard delete de clientes e recebíveis removido (arquivamento e cancelamento lógicos; empréstimos e movimentos resolvidos na P3-H, PR-LOAN-04) |
-| PR-SPLIT-02, PR-CC-01 | BLOCKER | P4 | **Resolvidos** (saem no gate de P4): hard delete de cartão removido na P4-A (plano §19.1) e de divisão de contas na P4-C (plano §19.3) |
-| PR-RULES-01 | BLOCKER | P3/P4 | **Resolvido por partes** (P3; P4-B, P4-C e P4-D, plano §19.2–§19.4; sai no gate de P4): as coleções financeiras adjacentes negam escrita e delete ao cliente |
+| PR-SPLIT-02, PR-CC-01 | BLOCKER | P4 | **Resolvidos** (fechados no gate de P4, plano §19.7): hard delete de cartão removido na P4-A (plano §19.1) e de divisão de contas na P4-C (plano §19.3) |
+| PR-RULES-01 | BLOCKER | P3/P4 | **Resolvido por partes** (P3; P4-B, P4-C e P4-D, plano §19.2–§19.4; fechado no gate de P4, plano §19.7): as coleções financeiras adjacentes negam escrita e delete ao cliente |
 | PR-PLAT-02 | BLOCKER | P6 | Ferramenta versionada de hard delete do ledger com override para produção |
 | PR-CR-05 | HIGH | P8 | Dados pessoais de terceiros sem ciclo de vida. Parcial na P3-I: cadastro compartilhado mínimo e PII em `client_private` só para owner/admin (D-24); exportação, eliminação, anonimização e retenção seguem em P8 (D-07, D-18) |
 | PR-PRIV-01 | HIGH | P8 | Sem canal do titular nem divulgação de subprocessadores |
-| PR-TX-05 | HIGH | P3 → P4 | **Resolvido na P4-D** (plano §19.4; sai no gate de P4): toda escrita de `transactions` é do backend, com trilha append-only do domínio sem TTL (`cash_events` e as trilhas de empréstimos, recebíveis, contas, cartões, recorrentes, Divisão e investimentos). `activity_logs` (365 dias) é log operacional, com destino em D-18 |
+| PR-TX-05 | HIGH | P3 → P4 | **Resolvido na P4-D** (plano §19.4; fechado no gate de P4, plano §19.7): toda escrita de `transactions` é do backend, com trilha append-only do domínio sem TTL (`cash_events` e as trilhas de empréstimos, recebíveis, contas, cartões, recorrentes, Divisão e investimentos). `activity_logs` (365 dias) é log operacional, com destino em D-18 |
 | PR-WS-02 | HIGH | P1 | Remoção de membro é hard delete, sem auditoria (WS-11) |
 | PR-BILL-06 | HIGH | P2 | Sem armazenamento de eventos Stripe nem auditoria de plano (fechado em P2A: `billing_webhook_events` e `billing_events`; PLAN §17.3) |
 | PR-NOTIF-01 | HIGH | P5 | Notificações sem retenção; arquivar = hard delete |

@@ -250,7 +250,7 @@ Aplica-se a acesso, divulgação, alteração ou perda de dados pessoais: usuár
 
 | Fonte | Evidência | Retenção e limitação |
 | --- | --- | --- |
-| `activity_logs` | `functions/src/triggers/transactions.ts:19,103-116` | TTL de 365 dias quando a política estiver ativa. Qualquer membro lê pelo catch-all e o cliente não grava (`firestore.rules:1436-1442`). Atribui ao criador, não ao ator (ENTRY-17) |
+| `activity_logs` | `functions/src/triggers/transactions.ts:26,173-219` | TTL de 365 dias quando a política estiver ativa. Qualquer membro lê pelo catch-all e o cliente não grava (`firestore.rules:981-986`). Atribui ao criador, não ao ator (ENTRY-17) |
 | Trilhas de metas, cartões e investimentos | `goal_audit_logs`, `credit_card_events` (P4-A), `investment_event_logs` (`firestore.rules`); o cliente não grava | Fato financeiro e trilha de domínio não recebem `expiresAt` (`functions/src/shared/retention.ts:11-15`) |
 | Coleções operacionais | `expiresAt` definido em `functions/src/shared/retention.ts:23-61`: idempotência 90 d, métricas e eventos operacionais 400 d, rate limits 2 d, checkpoints 30 d, marcas de caixa 90 d | O TTL apaga de forma definitiva quando ativado. A ativação é manual e não está versionada (RULES-13) |
 | `transactions` | Sem escrita do cliente e `delete` negado (P4-D); baixa lógica só pela callable | Preservadas; criação, correção e anulação têm trilha em `cash_events` (PR-TX-05 resolvido na P4-D, §19.4 do plano) |

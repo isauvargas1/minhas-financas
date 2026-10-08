@@ -10,7 +10,6 @@ import {
   firstOpenCompetence,
   invoiceCreateDocument,
   invoiceIdFor,
-  invoiceSnapshot,
   invoiceStatePatch,
   invoicesRef,
   isCycleEffectivelyClosed,
@@ -19,7 +18,6 @@ import {
   newInvoiceState,
   readAuthoritativeInvoice,
   type AuthoritativeInvoice,
-  type CardEventSnapshot,
   type InvoiceFinancialState,
 } from "./model";
 
@@ -217,14 +215,6 @@ export class InvoiceBook {
     }
   }
 }
-
-export const invoiceStateSnapshot = (slot: InvoiceSlot): {
-  before: CardEventSnapshot;
-  after: CardEventSnapshot;
-} => ({
-  before: invoiceSnapshot(slot.before),
-  after: invoiceSnapshot(slot.next),
-});
 
 // --------------------------------------------------------------- fechamento
 

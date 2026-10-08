@@ -4,6 +4,7 @@ import {onDocumentWritten} from "firebase-functions/v2/firestore";
 
 import {
   applyCashPeriodWriteOnce,
+  cashPeriodDeltaFor,
   cashPeriodEventKey,
   recordCashProjectionIssue,
   type CashPeriodEventOutcomeKind,
@@ -105,27 +106,14 @@ const errorCodeOf = (error: unknown): string => {
 export const parseCloudEventTime = (value: string): Timestamp =>
   parseIsoInstant(value);
 
-const getSignedBalanceValue = (data?: admin.firestore.DocumentData) => {
-  if (!data) return 0;
-  const numericValue = Number(data.value || 0);
-  if (data.type === "despesa" || data.type === "parcelado") {
-    return -numericValue;
-  }
-  if (data.type === "investimento") {
-    const metadata = data.investmentMetadata;
-    if (
-      metadata &&
-      metadata.status !== "settled" &&
-      metadata.status !== "reversed"
-    ) {
-      return 0;
-    }
-    if (metadata?.cashImpact === "inflow") return numericValue;
-    if (metadata?.cashImpact === "none") return 0;
-    return -numericValue;
-  }
-  return numericValue;
-};
+/*
+ * Efeito em caixa do documento, em centavos, pela mesma classificação da
+ * projeção (`cashPeriodDeltaFor`): marcas backend-only de cada domínio
+ * (`investmentEntry`, `creditCardPaymentEntry`, `splitEntry`...), baixa
+ * lógica e pendentes. A trilha não tem regra própria de sinal.
+ */
+const cashNetCentsOf = (data?: admin.firestore.DocumentData): number =>
+  cashPeriodDeltaFor(data).netCents;
 
 export type TransactionWriteAction = "CREATE" | "UPDATE" | "DELETE";
 
@@ -223,8 +211,8 @@ const writeActivityLog = async (
       details: {
         changedFields,
         type: afterData?.type ?? beforeData?.type ?? null,
-        balanceBefore: getSignedBalanceValue(beforeData),
-        balanceAfter: getSignedBalanceValue(afterData),
+        netCentsBefore: cashNetCentsOf(beforeData),
+        netCentsAfter: cashNetCentsOf(afterData),
       },
     }, {merge: false});
 };

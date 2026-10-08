@@ -47,7 +47,6 @@ import {
   profileTypeFromWorkspace,
   recordInvestmentEvent,
   reserveInvestmentIdempotency,
-  sha256,
 } from "./infrastructure";
 import {addExact, negateExact} from "./math";
 import {
@@ -1251,9 +1250,6 @@ const assertCashAccountForFact = (
 /** Ativo fora do regime por valor: nenhum fluxo do produto o grava. */
 const INVESTMENT_OUT_OF_CONTRACT_MESSAGE =
   "Este investimento está fora do contrato e não pode ser movimentado.";
-
-export const investmentIdempotencyKeyHash = (key: string): string =>
-  sha256(key);
 
 /**
  * Cancelamento de movimento pendente (M3.D).

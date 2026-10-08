@@ -133,12 +133,6 @@ export const SETTINGS_CATALOG_SECTION_LIST: SettingsCatalogSectionDefinition[] =
   }
 ];
 
-export const getSettingsCatalogSectionByKey = (
-  key: SettingsCatalogSectionKey
-) => {
-  return SETTINGS_CATALOG_SECTION_LIST.find((section) => section.key === key);
-};
-
 export const getSettingsCatalogSectionByGroup = (
   group: SettingsCatalogGroup
 ) => {
