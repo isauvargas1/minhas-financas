@@ -9,7 +9,6 @@ interface GoalFormModalProps {
     onClose: () => void;
     onSave: (goal: Omit<Goal, 'id'> & { id?: string }, idempotencyKey: string) => Promise<Goal>;
     goalToEdit?: Goal | null;
-    wallets: EntityItem[]; 
 }
 
 const GOAL_CATEGORIES: { value: GoalCategory, label: string }[] = [
@@ -47,7 +46,7 @@ const adjustBrightness = (color: string, amount: number) => {
 }
 
 const GoalFormModal: React.FC<GoalFormModalProps> = ({ 
-    isOpen, onClose, onSave, goalToEdit, wallets, 
+    isOpen, onClose, onSave, goalToEdit,
 }) => {
     const { activeWorkspace } = useWorkspace();
     const isPJ = activeWorkspace.type === 'PJ';
@@ -680,12 +679,12 @@ const GoalFormModal: React.FC<GoalFormModalProps> = ({
                                     className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 dark:bg-dark-200 dark:text-white"
                                 >
                                     <option value="net_contributions">Pelo valor aportado</option>
-                                    <option value="current_value">Pelo valor de mercado da posição</option>
+                                    <option value="current_value">Pelo valor atual da posição</option>
                                 </select>
                                 <p className="text-xs text-gray-500 mt-1">
                                     {progressBasis === 'net_contributions'
                                         ? 'O progresso soma os aportes líquidos vinculados e não muda com a variação de mercado.'
-                                        : 'O progresso acompanha o valor de mercado das posições vinculadas, subindo e descendo com a valoração.'}
+                                        : 'O progresso acompanha o valor atual das posições vinculadas. Sem marcação a mercado, ele é o capital aplicado.'}
                                 </p>
                             </div>
 

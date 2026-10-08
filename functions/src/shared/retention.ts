@@ -10,14 +10,14 @@ import {Timestamp} from "firebase-admin/firestore";
  *
  * A regra que separa o que expira do que não expira é uma só: **fato
  * financeiro necessário para auditoria ou reconstrução nunca expira**.
- * Movimentos, valorações, posições, períodos, alocações, transações e trilha
- * de auditoria do domínio ficam de fora desta política por construção — nenhum
- * deles recebe `expiresAt`.
+ * Movimentos, posições, períodos, alocações, transações e trilha de auditoria
+ * do domínio ficam de fora desta política por construção — nenhum deles
+ * recebe `expiresAt`.
  *
  * O campo `expiresAt` é apenas a marca. A remoção é feita pela política de TTL
- * do Firestore, que precisa ser ativada por coleção no projeto — passo de
- * infraestrutura registrado em
- * `docs/investments/PRODUCTION_DEPLOYMENT_CHECKLIST.md`.
+ * do Firestore, declarada por grupo de coleção em `firestore.indexes.json`
+ * (`fieldOverrides`) e ativa só depois de publicada em cada ambiente
+ * (`docs/production/DATA_RETENTION_LIFECYCLE.md`, §2.2 e §7).
  */
 
 export const RETENTION_DAYS = {
@@ -39,9 +39,12 @@ export const RETENTION_DAYS = {
    * Marca de entrega já aplicada pelo gatilho de caixa (INV-P3-001).
    *
    * Mesma classe das chaves de idempotência, e pelo mesmo motivo: precisa
-   * sobreviver com folga à janela de reentrega do Eventarc — o teto de retry
-   * de um gatilho do Firestore é de 7 dias — e não tem valor depois disso. O
-   * fato financeiro vive na transação e no período, que nunca expiram.
+   * sobreviver com folga à janela de reentrega do Eventarc — 24 horas para um
+   * gatilho de 2ª geração com `retry` (P3-B) — e à reconstrução em andamento,
+   * que soma as marcas posteriores ao corte e recomeça depois de 24 horas.
+   * Não tem valor depois disso: o fato financeiro vive na transação e no
+   * período, que nunca expiram. Política de TTL declarada em
+   * `firestore.indexes.json`.
    */
   cashPeriodEvents: 90,
   /**

@@ -1,38 +1,32 @@
 import * as admin from "firebase-admin";
 
+import {
+  catalogSeedDocumentId,
+  settingsCatalogRef,
+} from "../settingsCatalog/model";
+import {
+  INVESTMENT_CATEGORY_SEED_NAMES,
+  type InvestmentCategorySeedName,
+} from "../settingsCatalog/seeds";
 import {ApplicationError} from "../shared/errors";
-import {deterministicDocumentId, sha256} from "./infrastructure";
-import {investmentWorkspaceRef} from "./paths";
+import {deterministicDocumentId} from "./infrastructure";
 
 /**
- * Modo simples do domínio patrimonial (Etapa 1 da reestruturação).
+ * Regime único do domínio patrimonial: por valor (D-15, P4-D).
  *
- * O domínio nasceu quantitativo: toda posição tem `quantityMicros` e todo
- * aporte precisa informá-la. Isso é correto para quem acompanha cotas e preço
- * unitário, e é ruído puro para quem só quer saber quanto colocou e quanto
- * tirou. A UX simples precisa operar **por valor**.
+ * A experiência oferecida é a simples: o usuário informa quanto colocou e
+ * quanto tirou, nunca quantidade ou preço unitário. Todo ativo nasce com
+ * `trackingMode: "value"` (`createSimpleInvestment`) e não existe outro
+ * regime — o cadastro quantitativo, a valoração a mercado e o resgate
+ * detalhado saíram com a superfície profissional.
  *
- * A separação escolhida é a menor possível: um campo tipado no ativo,
- * `trackingMode`, com duas leituras:
- *
- * - `"quantity"` — regime histórico. Quantidade e preço são informados pelo
- *   chamador; valoração a mercado é permitida. É o **default de ausência**,
- *   então todo ativo já gravado continua exatamente como estava.
- * - `"value"` — regime monetário. A quantidade nunca vem do chamador: é
- *   derivada do custo por uma cota sintética de R$ 1,00
- *   (`VALUE_MODE_MICROS_PER_CENT`), e valoração quantitativa é recusada.
- *
- * Por que uma cota sintética em vez de largar `quantityMicros` em zero: o
- * domínio tem uma invariante de encerramento em `applyPositionDeltas` —
- * quantidade zero com custo diferente de zero é patrimônio fantasma e é
- * rejeitada. Um regime por valor precisa, portanto, de **alguma** quantidade
- * que se mova junto com o custo. Amarrá-la ao próprio custo mantém a
- * proporcionalidade exata em qualquer sequência de aportes e resgates:
+ * A quantidade continua existindo no ledger porque a invariante de
+ * encerramento em `applyPositionDeltas` a exige (quantidade zero com custo
+ * diferente de zero é patrimônio fantasma). Ela é derivada do custo por uma
+ * cota sintética de R$ 1,00 (`VALUE_MODE_MICROS_PER_CENT`):
  * `quantityMicros == principalCents * 10_000` é preservado por construção,
- * inclusive no resgate total, em que os dois zeram no mesmo movimento.
+ * inclusive na retirada total, em que os dois zeram no mesmo movimento.
  */
-
-export type InvestmentTrackingMode = "value" | "quantity";
 
 /**
  * Micros de quantidade por centavo de custo, no regime por valor.
@@ -42,17 +36,10 @@ export type InvestmentTrackingMode = "value" | "quantity";
  */
 export const VALUE_MODE_MICROS_PER_CENT = 10_000;
 
-/**
- * Regime do ativo, com ausência valendo `"quantity"`.
- *
- * Retrocompatibilidade não é opcional aqui: todo ativo gravado antes desta
- * etapa não tem o campo, e interpretá-lo como regime por valor reescreveria o
- * significado da quantidade já persistida em posições reais.
- */
-export const assetTrackingMode = (
+/** Ativo no regime por valor — o único do contrato. */
+export const isValueModeAsset = (
   asset: admin.firestore.DocumentData | undefined,
-): InvestmentTrackingMode =>
-  asset?.trackingMode === "value" ? "value" : "quantity";
+): boolean => asset?.trackingMode === "value";
 
 export const valueModeQuantityMicros = (principalCents: number): number => {
   const quantityMicros = principalCents * VALUE_MODE_MICROS_PER_CENT;
@@ -63,27 +50,6 @@ export const valueModeQuantityMicros = (principalCents: number): number => {
     );
   }
   return quantityMicros;
-};
-
-/**
- * Recusa uma operação quantitativa sobre um ativo de regime por valor.
- *
- * É esta guarda que impede o pior defeito silencioso da convenção: uma
- * valoração a mercado num ativo simples reinterpretaria a cota sintética como
- * quantidade real e publicaria um patrimônio inventado.
- */
-export const assertQuantityOperationAllowed = (
-  asset: admin.firestore.DocumentData | undefined,
-  what: string,
-): void => {
-  if (assetTrackingMode(asset) === "value") {
-    throw new ApplicationError(
-      "domain_precondition_failed",
-      `${what} não se aplica a um investimento controlado por valor. ` +
-        "Converta o ativo para controle por quantidade antes de usar " +
-        "operações quantitativas.",
-    );
-  }
 };
 
 /** Conta técnica de uma instituição: uma por item de catálogo, estável. */
@@ -101,30 +67,24 @@ export interface ResolvedCatalogItem {
 /**
  * Que documentos do catálogo servem a um papel do formulário simples.
  *
- * Um papel não é sinônimo de um grupo. A **categoria** do investimento passou
- * a ser cadastrada no catálogo genérico — `category` com
- * `transactionSubtype: "investimento"`, a mesma tela que já organiza receita e
- * despesa — e continua gravada, em todo ativo e todo movimento anterior, com
- * um identificador do grupo histórico `investment_type`. Amarrar a operação a
- * um grupo literal obrigaria a escolher entre recusar o cadastro novo e
- * quebrar o antigo; o seletor diz quais documentos são aceitáveis e mantém as
- * duas coisas verdadeiras ao mesmo tempo.
- *
- * O grupo histórico não é reexposto como cadastro na navegação comum: ele
- * permanece **legível**, que é coisa diferente de oferecido.
+ * A **categoria** do investimento é o catálogo genérico — `category` com
+ * `transactionSubtype: "investimento"`, a mesma tela que organiza receita e
+ * despesa (D-15, P4-D). Carteira de investimentos (`investment_class`) e
+ * instituição (`investment_institution`) têm grupo próprio.
  */
 export interface InvestmentCatalogSelector {
   /** Rótulo em pt-BR usado nas mensagens de recusa. */
   label: string;
-  /** Grupos aceitos, do oficial ao histórico. */
+  /** Grupo aceito. */
   groups: readonly string[];
   /**
    * Subtipo exigido quando o documento está no grupo genérico `category`.
    *
-   * Só `category` carrega `transactionSubtype` — as Rules o proíbem nos demais
-   * grupos —, então a exigência se aplica a ele e a mais nenhum. É esta linha
-   * que impede uma categoria de receita, despesa ou parcelado de ser aceita
-   * como categoria de investimento por um chamador forjado.
+   * Só `category` carrega `transactionSubtype` — o catálogo
+   * (`settingsCatalog/model.ts`) não o grava nos demais grupos —, então a
+   * exigência se aplica a ele e a mais nenhum. É esta linha que impede uma
+   * categoria de receita ou despesa de ser aceita como categoria de
+   * investimento por um chamador forjado.
    */
   categoryTransactionSubtype?: string;
 }
@@ -135,17 +95,17 @@ export const INVESTMENT_INSTITUTION_SELECTOR: InvestmentCatalogSelector = {
 };
 
 export const INVESTMENT_CLASS_SELECTOR: InvestmentCatalogSelector = {
-  label: "Carteira de investimento",
+  label: "Carteira de investimentos",
   groups: ["investment_class"],
 };
 
 /**
- * Categoria do investimento: catálogo genérico primeiro, grupo histórico
- * depois. Nenhuma equivalência por nome — a identidade é sempre o ID.
+ * Categoria do investimento: só o catálogo genérico, recortado pelo subtipo.
+ * Nenhuma equivalência por nome — a identidade é sempre o ID.
  */
 export const INVESTMENT_CATEGORY_SELECTOR: InvestmentCatalogSelector = {
   label: "Categoria de investimento",
-  groups: ["category", "investment_type"],
+  groups: ["category"],
   categoryTransactionSubtype: "investimento",
 };
 
@@ -185,9 +145,7 @@ export const resolveInvestmentCatalogItem = async (
   options?: InvestmentCatalogResolutionOptions,
 ): Promise<ResolvedCatalogItem> => {
   const snapshot = await transaction.get(
-    investmentWorkspaceRef(workspaceId)
-      .collection("settings_catalog")
-      .doc(itemId),
+    settingsCatalogRef(workspaceId).doc(itemId),
   );
   const label = selector.label;
   if (!snapshot.exists) {
@@ -251,127 +209,33 @@ export const resolveInvestmentCatalogItem = async (
 };
 
 /**
- * Normalização de nome usada pelo catálogo do workspace.
+ * Classificação técnica das categorias padrão de investimento.
  *
- * É a mesma do `settings_catalog`: acentos removidos, espaços colapsados,
- * minúsculas. Vive aqui porque o `dedupeKey` das sementes — e portanto o
- * identificador determinístico dos itens padrão — depende dela.
+ * As categorias são semeadas pelo catálogo (`settingsCatalog/seeds.ts`, dono
+ * da lista e dos IDs); aqui fica só o que Investimentos sabe sobre cada uma.
+ * O tipo do registro exige uma classificação para cada nome semeado — uma
+ * categoria padrão nova sem classificação não compila.
  */
-export const normalizeCatalogName = (value: string): string =>
-  value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .trim()
-    .replace(/\s+/g, " ")
-    .toLowerCase();
+const INVESTMENT_CATEGORY_ASSET_TYPES: Readonly<
+  Record<InvestmentCategorySeedName, string>
+> = {
+  "Ações": "stock",
+  "Fundos Imobiliários": "fund",
+  "Tesouro Direto": "fixed_income",
+  "CDB": "fixed_income",
+  "Poupança": "fixed_income",
+};
 
 /**
- * Chave de deduplicação do catálogo, na forma que as duas semeaduras gravam.
- *
- * O segmento do subtipo é `"all"` quando o grupo não tem subtipo — é assim que
- * `settings-catalog/utils.ts` monta a chave no cliente e é assim que ambos os
- * seeds do servidor a montam.
+ * Mapa de classificação técnica das categorias semeadas, pelo identificador
+ * determinístico do item — nunca pelo rótulo.
  */
-export const catalogDedupeKey = (
-  group: string,
-  transactionSubtype: string | undefined,
-  scope: "PF" | "PJ" | "both",
-  name: string,
-): string => [
-  group, transactionSubtype ?? "all", scope, normalizeCatalogName(name),
-].join("::");
-
-/**
- * Identificador determinístico de um item semeado do catálogo.
- *
- * Reproduz exatamente o que o onboarding grava
- * (`investment_default_<hash do dedupeKey>`). É **este** identificador, e não
- * o nome exibido, que amarra a classificação técnica: o documento nunca muda
- * de ID, e renomear um item só reescreve `name`, `normalizedName` e
- * `dedupeKey`.
- */
-export const investmentCatalogSeedDocumentId = (
-  group: string,
-  scope: "PF" | "PJ" | "both",
-  name: string,
-): string =>
-  `investment_default_${sha256(
-    catalogDedupeKey(group, undefined, scope, name),
-  ).slice(0, 24)}`;
-
-/**
- * Identificador determinístico de um item do catálogo geral semeado pelo
- * provisionamento do workspace (`legacy_<hash do dedupeKey>`,
- * `functions/src/workspaces/provisioning.ts`). O prefixo é histórico; o
- * formato não muda porque o mapa de classificação abaixo depende dele.
- *
- * É o catálogo genérico — categorias de receita, despesa e **investimento**,
- * formas de pagamento, carteiras de caixa. Aqui interessa só o terceiro
- * conjunto: são esses IDs que dão classificação técnica às categorias padrão
- * de investimento agora que a fonte visível é `category`.
- */
-export const legacyCatalogSeedDocumentId = (
-  group: string,
-  transactionSubtype: string | undefined,
-  scope: "both" | "PJ",
-  name: string,
-): string =>
-  `legacy_${sha256(
-    catalogDedupeKey(group, transactionSubtype, scope, name),
-  ).slice(0, 24)}`;
-
-/**
- * Categorias padrão de investimento e a classificação técnica de cada uma.
- *
- * Esta é a única fonte da lista: o onboarding semeia a partir dela e o
- * domínio resolve `assetType` a partir dela. Duas listas independentes
- * divergiriam no primeiro item acrescentado.
- */
-export const INVESTMENT_TYPE_SEEDS = [
-  {name: "Renda fixa", assetType: "fixed_income"},
-  {name: "Fundos", assetType: "fund"},
-  {name: "Ações", assetType: "stock"},
-  {name: "ETF", assetType: "etf"},
-  {name: "Criptoativos", assetType: "crypto"},
-  {name: "Outros", assetType: "other"},
-] as const;
-
-/**
- * Categorias padrão de investimento do catálogo genérico e a classificação
- * técnica de cada uma.
- *
- * É também a lista que o provisionamento do workspace semeia em `category`
- * com `transactionSubtype: "investimento"`
- * (`functions/src/workspaces/provisioning.ts`): uma fonte só para o item
- * semeado e para a sua classificação. O vínculo continua sendo o identificador
- * determinístico, nunca o texto.
- */
-export const INVESTMENT_CATEGORY_SEEDS = [
-  {name: "Ações", assetType: "stock"},
-  {name: "Fundos Imobiliários", assetType: "fund"},
-  {name: "Tesouro Direto", assetType: "fixed_income"},
-  {name: "CDB", assetType: "fixed_income"},
-  {name: "Poupança", assetType: "fixed_income"},
-] as const;
-
-/**
- * Mapa de classificação técnica, cobrindo as duas origens.
- *
- * As entradas de `investment_type` **não** saem: um ativo antigo continua
- * sendo criado, editado e relido pelo mesmo identificador que sempre teve. As
- * de `category`/`investimento` entram porque é de lá que vem a categoria dos
- * lançamentos novos. Nenhuma das duas depende do rótulo.
- */
-const SEEDED_ASSET_TYPE_BY_ITEM_ID = new Map<string, string>([
-  ...INVESTMENT_TYPE_SEEDS.map((seed): [string, string] => [
-    investmentCatalogSeedDocumentId("investment_type", "both", seed.name),
-    seed.assetType,
+const SEEDED_ASSET_TYPE_BY_ITEM_ID = new Map<string, string>(
+  INVESTMENT_CATEGORY_SEED_NAMES.map((name): [string, string] => [
+    catalogSeedDocumentId("category", "investimento", "both", name),
+    INVESTMENT_CATEGORY_ASSET_TYPES[name],
   ]),
-  ...INVESTMENT_CATEGORY_SEEDS.map((seed): [string, string] => [
-    legacyCatalogSeedDocumentId("category", "investimento", "both", seed.name),
-    seed.assetType,
-  ]),
-]);
+);
 
 /**
  * Classificação técnica do ativo a partir da categoria do catálogo.
@@ -387,10 +251,10 @@ const SEEDED_ASSET_TYPE_BY_ITEM_ID = new Map<string, string>([
  * ## Categorias personalizadas
  *
  * Caem em `"other"`. Uma categoria criada pelo usuário nasce com
- * identificador **aleatório** — o catálogo só gera ID determinístico para o
- * que ele mesmo semeia —, então ela nunca colide com o mapa, em nenhum dos
- * dois grupos. O catálogo tampouco tem um campo estável de classificação
- * técnica que o usuário preencha, e inventar um não é opção: `"other"` é a
+ * identificador `cat_<hash>` (`catalogItemIdFor`), de prefixo distinto do
+ * `seed_<hash>` das sementes, então ela nunca colide com o mapa. O catálogo
+ * tampouco tem um campo estável de classificação técnica que o usuário
+ * preencha, e inventar um não é opção: `"other"` é a
  * única resposta honesta, e a faixa de alocação por classe
  * (`investment_class`) não depende disso.
  *

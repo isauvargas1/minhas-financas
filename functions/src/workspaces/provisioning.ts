@@ -1,16 +1,15 @@
 import * as admin from "firebase-admin";
-import {FieldValue} from "firebase-admin/firestore";
 
 import {
-  writeNewWorkspaceInvestmentDefaults,
-} from "../investments/onboarding";
-import {
-  INVESTMENT_CATEGORY_SEEDS,
-  catalogDedupeKey,
-  legacyCatalogSeedDocumentId,
-  normalizeCatalogName,
-} from "../investments/simpleMode";
-import {workspaceRef} from "../shared/workspaceAuth";
+  DEFAULT_CASH_ACCOUNT_NAME,
+  accountIntentIdFor,
+  appendCashAccountEvent,
+  cashAccountDocument,
+  cashAccountsRef,
+  defaultCashAccountIdFor,
+} from "../accounts/model";
+import {writeCatalogDefaults} from "../settingsCatalog/seeds";
+import {sha256} from "../shared/hashing";
 
 /**
  * Provisionamento de workspace novo (P1, PR-AUTH-03).
@@ -29,142 +28,66 @@ import {workspaceRef} from "../shared/workspaceAuth";
  * - Sem leituras: o ID do workspace acabou de ser gerado. Todas as escritas
  *   são `transaction.create`; uma colisão aborta em vez de sobrescrever.
  *
- * Volume: no pior caso (PJ) são 50 itens de catálogo e 50 chaves de
- * unicidade, mais conta e ativo de investimento — cerca de 110 escritas com
- * as da criação, abaixo do limite de 500 por transação.
+ * Volume: no pior caso (PJ) são 28 itens de catálogo e 28 reservas de nome
+ * (`settingsCatalog/seeds.ts`, D-23), mais a conta padrão e a sua auditoria —
+ * cerca de 70 escritas com as da criação, abaixo do limite de 500 por
+ * transação.
  */
 
 type WorkspaceType = "PF" | "PJ";
 
-interface GeneralCatalogSeed {
-  group: "category" | "payment_method" | "wallet" | "cost_center";
-  name: string;
-  transactionSubtype?: "despesa" | "receita" | "investimento";
-  workspaceScope: "both" | "PJ";
+export interface WorkspaceProvisioningSummary {
+  catalogItemCount: number;
+  cashAccountId: string;
 }
 
 /**
- * Catálogo geral padrão: categorias, formas de pagamento, carteiras de caixa
- * e, só em PJ, centros de custo.
- *
- * As categorias de investimento vêm de `INVESTMENT_CATEGORY_SEEDS`, a mesma
- * lista que dá a classificação técnica de cada uma: o ID determinístico
- * semeado aqui é o que o domínio de investimentos procura.
+ * Conta/carteira padrão (D-30, P3-J): "Carteira principal", tipo dinheiro,
+ * saldo zero, sem movimento. O workspace nasce pronto para o primeiro
+ * lançamento; owner e admin criam outras contas em Configurações › Contas e
+ * carteiras. Auditada como criação pelo dono do workspace.
  */
-const seedsOf = (
-  names: readonly string[],
-  seed: Omit<GeneralCatalogSeed, "name">,
-): GeneralCatalogSeed[] => names.map((name) => ({...seed, name}));
-
-export const GENERAL_CATALOG_SEEDS: readonly GeneralCatalogSeed[] = [
-  ...seedsOf(
-    [
-      "Alimentação", "Moradia", "Transporte", "Saúde", "Lazer", "Educação",
-      "Utilidades",
-    ],
-    {group: "category", transactionSubtype: "despesa", workspaceScope: "both"},
-  ),
-  ...seedsOf(
-    ["Salário", "Honorários", "Venda de Produto", "Reembolso", "Dividendos"],
-    {group: "category", transactionSubtype: "receita", workspaceScope: "both"},
-  ),
-  ...seedsOf(
-    INVESTMENT_CATEGORY_SEEDS.map(({name}) => name),
-    {
-      group: "category",
-      transactionSubtype: "investimento",
-      workspaceScope: "both",
-    },
-  ),
-  ...seedsOf(
-    ["Dinheiro", "Cartão de Crédito", "Cartão de Débito", "Pix", "Boleto"],
-    {group: "payment_method", workspaceScope: "both"},
-  ),
-  ...seedsOf(
-    [
-      "Carteira Principal", "Reserva de Emergência", "Investimentos Nubank",
-      "Binance",
-    ],
-    {group: "wallet", workspaceScope: "both"},
-  ),
-  ...seedsOf(
-    ["Operacional", "Comercial", "Administrativo"],
-    {group: "cost_center", workspaceScope: "PJ"},
-  ),
-];
-
-/** Catálogo geral padrão de um workspace recém-criado (só `create`). */
-export const writeGeneralCatalogDefaults = (
+export const writeDefaultCashAccount = (
   transaction: admin.firestore.Transaction,
-  input: {workspaceId: string; type: WorkspaceType; uid: string},
-): number => {
-  const catalog = workspaceRef(input.workspaceId);
-  const seeds = GENERAL_CATALOG_SEEDS.filter(
-    (seed) => seed.workspaceScope === "both" || input.type === "PJ",
-  );
-  seeds.forEach((seed, index) => {
-    const dedupeKey = catalogDedupeKey(
-      seed.group, seed.transactionSubtype, seed.workspaceScope, seed.name,
-    );
-    const itemId = legacyCatalogSeedDocumentId(
-      seed.group, seed.transactionSubtype, seed.workspaceScope, seed.name,
-    );
-    const normalizedName = normalizeCatalogName(seed.name);
-    const stamp = {
-      createdBy: input.uid,
-      updatedBy: input.uid,
-      createdAt: FieldValue.serverTimestamp(),
-      updatedAt: FieldValue.serverTimestamp(),
-    };
-    transaction.create(catalog.collection("settings_catalog").doc(itemId), {
+  input: {workspaceId: string; uid: string},
+): string => {
+  const accountId = defaultCashAccountIdFor(input.workspaceId);
+  transaction.create(cashAccountsRef(input.workspaceId).doc(accountId),
+    cashAccountDocument({
+      id: accountId,
       workspaceId: input.workspaceId,
-      group: seed.group,
-      name: seed.name,
-      normalizedName,
-      dedupeKey,
-      workspaceScope: seed.workspaceScope,
-      ...(seed.transactionSubtype ?
-        {transactionSubtype: seed.transactionSubtype} :
-        {}),
-      sortOrder: (index + 1) * 10,
-      status: "active",
-      ...stamp,
-    });
-    transaction.create(
-      catalog.collection("settings_catalog_uniques").doc(dedupeKey),
-      {
-        dedupeKey,
-        catalogItemId: itemId,
-        workspaceId: input.workspaceId,
-        group: seed.group,
-        normalizedName,
-        ...stamp,
-      },
-    );
+      name: DEFAULT_CASH_ACCOUNT_NAME,
+      accountType: "cash",
+      actorUid: input.uid,
+    }));
+  const provisioningKey = `provisioning:${input.workspaceId}`;
+  appendCashAccountEvent(transaction, {
+    workspaceId: input.workspaceId,
+    operation: "cash_account.created",
+    targetKey: accountId,
+    accountId,
+    transferId: null,
+    actorId: input.uid,
+    actorRole: "owner",
+    intentId: accountIntentIdFor(input.uid, provisioningKey),
+    requestHash: sha256(provisioningKey),
+    requestId: provisioningKey,
+    correlationId: null,
+    before: null,
+    after: {accountType: "cash", status: "active", balanceCents: 0,
+      openingBalanceCents: 0},
+    changedFields: ["name", "accountType"],
+    reason: null,
   });
-  return seeds.length;
+  return accountId;
 };
-
-export interface WorkspaceProvisioningSummary {
-  catalogItemCount: number;
-  investmentAccountId: string;
-  investmentAssetId: string;
-}
 
 /** Grava os padrões obrigatórios de um workspace recém-criado. */
 export const provisionWorkspaceDefaults = (
   transaction: admin.firestore.Transaction,
   input: {workspaceId: string; type: WorkspaceType; uid: string},
 ): WorkspaceProvisioningSummary => {
-  const generalCount = writeGeneralCatalogDefaults(transaction, input);
-  const investments = writeNewWorkspaceInvestmentDefaults(transaction, {
-    workspaceId: input.workspaceId,
-    profileType: input.type,
-    uid: input.uid,
-  });
-  return {
-    catalogItemCount: generalCount + investments.catalogItemCount,
-    investmentAccountId: investments.accountId,
-    investmentAssetId: investments.assetId,
-  };
+  const catalogItemCount = writeCatalogDefaults(transaction, input);
+  const cashAccountId = writeDefaultCashAccount(transaction, input);
+  return {catalogItemCount, cashAccountId};
 };

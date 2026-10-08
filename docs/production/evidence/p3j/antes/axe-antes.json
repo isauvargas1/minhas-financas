@@ -1,0 +1,224 @@
+{
+  "desktop-claro": {
+    "overflow": {
+      "01-configuracoes": 0,
+      "09-lancamento-receita": 0,
+      "10-lancamento-despesa": 0
+    },
+    "axe": {
+      "09-lancamento-receita": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "help": "Elements must meet minimum color contrast ratio thresholds",
+          "count": 2,
+          "nodes": [
+            {
+              "target": [
+                ".border-green-600"
+              ],
+              "html": "<button class=\"tab-button flex-1 py-3 px-2 font-medium text-center focus:outline-none transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-all"
+            },
+            {
+              "target": [
+                ".sm\\:col-span-2:nth-child(2) > .uppercase.mb-1"
+              ],
+              "html": "<label class=\"block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 uppercase\">Centro de Custo / Projeto</label>"
+            }
+          ]
+        },
+        {
+          "id": "label",
+          "impact": "critical",
+          "help": "Form elements must have labels",
+          "count": 1,
+          "nodes": [
+            {
+              "target": [
+                "input[type=\"number\"]"
+              ],
+              "html": "<input type=\"number\" step=\"0.01\" min=\"0.01\" class=\"w-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-dark-200 text-gray-800 dark:text-gray-2"
+            }
+          ]
+        },
+        {
+          "id": "select-name",
+          "impact": "critical",
+          "help": "Select element must have an accessible name",
+          "count": 2,
+          "nodes": [
+            {
+              "target": [
+                ".space-y-4 > div:nth-child(2) > select"
+              ],
+              "html": "<select class=\"w-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-dark-200 text-gray-800 dark:text-gray-200 rounded-lg px-4 py-2 focus:outlin"
+            },
+            {
+              "target": [
+                "div:nth-child(3) > select"
+              ],
+              "html": "<select class=\"w-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-dark-200 text-gray-800 dark:text-gray-200 rounded-lg px-4 py-2 focus:outlin"
+            }
+          ]
+        }
+      ],
+      "10-lancamento-despesa": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "help": "Elements must meet minimum color contrast ratio thresholds",
+          "count": 2,
+          "nodes": [
+            {
+              "target": [
+                ".sm\\:grid-cols-2 > div:nth-child(2) > .uppercase.mb-1"
+              ],
+              "html": "<label class=\"block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 uppercase\">Fornecedor</label>"
+            },
+            {
+              "target": [
+                "div:nth-child(3) > .uppercase.mb-1"
+              ],
+              "html": "<label class=\"block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 uppercase\">Centro de Custo / Projeto</label>"
+            }
+          ]
+        },
+        {
+          "id": "label",
+          "impact": "critical",
+          "help": "Form elements must have labels",
+          "count": 1,
+          "nodes": [
+            {
+              "target": [
+                "input[type=\"number\"]"
+              ],
+              "html": "<input type=\"number\" class=\"w-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-dark-200 text-gray-800 dark:text-gray-200 rounded-lg px-4 py-2"
+            }
+          ]
+        },
+        {
+          "id": "select-name",
+          "impact": "critical",
+          "help": "Select element must have an accessible name",
+          "count": 3,
+          "nodes": [
+            {
+              "target": [
+                ".space-y-4 > div:nth-child(2) > select"
+              ],
+              "html": "<select class=\"w-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-dark-200 text-gray-800 dark:text-gray-200 rounded-lg px-4 py-2 focus:outlin"
+            },
+            {
+              "target": [
+                "div:nth-child(3) > select"
+              ],
+              "html": "<select class=\"w-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-dark-200 text-gray-800 dark:text-gray-200 rounded-lg px-4 py-2 focus:outlin"
+            },
+            {
+              "target": [
+                "div:nth-child(6) > select"
+              ],
+              "html": "<select class=\"w-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-dark-200 text-gray-800 dark:text-gray-200 rounded-lg px-4 py-2 focus:outlin"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "desktop-escuro": {
+    "overflow": {
+      "01-configuracoes": 0,
+      "09-lancamento-receita": 0,
+      "10-lancamento-despesa": 0
+    },
+    "axe": {
+      "09-lancamento-receita": [
+        {
+          "id": "label",
+          "impact": "critical",
+          "help": "Form elements must have labels",
+          "count": 1,
+          "nodes": [
+            {
+              "target": [
+                "input[type=\"number\"]"
+              ],
+              "html": "<input type=\"number\" step=\"0.01\" min=\"0.01\" class=\"w-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-dark-200 text-gray-800 dark:text-gray-2"
+            }
+          ]
+        },
+        {
+          "id": "select-name",
+          "impact": "critical",
+          "help": "Select element must have an accessible name",
+          "count": 2,
+          "nodes": [
+            {
+              "target": [
+                ".space-y-4 > div:nth-child(2) > select"
+              ],
+              "html": "<select class=\"w-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-dark-200 text-gray-800 dark:text-gray-200 rounded-lg px-4 py-2 focus:outlin"
+            },
+            {
+              "target": [
+                "div:nth-child(3) > select"
+              ],
+              "html": "<select class=\"w-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-dark-200 text-gray-800 dark:text-gray-200 rounded-lg px-4 py-2 focus:outlin"
+            }
+          ]
+        }
+      ],
+      "10-lancamento-despesa": [
+        {
+          "id": "label",
+          "impact": "critical",
+          "help": "Form elements must have labels",
+          "count": 1,
+          "nodes": [
+            {
+              "target": [
+                "input[type=\"number\"]"
+              ],
+              "html": "<input type=\"number\" class=\"w-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-dark-200 text-gray-800 dark:text-gray-200 rounded-lg px-4 py-2"
+            }
+          ]
+        },
+        {
+          "id": "select-name",
+          "impact": "critical",
+          "help": "Select element must have an accessible name",
+          "count": 3,
+          "nodes": [
+            {
+              "target": [
+                ".space-y-4 > div:nth-child(2) > select"
+              ],
+              "html": "<select class=\"w-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-dark-200 text-gray-800 dark:text-gray-200 rounded-lg px-4 py-2 focus:outlin"
+            },
+            {
+              "target": [
+                "div:nth-child(3) > select"
+              ],
+              "html": "<select class=\"w-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-dark-200 text-gray-800 dark:text-gray-200 rounded-lg px-4 py-2 focus:outlin"
+            },
+            {
+              "target": [
+                "div:nth-child(6) > select"
+              ],
+              "html": "<select class=\"w-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-dark-200 text-gray-800 dark:text-gray-200 rounded-lg px-4 py-2 focus:outlin"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "mobile-claro": {
+    "overflow": {
+      "01-configuracoes": 0,
+      "09-lancamento-receita": 0,
+      "10-lancamento-despesa": 0
+    },
+    "axe": {}
+  }
+}

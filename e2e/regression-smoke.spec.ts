@@ -1,6 +1,8 @@
 import { expect, test } from '@playwright/test';
 import { createRequire } from 'node:module';
 
+import { createCardFor } from './support/cards';
+import { createRecurringFor } from './support/recurring';
 import { seedMembership, seedOwnedWorkspace, seedWorkspaceDocument } from './support/workspaceSeed';
 
 const require = createRequire(import.meta.url);
@@ -125,23 +127,21 @@ const seed = async (persona: Persona) => {
       installments: 3, currentInstallment: 1,
     }),
 
-    // Recorrência.
-    db.doc(`workspaces/${persona.workspace}/recurring_expenses/smoke-recorrencia`).set({
-      id: 'smoke-recorrencia', workspaceId: persona.workspace,
-      nome: 'Assinatura do smoke', tipo: 'assinatura',
-      valorPadrao: 49.9, moeda: 'BRL', periodo: 'mensal', diaCobranca: 10,
-      dataInicio: today, metodoPagamento: 'pix',
-      gerarDespesaAutomaticamente: false,
-      corPrincipal: '#6366f1', icone: 'Repeat', status: 'ativo',
-      ...(isPJ ? {tipoEmpresa: 'SaaS' as const, fornecedor: 'Fornecedor do smoke'} : {}),
-      createdAt: now, updatedAt: now,
-    }),
+    // Recorrência (P4-B): pela operação autoritativa do backend, não à mão.
+    createRecurringFor({ uid: persona.uid, workspaceId: persona.workspace }, {
+      name: 'Assinatura do smoke', frequency: 'monthly', billingDay: 10,
+      executionMode: 'confirmation_required',
+      ...(isPJ ? {
+        business: {
+          supplier: 'Fornecedor do smoke', businessType: 'saas', costCenter: null,
+          responsible: null, adjustmentDate: null, commitment: null,
+        },
+      } : {}),
+    }, today),
 
-    // Cartão.
-    db.doc(`workspaces/${persona.workspace}/credit_cards/smoke-cartao`).set({
-      id: 'smoke-cartao', workspaceId: persona.workspace, name: 'Cartão do smoke',
-      brand: 'visa', limitAmount: 5000, closingDay: 10, dueDay: 20,
-      status: 'active', createdAt: now, updatedAt: now,
+    // Cartão (P4-A): pela operação autoritativa do backend, não à mão.
+    createCardFor({ uid: persona.uid, workspaceId: persona.workspace }, {
+      name: 'Cartão do smoke', closingDay: 10, dueDay: 20, limitTotalCents: 500_000,
     }),
 
     // Meta.
@@ -158,21 +158,6 @@ const seed = async (persona: Persona) => {
       startDate: today, deadline: '2027-12-31',
       visual: { color: '#6366f1', icon: 'Target', emoji: '🎯', progressBarType: 'linear' },
       createdAt: now, updatedAt: now,
-    }),
-
-    /*
-     * Carteira de caixa, no catálogo de cadastros.
-     *
-     * O grupo `wallet` saiu da navegação comum, não do domínio: o documento
-     * continua sendo gravado e lido como antes. Quem prova a listagem de
-     * Cadastros na tela é a carteira de investimento, semeada abaixo.
-     */
-    db.doc(`workspaces/${persona.workspace}/settings_catalog/smoke-carteira`).set({
-      workspaceId: persona.workspace, group: 'wallet', name: 'Carteira do smoke',
-      normalizedName: 'carteira do smoke',
-      dedupeKey: `${persona.workspace}|wallet|carteira do smoke`,
-      workspaceScope: persona.type, sortOrder: 1, status: 'active',
-      createdBy: persona.uid, updatedBy: persona.uid, createdAt: now, updatedAt: now,
     }),
 
     // Carteira de investimento, cadastro comum exercitado na tela.
@@ -198,15 +183,15 @@ const seed = async (persona: Persona) => {
       db.doc(`workspaces/${persona.workspace}/investment_summaries/current`).set({
         id: 'current', workspaceId: persona.workspace, profileType: persona.type,
         currency: 'BRL', positionCount: 1, principalCents: 200_000,
-        currentValueCents: 220_000, realizedGainCents: 0, realizedLossCents: 0,
-        feesCents: 0, taxCents: 0, unrealizedAppreciationCents: 20_000,
+        currentValueCents: 200_000, realizedGainCents: 0, realizedLossCents: 0,
+        feesCents: 0, taxCents: 0, unrealizedAppreciationCents: 0,
         updatedAt: now, updatedBy: persona.uid,
       }),
       db.doc(`workspaces/${persona.workspace}/investment_allocation_summaries/purpose-unassigned`).set({
         id: 'purpose-unassigned', workspaceId: persona.workspace,
         profileType: persona.type, currency: 'BRL', dimension: 'purpose',
         key: 'unassigned', label: 'Não classificado', positionCount: 1,
-        principalCents: 200_000, currentValueCents: 220_000,
+        principalCents: 200_000, currentValueCents: 200_000,
         realizedGainCents: 0, realizedLossCents: 0, feesCents: 0, taxCents: 0,
         updatedAt: now, updatedBy: persona.uid,
       }),
@@ -216,9 +201,9 @@ const seed = async (persona: Persona) => {
         periodStart: at(`${today.slice(0, 7)}-01T03:00:00.000Z`),
         contributionCents: 200_000, redemptionPrincipalCents: 0,
         realizedGainCents: 0, realizedLossCents: 0, feesCents: 0, taxCents: 0,
-        costDeltaCents: 200_000, currentValueDeltaCents: 220_000,
+        costDeltaCents: 200_000, currentValueDeltaCents: 200_000,
         cashDeltaCents: -200_000, settledMovementCount: 1,
-        closingCurrentValueCents: 220_000, updatedAt: now, updatedBy: persona.uid,
+        closingCurrentValueCents: 200_000, updatedAt: now, updatedBy: persona.uid,
       }),
   ]);
 };
@@ -294,7 +279,7 @@ const walkSurfaces = async (
    * catálogo de carteiras, não a composição da página.
    */
   await openSection(page, 'Investimentos');
-  await expect(page.getByRole('heading', { name: 'Investimentos' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Investimentos', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Novo investimento' })).toBeVisible();
   await expect(page.getByRole('columnheader', { name: 'Descrição' })).toBeVisible();
   await expectNoErrorBanner(page);

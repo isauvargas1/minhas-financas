@@ -63,319 +63,6 @@ service cloud.firestore {
       return hasRole(workspaceId, roles) && isWorkspaceActive(workspaceId);
     }
 
-    function isDateOnlyString(value) {
-      return value is string && value.matches('^\\d{4}-\\d{2}-\\d{2}$');
-    }
-
-    function isValidTransactionType(value) {
-      return value in ['receita', 'despesa', 'investimento', 'parcelado'];
-    }
-
-    // Escrita direta de investimento pelo cliente: negada, sempre.
-    //
-    // O patrimônio é `investment_movements`. Toda transação
-    // `type == 'investimento'` legítima é o espelho de caixa que o backend
-    // grava em `operationsV2.writeCashProjection` pelo Admin SDK, que não passa
-    // por estas Rules. Um documento desse tipo criado pelo cliente sairia do
-    // fluxo de caixa e nunca chegaria ao patrimônio: as duas fontes divergiriam
-    // em silêncio, sem erro para o usuário.
-    //
-    // Antes esta decisão dependia de `features.investmentsV2` no documento do
-    // workspace, o que custava um `get()` por escrita de investimento. Sem a
-    // flag, é uma comparação de igualdade e nenhuma leitura.
-    function isLegacyInvestmentWriteAllowed(data) {
-      return data.type != 'investimento';
-    }
-
-    // M4.A — superfície de escrita do cliente em `transactions`, fechada.
-//
-// `isCommonValidTransactionPayload` é verificação de tipo em mundo aberto: sem
-// `hasAll` e sem `hasOnly`, aceitava qualquer chave extra. Isso deixava o
-// cliente gravar campos autoritativos do backend, com destaque para
-// `valueCents` — o valor em centavos que o domínio de investimentos considera
-// oficial e que o frontend nunca escreve.
-function hasOnlyClientTransactionKeys(data) {
-  return data.keys().hasOnly([
-    'type', 'description', 'category', 'value', 'date', 'transactionDate',
-    'installments', 'currentInstallment', 'cardId', 'walletId', 'userId',
-    'workspaceId', 'profileId', 'loanId', 'loanMovementId', 'expenseType',
-    'incomeType', 'paymentMethod', 'isPaid', 'supplier', 'costCenter',
-    'source', 'creditCardInvoiceId', 'creditCardInvoicePaymentId',
-    'creditCardCompatibility', 'displaySnapshots', 'createdAt', 'updatedAt'
-  ]);
-}
-
-// Campos que o cliente pode alterar numa transação já existente. O que ficar
-// de fora é imutável por construção — inclusive `workspaceId`, `userId`,
-// `profileId` e `createdAt`, e qualquer campo que só o backend grave.
-// INV-P1-002 — `type` **não** está aqui, e é deliberado.
-//
-// `isLegacyInvestmentWriteAllowed` fechava só o `create`. Com a flag V2
-// ligada, o cliente criava uma `despesa` (aceita) e em seguida a atualizava
-// para `investimento` — aceito. O dinheiro saía do fluxo de caixa e nunca
-// chegava ao patrimônio, sem erro visível. Trocar o tipo de uma transação
-// existente não é operação legítima do produto: o modal só oferece o tipo
-// original quando está editando (`TransactionModal.tsx`, `resolvedAllowedTypes`).
-function changesOnlyMutableTransactionKeys() {
-  return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-    'description', 'category', 'value', 'date', 'transactionDate',
-    'installments', 'currentInstallment', 'cardId', 'walletId',
-    'loanId', 'loanMovementId', 'expenseType', 'incomeType', 'paymentMethod',
-    'isPaid', 'supplier', 'costCenter', 'source', 'creditCardInvoiceId',
-    'creditCardInvoicePaymentId', 'creditCardCompatibility',
-    'displaySnapshots', 'updatedAt'
-  ]);
-}
-
-// INV-P2-049 — custo de avaliação.
-    //
-    // A versão anterior encadeava 14 guardas no formato
-    // `!data.keys().hasAny(['x']) || data.x is T`. Cada uma custa três
-    // subexpressões (construção da lista, `hasAny`, negação) mais a
-    // comparação, e `keys()` é reconstruído a cada chamada. Somadas ao
-    // `changesOnlyMutableTransactionKeys()` nos **dois** ramos de
-    // `allow update`, elas levavam a regra ao teto de 1.000 expressões do
-    // motor de Rules — e ao atingir o teto o motor **nega**. O Emulator
-    // registrou isso durante um `set()` sobre documento inexistente, que faz
-    // avaliar `create` e `update` na mesma requisição.
-    //
-    // `data.get(chave, padrão)` faz o mesmo trabalho numa subexpressão só: o
-    // padrão é escolhido para satisfazer o tipo quando a chave está ausente.
-    // Os tetos numéricos e de tamanho de string fecham INV-P3-053.
-    function isCommonValidTransactionPayload(data, workspaceId) {
-      return isValidTransactionType(data.type)
-        && data.description is string
-        && data.description.size() > 0
-        && data.description.size() <= 300
-        && data.category is string
-        && data.category.size() > 0
-        && data.category.size() <= 120
-        && (data.value is int || data.value is float)
-        && data.value > 0
-        && data.value <= 1000000000
-        && isDateOnlyString(data.date)
-        && data.userId is string
-        && data.userId.size() > 0
-        && data.userId.size() <= 128
-        && data.get('workspaceId', workspaceId) == workspaceId
-        && data.get('cardId', '') is string
-        && data.get('goalId', '') is string
-        && (data.get('walletId', '') is string
-          || data.get('walletId', '') is int
-          || data.get('walletId', '') is float)
-        && data.get('profileId', '') is string
-        && data.get('expenseType', '') is string
-        && data.get('incomeType', '') is string
-        && data.get('paymentMethod', '') is string
-        && data.get('isPaid', false) is bool
-        && data.get('supplier', '') is string
-        && data.get('supplier', '').size() <= 200
-        && data.get('costCenter', '') is string
-        && data.get('costCenter', '').size() <= 200
-        && data.get('installments', 1) is int
-        && data.get('installments', 1) > 0
-        && data.get('installments', 1) <= 480
-        && data.get('currentInstallment', 1) is int
-        && data.get('currentInstallment', 1) > 0
-        && data.get('currentInstallment', 1) <= 480;
-    }
-
-    // Campos que só o backend grava numa transação. Uma única chamada por
-    // documento, em vez das três chamadas separadas de `hasAny` que a regra
-    // de `update` fazia de cada lado.
-    function isPlainClientTransaction(data) {
-      return !data.keys().hasAny([
-        'goalId', 'investmentMetadata', 'valueCents',
-        'redeemedPrincipalCents', 'remainingPrincipalCents', 'settlementDate'
-      ]);
-    }
-
-    // Baixa lógica de transação (INV-P2-032). `AGENTS.md` proíbe hard delete
-    // de histórico financeiro, e uma transação legada apagada quebra a
-    // reconciliação da migração para sempre — ela é a origem do movimento
-    // migrado. O documento permanece; passa a carregar quem baixou, quando e
-    // por quê, e some das leituras do produto.
-    function isTransactionVoid() {
-      return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-          'voidedAt', 'voidedBy', 'voidReason', 'updatedAt'
-        ])
-        && request.resource.data.voidedBy == request.auth.uid
-        && request.resource.data.voidedAt is timestamp
-        && request.resource.data.get('voidReason', '') is string
-        && request.resource.data.get('voidReason', '').size() <= 300;
-    }
-
-    function canActOnExistingTransaction(workspaceId) {
-      return isWorkspaceActive(workspaceId) && (
-        hasRole(workspaceId, ['owner', 'admin'])
-        || isMemberTransactionOwner(workspaceId, resource.data)
-      );
-    }
-
-    function isMemberTransactionOwner(workspaceId, data) {
-      return hasRole(workspaceId, ['member']) && data.userId == request.auth.uid;
-    }
-
-    function canManageWorkspaceCatalog(workspaceId) {
-      return hasWriteRole(workspaceId, ['owner', 'admin']);
-    }
-
-    function isValidCatalogGroup(value) {
-      return value in [
-        'product_service',
-        'expense_type',
-        'category',
-        'payment_method',
-        'income_type',
-        'wallet',
-        'cost_center',
-        'investment_type',
-        'investment_class',
-        'investment_risk',
-        'investment_liquidity',
-        'investment_indexer',
-        'investment_strategy',
-        // Etapa 1 — instituições do modo simples. Escopo 'both', como os
-        // demais grupos de investimento, e portanto coberto pelo ramo padrão
-        // de `isCatalogWorkspaceScopeConsistent`.
-        'investment_institution'
-      ];
-    }
-
-    function isValidCatalogStatus(value) {
-      return value in ['active', 'inactive'];
-    }
-
-    function isValidCatalogWorkspaceScope(value) {
-      return value in ['PF', 'PJ', 'both'];
-    }
-
-    function isValidCatalogColor(value) {
-      return value is string && value.matches('^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$');
-    }
-
-    function hasOnlyCatalogKeys(data) {
-      return data.keys().hasOnly([
-        'workspaceId',
-        'group',
-        'name',
-        'normalizedName',
-        'dedupeKey',
-        'workspaceScope',
-        'transactionSubtype',
-        'icon',
-        'color',
-        'stroke',
-        'sortOrder',
-        'status',
-        'createdBy',
-        'updatedBy',
-        'createdAt',
-        'updatedAt'
-      ]);
-    }
-
-    function isCatalogSubtypeConsistent(data) {
-      return (
-        (data.group == 'category' &&
-          data.keys().hasAny(['transactionSubtype']) &&
-          isValidTransactionType(data.transactionSubtype)
-        ) ||
-        (data.group != 'category' &&
-          !data.keys().hasAny(['transactionSubtype'])
-        )
-      );
-    }
-
-    function isCatalogWorkspaceScopeConsistent(data, workspaceId) {
-      return (
-        (data.group == 'cost_center' && data.workspaceScope == 'PJ') ||
-        (data.group in ['investment_class', 'investment_strategy'] &&
-          data.workspaceScope == get(/databases/$(database)/documents/workspaces/$(workspaceId)).data.type) ||
-        (!(data.group in ['cost_center', 'investment_class', 'investment_strategy']) && data.workspaceScope == 'both')
-      );
-    }
-
-    function isValidCatalogPayload(data, workspaceId) {
-      return hasOnlyCatalogKeys(data)
-        && data.workspaceId == workspaceId
-        && isValidCatalogGroup(data.group)
-        && data.name is string
-        && data.name.size() > 0
-        && data.name.size() <= 120
-        && data.normalizedName is string
-        && data.normalizedName.size() > 0
-        && data.dedupeKey is string
-        && data.dedupeKey.size() > 0
-        && isValidCatalogWorkspaceScope(data.workspaceScope)
-        && isCatalogWorkspaceScopeConsistent(data, workspaceId)
-        && isCatalogSubtypeConsistent(data)
-        && (!data.keys().hasAny(['icon']) || data.icon is string)
-        && (!data.keys().hasAny(['color']) || isValidCatalogColor(data.color))
-        && (!data.keys().hasAny(['stroke']) || ((data.stroke is int || data.stroke is float) && data.stroke >= 1 && data.stroke <= 4))
-        && (data.sortOrder is int || data.sortOrder is float)
-        && isValidCatalogStatus(data.status)
-        && data.createdBy is string
-        && data.createdBy.size() > 0
-        && data.updatedBy is string
-        && data.updatedBy.size() > 0
-        && data.createdAt is timestamp
-        && data.updatedAt is timestamp;
-    }
-
-    function isValidCatalogCreate(data, workspaceId) {
-      return canManageWorkspaceCatalog(workspaceId)
-        && isValidCatalogPayload(data, workspaceId)
-        && data.createdBy == request.auth.uid
-        && data.updatedBy == request.auth.uid;
-    }
-
-    function isValidCatalogUpdate(data, previous, workspaceId) {
-      return canManageWorkspaceCatalog(workspaceId)
-        && isValidCatalogPayload(data, workspaceId)
-        && data.workspaceId == previous.workspaceId
-        && data.group == previous.group
-        && data.workspaceScope == previous.workspaceScope
-        && data.createdBy == previous.createdBy
-        && data.createdAt == previous.createdAt
-        && (
-          (!previous.keys().hasAny(['transactionSubtype']) && !data.keys().hasAny(['transactionSubtype'])) ||
-          (previous.keys().hasAny(['transactionSubtype']) && data.transactionSubtype == previous.transactionSubtype)
-        )
-        && data.updatedBy == request.auth.uid;
-    }
-
-    function hasOnlyCatalogUniqueKeys(data) {
-      return data.keys().hasOnly([
-        'dedupeKey',
-        'catalogItemId',
-        'workspaceId',
-        'group',
-        'normalizedName',
-        'createdBy',
-        'updatedBy',
-        'createdAt',
-        'updatedAt'
-      ]);
-    }
-
-    function isValidCatalogUniquePayload(data, workspaceId, dedupeKey) {
-      return hasOnlyCatalogUniqueKeys(data)
-        && data.dedupeKey == dedupeKey
-        && data.workspaceId == workspaceId
-        && data.catalogItemId is string
-        && data.catalogItemId.size() > 0
-        && isValidCatalogGroup(data.group)
-        && data.normalizedName is string
-        && data.normalizedName.size() > 0
-        && data.createdBy is string
-        && data.createdBy.size() > 0
-        && data.updatedBy is string
-        && data.updatedBy.size() > 0
-        && data.createdAt is timestamp
-        && data.updatedAt is timestamp;
-    }
-
     function canReadWorkspaceScopedData(workspaceId) {
   return isMember(workspaceId);
 }
@@ -442,26 +129,23 @@ function hasValidInvestmentIdentity(data, workspaceId, docId) {
     isInvestmentProfileType(data.profileType);
 }
 
+// P4-D (D-15): conta técnica da instituição, criada pelo primeiro
+// investimento nela; sem arquivamento.
 function isValidInvestmentAccount(data, workspaceId, docId) {
   return data.keys().hasAll([
       'id', 'workspaceId', 'profileType', 'name', 'institutionName',
-      'currency', 'status', 'createdBy', 'createdAt', 'updatedBy', 'updatedAt'
+      'institutionId', 'currency', 'status', 'createdBy', 'createdAt',
+      'updatedBy', 'updatedAt'
     ]) &&
     hasValidInvestmentIdentity(data, workspaceId, docId) &&
     isInvestmentString(data.name, 160) &&
     isInvestmentString(data.institutionName, 160) &&
-    // Etapa 1 — identidade estável da instituição. Opcional: contas
-    // anteriores não têm o campo, e o default de leitura mantém a validação
-    // verdadeira sem afrouxar nada para quem o tem.
-    data.get('institutionId', 'x') is string &&
+    isInvestmentString(data.institutionId, 160) &&
     isInvestmentCurrency(data.currency) &&
-    data.status in ['active', 'archived'] &&
+    data.status == 'active' &&
     isInvestmentString(data.createdBy, 128) &&
     isInvestmentString(data.updatedBy, 128) &&
-    data.createdAt is timestamp && data.updatedAt is timestamp &&
-    (!data.keys().hasAny(['archivedAt']) || data.archivedAt is timestamp) &&
-    (!data.keys().hasAny(['archivedBy']) || isInvestmentString(data.archivedBy, 128)) &&
-    (!data.keys().hasAny(['archiveReason']) || isInvestmentString(data.archiveReason, 500));
+    data.createdAt is timestamp && data.updatedAt is timestamp;
 }
 
 function isValidInvestmentAsset(data, workspaceId, docId) {
@@ -486,29 +170,18 @@ function isValidInvestmentAsset(data, workspaceId, docId) {
           'reinvestment', 'fixed_asset'
         ])) &&
     (!data.keys().hasAny(['symbol']) || isInvestmentString(data.symbol, 32)) &&
-    // INV-P2-026 — classificação por catálogo. Opcional: um ativo sem
-    // classificação cai na faixa "Não informado" da dimensão.
-    data.get('classId', 'x') is string &&
-    data.get('className', 'x') is string &&
-    data.get('riskId', 'x') is string &&
-    data.get('riskName', 'x') is string &&
-    data.get('liquidityId', 'x') is string &&
-    data.get('liquidityName', 'x') is string &&
-    data.get('indexerId', 'x') is string &&
-    data.get('indexerName', 'x') is string &&
-    // Etapa 1 — categoria por catálogo e regime de acompanhamento. O regime
-    // ausente vale 'quantity': é o que preserva todo ativo já gravado.
-    data.get('typeId', 'x') is string &&
-    data.get('typeName', 'x') is string &&
-    data.get('trackingMode', 'quantity') in ['value', 'quantity'] &&
+    // P4-D (D-15): carteira de investimentos e categoria por catálogo
+    // (`category`/`investimento`), fotografadas; regime único por valor.
+    isInvestmentString(data.classId, 160) &&
+    isInvestmentString(data.className, 160) &&
+    isInvestmentString(data.typeId, 160) &&
+    isInvestmentString(data.typeName, 160) &&
+    data.trackingMode == 'value' &&
     isInvestmentCurrency(data.currency) &&
-    data.status in ['active', 'archived'] &&
+    data.status == 'active' &&
     isInvestmentString(data.createdBy, 128) &&
     isInvestmentString(data.updatedBy, 128) &&
-    data.createdAt is timestamp && data.updatedAt is timestamp &&
-    (!data.keys().hasAny(['archivedAt']) || data.archivedAt is timestamp) &&
-    (!data.keys().hasAny(['archivedBy']) || isInvestmentString(data.archivedBy, 128)) &&
-    (!data.keys().hasAny(['archiveReason']) || isInvestmentString(data.archiveReason, 500));
+    data.createdAt is timestamp && data.updatedAt is timestamp;
 }
 
 function isValidInvestmentMovement(data, workspaceId, docId) {
@@ -552,8 +225,8 @@ function isValidInvestmentMovement(data, workspaceId, docId) {
     isInvestmentInteger(data.goalNetContributionDeltaCents) &&
     isInvestmentInteger(data.goalCurrentValueDeltaCents) &&
     // Etapa 1 — rótulos fotografados na escrita, para a listagem simples não
-    // precisar de uma leitura por linha. Todos opcionais: movimentos
-    // anteriores não os têm.
+    // precisar de uma leitura por linha. Opcionais no contrato do movimento
+    // (`documentContracts.ts`): o vínculo de meta não os fotografa.
     data.get('institutionId', 'x') is string &&
     data.get('institutionName', 'x') is string &&
     data.get('classId', 'x') is string &&
@@ -561,6 +234,17 @@ function isValidInvestmentMovement(data, workspaceId, docId) {
     data.get('typeId', 'x') is string &&
     data.get('typeName', 'x') is string &&
     data.get('assetName', 'x') is string &&
+    // P4-D (D-30) — conta do Caixa e movimento de conta do fato liquidado
+    // com dinheiro; ausentes em pendente, cancelado e vínculo de meta.
+    (
+      (data.status == 'settled' &&
+        data.operation in ['contribution', 'redemption', 'reversal'] &&
+        isInvestmentString(data.get('cashAccountId', ''), 240) &&
+        isInvestmentString(data.get('accountMovementId', ''), 240)) ||
+      (!(data.status == 'settled' &&
+          data.operation in ['contribution', 'redemption', 'reversal']) &&
+        !data.keys().hasAny(['cashAccountId', 'accountMovementId']))
+    ) &&
     isInvestmentString(data.correlationId, 128) &&
     isInvestmentString(data.idempotencyKeyHash, 128) &&
     data.occurredAt is timestamp && data.createdAt is timestamp &&
@@ -604,7 +288,7 @@ function isValidInvestmentPosition(data, workspaceId, docId) {
     isInvestmentString(data.accountId, 128) &&
     isInvestmentString(data.assetId, 128) &&
     isInvestmentCurrency(data.currency) &&
-    data.status in ['active', 'archived'] &&
+    data.status == 'active' &&
     isNonNegativeInvestmentInteger(data.quantityMicros) &&
     isNonNegativeInvestmentInteger(data.principalCents) &&
     isNonNegativeInvestmentInteger(data.realizedGainCents) &&
@@ -621,59 +305,6 @@ function isValidInvestmentPosition(data, workspaceId, docId) {
     isNonNegativeInvestmentInteger(data.version) &&
     data.createdAt is timestamp && data.updatedAt is timestamp &&
     isInvestmentString(data.updatedBy, 128);
-}
-
-function isValidInvestmentValuation(data, workspaceId, docId) {
-  return data.keys().hasAll([
-      'id', 'workspaceId', 'profileType', 'accountId', 'assetId', 'currency',
-      'unitPriceMicros', 'source', 'effectiveAt', 'correlationId',
-      'createdBy', 'createdAt'
-    ]) &&
-    hasValidInvestmentIdentity(data, workspaceId, docId) &&
-    isInvestmentString(data.accountId, 128) &&
-    isInvestmentString(data.assetId, 128) &&
-    isInvestmentCurrency(data.currency) &&
-    isNonNegativeInvestmentInteger(data.unitPriceMicros) &&
-    data.unitPriceMicros > 0 &&
-    data.source in ['manual', 'provider', 'import'] &&
-    data.effectiveAt is timestamp && data.createdAt is timestamp &&
-    isInvestmentString(data.correlationId, 128) &&
-    isInvestmentString(data.createdBy, 128);
-}
-
-function isValidInvestmentSnapshot(data, workspaceId, docId) {
-  return data.keys().hasAll([
-      'id', 'workspaceId', 'profileType', 'kind', 'targetId', 'status',
-      'cutoffAt', 'processedCount', 'expectedProjectionVersion', 'totals',
-      'pageSize', 'calculationVersion', 'correlationId', 'createdBy',
-      'createdAt', 'updatedAt'
-    ]) &&
-    hasValidInvestmentIdentity(data, workspaceId, docId) &&
-    data.kind in [
-      'position_rebuild', 'goal_rebuild',
-      'projection_rebuild', 'workspace_backfill'
-    ] &&
-    isInvestmentString(data.targetId, 257) &&
-    data.status in ['running', 'completed'] &&
-    data.cutoffAt is timestamp &&
-    isNonNegativeInvestmentInteger(data.processedCount) &&
-    isNonNegativeInvestmentInteger(data.expectedProjectionVersion) &&
-    data.totals is map &&
-    isInvestmentInteger(data.totals.quantityMicros) &&
-    isInvestmentInteger(data.totals.principalCents) &&
-    isInvestmentInteger(data.totals.realizedGainCents) &&
-    isInvestmentInteger(data.totals.get('realizedLossCents', 0)) &&
-    isInvestmentInteger(data.totals.feesCents) &&
-    isInvestmentInteger(data.totals.taxCents) &&
-    isInvestmentInteger(data.totals.netContributionCents) &&
-    isInvestmentInteger(data.totals.currentValueCents) &&
-    isNonNegativeInvestmentInteger(data.pageSize) &&
-    data.pageSize > 0 && data.pageSize <= 100 &&
-    isInvestmentString(data.calculationVersion, 100) &&
-    isInvestmentString(data.correlationId, 128) &&
-    isInvestmentString(data.createdBy, 128) &&
-    data.createdAt is timestamp && data.updatedAt is timestamp &&
-    (!data.keys().hasAny(['completedAt']) || data.completedAt is timestamp);
 }
 
 function isValidInvestmentEventLog(data, workspaceId, docId) {
@@ -711,23 +342,6 @@ function isValidInvestmentFailureEventLog(data, workspaceId, docId) {
     isInvestmentString(data.entityId, 257) &&
     data.outcome == 'failed' && data.details is map &&
     data.occurredAt is timestamp;
-}
-
-function isValidInvestmentImportBatch(data, workspaceId, docId) {
-  return data.keys().hasAll([
-      'id', 'workspaceId', 'profileType', 'status', 'source',
-      'processedCount', 'failedCount', 'correlationId', 'createdBy',
-      'createdAt', 'updatedAt'
-    ]) &&
-    hasValidInvestmentIdentity(data, workspaceId, docId) &&
-    data.status in ['pending', 'running', 'completed', 'failed'] &&
-    isInvestmentString(data.source, 160) &&
-    isNonNegativeInvestmentInteger(data.processedCount) &&
-    isNonNegativeInvestmentInteger(data.failedCount) &&
-    isInvestmentString(data.correlationId, 128) &&
-    isInvestmentString(data.createdBy, 128) &&
-    data.createdAt is timestamp && data.updatedAt is timestamp &&
-    (!data.keys().hasAny(['completedAt']) || data.completedAt is timestamp);
 }
 
 function isValidInvestmentReportPeriod(data, workspaceId, docId) {
@@ -789,8 +403,12 @@ function isValidInvestmentAllocationSummary(data, workspaceId, docId) {
 // enumeração mantida à mão: uma coleção nova do domínio nasce negada no
 // catch-all em vez de herdar leitura de qualquer membro.
 function isBackendOwnedCollection(collectionName) {
-  return collectionName.matches('^(investment_|credit_card_|goal_).*') ||
+  return collectionName.matches('^(investment_|credit_card_|goal_|recurring_|split_).*') ||
     collectionName in [
+      // P4-A (D-36) — o cadastro do cartão também é só do backend (o prefixo
+      // `credit_card_` não alcança `credit_cards`); leitura pelo bloco
+      // próprio, com teto de listagem.
+      'credit_cards',
       // P1 — membership, convites e auditoria têm bloco próprio, com teto de
       // listagem e papel. Sem estas linhas a regra genérica de subcoleção
       // concederia listagem irrestrita a qualquer membro (e a `viewer`), e no
@@ -798,10 +416,24 @@ function isBackendOwnedCollection(collectionName) {
       'members',
       'invites',
       'membership_events',
-      'card_limit_ledger',
-      'card_limit_snapshots',
-      'invoice_views',
-      'financial_events',
+      // P3-A — auditoria do caixa, com bloco próprio pelo mesmo motivo.
+      'cash_events',
+      // P3-G — auditoria de empréstimos, idem.
+      'loan_events',
+      // P3-I (D-24) — dados pessoais de clientes e auditoria de clientes e
+      // recebíveis: só owner/admin, pelo bloco próprio. Fora desta lista a
+      // catch-all entregaria documento, e-mail e telefone a member e viewer.
+      'client_private',
+      'client_events',
+      'receivable_events',
+      // P3-J (D-30) — contas, livro-razão das contas, transferências e a
+      // auditoria delas têm bloco próprio (leitura com teto de listagem;
+      // auditoria só owner/admin). Fora desta lista a catch-all concederia
+      // listagem sem limite a qualquer membro.
+      'cash_accounts',
+      'cash_account_movements',
+      'cash_transfers',
+      'cash_account_events',
       // Contadores de limite de frequência: estado operacional server-only.
       // Expor a contagem ao cliente entrega o orçamento restante a quem
       // estiver tentando forçar o limite.
@@ -824,119 +456,15 @@ function isBackendOwnedCollection(collectionName) {
       // conseguisse criá-la faria o gatilho legítimo pular a aplicação e o
       // saldo do workspace ficaria para trás; um cliente que conseguisse
       // apagá-la reabriria a duplicação. Server-only nos dois sentidos.
-      'cash_period_events'
+      'cash_period_events',
+      // P4-E (D-23) — catálogo de configurações: leitura pelo bloco próprio,
+      // com teto de listagem; reservas de nome e auditoria fechadas. Fora
+      // desta lista a catch-all concederia listagem sem limite a qualquer
+      // membro, e leitura das reservas e da auditoria.
+      'settings_catalog',
+      'settings_catalog_uniques',
+      'settings_catalog_events'
     ];
-}
-
-function isValidCreditCardStatus(value) {
-  return value in ['active', 'blocked', 'cancelled'];
-}
-
-function isValidCardBrand(value) {
-  return value is string && value.size() > 0 && value.size() <= 40;
-}
-
-function isValidBillingDay(value) {
-  return value is int && value >= 1 && value <= 31;
-}
-
-function isValidOptionalString(value, maxSize) {
-  return value is string && value.size() <= maxSize;
-}
-
-function isValidCreditCardVisual(visual) {
-  return visual is map
-    && visual.keys().hasOnly([
-      'bgType',
-      'bgColor',
-      'bgGradientColor',
-      'bgImage',
-      'textColor',
-      'showName',
-      'showBrand',
-      'showLogo'
-    ])
-    && visual.bgType in ['color', 'gradient', 'image']
-    && visual.bgColor is string
-    && visual.bgColor.size() > 0
-    && (!visual.keys().hasAny(['bgGradientColor']) || visual.bgGradientColor is string)
-    && (!visual.keys().hasAny(['bgImage']) || visual.bgImage is string)
-    && visual.textColor in ['white', 'black']
-    && visual.showName is bool
-    && visual.showBrand is bool
-    && visual.showLogo is bool;
-}
-
-function hasOnlyCreditCardKeys(data) {
-  return data.keys().hasOnly([
-    'workspaceId',
-    'name',
-    'brand',
-    'status',
-    'limitTotal',
-    'limitUsed',
-    'limitAvailable',
-    'closingDay',
-    'dueDay',
-    'bestDay',
-    'billingCycleStatus',
-    'observations',
-    'visual',
-    'profileId',
-    'responsiblePerson',
-    'recommendedUse',
-    'defaultCostCenter',
-    'createdAt',
-    'updatedAt'
-  ]);
-}
-
-function isValidCreditCardPayload(data, workspaceId) {
-  return hasOnlyCreditCardKeys(data)
-    && data.workspaceId == workspaceId
-    && data.name is string
-    && data.name.size() > 0
-    && data.name.size() <= 80
-    && isValidCardBrand(data.brand)
-    && isValidCreditCardStatus(data.status)
-    && (data.limitTotal is int || data.limitTotal is float)
-    && data.limitTotal > 0
-    && isValidBillingDay(data.closingDay)
-    && isValidBillingDay(data.dueDay)
-    && (!data.keys().hasAny(['bestDay']) || isValidBillingDay(data.bestDay))
-    && (!data.keys().hasAny(['billingCycleStatus']) || data.billingCycleStatus in ['idle', 'open', 'closing', 'closed', 'overdue'])
-    && (!data.keys().hasAny(['observations']) || isValidOptionalString(data.observations, 500))
-    && (!data.keys().hasAny(['profileId']) || isValidOptionalString(data.profileId, 120))
-    && (!data.keys().hasAny(['responsiblePerson']) || isValidOptionalString(data.responsiblePerson, 120))
-    && (!data.keys().hasAny(['recommendedUse']) || isValidOptionalString(data.recommendedUse, 300))
-    && (!data.keys().hasAny(['defaultCostCenter']) || isValidOptionalString(data.defaultCostCenter, 120))
-    && (!data.keys().hasAny(['visual']) || isValidCreditCardVisual(data.visual))
-    && (!data.keys().hasAny(['createdAt']) || data.createdAt is timestamp)
-    && (!data.keys().hasAny(['updatedAt']) || data.updatedAt is timestamp);
-}
-
-function isValidCreditCardCreate(data, workspaceId) {
-  return canWriteWorkspaceScopedData(workspaceId)
-    && isValidCreditCardPayload(data, workspaceId)
-    && data.createdAt is timestamp
-    && data.updatedAt is timestamp
-    && !data.keys().hasAny(['limitUsed'])
-    && !data.keys().hasAny(['limitAvailable']);
-}
-
-function isValidCreditCardUpdate(data, previous, workspaceId) {
-  return canWriteWorkspaceScopedData(workspaceId)
-    && isValidCreditCardPayload(data, workspaceId)
-    && data.workspaceId == previous.workspaceId
-    && (!previous.keys().hasAny(['createdAt']) || data.createdAt == previous.createdAt)
-    && (
-      (!previous.keys().hasAny(['limitUsed']) && !data.keys().hasAny(['limitUsed'])) ||
-      (previous.keys().hasAny(['limitUsed']) && data.limitUsed == previous.limitUsed)
-    )
-    && (
-      (!previous.keys().hasAny(['limitAvailable']) && !data.keys().hasAny(['limitAvailable'])) ||
-      (previous.keys().hasAny(['limitAvailable']) && data.limitAvailable == previous.limitAvailable)
-    );
 }
 
     match /workspaces/{workspaceId} {
@@ -981,128 +509,115 @@ function isValidCreditCardUpdate(data, previous, workspaceId) {
         allow write: if false;
       }
 
-      match /transactions/{docId} {
-        allow read: if isMember(workspaceId);
-
-        allow create: if
-          hasWriteRole(workspaceId, ['owner', 'admin', 'member']) &&
-          isCommonValidTransactionPayload(request.resource.data, workspaceId) &&
-          hasOnlyClientTransactionKeys(request.resource.data) &&
-          isLegacyInvestmentWriteAllowed(request.resource.data) &&
-          request.resource.data.workspaceId == workspaceId &&
-          request.resource.data.userId == request.auth.uid &&
-          !request.resource.data.keys().hasAny([
-            'goalId',
-            'investmentMetadata',
-            'redeemedPrincipalCents',
-            'remainingPrincipalCents',
-            'settlementDate'
-          ]);
-
-        // Ramo único: o papel do ator e as guardas de documento eram
-        // idênticos nos dois ramos anteriores e eram avaliados duas vezes
-        // (INV-P2-049). Aqui cada predicado roda uma vez só.
-        allow update: if
-          canActOnExistingTransaction(workspaceId) &&
-          isPlainClientTransaction(resource.data) &&
-          isPlainClientTransaction(request.resource.data) &&
-          request.resource.data.userId == resource.data.userId &&
-          resource.data.get('voidedAt', null) == null &&
-          (
-            (
-              changesOnlyMutableTransactionKeys() &&
-              isCommonValidTransactionPayload(request.resource.data, workspaceId) &&
-              isLegacyInvestmentWriteAllowed(request.resource.data)
-            ) ||
-            isTransactionVoid()
-          );
-
-        // INV-P2-032 — histórico financeiro não é apagado. A exclusão pela
-        // interface virou baixa lógica (`voidedAt`), coberta pelo `update`
-        // acima. Sem isto, uma transação legada migrada — que não tem
-        // `investmentMetadata` — podia ser apagada e a reconciliação da
-        // migração ficava permanentemente impossível.
-        allow delete: if false;
+      // P3-A — auditoria append-only do caixa: mesmo contrato de
+      // `membership_events`. O evento não copia valor nem descrição; o fato
+      // vive no lançamento, que nunca é apagado.
+      match /cash_events/{eventId} {
+        allow get: if hasRole(workspaceId, ['owner', 'admin']);
+        allow list: if hasRole(workspaceId, ['owner', 'admin']) &&
+          request.query.limit <= 100;
+        allow write: if false;
       }
 
-     match /recurring_expenses/{docId} {
-  allow read: if canReadWorkspaceScopedData(workspaceId);
-  allow write: if canMemberWriteWorkspaceScopedData(workspaceId);
-}
+      // P4-D (D-15) — `transactions` é escrita exclusivamente pelo backend
+      // (Admin SDK): lançamento manual e importação (P3), espelhos de
+      // empréstimo, recebível, pagamento de fatura, Divisão de contas,
+      // Recorrentes e investimento, todos com a marca do domínio e o
+      // movimento de conta (D-30). O caminho de escrita direta do cliente
+      // acabou — criação, correção, anulação e baixa lógica são callables
+      // autoritativas. O cliente não cria nenhum tipo (inclusive
+      // `investimento`), não edita nem anula espelho e não apaga histórico.
+      // Leitura: todo membro ativo (inclusive viewer).
+      match /transactions/{docId} {
+        allow read: if isMember(workspaceId);
+        allow create, update, delete: if false;
+      }
 
-match /recurring_occurrences/{docId} {
-  allow read: if canReadWorkspaceScopedData(workspaceId);
-  allow write: if canMemberWriteWorkspaceScopedData(workspaceId);
-}
+      // P4-B (D-12) — despesas recorrentes autoritativas. Toda escrita é do
+      // backend (callables com Admin SDK e o agendador): contrato, ocorrências
+      // e trilha. O cliente não grava estado, próximo vencimento, ocorrência,
+      // fato gerado nem histórico de valores (PR-REC-01). Leitura: todo membro
+      // ativo (inclusive viewer), com teto de listagem; a trilha também, porque
+      // dela sai o histórico de valores da tela (só números, estados, datas e
+      // IDs — nenhum texto livre).
+      match /recurring_expenses/{docId} {
+        allow get: if canReadWorkspaceScopedData(workspaceId);
+        allow list: if canReadWorkspaceScopedData(workspaceId) &&
+          request.query.limit <= 501;
+        allow create, update, delete: if false;
+      }
 
-      match /credit_cards/{docId} {
-  allow read: if canReadWorkspaceScopedData(workspaceId);
+      match /recurring_occurrences/{docId} {
+        allow get: if canReadWorkspaceScopedData(workspaceId);
+        allow list: if canReadWorkspaceScopedData(workspaceId) &&
+          request.query.limit <= 101;
+        allow create, update, delete: if false;
+      }
 
-  allow create: if isValidCreditCardCreate(request.resource.data, workspaceId);
+      match /recurring_events/{eventId} {
+        allow get: if canReadWorkspaceScopedData(workspaceId);
+        allow list: if canReadWorkspaceScopedData(workspaceId) &&
+          request.query.limit <= 50;
+        allow create, update, delete: if false;
+      }
 
-  allow update: if isValidCreditCardUpdate(
-    request.resource.data,
-    resource.data,
-    workspaceId
-  );
+      // P4-A (D-36) — cartões de crédito autoritativos. Toda escrita é do
+      // backend (callables com Admin SDK, transação, idempotência e
+      // auditoria): cadastro, compras, parcelas e lançamentos de fatura,
+      // faturas, pagamentos, livro do limite e eventos. O cliente não forja
+      // nenhum campo — nem o cadastro do cartão, que antes era gravado
+      // diretamente. Leitura: todo membro ativo (inclusive viewer) lê o
+      // domínio, com teto de listagem (o +1 sobre 500 é a sonda que o
+      // frontend usa para sinalizar corte em vez de truncar em silêncio); a
+      // auditoria é só de owner/admin.
+      match /credit_cards/{cardId} {
+        allow get: if canReadWorkspaceScopedData(workspaceId);
+        allow list: if canReadWorkspaceScopedData(workspaceId) &&
+          request.query.limit <= 50;
+        allow create, update, delete: if false;
+      }
 
-  allow delete: if canWriteWorkspaceScopedData(workspaceId);
-}
+      match /credit_card_purchases/{purchaseId} {
+        allow get: if canReadWorkspaceScopedData(workspaceId);
+        allow list: if canReadWorkspaceScopedData(workspaceId) &&
+          request.query.limit <= 501;
+        allow create, update, delete: if false;
+      }
 
-      match /credit_card_purchases/{docId} {
-  allow read: if canReadWorkspaceScopedData(workspaceId);
-  allow write: if false;
-}
+      match /credit_card_invoices/{invoiceId} {
+        allow get: if canReadWorkspaceScopedData(workspaceId);
+        allow list: if canReadWorkspaceScopedData(workspaceId) &&
+          request.query.limit <= 501;
+        allow create, update, delete: if false;
+      }
 
-match /credit_card_installments/{docId} {
-  allow read: if canReadWorkspaceScopedData(workspaceId);
-  allow write: if false;
-}
+      match /credit_card_invoice_entries/{entryId} {
+        allow get: if canReadWorkspaceScopedData(workspaceId);
+        allow list: if canReadWorkspaceScopedData(workspaceId) &&
+          request.query.limit <= 501;
+        allow create, update, delete: if false;
+      }
 
-match /credit_card_invoices/{docId} {
-  allow read: if canReadWorkspaceScopedData(workspaceId);
-  allow write: if false;
-}
+      match /credit_card_invoice_payments/{paymentId} {
+        allow get: if canReadWorkspaceScopedData(workspaceId);
+        allow list: if canReadWorkspaceScopedData(workspaceId) &&
+          request.query.limit <= 501;
+        allow create, update, delete: if false;
+      }
 
-match /credit_card_invoice_payments/{docId} {
-  allow read: if canReadWorkspaceScopedData(workspaceId);
-  allow write: if false;
-}
+      match /credit_card_limit_ledger/{entryId} {
+        allow get: if canReadWorkspaceScopedData(workspaceId);
+        allow list: if canReadWorkspaceScopedData(workspaceId) &&
+          request.query.limit <= 201;
+        allow create, update, delete: if false;
+      }
 
-match /card_limit_ledger/{docId} {
-  allow read: if canReadWorkspaceScopedData(workspaceId);
-  allow write: if false;
-}
-
-match /financial_events/{docId} {
-  allow read: if canReadWorkspaceScopedData(workspaceId);
-  allow write: if false;
-}
-
-match /invoice_views/{docId} {
-  allow read: if canReadWorkspaceScopedData(workspaceId);
-  allow write: if false;
-}
-
-match /credit_card_audit_logs/{docId} {
-  allow read: if canWriteWorkspaceScopedData(workspaceId);
-  allow write: if false;
-}
-
-match /credit_card_operational_metrics/{docId} {
-  allow read: if canWriteWorkspaceScopedData(workspaceId);
-  allow write: if false;
-}
-
-match /card_limit_snapshots/{docId} {
-  allow read: if canReadWorkspaceScopedData(workspaceId);
-  allow write: if false;
-}
-
-match /credit_card_idempotency_keys/{docId} {
-  allow read: if false;
-  allow write: if false;
-}
+      match /credit_card_events/{eventId} {
+        allow get: if hasRole(workspaceId, ['owner', 'admin']);
+        allow list: if hasRole(workspaceId, ['owner', 'admin']) &&
+          request.query.limit <= 50;
+        allow create, update, delete: if false;
+      }
 
       match /goals/{docId} {
         allow read: if isMember(workspaceId);
@@ -1150,35 +665,11 @@ match /credit_card_idempotency_keys/{docId} {
         allow write: if false;
       }
 
-      match /investment_valuations/{docId} {
-        allow get: if canReadInvestmentDomain(workspaceId) &&
-          isValidInvestmentValuation(resource.data, workspaceId, docId);
-        allow list: if canReadInvestmentDomain(workspaceId) &&
-          isBoundedInvestmentList();
-        allow write: if false;
-      }
-
-      match /investment_snapshots/{docId} {
-        allow get: if canReadSensitiveInvestmentDomain(workspaceId) &&
-          isValidInvestmentSnapshot(resource.data, workspaceId, docId);
-        allow list: if canReadSensitiveInvestmentDomain(workspaceId) &&
-          isBoundedInvestmentList();
-        allow write: if false;
-      }
-
       match /investment_event_logs/{docId} {
         allow get: if canReadSensitiveInvestmentDomain(workspaceId) && (
           isValidInvestmentEventLog(resource.data, workspaceId, docId) ||
           isValidInvestmentFailureEventLog(resource.data, workspaceId, docId)
         );
-        allow list: if canReadSensitiveInvestmentDomain(workspaceId) &&
-          isBoundedInvestmentList();
-        allow write: if false;
-      }
-
-      match /investment_import_batches/{docId} {
-        allow get: if canReadSensitiveInvestmentDomain(workspaceId) &&
-          isValidInvestmentImportBatch(resource.data, workspaceId, docId);
         allow list: if canReadSensitiveInvestmentDomain(workspaceId) &&
           isBoundedInvestmentList();
         allow write: if false;
@@ -1198,10 +689,6 @@ match /credit_card_idempotency_keys/{docId} {
         allow write: if false;
       }
 
-      // Lease de operação pesada (INV-P2-043) e relatório de deriva
-      // (INV-P2-019): estado operacional server-only. O lease não é
-      // checkpoint e não satisfaz `isValidInvestmentSnapshot`, por isso vive
-      // em coleção própria. A deriva é lida por owner/admin para diagnóstico.
       // INV-P1-011 — projeção mensal de caixa. Escrita exclusiva do gatilho de
       // transações e da reconstrução; leitura por qualquer membro, porque é o
       // que substitui a varredura da coleção inteira de transações.
@@ -1221,6 +708,8 @@ match /credit_card_idempotency_keys/{docId} {
         allow read, write: if false;
       }
 
+      // Relatório de deriva (INV-P2-019): estado operacional server-only, lido
+      // por owner/admin para diagnóstico.
       match /investment_drift_reports/{docId} {
         allow get: if canReadSensitiveInvestmentDomain(workspaceId);
         allow list: if canReadSensitiveInvestmentDomain(workspaceId) &&
@@ -1259,10 +748,15 @@ match /credit_card_idempotency_keys/{docId} {
   allow list, write: if false;
 }
 
+      // P4-D (D-15) — o card "Investimentos" do dashboard lê o aporte do mês
+      // desta projeção (antes somado do espelho em `transactions`, que todo
+      // membro lê). Por isso a leitura do agregado mensal é de todo membro
+      // ativo, viewer incluído; posições, movimentos e ativos continuam fora
+      // do viewer (`canReadInvestmentDomain`).
       match /investment_report_periods/{docId} {
-        allow get: if canReadInvestmentDomain(workspaceId) &&
+        allow get: if isMember(workspaceId) &&
           isValidInvestmentReportPeriod(resource.data, workspaceId, docId);
-        allow list: if canReadInvestmentDomain(workspaceId) &&
+        allow list: if isMember(workspaceId) &&
           isBoundedInvestmentList();
         allow write: if false;
       }
@@ -1279,24 +773,109 @@ match /credit_card_idempotency_keys/{docId} {
         allow write: if false;
       }
 
+      // P3-H — empréstimos só pelo backend (D-13): `createLoan`,
+      // `registerLoanPayment`, `reverseLoanMovement`, `cancelLoan` e
+      // `updateLoanMetadata` (Admin SDK) são o único caminho de escrita. O
+      // cliente lê conforme o papel e não cria, altera nem apaga nada aqui —
+      // nenhum papel, nenhuma exceção.
       match /loans/{docId} {
   allow read: if canReadWorkspaceScopedData(workspaceId);
-  allow write: if canMemberWriteWorkspaceScopedData(workspaceId);
+  allow create, update, delete: if false;
 }
 
 match /loan_movements/{docId} {
   allow read: if canReadWorkspaceScopedData(workspaceId);
-  allow write: if canMemberWriteWorkspaceScopedData(workspaceId);
+  allow create, update, delete: if false;
 }
 
+// P3-G — auditoria append-only do domínio de empréstimos (sem dados da
+// contraparte). Mesmo regime de `cash_events`.
+match /loan_events/{eventId} {
+  allow get: if hasRole(workspaceId, ['owner', 'admin']);
+  allow list: if hasRole(workspaceId, ['owner', 'admin']) &&
+    request.query.limit <= 100;
+  allow write: if false;
+}
+
+// P3-I — clientes e recebíveis só pelo backend (D-24, D-39): as callables
+// `createClient`, `updateClient`, `archiveClient`, `createReceivable`,
+// `updateReceivable`, `receiveReceivable`, `reverseReceivableReceipt` e
+// `cancelReceivable` (Admin SDK) são o único caminho de escrita. O cliente
+// não cria, altera nem apaga nada nestas coleções — nenhum papel.
+//
+// `clients` guarda só o compartilhado (nome e estado), lido por qualquer
+// membro ativo. Os dados pessoais (documento, e-mail, telefone, endereço e
+// observações) ficam em `client_private`, que só owner e admin leem: member
+// e viewer não recebem esses campos do Firestore.
 match /clients/{docId} {
   allow read: if canReadWorkspaceScopedData(workspaceId);
-  allow write: if canMemberWriteWorkspaceScopedData(workspaceId);
+  allow create, update, delete: if false;
+}
+
+match /client_private/{docId} {
+  allow get: if hasRole(workspaceId, ['owner', 'admin']);
+  allow list: if hasRole(workspaceId, ['owner', 'admin']) &&
+    request.query.limit <= 100;
+  allow create, update, delete: if false;
 }
 
 match /receivables/{docId} {
   allow read: if canReadWorkspaceScopedData(workspaceId);
-  allow write: if canMemberWriteWorkspaceScopedData(workspaceId);
+  allow create, update, delete: if false;
+}
+
+match /receivable_movements/{docId} {
+  allow read: if canReadWorkspaceScopedData(workspaceId);
+  allow create, update, delete: if false;
+}
+
+// Auditoria append-only (sem PII), mesmo regime de `loan_events`.
+match /client_events/{eventId} {
+  allow get: if hasRole(workspaceId, ['owner', 'admin']);
+  allow list: if hasRole(workspaceId, ['owner', 'admin']) &&
+    request.query.limit <= 100;
+  allow write: if false;
+}
+
+match /receivable_events/{eventId} {
+  allow get: if hasRole(workspaceId, ['owner', 'admin']);
+  allow list: if hasRole(workspaceId, ['owner', 'admin']) &&
+    request.query.limit <= 100;
+  allow write: if false;
+}
+
+// P3-J (D-30) — contas/carteiras, livro-razão das contas e transferências.
+// Escrita só pelo backend (callables com Admin SDK): o cliente não cria
+// conta, não altera `balanceCents`, não cria movimento nem transferência e
+// não forja a origem de um movimento. Leitura por qualquer membro ativo
+// (viewer incluído, só leitura), com teto de listagem — as consultas do
+// produto pedem página com limite explícito.
+match /cash_accounts/{accountId} {
+  allow get: if canReadWorkspaceScopedData(workspaceId);
+  allow list: if canReadWorkspaceScopedData(workspaceId) &&
+    request.query.limit <= 100;
+  allow create, update, delete: if false;
+}
+
+match /cash_account_movements/{movementId} {
+  allow get: if canReadWorkspaceScopedData(workspaceId);
+  allow list: if canReadWorkspaceScopedData(workspaceId) &&
+    request.query.limit <= 100;
+  allow create, update, delete: if false;
+}
+
+match /cash_transfers/{transferId} {
+  allow get: if canReadWorkspaceScopedData(workspaceId);
+  allow list: if canReadWorkspaceScopedData(workspaceId) &&
+    request.query.limit <= 100;
+  allow create, update, delete: if false;
+}
+
+match /cash_account_events/{eventId} {
+  allow get: if hasRole(workspaceId, ['owner', 'admin']);
+  allow list: if hasRole(workspaceId, ['owner', 'admin']) &&
+    request.query.limit <= 100;
+  allow write: if false;
 }
 
 match /notifications/{docId} {
@@ -1313,56 +892,94 @@ match /notifications/{docId} {
   allow delete: if canWriteWorkspaceScopedData(workspaceId);
 }
 
+// P4-C (D-14) — Divisão de contas autoritativa. Toda escrita é do backend
+// (callables com Admin SDK, transação, idempotência e auditoria): grupos,
+// participantes, convites, títulos, rateios, reembolsos e trilha. O cliente
+// não grava dono, papel, estado, valores, rateios, quitação nem vínculo
+// financeiro (PR-SPLIT-01, PR-SPLIT-02, PR-RULES-01). Leitura: todo membro
+// ativo do workspace (inclusive viewer) lê o domínio, com teto de listagem
+// (o +1 é a sonda de corte do frontend). O convite guarda só o hash do
+// código e é lido por owner/admin ou por quem o criou; a trilha, só por
+// owner/admin.
 match /split_groups/{docId} {
-  allow read: if canReadWorkspaceScopedData(workspaceId);
-  allow write: if canMemberWriteWorkspaceScopedData(workspaceId);
+  allow get: if canReadWorkspaceScopedData(workspaceId);
+  allow list: if canReadWorkspaceScopedData(workspaceId) &&
+    request.query.limit <= 101;
+  allow create, update, delete: if false;
 }
 
 match /split_participants/{docId} {
-  allow read: if canReadWorkspaceScopedData(workspaceId);
-  allow write: if canMemberWriteWorkspaceScopedData(workspaceId);
+  allow get: if canReadWorkspaceScopedData(workspaceId);
+  allow list: if canReadWorkspaceScopedData(workspaceId) &&
+    request.query.limit <= 101;
+  allow create, update, delete: if false;
+}
+
+match /split_invites/{docId} {
+  allow get: if canReadWorkspaceScopedData(workspaceId) &&
+    (hasRole(workspaceId, ['owner', 'admin']) ||
+      resource.data.createdBy == request.auth.uid);
+  allow list: if canReadWorkspaceScopedData(workspaceId) &&
+    request.query.limit <= 21 &&
+    (hasRole(workspaceId, ['owner', 'admin']) ||
+      resource.data.createdBy == request.auth.uid);
+  allow create, update, delete: if false;
 }
 
 match /split_bills/{docId} {
-  allow read: if canReadWorkspaceScopedData(workspaceId);
-  allow write: if canMemberWriteWorkspaceScopedData(workspaceId);
+  allow get: if canReadWorkspaceScopedData(workspaceId);
+  allow list: if canReadWorkspaceScopedData(workspaceId) &&
+    request.query.limit <= 101;
+  allow create, update, delete: if false;
 }
 
 match /split_shares/{docId} {
-  allow read: if canReadWorkspaceScopedData(workspaceId);
-  allow write: if canMemberWriteWorkspaceScopedData(workspaceId);
+  allow get: if canReadWorkspaceScopedData(workspaceId);
+  allow list: if canReadWorkspaceScopedData(workspaceId) &&
+    request.query.limit <= 51;
+  allow create, update, delete: if false;
 }
 
+match /split_reimbursements/{docId} {
+  allow get: if canReadWorkspaceScopedData(workspaceId);
+  allow list: if canReadWorkspaceScopedData(workspaceId) &&
+    request.query.limit <= 101;
+  allow create, update, delete: if false;
+}
+
+match /split_events/{eventId} {
+  allow get: if hasRole(workspaceId, ['owner', 'admin']);
+  allow list: if hasRole(workspaceId, ['owner', 'admin']) &&
+    request.query.limit <= 50;
+  allow create, update, delete: if false;
+}
+
+      // P4-E (D-23) — catálogo de configurações backend-authoritative.
+      // Criar, editar (renomear, aparência, reativar) e inativar passam só
+      // pelas callables `createSettingsCatalogItem`,
+      // `updateSettingsCatalogItem` e `archiveSettingsCatalogItem`, que
+      // derivam escopo, nome normalizado e chave de unicidade e gravam item,
+      // reserva e auditoria na mesma transação. Todo membro ativo lê (os
+      // seletores de lançamento de todos os papéis dependem do catálogo),
+      // com teto de listagem: 2.001 cobre a leitura completa do frontend
+      // (`SETTINGS_CATALOG_READ_LIMIT` + 1), que o teto de itens do backend
+      // mantém inteira. Nenhuma escrita do cliente, de nenhum papel.
       match /settings_catalog/{docId} {
-        allow read: if isMember(workspaceId);
-
-        allow create: if isValidCatalogCreate(request.resource.data, workspaceId);
-
-        allow update: if isValidCatalogUpdate(
-          request.resource.data,
-          resource.data,
-          workspaceId
-        );
-
-        allow delete: if false;
+        allow get: if isMember(workspaceId);
+        allow list: if isMember(workspaceId) && request.query.limit <= 2001;
+        allow create, update, delete: if false;
       }
 
-      match /settings_catalog_uniques/{dedupeKey} {
-        allow read: if isMember(workspaceId);
+      // Reservas de nome (unicidade) e auditoria do catálogo: estado interno
+      // do backend, sem consumidor no cliente. Fechadas nos dois sentidos —
+      // um membro não lê nem forja reserva, `catalogItemId`, `dedupeKey` ou
+      // autoria.
+      match /settings_catalog_uniques/{lockId} {
+        allow read, write: if false;
+      }
 
-        allow create: if
-          canManageWorkspaceCatalog(workspaceId) &&
-          isValidCatalogUniquePayload(request.resource.data, workspaceId, dedupeKey) &&
-          request.resource.data.createdBy == request.auth.uid &&
-          request.resource.data.updatedBy == request.auth.uid;
-
-        allow update: if
-          canManageWorkspaceCatalog(workspaceId) &&
-          isValidCatalogUniquePayload(request.resource.data, workspaceId, dedupeKey) &&
-          request.resource.data.createdBy == resource.data.createdBy &&
-          request.resource.data.updatedBy == request.auth.uid;
-
-        allow delete: if false;
+      match /settings_catalog_events/{eventId} {
+        allow read, write: if false;
       }
 
           match /{subCollection}/{docId} {

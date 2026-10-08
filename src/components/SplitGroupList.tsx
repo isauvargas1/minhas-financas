@@ -1,128 +1,108 @@
-
 import React from 'react';
-import { SplitGroup } from '../types.ts';
-import { useSplitBills, useSplitGroupShares, useSplitParticipants } from '../modules/split-bills/hooks.ts';
-import { DynamicIcon, UsersIcon, EditIcon, DeleteIcon } from './Icons.tsx';
+import type { SplitGroup, SplitParticipant } from '../modules/split-bills/types.ts';
+import { formatSplitCents } from '../modules/split-bills/presentation.ts';
+import { DynamicIcon, UsersIcon, EditIcon, DeleteIcon, RefreshIcon } from './Icons.tsx';
+
+interface GroupActions {
+    onEdit?: () => void;
+    onArchive?: () => void;
+    onReactivate?: () => void;
+}
 
 interface SplitGroupListProps {
     groups: SplitGroup[];
+    /** `groupId` → registro do próprio usuário (saldos do servidor). */
+    myParticipants: ReadonlyMap<string, SplitParticipant>;
     onSelectGroup: (groupId: string) => void;
-    onEdit?: (group: SplitGroup) => void;
-    onDelete?: (group: SplitGroup) => void;
+    actionsOf: (group: SplitGroup) => GroupActions;
 }
 
-const GroupRow: React.FC<{ 
-    group: SplitGroup; 
+const GroupRow: React.FC<{
+    group: SplitGroup;
+    myParticipant: SplitParticipant | null;
     onSelect: () => void;
-    onEdit?: () => void;
-    onDelete?: () => void;
-}> = ({ group, onSelect, onEdit, onDelete }) => {
-    const { data: bills } = useSplitBills(group.id);
-    const { data: shares } = useSplitGroupShares(group.id);
-    const { data: participants } = useSplitParticipants(group.id);
-
-    const myParticipantId = React.useMemo(() => {
-        if (!participants) return null;
-        return participants.find(p => p.nomeExibicao === 'Você')?.id;
-    }, [participants]);
-
-    const isOwner = React.useMemo(() => {
-        if (!participants) return false;
-        const me = participants.find(p => p.nomeExibicao === 'Você');
-        return me?.papel === 'dono';
-    }, [participants]);
-
-    const summary = React.useMemo(() => {
-        if (!bills || !shares || !myParticipantId) {
-            return { totalGroup: 0, balance: 0, status: 'neutral' };
-        }
-
-        const totalGroup = bills.reduce((acc, b) => acc + (b.valorReal || 0), 0);
-        
-        let myDebt = 0;
-        let myCredit = 0;
-
-        const myShares = shares.filter(s => s.participantId === myParticipantId);
-        myDebt = myShares.filter(s => s.status === 'aPagar').reduce((acc, s) => acc + s.valorDevido, 0);
-
-        const myBills = bills.filter(b => b.pagadorPrincipalId === myParticipantId);
-        const myBillIds = myBills.map(b => b.id);
-        const othersSharesOfMyBills = shares.filter(s => myBillIds.includes(s.billId) && s.participantId !== myParticipantId);
-
-        myCredit = othersSharesOfMyBills.filter(s => s.status === 'aPagar').reduce((acc, s) => acc + s.valorDevido, 0);
-        
-        const balance = myCredit - myDebt;
-        const status = balance > 0 ? 'credit' : balance < 0 ? 'debt' : 'neutral';
-
-        return { totalGroup, balance, status };
-    }, [bills, shares, myParticipantId]);
-
-    const formatCurrency = (val: number) => {
-        return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
-    };
+    actions: GroupActions;
+}> = ({ group, myParticipant, onSelect, actions }) => {
+    // Saldo do usuário no grupo: o que tem a receber menos o que deve.
+    const balance = (myParticipant?.balances.receivableOpenCents ?? 0) -
+        (myParticipant?.balances.owesOpenCents ?? 0);
+    const status = balance > 0 ? 'credit' : balance < 0 ? 'debt' : 'neutral';
+    const isActive = group.status === 'active';
+    const { onEdit, onArchive, onReactivate } = actions;
 
     return (
-        <tr 
-            onClick={onSelect} 
+        <tr
+            onClick={onSelect}
             className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-dark-200 transition-colors cursor-pointer group"
         >
             <td className="px-4 py-4">
                 <div className="flex items-center gap-3">
-                    <div 
+                    <div
                         className="w-8 h-8 rounded-lg flex items-center justify-center text-white shadow-sm flex-shrink-0"
-                        style={{ backgroundColor: group.corPrincipal }}
+                        style={{ backgroundColor: group.visual.color }}
                     >
-                        {group.emojiOpcional ? <span className="text-sm">{group.emojiOpcional}</span> : <DynamicIcon name={group.icone} size={16} />}
+                        {group.visual.emoji ? <span className="text-sm">{group.visual.emoji}</span> : <DynamicIcon name={group.visual.icon} size={16} />}
                     </div>
                     <div>
-                        <p className="font-bold text-gray-800 dark:text-white text-sm">{group.nome}</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">{group.tipo === 'fixo' ? 'Recorrente' : 'Temporário'}</p>
+                        <p className="font-bold text-gray-800 dark:text-white text-sm">{group.name}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{group.groupType === 'fixed' ? 'Recorrente' : 'Temporário'}</p>
                     </div>
                 </div>
             </td>
             <td className="px-4 py-4">
                 <div className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-300">
                     <UsersIcon className="h-4 w-4 text-gray-400" />
-                    {participants?.length || 0}
+                    {group.counters.activeParticipantCount}
                 </div>
             </td>
             <td className="px-4 py-4 text-sm font-medium text-gray-800 dark:text-white">
-                {formatCurrency(summary.totalGroup)}
+                {formatSplitCents(group.businessMode === 'reimbursement' ? group.totals.reimbursementTotalCents : group.totals.billedCents)}
             </td>
             <td className="px-4 py-4">
                 <span className={`text-sm font-bold ${
-                    summary.status === 'credit' ? 'text-green-600' : 
-                    summary.status === 'debt' ? 'text-red-600' : 'text-gray-400'
+                    status === 'credit' ? 'text-green-600' :
+                    status === 'debt' ? 'text-red-600' : 'text-gray-400'
                 }`}>
-                    {summary.balance > 0 ? `+ ${formatCurrency(summary.balance)}` : 
-                     summary.balance < 0 ? `- ${formatCurrency(Math.abs(summary.balance))}` : 
+                    {balance > 0 ? `+ ${formatSplitCents(balance)}` :
+                     balance < 0 ? `- ${formatSplitCents(Math.abs(balance))}` :
                      'Zerado'}
                 </span>
             </td>
             <td className="px-4 py-4">
                 <div className="flex items-center justify-between">
                     <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${
-                        group.ativo ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-300' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
+                        isActive ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-300' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
                     }`}>
-                        {group.ativo ? 'Ativo' : 'Encerrado'}
+                        {isActive ? 'Ativo' : 'Encerrado'}
                     </span>
-                    
-                    {isOwner && (
-                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+
+                    {(onEdit || onArchive || onReactivate) && (
+                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
                             {onEdit && (
-                                <button 
+                                <button
                                     onClick={(e) => { e.stopPropagation(); onEdit(); }}
                                     className="p-1.5 text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-gray-100 dark:hover:bg-dark-300 rounded transition-colors"
+                                    aria-label="Editar Grupo"
                                 >
                                     <EditIcon className="w-4 h-4" />
                                 </button>
                             )}
-                            {onDelete && (
-                                <button 
-                                    onClick={(e) => { e.stopPropagation(); onDelete(); }}
+                            {onArchive && (
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); onArchive(); }}
                                     className="p-1.5 text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                                    aria-label="Arquivar Grupo"
                                 >
                                     <DeleteIcon className="w-4 h-4" />
+                                </button>
+                            )}
+                            {onReactivate && (
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); onReactivate(); }}
+                                    className="p-1.5 text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-gray-100 dark:hover:bg-dark-300 rounded transition-colors"
+                                    aria-label="Reativar Grupo"
+                                >
+                                    <RefreshIcon className="w-4 h-4" />
                                 </button>
                             )}
                         </div>
@@ -133,7 +113,7 @@ const GroupRow: React.FC<{
     );
 };
 
-const SplitGroupList: React.FC<SplitGroupListProps> = ({ groups, onSelectGroup, onEdit, onDelete }) => {
+const SplitGroupList: React.FC<SplitGroupListProps> = ({ groups, myParticipants, onSelectGroup, actionsOf }) => {
     return (
         <div className="bg-white dark:bg-dark-100 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
             <div className="overflow-x-auto">
@@ -149,12 +129,12 @@ const SplitGroupList: React.FC<SplitGroupListProps> = ({ groups, onSelectGroup, 
                     </thead>
                     <tbody>
                         {groups.map(group => (
-                            <GroupRow 
-                                key={group.id} 
-                                group={group} 
-                                onSelect={() => onSelectGroup(group.id)} 
-                                onEdit={onEdit ? () => onEdit(group) : undefined}
-                                onDelete={onDelete ? () => onDelete(group) : undefined}
+                            <GroupRow
+                                key={group.id}
+                                group={group}
+                                myParticipant={myParticipants.get(group.id) ?? null}
+                                onSelect={() => onSelectGroup(group.id)}
+                                actions={actionsOf(group)}
                             />
                         ))}
                          {groups.length === 0 && (

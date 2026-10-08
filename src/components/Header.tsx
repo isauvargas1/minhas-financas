@@ -165,13 +165,17 @@ const normalizedNotifications = useMemo<NotificationItem[]>(() => {
             <div className="flex justify-between items-center flex-wrap gap-4">
                 <div className="flex items-center">
                      <button
+                        type="button"
                         onClick={onToggleSidebar}
+                        aria-label={isSidebarExpanded ? 'Fechar menu' : 'Abrir menu'}
+                        aria-expanded={isSidebarExpanded}
+                        aria-controls="menu-principal"
                         className="lg:hidden p-2 rounded-md bg-surface shadow-sm border border-border text-on-surface mr-4 hover:bg-background transition-colors"
                     >
                         <HamburgerIcon />
                     </button>
                     <div className="flex flex-col">
-                        <h1 className="text-3xl font-bold text-primary font-sans tracking-tight">
+                        <h1 className="text-3xl font-bold text-primary dark:text-primary-on-dark font-sans tracking-tight">
                             {activeWorkspace.type === 'PJ' ? 'Finanças da Empresa' : 'Minhas Finanças'}
                         </h1>
                         {activeWorkspace.type === 'PJ' && (
@@ -193,7 +197,7 @@ const normalizedNotifications = useMemo<NotificationItem[]>(() => {
                                 <span>{capitalizedDate}</span>
                                 <SearchIcon className="h-4 w-4 text-muted" />
                             </button>
-                             <button onClick={goToToday} className="text-xs text-primary hover:underline font-medium">Hoje</button>
+                             <button type="button" onClick={goToToday} className="text-xs text-primary dark:text-primary-on-dark hover:underline font-medium">Hoje</button>
                         </div>
                         {isPickerOpen && (
                             <div ref={pickerRef} className="absolute top-full mt-2 bg-surface p-4 rounded-card shadow-xl z-20 w-64 border border-border animate-fade-in-fast">
@@ -230,7 +234,10 @@ const normalizedNotifications = useMemo<NotificationItem[]>(() => {
                     {/* NOTIFICATIONS */}
                     <div className="relative">
                         <button 
+                            type="button"
                             onClick={toggleNotifications}
+                            aria-label={unreadNotifications > 0 ? `Notificações, ${unreadNotifications} não ${unreadNotifications === 1 ? 'lida' : 'lidas'}` : 'Notificações'}
+                            aria-expanded={isNotificationsOpen}
                             className={`${iconButtonBaseClass} ${isNotificationsOpen ? iconButtonActive : iconButtonInactive}`}
                         >
                             <BellIcon className="w-5 h-5" />
@@ -254,7 +261,10 @@ const normalizedNotifications = useMemo<NotificationItem[]>(() => {
                     {/* MESSAGES */}
                     <div className="relative">
                         <button 
+                            type="button"
                             onClick={toggleMessages}
+                            aria-label={unreadMessages > 0 ? `Mensagens, ${unreadMessages} não ${unreadMessages === 1 ? 'lida' : 'lidas'}` : 'Mensagens'}
+                            aria-expanded={isMessagesOpen}
                             className={`${iconButtonBaseClass} ${isMessagesOpen ? iconButtonActive : iconButtonInactive}`}
                         >
                             <EnvelopeIcon className="w-5 h-5" />
@@ -276,7 +286,9 @@ const normalizedNotifications = useMemo<NotificationItem[]>(() => {
                     <div className="h-6 w-px bg-border mx-1"></div>
 
                     <button 
+                        type="button"
                         onClick={onToggleDarkMode} 
+                        aria-label={isDarkMode ? 'Ativar modo claro' : 'Ativar modo escuro'}
                         className={`${iconButtonBaseClass} ${iconButtonInactive}`}
                     >
                         {isDarkMode ? <SunIcon className="w-5 h-5" /> : <MoonIcon className="w-5 h-5" />}
@@ -302,6 +314,16 @@ const normalizedNotifications = useMemo<NotificationItem[]>(() => {
                         </div>
                         <div 
                             onClick={toggleUserMenu}
+                            role="button"
+                            tabIndex={0}
+                            aria-label={isUserMenuOpen ? 'Fechar menu da conta' : 'Abrir menu da conta'}
+                            aria-expanded={isUserMenuOpen}
+                            onKeyDown={(event) => {
+                                if (event.key === 'Enter' || event.key === ' ') {
+                                    event.preventDefault();
+                                    toggleUserMenu();
+                                }
+                            }}
                             className={`w-9 h-9 rounded-full flex items-center justify-center text-white font-bold shadow-md cursor-pointer hover:shadow-lg transition-all hover:scale-105 ring-2 ring-white dark:ring-dark-100 ${activeWorkspace.type === 'PJ' ? 'bg-teal-600' : 'bg-gradient-to-tr from-indigo-600 to-purple-600'}`}
                         >
                             {activeWorkspace.type === 'PJ' ? 'PJ' : 'U'}

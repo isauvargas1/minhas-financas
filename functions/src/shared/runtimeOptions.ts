@@ -26,9 +26,9 @@ import type {GlobalOptions} from "firebase-functions/v2/options";
  *   cartão): uma transação com dezenas de documentos, concluída em segundos.
  *   60 s e 256 MiB cobrem com folga; `maxInstances` limita o fan-out contra o
  *   Firestore.
- * - **Callables pesadas e paginadas** (rebuild, backfill, migração,
- *   reconciliação, rollback, varredura de deriva): laços com cursor sobre o
- *   ledger inteiro. O padrão de 60 s matava a execução no meio deixando
+ * - **Callables pesadas e paginadas** (reconstrução da projeção de caixa,
+ *   das faturas e do limite de cartão): laços com cursor sobre o ledger
+ *   inteiro. O padrão de 60 s matava a execução no meio deixando
  *   estado parcial. 540 s é o teto de uma callable HTTP; `maxInstances`
  *   baixo é deliberado — elas escrevem em documentos singleton do workspace e
  *   paralelismo alto só produz contenção (INV-P2-017).
@@ -56,8 +56,7 @@ export const DOMAIN_CALLABLE_OPTIONS: CallableOptions = {
  *
  * `maxInstances: 3` é o limite deliberado de concorrência global dessas
  * operações. Dentro de um mesmo workspace, o que impede duas execuções de se
- * atrapalharem é o par cerca de versão + serialização transacional — o
- * backfill acrescenta um lease do próprio lote (`backfill.ts`). O teto aqui
+ * atrapalharem é o par cerca de versão + serialização transacional. O teto aqui
  * resolve outra coisa: protege o Firestore de um fan-out de reconstruções
  * simultâneas em tenants **diferentes**.
  */
@@ -77,9 +76,10 @@ export const AI_CALLABLE_OPTIONS: CallableOptions = {
 };
 
 /**
- * Webhook do Stripe (P2A): relê a assinatura no Stripe dentro de uma
- * transação curta. Chamado só pelo Stripe, sem CORS; concorrência baixa
- * porque eventos do mesmo titular disputam o mesmo documento.
+ * Webhook do Stripe (P2A, P2A.1): relê a assinatura no Stripe fora de
+ * transação, entre o claim e o commit com lease (`billing/webhook.ts`).
+ * Chamado só pelo Stripe, sem CORS; concorrência baixa porque eventos do
+ * mesmo titular disputam o mesmo lease.
  */
 export const STRIPE_WEBHOOK_OPTIONS = {
   region: FUNCTIONS_REGION,
@@ -87,12 +87,6 @@ export const STRIPE_WEBHOOK_OPTIONS = {
   memory: "256MiB",
   maxInstances: 10,
 } as const;
-
-/** Alias de leitura para o domínio de cartões. */
-export const CREDIT_CARD_CALLABLE_OPTIONS = DOMAIN_CALLABLE_OPTIONS;
-
-/** Alias de leitura para as operações pesadas de cartões. */
-export const HEAVY_CREDIT_CARD_CALLABLE_OPTIONS = HEAVY_CALLABLE_OPTIONS;
 
 /** Opções das rotinas agendadas. */
 export const SCHEDULED_FUNCTION_OPTIONS = {
@@ -115,5 +109,27 @@ export const WORKSPACE_INDEX_SYNC_OPTIONS = {
   timeoutSeconds: 120,
   memory: "256MiB",
   maxInstances: 5,
+  retry: true,
+} as const;
+
+/**
+ * Gatilho de escrita de transações: projeção mensal de caixa e trilha de
+ * atividade (P3-B, D-38).
+ *
+ * `retry: true`: uma falha passageira é reentregue pelo Eventarc, com backoff
+ * exponencial de 10 a 600 s, por até 24 horas na 2ª geração. A reentrega é
+ * segura porque o delta é aplicado uma única vez por entrega, com a marca na
+ * mesma transação (INV-P3-001), e a trilha é regravada pelo mesmo ID. Perto do
+ * fim da janela, o próprio gatilho registra a divergência em vez de
+ * relançar (`RETRY_GIVE_UP_AGE_SECONDS`, `triggers/transactions.ts`).
+ *
+ * Tempo, memória e teto de instâncias explícitos, iguais aos que o gatilho
+ * herdava das opções globais e do padrão da plataforma.
+ */
+export const TRANSACTION_WRITE_TRIGGER_OPTIONS = {
+  region: FUNCTIONS_REGION,
+  timeoutSeconds: 60,
+  memory: "256MiB",
+  maxInstances: 20,
   retry: true,
 } as const;

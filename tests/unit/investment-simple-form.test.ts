@@ -10,22 +10,27 @@ import {
   emptyNewInvestmentForm,
   emptyWithdrawForm,
   formatCentsInput,
+  CONTRIBUTION_ACCOUNT_MESSAGE,
   isValidDateInput,
-  LEGACY_CATEGORY_FALLBACK_LABEL,
   maskCurrencyInput,
   parseCurrencyInput,
+  SELECTED_CATEGORY_FALLBACK_LABEL,
   validateNewInvestment,
   validateWithdraw,
+  WITHDRAWAL_ACCOUNT_MESSAGE,
 } from '../../src/modules/investments/simple/form.ts';
 
 /**
  * Formulários simples (Etapa 2, §4, §8 e §9).
  *
  * O ponto que estes testes fixam é o contrato do payload: a interface **não**
- * monta conta, ativo, quantidade, preço, tipo técnico nem posição, e a única
- * pergunta que decide efeito financeiro é "já foi depositado / já foi
- * recebido".
+ * monta conta de investimento, ativo, quantidade, preço, tipo técnico nem
+ * posição, e a única pergunta que decide efeito financeiro é "já foi
+ * depositado / já foi recebido". Quando a resposta é Sim, a conta do Caixa
+ * (`cashAccountId`, D-30) viaja junto — e só nesse caso.
  */
+
+const CONTA = 'conta-corrente';
 
 const AGORA = new Date('2026-08-31T15:30:00.000-03:00');
 
@@ -60,11 +65,15 @@ test('data futura escolhida de propósito continua futura', () => {
   assert.ok(new Date(instante).getTime() > AGORA.getTime());
 });
 
-test('novo investimento exige carteira, instituição, descrição, categoria e valor', () => {
+test('novo investimento exige carteira, instituição, descrição, categoria, valor e conta de origem', () => {
   const errors = validateNewInvestment(emptyNewInvestmentForm(AGORA));
   assert.deepEqual(Object.keys(errors).sort(), [
-    'amount', 'classId', 'description', 'institutionId', 'typeId',
+    'amount', 'cashAccountId', 'classId', 'description', 'institutionId', 'typeId',
   ]);
+  assert.equal(errors.cashAccountId, CONTRIBUTION_ACCOUNT_MESSAGE);
+  // Pendente não pede conta: ela é escolhida na confirmação do depósito.
+  const pendente = validateNewInvestment({ ...emptyNewInvestmentForm(AGORA), deposited: false });
+  assert.equal('cashAccountId' in pendente, false);
 });
 
 test('meta é opcional: formulário sem meta é válido', () => {
@@ -75,6 +84,7 @@ test('meta é opcional: formulário sem meta é válido', () => {
     typeId: 'renda-fixa',
     description: 'CDB 120% CDI',
     amount: maskCurrencyInput('100000'),
+    cashAccountId: CONTA,
   };
   assert.deepEqual(validateNewInvestment(form), {});
   const payload = buildCreateSimpleInvestmentInput(form, AGORA);
@@ -127,14 +137,20 @@ test('correção de pendente declara o movimento substituído', () => {
   );
 });
 
-test('depositado Sim cria liquidado; depositado Não cria pendente', () => {
+test('depositado Sim cria liquidado com a conta de origem; Não cria pendente sem conta', () => {
   const base = {
     ...emptyNewInvestmentForm(AGORA),
     classId: 'c', institutionId: 'i', typeId: 't',
     description: 'Aporte', amount: maskCurrencyInput('20000'),
+    cashAccountId: CONTA,
   };
-  assert.equal(buildCreateSimpleInvestmentInput({...base, deposited: true}, AGORA).settled, true);
-  assert.equal(buildCreateSimpleInvestmentInput({...base, deposited: false}, AGORA).settled, false);
+  const liquidado = buildCreateSimpleInvestmentInput({...base, deposited: true}, AGORA);
+  assert.equal(liquidado.settled, true);
+  assert.equal(liquidado.cashAccountId, CONTA);
+  // A conta escolhida antes de trocar para "Não" não vaza para o pendente.
+  const pendente = buildCreateSimpleInvestmentInput({...base, deposited: false}, AGORA);
+  assert.equal(pendente.settled, false);
+  assert.equal('cashAccountId' in pendente, false);
 });
 
 test('payload de novo investimento não carrega nada técnico', () => {
@@ -142,21 +158,33 @@ test('payload de novo investimento não carrega nada técnico', () => {
     ...emptyNewInvestmentForm(AGORA),
     classId: 'c', institutionId: 'i', typeId: 't',
     description: '  Tesouro Selic  ', amount: maskCurrencyInput('123456'),
+    cashAccountId: CONTA,
   }, AGORA);
   assert.deepEqual(Object.keys(payload).sort(), [
-    'classId', 'description', 'institutionId', 'occurredAt', 'settled', 'typeId', 'valueCents',
+    'cashAccountId', 'classId', 'description', 'institutionId', 'occurredAt', 'settled',
+    'typeId', 'valueCents',
   ]);
   assert.equal(payload.description, 'Tesouro Selic');
   assert.equal(payload.valueCents, 123_456);
 });
 
 test('retirada sem rendimento não envia gainCents', () => {
-  const form = {...emptyWithdrawForm(AGORA), amount: maskCurrencyInput('50000')};
+  const form = {...emptyWithdrawForm(AGORA), amount: maskCurrencyInput('50000'), cashAccountId: CONTA};
   const payload = buildWithdrawSimpleInvestmentInput(form, 'pos-1', AGORA);
   assert.equal('gainCents' in payload, false);
   assert.equal(payload.valueCents, 50_000);
   assert.equal(payload.received, true);
   assert.equal(payload.positionId, 'pos-1');
+  assert.equal(payload.cashAccountId, CONTA);
+});
+
+test('retirada recebida exige conta de destino; pendente não leva conta', () => {
+  const recebida = {...emptyWithdrawForm(AGORA), amount: maskCurrencyInput('50000')};
+  assert.equal(validateWithdraw(recebida).cashAccountId, WITHDRAWAL_ACCOUNT_MESSAGE);
+  assert.deepEqual(validateWithdraw({...recebida, cashAccountId: CONTA}), {});
+  const pendente = {...recebida, received: false, cashAccountId: CONTA};
+  assert.deepEqual(validateWithdraw({...pendente, cashAccountId: ''}), {});
+  assert.equal('cashAccountId' in buildWithdrawSimpleInvestmentInput(pendente, 'pos-1', AGORA), false);
 });
 
 test('retirada com rendimento envia gainCents explicitamente', () => {
@@ -175,6 +203,7 @@ test('retirada só de rendimento é representável', () => {
     ...emptyWithdrawForm(AGORA),
     amount: maskCurrencyInput('9000'),
     gain: maskCurrencyInput('9000'),
+    cashAccountId: CONTA,
   };
   assert.deepEqual(validateWithdraw(form), {});
   const payload = buildWithdrawSimpleInvestmentInput(form, 'pos-1', AGORA);
@@ -268,81 +297,69 @@ test('retirada repetida na mesma intenção também converge para uma chave', as
 
 
 // ---------------------------------------------------------------------------
-// Categoria — fonte única, com compatibilidade do tamanho exato do problema
+// Categoria — fonte única; exceção do tamanho de um identificador inativado
 // ---------------------------------------------------------------------------
 
 /**
  * O cadastro visível é `category` + `transactionSubtype: "investimento"`. O
- * que a função recebe já é esse recorte; o que ela decide é o que fazer com
- * um identificador selecionado que não está nele.
+ * que a função recebe já é esse recorte (só itens ativos); o que ela decide é
+ * o que fazer com o identificador já selecionado que foi inativado depois do
+ * lançamento — a correção de um pendente cuja categoria saiu da lista.
  */
 const CADASTRO_ATUAL = [
-  {id: 'legacy_acoes', name: 'Ações'},
-  {id: 'legacy_cdb', name: 'CDB'},
+  {id: 'cat-acoes', name: 'Ações'},
+  {id: 'cat-cdb', name: 'CDB'},
   {id: 'custom-cripto', name: 'Cripto'},
 ];
 
 test('as opções da categoria são exatamente o cadastro atual', () => {
   assert.deepEqual(buildCategoryOptions(CADASTRO_ATUAL, ''), [
-    {value: 'legacy_acoes', label: 'Ações'},
-    {value: 'legacy_cdb', label: 'CDB'},
+    {value: 'cat-acoes', label: 'Ações'},
+    {value: 'cat-cdb', label: 'CDB'},
     {value: 'custom-cripto', label: 'Cripto'},
   ]);
   // Um item do cadastro já selecionado não é duplicado.
   assert.deepEqual(
-    buildCategoryOptions(CADASTRO_ATUAL, 'legacy_cdb').map((o) => o.value),
-    ['legacy_acoes', 'legacy_cdb', 'custom-cripto'],
+    buildCategoryOptions(CADASTRO_ATUAL, 'cat-cdb').map((o) => o.value),
+    ['cat-acoes', 'cat-cdb', 'custom-cripto'],
   );
   // Catálogo ainda carregando: nada é inventado.
   assert.deepEqual(buildCategoryOptions(undefined, ''), []);
 });
 
-test('pendente legado preserva a própria categoria, e só ela', () => {
-  const opcoes = buildCategoryOptions(
-    CADASTRO_ATUAL, 'investment_default_antigo', 'Renda fixa',
-  );
-  assert.deepEqual(opcoes[0], {
-    value: 'investment_default_antigo', label: 'Renda fixa',
-  });
-  // Uma opção de compatibilidade, nunca o catálogo antigo inteiro.
+test('categoria inativada depois do lançamento continua selecionada, e só ela', () => {
+  const opcoes = buildCategoryOptions(CADASTRO_ATUAL, 'cat-inativada', 'Renda fixa');
+  assert.deepEqual(opcoes[0], {value: 'cat-inativada', label: 'Renda fixa'});
+  // Uma opção a mais, nunca outro cadastro inteiro.
   assert.equal(opcoes.length, CADASTRO_ATUAL.length + 1);
   assert.deepEqual(
     opcoes.slice(1).map((o) => o.value),
-    ['legacy_acoes', 'legacy_cdb', 'custom-cripto'],
+    ['cat-acoes', 'cat-cdb', 'custom-cripto'],
   );
 });
 
-test('sem rótulo fotografado, a opção legada ainda é identificável', () => {
+test('sem rótulo fotografado, a categoria selecionada ainda é identificável', () => {
   const semNome = buildCategoryOptions(CADASTRO_ATUAL, 'id-orfao');
-  assert.equal(semNome[0].label, LEGACY_CATEGORY_FALLBACK_LABEL);
+  assert.equal(semNome[0].label, SELECTED_CATEGORY_FALLBACK_LABEL);
   const nomeVazio = buildCategoryOptions(CADASTRO_ATUAL, 'id-orfao', '   ');
-  assert.equal(nomeVazio[0].label, LEGACY_CATEGORY_FALLBACK_LABEL);
+  assert.equal(nomeVazio[0].label, SELECTED_CATEGORY_FALLBACK_LABEL);
 });
 
-test('escolher uma categoria do cadastro atual encerra a compatibilidade', () => {
-  // O usuário estava no item legado...
-  const antes = buildCategoryOptions(
-    CADASTRO_ATUAL, 'investment_default_antigo', 'Renda fixa',
-  );
+test('escolher uma categoria do cadastro atual faz a opção inativada sumir', () => {
+  const antes = buildCategoryOptions(CADASTRO_ATUAL, 'cat-inativada', 'Renda fixa');
   assert.equal(antes.length, 4);
-  // ...e escolheu uma categoria da lista. A opção antiga some, e não há
-  // caminho de volta ao cadastro que saiu da experiência comum.
-  const depois = buildCategoryOptions(
-    CADASTRO_ATUAL, 'legacy_acoes', 'Renda fixa',
-  );
+  const depois = buildCategoryOptions(CADASTRO_ATUAL, 'cat-acoes', 'Renda fixa');
   assert.equal(depois.length, 3);
-  assert.equal(
-    depois.some((o) => o.value === 'investment_default_antigo'), false,
-  );
+  assert.equal(depois.some((o) => o.value === 'cat-inativada'), false);
 });
 
-test('a compatibilidade não usa rótulo para reconhecer o item', () => {
+test('a categoria é reconhecida por identificador, nunca por rótulo', () => {
   /*
-   * Um item legado chamado "Ações" e uma categoria atual chamada "Ações" são
-   * documentos diferentes. A função não os funde: a identidade é o ID.
+   * Um item inativado chamado "Ações" e uma categoria ativa chamada "Ações"
+   * são documentos diferentes. A função não os funde: a identidade é o ID.
    */
-  const opcoes = buildCategoryOptions(CADASTRO_ATUAL, 'investment_default_x', 'Ações');
+  const opcoes = buildCategoryOptions(CADASTRO_ATUAL, 'cat-acoes-antiga', 'Ações');
   assert.equal(opcoes.length, 4);
-  assert.equal(opcoes[0].value, 'investment_default_x');
-  assert.equal(opcoes[1].value, 'legacy_acoes');
+  assert.equal(opcoes[0].value, 'cat-acoes-antiga');
+  assert.equal(opcoes[1].value, 'cat-acoes');
 });

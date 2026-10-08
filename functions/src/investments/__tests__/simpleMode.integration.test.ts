@@ -5,6 +5,7 @@ import {Timestamp} from "firebase-admin/firestore";
 
 import type {WorkspaceActor} from "../../shared/workspaceAuth";
 import {
+  defaultAccountOf,
   requireFirestoreEmulator,
   seedActiveAccount,
   seedMember as seedKernelMember,
@@ -17,28 +18,24 @@ import {
 import {
   executeCancelInvestmentMovement,
   executeChangeInvestmentGoal,
-  executeCreateInvestmentContribution,
   executeCreateSimpleInvestment,
-  executeRecordInvestmentValuation,
   executeReverseInvestmentMovement,
-  executeSaveInvestmentAsset,
   executeSettleInvestmentContribution,
   executeSettleSimpleWithdrawal,
   executeUnlinkInvestmentFromGoal,
   executeWithdrawSimpleInvestment,
 } from "../operationsV2";
-import {executeOnboardInvestmentWorkspace} from "../onboarding";
 import {
   deterministicDocumentId,
   FUTURE_DATE_TOLERANCE_MS,
 } from "../infrastructure";
+import {VALUE_MODE_MICROS_PER_CENT} from "../simpleMode";
 import {
-  investmentCatalogSeedDocumentId,
-  legacyCatalogSeedDocumentId,
+  catalogSeedDocumentId,
   normalizeCatalogName,
-  VALUE_MODE_MICROS_PER_CENT,
-} from "../simpleMode";
-import {writeGeneralCatalogDefaults} from "../../workspaces/provisioning";
+} from "../../settingsCatalog/model";
+import {writeCatalogDefaults} from "../../settingsCatalog/seeds";
+import {investmentCashEffect, readInvestmentCashEntry} from "../cashEffect";
 
 /**
  * Superfície simples do domínio patrimonial (Etapa 1).
@@ -80,24 +77,14 @@ const PORTFOLIO = "cat-class-aposentadoria";
  * identificador é o mesmo que o provisionamento do workspace grava, e é dele —
  * nunca do rótulo — que sai a classificação técnica.
  */
-const CATEGORY = legacyCatalogSeedDocumentId(
+const CATEGORY = catalogSeedDocumentId(
   "category", "investimento", "both", "Tesouro Direto",
 );
-const CATEGORY_STOCK = legacyCatalogSeedDocumentId(
+const CATEGORY_STOCK = catalogSeedDocumentId(
   "category", "investimento", "both", "Ações",
 );
 /** Categoria criada pelo usuário: sem autoridade técnica, cai em `other`. */
 const CATEGORY_CUSTOM = "cat-category-personalizada";
-/**
- * Categoria do grupo **histórico**.
- *
- * Continua aceita pelo backend: todo ativo e todo pendente aberto antes da
- * unificação aponta para um identificador deste grupo, e recusá-lo obrigaria
- * a recategorizar um lançamento só para corrigir a data dele.
- */
-const CATEGORY_LEGACY = investmentCatalogSeedDocumentId(
-  "investment_type", "both", "Renda fixa",
-);
 /*
  * Categorias do mesmo grupo `category` e de outros subtipos. Existem no
  * cadastro, o usuário as vê em Configurações, e nenhuma delas serve como
@@ -105,9 +92,10 @@ const CATEGORY_LEGACY = investmentCatalogSeedDocumentId(
  */
 const CATEGORY_RECEITA = "cat-category-receita";
 const CATEGORY_DESPESA = "cat-category-despesa";
-const CATEGORY_PARCELADO = "cat-category-parcelado";
 /** Categoria de investimento sem subtipo gravado: documento incoerente. */
 const CATEGORY_SEM_SUBTIPO = "cat-category-sem-subtipo";
+/** Item de um grupo que não existe mais no contrato (`investment_type`). */
+const CATEGORY_TYPE_GROUP = "cat-investment-type-removed";
 /** Categoria de investimento inativada depois de existir. */
 const CATEGORY_INATIVA = "cat-category-inativa";
 const INSTITUTION_B = "cat-institution-workspace-b";
@@ -187,10 +175,9 @@ const seed = async (): Promise<void> => {
     categoryItem(WS_A, CATEGORY_INATIVA, "Previdência", "investimento", "inactive"),
     categoryItem(WS_A, CATEGORY_RECEITA, "Salário", "receita"),
     categoryItem(WS_A, CATEGORY_DESPESA, "Alimentação", "despesa"),
-    categoryItem(WS_A, CATEGORY_PARCELADO, "Eletrônicos", "parcelado"),
     catalogItem(WS_A, CATEGORY_SEM_SUBTIPO, "category", "Sem subtipo"),
-    // Grupo histórico: preservado e ainda aceito.
-    catalogItem(WS_A, CATEGORY_LEGACY, "investment_type", "Renda fixa"),
+    // Grupo removido (D-15): um documento remanescente não é aceito.
+    catalogItem(WS_A, CATEGORY_TYPE_GROUP, "investment_type", "Renda fixa"),
     catalogItem(WS_B, INSTITUTION_B, "investment_institution", "XP"),
   ]);
 };
@@ -207,6 +194,8 @@ interface NovoInvestimento {
   contexto?: WorkspaceActor;
   /** Aporte pendente que este lançamento substitui (correção do §11). */
   substitui?: string;
+  /** Conta de origem do aporte liquidado; padrão: a conta padrão do workspace. */
+  conta?: string;
 }
 
 const novoInvestimento = (opcoes: NovoInvestimento) =>
@@ -223,7 +212,10 @@ const novoInvestimento = (opcoes: NovoInvestimento) =>
     occurredAt: opcoes.quando ?? "2026-08-10T12:00:00.000Z",
     ...(opcoes.metaId ? {goalId: opcoes.metaId} : {}),
     ...(opcoes.substitui ? {replacesMovementId: opcoes.substitui} : {}),
-    walletId: "wallet-a",
+    ...((opcoes.liquidado ?? true) ?
+      {cashAccountId: opcoes.conta ??
+        defaultAccountOf((opcoes.contexto ?? auth()).workspaceId)} :
+      {}),
   });
 
 const posicao = async (workspaceId: string, positionId: string) =>
@@ -240,6 +232,17 @@ const espelho = async (workspaceId: string, transactionId: string) =>
   (await db().doc(
     `workspaces/${workspaceId}/transactions/${transactionId}`,
   ).get()).data();
+
+/**
+ * Efeito de caixa do espelho pela marca `investmentEntry` (P4-D): saída,
+ * entrada ou nenhum — a mesma classificação da projeção do backend.
+ */
+const efeitoCaixa = (projecao: admin.firestore.DocumentData | undefined) => {
+  const entry = readInvestmentCashEntry(projecao?.investmentEntry);
+  if (!entry) return "fora-do-contrato";
+  const net = investmentCashEffect(entry).netCents;
+  return net < 0 ? "outflow" : net > 0 ? "inflow" : "none";
+};
 
 const meta = async () =>
   (await db().doc(`workspaces/${WS_A}/goals/${GOAL}`).get()).data();
@@ -258,7 +261,11 @@ const entregarGatilho = async (
 ) => db().runTransaction((tx) =>
   applyCashPeriodWriteOnce(
     tx, WS_A, cashPeriodEventKey(eventId), before, after,
-    {transactionId, action: !before ? "CREATE" : !after ? "DELETE" : "UPDATE"},
+    {
+      transactionId,
+      action: !before ? "CREATE" : !after ? "DELETE" : "UPDATE",
+      eventTime: Timestamp.now(),
+    },
   ));
 
 const erro = async (executar: () => Promise<unknown>): Promise<string> => {
@@ -427,8 +434,8 @@ test("aporte liquidado aumenta posição, reduz caixa e move a meta uma vez", as
   const projecao = await espelho(WS_A, String(criado.transactionId));
   assert.equal(projecao?.type, "investimento");
   assert.equal(projecao?.isPaid, true);
-  assert.equal(projecao?.investmentMetadata?.cashImpact, "outflow");
-  assert.equal(projecao?.investmentMetadata?.status, "settled");
+  assert.equal(efeitoCaixa(projecao), "outflow");
+  assert.equal(projecao?.investmentEntry?.status, "settled");
 
   // O gatilho de caixa aplica a saída uma vez e não toca a meta.
   await entregarGatilho(
@@ -481,8 +488,8 @@ test("aporte pendente não move caixa, posição nem meta", async () => {
 
   const projecao = await espelho(WS_A, String(criado.transactionId));
   assert.equal(projecao?.isPaid, false);
-  assert.equal(projecao?.investmentMetadata?.cashImpact, "none");
-  assert.equal(projecao?.investmentMetadata?.status, "pending");
+  assert.equal(efeitoCaixa(projecao), "none");
+  assert.equal(projecao?.investmentEntry?.status, "pending");
 
   await entregarGatilho(
     "evt-pending-1", String(criado.transactionId), undefined, projecao,
@@ -510,6 +517,7 @@ test("liquidar o aporte pendente aplica os efeitos exatamente uma vez", async ()
     correlationId: "corr-settle-000000002",
     movementId: String(criado.movementId),
     settledAt: "2026-08-15T12:00:00.000Z",
+    cashAccountId: defaultAccountOf(WS_A),
   });
 
   const resultado = await liquidar();
@@ -549,6 +557,7 @@ test("liquidar o aporte pendente aplica os efeitos exatamente uma vez", async ()
       correlationId: "corr-settle-000000003",
       movementId: String(criado.movementId),
       settledAt: "2026-08-16T12:00:00.000Z",
+      cashAccountId: defaultAccountOf(WS_A),
     })),
     /somente um aporte pendente pode ser liquidado/i,
   );
@@ -597,6 +606,7 @@ test("aporte pendente é cancelável e o documento é preservado", async () => {
       correlationId: "corr-cancel-000000003",
       movementId: String(criado.movementId),
       settledAt: "2026-08-12T12:00:00.000Z",
+      cashAccountId: defaultAccountOf(WS_A),
     })),
     /somente um aporte pendente pode ser liquidado/i,
   );
@@ -636,7 +646,7 @@ test("retirada pendente não produz efeito patrimonial nem de caixa", async () =
 
   const projecao = await espelho(WS_A, String(retirada.transactionId));
   assert.equal(projecao?.isPaid, false);
-  assert.equal(projecao?.investmentMetadata?.cashImpact, "none");
+  assert.equal(efeitoCaixa(projecao), "none");
   assert.equal(projecao?.type, "investimento", "retirada virou receita");
 });
 
@@ -655,7 +665,7 @@ test("retirada recebida reduz investimento, devolve caixa e reduz a meta", async
     valueCents: 50_000,
     received: true,
     occurredAt: "2026-08-20T12:00:00.000Z",
-    walletId: "wallet-a",
+    cashAccountId: defaultAccountOf(WS_A),
   });
 
   const retirada = await retirar();
@@ -679,7 +689,7 @@ test("retirada recebida reduz investimento, devolve caixa e reduz a meta", async
   // Entrada de caixa que não é receita.
   const projecao = await espelho(WS_A, String(retirada.transactionId));
   assert.equal(projecao?.type, "investimento");
-  assert.equal(projecao?.investmentMetadata?.cashImpact, "inflow");
+  assert.equal(efeitoCaixa(projecao), "inflow");
   await entregarGatilho(
     "evt-withdraw-1", String(retirada.transactionId), undefined, projecao,
   );
@@ -709,6 +719,7 @@ test("a retirada recusa valor acima do capital investido", async () => {
       valueCents: 100_001,
       received: true,
       occurredAt: "2026-08-20T12:00:00.000Z",
+      cashAccountId: defaultAccountOf(WS_A),
     })),
     /supera o capital investido/i,
   );
@@ -765,22 +776,9 @@ test(
     await seed();
 
     const criado = await novoInvestimento({
-      chave: "value-key-00000001", valorCents: 100_000,
+      chave: "value-key-00000001", valorCents: 150_000,
     });
     const positionId = String(criado.positionId);
-
-    // Aporte adicional pelo identificador do investimento, sem quantidade.
-    await executeCreateInvestmentContribution(auth(), {
-      workspaceId: WS_A,
-      idempotencyKey: "value-key-00000002",
-      correlationId: "corr-value-00000002",
-      positionId,
-      description: "Aporte mensal",
-      principalCents: 50_000,
-      feesCents: 0,
-      taxCents: 0,
-      occurredAt: "2026-08-12T12:00:00.000Z",
-    });
     let estado = await posicao(WS_A, positionId);
     assert.equal(estado?.principalCents, 150_000);
     assert.equal(
@@ -795,6 +793,7 @@ test(
       valueCents: 30_000,
       received: true,
       occurredAt: "2026-08-14T12:00:00.000Z",
+      cashAccountId: defaultAccountOf(WS_A),
     });
     estado = await posicao(WS_A, positionId);
     assert.equal(estado?.principalCents, 120_000);
@@ -811,6 +810,7 @@ test(
       valueCents: 120_000,
       received: true,
       occurredAt: "2026-08-16T12:00:00.000Z",
+      cashAccountId: defaultAccountOf(WS_A),
     });
     estado = await posicao(WS_A, positionId);
     assert.equal(estado?.principalCents, 0);
@@ -819,108 +819,33 @@ test(
   },
 );
 
-test("operação quantitativa incompatível é recusada no ativo simples", async () => {
+test("ativo fora do regime por valor está fora do contrato e é recusado", async () => {
   await seed();
   const criado = await novoInvestimento({chave: "guard-key-00000001"});
-
-  // Valoração a mercado reinterpretaria a cota sintética.
-  assert.match(
-    await erro(() => executeRecordInvestmentValuation(auth(), {
-      workspaceId: WS_A,
-      idempotencyKey: "guard-key-00000002",
-      correlationId: "corr-guard-00000002",
-      accountId: String(criado.accountId),
-      assetId: String(criado.assetId),
-      unitPriceMicros: 1_100_000,
-      source: "manual",
-      effectiveAt: "2026-08-12T12:00:00.000Z",
-      reason: "Marcação a mercado",
-    })),
-    /controlado por valor/i,
-  );
-
-  // Aporte com quantidade explícita quebraria a proporção.
-  assert.match(
-    await erro(() => executeCreateInvestmentContribution(auth(), {
-      workspaceId: WS_A,
-      idempotencyKey: "guard-key-00000003",
-      correlationId: "corr-guard-00000003",
-      positionId: String(criado.positionId),
-      description: "Aporte com quantidade",
-      principalCents: 10_000,
-      quantityMicros: 7,
-      feesCents: 0,
-      taxCents: 0,
-      occurredAt: "2026-08-12T12:00:00.000Z",
-    })),
-    /não aceita quantidade/i,
-  );
-
-  assert.equal(
-    (await posicao(WS_A, String(criado.positionId)))?.quantityMicros,
-    100_000 * VALUE_MODE_MICROS_PER_CENT,
-  );
-});
-
-test("o investimento quantitativo existente não é afetado", async () => {
-  await seed();
-  const now = at("2026-08-01T00:00:00.000Z");
-  await db().doc(`workspaces/${WS_A}/investment_accounts/legacy-account`).set({
-    id: "legacy-account", workspaceId: WS_A, profileType: "PF",
-    name: "Corretora antiga", institutionName: "Corretora antiga",
-    currency: "BRL", status: "active",
-    createdBy: "seed", updatedBy: "seed", createdAt: now, updatedAt: now,
-  });
-  await db().doc(`workspaces/${WS_A}/investment_assets/legacy-asset`).set({
-    id: "legacy-asset", workspaceId: WS_A, profileType: "PF",
-    name: "Ativo com cotas", assetType: "fund",
-    allocationPurpose: "unassigned",
-    currency: "BRL", status: "active",
-    createdBy: "seed", updatedBy: "seed", createdAt: now, updatedAt: now,
-  });
-
-  // Sem `trackingMode`, o ativo continua quantitativo: exige quantidade.
-  const aporte = await executeCreateInvestmentContribution(auth(), {
-    workspaceId: WS_A,
-    idempotencyKey: "legacy-key-0000001",
-    correlationId: "corr-legacy-0000001",
-    accountId: "legacy-account", assetId: "legacy-asset",
-    description: "Aporte com cotas",
-    principalCents: 100_000, quantityMicros: 250_000,
-    feesCents: 0, taxCents: 0,
-    occurredAt: "2026-08-10T12:00:00.000Z",
-  });
-  const estado = await posicao(WS_A, String(aporte.positionId));
-  assert.equal(estado?.quantityMicros, 250_000);
-
-  // Valoração continua permitida e altera só o valor de mercado.
-  await executeRecordInvestmentValuation(auth(), {
-    workspaceId: WS_A,
-    idempotencyKey: "legacy-key-0000002",
-    correlationId: "corr-legacy-0000002",
-    accountId: "legacy-account", assetId: "legacy-asset",
-    unitPriceMicros: 500_000_000,
-    source: "manual",
-    effectiveAt: "2026-08-12T12:00:00.000Z",
-    reason: "Marcação a mercado",
-  });
-  // 0,25 unidade a R$ 500,00 = R$ 125,00. O custo não se move.
-  const valorado = await posicao(WS_A, String(aporte.positionId));
-  assert.equal(valorado?.principalCents, 100_000);
-  assert.equal(valorado?.currentValueCents, 12_500);
-
-  // E a retirada simples recusa esse ativo em vez de inventar quantidade.
+  /*
+   * Nenhum fluxo grava ativo sem `trackingMode: "value"` (D-15, P4-D). Um
+   * documento assim, forjado pelo Admin SDK, não é movimentado: a retirada
+   * recusa em vez de reinterpretar a quantidade.
+   */
+  await db().doc(
+    `workspaces/${WS_A}/investment_assets/${criado.assetId}`,
+  ).update({trackingMode: admin.firestore.FieldValue.delete()});
   assert.match(
     await erro(() => executeWithdrawSimpleInvestment(auth(), {
       workspaceId: WS_A,
-      idempotencyKey: "legacy-key-0000003",
-      correlationId: "corr-legacy-0000003",
-      positionId: String(aporte.positionId),
+      idempotencyKey: "guard-key-00000002",
+      correlationId: "corr-guard-00000002",
+      positionId: String(criado.positionId),
       valueCents: 10_000,
       received: true,
       occurredAt: "2026-08-14T12:00:00.000Z",
+      cashAccountId: defaultAccountOf(WS_A),
     })),
-    /controlado por quantidade/i,
+    /fora do contrato/i,
+  );
+  assert.equal(
+    (await posicao(WS_A, String(criado.positionId)))?.quantityMicros,
+    100_000 * VALUE_MODE_MICROS_PER_CENT,
   );
 });
 
@@ -946,6 +871,7 @@ test("isolamento entre workspaces e matriz de papéis preservada", async () => {
     valueCents: 10_000,
     received: true,
     occurredAt: "2026-08-20T12:00:00.000Z",
+    cashAccountId: defaultAccountOf(WS_A),
   });
   assert.equal(
     (await posicao(WS_A, String(criado.positionId)))?.principalCents, 90_000,
@@ -974,6 +900,7 @@ test("isolamento entre workspaces e matriz de papéis preservada", async () => {
       valueCents: 10_000,
       received: true,
       occurredAt: "2026-08-20T12:00:00.000Z",
+      cashAccountId: defaultAccountOf(WS_B),
     })),
     /investimento/i,
   );
@@ -981,118 +908,6 @@ test("isolamento entre workspaces e matriz de papéis preservada", async () => {
     (await posicao(WS_A, String(criado.positionId)))?.principalCents, 90_000,
   );
 });
-
-test(
-  "aporte pendente em investimento existente só entra na liquidação",
-  async () => {
-    await seed();
-
-    const criado = await novoInvestimento({
-      chave: "extra-key-000000001", valorCents: 100_000, metaId: GOAL,
-    });
-    const positionId = String(criado.positionId);
-
-    const pendente = await executeCreateInvestmentContribution(auth(), {
-      workspaceId: WS_A,
-      idempotencyKey: "extra-key-000000002",
-      correlationId: "corr-extra-000000002",
-      positionId,
-      description: "Aporte agendado",
-      principalCents: 40_000,
-      feesCents: 0,
-      taxCents: 0,
-      settled: false,
-      occurredAt: "2026-08-25T12:00:00.000Z",
-    });
-    assert.equal(pendente.status, "pending");
-
-    // Nada mudou: nem posição, nem meta, nem quantidade.
-    let estado = await posicao(WS_A, positionId);
-    assert.equal(estado?.principalCents, 100_000);
-    assert.equal(estado?.quantityMicros, 100_000 * VALUE_MODE_MICROS_PER_CENT);
-    assert.equal((await meta())?.investmentNetContributionCents, 100_000);
-
-    await executeSettleInvestmentContribution(auth(), {
-      workspaceId: WS_A,
-      idempotencyKey: "extra-key-000000003",
-      correlationId: "corr-extra-000000003",
-      movementId: String(pendente.movementId),
-      settledAt: "2026-08-28T12:00:00.000Z",
-    });
-
-    estado = await posicao(WS_A, positionId);
-    assert.equal(estado?.principalCents, 140_000);
-    assert.equal(estado?.quantityMicros, 140_000 * VALUE_MODE_MICROS_PER_CENT);
-    assert.equal((await meta())?.investmentNetContributionCents, 140_000);
-
-    // O espelho de caixa migrou de pendente para liquidado no mesmo documento.
-    const projecao = await espelho(WS_A, String(pendente.transactionId));
-    assert.equal(projecao?.isPaid, true);
-    assert.equal(projecao?.investmentMetadata?.cashImpact, "outflow");
-    assert.equal(projecao?.date, "2026-08-28");
-  },
-);
-
-test(
-  "a liquidação reavalia a meta da posição no instante em que aplica",
-  async () => {
-    await seed();
-    await db().doc(`workspaces/${WS_A}/goals/outra-meta`).set({
-      id: "outra-meta", workspaceId: WS_A, name: "Outra meta",
-      progressBasis: "net_contributions",
-      investmentNetContributionCents: 0,
-      investmentCurrentValueCents: 0,
-      investmentProgressCents: 0,
-      investmentProjectionVersion: 0,
-    });
-
-    // Investimento registrado como pendente, com a intenção de vincular a GOAL.
-    const criado = await novoInvestimento({
-      chave: "goalrace-key-0000001", valorCents: 50_000, metaId: GOAL,
-      liquidado: false,
-    });
-
-    /*
-     * Antes da liquidação, a posição nasce por outro aporte, ligada a outra
-     * meta. Liquidar aplicaria o progresso na meta errada.
-     *
-     * O alvo aqui é o par conta/ativo, e não `positionId`: um investimento
-     * ainda pendente **não tem posição**, e é justamente essa a corrida que o
-     * teste reproduz.
-     */
-    await executeCreateInvestmentContribution(auth(), {
-      workspaceId: WS_A,
-      idempotencyKey: "goalrace-key-0000002",
-      correlationId: "corr-goalrace-0000002",
-      accountId: String(criado.accountId),
-      assetId: String(criado.assetId),
-      goalId: "outra-meta",
-      description: "Aporte que cria a posição",
-      principalCents: 10_000,
-      feesCents: 0,
-      taxCents: 0,
-      occurredAt: "2026-08-11T12:00:00.000Z",
-    });
-
-    assert.match(
-      await erro(() => executeSettleInvestmentContribution(auth(), {
-        workspaceId: WS_A,
-        idempotencyKey: "goalrace-key-0000003",
-        correlationId: "corr-goalrace-0000003",
-        movementId: String(criado.movementId),
-        settledAt: "2026-08-15T12:00:00.000Z",
-      })),
-      /já está vinculada a outra meta/i,
-    );
-
-    // Nenhuma das duas metas foi tocada pela tentativa recusada.
-    assert.equal((await meta())?.investmentNetContributionCents, 0);
-    const outra = (await db().doc(
-      `workspaces/${WS_A}/goals/outra-meta`,
-    ).get()).data();
-    assert.equal(outra?.investmentNetContributionCents, 10_000);
-  },
-);
 
 // ---------------------------------------------------------------------------
 // Hardening — retirada com rendimento
@@ -1120,7 +935,9 @@ const retirar = (
       {gainCents: extras.rendimentoCents}),
     received: extras.recebido ?? true,
     occurredAt: extras.quando ?? "2026-08-20T12:00:00.000Z",
-    walletId: "wallet-a",
+    ...((extras.recebido ?? true) ?
+      {cashAccountId: defaultAccountOf((extras.contexto ?? auth()).workspaceId)} :
+      {}),
   });
 
 test("retirada de capital sem rendimento não infla receita operacional", async () => {
@@ -1144,7 +961,7 @@ test("retirada de capital sem rendimento não infla receita operacional", async 
 
   const projecao = await espelho(WS_A, String(retirada.transactionId));
   assert.equal(projecao?.type, "investimento");
-  assert.equal(projecao?.investmentMetadata?.cashImpact, "inflow");
+  assert.equal(efeitoCaixa(projecao), "inflow");
   await entregarGatilho(
     "evt-gain0", String(retirada.transactionId), undefined, projecao,
   );
@@ -1317,7 +1134,7 @@ test("retirada pendente com rendimento não move nada até a liquidação", asyn
   // O espelho anuncia o total pedido, sem impacto de caixa.
   const pendenteEspelho = await espelho(WS_A, String(pedido.transactionId));
   assert.equal(pendenteEspelho?.isPaid, false);
-  assert.equal(pendenteEspelho?.investmentMetadata?.cashImpact, "none");
+  assert.equal(efeitoCaixa(pendenteEspelho), "none");
   assert.equal(pendenteEspelho?.valueCents, 1_100_000);
   await entregarGatilho(
     "evt-gain4-pend", String(pedido.transactionId), undefined, pendenteEspelho,
@@ -1337,6 +1154,7 @@ test("retirada pendente com rendimento não move nada até a liquidação", asyn
     correlationId: "corr-gain4-000000003",
     movementId: String(pedido.movementId),
     settledAt: "2026-08-25T12:00:00.000Z",
+    cashAccountId: defaultAccountOf(WS_A),
   });
 
   const liquidada = await liquidar();
@@ -1383,6 +1201,7 @@ test("retirada pendente com rendimento não move nada até a liquidação", asyn
       correlationId: "corr-gain4-000000004",
       movementId: String(pedido.movementId),
       settledAt: "2026-08-26T12:00:00.000Z",
+      cashAccountId: defaultAccountOf(WS_A),
     })),
     /somente uma retirada pendente pode ser liquidada/i,
   );
@@ -1412,6 +1231,7 @@ test("a liquidação da retirada revalida o capital contra a posição", async (
       correlationId: "corr-gain5-000000004",
       movementId: String(pedido.movementId),
       settledAt: "2026-08-25T12:00:00.000Z",
+      cashAccountId: defaultAccountOf(WS_A),
     })),
     /supera o capital investido/i,
   );
@@ -1492,6 +1312,7 @@ test("rótulos iguais em workspaces distintos não compartilham autoridade", asy
     description: "Ações do workspace B",
     valueCents: 100_000,
     settled: true,
+    cashAccountId: defaultAccountOf(WS_B),
     occurredAt: "2026-08-10T12:00:00.000Z",
   });
   const ativoB = (await db().doc(
@@ -1512,6 +1333,7 @@ test("rótulos iguais em workspaces distintos não compartilham autoridade", asy
       description: "Tentativa cruzada",
       valueCents: 100_000,
       settled: true,
+      cashAccountId: defaultAccountOf(WS_B),
       occurredAt: "2026-08-10T12:00:00.000Z",
     })),
     /não encontrada/i,
@@ -1521,113 +1343,6 @@ test("rótulos iguais em workspaces distintos não compartilham autoridade", asy
 // ---------------------------------------------------------------------------
 // Hardening — conversão de regime
 // ---------------------------------------------------------------------------
-
-test("o regime não pode ser convertido enquanto existir posição", async () => {
-  await seed();
-  const criado = await novoInvestimento({
-    chave: "mode-key-0000000001", valorCents: 100_000,
-  });
-
-  assert.match(
-    await erro(() => executeSaveInvestmentAsset(auth(), {
-      workspaceId: WS_A,
-      idempotencyKey: "mode-key-0000000002",
-      correlationId: "corr-mode-0000000002",
-      assetId: String(criado.assetId),
-      name: "Tesouro Selic 2029",
-      assetType: "fixed_income",
-      trackingMode: "quantity",
-    })),
-    /regime de acompanhamento não pode mudar/i,
-  );
-  assert.equal(
-    (await db().doc(
-      `workspaces/${WS_A}/investment_assets/${criado.assetId}`,
-    ).get()).data()?.trackingMode,
-    "value",
-  );
-
-  // Sem posição, é só cadastro: a conversão é permitida.
-  const semPosicao = await executeSaveInvestmentAsset(auth(), {
-    workspaceId: WS_A,
-    idempotencyKey: "mode-key-0000000003",
-    correlationId: "corr-mode-0000000003",
-    name: "Ativo sem posição",
-    assetType: "fund",
-    trackingMode: "value",
-  });
-  await executeSaveInvestmentAsset(auth(), {
-    workspaceId: WS_A,
-    idempotencyKey: "mode-key-0000000004",
-    correlationId: "corr-mode-0000000004",
-    assetId: String(semPosicao.entityId),
-    name: "Ativo sem posição",
-    assetType: "fund",
-    trackingMode: "quantity",
-  });
-  assert.equal(
-    (await db().doc(
-      `workspaces/${WS_A}/investment_assets/${semPosicao.entityId}`,
-    ).get()).data()?.trackingMode,
-    "quantity",
-  );
-});
-
-test(
-  "a categoria semeada pelo onboarding resolve a classificação esperada",
-  async () => {
-    await seed();
-
-    /*
-     * Prova de ponta a ponta de que as duas derivações do identificador
-     * concordam: o onboarding grava o item, e a resolução técnica encontra a
-     * classificação a partir do ID daquele documento. Se a semente e o mapa
-     * divergirem, `assetType` cai em `other` e este teste falha — que é
-     * exatamente o sinal que se quer.
-     */
-    await executeOnboardInvestmentWorkspace(auth(), {
-      workspaceId: WS_A,
-      idempotencyKey: "onboarding-key-000001",
-      correlationId: "corr-onboarding-000001",
-    });
-
-    const semeadas = await db()
-      .collection(`workspaces/${WS_A}/settings_catalog`)
-      .where("group", "==", "investment_type")
-      .get();
-    const porNome = new Map(
-      semeadas.docs.map((entrada) => [String(entrada.data().name), entrada.id]),
-    );
-
-    const esperado: Array<[string, string]> = [
-      ["Ações", "stock"],
-      ["Renda fixa", "fixed_income"],
-      ["Fundos", "fund"],
-      ["ETF", "etf"],
-      ["Criptoativos", "crypto"],
-      ["Outros", "other"],
-    ];
-
-    for (const [nome, assetType] of esperado) {
-      const itemId = porNome.get(nome);
-      assert.ok(itemId, `o onboarding não semeou a categoria "${nome}"`);
-      const criado = await novoInvestimento({
-        chave: `seedmap-key-${nome.length}${assetType.length}0000001`,
-        categoriaId: itemId,
-        descricao: `Investimento ${nome}`,
-      });
-      const ativo = (await db().doc(
-        `workspaces/${WS_A}/investment_assets/${criado.assetId}`,
-      ).get()).data();
-      assert.equal(
-        ativo?.assetType, assetType,
-        `a categoria semeada "${nome}" resolveu ${ativo?.assetType}`,
-      );
-      assert.equal(ativo?.typeId, itemId);
-    }
-  },
-);
-
 
 // ---------------------------------------------------------------------------
 // Fonte única da categoria — `category` com subtipo `investimento`
@@ -1648,7 +1363,6 @@ test(
     const recusadas: Array<[string, string]> = [
       ["receita", CATEGORY_RECEITA],
       ["despesa", CATEGORY_DESPESA],
-      ["parcelado", CATEGORY_PARCELADO],
       ["sem subtipo", CATEGORY_SEM_SUBTIPO],
     ];
 
@@ -1684,30 +1398,22 @@ test("categoria de investimento inativa não serve a lançamento novo", async ()
 });
 
 /**
- * Compatibilidade do grupo histórico.
- *
- * Um pendente aberto antes da unificação carrega um `typeId` de
- * `investment_type`. Corrigir a data desse pendente reenvia o mesmo
- * identificador, e recusá-lo obrigaria a recategorizar um lançamento por causa
- * de uma mudança de cadastro que o usuário não pediu.
+ * `investment_type` saiu do contrato (D-15, P4-D): a única categoria de
+ * investimento é `category` com subtipo `investimento`. Um documento
+ * remanescente daquele grupo não serve a lançamento nenhum.
  */
-test("categoria do grupo histórico continua aceita e classificada", async () => {
+test("item do grupo removido investment_type é recusado como categoria", async () => {
   await seed();
-  const criado = await novoInvestimento({
-    chave: "legacy-key-00000001", categoriaId: CATEGORY_LEGACY,
-    descricao: "Pendente antigo corrigido",
-  });
-  const ativo = (await db().doc(
-    `workspaces/${WS_A}/investment_assets/${criado.assetId}`,
-  ).get()).data();
-  assert.equal(ativo?.typeId, CATEGORY_LEGACY);
-  assert.equal(ativo?.typeName, "Renda fixa");
-  assert.equal(
-    ativo?.assetType, "fixed_income",
-    "o identificador histórico perdeu a classificação técnica",
+  assert.match(
+    await erro(() => novoInvestimento({
+      chave: "typegroup-key-0000001", categoriaId: CATEGORY_TYPE_GROUP,
+    })),
+    /não é uma categoria de investimento/i,
   );
-  // E o efeito financeiro é o mesmo de qualquer aporte liquidado.
-  assert.equal(criado.cashDeltaCents, -100_000);
+  assert.equal(
+    (await db().collection(`workspaces/${WS_A}/investment_movements`).get()).size,
+    0,
+  );
 });
 
 /**
@@ -1730,7 +1436,7 @@ test(
     const contextoB = auth(WS_B, OWNER_B);
     // O mesmo escritor que `bootstrapAccount`/`createWorkspace` usam.
     await db().runTransaction(async (transaction) => {
-      writeGeneralCatalogDefaults(transaction, {
+      writeCatalogDefaults(transaction, {
         workspaceId: WS_B, type: "PF", uid: OWNER_B,
       });
     });
@@ -1745,7 +1451,7 @@ test(
 
     let indice = 1;
     for (const [nome, assetType] of esperado) {
-      const itemId = legacyCatalogSeedDocumentId(
+      const itemId = catalogSeedDocumentId(
         "category", "investimento", "both", nome,
       );
       const item = await db()
@@ -1768,6 +1474,7 @@ test(
         description: `Investimento ${nome}`,
         valueCents: 100_000,
         settled: true,
+        cashAccountId: defaultAccountOf(WS_B),
         occurredAt: "2026-08-10T12:00:00.000Z",
       });
       const ativo = (await db().doc(
@@ -1862,6 +1569,7 @@ test(
       correlationId: "corr-gunlink-00000004",
       movementId: String(pedido.movementId),
       settledAt: "2026-08-25T12:00:00.000Z",
+      cashAccountId: defaultAccountOf(WS_A),
     });
 
     const liquidado = await liquidar();
@@ -1943,6 +1651,7 @@ test(
       correlationId: "corr-gmove-000000004",
       movementId: String(pedido.movementId),
       settledAt: "2026-08-25T12:00:00.000Z",
+      cashAccountId: defaultAccountOf(WS_A),
     });
     assert.equal(liquidado.status, "settled");
 
@@ -1960,8 +1669,9 @@ test(
       "a meta de origem foi tocada por uma retirada que não é mais dela",
     );
 
+    // O espelho de caixa não carrega meta: o vínculo mora só no movimento.
     assert.equal(
-      (await espelho(WS_A, String(pedido.transactionId)))?.goalId, GOAL_B,
+      (await espelho(WS_A, String(pedido.transactionId)))?.goalId, undefined,
     );
 
     const trilha = await evento("corr-gmove-000000004");
@@ -2020,29 +1730,30 @@ test("investimento novo com data futura é recusado", async () => {
   assert.equal(espelhos.size, 0);
 });
 
-test("aporte com data futura é recusado", async () => {
+test("confirmação de aporte com data futura é recusada", async () => {
   await seed();
-  const criado = await novoInvestimento({chave: "futuro-key-00000002"});
+  const criado = await novoInvestimento({
+    chave: "futuro-key-00000002", liquidado: false,
+  });
 
   const falha = await erro(() =>
-    executeCreateInvestmentContribution(auth(), {
+    executeSettleInvestmentContribution(auth(), {
       workspaceId: WS_A,
       idempotencyKey: "futuro-key-00000003",
       correlationId: "corr-futuro-00000003",
-      positionId: String(criado.positionId),
-      description: "Aporte agendado",
-      principalCents: 50_000,
-      feesCents: 0,
-      taxCents: 0,
-      occurredAt: noFuturo(),
+      movementId: String(criado.movementId),
+      settledAt: noFuturo(),
+      cashAccountId: defaultAccountOf(WS_A),
     }),
   );
-  assert.match(falha, /occurredAt/);
+  assert.match(falha, /settledAt/);
   assert.match(falha, /futuro/i);
 
-  // O capital aplicado continua sendo só o do investimento inicial.
-  const posicaoApos = await posicao(WS_A, String(criado.positionId));
-  assert.equal(posicaoApos?.principalCents, 100_000);
+  // Nada foi aplicado: sem posição e o aporte continua pendente.
+  assert.equal(await posicao(WS_A, String(criado.positionId)), undefined);
+  assert.equal(
+    (await movimento(WS_A, String(criado.movementId)))?.status, "pending",
+  );
 });
 
 test("retirada pendente com data futura é recusada", async () => {
@@ -2136,6 +1847,7 @@ test(
           correlationId: "corr-futuro-00000011",
           movementId: String(pedido.movementId),
           settledAt: "2026-08-19T12:00:00.000Z",
+          cashAccountId: defaultAccountOf(WS_A),
         }),
       ),
       /anterior/i,
@@ -2150,6 +1862,7 @@ test(
           correlationId: "corr-futuro-00000012",
           movementId: String(pedido.movementId),
           settledAt: noFuturo(),
+          cashAccountId: defaultAccountOf(WS_A),
         }),
       ),
       /futuro/i,
@@ -2162,6 +1875,7 @@ test(
       correlationId: "corr-futuro-00000013",
       movementId: String(pedido.movementId),
       settledAt: "2026-08-22T12:00:00.000Z",
+      cashAccountId: defaultAccountOf(WS_A),
     });
     assert.equal(liquidado.status, "settled");
     assert.equal(
@@ -2178,27 +1892,28 @@ test(
 /*
  * O ID do espelho é determinístico e derivado de `(operação, uid,
  * idempotencyKey)` — nenhum segredo de servidor entra na conta, e a chave de
- * idempotência é escolhida pelo próprio cliente. As Rules deixam um membro
- * criar `transactions/{docId}` com o ID que quiser e autorizam um conjunto de
- * chaves de transação comum; a baixa lógica (`voidedAt`) é um segundo passo
- * permitido enquanto o documento ainda não é do domínio patrimonial.
+ * idempotência é escolhida pelo próprio cliente. Desde a P4-D as Rules negam
+ * qualquer escrita do cliente em `transactions` (provado em
+ * `tests/firestore/transactions-p4d.rules.integration.test.mjs`); este teste guarda a
+ * segunda camada: um documento qualquer que já ocupe o ID previsto é
+ * substituído por inteiro, sem `merge`.
  *
- * Os campos abaixo são exatamente os que essa superfície permite e que o
- * payload do espelho **não** escreve. Com `merge` todos sobreviviam à
- * gravação do backend, e dois deles causavam dano financeiro real:
+ * Os campos abaixo são os que o payload do espelho **não** escreve. Com
+ * `merge` todos sobreviveriam à gravação do backend, e dois deles causariam
+ * dano financeiro real:
  *
  * - `voidedAt` — `cashPeriodDeltaFor` zera o efeito de caixa antes de olhar o
- *   `type`, e a reconstrução de períodos repete o mesmo zero: o aporte sumia
+ *   `type`, e a reconstrução de períodos repete o mesmo zero: o aporte sumiria
  *   do caixa sem erro e sem caminho de reconciliação;
- * - `cardId` / `source` / `creditCardCompatibility` — as projeções de
- *   compatibilidade de cartão classificam por esses campos sem checar `type`.
+ * - `cardId` / `creditCardCompatibility` — as projeções de compatibilidade de
+ *   cartão classificam por esses campos sem checar `type`. `source` é escrito
+ *   pelo backend (`investment`) e é verificado à parte.
  *
- * O estado inicial é montado pelo SDK administrativo por conveniência; cada
- * chave individualmente é gravável pelo cliente na sequência create + baixa.
+ * O estado inicial é montado pelo SDK administrativo.
  */
 const CAMPOS_RESIDUAIS = [
   "cardId", "installments", "currentInstallment", "creditCardInvoiceId",
-  "creditCardInvoicePaymentId", "source", "creditCardCompatibility",
+  "creditCardInvoicePaymentId", "creditCardCompatibility",
   "supplier", "costCenter", "paymentMethod", "expenseType", "loanId",
   "displaySnapshots", "voidedAt", "voidedBy", "voidReason",
 ] as const;
@@ -2242,6 +1957,8 @@ const assertEspelhoAutoritativo = (
 ): void => {
   assert.equal(projecao?.type, "investimento");
   assert.equal(projecao?.category, "Investimentos");
+  // `source` é do backend: o valor forjado pelo cliente não sobrevive.
+  assert.equal(projecao?.source, "investment");
   for (const residual of CAMPOS_RESIDUAIS) {
     assert.equal(
       projecao?.[residual], undefined, `${residual} sobreviveu ao espelho`,
@@ -2275,9 +1992,9 @@ test(
     assert.equal(projecao?.valueCents, 150_000);
     assert.equal(projecao?.value, 1_500);
     assert.equal(projecao?.isPaid, true);
-    assert.equal(projecao?.goalId, GOAL);
-    assert.equal(projecao?.investmentMetadata?.cashImpact, "outflow");
-    assert.equal(projecao?.investmentMetadata?.status, "settled");
+    assert.equal(projecao?.goalId, undefined, "o espelho não carrega meta");
+    assert.equal(efeitoCaixa(projecao), "outflow");
+    assert.equal(projecao?.investmentEntry?.status, "settled");
 
     // O caixa recebe a saída de investimento uma vez, e nada de despesa.
     await entregarGatilho("evt-preempt-1", espelhoId, undefined, ocupado);
@@ -2323,8 +2040,8 @@ test(
     const pendente = await espelho(WS_A, espelhoId);
     assertEspelhoAutoritativo(pendente);
     assert.equal(pendente?.isPaid, false);
-    assert.equal(pendente?.investmentMetadata?.status, "pending");
-    assert.equal(pendente?.investmentMetadata?.cashImpact, "none");
+    assert.equal(pendente?.investmentEntry?.status, "pending");
+    assert.equal(efeitoCaixa(pendente), "none");
 
     // Liquidação: mesmo documento, sem duplicata, e ainda sem resíduo.
     const liquidado = await executeSettleSimpleWithdrawal(auth(), {
@@ -2333,6 +2050,7 @@ test(
       correlationId: "corr-preempt-00000004",
       movementId: String(pedido.movementId),
       settledAt: "2026-08-22T12:00:00.000Z",
+      cashAccountId: defaultAccountOf(WS_A),
     });
     assert.equal(liquidado.status, "settled");
     assert.equal(String(liquidado.transactionId), espelhoId);
@@ -2345,8 +2063,8 @@ test(
     const final = await espelho(WS_A, espelhoId);
     assertEspelhoAutoritativo(final);
     assert.equal(final?.isPaid, true);
-    assert.equal(final?.investmentMetadata?.status, "settled");
-    assert.equal(final?.investmentMetadata?.cashImpact, "inflow");
+    assert.equal(final?.investmentEntry?.status, "settled");
+    assert.equal(efeitoCaixa(final), "inflow");
 
     // O caixa aplica a entrada uma vez só, na liquidação.
     await entregarGatilho("evt-preempt-3", espelhoId, pendente, final);
@@ -2445,13 +2163,12 @@ test("corrigir um pendente cancela e cria no mesmo commit", async () => {
   // O espelho do cancelado é reescrito como cancelado, sem efeito de caixa.
   const espelhoAntigo = await espelho(WS_A, String(original.transactionId));
   assert.equal(espelhoAntigo?.isPaid, false);
-  assert.equal(espelhoAntigo?.investmentMetadata?.status, "cancelled");
-  assert.equal(espelhoAntigo?.investmentMetadata?.cashImpact, "none");
-  assert.equal(espelhoAntigo?.investmentMetadata?.investmentImpact, "none");
+  assert.equal(espelhoAntigo?.investmentEntry?.status, "cancelled");
+  assert.equal(efeitoCaixa(espelhoAntigo), "none");
   // E o do substituto nasce pendente, sem duplicar documento.
   const espelhoNovo = await espelho(WS_A, String(corrigido.transactionId));
   assert.equal(espelhoNovo?.isPaid, false);
-  assert.equal(espelhoNovo?.investmentMetadata?.status, "pending");
+  assert.equal(espelhoNovo?.investmentEntry?.status, "pending");
   assert.equal(espelhoNovo?.valueCents, 250_000);
   const espelhos = await db()
     .collection(`workspaces/${WS_A}/transactions`).get();
@@ -2560,6 +2277,7 @@ test("edição recusada devolve o pendente original intacto", async () => {
     correlationId: "corr-replace-00000009",
     movementId: String(original.movementId),
     settledAt: "2026-08-15T12:00:00.000Z",
+    cashAccountId: defaultAccountOf(WS_A),
   });
   assert.equal(liquidado.status, "settled");
   assert.equal((await meta())?.investmentNetContributionCents, 70_000);
@@ -2647,40 +2365,6 @@ test("a exceção de categoria inativa não alcança outra categoria", async () 
   const novo = await movimento(WS_A, String(recategorizado.movementId));
   assert.equal(novo?.typeId, CATEGORY_STOCK);
   assert.equal(novo?.typeName, "Ações");
-});
-
-test("pendente do grupo histórico corrige preservando typeId", async () => {
-  await seed();
-  const original = await novoInvestimento({
-    chave: "replace-key-00000017", descricao: "Pendente antigo",
-    valorCents: 30_000, liquidado: false, categoriaId: CATEGORY_LEGACY,
-  });
-  assert.equal(
-    (await movimento(WS_A, String(original.movementId)))?.typeId,
-    CATEGORY_LEGACY,
-  );
-  // O item histórico também pode ter sido inativado desde então.
-  await catalogItem(
-    WS_A, CATEGORY_LEGACY, "investment_type", "Renda fixa", "inactive",
-  );
-
-  const corrigido = await novoInvestimento({
-    chave: "replace-key-00000018", descricao: "Pendente antigo corrigido",
-    valorCents: 30_000, liquidado: false, categoriaId: CATEGORY_LEGACY,
-    substitui: String(original.movementId),
-  });
-  assert.equal(corrigido.status, "pending");
-  const novo = await movimento(WS_A, String(corrigido.movementId));
-  assert.equal(novo?.typeId, CATEGORY_LEGACY);
-  assert.equal(novo?.typeName, "Renda fixa");
-  // A classificação técnica continua vindo do identificador.
-  const ativo = (await db().doc(
-    `workspaces/${WS_A}/investment_assets/${corrigido.assetId}`,
-  ).get()).data();
-  assert.equal(ativo?.assetType, "fixed_income");
-  assert.equal(
-    (await movimento(WS_A, String(original.movementId)))?.status, "cancelled",
-  );
 });
 
 test("retry da correção devolve o mesmo resultado e não duplica", async () => {

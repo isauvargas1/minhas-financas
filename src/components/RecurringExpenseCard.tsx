@@ -1,10 +1,11 @@
-
 import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { RecurringExpense } from '../modules/recurring-expenses/types.ts';
-import { DynamicIcon, CalendarIcon, CreditCardIcon, UsersIcon, BoltIcon, WarningIcon } from './Icons.tsx';
+import type { RecurringExpense } from '../modules/recurring/types.ts';
+import { civilDaysBetween } from '../modules/recurring/schedule.ts';
+import { FREQUENCY_SUFFIX, RECURRING_STATUS_BADGE, RECURRING_STATUS_LABELS, RECURRING_TYPE_LABELS, formatDayShort } from '../modules/recurring/presentation.ts';
+import { formatCents, saoPauloToday } from '../modules/loans/money.ts';
+import { DynamicIcon, CalendarIcon, CreditCardIcon, WarningIcon } from './Icons.tsx';
 import { useTheme } from '../contexts/ThemeContext.tsx';
-import { projectOccurrences } from '../modules/recurring-expenses/logic.ts';
 
 interface RecurringExpenseCardProps {
     expense: RecurringExpense;
@@ -15,48 +16,15 @@ const RecurringExpenseCard: React.FC<RecurringExpenseCardProps> = ({ expense, on
     const { playSound } = useTheme();
     const MotionDiv = motion.div as any;
 
-    const formatCurrency = (val: number) => {
-        return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
-    };
-
-    // Calculate next due date dynamically
-    const nextDate = useMemo(() => {
-        if (expense.status !== 'ativo') return null;
-        const today = new Date();
-        const nextYear = new Date(today.getFullYear() + 1, today.getMonth(), today.getDate());
-        const occurrences = projectOccurrences(expense, today, nextYear);
-        return occurrences.length > 0 ? new Date(occurrences[0].dataPrevista) : null;
-    }, [expense]);
-
-    const formattedNextDate = nextDate 
-        ? nextDate.toLocaleDateString('pt-BR', { day: 'numeric', month: 'short' }) 
-        : '-';
+    // Próximo vencimento: o do backend (o agendador avança o contrato).
+    const formattedNextDate = expense.status === 'active' ? formatDayShort(expense.nextDueDate) : '-';
 
     // Check if expiring soon (within 30 days)
     const isExpiringSoon = useMemo(() => {
-        if (!expense.dataFim) return false;
-        const today = new Date();
-        const endDate = new Date(expense.dataFim);
-        const diffTime = endDate.getTime() - today.getTime();
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        if (!expense.endDate) return false;
+        const diffDays = civilDaysBetween(saoPauloToday(), expense.endDate);
         return diffDays > 0 && diffDays <= 30;
-    }, [expense.dataFim]);
-
-    const statusColors = {
-        ativo: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300',
-        pausado: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300',
-        cancelado: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
-    };
-
-    const periodLabels: Record<string, string> = {
-        semanal: '/semana',
-        quinzenal: '/15 dias',
-        mensal: '/mês',
-        bimestral: '/2 meses',
-        trimestral: '/3 meses',
-        semestral: '/6 meses',
-        anual: '/ano'
-    };
+    }, [expense.endDate]);
 
     return (
         <MotionDiv
@@ -77,24 +45,24 @@ const RecurringExpenseCard: React.FC<RecurringExpenseCardProps> = ({ expense, on
             }}
             role="button"
             tabIndex={0}
-            className={`bg-surface rounded-card shadow-sm border border-border cursor-pointer group flex flex-col relative overflow-hidden h-full ${expense.status !== 'ativo' ? 'opacity-75 grayscale-[0.3]' : ''}`}
-            aria-label={`Detalhes da assinatura ${expense.nome}`}
+            className={`bg-surface rounded-card shadow-sm border border-border cursor-pointer group flex flex-col relative overflow-hidden h-full ${expense.status !== 'active' ? 'opacity-75 grayscale-[0.3]' : ''}`}
+            aria-label={`Detalhes da assinatura ${expense.name}`}
         >
             {/* Top Color Bar */}
-            <div className="h-1.5 w-full" style={{ backgroundColor: expense.corPrincipal }}></div>
+            <div className="h-1.5 w-full" style={{ backgroundColor: expense.visual.color }}></div>
 
             <div className="p-5 flex-1 flex flex-col">
                 <div className="flex justify-between items-start mb-4">
                     <div 
                         className="w-12 h-12 rounded-xl flex items-center justify-center text-white shadow-sm flex-shrink-0 transition-transform group-hover:scale-110"
-                        style={{ backgroundColor: expense.corPrincipal }}
+                        style={{ backgroundColor: expense.visual.color }}
                     >
-                        {expense.emojiOpcional ? <span className="text-xl" aria-hidden="true">{expense.emojiOpcional}</span> : <DynamicIcon name={expense.icone} size={24} />}
+                        {expense.visual.emoji ? <span className="text-xl" aria-hidden="true">{expense.visual.emoji}</span> : <DynamicIcon name={expense.visual.icon} size={24} />}
                     </div>
                     
                     <div className="flex flex-col items-end gap-1">
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${statusColors[expense.status]}`}>
-                            {expense.status}
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${RECURRING_STATUS_BADGE[expense.status]}`}>
+                            {RECURRING_STATUS_LABELS[expense.status]}
                         </span>
                         {isExpiringSoon && (
                             <span className="text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider bg-red-100 text-red-600 animate-pulse flex items-center gap-1">
@@ -106,26 +74,26 @@ const RecurringExpenseCard: React.FC<RecurringExpenseCardProps> = ({ expense, on
 
                 <div className="mb-4">
                     <h3 className="font-bold text-on-surface text-lg leading-tight mb-1 group-hover:text-primary transition-colors">
-                        {expense.nome || 'Sem Nome'}
+                        {expense.name || 'Sem Nome'}
                     </h3>
                     <p className="text-xs text-muted capitalize bg-background inline-block px-2 py-0.5 rounded">
-                        {(expense.tipo || '').replace(/([A-Z])/g, ' $1').trim()}
+                        {RECURRING_TYPE_LABELS[expense.type]}
                     </p>
                 </div>
 
                 {/* Integrations Badges */}
                 <div className="flex gap-2 mb-4 mt-auto" role="list" aria-label="Integrações ativas">
-                    {expense.cartaoIdOpcional && (
+                    {expense.paymentMethod === 'credit_card' && (
                         <div className="flex items-center justify-center w-6 h-6 rounded bg-purple-50 text-purple-600 dark:bg-purple-900/20 dark:text-purple-300" title="Vinculado a Cartão" role="listitem">
                             <CreditCardIcon className="w-3 h-3" />
                         </div>
                     )}
-                    {expense.splitGroupIdOpcional && (
-                        <div className="flex items-center justify-center w-6 h-6 rounded bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-300" title="Grupo Dividido" role="listitem">
-                            <UsersIcon className="w-3 h-3" />
+                    {expense.openOccurrenceCount > 0 && (
+                        <div className="flex items-center justify-center w-6 h-6 rounded bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-300" title="Ocorrência aguardando ação" aria-label="Ocorrência aguardando ação" role="listitem">
+                            <WarningIcon className="w-3 h-3" />
                         </div>
                     )}
-                    {expense.gerarDespesaAutomaticamente && (
+                    {expense.executionMode === 'automatic' && (
                         <div className="flex items-center justify-center w-6 h-6 rounded bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-300" title="Geração Automática" role="listitem">
                             <DynamicIcon name="Bolt" className="w-3 h-3" />
                         </div>
@@ -142,10 +110,10 @@ const RecurringExpenseCard: React.FC<RecurringExpenseCardProps> = ({ expense, on
                     </div>
                     <div className="text-right">
                         <span className="block text-xl font-bold text-on-surface">
-                            {formatCurrency(expense.valorPadrao || 0)}
+                            {formatCents(expense.amountCents)}
                         </span>
                         <span className="text-xs text-muted">
-                            {periodLabels[expense.periodo] || expense.periodo}
+                            {FREQUENCY_SUFFIX[expense.frequency]}
                         </span>
                     </div>
                 </div>

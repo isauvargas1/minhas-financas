@@ -17,12 +17,12 @@ Este documento cobre três coisas: o que existe hoje para detectar e conter inci
 | Sinal | Onde (CURRENT) | Limitação (GAP) |
 | --- | --- | --- |
 | Falhas e métricas de investimentos | Documentos Firestore por workspace (`functions/src/investments/observability.ts:83-128,169-242`) | Sem Cloud Logging estruturado nem alerta (PR-OBS-01) |
-| Falhas das callables de cartão | `processing_failure` em `financial_events` mais uma notificação ao workspace (`functions/src/creditCards/observability.ts:72-101,205-301`) | Sem teto nem alerta (NOTIF-04) |
-| Execução de crons | Resumo em `console.log` com contagens (`truncated` em recorrentes e faturas; `inconclusive` na deriva) (`functions/src/crons/recurring.ts:571-585`; `functions/src/crons/creditCardInvoices.ts:315-438`; `functions/src/crons/investmentDrift.ts:368-374`) | Não estruturado. Nada alerta sobre cron que não rodou (ENTRY-16) |
+| Falhas das callables de cartão | As 13 callables (P4-A) passam pelo wrapper único `defineCallable`: log estruturado de início e fim com identificador de requisição do servidor, duração e código de erro, e erro pelo mapeador único (mensagem pt-BR, sem detalhe interno). A rotina de fechamento registra falha por fatura só com identificadores (`credit_card_invoice_close_failed`) e um resumo com contagens e `truncated`. O `processing_failure` em `financial_events` e a notificação do módulo antigo saíram com ele | Sem alerta (NOTIF-04; P7) |
+| Execução de crons | Resumo em `console.log` com contagens (`truncated` em recorrentes e faturas; `inconclusive` na deriva; o de recorrentes, P4-B, também sinaliza `backlog`, `failed` e `attentionRequired`) (`functions/src/recurring/scheduler.ts`; `functions/src/cards/closing.ts`; `functions/src/crons/investmentDrift.ts:368-374`) | Não estruturado. Nada alerta sobre cron que não rodou (ENTRY-16) |
 | Deriva patrimonial | `processInvestmentDriftScan` grava `investment_drift_reports` (`functions/src/crons/investmentDrift.ts:325-375`) | 50 workspaces por execução (`functions/src/crons/investmentDrift.ts:58`). Compara projeções entre si, não contra o ledger (INV-05). Sem alerta |
-| Caixa oficial | Nenhum detector de deriva. O gatilho roda sem retry (`functions/src/triggers/transactions.ts:35-37`) | Divergência silenciosa (PR-TX-04) |
-| Erros inesperados de callables | Convertidos em `HttpsError` e nunca registrados (`functions/src/creditCards/errors.ts:78-83`; `functions/src/goals/callables.ts:49-55`) | Invisíveis no Cloud Logging (PR-OBS-01) |
-| Webhook Stripe | Nenhum registro de evento (`functions/src/webhooks/stripe.ts:49-110`) | Só o painel do Stripe mostra as entregas (PR-BILL-06, E-06) |
+| Caixa oficial | Gatilho com retry e falha classificada (P3-B): divergência que o gatilho percebe liga `needsRebuild` em `cash_period_events/projection_state` e gera log `cash_projection.needs_rebuild`. Ainda sem detector agendado de deriva nem alerta sobre o log (P7) | Divergência por descarte da plataforma depois de 24 h sem conseguir registrar o incidente (só log de erro) |
+| Erros inesperados de callables | Convertidos em `HttpsError` e nunca registrados (`functions/src/investments/errors.ts:49-52`; `functions/src/goals/callables.ts:49-55`) | Invisíveis no Cloud Logging (PR-OBS-01) |
+| Webhook Stripe | Recibo por evento em `billing_webhook_events/{event.id}` (`functions/src/billing/webhook.ts:473-476`), sem fila de falhas nem consulta pelo produto | O painel do Stripe mostra as entregas; PR-BILL-06 fechado em P2A, fila e replay em P7 (E-06) |
 | Frontend | Sem ErrorBoundary nem telemetria de erro (FIRE-04) | Quem detecta é o usuário |
 | Custo | Nenhum alerta de orçamento versionado | E-08 |
 
@@ -30,11 +30,11 @@ Este documento cobre três coisas: o que existe hoje para detectar e conter inci
 
 | Mecanismo | Evidência (CURRENT) | O que contém | Limitação |
 | --- | --- | --- | --- |
-| Rate limit transacional | `functions/src/shared/rateLimit.ts:49-66,89`. IA: 20/h e 60/h (`functions/src/ai/callables.ts:44-48,167-171`). Checkout: 10/h (`functions/src/callables/billing.ts:70-74,126-134`). Investimentos: `functions/src/investments/infrastructure.ts:266-270` | Abuso de um ator num workspace | Contornável criando workspaces (PR-AI-03). Ausente em cartões e metas (ENTRY-12). Revertido nos convites de divisão de contas (SPLIT-09). Os limites só mudam por deploy |
+| Rate limit transacional | `functions/src/shared/rateLimit.ts:49-66,89`. IA: 20/h e 60/h (`functions/src/ai/callables.ts:44-48,167-171`). Checkout: 10/h (`functions/src/billing/checkout.ts:73-77,233-237`). Investimentos: `functions/src/investments/infrastructure.ts:266-270` | Abuso de um ator num workspace | Contornável criando workspaces (PR-AI-03). Ausente em metas (ENTRY-12); os cartões têm rate limit desde a P4-A. Revertido nos convites de divisão de contas (SPLIT-09). Os limites só mudam por deploy |
 | `maxInstances` por classe | `functions/src/shared/runtimeOptions.ts:41-91` (global 20, domínio 20, pesada 3, IA 10, cron 1) | Teto de concorrência e de custo | Não é interruptor. Mudar exige deploy |
 | Firestore Rules | Default deny fora de `workspaces/` e `users/` (`firestore.rules:990,1456`). Domínios server-only (`firestore.rules:1121-1349`). Campos de plano e admin não graváveis (`firestore.rules:148-157`) | Escrita direta do cliente nos domínios server-only | Para bloquear um domínio é preciso editar e publicar Rules à mão no projeto único (PR-PLAT-01), sem ensaio |
-| Remoção de membership | `firestore.rules:1046-1050`; `src/modules/workspaces/api.ts:249-252`. O backend recusa membership inativa (`functions/src/creditCards/auth.ts:81-87`) | Corta o acesso de um membro ao workspace | Feita só pelo cliente, por hard delete e sem auditoria (WS-11). Risco de trancar o titular fora (PR-WS-04) |
-| IA falha fechada sem chave | `functions/src/ai/callables.ts:107-116` | Revogar a chave no provedor interrompe a IA | Desliga a IA inteira, não só um tenant |
+| Remoção de membership | `firestore.rules:1046-1050`; `src/modules/workspaces/api.ts:249-252`. O backend recusa membership inativa (`functions/src/shared/workspaceAuth.ts`) | Corta o acesso de um membro ao workspace | Feita só pelo cliente, por hard delete e sem auditoria (WS-11). Risco de trancar o titular fora (PR-WS-04) |
+| IA falha fechada sem chave | `functions/src/ai/callables.ts:131-141` | Revogar a chave no provedor interrompe a IA | Desliga a IA inteira, não só um tenant |
 | Baixa lógica em `transactions` | `firestore.rules:1094` | Preserva o histórico de caixa | Não cobre as coleções adjacentes (PR-RULES-01) |
 
 ### 1.4 Ausências verificadas no HEAD
@@ -44,7 +44,7 @@ Este documento cobre três coisas: o que existe hoje para detectar e conter inci
 - **Backup, PITR e restore:** nenhum (`firebase.json:2-7`; PR-BKP-01).
 - **Ambiente para reproduzir e ensaiar:** existe um único projeto (`.firebaserc:3`; PR-PLAT-01).
 - **Releases versionadas e rollback testado:** nenhum (`package.json:4`, versão `0.0.0`; PR-REL-01).
-- **Registro e replay de webhook:** nenhum (PR-BILL-06).
+- **Registro por evento:** recibo `billing_webhook_events/{event.id}` (P2A, PR-BILL-06). **Fila de falhas e replay de webhook:** nenhum (P7).
 - **Ferramentas administrativas:** nenhuma callable administrativa (`functions/src/index.ts:13-37`; PR-ADMIN-01).
 
 ## 2. Severidades (TARGET)
@@ -55,7 +55,7 @@ Suspeita de SEV1 é tratada como SEV1 até a triagem. Um incidente que envolva d
 | --- | --- | --- | --- |
 | SEV1 | Dano em curso ou confirmado a dados de vários clientes, a dinheiro ou a um segredo de produção, ou produto inteiro fora | Vazamento cross-tenant confirmado. Perda ou corrupção do ledger em vários workspaces, por exemplo pela ferramenta destrutiva (PR-PLAT-02). Chave Gemini ou `STRIPE_SECRET_KEY` exposta e utilizável (E-00). Plano concedido em massa por webhook forjado (PR-BILL-05). Cobrança em dobro em escala (PR-BILL-03). Hosting publicado com build E2E (PR-AUTH-04) | Acionar em até 15 min. Contenção em até 1 h. Atualização interna a cada 30 min |
 | SEV2 | Impacto confirmado e limitado, ou função crítica degradada sem perda irreversível | Projeção de caixa divergente num workspace (PR-TX-04). Webhook parado. Cron diário que não rodou. Abuso de custo de IA em curso (PR-AI-03). Conta owner/admin comprometida. Incidente com dados de poucos titulares | Acionar em até 1 h. Contenção em até 4 h |
-| SEV3 | Degradação parcial com contorno | Consulta falhando por índice ausente (PR-CC-08). Notificações que não carregam (PR-NOTIF-01). Orçamento em 50% | Próximo dia útil |
+| SEV3 | Degradação parcial com contorno | Consulta falhando por índice ausente (exemplo histórico: PR-CC-08, resolvido na P4-A). Notificações que não carregam (PR-NOTIF-01). Orçamento em 50% | Próximo dia útil |
 | SEV4 | Nenhum impacto em dado ou dinheiro | Pico de `permission-denied` sem sucesso. Defeito cosmético | Backlog |
 
 ## 3. Papéis e contatos
@@ -99,9 +99,9 @@ Uma pessoa pode acumular papéis. Em SEV1, o IC deve ser separado do responsáve
 | Modo somente leitura (global ou por workspace) | Não existe | Estado avaliado pelo wrapper e pelas Rules | PR-OBS-02 | P7 |
 | Suspender usuário e revogar sessão | Não existe no código. Desativar no console do Auth é EXTERNAL, e o token vigente segue válido até expirar (AUTH-09) | Callable de suspensão com `revokeRefreshTokens`, `users/{uid}.status` e `checkRevoked` nas operações sensíveis | AUTH-09, PR-OBS-02, PR-ADMIN-01 | P1, P7 |
 | Remover membro | Pelo cliente, por hard delete (`src/modules/workspaces/api.ts:249-252`) | `removeMember` por callable, com remoção lógica e auditoria | PR-WS-02 | P1 |
-| Rotacionar segredo | Manual no Secret Manager. O webhook falha **aberto** com segredo vazio (`functions/src/webhooks/stripe.ts:9,52`) | Segredos por ambiente, sem fallback, com runbook de rotação ([RUNBOOKS.md](RUNBOOKS.md)) | PR-BILL-05 (E-05) | P2, P6 |
-| Revogar chave de IA | Ação no console do provedor. A IA falha fechada (`functions/src/ai/callables.ts:107-116`) | Somar quota por plano e App Check | PR-AI-02 (E-00) | P0 |
-| Pausar o webhook no Stripe | Painel do Stripe (EXTERNAL) | Fila de falhas e replay idempotente | PR-BILL-06 | P2, P7 |
+| Rotacionar segredo | Manual no Secret Manager. O webhook falha fechado com segredo ausente, vazio ou fora do formato: 500 sem processar (`functions/src/billing/config.ts:82-88`; `functions/src/webhooks/stripe.ts:38-51`) | Segredos por ambiente, com runbook de rotação ([RUNBOOKS.md](RUNBOOKS.md)) | PR-BILL-05 fechado em P2A (PLAN §17.3); E-05 | P6 |
+| Revogar chave de IA | Ação no console do provedor. A IA falha fechada (`functions/src/ai/callables.ts:131-141`) | Somar quota por plano e App Check | PR-AI-02 (E-00) | P0 |
+| Pausar o webhook no Stripe | Painel do Stripe (EXTERNAL) | Fila de falhas e replay idempotente | PR-OBS-01 (PR-BILL-06 fechado em P2A) | P7 |
 | App Check enforcement | Não existe | Enforcement em callables, Firestore e Auth | PR-APPCHK-01 (E-02, D-33) | P6 |
 | Bloquear escrita por Rules | Edição e publicação manual no projeto único | Versão de Rules publicada pelo CD, com rollback | PR-PLAT-01, PR-REL-01 | P6 |
 | Rollback de Hosting, Functions e Rules | Sem versão nem teste (`package.json:4`; REL-13) | Job de rollback do CD que republica a tag anterior | PR-REL-01 (E-12) | P6 |
@@ -118,8 +118,8 @@ Os playbooks são **TARGET**: descrevem o procedimento esperado e mostram o que 
 - **Passos:**
   1. Identificar o segredo, os ambientes afetados e a janela de exposição (histórico git e builds publicados).
   2. Criar a credencial nova no provedor, restrita ao mínimo (API, referrers, escopo).
-  3. Adicionar uma versão nova no Secret Manager do projeto correto. **Nunca deixar o segredo vazio:** no HEAD, `STRIPE_WEBHOOK_SECRET` vazio vira `whsec_placeholder`, e o webhook passa a aceitar eventos assinados com um valor público (`functions/src/webhooks/stripe.ts:9,52`; PR-BILL-05).
-  4. Reimplantar as funções que declaram o segredo (`functions/src/ai/callables.ts:24-29`; `functions/src/callables/billing.ts:90-94`; `functions/src/webhooks/stripe.ts:35-39`) para que usem a versão nova. Confirmar o comportamento de versão no ensaio em STAGING.
+  3. Adicionar uma versão nova no Secret Manager do projeto correto. **Nunca deixar o segredo vazio:** desde P2A não há fallback (PR-BILL-05 fechado), então `STRIPE_WEBHOOK_SECRET` ausente, vazio ou fora do formato faz o webhook responder 500 sem processar e o Stripe reentregar, e `STRIPE_SECRET_KEY` inválida faz checkout e portal recusarem (`functions/src/billing/config.ts:72-88`; `functions/src/webhooks/stripe.ts:38-51`).
+  4. Reimplantar as funções que declaram o segredo (`functions/src/ai/callables.ts:33-38`; `functions/src/billing/config.ts:32-45`; `functions/src/webhooks/stripe.ts:26-29`) para que usem a versão nova. Confirmar o comportamento de versão no ensaio em STAGING.
   5. Revogar a credencial antiga no provedor e desabilitar a versão antiga.
   6. Verificar que a credencial antiga falha e que o fluxo normal funciona.
   7. Revisar o uso durante a janela (faturamento do provedor, painel do Stripe, Cloud Audit Logs) e avaliar se houve dado pessoal envolvido (§6.6).
@@ -140,10 +140,10 @@ Os playbooks são **TARGET**: descrevem o procedimento esperado e mostram o que 
 - **Contenção:** **CURRENT**, não há modo somente leitura. As opções são drásticas (publicar Rules negando escrita no domínio, ou retirar a membership) e exigem aprovação do IC. **TARGET:** somente leitura por workspace (§5).
 - **Evidência:** exportar as coleções do workspace **antes** de qualquer rebuild (§7).
 - **Recuperação CURRENT.** As ferramentas existentes não têm tela montada para chamá-las (FEW-15):
-  - `rebuildCashPeriods` (`functions/src/cash/rebuild.ts:247`): owner/admin, com `dryRun` e paginação. Não tem cerca de versão e pode publicar valores absolutos desatualizados se houver escrita concorrente (ENTRY-08, PR-TX-04). Rodar só com a escrita contida.
-  - `recalculateCardLimit` e `rebuildCardInvoicesForCard` (`functions/src/creditCards/callables.ts:163,182`): owner/admin (e `system`) (`functions/src/creditCards/writeStrategy.ts:240,256`).
-  - `rebuildInvestmentProjections` (`functions/src/investments/callables.ts:244`) e a varredura `processInvestmentDriftScan` (`functions/src/crons/investmentDrift.ts:325`).
-  - Empréstimos, recebíveis, divisão de contas e recorrentes não têm fonte autoritativa de onde reconstruir. A correção é manual, e o hard delete é irreversível sem backup (PR-RULES-01, PR-BKP-01).
+  - `rebuildCashPeriods` (`functions/src/cash/rebuild.ts:745`): owner/admin, com `dryRun` e paginação. Desde P3-B tem cerca de corte: escrita concorrente não é apagada nem somada duas vezes; edição ou exclusão de documento ainda não lido faz a execução recomeçar (`restarted`), e a publicação é uma única transação, recusada antes de escrever se passar de 500 escritas. Em workspace muito ativo pode recomeçar várias vezes: rodar numa janela calma. Conclui com `needsRebuild` desligado quando o corte cobre o último incidente.
+  - `recalculateCardLimit` e `rebuildCardInvoicesForCard` (`functions/src/cards/callables.ts`): owner/admin.
+  - Investimentos: não há callable pública de rebuild nem de backfill desde a P4-D (D-15, §19.4 do plano mestre); só a varredura `processInvestmentDriftScan` (`functions/src/crons/investmentDrift.ts`), que detecta deriva entre projeções. O reparo operacional contra o ledger é trabalho futuro (P6/P7), sem callable hoje.
+  - Divisão de contas não tem fonte autoritativa de onde reconstruir. A correção é manual, e o hard delete é irreversível sem backup (PR-RULES-01, PR-BKP-01). Clientes e recebíveis (P3-I): `receivable_movements`, `client_events` e `receivable_events` são append-only e escritos só pelo backend; a correção é por estorno do recebimento (movimento compensatório e espelho de caixa compensatório) ou cancelamento lógico, e o cliente é arquivado, nunca apagado. Empréstimos (P3-H): `loan_movements` e `loan_events` são append-only e escritos só pelo backend; a correção é por estorno ou cancelamento compensatório, nunca por edição direta.
 - **TARGET:** eventos append-only que permitem reconstruir cada domínio (P3–P5); reconciliação por domínio com alerta (P7, [OBSERVABILITY.md](OBSERVABILITY.md)); restore ([BACKUP_RESTORE_DR.md](BACKUP_RESTORE_DR.md)). A correção dos totais é validada pela skill `financial-domain-integrity` ([FINANCIAL_DOMAIN_MODEL.md](FINANCIAL_DOMAIN_MODEL.md)).
 
 ### 6.3 Falha ou forja do webhook Stripe
@@ -151,18 +151,18 @@ Os playbooks são **TARGET**: descrevem o procedimento esperado e mostram o que 
 - **Gatilho:** entregas falhando no painel do Stripe; usuário que pagou e continua sem plano; plano concedido sem pagamento.
 - **SEV inicial:** SEV2 se o webhook parou; SEV1 se há forja ou concessão em massa.
 - **CURRENT:**
-  - Só `checkout.session.completed` é tratado (`functions/src/webhooks/stripe.ts:60`).
-  - `event.id` não é registrado (`functions/src/webhooks/stripe.ts:49-110`).
-  - O segredo tem fallback público (`functions/src/webhooks/stripe.ts:9`).
-  - Não há log estruturado (PR-OBS-01).
-  - O plano nunca é revogado (PR-BILL-01): cancelamentos e falhas de pagamento não chegam ao produto em nenhum cenário.
+  - O webhook trata 13 tipos de evento (`functions/src/billing/webhook.ts:190-300`).
+  - `event.id` é registrado em `billing_webhook_events/{event.id}` (`functions/src/billing/webhook.ts:473-476`). Corpo acima de 1 MiB recebe 413 antes da verificação da assinatura (`MAX_WEBHOOK_BODY_BYTES`).
+  - O segredo não tem fallback: ausente ou inválido responde 500 sem processar (`functions/src/billing/config.ts:82-88`).
+  - O log é estruturado (`functions/src/billing/webhook.ts:870-896`): falha de entrega `billing_webhook.failed` (ERROR, com `errorCode` estável, `outcome: "error"`, `durationMs`, `stripeEventId`, `stripeEventType`), contenção `billing_webhook.contention` (WARNING, `errorCode: "lease_contention"`), sucesso `billing_webhook.processed`, `billing_webhook.signature_missing` e `.signature_invalid`, `billing_webhook.body_too_large` e `billing.config_missing` (só nomes). Não há alerta, fila de falhas com tentativas e último erro, nem replay administrativo (PR-OBS-01, P7).
+  - O plano é revogado pelo estado do Stripe, com grace period e restrição (PR-BILL-01 fechado em P2A).
 - **Contenção:**
-  - Se houver suspeita de forja: garantir que `STRIPE_WEBHOOK_SECRET` tem uma versão válida (§6.1), rotacionar o signing secret do endpoint no Stripe (E-06) e comparar as concessões em `users/{uid}` com as sessões pagas no Stripe.
+  - Se houver suspeita de forja: garantir que `STRIPE_WEBHOOK_SECRET` tem uma versão válida (§6.1), rotacionar o signing secret do endpoint no Stripe (E-06) e comparar o estado em `billing_accounts/{uid}` com as assinaturas no Stripe.
   - Se o webhook parou: corrigir a causa. O Stripe reenvia sozinho as entregas com falha por um período limitado (confirmar o prazo vigente na documentação do Stripe).
 - **Recuperação:**
-  - Hoje, o reenvio manual pelo painel só é seguro para o `checkout.session.completed` de uma sessão paga cujo efeito ainda não foi aplicado. Reenviar um evento antigo sobrescreve `stripeSubscriptionId` (`functions/src/webhooks/stripe.ts:100-104`).
-  - Reconciliação manual: assinaturas ativas no Stripe × `users/{uid}.planId`.
-- **TARGET:** `stripe_events/{event.id}` idempotente e ordenado, fila de falhas, runbook de replay ([RUNBOOKS.md](RUNBOOKS.md)) e alerta de falhas consecutivas (E-08). **GAP:** PR-BILL-01, PR-BILL-05, PR-BILL-06 (P2); PR-OBS-01 (P7).
+  - O reenvio manual pelo painel é seguro: evento já `processed` vira no-op, e o estado vem sempre da leitura atual do Stripe, não do payload do evento (`functions/src/billing/webhook.ts:57-63,473-476`).
+  - Reconciliação manual: assinaturas ativas no Stripe × `billing_accounts/{uid}.planId`. A reconciliação periódica Stripe × Firestore não existe (P7).
+- **TARGET:** fila de falhas, runbook de replay ([RUNBOOKS.md](RUNBOOKS.md)) e alerta de falhas consecutivas (E-08); o registro idempotente por evento e a ordem pela releitura do Stripe foram entregues em P2A (`billing_webhook_events/{event.id}`); fila de falhas, replay, reconciliação periódica e alertas ficam em P7. **GAP:** PR-OBS-01 (P7); PR-BILL-01, PR-BILL-05 e PR-BILL-06 fechados em P2A.
 
 ### 6.4 Deploy defeituoso (Hosting, Functions, Rules, índices)
 
@@ -172,7 +172,7 @@ Os playbooks são **TARGET**: descrevem o procedimento esperado e mostram o que 
   - O deploy é manual, da estação, sem versão, CD nem rollback testado (PR-REL-01).
   - O alvo de deploy é fixo (PR-PLAT-01).
   - `dist/` é compartilhado com o build E2E, e o Hosting não tem predeploy (`package.json:9,27`; `firebase.json:25-30`; PR-AUTH-04).
-  - O Emulator não exige índice, então uma consulta sem índice só falha em produção (PR-CC-08, PR-RULES-03).
+  - O Emulator não exige índice, então uma consulta sem índice só falha em produção (PR-CC-08 e PR-RULES-03 foram os exemplos, resolvidos na P4-A e na P4-E com o índice versionado; ainda vale para toda consulta nova sem gate de cobertura, READ-11).
 - **Contenção:**
   1. Congelar novos deploys e identificar o último commit bom.
   2. Hosting: voltar à release anterior pelo histórico do Hosting (console; EXTERNAL, NÃO VERIFICADO).
@@ -194,7 +194,7 @@ Os playbooks são **TARGET**: descrevem o procedimento esperado e mostram o que 
   - Agravantes CURRENT: projeto único (PR-PLAT-01) e funções rodando com a conta padrão de runtime (`functions/src/shared/runtimeOptions.ts:41-91`, sem `serviceAccount`; FIRE-09).
 - **(b) Owner ou admin de workspace (SEV2).**
   - Contenção CURRENT: desativar o usuário no console do Auth (EXTERNAL; o token vigente continua válido, AUTH-09). Outro owner remove ou rebaixa a membership pelo cliente, com o risco PR-WS-04.
-  - Investigar `activity_logs`, `credit_card_audit_logs`, `goal_audit_logs`, `investment_event_logs` e `financial_events`. As coleções adjacentes não têm trilha e aceitam hard delete (PR-TX-05, PR-RULES-01).
+  - Investigar `activity_logs`, `credit_card_events`, `goal_audit_logs` e `investment_event_logs`. As coleções adjacentes não têm trilha e aceitam hard delete (PR-RULES-01; PR-TX-05 resolvido na P4-D para `transactions`).
 - **(c) Admin de plataforma (`users/{uid}.isAdmin`).**
   - Hoje só libera o painel placeholder no cliente (`src/contexts/AuthContext.tsx:55-61`; `src/components/AdminDashboard.tsx:39,51,63`) e não dá poder algum no backend (`functions/src/index.ts:13-37`).
   - Não é autoconcedível (`firestore.rules:148-157`).
@@ -208,7 +208,7 @@ Aplica-se a acesso, divulgação, alteração ou perda de dados pessoais: usuár
 2. Delimitar o escopo:
    - categorias de dados e titulares (estimativa de quantidade);
    - workspaces e período afetados;
-   - se há dados de terceiros cadastrados por workspaces PJ. O papel de controlador ou operador ainda não está definido (PRIV-07; E-09).
+   - se há dados de terceiros cadastrados por workspaces PJ (clientes: a PII fica só em `client_private`, legível por owner/admin; recebíveis, movimentos, eventos, espelhos de caixa e logs não carregam PII, P3-I). O papel de controlador ou operador ainda não está definido (PRIV-07; E-09).
 3. Avaliar se há risco ou dano relevante aos titulares, com critérios aprovados pelo jurídico. Dados financeiros e CPF/CNPJ elevam o risco.
 4. Decidir sobre a comunicação à ANPD e aos titulares. Referência **a confirmar pelo jurídico:** LGPD art. 48 e Resolução CD/ANPD nº 15/2024 (prazo de 3 dias úteis a partir do conhecimento, com complementação posterior).
 5. Conteúdo mínimo da comunicação (LGPD art. 48 §1º):
@@ -240,7 +240,7 @@ Aplica-se a acesso, divulgação, alteração ou perda de dados pessoais: usuár
   - Rate limit por workspace e ator.
   - Revogar ou limitar a chave de IA (§6.1).
   - Desativar o usuário abusivo no console (EXTERNAL).
-- **CDN fora:** não há mitigação antes do P6 (PR-PLAT-03).
+- **CDN fora:** o CSS não depende mais de CDN (Tailwind compilado desde P2C-H2). Google Fonts fora degrada só a fonte (cai para `sans-serif`); sons do Mixkit fora não afetam o fluxo (PR-PLAT-03, P6).
 - **Indisponibilidade regional:** ver [BACKUP_RESTORE_DR.md](BACKUP_RESTORE_DR.md).
 - **TARGET:** quotas por plano (PR-AI-03, PR-ENT-01), App Check (PR-APPCHK-01) e desligamento por funcionalidade (§5).
 
@@ -251,12 +251,12 @@ Aplica-se a acesso, divulgação, alteração ou perda de dados pessoais: usuár
 | Fonte | Evidência | Retenção e limitação |
 | --- | --- | --- |
 | `activity_logs` | `functions/src/triggers/transactions.ts:19,103-116` | TTL de 365 dias quando a política estiver ativa. Qualquer membro lê pelo catch-all e o cliente não grava (`firestore.rules:1436-1442`). Atribui ao criador, não ao ator (ENTRY-17) |
-| Trilhas de metas, cartões e investimentos | `goal_audit_logs`, `credit_card_audit_logs`, `financial_events`, `investment_event_logs` (`firestore.rules:1146-1149,1156-1159,1181-1184,1238-1242`); o cliente não grava | Fato financeiro e trilha de domínio não recebem `expiresAt` (`functions/src/shared/retention.ts:11-15`) |
-| Coleções operacionais | `expiresAt` definido em `functions/src/shared/retention.ts:23-47`: idempotência 90 d, métricas e eventos operacionais 400 d, rate limits 2 d, checkpoints 30 d, marcas de caixa 90 d | O TTL apaga de forma definitiva quando ativado. A ativação é manual e não está versionada (RULES-13) |
-| `transactions` | Baixa lógica (`firestore.rules:1094`) | Preservadas, mas as edições não têm trilha (PR-TX-05) |
+| Trilhas de metas, cartões e investimentos | `goal_audit_logs`, `credit_card_events` (P4-A), `investment_event_logs` (`firestore.rules`); o cliente não grava | Fato financeiro e trilha de domínio não recebem `expiresAt` (`functions/src/shared/retention.ts:11-15`) |
+| Coleções operacionais | `expiresAt` definido em `functions/src/shared/retention.ts:23-61`: idempotência 90 d, métricas e eventos operacionais 400 d, rate limits 2 d, checkpoints 30 d, marcas de caixa 90 d | O TTL apaga de forma definitiva quando ativado. A ativação é manual e não está versionada (RULES-13) |
+| `transactions` | Sem escrita do cliente e `delete` negado (P4-D); baixa lógica só pela callable | Preservadas; criação, correção e anulação têm trilha em `cash_events` (PR-TX-05 resolvido na P4-D, §19.4 do plano) |
 | Coleções adjacentes | Hard delete permitido a member (`firestore.rules:1097-1105,1351-1369,1384-1402`) | O próprio ator pode destruir a evidência (PR-RULES-01) |
 | Cloud Logging | `console.*` sem estrutura; erros internos não registrados | PR-OBS-01. Retenção e sinks: E-08 |
-| Eventos Stripe | Não persistidos | Só no Stripe (PR-BILL-06, E-06) |
+| Eventos Stripe | Recibo por evento em `billing_webhook_events` (TTL de 90 dias, sem payload) e trilha `billing_events` (P2A, PR-BILL-06 fechado) | O payload completo fica só no Stripe (E-06) |
 | Backups | Inexistentes | Não há cópia point-in-time (PR-BKP-01) |
 | Dispositivo do usuário | Histórico de IA em `localStorage` (`src/modules/reports/hooks.ts:343`) | Fora do alcance do operador |
 
@@ -318,7 +318,7 @@ Nenhum exercício foi feito (**CURRENT**). **TARGET:** tabletop dos playbooks e 
 | Capacidades administrativas auditadas | PR-ADMIN-01 | P7 |
 | Interruptor por funcionalidade e modo somente leitura | PR-OBS-02 | P7 |
 | Suspensão com revogação de sessão | AUTH-09 | P1 |
-| Registro e replay de webhook; segredo sem fallback | PR-BILL-06, PR-BILL-05 | P2 |
+| Registro por evento do webhook; segredo sem fallback (fechados em P2A); fila de falhas e replay (P7) | PR-BILL-06, PR-BILL-05; PR-OBS-01 | P2A, P7 |
 | Detecção e reparo de deriva de caixa | PR-TX-04 | P3 |
 | Ambientes para reproduzir e ensaiar | PR-PLAT-01 | P6 |
 | Releases versionadas e rollback | PR-REL-01 | P6 |

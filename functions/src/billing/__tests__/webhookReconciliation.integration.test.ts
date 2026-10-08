@@ -14,6 +14,7 @@ import {
   callerFor,
   invoiceEventObject,
   reconciliationLease,
+  recordingLogger,
   silentLogger,
   subscribedUser,
   subscriptionEventObject,
@@ -353,9 +354,22 @@ test("queda após o lease e antes do Stripe: contenção responde 500 e o lease 
   const reads = harness.stripe.count("listSubscriptions");
   assert.equal((await webhookReceipt(deleted.id))?.status, "processing");
 
-  // Reentrega com o lease ainda válido: contenção não vira sucesso.
-  const contended = await deleted.send({contentionBackoffMs: [10, 10]});
+  // Reentrega com o lease ainda válido: contenção não vira sucesso, e o sinal
+  // sai com código próprio e o id do evento.
+  const {logger, entries} = recordingLogger();
+  const contended = await deleted.send({
+    contentionBackoffMs: [10, 10], log: logger,
+  });
   assert.equal(contended.status, 500);
+  const contention = entries.find((entry) =>
+    entry.event === "billing_webhook.contention");
+  assert.ok(contention, "billing_webhook.contention registrado");
+  assert.equal(contention.level, "warn");
+  assert.equal(contention.fields.errorCode, "lease_contention");
+  assert.equal(contention.fields.outcome, "error");
+  assert.equal(contention.fields.stripeEventId, deleted.id);
+  assert.equal(
+    entries.some((entry) => entry.event === "billing_webhook.failed"), false);
   assert.equal((await webhookReceipt(deleted.id))?.status, "processing");
   assert.equal(harness.stripe.count("listSubscriptions"), reads);
   assert.equal((await billingAccount(user.uid)).planId, "pro");

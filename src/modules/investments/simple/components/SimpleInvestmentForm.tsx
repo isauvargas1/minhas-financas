@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import type { Goal } from '../../../../types';
 import {
@@ -18,7 +18,9 @@ import {
   type NewInvestmentFormState,
   type SimpleFormErrors,
 } from '../form';
+import { defaultCashAccountId, useActiveCashAccountOptions } from '../cashAccounts';
 import {
+  CashAccountField,
   CurrencyField,
   DateField,
   ErrorBanner,
@@ -43,9 +45,10 @@ import {
  * caminho que gravava aporte direto em `transactions`.
  *
  * O que **não** existe neste formulário, por contrato: quantidade, preço
- * unitário, preço médio, tipo técnico de ativo, conta, posição, regime de
- * acompanhamento. O backend deriva tudo a partir de carteira, instituição e
- * categoria.
+ * unitário, preço médio, tipo técnico de ativo, conta técnica, posição,
+ * regime de acompanhamento. O backend deriva tudo a partir de carteira,
+ * instituição e categoria. A única conta é a do Caixa (D-30): a conta de
+ * origem do dinheiro, pedida só quando ele já foi depositado.
  */
 
 /**
@@ -146,17 +149,15 @@ const SimpleInvestmentForm: React.FC<SimpleInvestmentFormProps> = ({
   /*
    * Fonte única da categoria: Configurações › Cadastros › Categorias ›
    * Investimentos, ou seja o catálogo genérico `category` recortado por
-   * `transactionSubtype`. É o mesmo cadastro que alimenta receita, despesa e
-   * parcelado — e a mesma consulta já cacheada de `useSettingsCatalog`, com
-   * recorte local: nenhuma leitura nova do Firestore.
-   *
-   * O grupo histórico `investment_type` continua existindo e legível no
-   * backend; ele apenas deixou de ser um segundo cadastro visível.
+   * `transactionSubtype` — a mesma consulta já cacheada de
+   * `useSettingsCatalog`, com recorte local: nenhuma leitura nova.
    */
   const categories = useSettingsCatalog({
     group: 'category',
     transactionSubtype: 'investimento',
   });
+  const cashAccounts = useActiveCashAccountOptions();
+  const singleAccountId = defaultCashAccountId(cashAccounts.options);
 
   useEffect(() => {
     if (!open) return;
@@ -178,6 +179,12 @@ const SimpleInvestmentForm: React.FC<SimpleInvestmentFormProps> = ({
     setFailure(undefined);
   }, [open, initialGoalId, editing]);
 
+  // Conta única: já vem escolhida (com duas ou mais, a escolha é explícita).
+  useEffect(() => {
+    if (!open || !singleAccountId) return;
+    setForm((current) => (current.cashAccountId ? current : { ...current, cashAccountId: singleAccountId }));
+  }, [open, singleAccountId]);
+
   const toOptions = (items?: { id: string; name: string }[]): SelectOption[] =>
     (items ?? []).map((item) => ({ value: item.id, label: item.name }));
 
@@ -185,7 +192,7 @@ const SimpleInvestmentForm: React.FC<SimpleInvestmentFormProps> = ({
     setForm((current) => ({ ...current, ...values }));
 
   /*
-   * A regra de compatibilidade da categoria é pura e mora em `form.ts`, junto
+   * A regra das opções de categoria é pura e mora em `form.ts`, junto
    * das outras: o que decide quais opções existem não depende de React e é
    * testado sem renderizar nada.
    */
@@ -195,9 +202,12 @@ const SimpleInvestmentForm: React.FC<SimpleInvestmentFormProps> = ({
   );
 
   const catalogLoading =
-    portfolios.isLoading || institutions.isLoading || categories.isLoading;
+    portfolios.isLoading || institutions.isLoading || categories.isLoading ||
+    cashAccounts.isLoading;
 
   const submitting = mutation.isPending;
+  // Trava síncrona: dois envios no mesmo tique não passam pelo `isPending`.
+  const submittingRef = useRef(false);
 
   useEffect(() => {
     onPendingChange?.(submitting);
@@ -205,7 +215,7 @@ const SimpleInvestmentForm: React.FC<SimpleInvestmentFormProps> = ({
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (submitting) return;
+    if (submitting || submittingRef.current) return;
     const found = validateNewInvestment(form);
     setErrors(found);
     if (Object.keys(found).length > 0) return;
@@ -239,6 +249,7 @@ const SimpleInvestmentForm: React.FC<SimpleInvestmentFormProps> = ({
     const payload = buildCreateSimpleInvestmentInput(
       form, new Date(intent.occurredAt()), editing?.movementId,
     );
+    submittingRef.current = true;
     try {
       await mutation.mutateAsync({
         name: 'createSimpleInvestment',
@@ -253,6 +264,8 @@ const SimpleInvestmentForm: React.FC<SimpleInvestmentFormProps> = ({
       onClose();
     } catch (error) {
       setFailure(simpleInvestmentError(error));
+    } finally {
+      submittingRef.current = false;
     }
   };
 
@@ -307,7 +320,7 @@ const SimpleInvestmentForm: React.FC<SimpleInvestmentFormProps> = ({
 
           <SelectField
             id={`${idPrefix}-portfolio`}
-            label="Carteira de investimento"
+            label="Carteira de investimentos"
             required
             value={form.classId}
             options={toOptions(portfolios.data)}
@@ -379,6 +392,19 @@ const SimpleInvestmentForm: React.FC<SimpleInvestmentFormProps> = ({
               onChange={(value) => patch({ date: value })}
               error={errors.date}
             />
+            {form.deposited && (
+              <div className="mt-3">
+                <CashAccountField
+                  id={`${idPrefix}-cash-account`}
+                  label="Conta de origem"
+                  value={form.cashAccountId}
+                  options={cashAccounts.options}
+                  onChange={(value) => patch({ cashAccountId: value })}
+                  error={errors.cashAccountId}
+                  hint="Conta do Caixa de onde o dinheiro saiu. O saldo dela diminui no mesmo instante."
+                />
+              </div>
+            )}
           </YesNoField>
         </div>
 

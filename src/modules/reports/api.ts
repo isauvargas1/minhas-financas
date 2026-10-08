@@ -1,5 +1,5 @@
 import { analyzeFinancialQuestion } from '../ai/api';
-import { AI_CREDITS_EXHAUSTED_MESSAGE, isAiCreditsExhausted } from '../ai/callables';
+import { aiCreditsExhaustedMessage, isAiCreditsExhausted } from '../ai/callables';
 import {
     FinancialReportSnapshot,
     ReportTimeRange,
@@ -20,7 +20,7 @@ import {
 import { Transaction, Goal, CreditCard, Loan } from '../../types';
 // CORRECTED IMPORT
 import { Workspace } from '../workspaces/types';
-import { Receivable, Client } from '../clients/types';
+import type { ReceivableReportData } from '../clients/types';
 import { getLoanTotals } from '../loans/api';
 import type { OfficialInvestmentReportData } from '../investments/types';
 import { buildInvestmentOverview } from './investments';
@@ -31,8 +31,7 @@ export const getFinancialReportSnapshot = async (
     creditCards: CreditCard[],
     range: ReportTimeRange = '30d',
     workspace?: Workspace,
-    receivables?: Receivable[],
-    clients?: Client[],
+    receivableData?: ReceivableReportData | null,
     creditCardDomainData?: CreditCardReportDomainData,
     officialInvestmentData?: OfficialInvestmentReportData,
 ): Promise<FinancialReportSnapshot> => {
@@ -50,13 +49,14 @@ export const getFinancialReportSnapshot = async (
     let bankDebtTotal = 0;
     if (workspace?.id && workspace.type === 'PJ') {
         try {
-            bankDebtTotal = (await getLoanTotals(workspace.id)).borrow;
+            // Centavos do agregado (`balanceCents`) → reais, só para exibição.
+            bankDebtTotal = (await getLoanTotals(workspace.id)).borrowCents / 100;
         } catch (error) {
             console.error("Error fetching loan totals:", error);
         }
     }
 
-    const kpis = calculateKPIs(transactions, range, workspace, receivables, bankDebtTotal);
+    const kpis = calculateKPIs(transactions, range, workspace, receivableData, bankDebtTotal);
     const cashFlow = calculateCashFlow(transactions);
     const expenseCategories = calculateCategoryBreakdown(transactions, range);
     const debtProfile = calculateDebtProfile(
@@ -71,7 +71,7 @@ export const getFinancialReportSnapshot = async (
     range
 );
 
-    const alerts = generateAlerts(kpis, debtProfile, workspace, receivables);
+    const alerts = generateAlerts(kpis, debtProfile, workspace, receivableData);
     const investmentOverview = officialInvestmentData
         ? buildInvestmentOverview(officialInvestmentData, range)
         : undefined;
@@ -151,7 +151,6 @@ export const getFinancialReportSnapshot = async (
         const labels: Record<string, string> = {
             purchases: 'compras',
             invoices: 'faturas',
-            installments: 'parcelas',
             payments: 'pagamentos',
         };
 
@@ -172,9 +171,19 @@ export const getFinancialReportSnapshot = async (
     let topClients = undefined;
     let receivablesStatus = undefined;
 
-    if (workspace?.type === 'PJ' && receivables && clients) {
-        topClients = calculateTopClients(receivables, clients);
-        receivablesStatus = calculateReceivablesStatus(receivables);
+    if (workspace?.type === 'PJ' && receivableData) {
+        topClients = calculateTopClients(receivableData);
+        receivablesStatus = calculateReceivablesStatus(receivableData);
+        if (receivableData.topClientsTruncated) {
+            // P3-I: o ranking usa uma amostra com teto; acima dele, avisa.
+            alerts.push({
+                id: 'receivables-top-clients-truncated',
+                title: 'Ranking de clientes parcial',
+                message: 'O ranking de clientes considera os recebíveis com vencimento mais recente e atingiu o limite de leitura.',
+                severity: 'info',
+                createdAt: new Date().toISOString(),
+            });
+        }
     }
 
     return {
@@ -253,7 +262,7 @@ export const askFinanceAI = async (
             ? String(error.code)
             : '';
         const answer = isAiCreditsExhausted(error)
-            ? AI_CREDITS_EXHAUSTED_MESSAGE
+            ? aiCreditsExhaustedMessage(error)
             : code.includes('failed-precondition')
                 ? 'A análise por IA está indisponível no momento. Se o limite de uso foi atingido, tente novamente mais tarde.'
                 : code.includes('permission-denied')

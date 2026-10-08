@@ -50,7 +50,8 @@ const ownerB = {uid: 'adj-owner-b', email: 'adj-owner-b@example.test'};
 const workspaceA = 'adj-workspace-a';
 const workspaceB = 'adj-workspace-b';
 
-const UNPAID = ['active', 'overdue', 'cancelled'];
+/** Saldo aberto do schema autoritativo: `paid` e `cancelled` ficam de fora. */
+const OPEN = ['active', 'overdue'];
 /** Contratos semeados por workspace; acima de uma página de 3. */
 const LOANS = 7;
 
@@ -84,25 +85,29 @@ const seed = async () => {
 
     const batch = db.batch();
     for (let index = 0; index < LOANS; index += 1) {
+      const status = index === 0 ? 'paid' : index === 6 ? 'cancelled' : 'active';
       batch.set(db.doc(`workspaces/${workspaceId}/loans/loan-${index}`), {
+        schemaVersion: 1,
         type: index % 2 === 0 ? 'lend' : 'borrow',
-        status: index === 0 ? 'paid' : 'active',
+        status,
         personName: `Contraparte ${index}`,
         description: 'Contrato de teste',
-        currentBalance: 100,
+        principalCents: 10_000,
+        balanceCents: status === 'paid' ? 0 : 10_000,
         startDate: '2026-01-01',
       });
     }
-    // Rateio de um título, para a consulta com `in`.
+    // Rateio de um título (P4-C), para a consulta por título.
     batch.set(db.doc(`workspaces/${workspaceId}/split_bills/bill-1`), {
-      groupId: 'grupo-1', valorReal: 100, statusPagamento: 'aberto',
+      groupId: 'grupo-1', amountCents: 10_000, status: 'open',
     });
     batch.set(db.doc(`workspaces/${workspaceId}/split_shares/share-1`), {
-      billId: 'bill-1', participantId: 'p1', valorDevido: 50, status: 'aPagar',
+      billId: 'bill-1', participantId: 'p1', amountDueCents: 5_000,
+      status: 'open',
     });
     batch.set(db.doc(`workspaces/${workspaceId}/recurring_expenses/rec-1`), {
-      nome: 'Assinatura', status: 'ativo', periodo: 'mensal', valorPadrao: 10,
-      gerarDespesaAutomaticamente: true,
+      schemaVersion: 1, name: 'Assinatura', status: 'active',
+      frequency: 'monthly', amountCents: 1_000, nextDueDate: '2099-01-10',
     });
     await batch.commit();
   }
@@ -137,12 +142,13 @@ test('o agregado de saldo dos empréstimos é permitido e exato', async () => {
       query(
         loansOf(clientA.db, workspaceA),
         where('type', '==', 'lend'),
-        where('status', 'in', UNPAID),
+        where('status', 'in', OPEN),
       ),
-      {total: sum('currentBalance')},
+      {total: sum('balanceCents')},
     );
-    // `loan-0` é `lend` e `paid`: fica de fora. Sobram `loan-2`, `4`, `6`.
-    assert.equal(aggregate.data().total, 300);
+    // `loan-0` é `lend` e `paid`; `loan-6` é `lend` e `cancelled`, com saldo
+    // residual: ambos ficam de fora. Sobram `loan-2` e `loan-4`.
+    assert.equal(aggregate.data().total, 20_000);
 
     const overdue = await getAggregateFromServer(
       query(loansOf(clientA.db, workspaceA), where('status', '==', 'overdue')),
@@ -159,17 +165,17 @@ test('o agregado não atravessa a fronteira do workspace', async () => {
       query(
         loansOf(clientA.db, workspaceB),
         where('type', '==', 'lend'),
-        where('status', 'in', UNPAID),
+        where('status', 'in', OPEN),
       ),
-      {total: sum('currentBalance')},
+      {total: sum('balanceCents')},
     ));
     await assert.rejects(() => getAggregateFromServer(
       query(
         loansOf(clientB.db, workspaceA),
         where('type', '==', 'lend'),
-        where('status', 'in', UNPAID),
+        where('status', 'in', OPEN),
       ),
-      {total: sum('currentBalance')},
+      {total: sum('balanceCents')},
     ));
   });
 });
@@ -203,25 +209,27 @@ test('a listagem paginada de empréstimos respeita a fronteira e o cursor', asyn
   });
 });
 
-test('a consulta de rateios por bloco de títulos é permitida e isolada', async () => {
+test('a consulta de rateios de um título é permitida, limitada e isolada', async () => {
   await seed();
   await withClients(async (clientA, clientB) => {
     const shares = await getDocs(query(
       collection(clientA.db, 'workspaces', workspaceA, 'split_shares'),
-      where('status', '==', 'aPagar'),
-      where('billId', 'in', ['bill-1']),
-      orderBy(documentId()),
-      limit(501),
+      where('billId', '==', 'bill-1'),
+      limit(51),
     ));
     assert.equal(shares.size, 1);
     assert.equal(shares.docs[0].get('billId'), 'bill-1');
 
+    // P4-C: acima do teto (50 rateios por título + sonda), negada.
+    await assert.rejects(() => getDocs(query(
+      collection(clientA.db, 'workspaces', workspaceA, 'split_shares'),
+      where('billId', '==', 'bill-1'),
+      limit(52),
+    )));
     await assert.rejects(() => getDocs(query(
       collection(clientB.db, 'workspaces', workspaceA, 'split_shares'),
-      where('status', '==', 'aPagar'),
-      where('billId', 'in', ['bill-1']),
-      orderBy(documentId()),
-      limit(501),
+      where('billId', '==', 'bill-1'),
+      limit(51),
     )));
   });
 });
@@ -231,7 +239,7 @@ test('a consulta de assinaturas ativas é permitida e isolada', async () => {
   await withClients(async (clientA, clientB) => {
     const active = await getDocs(query(
       collection(clientA.db, 'workspaces', workspaceA, 'recurring_expenses'),
-      where('status', '==', 'ativo'),
+      where('status', '==', 'active'),
       orderBy(documentId()),
       limit(501),
     ));
@@ -239,7 +247,7 @@ test('a consulta de assinaturas ativas é permitida e isolada', async () => {
 
     await assert.rejects(() => getDocs(query(
       collection(clientB.db, 'workspaces', workspaceA, 'recurring_expenses'),
-      where('status', '==', 'ativo'),
+      where('status', '==', 'active'),
       orderBy(documentId()),
       limit(501),
     )));

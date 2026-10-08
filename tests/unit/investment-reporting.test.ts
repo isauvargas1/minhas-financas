@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { buildInvestmentOverview } from '../../src/modules/reports/investments.ts';
+import { shiftSaoPauloDays } from '../../src/modules/reports/dateWindow.ts';
 import { mapGoalDocument } from '../../src/modules/goals/projection.ts';
 import type { OfficialInvestmentReportData } from '../../src/modules/investments/types.ts';
 import type { Goal } from '../../src/types.ts';
@@ -98,22 +99,21 @@ test('progresso da meta vem da projeção patrimonial, com recuo para o valor in
 
 test('filtros em dias usam buckets diários sem incluir valores anteriores', () => {
   const data = reportData();
-  const recent = new Date();
-  recent.setUTCDate(recent.getUTCDate() - 2);
-  const old = new Date();
-  old.setUTCDate(old.getUTCDate() - 40);
+  // Dias no fuso oficial do produto (INV-P2-048), como o recorte da janela.
+  const recent = shiftSaoPauloDays(-2);
+  const old = shiftSaoPauloDays(-40);
   data.periods = [{
     ...data.periods[0],
-    period: recent.toISOString().slice(0, 7),
+    period: recent.slice(0, 7),
     contributionCents: 30_000,
     daily: {
-      [old.toISOString().slice(0, 10)]: {
+      [old]: {
         contributionCents: 10_000, redemptionPrincipalCents: 0,
         realizedGainCents: 0, feesCents: 0, taxCents: 0,
         costDeltaCents: 10_000, currentValueDeltaCents: 10_000,
         cashDeltaCents: -10_000, settledMovementCount: 1,
       },
-      [recent.toISOString().slice(0, 10)]: {
+      [recent]: {
         contributionCents: 20_000, redemptionPrincipalCents: 0,
         realizedGainCents: 0, feesCents: 0, taxCents: 0,
         costDeltaCents: 20_000, currentValueDeltaCents: 20_000,
@@ -126,22 +126,22 @@ test('filtros em dias usam buckets diários sem incluir valores anteriores', () 
 
 test('janela de sete dias inclui hoje e os seis dias anteriores', () => {
   const data = reportData();
-  const included = new Date();
-  included.setUTCDate(included.getUTCDate() - 6);
-  const excluded = new Date();
-  excluded.setUTCDate(excluded.getUTCDate() - 7);
+  // Dias no fuso oficial do produto (INV-P2-048): em UTC, entre 21:00 e 23:59
+  // de Brasília o dia "excluído" ainda cai dentro da janela.
+  const included = shiftSaoPauloDays(-6);
+  const excluded = shiftSaoPauloDays(-7);
   data.periods = [{
     ...data.periods[0],
-    period: included.toISOString().slice(0, 7),
+    period: included.slice(0, 7),
     contributionCents: 30_000,
     daily: {
-      [excluded.toISOString().slice(0, 10)]: {
+      [excluded]: {
         contributionCents: 10_000, redemptionPrincipalCents: 0,
         realizedGainCents: 0, feesCents: 0, taxCents: 0,
         costDeltaCents: 10_000, currentValueDeltaCents: 10_000,
         cashDeltaCents: -10_000, settledMovementCount: 1,
       },
-      [included.toISOString().slice(0, 10)]: {
+      [included]: {
         contributionCents: 20_000, redemptionPrincipalCents: 0,
         realizedGainCents: 0, feesCents: 0, taxCents: 0,
         costDeltaCents: 20_000, currentValueDeltaCents: 20_000,

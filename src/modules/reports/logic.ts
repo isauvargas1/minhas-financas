@@ -1,17 +1,18 @@
 
 import { Transaction, Goal, CreditCard, Loan } from '../../types.ts';
-import {
-    filterReversedCreditCardInvoicePaymentCashTransactions,
-    isCreditCardInvoiceCompatibleTransaction,
-    isLegacyCreditCardInstallmentTransaction,
-} from '../credit-cards/compatibility';
-import { Receivable, Client } from '../clients/types.ts';
+import { isInvoiceOverdue } from '../cards/cycle.ts';
+import type { CardInvoice } from '../cards/types.ts';
+import type { ReceivableReportData } from '../clients/types.ts';
 import {reportWindowStart, saoPauloDayKey} from './dateWindow.ts';
 
 export {reportWindowStart} from './dateWindow.ts';
 import { Workspace } from '../workspaces/types.ts';
 import {
-    contributionAllocation,
+    investmentOutflowOf,
+    // D-13 (P3-H): espelho de empréstimo fora de receita/despesa operacional.
+    isOperationalExpense,
+    operationalExpenseOf,
+    operationalIncomeOf,
     transactionCashImpact,
 } from '../investments/semantics.ts';
 import {
@@ -32,15 +33,16 @@ import {
 
 // --- Helpers ---
 
+/**
+ * Lançamentos que entram na contabilidade de caixa do relatório. Desde a
+ * P4-A não há projeção de faturas em `transactions`: a compra no cartão vive
+ * no domínio de cartões, e o espelho do pagamento de fatura é classificado
+ * pela semântica (`creditCardPaymentEntry`: move o saldo, nunca é receita nem
+ * despesa operacional). Nada a filtrar aqui.
+ */
 export const buildCashAccountingTransactions = (
     transactions: Transaction[],
-): Transaction[] =>
-    filterReversedCreditCardInvoicePaymentCashTransactions(
-        transactions.filter((transaction) =>
-            !isCreditCardInvoiceCompatibleTransaction(transaction) &&
-            !isLegacyCreditCardInstallmentTransaction(transaction)
-        )
-    );
+): Transaction[] => transactions;
 
     export interface ReportDateRange {
     startDate?: string;
@@ -84,9 +86,12 @@ function buildPersonalKPIs(
     const cashAccountingTransactions = buildCashAccountingTransactions(transactions);
     const filtered = filterTransactionsByRange(cashAccountingTransactions, range);
 
-    const income = filtered.filter(t => t.type === 'receita').reduce((sum, t) => sum + t.value, 0);
-    const expense = filtered.filter(t => t.type === 'despesa' || t.type === 'parcelado').reduce((sum, t) => sum + t.value, 0);
-    const investment = filtered.reduce((sum, t) => sum + contributionAllocation(t), 0);
+    const income = filtered.reduce((sum, t) => sum + operationalIncomeOf(t), 0);
+    const expense = filtered.reduce((sum, t) => sum + operationalExpenseOf(t), 0);
+    // Caixa aplicado em investimentos no período (espelho de caixa: aporte
+    // liquidado menos estorno). Patrimônio e aporte oficial vêm da projeção
+    // do domínio (`buildInvestmentOverview`); dívida P5 registrada.
+    const investment = filtered.reduce((sum, t) => sum + investmentOutflowOf(t), 0);
 
     const netResult = filtered.reduce((sum, transaction) => sum + transactionCashImpact(transaction), 0);
     const savingsRate = income > 0 ? (investment / income) * 100 : 0;
@@ -149,20 +154,25 @@ function buildPersonalKPIs(
 function buildBusinessKPIs(
     transactions: Transaction[],
     range: ReportTimeRange,
-    receivables: Receivable[] = [],
+    receivableData?: ReceivableReportData | null,
     bankDebtTotal = 0
 ): FinancialKPI[] {
     const cashAccountingTransactions = buildCashAccountingTransactions(transactions);
     const filtered = filterTransactionsByRange(cashAccountingTransactions, range);
 
-    const grossRevenue = filtered.filter(t => t.type === 'receita').reduce((sum, t) => sum + t.value, 0);
-    const operationalExpenses = filtered.filter(t => t.type === 'despesa' || t.type === 'parcelado').reduce((sum, t) => sum + t.value, 0);
+    const grossRevenue = filtered.reduce((sum, t) => sum + operationalIncomeOf(t), 0);
+    const operationalExpenses = filtered.reduce((sum, t) => sum + operationalExpenseOf(t), 0);
     const netProfit = grossRevenue - operationalExpenses;
     const profitMargin = grossRevenue > 0 ? (netProfit / grossRevenue) * 100 : 0;
 
-    const totalReceivable = receivables
-        .filter(r => r.status === 'pending' || r.status === 'overdue')
-        .reduce((sum, r) => sum + (r.value || 0), 0);
+    /*
+     * P3-I — saldo em aberto (em dia + em atraso) somado pelo servidor sobre
+     * `balanceCents`; recebidos e cancelados ficam fora. Centavos → reais só
+     * para exibição.
+     */
+    const totalReceivable = receivableData
+        ? (receivableData.openNotOverdue.balanceCents + receivableData.overdue.balanceCents) / 100
+        : 0;
 
     /*
      * A dívida bancária chega pronta, somada pelo servidor.
@@ -217,11 +227,11 @@ export const calculateKPIs = (
     transactions: Transaction[],
     range: ReportTimeRange,
     workspace?: Workspace,
-    receivables?: Receivable[],
+    receivableData?: ReceivableReportData | null,
     bankDebtTotal = 0
 ): FinancialKPI[] => {
     if (workspace?.type === 'PJ') {
-        return buildBusinessKPIs(transactions, range, receivables, bankDebtTotal);
+        return buildBusinessKPIs(transactions, range, receivableData, bankDebtTotal);
     }
     return buildPersonalKPIs(transactions, range);
 };
@@ -242,11 +252,8 @@ export const calculateCashFlow = (transactions: Transaction[]): CashFlowSummary[
         const key = t.date.slice(0, 7);
         if (history[key]) {
             history[key].netCashFlow += transactionCashImpact(t);
-            if (t.type === 'receita') {
-                history[key].totalIncome += t.value;
-            } else if (t.type === 'despesa' || t.type === 'parcelado') {
-                history[key].totalExpenses += t.value;
-            }
+            history[key].totalIncome += operationalIncomeOf(t);
+            history[key].totalExpenses += operationalExpenseOf(t);
         }
     });
 
@@ -259,12 +266,14 @@ export const calculateCashFlow = (transactions: Transaction[]): CashFlowSummary[
 export const calculateCategoryBreakdown = (transactions: Transaction[], range: ReportTimeRange): ExpenseCategoryBreakdown[] => {
     const cashAccountingTransactions = buildCashAccountingTransactions(transactions);
     const filtered = filterTransactionsByRange(cashAccountingTransactions, range);
-    const expenses = filtered.filter(t => t.type === 'despesa' || t.type === 'parcelado');
-    const totalExpense = expenses.reduce((sum, t) => sum + t.value, 0);
+    const expenses = filtered.filter(isOperationalExpense);
+    // `operationalExpenseOf`: a compensação da Divisão de contas (P4-C)
+    // entra com sinal negativo na categoria do fato original.
+    const totalExpense = expenses.reduce((sum, t) => sum + operationalExpenseOf(t), 0);
 
     const byCategory: Record<string, number> = {};
     expenses.forEach(t => {
-        byCategory[t.category] = (byCategory[t.category] || 0) + t.value;
+        byCategory[t.category] = (byCategory[t.category] || 0) + operationalExpenseOf(t);
     });
 
     return Object.entries(byCategory)
@@ -280,20 +289,15 @@ export const calculateCategoryBreakdown = (transactions: Transaction[], range: R
 const EMPTY_CREDIT_CARD_REPORT_DOMAIN_DATA: CreditCardReportDomainData = {
     purchases: [],
     invoices: [],
-    installments: [],
     payments: [],
 };
 
-const normalizeMoney = (value: number): number =>
-    Math.round((value + Number.EPSILON) * 100) / 100;
+// Centavos → reais só para exibição (a soma é sempre em centavos inteiros).
+const toReais = (cents: number): number => cents / 100;
 
-const toIsoDate = (date: Date): string => date.toISOString().slice(0, 10);
-
-const addDays = (isoDate: string, days: number): string => {
-    const [year, month, day] = isoDate.split('-').map(Number);
-    const date = new Date(Date.UTC(year, month - 1, day + days));
-
-    return toIsoDate(date);
+const addDays = (dayKey: string, days: number): string => {
+    const [year, month, day] = dayKey.split('-').map(Number);
+    return new Date(Date.UTC(year, month - 1, day + days)).toISOString().slice(0, 10);
 };
 
 const isBetweenInclusive = (
@@ -302,254 +306,144 @@ const isBetweenInclusive = (
     end: string,
 ): boolean => value >= start && value <= end;
 
-const ACTIVE_INVOICE_STATUSES = new Set([
-    'open',
-    'closed',
-    'partial_paid',
-    'overdue',
-]);
+/** Saldo a pagar da fatura: aberta pelo total positivo; fechada pelo restante. */
+const payableCentsOf = (invoice: CardInvoice): number =>
+    invoice.cycleStatus === 'open' ? Math.max(invoice.totalCents, 0) : Math.max(invoice.remainingCents, 0);
 
-const ACTIVE_INSTALLMENT_STATUSES = new Set([
-    'projected',
-    'invoiced',
-]);
+const sumPayableCents = (invoices: CardInvoice[]): number =>
+    invoices.reduce((sum, invoice) => sum + payableCentsOf(invoice), 0);
 
-const getCreditCardUsedLimit = (card: CreditCard): number => {
-    if (typeof card.limitUsed === 'number') {
-        return normalizeMoney(card.limitUsed);
-    }
+interface CardIndicatorCents {
+    cardId: string;
+    cardName: string;
+    status: string;
+    limitTotalCents: number;
+    limitUsedCents: number;
+    limitAvailableCents: number;
+    utilizationRate: number;
+    openInvoiceCents: number;
+    futureCommittedCents: number;
+    overdueCents: number;
+    due7Cents: number;
+    due15Cents: number;
+    due30Cents: number;
+    paidCents: number;
+    reversedCents: number;
+    currentInvoice?: CardInvoice;
+}
 
-    if (typeof card.limitAvailable === 'number') {
-        return normalizeMoney(Math.max(card.limitTotal - card.limitAvailable, 0));
-    }
-
-    return 0;
-};
-
-const getCreditCardAvailableLimit = (card: CreditCard): number => {
-    if (typeof card.limitAvailable === 'number') {
-        return normalizeMoney(card.limitAvailable);
-    }
-
-    return normalizeMoney(Math.max(card.limitTotal - getCreditCardUsedLimit(card), 0));
-};
-
-const sumInvoiceRemainingAmount = (
-    invoices: CreditCardReportDomainData['invoices'],
-): number =>
-    normalizeMoney(
-        invoices.reduce((sum, invoice) => sum + Number(invoice.remainingAmount || 0), 0)
-    );
-
-const sumPaymentAmount = (
-    payments: CreditCardReportDomainData['payments'],
-    status: 'posted' | 'reversed',
-): number =>
-    normalizeMoney(
-        payments
-            .filter((payment) => payment.status === status)
-            .reduce((sum, payment) => sum + Number(payment.amount || 0), 0)
-    );
-
-export const calculateCreditCardReportIndicators = (
+/**
+ * Indicadores por cartão ativo (P4-A), em centavos: fatura atual e
+ * comprometido futuro (faturas com saldo), atraso derivado (fechada, com
+ * saldo e vencida — nunca gravado), vencimentos próximos e pagamentos do
+ * período. Hoje é o dia civil de São Paulo.
+ */
+const computeCardIndicatorsCents = (
     creditCards: CreditCard[],
-    creditCardDomainData: CreditCardReportDomainData = EMPTY_CREDIT_CARD_REPORT_DOMAIN_DATA,
-): CreditCardReportIndicator[] => {
-    const today = toIsoDate(new Date());
+    data: CreditCardReportDomainData,
+): CardIndicatorCents[] => {
+    const today = saoPauloDayKey();
     const next7Days = addDays(today, 7);
     const next15Days = addDays(today, 15);
     const next30Days = addDays(today, 30);
+    const dueBetween = (invoices: CardInvoice[], end: string) =>
+        sumPayableCents(invoices.filter((invoice) => isBetweenInclusive(invoice.dueDate, today, end)));
 
     return creditCards
         .filter((card) => card.status === 'active')
         .map((card) => {
-            const cardInvoices = creditCardDomainData.invoices
-                .filter((invoice) => String(invoice.cardId) === String(card.id));
-
-            const activeInvoices = cardInvoices
-                .filter((invoice) =>
-                    ACTIVE_INVOICE_STATUSES.has(invoice.status) &&
-                    Number(invoice.remainingAmount || 0) > 0
-                )
+            const withBalance = data.invoices
+                .filter((invoice) => invoice.cardId === card.id && payableCentsOf(invoice) > 0)
                 .sort((left, right) => left.dueDate.localeCompare(right.dueDate));
-
-            const currentInvoice = activeInvoices[0];
-
-            const futureInvoices = currentInvoice
-                ? activeInvoices.filter((invoice) => invoice.id !== currentInvoice.id)
-                : [];
-
-            const invoiceIds = new Set(cardInvoices.map((invoice) => invoice.id));
-
-            const projectedUnattachedInstallments = creditCardDomainData.installments
-                .filter((installment) =>
-                    String(installment.cardId) === String(card.id) &&
-                    ACTIVE_INSTALLMENT_STATUSES.has(installment.status) &&
-                    (!installment.invoiceId || !invoiceIds.has(installment.invoiceId)) &&
-                    installment.dueDate >= today
-                );
-
-            const projectedUnattachedAmount = normalizeMoney(
-                projectedUnattachedInstallments.reduce(
-                    (sum, installment) => sum + Number(installment.amount || 0),
-                    0,
-                )
-            );
-
-            const openInvoiceBalance = currentInvoice
-                ? normalizeMoney(Number(currentInvoice.remainingAmount || 0))
-                : 0;
-
-            const futureCommittedBalance = normalizeMoney(
-                sumInvoiceRemainingAmount(futureInvoices) + projectedUnattachedAmount
-            );
-
-            const overdueAmount = sumInvoiceRemainingAmount(
-                activeInvoices.filter((invoice) =>
-                    invoice.status === 'overdue' || invoice.dueDate < today
-                )
-            );
-
-            const dueNext7Days = sumInvoiceRemainingAmount(
-                activeInvoices.filter((invoice) =>
-                    isBetweenInclusive(invoice.dueDate, today, next7Days)
-                )
-            );
-
-            const dueNext15Days = sumInvoiceRemainingAmount(
-                activeInvoices.filter((invoice) =>
-                    isBetweenInclusive(invoice.dueDate, today, next15Days)
-                )
-            );
-
-            const dueNext30Days = sumInvoiceRemainingAmount(
-                activeInvoices.filter((invoice) =>
-                    isBetweenInclusive(invoice.dueDate, today, next30Days)
-                )
-            );
-
-            const cardPayments = creditCardDomainData.payments
-                .filter((payment) => String(payment.cardId) === String(card.id));
-
-            const limitUsed = getCreditCardUsedLimit(card);
-            const limitAvailable = getCreditCardAvailableLimit(card);
-            const utilizationRate = card.limitTotal > 0
-                ? (limitUsed / card.limitTotal) * 100
-                : 0;
-
+            const currentInvoice = withBalance[0];
+            const cardPayments = data.payments.filter((payment) => payment.cardId === card.id);
             return {
-                cardId: String(card.id),
+                cardId: card.id,
                 cardName: card.name,
                 status: card.status,
-
-                limitTotal: card.limitTotal,
-                limitUsed,
-                limitAvailable,
-                utilizationRate,
-
-                openInvoiceBalance,
-                futureCommittedBalance,
-                overdueAmount,
-
-                dueBuckets: {
-                    next7Days: dueNext7Days,
-                    next15Days: dueNext15Days,
-                    next30Days: dueNext30Days,
-                },
-
-                registeredPaymentsAmount: sumPaymentAmount(cardPayments, 'posted'),
-                reversedPaymentsAmount: sumPaymentAmount(cardPayments, 'reversed'),
-
-                currentInvoiceId: currentInvoice?.id,
-                currentInvoiceDueDate: currentInvoice?.dueDate,
-                currentInvoiceStatus: currentInvoice?.status,
+                limitTotalCents: card.limitTotalCents,
+                limitUsedCents: card.limitUsedCents,
+                limitAvailableCents: card.limitAvailableCents,
+                utilizationRate: card.limitTotalCents > 0
+                    ? (Math.max(card.limitUsedCents, 0) / card.limitTotalCents) * 100
+                    : 0,
+                openInvoiceCents: currentInvoice ? payableCentsOf(currentInvoice) : 0,
+                futureCommittedCents: sumPayableCents(withBalance.slice(1)),
+                overdueCents: sumPayableCents(withBalance.filter((invoice) => isInvoiceOverdue(invoice, today))),
+                due7Cents: dueBetween(withBalance, next7Days),
+                due15Cents: dueBetween(withBalance, next15Days),
+                due30Cents: dueBetween(withBalance, next30Days),
+                paidCents: cardPayments.filter((payment) => payment.kind === 'payment')
+                    .reduce((sum, payment) => sum + payment.amountCents, 0),
+                reversedCents: cardPayments.filter((payment) => payment.kind === 'reversal')
+                    .reduce((sum, payment) => sum + payment.amountCents, 0),
+                currentInvoice,
             };
         });
 };
 
+export const calculateCreditCardReportIndicators = (
+    creditCards: CreditCard[],
+    creditCardDomainData: CreditCardReportDomainData = EMPTY_CREDIT_CARD_REPORT_DOMAIN_DATA,
+): CreditCardReportIndicator[] =>
+    computeCardIndicatorsCents(creditCards, creditCardDomainData).map((card) => ({
+        cardId: card.cardId,
+        cardName: card.cardName,
+        status: card.status,
+        limitTotal: toReais(card.limitTotalCents),
+        limitUsed: toReais(card.limitUsedCents),
+        limitAvailable: toReais(card.limitAvailableCents),
+        utilizationRate: card.utilizationRate,
+        openInvoiceBalance: toReais(card.openInvoiceCents),
+        futureCommittedBalance: toReais(card.futureCommittedCents),
+        overdueAmount: toReais(card.overdueCents),
+        dueBuckets: {
+            next7Days: toReais(card.due7Cents),
+            next15Days: toReais(card.due15Cents),
+            next30Days: toReais(card.due30Cents),
+        },
+        registeredPaymentsAmount: toReais(card.paidCents),
+        reversedPaymentsAmount: toReais(card.reversedCents),
+        currentInvoiceId: card.currentInvoice?.id,
+        currentInvoiceDueDate: card.currentInvoice?.dueDate,
+        currentInvoiceStatus: card.currentInvoice
+            ? (card.currentInvoice.cycleStatus === 'open' ? 'open' : card.currentInvoice.paymentStatus)
+            : undefined,
+    }));
+
+const sumOf = (cards: CardIndicatorCents[], pick: (card: CardIndicatorCents) => number): number =>
+    cards.reduce((sum, card) => sum + pick(card), 0);
 
 export const calculateDebtProfile = (
     _transactions: Transaction[],
     creditCards: CreditCard[],
     creditCardDomainData: CreditCardReportDomainData = EMPTY_CREDIT_CARD_REPORT_DOMAIN_DATA,
 ): DebtProfile => {
-    const indicators = calculateCreditCardReportIndicators(
-        creditCards,
-        creditCardDomainData,
-    );
-
-    const totalLimit = indicators.reduce((sum, card) => sum + card.limitTotal, 0);
-    const currentCardUsage = indicators.reduce((sum, card) => sum + card.limitUsed, 0);
-    const totalAvailableLimit = indicators.reduce((sum, card) => sum + card.limitAvailable, 0);
-    const openInvoiceBalance = indicators.reduce((sum, card) => sum + card.openInvoiceBalance, 0);
-    const futureCommittedBalance = indicators.reduce((sum, card) => sum + card.futureCommittedBalance, 0);
-    const overdueAmount = indicators.reduce((sum, card) => sum + card.overdueAmount, 0);
-    const dueNext7Days = indicators.reduce((sum, card) => sum + card.dueBuckets.next7Days, 0);
-    const dueNext15Days = indicators.reduce((sum, card) => sum + card.dueBuckets.next15Days, 0);
-    const dueNext30Days = indicators.reduce((sum, card) => sum + card.dueBuckets.next30Days, 0);
-    const registeredPaymentsAmount = indicators.reduce((sum, card) => sum + card.registeredPaymentsAmount, 0);
-    const reversedPaymentsAmount = indicators.reduce((sum, card) => sum + card.reversedPaymentsAmount, 0);
-
-    const utilizationRate = totalLimit > 0 ? (currentCardUsage / totalLimit) * 100 : 0;
+    const cards = computeCardIndicatorsCents(creditCards, creditCardDomainData);
+    const totalLimitCents = sumOf(cards, (card) => card.limitTotalCents);
+    const usageCents = sumOf(cards, (card) => Math.max(card.limitUsedCents, 0));
+    const utilizationRate = totalLimitCents > 0 ? (usageCents / totalLimitCents) * 100 : 0;
 
     return {
-        totalCreditCardDebt: normalizeMoney(currentCardUsage),
+        totalCreditCardDebt: toReais(usageCents),
         totalLoans: 0,
-        totalInstallments: normalizeMoney(futureCommittedBalance),
+        totalInstallments: toReais(sumOf(cards, (card) => card.futureCommittedCents)),
         utilizationRate,
         riskLevel: utilizationRate > 80 ? 'critico' : utilizationRate > 60 ? 'alto' : utilizationRate > 30 ? 'moderado' : 'baixo',
 
-        creditCardTotalLimit: normalizeMoney(totalLimit),
-        creditCardAvailableLimit: normalizeMoney(totalAvailableLimit),
-        creditCardOpenInvoiceBalance: normalizeMoney(openInvoiceBalance),
-        creditCardFutureCommittedBalance: normalizeMoney(futureCommittedBalance),
-        creditCardOverdueAmount: normalizeMoney(overdueAmount),
-        creditCardDueNext7Days: normalizeMoney(dueNext7Days),
-        creditCardDueNext15Days: normalizeMoney(dueNext15Days),
-        creditCardDueNext30Days: normalizeMoney(dueNext30Days),
-        registeredInvoicePaymentsAmount: normalizeMoney(registeredPaymentsAmount),
-        reversedInvoicePaymentsAmount: normalizeMoney(reversedPaymentsAmount),
+        creditCardTotalLimit: toReais(totalLimitCents),
+        creditCardAvailableLimit: toReais(sumOf(cards, (card) => card.limitAvailableCents)),
+        creditCardOpenInvoiceBalance: toReais(sumOf(cards, (card) => card.openInvoiceCents)),
+        creditCardFutureCommittedBalance: toReais(sumOf(cards, (card) => card.futureCommittedCents)),
+        creditCardOverdueAmount: toReais(sumOf(cards, (card) => card.overdueCents)),
+        creditCardDueNext7Days: toReais(sumOf(cards, (card) => card.due7Cents)),
+        creditCardDueNext15Days: toReais(sumOf(cards, (card) => card.due15Cents)),
+        creditCardDueNext30Days: toReais(sumOf(cards, (card) => card.due30Cents)),
+        registeredInvoicePaymentsAmount: toReais(sumOf(cards, (card) => card.paidCents)),
+        reversedInvoicePaymentsAmount: toReais(sumOf(cards, (card) => card.reversedCents)),
 
-        creditCardIndicators: indicators,
+        creditCardIndicators: calculateCreditCardReportIndicators(creditCards, creditCardDomainData),
     };
-};
-
-const getRangeStartDate = (range: ReportTimeRange): Date | null => {
-    const now = new Date();
-    const startDate = new Date();
-
-    switch (range) {
-        case '7d':
-            startDate.setDate(now.getDate() - 7);
-            return startDate;
-        case '30d':
-            startDate.setDate(now.getDate() - 30);
-            return startDate;
-        case '90d':
-            startDate.setDate(now.getDate() - 90);
-            return startDate;
-        case '12m':
-            startDate.setFullYear(now.getFullYear() - 1);
-            return startDate;
-        case 'ytd':
-            return new Date(now.getFullYear(), 0, 1);
-        case 'all':
-        default:
-            return null;
-    }
-};
-
-const isIsoDateInRange = (
-    isoDate: string | undefined,
-    range: ReportTimeRange,
-): boolean => {
-    if (!isoDate) return false;
-
-    const startDate = getRangeStartDate(range);
-
-    if (!startDate) return true;
-
-    return new Date(`${isoDate}T12:00:00`) >= startDate;
 };
 
 const formatPeriodLabel = (period: string): string => {
@@ -566,139 +460,107 @@ const formatPeriodLabel = (period: string): string => {
 const sortPeriodItemsDesc = <T extends { period: string }>(items: T[]): T[] =>
     [...items].sort((left, right) => right.period.localeCompare(left.period));
 
+/**
+ * Visões de gasto no cartão (P4-A), em centavos: compras ativas pela data da
+ * compra (competência de consumo) e pagamentos líquidos (pagamento − estorno)
+ * pela data do pagamento. O pagamento de fatura nunca é somado como despesa:
+ * é a liquidação do cartão (dependência P5: DRE por competência).
+ */
 export const calculateCreditCardExpenseReportViews = (
     creditCards: CreditCard[],
     creditCardDomainData: CreditCardReportDomainData = EMPTY_CREDIT_CARD_REPORT_DOMAIN_DATA,
     range: ReportTimeRange,
 ): CreditCardExpenseReportViews => {
-    const cardNameById = new Map(
-        creditCards.map((card) => [String(card.id), card.name])
-    );
+    const startDate = resolveReportDateRange(range).startDate;
+    const inRange = (dayKey: string) => !startDate || dayKey >= startDate;
+    const cardNameById = new Map(creditCards.map((card) => [card.id, card.name]));
+    const activePurchases = creditCardDomainData.purchases
+        .filter((purchase) => purchase.status === 'active' && inRange(purchase.purchaseDate));
+    const payments = creditCardDomainData.payments
+        .filter((payment) => inRange(payment.paymentDate));
+    const signedPayment = (kind: 'payment' | 'reversal', cents: number) =>
+        kind === 'payment' ? cents : -cents;
 
-    const purchaseCompetenceByPeriod = new Map<string, CreditCardExpenseByPeriodItem>();
+    const byPeriod = <T,>(
+        items: T[],
+        dayOf: (item: T) => string,
+        centsOf: (item: T) => number,
+        counts: (item: T) => boolean,
+    ): CreditCardExpenseByPeriodItem[] => {
+        const map = new Map<string, { cents: number; count: number }>();
+        for (const item of items) {
+            const period = dayOf(item).slice(0, 7);
+            const current = map.get(period) ?? { cents: 0, count: 0 };
+            current.cents += centsOf(item);
+            if (counts(item)) current.count += 1;
+            map.set(period, current);
+        }
+        return sortPeriodItemsDesc(Array.from(map.entries()).map(([period, value]) => ({
+            period,
+            label: formatPeriodLabel(period),
+            amount: toReais(value.cents),
+            count: value.count,
+        })));
+    };
 
-    creditCardDomainData.purchases
-        .filter((purchase) =>
-            purchase.status === 'active' &&
-            isIsoDateInRange(purchase.purchaseDate, range)
-        )
-        .forEach((purchase) => {
-            const period = purchase.purchaseDate.slice(0, 7);
-            const current = purchaseCompetenceByPeriod.get(period) ?? {
-                period,
-                label: formatPeriodLabel(period),
-                amount: 0,
-                count: 0,
-            };
-
-            current.amount = normalizeMoney(current.amount + Number(purchase.totalAmount || 0));
-            current.count += 1;
-
-            purchaseCompetenceByPeriod.set(period, current);
-        });
-
-    const invoicePaymentDateByPeriod = new Map<string, CreditCardExpenseByPeriodItem>();
-
-    creditCardDomainData.payments
-        .filter((payment) =>
-            payment.status === 'posted' &&
-            isIsoDateInRange(payment.paymentDate, range)
-        )
-        .forEach((payment) => {
-            const period = payment.paymentDate.slice(0, 7);
-            const current = invoicePaymentDateByPeriod.get(period) ?? {
-                period,
-                label: formatPeriodLabel(period),
-                amount: 0,
-                count: 0,
-            };
-
-            current.amount = normalizeMoney(current.amount + Number(payment.amount || 0));
-            current.count += 1;
-
-            invoicePaymentDateByPeriod.set(period, current);
-        });
-
-    const indicators = calculateCreditCardReportIndicators(
-        creditCards,
-        creditCardDomainData,
-    );
-
+    const indicators = computeCardIndicatorsCents(creditCards, creditCardDomainData);
     const cardAnalytics = indicators.map((indicator) => {
-        const cardPurchases = creditCardDomainData.purchases.filter(
-            (purchase) =>
-                String(purchase.cardId) === String(indicator.cardId) &&
-                purchase.status === 'active' &&
-                isIsoDateInRange(purchase.purchaseDate, range)
-        );
-
-        const cardPayments = creditCardDomainData.payments.filter(
-            (payment) =>
-                String(payment.cardId) === String(indicator.cardId) &&
-                payment.status === 'posted' &&
-                isIsoDateInRange(payment.paymentDate, range)
-        );
-
+        const cardPurchases = activePurchases.filter((purchase) => purchase.cardId === indicator.cardId);
+        const cardPayments = payments.filter((payment) => payment.cardId === indicator.cardId);
         return {
             cardId: indicator.cardId,
             cardName: cardNameById.get(indicator.cardId) ?? indicator.cardName,
-            purchaseAmount: normalizeMoney(
-                cardPurchases.reduce((sum, purchase) => sum + Number(purchase.totalAmount || 0), 0)
-            ),
+            purchaseAmount: toReais(cardPurchases.reduce((sum, purchase) => sum + purchase.totalCents, 0)),
             purchaseCount: cardPurchases.length,
-            paidAmount: normalizeMoney(
-                cardPayments.reduce((sum, payment) => sum + Number(payment.amount || 0), 0)
-            ),
-            openInvoiceBalance: indicator.openInvoiceBalance,
-            futureCommittedBalance: indicator.futureCommittedBalance,
-            overdueAmount: indicator.overdueAmount,
+            paidAmount: toReais(cardPayments.reduce((sum, payment) =>
+                sum + signedPayment(payment.kind, payment.amountCents), 0)),
+            openInvoiceBalance: toReais(indicator.openInvoiceCents),
+            futureCommittedBalance: toReais(indicator.futureCommittedCents),
+            overdueAmount: toReais(indicator.overdueCents),
             utilizationRate: indicator.utilizationRate,
         };
     });
 
     return {
-        purchaseCompetence: sortPeriodItemsDesc(Array.from(purchaseCompetenceByPeriod.values())),
-        invoicePaymentDate: sortPeriodItemsDesc(Array.from(invoicePaymentDateByPeriod.values())),
+        purchaseCompetence: byPeriod(activePurchases, (purchase) => purchase.purchaseDate,
+            (purchase) => purchase.totalCents, () => true),
+        invoicePaymentDate: byPeriod(payments, (payment) => payment.paymentDate,
+            (payment) => signedPayment(payment.kind, payment.amountCents),
+            (payment) => payment.kind === 'payment'),
         cardAnalytics,
     };
 };
-export const calculateTopClients = (receivables: Receivable[], clients: Client[]): ClientMetric[] => {
-    const byClient: Record<string, number> = {};
-    let total = 0;
-    receivables.forEach(r => {
-        byClient[r.clientId] = (byClient[r.clientId] || 0) + (r.value || 0);
-        total += (r.value || 0);
-    });
-    return Object.entries(byClient)
-        .map(([id, value]) => ({
-            clientId: id,
-            clientName: clients.find(c => c.id === id)?.name || 'Cliente',
-            totalValue: value,
-            percentage: total > 0 ? (value / total) * 100 : 0
-        }))
-        .sort((a, b) => b.totalValue - a.totalValue).slice(0, 5);
+/**
+ * P3-I — ranking de clientes pelo valor original dos recebíveis não
+ * cancelados (amostra com teto, ver `getReceivableReportData`). Centavos →
+ * reais só para exibição.
+ */
+export const calculateTopClients = (data: ReceivableReportData): ClientMetric[] => {
+    const total = data.topClients.reduce((sum, client) => sum + client.amountCents, 0);
+    return data.topClients.map((client) => ({
+        clientId: client.clientId,
+        clientName: client.clientName,
+        totalValue: client.amountCents / 100,
+        percentage: total > 0 ? (client.amountCents / total) * 100 : 0,
+    }));
 };
 
-export const calculateReceivablesStatus = (receivables: Receivable[]): ReceivableStatusMetric[] => {
-    const map: Record<string, { count: number, total: number, color: string }> = {
-        'pending': { count: 0, total: 0, color: '#f59e0b' },
-        'paid': { count: 0, total: 0, color: '#10b981' },
-        'overdue': { count: 0, total: 0, color: '#ef4444' }
-    };
-    receivables.forEach(r => {
-        if (map[r.status]) {
-            map[r.status].count++;
-            map[r.status].total += (r.value || 0);
-        }
-    });
-    return Object.entries(map).map(([k, v]) => ({ status: k, count: v.count, totalValue: v.total, color: v.color }));
-};
+/**
+ * P3-I — situação dos recebíveis por agregados do servidor: em aberto e em
+ * atraso pelo saldo; recebido pelo principal recebido. "Em atraso" é
+ * derivado (aberto com vencimento antes de hoje), nunca um status gravado.
+ */
+export const calculateReceivablesStatus = (data: ReceivableReportData): ReceivableStatusMetric[] => [
+    { status: 'Em aberto', count: data.openNotOverdue.count, totalValue: data.openNotOverdue.balanceCents / 100, color: '#f59e0b' },
+    { status: 'Recebido', count: data.received.count, totalValue: data.received.principalCents / 100, color: '#10b981' },
+    { status: 'Em atraso', count: data.overdue.count, totalValue: data.overdue.balanceCents / 100, color: '#ef4444' },
+];
 
 export const generateAlerts = (
     kpis: FinancialKPI[],
     debt: DebtProfile,
     workspace?: Workspace,
-    receivables?: Receivable[]
+    receivableData?: ReceivableReportData | null
 ): FinancialAlert[] => {
     const alerts: FinancialAlert[] = [];
     const now = new Date().toISOString();
@@ -708,7 +570,7 @@ export const generateAlerts = (
         if (profitKPI && profitKPI.value < 0) {
             alerts.push({ id: 'a1', title: 'Fluxo Negativo', message: 'Despesas superaram as receitas no período.', severity: 'critical', createdAt: now });
         }
-        const overdue = receivables?.filter(r => r.status === 'overdue').length || 0;
+        const overdue = receivableData?.overdue.count ?? 0;
         if (overdue > 0) {
             alerts.push({ id: 'a2', title: 'Inadimplência', message: `Existem ${overdue} faturas de clientes em atraso.`, severity: 'warning', createdAt: now });
         }

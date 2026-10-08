@@ -1,5 +1,5 @@
 import { extractTransactionFromDocument, extractTransactionFromText } from '../modules/ai/api';
-import { AI_CREDITS_EXHAUSTED_MESSAGE, isAiCreditsExhausted } from '../modules/ai/callables';
+import { aiCreditsExhaustedMessage, isAiCreditsExhausted } from '../modules/ai/callables';
 import { readFileAsBase64 } from '../modules/ai/documentFile';
 
 import React, { useState, FormEvent, useEffect, useRef, useMemo } from 'react';
@@ -15,11 +15,59 @@ import {
 } from '../types.ts';
 import { CloseIcon, TargetIcon, BriefcaseIcon, BuildingIcon, SparklesIcon, MicrophoneIcon, DynamicIcon } from './Icons.tsx';
 import CatalogCombobox from './CatalogCombobox.tsx';
+import CashAccountSelect from './accounts/CashAccountSelect.tsx';
 import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
 import { useTransactionCatalogOptions } from '../modules/settings-catalog/useTransactionCatalogOptions.ts';
 import SimpleInvestmentForm from '../modules/investments/simple/components/SimpleInvestmentForm.tsx';
-import { useCreateSettingsCatalogItem } from '../modules/settings-catalog/hooks.ts';
+import {
+    useCreateSettingsCatalogItem,
+    useCatalogIntentKey,
+} from '../modules/settings-catalog/hooks.ts';
+import {
+    buildCreateCatalogPayload,
+    categorySubtypeForTransactionType,
+    isSettingsCatalogDuplicateError,
+    settingsCatalogPermissions,
+} from '../modules/settings-catalog/callables.ts';
 import { normalizeSettingsCatalogName } from '../modules/settings-catalog/utils.ts';
+import {
+    CashEntryInputError,
+    cashErrorView,
+    isManualCashEntryCandidate,
+    isPendingCashEntry,
+    REASON_MAX_LENGTH,
+    resolveIntentKey,
+    toConfirmCashPayload,
+    toCreateCashPayload,
+    toUpdateCashPayload,
+    type IntentKey,
+    type ManualEntryForm,
+} from '../modules/transactions/cashEntry.ts';
+import { newIdempotencyKey } from '../modules/workspaces/callables.ts';
+import { formatCents, formatDayKey, saoPauloToday } from '../modules/loans/money.ts';
+import { formatCompetence } from '../modules/cards/cycle.ts';
+import { purchasePreview, toCreateCardPurchasePayload } from '../modules/cards/payloads.ts';
+import { RETROACTIVE_WARNING, cardsErrorView } from '../modules/cards/presentation.ts';
+
+interface SubmitRoute {
+    authoritative: boolean;
+    /** Compra no cartão (P4-A): erro do domínio de cartões. */
+    cardPurchase: boolean;
+}
+
+/**
+ * O produto/serviço digitado não pôde entrar no catálogo (só administradores
+ * cadastram itens novos, ou houve falha de rede). Antes, a falha ficava sem
+ * aviso e o envio parecia não acontecer.
+ */
+class CatalogEntryError extends Error {}
+
+const NOT_EDITABLE_MESSAGE =
+    'Este lançamento é gerado por outro módulo e só pode ser alterado por ele.';
+
+const CATALOG_ENTRY_MESSAGE =
+    'Não foi possível cadastrar este produto ou serviço no catálogo. Escolha um item já cadastrado ' +
+    'ou tente de novo; itens novos só podem ser cadastrados por administradores do espaço.';
 
 interface ExtendedTransactionModalProps extends TransactionModalProps {
     goals?: Goal[];
@@ -36,31 +84,25 @@ interface ExtendedTransactionModalProps extends TransactionModalProps {
 const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
     isOpen,
     onClose,
-    onAddTransaction,
-    onAddTransactions,
     onAddCreditCardPurchase,
-    onUpdateTransaction,
+    onCreateManualTransaction,
+    onUpdateManualTransaction,
+    onConfirmManualTransaction,
     transactionToEdit,
     defaultType,
     allowedTypes = null,
     currentDate,
     creditCards = [],
-    productsServices = [],
-    settingsCategories = [],
-    wallets = [],
-    expenseTypes = [],
-    paymentTypes = [],
-    incomeTypes = [],
-    costCenters = [],
     goals = [],
     transactions = [],
     defaultGoalId = null,
     onInvestmentSuccess,
-    onAddProductService
 }) => {
-    const { activeWorkspace } = useWorkspace();
+    const { activeWorkspace, activeWorkspaceRole } = useWorkspace();
+    const canManageCatalog = settingsCatalogPermissions(activeWorkspaceRole).canManage;
     const isPJ = activeWorkspace.type === 'PJ';
     const createCatalogItemMutation = useCreateSettingsCatalogItem();
+    const catalogIntent = useCatalogIntentKey();
     const modalRef = useRef<HTMLDivElement>(null);
     const titleRef = useRef<HTMLHeadingElement>(null);
     const previousFocusRef = useRef<HTMLElement | null>(null);
@@ -68,6 +110,16 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
 
     const isEditing = !!transactionToEdit;
     const [activeTab, setActiveTab] = useState<TransactionType>('receita');
+    /*
+     * Envio autoritativo (P3-E). `submittingRef` barra o segundo clique antes
+     * do próximo render; `intentRef` guarda a chave da intenção para que o
+     * reenvio do mesmo conteúdo, depois de uma falha, use a mesma chave.
+     */
+    const submittingRef = useRef(false);
+    const intentRef = useRef<IntentKey | null>(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [submitError, setSubmitError] = useState<string | null>(null);
+    const [editReason, setEditReason] = useState('');
     /*
      * Aporte e resgate não são lançamento de transação.
      *
@@ -77,10 +129,9 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
      *
      * A aba "Investimento" existe de novo porque o ponto de entrada é o que a
      * pessoa procura, e ele estava só dentro de Investimentos. O que **não**
-     * voltou é a escrita antiga: a aba não monta `transactionData`, não chama
-     * `onAddTransaction`/`onAddTransactions` e não conhece `transactions`. Ela
-     * monta o mesmo `SimpleInvestmentForm` da tela de Investimentos, cujo
-     * único destino é `createSimpleInvestment`.
+     * voltou é a escrita antiga: a aba não conhece `transactions` (o cliente
+     * não escreve nela, P4-D). Ela monta o mesmo `SimpleInvestmentForm` da
+     * tela de Investimentos, cujo único destino é `createSimpleInvestment`.
      *
      * Só na criação. Editar uma transação continua restrito ao tipo do
      * documento aberto: espelho de investimento não é editável como transação
@@ -116,6 +167,9 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
 
     // New State for Income Logic
     const [incomeType, setIncomeType] = useState('');
+
+    // Conta/carteira do lançamento manual (D-30, P3-J).
+    const [cashAccountId, setCashAccountId] = useState('');
 
     // New States for Advanced Parcelado Logic
     const [selectedCardId, setSelectedCardId] = useState<string>('');
@@ -226,11 +280,6 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
         [catalogOptions.settingsCategories]
     );
 
-    const mergedWallets = useMemo(
-        () => catalogOptions.wallets,
-        [catalogOptions.wallets]
-    );
-
     const mergedExpenseTypes = useMemo(
         () => catalogOptions.expenseTypes,
         [catalogOptions.expenseTypes]
@@ -266,24 +315,24 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
             return existing.name;
         }
 
+        // D-23: só owner/admin cadastram; o backend confere o papel de novo.
+        if (!canManageCatalog) {
+            throw new CatalogEntryError(CATALOG_ENTRY_MESSAGE);
+        }
+
         try {
-            const created = await createCatalogItemMutation.mutateAsync({
+            const payload = buildCreateCatalogPayload(activeWorkspace.id, {
                 group: 'product_service',
                 name: trimmed,
-                workspaceScope: 'both',
-                status: 'active',
+            });
+            await createCatalogItemMutation.mutateAsync({
+                payload,
+                idempotencyKey: catalogIntent.keyFor('createSettingsCatalogItem', payload),
             });
 
-            return created.name;
+            return trimmed;
         } catch (error) {
-            const message =
-                error instanceof Error ? error.message.toLowerCase() : '';
-
-            const duplicateError =
-                message.includes('já existe') ||
-                message.includes('duplicate');
-
-            if (duplicateError) {
+            if (isSettingsCatalogDuplicateError(error)) {
                 const fallbackExisting = mergedProductsServices.find(
                     (item) => normalizeSettingsCatalogName(item.name) === normalized
                 );
@@ -332,206 +381,29 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
         });
     };
 
-    const buildDisplaySnapshots = (
-        resolvedDescription: string,
-    ): TransactionDisplaySnapshots => {
-        const categoryItem = findEntityByName(
-            mergedSettingsCategories,
-            category,
-            activeTab,
-        );
-
-        const expenseTypeItem = findEntityByName(
-            mergedExpenseTypes,
-            expenseType,
-        );
-
-        const incomeTypeItem = findEntityByName(
-            mergedIncomeTypes,
-            incomeType,
-        );
-
-        const paymentMethodItem = findEntityByName(
-            mergedPaymentTypes,
-            paymentMethod,
-        );
-
-        const productServiceItem = findEntityByName(
-            mergedProductsServices,
-            resolvedDescription,
-        );
-
-        const costCenterItem = findEntityByName(
-            mergedCostCenters,
-            costCenter,
-        );
-
-        return {
-            categorySnapshot: buildSnapshotFromEntityItem('category', categoryItem),
-            expenseTypeSnapshot: buildSnapshotFromEntityItem(
-                'expense_type',
-                expenseTypeItem,
-            ),
-            incomeTypeSnapshot: buildSnapshotFromEntityItem(
-                'income_type',
-                incomeTypeItem,
-            ),
-            paymentMethodSnapshot: buildSnapshotFromEntityItem(
-                'payment_method',
-                paymentMethodItem,
-            ),
-            productServiceSnapshot: buildSnapshotFromEntityItem(
-                'product_service',
-                productServiceItem,
-            ),
-            costCenterSnapshot: buildSnapshotFromEntityItem(
-                'cost_center',
-                costCenterItem,
-            ),
-        };
-    };
-
-    const normalizeMoney = (amount: number): number =>
-        Math.round((amount + Number.EPSILON) * 100) / 100;
-
-    const formatCurrency = (amount: number): string =>
-        amount.toLocaleString('pt-BR', {
-            style: 'currency',
-            currency: 'BRL',
-        });
-
-    const padDatePart = (value: number): string => String(value).padStart(2, '0');
-
-    const lastDayOfMonth = (year: number, monthIndex: number): number =>
-        new Date(Date.UTC(year, monthIndex + 1, 0)).getUTCDate();
-
-    const parseIsoDateParts = (
-        value: string,
-    ): { year: number; monthIndex: number; day: number } | null => {
-        const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
-
-        if (!match) return null;
-
-        const year = Number(match[1]);
-        const month = Number(match[2]);
-        const day = Number(match[3]);
-        const monthIndex = month - 1;
-        const lastDay = lastDayOfMonth(year, monthIndex);
-
-        if (month < 1 || month > 12 || day < 1 || day > lastDay) {
-            return null;
-        }
-
-        return { year, monthIndex, day };
-    };
-
-    const formatCompetenceMonth = (year: number, monthIndex: number): string => {
-        const date = new Date(Date.UTC(year, monthIndex, 1));
-
-        return `${date.getUTCFullYear()}-${padDatePart(date.getUTCMonth() + 1)}`;
-    };
-
-    const addMonthsToCompetence = (
-        competenceMonth: string,
-        months: number,
-    ): string => {
-        const [year, month] = competenceMonth.split('-').map(Number);
-
-        return formatCompetenceMonth(year, month - 1 + months);
-    };
-
-    const formatDateWithSafeDay = (
-        competenceMonth: string,
-        day: number,
-    ): string => {
-        const [year, month] = competenceMonth.split('-').map(Number);
-        const monthIndex = month - 1;
-        const safeDay = Math.min(day, lastDayOfMonth(year, monthIndex));
-
-        return `${year}-${padDatePart(month)}-${padDatePart(safeDay)}`;
-    };
-
-    const calculateFirstInvoiceCompetence = (
-        date: string,
-        closingDay: number,
-    ): string | null => {
-        const parts = parseIsoDateParts(date);
-
-        if (!parts) return null;
-
-        const baseCompetence = formatCompetenceMonth(parts.year, parts.monthIndex);
-
-        return parts.day > closingDay
-            ? addMonthsToCompetence(baseCompetence, 1)
-            : baseCompetence;
-    };
-
-    const getAvailableLimitForCard = (card: CreditCard): number => {
-        if (typeof card.limitAvailable === 'number') {
-            return normalizeMoney(card.limitAvailable);
-        }
-
-        if (typeof card.limitUsed === 'number') {
-            return normalizeMoney(Math.max(card.limitTotal - card.limitUsed, 0));
-        }
-
-        return normalizeMoney(card.limitTotal);
-    };
-
     const selectedCreditCardForPurchase = useMemo(
         () => creditCards.find((card) => String(card.id) === selectedCardId),
         [creditCards, selectedCardId],
     );
 
+    /*
+     * Prévia da compra no cartão (P4-A), em centavos: total exato, parcelas
+     * pelo maior resto, primeira fatura pela regra D-36 (data de fatura já
+     * fechada vai para a primeira aberta) e o limite disponível autoritativo.
+     * Só exibe: quem decide é o backend.
+     */
     const creditCardPurchasePreview = useMemo(() => {
         if (activeTab !== 'parcelado' || !selectedCreditCardForPurchase) {
             return null;
         }
-
-        const parsedInstallments = Number.parseInt(installments, 10);
-        const parsedAmount = Number(value);
-
-        if (
-            !Number.isFinite(parsedInstallments) ||
-            parsedInstallments < 1 ||
-            !Number.isFinite(parsedAmount) ||
-            parsedAmount <= 0
-        ) {
-            return null;
-        }
-
-        const totalAmount = normalizeMoney(
-            valueType === 'total'
-                ? parsedAmount
-                : parsedAmount * parsedInstallments,
-        );
-        const installmentAmount = normalizeMoney(totalAmount / parsedInstallments);
-        const firstInvoiceCompetence = calculateFirstInvoiceCompetence(
+        return purchasePreview({
+            card: selectedCreditCardForPurchase,
+            value,
+            installments,
+            valueType,
             purchaseDate,
-            selectedCreditCardForPurchase.closingDay,
-        );
-
-        if (!firstInvoiceCompetence) {
-            return null;
-        }
-
-        const firstInvoiceDueDate = formatDateWithSafeDay(
-            firstInvoiceCompetence,
-            selectedCreditCardForPurchase.dueDay,
-        );
-        const availableLimit = getAvailableLimitForCard(selectedCreditCardForPurchase);
-        const limitAfterPurchase = normalizeMoney(availableLimit - totalAmount);
-
-        return {
-            totalAmount,
-            installmentAmount,
-            installmentsCount: parsedInstallments,
-            firstInvoiceCompetence,
-            firstInvoiceDueDate,
-            availableLimit,
-            limitAfterPurchase,
-            isLimitInsufficient: limitAfterPurchase < 0,
-        };
+            today: saoPauloToday(),
+        });
     }, [
         activeTab,
         selectedCreditCardForPurchase,
@@ -554,12 +426,21 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
 
 
     // Helper to get category options filtered by active tab type
+    // A aba Parcelado é compra no cartão: usa as categorias de despesa (D-23).
     const getCategoryOptions = (type: TransactionType) => {
-        return mergedSettingsCategories.filter((c) => c.type === type);
+        const subtype = categorySubtypeForTransactionType(type);
+        return mergedSettingsCategories.filter((c) => c.type === subtype);
     };
 
     useEffect(() => {
         if (!isOpen) return;
+
+        // Cada abertura é uma intenção nova.
+        intentRef.current = null;
+        submittingRef.current = false;
+        setIsSubmitting(false);
+        setSubmitError(null);
+        setEditReason('');
 
         if (isEditing) {
             setActiveTab(transactionToEdit.type);
@@ -571,7 +452,10 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
             if (transactionToEdit.expenseType) setExpenseType(transactionToEdit.expenseType);
             if (transactionToEdit.paymentMethod) setPaymentMethod(transactionToEdit.paymentMethod);
             if (transactionToEdit.incomeType) setIncomeType(transactionToEdit.incomeType);
-            if (transactionToEdit.isPaid !== undefined) setIsPaid(transactionToEdit.isPaid);
+            // Todo produtor grava `isPaid`; só `false` é pendente.
+            setIsPaid(transactionToEdit.isPaid !== false);
+            // Conta do lançamento; sem conta preenchida, a escolha é explícita.
+            setCashAccountId(transactionToEdit.cashAccountId ?? '');
             if (transactionToEdit.cardId) setSelectedCardId(String(transactionToEdit.cardId));
 
             // Set PJ Fields
@@ -600,6 +484,7 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
             setPaymentMethod('');
             setSelectedCardId('');
             setValueType('total');
+            setCashAccountId('');
         }
     }, [
         isOpen,
@@ -681,7 +566,7 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
     // Créditos de IA esgotados (P2B.2) têm mensagem própria, mais longa.
     const showAIError = (error: unknown, fallback: string) => {
         const exhausted = isAiCreditsExhausted(error);
-        setAIStatus(exhausted ? AI_CREDITS_EXHAUSTED_MESSAGE : fallback);
+        setAIStatus(exhausted ? aiCreditsExhaustedMessage(error) : fallback);
         setTimeout(() => setAIStatus(null), exhausted ? 6000 : 3000);
     };
 
@@ -780,160 +665,173 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
 
     if (!isOpen) return null;
 
-    const buildCreditCardPurchaseIdempotencyKey = (): string => {
-        const randomPart = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
-
-        return `manual-credit-card-purchase-${randomPart}`;
-    };
+    /*
+     * Operações pela callable autoritativa (P3-E, P3-F): receita ou despesa
+     * manual, pendente ou confirmada, sem vínculo com outro domínio.
+     * - pendente marcado como pago/recebido: confirmação (data efetiva e valor
+     *   liquidado; vencimento preservado), sem motivo;
+     * - pendente que segue pendente, ou confirmado que segue confirmado:
+     *   correção, com motivo (D-35);
+     * - confirmado não volta a pendente.
+     */
+    const editRoutesToCash = isEditing && !!transactionToEdit &&
+        (activeTab === 'receita' || activeTab === 'despesa') &&
+        isManualCashEntryCandidate(transactionToEdit);
+    const storedPending = editRoutesToCash && isPendingCashEntry(transactionToEdit);
+    const confirmingPending = storedPending && isPaid;
 
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
 
         /*
          * Guarda de contrato. O formulário comum nem chega a ser renderizado na
-         * aba de investimento, mas nenhum caminho pode terminar em
-         * `onAddTransaction` com o tipo que o backend escreve sozinho.
+         * aba de investimento: o aporte é só do `SimpleInvestmentForm`.
          */
         if (activeTab === 'investimento') return;
+        // Segundo clique durante o envio: ignorado.
+        if (submittingRef.current) return;
+        submittingRef.current = true;
+        setIsSubmitting(true);
+        setSubmitError(null);
+        const route: SubmitRoute = { authoritative: false, cardPurchase: false };
+        try {
+            await submitTransaction(route);
+        } catch (error) {
+            // Caminho autoritativo: o erro fica no modal, que segue aberto para
+            // revisar ou reenviar o mesmo conteúdo (com a mesma chave). Nos
+            // demais caminhos o `App` já avisou.
+            if (error instanceof CatalogEntryError) setSubmitError(error.message);
+            else if (route.cardPurchase) setSubmitError(cardsErrorView(error).message);
+            else if (route.authoritative) setSubmitError(cashErrorView(error).message);
+        } finally {
+            submittingRef.current = false;
+            setIsSubmitting(false);
+        }
+    };
 
+    const submitTransaction = async (route: SubmitRoute) => {
         let resolvedDescription = description;
 
         if (activeTab === 'despesa' || activeTab === 'parcelado') {
-            resolvedDescription = await ensureProductServiceValue(description);
+            try {
+                resolvedDescription = await ensureProductServiceValue(description);
+            } catch {
+                throw new CatalogEntryError(CATALOG_ENTRY_MESSAGE);
+            }
             setDescription(resolvedDescription);
         }
 
-        const displaySnapshots = buildDisplaySnapshots(resolvedDescription);
-
         if (activeTab === 'parcelado' && !isEditing) {
-            const card = creditCards.find(c => String(c.id) === selectedCardId);
-
-            if (!card) {
-                alert("Selecione um cartão válido.");
-                return;
+            /*
+             * Compra manual no cartão (P4-A): só a callable
+             * `createCreditCardPurchase`. Nenhum lançamento `parcelado` é
+             * criado aqui e não há caminho alternativo. O valor total vai em
+             * centavos; parcelas, faturas, origem e limite são do backend. A
+             * chave é da intenção: o mesmo conteúdo reenviado depois de uma
+             * falha ou resposta incerta reusa a chave.
+             */
+            route.authoritative = true;
+            route.cardPurchase = true;
+            if (!onAddCreditCardPurchase) {
+                throw new Error('Compra no cartão indisponível neste contexto.');
             }
-
-            const totalInstallments = parseInt(installments, 10);
-            const inputVal = parseFloat(value);
-
-            if (!Number.isFinite(totalInstallments) || totalInstallments < 1) {
-                alert("Informe uma quantidade válida de parcelas.");
-                return;
-            }
-
-            if (!Number.isFinite(inputVal) || inputVal <= 0) {
-                alert("Informe um valor válido para a compra.");
-                return;
-            }
-
-            const purchaseTotalAmount = normalizeMoney(
-                valueType === 'total'
-                    ? inputVal
-                    : inputVal * totalInstallments,
+            const payload = toCreateCardPurchasePayload({
+                cardId: selectedCardId,
+                description: resolvedDescription,
+                category: category || 'Sem categoria',
+                supplier: isPJ ? supplier : undefined,
+                costCenter: isPJ ? costCenter : undefined,
+                purchaseDate,
+                value,
+                installments,
+                valueType,
+            }, activeWorkspace.id);
+            const intent = resolveIntentKey(
+                intentRef.current, 'createCreditCardPurchase', payload, newIdempotencyKey,
             );
-            const availableLimit = getAvailableLimitForCard(card);
-
-            if (purchaseTotalAmount > availableLimit) {
-                alert("Limite disponível insuficiente para esta compra.");
-                return;
-            }
-
-            if (onAddCreditCardPurchase) {
-                await onAddCreditCardPurchase({
-                    cardId: String(card.id),
-                    description: resolvedDescription,
-                    categorySnapshot: {
-                        label: category || 'Sem categoria',
-                        normalizedLabel: (category || 'Sem categoria').trim().toLowerCase(),
-                    },
-                    supplier: isPJ ? supplier : undefined,
-                    costCenter: isPJ ? costCenter : undefined,
-                    purchaseDate,
-                    totalAmount: inputVal,
-                    installmentsCount: totalInstallments,
-                    amountType: valueType,
-                    source: 'manual',
-                    idempotencyKey: buildCreditCardPurchaseIdempotencyKey(),
-                    correlationId: 'transaction-modal-credit-card-purchase',
-                });
-
-                onClose();
-                return;
-            }
-
-            if (onAddTransactions) {
-                const finalTotal = valueType === 'total' ? inputVal : inputVal * totalInstallments;
-                const installmentValue = valueType === 'total'
-                    ? parseFloat((inputVal / totalInstallments).toFixed(2))
-                    : inputVal;
-
-                const pDate = new Date(purchaseDate);
-                const startMonthOffset = pDate.getDate() > card.closingDay ? 1 : 0;
-                const newTransactions: Omit<Transaction, 'id'>[] = [];
-                const remainder = valueType === 'total'
-                    ? parseFloat((finalTotal - (installmentValue * totalInstallments)).toFixed(2))
-                    : 0;
-
-                for (let i = 0; i < totalInstallments; i++) {
-                    const isLast = i === totalInstallments - 1;
-                    const currentVal = isLast
-                        ? parseFloat((installmentValue + remainder).toFixed(2))
-                        : installmentValue;
-                    const dueDate = new Date(
-                        pDate.getFullYear(),
-                        pDate.getMonth() + startMonthOffset + i,
-                        card.dueDay
-                    );
-
-                    newTransactions.push({
-                        type: 'parcelado',
-                        displaySnapshots,
-                        description: resolvedDescription,
-                        category,
-                        value: currentVal,
-                        date: dueDate.toISOString().split('T')[0],
-                        installments: totalInstallments,
-                        currentInstallment: i + 1,
-                        cardId: card.id,
-                        isPaid: false,
-                        supplier: isPJ ? supplier : undefined,
-                        costCenter: isPJ ? costCenter : undefined
-                    });
-                }
-
-                onAddTransactions(newTransactions);
-                onClose();
-                return;
-            }
+            intentRef.current = intent;
+            await onAddCreditCardPurchase(payload, intent.key);
+            intentRef.current = null;
+            onClose();
+            return;
         }
 
-        const transactionData: any = {
-            type: activeTab,
+        // P4-C (PR-TX-06): parcela e cartão nunca vão para `transactions` — a
+        // compra parcelada é do domínio de cartões (callable acima).
+        const isManualTab = activeTab === 'receita' || activeTab === 'despesa';
+        const manualForm: ManualEntryForm = {
+            type: activeTab === 'receita' ? 'receita' : 'despesa',
             description: resolvedDescription,
             category,
-            value: parseFloat(value),
+            amount: value,
             date,
+            incomeType,
+            expenseType,
+            paymentMethod,
             supplier: isPJ ? supplier : undefined,
             costCenter: isPJ ? costCenter : undefined,
-            displaySnapshots,
+            isPaid,
+            cashAccountId,
         };
 
-        if (activeTab === 'parcelado') {
-            transactionData.installments = parseInt(installments, 10);
-            transactionData.currentInstallment = isEditing ? transactionToEdit.currentInstallment : 1;
-            if (selectedCardId) transactionData.cardId = selectedCardId;
+        if (isEditing) {
+            if (editRoutesToCash && !storedPending && !isPaid) {
+                // Confirmado não volta a pendente (D-29).
+                route.authoritative = true;
+                throw new CashEntryInputError(
+                    'Este lançamento já está confirmado e não pode voltar a pendente por aqui.',
+                );
+            }
+            if (confirmingPending) {
+                route.authoritative = true;
+                const payload = toConfirmCashPayload(manualForm, {
+                    workspaceId: activeWorkspace.id,
+                    isPJ,
+                    transactionId: String(transactionToEdit.id),
+                    updatedAt: transactionToEdit.updatedAt,
+                    stored: transactionToEdit as unknown as Record<string, unknown>,
+                });
+                const intent = resolveIntentKey(
+                    intentRef.current, 'confirmCashTransaction', payload, newIdempotencyKey,
+                );
+                intentRef.current = intent;
+                await onConfirmManualTransaction(payload, intent.key);
+            } else if (editRoutesToCash) {
+                route.authoritative = true;
+                const payload = toUpdateCashPayload(manualForm, {
+                    workspaceId: activeWorkspace.id,
+                    isPJ,
+                    transactionId: String(transactionToEdit.id),
+                    updatedAt: transactionToEdit.updatedAt,
+                    reason: editReason,
+                });
+                const intent = resolveIntentKey(
+                    intentRef.current, 'updateCashTransaction', payload, newIdempotencyKey,
+                );
+                intentRef.current = intent;
+                await onUpdateManualTransaction(payload, intent.key);
+            } else {
+                // P4-D: lançamento de outro módulo não é editável aqui, e não
+                // existe escrita direta em `transactions` como alternativa.
+                route.authoritative = true;
+                throw new CashEntryInputError(NOT_EDITABLE_MESSAGE);
+            }
+        } else if (isManualTab) {
+            // Confirmado ou pendente/agendado (D-29): sempre pela callable.
+            route.authoritative = true;
+            const payload = toCreateCashPayload(manualForm, {
+                workspaceId: activeWorkspace.id,
+                isPJ,
+            });
+            const intent = resolveIntentKey(
+                intentRef.current, 'createCashTransaction', payload, newIdempotencyKey,
+            );
+            intentRef.current = intent;
+            await onCreateManualTransaction(payload, intent.key);
+        } else {
+            route.authoritative = true;
+            throw new CashEntryInputError(NOT_EDITABLE_MESSAGE);
         }
-
-        if (activeTab === 'despesa') {
-            transactionData.expenseType = expenseType;
-            transactionData.paymentMethod = paymentMethod;
-            transactionData.isPaid = isPaid;
-        }
-
-        if (activeTab === 'receita') transactionData.incomeType = incomeType;
-
-        if (isEditing) await onUpdateTransaction({ ...transactionToEdit, ...transactionData });
-        else await onAddTransaction(transactionData as Omit<Transaction, 'id'>);
 
         onClose();
     };
@@ -1027,6 +925,43 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
         );
     };
 
+    /*
+     * Na confirmação de um pendente, a data do formulário passa a ser a data
+     * efetiva; o vencimento continua registrado e é mostrado aqui, para não
+     * confundir os dois (D-29).
+     */
+    /*
+     * Conta/carteira (D-30, P3-J): só no fluxo das callables de caixa — novo
+     * lançamento manual ou correção/confirmação de um elegível. Na criação, a
+     * primeira conta ativa já vem escolhida; sem conta preenchida, a escolha é
+     * explícita (o formulário nunca supõe uma conta).
+     */
+    const showAccountField = !isEditing || editRoutesToCash;
+    const renderAccountField = (fieldId: string) => (showAccountField ? (
+        <CashAccountSelect
+            id={fieldId}
+            label="Conta/carteira"
+            requiredMark={<> <span className="text-red-500">*</span></>}
+            value={cashAccountId}
+            onChange={setCashAccountId}
+            autoSelect={!isEditing}
+            labelClassName="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+            selectClassName={commonInputClasses}
+            hintClassName="text-xs text-gray-500 dark:text-gray-400 mt-1"
+        />
+    ) : null);
+
+    const renderDueDateHint = (verb: 'paga' | 'recebida') => {
+        const dueDate = transactionToEdit?.dueDate ?? transactionToEdit?.date;
+        if (!confirmingPending || !dueDate) return null;
+        const [year, month, day] = dueDate.split('-');
+        return (
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                Vencimento: {day}/{month}/{year}. Informe a data em que foi {verb}.
+            </p>
+        );
+    };
+
     const renderFields = () => {
         const currentCategoryOptions = getCategoryOptions(activeTab);
 
@@ -1083,7 +1018,7 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
                         </div>
 
                         {creditCardPurchasePreview && (
-                            <div className={`mt-3 rounded-lg border p-3 text-xs ${creditCardPurchasePreview.isLimitInsufficient
+                            <div data-testid="card-purchase-preview" className={`mt-3 rounded-lg border p-3 text-xs ${creditCardPurchasePreview.insufficientLimit
                                 ? 'border-red-300 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-300'
                                 : 'border-indigo-200 bg-indigo-50 text-indigo-700 dark:border-indigo-800 dark:bg-indigo-900/20 dark:text-indigo-300'
                                 }`}>
@@ -1094,43 +1029,48 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                     <div>
                                         <p className="opacity-75">Primeira fatura</p>
-                                        <p className="font-bold">{creditCardPurchasePreview.firstInvoiceCompetence}</p>
+                                        <p className="font-bold">{formatCompetence(creditCardPurchasePreview.firstCompetence)}</p>
                                     </div>
 
                                     <div>
                                         <p className="opacity-75">Vencimento previsto</p>
                                         <p className="font-bold">
-                                            {new Date(`${creditCardPurchasePreview.firstInvoiceDueDate}T12:00:00`).toLocaleDateString('pt-BR')}
+                                            {formatDayKey(creditCardPurchasePreview.firstDueDate)}
                                         </p>
                                     </div>
 
                                     <div>
                                         <p className="opacity-75">Valor total da compra</p>
-                                        <p className="font-bold">{formatCurrency(creditCardPurchasePreview.totalAmount)}</p>
+                                        <p className="font-bold">{formatCents(creditCardPurchasePreview.totalCents)}</p>
                                     </div>
 
                                     <div>
-                                        <p className="opacity-75">Valor médio da parcela</p>
+                                        <p className="opacity-75">Valor da parcela</p>
                                         <p className="font-bold">
-                                            {formatCurrency(creditCardPurchasePreview.installmentAmount)}
-                                            {' '}
-                                            em {creditCardPurchasePreview.installmentsCount}x
+                                            {creditCardPurchasePreview.firstInstallmentCents === creditCardPurchasePreview.otherInstallmentCents
+                                                ? `${formatCents(creditCardPurchasePreview.firstInstallmentCents)} em ${creditCardPurchasePreview.installmentsCount}x`
+                                                : `${formatCents(creditCardPurchasePreview.firstInstallmentCents)} na 1ª e ${formatCents(creditCardPurchasePreview.otherInstallmentCents)} nas demais (${creditCardPurchasePreview.installmentsCount}x)`}
                                         </p>
                                     </div>
 
                                     <div>
                                         <p className="opacity-75">Limite disponível atual</p>
-                                        <p className="font-bold">{formatCurrency(creditCardPurchasePreview.availableLimit)}</p>
+                                        <p className="font-bold">{formatCents(creditCardPurchasePreview.availableCents)}</p>
                                     </div>
 
                                     <div>
                                         <p className="opacity-75">Limite após a compra</p>
-                                        <p className="font-bold">{formatCurrency(creditCardPurchasePreview.limitAfterPurchase)}</p>
+                                        <p className="font-bold">{formatCents(creditCardPurchasePreview.availableAfterCents)}</p>
                                     </div>
                                 </div>
 
+                                {creditCardPurchasePreview.retroactiveTarget && (
+                                    <p className="mt-2 font-medium" data-testid="card-purchase-retroactive-warning">
+                                        {RETROACTIVE_WARNING(creditCardPurchasePreview.retroactiveTarget)}
+                                    </p>
+                                )}
                                 <p className="mt-2 font-medium">
-                                    {creditCardPurchasePreview.isLimitInsufficient
+                                    {creditCardPurchasePreview.insufficientLimit
                                         ? 'Limite insuficiente para esta compra.'
                                         : 'A compra consome limite agora. O caixa só será afetado no pagamento da fatura.'}
                                 </p>
@@ -1180,11 +1120,33 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
                         </label>
                         <input type="text" value={description} onChange={e => setDescription(e.target.value)} className={commonInputClasses} placeholder="Ex: Cliente XYZ, Reembolso Empresa..." required />
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            Data de Recebimento <span className="text-red-500">*</span>
+                    {/*
+                      D-29 (P3-F): receita recebida (data efetiva, até hoje) ou a
+                      receber (vencimento, inclusive futuro). Mesmo padrão do
+                      bloco "Essa despesa já foi paga?".
+                    */}
+                    {renderAccountField('transaction-income-account')}
+                    <div className="bg-gray-50 dark:bg-dark-200 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                        <label id="transaction-income-settled" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Essa receita já foi recebida?
                         </label>
-                        <input type="date" value={date} onChange={e => setDate(e.target.value)} className={commonInputClasses} required />
+                        <div role="radiogroup" aria-labelledby="transaction-income-settled" className="flex gap-4 mb-3">
+                            <label className="flex items-center cursor-pointer">
+                                <input type="radio" name="isReceived" checked={isPaid === true} onChange={() => setIsPaid(true)} className="mr-2 text-green-600 focus:ring-green-500" />
+                                <span className="text-gray-700 dark:text-gray-300">Sim</span>
+                            </label>
+                            <label className="flex items-center cursor-pointer">
+                                <input type="radio" name="isReceived" checked={isPaid === false} onChange={() => setIsPaid(false)} className="mr-2 text-green-600 focus:ring-green-500" />
+                                <span className="text-gray-700 dark:text-gray-300">Não</span>
+                            </label>
+                        </div>
+                        <div>
+                            <label htmlFor="transaction-income-date" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 animate-fade-in">
+                                {isPaid ? 'Quando foi recebida?' : 'Quando deve ser recebida?'} <span className="text-red-500">*</span>
+                            </label>
+                            <input id="transaction-income-date" type="date" value={date} onChange={e => setDate(e.target.value)} className={commonInputClasses} required />
+                            {renderDueDateHint('recebida')}
+                        </div>
                     </div>
                 </>
             );
@@ -1249,11 +1211,12 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
                             ))}
                         </select>
                     </div>
+                    {renderAccountField('transaction-expense-account')}
                     <div className="bg-gray-50 dark:bg-dark-200 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        <label id="transaction-expense-settled" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                             Essa despesa já foi paga?
                         </label>
-                        <div className="flex gap-4 mb-3">
+                        <div role="radiogroup" aria-labelledby="transaction-expense-settled" className="flex gap-4 mb-3">
                             <label className="flex items-center cursor-pointer">
                                 <input type="radio" name="isPaid" checked={isPaid === true} onChange={() => setIsPaid(true)} className="mr-2 text-red-600 focus:ring-red-500" />
                                 <span className="text-gray-700 dark:text-gray-300">Sim</span>
@@ -1264,10 +1227,11 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
                             </label>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 animate-fade-in">
+                            <label htmlFor="transaction-expense-date" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 animate-fade-in">
                                 {isPaid ? 'Quando foi pago?' : 'Quando deve ser pago?'} <span className="text-red-500">*</span>
                             </label>
-                            <input type="date" value={date} onChange={e => setDate(e.target.value)} className={commonInputClasses} required />
+                            <input id="transaction-expense-date" type="date" value={date} onChange={e => setDate(e.target.value)} className={commonInputClasses} required />
+                            {renderDueDateHint('paga')}
                         </div>
                     </div>
                 </>
@@ -1305,7 +1269,7 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
                                 <span className="text-xs font-bold text-indigo-700 dark:text-indigo-300 uppercase tracking-widest">Assistente de Preenchimento IA</span>
                             </div>
                             {aiStatus && (
-                                <span className="text-[10px] bg-indigo-600 text-white px-2 py-0.5 rounded-full animate-pulse">{aiStatus}</span>
+                                <span role="status" aria-live="polite" className="text-[10px] bg-indigo-600 text-white px-2 py-0.5 rounded-full animate-pulse">{aiStatus}</span>
                             )}
                         </div>
                         <div className="flex gap-2">
@@ -1407,10 +1371,33 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
                         <form onSubmit={handleSubmit}>
                             <div className="space-y-4">
                                 {renderFields()}
+                                {editRoutesToCash && !confirmingPending && (
+                                    <div>
+                                        <label htmlFor="transaction-edit-reason" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                            Motivo da correção <span className="text-red-500">*</span>
+                                        </label>
+                                        <textarea
+                                            id="transaction-edit-reason"
+                                            value={editReason}
+                                            onChange={(event) => setEditReason(event.target.value)}
+                                            maxLength={REASON_MAX_LENGTH}
+                                            rows={2}
+                                            required
+                                            className={commonInputClasses}
+                                        />
+                                    </div>
+                                )}
                             </div>
+                            {submitError && (
+                                <p role="alert" className="mt-4 text-sm text-red-600 dark:text-red-400">
+                                    {submitError}
+                                </p>
+                            )}
                             <div className="mt-6">
-                                <button type="submit" className={`w-full disabled:opacity-60 text-white font-medium py-3 px-4 rounded-lg shadow-md transition-colors duration-200 ${buttonClasses[activeTab]}`}>
-                                    {isEditing
+                                <button type="submit" disabled={isSubmitting} aria-busy={isSubmitting} className={`w-full disabled:opacity-60 text-white font-medium py-3 px-4 rounded-lg shadow-md transition-colors duration-200 ${buttonClasses[activeTab]}`}>
+                                    {confirmingPending
+                                        ? (activeTab === 'receita' ? 'Confirmar recebimento' : 'Confirmar pagamento')
+                                        : isEditing
                                         ? 'Salvar Alterações'
                                         : `Revisar e Adicionar ${activeTab === 'receita' ? 'Receita' : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}`}
                                 </button>

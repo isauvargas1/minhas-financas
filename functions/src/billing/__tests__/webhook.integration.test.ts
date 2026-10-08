@@ -1,9 +1,12 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import test, {mock} from "node:test";
+
+// Módulo cru, para o mock substituir `write` onde o logger do kernel o procura.
+import functionsLogger = require("firebase-functions/logger");
 
 import {db, uniqueId} from "../../workspaces/testSupport/p1TestSupport";
 import {stripeWebhook} from "../../webhooks/stripe";
-import {processStripeWebhook} from "../webhook";
+import {MAX_WEBHOOK_BODY_BYTES, processStripeWebhook} from "../webhook";
 import {signedStripeEvent} from "../testSupport/fakeStripe";
 import {
   billingAccount,
@@ -11,6 +14,7 @@ import {
   billingHarness,
   invoiceEventObject,
   reconciliationLease,
+  recordingLogger,
   subscribedUser,
   subscriptionEventObject,
   type BillingHarness,
@@ -467,3 +471,139 @@ test("falha transitória do Stripe responde 500 e o reenvio " +
   assert.equal((await receipt(signed.id))?.status, "processed");
   assert.equal((await billingAccount(user.uid)).planId, "free");
 });
+
+// ------------------------------------------------------------- sinais (P2C)
+
+test("corpo acima do limite é recusado com 413 antes da assinatura",
+  async () => {
+    const harness = billingHarness();
+    const {logger, entries} = recordingLogger();
+    const response = await processStripeWebhook(
+      {...harness.webhookDeps, log: logger},
+      {
+        method: "POST",
+        rawBody: Buffer.alloc(MAX_WEBHOOK_BODY_BYTES + 1, 0x20),
+        signature: "t=1,v1=forjada",
+      },
+    );
+    assert.equal(response.status, 413);
+    assert.equal(harness.stripe.calls.length, 0);
+    assert.deepEqual(entries.map((entry) => [entry.level, entry.event]),
+      [["warn", "billing_webhook.body_too_large"]]);
+    assert.equal(entries[0].fields.bytes, MAX_WEBHOOK_BODY_BYTES + 1);
+  });
+
+test("falha da entrega registra código estável e correlação, sem payload; " +
+  "o reenvio registra o processamento", async () => {
+  const harness = billingHarness();
+  const user = await subscribedUser(harness);
+  harness.stripe.updateSubscription(user.subscriptionId, {status: "canceled"});
+  harness.stripe.failNext.add("listSubscriptions");
+  const signed = signedStripeEvent(harness.webhookDeps.webhookSecret, {
+    type: "customer.subscription.deleted",
+    object: subscriptionEventObject(user.subscriptionId, user.customerId,
+      user.uid, "canceled"),
+  });
+  const request = {
+    method: "POST", rawBody: signed.rawBody, signature: signed.signature,
+  };
+  const {logger, entries} = recordingLogger();
+  const deps = {...harness.webhookDeps, log: logger};
+  assert.equal((await processStripeWebhook(deps, request)).status, 500);
+  const failed = entries.find((entry) =>
+    entry.event === "billing_webhook.failed");
+  assert.ok(failed, "billing_webhook.failed registrado");
+  assert.equal(failed.level, "error");
+  assert.equal(failed.hasError, true);
+  assert.equal(failed.fields.errorCode, "internal");
+  assert.equal(failed.fields.outcome, "error");
+  assert.equal(typeof failed.fields.durationMs, "number");
+  assert.equal(failed.fields.stripeEventId, signed.id);
+  assert.equal(failed.fields.stripeEventType, "customer.subscription.deleted");
+
+  assert.equal((await processStripeWebhook(deps, request)).status, 200);
+  const processed = entries.find((entry) =>
+    entry.event === "billing_webhook.processed");
+  assert.ok(processed, "billing_webhook.processed registrado");
+  assert.equal(processed.fields.stripeEventId, signed.id);
+  assert.equal(typeof processed.fields.durationMs, "number");
+
+  // A trilha do efeito carrega o id do evento que o causou.
+  const trail = await billingEvents(user.uid, "subscription.canceled");
+  assert.ok(trail.length > 0, "trilha do cancelamento");
+  for (const event of trail) assert.equal(event.stripeEventId, signed.id);
+
+  // Nenhum sinal carrega o corpo do evento, ids do Stripe além do evento ou
+  // o segredo do endpoint.
+  const serialized = JSON.stringify(entries);
+  assert.equal(serialized.includes(user.customerId), false, "customer no log");
+  assert.equal(serialized.includes(user.subscriptionId), false,
+    "assinatura no log");
+  assert.doesNotMatch(serialized, /whsec_|sk_test_|rawBody/);
+});
+
+test("endpoint real sem segredo registra billing.config_missing só com " +
+  "nomes", async () => {
+  const harness = billingHarness();
+  const signed = signedStripeEvent(harness.webhookDeps.webhookSecret, {
+    type: "invoice.paid",
+    object: {id: "in_x", object: "invoice"},
+  });
+  const res = {
+    status() {
+      return res;
+    },
+    json() {
+      return res;
+    },
+  };
+  const written: Array<Record<string, unknown>> = [];
+  const spy = mock.method(functionsLogger, "write",
+    (entry: Record<string, unknown>) => {
+      written.push(entry);
+    });
+  try {
+    await (stripeWebhook as unknown as (req: unknown, res: unknown) =>
+      Promise<void>)({
+      method: "POST",
+      headers: {"stripe-signature": signed.signature},
+      rawBody: signed.rawBody,
+    }, res);
+  } finally {
+    spy.mock.restore();
+  }
+  const missing = written.find((entry) =>
+    entry.event === "billing.config_missing");
+  assert.ok(missing, "billing.config_missing registrado");
+  assert.equal(missing.severity, "ERROR");
+  assert.equal(missing.operation, "stripeWebhook");
+  assert.equal(typeof missing.requestId, "string");
+  // Só os nomes do que falta, nunca valores.
+  assert.match(String(missing.names), /STRIPE_SECRET_KEY/);
+  assert.doesNotMatch(JSON.stringify(written), /whsec_|sk_test_|sk_live_/);
+});
+
+test("decisão tomada na transação gera um único sinal, depois do commit",
+  async () => {
+    const harness = billingHarness();
+    const {logger, entries} = recordingLogger();
+    const signed = signedStripeEvent(harness.webhookDeps.webhookSecret, {
+      type: "customer.subscription.updated",
+      object: {id: "sub_desconhecida", object: "subscription",
+        customer: `cus_${uniqueId("desconhecido")}`},
+    });
+    const response = await processStripeWebhook(
+      {...harness.webhookDeps, log: logger},
+      {method: "POST", rawBody: signed.rawBody, signature: signed.signature},
+    );
+    assert.equal(response.status, 200);
+    assert.equal((await receipt(signed.id))?.outcome, "rejected");
+    const unknown = entries.filter((entry) =>
+      entry.event === "billing_webhook.unknown_customer");
+    assert.equal(unknown.length, 1);
+    assert.equal(unknown[0].fields.stripeEventId, signed.id);
+    // O sinal sai depois do commit: antes do `processed` da entrega.
+    const order = entries.map((entry) => entry.event);
+    assert.ok(order.indexOf("billing_webhook.unknown_customer") <
+      order.indexOf("billing_webhook.processed"));
+  });

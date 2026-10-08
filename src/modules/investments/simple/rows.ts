@@ -57,11 +57,8 @@ export interface SimpleInvestmentRow {
   status: SimpleInvestmentStatus;
   description: string;
   /**
-   * Categoria do investimento, já fotografada no movimento.
-   *
-   * Lançamentos novos apontam para `category`/`investimento`; os anteriores à
-   * unificação, para o grupo histórico `investment_type`. A linha não precisa
-   * saber de qual: o nome vem gravado e o ID é a autoridade.
+   * Categoria do investimento (`category`/`investimento`), já fotografada no
+   * movimento: o nome vem gravado e o ID é a autoridade.
    */
   category: string;
   /** Identificador da categoria — autoridade do vínculo, ao contrário do nome. */
@@ -73,6 +70,11 @@ export interface SimpleInvestmentRow {
   institutionId?: string;
   goalId?: string;
   positionId: string;
+  /**
+   * Conta do Caixa movimentada pelo lançamento liquidado (D-30, P4-D). É a
+   * conta em que um "Desfazer" compensa — o usuário não escolhe outra.
+   */
+  cashAccountId?: string;
   /**
    * Valor que o usuário reconhece: no aporte, o que foi aplicado; na retirada,
    * o total sacado — capital mais o rendimento que ele tenha informado.
@@ -166,6 +168,7 @@ export const toSimpleInvestmentRow = (movement: InvestmentMovement): SimpleInves
     institutionId: movement.institutionId,
     goalId: movement.goalId,
     positionId: movement.positionId,
+    cashAccountId: movement.cashAccountId,
     valueCents,
     principalCents: movement.principalCents,
     occurredAt: toDateOrNull(movement.occurredAt),

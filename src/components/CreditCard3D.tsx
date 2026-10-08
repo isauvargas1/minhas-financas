@@ -1,15 +1,17 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import type { CreditCard, CreditCardVisual } from '../types.ts';
+import type { CreditCard, CreditCardVisual } from '../modules/cards/types.ts';
+import { formatCents } from '../modules/loans/money.ts';
 import { CreditCardIcon, WifiIcon } from './Icons.tsx';
 
 interface CreditCard3DProps {
     card: CreditCard;
     mode: 'grid' | 'list';
+    /** Limite em centavos (o usado pode ser negativo: crédito a favor). */
     limits: {
-        used: number;
-        available: number;
+        usedCents: number;
+        availableCents: number;
     };
     onClick: () => void;
 }
@@ -43,12 +45,10 @@ const CreditCard3D: React.FC<CreditCard3DProps> = ({ card, mode, limits, onClick
     const MotionDiv = motion.div as any;
     const visual = resolveCreditCardVisual(card.visual);
 
-    const formatCurrency = (val: number) => {
-        return new Intl.NumberFormat('pt-BR', {
-            style: 'currency',
-            currency: 'BRL'
-        }).format(val);
-    };
+    // Barra de uso: crédito a favor (usado negativo) é barra vazia.
+    const usedPercent = card.limitTotalCents > 0
+        ? Math.min(100, (Math.max(limits.usedCents, 0) / card.limitTotalCents) * 100)
+        : 0;
 
     const getBackgroundStyle = () => {
         if (visual.bgType === 'image' && visual.bgImage) {
@@ -88,21 +88,20 @@ const CreditCard3D: React.FC<CreditCard3DProps> = ({ card, mode, limits, onClick
 
                 <div className="hidden sm:flex flex-col items-end">
                     <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                        {formatCurrency(limits.used)} <span className="text-gray-400 text-xs">/ {formatCurrency(card.limitTotal)}</span>
+                        {formatCents(limits.usedCents)} <span className="text-gray-400 text-xs">/ {formatCents(card.limitTotalCents)}</span>
                     </div>
                     <div className="w-32 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full mt-1 overflow-hidden">
                         <div
-                            className={`h-full rounded-full ${limits.available < 0 ? 'bg-red-500' : 'bg-indigo-500'}`}
-                            style={{ width: `${Math.min(100, (limits.used / card.limitTotal) * 100)}%` }}
+                            className={`h-full rounded-full ${limits.availableCents < 0 ? 'bg-red-500' : 'bg-indigo-500'}`}
+                            style={{ width: `${usedPercent}%` }}
                         ></div>
                     </div>
                 </div>
 
                 <div className={`px-2 py-1 rounded-full text-xs font-medium ${card.status === 'active' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-                        card.status === 'blocked' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
                             'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
                     }`}>
-                    {card.status === 'active' ? 'Ativo' : card.status === 'blocked' ? 'Bloqueado' : 'Cancelado'}
+                    {card.status === 'active' ? 'Ativo' : 'Arquivado'}
                 </div>
             </div>
         );
@@ -172,22 +171,22 @@ const CreditCard3D: React.FC<CreditCard3DProps> = ({ card, mode, limits, onClick
                         <div className="space-y-3">
                             <div className="flex justify-between items-center text-sm">
                                 <span className="text-gray-400">Limite Total</span>
-                                <span className="text-white font-medium">{formatCurrency(card.limitTotal)}</span>
+                                <span className="text-white font-medium">{formatCents(card.limitTotalCents)}</span>
                             </div>
                             <div className="flex justify-between items-center text-sm">
                                 <span className="text-gray-400">Utilizado</span>
-                                <span className="text-red-400 font-medium">{formatCurrency(limits.used)}</span>
+                                <span className="text-red-400 font-medium">{formatCents(limits.usedCents)}</span>
                             </div>
                             <div className="flex justify-between items-center text-sm">
                                 <span className="text-gray-400">Disponível</span>
-                                <span className="text-green-400 font-medium">{formatCurrency(limits.available)}</span>
+                                <span className="text-green-400 font-medium">{formatCents(limits.availableCents)}</span>
                             </div>
 
                             {/* Progress Bar */}
                             <div className="w-full h-1.5 bg-gray-700 rounded-full mt-2 overflow-hidden">
                                 <div
-                                    className={`h-full rounded-full ${limits.available < 0 ? 'bg-red-500' : 'bg-indigo-500'}`}
-                                    style={{ width: `${Math.min(100, (limits.used / card.limitTotal) * 100)}%` }}
+                                    className={`h-full rounded-full ${limits.availableCents < 0 ? 'bg-red-500' : 'bg-indigo-500'}`}
+                                    style={{ width: `${usedPercent}%` }}
                                 ></div>
                             </div>
                         </div>

@@ -10,6 +10,15 @@ const UID = 'e2e-investments-v2-owner';
 const EMAIL = 'e2e-investments-v2@minhas-financas.local';
 const PASSWORD = 'e2e-investments-v2-password';
 const WORKSPACE = 'e2e-investments-v2-workspace';
+/*
+ * Período da projeção semeada: o mês corrente em America/Sao_Paulo. O
+ * relatório abre na janela de 30 dias (`ReportsView`), e um mês fixo saía da
+ * janela com a passagem do calendário (P2C: `2026-08` deixou de aparecer em
+ * outubro de 2026), escondendo a série sem nenhuma regressão do produto.
+ */
+const PERIOD = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit',
+}).format(new Date()).slice(0, 7);
 
 const firebaseAdmin = () => {
   process.env.GCLOUD_PROJECT = PROJECT;
@@ -36,48 +45,29 @@ const seed = async (comProjecoes: boolean) => {
     await Promise.all([
       db.doc(`workspaces/${WORKSPACE}/investment_summaries/current`).set({
         id: 'current', workspaceId: WORKSPACE, profileType: 'PF', currency: 'BRL',
-        positionCount: 1, principalCents: 100_000, currentValueCents: 110_000,
-        realizedGainCents: 2_000, unrealizedAppreciationCents: 10_000,
-        feesCents: 500, taxCents: 300, updatedAt: now, updatedBy: UID,
+        // D-15: regime único por valor — valor atual = capital investido.
+        positionCount: 1, principalCents: 100_000, currentValueCents: 100_000,
+        realizedGainCents: 0, unrealizedAppreciationCents: 0,
+        feesCents: 0, taxCents: 0, updatedAt: now, updatedBy: UID,
       }),
-      db.doc(`workspaces/${WORKSPACE}/investment_report_periods/2026-08`).set({
-        id: '2026-08', workspaceId: WORKSPACE, profileType: 'PF', currency: 'BRL',
-        period: '2026-08', periodStart: now, contributionCents: 100_000,
-        redemptionPrincipalCents: 0, realizedGainCents: 0, feesCents: 500,
-        taxCents: 300, costDeltaCents: 100_000, currentValueDeltaCents: 110_000,
-        cashDeltaCents: -100_800, settledMovementCount: 1,
-        closingCurrentValueCents: 110_000,
+      db.doc(`workspaces/${WORKSPACE}/investment_report_periods/${PERIOD}`).set({
+        id: PERIOD, workspaceId: WORKSPACE, profileType: 'PF', currency: 'BRL',
+        period: PERIOD, periodStart: now, contributionCents: 100_000,
+        redemptionPrincipalCents: 0, realizedGainCents: 0, feesCents: 0,
+        taxCents: 0, costDeltaCents: 100_000, currentValueDeltaCents: 100_000,
+        cashDeltaCents: -100_000, settledMovementCount: 1,
+        closingCurrentValueCents: 100_000,
         updatedAt: now, updatedBy: UID,
       }),
       db.doc(`workspaces/${WORKSPACE}/investment_allocation_summaries/purpose-unassigned`).set({
         id: 'purpose-unassigned', workspaceId: WORKSPACE, profileType: 'PF',
         currency: 'BRL', dimension: 'purpose', key: 'unassigned',
         label: 'Não classificado', positionCount: 1, principalCents: 100_000,
-        currentValueCents: 110_000, realizedGainCents: 2_000,
-        feesCents: 500, taxCents: 300, updatedAt: now, updatedBy: UID,
+        currentValueCents: 100_000, realizedGainCents: 0,
+        feesCents: 0, taxCents: 0, updatedAt: now, updatedBy: UID,
       }),
     ]);
   }
-};
-
-/** Conta e ativo ativos, para exercitar aporte e resgate pela interface. */
-const seedCatalog = async () => {
-  const sdk = firebaseAdmin();
-  const db = sdk.firestore();
-  const now = sdk.firestore.Timestamp.now();
-  await Promise.all([
-    db.doc(`workspaces/${WORKSPACE}/investment_accounts/e2e-account`).set({
-      id: 'e2e-account', workspaceId: WORKSPACE, profileType: 'PF',
-      name: 'Corretora E2E', institutionName: 'Instituição E2E', currency: 'BRL',
-      status: 'active', createdBy: UID, updatedBy: UID, createdAt: now, updatedAt: now,
-    }),
-    db.doc(`workspaces/${WORKSPACE}/investment_assets/e2e-asset`).set({
-      id: 'e2e-asset', workspaceId: WORKSPACE, profileType: 'PF',
-      name: 'CDB E2E', symbol: 'CDB', assetType: 'fixed_income',
-      allocationPurpose: 'unassigned', currency: 'BRL', status: 'active',
-      createdBy: UID, updatedBy: UID, createdAt: now, updatedAt: now,
-    }),
-  ]);
 };
 
 /**
@@ -124,7 +114,7 @@ const novoInvestimento = async (
   await page.getByRole('button', { name: 'Novo investimento' }).click();
   const dialogo = page.getByRole('dialog');
   await expect(dialogo).toBeVisible();
-  await dialogo.getByLabel('Carteira de investimento').selectOption(SIMPLE_CLASS);
+  await dialogo.getByLabel('Carteira de investimentos').selectOption(SIMPLE_CLASS);
   await dialogo.getByLabel('Instituição').selectOption(SIMPLE_INSTITUTION);
   await dialogo.getByLabel('Descrição').fill(descricao);
   await dialogo.getByLabel('Categoria').selectOption(SIMPLE_TYPE);
@@ -149,7 +139,7 @@ const login = async (page: import('@playwright/test').Page) => {
 test('workspace novo abre Investimentos sem flag e sem migração', async ({ page }) => {
   await seed(false);
   await login(page);
-  await expect(page.getByRole('heading', { name: 'Investimentos' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Investimentos', exact: true })).toBeVisible();
   // A tela legada de transações nunca mais responde por investimento.
   await expect(page.getByRole('button', { name: 'Nova Transação' })).toHaveCount(0);
   // E a tela profissional deixou de ser o que o usuário comum encontra.
@@ -161,7 +151,7 @@ test('a tela de investimentos é responsiva e não expõe cadastro técnico', as
   await seed(true);
   await page.setViewportSize({ width: 390, height: 844 });
   await login(page);
-  await expect(page.getByRole('heading', { name: 'Investimentos' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Investimentos', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Novo investimento' })).toBeVisible();
   // Nenhum termo técnico do domínio na navegação comum.
   for (const termo of ['Quantidade', 'Preço unitário', 'Valorar', 'Reconstruir']) {
@@ -184,8 +174,12 @@ test('o dashboard mostra o mês e o relatório separa aporte de retirada', async
   await expect(page.getByText('Saldo Atual')).toBeVisible({ timeout: 30_000 });
 
   // O card de Investimentos do baseline continua lá, e o painel patrimonial
-  // profissional não — nem o aviso de falha que ele exibia.
+  // profissional não — nem o aviso de falha que ele exibia. P4-D: o valor do
+  // card é o aporte do mês da projeção oficial (`investment_report_periods`).
   await expect(page.getByText('Investimentos', { exact: true }).first()).toBeVisible();
+  const card = page.getByRole('button')
+    .filter({ has: page.getByRole('heading', { name: 'Investimentos', exact: true }) });
+  await expect(card.getByText('R$ 1.000,00')).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Patrimônio de investimentos' })).toHaveCount(0);
   await expect(page.getByText('Não foi possível carregar o resumo patrimonial')).toHaveCount(0);
   await expect(page.getByText('Custo atual', { exact: true })).toHaveCount(0);
@@ -193,7 +187,7 @@ test('o dashboard mostra o mês e o relatório separa aporte de retirada', async
   await page.getByText('Relatórios', { exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Patrimônio de investimentos' })).toBeVisible();
   await expect(page.locator('article').filter({ hasText: 'Patrimônio atual' })
-    .getByText('R$ 1.100,00')).toBeVisible();
+    .getByText('R$ 1.000,00')).toBeVisible();
   await expect(page.getByText('Aportes', { exact: true })).toBeVisible();
   await expect(page.getByText('Retiradas', { exact: true })).toBeVisible();
 
@@ -330,18 +324,13 @@ test('a aba Investimento de "Nova Transação" abre o formulário simples', asyn
 
 // INV-P1-007 — valoração pelo produto.
 //
-// A Etapa 3 fecha a decisão do §1: valoração a mercado, posição técnica e
-// ganho não realizado não têm superfície na navegação comum. O roteiro de
-// interface que existia aqui não descreve mais um caminho executável — foi
-// substituído pelo teste da experiência final, abaixo, e o invariante
-// financeiro que ele protegia (patrimônio separado do custo, com ganho não
-// realizado) continua coberto de ponta a ponta em
-// `functions/src/investments/__tests__/m3Lifecycle.integration.test.ts`.
+// D-15 (P4-D): o regime é único, por valor — sem valoração a mercado,
+// quantidade nem ganho não realizado. Não há callable, coleção nem tela de
+// valoração; esta é a prova pela experiência comum.
 test('valoração a mercado não tem superfície na experiência comum', async ({ page }) => {
   await seed(true);
-  await seedCatalog();
   await login(page);
-  await expect(page.getByRole('heading', { name: 'Investimentos' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Investimentos', exact: true })).toBeVisible();
 
   for (const termo of [
     'Valorar', 'Preço unitário (R$)', 'Registrar valoração',
@@ -416,19 +405,19 @@ test('a faixa de alocação PF aparece na tela e distribui pelas carteiras', asy
     updatedAt: now, updatedBy: UID,
   });
   await Promise.all([
-    corte('class-reserva', 'class', 'cls-reserva', 'Reserva de emergência', 66_000),
-    corte('class-aposentadoria', 'class', 'cls-aposentadoria', 'Aposentadoria', 44_000),
-    corte('goal-unassigned', 'goal', 'unassigned', 'Sem meta', 110_000),
+    corte('class-reserva', 'class', 'cls-reserva', 'Reserva de emergência', 60_000),
+    corte('class-aposentadoria', 'class', 'cls-aposentadoria', 'Aposentadoria', 40_000),
+    corte('goal-unassigned', 'goal', 'unassigned', 'Sem meta', 100_000),
   ]);
 
   await login(page);
-  await expect(page.getByRole('heading', { name: 'Investimentos' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Investimentos', exact: true })).toBeVisible();
 
   const faixa = page.getByRole('region', { name: 'Distribuição dos investimentos' });
   await expect(faixa).toBeVisible();
   await expect(faixa.getByText('Reserva de emergência')).toBeVisible();
   await expect(faixa.getByText('Aposentadoria')).toBeVisible();
-  // 66.000 de 110.000 = 60,0%; a porcentagem sai do resumo autoritativo.
+  // 60.000 de 100.000 = 60,0%; a porcentagem sai do resumo autoritativo.
   await expect(faixa.getByText('60.0%')).toBeVisible();
 
   // Investimento sem meta continua sendo "Sem meta" — nunca aposentadoria

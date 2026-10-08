@@ -1,0 +1,145 @@
+{
+  "documento-lang-claro": "pt-BR",
+  "planos-free-claro:regiao": [],
+  "planos-free-claro:pagina": [
+    {
+      "id": "button-name",
+      "impact": "critical",
+      "help": "Buttons must have discernible text",
+      "nodes": [
+        {
+          "target": [
+            ".relative:nth-child(1) > .focus\\:outline-none.focus\\:ring-2.focus\\:ring-indigo-500"
+          ],
+          "html": "<button class=\"relative p-2 rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset"
+        },
+        {
+          "target": [
+            ".relative:nth-child(2) > .focus\\:outline-none.focus\\:ring-2.focus\\:ring-indigo-500"
+          ],
+          "html": "<button class=\"relative p-2 rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset"
+        },
+        {
+          "target": [
+            ".gap-3.relative.items-center > .focus\\:outline-none.focus\\:ring-2.focus\\:ring-indigo-500"
+          ],
+          "html": "<button class=\"relative p-2 rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset"
+        }
+      ],
+      "count": 3
+    }
+  ],
+  "planos-erro-claro:regiao": [
+    {
+      "id": "color-contrast",
+      "impact": "serious",
+      "help": "Elements must meet minimum color contrast ratio thresholds",
+      "nodes": [
+        {
+          "target": [
+            ".bg-red-50"
+          ],
+          "html": "<div role=\"alert\" class=\"mt-8 bg-red-50 dark:bg-red-900/30 p-4 rounded-lg flex items-center justify-center text-red-600 dark:text-red-400 max-w-2xl mx-auto\">"
+        }
+      ],
+      "count": 1
+    }
+  ],
+  "documento-lang-escuro": "pt-BR",
+  "planos-free-escuro:regiao": [
+    {
+      "id": "color-contrast",
+      "impact": "serious",
+      "help": "Elements must meet minimum color contrast ratio thresholds",
+      "nodes": [
+        {
+          "target": [
+            ".border-gray-200.dark\\:border-gray-700.divide-y:nth-child(1) > .p-6 > p > .text-base.font-medium.text-gray-500"
+          ],
+          "html": "<span class=\"text-base font-medium text-gray-500\">/mês</span>"
+        },
+        {
+          "target": [
+            ".border-gray-200.dark\\:border-gray-700.divide-y:nth-child(2) > .p-6 > p > .text-base.font-medium.text-gray-500"
+          ],
+          "html": "<span class=\"text-base font-medium text-gray-500\">/mês</span>"
+        },
+        {
+          "target": [
+            ".border-gray-200.dark\\:border-gray-700.divide-y:nth-child(3) > .p-6 > p > .text-base.font-medium.text-gray-500"
+          ],
+          "html": "<span class=\"text-base font-medium text-gray-500\">/mês</span>"
+        }
+      ],
+      "count": 3
+    }
+  ],
+  "planos-free-escuro:pagina": [
+    {
+      "id": "button-name",
+      "impact": "critical",
+      "help": "Buttons must have discernible text",
+      "nodes": [
+        {
+          "target": [
+            ".relative:nth-child(1) > .focus\\:outline-none.focus\\:ring-2.focus\\:ring-indigo-500"
+          ],
+          "html": "<button class=\"relative p-2 rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset"
+        },
+        {
+          "target": [
+            ".relative:nth-child(2) > .focus\\:outline-none.focus\\:ring-2.focus\\:ring-indigo-500"
+          ],
+          "html": "<button class=\"relative p-2 rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset"
+        },
+        {
+          "target": [
+            ".gap-3.relative.items-center > .focus\\:outline-none.focus\\:ring-2.focus\\:ring-indigo-500"
+          ],
+          "html": "<button class=\"relative p-2 rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset"
+        }
+      ],
+      "count": 3
+    },
+    {
+      "id": "color-contrast",
+      "impact": "serious",
+      "help": "Elements must meet minimum color contrast ratio thresholds",
+      "nodes": [
+        {
+          "target": [
+            "h1"
+          ],
+          "html": "<h1 class=\"text-3xl font-bold text-primary font-sans tracking-tight\">Minhas Finanças</h1>"
+        },
+        {
+          "target": [
+            ".text-xs"
+          ],
+          "html": "<button class=\"text-xs text-primary hover:underline font-medium\">Hoje</button>"
+        },
+        {
+          "target": [
+            ".border-gray-200.dark\\:border-gray-700.divide-y:nth-child(1) > .p-6 > p > .text-base.font-medium.text-gray-500"
+          ],
+          "html": "<span class=\"text-base font-medium text-gray-500\">/mês</span>"
+        },
+        {
+          "target": [
+            ".border-gray-200.dark\\:border-gray-700.divide-y:nth-child(2) > .p-6 > p > .text-base.font-medium.text-gray-500"
+          ],
+          "html": "<span class=\"text-base font-medium text-gray-500\">/mês</span>"
+        },
+        {
+          "target": [
+            ".border-gray-200.dark\\:border-gray-700.divide-y:nth-child(3) > .p-6 > p > .text-base.font-medium.text-gray-500"
+          ],
+          "html": "<span class=\"text-base font-medium text-gray-500\">/mês</span>"
+        }
+      ],
+      "count": 5
+    }
+  ],
+  "planos-assinante-claro:regiao": [],
+  "modal-confirmado-claro:dialogo": []
+}

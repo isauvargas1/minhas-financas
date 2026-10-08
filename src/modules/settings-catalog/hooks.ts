@@ -1,21 +1,19 @@
+import { useCallback, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { useAuth } from '../../contexts/AuthContext';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
+import { resolveIntentKey, type IntentKey } from '../transactions/cashEntry';
 import {
-  createSettingsCatalogItem,
-  deleteSettingsCatalogItem,
   listSettingsCatalog,
   listSettingsCatalogPage,
-  updateSettingsCatalogItem,
+  settingsCatalogCallables,
 } from './api';
+import { settingsCatalogErrorView } from './callables';
 import { filterSettingsCatalogItems } from './utils';
 import type {
-  SettingsCatalogCreateInput,
   SettingsCatalogGroup,
   SettingsCatalogListFilters,
   SettingsCatalogPageCursor,
-  SettingsCatalogUpdateInput,
 } from './types';
 
 export const SETTINGS_CATALOG_KEYS = {
@@ -97,65 +95,66 @@ export const useSettingsCatalogPage = (
   });
 };
 
-export const useCreateSettingsCatalogItem = () => {
+export interface SettingsCatalogMutationInput {
+  payload: Record<string, unknown>;
+  idempotencyKey: string;
+}
+
+/**
+ * Mutação por callable (D-23). Depois do sucesso recarrega o catálogo do
+ * workspace — a lista de Cadastros e os seletores de todos os formulários —;
+ * depois de falha que indica outro estado no servidor (versão antiga, nome
+ * já reservado, item removido da lista), também.
+ */
+const useSettingsCatalogCallable = (
+  call: (payload: Record<string, unknown>, idempotencyKey: string) => Promise<unknown>,
+) => {
   const { activeWorkspace } = useWorkspace();
-  const { user } = useAuth();
   const queryClient = useQueryClient();
-
+  const workspaceId = activeWorkspace?.id;
   return useMutation({
-    mutationFn: (input: SettingsCatalogCreateInput) => {
-      if (!isWorkspaceReady(activeWorkspace?.id)) {
-        return Promise.reject(new Error('Workspace ativo não encontrado.'));
-      }
-
-      return createSettingsCatalogItem(input, activeWorkspace.id, user?.uid);
-    },
+    mutationFn: ({ payload, idempotencyKey }: SettingsCatalogMutationInput) =>
+      call(payload, idempotencyKey),
     onSuccess: async () => {
-      await invalidateSettingsCatalogCache(queryClient, activeWorkspace?.id);
+      await invalidateSettingsCatalogCache(queryClient, workspaceId);
+    },
+    onError: async (error) => {
+      if (settingsCatalogErrorView(error).refresh) {
+        await invalidateSettingsCatalogCache(queryClient, workspaceId);
+      }
     },
   });
 };
 
-export const useUpdateSettingsCatalogItem = () => {
-  const { activeWorkspace } = useWorkspace();
-  const { user } = useAuth();
-  const queryClient = useQueryClient();
+export const useCreateSettingsCatalogItem = () =>
+  useSettingsCatalogCallable(settingsCatalogCallables.createSettingsCatalogItem);
+export const useUpdateSettingsCatalogItem = () =>
+  useSettingsCatalogCallable(settingsCatalogCallables.updateSettingsCatalogItem);
+export const useArchiveSettingsCatalogItem = () =>
+  useSettingsCatalogCallable(settingsCatalogCallables.archiveSettingsCatalogItem);
 
-  return useMutation({
-    mutationFn: ({
-      id,
-      data,
-    }: {
-      id: string;
-      data: SettingsCatalogUpdateInput;
-    }) => {
-      if (!isWorkspaceReady(activeWorkspace?.id)) {
-        return Promise.reject(new Error('Workspace ativo não encontrado.'));
-      }
-
-      return updateSettingsCatalogItem(id, data, activeWorkspace.id, user?.uid);
-    },
-    onSuccess: async () => {
-      await invalidateSettingsCatalogCache(queryClient, activeWorkspace?.id);
-    },
-  });
+/** Chave aleatória da intenção (UUID; fora de contexto seguro, 128 bits do CSPRNG). */
+const newIdempotencyKey = (): string => {
+  const cryptoApi = globalThis.crypto;
+  if (typeof cryptoApi?.randomUUID === 'function') return cryptoApi.randomUUID();
+  const bytes = cryptoApi.getRandomValues(new Uint8Array(16));
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
 };
 
-export const useDeleteSettingsCatalogItem = () => {
-  const { activeWorkspace } = useWorkspace();
-  const { user } = useAuth();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (id: string) => {
-      if (!isWorkspaceReady(activeWorkspace?.id)) {
-        return Promise.reject(new Error('Workspace ativo não encontrado.'));
-      }
-
-      return deleteSettingsCatalogItem(id, activeWorkspace.id, user?.uid);
-    },
-    onSuccess: async () => {
-      await invalidateSettingsCatalogCache(queryClient, activeWorkspace?.id);
-    },
-  });
+/**
+ * Chave de idempotência por intenção de um diálogo: reenviar o mesmo
+ * conteúdo (depois de falha ou resposta incerta) reusa a chave; conteúdo
+ * diferente gera outra. `reset` ao abrir o diálogo para uma intenção nova.
+ */
+export const useCatalogIntentKey = () => {
+  const intentRef = useRef<IntentKey | null>(null);
+  const keyFor = useCallback((operation: string, payload: Record<string, unknown>) => {
+    const intent = resolveIntentKey(intentRef.current, operation, payload, newIdempotencyKey);
+    intentRef.current = intent;
+    return intent.key;
+  }, []);
+  const reset = useCallback(() => {
+    intentRef.current = null;
+  }, []);
+  return { keyFor, reset };
 };

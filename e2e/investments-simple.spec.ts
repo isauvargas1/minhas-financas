@@ -105,7 +105,7 @@ const abrirPainel = async (page: Page) => {
 const abrirInvestimentos = async (page: Page) => {
   await abrirPainel(page);
   await page.getByText('Investimentos', { exact: true }).first().click();
-  await expect(page.getByRole('heading', { name: 'Investimentos' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Investimentos', exact: true })).toBeVisible();
 };
 
 const movimentos = async () => {
@@ -121,7 +121,7 @@ const preencherNovoInvestimento = async (
   await page.getByRole('button', { name: 'Novo investimento' }).click();
   const dialogo = page.getByRole('dialog');
   await expect(dialogo).toBeVisible();
-  await dialogo.getByLabel('Carteira de investimento').selectOption({ label: 'Reserva de emergência' });
+  await dialogo.getByLabel('Carteira de investimentos').selectOption({ label: 'Reserva de emergência' });
   await dialogo.getByLabel('Instituição').selectOption({ label: 'BTG' });
   await dialogo.getByLabel('Descrição').fill(descricao);
   await dialogo.getByLabel('Categoria').selectOption({ label: 'Renda fixa' });
@@ -138,7 +138,7 @@ test('o formulário simples pede exatamente os campos do fluxo comum', async ({ 
 
   // Ordem e rótulos do §4, em pt-BR e sem termo técnico.
   await expect(dialogo.getByLabel('Meta (opcional)')).toBeVisible();
-  await expect(dialogo.getByLabel('Carteira de investimento')).toBeVisible();
+  await expect(dialogo.getByLabel('Carteira de investimentos')).toBeVisible();
   await expect(dialogo.getByLabel('Instituição')).toBeVisible();
   await expect(dialogo.getByLabel('Descrição')).toBeVisible();
   await expect(dialogo.getByLabel('Categoria')).toBeVisible();
@@ -146,7 +146,7 @@ test('o formulário simples pede exatamente os campos do fluxo comum', async ({ 
   await expect(dialogo.getByText('Esse valor já foi depositado?')).toBeVisible();
 
   // As opções vêm dos grupos certos do catálogo.
-  await expect(dialogo.getByLabel('Carteira de investimento')).toContainText('Reserva de emergência');
+  await expect(dialogo.getByLabel('Carteira de investimentos')).toContainText('Reserva de emergência');
   await expect(dialogo.getByLabel('Instituição')).toContainText('BTG');
   await expect(dialogo.getByLabel('Categoria')).toContainText('Renda fixa');
 
@@ -274,7 +274,7 @@ test('editar um pendente cancela a intenção anterior e abre outra', async ({ p
   // O formulário reabre com a intenção original, não em branco.
   await expect(dialogo.getByLabel('Descrição')).toHaveValue('CDB com valor errado');
   await expect(dialogo.getByLabel('Valor do investimento')).toHaveValue('100,00');
-  await expect(dialogo.getByLabel('Carteira de investimento')).toHaveValue(CARTEIRA);
+  await expect(dialogo.getByLabel('Carteira de investimentos')).toHaveValue(CARTEIRA);
   await expect(dialogo.getByLabel('Instituição')).toHaveValue(INSTITUICAO);
   await expect(dialogo.getByLabel('Categoria')).toHaveValue(CATEGORIA);
 
@@ -349,7 +349,7 @@ test('"Nova Transação" registra o aporte pelo ledger simples, e não por trans
   await dialogo.getByRole('button', { name: 'Investimento', exact: true }).click();
 
   // Os catálogos são os mesmos três grupos do formulário da tela específica.
-  await dialogo.getByLabel('Carteira de investimento').selectOption({ label: 'Reserva de emergência' });
+  await dialogo.getByLabel('Carteira de investimentos').selectOption({ label: 'Reserva de emergência' });
   await dialogo.getByLabel('Instituição').selectOption({ label: 'BTG' });
   await dialogo.getByLabel('Descrição').fill('CDB pelo painel');
   await dialogo.getByLabel('Categoria').selectOption({ label: 'Renda fixa' });
@@ -503,15 +503,17 @@ test('a categoria cadastrada uma vez alimenta os dois pontos de entrada', async 
    * está aberta.
    */
   await page.getByText('Investimentos', { exact: true }).first().click();
-  await expect(page.getByRole('heading', { name: 'Investimentos' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Investimentos', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Novo investimento' }).click();
   const modalInvestimento = page.getByRole('dialog');
   await expect(modalInvestimento).toBeVisible();
   await conferirCategorias(modalInvestimento);
-  // O rótulo da carteira patrimonial não se confunde com carteira de caixa, e
-  // nenhum campo de caixa foi acrescentado ao formulário.
-  await expect(modalInvestimento.getByLabel('Carteira de investimento')).toBeVisible();
-  await expect(
-    modalInvestimento.getByText(/carteira de caixa|conta de origem/i),
-  ).toHaveCount(0);
+  // A carteira patrimonial não se confunde com a conta do Caixa: o aporte
+  // depositado pede a "Conta de origem" (D-30, P4-D), em campo próprio; o
+  // pendente não pede conta alguma, e "carteira de caixa" não existe.
+  await expect(modalInvestimento.getByLabel('Carteira de investimentos')).toBeVisible();
+  await expect(modalInvestimento.getByLabel('Conta de origem')).toBeVisible();
+  await modalInvestimento.getByRole('radio', { name: 'Não' }).check();
+  await expect(modalInvestimento.getByLabel('Conta de origem')).toHaveCount(0);
+  await expect(modalInvestimento.getByText(/carteira de caixa/i)).toHaveCount(0);
 });

@@ -1,50 +1,37 @@
 
 import React, { useMemo } from 'react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Legend } from 'recharts';
-import { SplitBill, SplitParticipant, SplitShare } from '../types.ts';
+import type { SplitGroup, SplitParticipant } from '../modules/split-bills/types.ts';
+import { participantName, type WorkspaceMemberName } from '../modules/split-bills/presentation.ts';
 import { useTheme } from '../contexts/ThemeContext.tsx';
 
 interface SplitGroupChartsProps {
-    bills: SplitBill[];
+    group: SplitGroup;
     participants: SplitParticipant[];
-    shares: SplitShare[];
+    members: ReadonlyMap<string, WorkspaceMemberName>;
 }
 
-const SplitGroupCharts: React.FC<SplitGroupChartsProps> = ({ bills, participants, shares }) => {
+/**
+ * Gráficos do grupo a partir dos agregados do backend (P4-C): total por
+ * categoria do grupo e, por participante, o que pagou e o que lhe cabe —
+ * sem carregar despesas nem rateios. Centavos viram reais só aqui, para o
+ * eixo do gráfico.
+ */
+const SplitGroupCharts: React.FC<SplitGroupChartsProps> = ({ group, participants, members }) => {
     const { theme } = useTheme();
 
     // 1. Despesas por Categoria (Pie Chart)
-    const categoryData = useMemo(() => {
-        const catMap: Record<string, number> = {};
-        bills.forEach(bill => {
-            const cat = bill.categoriaNome || 'Outros';
-            catMap[cat] = (catMap[cat] || 0) + (bill.valorReal || 0);
-        });
+    const categoryData = useMemo(() => Object.entries(group.totals.categoryTotals)
+        .map(([name, cents]) => ({ name, value: cents / 100 })), [group]);
 
-        return Object.entries(catMap).map(([name, value]) => ({ name, value }));
-    }, [bills]);
-
-    // 2. Saldos por Participante (Bar Chart)
-    // Quanto cada um pagou (como pagador principal) vs Quanto deveria pagar (soma dos seus shares)
-    const balanceData = useMemo(() => {
-        return participants.map(p => {
-            // Total pago efetivamente (contas onde ele é o pagador principal)
-            const totalPaid = bills
-                .filter(b => b.pagadorPrincipalId === p.id)
-                .reduce((acc, b) => acc + (b.valorReal || 0), 0);
-
-            // Total que deveria pagar (soma dos shares atribuídos a ele)
-            const totalShare = shares
-                .filter(s => s.participantId === p.id)
-                .reduce((acc, s) => acc + s.valorDevido, 0);
-
-            return {
-                name: p.nomeExibicao,
-                Pago: totalPaid,
-                "Devido": totalShare
-            };
-        });
-    }, [participants, bills, shares]);
+    // 2. Saldos por Participante (Bar Chart): pago como pagador × devido nos rateios.
+    const balanceData = useMemo(() => participants
+        .filter(p => p.status === 'active' || p.balances.paidCents > 0 || p.balances.dueCents > 0)
+        .map(p => ({
+            name: participantName(p, members),
+            Pago: p.balances.paidCents / 100,
+            "Devido": p.balances.dueCents / 100,
+        })), [participants, members]);
 
     const COLORS = [
         theme.colors.chartIncome, 

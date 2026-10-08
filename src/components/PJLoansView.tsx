@@ -1,8 +1,15 @@
 
 import React, { useState, useMemo } from 'react';
-import { motion } from 'framer-motion';
-import { useLoans, useCreateLoan, useLoanTotals } from '../modules/loans/hooks.ts';
-import { Loan, LoanType, LoanStatus } from '../modules/loans/types.ts';
+import { useLoans, useLoanTotals } from '../modules/loans/hooks.ts';
+import type { Loan, LoanType, LoanStatus } from '../modules/loans/types.ts';
+import { formatCents, formatDayKey } from '../modules/loans/money.ts';
+import {
+    LOAN_STATUS_LABELS,
+    interestLabel,
+    loanPermissions,
+    openBalanceCents,
+} from '../modules/loans/presentation.ts';
+import { useAuth } from '../contexts/AuthContext.tsx';
 import { HandshakeIcon, PlusIcon, SearchIcon, FilterIcon, LayoutGridIcon, ListIcon, WarningIcon, TrendingUpIcon, ArrowDownIcon, BriefcaseIcon } from './Icons.tsx';
 import PJLoanCard from './PJLoanCard.tsx';
 import PJLoanFormModal from './PJLoanFormModal.tsx';
@@ -11,10 +18,9 @@ import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
 
 interface PJLoansViewProps {
     onSelectLoan: (loan: Loan) => void;
-    onAddTransaction: (t: any) => void;
 }
 
-const PJLoansView: React.FC<PJLoansViewProps> = ({ onSelectLoan, onAddTransaction }) => {
+const PJLoansView: React.FC<PJLoansViewProps> = ({ onSelectLoan }) => {
     const { data: loans, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } = useLoans();
     /*
      * Os indicadores vêm de agregado do servidor, não da lista carregada.
@@ -22,10 +28,10 @@ const PJLoansView: React.FC<PJLoansViewProps> = ({ onSelectLoan, onAddTransactio
      * exatamente o que um número financeiro na tela não pode ser.
      */
     const { data: totals, isError: totalsFailed } = useLoanTotals();
-    const createLoanMutation = useCreateLoan();
     const { playSound } = useTheme();
-    const { activeWorkspace } = useWorkspace();
-    const MotionDiv = motion.div as any;
+    const { activeWorkspaceRole } = useWorkspace();
+    const { user } = useAuth();
+    const { canCreate } = loanPermissions({ role: activeWorkspaceRole, uid: user?.uid });
 
     const [viewMode, setViewMode] = useState<'card' | 'list'>('card');
     const [searchQuery, setSearchQuery] = useState('');
@@ -36,8 +42,9 @@ const PJLoansView: React.FC<PJLoansViewProps> = ({ onSelectLoan, onAddTransactio
     const filteredLoans = useMemo(() => {
         if (!loans) return [];
         return loans.filter(l => {
-            const matchesSearch = l.personName.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                                 l.description.toLowerCase().includes(searchQuery.toLowerCase());
+            const matchesSearch = l.personName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                                 (l.description ?? '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                                 (l.costCenter ?? '').toLowerCase().includes(searchQuery.toLowerCase());
             const matchesType = filterType === 'all' || l.type === filterType;
             const matchesStatus = filterStatus === 'all' || l.status === filterStatus;
             return matchesSearch && matchesType && matchesStatus;
@@ -45,20 +52,10 @@ const PJLoansView: React.FC<PJLoansViewProps> = ({ onSelectLoan, onAddTransactio
     }, [loans, searchQuery, filterType, filterStatus]);
 
     const stats = useMemo(() => ({
-        assets: totals?.lend ?? 0,
-        liabilities: totals?.borrow ?? 0,
+        assetsCents: totals?.lendCents ?? 0,
+        liabilitiesCents: totals?.borrowCents ?? 0,
         overdue: totals?.overdue ?? 0,
     }), [totals]);
-
-    const handleSaveLoan = (newLoan: Loan) => {
-        createLoanMutation.mutate(newLoan, {
-            onSuccess: () => {
-                playSound('success');
-            }
-        });
-    };
-
-    const formatCurrency = (val: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
 
     if (isLoading) return <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div></div>;
 
@@ -90,7 +87,8 @@ const PJLoansView: React.FC<PJLoansViewProps> = ({ onSelectLoan, onAddTransactio
                             <FilterIcon className="h-4 w-4" />
                         </div>
                         <select 
-                            value={filterType} 
+                            value={filterType}
+                            aria-label="Filtrar por natureza"
                             onChange={(e) => setFilterType(e.target.value as any)}
                             className="text-sm bg-transparent border-none text-on-surface focus:ring-0 cursor-pointer"
                         >
@@ -100,7 +98,8 @@ const PJLoansView: React.FC<PJLoansViewProps> = ({ onSelectLoan, onAddTransactio
                         </select>
                         <div className="w-px h-4 bg-border mx-1"></div>
                         <select 
-                            value={filterStatus} 
+                            value={filterStatus}
+                            aria-label="Filtrar por situação"
                             onChange={(e) => setFilterStatus(e.target.value as any)}
                             className="text-sm bg-transparent border-none text-on-surface focus:ring-0 cursor-pointer"
                         >
@@ -108,30 +107,37 @@ const PJLoansView: React.FC<PJLoansViewProps> = ({ onSelectLoan, onAddTransactio
                             <option value="active">Ativos</option>
                             <option value="overdue">Em Atraso</option>
                             <option value="paid">Quitados</option>
+                            <option value="cancelled">Cancelados</option>
                         </select>
                     </div>
 
                     <div className="flex bg-surface rounded-lg p-1 border border-border">
                         <button 
                             onClick={() => setViewMode('card')}
+                            aria-label="Ver em cartões"
+                            aria-pressed={viewMode === 'card'}
                             className={`p-2 rounded-md transition-all ${viewMode === 'card' ? 'bg-primary/10 text-primary' : 'text-muted hover:text-on-surface'}`}
                         >
                             <LayoutGridIcon className="h-5 w-5" />
                         </button>
                         <button 
                             onClick={() => setViewMode('list')}
+                            aria-label="Ver em lista"
+                            aria-pressed={viewMode === 'list'}
                             className={`p-2 rounded-md transition-all ${viewMode === 'list' ? 'bg-primary/10 text-primary' : 'text-muted hover:text-on-surface'}`}
                         >
                             <ListIcon className="h-5 w-5" />
                         </button>
                     </div>
 
-                    <button 
-                        onClick={() => setIsFormOpen(true)}
-                        className="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center shadow-md transition-colors whitespace-nowrap"
-                    >
-                        <PlusIcon className="mr-2 h-4 w-4" /> Nova Operação
-                    </button>
+                    {canCreate && (
+                        <button
+                            onClick={() => setIsFormOpen(true)}
+                            className="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center shadow-md transition-colors whitespace-nowrap"
+                        >
+                            <PlusIcon className="mr-2 h-4 w-4" /> Nova Operação
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -145,11 +151,11 @@ const PJLoansView: React.FC<PJLoansViewProps> = ({ onSelectLoan, onAddTransactio
                 )}
                 <div className="bg-surface p-4 rounded-xl border border-border shadow-sm flex items-center gap-4">
                     <div className="p-3 bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400 rounded-lg"><ArrowDownIcon className="w-6 h-6" /></div>
-                    <div><p className="text-[10px] font-bold text-muted uppercase">Total em Dívidas (Passivo)</p><p className="text-lg font-bold text-red-600">{formatCurrency(stats.liabilities)}</p></div>
+                    <div><p className="text-[10px] font-bold text-muted uppercase">Total em Dívidas (Passivo)</p><p data-testid="loans-total-borrow" className="text-lg font-bold text-red-600">{formatCents(stats.liabilitiesCents)}</p></div>
                 </div>
                 <div className="bg-surface p-4 rounded-xl border border-border shadow-sm flex items-center gap-4">
                     <div className="p-3 bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-400 rounded-lg"><TrendingUpIcon className="w-6 h-6" /></div>
-                    <div><p className="text-[10px] font-bold text-muted uppercase">A Receber (Ativo)</p><p className="text-lg font-bold text-green-600">{formatCurrency(stats.assets)}</p></div>
+                    <div><p className="text-[10px] font-bold text-muted uppercase">A Receber (Ativo)</p><p data-testid="loans-total-lend" className="text-lg font-bold text-green-600">{formatCents(stats.assetsCents)}</p></div>
                 </div>
                 <div className="bg-surface p-4 rounded-xl border border-border shadow-sm flex items-center gap-4">
                     <div className="p-3 bg-yellow-50 text-yellow-600 dark:bg-yellow-900/20 dark:text-yellow-400 rounded-lg"><WarningIcon className="w-6 h-6" /></div>
@@ -194,17 +200,15 @@ const PJLoansView: React.FC<PJLoansViewProps> = ({ onSelectLoan, onAddTransactio
                                                 {loan.type === 'lend' ? 'Ativo' : 'Passivo'}
                                             </span>
                                         </td>
-                                        <td className="px-4 py-3 text-right font-bold text-on-surface">{formatCurrency(loan.currentBalance)}</td>
-                                        <td className="px-4 py-3 text-center text-xs">
-                                            {loan.interestType === 'none' ? 'Isento' : `${loan.interestValue}${loan.interestBasis === 'monthly' ? '% a.m.' : loan.interestBasis === 'annual' ? '% a.a.' : ' Fixo'}`}
-                                        </td>
-                                        <td className="px-4 py-3 text-center text-muted">{new Date(loan.expectedPayoffDate).toLocaleDateString('pt-BR')}</td>
+                                        <td className="px-4 py-3 text-right font-bold text-on-surface">{loan.status === 'cancelled' ? '—' : formatCents(openBalanceCents(loan))}</td>
+                                        <td className="px-4 py-3 text-center text-xs">{interestLabel(loan.interest)}</td>
+                                        <td className="px-4 py-3 text-center text-muted">{formatDayKey(loan.maturityDate)}</td>
                                         <td className="px-4 py-3 text-center">
                                             <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
                                                 loan.status === 'active' ? 'bg-blue-100 text-blue-700' :
                                                 loan.status === 'paid' ? 'bg-green-100 text-green-700' :
-                                                loan.status === 'overdue' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-500'
-                                            }`}>{loan.status === 'overdue' ? 'Em Atraso' : loan.status}</span>
+                                                loan.status === 'overdue' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'
+                                            }`}>{LOAN_STATUS_LABELS[loan.status]}</span>
                                         </td>
                                     </tr>
                                 ))}
@@ -220,7 +224,9 @@ const PJLoansView: React.FC<PJLoansViewProps> = ({ onSelectLoan, onAddTransactio
                         </div>
                         <h3 className="text-lg font-bold text-on-surface mb-1">Nenhuma operação corporativa</h3>
                         <p className="text-sm text-muted">Registre seus empréstimos bancários ou adiantamentos.</p>
-                        <button onClick={() => setIsFormOpen(true)} className="mt-4 text-primary font-bold text-sm hover:underline">+ Cadastrar Primeiro</button>
+                        {canCreate && (
+                            <button onClick={() => setIsFormOpen(true)} className="mt-4 text-primary font-bold text-sm hover:underline">+ Cadastrar primeiro</button>
+                        )}
                     </div>
                 )}
 
@@ -239,11 +245,10 @@ const PJLoansView: React.FC<PJLoansViewProps> = ({ onSelectLoan, onAddTransactio
 
             </div>
 
-            <PJLoanFormModal 
-                isOpen={isFormOpen} 
-                onClose={() => setIsFormOpen(false)} 
-                onSave={handleSaveLoan}
-                onAddTransaction={onAddTransaction}
+            <PJLoanFormModal
+                isOpen={isFormOpen}
+                onClose={() => setIsFormOpen(false)}
+                onCreated={() => playSound('success')}
             />
         </div>
     );

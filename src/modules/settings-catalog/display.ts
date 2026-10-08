@@ -12,13 +12,7 @@ export type CatalogDisplayGroup =
     | 'category'
     | 'payment_method'
     | 'income_type'
-    | 'wallet'
-    | 'cost_center'
-    // Categoria de investimento do cadastro **anterior**. A categoria atual
-    // é `category` com subtipo `investimento`, já contemplada acima; este
-    // grupo permanece porque a listagem simples desenha o chip de lançamentos
-    // feitos antes da unificação.
-    | 'investment_type';
+    | 'cost_center';
 
 export interface ResolvedCatalogVisual {
     group: CatalogDisplayGroup;
@@ -36,9 +30,7 @@ const FALLBACK_COLORS: Record<CatalogDisplayGroup, string> = {
     category: '#8b5cf6',
     payment_method: '#0ea5e9',
     income_type: '#10b981',
-    wallet: '#3b82f6',
     cost_center: '#f59e0b',
-    investment_type: '#2563eb',
 };
 
 const toResolvedVisual = (
@@ -83,11 +75,9 @@ const resolveFromCatalog = (params: {
 };
 
 /*
- * O grupo aqui é o do **snapshot persistido na transação**, que é um
- * subconjunto de `CatalogDisplayGroup`: `investment_type` só existe para
- * desenhar o chip de um investimento e nunca é gravado numa transação.
- * Amarrar o parâmetro ao tipo persistido impede que um grupo novo de exibição
- * vaze para dentro de um documento antigo.
+ * O grupo aqui é o do **snapshot persistido na transação**: amarrar o
+ * parâmetro ao tipo persistido impede que um grupo só de exibição vaze para
+ * dentro de um documento.
  */
 export const buildVisualSnapshotFromCatalogItem = (
     group: TransactionCatalogVisualSnapshot['group'],

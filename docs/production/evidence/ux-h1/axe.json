@@ -1,0 +1,296 @@
+{
+  "painel-desktop-claro:pagina": [
+    {
+      "id": "color-contrast",
+      "impact": "serious",
+      "count": 9,
+      "nodes": [
+        {
+          "target": [
+            ".text-green-600.dark\\:text-green-400.mt-2 > span"
+          ],
+          "html": "<span>Mensal</span>"
+        },
+        {
+          "target": [
+            ".p-3.bg-background.rounded-lg:nth-child(1) > .mb-1.text-\\[10px\\].uppercase"
+          ],
+          "html": "<span class=\"text-[10px] uppercase font-bold text-muted block mb-1\">Saldo</span>"
+        },
+        {
+          "target": [
+            ".p-3.bg-background.rounded-lg:nth-child(2) > .mb-1.text-\\[10px\\].uppercase"
+          ],
+          "html": "<span class=\"text-[10px] uppercase font-bold text-muted block mb-1\">Poupança</span>"
+        },
+        {
+          "target": [
+            ".border-gray-100.dark\\:border-gray-800:nth-child(1) > .dark\\:text-gray-200.text-gray-800 > .gap-1.flex-col.flex > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+          ],
+          "html": "<span>Aluguel (exemplo)</span>"
+        },
+        {
+          "target": [
+            ".border-gray-100.dark\\:border-gray-800:nth-child(1) > .text-gray-600.dark\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+          ],
+          "html": "<span>Moradia</span>"
+        }
+      ]
+    },
+    {
+      "id": "select-name",
+      "impact": "critical",
+      "count": 1,
+      "nodes": [
+        {
+          "target": [
+            "select"
+          ],
+          "html": "<select class=\"border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-200 text-gray-800 dark:text-gray-200 rounded-lg px-3 py-2 text-sm focus:outline"
+        }
+      ]
+    },
+    {
+      "id": "svg-img-alt",
+      "impact": "serious",
+      "count": 2,
+      "nodes": [
+        {
+          "target": [
+            "path[name=\"Receitas\"]"
+          ],
+          "html": "<path cx=\"297\" cy=\"128\" name=\"Receitas\" stroke=\"#fff\" fill=\"#22c55e\" tabindex=\"-1\" class=\"recharts-sector\" d=\"M 397,128\n    A 100,100,0,\n    1,0,\n    282.378997"
+        },
+        {
+          "target": [
+            "path[name=\"Despesas\"]"
+          ],
+          "html": "<path cx=\"297\" cy=\"128\" name=\"Despesas\" stroke=\"#fff\" fill=\"#ef4444\" tabindex=\"-1\" class=\"recharts-sector\" d=\"M 282.378997153553,226.9253570919215\n    A 100,100"
+        }
+      ]
+    }
+  ],
+  "planos-free-desktop-claro:regiao": [],
+  "planos-free-desktop-claro:pagina": [],
+  "planos-erro-desktop-claro:regiao": [],
+  "painel-desktop-escuro:pagina": [
+    {
+      "id": "color-contrast",
+      "impact": "serious",
+      "count": 5,
+      "nodes": [
+        {
+          "target": [
+            ".border-gray-100.dark\\:border-gray-800:nth-child(1) > .dark\\:text-gray-200.text-gray-800 > .gap-1.flex-col.flex > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+          ],
+          "html": "<span>Aluguel (exemplo)</span>"
+        },
+        {
+          "target": [
+            ".border-gray-100.dark\\:border-gray-800:nth-child(1) > .text-gray-600.dark\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+          ],
+          "html": "<span>Moradia</span>"
+        },
+        {
+          "target": [
+            ".border-gray-100.dark\\:border-gray-800:nth-child(2) > .dark\\:text-gray-200.text-gray-800 > .gap-1.flex-col.flex > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+          ],
+          "html": "<span>Supermercado (exemplo)</span>"
+        },
+        {
+          "target": [
+            ".border-gray-100.dark\\:border-gray-800:nth-child(2) > .text-gray-600.dark\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+          ],
+          "html": "<span>Alimentação</span>"
+        },
+        {
+          "target": [
+            ".border-gray-100.dark\\:border-gray-800:nth-child(3) > .text-gray-600.dark\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+          ],
+          "html": "<span>Salário</span>"
+        }
+      ]
+    },
+    {
+      "id": "select-name",
+      "impact": "critical",
+      "count": 1,
+      "nodes": [
+        {
+          "target": [
+            "select"
+          ],
+          "html": "<select class=\"border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-200 text-gray-800 dark:text-gray-200 rounded-lg px-3 py-2 text-sm focus:outline"
+        }
+      ]
+    },
+    {
+      "id": "svg-img-alt",
+      "impact": "serious",
+      "count": 2,
+      "nodes": [
+        {
+          "target": [
+            "path[name=\"Receitas\"]"
+          ],
+          "html": "<path cx=\"297\" cy=\"128\" name=\"Receitas\" stroke=\"#fff\" fill=\"#22c55e\" tabindex=\"-1\" class=\"recharts-sector\" d=\"M 397,128\n    A 100,100,0,\n    1,0,\n    282.378997"
+        },
+        {
+          "target": [
+            "path[name=\"Despesas\"]"
+          ],
+          "html": "<path cx=\"297\" cy=\"128\" name=\"Despesas\" stroke=\"#fff\" fill=\"#f87171\" tabindex=\"-1\" class=\"recharts-sector\" d=\"M 282.378997153553,226.9253570919215\n    A 100,100"
+        }
+      ]
+    }
+  ],
+  "planos-free-desktop-escuro:regiao": [],
+  "planos-free-desktop-escuro:pagina": [],
+  "menu-mobile-aberto-claro:pagina": [
+    {
+      "id": "color-contrast",
+      "impact": "serious",
+      "count": 8,
+      "nodes": [
+        {
+          "target": [
+            ".text-green-600.dark\\:text-green-400.mt-2 > span"
+          ],
+          "html": "<span>Mensal</span>"
+        },
+        {
+          "target": [
+            ".p-3.bg-background.rounded-lg:nth-child(1) > .mb-1.text-\\[10px\\].uppercase"
+          ],
+          "html": "<span class=\"text-[10px] uppercase font-bold text-muted block mb-1\">Saldo</span>"
+        },
+        {
+          "target": [
+            ".p-3.bg-background.rounded-lg:nth-child(2) > .mb-1.text-\\[10px\\].uppercase"
+          ],
+          "html": "<span class=\"text-[10px] uppercase font-bold text-muted block mb-1\">Poupança</span>"
+        },
+        {
+          "target": [
+            ".border-gray-100.dark\\:border-gray-800:nth-child(1) > .dark\\:text-gray-200.text-gray-800 > .gap-1.flex-col.flex > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+          ],
+          "html": "<span>Aluguel (exemplo)</span>"
+        },
+        {
+          "target": [
+            ".border-gray-100.dark\\:border-gray-800:nth-child(1) > .text-gray-600.dark\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+          ],
+          "html": "<span>Moradia</span>"
+        }
+      ]
+    },
+    {
+      "id": "select-name",
+      "impact": "critical",
+      "count": 1,
+      "nodes": [
+        {
+          "target": [
+            "select"
+          ],
+          "html": "<select class=\"border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-200 text-gray-800 dark:text-gray-200 rounded-lg px-3 py-2 text-sm focus:outline"
+        }
+      ]
+    },
+    {
+      "id": "svg-img-alt",
+      "impact": "serious",
+      "count": 2,
+      "nodes": [
+        {
+          "target": [
+            "path[name=\"Receitas\"]"
+          ],
+          "html": "<path cx=\"154\" cy=\"128\" name=\"Receitas\" stroke=\"#fff\" fill=\"#22c55e\" tabindex=\"-1\" class=\"recharts-sector\" d=\"M 254,128\n    A 100,100,0,\n    0,0,\n    216.228823"
+        },
+        {
+          "target": [
+            "path[name=\"Despesas\"]"
+          ],
+          "html": "<path cx=\"154\" cy=\"128\" name=\"Despesas\" stroke=\"#fff\" fill=\"#ef4444\" tabindex=\"-1\" class=\"recharts-sector\" d=\"M 216.22882354746588,49.721180898672515\n    A 100,"
+        }
+      ]
+    }
+  ],
+  "planos-free-mobile-claro:pagina": [],
+  "menu-mobile-aberto-escuro:pagina": [
+    {
+      "id": "color-contrast",
+      "impact": "serious",
+      "count": 5,
+      "nodes": [
+        {
+          "target": [
+            ".border-gray-100.dark\\:border-gray-800:nth-child(1) > .dark\\:text-gray-200.text-gray-800 > .gap-1.flex-col.flex > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+          ],
+          "html": "<span>Aluguel (exemplo)</span>"
+        },
+        {
+          "target": [
+            ".border-gray-100.dark\\:border-gray-800:nth-child(1) > .text-gray-600.dark\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+          ],
+          "html": "<span>Moradia</span>"
+        },
+        {
+          "target": [
+            ".border-gray-100.dark\\:border-gray-800:nth-child(2) > .dark\\:text-gray-200.text-gray-800 > .gap-1.flex-col.flex > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+          ],
+          "html": "<span>Supermercado (exemplo)</span>"
+        },
+        {
+          "target": [
+            ".border-gray-100.dark\\:border-gray-800:nth-child(2) > .text-gray-600.dark\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+          ],
+          "html": "<span>Alimentação</span>"
+        },
+        {
+          "target": [
+            ".border-gray-100.dark\\:border-gray-800:nth-child(3) > .text-gray-600.dark\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+          ],
+          "html": "<span>Salário</span>"
+        }
+      ]
+    },
+    {
+      "id": "select-name",
+      "impact": "critical",
+      "count": 1,
+      "nodes": [
+        {
+          "target": [
+            "select"
+          ],
+          "html": "<select class=\"border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-200 text-gray-800 dark:text-gray-200 rounded-lg px-3 py-2 text-sm focus:outline"
+        }
+      ]
+    },
+    {
+      "id": "svg-img-alt",
+      "impact": "serious",
+      "count": 2,
+      "nodes": [
+        {
+          "target": [
+            "path[name=\"Receitas\"]"
+          ],
+          "html": "<path cx=\"154\" cy=\"128\" name=\"Receitas\" stroke=\"#fff\" fill=\"#22c55e\" tabindex=\"-1\" class=\"recharts-sector\" d=\"M 254,128\n    A 100,100,0,\n    0,0,\n    109.622507"
+        },
+        {
+          "target": [
+            "path[name=\"Despesas\"]"
+          ],
+          "html": "<path cx=\"154\" cy=\"128\" name=\"Despesas\" stroke=\"#fff\" fill=\"#f87171\" tabindex=\"-1\" class=\"recharts-sector\" d=\"M 109.62250778772548,38.38617190996965\n    A 100,1"
+        }
+      ]
+    }
+  ],
+  "planos-free-mobile-escuro:pagina": [],
+  "planos-assinante-desktop-claro:regiao": [],
+  "planos-assinante-desktop-escuro:regiao": [],
+  "planos-assinante-mobile-escuro:regiao": []
+}

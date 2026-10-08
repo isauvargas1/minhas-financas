@@ -132,7 +132,7 @@ const abrirInvestimentos = async (page: Page) => {
   await page.getByText('Dashboard', { exact: true }).first().click();
   await expect(page.getByText('Saldo Atual')).toBeVisible();
   await page.getByText('Investimentos', { exact: true }).first().click();
-  await expect(page.getByRole('heading', { name: 'Investimentos' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Investimentos', exact: true })).toBeVisible();
 };
 
 /** Preenche o formulário simples já aberto. */
@@ -142,7 +142,7 @@ const preencher = async (
 ) => {
   const dialogo = page.getByRole('dialog');
   await expect(dialogo).toBeVisible();
-  await dialogo.getByLabel('Carteira de investimento').selectOption({ label: 'Reserva de emergência' });
+  await dialogo.getByLabel('Carteira de investimentos').selectOption({ label: 'Reserva de emergência' });
   await dialogo.getByLabel('Instituição').selectOption({ label: 'BTG' });
   await dialogo.getByLabel('Descrição').fill(descricao);
   await dialogo.getByLabel('Categoria').selectOption({ label: 'Renda fixa' });
@@ -286,10 +286,13 @@ test('retirada reduz a meta pelo capital e nunca vira receita operacional', asyn
   const espelhos = await transacoes();
   expect(espelhos.every((espelho) => espelho.type === 'investimento')).toBe(true);
   expect(espelhos.some((espelho) => espelho.type === 'receita')).toBe(false);
+  // P4-D: a marca backend-only `investmentEntry` classifica o espelho.
   const resgate = espelhos.find(
-    (espelho) => espelho.investmentMetadata?.investmentOperation === 'redemption',
+    (espelho) => espelho.investmentEntry?.operation === 'redemption' && !espelho.investmentEntry?.reversal,
   );
-  expect(resgate?.investmentMetadata?.cashImpact).toBe('inflow');
+  expect(resgate?.investmentEntry?.status).toBe('settled');
+  expect(resgate?.source).toBe('investment');
+  expect(typeof resgate?.accountMovementId).toBe('string');
 
   // O relatório separa aporte de retirada.
   await page.getByText('Relatórios', { exact: true }).click();

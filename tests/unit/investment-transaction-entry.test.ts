@@ -5,9 +5,11 @@ import {existsSync, readFileSync} from 'node:fs';
 import {
   SETTINGS_CATALOG_SECTION_LIST,
   listCommonSettingsCatalogSections,
-  isCommonSettingsCatalogSection,
 } from '../../src/modules/settings-catalog/presentation.ts';
-import {SETTINGS_CATALOG_GROUP_CONFIG} from '../../src/modules/settings-catalog/constants.ts';
+import {
+  SETTINGS_CATALOG_GROUP_CONFIG,
+  SETTINGS_KEY_TO_CATALOG_GROUP,
+} from '../../src/modules/settings-catalog/constants.ts';
 import {buildCreateSimpleInvestmentInput} from '../../src/modules/investments/simple/form.ts';
 
 /**
@@ -71,8 +73,8 @@ test('B. a aba de investimento não alcança o submit de transação', () => {
     /const handleSubmit = async \(e: FormEvent\) => \{[\s\S]{0,400}?if \(activeTab === 'investimento'\) return;/,
   );
 
-  // E o formulário comum — com `onAddTransaction`, `onAddTransactions` e
-  // `transactionData` — nem chega a ser renderizado na aba de investimento.
+  // E o formulário comum — o das callables de caixa e de cartão — nem chega
+  // a ser renderizado na aba de investimento.
   assert.match(
     modal,
     /\{activeTab === 'investimento' \? \([\s\S]{0,600}?<SimpleInvestmentForm[\s\S]{0,600}?\) : \(\s*<form onSubmit=\{handleSubmit\}>/,
@@ -194,7 +196,7 @@ test('D. a tela de Investimentos usa exatamente o mesmo componente', () => {
 
 test('D. a experiência de Investimentos mantém campos, rótulos e edição pendente', () => {
   for (const rotulo of [
-    /label="Carteira de investimento"/, /label="Instituição"/, /label="Categoria"/,
+    /label="Carteira de investimentos"/, /label="Instituição"/, /label="Categoria"/,
     /label="Valor do investimento"/, /legend="Esse valor já foi depositado\?"/,
     /Meta \(opcional\)/,
   ]) {
@@ -238,7 +240,7 @@ test('D. a correção de pendente não tem estado parcial no cliente', () => {
   // E o payload montado declara o pendente substituído com esse nome.
   const payload = buildCreateSimpleInvestmentInput({
     goalId: '', classId: 'c', institutionId: 'i', description: 'd',
-    typeId: 't', amount: '100', deposited: false, date: '2026-08-10',
+    typeId: 't', amount: '100', deposited: false, date: '2026-08-10', cashAccountId: '',
   }, new Date('2026-08-10T15:00:00.000Z'), 'mov-antigo');
   assert.equal(payload.replacesMovementId, 'mov-antigo');
 });
@@ -273,36 +275,35 @@ test('E. "Carteiras" saiu de Cadastros e a de investimento ficou', () => {
   }
 });
 
-test('E. "Carteiras" continua definida no domínio, e separada da de investimento', () => {
+test('E. a carteira de caixa saiu do catálogo (D-30); a de investimento continua', () => {
   /*
-   * A carteira de caixa saiu da navegação; o cadastro **não** saiu do sistema.
-   * `walletId`, os lançamentos, os cartões e todo documento já gravado seguem
-   * apontando para o grupo `wallet`, que continua sendo outro grupo que o
-   * `investment_class` das carteiras de investimento.
+   * P3-J (D-30): a carteira de caixa é a conta autoritativa `cash_accounts`
+   * (Configurações › Contas e carteiras), gravada só pelo backend. O grupo
+   * genérico `wallet` foi removido do catálogo, sem migração; nenhuma seção,
+   * grupo ou configuração o oferece. A carteira de investimentos
+   * (`investment_class`) é outro conceito e continua comum.
    */
-  const caixa = SETTINGS_CATALOG_SECTION_LIST.find((s) => s.key === 'wallets');
+  assert.equal(
+    SETTINGS_CATALOG_SECTION_LIST.some((s) => (s.group as string) === 'wallet'
+      || (s.key as string) === 'wallets'),
+    false,
+    'o grupo genérico wallet voltou ao catálogo',
+  );
+  assert.equal('wallet' in SETTINGS_CATALOG_GROUP_CONFIG, false);
+  assert.equal('wallets' in SETTINGS_KEY_TO_CATALOG_GROUP, false);
   const patrimonio = SETTINGS_CATALOG_SECTION_LIST.find((s) => s.key === 'investmentClasses');
-  assert.ok(caixa, 'a definição de wallets foi removida do catálogo');
-  assert.equal(caixa?.group, 'wallet');
-  assert.equal(caixa?.shortTitle, 'Carteiras');
-  assert.equal(caixa?.title, 'Carteiras de caixa');
-  assert.equal(caixa?.audience, 'advanced');
-  assert.equal(isCommonSettingsCatalogSection(caixa!), false);
   assert.equal(patrimonio?.group, 'investment_class');
   assert.equal(patrimonio?.shortTitle, 'Carteiras de investimento');
-  assert.equal(patrimonio?.audience, 'common');
-  assert.notEqual(caixa?.group, patrimonio?.group);
+  assert.ok(listCommonSettingsCatalogSections('PF').includes(patrimonio!));
 });
 
-test('F. os cadastros técnicos e o histórico saíram da lista comum', () => {
+test('F. os cadastros técnicos e o histórico não existem mais', () => {
   for (const tipo of ['PF', 'PJ'] as const) {
     for (const titulo of [
       'Risco', 'Liquidez', 'Indexadores', 'Estratégias',
-      // Cadastro **anterior** de categoria de investimento. Continua definido
-      // e legível; deixou de ser oferecido, porque era a segunda fonte.
+      // Segunda fonte de categoria de investimento: removida (D-15, P4-D).
       'Categorias de investimento',
-      // Carteira de caixa: retirada da navegação comum por decisão de
-      // produto. O grupo `wallet` e os documentos seguem intactos.
+      // Carteira de caixa: não é mais cadastro do catálogo (D-30, P3-J).
       'Carteiras',
     ]) {
       assert.equal(
@@ -327,27 +328,41 @@ test('F. a tela não decide visibilidade por string solta', () => {
   assert.match(hook, /listCommonSettingsCatalogSections\(activeWorkspace\.type\)/);
 });
 
-test('G. os grupos fora da navegação comum continuam definidos', () => {
-  const tecnicos = [
-    ['wallets', 'wallet'],
-    ['investmentTypes', 'investment_type'],
-    ['investmentRisks', 'investment_risk'],
-    ['investmentLiquidity', 'investment_liquidity'],
-    ['investmentIndexers', 'investment_indexer'],
-    ['investmentStrategies', 'investment_strategy'],
-  ] as const;
-
-  for (const [key, group] of tecnicos) {
-    const section = SETTINGS_CATALOG_SECTION_LIST.find((s) => s.key === key);
-    assert.ok(section, `${key} foi removida do domínio`);
-    assert.equal(section?.group, group);
-    assert.equal(section?.audience, 'advanced');
-    assert.equal(isCommonSettingsCatalogSection(section!), false);
-    assert.ok(SETTINGS_CATALOG_GROUP_CONFIG[group], `${group} saiu de constants.ts`);
+test('G. D-15: os grupos técnicos de investimento saíram do domínio', () => {
+  /*
+   * P4-D: a experiência profissional não é oferecida. `investment_type`
+   * (segunda fonte de categoria), risco, liquidez, indexador e estratégia
+   * não têm seção, grupo, configuração nem rótulo — e não há "audiência
+   * avançada" escondendo cadastro: o que existe é o que a tela mostra.
+   */
+  for (const key of [
+    'investmentTypes', 'investmentRisks', 'investmentLiquidity',
+    'investmentIndexers', 'investmentStrategies',
+  ]) {
+    assert.equal(
+      SETTINGS_CATALOG_SECTION_LIST.some((s) => (s.key as string) === key), false,
+      `${key} voltou ao catálogo`,
+    );
   }
-
-  // Esconder não encolhe o domínio: a lista completa segue com as catorze.
-  assert.equal(SETTINGS_CATALOG_SECTION_LIST.length, 14);
+  for (const group of [
+    'investment_type', 'investment_risk', 'investment_liquidity',
+    'investment_indexer', 'investment_strategy',
+  ]) {
+    assert.equal(group in SETTINGS_CATALOG_GROUP_CONFIG, false, `${group} voltou a constants.ts`);
+  }
+  assert.equal(
+    SETTINGS_CATALOG_SECTION_LIST.some((s) => 'audience' in s), false,
+    'voltou o mecanismo de seção escondida',
+  );
+  // A lista completa é a lista comum (recortada só por PF/PJ).
+  assert.equal(SETTINGS_CATALOG_SECTION_LIST.length, 8);
+  assert.deepEqual(
+    listCommonSettingsCatalogSections('PJ').map((s) => s.key),
+    SETTINGS_CATALOG_SECTION_LIST.map((s) => s.key),
+  );
+  assert.equal(
+    listCommonSettingsCatalogSections('PF').some((s) => s.key === 'costCenters'), false,
+  );
 });
 
 // ---------------------------------------------------------------------------
@@ -360,7 +375,7 @@ test('G. os grupos fora da navegação comum continuam definidos', () => {
  * algum formulário. O que estes testes fixam é que sobrou um — e que ele é o
  * mesmo caminho por onde já passam receita, despesa e parcelado.
  *
- * A regra de compatibilidade em si é função pura e está provada de verdade em
+ * A exceção da categoria inativada é função pura e está provada de verdade em
  * `investment-simple-form.test.ts`; aqui o que se verifica é a fiação.
  */
 
@@ -402,7 +417,7 @@ test('I. os dois pontos de entrada compartilham a mesma leitura', () => {
   }
 });
 
-test('I. o pendente legado reabre com a própria categoria', () => {
+test('I. o pendente reabre com a própria categoria, mesmo inativada', () => {
   // O contrato de edição carrega o rótulo fotografado no movimento...
   assert.match(form, /typeName\?: string;/);
   // ...e a decisão sobre as opções é a função pura, não uma regra inline.
@@ -418,11 +433,17 @@ test('I. o pendente legado reabre com a própria categoria', () => {
   assert.match(view, /typeName: row\.category,/);
 });
 
-test('I. o rótulo da carteira não se confunde com carteira de caixa', () => {
-  assert.match(form, /label="Carteira de investimento"/);
+test('I. o rótulo da carteira não se confunde com a conta do Caixa', () => {
+  assert.match(form, /label="Carteira de investimentos"/);
   assert.doesNotMatch(form, /label="Carteira"/);
   // O identificador técnico não mudou junto com o rótulo.
   assert.match(form, /useSettingsCatalogGroup\('investment_class'\)/);
+  // A conta do Caixa tem o próprio rótulo, por sentido do dinheiro.
+  assert.match(form, /label="Conta de origem"/);
+  const withdraw = readFileSync(
+    'src/modules/investments/simple/components/WithdrawInvestmentModal.tsx', 'utf8',
+  );
+  assert.match(withdraw, /label="Conta de destino"/);
 });
 
 /** Só o código: um comentário que explica a ausência não é uma ocorrência. */
@@ -430,11 +451,12 @@ const semComentarios = (fonte: string) => fonte
   .replace(/\/\*[\s\S]*?\*\//g, '')
   .replace(/^\s*\/\/.*$/gm, '');
 
-test('I. nenhum fluxo simples pede carteira de caixa', () => {
-  const proibidos = /walletId|sourceWallet|destinationWallet|cashWallet|cashAccount/;
+test('I. D-30: os fatos liquidados pedem a conta do Caixa, nunca uma carteira de caixa', () => {
+  const proibidos = /walletId|sourceWallet|destinationWallet|cashWallet/;
   const arquivos = [
     'src/modules/investments/simple/form.ts',
     'src/modules/investments/simple/api.ts',
+    'src/modules/investments/simple/cashAccounts.ts',
     'src/modules/investments/simple/components/SimpleInvestmentForm.tsx',
     'src/modules/investments/simple/components/WithdrawInvestmentModal.tsx',
     'src/modules/investments/simple/components/ConfirmMovementModal.tsx',
@@ -443,16 +465,21 @@ test('I. nenhum fluxo simples pede carteira de caixa', () => {
     const conteudo = semComentarios(readFileSync(arquivo, 'utf8'));
     assert.doesNotMatch(conteudo, proibidos, `${arquivo} pede carteira de caixa`);
   }
-  // E o payload montado pelo formulário continua sem o campo.
-  const payload = readFileSync(
-    'src/modules/investments/simple/form.ts', 'utf8',
-  ).slice(0, 0) + JSON.stringify(Object.keys(
-    buildCreateSimpleInvestmentInput({
-      goalId: '', classId: 'c', institutionId: 'i', description: 'd',
-      typeId: 't', amount: '100', deposited: true, date: '2026-08-10',
-    }, new Date('2026-08-10T15:00:00.000Z')),
-  ));
-  assert.doesNotMatch(payload, /wallet/i);
+  // A conta oferecida é a de `cash_accounts`, só as ativas.
+  const contas = semComentarios(readFileSync('src/modules/investments/simple/cashAccounts.ts', 'utf8'));
+  assert.match(contas, /useCashAccounts\(\)/);
+  assert.match(contas, /account\.status === 'active'/);
+  // O payload liquidado leva `cashAccountId`; o pendente, nada de conta.
+  const base = {
+    goalId: '', classId: 'c', institutionId: 'i', description: 'd',
+    typeId: 't', amount: '100', date: '2026-08-10', cashAccountId: 'conta-1',
+  };
+  const agora = new Date('2026-08-10T15:00:00.000Z');
+  const liquidado = buildCreateSimpleInvestmentInput({ ...base, deposited: true }, agora);
+  assert.equal(liquidado.cashAccountId, 'conta-1');
+  assert.doesNotMatch(JSON.stringify(Object.keys(liquidado)), /wallet/i);
+  const pendente = buildCreateSimpleInvestmentInput({ ...base, deposited: false }, agora);
+  assert.equal('cashAccountId' in pendente, false);
 });
 
 test('I. Cadastros comuns mostram exatamente a experiência decidida', () => {
@@ -466,7 +493,7 @@ test('I. Cadastros comuns mostram exatamente a experiência decidida', () => {
     for (const titulo of [
       'Categorias de investimento', 'Risco', 'Liquidez', 'Indexadores',
       'Estratégias',
-      // Carteira de caixa: fora da navegação comum, viva no domínio.
+      // Carteira de caixa: é a conta do Caixa (D-30), fora do catálogo.
       'Carteiras',
     ]) {
       assert.equal(
@@ -475,13 +502,14 @@ test('I. Cadastros comuns mostram exatamente a experiência decidida', () => {
       );
     }
   }
-  // "Categorias" oferece as quatro abas, e Investimentos é uma delas.
+  // "Categorias" oferece as três abas (D-23: sem Parcelados — a compra
+  // parcelada é do cartão e usa categoria de despesa), e Investimentos é uma.
   const categorias = SETTINGS_CATALOG_SECTION_LIST.find((s) => s.key === 'categories');
   assert.equal(categorias?.group, 'category');
   assert.equal(categorias?.supportsTransactionSubtype, true);
   assert.deepEqual(
     SETTINGS_CATALOG_GROUP_CONFIG.category.allowedTransactionSubtypes,
-    ['receita', 'despesa', 'investimento', 'parcelado'],
+    ['receita', 'despesa', 'investimento'],
   );
 });
 
@@ -497,10 +525,26 @@ test('H. receita, despesa e cartão seguem no formulário comum', () => {
   ]) {
     assert.match(modal, ramo);
   }
-  // Os destinos de escrita das três continuam onde estavam.
-  assert.match(modal, /await onAddCreditCardPurchase\(\{/);
-  assert.match(modal, /onAddTransactions\(newTransactions\)/);
-  assert.match(modal, /else await onAddTransaction\(transactionData as Omit<Transaction, 'id'>\)/);
+  // P4-A: cartão só pela callable do domínio de cartões, com a chave da
+  // intenção; nenhum lote de `parcelado` sai do modal.
+  assert.match(modal, /await onAddCreditCardPurchase\(payload, intent\.key\)/);
+  assert.doesNotMatch(modal, /onAddTransactions/);
+  assert.doesNotMatch(modal, /type: 'parcelado'/);
+  // P3-E/P3-F (PLAN §18.5, §18.6): receita e despesa manuais — confirmadas,
+  // pendentes ou agendadas (D-29) — passam pelas callables de caixa, com
+  // chave por intenção: criação, correção e confirmação de pendente.
+  assert.match(modal, /\} else if \(isManualTab\) \{/);
+  assert.match(modal, /await onCreateManualTransaction\(payload, intent\.key\)/);
+  assert.match(modal, /if \(confirmingPending\) \{/);
+  assert.match(modal, /await onConfirmManualTransaction\(payload, intent\.key\)/);
+  assert.match(modal, /\} else if \(editRoutesToCash\) \{/);
+  assert.match(modal, /await onUpdateManualTransaction\(payload, intent\.key\)/);
+  // P4-D: não há escrita direta em `transactions` como alternativa — o
+  // lançamento de outro módulo é recusado com a frase em pt-BR.
+  assert.doesNotMatch(modal, /onUpdateTransaction|onAddTransaction\b|transactionData/);
+  assert.match(modal, /throw new CashEntryInputError\(NOT_EDITABLE_MESSAGE\)/);
+  // A aba de investimento nunca chega a nenhum desses destinos.
+  assert.match(modal, /if \(activeTab === 'investimento'\) return;/);
 });
 
 test('H. a IA continua ligada só ao formulário que ela sabe preencher', () => {

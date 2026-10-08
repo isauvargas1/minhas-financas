@@ -199,6 +199,34 @@ export const SelectField: React.FC<{
   </div>
 );
 
+/**
+ * Conta do Caixa do lançamento (D-30, P4-D): "Conta de origem" no aporte
+ * depositado, "Conta de destino" na retirada recebida. Não confundir com a
+ * carteira de investimentos, que classifica o patrimônio.
+ */
+export const CashAccountField: React.FC<{
+  id: string;
+  label: string;
+  value: string;
+  options: SelectOption[];
+  onChange(value: string): void;
+  error?: string;
+  hint?: string;
+}> = ({ id, label, value, options, onChange, error, hint }) => (
+  <SelectField
+    id={id}
+    label={label}
+    required
+    value={value}
+    options={options}
+    onChange={onChange}
+    placeholder="Selecione a conta..."
+    error={error}
+    hint={hint}
+    emptyHint="Nenhuma conta ativa. Cadastre ou reative uma conta em Configurações › Contas e carteiras."
+  />
+);
+
 export const DateField: React.FC<{
   id: string;
   label: string;

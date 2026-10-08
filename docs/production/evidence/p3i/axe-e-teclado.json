@@ -1,0 +1,224 @@
+{
+  "axe": {
+    "desktop-claro:lista-recebiveis": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "count": 3,
+        "nodes": [
+          {
+            "target": [
+              ".text-teal-600"
+            ],
+            "html": "<span class=\"text-xs text-teal-600 dark:text-teal-400 font-bold uppercase tracking-wider flex items-center gap-1 mt-0.5\">"
+          },
+          {
+            "target": [
+              ".w-9"
+            ],
+            "html": "<div role=\"button\" tabindex=\"0\" aria-label=\"Abrir menu da conta\" aria-expanded=\"false\" class=\"w-9 h-9 rounded-full flex items-center justify-center text-white f"
+          },
+          {
+            "target": [
+              ".text-red-500"
+            ],
+            "html": "<td class=\"px-6 py-3 text-red-500 font-medium\">04/10/2026</td>"
+          }
+        ]
+      }
+    ],
+    "desktop-claro:lista-clientes": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "count": 4,
+        "nodes": [
+          {
+            "target": [
+              ".text-teal-600"
+            ],
+            "html": "<span class=\"text-xs text-teal-600 dark:text-teal-400 font-bold uppercase tracking-wider flex items-center gap-1 mt-0.5\">"
+          },
+          {
+            "target": [
+              ".w-9"
+            ],
+            "html": "<div role=\"button\" tabindex=\"0\" aria-label=\"Abrir menu da conta\" aria-expanded=\"false\" class=\"w-9 h-9 rounded-full flex items-center justify-center text-white f"
+          },
+          {
+            "target": [
+              ".hover\\:bg-background\\/50.group:nth-child(1) > td:nth-child(2) > .flex-col.flex > .opacity-70.text-xs"
+            ],
+            "html": "<span class=\"text-xs opacity-70\">(11) 98765-4321</span>"
+          },
+          {
+            "target": [
+              ".hover\\:bg-background\\/50.group:nth-child(2) > td:nth-child(2) > .flex-col.flex > .opacity-70.text-xs"
+            ],
+            "html": "<span class=\"text-xs opacity-70\">(21) 3333-4444</span>"
+          }
+        ]
+      }
+    ],
+    "desktop-claro:novo-cliente": [],
+    "desktop-claro:editar-cliente": [],
+    "desktop-claro:arquivar-bloqueado": [],
+    "desktop-claro:novo-recebivel": [],
+    "desktop-claro:recebimento": [],
+    "desktop-claro:historico": [],
+    "desktop-claro:estorno": [],
+    "desktop-claro:cancelar": [],
+    "desktop-claro:lista-clientes-member": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "count": 2,
+        "nodes": [
+          {
+            "target": [
+              ".text-teal-600"
+            ],
+            "html": "<span class=\"text-xs text-teal-600 dark:text-teal-400 font-bold uppercase tracking-wider flex items-center gap-1 mt-0.5\">"
+          },
+          {
+            "target": [
+              ".w-9"
+            ],
+            "html": "<div role=\"button\" tabindex=\"0\" aria-label=\"Abrir menu da conta\" aria-expanded=\"false\" class=\"w-9 h-9 rounded-full flex items-center justify-center text-white f"
+          }
+        ]
+      }
+    ],
+    "desktop-escuro:lista-recebiveis": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "count": 3,
+        "nodes": [
+          {
+            "target": [
+              ".w-9"
+            ],
+            "html": "<div role=\"button\" tabindex=\"0\" aria-label=\"Abrir menu da conta\" aria-expanded=\"false\" class=\"w-9 h-9 rounded-full flex items-center justify-center text-white f"
+          },
+          {
+            "target": [
+              ".border-b-2.border-primary.text-sm"
+            ],
+            "html": "<button aria-pressed=\"true\" class=\"px-6 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 border-primary text-primary\">"
+          },
+          {
+            "target": [
+              ".text-red-500"
+            ],
+            "html": "<td class=\"px-6 py-3 text-red-500 font-medium\">04/10/2026</td>"
+          }
+        ]
+      }
+    ],
+    "desktop-escuro:lista-clientes": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "count": 4,
+        "nodes": [
+          {
+            "target": [
+              ".w-9"
+            ],
+            "html": "<div role=\"button\" tabindex=\"0\" aria-label=\"Abrir menu da conta\" aria-expanded=\"false\" class=\"w-9 h-9 rounded-full flex items-center justify-center text-white f"
+          },
+          {
+            "target": [
+              ".border-b-2.border-primary.font-medium"
+            ],
+            "html": "<button aria-pressed=\"true\" class=\"px-6 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 border-primary text-primary\">"
+          },
+          {
+            "target": [
+              ".hover\\:bg-background\\/50.group:nth-child(1) > td:nth-child(2) > .flex-col.flex > .opacity-70.text-xs"
+            ],
+            "html": "<span class=\"text-xs opacity-70\">(11) 98765-4321</span>"
+          },
+          {
+            "target": [
+              ".hover\\:bg-background\\/50.group:nth-child(2) > td:nth-child(2) > .flex-col.flex > .opacity-70.text-xs"
+            ],
+            "html": "<span class=\"text-xs opacity-70\">(21) 3333-4444</span>"
+          }
+        ]
+      }
+    ],
+    "desktop-escuro:novo-cliente": [],
+    "desktop-escuro:editar-cliente": [],
+    "desktop-escuro:arquivar-bloqueado": [],
+    "desktop-escuro:novo-recebivel": [],
+    "desktop-escuro:recebimento": [],
+    "desktop-escuro:historico": [],
+    "desktop-escuro:estorno": [],
+    "desktop-escuro:cancelar": [],
+    "desktop-escuro:lista-clientes-member": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "count": 2,
+        "nodes": [
+          {
+            "target": [
+              ".w-9"
+            ],
+            "html": "<div role=\"button\" tabindex=\"0\" aria-label=\"Abrir menu da conta\" aria-expanded=\"false\" class=\"w-9 h-9 rounded-full flex items-center justify-center text-white f"
+          },
+          {
+            "target": [
+              ".border-b-2.border-primary.font-medium"
+            ],
+            "html": "<button aria-pressed=\"true\" class=\"px-6 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 border-primary text-primary\">"
+          }
+        ]
+      }
+    ]
+  },
+  "keyboard": [
+    {
+      "dialog": "Registrar recebimento",
+      "focusOnTitle": true,
+      "tabStaysInside": true,
+      "escapeCloses": true,
+      "focusReturned": true
+    },
+    {
+      "dialog": "Novo Recebível",
+      "focusOnTitle": true,
+      "tabStaysInside": true,
+      "escapeCloses": true,
+      "focusReturned": true
+    },
+    {
+      "dialog": "Cancelar recebível",
+      "focusOnTitle": true,
+      "tabStaysInside": true,
+      "escapeCloses": true,
+      "focusReturned": true
+    },
+    {
+      "rowActionsVisibleOnFocus": true
+    }
+  ],
+  "overflow": {
+    "desktop-claro:lista-recebiveis": 0,
+    "desktop-claro:lista-clientes": 0,
+    "desktop-escuro:lista-recebiveis": 0,
+    "desktop-escuro:lista-clientes": 0,
+    "mobile-claro:lista-recebiveis": 0,
+    "mobile-claro:lista-clientes": 0,
+    "mobile-escuro:lista-recebiveis": 0,
+    "mobile-escuro:lista-clientes": 0
+  }
+}

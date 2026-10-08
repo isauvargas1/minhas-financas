@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import {readFileSync} from "node:fs";
+import {resolve} from "node:path";
 
 import {Timestamp} from "firebase-admin/firestore";
 
@@ -10,6 +12,7 @@ import {
   INVESTMENT_DOMAIN_VERSION,
 } from "../domain";
 import {idempotencyIdentityPayload, stableStringify} from "../infrastructure";
+import {INVESTMENT_COLLECTIONS} from "../paths";
 
 const occurredAt = Timestamp.fromDate(new Date("2026-08-23T15:00:00.000Z"));
 
@@ -49,6 +52,8 @@ const movement = (
   createdAt: occurredAt,
   settledBy: "user-1",
   settledAt: occurredAt,
+  cashAccountId: "conta-1",
+  accountMovementId: "acm-1",
   ...overrides,
 });
 
@@ -117,6 +122,8 @@ test("pendente precisa ter todos os deltas em zero", () => {
   delete pending.settlementAt;
   delete pending.settledAt;
   delete pending.settledBy;
+  delete pending.cashAccountId;
+  delete pending.accountMovementId;
   assert.ok(assertInvestmentDocument("movement", pending));
 
   rejects(
@@ -155,6 +162,8 @@ test("cancelado mantém deltas zerados e registra autor e instante", () => {
   delete base.settlementAt;
   delete base.settledAt;
   delete base.settledBy;
+  delete base.cashAccountId;
+  delete base.accountMovementId;
   assert.ok(assertInvestmentDocument("movement", base));
 
   const {cancelledBy: _c, ...withoutAuthor} = base;
@@ -201,6 +210,11 @@ test("ativo exige finalidade de alocação explícita", () => {
     name: "Reserva",
     assetType: "fixed_income",
     allocationPurpose: "reserve",
+    classId: "cls-1",
+    className: "Reserva operacional",
+    typeId: "cat-1",
+    typeName: "CDB",
+    trackingMode: "value",
     currency: "BRL",
     status: "active",
     createdBy: "u",
@@ -223,6 +237,21 @@ test("ativo exige finalidade de alocação explícita", () => {
       }),
     "finalidade fora do enum PF/PJ",
   );
+  // Regime único por valor (D-15): ativo quantitativo está fora do contrato.
+  rejects(
+    () => assertInvestmentDocument("asset", {...asset, trackingMode: "quantity"}),
+    "ativo quantitativo",
+  );
+  const {trackingMode: _t, ...semRegime} = asset;
+  rejects(
+    () => assertInvestmentDocument("asset", semRegime),
+    "ativo sem regime",
+  );
+  // Sem arquivamento: conta, ativo e posição técnicos são sempre ativos.
+  rejects(
+    () => assertInvestmentDocument("asset", {...asset, status: "archived"}),
+    "ativo arquivado",
+  );
 });
 
 test("posição rejeita totais negativos e versão inválida", () => {
@@ -237,10 +266,11 @@ test("posição rejeita totais negativos e versão inválida", () => {
     quantityMicros: 1_000_000,
     principalCents: 10_000,
     realizedGainCents: 0,
+    realizedLossCents: 0,
     feesCents: 0,
     taxCents: 0,
-    currentValueCents: 12_000,
-    unrealizedAppreciationCents: 2_000,
+    currentValueCents: 10_000,
+    unrealizedAppreciationCents: 0,
     calculationVersion: INVESTMENT_CALCULATION_VERSION,
     version: 3,
     createdAt: occurredAt,
@@ -259,38 +289,55 @@ test("posição rejeita totais negativos e versão inválida", () => {
   );
 });
 
-test("valoração exige preço unitário positivo em micros", () => {
-  const valuation = {
-    id: "val-1",
-    workspaceId: "ws-1",
-    profileType: "PF" as const,
-    accountId: "acc-1",
-    assetId: "ast-1",
-    currency: "BRL",
-    unitPriceMicros: 1_200_000,
-    source: "manual",
-    effectiveAt: occurredAt,
-    correlationId: "corr-abcdefgh",
-    createdBy: "u",
-    createdAt: occurredAt,
-  };
-  assert.ok(assertInvestmentDocument("valuation", valuation));
+test("conta do Caixa acompanha só o fato liquidado com dinheiro (D-30)", () => {
+  // Liquidado sem conta: fora do contrato.
+  const {cashAccountId: _c, ...semConta} = movement();
   rejects(
-    () =>
-      assertInvestmentDocument("valuation", {...valuation, unitPriceMicros: 0}),
-    "preço zero",
+    () => assertInvestmentDocument("movement", semConta),
+    "liquidado sem cashAccountId",
   );
+  const {accountMovementId: _m, ...semMovimento} = movement();
   rejects(
-    () =>
-      assertInvestmentDocument("valuation", {...valuation, source: "chute"}),
-    "origem fora do enum",
+    () => assertInvestmentDocument("movement", semMovimento),
+    "liquidado sem accountMovementId",
   );
-  // A valoração pertence à posição de uma conta: sem `accountId` o rebuild
-  // aplicaria o preço a todas as posições do ativo.
-  const {accountId: _omitted, ...semConta} = valuation;
+  // Pendente com conta: fora do contrato.
+  const pending = movement({
+    status: "pending",
+    cashDeltaCents: 0,
+    principalDeltaCents: 0,
+    quantityDeltaMicros: 0,
+  });
+  delete pending.settlementAt;
+  delete pending.settledAt;
+  delete pending.settledBy;
   rejects(
-    () => assertInvestmentDocument("valuation", semConta),
-    "valoração sem conta",
+    () => assertInvestmentDocument("movement", pending),
+    "pendente com conta",
+  );
+  // Vínculo de meta não move dinheiro: não carrega conta.
+  rejects(
+    () => assertInvestmentDocument("movement", movement({
+      operation: "goal_link",
+      cashDeltaCents: 0,
+      principalDeltaCents: 0,
+      quantityDeltaMicros: 0,
+    })),
+    "vínculo de meta com conta",
+  );
+  // O estorno liquidado carrega a conta (a mesma do original).
+  assert.ok(assertInvestmentDocument("movement", movement({
+    operation: "reversal",
+    reversedMovementId: "mov-0",
+    reversalOfOperation: "contribution",
+    cashDeltaCents: 10_000,
+    principalDeltaCents: -10_000,
+    quantityDeltaMicros: -1_000_000,
+  })));
+  // `walletId` saiu do contrato.
+  rejects(
+    () => assertInvestmentDocument("movement", movement({walletId: "w-1"})),
+    "walletId no movimento",
   );
 });
 
@@ -325,3 +372,40 @@ test("correlationId não participa da identidade de idempotência", () => {
     "Payload diferente com a mesma chave continua sendo conflito.",
   );
 });
+
+/**
+ * Retenção (INV-P2-041, P4-D): as coleções operacionais que gravam
+ * `expiresAt` expiram por política de TTL versionada; fatos, posições,
+ * projeções e trilha de sucesso não têm `expiresAt` e não têm TTL. Nenhum
+ * índice composto de investimentos fica sem consulta consumidora.
+ */
+test("coleções operacionais de investimentos têm TTL versionado; fatos não",
+  () => {
+    const indexes = JSON.parse(readFileSync(
+      resolve(__dirname, "../../../../firestore.indexes.json"), "utf8",
+    )) as {
+      indexes: Array<{collectionGroup: string}>;
+      fieldOverrides: Array<Record<string, unknown>>;
+    };
+    const ttl = indexes.fieldOverrides
+      .filter((entry) =>
+        String(entry.collectionGroup).startsWith("investment_"))
+      .sort((a, b) =>
+        String(a.collectionGroup).localeCompare(String(b.collectionGroup)));
+    assert.deepEqual(ttl, [
+      INVESTMENT_COLLECTIONS.driftReports,
+      INVESTMENT_COLLECTIONS.eventLogs,
+      INVESTMENT_COLLECTIONS.idempotencyKeys,
+      INVESTMENT_COLLECTIONS.operationalMetrics,
+    ].map((collectionGroup) => ({
+      collectionGroup, fieldPath: "expiresAt", ttl: true, indexes: [],
+    })));
+    const comIndice = new Set(indexes.indexes
+      .map((entry) => entry.collectionGroup)
+      .filter((group) => group.startsWith("investment_")));
+    assert.deepEqual([...comIndice].sort(), [
+      INVESTMENT_COLLECTIONS.allocationSummaries,
+      INVESTMENT_COLLECTIONS.movements,
+      INVESTMENT_COLLECTIONS.positions,
+    ]);
+  });

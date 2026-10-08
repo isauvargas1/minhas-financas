@@ -90,7 +90,7 @@ const deliver = async (
       cashPeriodEventKey(eventId),
       before,
       after,
-      {transactionId, action},
+      {transactionId, action, eventTime: Timestamp.now()},
     ),
   );
 };
@@ -100,29 +100,37 @@ test("classificação de caixa espelha a semântica do produto", () => {
   assert.equal(cashPeriodDeltaFor(transaction({type: "despesa"})).netCents, -10_000);
   assert.equal(cashPeriodDeltaFor(transaction({type: "parcelado"})).netCents, -10_000);
 
+  // Espelho de investimento (P4-D): a marca `investmentEntry` decide.
+  const entry = (overrides: Record<string, unknown> = {}) => ({
+    domainVersion: 1, movementId: "mov-1", operation: "contribution",
+    reversal: false, reversalOf: null, status: "settled",
+    principalCents: 10_000, gainCents: 0, amountCents: 10_000, currency: "BRL",
+    ...overrides,
+  });
   // Aporte é saída de caixa contabilizada à parte das despesas de consumo.
-  const contribution = cashPeriodDeltaFor(transaction({type: "investimento"}));
+  const contribution = cashPeriodDeltaFor(transaction({
+    type: "investimento", investmentEntry: entry(),
+  }));
   assert.equal(contribution.netCents, -10_000);
   assert.equal(contribution.expenseCents, 0);
   assert.equal(contribution.investmentOutflowCents, 10_000);
 
-  // Resgate pendente não é fato consumado: não toca caixa.
+  // Investimento sem marca: fora do contrato, efeito zero (PR-INV-01).
+  assert.equal(cashPeriodDeltaFor(transaction({type: "investimento"})).netCents, 0);
+
+  // Retirada pendente não é fato consumado: não toca caixa.
   assert.equal(cashPeriodDeltaFor(transaction({
     type: "investimento",
-    investmentMetadata: {status: "pending", cashImpact: "inflow"},
+    investmentEntry: entry({operation: "redemption", status: "pending"}),
   })).netCents, 0);
 
-  // Resgate liquidado entra no caixa.
-  assert.equal(cashPeriodDeltaFor(transaction({
-    type: "investimento",
-    investmentMetadata: {status: "settled", cashImpact: "inflow"},
-  })).netCents, 10_000);
-
-  // Vínculo de meta não move caixa.
-  assert.equal(cashPeriodDeltaFor(transaction({
-    type: "investimento",
-    investmentMetadata: {status: "settled", cashImpact: "none"},
-  })).netCents, 0);
+  // Retirada recebida entra no caixa como principal de investimento.
+  const redemption = cashPeriodDeltaFor(transaction({
+    type: "investimento", investmentEntry: entry({operation: "redemption"}),
+  }));
+  assert.equal(redemption.netCents, 10_000);
+  assert.equal(redemption.investmentInflowCents, 10_000);
+  assert.equal(redemption.incomeCents, 0);
 
   // Baixa lógica não conta (INV-P2-032).
   assert.equal(cashPeriodDeltaFor(transaction({
@@ -175,12 +183,26 @@ test("reconstrução reproduz o caminho incremental e é idempotente", async () 
   const rows = [
     transaction({type: "receita", value: 1_000, date: "2026-06-10", transactionDate: at("2026-06-10T15:00:00.000Z")}),
     transaction({type: "despesa", value: 400, date: "2026-06-20", transactionDate: at("2026-06-20T15:00:00.000Z")}),
-    transaction({type: "investimento", value: 200, date: "2026-07-05", transactionDate: at("2026-07-05T15:00:00.000Z")}),
+    transaction({
+      type: "investimento", value: 200, valueCents: 20_000,
+      date: "2026-07-05", transactionDate: at("2026-07-05T15:00:00.000Z"),
+      investmentEntry: {
+        domainVersion: 1, movementId: "mov-c", operation: "contribution",
+        reversal: false, reversalOf: null, status: "settled",
+        principalCents: 20_000, gainCents: 0, amountCents: 20_000,
+        currency: "BRL",
+      },
+    }),
     transaction({type: "receita", value: 900, date: "2026-07-25", transactionDate: at("2026-07-25T15:00:00.000Z")}),
     transaction({
-      type: "investimento", value: 150,
+      type: "investimento", value: 150, valueCents: 15_000,
       date: "2026-08-02", transactionDate: at("2026-08-02T15:00:00.000Z"),
-      investmentMetadata: {status: "settled", cashImpact: "inflow"},
+      investmentEntry: {
+        domainVersion: 1, movementId: "mov-r", operation: "redemption",
+        reversal: false, reversalOf: null, status: "settled",
+        principalCents: 15_000, gainCents: 0, amountCents: 15_000,
+        currency: "BRL",
+      },
     }),
   ];
 

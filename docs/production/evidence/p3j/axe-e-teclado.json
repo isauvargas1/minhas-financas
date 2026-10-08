@@ -1,0 +1,342 @@
+{
+  "keyboard": {
+    "shiftTabStaysInside": true,
+    "focusReturnsToOpener": "Nova conta"
+  },
+  "desktop-claro": {
+    "overflow": {
+      "01-configuracoes": 0,
+      "02-contas": 0,
+      "03-nova-conta": 0,
+      "04-nova-transferencia": 0,
+      "05-confirmar-transferencia": 0,
+      "06-extrato": 0,
+      "07-estornar": 0,
+      "08-arquivar-bloqueado": 0,
+      "09-lancamento-receita": 0,
+      "10-lancamento-despesa": 0,
+      "11-emprestimo-criacao": 0,
+      "12-emprestimo-pagamento": 0,
+      "13-recebimento": 0
+    },
+    "axe": {
+      "02-contas": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "help": "Elements must meet minimum color contrast ratio thresholds",
+          "count": 2,
+          "nodes": [
+            {
+              "target": [
+                ".text-teal-600"
+              ],
+              "html": "<span class=\"text-xs text-teal-600 dark:text-teal-400 font-bold uppercase tracking-wider flex items-center gap-1 mt-0.5\">"
+            },
+            {
+              "target": [
+                ".w-9"
+              ],
+              "html": "<div role=\"button\" tabindex=\"0\" aria-label=\"Abrir menu da conta\" aria-expanded=\"false\" class=\"w-9 h-9 rounded-full flex items-center justify-center text-white f"
+            }
+          ]
+        }
+      ],
+      "03-nova-conta": [],
+      "04-nova-transferencia": [],
+      "05-confirmar-transferencia": [],
+      "06-extrato": [],
+      "07-estornar": [],
+      "08-arquivar-bloqueado": [],
+      "09-lancamento-receita": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "help": "Elements must meet minimum color contrast ratio thresholds",
+          "count": 2,
+          "nodes": [
+            {
+              "target": [
+                ".border-green-600"
+              ],
+              "html": "<button class=\"tab-button flex-1 py-3 px-2 font-medium text-center focus:outline-none transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-all"
+            },
+            {
+              "target": [
+                ".uppercase.text-gray-500.dark\\:text-gray-400"
+              ],
+              "html": "<label class=\"block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 uppercase\">Centro de Custo / Projeto</label>"
+            }
+          ]
+        },
+        {
+          "id": "label",
+          "impact": "critical",
+          "help": "Form elements must have labels",
+          "count": 1,
+          "nodes": [
+            {
+              "target": [
+                "input[type=\"number\"]"
+              ],
+              "html": "<input type=\"number\" step=\"0.01\" min=\"0.01\" class=\"w-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-dark-200 text-gray-800 dark:text-gray-2"
+            }
+          ]
+        },
+        {
+          "id": "select-name",
+          "impact": "critical",
+          "help": "Select element must have an accessible name",
+          "count": 2,
+          "nodes": [
+            {
+              "target": [
+                ".space-y-4 > div:nth-child(2) > select"
+              ],
+              "html": "<select class=\"w-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-dark-200 text-gray-800 dark:text-gray-200 rounded-lg px-4 py-2 focus:outlin"
+            },
+            {
+              "target": [
+                "div:nth-child(3) > select"
+              ],
+              "html": "<select class=\"w-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-dark-200 text-gray-800 dark:text-gray-200 rounded-lg px-4 py-2 focus:outlin"
+            }
+          ]
+        }
+      ],
+      "10-lancamento-despesa": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "help": "Elements must meet minimum color contrast ratio thresholds",
+          "count": 2,
+          "nodes": [
+            {
+              "target": [
+                "div:nth-child(2) > .uppercase.text-gray-500.dark\\:text-gray-400"
+              ],
+              "html": "<label class=\"block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 uppercase\">Fornecedor</label>"
+            },
+            {
+              "target": [
+                "div:nth-child(3) > .uppercase.text-gray-500.dark\\:text-gray-400"
+              ],
+              "html": "<label class=\"block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 uppercase\">Centro de Custo / Projeto</label>"
+            }
+          ]
+        },
+        {
+          "id": "label",
+          "impact": "critical",
+          "help": "Form elements must have labels",
+          "count": 1,
+          "nodes": [
+            {
+              "target": [
+                "input[type=\"number\"]"
+              ],
+              "html": "<input type=\"number\" class=\"w-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-dark-200 text-gray-800 dark:text-gray-200 rounded-lg px-4 py-2"
+            }
+          ]
+        },
+        {
+          "id": "select-name",
+          "impact": "critical",
+          "help": "Select element must have an accessible name",
+          "count": 3,
+          "nodes": [
+            {
+              "target": [
+                ".space-y-4 > div:nth-child(2) > select"
+              ],
+              "html": "<select class=\"w-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-dark-200 text-gray-800 dark:text-gray-200 rounded-lg px-4 py-2 focus:outlin"
+            },
+            {
+              "target": [
+                "div:nth-child(3) > select"
+              ],
+              "html": "<select class=\"w-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-dark-200 text-gray-800 dark:text-gray-200 rounded-lg px-4 py-2 focus:outlin"
+            },
+            {
+              "target": [
+                "div:nth-child(6) > select"
+              ],
+              "html": "<select class=\"w-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-dark-200 text-gray-800 dark:text-gray-200 rounded-lg px-4 py-2 focus:outlin"
+            }
+          ]
+        }
+      ],
+      "11-emprestimo-criacao": [],
+      "12-emprestimo-pagamento": [],
+      "13-recebimento": []
+    }
+  },
+  "desktop-escuro": {
+    "overflow": {
+      "01-configuracoes": 0,
+      "02-contas": 0,
+      "03-nova-conta": 0,
+      "04-nova-transferencia": 0,
+      "05-confirmar-transferencia": 0,
+      "06-extrato": 0,
+      "07-estornar": 0,
+      "08-arquivar-bloqueado": 0,
+      "09-lancamento-receita": 0,
+      "10-lancamento-despesa": 0,
+      "11-emprestimo-criacao": 0,
+      "12-emprestimo-pagamento": 0,
+      "13-recebimento": 0
+    },
+    "axe": {
+      "02-contas": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "help": "Elements must meet minimum color contrast ratio thresholds",
+          "count": 1,
+          "nodes": [
+            {
+              "target": [
+                ".w-9"
+              ],
+              "html": "<div role=\"button\" tabindex=\"0\" aria-label=\"Abrir menu da conta\" aria-expanded=\"false\" class=\"w-9 h-9 rounded-full flex items-center justify-center text-white f"
+            }
+          ]
+        }
+      ],
+      "03-nova-conta": [],
+      "04-nova-transferencia": [],
+      "05-confirmar-transferencia": [],
+      "06-extrato": [],
+      "07-estornar": [],
+      "08-arquivar-bloqueado": [],
+      "09-lancamento-receita": [
+        {
+          "id": "label",
+          "impact": "critical",
+          "help": "Form elements must have labels",
+          "count": 1,
+          "nodes": [
+            {
+              "target": [
+                "input[type=\"number\"]"
+              ],
+              "html": "<input type=\"number\" step=\"0.01\" min=\"0.01\" class=\"w-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-dark-200 text-gray-800 dark:text-gray-2"
+            }
+          ]
+        },
+        {
+          "id": "select-name",
+          "impact": "critical",
+          "help": "Select element must have an accessible name",
+          "count": 2,
+          "nodes": [
+            {
+              "target": [
+                ".space-y-4 > div:nth-child(2) > select"
+              ],
+              "html": "<select class=\"w-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-dark-200 text-gray-800 dark:text-gray-200 rounded-lg px-4 py-2 focus:outlin"
+            },
+            {
+              "target": [
+                "div:nth-child(3) > select"
+              ],
+              "html": "<select class=\"w-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-dark-200 text-gray-800 dark:text-gray-200 rounded-lg px-4 py-2 focus:outlin"
+            }
+          ]
+        }
+      ],
+      "10-lancamento-despesa": [
+        {
+          "id": "label",
+          "impact": "critical",
+          "help": "Form elements must have labels",
+          "count": 1,
+          "nodes": [
+            {
+              "target": [
+                "input[type=\"number\"]"
+              ],
+              "html": "<input type=\"number\" class=\"w-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-dark-200 text-gray-800 dark:text-gray-200 rounded-lg px-4 py-2"
+            }
+          ]
+        },
+        {
+          "id": "select-name",
+          "impact": "critical",
+          "help": "Select element must have an accessible name",
+          "count": 3,
+          "nodes": [
+            {
+              "target": [
+                ".space-y-4 > div:nth-child(2) > select"
+              ],
+              "html": "<select class=\"w-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-dark-200 text-gray-800 dark:text-gray-200 rounded-lg px-4 py-2 focus:outlin"
+            },
+            {
+              "target": [
+                "div:nth-child(3) > select"
+              ],
+              "html": "<select class=\"w-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-dark-200 text-gray-800 dark:text-gray-200 rounded-lg px-4 py-2 focus:outlin"
+            },
+            {
+              "target": [
+                "div:nth-child(6) > select"
+              ],
+              "html": "<select class=\"w-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-dark-200 text-gray-800 dark:text-gray-200 rounded-lg px-4 py-2 focus:outlin"
+            }
+          ]
+        }
+      ],
+      "11-emprestimo-criacao": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "help": "Elements must meet minimum color contrast ratio thresholds",
+          "count": 1,
+          "nodes": [
+            {
+              "target": [
+                "#\\:r7\\:-counterparty-title"
+              ],
+              "html": "<div id=\":r7:-counterparty-title\" class=\"flex items-center gap-2 text-xs font-black text-primary uppercase tracking-widest border-b border-border pb-2 mb-1\">"
+            }
+          ]
+        }
+      ],
+      "12-emprestimo-pagamento": [],
+      "13-recebimento": []
+    }
+  },
+  "mobile-claro": {
+    "overflow": {
+      "01-configuracoes": 0,
+      "02-contas": 0,
+      "03-nova-conta": 0,
+      "04-nova-transferencia": 0,
+      "05-confirmar-transferencia": 0,
+      "06-extrato": 0,
+      "07-estornar": 0,
+      "08-arquivar-bloqueado": 0,
+      "09-lancamento-receita": 0,
+      "10-lancamento-despesa": 0,
+      "11-emprestimo-criacao": 0,
+      "12-emprestimo-pagamento": 0,
+      "13-recebimento": 0
+    },
+    "axe": {}
+  },
+  "mobile-escuro": {
+    "overflow": {
+      "01-configuracoes": 0,
+      "02-contas": 0,
+      "03-nova-conta": 0,
+      "04-nova-transferencia": 0,
+      "05-confirmar-transferencia": 0,
+      "06-extrato": 0,
+      "07-estornar": 0,
+      "08-arquivar-bloqueado": 0
+    },
+    "axe": {}
+  }
+}

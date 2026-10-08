@@ -69,6 +69,48 @@ export interface WorkspaceEntitlement {
   planId: PlanId;
   entitlementStatus: EntitlementStatus;
   limits: PlanLimits;
+  /**
+   * Quota mensal de lançamentos **deste** workspace, do contador do backend
+   * (P3-E, D-40). Ausente em respostas antigas; nunca é contada no cliente.
+   */
+  transactionsQuota?: WorkspaceTransactionsQuota;
+  /**
+   * Grupos de divisão ativos **deste** workspace (P4-C, quota `splitGroups`),
+   * do contador do backend. Nunca contada no cliente.
+   */
+  splitGroupsQuota?: WorkspaceSplitGroupsQuota;
+}
+
+/** `available`: contador confiável; `unavailable`: uso desconhecido (não zero). */
+export interface WorkspaceSplitGroupsQuota {
+  status: 'available' | 'unavailable';
+  limit: number;
+  /** Só para o titular. */
+  used: number | null;
+  /** Só para o titular. */
+  remaining: number | null;
+  /** Para todos os papéis, só com `status: available`. */
+  exhausted: boolean | null;
+}
+
+/**
+ * `available`: contador confiável. `not_initialized`: espaço anterior ao
+ * contador. `unavailable`: estado incoerente. Nos dois últimos o uso é
+ * desconhecido, nunca zero.
+ */
+export type TransactionsQuotaStatus = 'available' | 'not_initialized' | 'unavailable';
+
+export interface WorkspaceTransactionsQuota {
+  status: TransactionsQuotaStatus;
+  /** Mês de referência (`YYYY-MM`, America/Sao_Paulo). */
+  periodKey: string;
+  limit: number;
+  /** Só para o titular. */
+  used: number | null;
+  /** Só para o titular. */
+  remaining: number | null;
+  /** Para todos os papéis, quando o uso é conhecido. */
+  exhausted: boolean | null;
 }
 
 /** Uso da conta do usuário (`getAccountUsage`). */
@@ -86,9 +128,12 @@ export interface AccountUsage {
   aiPeriodKey: string;
 }
 
-/** Limites da conta (plano do usuário) e do workspace (plano do owner). */
+/**
+ * Limite da conta (plano do usuário). Os limites do workspace (plano do
+ * owner) são decididos e contados no servidor; a interface só lê o estado
+ * que o entitlement traz (`transactionsQuota`, `splitGroupsQuota`).
+ */
 export type AccountLimitKey = Extract<PlanLimitKey, 'workspaces'>;
-export type WorkspaceLimitKey = Exclude<PlanLimitKey, 'workspaces'>;
 
 export interface DisplayEntitlement {
   planId: PlanId;

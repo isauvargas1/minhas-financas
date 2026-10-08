@@ -1,0 +1,6 @@
+cadastros-categorias-member-desktop-claro.png {"pct":"1.05","bbox":[465,368,1382,820]}
+cadastros-categorias-owner-desktop-claro.png {"pct":"0.05","bbox":[909,578,1006,589]}
+cadastros-categorias-owner-desktop-escuro.png {"pct":"0.05","bbox":[909,578,1006,589]}
+cadastros-categorias-owner-mobile-claro.png {"pct":"11.19","bbox":[16,0,389,786]}
+confirmar-inativacao-desktop-claro.png {"pct":"0.23","bbox":[521,459,1004,587]}
+modal-novo-cadastro-desktop-claro.png {"pct":"0.64","bbox":[361,380,742,627]}

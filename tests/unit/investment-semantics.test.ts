@@ -1,74 +1,193 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import type {Transaction} from '../../src/types.ts';
+import type {Transaction, TransactionInvestmentEntry} from '../../src/types.ts';
 import {
-  contributionAllocationCents,
-  goalInvestmentImpactCents,
-  realizedInvestmentGainCents,
+  investmentCashEffectOf,
+  investmentEntryOf,
+  investmentOutflowCentsOf,
+  isInvestmentRedemption,
   summarizeCashFlow,
   transactionCashImpactCents,
 } from '../../src/modules/investments/semantics.ts';
+import {
+  investmentMonthKey,
+  monthContributionCents,
+} from '../../src/modules/investments/dashboard.ts';
 
-const movement = (
-  investmentOperation: 'contribution' | 'redemption' | 'redemption_reversal',
-  status: 'pending' | 'settled' | 'cancelled' | 'reversed',
-  cashImpact: 'none' | 'inflow' | 'outflow',
-  principalCents: number,
-  valueCents: number,
+/*
+ * Espelho de caixa de investimento (D-15, P4-D): a marca backend-only
+ * `investmentEntry` decide o efeito, com a mesma regra do backend
+ * (`functions/src/investments/cashEffect.ts`). Patrimônio e meta não são
+ * lidos daqui.
+ */
+
+const entry = (
+  overrides: Partial<TransactionInvestmentEntry> = {},
+): TransactionInvestmentEntry => ({
+  domainVersion: 1,
+  movementId: 'mov-1',
+  operation: 'contribution',
+  reversal: false,
+  reversalOf: null,
+  status: 'settled',
+  principalCents: 100_000,
+  gainCents: 0,
+  amountCents: 100_000,
+  currency: 'BRL',
+  ...overrides,
+});
+
+const mirror = (
+  investmentEntry: unknown,
+  extra: Partial<Transaction> = {},
 ): Transaction => ({
-  id: `${investmentOperation}-${status}`,
+  id: `investment_${Math.random().toString(36).slice(2)}`,
   type: 'investimento',
-  description: investmentOperation,
-  category: 'CDB',
-  value: valueCents / 100,
-  valueCents,
+  description: 'CDB',
+  category: 'Investimentos',
+  value: 1_000,
+  valueCents: 100_000,
   date: '2026-08-18',
-  goalId: 'goal-a',
-  isPaid: status === 'settled' || status === 'reversed',
-  investmentMetadata: {
-    currency: 'BRL',
-    investmentOperation,
-    cashImpact,
-    investmentImpact: investmentOperation === 'redemption' ? 'decrease' : 'increase',
-    principalCents,
-    gainCents: investmentOperation === 'contribution' ? 0 : 2_000,
-    feesCents: investmentOperation === 'contribution' ? 0 : 200,
-    taxCents: investmentOperation === 'contribution' ? 0 : 300,
-    settlementDate: '2026-08-18',
-    status,
-    sourceMovementId: 'source-a',
-    idempotencyKey: `key-${investmentOperation}-${status}-0001`,
-  },
+  isPaid: true,
+  investmentEntry: investmentEntry as TransactionInvestmentEntry,
+  ...extra,
 });
 
-test('pending não afeta caixa, meta ou alocação', () => {
-  const pending = movement('redemption', 'pending', 'none', 10_000, 11_500);
-  assert.equal(transactionCashImpactCents(pending), 0);
-  assert.equal(goalInvestmentImpactCents(pending), 0);
-  assert.equal(contributionAllocationCents(pending), 0);
-  assert.equal(realizedInvestmentGainCents(pending), 0);
+const redemption = entry({
+  operation: 'redemption', principalCents: 40_000, gainCents: 3_500, amountCents: 43_500,
 });
 
-test('resgate liquidado entra no caixa, reduz meta pelo principal e não vira receita ou aporte', () => {
-  const contribution = movement('contribution', 'settled', 'outflow', 100_000, 100_000);
-  const redemption = movement('redemption', 'settled', 'inflow', 40_000, 43_500);
-  const summary = summarizeCashFlow([contribution, redemption]);
-  assert.equal(transactionCashImpactCents(redemption), 43_500);
-  assert.equal(goalInvestmentImpactCents(redemption), -40_000);
-  assert.equal(realizedInvestmentGainCents(redemption), 2_000);
-  assert.equal(contributionAllocationCents(redemption), 0);
+test('pendente e cancelado não movem caixa', () => {
+  for (const status of ['pending', 'cancelled'] as const) {
+    for (const base of [entry(), redemption]) {
+      const transaction = mirror({ ...base, status }, { isPaid: false });
+      assert.equal(transactionCashImpactCents(transaction), 0);
+      assert.equal(investmentOutflowCentsOf(transaction), 0);
+      assert.deepEqual(investmentCashEffectOf(transaction), {
+        investmentOutflowCents: 0, investmentInflowCents: 0,
+        financialIncomeCents: 0, netCents: 0,
+      });
+    }
+  }
+});
+
+test('aporte liquidado sai do caixa como investimento, sem virar despesa', () => {
+  const contribution = mirror(entry());
+  assert.equal(transactionCashImpactCents(contribution), -100_000);
+  assert.equal(investmentOutflowCentsOf(contribution), 100_000);
+  const summary = summarizeCashFlow([contribution]);
   assert.equal(summary.income, 0);
   assert.equal(summary.expenses, 0);
-  assert.equal(summary.investments, 1_000);
+  assert.equal(summary.balance, -1_000);
+});
+
+test('retirada recebida volta ao caixa: principal e rendimento, nunca receita operacional', () => {
+  const transaction = mirror(redemption, { value: 435, valueCents: 43_500 });
+  assert.deepEqual(investmentCashEffectOf(transaction), {
+    investmentOutflowCents: 0,
+    investmentInflowCents: 40_000,
+    financialIncomeCents: 3_500,
+    netCents: 43_500,
+  });
+  assert.equal(isInvestmentRedemption(transaction), true);
+  assert.equal(investmentOutflowCentsOf(transaction), 0);
+  const summary = summarizeCashFlow([mirror(entry()), transaction]);
+  assert.equal(summary.income, 0);
+  assert.equal(summary.expenses, 0);
+  // −1.000 do aporte + 435 da retirada.
   assert.equal(summary.balance, -565);
 });
 
-test('estorno compensa caixa e meta sem criar novo aporte de alocação', () => {
-  const redemption = movement('redemption', 'reversed', 'inflow', 40_000, 43_500);
-  const reversal = movement('redemption_reversal', 'settled', 'outflow', 40_000, 43_500);
-  assert.equal(transactionCashImpactCents(redemption) + transactionCashImpactCents(reversal), 0);
-  assert.equal(goalInvestmentImpactCents(redemption) + goalInvestmentImpactCents(reversal), 0);
-  assert.equal(contributionAllocationCents(redemption) + contributionAllocationCents(reversal), 0);
-  assert.equal(realizedInvestmentGainCents(redemption) + realizedInvestmentGainCents(reversal), 0);
+test('estorno compensa o efeito do original, nos dois sentidos', () => {
+  for (const original of [entry(), redemption]) {
+    const reversal = mirror({ ...original, movementId: 'mov-2', reversal: true, reversalOf: 'mov-1' });
+    const fact = mirror(original);
+    assert.equal(transactionCashImpactCents(fact) + transactionCashImpactCents(reversal), 0);
+    assert.equal(investmentOutflowCentsOf(fact) + investmentOutflowCentsOf(reversal), 0);
+    const a = investmentCashEffectOf(fact);
+    const b = investmentCashEffectOf(reversal);
+    assert.equal(a.investmentInflowCents + b.investmentInflowCents, 0);
+    assert.equal(a.financialIncomeCents + b.financialIncomeCents, 0);
+    // O estorno de uma retirada não é uma nova retirada.
+    assert.equal(isInvestmentRedemption(reversal), false);
+  }
+});
+
+test('PR-INV-01 — investimento sem marca válida está fora do contrato e não tem efeito', () => {
+  const forged: Transaction[] = [
+    // Só o tipo e `value`: antes contava como aporte pelo valor de apresentação.
+    mirror(undefined),
+    // Metadado do modelo anterior: não é lido.
+    {
+      ...mirror(undefined),
+      investmentMetadata: { status: 'settled', cashImpact: 'outflow', investmentOperation: 'contribution' },
+    } as unknown as Transaction,
+    mirror({}),
+    mirror({ ...entry(), domainVersion: 2 }),
+    mirror({ ...entry(), amountCents: 100_001 }),
+    mirror({ ...entry(), gainCents: 1, amountCents: 100_001 }),
+    mirror({ ...entry(), amountCents: 0, principalCents: 0 }),
+    mirror({ ...entry(), reversal: true, reversalOf: null }),
+    mirror({ ...entry(), reversal: true, reversalOf: 'mov-0', status: 'pending' }),
+    mirror({ ...entry(), principalCents: 10.5, amountCents: 10.5 }),
+    mirror({ ...entry(), currency: 'USD' }),
+  ];
+  for (const transaction of forged) {
+    assert.equal(investmentEntryOf(transaction), null, JSON.stringify(transaction.investmentEntry));
+    assert.equal(transactionCashImpactCents(transaction), 0);
+    assert.equal(investmentOutflowCentsOf(transaction), 0);
+  }
+  const summary = summarizeCashFlow(forged);
+  assert.deepEqual(summary, { income: 0, expenses: 0, balance: 0 });
+  // A marca só vale no tipo `investimento`.
+  assert.equal(investmentEntryOf({ ...mirror(entry()), type: 'despesa' }), null);
+});
+
+test('card do dashboard — aporte do mês vem da projeção mensal do domínio', () => {
+  assert.equal(investmentMonthKey(new Date(2026, 0, 31)), '2026-01');
+  assert.equal(investmentMonthKey(new Date(2026, 9, 1)), '2026-10');
+  assert.equal(investmentMonthKey(new Date(2026, 11, 15)), '2026-12');
+  assert.equal(monthContributionCents({ contributionCents: 150_000 }), 150_000);
+  // Estorno desconta no mês do estorno: a projeção pode zerar.
+  assert.equal(monthContributionCents({ contributionCents: 0 }), 0);
+  // Estorno em mês sem aporte: o líquido oficial é negativo e é o exibido.
+  assert.equal(monthContributionCents({ contributionCents: -50_000 }), -50_000);
+  // Mês sem documento vale zero; valor fora de inteiro seguro não é exibido.
+  assert.equal(monthContributionCents(null), 0);
+  assert.equal(monthContributionCents(undefined), 0);
+  assert.equal(monthContributionCents({ contributionCents: 10.5 }), 0);
+  assert.equal(monthContributionCents({ contributionCents: Number.NaN }), 0);
+});
+
+test('P3-G — espelho de empréstimo move o saldo, mas não é receita nem despesa operacional', () => {
+  const mirror = (
+    type: 'receita' | 'despesa',
+    valueCents: number,
+    kind: string,
+  ): Transaction => ({
+    id: `loancash-${kind}-${type}`,
+    type,
+    description: kind === 'disbursement' ? 'Empréstimo recebido' : 'Pagamento de empréstimo',
+    category: 'Empréstimos',
+    value: valueCents / 100,
+    valueCents,
+    date: '2026-10-05',
+    isPaid: true,
+    loanEntry: { loanId: 'loan-a', loanMovementId: `lmv-${kind}`, kind },
+  });
+  const borrowed = mirror('receita', 1_000_000, 'disbursement');
+  const payment = mirror('despesa', 110_000, 'payment');
+  const salary = {
+    id: 'salary', type: 'receita', description: 'Salário', category: 'Salário',
+    value: 5_000, valueCents: 500_000, date: '2026-10-05', isPaid: true,
+  } as Transaction;
+  const summary = summarizeCashFlow([borrowed, payment, salary]);
+  // Principal recebido e parcela paga não inflam receitas nem despesas.
+  assert.equal(summary.income, 5_000);
+  assert.equal(summary.expenses, 0);
+  // O saldo inclui todos os fluxos: +10.000 − 1.100 + 5.000.
+  assert.equal(transactionCashImpactCents(borrowed), 1_000_000);
+  assert.equal(transactionCashImpactCents(payment), -110_000);
+  assert.equal(summary.balance, 13_900);
 });

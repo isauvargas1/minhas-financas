@@ -144,12 +144,17 @@ test('cliente não forja nem cria vínculo de meta em transação', async () => 
   });
 });
 
-test('transação sem vínculo de meta permanece permitida ao cliente', async () => {
+test('P4-D — transação sem vínculo de meta também é negada ao cliente', async () => {
+  // `transactions` é escrita só pelo backend; o espelho de investimento não
+  // carrega meta (o vínculo mora no movimento do domínio).
   await seed();
   await withClients(async (clientA) => {
-    await setDoc(
-      doc(clientA.db, `workspaces/${workspaceA}/transactions/allowed-unlinked-contribution`),
-      transactionPayload(workspaceA, ownerA.uid),
+    await assert.rejects(
+      () => setDoc(
+        doc(clientA.db, `workspaces/${workspaceA}/transactions/denied-unlinked-contribution`),
+        transactionPayload(workspaceA, ownerA.uid),
+      ),
+      (error) => /permission-denied|PERMISSION_DENIED/.test(String(error?.code ?? error?.message)),
     );
   });
 });

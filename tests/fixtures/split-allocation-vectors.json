@@ -1,0 +1,74 @@
+{
+  "_comment": "Vetores do rateio exato da Divisão de contas (P4-C, PR-SPLIT-05), calculados à mão — não gerados pela implementação. Regra: participantes ordenados pelo ID (comparação de unidades de código, não localeCompare); maior resto; empate de restos → menor posição. Usados pelo backend (functions/src/splitBills/__tests__/splitAllocation.test.ts) e pela prévia do frontend (tests/unit/split-model.test.ts).",
+  "vectors": [
+    {
+      "name": "igual: o centavo que sobra vai para a menor posição pelo ID",
+      "amountCents": 10000, "method": "equal",
+      "participants": [{"participantId": "c"}, {"participantId": "a"}, {"participantId": "b"}],
+      "expected": {"a": 3334, "b": 3333, "c": 3333}
+    },
+    {
+      "name": "igual: 1 centavo entre três",
+      "amountCents": 1, "method": "equal",
+      "participants": [{"participantId": "b"}, {"participantId": "a"}, {"participantId": "c"}],
+      "expected": {"a": 1, "b": 0, "c": 0}
+    },
+    {
+      "name": "igual: 100 centavos entre sete (dois centavos sobram)",
+      "amountCents": 100, "method": "equal",
+      "participants": [{"participantId": "p7"}, {"participantId": "p3"}, {"participantId": "p1"}, {"participantId": "p5"},
+        {"participantId": "p2"}, {"participantId": "p6"}, {"participantId": "p4"}],
+      "expected": {"p1": 15, "p2": 15, "p3": 14, "p4": 14, "p5": 14, "p6": 14, "p7": 14}
+    },
+    {
+      "name": "igual: maiúscula antes de minúscula (unidade de código, não localeCompare)",
+      "amountCents": 5, "method": "equal",
+      "participants": [{"participantId": "a"}, {"participantId": "B"}],
+      "expected": {"B": 3, "a": 2}
+    },
+    {
+      "name": "igual: ordem de texto, não numérica (spt_10 antes de spt_9)",
+      "amountCents": 3, "method": "equal",
+      "participants": [{"participantId": "spt_9"}, {"participantId": "spt_10"}],
+      "expected": {"spt_10": 2, "spt_9": 1}
+    },
+    {
+      "name": "percentual: o centavo vai para o maior resto",
+      "amountCents": 10001, "method": "percentage",
+      "participants": [{"participantId": "a", "weightBps": 2500}, {"participantId": "b", "weightBps": 7500}],
+      "expected": {"a": 2500, "b": 7501}
+    },
+    {
+      "name": "percentual: 33,33% + 33,33% + 33,34% de R$ 1,00",
+      "amountCents": 100, "method": "percentage",
+      "participants": [{"participantId": "x", "weightBps": 3333}, {"participantId": "y", "weightBps": 3333},
+        {"participantId": "z", "weightBps": 3334}],
+      "expected": {"x": 33, "y": 33, "z": 34}
+    },
+    {
+      "name": "percentual: 50% + 50% de 1 centavo (empate → menor posição)",
+      "amountCents": 1, "method": "percentage",
+      "participants": [{"participantId": "n", "weightBps": 5000}, {"participantId": "m", "weightBps": 5000}],
+      "expected": {"m": 1, "n": 0}
+    },
+    {
+      "name": "percentual: peso mínimo pode resultar em zero",
+      "amountCents": 333, "method": "percentage",
+      "participants": [{"participantId": "a", "weightBps": 1}, {"participantId": "b", "weightBps": 9999}],
+      "expected": {"a": 0, "b": 333}
+    },
+    {
+      "name": "percentual: valor máximo (R$ 999.999.999,99) sem perda",
+      "amountCents": 99999999999, "method": "percentage",
+      "participants": [{"participantId": "a", "weightBps": 3333}, {"participantId": "b", "weightBps": 3333},
+        {"participantId": "c", "weightBps": 3334}],
+      "expected": {"a": 33330000000, "b": 33330000000, "c": 33339999999}
+    },
+    {
+      "name": "fixo: valores informados, na ordem do ID",
+      "amountCents": 999, "method": "fixed",
+      "participants": [{"participantId": "b", "amountCents": 500}, {"participantId": "a", "amountCents": 499}],
+      "expected": {"a": 499, "b": 500}
+    }
+  ]
+}

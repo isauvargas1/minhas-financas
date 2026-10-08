@@ -28,7 +28,9 @@ import {
  *
  * P2B.1 — estado de quota: `workspaces/{id}/quota_state/*` e
  * `billing_accounts/{uid}/quota_state/*` são backend-only nos dois sentidos,
- * inclusive para o owner do workspace e o titular da conta.
+ * inclusive para o owner do workspace e o titular da conta. Desde a P3-D
+ * (D-40) inclui a âncora e o contador mensal de lançamentos
+ * (`quota_state/transactions` e `quota_state/transactions_{YYYY-MM}`).
  *
  * P2B.2 — créditos de IA: o uso mensal do titular
  * (`billing_accounts/{uid}/ai_usage/*`) e os recibos de idempotência do ator
@@ -110,6 +112,13 @@ const seed = async () => {
   }
   await db.doc(`workspaces/${QUOTA_WORKSPACE}/quota_state/membership`).set({
     workspaceId: QUOTA_WORKSPACE, activeMembers: 2, pendingReservations: {}, schemaVersion: 1,
+  });
+  await db.doc(`workspaces/${QUOTA_WORKSPACE}/quota_state/transactions`).set({
+    workspaceId: QUOTA_WORKSPACE, trackingSince: '2026-09', origin: 'workspace_created',
+    initialUsed: 0, schemaVersion: 1,
+  });
+  await db.doc(`workspaces/${QUOTA_WORKSPACE}/quota_state/transactions_2026-09`).set({
+    workspaceId: QUOTA_WORKSPACE, monthKey: '2026-09', used: 50, schemaVersion: 1,
   });
   await db.doc(`billing_accounts/${users.ownerA.uid}/ai_usage/2026-09`).set({
     billingOwnerUid: users.ownerA.uid, monthKey: '2026-09', usedCredits: 3, schemaVersion: 1,
@@ -221,6 +230,12 @@ test('trilha, vínculo de customer e recibos do webhook são backend-only', asyn
   await denied(getDoc(doc(db.ownerA, `${eventsPath}/evt-1`)), 'titular lê a trilha');
   await denied(getDocs(query(collection(db.ownerA, eventsPath), limit(1))), 'titular lista a trilha');
   await denied(setDoc(doc(db.ownerA, `${eventsPath}/evt-2`), {type: 'x'}), 'titular escreve na trilha');
+  // Append-only também para o cliente: nem o titular altera ou apaga o que
+  // está na trilha.
+  await denied(updateDoc(doc(db.ownerA, `${eventsPath}/evt-1`), {type: 'x'}), 'titular altera a trilha');
+  await denied(deleteDoc(doc(db.ownerA, `${eventsPath}/evt-1`)), 'titular apaga a trilha');
+  const kept = await getAdmin().firestore().doc(`${eventsPath}/evt-1`).get();
+  assert.equal(kept.get('type'), 'checkout.created');
   const customer = `billing_customers/cus_${users.ownerA.uid}`;
   await denied(getDoc(doc(db.ownerA, customer)), 'titular lê o vínculo');
   await denied(setDoc(doc(db.ownerA, 'billing_customers/cus_novo'), {billingOwnerUid: users.ownerA.uid}), 'cria vínculo');
@@ -255,6 +270,32 @@ test('P2B.1: quota do workspace é backend-only, mesmo para owner e membro', asy
   }
   const persisted = await getAdmin().firestore().doc(`${base}/quota_state/membership`).get();
   assert.equal(persisted.data().activeMembers, 2);
+});
+
+test('P3-D: âncora e contador mensal de lançamentos são backend-only', async () => {
+  const base = `workspaces/${QUOTA_WORKSPACE}/quota_state`;
+  for (const [name, client] of [['owner', db.ownerA], ['viewer', db.ownerB], ['anônimo', db.anon]]) {
+    for (const id of ['transactions', 'transactions_2026-09', 'transactions_2026-10']) {
+      await denied(getDoc(doc(client, `${base}/${id}`)), `${name} lê ${id}`);
+      await denied(
+        setDoc(doc(client, `${base}/${id}`), {workspaceId: QUOTA_WORKSPACE, used: 0, schemaVersion: 1}),
+        `${name} grava ${id}`,
+      );
+      await denied(deleteDoc(doc(client, `${base}/${id}`)), `${name} apaga ${id}`);
+    }
+    await denied(
+      updateDoc(doc(client, `${base}/transactions_2026-09`), {used: 0}),
+      `${name} zera o contador do mês`,
+    );
+    await denied(
+      updateDoc(doc(client, `${base}/transactions`), {trackingSince: '2999-01'}),
+      `${name} altera a âncora`,
+    );
+  }
+  const admin = getAdmin().firestore();
+  assert.equal((await admin.doc(`${base}/transactions_2026-09`).get()).data().used, 50);
+  assert.equal((await admin.doc(`${base}/transactions`).get()).data().trackingSince, '2026-09');
+  assert.equal((await admin.doc(`${base}/transactions_2026-10`).get()).exists, false);
 });
 
 test('P2B.1: quota de ownership do titular é backend-only', async () => {

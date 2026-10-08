@@ -68,21 +68,8 @@ const seed = async () => {
       createdAt: now,
       updatedAt: now,
     }),
-    // Conta e ativo ativos: aportar exige os dois, e é isso que o onboarding
-    // prepara. Nenhuma transação de investimento é semeada — o caixa desse tipo
-    // passa a existir só como espelho do ledger.
-    db.doc(`workspaces/${WORKSPACE_ID}/investment_accounts/goal-e2e-account`).set({
-      id: 'goal-e2e-account', workspaceId: WORKSPACE_ID, profileType: 'PF',
-      name: 'Corretora Meta E2E', institutionName: 'Instituição E2E',
-      currency: 'BRL', status: 'active',
-      createdBy: OWNER_UID, updatedBy: OWNER_UID, createdAt: now, updatedAt: now,
-    }),
-    db.doc(`workspaces/${WORKSPACE_ID}/investment_assets/goal-e2e-asset`).set({
-      id: 'goal-e2e-asset', workspaceId: WORKSPACE_ID, profileType: 'PF',
-      name: 'CDB Meta E2E', symbol: 'CDB', assetType: 'fixed_income',
-      allocationPurpose: 'retirement', currency: 'BRL', status: 'active',
-      createdBy: OWNER_UID, updatedBy: OWNER_UID, createdAt: now, updatedAt: now,
-    }),
+    // Nenhuma conta, ativo ou transação de investimento é semeada: o primeiro
+    // aporte cria os seus (D-15), e o caixa existe só como espelho do ledger.
     // Cadastros do formulário simples: carteira, instituição e categoria.
     ...[
       ['goal-e2e-class', 'investment_class', 'Reserva de emergência', 'reserva de emergencia', ''],
@@ -132,7 +119,7 @@ test('aporte nascido na meta publica progresso e projeta caixa uma vez', async (
   await expect(dialogo).toBeVisible();
   // A meta vem escolhida e travada: nenhum aporte cai em outra meta por engano.
   await expect(dialogo.getByLabel('Meta', {exact: true})).toBeDisabled();
-  await dialogo.getByLabel('Carteira de investimento').selectOption({label: 'Reserva de emergência'});
+  await dialogo.getByLabel('Carteira de investimentos').selectOption({label: 'Reserva de emergência'});
   await dialogo.getByLabel('Instituição').selectOption({label: 'BTG'});
   await dialogo.getByLabel('Descrição').fill('Aporte vinculado E2E');
   await dialogo.getByLabel('Categoria').selectOption({label: 'Renda fixa'});
@@ -148,10 +135,17 @@ test('aporte nascido na meta publica progresso e projeta caixa uma vez', async (
 
   // Um único espelho de caixa, com a saída do aporte — e nenhuma despesa.
   const espelhos = await db.collection(`workspaces/${WORKSPACE_ID}/transactions`)
-    .where('investmentMetadata.investmentOperation', '==', 'contribution').get();
+    .where('investmentEntry.operation', '==', 'contribution').get();
   expect(espelhos.size).toBe(1);
-  expect(espelhos.docs[0].data().investmentMetadata.cashImpact).toBe('outflow');
-  expect(espelhos.docs[0].data().type).toBe('investimento');
+  const espelho = espelhos.docs[0].data();
+  expect(espelho.investmentEntry.status).toBe('settled');
+  expect(espelho.investmentEntry.amountCents).toBe(15_025);
+  expect(espelho.type).toBe('investimento');
+  // D-30 (P4-D): o aporte depositado saiu da conta do Caixa, no mesmo commit.
+  const conta = await db.doc(`workspaces/${WORKSPACE_ID}/cash_accounts/${espelho.cashAccountId}`).get();
+  expect(conta.data()?.balanceCents).toBe(-15_025);
+  expect((await db.doc(`workspaces/${WORKSPACE_ID}/cash_account_movements/${espelho.accountMovementId}`).get())
+    .data()?.amountCents).toBe(-15_025);
 
   // O histórico da meta traz o movimento, no vocabulário do usuário.
   await expect(page.getByText('Aporte vinculado E2E')).toBeVisible();

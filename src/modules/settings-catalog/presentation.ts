@@ -11,31 +11,9 @@ export type SettingsCatalogSectionKey =
   | 'categories'
   | 'paymentTypes'
   | 'incomeTypes'
-  | 'wallets'
   | 'costCenters'
-  | 'investmentTypes'
   | 'investmentClasses'
-  | 'investmentRisks'
-  | 'investmentLiquidity'
-  | 'investmentIndexers'
-  | 'investmentStrategies'
   | 'investmentInstitutions';
-
-/**
- * Onde a seção aparece.
- *
- * `common` é Configurações › Cadastros, o catálogo que o usuário do dia a dia
- * administra. `advanced` continua definida, tipada e consultável pelo domínio
- * e pelas telas profissionais — só não é oferecida na navegação comum, por um
- * de dois motivos: ou é vocabulário técnico que não pertence a quem entra ali
- * para renomear uma categoria (risco, liquidez, indexador, estratégia), ou é
- * um cadastro que saiu da navegação comum por decisão de produto e permanece
- * pelo histórico e pela compatibilidade (`investment_type`, hoje representado
- * por Categorias › Investimentos, e `wallet`, a carteira de caixa).
- * Esconder não é remover: os grupos, os schemas e os documentos já gravados
- * seguem intactos, e o backend continua aceitando os identificadores antigos.
- */
-export type SettingsCatalogSectionAudience = 'common' | 'advanced';
 
 export interface SettingsCatalogSectionDefinition {
   key: SettingsCatalogSectionKey;
@@ -49,7 +27,6 @@ export interface SettingsCatalogSectionDefinition {
   supportsTransactionSubtype: boolean;
   defaultTransactionSubtype?: SettingsCatalogTransactionSubtype;
   workspaceTypes: Array<'PF' | 'PJ'>;
-  audience: SettingsCatalogSectionAudience;
 }
 
 export const SETTINGS_CATALOG_SECTION_LIST: SettingsCatalogSectionDefinition[] = [
@@ -63,8 +40,7 @@ export const SETTINGS_CATALOG_SECTION_LIST: SettingsCatalogSectionDefinition[] =
     emptyDescription: 'Crie os itens mais usados para acelerar lançamentos e manter consistência.',
     searchPlaceholder: 'Buscar produto ou serviço',
     supportsTransactionSubtype: false,
-    workspaceTypes: ['PF', 'PJ'],
-    audience: 'common'
+    workspaceTypes: ['PF', 'PJ']
   },
   {
     key: 'expenseTypes',
@@ -76,8 +52,7 @@ export const SETTINGS_CATALOG_SECTION_LIST: SettingsCatalogSectionDefinition[] =
     emptyDescription: 'Cadastre tipos de despesa para enriquecer filtros e análises.',
     searchPlaceholder: 'Buscar tipo de despesa',
     supportsTransactionSubtype: false,
-    workspaceTypes: ['PF', 'PJ'],
-    audience: 'common'
+    workspaceTypes: ['PF', 'PJ']
   },
   {
     key: 'categories',
@@ -90,8 +65,7 @@ export const SETTINGS_CATALOG_SECTION_LIST: SettingsCatalogSectionDefinition[] =
     searchPlaceholder: 'Buscar categoria',
     supportsTransactionSubtype: true,
     defaultTransactionSubtype: 'despesa',
-    workspaceTypes: ['PF', 'PJ'],
-    audience: 'common'
+    workspaceTypes: ['PF', 'PJ']
   },
   {
     key: 'paymentTypes',
@@ -103,8 +77,7 @@ export const SETTINGS_CATALOG_SECTION_LIST: SettingsCatalogSectionDefinition[] =
     emptyDescription: 'Cadastre os meios de pagamento usados com frequência.',
     searchPlaceholder: 'Buscar forma de pagamento',
     supportsTransactionSubtype: false,
-    workspaceTypes: ['PF', 'PJ'],
-    audience: 'common'
+    workspaceTypes: ['PF', 'PJ']
   },
   {
     key: 'incomeTypes',
@@ -116,30 +89,7 @@ export const SETTINGS_CATALOG_SECTION_LIST: SettingsCatalogSectionDefinition[] =
     emptyDescription: 'Cadastre tipos de receita para detalhar a origem dos valores.',
     searchPlaceholder: 'Buscar tipo de receita',
     supportsTransactionSubtype: false,
-    workspaceTypes: ['PF', 'PJ'],
-    audience: 'common'
-  },
-  /*
-   * Carteira de caixa: fora da navegação comum, inteira no domínio.
-   *
-   * O cadastro deixou de ser oferecido em Configurações › Cadastros. A
-   * definição continua aqui — e o grupo `wallet` continua sendo `wallet` —
-   * porque `walletId`, os lançamentos, os cartões, o onboarding do backend e
-   * todo documento já gravado seguem apontando para ela. Não confundir com
-   * `investmentClasses`: aquela é "Carteiras de investimento", segue comum.
-   */
-  {
-    key: 'wallets',
-    group: 'wallet',
-    title: 'Carteiras de caixa',
-    shortTitle: 'Carteiras',
-    description: 'Origens e destinos de caixa usados nos lançamentos. Contas de investimento são cadastradas separadamente.',
-    emptyTitle: 'Nenhuma carteira cadastrada',
-    emptyDescription: 'Cadastre carteiras para organizar saldos e origem dos recursos.',
-    searchPlaceholder: 'Buscar carteira',
-    supportsTransactionSubtype: false,
-    workspaceTypes: ['PF', 'PJ'],
-    audience: 'advanced'
+    workspaceTypes: ['PF', 'PJ']
   },
   {
     key: 'costCenters',
@@ -151,8 +101,7 @@ export const SETTINGS_CATALOG_SECTION_LIST: SettingsCatalogSectionDefinition[] =
     emptyDescription: 'Cadastre centros de custo para análise gerencial do workspace PJ.',
     searchPlaceholder: 'Buscar centro de custo',
     supportsTransactionSubtype: false,
-    workspaceTypes: ['PJ'],
-    audience: 'common'
+    workspaceTypes: ['PJ']
   },
   /*
    * Cadastros de investimento do usuário comum (Etapa 2, §3).
@@ -163,78 +112,24 @@ export const SETTINGS_CATALOG_SECTION_LIST: SettingsCatalogSectionDefinition[] =
    * investimento na navegação comum, ambos semeados no primeiro acesso, e só
    * um deles chegava a algum formulário; a fonte visível passou a ser uma só.
    *
-   * Os rótulos mudaram, os **grupos técnicos não**: `investment_class`
-   * continua sendo `investment_class` e `investment_type` continua sendo
-   * `investment_type`. Renomear campo técnico por causa de rótulo quebraria
-   * todo documento já gravado e toda faixa de alocação já publicada.
-   *
-   * "Carteiras de investimento" não é "Carteiras de caixa": aquela classifica
-   * o patrimônio, esta é onde o dinheiro do dia a dia circula. A de caixa saiu
-   * da navegação comum; a de investimento continua, com o nome por extenso.
+   * "Carteiras de investimento" não é a carteira de caixa: aquela classifica
+   * o patrimônio, esta é onde o dinheiro do dia a dia circula — hoje a conta
+   * autoritativa de Configurações › Contas e carteiras (D-30, P3-J), fora do
+   * catálogo.
    */
   {
     key: 'investmentClasses', group: 'investment_class', title: 'Carteiras de investimento', shortTitle: 'Carteiras de investimento',
     description: 'Para que serve cada investimento: aposentadoria, reserva de emergência, reserva de oportunidade, objetivos. Não confunda com as carteiras de caixa do dia a dia.',
     emptyTitle: 'Nenhuma carteira de investimento cadastrada',
     emptyDescription: 'Crie carteiras como Aposentadoria, Reserva de emergência ou Objetivos.',
-    searchPlaceholder: 'Buscar carteira de investimento', supportsTransactionSubtype: false, workspaceTypes: ['PF', 'PJ'],
-    audience: 'common'
+    searchPlaceholder: 'Buscar carteira de investimento', supportsTransactionSubtype: false, workspaceTypes: ['PF', 'PJ']
   },
   {
     key: 'investmentInstitutions', group: 'investment_institution', title: 'Instituições', shortTitle: 'Instituições',
     description: 'Bancos e corretoras onde o dinheiro fica aplicado. A instituição é o vínculo estável do investimento: renomeá-la preserva todo o histórico.',
     emptyTitle: 'Nenhuma instituição cadastrada',
     emptyDescription: 'Cadastre as instituições usadas pelo workspace, como BTG, Banco do Brasil ou XP.',
-    searchPlaceholder: 'Buscar instituição', supportsTransactionSubtype: false, workspaceTypes: ['PF', 'PJ'],
-    audience: 'common'
-  },
-  /*
-   * Cadastros técnicos e históricos, fora da navegação comum
-   * (`audience: 'advanced'`).
-   *
-   * Continuam definidos, tipados e gravados: o domínio, as telas
-   * profissionais e os documentos já existentes seguem íntegros. O que muda é
-   * só o que Configurações › Cadastros oferece.
-   *
-   * `investment_type` está aqui por um motivo diferente dos outros quatro: ele
-   * não é vocabulário técnico, é o cadastro **anterior** de categoria de
-   * investimento. Todo ativo e todo movimento gravado antes da unificação
-   * aponta para um item dele, o backend continua aceitando esses
-   * identificadores e a listagem continua desenhando o chip a partir deles.
-   * Esconder não é remover: oferecê-lo de novo como cadastro é que recriaria
-   * as duas fontes.
-   */
-  {
-    key: 'investmentTypes', group: 'investment_type', title: 'Categorias de investimento', shortTitle: 'Categorias de investimento',
-    description: 'Cadastro anterior de categorias de investimento, preservado para o histórico. Novas categorias são criadas em Categorias › Investimentos.',
-    emptyTitle: 'Nenhuma categoria de investimento cadastrada',
-    emptyDescription: 'Cadastro histórico. Crie categorias novas em Categorias › Investimentos.',
-    searchPlaceholder: 'Buscar categoria de investimento', supportsTransactionSubtype: false, workspaceTypes: ['PF', 'PJ'],
-    audience: 'advanced'
-  },
-  {
-    key: 'investmentRisks', group: 'investment_risk', title: 'Níveis de risco', shortTitle: 'Risco',
-    description: 'Níveis usados para comunicar o risco dos ativos.', emptyTitle: 'Nenhum nível de risco cadastrado',
-    emptyDescription: 'Crie níveis de risco claros para o workspace.', searchPlaceholder: 'Buscar nível de risco', supportsTransactionSubtype: false, workspaceTypes: ['PF', 'PJ'],
-    audience: 'advanced'
-  },
-  {
-    key: 'investmentLiquidity', group: 'investment_liquidity', title: 'Liquidez', shortTitle: 'Liquidez',
-    description: 'Prazos de disponibilidade dos recursos.', emptyTitle: 'Nenhum prazo de liquidez cadastrado',
-    emptyDescription: 'Crie opções de liquidez para os ativos.', searchPlaceholder: 'Buscar liquidez', supportsTransactionSubtype: false, workspaceTypes: ['PF', 'PJ'],
-    audience: 'advanced'
-  },
-  {
-    key: 'investmentIndexers', group: 'investment_indexer', title: 'Indexadores', shortTitle: 'Indexadores',
-    description: 'Referências de remuneração dos investimentos.', emptyTitle: 'Nenhum indexador cadastrado',
-    emptyDescription: 'Crie os indexadores utilizados pelo workspace.', searchPlaceholder: 'Buscar indexador', supportsTransactionSubtype: false, workspaceTypes: ['PF', 'PJ'],
-    audience: 'advanced'
-  },
-  {
-    key: 'investmentStrategies', group: 'investment_strategy', title: 'Estratégias', shortTitle: 'Estratégias',
-    description: 'Estratégias patrimoniais adequadas ao contexto PF ou PJ.', emptyTitle: 'Nenhuma estratégia cadastrada',
-    emptyDescription: 'Crie estratégias para orientar a organização patrimonial.', searchPlaceholder: 'Buscar estratégia', supportsTransactionSubtype: false, workspaceTypes: ['PF', 'PJ'],
-    audience: 'advanced'
+    searchPlaceholder: 'Buscar instituição', supportsTransactionSubtype: false, workspaceTypes: ['PF', 'PJ']
   }
 ];
 
@@ -259,22 +154,10 @@ export const filterSectionsByWorkspaceType = (
   );
 };
 
-export const isCommonSettingsCatalogSection = (
-  section: SettingsCatalogSectionDefinition
-) => section.audience === 'common';
-
-/**
- * Seções oferecidas em Configurações › Cadastros.
- *
- * A visibilidade é declarada na própria definição da seção, e não espalhada em
- * condições dentro da tela: quem acrescentar um cadastro novo decide ali mesmo
- * se ele pertence à experiência comum, e a tela continua só listando o que
- * recebe.
- */
+/** Seções oferecidas em Configurações › Cadastros, pelo perfil PF/PJ. */
 export const listCommonSettingsCatalogSections = (
   workspaceType?: 'PF' | 'PJ'
-) => filterSectionsByWorkspaceType(workspaceType)
-  .filter(isCommonSettingsCatalogSection);
+) => filterSectionsByWorkspaceType(workspaceType);
 
 export const matchesSettingsCatalogSearch = (
   item: SettingsCatalogItem,

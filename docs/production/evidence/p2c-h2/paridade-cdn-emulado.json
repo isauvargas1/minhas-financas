@@ -1,0 +1,237 @@
+{
+  "screens": 46,
+  "screensWithDiff": 0,
+  "missingInBuild": [],
+  "report": {
+    "desktop-claro-painel": {
+      "diffPixels": 0,
+      "totalPixels": 1296000,
+      "classes": 247
+    },
+    "desktop-claro-lista-Despesas": {
+      "diffPixels": 0,
+      "totalPixels": 1296000,
+      "classes": 231
+    },
+    "desktop-claro-modal-Despesas": {
+      "diffPixels": 0,
+      "totalPixels": 1296000,
+      "classes": 277
+    },
+    "desktop-claro-lista-Receitas": {
+      "diffPixels": 0,
+      "totalPixels": 1296000,
+      "classes": 229
+    },
+    "desktop-claro-modal-Receitas": {
+      "diffPixels": 0,
+      "totalPixels": 1296000,
+      "classes": 263
+    },
+    "desktop-claro-Dashboard": {
+      "diffPixels": 0,
+      "totalPixels": 1296000,
+      "classes": 247
+    },
+    "desktop-claro-Empréstimos": {
+      "diffPixels": 0,
+      "totalPixels": 1296000,
+      "classes": 184
+    },
+    "desktop-claro-Cartões de Crédito": {
+      "diffPixels": 0,
+      "totalPixels": 1296000,
+      "classes": 172
+    },
+    "desktop-claro-Metas": {
+      "diffPixels": 0,
+      "totalPixels": 1296000,
+      "classes": 221
+    },
+    "desktop-claro-Dividir Gastos": {
+      "diffPixels": 0,
+      "totalPixels": 1296000,
+      "classes": 195
+    },
+    "desktop-claro-Assinaturas": {
+      "diffPixels": 0,
+      "totalPixels": 1296000,
+      "classes": 195
+    },
+    "desktop-claro-Relatórios": {
+      "diffPixels": 0,
+      "totalPixels": 1296000,
+      "classes": 278
+    },
+    "desktop-claro-Meu Plano": {
+      "diffPixels": 0,
+      "totalPixels": 1296000,
+      "classes": 182
+    },
+    "desktop-claro-Configurações": {
+      "diffPixels": 0,
+      "totalPixels": 1296000,
+      "classes": 172
+    },
+    "desktop-claro-planos-erro": {
+      "diffPixels": 0,
+      "totalPixels": 1296000,
+      "classes": 188
+    },
+    "desktop-escuro-painel": {
+      "diffPixels": 0,
+      "totalPixels": 1296000,
+      "classes": 248
+    },
+    "desktop-escuro-lista-Despesas": {
+      "diffPixels": 0,
+      "totalPixels": 1296000,
+      "classes": 232
+    },
+    "desktop-escuro-modal-Despesas": {
+      "diffPixels": 0,
+      "totalPixels": 1296000,
+      "classes": 278
+    },
+    "desktop-escuro-lista-Receitas": {
+      "diffPixels": 0,
+      "totalPixels": 1296000,
+      "classes": 230
+    },
+    "desktop-escuro-modal-Receitas": {
+      "diffPixels": 0,
+      "totalPixels": 1296000,
+      "classes": 264
+    },
+    "desktop-escuro-Dashboard": {
+      "diffPixels": 0,
+      "totalPixels": 1296000,
+      "classes": 248
+    },
+    "desktop-escuro-Empréstimos": {
+      "diffPixels": 0,
+      "totalPixels": 1296000,
+      "classes": 185
+    },
+    "desktop-escuro-Cartões de Crédito": {
+      "diffPixels": 0,
+      "totalPixels": 1296000,
+      "classes": 173
+    },
+    "desktop-escuro-Metas": {
+      "diffPixels": 0,
+      "totalPixels": 1296000,
+      "classes": 222
+    },
+    "desktop-escuro-Dividir Gastos": {
+      "diffPixels": 0,
+      "totalPixels": 1296000,
+      "classes": 196
+    },
+    "desktop-escuro-Assinaturas": {
+      "diffPixels": 0,
+      "totalPixels": 1296000,
+      "classes": 196
+    },
+    "desktop-escuro-Relatórios": {
+      "diffPixels": 0,
+      "totalPixels": 1296000,
+      "classes": 279
+    },
+    "desktop-escuro-Meu Plano": {
+      "diffPixels": 0,
+      "totalPixels": 1296000,
+      "classes": 183
+    },
+    "desktop-escuro-Configurações": {
+      "diffPixels": 0,
+      "totalPixels": 1296000,
+      "classes": 173
+    },
+    "mobile-claro-painel": {
+      "diffPixels": 0,
+      "totalPixels": 329160,
+      "classes": 247
+    },
+    "mobile-claro-lista-Despesas": {
+      "diffPixels": 0,
+      "totalPixels": 329160,
+      "classes": 231
+    },
+    "mobile-claro-modal-Despesas": {
+      "diffPixels": 0,
+      "totalPixels": 329160,
+      "classes": 277
+    },
+    "mobile-claro-lista-Receitas": {
+      "diffPixels": 0,
+      "totalPixels": 329160,
+      "classes": 229
+    },
+    "mobile-claro-modal-Receitas": {
+      "diffPixels": 0,
+      "totalPixels": 329160,
+      "classes": 263
+    },
+    "mobile-claro-menu-aberto": {
+      "diffPixels": 0,
+      "totalPixels": 329160,
+      "classes": 246
+    },
+    "mobile-claro-Dashboard": {
+      "diffPixels": 0,
+      "totalPixels": 329160,
+      "classes": 247
+    },
+    "mobile-claro-Empréstimos": {
+      "diffPixels": 0,
+      "totalPixels": 329160,
+      "classes": 184
+    },
+    "mobile-claro-Cartões de Crédito": {
+      "diffPixels": 0,
+      "totalPixels": 329160,
+      "classes": 172
+    },
+    "mobile-claro-Metas": {
+      "diffPixels": 0,
+      "totalPixels": 329160,
+      "classes": 221
+    },
+    "mobile-claro-Dividir Gastos": {
+      "diffPixels": 0,
+      "totalPixels": 329160,
+      "classes": 195
+    },
+    "mobile-claro-Assinaturas": {
+      "diffPixels": 0,
+      "totalPixels": 329160,
+      "classes": 195
+    },
+    "mobile-claro-Relatórios": {
+      "diffPixels": 0,
+      "totalPixels": 329160,
+      "classes": 278
+    },
+    "mobile-claro-Meu Plano": {
+      "diffPixels": 0,
+      "totalPixels": 329160,
+      "classes": 182
+    },
+    "mobile-claro-Configurações": {
+      "diffPixels": 0,
+      "totalPixels": 329160,
+      "classes": 172
+    },
+    "desktop-claro-planos-assinante": {
+      "diffPixels": 0,
+      "totalPixels": 1296000,
+      "classes": 182
+    },
+    "desktop-claro-modal-confirmado": {
+      "diffPixels": 0,
+      "totalPixels": 1296000,
+      "classes": 265
+    }
+  }
+}

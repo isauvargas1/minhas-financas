@@ -1,21 +1,22 @@
 
 import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { useRecurringExpenses, useActiveRecurringExpenses, useCreateRecurringExpense, useUpdateRecurringExpense } from '../modules/recurring-expenses/hooks.ts';
-import { RecurringExpense } from '../modules/recurring-expenses/types.ts';
+import { useRecurringExpenses, useActiveRecurringExpenses } from '../modules/recurring/hooks.ts';
+import { monthlyEstimateCents } from '../modules/recurring/payloads.ts';
+import { recurringPermissions } from '../modules/recurring/presentation.ts';
+import { formatCents } from '../modules/loans/money.ts';
 import { RepeatIcon, PlusIcon, SearchIcon, FilterIcon, LayoutGridIcon, ListIcon, CreditCardIcon, DynamicIcon, FileInvoiceIcon } from './Icons.tsx';
 import { useTheme } from '../contexts/ThemeContext.tsx';
 import RecurringExpenseCard from './RecurringExpenseCard.tsx';
 import RecurringExpenseList from './RecurringExpenseList.tsx';
 import RecurringExpenseFormModal from './RecurringExpenseFormModal.tsx';
-import { CreditCard, EntityItem, Transaction } from '../types.ts';
+import { CreditCard } from '../types.ts';
 import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
+import { useAuth } from '../contexts/AuthContext.tsx';
 
 interface RecurringExpensesViewProps {
     onSelectExpense: (id: string) => void;
     creditCards: CreditCard[];
-    categories: EntityItem[];
-    onAddTransaction: (transaction: Omit<Transaction, 'id'>) => void;
 }
 
 const containerVariants = {
@@ -33,7 +34,7 @@ const itemVariants = {
     show: { opacity: 1, y: 0 }
 };
 
-const RecurringExpensesView: React.FC<RecurringExpensesViewProps> = ({ onSelectExpense, creditCards, categories, onAddTransaction }) => {
+const RecurringExpensesView: React.FC<RecurringExpensesViewProps> = ({ onSelectExpense, creditCards }) => {
     const {
         data: expenses,
         isLoading,
@@ -47,25 +48,23 @@ const RecurringExpensesView: React.FC<RecurringExpensesViewProps> = ({ onSelectE
      */
     const { data: activeExpenses, isTruncated: isSummaryTruncated } =
         useActiveRecurringExpenses();
-    const createExpenseMutation = useCreateRecurringExpense();
-    const updateExpenseMutation = useUpdateRecurringExpense();
     const { playSound } = useTheme();
     const MotionDiv = motion.div as any;
-    const { activeWorkspace } = useWorkspace();
+    const { activeWorkspace, activeWorkspaceRole } = useWorkspace();
+    const { user } = useAuth();
     const isPJ = activeWorkspace.type === 'PJ';
+    const { canCreate } = recurringPermissions(activeWorkspaceRole, user?.uid);
 
     const [viewMode, setViewMode] = useState<'card' | 'list'>('card');
     const [searchQuery, setSearchQuery] = useState('');
-    const [filterStatus, setFilterStatus] = useState<string>('ativo');
+    const [filterStatus, setFilterStatus] = useState<string>('active');
     const [filterType, setFilterType] = useState<string>('todos');
 
     // Modal State
     const [isFormOpen, setIsFormOpen] = useState(false);
-    const [expenseToEdit, setExpenseToEdit] = useState<RecurringExpense | null>(null);
 
-    const formatCurrency = (val: number) => {
-        return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
-    };
+    // Valores em centavos; a estimativa mensal é de exibição.
+    const formatCurrency = (cents: number) => formatCents(cents);
 
     // Calculate Summary
     const summary = useMemo(() => {
@@ -76,23 +75,14 @@ const RecurringExpensesView: React.FC<RecurringExpensesViewProps> = ({ onSelectE
         const byMethod: Record<string, number> = {};
 
         activeExpenses.forEach(curr => {
-            if (curr.status !== 'ativo') return;
+            if (curr.status !== 'active') return;
             
             activeCount++;
 
-            const val = curr.valorPadrao || 0;
-
-            let monthlyValue = val;
-            if (curr.periodo === 'semanal') monthlyValue *= 4;
-            if (curr.periodo === 'quinzenal') monthlyValue *= 2;
-            if (curr.periodo === 'anual') monthlyValue /= 12;
-            if (curr.periodo === 'bimestral') monthlyValue /= 2;
-            if (curr.periodo === 'trimestral') monthlyValue /= 3;
-            if (curr.periodo === 'semestral') monthlyValue /= 6;
-            
+            const monthlyValue = monthlyEstimateCents(curr);
             totalMonthly += monthlyValue;
 
-            const method = curr.metodoPagamento || 'outros';
+            const method = curr.paymentMethod;
             byMethod[method] = (byMethod[method] || 0) + monthlyValue;
         });
 
@@ -103,25 +93,15 @@ const RecurringExpensesView: React.FC<RecurringExpensesViewProps> = ({ onSelectE
     const filteredExpenses = useMemo(() => {
         if (!expenses) return [];
         return expenses.filter(e => {
-            const name = e.nome || '';
+            const name = e.name || '';
             const matchesSearch = name.toLowerCase().includes(searchQuery.toLowerCase());
             const matchesStatus = filterStatus === 'todos' || e.status === filterStatus;
-            const matchesType = filterType === 'todos' || e.tipo === filterType;
+            const matchesType = filterType === 'todos' || e.type === filterType;
             return matchesSearch && matchesStatus && matchesType;
         });
     }, [expenses, searchQuery, filterStatus, filterType]);
 
-    const handleSaveExpense = (expense: RecurringExpense) => {
-        if (expenseToEdit) {
-            updateExpenseMutation.mutate({ id: expense.id, data: expense });
-        } else {
-            createExpenseMutation.mutate(expense);
-        }
-        playSound('success');
-    };
-
     const openCreateModal = () => {
-        setExpenseToEdit(null);
         setIsFormOpen(true);
         playSound('click');
     };
@@ -179,9 +159,10 @@ const RecurringExpensesView: React.FC<RecurringExpensesViewProps> = ({ onSelectE
                             className="text-sm bg-transparent border-none text-on-surface focus:ring-0 cursor-pointer py-1.5"
                             aria-label="Filtrar por status"
                         >
-                            <option value="ativo">Ativos</option>
-                            <option value="pausado">Pausados</option>
-                            <option value="cancelado">Cancelados</option>
+                            <option value="active">Ativos</option>
+                            <option value="paused">Pausados</option>
+                            <option value="ended">Encerrados</option>
+                            <option value="cancelled">Cancelados</option>
                             <option value="todos">Todos Status</option>
                         </select>
                         <div className="w-px h-4 bg-border mx-1"></div>
@@ -192,9 +173,9 @@ const RecurringExpensesView: React.FC<RecurringExpensesViewProps> = ({ onSelectE
                             aria-label="Filtrar por tipo"
                         >
                             <option value="todos">Todos Tipos</option>
-                            <option value="assinatura">Assinaturas</option>
-                            <option value="contaFixa">Contas Fixas</option>
-                            <option value="servico">Serviços</option>
+                            <option value="subscription">Assinaturas</option>
+                            <option value="fixed_bill">Contas Fixas</option>
+                            <option value="service">Serviços</option>
                         </select>
                     </div>
 
@@ -216,13 +197,15 @@ const RecurringExpensesView: React.FC<RecurringExpensesViewProps> = ({ onSelectE
                         </button>
                     </div>
 
-                    <button 
-                        className="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center shadow-md transition-colors whitespace-nowrap"
-                        onClick={openCreateModal}
-                    >
-                        <PlusIcon className="mr-2 h-4 w-4" />
-                        Nova
-                    </button>
+                    {canCreate && (
+                        <button
+                            className="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center shadow-md transition-colors whitespace-nowrap"
+                            onClick={openCreateModal}
+                        >
+                            <PlusIcon className="mr-2 h-4 w-4" />
+                            Nova
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -258,7 +241,7 @@ const RecurringExpensesView: React.FC<RecurringExpensesViewProps> = ({ onSelectE
                     <div>
                         <p className="text-sm text-muted font-medium">Cartão de Crédito</p>
                         <p className="text-lg font-bold text-on-surface">
-                            {formatCurrency(summary.byMethod['cartaoCredito'] || 0)}
+                            {formatCurrency(summary.byMethod['credit_card'] || 0)}
                         </p>
                     </div>
                 </MotionDiv>
@@ -275,7 +258,7 @@ const RecurringExpensesView: React.FC<RecurringExpensesViewProps> = ({ onSelectE
                     <div>
                         <p className="text-sm text-muted font-medium">Pix / Débito</p>
                         <p className="text-lg font-bold text-on-surface">
-                            {formatCurrency((summary.byMethod['pix'] || 0) + (summary.byMethod['debitoConta'] || 0))}
+                            {formatCurrency((summary.byMethod['pix'] || 0) + (summary.byMethod['debit'] || 0))}
                         </p>
                     </div>
                 </MotionDiv>
@@ -292,7 +275,7 @@ const RecurringExpensesView: React.FC<RecurringExpensesViewProps> = ({ onSelectE
                     <div>
                         <p className="text-sm text-muted font-medium">Boleto / Outros</p>
                         <p className="text-lg font-bold text-on-surface">
-                            {formatCurrency((summary.byMethod['boleto'] || 0) + (summary.byMethod['outros'] || 0))}
+                            {formatCurrency((summary.byMethod['boleto'] || 0) + (summary.byMethod['cash'] || 0) + (summary.byMethod['other'] || 0))}
                         </p>
                     </div>
                 </MotionDiv>
@@ -362,10 +345,9 @@ const RecurringExpensesView: React.FC<RecurringExpensesViewProps> = ({ onSelectE
             <RecurringExpenseFormModal 
                 isOpen={isFormOpen}
                 onClose={() => setIsFormOpen(false)}
-                onSave={handleSaveExpense}
-                expenseToEdit={expenseToEdit}
+                onSaved={() => playSound('success')}
+                expenseToEdit={null}
                 creditCards={creditCards}
-                categories={categories}
             />
         </div>
     );

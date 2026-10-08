@@ -77,6 +77,30 @@ jobs:
       - name: Testes unitários do cliente de billing
         run: npm run test:unit:billing
 
+      - name: Testes unitários de interface
+        run: npm run test:unit:ui
+
+      - name: Testes unitários do caixa
+        run: npm run test:unit:cash
+
+      - name: Testes unitários de empréstimos e guarda de escritores
+        run: npm run test:unit:loans
+
+      - name: Testes unitários de clientes e recebíveis e guarda de escritores
+        run: npm run test:unit:clients
+
+      - name: Testes unitários de contas e transferências e guardas
+        run: npm run test:unit:accounts
+
+      - name: Testes unitários de cartões e guarda de escritores
+        run: npm run test:unit:cards
+
+      - name: Testes unitários de recorrentes (agenda D-12) e guardas
+        run: npm run test:unit:recurring
+
+      - name: Testes unitários da Divisão de contas (rateio exato) e guardas
+        run: npm run test:unit:split
+
   integration-and-rules:
     name: Integração e Firestore Rules
     runs-on: ubuntu-latest

@@ -43,7 +43,8 @@ export const BillingSuccessModal = () => {
         },
         confirmed: {
             title: 'Pagamento confirmado!',
-            text: `Sua assinatura do plano ${accountPlan?.name ?? ''} está ativa. Todos os recursos do plano já estão liberados para você usar! 🎉`,
+            // O nome vem do catálogo, que pode chegar depois do documento da conta.
+            text: `${accountPlan?.name ? `Sua assinatura do plano ${accountPlan.name} está ativa.` : 'Sua assinatura está ativa.'} Todos os recursos do plano já estão liberados para você usar! 🎉`,
             button: 'Começar a usar',
         },
         processing: {
@@ -55,7 +56,13 @@ export const BillingSuccessModal = () => {
 
     return (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-fade-in">
-            <div className="bg-white dark:bg-dark-100 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-scale-in flex flex-col items-center text-center p-8 border border-gray-100 dark:border-gray-800">
+            <div
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="billing-status-title"
+                aria-describedby="billing-status-text"
+                className="bg-white dark:bg-dark-100 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-scale-in flex flex-col items-center text-center p-8 border border-gray-100 dark:border-gray-800"
+            >
                 
                 {/* Ícone de estado animado */}
                 <div className="w-20 h-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-6">
@@ -68,15 +75,17 @@ export const BillingSuccessModal = () => {
                     )}
                 </div>
 
-                <h3 className="text-2xl font-extrabold text-gray-900 dark:text-white mb-2">
+                <h3 id="billing-status-title" className="text-2xl font-extrabold text-gray-900 dark:text-white mb-2">
                     {copy.title}
                 </h3>
                 
-                <p className="text-gray-500 dark:text-gray-400 mb-8">
+                {/* O estado muda sozinho (confirmando → confirmado/processando). */}
+                <p id="billing-status-text" role="status" aria-live="polite" className="text-gray-500 dark:text-gray-400 mb-8">
                     {copy.text}
                 </p>
 
                 <button 
+                    autoFocus
                     onClick={() => setIsOpen(false)}
                     className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-xl transition-colors shadow-lg shadow-indigo-200 dark:shadow-none"
                 >

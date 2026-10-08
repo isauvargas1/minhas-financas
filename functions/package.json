@@ -2,9 +2,11 @@
   "name": "functions",
   "scripts": {
     "lint": "eslint --ext .js,.ts .",
-    "build": "tsc",
+    "clean": "node -e \"require('node:fs').rmSync('lib', {recursive: true, force: true})\"",
+    "build": "npm run clean && tsc",
+    "typecheck": "tsc --noEmit",
     "test:unit": "npm run build && node --test $(find lib -name '*.test.js' ! -name '*.integration.test.js' | sort)",
-    "test:integration": "npm run build && node --test \"lib/**/*.integration.test.js\"",
+    "test:integration": "npm run build && node --test --test-concurrency=1 \"lib/**/*.integration.test.js\"",
     "build:watch": "tsc --watch",
     "serve": "npm run build && firebase emulators:start --only functions",
     "shell": "npm run build && firebase functions:shell",

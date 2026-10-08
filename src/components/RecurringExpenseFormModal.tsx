@@ -1,18 +1,30 @@
-
-import React, { useState, useEffect, useMemo } from 'react';
-import { RecurringExpense, RecurringExpenseType, RecurringBillingPeriod, RecurringPaymentMethod, BusinessContractType } from '../modules/recurring-expenses/types.ts';
-import { CreditCard, EntityItem } from '../types.ts';
-import { useSplitGroups } from '../modules/split-bills/hooks.ts';
-import { CloseIcon, SearchIcon, DynamicIcon, CreditCardIcon, UsersIcon, BoltIcon, PaletteIcon, useTablerIconKeys, BuildingIcon, BriefcaseIcon } from './Icons.tsx';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import type { RecurringExpense, RecurringBusinessType, RecurringExecutionMode, RecurringFrequency, RecurringPaymentMethod, RecurringType } from '../modules/recurring/types.ts';
+import { usesBillingDay } from '../modules/recurring/schedule.ts';
+import {
+    DEFAULT_RECURRING_CATEGORY,
+    emptyForm,
+    formFromExpense,
+    toContractFields,
+    toUpdateChanges,
+    type RecurringFormState,
+} from '../modules/recurring/payloads.ts';
+import { BUSINESS_TYPE_LABELS, EXECUTION_MODE_LABELS, executionModeExplanation, recurringErrorView } from '../modules/recurring/presentation.ts';
+import { useCreateRecurringExpense, useRecurringIntentKey, useUpdateRecurringExpense } from '../modules/recurring/hooks.ts';
+import { saoPauloToday } from '../modules/loans/money.ts';
+import { CreditCard } from '../types.ts';
+import { CloseIcon, SearchIcon, DynamicIcon, BoltIcon, PaletteIcon, useTablerIconKeys, BuildingIcon, BriefcaseIcon } from './Icons.tsx';
+import CashAccountSelect from './accounts/CashAccountSelect.tsx';
 import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
+import { useTransactionCatalogOptions } from '../modules/settings-catalog/useTransactionCatalogOptions.ts';
 
 interface RecurringExpenseFormModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSave: (expense: RecurringExpense) => void;
+    /** Chamado depois que o backend gravou o contrato. */
+    onSaved?: (recurringExpenseId: string) => void;
     expenseToEdit?: RecurringExpense | null;
     creditCards: CreditCard[];
-    categories: EntityItem[]; // Expense Categories
 }
 
 const PRESET_COLORS = [
@@ -27,54 +39,36 @@ const PRESET_COLORS = [
     '#64748b', // Slate
 ];
 
-const CONTRACT_TYPES: BusinessContractType[] = [
-    'SaaS', 'Aluguel', 'Internet', 'Energia', 'Água', 'Contabilidade', 'Impostos', 'Serviços', 'Outro'
-];
+const CONTRACT_TYPES = Object.keys(BUSINESS_TYPE_LABELS) as RecurringBusinessType[];
 
-const RecurringExpenseFormModal: React.FC<RecurringExpenseFormModalProps> = ({ 
-    isOpen, onClose, onSave, expenseToEdit, creditCards, categories 
+/**
+ * Formulário de recorrência (P4-B). O contrato vai ao backend pelas
+ * callables `createRecurringExpense`/`updateRecurringExpense`: valor em
+ * centavos, frequência D-12, dia de cobrança nas frequências mensais, modo
+ * de execução explícito e destino (cartão ou conta) pela forma de
+ * pagamento. Nada é gravado direto no Firestore.
+ */
+const RecurringExpenseFormModal: React.FC<RecurringExpenseFormModalProps> = ({
+    isOpen, onClose, onSaved, expenseToEdit, creditCards
 }) => {
     const { activeWorkspace } = useWorkspace();
+    // Classificação de despesa: as categorias de despesa ativas do catálogo
+    // do workspace (D-23), o mesmo recorte da Divisão de contas.
+    const { options: catalog } = useTransactionCatalogOptions('despesa');
+    const categories = catalog.settingsCategories;
     const isPJ = activeWorkspace.type === 'PJ';
+    const defaults = useMemo(() => ({
+        color: isPJ ? '#0f766e' : PRESET_COLORS[0],
+        icon: isPJ ? 'FileInvoice' : 'Bolt',
+    }), [isPJ]);
 
     // --- STATE ---
-    // General
-    const [nome, setNome] = useState('');
-    const [tipo, setTipo] = useState<RecurringExpenseType>('assinatura');
-    const [descricao, setDescricao] = useState('');
-    
-    // PJ Specific
-    const [fornecedor, setFornecedor] = useState('');
-    const [tipoEmpresa, setTipoEmpresa] = useState<BusinessContractType>('SaaS');
-    const [centroCusto, setCentroCusto] = useState('');
-    const [responsavel, setResponsavel] = useState('');
-    const [dataReajuste, setDataReajuste] = useState('');
-    const [fidelidade, setFidelidade] = useState('');
-    const [anexoNome, setAnexoNome] = useState('');
-
-    // Values & Period
-    const [valorPadrao, setValorPadrao] = useState('');
-    const [periodo, setPeriodo] = useState<RecurringBillingPeriod>('mensal');
-    const [diaCobranca, setDiaCobranca] = useState<number>(new Date().getDate());
-    const [dataInicio, setDataInicio] = useState(new Date().toISOString().split('T')[0]);
-    const [dataFim, setDataFim] = useState('');
-
-    // Payment
-    const [metodoPagamento, setMetodoPagamento] = useState<RecurringPaymentMethod>('cartaoCredito');
-    const [cartaoIdOpcional, setCartaoIdOpcional] = useState('');
-    const [usarCartaoAutomaticamente, setUsarCartaoAutomaticamente] = useState(true);
-
-    // Integrations
-    const [gerarDespesaAutomaticamente, setGerarDespesaAutomaticamente] = useState(true);
-    const [categoriaDespesaId, setCategoriaDespesaId] = useState('');
-    
-    const [splitGroupIdOpcional, setSplitGroupIdOpcional] = useState('');
-    const [dividirAutomaticamenteNoGrupo, setDividirAutomaticamenteNoGrupo] = useState(false);
-
-    // Visual
-    const [corPrincipal, setCorPrincipal] = useState(isPJ ? '#0f766e' : PRESET_COLORS[0]);
-    const [icone, setIcone] = useState(isPJ ? 'FileInvoice' : 'Bolt');
-    const [emojiOpcional, setEmojiOpcional] = useState('');
+    const [form, setForm] = useState<RecurringFormState>(() => emptyForm(isPJ, saoPauloToday(), defaults));
+    const set = <K extends keyof RecurringFormState>(key: K, value: RecurringFormState[K]) =>
+        setForm(current => ({ ...current, [key]: value }));
+    const [error, setError] = useState<string | null>(null);
+    const [busy, setBusy] = useState(false);
+    const submittingRef = useRef(false);
 
     // UI State
     const [activeTab, setActiveTab] = useState<'geral' | 'pagamento' | 'integracoes' | 'visual'>('geral');
@@ -82,76 +76,42 @@ const RecurringExpenseFormModal: React.FC<RecurringExpenseFormModalProps> = ({
     const [iconSearch, setIconSearch] = useState('');
     const [visibleIconCount, setVisibleIconCount] = useState(60);
 
-    // Data Hooks
-    const { data: splitGroups } = useSplitGroups();
+    const createMutation = useCreateRecurringExpense();
+    const updateMutation = useUpdateRecurringExpense();
+    const intent = useRecurringIntentKey();
 
     // --- INITIALIZATION ---
     useEffect(() => {
         if (isOpen) {
-            if (expenseToEdit) {
-                setNome(expenseToEdit.nome);
-                setTipo(expenseToEdit.tipo);
-                setDescricao(expenseToEdit.descricao || '');
-                setValorPadrao(String(expenseToEdit.valorPadrao));
-                setPeriodo(expenseToEdit.periodo);
-                setDiaCobranca(expenseToEdit.diaCobranca);
-                setDataInicio(expenseToEdit.dataInicio);
-                setDataFim(expenseToEdit.dataFim || '');
-                
-                setMetodoPagamento(expenseToEdit.metodoPagamento);
-                setCartaoIdOpcional(expenseToEdit.cartaoIdOpcional || '');
-                setUsarCartaoAutomaticamente(expenseToEdit.usarCartaoAutomaticamente ?? true);
-                
-                setGerarDespesaAutomaticamente(expenseToEdit.gerarDespesaAutomaticamente ?? true);
-                setCategoriaDespesaId(expenseToEdit.categoriaDespesaId || '');
-                
-                setSplitGroupIdOpcional(expenseToEdit.splitGroupIdOpcional || '');
-                setDividirAutomaticamenteNoGrupo(expenseToEdit.dividirAutomaticamenteNoGrupo ?? false);
-                
-                setCorPrincipal(expenseToEdit.corPrincipal);
-                setIcone(expenseToEdit.icone);
-                setEmojiOpcional(expenseToEdit.emojiOpcional || '');
-
-                // PJ Fields
-                setFornecedor(expenseToEdit.fornecedor || '');
-                setTipoEmpresa(expenseToEdit.tipoEmpresa || 'SaaS');
-                setCentroCusto(expenseToEdit.centroCusto || '');
-                setResponsavel(expenseToEdit.responsavel || '');
-                setDataReajuste(expenseToEdit.dataReajuste || '');
-                setFidelidade(expenseToEdit.fidelidade || '');
-                setAnexoNome(expenseToEdit.anexoNome || '');
-            } else {
-                // Reset
-                setNome('');
-                setTipo('assinatura');
-                setDescricao('');
-                setValorPadrao('');
-                setPeriodo('mensal');
-                setDiaCobranca(new Date().getDate());
-                setDataInicio(new Date().toISOString().split('T')[0]);
-                setDataFim('');
-                setMetodoPagamento(isPJ ? 'boleto' : 'cartaoCredito');
-                setCartaoIdOpcional('');
-                setUsarCartaoAutomaticamente(true);
-                setGerarDespesaAutomaticamente(true);
-                setCategoriaDespesaId('');
-                setSplitGroupIdOpcional('');
-                setDividirAutomaticamenteNoGrupo(false);
-                setCorPrincipal(isPJ ? '#0f766e' : PRESET_COLORS[0]);
-                setIcone(isPJ ? 'FileInvoice' : 'Bolt');
-                setEmojiOpcional('');
-                setFornecedor('');
-                setTipoEmpresa('SaaS');
-                setCentroCusto('');
-                setResponsavel('');
-                setDataReajuste('');
-                setFidelidade('');
-                setAnexoNome('');
-            }
+            setForm(expenseToEdit ? formFromExpense(expenseToEdit) : emptyForm(isPJ, saoPauloToday(), defaults));
             setActiveTab('geral');
             setIsIconPickerOpen(false);
+            setError(null);
+            intent.reset();
         }
-    }, [isOpen, expenseToEdit, isPJ]);
+    }, [isOpen, expenseToEdit, isPJ, defaults, intent]);
+
+    const nome = form.name;
+    const tipo = form.type;
+    const descricao = form.description;
+    const fornecedor = form.supplier;
+    const tipoEmpresa = form.businessType;
+    const centroCusto = form.costCenter;
+    const responsavel = form.responsible;
+    const dataReajuste = form.adjustmentDate;
+    const fidelidade = form.commitment;
+    const valorPrevisto = form.amount;
+    const periodo = form.frequency;
+    const diaCobranca = form.billingDay;
+    const dataInicio = form.startDate;
+    const dataFim = form.endDate;
+    const metodoPagamento = form.paymentMethod;
+    const cartaoId = form.cardId;
+    const categoriaDespesa = form.category;
+    const corPrincipal = form.color;
+    const icone = form.icon;
+    const emojiOpcional = form.emoji;
+    const selectableCards = creditCards.filter(c => c.status === 'active' || c.id === cartaoId);
 
     // --- ICON PICKER LOGIC ---
     // O catálogo completo chega junto com o pacote de ícones, carregado sob
@@ -169,48 +129,43 @@ const RecurringExpenseFormModal: React.FC<RecurringExpenseFormModalProps> = ({
     }, [allIconKeys, iconSearch]);
 
     // --- HANDLERS ---
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        
-        if (!nome) return alert('Nome é obrigatório');
-        if (!valorPadrao || parseFloat(valorPadrao) <= 0) return alert('Valor deve ser maior que zero');
-        
-        const newExpense: RecurringExpense = {
-            id: expenseToEdit ? expenseToEdit.id : Date.now().toString(),
-            nome,
-            tipo,
-            descricao,
-            valorPadrao: parseFloat(valorPadrao),
-            moeda: 'BRL',
-            periodo,
-            diaCobranca,
-            dataInicio,
-            dataFim: dataFim || undefined,
-            metodoPagamento,
-            cartaoIdOpcional: metodoPagamento === 'cartaoCredito' ? cartaoIdOpcional : undefined,
-            usarCartaoAutomaticamente: metodoPagamento === 'cartaoCredito' ? usarCartaoAutomaticamente : false,
-            gerarDespesaAutomaticamente,
-            categoriaDespesaId: categoriaDespesaId || undefined,
-            splitGroupIdOpcional: splitGroupIdOpcional || undefined,
-            dividirAutomaticamenteNoGrupo: splitGroupIdOpcional ? dividirAutomaticamenteNoGrupo : false,
-            corPrincipal,
-            icone,
-            emojiOpcional: emojiOpcional || undefined,
-            status: expenseToEdit ? expenseToEdit.status : 'ativo',
-            createdAt: expenseToEdit ? expenseToEdit.createdAt : new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            // PJ Fields
-            fornecedor: isPJ ? fornecedor : undefined,
-            tipoEmpresa: isPJ ? tipoEmpresa : undefined,
-            centroCusto: isPJ ? centroCusto : undefined,
-            responsavel: isPJ ? responsavel : undefined,
-            dataReajuste: isPJ ? dataReajuste : undefined,
-            fidelidade: isPJ ? fidelidade : undefined,
-            anexoNome: isPJ ? anexoNome : undefined
-        };
-
-        onSave(newExpense);
-        onClose();
+        // Duplo clique e Enter repetido: barrados de forma síncrona.
+        if (submittingRef.current) return;
+        let operation: 'createRecurringExpense' | 'updateRecurringExpense';
+        let payload: Record<string, unknown>;
+        try {
+            if (expenseToEdit) {
+                operation = 'updateRecurringExpense';
+                payload = {
+                    recurringExpenseId: expenseToEdit.id,
+                    expectedUpdatedAt: expenseToEdit.version,
+                    changes: toUpdateChanges(expenseToEdit, form, isPJ),
+                };
+            } else {
+                operation = 'createRecurringExpense';
+                payload = { ...toContractFields(form, isPJ) };
+            }
+        } catch (validation) {
+            setError(recurringErrorView(validation).message);
+            return;
+        }
+        submittingRef.current = true;
+        setBusy(true);
+        setError(null);
+        try {
+            const idempotencyKey = intent.keyFor(operation, payload);
+            const result = await (expenseToEdit ? updateMutation : createMutation)
+                .mutateAsync({ payload, idempotencyKey });
+            onSaved?.(result.recurringExpenseId);
+            onClose();
+        } catch (failure) {
+            setError(recurringErrorView(failure).message);
+        } finally {
+            submittingRef.current = false;
+            setBusy(false);
+        }
     };
 
     if (!isOpen) return null;
@@ -226,7 +181,7 @@ const RecurringExpenseFormModal: React.FC<RecurringExpenseFormModalProps> = ({
                     <h3 id="modal-title" className="text-xl font-bold text-on-surface">
                         {isPJ ? (expenseToEdit ? 'Editar Contrato' : 'Novo Contrato / Recorrência') : (expenseToEdit ? 'Editar Assinatura' : 'Nova Assinatura')}
                     </h3>
-                    <button onClick={onClose} className="text-muted hover:text-on-surface" aria-label="Fechar">
+                    <button type="button" onClick={onClose} className="text-muted hover:text-on-surface" aria-label="Fechar">
                         <CloseIcon />
                     </button>
                 </div>
@@ -241,6 +196,7 @@ const RecurringExpenseFormModal: React.FC<RecurringExpenseFormModalProps> = ({
                     ].map(tab => (
                         <button
                             key={tab.key}
+                            type="button"
                             role="tab"
                             aria-selected={activeTab === tab.key}
                             onClick={() => setActiveTab(tab.key as any)}
@@ -258,6 +214,11 @@ const RecurringExpenseFormModal: React.FC<RecurringExpenseFormModalProps> = ({
 
                 {/* Body */}
                 <form id="recurringForm" onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6">
+                    {error && (
+                        <p role="alert" className="mb-4 rounded-lg bg-red-50 dark:bg-red-900/20 p-3 text-sm text-red-700 dark:text-red-300">
+                            {error}
+                        </p>
+                    )}
                     
                     {/* --- TAB: GERAL --- */}
                     {activeTab === 'geral' && (
@@ -265,7 +226,7 @@ const RecurringExpenseFormModal: React.FC<RecurringExpenseFormModalProps> = ({
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                                 <div className="md:col-span-2">
                                     <label htmlFor="nome" className={labelClass}>Nome do Contrato / Serviço <span className="text-error">*</span></label>
-                                    <input id="nome" type="text" value={nome} onChange={e => setNome(e.target.value)} className={commonInputClass} placeholder="Ex: AWS Cloud, Aluguel Escritório..." required autoFocus />
+                                    <input id="nome" type="text" value={nome} onChange={e => set('name', e.target.value)} className={commonInputClass} placeholder="Ex: AWS Cloud, Aluguel Escritório..." required autoFocus />
                                 </div>
                                 
                                 {isPJ && (
@@ -273,26 +234,26 @@ const RecurringExpenseFormModal: React.FC<RecurringExpenseFormModalProps> = ({
                                         <div>
                                             <label htmlFor="fornecedor" className={labelClass}>Fornecedor</label>
                                             <div className="relative">
-                                                <input id="fornecedor" type="text" value={fornecedor} onChange={e => setFornecedor(e.target.value)} className={`${commonInputClass} pl-9`} placeholder="Ex: Amazon, Imobiliária X..." />
+                                                <input id="fornecedor" type="text" value={fornecedor} onChange={e => set('supplier', e.target.value)} className={`${commonInputClass} pl-9`} placeholder="Ex: Amazon, Imobiliária X..." />
                                                 <BuildingIcon className="absolute left-3 top-2.5 w-4 h-4 text-muted" />
                                             </div>
                                         </div>
                                         <div>
                                             <label htmlFor="tipoEmpresa" className={labelClass}>Tipo de Despesa</label>
-                                            <select id="tipoEmpresa" value={tipoEmpresa} onChange={e => setTipoEmpresa(e.target.value as any)} className={commonInputClass}>
-                                                {CONTRACT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                                            <select id="tipoEmpresa" value={tipoEmpresa} onChange={e => set('businessType', e.target.value as RecurringBusinessType)} className={commonInputClass}>
+                                                {CONTRACT_TYPES.map(t => <option key={t} value={t}>{BUSINESS_TYPE_LABELS[t]}</option>)}
                                             </select>
                                         </div>
                                         <div>
                                             <label htmlFor="centroCusto" className={labelClass}>Centro de Custo / Projeto</label>
                                             <div className="relative">
-                                                <input id="centroCusto" type="text" value={centroCusto} onChange={e => setCentroCusto(e.target.value)} className={`${commonInputClass} pl-9`} placeholder="Ex: Marketing, Operação SP..." />
+                                                <input id="centroCusto" type="text" value={centroCusto} onChange={e => set('costCenter', e.target.value)} className={`${commonInputClass} pl-9`} placeholder="Ex: Marketing, Operação SP..." />
                                                 <BriefcaseIcon className="absolute left-3 top-2.5 w-4 h-4 text-muted" />
                                             </div>
                                         </div>
                                         <div>
                                             <label htmlFor="responsavel" className={labelClass}>Responsável Interno</label>
-                                            <input id="responsavel" type="text" value={responsavel} onChange={e => setResponsavel(e.target.value)} className={commonInputClass} placeholder="Nome do colaborador" />
+                                            <input id="responsavel" type="text" value={responsavel} onChange={e => set('responsible', e.target.value)} className={commonInputClass} placeholder="Nome do colaborador" />
                                         </div>
                                     </>
                                 )}
@@ -300,11 +261,11 @@ const RecurringExpenseFormModal: React.FC<RecurringExpenseFormModalProps> = ({
                                 {!isPJ && (
                                     <div>
                                         <label htmlFor="tipo" className={labelClass}>Tipo de Recorrência</label>
-                                        <select id="tipo" value={tipo} onChange={e => setTipo(e.target.value as any)} className={commonInputClass}>
-                                            <option value="assinatura">Assinatura (Stream, Apps)</option>
-                                            <option value="contaFixa">Conta Fixa (Luz, Net)</option>
-                                            <option value="servico">Serviço (Academia)</option>
-                                            <option value="outro">Outro</option>
+                                        <select id="tipo" value={tipo} onChange={e => set('type', e.target.value as RecurringType)} className={commonInputClass}>
+                                            <option value="subscription">Assinatura (Stream, Apps)</option>
+                                            <option value="fixed_bill">Conta Fixa (Luz, Net)</option>
+                                            <option value="service">Serviço (Academia)</option>
+                                            <option value="other">Outro</option>
                                         </select>
                                     </div>
                                 )}
@@ -313,47 +274,51 @@ const RecurringExpenseFormModal: React.FC<RecurringExpenseFormModalProps> = ({
                                     <label htmlFor="valor" className={labelClass}>Valor Previsto <span className="text-error">*</span></label>
                                     <div className="relative">
                                         <span className="absolute left-3 top-2 text-sm text-muted font-bold">R$</span>
-                                        <input id="valor" type="number" step="0.01" value={valorPadrao} onChange={e => setValorPadrao(e.target.value)} className={`${commonInputClass} pl-9 font-bold`} required placeholder="0.00" />
+                                        <input id="valor" type="number" step="0.01" value={valorPrevisto} onChange={e => set('amount', e.target.value)} className={`${commonInputClass} pl-9 font-bold`} required placeholder="0.00" />
                                     </div>
                                 </div>
                                 
                                 <div>
                                     <label htmlFor="periodo" className={labelClass}>Frequência</label>
-                                    <select id="periodo" value={periodo} onChange={e => setPeriodo(e.target.value as any)} className={commonInputClass}>
-                                        <option value="mensal">Mensal</option>
-                                        <option value="anual">Anual</option>
-                                        <option value="semanal">Semanal</option>
-                                        <option value="trimestral">Trimestral</option>
-                                        <option value="semestral">Semestral</option>
+                                    <select id="periodo" value={periodo} onChange={e => set('frequency', e.target.value as RecurringFrequency)} className={commonInputClass}>
+                                        <option value="monthly">Mensal</option>
+                                        <option value="annual">Anual</option>
+                                        <option value="weekly">Semanal</option>
+                                        <option value="biweekly">Quinzenal</option>
+                                        <option value="bimonthly">Bimestral</option>
+                                        <option value="quarterly">Trimestral</option>
+                                        <option value="semiannual">Semestral</option>
                                     </select>
                                 </div>
 
-                                <div>
-                                    <label htmlFor="diaCobranca" className={labelClass}>Dia do Vencimento</label>
-                                    <input id="diaCobranca" type="number" min="1" max="31" value={diaCobranca} onChange={e => setDiaCobranca(parseInt(e.target.value))} className={commonInputClass} />
-                                </div>
+                                {usesBillingDay(periodo) && (
+                                    <div>
+                                        <label htmlFor="diaCobranca" className={labelClass}>Dia do Vencimento</label>
+                                        <input id="diaCobranca" type="number" min="1" max="31" value={diaCobranca} onChange={e => set('billingDay', e.target.value)} className={commonInputClass} />
+                                    </div>
+                                )}
 
                                 <div>
                                     <label htmlFor="dataInicio" className={labelClass}>Início do Contrato</label>
-                                    <input id="dataInicio" type="date" value={dataInicio} onChange={e => setDataInicio(e.target.value)} className={commonInputClass} required />
+                                    <input id="dataInicio" type="date" value={dataInicio} onChange={e => set('startDate', e.target.value)} className={commonInputClass} required />
                                 </div>
 
                                 {isPJ && (
                                     <>
                                         <div>
                                             <label htmlFor="dataReajuste" className={labelClass}>Próximo Reajuste</label>
-                                            <input id="dataReajuste" type="date" value={dataReajuste} onChange={e => setDataReajuste(e.target.value)} className={commonInputClass} />
+                                            <input id="dataReajuste" type="date" value={dataReajuste} onChange={e => set('adjustmentDate', e.target.value)} className={commonInputClass} />
                                         </div>
                                         <div>
                                             <label htmlFor="fidelidade" className={labelClass}>Renovação / Fidelidade</label>
-                                            <input id="fidelidade" type="text" value={fidelidade} onChange={e => setFidelidade(e.target.value)} className={commonInputClass} placeholder="Ex: 12 meses, renovação automática..." />
+                                            <input id="fidelidade" type="text" value={fidelidade} onChange={e => set('commitment', e.target.value)} className={commonInputClass} placeholder="Ex: 12 meses, renovação automática..." />
                                         </div>
                                     </>
                                 )}
 
                                 <div>
                                     <label htmlFor="dataFim" className={labelClass}>Término do Contrato</label>
-                                    <input id="dataFim" type="date" value={dataFim} onChange={e => setDataFim(e.target.value)} className={commonInputClass} />
+                                    <input id="dataFim" type="date" value={dataFim} onChange={e => set('endDate', e.target.value)} className={commonInputClass} />
                                 </div>
                             </div>
 
@@ -364,14 +329,14 @@ const RecurringExpenseFormModal: React.FC<RecurringExpenseFormModalProps> = ({
                                         <button type="button" className="px-4 py-2 bg-surface border border-border rounded-lg text-xs font-medium hover:bg-background transition-colors flex items-center gap-2">
                                             <DynamicIcon name="Paperclip" size={14} /> Selecionar Arquivo
                                         </button>
-                                        <span className="text-xs text-muted italic">{anexoNome || 'Nenhum arquivo anexado'}</span>
+                                        <span className="text-xs text-muted italic">Nenhum arquivo anexado</span>
                                     </div>
                                 </div>
                             )}
 
                             <div>
                                 <label htmlFor="descricao" className={labelClass}>Notas Adicionais</label>
-                                <textarea id="descricao" value={descricao} onChange={e => setDescricao(e.target.value)} className={commonInputClass} rows={2} placeholder="Detalhes importantes do contrato..." />
+                                <textarea id="descricao" value={descricao} onChange={e => set('description', e.target.value)} className={commonInputClass} rows={2} placeholder="Detalhes importantes do contrato..." />
                             </div>
                         </div>
                     )}
@@ -383,15 +348,15 @@ const RecurringExpenseFormModal: React.FC<RecurringExpenseFormModalProps> = ({
                                 <label className={labelClass}>Método de Pagamento {isPJ && 'Corporativo'}</label>
                                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                                     {[
-                                        { id: 'cartaoCredito', label: isPJ ? 'Cartão Corp.' : 'Cartão Crédito', icon: 'CreditCard' },
+                                        { id: 'credit_card', label: isPJ ? 'Cartão Corp.' : 'Cartão Crédito', icon: 'CreditCard' },
                                         { id: 'boleto', label: 'Boleto', icon: 'Barcode' },
                                         { id: 'pix', label: 'Pix / Transf.', icon: 'BrandPix' },
-                                        { id: 'debitoConta', label: 'Débito Auto.', icon: 'BuildingBank' },
+                                        { id: 'debit', label: 'Débito Auto.', icon: 'BuildingBank' },
                                     ].map(m => (
                                         <button
                                             key={m.id}
                                             type="button"
-                                            onClick={() => setMetodoPagamento(m.id as any)}
+                                            onClick={() => set('paymentMethod', m.id as RecurringPaymentMethod)}
                                             className={`flex flex-col items-center justify-center p-4 rounded-xl border transition-all ${
                                                 metodoPagamento === m.id 
                                                     ? 'bg-primary/10 border-primary text-primary' 
@@ -405,38 +370,59 @@ const RecurringExpenseFormModal: React.FC<RecurringExpenseFormModalProps> = ({
                                 </div>
                             </div>
 
-                            {metodoPagamento === 'cartaoCredito' && (
+                            {metodoPagamento === 'credit_card' && (
                                 <div className="bg-background p-5 rounded-2xl border border-border animate-fade-in space-y-4">
                                     <div>
                                         <label htmlFor="cartao" className={labelClass}>{isPJ ? 'Cartão Corporativo Responsável' : 'Selecione o Cartão'}</label>
                                         <select 
                                             id="cartao"
-                                            value={cartaoIdOpcional} 
-                                            onChange={e => setCartaoIdOpcional(e.target.value)} 
+                                            value={cartaoId}
+                                            onChange={e => set('cardId', e.target.value)}
                                             className={commonInputClass}
                                         >
                                             <option value="">-- Selecione o cartão --</option>
-                                            {creditCards.map(c => (
-                                                <option key={c.id} value={c.id}>{c.name} ({c.brand})</option>
+                                            {selectableCards.map(c => (
+                                                <option key={c.id} value={c.id}>{c.name} ({c.brand}){c.status === 'archived' ? ' (arquivado)' : ''}</option>
                                             ))}
                                         </select>
                                     </div>
                                     
-                                    <div className="flex items-start gap-3 p-3 bg-surface rounded-lg">
-                                        <input 
-                                            id="auto-card" 
-                                            type="checkbox" 
-                                            checked={usarCartaoAutomaticamente} 
-                                            onChange={e => setUsarCartaoAutomaticamente(e.target.checked)}
-                                            className="mt-1 w-4 h-4 text-primary border-border rounded focus:ring-primary"
-                                        />
-                                        <div>
-                                            <label htmlFor="auto-card" className="text-sm font-bold text-on-surface">Lançar fatura automaticamente</label>
-                                            <p className="text-muted text-xs">O sistema provisionará a compra no cartão na data do vencimento.</p>
-                                        </div>
-                                    </div>
                                 </div>
                             )}
+
+                            {metodoPagamento !== 'credit_card' && (
+                                <div className="bg-background p-5 rounded-2xl border border-border animate-fade-in space-y-4">
+                                    <CashAccountSelect
+                                        id="conta-recorrencia"
+                                        label="Conta de pagamento"
+                                        value={form.cashAccountId}
+                                        onChange={(accountId) => set('cashAccountId', accountId)}
+                                        autoSelect
+                                        labelClassName={labelClass}
+                                        selectClassName={commonInputClass}
+                                    />
+                                </div>
+                            )}
+
+                            <fieldset className="bg-background p-5 rounded-2xl border border-border space-y-3">
+                                <legend className={labelClass}>Execução no vencimento</legend>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    {(['automatic', 'confirmation_required'] as RecurringExecutionMode[]).map(mode => (
+                                        <label key={mode} className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${form.executionMode === mode ? 'bg-primary/10 border-primary text-primary dark:text-primary-on-dark' : 'bg-surface border-border text-on-surface'}`}>
+                                            <input
+                                                type="radio"
+                                                name="executionMode"
+                                                value={mode}
+                                                checked={form.executionMode === mode}
+                                                onChange={() => set('executionMode', mode)}
+                                                className="w-4 h-4 text-primary border-border focus:ring-primary"
+                                            />
+                                            <span className="text-sm font-bold">{EXECUTION_MODE_LABELS[mode]}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                                <p className="text-muted text-xs">{executionModeExplanation(form.executionMode, metodoPagamento)}</p>
+                            </fieldset>
                         </div>
                     )}
 
@@ -449,82 +435,28 @@ const RecurringExpenseFormModal: React.FC<RecurringExpenseFormModalProps> = ({
                                     <BoltIcon className="text-yellow-500" />
                                     <h4 className="font-bold text-on-surface">Fluxo de Caixa {isPJ && '(Contas a Pagar)'}</h4>
                                 </div>
-                                <div className="space-y-4">
-                                    <div className="flex items-center gap-3">
-                                        <input 
-                                            id="gen-expense" 
-                                            type="checkbox" 
-                                            checked={gerarDespesaAutomaticamente} 
-                                            onChange={e => setGerarDespesaAutomaticamente(e.target.checked)}
-                                            className="w-4 h-4 text-primary rounded focus:ring-primary"
-                                        />
-                                        <label htmlFor="gen-expense" className="text-sm font-bold text-on-surface">
-                                            {isPJ ? 'Provisionar em Contas a Pagar' : 'Gerar despesa no fluxo de caixa'}
-                                        </label>
-                                    </div>
-                                    
-                                    {gerarDespesaAutomaticamente && (
-                                        <div className="animate-fade-in pl-7 space-y-3">
-                                            <div>
-                                                <label htmlFor="categoria" className={labelClass}>Classificação de Despesa</label>
-                                                <select 
-                                                    id="categoria"
-                                                    value={categoriaDespesaId} 
-                                                    onChange={e => setCategoriaDespesaId(e.target.value)} 
-                                                    className={commonInputClass}
-                                                >
-                                                    <option value="">Padrão (Recorrentes)</option>
-                                                    {categories.filter(c => c.type === 'despesa').map(c => (
-                                                        <option key={c.id} value={c.id}>{c.name}</option>
-                                                    ))}
-                                                </select>
-                                            </div>
-                                            {isPJ && (
-                                                <p className="text-[10px] text-muted italic">
-                                                    As contas serão geradas com status "Pendente" no dia do vencimento.
-                                                </p>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* Divisão */}
-                            <div className="bg-surface border border-border rounded-xl p-5 shadow-sm">
-                                <div className="flex items-center gap-2 mb-4 border-b border-border pb-3">
-                                    <UsersIcon className="text-blue-500" />
-                                    <h4 className="font-bold text-on-surface">{isPJ ? 'Rateio entre Sócios / Projetos' : 'Divisão de Contas'}</h4>
-                                </div>
-                                <div className="space-y-4">
+                                <div className="space-y-3">
                                     <div>
-                                        <label htmlFor="splitGroup" className={labelClass}>{isPJ ? 'Vincular a Grupo de Rateio' : 'Vincular a Grupo'}</label>
+                                        <label htmlFor="categoria" className={labelClass}>Classificação de Despesa</label>
                                         <select 
-                                            id="splitGroup"
-                                            value={splitGroupIdOpcional} 
-                                            onChange={e => setSplitGroupIdOpcional(e.target.value)} 
+                                            id="categoria"
+                                            value={categoriaDespesa}
+                                            onChange={e => set('category', e.target.value)}
                                             className={commonInputClass}
                                         >
-                                            <option value="">-- Nenhum grupo --</option>
-                                            {splitGroups?.map(g => (
-                                                <option key={g.id} value={g.id}>{g.nome}</option>
+                                            <option value={DEFAULT_RECURRING_CATEGORY}>Padrão (Recorrentes)</option>
+                                            {categories.filter(c => c.type === 'despesa' && c.name !== DEFAULT_RECURRING_CATEGORY).map(c => (
+                                                <option key={c.id} value={c.name}>{c.name}</option>
                                             ))}
+                                            {categoriaDespesa !== DEFAULT_RECURRING_CATEGORY && !categories.some(c => c.type === 'despesa' && c.name === categoriaDespesa) && (
+                                                <option value={categoriaDespesa}>{categoriaDespesa}</option>
+                                            )}
                                         </select>
                                     </div>
-
-                                    {splitGroupIdOpcional && (
-                                        <div className="flex items-start gap-3 animate-fade-in bg-blue-50 dark:bg-blue-900/10 p-3 rounded-lg border border-blue-100 dark:border-blue-900/30">
-                                            <input 
-                                                id="auto-split" 
-                                                type="checkbox" 
-                                                checked={dividirAutomaticamenteNoGrupo} 
-                                                onChange={e => setDividirAutomaticamenteNoGrupo(e.target.checked)}
-                                                className="mt-1 w-4 h-4 text-primary rounded focus:ring-primary"
-                                            />
-                                            <div>
-                                                <label htmlFor="auto-split" className="text-sm font-bold text-blue-800 dark:text-blue-300">Rateio Automático</label>
-                                                <p className="text-blue-600 dark:text-blue-400 text-[10px]">O valor será dividido entre os participantes do grupo assim que a conta for provisionada.</p>
-                                            </div>
-                                        </div>
+                                    {isPJ && (
+                                        <p className="text-[10px] text-muted italic">
+                                            No modo automático fora do cartão, as contas são geradas com status "Pendente" no dia do vencimento.
+                                        </p>
                                     )}
                                 </div>
                             </div>
@@ -551,7 +483,7 @@ const RecurringExpenseFormModal: React.FC<RecurringExpenseFormModalProps> = ({
                                             <button
                                                 key={c}
                                                 type="button"
-                                                onClick={() => setCorPrincipal(c)}
+                                                onClick={() => set('color', c)}
                                                 className={`w-10 h-10 rounded-xl border-2 transition-all hover:scale-110 ${corPrincipal === c ? 'border-primary ring-4 ring-primary/20 scale-110 shadow-lg' : 'border-transparent opacity-80'}`}
                                                 style={{ backgroundColor: c }}
                                             />
@@ -560,7 +492,7 @@ const RecurringExpenseFormModal: React.FC<RecurringExpenseFormModalProps> = ({
                                             <input 
                                                 type="color" 
                                                 value={corPrincipal} 
-                                                onChange={e => setCorPrincipal(e.target.value)} 
+                                                onChange={e => set('color', e.target.value)}
                                                 className="w-10 h-10 p-0 border-0 rounded-xl cursor-pointer opacity-0 absolute inset-0 z-10" 
                                             />
                                             <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-red-500 via-green-500 to-blue-500 border border-border flex items-center justify-center">
@@ -591,7 +523,7 @@ const RecurringExpenseFormModal: React.FC<RecurringExpenseFormModalProps> = ({
                                         <input 
                                             type="text" 
                                             value={emojiOpcional} 
-                                            onChange={(e) => setEmojiOpcional(e.target.value)} 
+                                            onChange={(e) => set('emoji', e.target.value)}
                                             placeholder="Ex: ☁️, 🏢, ⚡"
                                             className={`${commonInputClass} text-center text-xl py-3`}
                                             maxLength={2}
@@ -624,7 +556,7 @@ const RecurringExpenseFormModal: React.FC<RecurringExpenseFormModalProps> = ({
                                                     key={iconKey}
                                                     type="button"
                                                     onClick={() => {
-                                                        setIcone(iconKey);
+                                                        set('icon', iconKey);
                                                         setIsIconPickerOpen(false);
                                                     }}
                                                     className={`aspect-square rounded-lg flex items-center justify-center border transition-all hover:bg-surface hover:shadow-md ${
@@ -648,11 +580,11 @@ const RecurringExpenseFormModal: React.FC<RecurringExpenseFormModalProps> = ({
 
                 {/* Footer */}
                 <div className="p-6 border-t border-border flex justify-end gap-3 bg-gray-50 dark:bg-dark-300 rounded-b-xl">
-                    <button onClick={onClose} className="px-5 py-2.5 bg-background text-on-surface border border-border rounded-lg hover:bg-background/80 transition-colors font-medium">
+                    <button type="button" onClick={onClose} disabled={busy} className="px-5 py-2.5 bg-background text-on-surface border border-border rounded-lg hover:bg-background/80 transition-colors font-medium">
                         Cancelar
                     </button>
-                    <button onClick={handleSubmit} className="px-8 py-2.5 bg-primary text-white font-bold rounded-lg hover:bg-primary/90 transition-all shadow-md active:scale-95">
-                        {expenseToEdit ? 'Salvar Alterações' : isPJ ? 'Cadastrar Contrato' : 'Cadastrar Assinatura'}
+                    <button type="submit" form="recurringForm" disabled={busy} className="px-8 py-2.5 bg-primary text-white font-bold rounded-lg hover:bg-primary/90 transition-all shadow-md active:scale-95 disabled:opacity-60">
+                        {busy ? 'Salvando…' : expenseToEdit ? 'Salvar Alterações' : isPJ ? 'Cadastrar Contrato' : 'Cadastrar Assinatura'}
                     </button>
                 </div>
             </div>

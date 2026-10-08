@@ -306,12 +306,34 @@ test('workspace arquivado: leitura mantida, escrita negada', async () => {
     voidedBy: users.ownerA.uid,
     voidReason: 'Arquivado',
   }), 'anula transação em arquivado');
-  await denied(setDoc(doc(db.ownerA, `workspaces/${wsArchived}/recurring_expenses/r1`), {
+  // P4-D: `transactions` não aceita escrita do cliente em workspace algum;
+  // o par arquivado/ativo usa a escrita que o cliente ainda tem — o
+  // cadastro do catálogo (owner/admin).
+  const plain = (workspaceId) => ({
+    type: 'despesa', description: 'Compra', category: 'Mercado', value: 10,
+    date: '2026-08-20', userId: users.ownerA.uid, workspaceId,
+    profileId: workspaceId,
+  });
+  await denied(setDoc(doc(db.ownerA, `workspaces/${wsArchived}/transactions/p1-archived`),
+    plain(wsArchived)), 'cria lançamento em arquivado');
+  await denied(setDoc(doc(db.ownerA, `workspaces/${wsA}/transactions/p1-control`),
+    plain(wsA)), 'cria lançamento em workspace ativo');
+  const catalogItem = (workspaceId) => ({
+    workspaceId, group: 'investment_institution', name: 'Banco P1', normalizedName: 'banco p1',
+    dedupeKey: `${workspaceId}|investment_institution|banco p1`, workspaceScope: 'both', sortOrder: 1,
+    status: 'active', createdBy: users.ownerA.uid, updatedBy: users.ownerA.uid,
+    createdAt: new Date(), updatedAt: new Date(),
+  });
+  await denied(setDoc(doc(db.ownerA, `workspaces/${wsArchived}/settings_catalog/p1-archived`),
+    catalogItem(wsArchived)), 'cadastra no catálogo de arquivado');
+  await denied(setDoc(doc(db.ownerA, `workspaces/${wsA}/settings_catalog/p1-control`),
+    catalogItem(wsA)), 'catálogo: escrita do cliente negada mesmo em workspace ativo (D-23)');
+  await denied(setDoc(doc(db.ownerA, `workspaces/${wsA}/recurring_expenses/p1-control`), {
     description: 'X',
-  }), 'escreve recorrente em arquivado');
-  await allowed(setDoc(doc(db.ownerA, `workspaces/${wsA}/recurring_expenses/p1-control`), {
+  }), 'recorrente: escrita do cliente negada mesmo em workspace ativo');
+  await denied(setDoc(doc(db.ownerA, `workspaces/${wsA}/split_groups/p1-control`), {
     description: 'X',
-  }), 'controle: mesma escrita em workspace ativo');
+  }), 'divisão de contas: escrita do cliente negada mesmo em workspace ativo');
 });
 
 /**

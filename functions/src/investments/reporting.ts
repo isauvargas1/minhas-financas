@@ -195,8 +195,8 @@ export const readInvestmentPeriodContext = async (
   return {
     period,
     // Abertura do mês. Com fechamento já presente, o incremento basta. Sem
-    // ele, semeia com o fechamento do mês anterior mais o que este mês já
-    // acumulou de variação patrimonial antes da migração.
+    // ele, semeia com o fechamento do mês anterior mais a variação
+    // patrimonial que este mês já acumulou.
     openingCents: hasClosing ?
       0 :
       integerOrZero(
@@ -287,38 +287,6 @@ const writeInvestmentReportDeltas = (
       {merge: true},
     );
   });
-};
-
-export const writeInvestmentValuationReportPeriod = (
-  transaction: admin.firestore.Transaction,
-  workspaceId: string,
-  profileType: "PF" | "PJ",
-  actorId: string,
-  occurredAt: Timestamp,
-  currentValueDeltaCents: number,
-  context: InvestmentPeriodContext,
-): void => {
-  if (currentValueDeltaCents === 0) return;
-  writeInvestmentReportDeltas(
-    transaction,
-    workspaceId,
-    profileType,
-    actorId,
-    occurredAt,
-    {
-      contributionCents: 0,
-      redemptionPrincipalCents: 0,
-      realizedGainCents: 0,
-      realizedLossCents: 0,
-      feesCents: 0,
-      taxCents: 0,
-      costDeltaCents: 0,
-      currentValueDeltaCents,
-      cashDeltaCents: 0,
-      settledMovementCount: 0,
-    },
-    context,
-  );
 };
 
 export interface AllocationDescriptor {

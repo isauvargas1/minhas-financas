@@ -1,13 +1,9 @@
 import type { ReactNode } from 'react';
-import type {
-    CompetenceMonth,
-    CreditCardBillingCycleStatus,
-    CreditCardInvoiceStatus,
-    CreditCardVisual,
-} from './modules/credit-cards/domain/types.ts';
+import type { CardPurchaseResult } from './modules/cards/callables.ts';
+import type { CreditCard } from './modules/cards/types.ts';
 
-export * from './modules/credit-cards/domain/types.ts';
-export * from './modules/recurring-expenses/types.ts';
+// P4-A: modelo único de cartões (centavos), lido do backend autoritativo.
+export * from './modules/cards/types.ts';
 export * from './modules/reports/types.ts';
 export * from './modules/notifications/types.ts';
 export * from './modules/messages/types.ts';
@@ -20,13 +16,6 @@ export type { WorkspaceType } from './modules/workspaces/types.ts';
 
 export type TransactionType = 'receita' | 'despesa' | 'investimento' | 'parcelado';
 
-export type Category = {
-    receita: Array<'Salário' | 'Honorários' | 'Venda de Produto' | 'Reembolso' | 'Dividendos' | 'Outros'>;
-    despesa: Array<'Alimentação' | 'Moradia' | 'Transporte' | 'Saúde' | 'Educação' | 'Lazer' | 'Utilidades' | 'Comunicação' | 'Outros'>;
-    investimento: Array<'Ações' | 'Fundos Imobiliários' | 'Tesouro Direto' | 'CDB' | 'Poupança' | 'Outros'>;
-    parcelado: Array<'Eletrônicos' | 'Eletrodomésticos' | 'Móveis' | 'Vestuário' | 'Outros'>;
-};
-
 export interface EntityItem {
     id: string | number;
     name: string;
@@ -37,42 +26,12 @@ export interface EntityItem {
     profileId?: string;
 }
 
-export interface CreditCard {
-    id: string;
-    workspaceId?: string;
-
-    name: string;
-    brand: string;
-    status: 'active' | 'blocked' | 'cancelled';
-
-    limitTotal: number;
-    limitAvailable?: number;
-    limitUsed?: number;
-
-    closingDay: number;
-    dueDay: number;
-    bestDay?: number;
-    billingCycleStatus?: CreditCardBillingCycleStatus;
-
-    observations?: string;
-    visual?: CreditCardVisual;
-
-    profileId?: string;
-    responsiblePerson?: string;
-    recommendedUse?: string;
-    defaultCostCenter?: string;
-
-    createdAt?: unknown;
-    updatedAt?: unknown;
-}
-
 export interface SettingsData {
     productsServices: EntityItem[];
     expenseTypes: EntityItem[];
     categories: EntityItem[];
     paymentTypes: EntityItem[];
     incomeTypes: EntityItem[];
-    wallets: EntityItem[];
     costCenters: EntityItem[];
 }
 
@@ -83,7 +42,6 @@ export interface TransactionCatalogVisualSnapshot {
     | 'category'
     | 'payment_method'
     | 'income_type'
-    | 'wallet'
     | 'cost_center';
     label: string;
     normalizedLabel: string;
@@ -99,38 +57,26 @@ export interface TransactionDisplaySnapshots {
     incomeTypeSnapshot?: TransactionCatalogVisualSnapshot;
     paymentMethodSnapshot?: TransactionCatalogVisualSnapshot;
     productServiceSnapshot?: TransactionCatalogVisualSnapshot;
-    walletSnapshot?: TransactionCatalogVisualSnapshot;
     costCenterSnapshot?: TransactionCatalogVisualSnapshot;
 }
 
-export interface TransactionCreditCardCompatibility {
-    source: 'credit_card_invoice';
-    invoiceId: string;
-    cardId: string;
-    competenceMonth: CompetenceMonth;
-    invoiceStatus: CreditCardInvoiceStatus;
-    isProjection: true;
-}
-
-export type InvestmentOperation = 'contribution' | 'redemption' | 'redemption_reversal';
-export type InvestmentCashImpact = 'none' | 'inflow' | 'outflow';
-export type InvestmentAssetImpact = 'none' | 'increase' | 'decrease';
-export type InvestmentMovementStatus = 'pending' | 'settled' | 'cancelled' | 'reversed';
-
-export interface TransactionInvestmentMetadata {
-    currency: 'BRL';
-    investmentOperation: InvestmentOperation;
-    cashImpact: InvestmentCashImpact;
-    investmentImpact: InvestmentAssetImpact;
+/**
+ * Marca backend-only do espelho de caixa de investimento (D-15, P4-D). O
+ * patrimônio vive no domínio de investimentos; o espelho é só o efeito de
+ * caixa: aporte liquidado sai, retirada recebida entra (principal + rendimento),
+ * pendente e cancelado não movem caixa, e o estorno compensa.
+ */
+export interface TransactionInvestmentEntry {
+    domainVersion: number;
+    movementId: string;
+    operation: 'contribution' | 'redemption';
+    reversal: boolean;
+    reversalOf: string | null;
+    status: 'pending' | 'settled' | 'cancelled';
     principalCents: number;
     gainCents: number;
-    feesCents: number;
-    taxCents: number;
-    settlementDate?: string;
-    status: InvestmentMovementStatus;
-    sourceMovementId: string;
-    idempotencyKey: string;
-    reversalMovementId?: string;
+    amountCents: number;
+    currency: 'BRL';
 }
 
 export interface Transaction {
@@ -144,36 +90,92 @@ export interface Transaction {
     installments?: number;
     currentInstallment?: number;
     cardId?: string;
-    walletId?: string | number;
+    /** Conta/carteira do lançamento (D-30, P3-J), gravada só pelo backend. */
+    cashAccountId?: string;
     userId?: string;
     workspaceId?: string;
-    goalId?: string;
-    loanId?: string;
-    loanMovementId?: string;
     expenseType?: string;
     incomeType?: string;
     paymentMethod?: string;
     isPaid?: boolean;
+    /** Vencimento do lançamento manual pendente, preservado na confirmação (D-29). */
+    dueDate?: string;
     profileId?: string;
     supplier?: string;
     costCenter?: string;
     source?: string;
-    creditCardInvoiceId?: string;
-    creditCardInvoicePaymentId?: string;
-    creditCardCompatibility?: TransactionCreditCardCompatibility;
-    displaySnapshots?: TransactionDisplaySnapshots;
-    investmentMetadata?: TransactionInvestmentMetadata;
-    redeemedPrincipalCents?: number;
-    remainingPrincipalCents?: number;
     /**
-     * Baixa lógica (INV-P2-032). Histórico financeiro não é apagado: a
-     * exclusão pela interface marca o documento, que permanece disponível
-     * para auditoria e para a reconciliação da migração legada, e some de
-     * toda leitura do produto.
+     * Espelho de caixa do pagamento (ou do estorno) de fatura de cartão,
+     * gravado pelo backend (P4-A). Liquidação do cartão: move o saldo, nunca
+     * é receita nem despesa operacional. Estornado só pela tela de cartões.
+     */
+    creditCardPaymentEntry?: {
+        cardId: string;
+        invoiceId: string;
+        paymentId: string;
+        reversal: boolean;
+        amountCents: number;
+        reversalOf?: string;
+    };
+    displaySnapshots?: TransactionDisplaySnapshots;
+    investmentEntry?: TransactionInvestmentEntry;
+    /**
+     * Espelho de caixa de empréstimo gravado pelo backend (P3-G, D-13). O
+     * principal e os juros não são receita nem despesa operacional.
+     */
+    loanEntry?: { loanId: string; loanMovementId: string; kind: string };
+    /**
+     * Espelho de caixa de recebimento de recebível (P3-I, D-39). O principal
+     * é receita operacional; juros e multa, resultado financeiro; o desconto
+     * nunca entra no caixa. Alterado só pelas callables de recebíveis.
+     */
+    receivableEntry?: {
+        receivableId: string;
+        receivableMovementId: string;
+        clientId: string;
+        reversal: boolean;
+        principalCents: number;
+        interestCents: number;
+        penaltyCents: number;
+        discountCents: number;
+    };
+    /**
+     * Espelho de caixa da Divisão de contas (P4-C): despesa paga pelo Caixa
+     * num título de rateio ou pagamento de reembolso PJ, e as compensações
+     * (`reversal`). Despesa operacional com sinal; gravado só pelo backend.
+     */
+    splitEntry?: {
+        kind: 'bill_expense' | 'reimbursement_payment';
+        groupId: string;
+        billId: string | null;
+        reimbursementId: string | null;
+        reversal: boolean;
+        reversalOf: string | null;
+        amountCents: number;
+    };
+    /**
+     * Baixa lógica (INV-P2-032, D-35). Histórico financeiro não é apagado: a
+     * anulação, feita pelo backend (`voidCashTransaction`), marca o documento,
+     * que permanece disponível para auditoria e some de toda leitura do
+     * produto.
      */
     voidedAt?: unknown;
     voidedBy?: string;
     voidReason?: string;
+    /**
+     * Marca do lançamento criado ou adotado pelo backend (P3-A/C/D). Com ela,
+     * só as callables de caixa alteram o documento (as Rules negam o
+     * cliente).
+     */
+    cashEntry?: {
+        origin?: string;
+        status?: string;
+        channel?: string;
+        [key: string]: unknown;
+    };
+    /** Versão do documento (Timestamp do servidor), usada como `expectedUpdatedAt`. */
+    updatedAt?: unknown;
+    createdAt?: unknown;
 }
 
 // --- GOALS MODULE TYPES ---
@@ -246,107 +248,11 @@ export interface Goal {
     archivedAt?: unknown;
 }
 
-// --- SHARED EXPENSES MODULE TYPES (Split Bills) ---
-
-export type SplitGroupType = 'fixo' | 'temporario';
-export type SplitBillValueType = 'fixo' | 'variavel';
-export type SplitBillPaymentStatus = 'pendente' | 'parcialmentePago' | 'pago' | 'cancelado' | 'aprovado' | 'solicitado';
-
-export type SplitBillPaymentMethod =
-    | 'dinheiro'
-    | 'pix'
-    | 'transferencia'
-    | 'cartaoCredito'
-    | 'outro';
-
-export type SplitShareStatus =
-    | 'aPagar'
-    | 'pagoAoPagadorPrincipal'
-    | 'pagoDireto'
-    | 'perdoado';
-
-export type SplitParticipantRole =
-    | 'dono'
-    | 'pagadorPrincipal'
-    | 'participante'
-    | 'visualizador';
-
-export interface SplitGroup {
-    id: string;
-    nome: string;
-    tipo: SplitGroupType;
-    descricao?: string;
-    ativo: boolean;
-    dataCriacao: string;
-    dataEncerramento?: string;
-    corPrincipal: string;
-    icone: string;
-    emojiOpcional?: string;
-    imagemCapaOpcional?: string;
-    businessType?: 'rateio' | 'reembolso';
-    profileId?: string;
-}
-
-export interface SplitParticipant {
-    id: string;
-    groupId: string;
-    userId?: string;
-    convidadoId?: string;
-    nomeExibicao: string;
-    papel: SplitParticipantRole;
-    porcentagemPadrao?: number;
-    corIdentidade: string;
-    avatarEmojiOpcional?: string;
-}
-
-export interface SplitBill {
-    id: string;
-    groupId: string;
-    descricao: string;
-    categoriaId?: string;
-    categoriaNome?: string;
-    tipoValor: SplitBillValueType;
-    valorPadrao?: number;
-    valorReal?: number;
-    moeda: 'BRL';
-    competencia: string;
-    dataVencimento?: string;
-    statusPagamento: SplitBillPaymentStatus;
-    formaPagamento: SplitBillPaymentMethod;
-    cartaoIdOpcional?: string;
-    despesaIdOpcional?: string;
-    pagadorPrincipalId?: string;
-    createdAt?: string;
-    updatedAt?: string;
-    reimbursementStatus?: 'solicitado' | 'aprovado' | 'pago';
-}
-
-export interface SplitShare {
-    id: string;
-    billId: string;
-    participantId: string;
-    valorDevido: number;
-    valorPago: number;
-    status: SplitShareStatus;
-    dataUltimoPagamento?: string;
-    observacao?: string;
-}
-
-export interface SplitGroupInvite {
-    id: string;
-    groupId: string;
-    codigoConvite: string;
-    papelSugerido: 'participante' | 'visualizador';
-    emailOuIdentificador?: string;
-    expiraEm?: string;
-    status: 'pendente' | 'aceito' | 'expirado' | 'revogado';
-}
-
+/** Saldo, receitas e despesas do mês, do espelho de caixa (`summarizeCashFlow`). */
 export interface SummaryData {
     balance: number;
     income: number;
     expenses: number;
-    investments: number;
 }
 
 export interface SummaryCardProps {
@@ -365,45 +271,31 @@ export interface IconProps {
     [key: string]: any;
 }
 
-export interface CreditCardPurchaseModalInput {
-    cardId: string;
-    description: string;
-    categorySnapshot: {
-        label: string;
-        normalizedLabel?: string;
-    };
-    supplier?: string;
-    costCenter?: string;
-    purchaseDate: string;
-    totalAmount: number;
-    installmentsCount: number;
-    amountType: 'total' | 'installment';
-    source: 'manual';
-    idempotencyKey: string;
-    correlationId?: string;
-}
 
 export interface TransactionModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onAddTransaction: (transaction: Omit<Transaction, 'id'>) => Promise<void> | void;
-    onAddTransactions?: (transactions: Omit<Transaction, 'id'>[]) => Promise<void> | void;
-    onAddCreditCardPurchase?: (purchase: CreditCardPurchaseModalInput) => Promise<void> | void;
-    onUpdateTransaction: (transaction: Transaction) => Promise<void> | void;
+    /**
+     * Compra manual no cartão (P4-A): só a callable `createCreditCardPurchase`,
+     * com o payload estrito (valor total em centavos) e a chave da intenção.
+     */
+    onAddCreditCardPurchase?: (payload: Record<string, unknown>, idempotencyKey: string) => Promise<CardPurchaseResult>;
+    /**
+     * Lançamento manual pela callable autoritativa (P3-E). O payload já está
+     * no contrato estrito; a chave é da intenção. P4-D: não existe caminho de
+     * escrita direta em `transactions` — estas callables são o único destino.
+     */
+    onCreateManualTransaction: (payload: Record<string, unknown>, idempotencyKey: string) => Promise<void>;
+    /** Correção autoritativa (P3-E, D-35): estado completo, versão lida e motivo. */
+    onUpdateManualTransaction: (payload: Record<string, unknown>, idempotencyKey: string) => Promise<void>;
+    /** Confirmação de pendente (P3-F, D-29): `confirmCashTransaction`. */
+    onConfirmManualTransaction: (payload: Record<string, unknown>, idempotencyKey: string) => Promise<void>;
     transactionToEdit?: Transaction | null;
     defaultType?: TransactionType | null;
     currentDate: Date;
     creditCards?: CreditCard[];
-    productsServices?: EntityItem[];
-    settingsCategories?: EntityItem[];
-    wallets?: EntityItem[];
-    expenseTypes?: EntityItem[];
-    paymentTypes?: EntityItem[];
-    incomeTypes?: EntityItem[];
     allowedTypes?: TransactionType[] | null;
-    costCenters?: EntityItem[];
     transactions?: Transaction[];
-    onAddProductService?: (name: string) => void;
 }
 
 export type ThemeMode = 'light' | 'dark';

@@ -2,16 +2,17 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
-  createInvestmentContributionPayloadSchema,
-  createInvestmentRedemptionPayloadSchema,
+  CONTRIBUTION_ACCOUNT_REQUIRED_MESSAGE,
+  PENDING_ACCOUNT_FORBIDDEN_MESSAGE,
+  WITHDRAWAL_ACCOUNT_REQUIRED_MESSAGE,
+  cancelInvestmentMovementPayloadSchema,
   createSimpleInvestmentPayloadSchema,
-  settleInvestmentRedemptionPayloadSchema,
-  saveInvestmentAccountPayloadSchema,
-  saveInvestmentAssetPayloadSchema,
-  onboardInvestmentWorkspacePayloadSchema,
+  reverseInvestmentMovementPayloadSchema,
+  settleInvestmentContributionPayloadSchema,
+  settleSimpleWithdrawalPayloadSchema,
+  withdrawSimpleInvestmentPayloadSchema,
 } from "../contracts";
 import {profileTypeFromWorkspace} from "../infrastructure";
-import {currentValueForPosition, positionValueCents} from "../math";
 
 const common = {
   workspaceId: "workspace-a",
@@ -19,151 +20,139 @@ const common = {
   correlationId: "investment-domain-correlation-0001",
 };
 
+const createBase = {
+  ...common,
+  institutionId: "cat-institution-btg",
+  classId: "cat-class-aposentadoria",
+  typeId: "cat-type-renda-fixa",
+  description: "Tesouro Selic 2029",
+  valueCents: 100_000,
+  occurredAt: "2026-08-18T12:00:00.000Z",
+  cashAccountId: "conta-corrente",
+};
+
+const withdrawBase = {
+  ...common,
+  positionId: "position-a",
+  valueCents: 50_000,
+  occurredAt: "2026-08-18T12:00:00.000Z",
+  cashAccountId: "conta-corrente",
+};
+
+const issueMessages = (run: () => unknown): string[] => {
+  try {
+    run();
+  } catch (error) {
+    return ((error as {issues?: Array<{message: string}>}).issues ?? [])
+      .map((issue) => issue.message);
+  }
+  throw new Error("O contrato deveria ter recusado o payload.");
+};
+
 test(
-  "contratos M3 exigem correlação, centavos inteiros e payload estrito",
+  "contratos exigem correlação, centavos inteiros e payload estrito",
   () => {
-    const contribution = createInvestmentContributionPayloadSchema.parse({
-      ...common,
-      accountId: "account-a",
-      assetId: "asset-a",
-      description: "Aporte oficial",
-      principalCents: 12_345,
-      quantityMicros: 1_000_000,
-      occurredAt: "2026-08-18T12:00:00.000Z",
-    });
-    assert.equal(contribution.feesCents, 0);
-    assert.equal(contribution.taxCents, 0);
+    const parsed = createSimpleInvestmentPayloadSchema.parse(createBase);
+    assert.equal(parsed.settled, true);
+    for (const valueCents of [123.45, 0, 9_000_000_000_001]) {
+      assert.throws(() =>
+        createSimpleInvestmentPayloadSchema.parse({...createBase, valueCents}));
+    }
     assert.throws(() =>
-      createInvestmentContributionPayloadSchema.parse({
-        ...contribution,
-        principalCents: 123.45,
-      }),
-    );
-    assert.throws(() =>
-      createInvestmentContributionPayloadSchema.parse({
-        ...contribution,
-        principalCents: 0,
-      }),
-    );
-    assert.throws(() =>
-      createInvestmentContributionPayloadSchema.parse({
-        ...contribution,
-        principalCents: 9_000_000_000_001,
-      }),
-    );
-    assert.throws(() =>
-      createInvestmentContributionPayloadSchema.parse({
-        ...contribution,
+      createSimpleInvestmentPayloadSchema.parse({
+        ...createBase,
         internalRole: "owner",
-      }),
-    );
+      }));
+    const {correlationId: _ignored, ...withoutCorrelation} = withdrawBase;
+    void _ignored;
     assert.throws(() =>
-      createInvestmentRedemptionPayloadSchema.parse({
-        workspaceId: "workspace-a",
-        idempotencyKey: "investment-domain-unit-0002",
-        accountId: "account-a",
-        assetId: "asset-a",
-        description: "Sem correlação",
-        requestedPrincipalCents: 100,
-        requestedQuantityMicros: 1,
-        requestedAt: "2026-08-18T12:00:00.000Z",
-      }),
-    );
+      withdrawSimpleInvestmentPayloadSchema.parse(withoutCorrelation));
     assert.throws(() =>
-      createInvestmentRedemptionPayloadSchema.parse({
-        ...common,
-        accountId: "account-a",
-        assetId: "asset-a",
-        description: "Fuso ausente",
-        requestedPrincipalCents: 100,
-        requestedQuantityMicros: 1,
-        requestedAt: "2026-08-18T12:00:00",
-      }),
-    );
+      withdrawSimpleInvestmentPayloadSchema.parse({
+        ...withdrawBase,
+        occurredAt: "2026-08-18T12:00:00",
+      }));
   },
 );
 
-test("cadastros patrimoniais aceitam somente campos públicos tipados", () => {
-  assert.equal(saveInvestmentAccountPayloadSchema.parse({
-    ...common,
-    name: "Corretora principal",
-    institutionName: "Instituição Teste",
-  }).name, "Corretora principal");
-  assert.equal(saveInvestmentAssetPayloadSchema.parse({
-    ...common,
-    name: "Tesouro Selic",
-    symbol: "SELIC",
-    assetType: "fixed_income",
-  }).assetType, "fixed_income");
-  assert.throws(() => saveInvestmentAccountPayloadSchema.parse({
-    ...common,
-    name: "Conta",
-    institutionName: "Instituição",
-    workspaceRole: "owner",
-  }));
-  assert.throws(() => saveInvestmentAssetPayloadSchema.parse({
-    ...common,
-    name: "Ativo",
-    assetType: "ação",
-  }));
+test("fato liquidado exige a conta do Caixa; pendente a recusa (D-30)", () => {
+  const {cashAccountId: _create, ...createWithoutAccount} = createBase;
+  void _create;
+  assert.deepEqual(
+    issueMessages(() =>
+      createSimpleInvestmentPayloadSchema.parse(createWithoutAccount)),
+    [CONTRIBUTION_ACCOUNT_REQUIRED_MESSAGE],
+  );
+  assert.equal(
+    createSimpleInvestmentPayloadSchema.parse({
+      ...createWithoutAccount, settled: false,
+    }).cashAccountId,
+    undefined,
+  );
+  assert.deepEqual(
+    issueMessages(() =>
+      createSimpleInvestmentPayloadSchema.parse({...createBase, settled: false})),
+    [PENDING_ACCOUNT_FORBIDDEN_MESSAGE],
+  );
+
+  const {cashAccountId: _withdraw, ...withdrawWithoutAccount} = withdrawBase;
+  void _withdraw;
+  assert.deepEqual(
+    issueMessages(() =>
+      withdrawSimpleInvestmentPayloadSchema.parse(withdrawWithoutAccount)),
+    [WITHDRAWAL_ACCOUNT_REQUIRED_MESSAGE],
+  );
+  assert.deepEqual(
+    issueMessages(() =>
+      withdrawSimpleInvestmentPayloadSchema.parse({
+        ...withdrawBase, received: false,
+      })),
+    [PENDING_ACCOUNT_FORBIDDEN_MESSAGE],
+  );
+
+  for (const schema of [
+    settleInvestmentContributionPayloadSchema,
+    settleSimpleWithdrawalPayloadSchema,
+  ]) {
+    const settle = {
+      ...common,
+      movementId: "movement-a",
+      settledAt: "2026-08-18T12:00:00.000Z",
+    };
+    assert.throws(() => schema.parse(settle), /cashAccountId/);
+    assert.equal(
+      schema.parse({...settle, cashAccountId: "conta"}).cashAccountId,
+      "conta",
+    );
+  }
 });
 
-test("onboarding exige IDs de retry tipados e rejeita campos extras", () => {
-  assert.equal(onboardInvestmentWorkspacePayloadSchema.parse({
-    workspaceId: "workspace-pf",
-    idempotencyKey: "onboarding-pf-version-1",
-    correlationId: "correlation-onboarding-pf-version-1",
-  }).workspaceId, "workspace-pf");
-  assert.throws(() => onboardInvestmentWorkspacePayloadSchema.parse({
-    workspaceId: "workspace-pf",
-    idempotencyKey: "onboarding-pf-version-1",
-    correlationId: "correlation-onboarding-pf-version-1",
-    role: "owner",
-  }));
-});
-
-test("liquidação separa principal, ganho, taxa e imposto", () => {
-  const parsed = settleInvestmentRedemptionPayloadSchema.parse({
+test("estorno e cancelamento não escolhem conta; walletId saiu dos contratos", () => {
+  const reverse = {
     ...common,
     movementId: "movement-a",
-    settlement: {
-      principalCents: 10_000,
-      quantityMicros: 500_000,
-      gainCents: 1_000,
-      lossCents: 0,
-      feesCents: 100,
-      taxCents: 150,
-    },
-    settledAt: "2026-08-18T12:00:00.000Z",
-  });
-  assert.deepEqual(parsed.settlement, {
-    principalCents: 10_000,
-    quantityMicros: 500_000,
-    gainCents: 1_000,
-    // INV-P1-009 — a perda realizada é campo próprio, com default zero.
-    lossCents: 0,
-    feesCents: 100,
-    taxCents: 150,
-  });
-  assert.throws(
-    () =>
-      settleInvestmentRedemptionPayloadSchema.parse({
-        ...parsed,
-        settlement: {...parsed.settlement, taxCents: 1_001},
-      }),
-    /imposto não pode superar/i,
-  );
+    reversedAt: "2026-08-18T12:00:00.000Z",
+    reason: "Lançamento desfeito",
+  };
+  reverseInvestmentMovementPayloadSchema.parse(reverse);
+  // O estorno compensa na conta do original: escolher outra é recusado.
+  assert.throws(() => reverseInvestmentMovementPayloadSchema.parse({
+    ...reverse, cashAccountId: "outra-conta",
+  }));
+  assert.throws(() => cancelInvestmentMovementPayloadSchema.parse({
+    ...common,
+    movementId: "movement-a",
+    occurredAt: "2026-08-18T12:00:00.000Z",
+    reason: "Cancelado",
+    cashAccountId: "conta",
+  }));
+  assert.throws(() => createSimpleInvestmentPayloadSchema.parse({
+    ...createBase, walletId: "wallet-a",
+  }));
+  assert.throws(() => withdrawSimpleInvestmentPayloadSchema.parse({
+    ...withdrawBase, walletId: "wallet-a",
+  }));
 });
-
-test(
-  "valuation usa micros com arredondamento half-up sem float monetário",
-  () => {
-    assert.equal(positionValueCents(1_000_000, 100_000_000), 10_000);
-    assert.equal(positionValueCents(500_000, 123_450_000), 6_173);
-    assert.equal(currentValueForPosition(500_000, 5_000), 5_000);
-    assert.equal(currentValueForPosition(500_000, 5_000, 123_450_000), 6_173);
-  },
-);
 
 test(
   "contexto financeiro do workspace aceita somente PF ou PJ explícito",
@@ -197,6 +186,7 @@ const simpleBase = {
   description: "Tesouro Selic 2029",
   valueCents: 100_000,
   occurredAt: "2026-08-18T12:00:00.000Z",
+  cashAccountId: "conta-corrente",
 };
 
 test("referência de catálogo aceita ID de documento comum", () => {

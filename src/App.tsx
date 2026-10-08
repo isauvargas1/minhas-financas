@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { ThemeProvider, useTheme } from "./contexts/ThemeContext";
 import { WorkspaceProvider, useWorkspace } from "./contexts/WorkspaceContext";
 import Sidebar from "./components/Sidebar";
@@ -35,22 +35,15 @@ import { PricingTable } from './modules/billing/components/PricingTable';
 import { BillingSuccessModal } from './modules/billing/components/BillingSuccessModal';
 import { BillingProvider } from './modules/billing/BillingContext';
 
-import {
-    initialProductsServices,
-    initialExpenseTypes,
-    initialCategoriesSettings,
-    initialPaymentTypes,
-    initialIncomeTypes,
-    initialWallets,
-} from "./constants";
+// Paleta de cores dos gráficos de categoria (apresentação). Os cadastros
+// do workspace vêm só do catálogo autoritativo (D-23), lido pelos módulos.
+import { REPORT_CATEGORY_PALETTE } from "./constants";
 
 import type {
     Transaction,
     TransactionType,
     SummaryData,
-    EntityItem,
     Goal,
-    CreditCardPurchaseModalInput
 } from "./types";
 
 import { WalletIcon, ArrowUpIcon, ArrowDownIcon, ChartBarIcon } from "./components/Icons";
@@ -63,47 +56,49 @@ import { LoginView } from "./components/auth/LoginView";
 // --- HOOKS MIGRADOS ---
 import {
     useTransactions,
-    useCreateTransaction,
-    useCreateTransactionsBatch,
-    useUpdateTransaction,
-    useDeleteTransaction,
+    useCreateCashTransaction,
+    useUpdateCashTransaction,
+    useConfirmCashTransaction,
+    useVoidCashTransaction,
 } from "./modules/transactions/hooks";
+import {
+    cashErrorView,
+    isManualCashEntryCandidate,
+    REASON_MAX_LENGTH,
+    resolveIntentKey,
+    toVoidCashPayload,
+    type IntentKey,
+} from "./modules/transactions/cashEntry";
+import { newIdempotencyKey } from "./modules/workspaces/callables";
 
+// P4-A: cartões autoritativos; a compra manual é só a callable.
+import { useCreateCardPurchase, useCreditCards } from "./modules/cards/hooks";
+import { formatCompetence } from "./modules/cards/cycle";
 import {
-    useCreditCards,
-    useCreateCreditCardPurchaseDomain,
-} from "./modules/credit-cards/hooks";
-
-import {
-    filterReversedCreditCardInvoicePaymentCashTransactions,
-    filterTransactionsForCreditCardCompatibility,
-    isCreditCardInvoiceCompatibleTransaction,
-    useCreditCardInvoiceTransactionProjections,
-} from "./modules/credit-cards/compatibility";
-import {
+    investmentEntryOf,
+    isCreditCardPaymentCashMirror,
     summarizeCashFlow,
 } from "./modules/investments/semantics";
+import { investmentMonthKey } from "./modules/investments/dashboard";
+import { useInvestmentMonthContribution } from "./modules/investments/simple/api";
+const CARD_PAYMENT_MIRROR_MESSAGE =
+    'Pagamentos de fatura de cartão são registrados e estornados pela tela de cartões.';
 /*
- * Investimentos abre na experiência simples (Etapa 2).
- *
- * A tela profissional (`InvestmentsPortfolioView`) continua no código e segue
- * sendo a superfície de conta, ativo, posição, alocação e valoração — mas ela
- * deixou de ser o que o usuário comum encontra ao clicar em Investimentos.
- * Nenhum botão de "modo avançado" foi criado: a infraestrutura é invisível no
- * fluxo cotidiano, por decisão de produto.
+ * P4-D: o cliente não escreve em `transactions`. Lançamento que não é do
+ * Caixa manual (espelho de investimento, empréstimo, recebível, Divisão de
+ * contas) é alterado só pelo módulo que o gerou.
+ */
+const INVESTMENT_MIRROR_MESSAGE =
+    'Lançamentos de investimento são confirmados, desfeitos ou cancelados pela tela de Investimentos.';
+const DOMAIN_MIRROR_MESSAGE =
+    'Este lançamento é gerado por outro módulo e só pode ser alterado por ele.';
+
+/*
+ * Investimentos tem uma experiência só: a simples (D-15, P4-D).
  */
 const SimpleInvestmentsView = React.lazy(
     () => import("./modules/investments/simple/components/SimpleInvestmentsView"),
 );
-/*
- * O painel patrimonial profissional saiu do Dashboard (Etapa 3, §3.B).
- *
- * Ele não existia no baseline e trazia vocabulário de custo, patrimônio e
- * resultado não realizado para a primeira tela de quem só queria ver o mês. O
- * componente e o backend continuam íntegros — o que saiu foi o ponto de
- * montagem, e com ele o aviso "Não foi possível carregar o resumo patrimonial"
- * numa tela que não usa mais esse resumo.
- */
 // ----------------------
 
 const queryClient = new QueryClient({
@@ -127,7 +122,7 @@ const AppContent: React.FC = () => {
     const [transactionModalDefaultType, setTransactionModalDefaultType] = useState<TransactionType | null>(null);
     const [transactionModalAllowedTypes, setTransactionModalAllowedTypes] = useState<TransactionType[] | null>(null);
     const [notification, setNotification] = useState<{ message: string; visible: boolean }>({ message: '', visible: false });
-    const [view, setView] = useState<'dashboard' | 'receita' | 'despesa' | 'investimento' | 'settings' | 'cards' | 'personalizacao' | 'goals' | 'goal_details' | 'shared_expenses' | 'split_group_details' | 'recurring' | 'recurring_details' | 'reports' | 'clients_receivables' | 'loans' | 'loan_details' | 'admin' | 'planos'>('dashboard'); const [isConfirmationOpen, setIsConfirmationOpen] = useState(false);
+    const [view, setView] = useState<'dashboard' | 'receita' | 'despesa' | 'investimento' | 'settings' | 'cards' | 'personalizacao' | 'goals' | 'goal_details' | 'shared_expenses' | 'split_group_details' | 'recurring' | 'recurring_details' | 'reports' | 'clients_receivables' | 'loans' | 'loan_details' | 'admin' | 'planos'>('dashboard');
     const [currentDate, setCurrentDate] = useState(new Date());
 
     const openFullTransactionModal = () => {
@@ -151,9 +146,17 @@ const AppContent: React.FC = () => {
         setIsModalOpen(true);
     };
 
+    /** Motivo pelo qual o lançamento não é editável aqui, ou `null`. */
+    const nonEditableReason = (transaction: Transaction): string | null => {
+        if (isCreditCardPaymentCashMirror(transaction)) return CARD_PAYMENT_MIRROR_MESSAGE;
+        if (isManualCashEntryCandidate(transaction)) return null;
+        return investmentEntryOf(transaction) ? INVESTMENT_MIRROR_MESSAGE : DOMAIN_MIRROR_MESSAGE;
+    };
+
     const openEditTransactionModal = (transaction: Transaction) => {
-        if (isCreditCardInvoiceCompatibleTransaction(transaction)) {
-            showNotification('Faturas de cartão devem ser alteradas pela tela de cartão/fatura.');
+        const reason = nonEditableReason(transaction);
+        if (reason) {
+            showNotification(reason);
             return;
         }
 
@@ -174,45 +177,32 @@ const AppContent: React.FC = () => {
 
     // 1. Transações
     const { data: transactionsData } = useTransactions(workspaceId);
-    const createTxMutation = useCreateTransaction(workspaceId);
-    const createTxBatchMutation = useCreateTransactionsBatch(workspaceId);
-    const updateTxMutation = useUpdateTransaction(workspaceId);
-    const deleteTxMutation = useDeleteTransaction(workspaceId);
-    const createCreditCardPurchaseMutation = useCreateCreditCardPurchaseDomain();
+    // P3-E: lançamento manual confirmado pelas callables autoritativas.
+    const createCashMutation = useCreateCashTransaction(workspaceId);
+    const updateCashMutation = useUpdateCashTransaction(workspaceId);
+    // P3-F: confirmação de pendente (D-29).
+    const confirmCashMutation = useConfirmCashTransaction(workspaceId);
+    const voidCashMutation = useVoidCashTransaction(workspaceId);
+    const createCardPurchaseMutation = useCreateCardPurchase();
     const transactions = useMemo(() => transactionsData || [], [transactionsData]);
 
-
-
-    const {
-        data: creditCardInvoiceTransactionProjectionsData,
-    } = useCreditCardInvoiceTransactionProjections(workspaceId);
-
-    const creditCardInvoiceTransactionProjections = useMemo(
-        () => creditCardInvoiceTransactionProjectionsData || [],
-        [creditCardInvoiceTransactionProjectionsData],
-    );
-
-    // 2. Cartões de Crédito (MIGRADO)
+    // 2. Cartões de crédito (P4-A): leitura do domínio autoritativo.
     const { data: creditCardsData } = useCreditCards();
     const creditCards = useMemo(() => creditCardsData || [], [creditCardsData]);
 
-    // Estados locais (ainda não migrados)
     // --- GOALS (MIGRADO) ---
     const { data: goalsData } = useGoals();
     const createGoalMutation = useCreateGoal();
     const updateGoalMutation = useUpdateGoal();
     const archiveGoalMutation = useArchiveGoal();
     const goals = useMemo(() => goalsData || [], [goalsData]);
-    const [productsServices, setProductsServices] = useState<EntityItem[]>(initialProductsServices);
-    const [expenseTypes, setExpenseTypes] = useState<EntityItem[]>(initialExpenseTypes);
-    const [categories, setCategories] = useState<EntityItem[]>(initialCategoriesSettings);
-    const [paymentTypes, setPaymentTypes] = useState<EntityItem[]>(initialPaymentTypes);
-    const [incomeTypes, setIncomeTypes] = useState<EntityItem[]>(initialIncomeTypes);
-    const [allWallets, setAllWallets] = useState<EntityItem[]>(initialWallets.map(w => ({ ...w, profileId: 'personal' })));
-    const [costCenters, setCostCenters] = useState<EntityItem[]>([]);
 
     const [transactionToEdit, setTransactionToEdit] = useState<Transaction | null>(null);
-    const [transactionToDelete, setTransactionToDelete] = useState<Transaction | null>(null);
+    // Anulação autoritativa (P3-E, D-35): confirmação com justificativa.
+    const [transactionToVoid, setTransactionToVoid] = useState<Transaction | null>(null);
+    const [voidReason, setVoidReason] = useState('');
+    const [voidError, setVoidError] = useState<string | null>(null);
+    const voidIntentRef = useRef<IntentKey | null>(null);
     const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
 
     useEffect(() => {
@@ -233,8 +223,6 @@ const AppContent: React.FC = () => {
 
     // Filtros de memória para itens locais
 
-    const wallets = useMemo(() => allWallets.filter(w => (w.profileId || 'personal') === activeWorkspace.id), [allWallets, activeWorkspace.id]);
-
     const showNotification = (message: string) => {
         setNotification({ message, visible: true });
         setTimeout(() => setNotification({ message: '', visible: false }), 3000);
@@ -253,181 +241,102 @@ const AppContent: React.FC = () => {
     };
 
     // --- HANDLERS TRANSAÇÕES ---
-    const handleAddTransaction = async (newTransaction: Omit<Transaction, 'id'>) => {
-        if (!user) return;
-
-        try {
-            await createTxMutation.mutateAsync({
-                ...newTransaction,
-                userId: user.uid,
-                workspaceId,
-                profileId: workspaceId
-            });
-
-            showNotification('Transação salva!');
-            playSound('success');
-        } catch (error) {
-            console.error("Erro ao salvar transação:", error);
-            showNotification('Erro ao salvar.');
-            throw error;
-        }
+    /*
+     * Lançamento manual confirmado do formulário (P3-E). Só o modal chama.
+     * Sem escrita local e sem caminho legado de reserva: a recusa sobe para
+     * o modal, que mostra o erro em pt-BR. Recorrentes (P4-B), Empréstimos
+     * (P3-G/H) e Divisão de contas (P4-C) gravam o fato só pelo backend.
+     */
+    const handleCreateManualTransaction = async (
+        payload: Record<string, unknown>,
+        idempotencyKey: string,
+    ) => {
+        await createCashMutation.mutateAsync({ payload, idempotencyKey });
+        showNotification('Transação salva!');
+        playSound('success');
     };
 
-    const handleAddTransactions = async (newTransactions: Omit<Transaction, 'id'>[]) => {
-        if (!user) return;
-
-        try {
-            await createTxBatchMutation.mutateAsync(
-                newTransactions.map((transaction) => ({
-                    ...transaction,
-                    userId: user.uid,
-                    workspaceId,
-                    profileId: workspaceId
-                }))
-            );
-
-            showNotification(`${newTransactions.length} geradas!`);
-            playSound('success');
-        } catch (error) {
-            console.error("Erro na geração em massa:", error);
-            showNotification('Erro na geração em massa.');
-            throw error;
-        }
+    const handleUpdateManualTransaction = async (
+        payload: Record<string, unknown>,
+        idempotencyKey: string,
+    ) => {
+        await updateCashMutation.mutateAsync({ payload, idempotencyKey });
+        showNotification('Atualizado!');
+        playSound('success');
     };
 
-    const handleAddCreditCardPurchase = async (purchase: CreditCardPurchaseModalInput): Promise<void> => {
-        if (!user) return;
-
-        try {
-            const result = await createCreditCardPurchaseMutation.mutateAsync(purchase);
-
-            showNotification(`${result.installmentIds.length} parcela(s) geradas na fatura!`);
-            playSound('success');
-        } catch (error) {
-            const firebaseError = error as {
-                message?: string;
-                code?: string;
-                details?: unknown;
-            };
-
-            const issues = (
-                firebaseError.details as { issues?: Array<{ path?: unknown[]; message?: string; code?: string }> } | undefined
-            )?.issues ?? [];
-
-            console.error('Erro ao criar compra no cartão:', {
-                message: firebaseError.message,
-                code: firebaseError.code,
-                details: firebaseError.details,
-                issues,
-                purchase,
-            });
-
-            console.table(
-                issues.map((issue) => ({
-                    path: issue.path?.join('.') ?? '',
-                    message: issue.message ?? '',
-                    code: issue.code ?? '',
-                })),
-            );
-
-            const failedPreconditionDetails = firebaseError.details as
-                | { invoiceId?: string; status?: string }
-                | undefined;
-
-            if (
-                firebaseError.code === 'functions/failed-precondition' &&
-                failedPreconditionDetails?.status &&
-                failedPreconditionDetails.status !== 'open'
-            ) {
-                showNotification(
-                    'A data escolhida pertence a uma fatura que não está aberta. Use uma data de fatura aberta ou registre um ajuste.'
-                );
-                throw error;
-            }
-
-            showNotification('Erro ao criar compra no cartão.');
-            throw error;
-        }
+    const handleConfirmManualTransaction = async (
+        payload: Record<string, unknown>,
+        idempotencyKey: string,
+    ) => {
+        await confirmCashMutation.mutateAsync({ payload, idempotencyKey });
+        showNotification('Lançamento confirmado!');
+        playSound('success');
     };
 
-
-    const handleUpdateTransaction = async (updated: Transaction) => {
-        if (isCreditCardInvoiceCompatibleTransaction(updated)) {
-            showNotification('Fatura de cartão não pode ser atualizada como transação comum.');
-            return;
-        }
-
-        try {
-            await updateTxMutation.mutateAsync({
-                ...updated,
-                workspaceId,
-                profileId: updated.profileId ?? workspaceId
-            });
-
-            showNotification('Atualizado!');
-            playSound('success');
-        } catch (error) {
-            console.error(error);
-            showNotification('Erro ao atualizar.');
-            throw error;
-        }
+    /**
+     * Compra manual no cartão (P4-A): só a callable `createCreditCardPurchase`.
+     * O modal decide a chave por intenção e mostra o erro (pt-BR) no próprio
+     * formulário; aqui fica só o aviso de sucesso.
+     */
+    const handleAddCreditCardPurchase = async (
+        payload: Record<string, unknown>,
+        idempotencyKey: string,
+    ) => {
+        const result = await createCardPurchaseMutation.mutateAsync({ payload, idempotencyKey });
+        showNotification(result.retroactive && result.firstCompetence
+            ? `Compra lançada. Parcelas de fatura já fechada foram para a fatura de ${formatCompetence(result.firstCompetence)}.`
+            : 'Compra lançada no cartão.');
+        playSound('success');
+        return result;
     };
+
 
     const confirmDeleteTransaction = (t: Transaction) => {
-        if (isCreditCardInvoiceCompatibleTransaction(t)) {
-            showNotification('Fatura de cartão não pode ser excluída como transação comum.');
+        const reason = nonEditableReason(t);
+        if (reason) {
+            showNotification(reason);
             return;
         }
-
-        setTransactionToDelete(t);
-        setIsConfirmationOpen(true);
+        // Lançamento manual: anulação autoritativa com motivo.
+        voidIntentRef.current = null;
+        setVoidReason('');
+        setVoidError(null);
+        setTransactionToVoid(t);
     };
 
-    const handleDeleteTransaction = async () => {
-        if (!transactionToDelete) return;
+    const closeVoidConfirmation = () => {
+        if (voidCashMutation.isPending) return;
+        setTransactionToVoid(null);
+        setVoidReason('');
+        setVoidError(null);
+        voidIntentRef.current = null;
+    };
 
-        if (isCreditCardInvoiceCompatibleTransaction(transactionToDelete)) {
-            showNotification('Fatura de cartão não pode ser excluída como transação comum.');
-            setTransactionToDelete(null);
-            setIsConfirmationOpen(false);
-            return;
-        }
-
+    const handleVoidTransaction = async () => {
+        if (!transactionToVoid || voidCashMutation.isPending) return;
+        setVoidError(null);
         try {
-            await deleteTxMutation.mutateAsync(transactionToDelete);
-            setTransactionToDelete(null);
-            setIsConfirmationOpen(false);
-            showNotification(
-                transactionToDelete.investmentMetadata?.investmentOperation === 'redemption'
-                    ? transactionToDelete.investmentMetadata.status === 'pending'
-                        ? 'Resgate cancelado!'
-                        : 'Resgate estornado!'
-                    : 'Excluído!'
+            const payload = toVoidCashPayload({
+                workspaceId,
+                transactionId: String(transactionToVoid.id),
+                updatedAt: transactionToVoid.updatedAt,
+                reason: voidReason,
+            });
+            // Mesmo conteúdo reenviado depois de falha: mesma chave.
+            const intent = resolveIntentKey(
+                voidIntentRef.current, 'voidCashTransaction', payload, newIdempotencyKey,
             );
+            voidIntentRef.current = intent;
+            await voidCashMutation.mutateAsync({ payload, idempotencyKey: intent.key });
+            setTransactionToVoid(null);
+            setVoidReason('');
+            voidIntentRef.current = null;
+            showNotification('Lançamento anulado.');
             playSound('success');
         } catch (error) {
-            console.error(error);
-            showNotification('Erro ao excluir.');
+            setVoidError(cashErrorView(error).message);
         }
-    };
-
-    const handleSettingsUpdate = (key: string, newData: EntityItem[]) => {
-        if (key === 'wallets') {
-            const other = allWallets.filter(w => (w.profileId || 'personal') !== activeWorkspace.id);
-            setAllWallets([...other, ...newData.map(w => ({ ...w, profileId: activeWorkspace.id }))]);
-        } else if (key === 'costCenters') {
-            setCostCenters(newData);
-        } else {
-            switch (key) {
-                case 'productsServices': setProductsServices(newData); break;
-                case 'expenseTypes': setExpenseTypes(newData); break;
-                case 'categories': setCategories(newData); break;
-                case 'paymentTypes': setPaymentTypes(newData); break;
-                case 'incomeTypes': setIncomeTypes(newData); break;
-            }
-        }
-        showNotification('Configurações salvas!');
-        playSound('success');
     };
 
     const toGoalWriteInput = (goal: Omit<Goal, 'id'> & { id?: string }): GoalWriteInput => {
@@ -491,55 +400,24 @@ const AppContent: React.FC = () => {
         }
     };
 
-    const compatibleExpenseTransactions = useMemo(() => {
-        const compatibleLegacyTransactions = filterTransactionsForCreditCardCompatibility(
-            transactions,
-            {
-                hideLegacyCardInstallments: true,
-                hideCreditCardInvoicePaymentCashTransactions: true,
-            },
-        );
-
-        return [
-            ...compatibleLegacyTransactions,
-            ...creditCardInvoiceTransactionProjections,
-        ].sort((left, right) => right.date.localeCompare(left.date));
-    }, [transactions, creditCardInvoiceTransactionProjections]);
-
-    const effectiveCashFlowTransactions = useMemo(
-        () =>
-            filterReversedCreditCardInvoicePaymentCashTransactions(
-                transactions.filter(
-                    (transaction) => !isCreditCardInvoiceCompatibleTransaction(transaction),
-                ),
-            ),
-        [transactions],
-    );
-
     const currentMonthTransactions = useMemo(
         () => transactions.filter((transaction) => isSameMonthYear(transaction.date, currentDate)),
         [transactions, currentDate]
     );
 
-    const currentMonthCashFlowTransactions = useMemo(
-        () =>
-            effectiveCashFlowTransactions.filter((transaction) =>
-                isSameMonthYear(transaction.date, currentDate),
-            ),
-        [effectiveCashFlowTransactions, currentDate],
-    );
-
-    const currentMonthCompatibleExpenseTransactions = useMemo(
-        () =>
-            compatibleExpenseTransactions.filter((transaction) =>
-                isSameMonthYear(transaction.date, currentDate),
-            ),
-        [compatibleExpenseTransactions, currentDate],
-    );
+    // P4-A: sem projeção de faturas em `transactions`. O espelho do pagamento
+    // de fatura entra no saldo e fica fora de receitas e despesas
+    // (`summarizeCashFlow`); a compra no cartão vive no domínio de cartões.
+    const currentMonthCashFlowTransactions = currentMonthTransactions;
 
     const summaryData: SummaryData = useMemo(() => {
         return summarizeCashFlow(currentMonthCashFlowTransactions);
     }, [currentMonthCashFlowTransactions]);
+    // Card "Investimentos": aporte do mês na projeção oficial do domínio
+    // patrimonial (`investment_report_periods`), não no espelho de caixa.
+    const { data: investmentMonthCents } = useInvestmentMonthContribution(
+        workspaceId, investmentMonthKey(currentDate),
+    );
 
     if (isLoading) return <div className="flex h-screen items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div></div>;
     // P1 (AUTH-10): sem workspace válido o app não é renderizado sobre um
@@ -563,7 +441,7 @@ const AppContent: React.FC = () => {
                             <SummaryCard title="Saldo Atual" value={summaryData.balance} trend="Mensal" icon={<WalletIcon />} color={activeWorkspace.type === 'PJ' ? 'purple' : 'blue'} />
                             <SummaryCard title="Receitas" value={summaryData.income} trend="Mensal" icon={<ArrowUpIcon />} color="green" isClickable onClick={() => handleNavigate('receita')} />
                             <SummaryCard title="Despesas" value={summaryData.expenses} trend="Mensal" icon={<ArrowDownIcon />} color="red" isClickable onClick={() => handleNavigate('despesa')} />
-                            <SummaryCard title="Investimentos" value={summaryData.investments} trend="Mensal" icon={<ChartBarIcon />} color="indigo" isClickable onClick={() => handleNavigate('investimento')} />
+                            <SummaryCard title="Investimentos" value={(investmentMonthCents ?? 0) / 100} trend="Mensal" icon={<ChartBarIcon />} color="indigo" isClickable onClick={() => handleNavigate('investimento')} />
                         </div>
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                             <div className="flex flex-col gap-6">
@@ -578,7 +456,7 @@ const AppContent: React.FC = () => {
                     </div>
                 )}
 
-                {view === 'reports' && <ReportsView transactions={transactions} goals={goals} creditCards={creditCards} categories={categories} />}
+                {view === 'reports' && <ReportsView transactions={transactions} goals={goals} creditCards={creditCards} categories={REPORT_CATEGORY_PALETTE} />}
                 {view === 'goals' && (
                     <GoalsView
                         transactions={transactions}
@@ -610,7 +488,7 @@ const AppContent: React.FC = () => {
                     viewType={view}
                     transactions={
                         view === 'despesa'
-                            ? currentMonthCompatibleExpenseTransactions.filter(
+                            ? currentMonthTransactions.filter(
                                 t => t.type === 'despesa' || t.type === 'parcelado',
                             )
                             : currentMonthTransactions.filter(t => t.type === view)
@@ -620,33 +498,31 @@ const AppContent: React.FC = () => {
                     onEditTransaction={openEditTransactionModal}
                     onDeleteTransaction={confirmDeleteTransaction}
                 />}
-                {view === 'settings' && <SettingsView data={{ productsServices, expenseTypes, categories, paymentTypes, incomeTypes, wallets, costCenters }} onUpdate={handleSettingsUpdate} />}
+                {view === 'settings' && <SettingsView />}
 
-                {view === 'cards' && <CreditCardsView transactions={transactions} />}
+                {view === 'cards' && <CreditCardsView />}
 
                 {view === 'personalizacao' && <PersonalizationView onBack={() => setView('settings')} />}
                 {view === 'shared_expenses' && <SplitGroupsView onSelectGroup={id => { setSelectedGroupId(id); setView('split_group_details'); }} onCreateGroup={() => { }} />}
-                {view === 'split_group_details' && selectedGroupId && <SplitGroupDetailsView groupId={selectedGroupId} onBack={() => setView('shared_expenses')} onAddTransaction={handleAddTransaction} onAddTransactions={handleAddTransactions} creditCards={creditCards} />}
-                {view === 'recurring' && <RecurringExpensesView onSelectExpense={id => { setSelectedRecurringExpenseId(id); setView('recurring_details'); }} creditCards={creditCards} categories={categories} onAddTransaction={handleAddTransaction} />}
-                {view === 'recurring_details' && selectedRecurringExpenseId && <RecurringExpenseDetailsView expenseId={selectedRecurringExpenseId} onBack={() => setView('recurring')} onAddTransaction={handleAddTransaction} />}
+                {view === 'split_group_details' && selectedGroupId && <SplitGroupDetailsView groupId={selectedGroupId} onBack={() => setView('shared_expenses')} creditCards={creditCards} />}
+                {view === 'recurring' && <RecurringExpensesView onSelectExpense={id => { setSelectedRecurringExpenseId(id); setView('recurring_details'); }} creditCards={creditCards} />}
+                {view === 'recurring_details' && selectedRecurringExpenseId && <RecurringExpenseDetailsView expenseId={selectedRecurringExpenseId} onBack={() => setView('recurring')} creditCards={creditCards} />}
                 {view === 'clients_receivables' && activeWorkspace.type === 'PJ' && <ClientsReceivablesView />}
 
                 {view === 'loans' && activeWorkspace.type === 'PJ' && (
                     <PJLoansView
                         onSelectLoan={(l) => { setSelectedLoanId(l.id); setView('loan_details'); }}
-                        onAddTransaction={handleAddTransaction}
                     />
                 )}
                 {view === 'loan_details' && selectedLoanId && activeWorkspace.type === 'PJ' && (
                     <PJLoanDetailsView
                         loanId={selectedLoanId}
                         onBack={() => setView('loans')}
-                        onAddTransaction={handleAddTransaction}
                     />
                 )}
 
-                {view === 'loans' && activeWorkspace.type === 'PF' && <LoansView onSelectLoan={(l) => { setSelectedLoanId(l.id); setView('loan_details'); }} onAddTransaction={handleAddTransaction} />}
-                {view === 'loan_details' && selectedLoanId && activeWorkspace.type === 'PF' && <LoanDetailsView loanId={selectedLoanId} onBack={() => setView('loans')} onAddTransaction={handleAddTransaction} />}
+                {view === 'loans' && activeWorkspace.type === 'PF' && <LoansView onSelectLoan={(l) => { setSelectedLoanId(l.id); setView('loan_details'); }} />}
+                {view === 'loan_details' && selectedLoanId && activeWorkspace.type === 'PF' && <LoanDetailsView loanId={selectedLoanId} onBack={() => setView('loans')} />}
                 {view === 'admin' && user?.isAdmin && <AdminDashboard />}
                 {view === 'planos' && <PricingTable />}
 
@@ -655,38 +531,35 @@ const AppContent: React.FC = () => {
             <TransactionModal
                 isOpen={isModalOpen}
                 onClose={closeTransactionModal}
-                onAddTransaction={handleAddTransaction}
-                onAddTransactions={handleAddTransactions}
                 onAddCreditCardPurchase={handleAddCreditCardPurchase}
-                onUpdateTransaction={handleUpdateTransaction}
+                onCreateManualTransaction={handleCreateManualTransaction}
+                onUpdateManualTransaction={handleUpdateManualTransaction}
+                onConfirmManualTransaction={handleConfirmManualTransaction}
                 transactionToEdit={transactionToEdit}
                 defaultType={transactionModalDefaultType}
                 allowedTypes={transactionModalAllowedTypes}
                 currentDate={currentDate}
                 creditCards={creditCards}
-                productsServices={productsServices}
-                settingsCategories={categories}
-                wallets={wallets}
-                expenseTypes={expenseTypes}
-                paymentTypes={paymentTypes}
-                incomeTypes={incomeTypes}
                 goals={goals}
                 onInvestmentSuccess={showNotification}
             />
             <ConfirmationModal
-                isOpen={isConfirmationOpen}
-                onClose={() => setIsConfirmationOpen(false)}
-                onConfirm={handleDeleteTransaction}
-                title={transactionToDelete?.investmentMetadata?.investmentOperation === 'redemption'
-                    ? transactionToDelete.investmentMetadata.status === 'pending' ? 'Cancelar resgate' : 'Estornar resgate'
-                    : 'Excluir'}
-                message={transactionToDelete?.investmentMetadata?.investmentOperation === 'redemption'
-                    ? transactionToDelete.investmentMetadata.status === 'pending'
-                        ? 'Cancelar este resgate pendente? Nenhum saldo será alterado.'
-                        : 'Estornar este resgate liquidado? Será criado um movimento compensatório.'
-                    : 'Excluir permanentemente?'}
+                isOpen={transactionToVoid !== null}
+                onClose={closeVoidConfirmation}
+                onConfirm={handleVoidTransaction}
+                title="Anular lançamento"
+                message="O lançamento sai do caixa e continua no histórico, com o motivo informado."
+                confirmLabel="Confirmar anulação"
+                reason={{
+                    label: 'Motivo da anulação',
+                    value: voidReason,
+                    onChange: setVoidReason,
+                    maxLength: REASON_MAX_LENGTH,
+                }}
+                isBusy={voidCashMutation.isPending}
+                error={voidError}
             />
-            <GoalFormModal isOpen={isGoalModalOpen} onClose={() => setIsGoalModalOpen(false)} onSave={handleSaveGoal} goalToEdit={goalToEdit} wallets={wallets} />
+            <GoalFormModal isOpen={isGoalModalOpen} onClose={() => setIsGoalModalOpen(false)} onSave={handleSaveGoal} goalToEdit={goalToEdit} />
             <Notification message={notification.message} isVisible={notification.visible} />
         </div>
     );

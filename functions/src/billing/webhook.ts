@@ -3,6 +3,7 @@ import {FieldValue, Timestamp} from "firebase-admin/firestore";
 import Stripe from "stripe";
 
 import type {AuditSnapshot} from "../shared/audit";
+import {errorCodeOf} from "../shared/errors";
 import type {OperationLogger} from "../shared/logger";
 import {RETENTION_DAYS, expiresInDays} from "../shared/retention";
 import {appendBillingEvent, type BillingEventType} from "./audit";
@@ -26,7 +27,11 @@ import {
   type BillingAnomaly,
   type BillingState,
 } from "./reconcile";
-import type {StripeGateway, SubscriptionSnapshot} from "./stripeGateway";
+import {
+  SubscriptionCapExceededError,
+  type StripeGateway,
+  type SubscriptionSnapshot,
+} from "./stripeGateway";
 
 /**
  * Processamento do webhook do Stripe (P2A, PR-BILL-01, PR-BILL-05,
@@ -104,6 +109,13 @@ export interface WebhookRequest {
   rawBody: Buffer | undefined;
   signature: string | undefined;
 }
+
+/**
+ * Teto do corpo aceito antes de verificar a assinatura. Eventos do Stripe têm
+ * poucos KiB; sem o teto, POSTs forjados de vários MiB ocupariam as instâncias
+ * calculando HMAC até o limite da plataforma.
+ */
+export const MAX_WEBHOOK_BODY_BYTES = 1024 * 1024;
 
 export interface WebhookResponse {
   status: number;
@@ -394,6 +406,59 @@ type CommitResult =
   | {kind: "superseded"};
 
 /**
+ * Logs de decisão tomados dentro de uma transação. O SDK pode repetir o
+ * callback, e um log emitido ali sairia a cada tentativa — inclusive numa que
+ * não comitou (ex.: anomalia registrada sem a trilha gravada). Cada tentativa
+ * recomeça a lista; só o que a tentativa vencedora registrou é emitido, depois
+ * do commit. Se a transação falha, a falha é registrada pela entrega.
+ */
+export const deferTransactionLogs = (base: OperationLogger) => {
+  let pending: Array<() => void> = [];
+  const wrap = (target: OperationLogger): OperationLogger => ({
+    context: target.context,
+    with: (fields) => wrap(target.with(fields)),
+    info: (event, fields) => {
+      pending.push(() => target.info(event, fields));
+    },
+    warn: (event, fields) => {
+      pending.push(() => target.warn(event, fields));
+    },
+    error: (event, error, fields) => {
+      pending.push(() => target.error(event, error, fields));
+    },
+  });
+  return {
+    log: wrap(base),
+    /** Início de cada tentativa: descarta o que a anterior registrou. */
+    restart: () => {
+      pending = [];
+    },
+    /** Depois do commit: emite o que a tentativa vencedora registrou. */
+    flush: () => {
+      const emit = pending;
+      pending = [];
+      for (const entry of emit) entry();
+    },
+  };
+};
+
+const transactWithLogs = async <T>(
+  base: OperationLogger,
+  body: (
+    transaction: admin.firestore.Transaction,
+    log: OperationLogger,
+  ) => Promise<T>,
+): Promise<T> => {
+  const logs = deferTransactionLogs(base);
+  const result = await db().runTransaction((transaction) => {
+    logs.restart();
+    return body(transaction, logs.log);
+  });
+  logs.flush();
+  return result;
+};
+
+/**
  * Fase *claim* (transação curta, sem I/O externo). Conclui o que não
  * depende do Stripe; para assinatura, adquire o lease do titular e marca o
  * recibo `processing`.
@@ -404,7 +469,7 @@ const claimStripeEvent = (
   route: EventRoute,
   customerId: string | null,
 ): Promise<ClaimResult> =>
-  db().runTransaction(async (transaction): Promise<ClaimResult> => {
+  transactWithLogs<ClaimResult>(deps.log, async (transaction, log) => {
     const receiptRef = billingWebhookEventRef(event.id);
     if (isProcessedReceipt(await transaction.get(receiptRef))) {
       return {kind: "done", outcome: "duplicate"};
@@ -428,7 +493,7 @@ const claimStripeEvent = (
     const mapping = await transaction.get(billingCustomerRef(customerId));
     const uid = mapping.get("billingOwnerUid");
     if (!mapping.exists || typeof uid !== "string" || uid === "") {
-      deps.log.error("billing_webhook.unknown_customer", null);
+      log.error("billing_webhook.unknown_customer", null);
       return finish("rejected", null, "unknown_customer");
     }
     const leaseRef = billingReconciliationLeaseRef(uid);
@@ -439,14 +504,14 @@ const claimStripeEvent = (
     const account = accountSnapshot.data() as
       BillingAccountDocument | undefined;
     if (!account || account.stripeCustomerId !== customerId) {
-      deps.log.error("billing_webhook.owner_mismatch", null);
+      log.error("billing_webhook.owner_mismatch", null);
       return finish("rejected", null, "owner_mismatch");
     }
 
     const anchor = webhookAnchor(uid, event);
     if (route.kind === "subscription" &&
       route.ownerHints.some((ownerHint) => ownerHint !== uid)) {
-      deps.log.error("billing_webhook.owner_mismatch", null);
+      log.error("billing_webhook.owner_mismatch", null);
       appendBillingEvent(transaction, {
         ...anchor,
         type: "anomaly.detected",
@@ -483,7 +548,7 @@ const claimStripeEvent = (
     if (lease?.holderEventId) {
       // Lease vencido de uma tentativa que caiu ou travou. A geração nova
       // recusa o commit dela, se ainda acontecer.
-      deps.log.warn("billing_webhook.lease_taken_over", {
+      log.warn("billing_webhook.lease_taken_over", {
         generation: lease.generation,
       });
     }
@@ -579,7 +644,7 @@ const commitReconciliation = (
   claim: ReconciliationClaim,
   subscriptions: readonly SubscriptionSnapshot[],
 ): Promise<CommitResult> =>
-  db().runTransaction(async (transaction): Promise<CommitResult> => {
+  transactWithLogs<CommitResult>(deps.log, async (transaction, log) => {
     const accountRef = billingAccountRef(claim.uid);
     const leaseRef = billingReconciliationLeaseRef(claim.uid);
     const [receipt, accountSnapshot, leaseSnapshot] = await transaction.getAll(
@@ -639,7 +704,7 @@ const commitReconciliation = (
       });
     }
     anomalies.forEach((anomaly, index) => {
-      deps.log.error("billing_webhook.anomaly", null, {kind: anomaly.kind});
+      log.error("billing_webhook.anomaly", null, {kind: anomaly.kind});
       appendBillingEvent(transaction, {
         ...anchor,
         type: "anomaly.detected",
@@ -712,6 +777,19 @@ class ReconciliationContentionError extends Error {
   }
 }
 
+/**
+ * Código estável da falha de uma entrega, para log, métrica e alerta (P7).
+ * Sem mensagem nem payload: só a classe da causa.
+ */
+export const webhookFailureCode = (error: unknown): string => {
+  if (error instanceof ReconciliationContentionError) return "lease_contention";
+  if (error instanceof SubscriptionCapExceededError) {
+    return "subscription_cap_exceeded";
+  }
+  if (error instanceof Stripe.errors.StripeError) return "stripe_api_error";
+  return errorCodeOf(error);
+};
+
 const sleep = (ms: number): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -763,6 +841,12 @@ export const processStripeWebhook = async (
     deps.log.warn("billing_webhook.signature_missing");
     return {status: 400, body: {error: "Assinatura ausente."}};
   }
+  if (request.rawBody.length > MAX_WEBHOOK_BODY_BYTES) {
+    deps.log.warn("billing_webhook.body_too_large", {
+      bytes: request.rawBody.length,
+    });
+    return {status: 413, body: {error: "Corpo acima do limite."}};
+  }
   let event: Stripe.Event;
   try {
     event = Stripe.webhooks.constructEvent(
@@ -783,15 +867,27 @@ export const processStripeWebhook = async (
     log.error("billing_webhook.livemode_mismatch", null);
     return {status: 400, body: {error: "Evento de outro ambiente."}};
   }
+  const startedAt = Date.now();
   try {
     const outcome = await applyStripeEvent({...deps, log}, event);
-    log.info("billing_webhook.processed", {outcome});
+    log.info("billing_webhook.processed", {
+      outcome,
+      durationMs: Date.now() - startedAt,
+    });
     return {status: 200, body: {received: true}};
   } catch (error) {
+    const fields = {
+      outcome: "error",
+      errorCode: webhookFailureCode(error),
+      durationMs: Date.now() - startedAt,
+      ...(error instanceof Stripe.errors.StripeError ?
+        {stripeErrorType: error.type} :
+        {}),
+    };
     if (error instanceof ReconciliationContentionError) {
-      log.warn("billing_webhook.contention");
+      log.warn("billing_webhook.contention", fields);
     } else {
-      log.error("billing_webhook.failed", error);
+      log.error("billing_webhook.failed", error, fields);
     }
     return {
       status: 500,

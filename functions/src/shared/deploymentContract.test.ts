@@ -11,9 +11,9 @@ import {FUNCTIONS_REGION} from "./runtimeOptions";
  * o recurso no Google Cloud. Nada disso era verificado por teste nenhum, e as
  * três falhas que este arquivo tranca já estavam no repositório:
  *
- * - `processCreditCardInvoiceOperationalAlerts` não declarava recurso algum e
- *   herdava 60 s / 256 MiB para paginar até 10.000 faturas com uma transação
- *   por fatura;
+ * - a rotina de faturas do domínio de cartões anterior à P4-A não declarava
+ *   recurso algum e herdava 60 s / 256 MiB para paginar até 10.000 faturas
+ *   com uma transação por fatura;
  * - as sete callables de metas também não declaravam, e entre elas está
  *   `rebuildGoalProgress`, que soma até 100.000 aportes em páginas de 300;
  * - a configuração do checkout era lida de `process.env` sem constar no
@@ -72,7 +72,9 @@ test("o codebase exporta funções e todas ficam na região do Firestore", () =>
 
 test("as rotinas agendadas declaram fuso e perfil de execução longa", () => {
   const scheduled = endpoints().filter(([, e]) => e.scheduleTrigger);
-  assert.equal(scheduled.length, 3);
+  // P3-G: + `processLoanStatusRefresh` (atraso de empréstimos).
+  assert.equal(scheduled.length, 4);
+  assert.ok(scheduled.some(([name]) => name === "processLoanStatusRefresh"));
 
   for (const [name, endpoint] of scheduled) {
     assert.equal(
@@ -100,17 +102,60 @@ test("toda callable declara tempo limite e memória", () => {
 });
 
 test("as operações paginadas pesadas têm a janela longa", () => {
-  const heavy = [
-    "rebuildInvestmentProjections",
-    "backfillInvestmentWorkspace",
-    "recalculateInvestmentPosition",
-    "recalculateGoalInvestmentProgress",
-    "rebuildCashPeriods",
-  ];
+  const heavy = ["rebuildCashPeriods"];
   for (const name of heavy) {
     const endpoint = endpointOf(name);
     assert.equal(endpoint.timeoutSeconds, 540, `tempo limite de ${name}`);
     assert.equal(endpoint.availableMemoryMb, 512, `memória de ${name}`);
+  }
+});
+
+/**
+ * D-15 (P4-D): investimentos expõem só as callables da experiência simples.
+ * As 14 da superfície profissional (cadastro técnico, valoração, importação,
+ * onboarding, reconstrução e backfill) saíram e não podem voltar sem decisão.
+ */
+const INVESTMENT_CALLABLES = [
+  "cancelInvestmentMovement",
+  "changeInvestmentGoal",
+  "createSimpleInvestment",
+  "linkInvestmentToGoal",
+  "reverseInvestmentMovement",
+  "settleInvestmentContribution",
+  "settleSimpleWithdrawal",
+  "unlinkInvestmentFromGoal",
+  "withdrawSimpleInvestment",
+];
+
+const REMOVED_INVESTMENT_CALLABLES = [
+  "archiveInvestmentAccount",
+  "archiveInvestmentAsset",
+  "backfillInvestmentWorkspace",
+  "createInvestmentContribution",
+  "createInvestmentRedemption",
+  "onboardInvestmentWorkspace",
+  "rebuildInvestmentProjections",
+  "recalculateGoalInvestmentProgress",
+  "recalculateInvestmentPosition",
+  "recordInvestmentValuation",
+  "registerInvestmentImportBatch",
+  "saveInvestmentAccount",
+  "saveInvestmentAsset",
+  "settleInvestmentRedemption",
+];
+
+test("investimentos expõem só as callables da experiência simples (D-15)", () => {
+  const names = endpoints()
+    .filter(([, endpoint]) => endpoint.callableTrigger)
+    .map(([name]) => name);
+  for (const removed of REMOVED_INVESTMENT_CALLABLES) {
+    assert.ok(!names.includes(removed), `callable removida voltou: ${removed}`);
+  }
+  const investment = names.filter((name) =>
+    /Investment/.test(name) || name === "settleSimpleWithdrawal");
+  assert.deepEqual(investment.sort(), INVESTMENT_CALLABLES);
+  for (const name of INVESTMENT_CALLABLES) {
+    assert.ok(endpointOf(name).callableTrigger, `${name} não é callable`);
   }
 });
 
@@ -183,15 +228,6 @@ test("P2B.1: entitlement do workspace e uso da conta, só leitura e sem " +
   }
 });
 
-test("a superfície operacional de metas está publicada", () => {
-  // A reconstrução que a área operacional oferece precisa existir como função
-  // implantada: sem ela o painel oferece um botão que não tem destino.
-  assert.ok(
-    endpointOf("recalculateGoalInvestmentProgress").callableTrigger,
-    "recalculateGoalInvestmentProgress deve ser callable",
-  );
-});
-
 /*
  * O domínio de investimentos é único: não existe callable de migração, de
  * reconciliação, de rollback nem de habilitação de flag, e não existe a trilha
@@ -243,6 +279,171 @@ test("P1: callables de conta e membership com perfil de domínio", () => {
   }
 });
 
+test("P3-G: callables de empréstimos com perfil de domínio", () => {
+  for (const name of [
+    "cancelLoan",
+    "createLoan",
+    "registerLoanPayment",
+    "reverseLoanMovement",
+    "updateLoanMetadata",
+  ]) {
+    const endpoint = endpointOf(name);
+    assert.ok(endpoint.callableTrigger, `${name} não é callable`);
+    assert.deepEqual(endpoint.region, [FUNCTIONS_REGION], name);
+    assert.equal(endpoint.timeoutSeconds, 60, name);
+    assert.equal(endpoint.availableMemoryMb, 256, name);
+    assert.equal(endpoint.maxInstances, 20, name);
+    assert.deepEqual(secretsOf(name), [], name);
+  }
+});
+
+test("P3-I: callables de clientes e recebíveis com perfil de domínio", () => {
+  for (const name of [
+    "archiveClient",
+    "cancelReceivable",
+    "createClient",
+    "createReceivable",
+    "receiveReceivable",
+    "reverseReceivableReceipt",
+    "updateClient",
+    "updateReceivable",
+  ]) {
+    const endpoint = endpointOf(name);
+    assert.ok(endpoint.callableTrigger, `${name} não é callable`);
+    assert.deepEqual(endpoint.region, [FUNCTIONS_REGION], name);
+    assert.equal(endpoint.timeoutSeconds, 60, name);
+    assert.equal(endpoint.availableMemoryMb, 256, name);
+    assert.equal(endpoint.maxInstances, 20, name);
+    assert.deepEqual(secretsOf(name), [], name);
+  }
+});
+
+test("P3-J: callables de contas e transferências com perfil de domínio", () => {
+  for (const name of [
+    "archiveCashAccount",
+    "createCashAccount",
+    "createCashTransfer",
+    "reactivateCashAccount",
+    "reverseCashTransfer",
+    "updateCashAccount",
+  ]) {
+    const endpoint = endpointOf(name);
+    assert.ok(endpoint.callableTrigger, `${name} não é callable`);
+    assert.deepEqual(endpoint.region, [FUNCTIONS_REGION], name);
+    assert.equal(endpoint.timeoutSeconds, 60, name);
+    assert.equal(endpoint.availableMemoryMb, 256, name);
+    assert.equal(endpoint.maxInstances, 20, name);
+    assert.deepEqual(secretsOf(name), [], name);
+  }
+});
+
+test("P4-E: callables do catálogo de configurações com perfil de domínio",
+  () => {
+    for (const name of [
+      "archiveSettingsCatalogItem",
+      "createSettingsCatalogItem",
+      "updateSettingsCatalogItem",
+    ]) {
+      const endpoint = endpointOf(name);
+      assert.ok(endpoint.callableTrigger, `${name} não é callable`);
+      assert.deepEqual(endpoint.region, [FUNCTIONS_REGION], name);
+      assert.equal(endpoint.timeoutSeconds, 60, name);
+      assert.equal(endpoint.availableMemoryMb, 256, name);
+      assert.equal(endpoint.maxInstances, 20, name);
+      assert.deepEqual(secretsOf(name), [], name);
+    }
+    // D-23: não há callable de exclusão nem de reativação separada.
+    for (const name of ["deleteSettingsCatalogItem",
+      "reactivateSettingsCatalogItem"]) {
+      assert.equal(endpoints().some(([entry]) => entry === name), false, name);
+    }
+  });
+
+test("P4-A: callables de cartões com perfil de domínio", () => {
+  for (const name of [
+    "archiveCreditCard",
+    "cancelCreditCardPurchase",
+    "createCreditCard",
+    "createCreditCardInvoiceAdjustment",
+    "createCreditCardPurchase",
+    "reactivateCreditCard",
+    "refundCreditCardPurchase",
+    "registerInvoicePayment",
+    "reverseInvoicePayment",
+    "updateCreditCard",
+    "updateCreditCardPurchase",
+  ]) {
+    const endpoint = endpointOf(name);
+    assert.ok(endpoint.callableTrigger, `${name} não é callable`);
+    assert.deepEqual(endpoint.region, [FUNCTIONS_REGION], name);
+    assert.equal(endpoint.timeoutSeconds, 60, name);
+    assert.equal(endpoint.availableMemoryMb, 256, name);
+    assert.equal(endpoint.maxInstances, 20, name);
+    assert.deepEqual(secretsOf(name), [], name);
+  }
+  // Reconciliação: paginada e com a janela longa das operações pesadas.
+  for (const name of ["recalculateCardLimit", "rebuildCardInvoicesForCard"]) {
+    const endpoint = endpointOf(name);
+    assert.ok(endpoint.callableTrigger, `${name} não é callable`);
+    assert.equal(endpoint.timeoutSeconds, 540, name);
+    assert.equal(endpoint.availableMemoryMb, 512, name);
+    assert.equal(endpoint.maxInstances, 3, name);
+  }
+});
+
+/*
+ * P4-A substituiu o domínio de cartões em ponto flutuante sem migração (não
+ * há dados reais): nenhuma callable de migração, de fechamento/reabertura
+ * manual (o ciclo é decidido pela data, D-36) nem os nomes antigos de
+ * pagamento sobrevivem na superfície implantada.
+ */
+test("P4-A: nenhuma callable ou rotina legada de cartões é exportada", () => {
+  const removed = [
+    "migrateLegacyInstallments",
+    "migrateLegacyInstallmentsToInvoiceDomain",
+    "closeCreditCardInvoice",
+    "reopenCreditCardInvoice",
+    "registerCreditCardInvoicePayment",
+    "reverseCreditCardInvoicePayment",
+    "processCreditCardInvoiceOperationalAlerts",
+  ];
+  const names = endpoints().map(([name]) => name);
+  for (const name of removed) {
+    assert.ok(!names.includes(name), `${name} voltou à superfície implantada`);
+  }
+  assert.ok(names.includes("processCreditCardInvoiceClosing"));
+});
+
+test("P3-A/P3-C/P3-D/P3-F: callables de caixa com perfil de domínio", () => {
+  for (const name of [
+    "confirmCashTransaction",
+    "createCashTransaction",
+    "importCashTransactions",
+    "updateCashTransaction",
+    "voidCashTransaction",
+  ]) {
+    const endpoint = endpointOf(name);
+    assert.ok(endpoint.callableTrigger, `${name} não é callable`);
+    assert.deepEqual(endpoint.region, [FUNCTIONS_REGION], name);
+    assert.equal(endpoint.timeoutSeconds, 60, name);
+    assert.equal(endpoint.availableMemoryMb, 256, name);
+    assert.equal(endpoint.maxInstances, 20, name);
+    assert.deepEqual(secretsOf(name), [], name);
+  }
+});
+
+test("P3-B: gatilho de caixa reentrega falhas e mantém o perfil", () => {
+  const endpoint = endpointOf("onTransactionWrite") as Endpoint & {
+    eventTrigger?: {retry?: boolean};
+  };
+  assert.equal(endpoint.eventTrigger?.retry, true);
+  assert.deepEqual(endpoint.region, [FUNCTIONS_REGION]);
+  assert.equal(endpoint.timeoutSeconds, 60);
+  assert.equal(endpoint.availableMemoryMb, 256);
+  assert.equal(endpoint.maxInstances, 20);
+  assert.deepEqual(secretsOf("onTransactionWrite"), []);
+});
+
 test("P1: gatilho do índice do usuário é idempotente e limitado", () => {
   const endpoint = endpointOf("onWorkspaceDisplayChange") as Endpoint & {
     eventTrigger?: {retry?: boolean; eventFilterPathPatterns?: unknown};
@@ -283,4 +484,45 @@ test("P1: o deploy não envia código exclusivo de teste", () => {
   ]) {
     assert.ok(config.ignore.includes(pattern), `ignore sem ${pattern}`);
   }
+});
+
+test("P2C-H2: o build parte de lib/ limpo e só apaga a saída gerada", () => {
+  // Sem a limpeza, `lib/` guardava testes compilados de fontes removidas:
+  // `test:unit` os executava (contagem falsa) e o deploy enviaria código
+  // morto. A limpeza alcança só `lib/`, que é saída do `tsc` e não versionada.
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const pkg = require("../../package.json") as {
+    scripts: Record<string, string>;
+  };
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const tsconfig = require("../../tsconfig.json") as {
+    compilerOptions: {outDir: string; rootDir: string};
+  };
+  assert.equal(tsconfig.compilerOptions.outDir, "lib");
+  assert.equal(tsconfig.compilerOptions.rootDir, "src");
+  assert.match(pkg.scripts.build, /^npm run clean && tsc$/);
+  assert.equal(pkg.scripts.clean,
+    "node -e \"require('node:fs').rmSync('lib', " +
+    "{recursive: true, force: true})\"");
+  // Verificação de tipos sem emitir e sem apagar nada.
+  assert.equal(pkg.scripts.typecheck, "tsc --noEmit");
+  for (const script of ["test:unit", "test:integration"]) {
+    assert.match(pkg.scripts[script], /^npm run build && /, script);
+  }
+});
+
+test("P2C-H2: a integração roda um arquivo por vez no Emulator único", () => {
+  // Os arquivos de integração compartilham uma única JVM do Firestore
+  // Emulator. Em paralelo (padrão do `node --test`: núcleos − 1, variável por
+  // máquina), transações de outros arquivos provocam lock timeout nos deletes
+  // de limpeza, e o `BulkWriter` do SDK (`recursiveDelete`) não reenvia a
+  // operação reenfileirada no modo flush: a promessa fica pendente sem handle
+  // e o arquivo é cancelado (PLAN §17.11). Um arquivo por vez elimina o
+  // gatilho sem tocar em nenhuma asserção.
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const pkg = require("../../package.json") as {
+    scripts: Record<string, string>;
+  };
+  assert.match(pkg.scripts["test:integration"],
+    /node --test --test-concurrency=1 "lib\/\*\*\/\*\.integration\.test\.js"/);
 });

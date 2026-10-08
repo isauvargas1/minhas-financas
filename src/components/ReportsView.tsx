@@ -6,7 +6,7 @@ import { useTheme } from '../contexts/ThemeContext.tsx';
 import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
 import { useFullTransactionHistory, useTransactions } from '../modules/transactions/hooks.ts';
 import { useFinancialReportSnapshot } from '../modules/reports/hooks.ts';
-import { useReceivables, useClients } from '../modules/clients/hooks.ts';
+import { useReceivableReportData } from '../modules/clients/hooks.ts';
 import { ReportTimeRange } from '../modules/reports/types.ts';
 import { getAvailableReportPeriods } from '../modules/reports/api.ts';
 import ReportPeriodSelect from './ReportPeriodSelect.tsx';
@@ -42,9 +42,8 @@ const ReportsView: React.FC<ReportsViewProps> = ({ transactions, goals, creditCa
     
     const { activeWorkspace } = useWorkspace();
     
-    // Fetch receivables and clients only if PJ (hook internally handles enabled check)
-    const { data: receivables } = useReceivables(); 
-    const { data: clients } = useClients();
+    // P3-I: indicadores de recebíveis agregados no servidor (só em PJ).
+    const { data: receivableData } = useReceivableReportData();
 
     /*
      * INV-P1-011 — a faixa "tudo" é a única que precisa do histórico completo,
@@ -72,8 +71,7 @@ const ReportsView: React.FC<ReportsViewProps> = ({ transactions, goals, creditCa
         goals, 
         creditCards, 
         timeRange,
-        receivables,
-        clients // Pass loaded clients to snapshot generator
+        receivableData,
     );
     
     const { theme } = useTheme();

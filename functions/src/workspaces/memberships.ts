@@ -186,6 +186,7 @@ export const executeInviteWorkspaceMember = async (
       entitlement: entitlementAt(billing, nowMs),
       used: quota.activeMembers + reservations.size,
       adding: 1,
+      actorIsBillingOwner: actor.uid === ownerUid,
     });
     const rateLimit = await reserveRateLimit(
       transaction,
@@ -361,6 +362,7 @@ export const executeAcceptWorkspaceInvite = async (
         entitlement: entitlementAt(billing, nowMs),
         used: activeMembers,
         adding: 1,
+        actorIsBillingOwner: caller.uid === ownerUid,
       });
       activeMembers += 1;
     }

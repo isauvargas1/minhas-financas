@@ -15,6 +15,7 @@ import {
   isPaidEntitlementActive,
 } from '../../src/modules/billing/entitlement.ts';
 import { billingKeys } from '../../src/modules/billing/queryKeys.ts';
+import { workspaceErrorMessage } from '../../src/modules/workspaces/errorMessages.ts';
 import type {
   BillingAccount,
   SubscriptionStatus,
@@ -326,9 +327,21 @@ test('consumidores usam o plano certo: conta no Header, workspace nos recursos',
   const header = read(join(srcRoot, 'components', 'Header.tsx'));
   assert.match(header, /checkAccountLimit\('workspaces'\)/);
   assert.equal(/checkWorkspaceLimit/.test(header), false);
-  for (const file of ['TransactionsView.tsx', 'RecentTransactions.tsx', 'SplitGroupsView.tsx']) {
+  // P4-C: grupos de divisão usam o contador do backend (`splitGroupsQuota`
+  // do entitlement do workspace), nunca a contagem da lista carregada.
+  const splitGroups = read(join(srcRoot, 'components', 'SplitGroupsView.tsx'));
+  assert.match(splitGroups, /splitGroupsQuotaView\(workspaceEntitlement\)/);
+  assert.equal(/checkWorkspaceLimit|groups\.length/.test(splitGroups), false);
+  assert.equal(/checkAccountLimit|accountPlan|currentPlan/.test(splitGroups), false);
+  assert.equal(/checkWorkspaceLimit/.test(read(join(srcRoot, 'modules', 'billing', 'BillingContext.tsx'))),
+    false, 'sem contagem de quota no cliente');
+  // P3-E: lançamentos usam o contador do backend (`transactionsQuota` do
+  // entitlement do workspace), nunca uma contagem local pela data financeira.
+  for (const file of ['TransactionsView.tsx', 'RecentTransactions.tsx']) {
     const content = read(join(srcRoot, 'components', file));
-    assert.match(content, /checkWorkspaceLimit\('(transactionsPerMonth|splitGroups)'/, file);
+    assert.match(content, /transactionsQuotaView\(workspaceEntitlement\)\.canCreate/, file);
+    assert.equal(/checkWorkspaceLimit\('transactionsPerMonth'/.test(content), false, file);
+    assert.equal(/transactionsThisMonth|isSameMonthYear/.test(content), false, file);
     assert.equal(/checkAccountLimit|accountPlan|currentPlan/.test(content), false, file);
   }
   for (const path of sourceFiles) {
@@ -349,10 +362,69 @@ test('criação e transferência invalidam uso da conta e plano do workspace', (
 });
 
 test('limite do plano (resource-exhausted) é erro de negócio com mensagem do backend', () => {
-  // `errors.ts` importa o SDK; a guarda é estática sobre o conjunto de códigos.
-  const errors = read(join(srcRoot, 'modules', 'workspaces', 'errors.ts'));
+  const errors = read(join(srcRoot, 'modules', 'workspaces', 'errorMessages.ts'));
   const codes = /const BUSINESS_CODES = new Set\(\[([\s\S]*?)\]\);/.exec(errors);
   assert.ok(codes, 'BUSINESS_CODES');
   assert.match(codes[1], /'functions\/resource-exhausted'/);
   assert.equal(/'functions\/internal'/.test(codes[1]), false);
+  // `errors.ts` (que importa o SDK) só reexporta a parte pura.
+  const withSdk = read(join(srcRoot, 'modules', 'workspaces', 'errors.ts'));
+  assert.match(withSdk, /export \{ callableErrorReason, workspaceErrorMessage \} from '\.\/errorMessages\.ts'/);
+});
+
+test('mensagem do backend é exibida; código cru da plataforma nunca', () => {
+  const fallback = 'Não foi possível registrar o convite. Tente novamente.';
+  const backend = 'Este espaço atingiu o limite do plano do titular. Peça ao titular do espaço para fazer upgrade em Meu Plano.';
+  assert.equal(workspaceErrorMessage(
+    { code: 'functions/resource-exhausted', message: backend, details: { resource: 'membersPerWorkspace' } },
+    fallback), backend);
+  assert.equal(workspaceErrorMessage(
+    { code: 'functions/aborted', message: 'Os dados foram alterados por outra operação. Atualize e tente novamente.' },
+    fallback), 'Os dados foram alterados por outra operação. Atualize e tente novamente.');
+  // HTTP 429/409 sem corpo do backend: o SDK usa o próprio código como texto.
+  for (const error of [
+    { code: 'functions/resource-exhausted', message: 'resource-exhausted' },
+    { code: 'functions/resource-exhausted', message: 'RESOURCE_EXHAUSTED' },
+    { code: 'functions/aborted', message: 'aborted' },
+    { code: 'functions/permission-denied', message: 'permission-denied' },
+    { code: 'functions/internal', message: 'Falha interna.' },
+    { code: 'functions/resource-exhausted', message: '   ' },
+    null,
+  ]) {
+    assert.equal(workspaceErrorMessage(error, fallback), fallback, JSON.stringify(error));
+  }
+});
+
+test('tabela de planos só oferece ação com o estado da conta carregado', () => {
+  // UX-H1: as regras dos botões saíram do JSX para `pricingTableState.ts`
+  // (comportamento coberto em `pricing-table-state.test.ts`); as mesmas
+  // invariantes seguem presas aqui, no lugar novo, e o JSX usa o estado.
+  const table = read(join(srcRoot, 'modules', 'billing', 'components', 'PricingTable.tsx'));
+  const state = read(join(srcRoot, 'modules', 'billing', 'pricingTableState.ts'));
+  assert.match(state, /const accountReady = accountStatus === 'ready';/);
+  assert.match(state, /disabled: isLoading \|\| isFree \|\| !accountReady,/);
+  assert.match(state, /accountReady && accountEntitlement\.planId === 'free' \? 'Plano Atual'/);
+  assert.match(table, /const card = planCardState\(\{/);
+  assert.match(table, /disabled=\{card\.disabled\}/);
+  assert.match(table, /card\.label/);
+  assert.match(table, /accountStatus === 'error' && \(/);
+});
+
+test('confirmação de pagamento não interpola nome de plano vazio', () => {
+  const modal = read(join(srcRoot, 'modules', 'billing', 'components', 'BillingSuccessModal.tsx'));
+  assert.equal(modal.includes("accountPlan?.name ?? ''"), false);
+  assert.match(modal, /'Sua assinatura está ativa\.'/);
+  assert.match(modal, /role="dialog"/);
+  assert.match(modal, /aria-live="polite"/);
+});
+
+test('avisos de limite do espaço só oferecem upgrade ao titular', () => {
+  // O limite exibido é o do plano do titular (D-01); upgrade do plano de
+  // quem não é o titular não libera nada.
+  for (const name of ['TransactionsView.tsx', 'RecentTransactions.tsx', 'SplitGroupsView.tsx']) {
+    const view = read(join(srcRoot, 'components', name));
+    assert.match(view, /const isWorkspaceOwner = activeWorkspaceRole === 'owner';/, name);
+    assert.match(view, /isWorkspaceOwner[\s\S]{0,80}href="\/planos"/, name);
+    assert.match(view, /Peça ao titular do espaço/, name);
+  }
 });

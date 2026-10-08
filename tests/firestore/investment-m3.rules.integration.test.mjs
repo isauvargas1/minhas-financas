@@ -142,9 +142,9 @@ const seed = async () => {
     db.doc(`workspaces/${workspace}/investment_event_logs/failure-event`).set({
       id: 'failure-event',
       workspaceId: workspace,
-      operation: 'createInvestmentContribution',
+      operation: 'createSimpleInvestment',
       entityType: 'operation',
-      entityId: 'createInvestmentContribution',
+      entityId: 'createSimpleInvestment',
       outcome: 'failed',
       details: {errorCode: 'domain_precondition_failed'},
       occurredAt: ts('2026-08-16T18:00:00.000Z'),
@@ -267,13 +267,13 @@ test('evento de falha é legível por owner/admin e imutável', async () => {
   });
 });
 
-test('snapshot de reconstrução de projeções é aceito e privilegiado', async () => {
+test('P4-D — snapshot de reconstrução saiu com o job: nem owner o alcança', async () => {
+  // D-15: a reconstrução de projeções não é callable pública nem job; a
+  // coleção `investment_snapshots` não tem regra e nega tudo.
   await seed();
   const path = `workspaces/${workspace}/investment_snapshots/projection-rebuild-1`;
   await withClients(['owner', 'member'], async ({owner, member}) => {
-    const snapshot = await getDoc(doc(owner.db, path));
-    assert.equal(snapshot.exists(), true);
-    assert.equal(snapshot.data().kind, 'projection_rebuild');
+    await assert.rejects(() => getDoc(doc(owner.db, path)));
     await assert.rejects(() => getDoc(doc(member.db, path)));
     await assert.rejects(() => setDoc(doc(owner.db, path), {status: 'completed'}, {merge: true}));
   });

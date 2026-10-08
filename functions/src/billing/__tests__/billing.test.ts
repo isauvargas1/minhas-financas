@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import type Stripe from "stripe";
+import Stripe from "stripe";
 
 import {
   BILLING_CATALOG_VERSION,
@@ -34,10 +34,13 @@ import {
   selectCanonicalSubscription,
 } from "../reconcile";
 import {
+  SubscriptionCapExceededError,
   subscriptionSnapshotFromStripe,
   type SubscriptionSnapshot,
 } from "../stripeGateway";
 import {testBillingEnv} from "../testSupport/fakeStripe";
+import type {OperationLogger} from "../../shared/logger";
+import {deferTransactionLogs, webhookFailureCode} from "../webhook";
 
 const DAY = 24 * 60 * 60 * 1000;
 const NOW = Date.UTC(2026, 8, 29, 12);
@@ -498,3 +501,50 @@ test("assinatura do SDK (API 2026-02-25.clover) é normalizada", () => {
     {...raw, status: "novo_status"} as unknown as Stripe.Subscription);
   assert.equal(unknownStatus.status, "incomplete");
 });
+
+test("falha do webhook tem código estável por causa, sem mensagem", () => {
+  assert.equal(webhookFailureCode(new SubscriptionCapExceededError()),
+    "subscription_cap_exceeded");
+  assert.equal(webhookFailureCode(
+    new Stripe.errors.StripeConnectionError(
+      {message: "rede", type: "api_error"})),
+  "stripe_api_error");
+  assert.equal(webhookFailureCode(
+    new Stripe.errors.StripeAPIError({message: "5xx", type: "api_error"})),
+  "stripe_api_error");
+  assert.equal(webhookFailureCode(
+    Object.assign(new Error("10 ABORTED: Transaction lock timeout."),
+      {code: 10})),
+  "concurrent_update");
+  assert.equal(webhookFailureCode(new Error("qualquer outra")), "internal");
+});
+
+test("logs de transação: só a tentativa que comitou é emitida, uma vez",
+  () => {
+    const emitted: Array<[string, string, unknown]> = [];
+    const base = (context: Record<string, unknown>): OperationLogger => ({
+      context: {},
+      with: (fields) => base({...context, ...fields}),
+      info: (event) => emitted.push(["info", event, context]),
+      warn: (event) => emitted.push(["warn", event, context]),
+      error: (event) => emitted.push(["error", event, context]),
+    });
+    const logs = deferTransactionLogs(base({op: "webhook"}));
+    // 1ª tentativa: registra e é abortada pelo SDK (nada sai).
+    logs.restart();
+    logs.log.error("billing_webhook.anomaly", null);
+    // 2ª tentativa: recomeça, registra e comita.
+    logs.restart();
+    logs.log.with({stripeEventId: "evt_1"})
+      .error("billing_webhook.owner_mismatch", null);
+    logs.log.warn("billing_webhook.lease_taken_over");
+    assert.deepEqual(emitted, [], "nada é emitido antes do commit");
+    logs.flush();
+    assert.deepEqual(emitted, [
+      ["error", "billing_webhook.owner_mismatch",
+        {op: "webhook", stripeEventId: "evt_1"}],
+      ["warn", "billing_webhook.lease_taken_over", {op: "webhook"}],
+    ]);
+    logs.flush();
+    assert.equal(emitted.length, 2, "flush não repete");
+  });

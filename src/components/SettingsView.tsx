@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import type { EntityItem } from '../types.ts';
 import {
     PlusIcon,
     EditIcon,
@@ -43,6 +42,7 @@ import {
     IconWallet,
 } from '@tabler/icons-react';
 import PersonalizationView from './PersonalizationView.tsx';
+import CashAccountsView from './accounts/CashAccountsView.tsx';
 import MembersManagerModal from './MembersManagerModal.tsx';
 import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
 import { useUpdateWorkspaceSettings } from '../modules/workspaces/hooks.ts';
@@ -51,20 +51,7 @@ import { useSettingsCatalogScreen } from '../modules/settings-catalog/useSetting
 import type { SettingsCatalogItem, SettingsCatalogStatus, SettingsCatalogTransactionSubtype } from '../modules/settings-catalog/types.ts';
 import { createPortal } from 'react-dom';
 
-interface SettingsViewProps {
-    data?: {
-        productsServices: EntityItem[];
-        expenseTypes: EntityItem[];
-        categories: EntityItem[];
-        paymentTypes: EntityItem[];
-        incomeTypes: EntityItem[];
-        wallets: EntityItem[];
-        costCenters?: EntityItem[];
-    };
-    onUpdate?: (key: string, newData: EntityItem[]) => void;
-}
-
-type ViewMode = 'main' | 'cadastros' | 'personalizacao' | 'workspace';
+type ViewMode = 'main' | 'cadastros' | 'personalizacao' | 'workspace' | 'contas';
 type CatalogViewMode = 'cards' | 'list';
 type CatalogSortField = 'name' | 'icon' | 'status' | 'transactionSubtype' | 'sortOrder';
 type CatalogSortDirection = 'asc' | 'desc';
@@ -77,7 +64,6 @@ const CATEGORY_SUBTYPE_OPTIONS: Array<{
     { key: 'receita', label: 'Receitas', icon: IconTrendingUp },
     { key: 'despesa', label: 'Despesas', icon: IconTrendingDown },
     { key: 'investimento', label: 'Investimentos', icon: IconChartBar },
-    { key: 'parcelado', label: 'Parcelados', icon: IconCreditCard },
 ];
 
 const ICON_CATEGORIES = [
@@ -115,10 +101,6 @@ const SECTION_SIDEBAR_META: Record<
     Receitas: {
         icon: IconTrendingUp,
         shortDescription: 'Entradas e fontes.',
-    },
-    Carteiras: {
-        icon: IconWallet,
-        shortDescription: 'Contas e reservas.',
     },
     // Cadastros de investimento do usuário comum (Etapa 2, §3). A chave é o
     // `shortTitle` da seção: sem entrada aqui, a navegação cai no ícone
@@ -189,7 +171,7 @@ const renderInPortal = (children: React.ReactNode) => {
     return createPortal(children, getModalPortalRoot());
 };
 
-const SettingsView: React.FC<SettingsViewProps> = () => {
+const SettingsView: React.FC = () => {
     const { activeWorkspace, activeWorkspaceRole, reloadWorkspaces } = useWorkspace();
     const updateWorkspaceMutation = useUpdateWorkspaceSettings(activeWorkspace.id);
     const isPJ = activeWorkspace.type === 'PJ';
@@ -205,6 +187,7 @@ const SettingsView: React.FC<SettingsViewProps> = () => {
     const [sortDirection, setSortDirection] = useState<CatalogSortDirection>('asc');
 
     const {
+        canManage: canManageCatalog,
         sections,
         activeSection,
         activeSectionKey,
@@ -465,6 +448,11 @@ const sortedItems = useMemo(() => {
         return <PersonalizationView onBack={() => setViewMode('main')} />;
     }
 
+    // P3-J (D-30): contas/carteiras autoritativas e transferências.
+    if (viewMode === 'contas') {
+        return <CashAccountsView onBack={() => setViewMode('main')} />;
+    }
+
     if (viewMode === 'workspace' && isPJ) {
         return (
             <div className="animate-fade-in max-w-4xl mx-auto">
@@ -690,6 +678,22 @@ const sortedItems = useMemo(() => {
                     </button>
 
                     <button
+                        onClick={() => setViewMode('contas')}
+                        className="bg-surface p-6 rounded-xl shadow-md border border-transparent hover:border-emerald-500 transition-all group text-left"
+                    >
+                        <div className="w-12 h-12 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                            <IconWallet size={24} />
+                        </div>
+                        <h3 className="text-lg font-bold text-on-surface mb-2">Contas e carteiras</h3>
+                        <p className="text-sm text-muted mb-4">
+                            Saldos por conta, extrato e transferências entre contas.
+                        </p>
+                        <div className="flex items-center text-emerald-600 font-bold text-sm">
+                            Acessar <span className="ml-1">→</span>
+                        </div>
+                    </button>
+
+                    <button
                         onClick={() => setViewMode('personalizacao')}
                         className="bg-surface p-6 rounded-xl shadow-md border border-transparent hover:border-pink-500 transition-all group text-left"
                     >
@@ -734,17 +738,9 @@ const sortedItems = useMemo(() => {
                 </div>
 
                 {/*
-                  Administração técnica de investimentos saiu da configuração
-                  comum (Etapa 3, §0.B).
-
-                  `InvestmentOnboardingCard`, `InvestmentRegistrySection` e
-                  `InvestmentOperationsPanel` continuam íntegros no repositório,
-                  com as mesmas regras de papel e o mesmo backend. O que saiu é
-                  o ponto de montagem: conta técnica, ativo técnico, semeadura
-                  de padrões, reconstrução de projeções e backfill não são
-                  vocabulário de quem entra em Cadastros para renomear uma
-                  categoria. A experiência comum volta a ser equivalente à do
-                  baseline, sem "modo avançado" e sem nada removido.
+                  Investimentos não têm administração técnica (D-15, P4-D): os
+                  cadastros são carteira de investimentos e instituição, em
+                  Cadastros, e a categoria em Categorias › Investimentos.
                 */}
 
            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -945,6 +941,7 @@ const sortedItems = useMemo(() => {
                                         </button>
                                     </div>
 
+                                    {canManageCatalog && (
                                     <button
                                         onClick={openCreateModal}
                                         className="inline-flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-white rounded-xl px-4 py-2.5 font-bold shadow-md transition-colors"
@@ -952,6 +949,7 @@ const sortedItems = useMemo(() => {
                                         <PlusIcon />
                                         Novo cadastro
                                     </button>
+                                    )}
                                 </div>
                             </div>
 
@@ -1088,6 +1086,7 @@ const sortedItems = useMemo(() => {
                                     <p className="text-sm text-muted mt-2">
                                         {activeSection?.emptyDescription}
                                     </p>
+                                    {canManageCatalog && (
                                     <button
                                         onClick={openCreateModal}
                                         className="mt-5 inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-white rounded-xl px-4 py-2.5 font-bold shadow-md transition-colors"
@@ -1095,6 +1094,7 @@ const sortedItems = useMemo(() => {
                                         <PlusIcon />
                                         Criar primeiro item
                                     </button>
+                                    )}
                                 </div>
                             </div>
                         ) : (
@@ -1158,6 +1158,7 @@ const sortedItems = useMemo(() => {
                                                             <p>Ordenação: {item.sortOrder}</p>
                                                         </div>
 
+                                                        {canManageCatalog && (
                                                         <div className="mt-4 flex items-center gap-2">
                                                             <button
                                                                 onClick={() => openEditModal(item)}
@@ -1174,6 +1175,7 @@ const sortedItems = useMemo(() => {
                                                                 Inativar
                                                             </button>
                                                         </div>
+                                                        )}
                                                     </div>
                                                 </div>
                                             </article>
@@ -1305,6 +1307,7 @@ const sortedItems = useMemo(() => {
                                                             </td>
 
                                                             <td className="px-4 py-3">
+                                                                {canManageCatalog && (
                                                                 <div className="flex items-center justify-end gap-2">
                                                                     <button
                                                                         onClick={() => openEditModal(item)}
@@ -1322,6 +1325,7 @@ const sortedItems = useMemo(() => {
                                                                         Inativar
                                                                     </button>
                                                                 </div>
+                                                                )}
                                                             </td>
                                                         </tr>
                                                     ))}
@@ -1602,6 +1606,12 @@ const sortedItems = useMemo(() => {
                             </div>
                         </div>
 
+                        {feedback?.type === 'error' && (
+                            <p role="alert" className="mx-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                                {feedback.message}
+                            </p>
+                        )}
+
                         <div className="p-5 border-t border-border flex flex-col-reverse sm:flex-row justify-end gap-3 shrink-0">
                             <button
                                 type="button"
@@ -1644,7 +1654,7 @@ const sortedItems = useMemo(() => {
                         </h3>
                         <p className="text-sm text-muted mt-2">
                             Tem certeza que deseja inativar <strong>{itemToDelete.name}</strong>? Referências históricas serão preservadas.
-                            Esta ação também libera a chave de unicidade desse item.
+                            O nome continua reservado: para usá-lo de novo, reative este cadastro.
                         </p>
 
                         <div className="mt-6 flex flex-col-reverse sm:flex-row justify-end gap-3">
@@ -1658,7 +1668,8 @@ const sortedItems = useMemo(() => {
                             <button
                                 type="button"
                                 onClick={handleConfirmDelete}
-                                className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold"
+                                disabled={isLoading}
+                                className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold disabled:opacity-60"
                             >
                                 Inativar item
                             </button>

@@ -10,7 +10,7 @@ Aplicação web de gestão financeira PF/PJ em evolução para SaaS multiworkspa
 - Backend: Firebase Authentication, Cloud Firestore e Cloud Functions v2 (`southamerica-east1`)
 - Pagamentos: Stripe (checkout e webhook)
 - IA: Gemini, chamado somente pelo backend
-- Estilização: Tailwind CSS, hoje carregado em runtime via CDN em `index.html` (não é dependência do build; ver PR-PLAT-03 no plano mestre)
+- Estilização: Tailwind CSS 3.4 compilado no build do Vite via PostCSS (`tailwind.config.js`, `postcss.config.js`, diretivas em `src/index.css`); desde P2C-H2 não há CSS de CDN em runtime (ver PR-PLAT-03 no plano mestre)
 - Testes: `node:test` (unitários e integração), Firebase Emulator (Firestore Rules e integração) e Playwright (E2E)
 
 `firebase.json` declara Firestore (Rules e índices), Functions, Hosting (SPA servindo `dist/`) e os emuladores de Auth, Firestore e Functions.
@@ -32,7 +32,7 @@ Nunca versione valores. `.env*` está no `.gitignore`.
 | --- | --- | --- |
 | Frontend (`.env.local`) | `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`, `VITE_FIREBASE_PROJECT_ID`, `VITE_FIREBASE_STORAGE_BUCKET`, `VITE_FIREBASE_MESSAGING_SENDER_ID`, `VITE_FIREBASE_APP_ID` | Configuração pública do app Firebase |
 | Frontend | `VITE_USE_FIREBASE_EMULATORS`, `VITE_E2E_MODE` | Emuladores e modo E2E (definidos por `npm run build:e2e`) |
-| Functions (Secret Manager) | `GOOGLE_AI_API_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_ALLOWED_PRICE_IDS`, `APP_ALLOWED_ORIGINS` | Segredos e allowlists declarados nas funções que os usam |
+| Functions (Secret Manager) | `GOOGLE_AI_API_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_PRO_MONTHLY`, `STRIPE_PRICE_BUSINESS_MONTHLY`, `APP_ALLOWED_ORIGINS` | Segredos e configuração por ambiente declarados nas funções que os usam (`functions/src/billing/config.ts`) |
 
 ## Runtime do Node
 

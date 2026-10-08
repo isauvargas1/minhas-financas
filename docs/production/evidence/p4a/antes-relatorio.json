@@ -1,0 +1,337 @@
+{
+  "desktop-claro": {
+    "overflow": {
+      "01-cartoes": 0,
+      "02-novo-cartao": 0,
+      "03-compra-cartao": 0,
+      "04-detalhes-cartao": 0,
+      "05-detalhe-fatura": 0,
+      "06-pagamento": 0
+    },
+    "axe": {
+      "01-cartoes": [
+        {
+          "id": "button-name",
+          "impact": "critical",
+          "help": "Buttons must have discernible text",
+          "count": 2,
+          "nodes": [
+            {
+              "target": [
+                ".dark\\:bg-indigo-600"
+              ],
+              "html": "<button class=\"p-2 rounded-md bg-white dark:bg-indigo-600 shadow-sm text-indigo-600 dark:text-white\">"
+            },
+            {
+              "target": [
+                ".rounded-md.text-gray-500.p-2"
+              ],
+              "html": "<button class=\"p-2 rounded-md text-gray-500\">"
+            }
+          ]
+        },
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "help": "Elements must meet minimum color contrast ratio thresholds",
+          "count": 2,
+          "nodes": [
+            {
+              "target": [
+                "div:nth-child(1) > .text-\\[10px\\].text-gray-500.uppercase"
+              ],
+              "html": "<div class=\"text-[10px] text-gray-500 uppercase\">Fechamento</div>"
+            },
+            {
+              "target": [
+                ".text-right > .text-\\[10px\\].text-gray-500.uppercase"
+              ],
+              "html": "<div class=\"text-[10px] text-gray-500 uppercase\">Melhor Dia</div>"
+            }
+          ]
+        }
+      ],
+      "02-novo-cartao": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "help": "Elements must meet minimum color contrast ratio thresholds",
+          "count": 1,
+          "nodes": [
+            {
+              "target": [
+                ".left-4"
+              ],
+              "html": "<span class=\"absolute left-4 top-2.5 text-gray-400 font-bold\">R$</span>"
+            }
+          ]
+        },
+        {
+          "id": "label",
+          "impact": "critical",
+          "help": "Form elements must have labels",
+          "count": 2,
+          "nodes": [
+            {
+              "target": [
+                "input[value=\"1\"]"
+              ],
+              "html": "<input type=\"number\" class=\"w-full border border...\" min=\"1\" max=\"31\" required=\"\" value=\"1\" style=\"\">"
+            },
+            {
+              "target": [
+                "input[value=\"10\"]"
+              ],
+              "html": "<input type=\"number\" class=\"w-full border border...\" min=\"1\" max=\"31\" required=\"\" value=\"10\" style=\"\">"
+            }
+          ]
+        },
+        {
+          "id": "select-name",
+          "impact": "critical",
+          "help": "Select element must have an accessible name",
+          "count": 1,
+          "nodes": [
+            {
+              "target": [
+                "select"
+              ],
+              "html": "<select class=\"w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2.5 bg-white text-gray-900 dark:bg-dark-200 dark:text-white focus:ring-2 fo"
+            }
+          ]
+        }
+      ],
+      "03-compra-cartao": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "help": "Elements must meet minimum color contrast ratio thresholds",
+          "count": 4,
+          "nodes": [
+            {
+              "target": [
+                "div:nth-child(1) > .opacity-75"
+              ],
+              "html": "<p class=\"opacity-75\">Primeira fatura</p>"
+            },
+            {
+              "target": [
+                "div:nth-child(2) > .opacity-75"
+              ],
+              "html": "<p class=\"opacity-75\">Vencimento previsto</p>"
+            },
+            {
+              "target": [
+                "div:nth-child(3) > .opacity-75"
+              ],
+              "html": "<p class=\"opacity-75\">Valor total da compra</p>"
+            },
+            {
+              "target": [
+                "div:nth-child(4) > .opacity-75"
+              ],
+              "html": "<p class=\"opacity-75\">Valor médio da parcela</p>"
+            }
+          ]
+        },
+        {
+          "id": "label",
+          "impact": "critical",
+          "help": "Form elements must have labels",
+          "count": 3,
+          "nodes": [
+            {
+              "target": [
+                "input[type=\"date\"]"
+              ],
+              "html": "<input type=\"date\" class=\"w-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-dark-200 text-gray-800 dark:text-gray-200 rounded-lg px-4 py-2 f"
+            },
+            {
+              "target": [
+                "input[step=\"0.01\"]"
+              ],
+              "html": "<input type=\"number\" step=\"0.01\" min=\"0.01\" class=\"w-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-dark-200 text-gray-800 dark:text-gray-2"
+            },
+            {
+              "target": [
+                "input[min=\"1\"]"
+              ],
+              "html": "<input type=\"number\" min=\"1\" max=\"60\" class=\"w-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-dark-200 text-gray-800 dark:text-gray-200 rou"
+            }
+          ]
+        },
+        {
+          "id": "select-name",
+          "impact": "critical",
+          "help": "Select element must have an accessible name",
+          "count": 2,
+          "nodes": [
+            {
+              "target": [
+                "div:nth-child(1) > select"
+              ],
+              "html": "<select class=\"w-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-dark-200 text-gray-800 dark:text-gray-200 rounded-lg px-4 py-2 focus:outlin"
+            },
+            {
+              "target": [
+                "div:nth-child(3) > select"
+              ],
+              "html": "<select class=\"w-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-dark-200 text-gray-800 dark:text-gray-200 rounded-lg px-4 py-2 focus:outlin"
+            }
+          ]
+        }
+      ],
+      "06-pagamento": "escopo [role=\"dialog\"] ausente"
+    }
+  },
+  "desktop-escuro": {
+    "overflow": {
+      "01-cartoes": 0,
+      "02-novo-cartao": 0,
+      "03-compra-cartao": 0,
+      "04-detalhes-cartao": 0,
+      "05-detalhe-fatura": 0,
+      "06-pagamento": 0
+    },
+    "axe": {
+      "01-cartoes": [
+        {
+          "id": "button-name",
+          "impact": "critical",
+          "help": "Buttons must have discernible text",
+          "count": 2,
+          "nodes": [
+            {
+              "target": [
+                ".dark\\:bg-indigo-600"
+              ],
+              "html": "<button class=\"p-2 rounded-md bg-white dark:bg-indigo-600 shadow-sm text-indigo-600 dark:text-white\">"
+            },
+            {
+              "target": [
+                ".rounded-md.text-gray-500.p-2"
+              ],
+              "html": "<button class=\"p-2 rounded-md text-gray-500\">"
+            }
+          ]
+        },
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "help": "Elements must meet minimum color contrast ratio thresholds",
+          "count": 2,
+          "nodes": [
+            {
+              "target": [
+                "div:nth-child(1) > .text-\\[10px\\].text-gray-500.uppercase"
+              ],
+              "html": "<div class=\"text-[10px] text-gray-500 uppercase\">Fechamento</div>"
+            },
+            {
+              "target": [
+                ".text-right > .text-\\[10px\\].text-gray-500.uppercase"
+              ],
+              "html": "<div class=\"text-[10px] text-gray-500 uppercase\">Melhor Dia</div>"
+            }
+          ]
+        }
+      ],
+      "02-novo-cartao": [
+        {
+          "id": "label",
+          "impact": "critical",
+          "help": "Form elements must have labels",
+          "count": 2,
+          "nodes": [
+            {
+              "target": [
+                "input[value=\"1\"]"
+              ],
+              "html": "<input type=\"number\" class=\"w-full border border...\" min=\"1\" max=\"31\" required=\"\" value=\"1\" style=\"\">"
+            },
+            {
+              "target": [
+                "input[value=\"10\"]"
+              ],
+              "html": "<input type=\"number\" class=\"w-full border border...\" min=\"1\" max=\"31\" required=\"\" value=\"10\" style=\"\">"
+            }
+          ]
+        },
+        {
+          "id": "select-name",
+          "impact": "critical",
+          "help": "Select element must have an accessible name",
+          "count": 1,
+          "nodes": [
+            {
+              "target": [
+                "select"
+              ],
+              "html": "<select class=\"w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2.5 bg-white text-gray-900 dark:bg-dark-200 dark:text-white focus:ring-2 fo"
+            }
+          ]
+        }
+      ],
+      "03-compra-cartao": [
+        {
+          "id": "label",
+          "impact": "critical",
+          "help": "Form elements must have labels",
+          "count": 3,
+          "nodes": [
+            {
+              "target": [
+                "input[type=\"date\"]"
+              ],
+              "html": "<input type=\"date\" class=\"w-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-dark-200 text-gray-800 dark:text-gray-200 rounded-lg px-4 py-2 f"
+            },
+            {
+              "target": [
+                "input[step=\"0.01\"]"
+              ],
+              "html": "<input type=\"number\" step=\"0.01\" min=\"0.01\" class=\"w-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-dark-200 text-gray-800 dark:text-gray-2"
+            },
+            {
+              "target": [
+                "input[min=\"1\"]"
+              ],
+              "html": "<input type=\"number\" min=\"1\" max=\"60\" class=\"w-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-dark-200 text-gray-800 dark:text-gray-200 rou"
+            }
+          ]
+        },
+        {
+          "id": "select-name",
+          "impact": "critical",
+          "help": "Select element must have an accessible name",
+          "count": 2,
+          "nodes": [
+            {
+              "target": [
+                "div:nth-child(1) > select"
+              ],
+              "html": "<select class=\"w-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-dark-200 text-gray-800 dark:text-gray-200 rounded-lg px-4 py-2 focus:outlin"
+            },
+            {
+              "target": [
+                "div:nth-child(3) > select"
+              ],
+              "html": "<select class=\"w-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-dark-200 text-gray-800 dark:text-gray-200 rounded-lg px-4 py-2 focus:outlin"
+            }
+          ]
+        }
+      ],
+      "06-pagamento": "escopo [role=\"dialog\"] ausente"
+    }
+  },
+  "mobile-claro": {
+    "overflow": {
+      "01-cartoes": 0,
+      "02-novo-cartao": 0,
+      "03-compra-cartao": 0,
+      "04-detalhes-cartao": 0,
+      "05-detalhe-fatura": 0,
+      "06-pagamento": 0
+    },
+    "axe": {}
+  }
+}

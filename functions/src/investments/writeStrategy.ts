@@ -10,7 +10,7 @@ import type {InvestmentBackendOperation} from "./infrastructure";
  * fonte: `callables.ts` lê `allowedRoles` para o gate não transacional e as
  * operações leem o mesmo valor para a revalidação dentro da transação.
  *
- * Segue o formato de `creditCards/writeStrategy.ts`; `clientDirectWriteAllowed`
+ * `clientDirectWriteAllowed`
  * é do tipo literal `false` para que nenhuma operação possa ser declarada como
  * gravável diretamente pelo cliente.
  */
@@ -20,19 +20,16 @@ export type InvestmentWriteTarget =
   | "investment_assets"
   | "investment_movements"
   | "investment_positions"
-  | "investment_valuations"
-  | "investment_snapshots"
   | "investment_event_logs"
   | "investment_idempotency_keys"
-  | "investment_import_batches"
   | "investment_summaries"
   | "investment_report_periods"
   | "investment_allocation_summaries"
   | "investment_operational_metrics"
-  | "workspaces"
   | "transactions"
-  | "goals"
-  | "settings_catalog";
+  | "cash_accounts"
+  | "cash_account_movements"
+  | "goals";
 
 export interface InvestmentBackendWritePlan {
   operation: InvestmentBackendOperation;
@@ -49,107 +46,21 @@ export interface InvestmentBackendWritePlan {
   appendsToLedger: boolean;
   /** Altera posição, resumo, período, alocação ou meta. */
   updatesProjections: boolean;
-  /** Move caixa e, por isso, espelha em `transactions`. */
+  /**
+   * Move caixa: espelha em `transactions` e, no fato liquidado, lança o
+   * movimento na conta escolhida (D-30, P4-D) no mesmo commit.
+   */
   affectsCashProjection: boolean;
   clientDirectWriteAllowed: false;
 }
 
 const MUTATION_ROLES: WorkspaceRole[] = ["owner", "admin", "member"];
 const PRIVILEGED_ROLES: WorkspaceRole[] = ["owner", "admin"];
-const OWNER_ROLES: WorkspaceRole[] = ["owner"];
 
 export const INVESTMENT_BACKEND_WRITE_PLANS: Record<
   InvestmentBackendOperation,
   InvestmentBackendWritePlan
 > = {
-  onboardInvestmentWorkspace: {
-    operation: "onboardInvestmentWorkspace",
-    allowedRoles: OWNER_ROLES,
-    requiresAuthentication: true,
-    requiresWorkspaceMembership: true,
-    requiresIdempotencyKey: true,
-    requiresCorrelationId: true,
-    requiresFirestoreTransaction: true,
-    revalidatesRoleInTransaction: true,
-    writes: [
-      "investment_accounts",
-      "investment_assets",
-      "settings_catalog",
-      "investment_event_logs",
-      "investment_idempotency_keys",
-      "investment_operational_metrics",
-    ],
-    appendsToLedger: false,
-    updatesProjections: false,
-    affectsCashProjection: false,
-    clientDirectWriteAllowed: false,
-  },
-  saveInvestmentAccount: {
-    operation: "saveInvestmentAccount",
-    allowedRoles: PRIVILEGED_ROLES,
-    requiresAuthentication: true,
-    requiresWorkspaceMembership: true,
-    requiresIdempotencyKey: true,
-    requiresCorrelationId: true,
-    requiresFirestoreTransaction: true,
-    revalidatesRoleInTransaction: true,
-    writes: [
-      "investment_accounts",
-      "investment_event_logs",
-      "investment_idempotency_keys",
-      "investment_operational_metrics",
-    ],
-    appendsToLedger: false,
-    updatesProjections: false,
-    affectsCashProjection: false,
-    clientDirectWriteAllowed: false,
-  },
-  saveInvestmentAsset: {
-    operation: "saveInvestmentAsset",
-    allowedRoles: PRIVILEGED_ROLES,
-    requiresAuthentication: true,
-    requiresWorkspaceMembership: true,
-    requiresIdempotencyKey: true,
-    requiresCorrelationId: true,
-    requiresFirestoreTransaction: true,
-    revalidatesRoleInTransaction: true,
-    writes: [
-      "investment_assets",
-      "investment_event_logs",
-      "investment_idempotency_keys",
-      "investment_operational_metrics",
-    ],
-    appendsToLedger: false,
-    updatesProjections: false,
-    affectsCashProjection: false,
-    clientDirectWriteAllowed: false,
-  },
-  createInvestmentContribution: {
-    operation: "createInvestmentContribution",
-    allowedRoles: MUTATION_ROLES,
-    requiresAuthentication: true,
-    requiresWorkspaceMembership: true,
-    requiresIdempotencyKey: true,
-    requiresCorrelationId: true,
-    requiresFirestoreTransaction: true,
-    revalidatesRoleInTransaction: true,
-    writes: [
-      "investment_movements",
-      "investment_positions",
-      "investment_summaries",
-      "investment_report_periods",
-      "investment_allocation_summaries",
-      "goals",
-      "transactions",
-      "investment_event_logs",
-      "investment_idempotency_keys",
-      "investment_operational_metrics",
-    ],
-    appendsToLedger: true,
-    updatesProjections: true,
-    affectsCashProjection: true,
-    clientDirectWriteAllowed: false,
-  },
   /**
    * Novo investimento no modo simples.
    *
@@ -177,6 +88,8 @@ export const INVESTMENT_BACKEND_WRITE_PLANS: Record<
       "investment_allocation_summaries",
       "goals",
       "transactions",
+      "cash_accounts",
+      "cash_account_movements",
       "investment_event_logs",
       "investment_idempotency_keys",
       "investment_operational_metrics",
@@ -205,6 +118,8 @@ export const INVESTMENT_BACKEND_WRITE_PLANS: Record<
       "investment_allocation_summaries",
       "goals",
       "transactions",
+      "cash_accounts",
+      "cash_account_movements",
       "investment_event_logs",
       "investment_idempotency_keys",
       "investment_operational_metrics",
@@ -239,6 +154,8 @@ export const INVESTMENT_BACKEND_WRITE_PLANS: Record<
       "investment_allocation_summaries",
       "goals",
       "transactions",
+      "cash_accounts",
+      "cash_account_movements",
       "investment_event_logs",
       "investment_idempotency_keys",
       "investment_operational_metrics",
@@ -265,6 +182,8 @@ export const INVESTMENT_BACKEND_WRITE_PLANS: Record<
       "investment_allocation_summaries",
       "goals",
       "transactions",
+      "cash_accounts",
+      "cash_account_movements",
       "investment_event_logs",
       "investment_idempotency_keys",
       "investment_operational_metrics",
@@ -272,28 +191,6 @@ export const INVESTMENT_BACKEND_WRITE_PLANS: Record<
     appendsToLedger: false,
     updatesProjections: true,
     affectsCashProjection: true,
-    clientDirectWriteAllowed: false,
-  },
-  createInvestmentRedemption: {
-    operation: "createInvestmentRedemption",
-    allowedRoles: MUTATION_ROLES,
-    requiresAuthentication: true,
-    requiresWorkspaceMembership: true,
-    requiresIdempotencyKey: true,
-    requiresCorrelationId: true,
-    requiresFirestoreTransaction: true,
-    revalidatesRoleInTransaction: true,
-    // Resgate nasce `pending`: não move posição, meta nem caixa liquidada.
-    writes: [
-      "investment_movements",
-      "transactions",
-      "investment_event_logs",
-      "investment_idempotency_keys",
-      "investment_operational_metrics",
-    ],
-    appendsToLedger: true,
-    updatesProjections: false,
-    affectsCashProjection: false,
     clientDirectWriteAllowed: false,
   },
   cancelInvestmentMovement: {
@@ -318,32 +215,6 @@ export const INVESTMENT_BACKEND_WRITE_PLANS: Record<
     affectsCashProjection: false,
     clientDirectWriteAllowed: false,
   },
-  settleInvestmentRedemption: {
-    operation: "settleInvestmentRedemption",
-    allowedRoles: MUTATION_ROLES,
-    requiresAuthentication: true,
-    requiresWorkspaceMembership: true,
-    requiresIdempotencyKey: true,
-    requiresCorrelationId: true,
-    requiresFirestoreTransaction: true,
-    revalidatesRoleInTransaction: true,
-    writes: [
-      "investment_movements",
-      "investment_positions",
-      "investment_summaries",
-      "investment_report_periods",
-      "investment_allocation_summaries",
-      "goals",
-      "transactions",
-      "investment_event_logs",
-      "investment_idempotency_keys",
-      "investment_operational_metrics",
-    ],
-    appendsToLedger: false,
-    updatesProjections: true,
-    affectsCashProjection: true,
-    clientDirectWriteAllowed: false,
-  },
   reverseInvestmentMovement: {
     operation: "reverseInvestmentMovement",
     allowedRoles: PRIVILEGED_ROLES,
@@ -361,6 +232,8 @@ export const INVESTMENT_BACKEND_WRITE_PLANS: Record<
       "investment_allocation_summaries",
       "goals",
       "transactions",
+      "cash_accounts",
+      "cash_account_movements",
       "investment_event_logs",
       "investment_idempotency_keys",
       "investment_operational_metrics",
@@ -368,32 +241,6 @@ export const INVESTMENT_BACKEND_WRITE_PLANS: Record<
     appendsToLedger: true,
     updatesProjections: true,
     affectsCashProjection: true,
-    clientDirectWriteAllowed: false,
-  },
-  recordInvestmentValuation: {
-    operation: "recordInvestmentValuation",
-    allowedRoles: PRIVILEGED_ROLES,
-    requiresAuthentication: true,
-    requiresWorkspaceMembership: true,
-    requiresIdempotencyKey: true,
-    requiresCorrelationId: true,
-    requiresFirestoreTransaction: true,
-    revalidatesRoleInTransaction: true,
-    // Marcação a mercado altera patrimônio; nunca escreve em `transactions`.
-    writes: [
-      "investment_valuations",
-      "investment_positions",
-      "investment_summaries",
-      "investment_report_periods",
-      "investment_allocation_summaries",
-      "goals",
-      "investment_event_logs",
-      "investment_idempotency_keys",
-      "investment_operational_metrics",
-    ],
-    appendsToLedger: false,
-    updatesProjections: true,
-    affectsCashProjection: false,
     clientDirectWriteAllowed: false,
   },
   // INV-P2-028 — troca de meta como operação própria e atômica: emite o
@@ -464,163 +311,6 @@ export const INVESTMENT_BACKEND_WRITE_PLANS: Record<
     ],
     appendsToLedger: true,
     updatesProjections: true,
-    affectsCashProjection: false,
-    clientDirectWriteAllowed: false,
-  },
-  recalculateInvestmentPosition: {
-    operation: "recalculateInvestmentPosition",
-    allowedRoles: PRIVILEGED_ROLES,
-    requiresAuthentication: true,
-    requiresWorkspaceMembership: true,
-    requiresIdempotencyKey: true,
-    requiresCorrelationId: true,
-    requiresFirestoreTransaction: true,
-    revalidatesRoleInTransaction: true,
-    writes: [
-      "investment_positions",
-      "investment_summaries",
-      "investment_report_periods",
-      "investment_allocation_summaries",
-      "investment_snapshots",
-      "goals",
-      "investment_event_logs",
-      "investment_idempotency_keys",
-      "investment_operational_metrics",
-    ],
-    appendsToLedger: false,
-    updatesProjections: true,
-    affectsCashProjection: false,
-    clientDirectWriteAllowed: false,
-  },
-  recalculateGoalInvestmentProgress: {
-    operation: "recalculateGoalInvestmentProgress",
-    allowedRoles: PRIVILEGED_ROLES,
-    requiresAuthentication: true,
-    requiresWorkspaceMembership: true,
-    requiresIdempotencyKey: true,
-    requiresCorrelationId: true,
-    requiresFirestoreTransaction: true,
-    revalidatesRoleInTransaction: true,
-    writes: [
-      "goals",
-      "investment_snapshots",
-      "investment_event_logs",
-      "investment_idempotency_keys",
-      "investment_operational_metrics",
-    ],
-    appendsToLedger: false,
-    updatesProjections: true,
-    affectsCashProjection: false,
-    clientDirectWriteAllowed: false,
-  },
-  rebuildInvestmentProjections: {
-    operation: "rebuildInvestmentProjections",
-    allowedRoles: PRIVILEGED_ROLES,
-    requiresAuthentication: true,
-    requiresWorkspaceMembership: true,
-    requiresIdempotencyKey: true,
-    requiresCorrelationId: true,
-    requiresFirestoreTransaction: true,
-    revalidatesRoleInTransaction: true,
-    writes: [
-      "investment_summaries",
-      "investment_report_periods",
-      "investment_allocation_summaries",
-      "investment_snapshots",
-      "investment_event_logs",
-      "investment_idempotency_keys",
-      "investment_operational_metrics",
-    ],
-    appendsToLedger: false,
-    updatesProjections: true,
-    affectsCashProjection: false,
-    clientDirectWriteAllowed: false,
-  },
-  backfillInvestmentWorkspace: {
-    operation: "backfillInvestmentWorkspace",
-    allowedRoles: PRIVILEGED_ROLES,
-    requiresAuthentication: true,
-    requiresWorkspaceMembership: true,
-    requiresIdempotencyKey: true,
-    requiresCorrelationId: true,
-    // Orquestrador: cada rebuild aninhado abre a própria transação e
-    // revalida o papel dentro dela; só o snapshot de progresso é escrito
-    // fora de transação.
-    requiresFirestoreTransaction: false,
-    revalidatesRoleInTransaction: true,
-    writes: [
-      "investment_positions",
-      "investment_summaries",
-      "investment_report_periods",
-      "investment_allocation_summaries",
-      "investment_snapshots",
-      "goals",
-      "investment_event_logs",
-      "investment_idempotency_keys",
-      "investment_operational_metrics",
-    ],
-    appendsToLedger: false,
-    updatesProjections: true,
-    affectsCashProjection: false,
-    clientDirectWriteAllowed: false,
-  },
-  registerInvestmentImportBatch: {
-    operation: "registerInvestmentImportBatch",
-    allowedRoles: PRIVILEGED_ROLES,
-    requiresAuthentication: true,
-    requiresWorkspaceMembership: true,
-    requiresIdempotencyKey: true,
-    requiresCorrelationId: true,
-    requiresFirestoreTransaction: true,
-    revalidatesRoleInTransaction: true,
-    writes: [
-      "investment_import_batches",
-      "investment_event_logs",
-      "investment_idempotency_keys",
-      "investment_operational_metrics",
-    ],
-    appendsToLedger: false,
-    updatesProjections: false,
-    affectsCashProjection: false,
-    clientDirectWriteAllowed: false,
-  },
-  archiveInvestmentAccount: {
-    operation: "archiveInvestmentAccount",
-    allowedRoles: PRIVILEGED_ROLES,
-    requiresAuthentication: true,
-    requiresWorkspaceMembership: true,
-    requiresIdempotencyKey: true,
-    requiresCorrelationId: true,
-    requiresFirestoreTransaction: true,
-    revalidatesRoleInTransaction: true,
-    writes: [
-      "investment_accounts",
-      "investment_event_logs",
-      "investment_idempotency_keys",
-      "investment_operational_metrics",
-    ],
-    appendsToLedger: false,
-    updatesProjections: false,
-    affectsCashProjection: false,
-    clientDirectWriteAllowed: false,
-  },
-  archiveInvestmentAsset: {
-    operation: "archiveInvestmentAsset",
-    allowedRoles: PRIVILEGED_ROLES,
-    requiresAuthentication: true,
-    requiresWorkspaceMembership: true,
-    requiresIdempotencyKey: true,
-    requiresCorrelationId: true,
-    requiresFirestoreTransaction: true,
-    revalidatesRoleInTransaction: true,
-    writes: [
-      "investment_assets",
-      "investment_event_logs",
-      "investment_idempotency_keys",
-      "investment_operational_metrics",
-    ],
-    appendsToLedger: false,
-    updatesProjections: false,
     affectsCashProjection: false,
     clientDirectWriteAllowed: false,
   },

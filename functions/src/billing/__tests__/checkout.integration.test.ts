@@ -207,6 +207,10 @@ test("checkout cria sessão para o customer canônico sem conceder " +
   const events = await billingEvents(uid, "checkout.created");
   assert.equal(events.length, 1);
   assert.equal(events[0].details.planId, "business");
+  // Correlação: a trilha do checkout leva o requestId da chamada (o kernel o
+  // gera por requisição; aqui, o do contexto de teste).
+  assert.match(String(events[0].requestId), /^req-[0-9a-f]+$/);
+  assert.equal(events[0].stripeEventId, null);
   assert.doesNotMatch(JSON.stringify(events[0]), /https:|@/);
 });
 

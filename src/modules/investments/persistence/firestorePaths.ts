@@ -3,8 +3,6 @@ import { db } from '../../../lib/firebase';
 
 const workspace = (workspaceId: string) => doc(db, 'workspaces', workspaceId);
 
-export const investmentAccountsRef = (workspaceId: string) =>
-  collection(workspace(workspaceId), 'investment_accounts');
 export const investmentAssetsRef = (workspaceId: string) =>
   collection(workspace(workspaceId), 'investment_assets');
 export const investmentPositionsRef = (workspaceId: string) =>

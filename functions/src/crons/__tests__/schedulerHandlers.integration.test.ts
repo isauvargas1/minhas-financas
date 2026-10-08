@@ -3,8 +3,8 @@ import test from "node:test";
 import * as admin from "firebase-admin";
 import {Timestamp} from "firebase-admin/firestore";
 
+import {processCreditCardInvoiceClosing} from "../../cards/closing";
 import {FUNCTIONS_REGION} from "../../shared/runtimeOptions";
-import {processCreditCardInvoiceOperationalAlerts} from "../creditCardInvoices";
 import {processInvestmentDriftScan} from "../investmentDrift";
 import {processRecurring} from "../recurring";
 
@@ -37,7 +37,6 @@ if (!process.env.FIRESTORE_EMULATOR_HOST) {
 }
 
 const PROJECT = process.env.GCLOUD_PROJECT || "minhas-financas-local";
-const WORKSPACE = "scheduler-handler-ws";
 /*
  * A varredura de deriva pagina `workspaces` por id global, em fatias de
  * `DRIFT_WORKSPACES_PER_RUN`. Outras suítes deixam workspaces no Emulator,
@@ -75,9 +74,9 @@ const SCHEDULERS = [
     schedule: "every day 06:00",
   },
   {
-    name: "processCreditCardInvoiceOperationalAlerts",
-    fn: processCreditCardInvoiceOperationalAlerts,
-    schedule: "every day 07:00",
+    name: "processCreditCardInvoiceClosing",
+    fn: processCreditCardInvoiceClosing,
+    schedule: "every day 00:15",
   },
 ];
 
@@ -109,41 +108,12 @@ test("toda rotina agendada declara fuso, região e recursos de rotina longa", ()
   }
 });
 
-test("o corpo do gatilho de recorrentes gera a despesa vencida", async () => {
-  await db().recursiveDelete(db().doc(`workspaces/${WORKSPACE}`));
-  await db().doc("job_checkpoints/recurring_expenses").delete();
-  await db().doc(`workspaces/${WORKSPACE}`).set({type: "PF", name: WORKSPACE});
-  await db()
-    .doc(`workspaces/${WORKSPACE}/recurring_expenses/handler-assinatura`)
-    .set({
-      nome: "Assinatura pelo gatilho",
-      tipo: "assinatura",
-      valorPadrao: 49.9,
-      moeda: "BRL",
-      periodo: "mensal",
-      diaCobranca: 10,
-      dataInicio: Timestamp.fromDate(new Date("2020-01-10T12:00:00.000Z")),
-      nextDueDate: "2020-01-10",
-      metodoPagamento: "pix",
-      gerarDespesaAutomaticamente: true,
-      corPrincipal: "#112233",
-      icone: "receipt",
-      status: "ativo",
-    });
-
-  await processRecurring.run(scheduledEvent("2026-08-26T05:00:00.000Z"));
-
-  const created = await db()
-    .collection(`workspaces/${WORKSPACE}/transactions`).get();
-  assert.equal(created.size, 1);
-  assert.equal(created.docs[0].id, "rec_handler-assinatura_2020-01-10");
-  assert.equal(created.docs[0].data().date, "2020-01-10");
-
-  // O corpo do gatilho também é quem persiste o checkpoint.
-  const checkpoint = await db().doc("job_checkpoints/recurring_expenses").get();
-  assert.equal(checkpoint.data()?.lastRunGenerated, 1);
-  assert.equal(checkpoint.data()?.lastRunTruncated, false);
-});
+/*
+ * O corpo do gatilho de recorrentes (P4-B) é exercitado em
+ * `recurring/__tests__/recurringScheduler.integration.test.ts`, no mesmo
+ * arquivo da varredura: as duas percorrem o collection group global
+ * `recurring_expenses`, e dentro de um arquivo os testes são sequenciais.
+ */
 
 test("o corpo do gatilho de deriva percorre a fatia e avança o cursor", async () => {
   const scheduleTime = "2026-08-26T09:00:00.000Z";

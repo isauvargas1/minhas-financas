@@ -95,6 +95,15 @@ Todos foram conferidos em `package.json`, `functions/package.json`, `playwright.
 | Comando | `npm run e2e:kill-ports` (portas 4000, 4400, 4500, 5001, 8080, 9099, 9150 e 5173; `package.json:30`). Variante: `npm run test:e2e:clean` (`package.json:31`). |
 | Sucesso | `lsof -iTCP:<porta> -sTCP:LISTEN` não retorna nada para as portas acima. |
 
+### RB-10 — Reconciliar saldos de contas no Emulator (P3-J)
+
+| Campo | Conteúdo |
+| --- | --- |
+| Pré-condições | RB-06 (Emuladores em execução) e `FIRESTORE_EMULATOR_HOST` definido; o projeto é `minhas-financas-local`. A ferramenta recusa rodar sem `FIRESTORE_EMULATOR_HOST` ou com o ID do projeto de produção. |
+| Comando | `node tools/accounts/reconciliar-contas.mjs --workspace=<id>` confere, por conta, `balanceCents` × soma dos movimentos em `cash_account_movements` e não altera nada (dry-run, padrão). Com `--reparar`, corrige os saldos divergentes. |
+| Sucesso | Código 0: consistente (ou reparado). Código 2: divergência encontrada no dry-run. Código 1: erro. |
+| Observações | Ferramenta só local (D-30); a reconciliação agendada de produção fica para a P7. Não cobre divisão de contas nem investimentos, que ainda não movimentam as contas (P4-C e demais); a recorrência registrada como paga move a conta no mesmo commit (P4-B, D-30); o pagamento de fatura de cartão move a conta desde a P4-A. |
+
 ---
 
 ## 2. Runbooks proibidos ou obsoletos
@@ -107,15 +116,15 @@ Não executar. Onde houver substituto, ele está indicado.
 | `firebase deploy` em qualquer forma; `npm --prefix functions run deploy` | `functions/package.json:12` | Sem gate; sem `--project`, cai no `default`, que é produção (`.firebaserc:3`) | ENTRY-19, REL-04 | RB-T01 |
 | `npm --prefix functions run logs`; `firebase functions:log` | `functions/package.json:13` | Lê logs do projeto de produção, o que CLAUDE.md proíbe | PR-PLAT-01 | Logs de DEV/STAGING autorizado (P6/P7) |
 | `npm --prefix functions run serve`, `shell`, `start` | `functions/package.json:9-11` | Sem `--project`, usam o `default` (produção). `serve` sobe só o emulador de Functions e `shell` executa funções localmente; chamadas do Admin SDK a serviços não emulados podem atingir o projeto real | ENTRY-19 | RB-06 |
-| `npm run functions:test:integration` (sem Emulator) | `package.json:15` | Testes com `skip` condicional passam sem executar (`functions/src/creditCards/__tests__/failureObservability.integration.test.ts:46-50`). `goalProgressRebuild.integration.test.ts` não tem guarda e faz `recursiveDelete` no projeto de `GCLOUD_PROJECT` (`functions/src/investments/__tests__/goalProgressRebuild.integration.test.ts:28,35-38,53`) | REL-09, FIRE-13 | RB-03, RB-07 |
+| `npm run functions:test:integration` (sem Emulator) | `package.json:15` | Testes com `skip` condicional passam sem executar (`functions/src/crons/__tests__/investmentDrift.integration.test.ts:105`). `goalProgressRebuild.integration.test.ts` não tem guarda e faz `recursiveDelete` no projeto de `GCLOUD_PROJECT` (`functions/src/investments/__tests__/goalProgressRebuild.integration.test.ts:28,35-38,53`) | REL-09, FIRE-13 | RB-03, RB-07 |
 | `npm run dev` com a configuração local | `package.json:7`; `src/lib/firebase.ts:7-14,47-62` | Sem `VITE_USE_FIREBASE_EMULATORS=true`, o app se conecta ao projeto configurado no arquivo local, hoje o único projeto, que é produção | PR-PLAT-01 | RB-06 (`test:e2e:ui`, `E2E_SERVER=dev`) |
 | `docs/investments/PRODUCTION_DEPLOYMENT_CHECKLIST.md` | — | OUTDATED. `npm run deploy:* --project <PROJETO>` não troca o alvo, porque o npm consome a flag (linhas 103 e 125; REL-03). Fala em "53 funções" contra 47 no HEAD (122, 129). Usa como evidência `firebase functions:secrets:access`, que **imprime o segredo** (61). A ordem canônica não tem backup e prevê um rollout de flag inexistente (20-25) | REL-03, FIRE-14, PR-DOCS-01 | RB-T01, RB-T02, [BACKUP_RESTORE_DR.md](BACKUP_RESTORE_DR.md) |
-| `docs/investments/CASH_BACKFILL_RUNBOOK.md` | — | Manda operar por "Configurações › Cadastros › Operação do domínio patrimonial" (`docs/investments/CASH_BACKFILL_RUNBOOK.md:56`), superfície sem ponto de montagem (`src/components/SettingsView.tsx:741-752`) | REL-14 | RB-T04 |
+| `docs/investments/CASH_BACKFILL_RUNBOOK.md` | — | Manda operar por "Configurações › Cadastros › Operação do domínio patrimonial" (`docs/investments/CASH_BACKFILL_RUNBOOK.md:56`), superfície removida (painel e callables de rebuild/backfill de investimentos saíram na P4-D, plano §19.4) | REL-14 | RB-T04 |
 | `docs/investments/TTL_MANIFEST.md` como procedimento | — | Ativação por loop `gcloud` manual (51-70). Cita `investment_audit_logs`, coleção inexistente (44, 118). OUTDATED | FIRE-08, RULES-13 | RB-T10 |
 | `docs/investments/OPERATIONAL_LIMITS.md` | — | OUTDATED: cita constantes e callables que não existem no HEAD (34, 43) | REL-14 | — |
 | `tools/investments/limpar-investimentos.mjs` | `tools/investments/limpar-investimentos.mjs:59,88,144-149,352,409` | Hard delete do ledger de investimentos e de transações, com override para o ID de produção. A suíte de guarda valida esse override como suportado (REL-02) | PR-PLAT-02 | Seed/reset só no Emulator (P6). O único uso permitido é a própria suíte de guarda dentro de RB-03 |
 | `tools/staging/rehearsal.sh` | `tools/staging/rehearsal.sh:21-41,65,70` | Não existe projeto de staging (`.firebaserc:1-5`). O script chama `deploy:*` com `-- --project` sobre um alvo já fixado (REL-03). Os passos estão obsoletos: "53 funções" (72), histórico legado (91), `CASH_BACKFILL_RUNBOOK` (98), "flag ligada" (105), "seis coleções" e `investment_operation_leases` (139-142). Negado no harness | PR-PLAT-01, REL-03, FIRE-14 | RB-T01 (deploy em STAGING pelo CD, com smoke) |
-| Área operacional de investimentos (`InvestmentOperationsPanel`) | `src/components/SettingsView.tsx:741-752` | Componente sem ponto de montagem; rebuild e backfill de investimentos e caixa não têm superfície | INV-05; D-15 | RB-T04 |
+| ~~Área operacional de investimentos (`InvestmentOperationsPanel`)~~ | Removida na P4-D | Componente e callables de rebuild/backfill de investimentos removidos (D-15, plano §19.4); o rebuild de caixa não tem superfície | INV-05; D-15 (tomada na P4-D) | RB-T04 |
 | Console, SDK, CLI ou ferramentas MCP do Firebase contra `sistema-financeiro-pesso-20698` | CLAUDE.md | Proibido a agentes em qualquer forma | — | Emulator (RB-06) |
 
 ---
@@ -127,9 +136,9 @@ Nenhum destes procedimentos existe no HEAD. Cada um é criado e exercitado no mi
 | ID | Runbook | Milestone | Dono (papel) | Pré-requisitos | IDs |
 | --- | --- | --- | --- | --- | --- |
 | RB-T01 | Deploy por CD e rollback | P6 | Responsável de plataforma | E-01, E-04, E-12; D-19 | PR-REL-01, PR-PLAT-01, PR-AUTH-04 |
-| RB-T02 | Rotação de segredo (inclui a chave Gemini) | E-00 imediato; procedimento geral em P6 (Stripe em P2) | Responsável de plataforma | E-05 | PR-AI-02, PR-BILL-05 |
-| RB-T03 | Replay de webhook Stripe | P2 (idempotência e registro), P7 (fila, alerta, replay) | Responsável de billing | E-06, E-08 | PR-BILL-06, PR-BILL-01, PR-OBS-01 |
-| RB-T04 | Reconciliação e rebuild financeiro por domínio | P3–P5 (rebuild por domínio), P7 (jobs com alerta) | Responsável do domínio financeiro | RB-T09 | PR-TX-04, PR-CC-04, INV-05, PR-OBS-01 |
+| RB-T02 | Rotação de segredo (inclui a chave Gemini) | E-00 imediato; procedimento geral em P6 (Stripe sem fallback desde P2A) | Responsável de plataforma | E-05 | PR-AI-02, PR-BILL-05 |
+| RB-T03 | Replay de webhook Stripe | P2A (idempotência e registro, entregues), P7 (fila de falhas, alerta, replay, reconciliação periódica) | Responsável de billing | E-06, E-08 | PR-BILL-06, PR-BILL-01, PR-OBS-01 |
+| RB-T04 | Reconciliação e rebuild financeiro por domínio | P3–P5 (rebuild por domínio), P7 (jobs com alerta) | Responsável do domínio financeiro | RB-T09 | PR-TX-04, INV-05, PR-OBS-01 (PR-CC-04 resolvido na P4-A) |
 | RB-T05 | Restore do Firestore | P7 | Responsável de plataforma | E-07, D-27 | PR-BKP-01 |
 | RB-T06 | Suspensão de usuário e revogação de sessão | P1 (mecanismo), P7 (operação administrativa) | Suporte + segurança | D-06, D-10 | AUTH-09, PR-OBS-02, PR-ADMIN-01 |
 | RB-T07 | Atendimento a solicitação de titular | P8 | Encarregado de dados | D-07, D-18, D-21, E-09 | PR-AUTH-01, PR-PRIV-01, PR-CR-05 |
@@ -157,22 +166,22 @@ Nenhum destes procedimentos existe no HEAD. Cada um é criado e exercitado no mi
   1. Listar toda chave de IA que já esteve em arquivo local ou em bundle publicado.
   2. Criar uma chave nova por ambiente, restrita à Generative Language API e com quota.
   3. Gravar a chave como nova versão de `GOOGLE_AI_API_KEY` sem exibir o valor (por exemplo, `gcloud secrets versions add GOOGLE_AI_API_KEY --data-file=- --project=<PROJECT_ID>`).
-  4. Revogar a chave antiga no provedor. É esse passo que elimina o risco. Até as funções montarem a nova versão, a chave revogada continua montada e as callables de IA falham na chamada ao provedor; `readApiKey` só recusa chave ausente ou curta (`functions/src/ai/callables.ts:107-116`).
+  4. Revogar a chave antiga no provedor. É esse passo que elimina o risco. Até as funções montarem a nova versão, a chave revogada continua montada e as callables de IA falham na chamada ao provedor; `readApiKey` só recusa chave ausente ou curta (`functions/src/ai/callables.ts:131-141`).
   5. A versão do segredo é fixada no deploy da função. O redeploy das duas callables de IA é decisão e execução humanas; agentes não fazem deploy (CLAUDE.md).
   6. Registrar a evidência (data, identificador da chave revogada, restrições da nova, responsável) em [SECURITY_MODEL.md](SECURITY_MODEL.md).
-- **TARGET — procedimento geral** (P6; segredos Stripe em P2): gerar a credencial nova no provedor, com test/live separados → adicionar a versão no Secret Manager do ambiente → deploy pelo CD → verificar em STAGING (checkout e entrega de webhook com código 200) → promover → desativar e destruir a versão antiga → revogar a credencial antiga no provedor.
+- **TARGET — procedimento geral** (P6; os segredos Stripe não têm fallback desde P2A): gerar a credencial nova no provedor, com test/live separados → adicionar a versão no Secret Manager do ambiente → deploy pelo CD → verificar em STAGING (checkout e entrega de webhook com código 200) → promover → desativar e destruir a versão antiga → revogar a credencial antiga no provedor.
 - **Verificação:** só por metadados (`gcloud secrets versions list <NOME> --project=<PROJECT_ID>`); nunca `functions:secrets:access`.
 - **Sucesso:** nenhuma versão antiga ativa, credencial antiga revogada, zero erro de autenticação com o provedor e registro atualizado (E-05).
 
 ### RB-T03 — Replay de webhook Stripe
 
-- **CURRENT:** o webhook trata só `checkout.session.completed` (`functions/src/webhooks/stripe.ts:60`), não registra nem deduplica `event.id` (`functions/src/webhooks/stripe.ts:49-110`), ecoa `error.message` (`functions/src/webhooks/stripe.ts:53-57`) e não gera alerta. Não existe replay seguro: um reenvio pelo painel do Stripe reaplica o evento sem deduplicação nem controle de ordem.
-- **TARGET (P2):** cada evento é registrado em `stripe_events` (id = `event.id`, tipo, `created`, status, tentativas, último erro, TTL), com processamento idempotente e ordenado por `event.created` ([BILLING_ENTITLEMENTS.md](BILLING_ENTITLEMENTS.md)). **(P7):** consulta paginada de falhas, alerta e ferramenta de replay auditada.
+- **CURRENT:** o webhook trata 13 tipos de evento (`functions/src/billing/webhook.ts:190-300`), registra e deduplica por `event.id` em `billing_webhook_events/{event.id}` (`functions/src/billing/webhook.ts:473-476`), relê o estado no Stripe sob lease com geração em vez de aplicar o payload e não ecoa erro do SDK (`functions/src/billing/webhook.ts:857-860,892-895`). Sinais de log: `billing_webhook.failed` (ERROR, `errorCode` estável, `stripeEventId`), `billing_webhook.contention` (WARNING, `lease_contention`), `billing_webhook.processed`, `billing_webhook.signature_invalid` e `billing_webhook.body_too_large` (413 antes da assinatura). Não gera alerta nem tem fila de falhas ou replay administrativo (P7); o reenvio pelo painel do Stripe de um evento já `processed` é no-op.
+- **CURRENT (P2A) e TARGET (P7):** o registro por evento foi entregue em P2A como recibo `billing_webhook_events/{event.id}` (tipo, `livemode`, `status`, `outcome`, `reason`, TTL de 90 dias), com processamento idempotente e ordem pela releitura do Stripe sob lease com geração ([BILLING_ENTITLEMENTS.md](BILLING_ENTITLEMENTS.md)). Tentativas e último erro não existem hoje: ficam para a fila de falhas, com consulta paginada, alerta e ferramenta de replay auditada, tudo em **P7** (PR-OBS-01).
 - **Procedimento TARGET:**
-  1. O alerta de falha (E-08) leva aos eventos com status de falha em `stripe_events`, ou no painel do Stripe (endpoint › eventos com falha).
+  1. O alerta de falha (E-08) sobre `billing_webhook.failed` (por `errorCode`) ou `billing_webhook.contention` leva, pelo `stripeEventId`, ao recibo `billing_webhook_events/{event.id}` (recibo `processing` indica entrega que não chegou ao commit) e à fila de falhas (P7), ou ao painel do Stripe (endpoint › eventos com falha).
   2. Corrigir a causa (segredo, deploy ou bug) antes de qualquer reenvio.
   3. Reenviar o evento original, com o mesmo `event.id`, pelo painel ou API do Stripe, ou reprocessar pela ferramenta administrativa (RB-T09).
-  4. `event.id` já processado vira no-op; evento mais antigo que o estado atual é ignorado com registro.
+  4. `event.id` já processado vira no-op; o estado vem sempre da releitura atual do Stripe, então um evento mais antigo não sobrescreve um estado mais novo.
   5. Conferir que o estado de assinatura é igual ao do Stripe e que a auditoria foi gravada.
 - **Sucesso:** zero eventos em falha e estado conciliado com o Stripe.
 
@@ -180,11 +189,12 @@ Nenhum destes procedimentos existe no HEAD. Cada um é criado e exercitado no mi
 
 | Domínio | Ferramenta CURRENT | Como é acionada hoje | TARGET | Milestone |
 | --- | --- | --- | --- | --- |
-| Investimentos | `rebuildInvestmentProjections`, `recalculateInvestmentPosition`, `recalculateGoalInvestmentProgress`, `backfillInvestmentWorkspace` (`functions/src/investments/callables.ts:188-200,244-256`); `processInvestmentDriftScan` diário, que compara só projeções (`functions/src/crons/investmentDrift.ts:104-146,325-330`) | Painel sem ponto de montagem (`src/components/SettingsView.tsx:741-752`) | Deriva do ledger contra as posições em todos os tenants, com alerta; execução pela ferramenta auditada (RB-T09) | P4 (D-15), P7 |
-| Caixa | `rebuildCashPeriods`, com simulação e saída de reconciliação, papel owner/admin e 100 chamadas/h (`functions/src/cash/rebuild.ts:55,111-115,117-245,247-262`) | Mesmo painel sem montagem | Projeção atualizada na callable autoritativa ou retry com cerca de versão; job de deriva de caixa com alerta | P3 (PR-TX-04, D-38), P7 |
-| Cartões | `rebuildCardInvoicesForCard`, `recalculateCardLimit` (`functions/src/creditCards/callables.ts:163-187`) | Tela de cartões (`src/components/CreditCardsView.tsx:673-674`) | Cron com releitura transacional e cursor (PR-CC-04); reconciliação compras × faturas × limite com alerta | P4, P7 |
-| Metas | `recalculateGoalInvestmentProgress` | Painel sem montagem | Job de deriva da projeção única de progresso | P5, P7 |
-| Empréstimos, recebíveis, divisão, recorrentes | Nenhuma: os dados são gravados pelo cliente (PR-RULES-01) | — | Ledger ou eventos no backend, com rebuild idempotente | P3, P4, P7 |
+| Investimentos | Nenhuma callable pública de rebuild, recálculo ou backfill desde a P4-D (D-15, plano §19.4); `processInvestmentDriftScan` diário, que compara só projeções (`functions/src/crons/investmentDrift.ts`) | Cron agendado, sem superfície | Deriva do ledger contra as posições em todos os tenants, com alerta; reparo operacional pela ferramenta auditada (RB-T09) | P6/P7 |
+| Caixa | `rebuildCashPeriods`, com simulação e saída de reconciliação, papel owner/admin e 100 chamadas/h; desde P3-B com cerca de corte, recomeço controlado (`restarted` com o motivo) e publicação numa única transação (`functions/src/cash/rebuild.ts:410-766`). Repetir a chamada até `completed: true`; `needsRebuild` em `cash_period_events/projection_state` indica que o gatilho percebeu divergência | Mesmo painel sem montagem | Retry com cerca entregue (D-38, P3-B); falta o job de deriva de caixa com alerta | P3 (PR-TX-04), P7 |
+| Cartões | `rebuildCardInvoicesForCard`, `recalculateCardLimit` (`functions/src/cards/callables.ts`; owner/admin; perfil pesado) | Callables (P4-A); a superfície na tela de cartões não consta da folha de fatos | Rotina de fechamento com releitura transacional e páginas de 200 (`processCreditCardInvoiceClosing`, P4-A, PR-CC-04 resolvido); reconciliação compras × faturas × limite com alerta | P7 (alerta) |
+| Metas | Nenhuma (`recalculateGoalInvestmentProgress` removida na P4-D) | — | Job de deriva da projeção única de progresso; reparo futuro (P6/P7) | P5, P7 |
+| Contas/carteiras (P3-J) | `tools/accounts/reconciliar-contas.mjs` (RB-10): saldo × soma dos movimentos, só no Emulator, dry-run por padrão e `--reparar` | Linha de comando local | Reconciliação agendada com alerta | P7 |
+| Recebíveis, divisão (recorrentes: trilha `recurring_events` desde a P4-B; empréstimos: escrita só pelo backend desde a P3-H, com `loan_events` append-only) | Nenhuma: os dados são gravados pelo cliente (PR-RULES-01) | — | Ledger ou eventos no backend, com rebuild idempotente | P3, P4, P7 |
 
 - **Procedimento TARGET:**
   1. Executar em simulação e comparar com o valor exibido.
@@ -235,7 +245,7 @@ Severidades, papéis, fluxo e playbooks (inclusive segredo exposto e incidente c
 
 ### RB-T10 — Alteração de política de TTL (P6)
 
-- **CURRENT:** ativação manual por coleção (`functions/src/shared/retention.ts:17-20`); nenhum `fieldOverrides` (`firestore.indexes.json:806`).
+- **CURRENT:** 12 `fieldOverrides` de TTL versionados em `firestore.indexes.json` (lista em [DATA_RETENTION_LIFECYCLE.md](DATA_RETENTION_LIFECYCLE.md) §2.2); publicação e estado por ambiente NÃO VERIFICADOS (E-07). A política só passa a valer depois de publicada (`functions/src/shared/retention.ts:17-20`).
 - **Procedimento TARGET:**
   1. PR que altera os `fieldOverrides` com `ttl: true`, junto com o teste que os compara com a lista do código.
   2. Deploy em STAGING pelo CD e conferência com `gcloud firestore fields ttls list --project=<STAGING>`.

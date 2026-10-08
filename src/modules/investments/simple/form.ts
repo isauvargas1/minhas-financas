@@ -10,8 +10,15 @@
  *
  * O que a interface **nunca** monta, por contrato do §4: `accountId`,
  * `assetId`, `quantityMicros`, `assetType`, posição ou resultado. O backend
- * deriva tudo isso.
+ * deriva tudo isso. A única conta que a interface informa é a do Caixa
+ * (`cashAccountId`, D-30): de onde saiu o dinheiro depositado e para onde foi
+ * o dinheiro recebido — e só quando o fato já aconteceu.
  */
+
+/** Conta do Caixa obrigatória no aporte depositado (P4-D). */
+export const CONTRIBUTION_ACCOUNT_MESSAGE = 'Escolha a conta de origem do dinheiro.';
+/** Conta do Caixa obrigatória na retirada recebida (P4-D). */
+export const WITHDRAWAL_ACCOUNT_MESSAGE = 'Escolha a conta de destino do dinheiro.';
 
 export const MAX_CENTS = 9_000_000_000_000;
 export const MAX_DESCRIPTION_LENGTH = 240;
@@ -86,20 +93,17 @@ export const dateInputToInstant = (value: string, now: Date): string => {
 export interface NewInvestmentFormState {
   /** Vazio significa "Sem meta". Meta é opcional por contrato do §4. */
   goalId: string;
-  /** Carteira de investimento — item de `investment_class`. */
+  /** Carteira de investimentos — item de `investment_class`. */
   classId: string;
   institutionId: string;
   description: string;
-  /**
-   * Categoria — item de `category` com `transactionSubtype: "investimento"`.
-   *
-   * Um pendente aberto antes da unificação traz aqui o identificador do grupo
-   * histórico `investment_type`, que o backend continua aceitando.
-   */
+  /** Categoria — item de `category` com `transactionSubtype: "investimento"`. */
   typeId: string;
   amount: string;
   deposited: boolean;
   date: string;
+  /** Conta de origem (`cash_accounts`), exigida só quando já foi depositado. */
+  cashAccountId: string;
 }
 
 export const emptyNewInvestmentForm = (now: Date, goalId = ''): NewInvestmentFormState => ({
@@ -111,13 +115,14 @@ export const emptyNewInvestmentForm = (now: Date, goalId = ''): NewInvestmentFor
   amount: '',
   deposited: true,
   date: dateInputValue(now),
+  cashAccountId: '',
 });
 
 export type SimpleFormErrors = Record<string, string>;
 
 export const validateNewInvestment = (state: NewInvestmentFormState): SimpleFormErrors => {
   const errors: SimpleFormErrors = {};
-  if (!state.classId) errors.classId = 'Escolha a carteira de investimento.';
+  if (!state.classId) errors.classId = 'Escolha a carteira de investimentos.';
   if (!state.institutionId) errors.institutionId = 'Escolha a instituição.';
   const description = state.description.trim();
   if (description.length === 0) errors.description = 'Descreva o investimento.';
@@ -129,6 +134,7 @@ export const validateNewInvestment = (state: NewInvestmentFormState): SimpleForm
   if (valueCents <= 0) errors.amount = 'Informe um valor maior que zero.';
   else if (valueCents > MAX_CENTS) errors.amount = 'Valor acima do limite permitido.';
   if (!isValidDateInput(state.date)) errors.date = 'Informe uma data válida.';
+  if (state.deposited && !state.cashAccountId) errors.cashAccountId = CONTRIBUTION_ACCOUNT_MESSAGE;
   return errors;
 };
 
@@ -137,10 +143,8 @@ export interface CategorySelectOption {
   label: string;
 }
 
-/**
- * Rótulo da opção de compatibilidade quando o movimento não fotografou nome.
- */
-export const LEGACY_CATEGORY_FALLBACK_LABEL = 'Categoria atual';
+/** Rótulo da categoria vinculada quando o movimento não fotografou nome. */
+export const SELECTED_CATEGORY_FALLBACK_LABEL = 'Categoria atual';
 
 /**
  * Opções do seletor de categoria do investimento.
@@ -148,28 +152,15 @@ export const LEGACY_CATEGORY_FALLBACK_LABEL = 'Categoria atual';
  * A lista vem exclusivamente do cadastro atual — `category` com
  * `transactionSubtype: "investimento"`, que é Configurações › Cadastros ›
  * Categorias › Investimentos. Há **uma** exceção: o item já selecionado que
- * não está mais nessa lista.
+ * não está mais nessa lista porque foi **inativado** depois do lançamento.
  *
- * Isso acontece com um pendente aberto antes da unificação, cujo identificador
- * é do grupo histórico `investment_type`: a pessoa abriu a edição para
- * corrigir outra coisa — uma data, um valor —, e exigir uma recategorização
- * para isso transformaria uma correção trivial numa decisão de classificação
- * que ninguém pediu.
- *
- * O mesmo desenho alcança a categoria **inativada** depois do lançamento, e
- * aí ele não é só visual: a correção do pendente envia `replacesMovementId`, e
- * o backend tolera a inatividade **daquele** identificador — o que o
- * movimento substituído já carrega — dentro da mesma transação que o cancela.
- * Corrigir a descrição de um pendente cuja categoria foi aposentada continua
- * possível, sem recategorizar. Escolher **outra** categoria inativa não: a
- * exceção tem o tamanho de um identificador, e a lista abaixo só oferece as
- * ativas mais a que já estava selecionada.
- *
- * A compatibilidade tem o tamanho exato do problema: **uma** opção, rotulada
- * com o nome que o próprio movimento fotografou, e nunca o catálogo antigo
- * inteiro. Escolher qualquer categoria da lista atual faz a opção de
- * compatibilidade desaparecer — o lançamento passa a usar o identificador
- * novo e não há caminho de volta ao cadastro que saiu da experiência comum.
+ * A correção de um pendente envia `replacesMovementId`, e o backend tolera a
+ * inatividade **daquele** identificador — o que o movimento substituído já
+ * carrega — dentro da mesma transação que o cancela. Corrigir a descrição de
+ * um pendente cuja categoria foi aposentada continua possível, sem
+ * recategorizar. Escolher **outra** categoria inativa não: a exceção tem o
+ * tamanho de um identificador, rotulada com o nome que o próprio movimento
+ * fotografou. Escolher qualquer categoria da lista faz a opção desaparecer.
  *
  * O vínculo é sempre por identificador. Nada aqui compara rótulos.
  */
@@ -190,7 +181,7 @@ export const buildCategoryOptions = (
   return [
     {
       value: selectedId,
-      label: selectedFallbackLabel?.trim() || LEGACY_CATEGORY_FALLBACK_LABEL,
+      label: selectedFallbackLabel?.trim() || SELECTED_CATEGORY_FALLBACK_LABEL,
     },
     ...current,
   ];
@@ -205,6 +196,8 @@ export interface CreateSimpleInvestmentInput {
   settled: boolean;
   occurredAt: string;
   goalId?: string;
+  /** Conta de origem do aporte depositado (D-30). Ausente no pendente. */
+  cashAccountId?: string;
   /**
    * Aporte pendente que este lançamento substitui (§11).
    *
@@ -220,9 +213,9 @@ export interface CreateSimpleInvestmentInput {
  * Estado do formulário → payload de `createSimpleInvestment`.
  *
  * "Esse valor já foi depositado?" é a única pergunta que decide o efeito
- * financeiro: `Sim` liquida, `Não` cria a intenção pendente, sem mover
- * patrimônio nem caixa. `walletId` não é enviado — é informação operacional
- * opcional no backend, e o §4 proíbe transformá-la em campo obrigatório.
+ * financeiro: `Sim` liquida — e o dinheiro sai da conta de origem escolhida
+ * (`cashAccountId`) —, `Não` cria a intenção pendente, sem mover patrimônio,
+ * caixa nem conta; a conta é escolhida na confirmação do depósito.
  *
  * `replacesMovementId` só viaja na correção de um pendente, e entra no digest
  * da intenção como qualquer outro campo: retry e duplo clique da **mesma**
@@ -241,6 +234,7 @@ export const buildCreateSimpleInvestmentInput = (
   settled: state.deposited,
   occurredAt: dateInputToInstant(state.date, now),
   ...(state.goalId ? { goalId: state.goalId } : {}),
+  ...(state.deposited ? { cashAccountId: state.cashAccountId } : {}),
   ...(replacesMovementId ? { replacesMovementId } : {}),
 });
 
@@ -254,6 +248,8 @@ export interface WithdrawFormState {
   date: string;
   /** Opcional, atrás de "Mais detalhes". Vazio significa "tudo é capital". */
   gain: string;
+  /** Conta de destino (`cash_accounts`), exigida só quando já foi recebido. */
+  cashAccountId: string;
 }
 
 export const emptyWithdrawForm = (now: Date): WithdrawFormState => ({
@@ -261,6 +257,7 @@ export const emptyWithdrawForm = (now: Date): WithdrawFormState => ({
   received: true,
   date: dateInputValue(now),
   gain: '',
+  cashAccountId: '',
 });
 
 export const validateWithdraw = (state: WithdrawFormState): SimpleFormErrors => {
@@ -273,6 +270,7 @@ export const validateWithdraw = (state: WithdrawFormState): SimpleFormErrors => 
     errors.gain = 'O rendimento não pode ser maior que o valor da retirada.';
   }
   if (!isValidDateInput(state.date)) errors.date = 'Informe uma data válida.';
+  if (state.received && !state.cashAccountId) errors.cashAccountId = WITHDRAWAL_ACCOUNT_MESSAGE;
   return errors;
 };
 
@@ -282,6 +280,8 @@ export interface WithdrawSimpleInvestmentInput {
   received: boolean;
   occurredAt: string;
   gainCents?: number;
+  /** Conta de destino da retirada recebida (D-30). Ausente na pendente. */
+  cashAccountId?: string;
 }
 
 /**
@@ -303,5 +303,6 @@ export const buildWithdrawSimpleInvestmentInput = (
     received: state.received,
     occurredAt: dateInputToInstant(state.date, now),
     ...(gainCents > 0 ? { gainCents } : {}),
+    ...(state.received ? { cashAccountId: state.cashAccountId } : {}),
   };
 };

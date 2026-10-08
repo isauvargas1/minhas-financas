@@ -40,14 +40,3 @@ export const investmentRequestIds = (
   idempotencyKey: investmentIdempotencyKey(operation, nonce, intentPayload),
   correlationId: investmentCorrelationId(),
 });
-
-export const onboardInvestmentWorkspace = async (workspaceId: string) => {
-  // Onboarding é idempotente por workspace, não por intenção: semear duas
-  // vezes é sempre a mesma operação.
-  const requestId = `investment-onboarding-v1:${workspaceId}`;
-  return callInvestment('onboardInvestmentWorkspace', {
-    workspaceId,
-    idempotencyKey: requestId,
-    correlationId: investmentCorrelationId(),
-  });
-};

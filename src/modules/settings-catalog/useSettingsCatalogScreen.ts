@@ -2,8 +2,17 @@ import { useEffect, useMemo, useState } from 'react';
 
 import { useWorkspace } from '../../contexts/WorkspaceContext';
 import {
+  buildArchiveCatalogPayload,
+  buildCreateCatalogPayload,
+  buildUpdateCatalogPayload,
+  settingsCatalogErrorView,
+  settingsCatalogPermissions,
+  type SettingsCatalogFormValues
+} from './callables';
+import {
+  useArchiveSettingsCatalogItem,
   useCreateSettingsCatalogItem,
-  useDeleteSettingsCatalogItem,
+  useCatalogIntentKey,
   useSettingsCatalogPage,
   useUpdateSettingsCatalogItem
 } from './hooks';
@@ -15,12 +24,9 @@ import {
   type SettingsCatalogSectionKey
 } from './presentation';
 import type {
-  SettingsCatalogCreateInput,
   SettingsCatalogItem,
   SettingsCatalogPageCursor,
-  SettingsCatalogStatus,
-  SettingsCatalogTransactionSubtype,
-  SettingsCatalogUpdateInput
+  SettingsCatalogTransactionSubtype
 } from './types';
 
 type FeedbackState =
@@ -32,25 +38,28 @@ type FeedbackState =
 
 type ModalMode = 'create' | 'edit';
 
-export interface SettingsCatalogFormValues {
-  name: string;
-  icon?: string | null;
-  color?: string | null;
-  stroke?: number | null;
-  sortOrder?: number;
-  status?: SettingsCatalogStatus;
-}
+export type { SettingsCatalogFormValues };
 
 const DEFAULT_CATEGORY_SUBTYPE: SettingsCatalogTransactionSubtype = 'despesa';
 
+/** O papel mudou com o diálogo aberto: o mesmo texto que o backend devolve. */
+const ROLE_DENIED_MESSAGE =
+  'Seu papel neste espaço de trabalho não permite esta operação.';
+
 export const useSettingsCatalogScreen = () => {
-  const { activeWorkspace } = useWorkspace();
+  const { activeWorkspace, activeWorkspaceRole } = useWorkspace();
+  /*
+   * D-23: só owner e admin administram o catálogo; member e viewer consultam.
+   * A tela esconde as ações, mas a autoridade é do backend — o papel é relido
+   * na transação de cada callable, e as Rules negam toda escrita do cliente.
+   */
+  const permissions = settingsCatalogPermissions(activeWorkspaceRole);
 
   /*
-   * Configurações › Cadastros lista o catálogo da experiência comum: o que o
-   * perfil do workspace permite **e** o que a própria seção declara como
-   * `audience: 'common'`. Carteiras de caixa, risco, liquidez, indexadores e
-   * estratégias seguem definidos no domínio e fora daqui.
+   * Configurações › Cadastros lista o catálogo que o perfil do workspace
+   * permite. A carteira de caixa é conta (Contas e carteiras, D-30); os
+   * cadastros técnicos de investimento saíram com a superfície profissional
+   * (D-15, P4-D).
    */
   const sections = useMemo(
     () => listCommonSettingsCatalogSections(activeWorkspace.type),
@@ -113,11 +122,18 @@ export const useSettingsCatalogScreen = () => {
 
   const createMutation = useCreateSettingsCatalogItem();
   const updateMutation = useUpdateSettingsCatalogItem();
-  const deleteMutation = useDeleteSettingsCatalogItem();
+  const archiveMutation = useArchiveSettingsCatalogItem();
+  // Uma intenção por diálogo: o reenvio do mesmo conteúdo reusa a chave.
+  // Na inativação, o conteúdo é o item e a versão lida — reabrir a
+  // confirmação do mesmo item na mesma versão é a mesma intenção.
+  const formIntent = useCatalogIntentKey();
+  const archiveIntent = useCatalogIntentKey();
 
   const clearFeedback = () => setFeedback(null);
 
   const openCreateModal = () => {
+    if (!permissions.canManage) return;
+    formIntent.reset();
     setModalMode('create');
     setSelectedItem(null);
     setIsModalOpen(true);
@@ -125,6 +141,8 @@ export const useSettingsCatalogScreen = () => {
   };
 
   const openEditModal = (item: SettingsCatalogItem) => {
+    if (!permissions.canManage) return;
+    formIntent.reset();
     setModalMode('edit');
     setSelectedItem(item);
 
@@ -146,20 +164,30 @@ export const useSettingsCatalogScreen = () => {
 
     clearFeedback();
 
+    if (!permissions.canManage) {
+      setFeedback({ type: 'error', message: ROLE_DENIED_MESSAGE });
+      return;
+    }
+
     try {
       if (modalMode === 'edit' && selectedItem) {
-        const payload: SettingsCatalogUpdateInput = {
-          name: values.name,
-          icon: values.icon,
-          color: values.color,
-          stroke: values.stroke,
-          sortOrder: values.sortOrder,
-          status: values.status
-        };
+        const payload = buildUpdateCatalogPayload(
+          activeWorkspace.id,
+          selectedItem,
+          values
+        );
+
+        if (!payload) {
+          setFeedback({
+            type: 'error',
+            message: 'Nenhum dado foi alterado: os valores informados já são os atuais.'
+          });
+          return;
+        }
 
         await updateMutation.mutateAsync({
-          id: selectedItem.id,
-          data: payload
+          payload,
+          idempotencyKey: formIntent.keyFor('updateSettingsCatalogItem', payload)
         });
 
         setFeedback({
@@ -167,25 +195,22 @@ export const useSettingsCatalogScreen = () => {
           message: 'Cadastro atualizado com sucesso.'
         });
       } else {
-        const payload: SettingsCatalogCreateInput = {
+        const payload = buildCreateCatalogPayload(activeWorkspace.id, {
           group: activeSection.group,
           name: values.name,
-          workspaceScope: activeSection.group === 'cost_center'
-            ? 'PJ'
-            : activeSection.group === 'investment_class' || activeSection.group === 'investment_strategy'
-              ? activeWorkspace.type
-              : 'both',
           transactionSubtype: activeSection.supportsTransactionSubtype
             ? transactionSubtype
             : undefined,
           icon: values.icon,
           color: values.color,
           stroke: values.stroke,
-          sortOrder: values.sortOrder,
           status: values.status ?? 'active'
-        };
+        });
 
-        await createMutation.mutateAsync(payload);
+        await createMutation.mutateAsync({
+          payload,
+          idempotencyKey: formIntent.keyFor('createSettingsCatalogItem', payload)
+        });
 
         setFeedback({
           type: 'success',
@@ -194,10 +219,11 @@ export const useSettingsCatalogScreen = () => {
       }
 
       closeModal();
-    } catch {
+    } catch (error) {
+      // O formulário continua aberto e preenchido; a mensagem é a do backend.
       setFeedback({
         type: 'error',
-        message: 'Não foi possível salvar o cadastro. Revise os dados e tente novamente.'
+        message: settingsCatalogErrorView(error).message
       });
     }
   };
@@ -205,17 +231,26 @@ export const useSettingsCatalogScreen = () => {
   const removeItem = async (item: SettingsCatalogItem) => {
     clearFeedback();
 
+    if (!permissions.canManage) {
+      setFeedback({ type: 'error', message: ROLE_DENIED_MESSAGE });
+      return;
+    }
+
     try {
-      await deleteMutation.mutateAsync(item.id);
+      const payload = buildArchiveCatalogPayload(activeWorkspace.id, item);
+      await archiveMutation.mutateAsync({
+        payload,
+        idempotencyKey: archiveIntent.keyFor('archiveSettingsCatalogItem', payload)
+      });
 
       setFeedback({
         type: 'success',
           message: `“${item.name}” foi inativado com sucesso.`
       });
-    } catch {
+    } catch (error) {
       setFeedback({
         type: 'error',
-        message: 'Não foi possível inativar o cadastro. Tente novamente.'
+        message: settingsCatalogErrorView(error).message
       });
     }
   };
@@ -224,9 +259,10 @@ export const useSettingsCatalogScreen = () => {
     query.isLoading ||
     createMutation.isPending ||
     updateMutation.isPending ||
-    deleteMutation.isPending;
+    archiveMutation.isPending;
 
   return {
+    canManage: permissions.canManage,
     sections,
     activeSection,
     activeSectionKey,

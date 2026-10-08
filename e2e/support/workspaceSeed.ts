@@ -21,6 +21,12 @@ const admin = require('../../functions/node_modules/firebase-admin') as typeof i
  *   (`workspaces/{id}/quota_state/membership`), coerentes com os
  *   workspaces e memberships semeados. Sem esse estado o backend falha
  *   fechado nas operações sujeitas a quota.
+ * - P3-E: a âncora da quota mensal de lançamentos
+ *   (`workspaces/{id}/quota_state/transactions`), como `createWorkspace`
+ *   grava desde P3-D. Sem ela a criação manual pela callable falha fechada
+ *   e o indicador da interface fica "não inicializado".
+ * - P3-J (D-30): a conta padrão "Carteira principal" (`cash_accounts`), com
+ *   o mesmo ID determinístico que o provisionamento grava, saldo zero.
  *
  * O seam de convite (`issueInviteTokenForE2E`) roda no processo do
  * Playwright, nunca no bundle do app: grava o ponteiro do hash de um token
@@ -115,6 +121,44 @@ export const seedPaidPlan = async (uid: string, planId: 'pro' | 'business') => {
   });
 };
 
+/** Mês corrente em America/Sao_Paulo (`YYYY-MM`), como o backend (D-40). */
+export const saoPauloMonthKey = (date = new Date()): string => {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+  }).formatToParts(date);
+  const part = (type: string) => parts.find((item) => item.type === type)?.value ?? '';
+  return `${part('year')}-${part('month')}`;
+};
+
+/** ID da conta padrão: o mesmo de `defaultCashAccountIdFor` no backend. */
+export const defaultCashAccountIdFor = (workspaceId: string): string =>
+  `acc_${createHash('sha256').update(`${workspaceId}:default`).digest('hex').slice(0, 40)}`;
+
+const transactionsQuotaAnchorPath = (workspaceId: string) =>
+  `workspaces/${workspaceId}/quota_state/transactions`;
+
+export const transactionsQuotaMonthPath = (workspaceId: string, monthKey = saoPauloMonthKey()) =>
+  `workspaces/${workspaceId}/quota_state/transactions_${monthKey}`;
+
+/** Fixa o uso do mês corrente (ex.: quota esgotada), na forma do backend. */
+export const seedTransactionsQuotaUsage = async (workspaceId: string, used: number) => {
+  const monthKey = saoPauloMonthKey();
+  await adminSdk().firestore().doc(transactionsQuotaMonthPath(workspaceId, monthKey)).set({
+    workspaceId,
+    monthKey,
+    used,
+    schemaVersion: QUOTA_SCHEMA_VERSION,
+    updatedAt: now(),
+  });
+};
+
+/** Workspace sem contador inicializado (anterior a P3-D, sem backfill). */
+export const removeTransactionsQuotaAnchor = async (workspaceId: string) => {
+  await adminSdk().firestore().doc(transactionsQuotaAnchorPath(workspaceId)).delete();
+};
+
 export interface SeedWorkspaceInput {
   workspaceId: string;
   ownerId: string;
@@ -142,6 +186,29 @@ export const seedWorkspaceDocument = async (input: SeedWorkspaceInput) => {
     activeMembers: 0,
     pendingReservations: {},
     schemaVersion: QUOTA_SCHEMA_VERSION,
+    updatedAt: now(),
+  }).catch(ignoreAlreadyExists);
+  await db.doc(transactionsQuotaAnchorPath(input.workspaceId)).create({
+    workspaceId: input.workspaceId,
+    trackingSince: saoPauloMonthKey(),
+    origin: 'workspace_created',
+    initialUsed: 0,
+    schemaVersion: QUOTA_SCHEMA_VERSION,
+    createdAt: now(),
+  }).catch(ignoreAlreadyExists);
+  const accountId = defaultCashAccountIdFor(input.workspaceId);
+  await db.doc(`workspaces/${input.workspaceId}/cash_accounts/${accountId}`).create({
+    id: accountId,
+    schemaVersion: 1,
+    workspaceId: input.workspaceId,
+    name: 'Carteira principal',
+    accountType: 'cash',
+    status: 'active',
+    balanceCents: 0,
+    currency: 'BRL',
+    createdBy: input.ownerId,
+    updatedBy: input.ownerId,
+    createdAt: now(),
     updatedAt: now(),
   }).catch(ignoreAlreadyExists);
   await db.doc(`workspaces/${input.workspaceId}`).set({

@@ -7,7 +7,6 @@ import type {
 export interface LegacyTransactionCatalogOptions {
   productsServices: EntityItem[];
   settingsCategories: EntityItem[];
-  wallets: EntityItem[];
   expenseTypes: EntityItem[];
   paymentTypes: EntityItem[];
   incomeTypes: EntityItem[];
@@ -28,16 +27,6 @@ const toLegacyEntityItem = (item: SettingsCatalogItem): EntityItem => {
     id: item.id,
     name: item.name,
     type: item.transactionSubtype,
-    icon: item.icon,
-    iconColor: item.color,
-    iconStroke: item.stroke,
-  };
-};
-
-const toLegacyWalletEntityItem = (item: SettingsCatalogItem): EntityItem => {
-  return {
-    id: item.id,
-    name: item.name,
     icon: item.icon,
     iconColor: item.color,
     iconStroke: item.stroke,
@@ -69,10 +58,6 @@ export const buildLegacyTransactionCatalogOptions = (params: {
     )
     .map(toLegacyEntityItem);
 
-  const wallets = activeItems
-    .filter((item) => item.group === 'wallet')
-    .map(toLegacyWalletEntityItem);
-
   const expenseTypes = activeItems
     .filter((item) => item.group === 'expense_type')
     .map(toLegacyEntityItem);
@@ -85,18 +70,14 @@ export const buildLegacyTransactionCatalogOptions = (params: {
     .filter((item) => item.group === 'income_type')
     .map(toLegacyEntityItem);
 
+  // Centro de custo existe só em PJ (escopo derivado pelo backend, D-23).
   const costCenters = activeItems
-    .filter(
-      (item) =>
-        item.group === 'cost_center' &&
-        (workspaceType === 'PJ' || item.workspaceScope === 'both')
-    )
+    .filter((item) => item.group === 'cost_center' && workspaceType === 'PJ')
     .map(toLegacyEntityItem);
 
   return {
     productsServices,
     settingsCategories,
-    wallets,
     expenseTypes,
     paymentTypes,
     incomeTypes,

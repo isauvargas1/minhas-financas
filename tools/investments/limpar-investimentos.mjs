@@ -117,6 +117,16 @@ const COLECOES_PROIBIDAS = Object.freeze([
   'recurring_occurrences',
   'receivables',
   'clients',
+  // P3-I — dados pessoais, movimentos e auditoria de clientes e recebíveis.
+  'client_private',
+  'client_events',
+  'receivable_movements',
+  'receivable_events',
+  // P3-J (D-30) — contas, livro-razão das contas, transferências e auditoria.
+  'cash_accounts',
+  'cash_account_movements',
+  'cash_transfers',
+  'cash_account_events',
   'settings_catalog',
   'settings_catalog_uniques',
   'cash_report_periods',

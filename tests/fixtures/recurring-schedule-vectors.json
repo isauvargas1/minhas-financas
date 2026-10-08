@@ -1,0 +1,139 @@
+{
+  "_comment": "Vetores da agenda D-12 (P4-B), calculados à mão no calendário gregoriano — não gerados pela implementação. Usados pelo backend (functions/src/recurring/__tests__/schedule.test.ts) e pelo frontend (tests/unit/recurring-schedule.test.ts).",
+  "sequences": [
+    {
+      "name": "mensal dia 31: mês curto usa o último dia e volta ao 31",
+      "rule": {"frequency": "monthly", "billingDay": 31, "startDate": "2026-01-31", "endDate": null},
+      "from": "2026-01-01", "to": "2026-07-31", "limit": 20,
+      "expected": ["2026-01-31", "2026-02-28", "2026-03-31", "2026-04-30", "2026-05-31", "2026-06-30", "2026-07-31"]
+    },
+    {
+      "name": "mensal dia 31 em ano bissexto: 29/02 e volta ao 31/03",
+      "rule": {"frequency": "monthly", "billingDay": 31, "startDate": "2028-01-31", "endDate": null},
+      "from": "2028-01-01", "to": "2028-03-31", "limit": 20,
+      "expected": ["2028-01-31", "2028-02-29", "2028-03-31"]
+    },
+    {
+      "name": "mensal dia 30: fevereiro no último dia, março volta ao 30",
+      "rule": {"frequency": "monthly", "billingDay": 30, "startDate": "2026-01-15", "endDate": null},
+      "from": "2026-01-01", "to": "2026-04-30", "limit": 20,
+      "expected": ["2026-01-30", "2026-02-28", "2026-03-30", "2026-04-30"]
+    },
+    {
+      "name": "mensal dia 29 em ano comum",
+      "rule": {"frequency": "monthly", "billingDay": 29, "startDate": "2027-01-01", "endDate": null},
+      "from": "2027-01-01", "to": "2027-03-31", "limit": 20,
+      "expected": ["2027-01-29", "2027-02-28", "2027-03-29"]
+    },
+    {
+      "name": "mensal dia 29 em ano bissexto",
+      "rule": {"frequency": "monthly", "billingDay": 29, "startDate": "2028-01-01", "endDate": null},
+      "from": "2028-01-01", "to": "2028-03-31", "limit": 20,
+      "expected": ["2028-01-29", "2028-02-29", "2028-03-29"]
+    },
+    {
+      "name": "mensal dia 28",
+      "rule": {"frequency": "monthly", "billingDay": 28, "startDate": "2026-02-01", "endDate": null},
+      "from": "2026-02-01", "to": "2026-03-31", "limit": 20,
+      "expected": ["2026-02-28", "2026-03-28"]
+    },
+    {
+      "name": "mensal com início depois do dia de cobrança começa no mês seguinte",
+      "rule": {"frequency": "monthly", "billingDay": 10, "startDate": "2026-03-20", "endDate": null},
+      "from": "2026-03-01", "to": "2026-06-30", "limit": 20,
+      "expected": ["2026-04-10", "2026-05-10", "2026-06-10"]
+    },
+    {
+      "name": "mensal com início no próprio dia de cobrança",
+      "rule": {"frequency": "monthly", "billingDay": 10, "startDate": "2026-03-10", "endDate": null},
+      "from": "2026-03-01", "to": "2026-04-30", "limit": 20,
+      "expected": ["2026-03-10", "2026-04-10"]
+    },
+    {
+      "name": "mensal na virada do ano",
+      "rule": {"frequency": "monthly", "billingDay": 15, "startDate": "2026-11-01", "endDate": null},
+      "from": "2026-11-01", "to": "2027-02-28", "limit": 20,
+      "expected": ["2026-11-15", "2026-12-15", "2027-01-15", "2027-02-15"]
+    },
+    {
+      "name": "bimestral dia 31",
+      "rule": {"frequency": "bimonthly", "billingDay": 31, "startDate": "2026-01-01", "endDate": null},
+      "from": "2026-01-01", "to": "2027-01-31", "limit": 20,
+      "expected": ["2026-01-31", "2026-03-31", "2026-05-31", "2026-07-31", "2026-09-30", "2026-11-30", "2027-01-31"]
+    },
+    {
+      "name": "trimestral dia 31",
+      "rule": {"frequency": "quarterly", "billingDay": 31, "startDate": "2026-01-31", "endDate": null},
+      "from": "2026-01-01", "to": "2027-01-31", "limit": 20,
+      "expected": ["2026-01-31", "2026-04-30", "2026-07-31", "2026-10-31", "2027-01-31"]
+    },
+    {
+      "name": "semestral dia 31 com fevereiros comum e bissexto",
+      "rule": {"frequency": "semiannual", "billingDay": 31, "startDate": "2026-08-31", "endDate": null},
+      "from": "2026-08-01", "to": "2028-08-31", "limit": 20,
+      "expected": ["2026-08-31", "2027-02-28", "2027-08-31", "2028-02-29", "2028-08-31"]
+    },
+    {
+      "name": "anual em 29/02 volta ao 29 no próximo bissexto",
+      "rule": {"frequency": "annual", "billingDay": 29, "startDate": "2028-02-29", "endDate": null},
+      "from": "2028-01-01", "to": "2032-12-31", "limit": 20,
+      "expected": ["2028-02-29", "2029-02-28", "2030-02-28", "2031-02-28", "2032-02-29"]
+    },
+    {
+      "name": "semanal: cinco vencimentos no mesmo mês",
+      "rule": {"frequency": "weekly", "billingDay": null, "startDate": "2026-03-02", "endDate": null},
+      "from": "2026-03-01", "to": "2026-03-31", "limit": 20,
+      "expected": ["2026-03-02", "2026-03-09", "2026-03-16", "2026-03-23", "2026-03-30"]
+    },
+    {
+      "name": "semanal: quatro vencimentos em fevereiro",
+      "rule": {"frequency": "weekly", "billingDay": null, "startDate": "2026-02-01", "endDate": null},
+      "from": "2026-02-01", "to": "2026-02-28", "limit": 20,
+      "expected": ["2026-02-01", "2026-02-08", "2026-02-15", "2026-02-22"]
+    },
+    {
+      "name": "semanal na virada do ano",
+      "rule": {"frequency": "weekly", "billingDay": null, "startDate": "2026-12-24", "endDate": null},
+      "from": "2026-12-01", "to": "2027-01-14", "limit": 20,
+      "expected": ["2026-12-24", "2026-12-31", "2027-01-07", "2027-01-14"]
+    },
+    {
+      "name": "quinzenal: três em janeiro, um em fevereiro, dois em março",
+      "rule": {"frequency": "biweekly", "billingDay": null, "startDate": "2026-01-01", "endDate": null},
+      "from": "2026-01-01", "to": "2026-03-31", "limit": 20,
+      "expected": ["2026-01-01", "2026-01-16", "2026-01-31", "2026-02-15", "2026-03-02", "2026-03-17"]
+    },
+    {
+      "name": "quinzenal atravessando 29/02 bissexto",
+      "rule": {"frequency": "biweekly", "billingDay": null, "startDate": "2028-02-14", "endDate": null},
+      "from": "2028-02-01", "to": "2028-03-31", "limit": 20,
+      "expected": ["2028-02-14", "2028-02-29", "2028-03-15", "2028-03-30"]
+    },
+    {
+      "name": "término exclui vencimentos posteriores",
+      "rule": {"frequency": "monthly", "billingDay": 10, "startDate": "2026-01-10", "endDate": "2026-04-09"},
+      "from": "2026-01-01", "to": "2026-12-31", "limit": 20,
+      "expected": ["2026-01-10", "2026-02-10", "2026-03-10"]
+    },
+    {
+      "name": "término no próprio vencimento inclui o vencimento",
+      "rule": {"frequency": "weekly", "billingDay": null, "startDate": "2026-03-02", "endDate": "2026-03-16"},
+      "from": "2026-03-01", "to": "2026-12-31", "limit": 20,
+      "expected": ["2026-03-02", "2026-03-09", "2026-03-16"]
+    }
+  ],
+  "nextOnOrAfter": [
+    {"name": "mensal 31 no meio de fevereiro", "rule": {"frequency": "monthly", "billingDay": 31, "startDate": "2026-01-31", "endDate": null}, "day": "2026-02-15", "expected": "2026-02-28"},
+    {"name": "mensal 31 no início de março", "rule": {"frequency": "monthly", "billingDay": 31, "startDate": "2026-01-31", "endDate": null}, "day": "2026-03-01", "expected": "2026-03-31"},
+    {"name": "semanal entre vencimentos", "rule": {"frequency": "weekly", "billingDay": null, "startDate": "2026-03-02", "endDate": null}, "day": "2026-03-10", "expected": "2026-03-16"},
+    {"name": "semanal no próprio vencimento", "rule": {"frequency": "weekly", "billingDay": null, "startDate": "2026-03-02", "endDate": null}, "day": "2026-03-09", "expected": "2026-03-09"},
+    {"name": "semanal antes do início", "rule": {"frequency": "weekly", "billingDay": null, "startDate": "2026-03-02", "endDate": null}, "day": "2026-01-15", "expected": "2026-03-02"},
+    {"name": "quinzenal depois de fevereiro", "rule": {"frequency": "biweekly", "billingDay": null, "startDate": "2026-01-01", "endDate": null}, "day": "2026-02-16", "expected": "2026-03-02"},
+    {"name": "trimestral entre vencimentos", "rule": {"frequency": "quarterly", "billingDay": 15, "startDate": "2026-01-15", "endDate": null}, "day": "2026-05-01", "expected": "2026-07-15"},
+    {"name": "trimestral no próprio vencimento", "rule": {"frequency": "quarterly", "billingDay": 15, "startDate": "2026-01-15", "endDate": null}, "day": "2026-04-15", "expected": "2026-04-15"},
+    {"name": "depois do término não há vencimento", "rule": {"frequency": "monthly", "billingDay": 10, "startDate": "2026-01-10", "endDate": "2026-04-09"}, "day": "2026-03-11", "expected": null},
+    {"name": "anual 31/12 no dia seguinte", "rule": {"frequency": "annual", "billingDay": 31, "startDate": "2025-12-31", "endDate": null}, "day": "2026-01-01", "expected": "2026-12-31"},
+    {"name": "anual 29/02 no ano seguinte comum", "rule": {"frequency": "annual", "billingDay": 29, "startDate": "2028-02-29", "endDate": null}, "day": "2028-03-01", "expected": "2029-02-28"},
+    {"name": "mensal com início depois do dia, consultado antes do primeiro", "rule": {"frequency": "monthly", "billingDay": 10, "startDate": "2026-03-20", "endDate": null}, "day": "2026-03-25", "expected": "2026-04-10"}
+  ]
+}

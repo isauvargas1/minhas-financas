@@ -58,18 +58,15 @@ test('investimento de outra meta aparece, mas marcado como troca', () => {
   assert.equal(availableGoalLinkCandidates(candidates).length, 1);
 });
 
-test('posição arquivada e posição sem capital não são candidatas', () => {
-  // A primeira é histórico encerrado; a segunda é o ativo técnico do
-  // onboarding, ou um investimento inteiramente retirado. Nenhum dos dois é
-  // "um investimento" para quem abre a meta.
-  assert.equal(isLinkableInvestment(position({ status: 'archived' })), false);
+test('posição sem capital não é candidata', () => {
+  // Um investimento inteiramente retirado não é "um investimento" para quem
+  // abre a meta. D-15: não há posição arquivada (o ciclo é só `active`).
   assert.equal(
     isLinkableInvestment(position({ principalCents: 0, currentValueCents: 0 })),
     false,
   );
   const candidates = toGoalLinkCandidates(
     [
-      position({ id: 'pos-1', status: 'archived' }),
       position({ id: 'pos-2', principalCents: 0, currentValueCents: 0 }),
       position({ id: 'pos-3' }),
     ],

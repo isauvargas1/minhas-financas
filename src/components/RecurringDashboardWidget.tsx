@@ -1,15 +1,16 @@
 import React, { useMemo } from 'react';
-import { useActiveRecurringExpenses } from '../modules/recurring-expenses/hooks.ts';
+import { useActiveRecurringExpenses } from '../modules/recurring/hooks.ts';
+import { monthlyEstimateCents } from '../modules/recurring/payloads.ts';
+import { civilDaysBetween } from '../modules/recurring/schedule.ts';
+import { formatCents, formatDayKey, saoPauloToday } from '../modules/loans/money.ts';
 import { RepeatIcon, WarningIcon } from './Icons.tsx';
-import { useTheme } from '../contexts/ThemeContext.tsx';
 
 const RecurringDashboardWidget: React.FC = () => {
     /*
-     * O widget mostra um total e três linhas. Lia a coleção inteira de
-     * assinaturas para isso; agora lê só as ativas, filtradas no servidor.
+     * O widget mostra um total e três linhas, só das ativas, filtradas no
+     * servidor. Valores em centavos; a estimativa mensal é de exibição.
      */
     const { data: expenses, isLoading } = useActiveRecurringExpenses();
-    const { theme } = useTheme();
 
     const summary = useMemo(() => {
         if (!expenses) return { totalMonthly: 0, top3: [], expiringSoon: [] };
@@ -17,29 +18,19 @@ const RecurringDashboardWidget: React.FC = () => {
         let totalMonthly = 0;
         const activeExpenses = [];
         const expiringSoon = [];
-        const today = new Date();
-        const nextMonth = new Date();
-        nextMonth.setDate(today.getDate() + 30);
+        const today = saoPauloToday();
 
         for (const exp of expenses) {
-            if (exp.status !== 'ativo') continue;
+            if (exp.status !== 'active') continue;
 
-            // Calculate Monthly Value
-            let monthlyVal = exp.valorPadrao;
-            if (exp.periodo === 'semanal') monthlyVal *= 4;
-            if (exp.periodo === 'quinzenal') monthlyVal *= 2;
-            if (exp.periodo === 'anual') monthlyVal /= 12;
-            if (exp.periodo === 'bimestral') monthlyVal /= 2;
-            if (exp.periodo === 'trimestral') monthlyVal /= 3;
-            if (exp.periodo === 'semestral') monthlyVal /= 6;
-
+            const monthlyVal = monthlyEstimateCents(exp);
             totalMonthly += monthlyVal;
             activeExpenses.push({ ...exp, monthlyVal });
 
             // Check Expiration
-            if (exp.dataFim) {
-                const endDate = new Date(exp.dataFim);
-                if (endDate > today && endDate <= nextMonth) {
+            if (exp.endDate) {
+                const days = civilDaysBetween(today, exp.endDate);
+                if (days > 0 && days <= 30) {
                     expiringSoon.push(exp);
                 }
             }
@@ -51,10 +42,6 @@ const RecurringDashboardWidget: React.FC = () => {
         return { totalMonthly, top3, expiringSoon };
     }, [expenses]);
 
-    const formatCurrency = (val: number) => {
-        return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
-    };
-
     if (isLoading || !expenses || expenses.length === 0) return null;
 
     return (
@@ -65,7 +52,7 @@ const RecurringDashboardWidget: React.FC = () => {
                     Assinaturas
                 </h3>
                 <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded font-medium">
-                    Mensal: {formatCurrency(summary.totalMonthly)}
+                    Mensal: {formatCents(summary.totalMonthly)}
                 </span>
             </div>
 
@@ -79,7 +66,7 @@ const RecurringDashboardWidget: React.FC = () => {
                             <ul className="mt-0.5 space-y-0.5">
                                 {summary.expiringSoon.map(exp => (
                                     <li key={exp.id} className="text-[10px] text-yellow-700 dark:text-yellow-300">
-                                        • {exp.nome} ({new Date(exp.dataFim!).toLocaleDateString('pt-BR')})
+                                        • {exp.name} ({formatDayKey(exp.endDate)})
                                     </li>
                                 ))}
                             </ul>
@@ -94,10 +81,10 @@ const RecurringDashboardWidget: React.FC = () => {
                         {summary.top3.map(exp => (
                             <div key={exp.id} className="flex items-center justify-between p-1.5 hover:bg-background rounded-lg transition-colors cursor-default">
                                 <div className="flex items-center gap-2">
-                                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: exp.corPrincipal }}></div>
-                                    <span className="text-sm font-medium text-on-surface">{exp.nome}</span>
+                                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: exp.visual.color }}></div>
+                                    <span className="text-sm font-medium text-on-surface">{exp.name}</span>
                                 </div>
-                                <span className="text-sm font-bold text-on-surface">{formatCurrency(exp.valorPadrao)}</span>
+                                <span className="text-sm font-bold text-on-surface">{formatCents(exp.amountCents)}</span>
                             </div>
                         ))}
                     </div>

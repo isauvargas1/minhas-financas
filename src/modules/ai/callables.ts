@@ -44,15 +44,33 @@ export interface ExtractionResult {
   extracted: Record<string, unknown>;
 }
 
-/** Créditos mensais de IA do plano do titular esgotados. */
+/** Créditos mensais de IA do plano do titular esgotados (texto do backend). */
 export const AI_CREDITS_EXHAUSTED_MESSAGE =
-  'Os créditos de IA deste plano acabaram neste mês. Faça upgrade ou aguarde a renovação mensal.';
+  'Os créditos de IA deste plano acabaram neste mês. Faça upgrade ou aguarde o início do próximo mês.';
 
-/** `resource-exhausted` é a recusa por quota do plano (créditos de IA). */
-export const isAiCreditsExhausted = (error: unknown): boolean =>
-  typeof error === 'object' &&
-  error !== null &&
-  (error as { code?: unknown }).code === 'functions/resource-exhausted';
+/**
+ * Recusa por créditos de IA esgotados. Só o backend envia
+ * `details.resource = 'aiCreditsPerMonth'`; um `resource-exhausted` sem esse
+ * detalhe (ex.: HTTP 429 da plataforma) não é falta de crédito.
+ */
+export const isAiCreditsExhausted = (error: unknown): boolean => {
+  if (typeof error !== 'object' || error === null) return false;
+  const { code, details } = error as { code?: unknown; details?: unknown };
+  return code === 'functions/resource-exhausted' &&
+    typeof details === 'object' && details !== null &&
+    (details as { resource?: unknown }).resource === 'aiCreditsPerMonth';
+};
+
+/**
+ * Mensagem de créditos esgotados: a do backend, que já distingue o titular
+ * (upgrade) de quem não é o titular (pedir ao titular).
+ */
+export const aiCreditsExhaustedMessage = (error: unknown): string => {
+  const message = (error as { message?: unknown } | null)?.message;
+  return typeof message === 'string' && /\s/.test(message.trim())
+    ? message
+    : AI_CREDITS_EXHAUSTED_MESSAGE;
+};
 
 export const createAiCallables = (invoke: Invoke) => ({
   analyzeFinancialQuestion: (input: FinancialQuestionInput) =>

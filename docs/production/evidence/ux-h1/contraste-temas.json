@@ -1,0 +1,632 @@
+{
+  "default-light-free": {
+    "titulo": {
+      "text": "Minhas Finanças",
+      "ratio": 6.01,
+      "expected": "3:1",
+      "fg": "#4f46e5",
+      "bg": "#f9fafb",
+      "fontSize": "22.5pt (30px)",
+      "fontWeight": "bold",
+      "verdict": "OK"
+    },
+    "hoje": {
+      "text": "Hoje",
+      "ratio": 6.01,
+      "expected": "4.5:1",
+      "fg": "#4f46e5",
+      "bg": "#f9fafb",
+      "fontSize": "9.0pt (12px)",
+      "fontWeight": "normal",
+      "verdict": "OK"
+    },
+    "precoMes": {
+      "text": "/mês",
+      "ratio": 4.83,
+      "expected": "4.5:1",
+      "fg": "#6b7280",
+      "bg": "#ffffff",
+      "fontSize": "12.0pt (16px)",
+      "fontWeight": "normal",
+      "verdict": "OK"
+    },
+    "alertaErro": {
+      "text": "Não foi possível iniciar o pag",
+      "ratio": 5.91,
+      "expected": "4.5:1",
+      "fg": "#b91c1c",
+      "bg": "#fef2f2",
+      "fontSize": "12.0pt (16px)",
+      "fontWeight": "normal",
+      "verdict": "OK"
+    },
+    "badgePlanoAtual": null,
+    "sidebarMarca": {
+      "text": "Finanças",
+      "ratio": 6.28,
+      "expected": "3:1",
+      "fg": "#4f46e5",
+      "bg": "#ffffff",
+      "fontSize": "15.0pt (20px)",
+      "fontWeight": "bold",
+      "verdict": "OK"
+    },
+    "sidebarAtivo": {
+      "text": "Meu Plano",
+      "ratio": 6.28,
+      "expected": "4.5:1",
+      "fg": "#4f46e5",
+      "bg": "#ffffff",
+      "fontSize": "12.0pt (16px)",
+      "fontWeight": "normal",
+      "verdict": "OK"
+    }
+  },
+  "default-dark-free": {
+    "titulo": {
+      "text": "Minhas Finanças",
+      "ratio": 6.73,
+      "expected": "3:1",
+      "fg": "#9590ef",
+      "bg": "#0b1120",
+      "fontSize": "22.5pt (30px)",
+      "fontWeight": "bold",
+      "verdict": "OK"
+    },
+    "hoje": {
+      "text": "Hoje",
+      "ratio": 6.73,
+      "expected": "4.5:1",
+      "fg": "#9590ef",
+      "bg": "#0b1120",
+      "fontSize": "9.0pt (12px)",
+      "fontWeight": "normal",
+      "verdict": "OK"
+    },
+    "precoMes": {
+      "text": "/mês",
+      "ratio": 5.78,
+      "expected": "4.5:1",
+      "fg": "#9ca3af",
+      "bg": "#1f2937",
+      "fontSize": "12.0pt (16px)",
+      "fontWeight": "normal",
+      "verdict": "OK"
+    },
+    "alertaErro": {
+      "text": "Não foi possível iniciar o pag",
+      "ratio": 5.83,
+      "expected": "4.5:1",
+      "fg": "#f87171",
+      "bg": "#321924",
+      "fontSize": "12.0pt (16px)",
+      "fontWeight": "normal",
+      "verdict": "OK"
+    },
+    "badgePlanoAtual": null,
+    "sidebarMarca": {
+      "text": "Finanças",
+      "ratio": 5.23,
+      "expected": "3:1",
+      "fg": "#9590ef",
+      "bg": "#1e293b",
+      "fontSize": "15.0pt (20px)",
+      "fontWeight": "bold",
+      "verdict": "OK"
+    },
+    "sidebarAtivo": {
+      "text": "Meu Plano",
+      "ratio": 5.23,
+      "expected": "4.5:1",
+      "fg": "#9590ef",
+      "bg": "#1e293b",
+      "fontSize": "12.0pt (16px)",
+      "fontWeight": "normal",
+      "verdict": "OK"
+    }
+  },
+  "midnight-free": {
+    "titulo": {
+      "text": "Minhas Finanças",
+      "ratio": 7.21,
+      "expected": "3:1",
+      "fg": "#9590ef",
+      "bg": "#020617",
+      "fontSize": "22.5pt (30px)",
+      "fontWeight": "bold",
+      "verdict": "OK"
+    },
+    "hoje": {
+      "text": "Hoje",
+      "ratio": 7.21,
+      "expected": "4.5:1",
+      "fg": "#9590ef",
+      "bg": "#020617",
+      "fontSize": "9.0pt (12px)",
+      "fontWeight": "normal",
+      "verdict": "OK"
+    },
+    "precoMes": {
+      "text": "/mês",
+      "ratio": 5.78,
+      "expected": "4.5:1",
+      "fg": "#9ca3af",
+      "bg": "#1f2937",
+      "fontSize": "12.0pt (16px)",
+      "fontWeight": "normal",
+      "verdict": "OK"
+    },
+    "alertaErro": {
+      "text": "Não foi possível iniciar o pag",
+      "ratio": 5.83,
+      "expected": "4.5:1",
+      "fg": "#f87171",
+      "bg": "#321924",
+      "fontSize": "12.0pt (16px)",
+      "fontWeight": "normal",
+      "verdict": "OK"
+    },
+    "badgePlanoAtual": null,
+    "sidebarMarca": {
+      "text": "Finanças",
+      "ratio": 6.38,
+      "expected": "3:1",
+      "fg": "#9590ef",
+      "bg": "#0f172a",
+      "fontSize": "15.0pt (20px)",
+      "fontWeight": "bold",
+      "verdict": "OK"
+    },
+    "sidebarAtivo": {
+      "text": "Meu Plano",
+      "ratio": 6.38,
+      "expected": "4.5:1",
+      "fg": "#9590ef",
+      "bg": "#0f172a",
+      "fontSize": "12.0pt (16px)",
+      "fontWeight": "normal",
+      "verdict": "OK"
+    }
+  },
+  "emerald-free": {
+    "titulo": {
+      "text": "Minhas Finanças",
+      "ratio": 5.96,
+      "expected": "3:1",
+      "fg": "#4f46e5",
+      "bg": "#ecfdf5",
+      "fontSize": "22.5pt (30px)",
+      "fontWeight": "bold",
+      "verdict": "OK"
+    },
+    "hoje": {
+      "text": "Hoje",
+      "ratio": 5.96,
+      "expected": "4.5:1",
+      "fg": "#4f46e5",
+      "bg": "#ecfdf5",
+      "fontSize": "9.0pt (12px)",
+      "fontWeight": "normal",
+      "verdict": "OK"
+    },
+    "precoMes": {
+      "text": "/mês",
+      "ratio": 4.83,
+      "expected": "4.5:1",
+      "fg": "#6b7280",
+      "bg": "#ffffff",
+      "fontSize": "12.0pt (16px)",
+      "fontWeight": "normal",
+      "verdict": "OK"
+    },
+    "alertaErro": {
+      "text": "Não foi possível iniciar o pag",
+      "ratio": 5.91,
+      "expected": "4.5:1",
+      "fg": "#b91c1c",
+      "bg": "#fef2f2",
+      "fontSize": "12.0pt (16px)",
+      "fontWeight": "normal",
+      "verdict": "OK"
+    },
+    "badgePlanoAtual": null,
+    "sidebarMarca": {
+      "text": "Finanças",
+      "ratio": 6.28,
+      "expected": "3:1",
+      "fg": "#4f46e5",
+      "bg": "#ffffff",
+      "fontSize": "15.0pt (20px)",
+      "fontWeight": "bold",
+      "verdict": "OK"
+    },
+    "sidebarAtivo": {
+      "text": "Meu Plano",
+      "ratio": 6.28,
+      "expected": "4.5:1",
+      "fg": "#4f46e5",
+      "bg": "#ffffff",
+      "fontSize": "12.0pt (16px)",
+      "fontWeight": "normal",
+      "verdict": "OK"
+    }
+  },
+  "sunrise-free": {
+    "titulo": {
+      "text": "Minhas Finanças",
+      "ratio": 5.92,
+      "expected": "3:1",
+      "fg": "#4f46e5",
+      "bg": "#fff7ed",
+      "fontSize": "22.5pt (30px)",
+      "fontWeight": "bold",
+      "verdict": "OK"
+    },
+    "hoje": {
+      "text": "Hoje",
+      "ratio": 5.92,
+      "expected": "4.5:1",
+      "fg": "#4f46e5",
+      "bg": "#fff7ed",
+      "fontSize": "9.0pt (12px)",
+      "fontWeight": "normal",
+      "verdict": "OK"
+    },
+    "precoMes": {
+      "text": "/mês",
+      "ratio": 4.83,
+      "expected": "4.5:1",
+      "fg": "#6b7280",
+      "bg": "#ffffff",
+      "fontSize": "12.0pt (16px)",
+      "fontWeight": "normal",
+      "verdict": "OK"
+    },
+    "alertaErro": {
+      "text": "Não foi possível iniciar o pag",
+      "ratio": 5.91,
+      "expected": "4.5:1",
+      "fg": "#b91c1c",
+      "bg": "#fef2f2",
+      "fontSize": "12.0pt (16px)",
+      "fontWeight": "normal",
+      "verdict": "OK"
+    },
+    "badgePlanoAtual": null,
+    "sidebarMarca": {
+      "text": "Finanças",
+      "ratio": 6.28,
+      "expected": "3:1",
+      "fg": "#4f46e5",
+      "bg": "#ffffff",
+      "fontSize": "15.0pt (20px)",
+      "fontWeight": "bold",
+      "verdict": "OK"
+    },
+    "sidebarAtivo": {
+      "text": "Meu Plano",
+      "ratio": 6.28,
+      "expected": "4.5:1",
+      "fg": "#4f46e5",
+      "bg": "#ffffff",
+      "fontSize": "12.0pt (16px)",
+      "fontWeight": "normal",
+      "verdict": "OK"
+    }
+  },
+  "default-light-assinante": {
+    "titulo": {
+      "text": "Minhas Finanças",
+      "ratio": 6.01,
+      "expected": "3:1",
+      "fg": "#4f46e5",
+      "bg": "#f9fafb",
+      "fontSize": "22.5pt (30px)",
+      "fontWeight": "bold",
+      "verdict": "OK"
+    },
+    "hoje": {
+      "text": "Hoje",
+      "ratio": 6.01,
+      "expected": "4.5:1",
+      "fg": "#4f46e5",
+      "bg": "#f9fafb",
+      "fontSize": "9.0pt (12px)",
+      "fontWeight": "normal",
+      "verdict": "OK"
+    },
+    "precoMes": {
+      "text": "/mês",
+      "ratio": 4.83,
+      "expected": "4.5:1",
+      "fg": "#6b7280",
+      "bg": "#ffffff",
+      "fontSize": "12.0pt (16px)",
+      "fontWeight": "normal",
+      "verdict": "OK"
+    },
+    "alertaErro": null,
+    "badgePlanoAtual": {
+      "text": "Plano atual",
+      "ratio": 6.41,
+      "expected": "4.5:1",
+      "fg": "#4338ca",
+      "bg": "#e0e7ff",
+      "fontSize": "9.0pt (12px)",
+      "fontWeight": "normal",
+      "verdict": "OK"
+    },
+    "sidebarMarca": {
+      "text": "Finanças",
+      "ratio": 6.28,
+      "expected": "3:1",
+      "fg": "#4f46e5",
+      "bg": "#ffffff",
+      "fontSize": "15.0pt (20px)",
+      "fontWeight": "bold",
+      "verdict": "OK"
+    },
+    "sidebarAtivo": {
+      "text": "Meu Plano",
+      "ratio": 6.28,
+      "expected": "4.5:1",
+      "fg": "#4f46e5",
+      "bg": "#ffffff",
+      "fontSize": "12.0pt (16px)",
+      "fontWeight": "normal",
+      "verdict": "OK"
+    }
+  },
+  "default-dark-assinante": {
+    "titulo": {
+      "text": "Minhas Finanças",
+      "ratio": 6.73,
+      "expected": "3:1",
+      "fg": "#9590ef",
+      "bg": "#0b1120",
+      "fontSize": "22.5pt (30px)",
+      "fontWeight": "bold",
+      "verdict": "OK"
+    },
+    "hoje": {
+      "text": "Hoje",
+      "ratio": 6.73,
+      "expected": "4.5:1",
+      "fg": "#9590ef",
+      "bg": "#0b1120",
+      "fontSize": "9.0pt (12px)",
+      "fontWeight": "normal",
+      "verdict": "OK"
+    },
+    "precoMes": {
+      "text": "/mês",
+      "ratio": 5.78,
+      "expected": "4.5:1",
+      "fg": "#9ca3af",
+      "bg": "#1f2937",
+      "fontSize": "12.0pt (16px)",
+      "fontWeight": "normal",
+      "verdict": "OK"
+    },
+    "alertaErro": null,
+    "badgePlanoAtual": {
+      "text": "Plano atual",
+      "ratio": 6.75,
+      "expected": "4.5:1",
+      "fg": "#a5b4fc",
+      "bg": "#262b55",
+      "fontSize": "9.0pt (12px)",
+      "fontWeight": "normal",
+      "verdict": "OK"
+    },
+    "sidebarMarca": {
+      "text": "Finanças",
+      "ratio": 5.23,
+      "expected": "3:1",
+      "fg": "#9590ef",
+      "bg": "#1e293b",
+      "fontSize": "15.0pt (20px)",
+      "fontWeight": "bold",
+      "verdict": "OK"
+    },
+    "sidebarAtivo": {
+      "text": "Meu Plano",
+      "ratio": 5.23,
+      "expected": "4.5:1",
+      "fg": "#9590ef",
+      "bg": "#1e293b",
+      "fontSize": "12.0pt (16px)",
+      "fontWeight": "normal",
+      "verdict": "OK"
+    }
+  },
+  "midnight-assinante": {
+    "titulo": {
+      "text": "Minhas Finanças",
+      "ratio": 7.21,
+      "expected": "3:1",
+      "fg": "#9590ef",
+      "bg": "#020617",
+      "fontSize": "22.5pt (30px)",
+      "fontWeight": "bold",
+      "verdict": "OK"
+    },
+    "hoje": {
+      "text": "Hoje",
+      "ratio": 7.21,
+      "expected": "4.5:1",
+      "fg": "#9590ef",
+      "bg": "#020617",
+      "fontSize": "9.0pt (12px)",
+      "fontWeight": "normal",
+      "verdict": "OK"
+    },
+    "precoMes": {
+      "text": "/mês",
+      "ratio": 5.78,
+      "expected": "4.5:1",
+      "fg": "#9ca3af",
+      "bg": "#1f2937",
+      "fontSize": "12.0pt (16px)",
+      "fontWeight": "normal",
+      "verdict": "OK"
+    },
+    "alertaErro": null,
+    "badgePlanoAtual": {
+      "text": "Plano atual",
+      "ratio": 6.75,
+      "expected": "4.5:1",
+      "fg": "#a5b4fc",
+      "bg": "#262b55",
+      "fontSize": "9.0pt (12px)",
+      "fontWeight": "normal",
+      "verdict": "OK"
+    },
+    "sidebarMarca": {
+      "text": "Finanças",
+      "ratio": 6.38,
+      "expected": "3:1",
+      "fg": "#9590ef",
+      "bg": "#0f172a",
+      "fontSize": "15.0pt (20px)",
+      "fontWeight": "bold",
+      "verdict": "OK"
+    },
+    "sidebarAtivo": {
+      "text": "Meu Plano",
+      "ratio": 6.38,
+      "expected": "4.5:1",
+      "fg": "#9590ef",
+      "bg": "#0f172a",
+      "fontSize": "12.0pt (16px)",
+      "fontWeight": "normal",
+      "verdict": "OK"
+    }
+  },
+  "emerald-assinante": {
+    "titulo": {
+      "text": "Minhas Finanças",
+      "ratio": 5.96,
+      "expected": "3:1",
+      "fg": "#4f46e5",
+      "bg": "#ecfdf5",
+      "fontSize": "22.5pt (30px)",
+      "fontWeight": "bold",
+      "verdict": "OK"
+    },
+    "hoje": {
+      "text": "Hoje",
+      "ratio": 5.96,
+      "expected": "4.5:1",
+      "fg": "#4f46e5",
+      "bg": "#ecfdf5",
+      "fontSize": "9.0pt (12px)",
+      "fontWeight": "normal",
+      "verdict": "OK"
+    },
+    "precoMes": {
+      "text": "/mês",
+      "ratio": 4.83,
+      "expected": "4.5:1",
+      "fg": "#6b7280",
+      "bg": "#ffffff",
+      "fontSize": "12.0pt (16px)",
+      "fontWeight": "normal",
+      "verdict": "OK"
+    },
+    "alertaErro": null,
+    "badgePlanoAtual": {
+      "text": "Plano atual",
+      "ratio": 6.41,
+      "expected": "4.5:1",
+      "fg": "#4338ca",
+      "bg": "#e0e7ff",
+      "fontSize": "9.0pt (12px)",
+      "fontWeight": "normal",
+      "verdict": "OK"
+    },
+    "sidebarMarca": {
+      "text": "Finanças",
+      "ratio": 6.28,
+      "expected": "3:1",
+      "fg": "#4f46e5",
+      "bg": "#ffffff",
+      "fontSize": "15.0pt (20px)",
+      "fontWeight": "bold",
+      "verdict": "OK"
+    },
+    "sidebarAtivo": {
+      "text": "Meu Plano",
+      "ratio": 6.28,
+      "expected": "4.5:1",
+      "fg": "#4f46e5",
+      "bg": "#ffffff",
+      "fontSize": "12.0pt (16px)",
+      "fontWeight": "normal",
+      "verdict": "OK"
+    }
+  },
+  "sunrise-assinante": {
+    "titulo": {
+      "text": "Minhas Finanças",
+      "ratio": 5.92,
+      "expected": "3:1",
+      "fg": "#4f46e5",
+      "bg": "#fff7ed",
+      "fontSize": "22.5pt (30px)",
+      "fontWeight": "bold",
+      "verdict": "OK"
+    },
+    "hoje": {
+      "text": "Hoje",
+      "ratio": 5.92,
+      "expected": "4.5:1",
+      "fg": "#4f46e5",
+      "bg": "#fff7ed",
+      "fontSize": "9.0pt (12px)",
+      "fontWeight": "normal",
+      "verdict": "OK"
+    },
+    "precoMes": {
+      "text": "/mês",
+      "ratio": 4.83,
+      "expected": "4.5:1",
+      "fg": "#6b7280",
+      "bg": "#ffffff",
+      "fontSize": "12.0pt (16px)",
+      "fontWeight": "normal",
+      "verdict": "OK"
+    },
+    "alertaErro": null,
+    "badgePlanoAtual": {
+      "text": "Plano atual",
+      "ratio": 6.41,
+      "expected": "4.5:1",
+      "fg": "#4338ca",
+      "bg": "#e0e7ff",
+      "fontSize": "9.0pt (12px)",
+      "fontWeight": "normal",
+      "verdict": "OK"
+    },
+    "sidebarMarca": {
+      "text": "Finanças",
+      "ratio": 6.28,
+      "expected": "3:1",
+      "fg": "#4f46e5",
+      "bg": "#ffffff",
+      "fontSize": "15.0pt (20px)",
+      "fontWeight": "bold",
+      "verdict": "OK"
+    },
+    "sidebarAtivo": {
+      "text": "Meu Plano",
+      "ratio": 6.28,
+      "expected": "4.5:1",
+      "fg": "#4f46e5",
+      "bg": "#ffffff",
+      "fontSize": "12.0pt (16px)",
+      "fontWeight": "normal",
+      "verdict": "OK"
+    }
+  }
+}

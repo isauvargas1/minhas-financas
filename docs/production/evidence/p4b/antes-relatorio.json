@@ -1,0 +1,227 @@
+{
+  "desktop-claro": {
+    "overflow": {
+      "01-lista": 0,
+      "02-form-geral": 0,
+      "03-form-pagamento": 0,
+      "04-form-integracoes": 0,
+      "05-detalhes": 0
+    },
+    "axe": {
+      "01-lista": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "help": "Elements must meet minimum color contrast ratio thresholds",
+          "count": 1,
+          "nodes": [
+            {
+              "target": [
+                ".text-white\\/70"
+              ],
+              "html": "<p class=\"text-xs text-white/70 mt-2\">2 serviços ativos</p>"
+            }
+          ]
+        }
+      ],
+      "02-form-geral": [],
+      "03-form-pagamento": [],
+      "04-form-integracoes": [],
+      "05-detalhes": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "help": "Elements must meet minimum color contrast ratio thresholds",
+          "count": 6,
+          "nodes": [
+            {
+              "target": [
+                ".opacity-90.hover\\:opacity-100.p-4:nth-child(1) > .text-right.items-end.flex-col > .mt-1.gap-2.flex > .bg-green-50.text-green-600.hover\\:bg-green-100"
+              ],
+              "html": "<button class=\"text-[10px] bg-green-50 text-green-600 hover:bg-green-100 px-2 py-1 rounded transition-colors font-bold uppercase\" title=\"Marcar como Pago\">Pagar"
+            },
+            {
+              "target": [
+                ".opacity-90.hover\\:opacity-100.p-4:nth-child(2) > .text-right.items-end.flex-col > .mt-1.gap-2.flex > .bg-green-50.text-green-600.hover\\:bg-green-100"
+              ],
+              "html": "<button class=\"text-[10px] bg-green-50 text-green-600 hover:bg-green-100 px-2 py-1 rounded transition-colors font-bold uppercase\" title=\"Marcar como Pago\">Pagar"
+            },
+            {
+              "target": [
+                ".opacity-90.hover\\:opacity-100.p-4:nth-child(3) > .text-right.items-end.flex-col > .mt-1.gap-2.flex > .bg-green-50.text-green-600.hover\\:bg-green-100"
+              ],
+              "html": "<button class=\"text-[10px] bg-green-50 text-green-600 hover:bg-green-100 px-2 py-1 rounded transition-colors font-bold uppercase\" title=\"Marcar como Pago\">Pagar"
+            },
+            {
+              "target": [
+                ".opacity-90.hover\\:opacity-100.p-4:nth-child(4) > .text-right.items-end.flex-col > .mt-1.gap-2.flex > .bg-green-50.text-green-600.hover\\:bg-green-100"
+              ],
+              "html": "<button class=\"text-[10px] bg-green-50 text-green-600 hover:bg-green-100 px-2 py-1 rounded transition-colors font-bold uppercase\" title=\"Marcar como Pago\">Pagar"
+            },
+            {
+              "target": [
+                ".opacity-90.hover\\:opacity-100.p-4:nth-child(5) > .text-right.items-end.flex-col > .mt-1.gap-2.flex > .bg-green-50.text-green-600.hover\\:bg-green-100"
+              ],
+              "html": "<button class=\"text-[10px] bg-green-50 text-green-600 hover:bg-green-100 px-2 py-1 rounded transition-colors font-bold uppercase\" title=\"Marcar como Pago\">Pagar"
+            },
+            {
+              "target": [
+                ".opacity-90.hover\\:opacity-100.p-4:nth-child(6) > .text-right.items-end.flex-col > .mt-1.gap-2.flex > .bg-green-50.text-green-600.hover\\:bg-green-100"
+              ],
+              "html": "<button class=\"text-[10px] bg-green-50 text-green-600 hover:bg-green-100 px-2 py-1 rounded transition-colors font-bold uppercase\" title=\"Marcar como Pago\">Pagar"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "desktop-escuro": {
+    "overflow": {
+      "01-lista": 0,
+      "02-form-geral": 0,
+      "03-form-pagamento": 0,
+      "04-form-integracoes": 0,
+      "05-detalhes": 0
+    },
+    "axe": {
+      "01-lista": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "help": "Elements must meet minimum color contrast ratio thresholds",
+          "count": 1,
+          "nodes": [
+            {
+              "target": [
+                ".text-white\\/70"
+              ],
+              "html": "<p class=\"text-xs text-white/70 mt-2\">2 serviços ativos</p>"
+            }
+          ]
+        }
+      ],
+      "02-form-geral": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "help": "Elements must meet minimum color contrast ratio thresholds",
+          "count": 1,
+          "nodes": [
+            {
+              "target": [
+                ".border-primary.px-6.border-b-2"
+              ],
+              "html": "<button role=\"tab\" aria-selected=\"true\" class=\"flex items-center gap-2 px-6 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap border-prima"
+            }
+          ]
+        }
+      ],
+      "03-form-pagamento": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "help": "Elements must meet minimum color contrast ratio thresholds",
+          "count": 2,
+          "nodes": [
+            {
+              "target": [
+                ".border-primary.px-6.border-b-2"
+              ],
+              "html": "<button role=\"tab\" aria-selected=\"true\" class=\"flex items-center gap-2 px-6 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap border-prima"
+            },
+            {
+              "target": [
+                ".bg-primary\\/10.border-primary.rounded-xl > .uppercase.text-xs"
+              ],
+              "html": "<span class=\"text-xs font-bold uppercase\">Cartão Crédito</span>"
+            }
+          ]
+        }
+      ],
+      "04-form-integracoes": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "help": "Elements must meet minimum color contrast ratio thresholds",
+          "count": 1,
+          "nodes": [
+            {
+              "target": [
+                ".border-primary.px-6.border-b-2"
+              ],
+              "html": "<button role=\"tab\" aria-selected=\"true\" class=\"flex items-center gap-2 px-6 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap border-prima"
+            }
+          ]
+        }
+      ],
+      "05-detalhes": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "help": "Elements must meet minimum color contrast ratio thresholds",
+          "count": 13,
+          "nodes": [
+            {
+              "target": [
+                ".tracking-wider.hover\\:underline.gap-1\\.5"
+              ],
+              "html": "<button class=\"flex items-center gap-1.5 text-primary text-xs font-bold uppercase tracking-wider hover:underline\">"
+            },
+            {
+              "target": [
+                ".opacity-90.hover\\:opacity-100.p-4:nth-child(1) > .text-right.items-end.flex-col > .mt-1.gap-2.flex > .bg-primary\\/10.hover\\:bg-primary\\/20[title=\"Provisionar em Contas a Pagar\"]"
+              ],
+              "html": "<button class=\"text-[10px] bg-primary/10 text-primary hover:bg-primary/20 px-2 py-1 rounded transition-colors font-bold uppercase\" title=\"Provisionar em Contas "
+            },
+            {
+              "target": [
+                ".opacity-90.hover\\:opacity-100.p-4:nth-child(1) > .text-right.items-end.flex-col > .mt-1.gap-2.flex > .bg-green-50.text-green-600.hover\\:bg-green-100"
+              ],
+              "html": "<button class=\"text-[10px] bg-green-50 text-green-600 hover:bg-green-100 px-2 py-1 rounded transition-colors font-bold uppercase\" title=\"Marcar como Pago\">Pagar"
+            },
+            {
+              "target": [
+                ".opacity-90.hover\\:opacity-100.p-4:nth-child(2) > .text-right.items-end.flex-col > .mt-1.gap-2.flex > .bg-primary\\/10.hover\\:bg-primary\\/20[title=\"Provisionar em Contas a Pagar\"]"
+              ],
+              "html": "<button class=\"text-[10px] bg-primary/10 text-primary hover:bg-primary/20 px-2 py-1 rounded transition-colors font-bold uppercase\" title=\"Provisionar em Contas "
+            },
+            {
+              "target": [
+                ".opacity-90.hover\\:opacity-100.p-4:nth-child(2) > .text-right.items-end.flex-col > .mt-1.gap-2.flex > .bg-green-50.text-green-600.hover\\:bg-green-100"
+              ],
+              "html": "<button class=\"text-[10px] bg-green-50 text-green-600 hover:bg-green-100 px-2 py-1 rounded transition-colors font-bold uppercase\" title=\"Marcar como Pago\">Pagar"
+            },
+            {
+              "target": [
+                ".opacity-90.hover\\:opacity-100.p-4:nth-child(3) > .text-right.items-end.flex-col > .mt-1.gap-2.flex > .bg-primary\\/10.hover\\:bg-primary\\/20[title=\"Provisionar em Contas a Pagar\"]"
+              ],
+              "html": "<button class=\"text-[10px] bg-primary/10 text-primary hover:bg-primary/20 px-2 py-1 rounded transition-colors font-bold uppercase\" title=\"Provisionar em Contas "
+            },
+            {
+              "target": [
+                ".opacity-90.hover\\:opacity-100.p-4:nth-child(3) > .text-right.items-end.flex-col > .mt-1.gap-2.flex > .bg-green-50.text-green-600.hover\\:bg-green-100"
+              ],
+              "html": "<button class=\"text-[10px] bg-green-50 text-green-600 hover:bg-green-100 px-2 py-1 rounded transition-colors font-bold uppercase\" title=\"Marcar como Pago\">Pagar"
+            },
+            {
+              "target": [
+                ".opacity-90.hover\\:opacity-100.p-4:nth-child(4) > .text-right.items-end.flex-col > .mt-1.gap-2.flex > .bg-primary\\/10.hover\\:bg-primary\\/20[title=\"Provisionar em Contas a Pagar\"]"
+              ],
+              "html": "<button class=\"text-[10px] bg-primary/10 text-primary hover:bg-primary/20 px-2 py-1 rounded transition-colors font-bold uppercase\" title=\"Provisionar em Contas "
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "mobile-claro": {
+    "overflow": {
+      "01-lista": 0,
+      "02-form-geral": 0,
+      "03-form-pagamento": 0,
+      "04-form-integracoes": 0,
+      "05-detalhes": 0
+    },
+    "axe": {}
+  }
+}

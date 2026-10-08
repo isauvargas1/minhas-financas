@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 
 import { useWorkspace } from '../../contexts/WorkspaceContext.tsx';
+import { categorySubtypeForTransactionType } from './callables';
 import { useSettingsCatalog } from './hooks';
 import { buildLegacyTransactionCatalogOptions } from './transactionFormAdapters';
 import type { TransactionType } from '../../types.ts';
@@ -18,7 +19,8 @@ export const useTransactionCatalogOptions = (
     return buildLegacyTransactionCatalogOptions({
       items: query.data ?? [],
       workspaceType: activeWorkspace.type,
-      transactionType: transactionType ?? null,
+      // A aba Parcelado (compra no cartão) usa as categorias de despesa.
+      transactionType: categorySubtypeForTransactionType(transactionType),
     });
   }, [query.data, activeWorkspace.type, transactionType]);
 

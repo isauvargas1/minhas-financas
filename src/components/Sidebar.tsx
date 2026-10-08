@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
     DashboardIcon,
     CreditCardIcon,
@@ -42,6 +42,47 @@ const Sidebar: React.FC<SidebarProps> = ({
             console.error('Erro ao sair:', error);
         }
     };
+
+    /*
+     * Abaixo de `lg` o menu é uma gaveta sobre o conteúdo (V-02/V-03): fecha ao
+     * escolher uma seção, ao tocar fora dele e com Esc. No desktop o estado
+     * continua controlado pelo hover (menu compacto × expandido).
+     */
+    const isMobileViewport = () => window.innerWidth < 1024;
+    const firstItemRef = useRef<HTMLAnchorElement | null>(null);
+    const navigate = (view: string) => {
+        onNavigate(view);
+        if (isMobileViewport()) setExpanded(false);
+    };
+    useEffect(() => {
+        if (!isExpanded || !isMobileViewport()) return undefined;
+        // Teclado no mobile: o menu vem antes do conteúdo no DOM, então o
+        // foco entra nele ao abrir e volta ao botão de menu ao fechar com Esc.
+        // No primeiro quadro da transição o `visibility` ainda é `hidden` e o
+        // navegador ignora o foco: tenta de novo nos quadros seguintes.
+        let frames = 0;
+        let frame = 0;
+        const focusFirstItem = () => {
+            const item = firstItemRef.current;
+            if (!item) return;
+            item.focus();
+            if (document.activeElement !== item && frames < 10) {
+                frames += 1;
+                frame = requestAnimationFrame(focusFirstItem);
+            }
+        };
+        focusFirstItem();
+        const closeOnEscape = (event: KeyboardEvent) => {
+            if (event.key !== 'Escape') return;
+            setExpanded(false);
+            document.querySelector<HTMLButtonElement>('button[aria-controls="menu-principal"]')?.focus();
+        };
+        document.addEventListener('keydown', closeOnEscape);
+        return () => {
+            cancelAnimationFrame(frame);
+            document.removeEventListener('keydown', closeOnEscape);
+        };
+    }, [isExpanded, setExpanded]);
 
     const menuItems = [
         {
@@ -109,9 +150,24 @@ const Sidebar: React.FC<SidebarProps> = ({
     ];
 
     return (
+        <>
+        {/*
+         * Mobile: o menu aberto fica acima do Header (z-30) e do conteúdo; um
+         * backdrop transparente entre os dois fecha o menu ao tocar fora, sem
+         * mudar a aparência (mesmo padrão dos painéis do Header).
+         */}
+        {isExpanded && (
+            <div
+                className="fixed inset-0 z-40 bg-transparent lg:hidden"
+                onClick={() => setExpanded(false)}
+                aria-hidden="true"
+            />
+        )}
         <aside
-            className={`fixed lg:relative z-30 h-screen bg-surface border-r border-border shadow-lg flex flex-col overflow-hidden transition-all duration-300 ease-in-out ${
-                isExpanded ? 'w-[var(--sidebar-width)]' : 'w-0 lg:w-16'
+            id="menu-principal"
+            aria-label="Menu principal"
+            className={`fixed lg:relative z-50 lg:z-30 h-screen bg-surface border-r border-border shadow-lg flex flex-col overflow-hidden transition-all duration-300 ease-in-out ${
+                isExpanded ? 'w-[var(--sidebar-width)]' : 'w-0 lg:w-16 max-lg:invisible'
             }`}
             onMouseEnter={() => window.innerWidth >= 1024 && setExpanded(true)}
             onMouseLeave={() => window.innerWidth >= 1024 && setExpanded(false)}
@@ -121,7 +177,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                     F
                 </div>
                 <span
-                    className={`ml-3 font-bold text-primary text-xl whitespace-nowrap transition-opacity duration-200 ${
+                    className={`ml-3 font-bold text-primary dark:text-primary-on-dark text-xl whitespace-nowrap transition-opacity duration-200 ${
                         isExpanded ? 'opacity-100' : 'opacity-0'
                     }`}
                 >
@@ -131,24 +187,25 @@ const Sidebar: React.FC<SidebarProps> = ({
 
             <nav className="flex-1 py-4 overflow-y-auto overflow-x-hidden">
                 <ul className="flex flex-col h-full">
-                    {menuItems.map((item) => (
+                    {menuItems.map((item, index) => (
                         <li key={item.id}>
                             <a
+                                ref={index === 0 ? firstItemRef : undefined}
                                 href="#"
                                 onClick={(e) => {
                                     e.preventDefault();
-                                    onNavigate(item.id);
+                                    navigate(item.id);
                                 }}
                                 className={`flex items-center py-3 px-5 border-l-4 hover:bg-background transition-colors ${
                                     currentView === item.id
-                                        ? 'border-primary bg-primary/10 text-primary'
+                                        ? 'border-primary bg-primary/10 text-primary dark:text-primary-on-dark'
                                         : 'border-transparent text-muted'
                                 }`}
                                 title={!isExpanded ? item.text : ''}
                             >
                                 <div
                                     className={`flex-shrink-0 ${
-                                        currentView === item.id ? 'text-primary' : ''
+                                        currentView === item.id ? 'text-primary dark:text-primary-on-dark' : ''
                                     }`}
                                 >
                                     {item.icon}
@@ -167,7 +224,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                     {user?.isAdmin && (
                         <li className="mt-auto pt-4 mb-2 border-t border-border mx-2">
                             <button
-                                onClick={() => onNavigate('admin')}
+                                onClick={() => navigate('admin')}
                                 className={`w-full flex items-center py-3 px-3 rounded-lg transition-all duration-200
                                     ${
                                         currentView === 'admin'
@@ -211,6 +268,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                 </button>
             </div>
         </aside>
+        </>
     );
 };
 

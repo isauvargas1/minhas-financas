@@ -1,19 +1,4 @@
-import { Category, EntityItem } from './types';
-
-export const categories: Category = {
-    receita: ['Salário', 'Honorários', 'Venda de Produto', 'Reembolso', 'Dividendos', 'Outros'],
-    despesa: ['Alimentação', 'Moradia', 'Transporte', 'Saúde', 'Educação', 'Lazer', 'Utilidades', 'Comunicação', 'Outros'],
-    investimento: ['Ações', 'Fundos Imobiliários', 'Tesouro Direto', 'CDB', 'Poupança', 'Outros'],
-    parcelado: ['Eletrônicos', 'Eletrodomésticos', 'Móveis', 'Vestuário', 'Outros']
-};
-
-export const expenseTypesOptions = [
-    'Fixa', 'Variável', 'Operacional', 'Pessoal', 'Recorrente', 'Emergencial'
-];
-
-export const paymentMethodsOptions = [
-    'Dinheiro', 'Pix', 'Boleto', 'Cartão de Crédito', 'Cartão de Débito', 'Transferência'
-];
+import { EntityItem } from './types';
 
 export const transactionTypeColors = {
     receita: 'text-green-600 dark:text-green-400',
@@ -37,20 +22,12 @@ export const chartColors = {
     }
 }
 
-export const initialProductsServices: EntityItem[] = [
-    { id: 1, name: 'Consultoria de TI', icon: 'DeviceDesktop', iconColor: '#4f46e5', iconStroke: 2 },
-    { id: 2, name: 'Manutenção Elétrica', icon: 'Bolt', iconColor: '#eab308', iconStroke: 2 },
-    { id: 3, name: 'Netflix', icon: 'Movie', iconColor: '#ef4444', iconStroke: 1.5 },
-    { id: 4, name: 'Spotify', icon: 'Music', iconColor: '#22c55e', iconStroke: 2 },
-];
-
-export const initialExpenseTypes: EntityItem[] = [
-    { id: 1, name: 'Fixa', icon: 'Lock', iconColor: '#64748b', iconStroke: 2 },
-    { id: 2, name: 'Variável', icon: 'ChartArrows', iconColor: '#f97316', iconStroke: 2 },
-    { id: 3, name: 'Emergencial', icon: 'AlertTriangle', iconColor: '#dc2626', iconStroke: 2.5 },
-];
-
-export const initialCategoriesSettings: EntityItem[] = [
+/**
+ * Paleta de cor por nome de categoria usada só pelos gráficos de Relatórios.
+ * Não é cadastro: as categorias do workspace vivem só no catálogo
+ * autoritativo (`settings_catalog`, D-23), gravado pelo backend.
+ */
+export const REPORT_CATEGORY_PALETTE: EntityItem[] = [
     { id: 1, name: 'Alimentação', icon: 'ShoppingCart', iconColor: '#ef4444', iconStroke: 2, type: 'despesa' },
     { id: 2, name: 'Moradia', icon: 'Home', iconColor: '#3b82f6', iconStroke: 2, type: 'despesa' },
     { id: 3, name: 'Transporte', icon: 'Car', iconColor: '#eab308', iconStroke: 2, type: 'despesa' },
@@ -68,30 +45,4 @@ export const initialCategoriesSettings: EntityItem[] = [
     { id: 22, name: 'Tesouro Direto', icon: 'BuildingBank', iconColor: '#10b981', iconStroke: 2, type: 'investimento' },
     { id: 23, name: 'CDB', icon: 'Percentage', iconColor: '#8b5cf6', iconStroke: 2, type: 'investimento' },
     { id: 24, name: 'Poupança', icon: 'PigMoney', iconColor: '#ec4899', iconStroke: 2, type: 'investimento' },
-    { id: 30, name: 'Eletrônicos', icon: 'DeviceMobile', iconColor: '#6366f1', iconStroke: 2, type: 'parcelado' },
-    { id: 31, name: 'Eletrodomésticos', icon: 'ToolsKitchen', iconColor: '#ef4444', iconStroke: 2, type: 'parcelado' },
-    { id: 32, name: 'Móveis', icon: 'Sofa', iconColor: '#eab308', iconStroke: 2, type: 'parcelado' },
-    { id: 33, name: 'Vestuário', icon: 'Shirt', iconColor: '#ec4899', iconStroke: 2, type: 'parcelado' },
-];
-
-export const initialPaymentTypes: EntityItem[] = [
-    { id: 1, name: 'Dinheiro', icon: 'Cash', iconColor: '#10b981', iconStroke: 2 },
-    { id: 2, name: 'Cartão de Crédito', icon: 'CreditCard', iconColor: '#3b82f6', iconStroke: 2 },
-    { id: 3, name: 'Cartão de Débito', icon: 'Id', iconColor: '#6366f1', iconStroke: 2 },
-    { id: 4, name: 'Pix', icon: 'BrandPix', iconColor: '#14b8a6', iconStroke: 2 },
-    { id: 5, name: 'Boleto', icon: 'Barcode', iconColor: '#475569', iconStroke: 2 },
-];
-
-export const initialIncomeTypes: EntityItem[] = [
-    { id: 1, name: 'Salário Mensal', icon: 'Briefcase', iconColor: '#22c55e', iconStroke: 2 },
-    { id: 2, name: 'Freelance', icon: 'DeviceLaptop', iconColor: '#8b5cf6', iconStroke: 2 },
-    { id: 3, name: 'Dividendos', icon: 'ChartPie', iconColor: '#f59e0b', iconStroke: 2 },
-    { id: 4, name: 'Venda de Bens', icon: 'Tag', iconColor: '#ef4444', iconStroke: 2 },
-];
-
-export const initialWallets: EntityItem[] = [
-    { id: 1, name: 'Carteira Principal', icon: 'Wallet', iconColor: '#4f46e5', iconStroke: 2 },
-    { id: 2, name: 'Reserva de Emergência', icon: 'ShieldCheck', iconColor: '#10b981', iconStroke: 2 },
-    { id: 3, name: 'Investimentos Nubank', icon: 'BuildingBank', iconColor: '#8b5cf6', iconStroke: 2 },
-    { id: 4, name: 'Binance', icon: 'CoinBitcoin', iconColor: '#f59e0b', iconStroke: 2 },
 ];

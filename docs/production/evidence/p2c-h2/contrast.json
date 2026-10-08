@@ -1,0 +1,77 @@
+{
+  "desktop-claro": {
+    "titulo": {
+      "text": "Planos e Assinaturas",
+      "ratio": 16.98
+    },
+    "preco": {
+      "text": "R$ 0",
+      "ratio": 17.74
+    },
+    "botaoUpgrade": {
+      "text": "Fazer Upgrade",
+      "ratio": 6.29
+    },
+    "limite": {
+      "text": "1 espaço",
+      "ratio": 4.83
+    }
+  },
+  "tecladoAlcancaUpgrade": true,
+  "desktop-escuro": {
+    "titulo": {
+      "text": "Planos e Assinaturas",
+      "ratio": 17.74
+    },
+    "preco": {
+      "text": "R$ 0",
+      "ratio": 14.68
+    },
+    "botaoUpgrade": {
+      "text": "Fazer Upgrade",
+      "ratio": 6.29
+    },
+    "limite": {
+      "text": "1 espaço",
+      "ratio": 5.78
+    }
+  },
+  "mobile-claro": {
+    "titulo": {
+      "text": "Planos e Assinaturas",
+      "ratio": 16.98
+    },
+    "preco": {
+      "text": "R$ 0",
+      "ratio": 17.74
+    },
+    "botaoUpgrade": {
+      "text": "Fazer Upgrade",
+      "ratio": 6.29
+    },
+    "limite": {
+      "text": "1 espaço",
+      "ratio": 4.83
+    }
+  },
+  "mobile-escuro": {
+    "titulo": {
+      "text": "Planos e Assinaturas",
+      "ratio": 17.74
+    },
+    "preco": {
+      "text": "R$ 0",
+      "ratio": 14.68
+    },
+    "botaoUpgrade": {
+      "text": "Fazer Upgrade",
+      "ratio": 6.29
+    },
+    "limite": {
+      "text": "1 espaço",
+      "ratio": 5.78
+    }
+  },
+  "modalFoco-desktop-claro": "Começar a usar",
+  "modalFoco-mobile-escuro": "Começar a usar"
+}

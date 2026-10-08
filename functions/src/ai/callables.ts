@@ -218,6 +218,7 @@ export const createAiCallables = (dependencies: () => AiDependencies) => ({
       log.info("ai.credit_consumed", {
         periodKey: admission.periodKey,
         creditCost: admission.creditCost,
+        creditDebitId: admission.receiptId,
       });
       // Crédito já confirmado: falha daqui em diante não o devolve.
       const answer = await gateway.generate({
@@ -255,6 +256,7 @@ export const createAiCallables = (dependencies: () => AiDependencies) => ({
       log.info("ai.credit_consumed", {
         periodKey: admission.periodKey,
         creditCost: admission.creditCost,
+        creditDebitId: admission.receiptId,
       });
       // Crédito já confirmado: falha daqui em diante não o devolve.
       const parts = payload.kind === "text" ?

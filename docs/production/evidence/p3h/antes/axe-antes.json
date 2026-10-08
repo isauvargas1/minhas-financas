@@ -1,0 +1,521 @@
+{
+  "antes-pf-desktop-claro:lista:axe": [
+    {
+      "id": "button-name",
+      "impact": "critical",
+      "count": 2,
+      "nodes": [
+        {
+          "target": [
+            ".bg-primary\\/10.rounded-md.text-primary"
+          ],
+          "html": "<button class=\"p-2 rounded-md transition-all bg-primary/10 text-primary\">"
+        },
+        {
+          "target": [
+            ".rounded-md.hover\\:text-on-surface.p-2"
+          ],
+          "html": "<button class=\"p-2 rounded-md transition-all text-muted hover:text-on-surface\">"
+        }
+      ]
+    },
+    {
+      "id": "color-contrast",
+      "impact": "serious",
+      "count": 3,
+      "nodes": [
+        {
+          "target": [
+            ".text-green-600.text-lg"
+          ],
+          "html": "<p class=\"text-lg font-bold text-green-600\">R$&nbsp;3.000,00</p>"
+        },
+        {
+          "target": [
+            ".text-yellow-600.text-lg"
+          ],
+          "html": "<p class=\"text-lg font-bold text-yellow-600\">0 contratos</p>"
+        },
+        {
+          "target": [
+            ".bg-gray-100"
+          ],
+          "html": "<span class=\"text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider bg-gray-100 text-gray-500\">cancelled</span>"
+        }
+      ]
+    },
+    {
+      "id": "select-name",
+      "impact": "critical",
+      "count": 2,
+      "nodes": [
+        {
+          "target": [
+            "select:nth-child(2)"
+          ],
+          "html": "<select class=\"text-sm bg-transparent border-none text-on-surface focus:ring-0 cursor-pointer\"><option value=\"all\">Todos os Tipos</option><option value=\"lend\">E"
+        },
+        {
+          "target": [
+            "select:nth-child(4)"
+          ],
+          "html": "<select class=\"text-sm bg-transparent border-none text-on-surface focus:ring-0 cursor-pointer\"><option value=\"all\">Todos Status</option><option value=\"active\">A"
+        }
+      ]
+    }
+  ],
+  "antes-pf-desktop-claro:detalhe:axe": [
+    {
+      "id": "color-contrast",
+      "impact": "serious",
+      "count": 15,
+      "nodes": [
+        {
+          "target": [
+            ".text-green-600"
+          ],
+          "html": "<span class=\"text-[9px] font-black uppercase text-green-600\">paid</span>"
+        },
+        {
+          "target": [
+            ".bg-background\\/50.p-3.rounded-xl:nth-child(2) > .text-right > .text-gray-400.text-\\[9px\\].font-black"
+          ],
+          "html": "<span class=\"text-[9px] font-black uppercase text-gray-400\">pending</span>"
+        },
+        {
+          "target": [
+            ".bg-background\\/50.p-3.rounded-xl:nth-child(3) > .text-right > .text-gray-400.text-\\[9px\\].font-black"
+          ],
+          "html": "<span class=\"text-[9px] font-black uppercase text-gray-400\">pending</span>"
+        },
+        {
+          "target": [
+            ".bg-background\\/50.p-3.rounded-xl:nth-child(4) > .text-right > .text-gray-400.text-\\[9px\\].font-black"
+          ],
+          "html": "<span class=\"text-[9px] font-black uppercase text-gray-400\">pending</span>"
+        },
+        {
+          "target": [
+            ".bg-background\\/50.p-3.rounded-xl:nth-child(5) > .text-right > .text-gray-400.text-\\[9px\\].font-black"
+          ],
+          "html": "<span class=\"text-[9px] font-black uppercase text-gray-400\">pending</span>"
+        },
+        {
+          "target": [
+            ".bg-background\\/50.p-3.rounded-xl:nth-child(6) > .text-right > .text-gray-400.text-\\[9px\\].font-black"
+          ],
+          "html": "<span class=\"text-[9px] font-black uppercase text-gray-400\">pending</span>"
+        },
+        {
+          "target": [
+            ".bg-background\\/50.p-3.rounded-xl:nth-child(7) > .text-right > .text-gray-400.text-\\[9px\\].font-black"
+          ],
+          "html": "<span class=\"text-[9px] font-black uppercase text-gray-400\">pending</span>"
+        },
+        {
+          "target": [
+            ".bg-background\\/50.p-3.rounded-xl:nth-child(8) > .text-right > .text-gray-400.text-\\[9px\\].font-black"
+          ],
+          "html": "<span class=\"text-[9px] font-black uppercase text-gray-400\">pending</span>"
+        }
+      ]
+    }
+  ],
+  "antes-pf-mobile-claro:lista:axe": [
+    {
+      "id": "button-name",
+      "impact": "critical",
+      "count": 2,
+      "nodes": [
+        {
+          "target": [
+            ".bg-primary\\/10.rounded-md.text-primary"
+          ],
+          "html": "<button class=\"p-2 rounded-md transition-all bg-primary/10 text-primary\">"
+        },
+        {
+          "target": [
+            ".rounded-md.hover\\:text-on-surface.p-2"
+          ],
+          "html": "<button class=\"p-2 rounded-md transition-all text-muted hover:text-on-surface\">"
+        }
+      ]
+    },
+    {
+      "id": "color-contrast",
+      "impact": "serious",
+      "count": 3,
+      "nodes": [
+        {
+          "target": [
+            ".text-green-600.text-lg"
+          ],
+          "html": "<p class=\"text-lg font-bold text-green-600\">R$&nbsp;3.000,00</p>"
+        },
+        {
+          "target": [
+            ".text-yellow-600.text-lg"
+          ],
+          "html": "<p class=\"text-lg font-bold text-yellow-600\">0 contratos</p>"
+        },
+        {
+          "target": [
+            ".bg-gray-100"
+          ],
+          "html": "<span class=\"text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider bg-gray-100 text-gray-500\">cancelled</span>"
+        }
+      ]
+    },
+    {
+      "id": "select-name",
+      "impact": "critical",
+      "count": 2,
+      "nodes": [
+        {
+          "target": [
+            "select:nth-child(2)"
+          ],
+          "html": "<select class=\"text-sm bg-transparent border-none text-on-surface focus:ring-0 cursor-pointer\"><option value=\"all\">Todos os Tipos</option><option value=\"lend\">E"
+        },
+        {
+          "target": [
+            "select:nth-child(4)"
+          ],
+          "html": "<select class=\"text-sm bg-transparent border-none text-on-surface focus:ring-0 cursor-pointer\"><option value=\"all\">Todos Status</option><option value=\"active\">A"
+        }
+      ]
+    }
+  ],
+  "antes-pf-mobile-claro:detalhe:axe": [
+    {
+      "id": "color-contrast",
+      "impact": "serious",
+      "count": 15,
+      "nodes": [
+        {
+          "target": [
+            ".text-green-600"
+          ],
+          "html": "<span class=\"text-[9px] font-black uppercase text-green-600\">paid</span>"
+        },
+        {
+          "target": [
+            ".bg-background\\/50.p-3.rounded-xl:nth-child(2) > .text-right > .text-gray-400.text-\\[9px\\].font-black"
+          ],
+          "html": "<span class=\"text-[9px] font-black uppercase text-gray-400\">pending</span>"
+        },
+        {
+          "target": [
+            ".bg-background\\/50.p-3.rounded-xl:nth-child(3) > .text-right > .text-gray-400.text-\\[9px\\].font-black"
+          ],
+          "html": "<span class=\"text-[9px] font-black uppercase text-gray-400\">pending</span>"
+        },
+        {
+          "target": [
+            ".bg-background\\/50.p-3.rounded-xl:nth-child(4) > .text-right > .text-gray-400.text-\\[9px\\].font-black"
+          ],
+          "html": "<span class=\"text-[9px] font-black uppercase text-gray-400\">pending</span>"
+        },
+        {
+          "target": [
+            ".bg-background\\/50.p-3.rounded-xl:nth-child(5) > .text-right > .text-gray-400.text-\\[9px\\].font-black"
+          ],
+          "html": "<span class=\"text-[9px] font-black uppercase text-gray-400\">pending</span>"
+        },
+        {
+          "target": [
+            ".bg-background\\/50.p-3.rounded-xl:nth-child(6) > .text-right > .text-gray-400.text-\\[9px\\].font-black"
+          ],
+          "html": "<span class=\"text-[9px] font-black uppercase text-gray-400\">pending</span>"
+        },
+        {
+          "target": [
+            ".bg-background\\/50.p-3.rounded-xl:nth-child(7) > .text-right > .text-gray-400.text-\\[9px\\].font-black"
+          ],
+          "html": "<span class=\"text-[9px] font-black uppercase text-gray-400\">pending</span>"
+        },
+        {
+          "target": [
+            ".bg-background\\/50.p-3.rounded-xl:nth-child(8) > .text-right > .text-gray-400.text-\\[9px\\].font-black"
+          ],
+          "html": "<span class=\"text-[9px] font-black uppercase text-gray-400\">pending</span>"
+        }
+      ]
+    }
+  ],
+  "antes-pj-desktop-claro:lista:axe": [
+    {
+      "id": "button-name",
+      "impact": "critical",
+      "count": 2,
+      "nodes": [
+        {
+          "target": [
+            ".bg-primary\\/10.rounded-md.text-primary"
+          ],
+          "html": "<button class=\"p-2 rounded-md transition-all bg-primary/10 text-primary\">"
+        },
+        {
+          "target": [
+            ".rounded-md.hover\\:text-on-surface.p-2"
+          ],
+          "html": "<button class=\"p-2 rounded-md transition-all text-muted hover:text-on-surface\">"
+        }
+      ]
+    },
+    {
+      "id": "color-contrast",
+      "impact": "serious",
+      "count": 5,
+      "nodes": [
+        {
+          "target": [
+            ".text-teal-600"
+          ],
+          "html": "<span class=\"text-xs text-teal-600 dark:text-teal-400 font-bold uppercase tracking-wider flex items-center gap-1 mt-0.5\">"
+        },
+        {
+          "target": [
+            ".w-9"
+          ],
+          "html": "<div role=\"button\" tabindex=\"0\" aria-label=\"Abrir menu da conta\" aria-expanded=\"false\" class=\"w-9 h-9 rounded-full flex items-center justify-center text-white f"
+        },
+        {
+          "target": [
+            ".text-green-600.text-lg"
+          ],
+          "html": "<p class=\"text-lg font-bold text-green-600\">R$&nbsp;3.000,00</p>"
+        },
+        {
+          "target": [
+            ".text-yellow-600.text-lg"
+          ],
+          "html": "<p class=\"text-lg font-bold text-yellow-600\">0 operações</p>"
+        },
+        {
+          "target": [
+            ".bg-gray-100"
+          ],
+          "html": "<span class=\"px-2 py-0.5 rounded text-[9px] font-black uppercase border bg-gray-100 text-gray-500\">cancelled</span>"
+        }
+      ]
+    },
+    {
+      "id": "select-name",
+      "impact": "critical",
+      "count": 2,
+      "nodes": [
+        {
+          "target": [
+            "select:nth-child(2)"
+          ],
+          "html": "<select class=\"text-sm bg-transparent border-none text-on-surface focus:ring-0 cursor-pointer\"><option value=\"all\">Todos os Tipos</option><option value=\"borrow\""
+        },
+        {
+          "target": [
+            "select:nth-child(4)"
+          ],
+          "html": "<select class=\"text-sm bg-transparent border-none text-on-surface focus:ring-0 cursor-pointer\"><option value=\"all\">Todos Status</option><option value=\"active\">A"
+        }
+      ]
+    }
+  ],
+  "antes-pj-desktop-claro:detalhe:axe": [
+    {
+      "id": "color-contrast",
+      "impact": "serious",
+      "count": 15,
+      "nodes": [
+        {
+          "target": [
+            ".text-teal-600"
+          ],
+          "html": "<span class=\"text-xs text-teal-600 dark:text-teal-400 font-bold uppercase tracking-wider flex items-center gap-1 mt-0.5\">"
+        },
+        {
+          "target": [
+            ".w-9"
+          ],
+          "html": "<div role=\"button\" tabindex=\"0\" aria-label=\"Abrir menu da conta\" aria-expanded=\"false\" class=\"w-9 h-9 rounded-full flex items-center justify-center text-white f"
+        },
+        {
+          "target": [
+            ".text-green-600.gap-1.text-\\[9px\\]"
+          ],
+          "html": "<span class=\"text-[9px] text-green-600 uppercase font-black flex items-center justify-end gap-1\">"
+        },
+        {
+          "target": [
+            ".bg-green-600"
+          ],
+          "html": "<span class=\"text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-green-600 text-white\">paid</span>"
+        },
+        {
+          "target": [
+            ".bg-background\\/50.rounded-2xl.p-4:nth-child(2) > .text-right > .mt-1.justify-end.gap-2 > .bg-gray-400.text-\\[8px\\].py-0\\.5"
+          ],
+          "html": "<span class=\"text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-gray-400 text-white\">pending</span>"
+        },
+        {
+          "target": [
+            ".bg-background\\/50.rounded-2xl.p-4:nth-child(3) > .text-right > .mt-1.justify-end.gap-2 > .bg-gray-400.text-\\[8px\\].py-0\\.5"
+          ],
+          "html": "<span class=\"text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-gray-400 text-white\">pending</span>"
+        },
+        {
+          "target": [
+            ".bg-background\\/50.rounded-2xl.p-4:nth-child(4) > .text-right > .mt-1.justify-end.gap-2 > .bg-gray-400.text-\\[8px\\].py-0\\.5"
+          ],
+          "html": "<span class=\"text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-gray-400 text-white\">pending</span>"
+        },
+        {
+          "target": [
+            ".bg-background\\/50.rounded-2xl.p-4:nth-child(5) > .text-right > .mt-1.justify-end.gap-2 > .bg-gray-400.text-\\[8px\\].py-0\\.5"
+          ],
+          "html": "<span class=\"text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-gray-400 text-white\">pending</span>"
+        }
+      ]
+    }
+  ],
+  "antes-pj-mobile-claro:lista:axe": [
+    {
+      "id": "button-name",
+      "impact": "critical",
+      "count": 2,
+      "nodes": [
+        {
+          "target": [
+            ".bg-primary\\/10.rounded-md.text-primary"
+          ],
+          "html": "<button class=\"p-2 rounded-md transition-all bg-primary/10 text-primary\">"
+        },
+        {
+          "target": [
+            ".rounded-md.hover\\:text-on-surface.p-2"
+          ],
+          "html": "<button class=\"p-2 rounded-md transition-all text-muted hover:text-on-surface\">"
+        }
+      ]
+    },
+    {
+      "id": "color-contrast",
+      "impact": "serious",
+      "count": 4,
+      "nodes": [
+        {
+          "target": [
+            ".text-teal-600"
+          ],
+          "html": "<span class=\"text-xs text-teal-600 dark:text-teal-400 font-bold uppercase tracking-wider flex items-center gap-1 mt-0.5\">"
+        },
+        {
+          "target": [
+            ".text-green-600.text-lg"
+          ],
+          "html": "<p class=\"text-lg font-bold text-green-600\">R$&nbsp;3.000,00</p>"
+        },
+        {
+          "target": [
+            ".text-yellow-600.text-lg"
+          ],
+          "html": "<p class=\"text-lg font-bold text-yellow-600\">0 operações</p>"
+        },
+        {
+          "target": [
+            ".bg-gray-100"
+          ],
+          "html": "<span class=\"px-2 py-0.5 rounded text-[9px] font-black uppercase border bg-gray-100 text-gray-500\">cancelled</span>"
+        }
+      ]
+    },
+    {
+      "id": "select-name",
+      "impact": "critical",
+      "count": 2,
+      "nodes": [
+        {
+          "target": [
+            "select:nth-child(2)"
+          ],
+          "html": "<select class=\"text-sm bg-transparent border-none text-on-surface focus:ring-0 cursor-pointer\"><option value=\"all\">Todos os Tipos</option><option value=\"borrow\""
+        },
+        {
+          "target": [
+            "select:nth-child(4)"
+          ],
+          "html": "<select class=\"text-sm bg-transparent border-none text-on-surface focus:ring-0 cursor-pointer\"><option value=\"all\">Todos Status</option><option value=\"active\">A"
+        }
+      ]
+    }
+  ],
+  "antes-pj-mobile-claro:detalhe:axe": [
+    {
+      "id": "color-contrast",
+      "impact": "serious",
+      "count": 13,
+      "nodes": [
+        {
+          "target": [
+            ".text-teal-600"
+          ],
+          "html": "<span class=\"text-xs text-teal-600 dark:text-teal-400 font-bold uppercase tracking-wider flex items-center gap-1 mt-0.5\">"
+        },
+        {
+          "target": [
+            ".bg-green-600"
+          ],
+          "html": "<span class=\"text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-green-600 text-white\">paid</span>"
+        },
+        {
+          "target": [
+            ".bg-background\\/50.rounded-2xl.p-4:nth-child(2) > .text-right > .mt-1.justify-end.gap-2 > .bg-gray-400.text-\\[8px\\].py-0\\.5"
+          ],
+          "html": "<span class=\"text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-gray-400 text-white\">pending</span>"
+        },
+        {
+          "target": [
+            ".bg-background\\/50.rounded-2xl.p-4:nth-child(3) > .text-right > .mt-1.justify-end.gap-2 > .bg-gray-400.text-\\[8px\\].py-0\\.5"
+          ],
+          "html": "<span class=\"text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-gray-400 text-white\">pending</span>"
+        },
+        {
+          "target": [
+            ".bg-background\\/50.rounded-2xl.p-4:nth-child(4) > .text-right > .mt-1.justify-end.gap-2 > .bg-gray-400.text-\\[8px\\].py-0\\.5"
+          ],
+          "html": "<span class=\"text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-gray-400 text-white\">pending</span>"
+        },
+        {
+          "target": [
+            ".bg-background\\/50.rounded-2xl.p-4:nth-child(5) > .text-right > .mt-1.justify-end.gap-2 > .bg-gray-400.text-\\[8px\\].py-0\\.5"
+          ],
+          "html": "<span class=\"text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-gray-400 text-white\">pending</span>"
+        },
+        {
+          "target": [
+            ".bg-background\\/50.rounded-2xl.p-4:nth-child(6) > .text-right > .mt-1.justify-end.gap-2 > .bg-gray-400.text-\\[8px\\].py-0\\.5"
+          ],
+          "html": "<span class=\"text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-gray-400 text-white\">pending</span>"
+        },
+        {
+          "target": [
+            ".bg-background\\/50.rounded-2xl.p-4:nth-child(7) > .text-right > .mt-1.justify-end.gap-2 > .bg-gray-400.text-\\[8px\\].py-0\\.5"
+          ],
+          "html": "<span class=\"text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-gray-400 text-white\">pending</span>"
+        }
+      ]
+    },
+    {
+      "id": "scrollable-region-focusable",
+      "impact": "serious",
+      "count": 1,
+      "nodes": [
+        {
+          "target": [
+            ".p-3"
+          ],
+          "html": "<div class=\"overflow-y-auto custom-scrollbar flex-1 p-3\">"
+        }
+      ]
+    }
+  ]
+}

@@ -179,12 +179,20 @@ test('convite, aceite, troca de papel, remoção e perda de acesso entre duas co
   const workspaceId = String(created.result?.workspaceId);
 
   // O workspace sai do backend já provisionado, antes de qualquer tela abri-lo:
-  // catálogo geral (com centros de custo, por ser PJ) e padrões de investimento.
+  // catálogo geral (com centros de custo, por ser PJ) e as carteiras de
+  // investimento padrão (D-15: nenhuma conta ou ativo técnico).
   const catalog = await db.collection(`workspaces/${workspaceId}/settings_catalog`).get();
   expect(catalog.docs.filter((doc) => doc.get('group') === 'cost_center')).toHaveLength(3);
-  expect(catalog.docs.some((doc) => doc.get('group') === 'wallet')).toBe(true);
-  expect((await db.collection(`workspaces/${workspaceId}/investment_accounts`)
-    .where('status', '==', 'active').get()).size).toBe(1);
+  // P3-J (D-30): a carteira de caixa não é catálogo; é a conta autoritativa.
+  expect(catalog.docs.some((doc) => doc.get('group') === 'wallet')).toBe(false);
+  const accounts = await db.collection(`workspaces/${workspaceId}/cash_accounts`).get();
+  expect(accounts.docs.map((doc) => [doc.get('name'), doc.get('balanceCents'), doc.get('status')]))
+    .toEqual([['Carteira principal', 0, 'active']]);
+  expect(catalog.docs.filter((doc) => doc.get('group') === 'investment_class')
+    .map((doc) => doc.get('name')).sort())
+    .toEqual(['Caixa e liquidez', 'Expansão', 'Reserva operacional']);
+  expect((await db.collection(`workspaces/${workspaceId}/investment_accounts`).get()).size).toBe(0);
+  expect((await db.collection(`workspaces/${workspaceId}/investment_assets`).get()).size).toBe(0);
 
   // O owner abre a empresa e convida pela tela.
   await page.addInitScript(([key, value]) => localStorage.setItem(key, value), [

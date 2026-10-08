@@ -1,0 +1,6 @@
+Enter em "Novo cadastro" abre o formulário: ok
+Enter no nome envia o formulário e cria "Consultoria"
+Enter envia; nome repetido mostra alerta (role=alert) e preserva o valor: consultoria
+Enter com nome novo cria e fecha o formulário; feedback "Cadastro criado com sucesso."
+Enter em "Inativar" abre a confirmação; Enter em "Inativar item" inativa; feedback de sucesso.
+Escape no formulário fecha? false

@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import {
+  getInvestmentReportPeriod,
   listInvestmentAllocations,
   listInvestmentMovements,
   listInvestmentPositions,
@@ -12,6 +13,7 @@ import {
 } from '../persistence/readApi';
 import { callInvestment, investmentRequestIds } from '../persistence/callableApi';
 import type { InvestmentAllocationDimension, InvestmentPosition } from '../types';
+import { monthContributionCents } from '../dashboard';
 import { toGoalLinkCandidates, type GoalLinkCandidate } from './goalLink';
 import {
   simpleMovementQueryFilter,
@@ -133,16 +135,18 @@ export const useSimpleInvestmentMutation = (workspaceId: string) => {
       return callInvestment(name, { ...body, ...investmentRequestIds(name, nonce, body) });
     },
     onSuccess: async () => {
-      // O domínio projeta espelho de caixa e progresso de meta na mesma
-      // transação; a tela comum lê os dois por outras chaves e ficaria
-      // desatualizada sem isto. A lista é a mesma que as mutações de
-      // `transactions` já invalidam.
+      // O domínio projeta espelho de caixa, movimento e saldo da conta
+      // (D-30), período patrimonial e progresso de meta na mesma transação;
+      // a tela comum lê tudo isso por outras chaves e ficaria desatualizada
+      // sem isto.
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: SIMPLE_INVESTMENT_KEYS.root }),
         queryClient.invalidateQueries({ queryKey: ['transactions', workspaceId] }),
         queryClient.invalidateQueries({ queryKey: ['transactions-full-history', workspaceId] }),
-        queryClient.invalidateQueries({ queryKey: ['investment-transactions', workspaceId] }),
         queryClient.invalidateQueries({ queryKey: ['cash-periods', workspaceId] }),
+        queryClient.invalidateQueries({ queryKey: ['cash_accounts', workspaceId] }),
+        queryClient.invalidateQueries({ queryKey: ['cash_account_movements', workspaceId] }),
+        queryClient.invalidateQueries({ queryKey: ['investment-month', workspaceId] }),
         queryClient.invalidateQueries({ queryKey: ['goals', workspaceId] }),
         // O histórico da meta é uma consulta própria; sem isto, o aporte feito
         // de dentro da meta some da lista até um recarregamento manual.
@@ -199,7 +203,7 @@ export const useGoalLinkCandidates = (
   queryKey: SIMPLE_INVESTMENT_KEYS.goalCandidates(workspaceId, goalId),
   initialPageParam: null as InvestmentCursor | null,
   queryFn: async ({ pageParam }): Promise<GoalLinkCandidatePage> => {
-    const page = await listInvestmentPositions(workspaceId, undefined, pageParam ?? undefined);
+    const page = await listInvestmentPositions(workspaceId, pageParam ?? undefined);
     const names = await resolveInvestmentAssetNames(
       workspaceId,
       page.items.map((position) => position.assetId),
@@ -215,3 +219,19 @@ export const useGoalLinkCandidates = (
   retry: 1,
   refetchOnWindowFocus: false,
 });
+
+/**
+ * Aporte do mês para o card "Investimentos" do dashboard (`dashboard.ts`):
+ * um documento da projeção mensal oficial por mês exibido.
+ */
+export const useInvestmentMonthContribution = (workspaceId: string, monthKey: string) =>
+  useQuery({
+    queryKey: ['investment-month', workspaceId, monthKey] as const,
+    queryFn: async () => monthContributionCents(
+      await getInvestmentReportPeriod(workspaceId, monthKey),
+    ),
+    enabled: workspaceId.length > 0 && workspaceId !== 'loading',
+    staleTime: 60_000,
+    retry: 1,
+    refetchOnWindowFocus: false,
+  });

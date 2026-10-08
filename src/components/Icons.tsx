@@ -2,6 +2,7 @@
 import React, { useEffect, useReducer } from 'react';
 import { useTheme } from '../contexts/ThemeContext.tsx';
 import { IconProps } from '../types.ts';
+import { iconPackProps, type IconPackName } from './iconPackProps.ts';
 
 /*
  * Pacotes de ícones carregados sob demanda (INV-P2-044).
@@ -23,7 +24,6 @@ import { IconProps } from '../types.ts';
  * que já servia de fallback para nome desconhecido — o que dura um frame na
  * primeira renderização e nada nas seguintes.
  */
-type IconPackName = 'lucide' | 'tabler' | 'phosphor';
 
 type IconPacks = Partial<Record<IconPackName, unknown>>;
 
@@ -171,6 +171,8 @@ const ICON_MAP: Record<string, { lucide: string, phosphor: string, tabler: strin
     FileInvoice: { lucide: 'FileText', phosphor: 'FileText', tabler: 'IconFileInvoice' },
     UserPlus: { lucide: 'UserPlus', phosphor: 'UserPlus', tabler: 'IconUserPlus' },
     CurrencyDollar: { lucide: 'DollarSign', phosphor: 'CurrencyDollar', tabler: 'IconCurrencyDollar' },
+    // P3-I: arquivar cliente (não há exclusão física).
+    Archive: { lucide: 'Archive', phosphor: 'Archive', tabler: 'IconArchive' },
 };
 
 // Fallback Icon (Simple Box)
@@ -257,15 +259,14 @@ const AppIcon: React.FC<{ name: string } & IconProps> = ({ name, className, ...p
         return <FallbackIcon size={size} className={className} {...props} />;
     }
 
-    const phosphorWeight = strokeWidth <= 1.5 ? 'light' : strokeWidth >= 2.5 ? 'bold' : 'regular';
-
+    // Cada pacote recebe só a propriedade que entende (V-01): sem `stroke` no
+    // lucide, que apagava o traço e deixava os ícones invisíveis.
     return (
         <IconComponent
             className={className}
-            size={size} 
+            size={size}
             strokeWidth={strokeWidth}
-            weight={pack === 'phosphor' ? phosphorWeight : undefined}
-            stroke={pack === 'tabler' ? strokeWidth : undefined}
+            {...iconPackProps(pack, strokeWidth)}
             {...props}
         />
     );
@@ -392,3 +393,4 @@ export const CurrencyDollarIcon: React.FC<IconProps> = (props) => <AppIcon name=
 // Added InfoIcon export to fix error in AllocationAnalysis.tsx
 export const InfoIcon: React.FC<IconProps> = (props) => <AppIcon name="Info" {...props} />;
 export const UserPlusIcon: React.FC<IconProps> = (props) => <AppIcon name="UserPlus" {...props} />;
+export const ArchiveIcon: React.FC<IconProps> = (props) => <AppIcon name="Archive" {...props} />;

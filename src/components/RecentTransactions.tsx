@@ -4,14 +4,13 @@ import { transactionTypeColors } from '../constants.ts';
 import { PlusIcon, SortUpIcon, SortDownIcon } from './Icons.tsx';
 import CatalogVisualChip from './CatalogVisualChip.tsx';
 import { useBilling } from '../modules/billing/BillingContext';
-import { formatDateBR, isSameMonthYear } from '../utils/date.ts';
+import { transactionsQuotaView } from '../modules/billing/transactionsQuota';
+import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
+import { formatDateBR } from '../utils/date.ts';
 import { useSettingsCatalog } from '../modules/settings-catalog/hooks.ts';
 import { resolveTransactionVisuals } from '../modules/settings-catalog/display.ts';
 import {
-    isCreditCardInvoiceCompatibleTransaction,
-    isCreditCardInvoicePaymentCashTransaction,
-} from '../modules/credit-cards/compatibility';
-import {
+    isCreditCardPaymentCashMirror,
     isInvestmentRedemption,
     transactionCashImpactCents,
 } from '../modules/investments/semantics.ts';
@@ -41,21 +40,15 @@ const RecentTransactions: React.FC<RecentTransactionsProps> = ({ transactions, o
 
     // --- LÓGICA DE LIMITES DE PLANO ---
     // Plano do WORKSPACE ativo (do owner), não o de quem está vendo.
-    const { checkWorkspaceLimit } = useBilling();
+    const { workspaceEntitlement } = useBilling();
+    // O limite é do plano do titular (D-01): só ele resolve com upgrade.
+    const { activeWorkspaceRole } = useWorkspace();
+    const isWorkspaceOwner = activeWorkspaceRole === 'owner';
     const catalogQuery = useSettingsCatalog({ includeInactive: true });
     const catalogItems = catalogQuery.data ?? [];
 
-    // Conta quantas transações existem no mês atual
-    const transactionsThisMonth = useMemo(() => {
-        const today = new Date();
-
-        return transactions.filter((transaction) =>
-            !isCreditCardInvoiceCompatibleTransaction(transaction) &&
-            isSameMonthYear(transaction.date, today)
-        ).length;
-    }, [transactions]);
-
-    const canCreateTransaction = checkWorkspaceLimit('transactionsPerMonth', transactionsThisMonth);
+    // Uso mensal do contador do backend (D-40), não contagem local.
+    const canCreateTransaction = transactionsQuotaView(workspaceEntitlement).canCreate;
     // ----------------------------------
 
     const filteredTransactions = useMemo(() => {
@@ -130,7 +123,10 @@ const RecentTransactions: React.FC<RecentTransactionsProps> = ({ transactions, o
 
                         {!canCreateTransaction && (
                             <span className="text-[10px] text-amber-600 mt-1 absolute -bottom-4">
-                                Limite mensal atingido. <a href="/planos" className="underline font-bold">Upgrade!</a>
+                                Limite mensal atingido.{' '}
+                                {isWorkspaceOwner
+                                    ? <a href="/planos" className="underline font-bold">Upgrade!</a>
+                                    : 'Peça ao titular do espaço.'}
                             </span>
                         )}
                     </div>
@@ -174,8 +170,7 @@ const RecentTransactions: React.FC<RecentTransactionsProps> = ({ transactions, o
                                 transaction: t,
                                 catalogItems,
                             });
-                            const isInvoiceProjection = isCreditCardInvoiceCompatibleTransaction(t);
-                            const isInvoicePayment = isCreditCardInvoicePaymentCashTransaction(t);
+                            const isInvoicePayment = isCreditCardPaymentCashMirror(t);
                             const isRedemption = isInvestmentRedemption(t);
                             const cashImpactCents = transactionCashImpactCents(t);
 
@@ -196,11 +191,7 @@ const RecentTransactions: React.FC<RecentTransactionsProps> = ({ transactions, o
 
                                             {isInvoicePayment ? (
                                                 <span className="text-xs text-green-600 dark:text-green-300 font-medium">
-                                                    Pagamento de fatura
-                                                </span>
-                                            ) : isInvoiceProjection ? (
-                                                <span className="text-xs text-purple-600 dark:text-purple-300 font-medium">
-                                                    Fatura de cartão
+                                                    {t.creditCardPaymentEntry?.reversal ? 'Estorno de pagamento de fatura' : 'Pagamento de fatura'}
                                                 </span>
                                             ) : isRedemption ? (
                                                 <span className="text-xs text-emerald-600 dark:text-emerald-300 font-medium">

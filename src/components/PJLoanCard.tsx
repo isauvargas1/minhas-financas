@@ -1,10 +1,16 @@
 
 import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Loan } from '../modules/loans/types.ts';
-import { BriefcaseIcon, BuildingIcon, WarningIcon, DynamicIcon } from './Icons.tsx';
+import type { Loan } from '../modules/loans/types.ts';
+import { BriefcaseIcon, DynamicIcon } from './Icons.tsx';
 import { useTheme } from '../contexts/ThemeContext.tsx';
-import { getPJLoanClassificationLabel } from '../modules/loans/pj-logic.ts';
+import { formatCents, formatDayKey } from '../modules/loans/money.ts';
+import {
+    LOAN_STATUS_LABELS,
+    classificationLabel,
+    openBalanceCents,
+    principalProgressPercent,
+} from '../modules/loans/presentation.ts';
 
 interface PJLoanCardProps {
     loan: Loan;
@@ -15,15 +21,7 @@ const PJLoanCard: React.FC<PJLoanCardProps> = ({ loan, onClick }) => {
     const { playSound } = useTheme();
     const MotionDiv = motion.div as any;
 
-    const formatCurrency = (val: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
-
-    const progress = useMemo(() => {
-        // PJ simple progress: (Total Paid / (Principal + Estimated Interest))
-        // We simulate a total cost for progress purposes
-        const totalPrincipal = loan.principalValue;
-        if (totalPrincipal <= 0) return 100;
-        return Math.min(100, (loan.totalPaidReceived / totalPrincipal) * 100);
-    }, [loan]);
+    const progress = useMemo(() => principalProgressPercent(loan), [loan]);
 
     const isLiab = loan.type === 'borrow';
 
@@ -37,13 +35,13 @@ const PJLoanCard: React.FC<PJLoanCardProps> = ({ loan, onClick }) => {
             className={`bg-surface rounded-card border border-border shadow-sm overflow-hidden flex flex-col cursor-pointer transition-all duration-300 ${loan.status === 'overdue' ? 'border-red-300' : 'hover:border-primary/50'}`}
         >
             <div className="p-4 bg-background/50 border-b border-border flex justify-between items-center">
-                <span className="text-[9px] font-black uppercase tracking-widest text-muted">{getPJLoanClassificationLabel(loan.classification)}</span>
+                <span className="text-[9px] font-black uppercase tracking-widest text-muted">{classificationLabel(loan.classification)}</span>
                 <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase border ${
                     loan.status === 'active' ? 'border-blue-200 text-blue-700 bg-blue-50' :
                     loan.status === 'paid' ? 'border-green-200 text-green-700 bg-green-50' :
-                    loan.status === 'overdue' ? 'border-red-200 text-red-700 bg-red-50' : 'bg-gray-100 text-gray-500'
+                    loan.status === 'overdue' ? 'border-red-200 text-red-700 bg-red-50' : 'bg-gray-100 text-gray-700'
                 }`}>
-                    {loan.status === 'overdue' ? 'ATRASADO' : loan.status}
+                    {LOAN_STATUS_LABELS[loan.status]}
                 </span>
             </div>
             
@@ -64,18 +62,18 @@ const PJLoanCard: React.FC<PJLoanCardProps> = ({ loan, onClick }) => {
                     <div className="flex justify-between items-end">
                         <div>
                             <span className="text-[10px] text-muted uppercase font-bold block mb-0.5">{isLiab ? 'Saldo Devedor' : 'Saldo a Receber'}</span>
-                            <span className="text-xl font-black text-on-surface">{formatCurrency(loan.currentBalance)}</span>
+                            <span className="text-xl font-black text-on-surface">{loan.status === 'cancelled' ? 'Cancelado' : formatCents(openBalanceCents(loan))}</span>
                         </div>
                         <div className="text-right">
                             <span className="text-[10px] text-muted uppercase font-bold block mb-0.5">Vencimento</span>
-                            <span className="text-xs font-bold text-on-surface">{new Date(loan.expectedPayoffDate).toLocaleDateString('pt-BR')}</span>
+                            <span className="text-xs font-bold text-on-surface">{formatDayKey(loan.maturityDate)}</span>
                         </div>
                     </div>
 
                     <div className="space-y-1.5">
                         <div className="flex justify-between text-[9px] font-black text-muted uppercase tracking-wider">
                             <span>Amortização</span>
-                            <span>{Math.round(progress)}%</span>
+                            <span>{progress}%</span>
                         </div>
                         <div className="h-1.5 w-full bg-background rounded-full overflow-hidden border border-border/50">
                             <MotionDiv className="h-full bg-primary" initial={{ width: 0 }} animate={{ width: `${progress}%` }} transition={{ duration: 1 }} />

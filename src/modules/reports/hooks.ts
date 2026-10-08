@@ -10,13 +10,13 @@ import {
 } from './types';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
 import { resolveReportDateRange } from './logic';
-import { Receivable, Client } from '../clients/types';
+import type { ReceivableReportData } from '../clients/types';
 import {
-    listCreditCardInstallmentsForReports,
-    listCreditCardInvoicePaymentsForReports,
-    listCreditCardInvoicesForReports,
-    listCreditCardPurchasesForReports,
-} from '../credit-cards/persistence/readApi';
+    LIST_LIMIT as CARD_REPORT_LIST_LIMIT,
+    listInvoicesWithBalanceForReport,
+    listPaymentsForReport,
+    listPurchasesForReport,
+} from '../cards/api';
 import { getOfficialInvestmentReportData } from '../investments/persistence/readApi';
 
 export const reportKeys = {
@@ -35,8 +35,7 @@ const buildTransactionsVersion = (transactions: Transaction[]): string =>
             transaction.date,
             transaction.isPaid,
             transaction.source,
-            transaction.creditCardInvoiceId,
-            transaction.creditCardInvoicePaymentId,
+            transaction.creditCardPaymentEntry?.paymentId,
         ].join(':'))
         .join('|');
 
@@ -45,9 +44,9 @@ const buildCreditCardsVersion = (creditCards: CreditCard[]): string =>
         .map((card) => [
             card.id,
             card.status,
-            card.limitTotal,
-            card.limitUsed,
-            card.limitAvailable,
+            card.limitTotalCents,
+            card.limitUsedCents,
+            card.limitAvailableCents,
             card.closingDay,
             card.dueDay,
         ].join(':'))
@@ -64,45 +63,25 @@ const buildGoalsVersion = (goals: Goal[]): string =>
         ].join(':'))
         .join('|');
 
-const buildReceivablesVersion = (receivables?: Receivable[]): string =>
-    (receivables || [])
-        .map((receivable) => [
-            receivable.id,
-            receivable.status,
-            receivable.value,
-            receivable.dueDate,
-        ].join(':'))
-        .join('|');
+const buildReceivablesVersion = (data?: ReceivableReportData | null): string =>
+    data ? JSON.stringify(data) : '';
 
-const buildClientsVersion = (clients?: Client[]): string =>
-    (clients || [])
-        .map((client) => [
-            client.id,
-            client.name,
-        ].join(':'))
-        .join('|');
-
-        const CREDIT_CARD_REPORT_QUERY_LIMITS = {
-    purchases: 5000,
-    invoices: 2500,
-    installments: 5000,
-    payments: 2500,
+/**
+ * Teto de leitura do domínio de cartões no relatório (P4-A, PR-CC-07): o
+ * mesmo das Rules (500 + 1 de sonda). O corte é detectado pelo documento a
+ * mais e sinalizado — nunca silencioso.
+ */
+const CREDIT_CARD_REPORT_QUERY_LIMITS = {
+    purchases: CARD_REPORT_LIST_LIMIT,
+    invoices: CARD_REPORT_LIST_LIMIT,
+    payments: CARD_REPORT_LIST_LIMIT,
 };
-
-type CreditCardReportDomainCollectionKey = keyof typeof CREDIT_CARD_REPORT_QUERY_LIMITS;
 
 const buildCreditCardReportDomainMeta = (
     range: ReportTimeRange,
     dateRange: ReturnType<typeof resolveReportDateRange>,
-    collectionSizes: Record<CreditCardReportDomainCollectionKey, number>,
+    truncated: CreditCardReportDomainMeta['truncated'],
 ): CreditCardReportDomainMeta => {
-    const truncated = {
-        purchases: collectionSizes.purchases >= CREDIT_CARD_REPORT_QUERY_LIMITS.purchases,
-        invoices: collectionSizes.invoices >= CREDIT_CARD_REPORT_QUERY_LIMITS.invoices,
-        installments: collectionSizes.installments >= CREDIT_CARD_REPORT_QUERY_LIMITS.installments,
-        payments: collectionSizes.payments >= CREDIT_CARD_REPORT_QUERY_LIMITS.payments,
-    };
-
     return {
         range,
         startDate: dateRange.startDate,
@@ -119,10 +98,9 @@ export interface FinancialReportSnapshotOptions {
      * Carregar o domínio patrimonial junto do snapshot (INV-P2-035).
      *
      * O widget do dashboard usa apenas `kpi-balance`, `kpi-savings` e alertas —
-     * nada que venha do domínio patrimonial. Como ele monta na mesma tela que
-     * `InvestmentDashboardOverview`, o dashboard disparava **duas** cargas
-     * independentes do resumo, dos períodos e das alocações. Consumidores que
-     * não exibem indicadores patrimoniais passam a dizê-lo.
+     * nada que venha do domínio patrimonial. Consumidores que não exibem
+     * indicadores patrimoniais dispensam a carga do resumo, dos períodos e
+     * das alocações.
      */
     includeInvestmentDomain?: boolean;
 }
@@ -132,8 +110,7 @@ export const useFinancialReportSnapshot = (
     goals: Goal[],
     creditCards: CreditCard[],
     range: ReportTimeRange,
-    receivables?: Receivable[],
-    clients?: Client[],
+    receivableData?: ReceivableReportData | null,
     options: FinancialReportSnapshotOptions = {}
 ) => {
     const includeInvestmentDomain = options.includeInvestmentDomain !== false;
@@ -179,40 +156,21 @@ export const useFinancialReportSnapshot = (
                     endDate: dateRange.endDate,
                 };
 
-            const [purchases, invoices, installments, payments] = await Promise.all([
-                listCreditCardPurchasesForReports(workspaceId, {
-                    ...dateRangeOptions,
-                    limit: CREDIT_CARD_REPORT_QUERY_LIMITS.purchases,
-                }),
-                listCreditCardInvoicesForReports(workspaceId, {
-                    ...dateRangeOptions,
-                    limit: CREDIT_CARD_REPORT_QUERY_LIMITS.invoices,
-                }),
-                listCreditCardInstallmentsForReports(workspaceId, {
-                    ...dateRangeOptions,
-                    limit: CREDIT_CARD_REPORT_QUERY_LIMITS.installments,
-                }),
-                listCreditCardInvoicePaymentsForReports(workspaceId, {
-                    ...dateRangeOptions,
-                    limit: CREDIT_CARD_REPORT_QUERY_LIMITS.payments,
-                }),
+            const [purchases, invoices, payments] = await Promise.all([
+                listPurchasesForReport(workspaceId, dateRangeOptions),
+                listInvoicesWithBalanceForReport(workspaceId),
+                listPaymentsForReport(workspaceId, dateRangeOptions),
             ]);
 
             return {
-                purchases,
-                invoices,
-                installments,
-                payments,
-                meta: buildCreditCardReportDomainMeta(
-                    range,
-                    dateRange,
-                    {
-                        purchases: purchases.length,
-                        invoices: invoices.length,
-                        installments: installments.length,
-                        payments: payments.length,
-                    }
-                ),
+                purchases: purchases.items,
+                invoices: invoices.items,
+                payments: payments.items,
+                meta: buildCreditCardReportDomainMeta(range, dateRange, {
+                    purchases: purchases.truncated,
+                    invoices: invoices.truncated,
+                    payments: payments.truncated,
+                }),
             };
         },
         enabled: Boolean(workspaceId) && workspaceId !== 'loading',
@@ -226,8 +184,7 @@ export const useFinancialReportSnapshot = (
         buildTransactionsVersion(transactions),
         buildGoalsVersion(goals),
         buildCreditCardsVersion(creditCards),
-        buildReceivablesVersion(receivables),
-        buildClientsVersion(clients),
+        buildReceivablesVersion(receivableData),
         buildCreditCardDomainVersion(creditCardDomainData),
         String(investmentDomainQuery.dataUpdatedAt),
     ].join('::');
@@ -246,8 +203,7 @@ export const useFinancialReportSnapshot = (
                 creditCards,
                 range,
                 activeWorkspace,
-                receivables,
-                clients,
+                receivableData,
                 creditCardDomainData,
                 investmentDomainQuery.data,
             );
@@ -262,7 +218,6 @@ export const useFinancialReportSnapshot = (
 const EMPTY_CREDIT_CARD_REPORT_DOMAIN_DATA: CreditCardReportDomainData = {
     purchases: [],
     invoices: [],
-    installments: [],
     payments: [],
 };
 
@@ -270,50 +225,14 @@ const buildCreditCardDomainVersion = (
     data: CreditCardReportDomainData,
 ): string =>
     [
-
         data.purchases
-            .map((purchase) => [
-                purchase.id,
-                purchase.cardId,
-                purchase.status,
-                purchase.purchaseDate,
-                purchase.totalAmount,
-                purchase.installmentsCount,
-            ].join(':'))
+            .map((purchase) => [purchase.id, purchase.status, purchase.version].join(':'))
             .join('|'),
-
         data.invoices
-            .map((invoice) => [
-                invoice.id,
-                invoice.cardId,
-                invoice.status,
-                invoice.totalAmount,
-                invoice.paidAmount,
-                invoice.remainingAmount,
-                invoice.dueDate,
-            ].join(':'))
-            .join('|'),
-        data.installments
-            .map((installment) => [
-                installment.id,
-                installment.cardId,
-                installment.purchaseId,
-                installment.invoiceId,
-                installment.status,
-                installment.amount,
-                installment.dueDate,
-                installment.competenceMonth,
-            ].join(':'))
+            .map((invoice) => [invoice.id, invoice.version].join(':'))
             .join('|'),
         data.payments
-            .map((payment) => [
-                payment.id,
-                payment.cardId,
-                payment.invoiceId,
-                payment.status,
-                payment.amount,
-                payment.paymentDate,
-            ].join(':'))
+            .map((payment) => [payment.id, payment.kind, payment.reversedBy ?? ''].join(':'))
             .join('|'),
     ].join('::');
 

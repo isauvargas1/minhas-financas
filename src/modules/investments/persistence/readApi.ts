@@ -13,7 +13,6 @@ import {
   type Timestamp,
 } from 'firebase/firestore';
 import type {
-  InvestmentAccount,
   InvestmentAsset,
   InvestmentMovement,
   InvestmentPage,
@@ -25,7 +24,6 @@ import type {
   OfficialInvestmentReportData,
 } from '../types';
 import {
-  investmentAccountsRef,
   investmentAssetsRef,
   investmentMovementsRef,
   investmentPositionsRef,
@@ -49,46 +47,15 @@ const mapPage = <T>(snapshot: QuerySnapshot<DocumentData>): InvestmentPage<T> =>
   };
 };
 
-const entityPage = async <T>(
-  reference: ReturnType<typeof investmentAccountsRef>,
-  status: 'active' | 'archived',
-  cursor?: InvestmentCursor,
-): Promise<InvestmentPage<T>> => {
-  const constraints: QueryConstraint[] = [
-    where('status', '==', status),
-    orderBy('updatedAt', 'desc'),
-    orderBy(documentId(), 'desc'),
-  ];
-  if (cursor) constraints.push(startAfter(cursor.updatedAt, cursor.id));
-  constraints.push(limit(PAGE_SIZE));
-  return mapPage<T>(await getDocs(query(reference, ...constraints)));
-};
-
-export const listInvestmentAccounts = (
-  workspaceId: string,
-  status: 'active' | 'archived',
-  cursor?: InvestmentCursor,
-) => entityPage<InvestmentAccount>(investmentAccountsRef(workspaceId), status, cursor);
-
-export const listInvestmentAssets = (
-  workspaceId: string,
-  status: 'active' | 'archived',
-  cursor?: InvestmentCursor,
-) => entityPage<InvestmentAsset>(investmentAssetsRef(workspaceId), status, cursor);
-
 /**
- * Resolve nomes de conta e ativo por ID, inclusive arquivados (INV-P3-050).
- *
- * A tela resolvia os nomes com o mapa dos 20 registros **ativos** carregados
- * na página corrente: uma posição de um ativo fora dessa página — e toda
- * posição de ativo arquivado, que nunca entra na lista de ativos — aparecia
- * como "Ativo a1b2c3", um fragmento de ID na tabela patrimonial.
+ * Resolve nomes de ativo por ID (INV-P3-050): uma posição cujo ativo não está
+ * na página corrente não pode aparecer como um fragmento de ID.
  *
  * A consulta é por `documentId() in [...]`, em blocos de 30, que é o teto do
  * operador. `limit` é obrigatório pelas Rules do domínio.
  */
-export const resolveInvestmentEntityNames = async <T extends { id: string; name: string }>(
-  reference: ReturnType<typeof investmentAccountsRef>,
+const resolveInvestmentEntityNames = async <T extends { id: string; name: string }>(
+  reference: ReturnType<typeof investmentAssetsRef>,
   ids: string[],
 ): Promise<Map<string, string>> => {
   const unique = Array.from(new Set(ids.filter((id) => id.length > 0)));
@@ -107,9 +74,6 @@ export const resolveInvestmentEntityNames = async <T extends { id: string; name:
   }
   return names;
 };
-
-export const resolveInvestmentAccountNames = (workspaceId: string, ids: string[]) =>
-  resolveInvestmentEntityNames<InvestmentAccount>(investmentAccountsRef(workspaceId), ids);
 
 export const resolveInvestmentAssetNames = (workspaceId: string, ids: string[]) =>
   resolveInvestmentEntityNames<InvestmentAsset>(investmentAssetsRef(workspaceId), ids);
@@ -150,12 +114,13 @@ export const resolveInvestmentPositions = async (
 
 export const listInvestmentPositions = async (
   workspaceId: string,
-  accountId?: string,
   cursor?: InvestmentCursor,
 ): Promise<InvestmentPage<InvestmentPosition>> => {
-  const constraints: QueryConstraint[] = [where('status', '==', 'active')];
-  if (accountId) constraints.push(where('accountId', '==', accountId));
-  constraints.push(orderBy('updatedAt', 'desc'), orderBy(documentId(), 'desc'));
+  const constraints: QueryConstraint[] = [
+    where('status', '==', 'active'),
+    orderBy('updatedAt', 'desc'),
+    orderBy(documentId(), 'desc'),
+  ];
   if (cursor) constraints.push(startAfter(cursor.updatedAt, cursor.id));
   constraints.push(limit(PAGE_SIZE));
   return mapPage(await getDocs(query(investmentPositionsRef(workspaceId), ...constraints)));
@@ -217,6 +182,25 @@ export const listInvestmentMovements = async (
       ? { occurredAt: last.get('occurredAt') as Timestamp, id: last.id }
       : null,
   };
+};
+
+/**
+ * Período mensal oficial (`investment_report_periods/{AAAA-MM}`), ou `null`
+ * quando o mês não teve movimento liquidado. É uma consulta pelo ID com
+ * `limit(1)` — e não um `get` —, porque as Rules validam o conteúdo no `get`
+ * e um mês sem documento seria recusado em vez de vazio.
+ */
+export const getInvestmentReportPeriod = async (
+  workspaceId: string,
+  period: string,
+): Promise<InvestmentReportPeriod | null> => {
+  const snapshot = await getDocs(query(
+    investmentReportPeriodsRef(workspaceId),
+    where(documentId(), '==', period),
+    limit(1),
+  ));
+  const entry = snapshot.docs[0];
+  return entry ? ({ ...entry.data(), id: entry.id } as InvestmentReportPeriod) : null;
 };
 
 export const getInvestmentSummary = async (workspaceId: string): Promise<InvestmentSummary | null> => {

@@ -13,6 +13,7 @@ import {
   releasedOwnership,
   writeOwnershipQuota,
 } from "../billing/quota";
+import {createTransactionQuotaAnchor} from "../billing/transactionQuota";
 import {appendMembershipEvent, type AuditSnapshot} from "../shared/audit";
 import type {CallerIdentity} from "../shared/callable";
 import {ApplicationError} from "../shared/errors";
@@ -175,6 +176,8 @@ export const executeBootstrapAccount = async (
         entitlement: entitlementAt(billing, Date.now()),
         used: quota.activeOwnedWorkspaces,
         adding: 1,
+        // Workspaces próprios: o ator é sempre o titular da conta.
+        actorIsBillingOwner: true,
       });
       writeOwnershipQuota(
         transaction,
@@ -217,6 +220,8 @@ export const executeBootstrapAccount = async (
     }
     transaction.create(workspaceDoc, workspace);
     createMembershipQuota(transaction, workspaceDoc.id);
+    // P3-D (D-40): o contador mensal de lançamentos nasce com o workspace.
+    createTransactionQuotaAnchor(transaction, workspaceDoc.id);
     writeActiveMembership(transaction, {
       workspaceId: workspaceDoc.id,
       uid: caller.uid,
@@ -300,6 +305,7 @@ export const executeCreateWorkspace = async (
       entitlement: entitlementAt(billing, Date.now()),
       used: quota.activeOwnedWorkspaces,
       adding: 1,
+      actorIsBillingOwner: true,
     });
     writeOwnershipQuota(
       transaction,
@@ -317,6 +323,8 @@ export const executeCreateWorkspace = async (
     });
     transaction.create(workspaceDoc, workspace);
     createMembershipQuota(transaction, workspaceDoc.id);
+    // P3-D (D-40): o contador mensal de lançamentos nasce com o workspace.
+    createTransactionQuotaAnchor(transaction, workspaceDoc.id);
     writeActiveMembership(transaction, {
       workspaceId: workspaceDoc.id,
       uid: caller.uid,

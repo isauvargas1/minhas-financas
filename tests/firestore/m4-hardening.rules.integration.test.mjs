@@ -7,6 +7,7 @@ import {
   collection,
   connectFirestoreEmulator,
   deleteDoc,
+  deleteField,
   doc,
   getDoc,
   getDocs,
@@ -17,6 +18,7 @@ import {
   setDoc,
   Timestamp as ClientTimestamp,
   updateDoc,
+  writeBatch,
 } from 'firebase/firestore';
 
 const require = createRequire(import.meta.url);
@@ -93,14 +95,11 @@ const clientTransaction = (workspaceId, userId, overrides = {}) => ({
   value: 150.5,
   date: '2026-08-20',
   transactionDate: clientTs(NOW),
-  walletId: 'wallet-1',
   isPaid: true,
   supplier: 'Mercado',
   costCenter: 'Casa',
   paymentMethod: 'pix',
   expenseType: 'variavel',
-  installments: 1,
-  currentInstallment: 1,
   source: 'manual',
   userId,
   workspaceId,
@@ -109,6 +108,12 @@ const clientTransaction = (workspaceId, userId, overrides = {}) => ({
   updatedAt: serverTimestamp(),
   ...overrides,
 });
+
+/** Negação por permissão (e não por payload inválido no SDK). */
+const deniedByRules = (promise, label) => assert.rejects(promise, (error) => {
+  assert.match(String(error?.code ?? error?.message), /permission-denied|PERMISSION_DENIED/, label);
+  return true;
+}, label);
 
 const seed = async () => {
   const firebaseAdmin = getAdmin();
@@ -464,30 +469,28 @@ test('M4 — transação exige workspaceId igual ao path e userId do autor', asy
   });
 });
 
-test('M4 — campos imutáveis de uma transação não mudam em update', async () => {
+test('P4-D — nenhum campo de transação muda pelo cliente, nem os antes mutáveis', async () => {
   await seed();
+  const db = getAdmin().firestore();
+  await db.doc(`workspaces/${wsA}/transactions/mutable-tx`).set({
+    ...clientTransaction(wsA, users.ownerA.uid), transactionDate: ts(NOW), createdAt: ts(NOW), updatedAt: ts(NOW),
+  });
   await withClients(['ownerA'], async ({ownerA}) => {
     const ref = doc(ownerA.db, `workspaces/${wsA}/transactions/mutable-tx`);
-    await setDoc(ref, clientTransaction(wsA, users.ownerA.uid));
-
-    // Edição legítima do frontend continua funcionando.
-    await updateDoc(ref, {description: 'Compra editada', value: 200, updatedAt: serverTimestamp()});
-
     for (const patch of [
+      // A edição que o frontend fazia direto agora é `updateCashTransaction`.
+      {description: 'Compra editada', value: 200, updatedAt: serverTimestamp()},
       {workspaceId: wsB},
       {userId: users.memberA.uid},
       {profileId: wsB},
       {valueCents: 123},
       {createdAt: clientTs(NOW)},
     ]) {
-      await assert.rejects(
-        () => updateDoc(ref, patch),
-        `Campo imutável não pode mudar: ${Object.keys(patch)[0]}.`,
-      );
+      await deniedByRules(updateDoc(ref, patch), `Campo não pode mudar: ${Object.keys(patch)[0]}.`);
     }
   });
-  const stored = await getAdmin().firestore().doc(`workspaces/${wsA}/transactions/mutable-tx`).get();
-  assert.equal(stored.data().description, 'Compra editada');
+  const stored = await db.doc(`workspaces/${wsA}/transactions/mutable-tx`).get();
+  assert.equal(stored.data().description, 'Compra de mercado');
   assert.equal(stored.data().workspaceId, wsA);
   assert.equal(stored.data().userId, users.ownerA.uid);
 });
@@ -539,14 +542,15 @@ test('M4 — idempotência nunca é legível e projeções não são escritas', 
 test('M4 — tier sensível permanece restrito a owner e admin', async () => {
   await seed();
   await withClients(['ownerA', 'adminA', 'memberA', 'viewerA'], async (c) => {
-    for (const [collectionName, docId] of [
-      ['investment_snapshots', 'snap-1'],
-      ['investment_event_logs', 'event-1'],
-    ]) {
-      assert.equal((await getDoc(doc(c.ownerA.db, `workspaces/${wsA}/${collectionName}/${docId}`))).exists(), true);
-      assert.equal((await getDoc(doc(c.adminA.db, `workspaces/${wsA}/${collectionName}/${docId}`))).exists(), true);
-      await assert.rejects(() => getDoc(doc(c.memberA.db, `workspaces/${wsA}/${collectionName}/${docId}`)));
-      await assert.rejects(() => getDoc(doc(c.viewerA.db, `workspaces/${wsA}/${collectionName}/${docId}`)));
+    const path = `workspaces/${wsA}/investment_event_logs/event-1`;
+    assert.equal((await getDoc(doc(c.ownerA.db, path))).exists(), true);
+    assert.equal((await getDoc(doc(c.adminA.db, path))).exists(), true);
+    await assert.rejects(() => getDoc(doc(c.memberA.db, path)));
+    await assert.rejects(() => getDoc(doc(c.viewerA.db, path)));
+    // P4-D (D-15): o snapshot de reconstrução saiu com o job; nem owner lê.
+    for (const name of ['ownerA', 'adminA']) {
+      await deniedByRules(getDoc(doc(c[name].db, `workspaces/${wsA}/investment_snapshots/snap-1`)),
+        `${name} lê snapshot removido`);
     }
   });
 });
@@ -567,31 +571,36 @@ test('M4 — viewer e membro removido não leem o domínio de investimentos', as
 
 // ---------------------------------------------------- regressão dos domínios
 
-test('M4 — o fluxo legítimo do frontend continua criando e editando transações', async () => {
+test('P4-D — o antigo fluxo direto do frontend não cria nem edita transação em papel algum', async () => {
+  // Criação, correção e anulação são callables do caixa (P3-E/F); a escrita
+  // direta acabou com a P4-D.
   await seed();
-  await withClients(['ownerA', 'adminA', 'memberA'], async (clients) => {
+  await withClients(['ownerA', 'adminA', 'memberA', 'viewerA'], async (clients) => {
     for (const [name, client] of Object.entries(clients)) {
       const user = users[`${name}`];
       const ref = doc(client.db, `workspaces/${wsA}/transactions/regression-${name}`);
-      await setDoc(ref, clientTransaction(wsA, user.uid));
-      await updateDoc(ref, {value: 99.9, description: 'Editado', updatedAt: serverTimestamp()});
-      const stored = await getDoc(ref);
-      assert.equal(stored.data().value, 99.9);
+      await deniedByRules(setDoc(ref, clientTransaction(wsA, user.uid)), `${name} cria`);
+      await deniedByRules(updateDoc(doc(client.db, `workspaces/${wsA}/transactions/tx-1`),
+        {value: 99.9, description: 'Editado', updatedAt: serverTimestamp()}), `${name} edita`);
+      // A leitura segue para todo membro ativo.
+      assert.equal((await getDoc(doc(client.db, `workspaces/${wsA}/transactions/tx-1`))).exists(), true);
     }
   });
+  assert.equal((await getAdmin().firestore().doc(`workspaces/${wsA}/transactions/tx-1`).get()).data().value, 10);
 });
 
-test('M4 — catálogo e metas seguem com o comportamento anterior', async () => {
+test('M4 — catálogo somente leitura no cliente (D-23) e metas inalteradas', async () => {
   await seed();
   await withClients(['ownerA', 'memberA'], async ({ownerA, memberA}) => {
-    // Owner/admin continuam mantendo o catálogo.
-    await setDoc(doc(ownerA.db, `workspaces/${wsA}/settings_catalog/catalog-2`), {
+    // P4-E (D-23): o catálogo é mantido só pelas callables; nem owner nem
+    // admin gravam pelo cliente.
+    await deniedByRules(setDoc(doc(ownerA.db, `workspaces/${wsA}/settings_catalog/catalog-2`), {
       workspaceId: wsA, group: 'investment_class', name: 'Multimercado',
       normalizedName: 'multimercado', dedupeKey: `${wsA}|investment_class|multimercado`,
       workspaceScope: 'PF', sortOrder: 2, status: 'active',
       createdBy: users.ownerA.uid, updatedBy: users.ownerA.uid,
       createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
-    });
+    }), 'owner não grava catálogo pelo cliente');
     // Member continua apenas lendo.
     assert.equal((await getDoc(doc(memberA.db, `workspaces/${wsA}/settings_catalog/catalog-1`))).exists(), true);
     await assert.rejects(() => setDoc(doc(memberA.db, `workspaces/${wsA}/settings_catalog/catalog-3`), {
@@ -721,31 +730,35 @@ test('M4 — escrita direta de transação de investimento é sempre negada', as
       userId: uid, workspaceId: wsA, profileId: wsA, isPaid: true,
       createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
     });
-    await assert.rejects(
-      () => setDoc(doc(ownerA.db, `workspaces/${wsA}/transactions/legacy-v2-1`), aporte(users.ownerA.uid)),
+    await deniedByRules(
+      setDoc(doc(ownerA.db, `workspaces/${wsA}/transactions/legacy-v2-1`), aporte(users.ownerA.uid)),
       'owner não pode gravar transação de investimento direto',
     );
-    await assert.rejects(
-      () => setDoc(doc(memberA.db, `workspaces/${wsA}/transactions/legacy-v2-2`), aporte(users.memberA.uid)),
+    await deniedByRules(
+      setDoc(doc(memberA.db, `workspaces/${wsA}/transactions/legacy-v2-2`), aporte(users.memberA.uid)),
       'member não pode gravar transação de investimento direto',
     );
-
-    // Receita e despesa seguem inalteradas: a negação é só do tipo investimento.
-    await setDoc(doc(ownerA.db, `workspaces/${wsA}/transactions/receita-v2-1`), {
+    // P4-D: receita e despesa também — a negação não é mais só do tipo.
+    await deniedByRules(setDoc(doc(ownerA.db, `workspaces/${wsA}/transactions/receita-v2-1`), {
       type: 'receita', description: 'Salário', category: 'Salário',
       value: 500, date: '2026-08-20', userId: users.ownerA.uid,
       workspaceId: wsA, profileId: wsA,
       createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
-    });
+    }), 'owner não grava receita direto');
   });
 });
 
 // ------------------------------------------------------- INV-P1-002 / P2-049
 //
-// A barreira fechava apenas `create`. O cliente criava uma `despesa` (aceita) e
-// a atualizava para `investimento` — aceito, porque `type` estava na lista de
-// chaves mutáveis e nenhum dos ramos de `allow update` chamava
-// `isLegacyInvestmentWriteAllowed`.
+// A barreira antiga fechava apenas `create`: o cliente criava uma `despesa` e
+// a atualizava para `investimento`. Desde a P4-D nenhuma escrita do cliente é
+// aceita em `transactions`, e a troca de tipo continua negada.
+
+const seedClientShapedTransaction = async (docId, userId) => {
+  await getAdmin().firestore().doc(`workspaces/${wsA}/transactions/${docId}`).set({
+    ...clientTransaction(wsA, userId), transactionDate: ts(NOW), createdAt: ts(NOW), updatedAt: ts(NOW),
+  });
+};
 
 test('INV-P1-002 — update de type para investimento é negado em todos os papéis', async () => {
   await seed();
@@ -758,21 +771,13 @@ test('INV-P1-002 — update de type para investimento é negado em todos os pap�
       ['memberA', users.memberA],
     ]) {
       const docId = `bypass-${name}`;
+      await seedClientShapedTransaction(docId, user.uid);
       const ref = doc(c[name].db, `workspaces/${wsA}/transactions/${docId}`);
-
-      // A despesa é aceita, como sempre foi.
-      await setDoc(ref, clientTransaction(wsA, user.uid, {
-        description: 'Despesa que tenta virar investimento',
-      }));
-
-      await assert.rejects(
-        () => updateDoc(ref, {type: 'investimento'}),
+      await deniedByRules(
+        updateDoc(ref, {type: 'investimento'}),
         `${name} não pode trocar o tipo de uma transação para investimento`,
       );
-
-      const persisted = await db
-        .doc(`workspaces/${wsA}/transactions/${docId}`)
-        .get();
+      const persisted = await db.doc(`workspaces/${wsA}/transactions/${docId}`).get();
       assert.equal(persisted.data().type, 'despesa');
     }
   });
@@ -780,43 +785,30 @@ test('INV-P1-002 — update de type para investimento é negado em todos os pap�
 
 test('INV-P1-002 — troca de tipo é negada para qualquer tipo alvo', async () => {
   await seed();
+  await seedClientShapedTransaction('tipo-imutavel', users.ownerA.uid);
   await withClients(['ownerA'], async ({ownerA}) => {
     const ref = doc(ownerA.db, `workspaces/${wsA}/transactions/tipo-imutavel`);
-    await setDoc(ref, clientTransaction(wsA, users.ownerA.uid));
-
-    // Trocar o tipo de uma transação existente não é operação do produto: o
-    // modal só oferece o tipo original quando está editando.
-    await assert.rejects(
-      () => updateDoc(ref, {type: 'receita'}),
-      'tipo é imutável mesmo sem a flag',
-    );
+    for (const type of ['receita', 'investimento', 'parcelado']) {
+      await deniedByRules(updateDoc(ref, {type}), `tipo ${type}`);
+    }
   });
 });
 
-test('INV-P2-049 — update com payload máximo de chaves mutáveis continua aceito', async () => {
+test('P4-D — nem o payload máximo das chaves antes mutáveis é aceito', async () => {
   await seed();
   await withClients(['ownerA', 'memberA'], async (c) => {
     for (const [name, user] of [
       ['ownerA', users.ownerA],
       ['memberA', users.memberA],
     ]) {
+      await seedClientShapedTransaction(`teto-${name}`, user.uid);
       const ref = doc(c[name].db, `workspaces/${wsA}/transactions/teto-${name}`);
-      await setDoc(ref, clientTransaction(wsA, user.uid));
-
-      // Toda chave mutável de uma vez: é o pior caso de custo de avaliação da
-      // regra de `update`, que já operava no teto de 1.000 expressões.
-      await updateDoc(ref, {
+      await deniedByRules(updateDoc(ref, {
         description: 'Descrição atualizada com texto bem mais longo que o anterior',
         category: 'Educação',
         value: 987.65,
         date: '2026-08-21',
         transactionDate: clientTs('2026-08-21T15:00:00.000Z'),
-        installments: 3,
-        currentInstallment: 2,
-        cardId: 'card-9',
-        walletId: 'wallet-9',
-        loanId: 'loan-9',
-        loanMovementId: 'loan-mov-9',
         expenseType: 'fixa',
         incomeType: 'servico',
         paymentMethod: 'boleto',
@@ -824,32 +816,31 @@ test('INV-P2-049 — update com payload máximo de chaves mutáveis continua ace
         supplier: 'Fornecedor Atualizado',
         costCenter: 'Centro Atualizado',
         source: 'manual',
-        creditCardInvoiceId: 'inv-9',
-        creditCardInvoicePaymentId: 'pay-9',
-        creditCardCompatibility: {
-          source: 'credit_card_invoice',
-          invoiceId: 'inv-9',
-          cardId: 'card-9',
-          competenceMonth: '2026-08',
-          invoiceStatus: 'open',
-          isProjection: true,
-        },
         displaySnapshots: {
-          categorySnapshot: {
-            group: 'category',
-            label: 'Educação',
-            normalizedLabel: 'educacao',
-          },
+          categorySnapshot: {group: 'category', label: 'Educação', normalizedLabel: 'educacao'},
         },
         updatedAt: serverTimestamp(),
-      });
+      }), `${name} payload máximo`);
+      for (const [key, value] of [
+        ['creditCardInvoiceId', 'inv-9'],
+        ['creditCardInvoicePaymentId', 'pay-9'],
+        ['creditCardCompatibility', {source: 'credit_card_invoice'}],
+        ['creditCardPaymentEntry', {paymentId: 'pay-9'}],
+        ['installments', 3],
+        ['currentInstallment', 2],
+        ['cardId', 'card-9'],
+        ['splitEntry', {kind: 'bill_expense'}],
+        ['investmentEntry', {status: 'settled'}],
+      ]) {
+        await deniedByRules(updateDoc(ref, {[key]: value, updatedAt: serverTimestamp()}), `${name} não grava ${key}`);
+      }
     }
   });
 });
 
 // ------------------------------------------------------------- INV-P2-032
 
-test('INV-P2-032 — delete de transação é negado; a baixa é lógica', async () => {
+test('INV-P2-032 — delete de transação é negado; a baixa lógica também não é do cliente', async () => {
   await seed();
   await withClients(['ownerA', 'adminA', 'memberA'], async (c) => {
     for (const [name, user] of [
@@ -858,51 +849,35 @@ test('INV-P2-032 — delete de transação é negado; a baixa é lógica', async
       ['memberA', users.memberA],
     ]) {
       const docId = `soft-delete-${name}`;
+      await seedClientShapedTransaction(docId, user.uid);
       const ref = doc(c[name].db, `workspaces/${wsA}/transactions/${docId}`);
-      await setDoc(ref, clientTransaction(wsA, user.uid));
-
-      await assert.rejects(
-        () => deleteDoc(ref),
-        `${name} não pode apagar histórico financeiro`,
-      );
-
-      // A baixa lógica é o caminho aceito, e carrega quem baixou.
-      await updateDoc(ref, {
+      await deniedByRules(deleteDoc(ref), `${name} não pode apagar histórico financeiro`);
+      // P4-D: a anulação é `voidCashTransaction` (P3-C); o cliente não baixa.
+      await deniedByRules(updateDoc(ref, {
         voidedAt: serverTimestamp(),
         voidedBy: user.uid,
         voidReason: 'Excluída pelo usuário',
         updatedAt: serverTimestamp(),
-      });
-
-      const persisted = await getAdmin()
-        .firestore()
-        .doc(`workspaces/${wsA}/transactions/${docId}`)
-        .get();
+      }), `${name} não baixa direto`);
+      const persisted = await getAdmin().firestore().doc(`workspaces/${wsA}/transactions/${docId}`).get();
       assert.ok(persisted.exists);
-      assert.equal(persisted.data().voidedBy, user.uid);
-
-      // Depois de baixada, a transação não volta a ser editável.
-      await assert.rejects(
-        () => updateDoc(ref, {description: 'Tentando reviver'}),
-        'transação baixada não aceita mais edição',
-      );
+      assert.equal(persisted.data().voidedAt, undefined);
     }
   });
 });
 
 test('INV-P2-032 — baixa lógica não aceita forjar o autor da baixa', async () => {
   await seed();
+  await seedClientShapedTransaction('void-forjado', users.ownerA.uid);
   await withClients(['ownerA'], async ({ownerA}) => {
     const ref = doc(ownerA.db, `workspaces/${wsA}/transactions/void-forjado`);
-    await setDoc(ref, clientTransaction(wsA, users.ownerA.uid));
-
-    await assert.rejects(
-      () => updateDoc(ref, {
+    await deniedByRules(
+      updateDoc(ref, {
         voidedAt: serverTimestamp(),
         voidedBy: users.memberA.uid,
         updatedAt: serverTimestamp(),
       }),
-      'voidedBy precisa ser o próprio autor da requisição',
+      'voidedBy forjado',
     );
   });
 });
@@ -1289,12 +1264,9 @@ test('P1 — conta suspensa com membership de owner ativo perde leitura e escrit
   await withClients(['ownerC'], async ({ownerC}) => {
     const txRef = doc(ownerC.db, `workspaces/${wsC}/transactions/tx-1`);
 
-    // Controle: com a conta ativa, o owner lê e escreve.
+    // Controle: com a conta ativa, o owner lê (escrita em `transactions` é
+    // só do backend desde a P4-D).
     assert.equal((await getDoc(txRef)).exists(), true);
-    await setDoc(
-      doc(ownerC.db, `workspaces/${wsC}/transactions/antes-da-suspensao`),
-      clientTransaction(wsC, uid),
-    );
 
     // O backend suspende a conta. O token da sessão continua válido.
     await db.doc(`users/${uid}`).set({uid, status: 'suspended'});
@@ -1440,14 +1412,14 @@ test('P1 — workspace arquivado é legível pelos membros e não aceita escrita
       'member não escreve em módulo adjacente de workspace arquivado',
     );
     await assert.rejects(
-      () => setDoc(doc(ownerA.db, `workspaces/${wsArchived}/settings_catalog/risk-arquivo`), {
-        workspaceId: wsArchived, group: 'investment_risk', name: 'Baixo',
-        normalizedName: 'baixo', dedupeKey: 'investment_risk::all::both::baixo',
-        workspaceScope: 'both', sortOrder: 1, status: 'active',
+      () => setDoc(doc(ownerA.db, `workspaces/${wsArchived}/settings_catalog/class-arquivo`), {
+        workspaceId: wsArchived, group: 'investment_class', name: 'Baixo',
+        normalizedName: 'baixo', dedupeKey: 'investment_class::all::PF::baixo',
+        workspaceScope: 'PF', sortOrder: 1, status: 'active',
         createdBy: users.ownerA.uid, updatedBy: users.ownerA.uid,
         createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
       }),
-      'owner não mantém catálogo de workspace arquivado',
+      'owner não grava catálogo de workspace arquivado',
     );
     await assert.rejects(
       () => updateDoc(doc(memberA.db, `workspaces/${wsArchived}/notifications/notif-1`), {read: true}),
@@ -1462,13 +1434,399 @@ test('P1 — workspace arquivado é legível pelos membros e não aceita escrita
   assert.equal((await db.doc(`workspaces/${wsArchived}/transactions/nova-owner`).get()).exists, false);
   assert.equal((await db.doc(`workspaces/${wsArchived}/notifications/notif-1`).get()).data().read, false);
 
-  // Controle: o que nega é o arquivamento. Reativado pelo backend, o mesmo
-  // payload do owner é aceito.
+  // Controle: o que nega a notificação é o arquivamento — reativado pelo
+  // backend, o mesmo membro marca a notificação como lida. O catálogo
+  // continua fechado ao cliente (D-23, P4-E) e `transactions` também (P4-D).
   await db.doc(`workspaces/${wsArchived}`).update({status: 'active'});
-  await withClients(['ownerA'], async ({ownerA}) => {
-    await setDoc(
+  await withClients(['ownerA', 'memberA'], async ({ownerA, memberA}) => {
+    await updateDoc(doc(memberA.db, `workspaces/${wsArchived}/notifications/notif-1`), {read: true});
+    await deniedByRules(setDoc(doc(ownerA.db, `workspaces/${wsArchived}/settings_catalog/class-arquivo`), {
+      workspaceId: wsArchived, group: 'investment_class', name: 'Baixo',
+      normalizedName: 'baixo', dedupeKey: 'investment_class::all::PF::baixo',
+      workspaceScope: 'PF', sortOrder: 1, status: 'active',
+      createdBy: users.ownerA.uid, updatedBy: users.ownerA.uid,
+      createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
+    }), 'catálogo segue fechado ao cliente no workspace ativo');
+    await deniedByRules(setDoc(
       doc(ownerA.db, `workspaces/${wsArchived}/transactions/nova-owner`),
       clientTransaction(wsArchived, users.ownerA.uid),
+    ), 'transactions segue fechada no workspace ativo');
+  });
+});
+
+// ------------------------------------------------------------------- P3-A
+
+/**
+ * Auditoria append-only do caixa (P3-A). Mesmo contrato de
+ * `membership_events`: owner e admin leem, com teto de listagem; member,
+ * viewer e outro tenant não leem; ninguém escreve, nem o owner.
+ */
+test('P3-A — auditoria do caixa: leitura de owner e admin, escrita de ninguém', async () => {
+  await seed();
+  const db = getAdmin().firestore();
+  const event = (workspaceId) => ({
+    id: 'cash_entry_created_evt', workspaceId, operation: 'cash_entry.created',
+    actorId: 'backend', actorRole: 'member', profileType: 'PF', transactionId: 'cash_tx',
+    requestHash: 'h'.repeat(64), requestId: 'req-1', createdAt: ts(NOW),
+  });
+  await Promise.all([
+    db.doc(`workspaces/${wsA}/cash_events/evt-a`).set(event(wsA)),
+    db.doc(`workspaces/${wsB}/cash_events/evt-b`).set(event(wsB)),
+  ]);
+
+  await withClients(['ownerA', 'adminA', 'memberA', 'viewerA', 'removedA', 'ownerB'], async (c) => {
+    for (const papel of ['ownerA', 'adminA']) {
+      await getDoc(doc(c[papel].db, `workspaces/${wsA}/cash_events/evt-a`));
+      await getDocs(query(collection(c[papel].db, `workspaces/${wsA}/cash_events`), limit(100)));
+      await assert.rejects(
+        () => getDocs(query(collection(c[papel].db, `workspaces/${wsA}/cash_events`), limit(101))),
+        `${papel} não lista acima do teto`,
+      );
+    }
+    for (const papel of ['memberA', 'viewerA', 'removedA']) {
+      await assert.rejects(
+        () => getDoc(doc(c[papel].db, `workspaces/${wsA}/cash_events/evt-a`)),
+        `${papel} não lê a auditoria do caixa`,
+      );
+      await assert.rejects(
+        () => getDocs(query(collection(c[papel].db, `workspaces/${wsA}/cash_events`), limit(10))),
+        `${papel} não lista a auditoria do caixa`,
+      );
+    }
+    await assert.rejects(
+      () => getDoc(doc(c.ownerB.db, `workspaces/${wsA}/cash_events/evt-a`)),
+      'ownerB não lê a auditoria de A',
+    );
+    await assert.rejects(
+      () => getDoc(doc(c.ownerA.db, `workspaces/${wsB}/cash_events/evt-b`)),
+      'ownerA não lê a auditoria de B',
+    );
+    for (const papel of ['ownerA', 'adminA', 'memberA']) {
+      await assert.rejects(
+        () => setDoc(doc(c[papel].db, `workspaces/${wsA}/cash_events/forjado`), {
+          ...event(wsA), createdAt: serverTimestamp(),
+        }),
+        `${papel} não cria evento de auditoria`,
+      );
+      await assert.rejects(
+        () => updateDoc(doc(c[papel].db, `workspaces/${wsA}/cash_events/evt-a`), {actorId: 'outro'}),
+        `${papel} não altera evento de auditoria`,
+      );
+      await assert.rejects(
+        () => deleteDoc(doc(c[papel].db, `workspaces/${wsA}/cash_events/evt-a`)),
+        `${papel} não apaga evento de auditoria`,
+      );
+    }
+  });
+  assert.equal((await db.doc(`workspaces/${wsA}/cash_events/evt-a`).get()).data().actorId, 'backend');
+  assert.equal((await db.doc(`workspaces/${wsA}/cash_events/forjado`).get()).exists, false);
+});
+
+/**
+ * Lançamento criado pela callable de caixa (P3-A): `cashEntry` marca o fato
+ * autoritativo. O cliente não o cria com essa marca, não o edita e não o
+ * anula — edição e anulação autoritativas dependem de D-35. O controle prova
+ * que é a marca que nega: o mesmo documento sem ela segue o caminho legado.
+ */
+test('P3-A — lançamento com cashEntry não é criado, editado nem anulado pelo cliente', async () => {
+  await seed();
+  const db = getAdmin().firestore();
+  const backendEntry = (userId, overrides = {}) => ({
+    type: 'receita', description: 'Salário', category: 'Salário',
+    value: 6200, valueCents: 620_000, date: '2026-08-20',
+    transactionDate: ts(NOW), isPaid: true, workspaceId: wsA, profileId: wsA,
+    profileType: 'PF', userId, createdBy: userId, updatedBy: userId,
+    cashEntry: {
+      domainVersion: 1, origin: 'manual', status: 'confirmed', currency: 'BRL',
+      requestHash: 'h'.repeat(64),
+    },
+    createdAt: ts(NOW), updatedAt: ts(NOW),
+    ...overrides,
+  });
+  // Só a marca, sem `valueCents`: prova que `cashEntry` sozinho já nega.
+  const {valueCents: _omit, ...markerOnly} = backendEntry(users.memberA.uid);
+  await Promise.all([
+    db.doc(`workspaces/${wsA}/transactions/cash_backend`).set(backendEntry(users.memberA.uid)),
+    db.doc(`workspaces/${wsA}/transactions/cash_marker_only`).set(markerOnly),
+  ]);
+
+  await withClients(['ownerA', 'adminA', 'memberA'], async (c) => {
+    await assert.rejects(
+      () => setDoc(
+        doc(c.memberA.db, `workspaces/${wsA}/transactions/cash_forjado`),
+        clientTransaction(wsA, users.memberA.uid, {
+          cashEntry: {domainVersion: 1, origin: 'manual', status: 'confirmed', currency: 'BRL'},
+        }),
+      ),
+      'cliente não cria lançamento com a marca do backend',
+    );
+    for (const id of ['cash_backend', 'cash_marker_only']) {
+      for (const papel of ['ownerA', 'adminA', 'memberA']) {
+        const ref = doc(c[papel].db, `workspaces/${wsA}/transactions/${id}`);
+        await assert.rejects(
+          () => updateDoc(ref, {description: 'Editado', updatedAt: serverTimestamp()}),
+          `${papel} não edita ${id}`,
+        );
+        await assert.rejects(
+          () => updateDoc(ref, {
+            voidedAt: serverTimestamp(),
+            voidedBy: users[papel].uid,
+            voidReason: 'Excluída pelo usuário',
+            updatedAt: serverTimestamp(),
+          }),
+          `${papel} não anula ${id}`,
+        );
+        await assert.rejects(() => deleteDoc(ref), `${papel} não apaga ${id}`);
+        await assert.rejects(
+          () => updateDoc(ref, {cashEntry: null, updatedAt: serverTimestamp()}),
+          `${papel} não remove a marca de ${id}`,
+        );
+      }
+    }
+  });
+
+  for (const id of ['cash_backend', 'cash_marker_only']) {
+    const stored = (await db.doc(`workspaces/${wsA}/transactions/${id}`).get()).data();
+    assert.equal(stored.description, 'Salário');
+    assert.equal(stored.voidedAt, undefined);
+    assert.equal(stored.cashEntry.origin, 'manual');
+  }
+  assert.equal((await db.doc(`workspaces/${wsA}/transactions/cash_forjado`).get()).exists, false);
+});
+
+/**
+ * Estados que a correção e a anulação do backend produzem (P3-C, D-35): o
+ * lançamento corrigido (revisão 2) e o anulado (`voidedAt` +
+ * `cashEntry.status: voided`). O cliente não edita, não reativa, não apaga e
+ * não forja a trilha. (P4-D: a adoção `legacy_manual` saiu.)
+ */
+test('P3-C — lançamento corrigido e anulado pelo backend ficam fora do cliente', async () => {
+  await seed();
+  const db = getAdmin().firestore();
+  const corrected = (userId, overrides = {}) => ({
+    type: 'despesa', description: 'Compra', category: 'Mercado',
+    value: 160, valueCents: 16_000, date: '2026-08-20',
+    transactionDate: ts(NOW), isPaid: true, workspaceId: wsA, profileId: wsA,
+    profileType: 'PF', userId, createdBy: userId, updatedBy: userId, cashAccountId: 'acc-1',
+    cashEntry: {
+      domainVersion: 1, origin: 'manual', status: 'confirmed', currency: 'BRL',
+      requestHash: 'h'.repeat(64), revision: 2, accountMovementId: 'camv-1',
+    },
+    createdAt: ts(NOW), updatedAt: ts(NOW),
+    ...overrides,
+  });
+  const voided = corrected(users.memberA.uid, {
+    voidedAt: ts(NOW), voidedBy: users.memberA.uid,
+    voidReason: 'Lançado em duplicidade',
+    cashEntry: {
+      domainVersion: 1, origin: 'manual', status: 'voided', currency: 'BRL',
+      requestHash: 'h'.repeat(64), revision: 3, accountMovementId: null,
+    },
+  });
+  await Promise.all([
+    db.doc(`workspaces/${wsA}/transactions/cash_corrected`).set(corrected(users.memberA.uid)),
+    db.doc(`workspaces/${wsA}/transactions/cash_voided`).set(voided),
+  ]);
+
+  await withClients(['ownerA', 'adminA', 'memberA'], async (c) => {
+    for (const id of ['cash_corrected', 'cash_voided']) {
+      for (const papel of ['ownerA', 'adminA', 'memberA']) {
+        const ref = doc(c[papel].db, `workspaces/${wsA}/transactions/${id}`);
+        await deniedByRules(
+          updateDoc(ref, {value: 1, updatedAt: serverTimestamp()}),
+          `${papel} não corrige ${id}`,
+        );
+        await deniedByRules(
+          updateDoc(ref, {
+            voidedAt: deleteField(), voidedBy: deleteField(),
+            voidReason: deleteField(), updatedAt: serverTimestamp(),
+          }),
+          `${papel} não reativa ${id}`,
+        );
+        await deniedByRules(
+          updateDoc(ref, {'cashEntry.status': 'confirmed', updatedAt: serverTimestamp()}),
+          `${papel} não troca o estado de ${id}`,
+        );
+        await deniedByRules(deleteDoc(ref), `${papel} não apaga ${id}`);
+      }
+    }
+    await deniedByRules(
+      setDoc(doc(c.ownerA.db, `workspaces/${wsA}/cash_events/forjado`), {
+        operation: 'cash_entry.updated', transactionId: 'cash_corrected',
+      }),
+      'cliente não grava evento de correção',
     );
   });
+
+  const storedCorrected = (await db.doc(`workspaces/${wsA}/transactions/cash_corrected`).get()).data();
+  assert.equal(storedCorrected.valueCents, 16_000);
+  assert.equal(storedCorrected.cashEntry.status, 'confirmed');
+  const storedVoided = (await db.doc(`workspaces/${wsA}/transactions/cash_voided`).get()).data();
+  assert.ok(storedVoided.voidedAt);
+  assert.equal(storedVoided.cashEntry.status, 'voided');
+  assert.equal((await db.doc(`workspaces/${wsA}/cash_events/forjado`).get()).exists, false);
+});
+
+test('P4-D — estado de quota é server-only; nenhum papel escreve em transactions', async () => {
+  // A janela `ledger_write_freeze` (P3-F) existia para a inicialização de
+  // quota de workspaces anteriores à âncora; saiu com ela. O que fica:
+  // `quota_state` não é lido nem escrito pelo cliente, e nenhum papel cria
+  // ou altera lançamento — inclusive em lote.
+  await seed();
+  const db = getAdmin().firestore();
+  const existing = `workspaces/${wsA}/transactions/tx-1`;
+  await db.doc(`workspaces/${wsA}/quota_state/transactions`).set({
+    workspaceId: wsA, trackingSince: '2026-08', origin: 'workspace_created', initialUsed: 0,
+    schemaVersion: 1, createdAt: ts(NOW),
+  });
+  await withClients(['ownerA', 'adminA', 'memberA'], async (clients) => {
+    for (const [name, client] of Object.entries(clients)) {
+      const user = users[name];
+      await deniedByRules(setDoc(doc(client.db, `workspaces/${wsA}/transactions/novo-${name}`),
+        clientTransaction(wsA, user.uid)), `${name} não cria`);
+      await deniedByRules(updateDoc(doc(client.db, existing), {value: 1, updatedAt: serverTimestamp()}),
+        `${name} não altera`);
+      const batch = writeBatch(client.db);
+      for (let index = 0; index < 3; index += 1) {
+        batch.set(doc(client.db, `workspaces/${wsA}/transactions/lote-${name}-${index}`),
+          clientTransaction(wsA, user.uid, {description: `Lançamento ${index + 1}`}));
+      }
+      await deniedByRules(batch.commit(), `${name} não cria em lote`);
+      for (const quotaDoc of ['transactions', 'transactions_2026-08', 'ledger_write_freeze']) {
+        await deniedByRules(getDoc(doc(client.db, `workspaces/${wsA}/quota_state/${quotaDoc}`)),
+          `${name} não lê quota_state/${quotaDoc}`);
+        await deniedByRules(setDoc(doc(client.db, `workspaces/${wsA}/quota_state/${quotaDoc}`), {
+          workspaceId: wsA,
+        }), `${name} não escreve quota_state/${quotaDoc}`);
+      }
+    }
+  });
+  assert.equal((await db.doc(existing).get()).data().value, 10);
+  const created = await db.collection(`workspaces/${wsA}/transactions`).get();
+  assert.equal(created.docs.some((entry) => entry.id.startsWith('novo-') || entry.id.startsWith('lote-')), false);
+});
+
+test('P3-H — empréstimos só pelo backend: nenhum papel cria, altera nem apaga; leituras autorizadas seguem; auditoria e espelho server-only', async () => {
+  await seed();
+  const db = getAdmin().firestore();
+  const now = admin.firestore.Timestamp.now();
+  const loanPath = `workspaces/${wsA}/loans/loan_autoritativo`;
+  const movementPath = `workspaces/${wsA}/loan_movements/lmv_autoritativo`;
+  const eventPath = `workspaces/${wsA}/loan_events/loan_created_autoritativo`;
+  const mirrorPath = `workspaces/${wsA}/transactions/loancash_autoritativo`;
+  const loanDoc = {
+    id: 'loan_autoritativo', schemaVersion: 1, workspaceId: wsA, profileType: 'PF',
+    type: 'borrow', personName: 'Banco', principalCents: 300000, balanceCents: 300000,
+    totalPrincipalSettledCents: 0, totalInterestSettledCents: 0, activePaymentCount: 0,
+    status: 'active', createdBy: users.memberA.uid, updatedAt: now,
+  };
+  await db.doc(loanPath).set(loanDoc);
+  await db.doc(movementPath).set({
+    id: 'lmv_autoritativo', schemaVersion: 1, workspaceId: wsA, loanId: 'loan_autoritativo',
+    kind: 'disbursement', principalCents: 300000, interestCents: 0, date: '2026-08-20',
+    createdBy: users.memberA.uid,
+  });
+  await db.doc(eventPath).set({id: 'loan_created_autoritativo', operation: 'loan.created',
+    workspaceId: wsA, loanId: 'loan_autoritativo'});
+  await db.doc(mirrorPath).set({
+    type: 'receita', description: 'Empréstimo recebido', category: 'Empréstimos',
+    value: 3000, valueCents: 300000, date: '2026-08-20', transactionDate: now, isPaid: true,
+    workspaceId: wsA, profileId: wsA, userId: users.memberA.uid, source: 'loan',
+    loanEntry: {domainVersion: 1, loanId: 'loan_autoritativo', loanMovementId: 'lmv_autoritativo',
+      loanType: 'borrow', kind: 'disbursement', reversal: false, principalCents: 300000,
+      interestCents: 0, currency: 'BRL'},
+    createdAt: now, updatedAt: now,
+  });
+  // Formato que a interface anterior gravava: nem ele passa mais.
+  const plainLoan = {
+    profileId: wsA, type: 'borrow', personName: 'Fulano', description: 'Contrato',
+    principalValue: 1000, currentBalance: 1000, totalPaidReceived: 0,
+    totalInterestPaidReceived: 0, startDate: '2026-01-10', expectedPayoffDate: '2026-12-10',
+    paymentMethod: 'PIX', status: 'active', interestType: 'none', hasInstallments: false,
+  };
+  const plainMovement = {loanId: 'loan_autoritativo', type: 'payment', amount: 100,
+    date: '2026-02-10', description: 'Parcela'};
+  const existingTransaction = `workspaces/${wsA}/transactions/comum-p3h`;
+  await db.doc(existingTransaction).set({
+    ...clientTransaction(wsA, users.ownerA.uid), transactionDate: ts(NOW), createdAt: ts(NOW), updatedAt: ts(NOW),
+  });
+
+  await withClients(['ownerA', 'adminA', 'memberA', 'viewerA', 'ownerB'], async (c) => {
+    for (const name of ['ownerA', 'adminA', 'memberA', 'viewerA']) {
+      const client = c[name].db;
+      // Criação: nenhum formato, nenhum papel.
+      await assert.rejects(() => setDoc(doc(client, `workspaces/${wsA}/loans/novo-${name}`), plainLoan),
+        `${name} não cria contrato`);
+      await assert.rejects(() => setDoc(doc(client, `workspaces/${wsA}/loans/forjado-${name}`),
+        {...loanDoc, id: `forjado-${name}`, updatedAt: clientTs(NOW)}),
+      `${name} não forja contrato autoritativo`);
+      // Alteração (financeira ou não) e exclusão.
+      for (const patch of [{description: 'x'}, {personName: 'Outro'}, {balanceCents: 0},
+        {status: 'paid'}, {currentBalance: 0}]) {
+        await assert.rejects(() => updateDoc(doc(client, loanPath), patch),
+          `${name} não altera ${Object.keys(patch)}`);
+      }
+      await assert.rejects(() => setDoc(doc(client, loanPath), {description: 'x'}, {merge: true}),
+        `${name} não mescla no contrato`);
+      await assert.rejects(() => deleteDoc(doc(client, loanPath)), `${name} não apaga contrato`);
+      // Movimentos.
+      await assert.rejects(() => setDoc(doc(client, `workspaces/${wsA}/loan_movements/novo-${name}`),
+        plainMovement), `${name} não cria movimento`);
+      await assert.rejects(() => updateDoc(doc(client, movementPath), {reversedBy: 'x'}),
+        `${name} não liga estorno`);
+      await assert.rejects(() => deleteDoc(doc(client, movementPath)), `${name} não apaga movimento`);
+      // Lote: nem dentro de um batch.
+      const batch = writeBatch(client);
+      batch.set(doc(client, `workspaces/${wsA}/loans/lote-${name}`), plainLoan);
+      batch.set(doc(client, `workspaces/${wsA}/loan_movements/lote-${name}`), plainMovement);
+      await assert.rejects(() => batch.commit(), `${name} não grava empréstimo em lote`);
+      // Auditoria: só o backend.
+      await assert.rejects(() => setDoc(doc(client, `workspaces/${wsA}/loan_events/forjado-${name}`),
+        {operation: 'loan.created'}), `${name} não escreve auditoria`);
+      // Caixa: nem espelho com a marca, nem vínculo de empréstimo, nem
+      // alteração do espelho do backend.
+      await assert.rejects(() => setDoc(doc(client, `workspaces/${wsA}/transactions/espelho-${name}`),
+        clientTransaction(wsA, users[name].uid, {loanEntry: {loanId: 'loan_autoritativo'}})),
+      `${name} não cria espelho com loanEntry`);
+      await assert.rejects(() => setDoc(doc(client, `workspaces/${wsA}/transactions/vinculo-${name}`),
+        clientTransaction(wsA, users[name].uid, {loanId: 'loan_autoritativo'})),
+      `${name} não cria lançamento vinculado a empréstimo`);
+      await assert.rejects(() => setDoc(doc(client, `workspaces/${wsA}/transactions/movimento-${name}`),
+        clientTransaction(wsA, users[name].uid, {loanMovementId: 'lmv_autoritativo'})),
+      `${name} não cria lançamento vinculado a movimento`);
+      await assert.rejects(() => updateDoc(doc(client, mirrorPath), {value: 1, updatedAt: serverTimestamp()}),
+        `${name} não altera o espelho`);
+    }
+    // Lançamento comum existente: o vínculo também não entra por update.
+    await assert.rejects(() => updateDoc(doc(c.ownerA.db, existingTransaction),
+      {loanId: 'loan_autoritativo', updatedAt: serverTimestamp()}), 'vínculo não entra por update');
+    // P4-D: nem o update comum, sem vínculo, é aceito.
+    await deniedByRules(updateDoc(doc(c.ownerA.db, existingTransaction),
+      {description: 'Compra revisada', updatedAt: serverTimestamp()}), 'update comum');
+
+    // Leituras autorizadas seguem: todo membro lê contrato e movimento.
+    for (const name of ['ownerA', 'adminA', 'memberA', 'viewerA']) {
+      assert.equal((await getDoc(doc(c[name].db, loanPath))).exists(), true, `${name} lê contrato`);
+      assert.equal((await getDoc(doc(c[name].db, movementPath))).exists(), true, `${name} lê movimento`);
+      const page = await getDocs(query(collection(c[name].db, `workspaces/${wsA}/loans`), limit(101)));
+      assert.equal(page.size, 1, `${name} lista contratos`);
+    }
+    // Outro tenant não lê.
+    await assert.rejects(() => getDoc(doc(c.ownerB.db, loanPath)), 'ownerB não lê contrato de A');
+    await assert.rejects(() => getDoc(doc(c.ownerB.db, movementPath)), 'ownerB não lê movimento de A');
+    // Auditoria: só owner/admin, com teto de listagem.
+    assert.equal((await getDoc(doc(c.ownerA.db, eventPath))).exists(), true);
+    assert.equal((await getDoc(doc(c.adminA.db, eventPath))).exists(), true);
+    await assert.rejects(() => getDoc(doc(c.memberA.db, eventPath)), 'member não lê auditoria');
+    await assert.rejects(() => getDoc(doc(c.viewerA.db, eventPath)), 'viewer não lê auditoria');
+    await getDocs(query(collection(c.ownerA.db, `workspaces/${wsA}/loan_events`), limit(100)));
+    await assert.rejects(() => getDocs(query(collection(c.ownerA.db, `workspaces/${wsA}/loan_events`),
+      limit(101))), 'listagem da auditoria tem teto');
+  });
+  // Nada mudou no que o backend gravou.
+  assert.deepEqual((await db.doc(loanPath).get()).data(), loanDoc);
+  assert.equal((await db.doc(movementPath).get()).get('reversedBy'), undefined);
+  assert.equal((await db.doc(mirrorPath).get()).data().valueCents, 300000);
+  assert.equal((await db.collection(`workspaces/${wsA}/loans`).get()).size, 1);
+  assert.equal((await db.collection(`workspaces/${wsA}/loan_movements`).get()).size, 1);
 });

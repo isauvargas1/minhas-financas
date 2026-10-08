@@ -50,34 +50,20 @@ test("papéis são não vazios e restritos ao conjunto conhecido", () => {
 
 test("matriz de papéis por operação é a esperada pelo domínio", () => {
   const expected: Record<InvestmentBackendOperation, string[]> = {
-    onboardInvestmentWorkspace: ["owner"],
-    saveInvestmentAccount: ["owner", "admin"],
-    saveInvestmentAsset: ["owner", "admin"],
-    // INV-P2-028 — troca de meta: mesma matriz de vínculo e desvínculo.
-    changeInvestmentGoal: ["owner", "admin", "member"],
-    createInvestmentContribution: ["owner", "admin", "member"],
-    // Etapa 1 — superfície simples: mesma matriz do aporte e do resgate.
-    // Registrar, confirmar e retirar são operações do dia a dia de quem
-    // participa do workspace; corrigir fato liquidado continua exigindo
-    // estorno, restrito a owner/admin.
+    // D-15 (P4-D): só as operações da experiência simples. Registrar,
+    // confirmar, retirar e cancelar pendente são do dia a dia de quem
+    // participa do workspace; desfazer fato liquidado (estorno) é de
+    // owner/admin.
     createSimpleInvestment: ["owner", "admin", "member"],
     settleInvestmentContribution: ["owner", "admin", "member"],
     withdrawSimpleInvestment: ["owner", "admin", "member"],
     settleSimpleWithdrawal: ["owner", "admin", "member"],
-    createInvestmentRedemption: ["owner", "admin", "member"],
     cancelInvestmentMovement: ["owner", "admin", "member"],
-    settleInvestmentRedemption: ["owner", "admin", "member"],
     reverseInvestmentMovement: ["owner", "admin"],
-    recordInvestmentValuation: ["owner", "admin"],
+    // INV-P2-028 — troca de meta: mesma matriz de vínculo e desvínculo.
+    changeInvestmentGoal: ["owner", "admin", "member"],
     linkInvestmentToGoal: ["owner", "admin", "member"],
     unlinkInvestmentFromGoal: ["owner", "admin", "member"],
-    recalculateInvestmentPosition: ["owner", "admin"],
-    recalculateGoalInvestmentProgress: ["owner", "admin"],
-    rebuildInvestmentProjections: ["owner", "admin"],
-    backfillInvestmentWorkspace: ["owner", "admin"],
-    registerInvestmentImportBatch: ["owner", "admin"],
-    archiveInvestmentAccount: ["owner", "admin"],
-    archiveInvestmentAsset: ["owner", "admin"],
   };
   assert.deepEqual(
     operations.slice().sort(),
@@ -104,26 +90,30 @@ test("operações que movem caixa declaram espelho em transactions", () => {
   }
 });
 
-test("valoração altera patrimônio e nunca caixa", () => {
-  const plan = getInvestmentBackendWritePlan("recordInvestmentValuation");
-  assert.equal(plan.affectsCashProjection, false);
-  assert.equal(plan.appendsToLedger, false);
-  assert.equal(plan.updatesProjections, true);
-  assert.ok(!plan.writes.includes("transactions"));
-  assert.ok(plan.writes.includes("investment_valuations"));
-});
-
-test("resgate pendente e cancelamento não tocam projeções", () => {
+test("fato liquidado com dinheiro declara o livro-razão das contas (D-30)", () => {
   for (const operation of [
-    "createInvestmentRedemption",
-    "cancelInvestmentMovement",
+    "createSimpleInvestment",
+    "settleInvestmentContribution",
+    "withdrawSimpleInvestment",
+    "settleSimpleWithdrawal",
+    "reverseInvestmentMovement",
   ] as const) {
     const plan = getInvestmentBackendWritePlan(operation);
-    assert.equal(plan.updatesProjections, false, operation);
-    assert.equal(plan.affectsCashProjection, false, operation);
-    assert.ok(!plan.writes.includes("investment_positions"), operation);
-    assert.ok(!plan.writes.includes("goals"), operation);
-    assert.ok(!plan.writes.includes("investment_summaries"), operation);
+    assert.equal(plan.affectsCashProjection, true, operation);
+    assert.ok(plan.writes.includes("cash_accounts"), operation);
+    assert.ok(plan.writes.includes("cash_account_movements"), operation);
+  }
+});
+
+test("cancelamento de pendente não toca projeções nem contas", () => {
+  const plan = getInvestmentBackendWritePlan("cancelInvestmentMovement");
+  assert.equal(plan.updatesProjections, false);
+  assert.equal(plan.affectsCashProjection, false);
+  for (const target of [
+    "investment_positions", "goals", "investment_summaries",
+    "cash_accounts", "cash_account_movements",
+  ] as const) {
+    assert.ok(!plan.writes.includes(target), target);
   }
 });
 
@@ -156,18 +146,18 @@ test("toda operação declara a métrica operacional que de fato escreve", () =>
   }
 });
 
-test("nenhum plano declara escrita direta do cliente em coleção do domínio", () => {
-  // Espelha a garantia das Rules: as coleções do domínio são exclusivas do
-  // backend. `transactions` e `settings_catalog` são as duas superfícies
-  // compartilhadas por decisão de produto e ficam explicitamente listadas.
-  const sharedWithClient = new Set([
-    "transactions", "settings_catalog", "workspaces",
+test("nenhum plano declara escrita fora do domínio além do caixa e das metas", () => {
+  // Fora de `investment_*` e `goals`, as operações só escrevem o efeito de
+  // caixa (P4-D): o espelho em `transactions` e o livro-razão das contas
+  // (D-30). Todas essas coleções são exclusivas do backend nas Rules.
+  const cashTargets = new Set([
+    "transactions", "cash_accounts", "cash_account_movements",
   ]);
   for (const operation of operations) {
     const plan = getInvestmentBackendWritePlan(operation);
     assert.equal(plan.clientDirectWriteAllowed, false, operation);
     for (const target of plan.writes) {
-      if (sharedWithClient.has(target)) continue;
+      if (cashTargets.has(target)) continue;
       assert.ok(
         target.startsWith("investment_") || target === "goals",
         `${operation} declara alvo inesperado fora do domínio: ${target}.`,

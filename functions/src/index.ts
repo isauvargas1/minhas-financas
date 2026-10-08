@@ -18,8 +18,6 @@ export * from "./workspaces/callables";
 export {onWorkspaceDisplayChange} from "./workspaces/indexSync";
 
 // Callables (APIs chamadas pelo frontend)
-export * from "./callables/splitGroups";
-export * from "./creditCards/callables";
 export * from "./goals/callables";
 export * from "./investments/callables";
 export * from "./ai/callables";
@@ -34,11 +32,126 @@ export {
   getWorkspaceEntitlement,
 } from "./billing/callables";
 export * from "./cash/rebuild";
+// P3-A — criação; P3-C — correção e anulação; P3-D — importação em lotes de
+// lançamento manual confirmado; P3-F — pendentes, agendados e confirmação.
+export {
+  confirmCashTransaction,
+  createCashTransaction,
+  importCashTransactions,
+  updateCashTransaction,
+  voidCashTransaction,
+} from "./cash/callables";
+// P3-G — domínio autoritativo de empréstimos (D-13): contratação com caixa no
+// mesmo commit, liquidação, estorno, cancelamento e metadados; atraso diário.
+export {
+  cancelLoan,
+  createLoan,
+  registerLoanPayment,
+  reverseLoanMovement,
+  updateLoanMetadata,
+} from "./loans/callables";
+export {processLoanStatusRefresh} from "./loans/statusRefresh";
+// P3-I — clientes (D-24) e recebíveis (D-39): cadastro com dados pessoais
+// separados, recebimento parcial com caixa no mesmo commit, estorno e
+// cancelamento lógicos.
+export {
+  archiveClient,
+  cancelReceivable,
+  createClient,
+  createReceivable,
+  receiveReceivable,
+  reverseReceivableReceipt,
+  updateClient,
+  updateReceivable,
+} from "./receivables/callables";
+// P3-J — contas/carteiras e transferências (D-30): saldo autoritativo por
+// conta, livro-razão imutável e transferência com estorno compensatório.
+export {
+  archiveCashAccount,
+  createCashAccount,
+  createCashTransfer,
+  reactivateCashAccount,
+  reverseCashTransfer,
+  updateCashAccount,
+} from "./accounts/callables";
+
+// P4-E — catálogo de configurações (D-23): criação, edição (renomear,
+// aparência, reativar) e inativação só pelo backend, com unicidade de nome
+// transacional e auditoria; o cliente só lê.
+export {
+  archiveSettingsCatalogItem,
+  createSettingsCatalogItem,
+  updateSettingsCatalogItem,
+} from "./settingsCatalog/callables";
+
+// P4-A — cartões de crédito autoritativos (D-36): cadastro e ciclo de vida,
+// compras e parcelas em centavos, faturas com ciclo e pagamento separados,
+// pagamento a partir de conta (D-30), estornos, ajuste e reconciliação.
+export {
+  archiveCreditCard,
+  cancelCreditCardPurchase,
+  createCreditCard,
+  createCreditCardInvoiceAdjustment,
+  createCreditCardPurchase,
+  reactivateCreditCard,
+  rebuildCardInvoicesForCard,
+  recalculateCardLimit,
+  refundCreditCardPurchase,
+  registerInvoicePayment,
+  reverseInvoicePayment,
+  updateCreditCard,
+  updateCreditCardPurchase,
+} from "./cards/callables";
+
+// P4-B — despesas recorrentes autoritativas (D-12): contrato em centavos,
+// agenda civil determinística, ocorrências por vencimento e geração no Caixa
+// (P3) ou no Cartão (P4-A) pelo backend.
+export {
+  cancelRecurringExpense,
+  confirmRecurringOccurrence,
+  createRecurringExpense,
+  ignoreRecurringOccurrence,
+  pauseRecurringExpense,
+  resumeRecurringExpense,
+  retryRecurringOccurrence,
+  updateRecurringExpense,
+} from "./recurring/callables";
+
+// P4-C — Divisão de contas autoritativa (D-14): grupos, participantes
+// (membros do workspace e externos), convites por código, títulos com rateio
+// exato em centavos, quitação, perdão e reembolso PJ, com o fato financeiro
+// no Caixa (P3) ou no Cartão (P4-A) no mesmo commit.
+export {
+  acceptSplitGroupInvite,
+  addExternalSplitParticipant,
+  addWorkspaceSplitParticipant,
+  approveSplitReimbursement,
+  archiveSplitGroup,
+  cancelSplitReimbursement,
+  createSplitBill,
+  createSplitGroup,
+  createSplitGroupInvite,
+  createSplitReimbursement,
+  deactivateSplitParticipant,
+  forgiveSplitShare,
+  paySplitReimbursement,
+  reactivateSplitGroup,
+  rejectSplitReimbursement,
+  reverseReimbursementPayment,
+  reverseSplitShareSettlement,
+  revokeSplitGroupInvite,
+  settleSplitShare,
+  updateSplitBill,
+  updateSplitGroup,
+  voidSplitBill,
+} from "./splitBills/callables";
 
 // Cron Jobs (Tarefas agendadas)
-export * from "./crons/recurring";
+export {processRecurring} from "./crons/recurring";
 
-export * from "./crons/creditCardInvoices";
+// P4-A — fechamento automático de faturas de cartão (D-36) e alertas de
+// vencimento, com cursor estável e releitura transacional.
+export {processCreditCardInvoiceClosing} from "./cards/closing";
 
 // INV-P2-019 — varredura diária de deriva do domínio patrimonial. Amostrada
 // por rodízio: cada execução cobre uma fatia dos workspaces com o domínio

@@ -19,7 +19,6 @@ import type {
   BillingPlan,
   DisplayEntitlement,
   WorkspaceEntitlement,
-  WorkspaceLimitKey,
 } from './types';
 
 type LoadStatus = 'loading' | 'ready' | 'error';
@@ -52,7 +51,6 @@ interface BillingContextValue {
   checkAccountLimit: (resource: AccountLimitKey) => boolean;
   /** Plano do owner do workspace ativo; `null` enquanto carrega. */
   workspaceEntitlement: WorkspaceEntitlement | null;
-  checkWorkspaceLimit: (resource: WorkspaceLimitKey, currentValue: number) => boolean;
 }
 
 const BillingContext = createContext<BillingContextValue | undefined>(undefined);
@@ -145,12 +143,6 @@ export const BillingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     [accountPlan, accountUsage],
   );
 
-  const checkWorkspaceLimit = useCallback(
-    (resource: WorkspaceLimitKey, currentValue: number): boolean =>
-      workspaceEntitlement ? currentValue < workspaceEntitlement.limits[resource] : true,
-    [workspaceEntitlement],
-  );
-
   const value: BillingContextValue = {
     catalog,
     catalogStatus,
@@ -161,7 +153,6 @@ export const BillingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     accountUsage,
     checkAccountLimit,
     workspaceEntitlement,
-    checkWorkspaceLimit,
   };
 
   return <BillingContext.Provider value={value}>{children}</BillingContext.Provider>;

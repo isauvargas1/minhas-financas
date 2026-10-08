@@ -23,7 +23,10 @@ import {
   uniqueId,
 } from "../../workspaces/testSupport/p1TestSupport";
 import type {PlanId} from "../catalog";
-import {QUOTA_EXCEEDED_MESSAGE} from "../quota";
+import {
+  QUOTA_EXCEEDED_MESSAGE,
+  QUOTA_EXCEEDED_NON_OWNER_MESSAGE,
+} from "../quota";
 
 /**
  * Suporte das suítes de quota de P2B.1 (somente testes, Emulator).
@@ -145,7 +148,17 @@ export const expireInvite = async (workspaceId: string, inviteId: string) => {
  */
 export const expectQuotaExceeded = async (
   promise: Promise<unknown>,
-  expected: {resource: string; planId?: string; limit?: number; used?: number},
+  expected: {
+    resource: string;
+    planId?: string;
+    limit?: number;
+    used?: number;
+    /**
+     * Quem não é o titular (admin que convida, convidado que aceita) recebe
+     * a orientação de pedir ao titular e não recebe o contador (`used`).
+     */
+    audience?: "owner" | "nonOwner";
+  },
 ): Promise<HttpsError> => {
   try {
     await promise;
@@ -159,6 +172,15 @@ export const expectQuotaExceeded = async (
     assert.equal(details.resource, expected.resource);
     if (expected.planId === undefined) {
       assert.deepEqual(Object.keys(details), ["resource"]);
+    } else if (expected.audience === "nonOwner") {
+      assert.equal(expected.used, undefined, "não titular não recebe used");
+      assert.equal(error.message, QUOTA_EXCEEDED_NON_OWNER_MESSAGE);
+      assert.deepEqual(Object.keys(details).sort(),
+        ["limit", "planId", "resource"]);
+      assert.equal(details.planId, expected.planId);
+      if (expected.limit !== undefined) {
+        assert.equal(details.limit, expected.limit);
+      }
     } else {
       assert.equal(error.message, QUOTA_EXCEEDED_MESSAGE);
       assert.deepEqual(Object.keys(details).sort(),

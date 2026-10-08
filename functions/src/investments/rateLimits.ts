@@ -7,8 +7,8 @@ import type {RateLimitPolicy} from "../shared/rateLimit";
  * Nenhuma callable de investimento tinha teto. Isso importa por três motivos
  * distintos, e cada classe abaixo responde a um deles:
  *
- * - **custo**: migração, reconstrução e backfill varrem o ledger inteiro; um
- *   laço de chamadas multiplica leitura e escrita do Firestore sem limite;
+ * - **custo**: um laço de chamadas multiplica leitura e escrita do
+ *   Firestore sem limite;
  * - **contenção**: as mutações escrevem em quatro documentos singleton do
  *   workspace (resumo, período do mês, métrica do dia, alocações), e um
  *   disparo em rajada só produz abortos por contenção;
@@ -22,12 +22,6 @@ import type {RateLimitPolicy} from "../shared/rateLimit";
  * escrita de domínio.
  */
 
-/** Operações pesadas e paginadas: caras por natureza, raras por desenho. */
-const HEAVY_POLICY = {limit: 200, windowSeconds: 60 * 60};
-
-/** Operações administrativas de efeito amplo. */
-const ADMIN_POLICY = {limit: 20, windowSeconds: 60 * 60};
-
 /** Mutações financeiras do dia a dia. */
 const MUTATION_POLICY = {limit: 120, windowSeconds: 60 * 60};
 
@@ -37,31 +31,16 @@ const REGISTRY_POLICY = {limit: 200, windowSeconds: 60 * 60};
 const POLICY_BY_OPERATION: Partial<
   Record<InvestmentBackendOperation, {limit: number; windowSeconds: number}>
 > = {
-  rebuildInvestmentProjections: HEAVY_POLICY,
-  backfillInvestmentWorkspace: HEAVY_POLICY,
-  recalculateInvestmentPosition: HEAVY_POLICY,
-  recalculateGoalInvestmentProgress: HEAVY_POLICY,
-  onboardInvestmentWorkspace: ADMIN_POLICY,
-
-  createInvestmentContribution: MUTATION_POLICY,
   createSimpleInvestment: MUTATION_POLICY,
   settleInvestmentContribution: MUTATION_POLICY,
   withdrawSimpleInvestment: MUTATION_POLICY,
   settleSimpleWithdrawal: MUTATION_POLICY,
-  createInvestmentRedemption: MUTATION_POLICY,
-  settleInvestmentRedemption: MUTATION_POLICY,
   cancelInvestmentMovement: MUTATION_POLICY,
   reverseInvestmentMovement: MUTATION_POLICY,
-  recordInvestmentValuation: MUTATION_POLICY,
 
-  saveInvestmentAccount: REGISTRY_POLICY,
-  saveInvestmentAsset: REGISTRY_POLICY,
-  archiveInvestmentAccount: REGISTRY_POLICY,
-  archiveInvestmentAsset: REGISTRY_POLICY,
   changeInvestmentGoal: REGISTRY_POLICY,
   linkInvestmentToGoal: REGISTRY_POLICY,
   unlinkInvestmentFromGoal: REGISTRY_POLICY,
-  registerInvestmentImportBatch: REGISTRY_POLICY,
 };
 
 /**

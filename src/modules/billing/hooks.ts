@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 import { useAuth } from '../../contexts/AuthContext';
 import { workspaceErrorMessage } from '../workspaces/errors';
@@ -17,6 +17,9 @@ const errorCode = (error: unknown): string => {
 export const useBillingActions = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Trava síncrona (V-04): dois cliques no mesmo quadro, antes de o botão
+  // desabilitar, não abrem duas sessões de cobrança ao mesmo tempo.
+  const inFlight = useRef(false);
   const { user } = useAuth();
 
   const redirectTo = async (
@@ -27,6 +30,8 @@ export const useBillingActions = () => {
       setError('Entre na sua conta para assinar um plano.');
       return;
     }
+    if (inFlight.current) return;
+    inFlight.current = true;
 
     setIsLoading(true);
     setError(null);
@@ -39,6 +44,7 @@ export const useBillingActions = () => {
       console.error('Falha na ação de cobrança', errorCode(err));
       setError(workspaceErrorMessage(err, fallback));
     } finally {
+      inFlight.current = false;
       setIsLoading(false);
     }
   };

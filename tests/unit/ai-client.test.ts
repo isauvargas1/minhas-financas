@@ -7,6 +7,7 @@ import test from 'node:test';
 import {
   AI_CALLABLES,
   AI_CREDITS_EXHAUSTED_MESSAGE,
+  aiCreditsExhaustedMessage,
   createAiCallables,
   isAiCreditsExhausted,
   type AiCallableName,
@@ -128,29 +129,48 @@ test('chave de idempotência nova a cada ação intencional', async () => {
   assert.equal(new Set(keys).size, keys.length, 'chave reaproveitada entre ações');
 });
 
-test('créditos esgotados: resource-exhausted tem mensagem própria, igual à do backend', () => {
-  assert.equal(
-    AI_CREDITS_EXHAUSTED_MESSAGE,
-    'Os créditos de IA deste plano acabaram neste mês. Faça upgrade ou aguarde a renovação mensal.',
-  );
-  // O texto do cliente é o mesmo que o backend escreve no erro de quota.
-  const backendMessage = between(backendQuota, 'export const AI_CREDITS_EXHAUSTED_MESSAGE', ';')
+const backendString = (name: string) =>
+  between(backendQuota, `export const ${name}`, ';')
     .match(/"([^"]*)"/g)
     ?.map((part) => part.slice(1, -1))
     .join('');
-  assert.equal(backendMessage, AI_CREDITS_EXHAUSTED_MESSAGE);
-  assert.equal(isAiCreditsExhausted({ code: 'functions/resource-exhausted' }), true);
+
+test('créditos esgotados: só a recusa do backend por créditos, com a mensagem dele', () => {
+  assert.equal(
+    AI_CREDITS_EXHAUSTED_MESSAGE,
+    'Os créditos de IA deste plano acabaram neste mês. Faça upgrade ou aguarde o início do próximo mês.',
+  );
+  // O texto de reserva do cliente é o mesmo que o backend escreve ao titular.
+  assert.equal(backendString('AI_CREDITS_EXHAUSTED_MESSAGE'), AI_CREDITS_EXHAUSTED_MESSAGE);
+  const exhausted = (message: string) => ({
+    code: 'functions/resource-exhausted',
+    message,
+    details: { resource: 'aiCreditsPerMonth', planId: 'pro', limit: 150, periodKey: '2026-10' },
+  });
+  assert.equal(isAiCreditsExhausted(exhausted(AI_CREDITS_EXHAUSTED_MESSAGE)), true);
   for (const error of [
     { code: 'functions/failed-precondition' },
     { code: 'functions/internal' },
-    { code: 'resource-exhausted' },
+    { code: 'resource-exhausted', details: { resource: 'aiCreditsPerMonth' } },
+    // HTTP 429 da plataforma: o SDK usa o código como mensagem, sem detalhes.
+    { code: 'functions/resource-exhausted', message: 'resource-exhausted' },
+    { code: 'functions/resource-exhausted', details: { resource: 'membersPerWorkspace' } },
     new Error('functions/resource-exhausted'),
     null,
     undefined,
     'functions/resource-exhausted',
   ]) {
-    assert.equal(isAiCreditsExhausted(error), false, String(error));
+    assert.equal(isAiCreditsExhausted(error), false, JSON.stringify(error));
   }
+  // Quem não é o titular recebe do backend a orientação de pedir ao titular,
+  // e o cliente a exibe como veio.
+  const nonOwner = backendString('AI_CREDITS_EXHAUSTED_NON_OWNER_MESSAGE');
+  assert.ok(nonOwner && /titular/.test(nonOwner));
+  assert.equal(aiCreditsExhaustedMessage(exhausted(nonOwner)), nonOwner);
+  // Sem frase do backend, a mensagem de reserva; nunca o código cru.
+  assert.equal(aiCreditsExhaustedMessage(exhausted('resource-exhausted')),
+    AI_CREDITS_EXHAUSTED_MESSAGE);
+  assert.equal(aiCreditsExhaustedMessage({}), AI_CREDITS_EXHAUSTED_MESSAGE);
 });
 
 // --- Guardas estáticas -----------------------------------------------------
@@ -171,11 +191,11 @@ test('análise e extração usam só os wrappers com chave; quota tem mensagem c
   assert.deepEqual(direct, [], 'chamada de IA fora do contrato');
   const reports = read(join(srcRoot, 'modules', 'reports', 'api.ts'));
   assert.match(reports, /await analyzeFinancialQuestion\(\{/);
-  assert.match(reports, /isAiCreditsExhausted\(error\)\s*\?\s*AI_CREDITS_EXHAUSTED_MESSAGE/);
+  assert.match(reports, /isAiCreditsExhausted\(error\)\s*\?\s*aiCreditsExhaustedMessage\(error\)/);
   const modal = read(join(srcRoot, 'components', 'TransactionModal.tsx'));
   assert.match(modal, /await extractTransactionFromDocument\(\{/);
   assert.match(modal, /await extractTransactionFromText\(\{/);
-  assert.match(modal, /exhausted \? AI_CREDITS_EXHAUSTED_MESSAGE : fallback/);
+  assert.match(modal, /exhausted \? aiCreditsExhaustedMessage\(error\) : fallback/);
   assert.equal(/httpsCallable/.test(modal), false);
 });
 
@@ -187,7 +207,7 @@ test('peso em créditos, modelo, teto de tokens e credencial não existem no cli
 });
 
 test('contenção (functions/aborted) é erro de negócio com a mensagem do backend', () => {
-  const errors = read(join(srcRoot, 'modules', 'workspaces', 'errors.ts'));
+  const errors = read(join(srcRoot, 'modules', 'workspaces', 'errorMessages.ts'));
   const codes = /const BUSINESS_CODES = new Set\(\[([\s\S]*?)\]\);/.exec(errors);
   assert.ok(codes, 'BUSINESS_CODES');
   assert.match(codes[1], /'functions\/aborted'/);

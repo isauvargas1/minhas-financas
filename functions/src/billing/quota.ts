@@ -46,6 +46,9 @@ import {billingAccountRef} from "./model";
  *   catálogo é `MAX_PENDING_RESERVATIONS`.
  * - Créditos mensais de IA do titular (P2B.2): `aiCredits.ts`, consumidos
  *   pela admissão de `ai/admission.ts`.
+ * - Lançamentos manuais por mês civil do workspace (P3-D, D-40):
+ *   `transactionQuota.ts`, consumidos pela criação e pela importação de
+ *   lançamentos de caixa.
  *
  * Sem reconstrução por varredura, sem contagem de coleção e sem fallback: o
  * estado nasce com a conta e com o workspace. Estado ausente ou malformado
@@ -59,6 +62,15 @@ export const QUOTA_SCHEMA_VERSION = 1;
 
 export const QUOTA_EXCEEDED_MESSAGE =
   "Limite do plano atingido. Faça upgrade em Meu Plano para continuar.";
+
+/**
+ * Quem esbarra no limite sem ser o titular (admin que convida, convidado que
+ * aceita, membro que usa IA) não resolve com upgrade do próprio plano: o
+ * limite é do plano de quem paga pelo espaço (D-01).
+ */
+export const QUOTA_EXCEEDED_NON_OWNER_MESSAGE =
+  "Este espaço atingiu o limite do plano do titular. Peça ao titular do " +
+  "espaço para fazer upgrade em Meu Plano.";
 
 /**
  * Na transferência quem precisa de capacidade é o **destino**; o upgrade do
@@ -76,17 +88,65 @@ export const QUOTA_STATE_UNAVAILABLE_MESSAGE =
 /** Créditos mensais de IA esgotados no pool do titular (P2B.2). */
 export const AI_CREDITS_EXHAUSTED_MESSAGE =
   "Os créditos de IA deste plano acabaram neste mês. Faça upgrade ou " +
-  "aguarde a renovação mensal.";
+  "aguarde o início do próximo mês.";
 
-/** Recursos com quota nesta etapa: nomes das chaves de `PlanLimits`. */
+/** Créditos esgotados vistos por quem não é o titular do espaço. */
+export const AI_CREDITS_EXHAUSTED_NON_OWNER_MESSAGE =
+  "Os créditos de IA do plano do titular deste espaço acabaram neste mês. " +
+  "Peça ao titular para fazer upgrade ou aguarde o início do próximo mês.";
+
+/**
+ * Lançamentos do mês esgotados no workspace (P3-D, D-40). O limite é do
+ * plano do titular e vale por workspace; o contador recomeça no mês civil
+ * seguinte de São Paulo.
+ */
+export const TRANSACTIONS_QUOTA_EXHAUSTED_MESSAGE =
+  "Este espaço atingiu o limite de lançamentos do seu plano neste mês. Faça " +
+  "upgrade em Meu Plano ou aguarde o início do próximo mês.";
+
+/**
+ * Visto por quem não é o titular: o upgrade da própria conta não muda o
+ * limite do espaço, que é do plano de quem paga por ele (D-01).
+ */
+export const TRANSACTIONS_QUOTA_EXHAUSTED_NON_OWNER_MESSAGE =
+  "Este espaço atingiu o limite mensal de lançamentos do plano do titular. " +
+  "Fale com o titular do espaço ou aguarde o início do próximo mês.";
+
+/**
+ * Grupos de divisão ativos no workspace (P4-C). Arquivar libera a vaga;
+ * reativar consome de novo; downgrade nunca apaga grupo existente.
+ */
+export const SPLIT_GROUPS_QUOTA_EXHAUSTED_MESSAGE =
+  "Este espaço atingiu o limite de grupos de divisão ativos do seu plano. " +
+  "Arquive um grupo ou faça upgrade em Meu Plano.";
+
+/** Visto por quem não é o titular: o limite é do plano do titular (D-01). */
+export const SPLIT_GROUPS_QUOTA_EXHAUSTED_NON_OWNER_MESSAGE =
+  "Este espaço atingiu o limite de grupos de divisão ativos do plano do " +
+  "titular. Fale com o titular do espaço ou arquive um grupo.";
+
+/** Recursos com quota no servidor: nomes das chaves de `PlanLimits`. */
 export type QuotaResource = Extract<
   keyof PlanLimits,
-  "workspaces" | "membersPerWorkspace" | "aiCreditsPerMonth"
+  | "workspaces"
+  | "membersPerWorkspace"
+  | "aiCreditsPerMonth"
+  | "transactionsPerMonth"
+  | "splitGroups"
 >;
 
 const QUOTA_MESSAGE_BY_RESOURCE: Partial<Record<QuotaResource, string>> = {
   aiCreditsPerMonth: AI_CREDITS_EXHAUSTED_MESSAGE,
+  transactionsPerMonth: TRANSACTIONS_QUOTA_EXHAUSTED_MESSAGE,
+  splitGroups: SPLIT_GROUPS_QUOTA_EXHAUSTED_MESSAGE,
 };
+
+const NON_OWNER_QUOTA_MESSAGE_BY_RESOURCE:
+  Partial<Record<QuotaResource, string>> = {
+    aiCreditsPerMonth: AI_CREDITS_EXHAUSTED_NON_OWNER_MESSAGE,
+    transactionsPerMonth: TRANSACTIONS_QUOTA_EXHAUSTED_NON_OWNER_MESSAGE,
+    splitGroups: SPLIT_GROUPS_QUOTA_EXHAUSTED_NON_OWNER_MESSAGE,
+  };
 
 /** Teto do mapa de reservas: o maior `membersPerWorkspace` do catálogo. */
 export const MAX_PENDING_RESERVATIONS = Math.max(
@@ -108,22 +168,43 @@ export interface QuotaExceededDetails {
   used: number;
   /** Período do contador (`YYYY-MM`), só nos recursos mensais. */
   periodKey?: string;
+  /**
+   * O ator é o titular que paga pelo recurso. Só ele recebe `used`: o
+   * contador do titular pode somar o uso de espaços em que o ator não está
+   * (créditos de IA são um pool por titular), e a próxima ação muda.
+   */
+  actorIsBillingOwner: boolean;
+  /**
+   * Unidades pedidas de uma vez (importação em lote). É o próprio pedido do
+   * ator, então vale para qualquer papel; só aparece quando informado.
+   */
+  requested?: number;
 }
 
-export const quotaExceeded = (details: QuotaExceededDetails) =>
-  new ApplicationError(
+export const quotaExceeded = (details: QuotaExceededDetails) => {
+  const messages = details.actorIsBillingOwner ?
+    QUOTA_MESSAGE_BY_RESOURCE :
+    NON_OWNER_QUOTA_MESSAGE_BY_RESOURCE;
+  const fallback = details.actorIsBillingOwner ?
+    QUOTA_EXCEEDED_MESSAGE :
+    QUOTA_EXCEEDED_NON_OWNER_MESSAGE;
+  return new ApplicationError(
     "quota_exceeded",
-    QUOTA_MESSAGE_BY_RESOURCE[details.resource] ?? QUOTA_EXCEEDED_MESSAGE,
+    messages[details.resource] ?? fallback,
     {
       resource: details.resource,
       planId: details.planId,
       limit: details.limit,
-      used: details.used,
+      ...(details.actorIsBillingOwner ? {used: details.used} : {}),
       ...(details.periodKey === undefined ?
         {} :
         {periodKey: details.periodKey}),
+      ...(details.requested === undefined ?
+        {} :
+        {requested: details.requested}),
     },
   );
+};
 
 export const transferQuotaExceeded = (resource: QuotaResource) =>
   new ApplicationError("quota_exceeded", TRANSFER_QUOTA_EXCEEDED_MESSAGE, {
@@ -176,6 +257,10 @@ export const assertWithinQuota = (input: {
   used: number;
   adding: number;
   periodKey?: string;
+  /** Ver `QuotaExceededDetails.actorIsBillingOwner`. */
+  actorIsBillingOwner: boolean;
+  /** Ver `QuotaExceededDetails.requested`. */
+  requested?: number;
 }): void => {
   const limit = input.entitlement.limits[input.resource];
   if (input.used + input.adding > limit) {
@@ -185,6 +270,8 @@ export const assertWithinQuota = (input: {
       limit,
       used: input.used,
       periodKey: input.periodKey,
+      actorIsBillingOwner: input.actorIsBillingOwner,
+      requested: input.requested,
     });
   }
 };

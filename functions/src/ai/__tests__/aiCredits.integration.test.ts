@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import test, {mock} from "node:test";
+
+// Módulo cru, para o mock substituir `write` onde o logger do kernel o procura.
+import functionsLogger = require("firebase-functions/logger");
 
 import {Timestamp} from "firebase-admin/firestore";
 import type {HttpsError} from "firebase-functions/v2/https";
@@ -10,6 +13,7 @@ import {
 } from "../../billing/callables";
 import {
   AI_CREDITS_EXHAUSTED_MESSAGE,
+  AI_CREDITS_EXHAUSTED_NON_OWNER_MESSAGE,
   QUOTA_STATE_UNAVAILABLE_MESSAGE,
 } from "../../billing/quota";
 import {
@@ -205,19 +209,29 @@ const assertNothingConsumed = async (
     "rate limit consumido");
 };
 
+/**
+ * Só o titular recebe `used` (o pool soma o uso de todos os espaços dele) e a
+ * orientação de upgrade; quem não é o titular é orientado a pedir a ele.
+ */
 const expectCreditsExhausted = async (
   promise: Promise<unknown>,
-  expected: {planId: string; limit: number; used: number; periodKey?: string},
+  expected: {planId: string; limit: number; used?: number; periodKey?: string},
   owner: string,
+  audience: "owner" | "nonOwner" = "owner",
 ): Promise<HttpsError> => {
+  const asOwner = audience === "owner";
+  assert.equal(expected.used === undefined, !asOwner,
+    "used só é esperado para o titular");
   const error = await expectHttpsError(promise, "resource-exhausted", {
-    message: AI_CREDITS_EXHAUSTED_MESSAGE,
+    message: asOwner ?
+      AI_CREDITS_EXHAUSTED_MESSAGE :
+      AI_CREDITS_EXHAUSTED_NON_OWNER_MESSAGE,
   });
   assert.deepEqual(error.details, {
     resource: "aiCreditsPerMonth",
     planId: expected.planId,
     limit: expected.limit,
-    used: expected.used,
+    ...(asOwner ? {used: expected.used} : {}),
     periodKey: expected.periodKey ?? PERIOD,
   });
   // Nada do titular além do necessário para negar: sem uid, Stripe, grace.
@@ -364,10 +378,10 @@ test("membro consome o pool do owner, não o próprio", async () => {
     [workspaceId, workspaceId]);
   assert.deepEqual(receipts.map((doc) => doc.get("billingOwnerUid")),
     [owner, owner]);
-  // Membro recusado vê só o necessário: sem o uid do titular.
+  // Membro recusado vê só o necessário: sem o uid nem o uso do titular.
   await setUsed(owner, 150);
   await expectCreditsExhausted(provider.analyze(member, workspaceId),
-    {planId: "pro", limit: 150, used: 150}, owner);
+    {planId: "pro", limit: 150}, owner, "nonOwner");
 });
 
 test("dois workspaces do mesmo owner compartilham um único pool",
@@ -386,7 +400,29 @@ test("dois workspaces do mesmo owner compartilham um único pool",
     await expectCreditsExhausted(provider.analyze(owner, one),
       {planId: "pro", limit: 150, used: 150}, owner);
     await expectCreditsExhausted(provider.analyze(member, two),
-      {planId: "pro", limit: 150, used: 150}, owner);
+      {planId: "pro", limit: 150}, owner, "nonOwner");
+  });
+
+test("membro depois de downgrade não vê o uso agregado do titular",
+  async () => {
+    const owner = await account("ai-leak-owner", "pro");
+    const member = await account("ai-leak-member");
+    const shared = await newWorkspace(owner, [[member, "member"]]);
+    const other = await newWorkspace(owner);
+    // Uso concentrado num espaço em que o membro não está.
+    await setUsed(owner, 100);
+    await downgradeToFree(owner);
+    const provider = harness();
+    const error = await expectCreditsExhausted(
+      provider.analyze(member, shared),
+      {planId: "free", limit: 10}, owner, "nonOwner");
+    assert.equal(JSON.stringify(error.toJSON()).includes("100"), false,
+      "uso agregado do titular exposto ao membro");
+    // O titular continua vendo o próprio uso na recusa (e em
+    // `getAccountUsage`, coberto abaixo).
+    await expectCreditsExhausted(provider.analyze(owner, other),
+      {planId: "free", limit: 10, used: 100}, owner);
+    assert.equal(provider.calls.length, 0);
   });
 
 test("workspace de outro owner consome o pool do outro owner", async () => {
@@ -399,7 +435,7 @@ test("workspace de outro owner consome o pool do outro owner", async () => {
   const provider = harness();
   // A esgotado não impede o uso em B, que é de outro titular.
   await expectCreditsExhausted(provider.analyze(actor, inA),
-    {planId: "free", limit: 10, used: 10}, ownerA);
+    {planId: "free", limit: 10}, ownerA, "nonOwner");
   await provider.analyze(actor, inB);
   assert.equal(await usedCredits(ownerA), 10);
   assert.equal(await usedCredits(ownerB), 1);
@@ -425,8 +461,9 @@ test("após a transferência, os usos seguintes consomem o novo owner",
     assert.equal(await usedCredits(ownerB), 2);
     // O teto também passa a ser o do novo titular.
     await setUsed(ownerB, 150);
+    // O antigo titular agora é só membro: não vê o uso do novo titular.
     await expectCreditsExhausted(provider.analyze(ownerA, workspaceId),
-      {planId: "pro", limit: 150, used: 150}, ownerB);
+      {planId: "pro", limit: 150}, ownerB, "nonOwner");
   });
 
 // ---------------------------------------------------------------------------
@@ -691,6 +728,35 @@ test("mesma chave com outro conteúdo conflita, sem consumo", async () => {
   assert.equal(provider.calls.length, 1);
   assert.equal(await usedCredits(owner), 1);
   assert.equal((await receiptsOf(owner)).length, 1);
+});
+
+test("o log do débito liga o requestId ao recibo, sem conteúdo", async () => {
+  const owner = await account("ai-corr");
+  const workspaceId = await newWorkspace(owner);
+  const provider = harness();
+  const question = "PERGUNTA-CORRELACAO-6612 sobre gastos?";
+  const written: Array<Record<string, unknown>> = [];
+  const spy = mock.method(functionsLogger, "write",
+    (entry: Record<string, unknown>) => {
+      written.push(entry);
+    });
+  try {
+    await provider.analyze(owner, workspaceId, {question});
+  } finally {
+    spy.mock.restore();
+  }
+  const consumed = written.find((entry) =>
+    entry.event === "ai.credit_consumed");
+  assert.ok(consumed, "ai.credit_consumed registrado");
+  const [receipt] = await receiptsOf(owner);
+  assert.ok(receipt, "recibo gravado");
+  assert.equal(consumed.creditDebitId, receipt.id);
+  const end = written.find((entry) => entry.event === "callable.end");
+  assert.ok(end, "callable.end registrado");
+  assert.equal(typeof consumed.requestId, "string");
+  assert.equal(consumed.requestId, end.requestId);
+  assert.equal(JSON.stringify(written).includes(question), false,
+    "pergunta no log");
 });
 
 test("recibo guarda só metadados e hash, com TTL de 90 dias", async () => {
@@ -988,9 +1054,29 @@ test("getAccountUsage expõe só o pool do próprio titular; o entitlement " +
   });
   const entitlement = await call<Record<string, unknown>>(
     getWorkspaceEntitlement, member, {workspaceId});
+  // P3-E: o entitlement passou a trazer a quota de lançamentos do próprio
+  // workspace (por papel); P4-C, a de grupos de divisão ativos (por papel);
+  // nenhum uso de IA do pool do titular.
   assert.deepEqual(Object.keys(entitlement).sort(),
-    ["catalogVersion", "entitlementStatus", "limits", "planId"]);
-  assert.equal(JSON.stringify(entitlement).includes("aiCreditsUsed"), false);
+    ["catalogVersion", "entitlementStatus", "limits", "planId",
+      "splitGroupsQuota", "transactionsQuota"]);
+  const transactionsQuota =
+    entitlement.transactionsQuota as Record<string, unknown>;
+  assert.deepEqual(Object.keys(transactionsQuota).sort(),
+    ["exhausted", "limit", "periodKey", "remaining", "status", "used"]);
+  assert.equal(transactionsQuota.used, null);
+  assert.equal(transactionsQuota.remaining, null);
+  const splitGroupsQuota =
+    entitlement.splitGroupsQuota as Record<string, unknown>;
+  assert.deepEqual(Object.keys(splitGroupsQuota).sort(),
+    ["exhausted", "limit", "remaining", "status", "used"]);
+  assert.equal(splitGroupsQuota.used, null);
+  assert.equal(splitGroupsQuota.remaining, null);
+  const serialized = JSON.stringify(entitlement);
+  for (const field of ["aiCreditsUsed", "aiCreditsRemaining", "aiPeriodKey",
+    "usedCredits"]) {
+    assert.equal(serialized.includes(field), false, field);
+  }
   // Uso acima do teto após downgrade: restante nunca negativo.
   await setUsed(owner, 40, period);
   await downgradeToFree(owner);

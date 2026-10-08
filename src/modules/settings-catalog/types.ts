@@ -6,23 +6,20 @@ export type SettingsCatalogGroup =
   | 'category'
   | 'payment_method'
   | 'income_type'
-  | 'wallet'
   | 'cost_center'
-  | 'investment_type'
   | 'investment_class'
-  | 'investment_risk'
-  | 'investment_liquidity'
-  | 'investment_indexer'
-  | 'investment_strategy'
   | 'investment_institution';
 
 export type SettingsCatalogStatus = 'active' | 'inactive';
 
+/**
+ * Subtipos de `category` (D-23). A compra parcelada é do domínio de cartões
+ * e usa categoria de despesa; não existe subtipo `parcelado`.
+ */
 export type SettingsCatalogTransactionSubtype =
   | 'receita'
   | 'despesa'
-  | 'investimento'
-  | 'parcelado';
+  | 'investimento';
 
 export type SettingsCatalogWorkspaceScope = 'PF' | 'PJ' | 'both';
 
@@ -64,35 +61,17 @@ export interface SettingsCatalogPage {
   nextCursor: SettingsCatalogPageCursor | null;
 }
 
+/**
+ * Intenção de criação enviada à callable (D-23). Escopo PF/PJ, nome
+ * normalizado, chave de unicidade, autoria e datas são derivados pelo
+ * backend e não fazem parte do contrato.
+ */
 export interface SettingsCatalogCreateInput {
   group: SettingsCatalogGroup;
   name: string;
   transactionSubtype?: SettingsCatalogTransactionSubtype;
-  workspaceScope?: SettingsCatalogWorkspaceScope;
   icon?: string | null;
   color?: string | null;
   stroke?: number | null;
-  sortOrder?: number;
   status?: SettingsCatalogStatus;
-}
-
-export interface SettingsCatalogUpdateInput {
-  name?: string;
-  icon?: string | null;
-  color?: string | null;
-  stroke?: number | null;
-  sortOrder?: number;
-  status?: SettingsCatalogStatus;
-}
-
-export interface SettingsCatalogUniqueLock {
-  dedupeKey: string;
-  catalogItemId: string;
-  workspaceId: string;
-  group: SettingsCatalogGroup;
-  normalizedName: string;
-  createdBy: string;
-  updatedBy: string;
-  createdAt?: Timestamp | null;
-  updatedAt?: Timestamp | null;
 }

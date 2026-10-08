@@ -15,7 +15,7 @@ import {INVESTMENT_COLLECTIONS, investmentDoc, investmentFirestore} from "./path
 /**
  * Observabilidade operacional do domínio de investimentos.
  *
- * Espelha `creditCards/observability.ts`: métrica diária por operação e
+ * Métrica diária por operação e
  * status, mais um registro de falha. Antes do M3 uma callable de investimento
  * que falhava não deixava métrica, evento nem rastro algum — o erro virava
  * `HttpsError` e desaparecia.

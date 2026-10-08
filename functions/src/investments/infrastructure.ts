@@ -11,29 +11,15 @@ import {investmentRateLimitPolicy} from "./rateLimits";
 import {INVESTMENT_COLLECTIONS, investmentDoc} from "./paths";
 
 export type InvestmentBackendOperation =
-  | "onboardInvestmentWorkspace"
-  | "saveInvestmentAccount"
-  | "saveInvestmentAsset"
   | "changeInvestmentGoal"
-  | "createInvestmentContribution"
   | "createSimpleInvestment"
   | "settleInvestmentContribution"
   | "withdrawSimpleInvestment"
   | "settleSimpleWithdrawal"
-  | "createInvestmentRedemption"
   | "cancelInvestmentMovement"
-  | "settleInvestmentRedemption"
   | "reverseInvestmentMovement"
-  | "recordInvestmentValuation"
   | "linkInvestmentToGoal"
-  | "unlinkInvestmentFromGoal"
-  | "recalculateInvestmentPosition"
-  | "recalculateGoalInvestmentProgress"
-  | "rebuildInvestmentProjections"
-  | "backfillInvestmentWorkspace"
-  | "registerInvestmentImportBatch"
-  | "archiveInvestmentAccount"
-  | "archiveInvestmentAsset";
+  | "unlinkInvestmentFromGoal";
 
 export interface InvestmentIdempotencyReservation {
   ref: admin.firestore.DocumentReference;

@@ -92,27 +92,22 @@ const seed = async () => {
   };
   const account = (id, workspaceId, profileType, actorId) => ({
     id, workspaceId, profileType, name: `Conta ${id}`,
-    institutionName: 'Instituição Teste', currency: 'BRL', status: 'active',
+    institutionName: 'Instituição Teste', institutionId: 'institution-1', currency: 'BRL', status: 'active',
     ...auditFields, createdBy: actorId, updatedBy: actorId,
   });
   const asset = (id, workspaceId, profileType, actorId) => ({
     id, workspaceId, profileType, name: `Ativo ${id}`, assetType: 'fixed_income',
-    symbol: 'CDB', currency: 'BRL', status: 'active',
+    symbol: 'CDB', classId: 'class-1', className: 'Reserva de emergência', typeId: 'category-cdb',
+    typeName: 'CDB', trackingMode: 'value', currency: 'BRL', status: 'active',
     ...auditFields, createdBy: actorId, updatedBy: actorId,
   });
   const position = (id, workspaceId, profileType, actorId) => ({
     id, workspaceId, profileType, accountId: 'account-1', assetId: 'asset-1',
     currency: 'BRL', status: 'active', quantityMicros: 1_000_000,
-    principalCents: 10_000, realizedGainCents: 0, feesCents: 0, taxCents: 0,
+    principalCents: 10_000, realizedGainCents: 0, realizedLossCents: 0, feesCents: 0, taxCents: 0,
     currentValueCents: 10_000, unrealizedAppreciationCents: 0,
     calculationVersion: 'investment-v2-cents-micros-half-up', version: 1,
     ...auditFields, createdBy: actorId, updatedBy: actorId,
-  });
-  const valuation = (id, workspaceId, profileType, actorId) => ({
-    id, workspaceId, profileType,
-    accountId: 'account-1', assetId: 'asset-1', currency: 'BRL',
-    unitPriceMicros: 10_000_000, source: 'manual', effectiveAt: now,
-    correlationId: `correlation-${id}`, createdBy: actorId, createdAt: now,
   });
   const movement = (id, workspaceId, profileType, actorId, occurredAt = now) => ({
     id, workspaceId, profileType, domainVersion: 2,
@@ -126,6 +121,8 @@ const seed = async () => {
     quantityDeltaMicros: 1_000_000, goalNetContributionDeltaCents: 0,
     goalCurrentValueDeltaCents: 0, correlationId: `correlation-${id}`,
     idempotencyKeyHash: `hash-${id}`, occurredAt, settlementAt: occurredAt,
+    // P4-D (D-30): aporte liquidado carrega a conta do Caixa e o movimento dela.
+    cashAccountId: 'cash-account-1', accountMovementId: `camv-${id}`,
     createdBy: actorId, createdAt: now, settledBy: actorId, settledAt: now,
   });
   await Promise.all([
@@ -163,8 +160,9 @@ const seed = async () => {
       realizedGainCents: 0, feesCents: 0, taxCents: 0,
       updatedAt: now, updatedBy: users.ownerA.uid,
     }),
-    db.doc(`workspaces/${workspaceA}/investment_valuations/document-a`).set(valuation('document-a', workspaceA, 'PF', users.ownerA.uid)),
-    db.doc(`workspaces/${workspaceB}/investment_valuations/document-b`).set(valuation('document-b', workspaceB, 'PJ', users.ownerB.uid)),
+    // P4-D (D-15): coleção removida, sem regra — o documento existe só para
+    // provar que o cliente não o alcança.
+    db.doc(`workspaces/${workspaceA}/investment_valuations/document-a`).set({id: 'document-a', workspaceId: workspaceA}),
   ]);
   await Promise.all(['movement-a', 'movement-b', 'movement-c'].map((id, index) =>
     db.doc(`workspaces/${workspaceA}/investment_movements/${id}`).set(movement(
@@ -184,38 +182,23 @@ const seed = async () => {
     db.doc(`workspaces/${workspaceA}/investment_movements/invalid-status`).set({...movement('invalid-status', workspaceA, 'PF', users.ownerA.uid), status: 'processing'}),
     db.doc(`workspaces/${workspaceA}/investment_movements/invalid-timestamp`).set({...movement('invalid-timestamp', workspaceA, 'PF', users.ownerA.uid), occurredAt: '2026-08-18'}),
     db.doc(`workspaces/${workspaceA}/investment_movements/invalid-cents`).set({...movement('invalid-cents', workspaceA, 'PF', users.ownerA.uid), principalCents: 10.5}),
-    db.doc(`workspaces/${workspaceA}/investment_snapshots/snapshot-a`).set({
-      id: 'snapshot-a', workspaceId: workspaceA, profileType: 'PF',
-      kind: 'position_rebuild', targetId: 'account-1__asset-1', status: 'completed',
-      cutoffAt: now, processedCount: 3, expectedProjectionVersion: 1,
-      totals: {quantityMicros: 1_000_000, principalCents: 10_000,
-        realizedGainCents: 0, feesCents: 0, taxCents: 0,
-        netContributionCents: 10_000, currentValueCents: 10_000},
-      pageSize: 50, calculationVersion: 'investment-v2-cents-micros-half-up',
-      correlationId: 'snapshot-correlation', createdBy: users.adminA.uid,
-      createdAt: now, updatedAt: now, completedAt: now,
-    }),
+    db.doc(`workspaces/${workspaceA}/investment_snapshots/snapshot-a`).set({id: 'snapshot-a', workspaceId: workspaceA}),
     db.doc(`workspaces/${workspaceA}/investment_event_logs/event-a`).set({
       id: 'event-a', workspaceId: workspaceA, profileType: 'PF',
-      actorId: users.ownerA.uid, actorRole: 'owner', operation: 'archiveInvestmentAsset',
+      actorId: users.ownerA.uid, actorRole: 'owner', operation: 'createSimpleInvestment',
       entityType: 'asset', entityId: 'asset-1', correlationId: 'event-correlation',
       idempotencyKeyId: 'key-a', outcome: 'completed', details: {}, occurredAt: now,
     }),
     db.doc(`workspaces/${workspaceB}/investment_event_logs/event-b`).set({
       id: 'event-b', workspaceId: workspaceB, profileType: 'PJ',
-      actorId: users.ownerB.uid, actorRole: 'owner', operation: 'archiveInvestmentAccount',
+      actorId: users.ownerB.uid, actorRole: 'owner', operation: 'withdrawSimpleInvestment',
       entityType: 'account', entityId: 'account-1', correlationId: 'event-b-correlation',
       idempotencyKeyId: 'key-b', outcome: 'completed', details: {}, occurredAt: now,
     }),
-    db.doc(`workspaces/${workspaceA}/investment_import_batches/import-a`).set({
-      id: 'import-a', workspaceId: workspaceA, profileType: 'PF', status: 'pending',
-      source: 'csv', processedCount: 0, failedCount: 0,
-      correlationId: 'import-correlation', createdBy: users.adminA.uid,
-      createdAt: now, updatedAt: now,
-    }),
+    db.doc(`workspaces/${workspaceA}/investment_import_batches/import-a`).set({id: 'import-a', workspaceId: workspaceA}),
     db.doc(`workspaces/${workspaceA}/investment_idempotency_keys/key-a`).set({
       id: 'key-a', workspaceId: workspaceA, actorId: users.ownerA.uid,
-      operation: 'createInvestmentContribution', correlationId: 'key-correlation',
+      operation: 'createSimpleInvestment', correlationId: 'key-correlation',
       idempotencyKeyHash: 'key-hash', requestHash: 'request-hash',
       status: 'completed', result: {}, createdAt: now, completedAt: now,
     }),
@@ -277,7 +260,6 @@ test('Rules M4 restringem leitura das coleções operacionais por papel e bloque
         'investment_accounts',
         'investment_assets',
         'investment_positions',
-        'investment_valuations',
       ]) {
         const pathA = `workspaces/${workspaceA}/${collectionName}/document-a`;
         assert.equal((await getDoc(doc(ownerA.db, pathA))).exists(), true);
@@ -290,6 +272,12 @@ test('Rules M4 restringem leitura das coleções operacionais por papel e bloque
         await assert.rejects(() => setDoc(doc(ownerA.db, pathA), {workspaceId: workspaceA}));
         await assert.rejects(() => updateDoc(doc(adminA.db, pathA), {workspaceId: workspaceB}));
         await assert.rejects(() => deleteDoc(doc(memberA.db, pathA)));
+      }
+      // P4-D (D-15): valoração não existe mais — sem regra, ninguém lê.
+      const valuationPath = `workspaces/${workspaceA}/investment_valuations/document-a`;
+      for (const client of [ownerA, adminA, memberA]) {
+        await assert.rejects(() => getDoc(doc(client.db, valuationPath)));
+        await assert.rejects(() => setDoc(doc(client.db, valuationPath), {workspaceId: workspaceA}));
       }
     },
   );
@@ -578,26 +566,29 @@ test('Rules M4 bloqueiam criação, alteração e exclusão de movimentos pelo c
 test('Rules M4 restringem coleções privilegiadas de auditoria a owner e admin do workspace', async () => {
   await seed();
   await withClients(['ownerA', 'adminA', 'memberA', 'viewerA'], async ({ownerA, adminA, memberA, viewerA}) => {
-    for (const protectedCollection of [
-      'investment_snapshots',
-      'investment_event_logs',
-      'investment_import_batches',
-    ]) {
-      const id = protectedCollection === 'investment_snapshots' ? 'snapshot-a' :
-        protectedCollection === 'investment_event_logs' ? 'event-a' : 'import-a';
-      const protectedPath = `workspaces/${workspaceA}/${protectedCollection}/${id}`;
-      assert.equal((await getDoc(doc(ownerA.db, protectedPath))).exists(), true);
-      assert.equal((await getDoc(doc(adminA.db, protectedPath))).exists(), true);
-      await assert.rejects(() => getDoc(doc(memberA.db, protectedPath)));
-      await assert.rejects(() => getDoc(doc(viewerA.db, protectedPath)));
-      await assert.rejects(() => setDoc(doc(ownerA.db, protectedPath), {workspaceId: workspaceA}));
-      await assert.rejects(() => updateDoc(doc(adminA.db, protectedPath), {status: 'completed'}));
-      await assert.rejects(() => deleteDoc(doc(ownerA.db, protectedPath)));
-    }
+    const protectedPath = `workspaces/${workspaceA}/investment_event_logs/event-a`;
+    assert.equal((await getDoc(doc(ownerA.db, protectedPath))).exists(), true);
+    assert.equal((await getDoc(doc(adminA.db, protectedPath))).exists(), true);
+    await assert.rejects(() => getDoc(doc(memberA.db, protectedPath)));
+    await assert.rejects(() => getDoc(doc(viewerA.db, protectedPath)));
+    await assert.rejects(() => setDoc(doc(ownerA.db, protectedPath), {workspaceId: workspaceA}));
+    await assert.rejects(() => updateDoc(doc(adminA.db, protectedPath), {status: 'completed'}));
+    await assert.rejects(() => deleteDoc(doc(ownerA.db, protectedPath)));
     await assert.rejects(() => getDoc(doc(
       ownerA.db,
       `workspaces/${workspaceB}/investment_event_logs/event-b`,
     )));
+    // P4-D (D-15): snapshot de reconstrução e lote de importação saíram com
+    // os jobs e a importação — sem regra, nem owner nem admin os alcançam.
+    for (const removedPath of [
+      `workspaces/${workspaceA}/investment_snapshots/snapshot-a`,
+      `workspaces/${workspaceA}/investment_import_batches/import-a`,
+    ]) {
+      for (const client of [ownerA, adminA]) {
+        await assert.rejects(() => getDoc(doc(client.db, removedPath)));
+        await assert.rejects(() => setDoc(doc(client.db, removedPath), {workspaceId: workspaceA}));
+      }
+    }
   });
 });
 
@@ -619,42 +610,42 @@ test('Rules M4 nunca expõem chaves de idempotência ao cliente', async () => {
   });
 });
 
-test('Rules M4 aceitam catálogo personalizado do workspace e bloqueiam escopo ou exclusão indevidos', async () => {
+test('Rules do catálogo (D-23): carteira de investimentos só pelo backend; cliente não grava nem apaga', async () => {
   await seed();
+  // P4-E (D-23): o catálogo é backend-authoritative — as callables criam a
+  // carteira de investimentos com o escopo do perfil. Aqui o documento é
+  // semeado pelo Admin SDK, como a callable o grava.
+  const customCatalogPath = `workspaces/${workspaceA}/settings_catalog/class-custom`;
+  const catalogItem = (overrides) => ({
+    schemaVersion: 1,
+    workspaceId: workspaceA,
+    group: 'investment_class',
+    name: 'Viagem',
+    normalizedName: 'viagem',
+    dedupeKey: 'investment_class::all::PF::viagem',
+    workspaceScope: 'PF',
+    sortOrder: 10,
+    status: 'active',
+    createdBy: users.ownerA.uid,
+    updatedBy: users.ownerA.uid,
+    ...overrides,
+  });
+  await getAdmin().firestore().doc(customCatalogPath).set(catalogItem({
+    createdAt: getAdmin().firestore.FieldValue.serverTimestamp(),
+    updatedAt: getAdmin().firestore.FieldValue.serverTimestamp(),
+  }));
   await withClients(['ownerA', 'ownerB', 'memberA'], async ({ownerA, ownerB, memberA}) => {
-    const customCatalogPath = `workspaces/${workspaceA}/settings_catalog/risk-custom`;
-    await setDoc(doc(ownerA.db, customCatalogPath), {
-      workspaceId: workspaceA,
-      group: 'investment_risk',
-      name: 'Muito baixo',
-      normalizedName: 'muito baixo',
-      dedupeKey: 'investment_risk::all::both::muito baixo',
-      workspaceScope: 'both',
-      sortOrder: 10,
-      status: 'active',
-      createdBy: users.ownerA.uid,
-      updatedBy: users.ownerA.uid,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    });
+    // P4-D (D-15): risco e estratégia saíram do catálogo — e nenhum grupo é
+    // gravado pelo cliente, nem o que continua existindo.
+    for (const [id, group] of [['risk-custom', 'investment_risk'],
+      ['strategy-forged', 'investment_strategy'], ['class-client', 'investment_class']]) {
+      await assert.rejects(() => setDoc(doc(ownerA.db, `workspaces/${workspaceA}/settings_catalog/${id}`),
+        catalogItem({group, createdAt: serverTimestamp(), updatedAt: serverTimestamp()})));
+    }
     assert.equal((await getDoc(doc(memberA.db, customCatalogPath))).exists(), true);
     await assert.rejects(() => getDoc(doc(ownerB.db, customCatalogPath)));
     await assert.rejects(() => deleteDoc(doc(ownerA.db, customCatalogPath)));
-    await assert.rejects(() => setDoc(doc(ownerA.db,
-      `workspaces/${workspaceA}/settings_catalog/strategy-forged`), {
-      workspaceId: workspaceA,
-      group: 'investment_strategy',
-      name: 'Estratégia forjada',
-      normalizedName: 'estrategia forjada',
-      dedupeKey: 'investment_strategy::all::PJ::estrategia forjada',
-      workspaceScope: 'PJ',
-      sortOrder: 10,
-      status: 'active',
-      createdBy: users.ownerA.uid,
-      updatedBy: users.ownerA.uid,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    }));
+    await assert.rejects(() => updateDoc(doc(ownerA.db, customCatalogPath), {name: 'Renomeada'}));
   });
 });
 
@@ -680,53 +671,54 @@ test('Rules M4 preservam isolamento de metas e compras de cartão entre workspac
   });
 });
 
-test('Rules aceitam o cadastro de instituições e preservam a fronteira do workspace', async () => {
+test('Rules do catálogo (D-23): instituição lida por membros, gravada só pelo backend', async () => {
   await seed();
+  const institutionPath =
+    `workspaces/${workspaceA}/settings_catalog/institution-btg`;
+  const institution = (name, actorId, stamp) => ({
+    schemaVersion: 1,
+    workspaceId: workspaceA,
+    group: 'investment_institution',
+    name,
+    normalizedName: name.toLowerCase(),
+    dedupeKey: `investment_institution::all::both::${name.toLowerCase()}`,
+    workspaceScope: 'both',
+    sortOrder: 10,
+    status: 'active',
+    createdBy: users.ownerA.uid,
+    updatedBy: actorId,
+    createdAt: stamp,
+    updatedAt: stamp,
+  });
+  // Como a callable grava (Admin SDK).
+  await getAdmin().firestore().doc(institutionPath).set(institution('BTG', users.ownerA.uid,
+    getAdmin().firestore.FieldValue.serverTimestamp()));
   await withClients(
     ['ownerA', 'adminA', 'memberA', 'ownerB'],
     async ({ownerA, adminA, memberA, ownerB}) => {
-      const institutionPath =
-        `workspaces/${workspaceA}/settings_catalog/institution-btg`;
-      const institution = (name, actorId) => ({
-        workspaceId: workspaceA,
-        group: 'investment_institution',
-        name,
-        normalizedName: name.toLowerCase(),
-        dedupeKey: `investment_institution::all::both::${name.toLowerCase()}`,
-        workspaceScope: 'both',
-        sortOrder: 10,
-        status: 'active',
-        createdBy: users.ownerA.uid,
-        updatedBy: actorId,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      });
-
-      await setDoc(doc(ownerA.db, institutionPath), institution('BTG', users.ownerA.uid));
       assert.equal((await getDoc(doc(memberA.db, institutionPath))).exists(), true);
-
-      // Renomear é edição do mesmo documento: a identidade não muda, e é ela
-      // que amarra a conta técnica do domínio.
-      await updateDoc(doc(adminA.db, institutionPath), {
-        name: 'BTG Pactual',
-        normalizedName: 'btg pactual',
-        updatedBy: users.adminA.uid,
-        updatedAt: serverTimestamp(),
-      });
-      assert.equal(
-        (await getDoc(doc(ownerA.db, institutionPath))).data().name,
-        'BTG Pactual',
-      );
-
-      // Membro não administra catálogo; outro workspace não enxerga.
-      await assert.rejects(() => setDoc(
-        doc(memberA.db, `workspaces/${workspaceA}/settings_catalog/institution-xp`),
-        institution('XP', users.memberA.uid),
-      ));
+      // Renomear é edição do mesmo documento, e só pela callable
+      // `updateSettingsCatalogItem`: nem owner nem admin editam pelo cliente.
+      for (const client of [ownerA, adminA]) {
+        await assert.rejects(() => updateDoc(doc(client.db, institutionPath), {
+          name: 'BTG Pactual',
+          normalizedName: 'btg pactual',
+          updatedBy: users.adminA.uid,
+          updatedAt: serverTimestamp(),
+        }));
+      }
+      assert.equal((await getDoc(doc(ownerA.db, institutionPath))).data().name, 'BTG');
+      // Ninguém cria pelo cliente; outro workspace não enxerga.
+      for (const [client, actor] of [[ownerA, users.ownerA.uid], [memberA, users.memberA.uid]]) {
+        await assert.rejects(() => setDoc(
+          doc(client.db, `workspaces/${workspaceA}/settings_catalog/institution-xp`),
+          institution('XP', actor, serverTimestamp()),
+        ));
+      }
       await assert.rejects(() => getDoc(doc(ownerB.db, institutionPath)));
       await assert.rejects(() => setDoc(
         doc(ownerB.db, `workspaces/${workspaceA}/settings_catalog/institution-forjada`),
-        institution('Forjada', users.ownerB.uid),
+        institution('Forjada', users.ownerB.uid, serverTimestamp()),
       ));
       // Cadastro não é apagado pelo cliente.
       await assert.rejects(() => deleteDoc(doc(ownerA.db, institutionPath)));
@@ -842,60 +834,43 @@ test('Rules aceitam aporte pendente com deltas zero e recusam pendente com efeit
 });
 
 /*
- * Pré-empção do espelho de caixa (INV-P2-051).
+ * Pré-empção do espelho de caixa (INV-P2-051), fechada nas Rules (P4-D).
  *
  * O ID do espelho é `investment_<id determinístico>`, derivado de
- * `(operação, uid, idempotencyKey)` — nada aí é segredo do servidor. Este
- * teste prova a precondição do ataque nas Rules reais (o cliente **consegue**
- * ocupar o ID antes do backend, e consegue baixá-lo logicamente) e prova o
- * fecho: depois que o domínio grava o espelho por substituição integral, nada
- * do cliente sobrevive e o documento sai do alcance dele.
- *
- * As Rules não são alteradas por isto: quem garante a forma final é o writer,
- * que passou a gravar o documento inteiro em vez de remendar o anterior.
+ * `(operação, uid, idempotencyKey)` — nada aí é segredo do servidor. Antes da
+ * P4-D o cliente conseguia ocupar esse ID com uma transação comum e baixá-la
+ * logicamente; o writer se defendia substituindo o documento inteiro. Desde
+ * a D-15 `transactions` não aceita escrita do cliente: a precondição do
+ * ataque deixou de existir, e o espelho gravado pelo backend continua fora
+ * do alcance de qualquer papel. A defesa do writer segue provada na
+ * integração (`simpleMode.integration.test.ts`).
  */
-test('Rules deixam o cliente ocupar o ID do espelho, e o espelho gravado pelo backend fica fora do alcance dele', async () => {
+test('P4-D — o cliente não ocupa o ID do espelho, e o espelho do backend fica fora do alcance dele', async () => {
   await seed();
   const espelhoId = 'investment_inv_pre_empcao_espelho';
   const caminho = `workspaces/${workspaceA}/transactions/${espelhoId}`;
   await getAdmin().firestore().doc(caminho).delete();
 
-  await withClients(['memberA'], async ({memberA}) => {
-    // 1. Nada amarra o ID do documento ao backend: o membro ocupa o ID que o
-    //    espelho vai usar, com os campos de cartão que a lista autoriza.
-    await setDoc(doc(memberA.db, caminho), {
-      type: 'despesa',
-      description: 'Compra no cartão',
-      category: 'Outros',
-      value: 9.99,
-      date: '2026-08-05',
-      isPaid: true,
-      workspaceId: workspaceA,
-      profileId: workspaceA,
-      userId: users.memberA.uid,
-      cardId: 'card-forjado',
-      installments: 12,
-      currentInstallment: 3,
-      creditCardInvoiceId: 'fatura-forjada',
-      creditCardInvoicePaymentId: 'pagamento-forjado',
-      source: 'credit_card_invoice_payment',
-      creditCardCompatibility: {source: 'credit_card_invoice'},
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    });
-
-    // 2. E a baixa lógica é um segundo passo permitido enquanto o documento
-    //    ainda é transação comum. `voidedAt` zera o efeito de caixa antes de
-    //    qualquer checagem de `type`: era o campo mais perigoso de sobreviver.
-    await updateDoc(doc(memberA.db, caminho), {
-      voidedAt: Timestamp.fromDate(new Date('2026-08-05T13:00:00.000Z')),
-      voidedBy: users.memberA.uid,
-      voidReason: 'sumir do caixa',
-      updatedAt: serverTimestamp(),
-    });
+  await withClients(['memberA', 'ownerA'], async ({memberA, ownerA}) => {
+    for (const client of [memberA, ownerA]) {
+      await assert.rejects(() => setDoc(doc(client.db, caminho), {
+        type: 'despesa',
+        description: 'Compra no cartão',
+        category: 'Outros',
+        value: 9.99,
+        date: '2026-08-05',
+        isPaid: true,
+        workspaceId: workspaceA,
+        profileId: workspaceA,
+        userId: users.memberA.uid,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      }));
+    }
   });
+  assert.equal((await getAdmin().firestore().doc(caminho).get()).exists, false);
 
-  // 3. O backend grava o espelho substituindo o documento inteiro.
+  // O backend grava o espelho com a marca do domínio.
   await getAdmin().firestore().doc(caminho).set({
     type: 'investimento',
     description: 'Tesouro Selic 2029',
@@ -907,23 +882,22 @@ test('Rules deixam o cliente ocupar o ID do espelho, e o espelho gravado pelo ba
     workspaceId: workspaceA,
     profileId: workspaceA,
     userId: users.ownerA.uid,
-    goalId: 'meta-a',
-    investmentMetadata: {domainMovementId: 'inv-espelho', status: 'settled'},
+    source: 'investment',
+    cashAccountId: 'cash-account-1',
+    accountMovementId: 'camv-inv-espelho',
+    investmentEntry: {
+      domainVersion: 1, movementId: 'inv-espelho', operation: 'contribution', reversal: false,
+      reversalOf: null, status: 'settled', principalCents: 150_000, gainCents: 0,
+      amountCents: 150_000, currency: 'BRL',
+    },
   });
 
   await withClients(['memberA', 'ownerA'], async ({memberA, ownerA}) => {
     const gravado = (await getDoc(doc(memberA.db, caminho))).data();
     assert.equal(gravado.type, 'investimento');
-    assert.equal(gravado.valueCents, 150_000);
-    for (const residual of [
-      'cardId', 'installments', 'currentInstallment', 'creditCardInvoiceId',
-      'creditCardInvoicePaymentId', 'source', 'creditCardCompatibility',
-      'voidedAt', 'voidedBy', 'voidReason',
-    ]) {
-      assert.equal(gravado[residual], undefined, `${residual} sobreviveu`);
-    }
+    assert.equal(gravado.investmentEntry.status, 'settled');
 
-    // 4. Fecho: nem o autor original nem o owner reabrem o espelho.
+    // Nem o membro nem o owner reabrem, anulam ou apagam o espelho.
     await assert.rejects(() => updateDoc(doc(memberA.db, caminho), {
       voidedAt: Timestamp.fromDate(new Date('2026-08-11T13:00:00.000Z')),
       voidedBy: users.memberA.uid,

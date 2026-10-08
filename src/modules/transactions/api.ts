@@ -1,7 +1,5 @@
 import {
-  addDoc,
   collection,
-  doc,
   documentId,
   DocumentData,
   getDocs,
@@ -9,16 +7,13 @@ import {
   orderBy,
   query,
   QueryDocumentSnapshot,
-  serverTimestamp,
   startAfter,
-  updateDoc,
-  where,
-  writeBatch
+  where
 } from "firebase/firestore";
 
-import { auth, db } from "../../lib/firebase";
+import { db } from "../../lib/firebase";
 import type { Transaction } from "../../types";
-import { toDateOnlyString, toFirestoreDateTimestamp } from "../../utils/date";
+import { toDateOnlyString } from "../../utils/date";
 
 const txCol = (workspaceId: string) =>
   collection(db, "workspaces", workspaceId, "transactions");
@@ -29,33 +24,6 @@ function assertValidWorkspaceId(workspaceId: string | undefined): asserts worksp
   }
 }
 
-const stripUndefined = <T extends Record<string, any>>(obj: T): Partial<T> => {
-  const out: Partial<T> = {};
-
-  for (const k of Object.keys(obj) as (keyof T)[]) {
-    const v = obj[k];
-    if (v !== undefined) {
-      if (Array.isArray(v)) {
-        out[k] = v.map((entry) => (
-          entry && typeof entry === "object" && Object.getPrototypeOf(entry) === Object.prototype
-            ? stripUndefined(entry)
-            : entry
-        )) as T[keyof T];
-      } else if (v && typeof v === "object" && Object.getPrototypeOf(v) === Object.prototype) {
-        out[k] = stripUndefined(v) as T[keyof T];
-      } else {
-        out[k] = v;
-      }
-    }
-  }
-
-  return out;
-};
-
-/**
- * Transação baixada logicamente (INV-P2-032): permanece no histórico para
- * auditoria e reconciliação, e não participa de nenhuma leitura do produto.
- */
 export const isVoidedTransaction = (data: DocumentData): boolean =>
   data?.voidedAt !== undefined && data?.voidedAt !== null;
 
@@ -82,30 +50,8 @@ const normalizeTransaction = (
     ...(data as Omit<Transaction, "id">),
     date: toDateOnlyString(data.date ?? data.transactionDate),
     cardId: data.cardId ? String(data.cardId) : undefined,
-    goalId: data.goalId ? String(data.goalId) : undefined,
-    investmentMetadata: data.investmentMetadata ? {
-      ...data.investmentMetadata,
-      settlementDate: toDateOnlyString(data.investmentMetadata.settlementDate),
-      sourceMovementId: String(data.investmentMetadata.sourceMovementId),
-      reversalMovementId: data.investmentMetadata.reversalMovementId
-        ? String(data.investmentMetadata.reversalMovementId)
-        : undefined,
-    } : undefined,
     workspaceId: data.workspaceId ?? snapshot.ref.parent.parent?.id
   };
-};
-
-const buildTransactionPayload = (
-  workspaceId: string,
-  transaction: Omit<Transaction, "id">
-) => {
-  return stripUndefined({
-    ...transaction,
-    date: toDateOnlyString(transaction.date),
-    transactionDate: toFirestoreDateTimestamp(transaction.date),
-    workspaceId,
-    profileId: transaction.profileId ?? workspaceId
-  });
 };
 
 /**
@@ -161,12 +107,13 @@ const monthsAgoDateOnly = (months: number): string => {
  * que alimenta dashboard, relatórios, metas e alocações. O módulo de
  * investimentos agrava a mesma coleção com um espelho por movimento.
  *
- * A ordenação é pelo campo `date` (`YYYY-MM-DD`), com cursor. **Não** por
- * `transactionDate`: o Firestore omite da consulta ordenada todo documento que
- * não tem o campo, e `transactionDate` é opcional em documentos legados —
- * ordenar por ele faria o histórico antigo simplesmente desaparecer da tela.
- * `date` é exigido pelas Rules em toda transação, é lexicograficamente
- * ordenável e cobre o histórico inteiro.
+ * A ordenação é pelo campo `date` (`YYYY-MM-DD`), com cursor. Pelo contrato
+ * atual, todo produtor do backend grava `date` em todo lançamento: é a data
+ * civil em America/Sao_Paulo, lexicograficamente ordenável, e o recorte por
+ * janela é feito por ela. **Não** por `transactionDate`: é a segunda
+ * representação da mesma data (instante), que sai com a fórmula única
+ * (PR-TX-03, P5), e o Firestore omite da consulta ordenada todo documento sem
+ * o campo usado na ordenação.
  *
  * O recorte por janela é o que torna o custo proporcional ao que a tela
  * mostra, e não ao histórico inteiro do workspace.
@@ -206,12 +153,8 @@ export const getTransactionWindow = async (
 };
 
 /**
- * Janela padrão do aplicativo.
- *
- * Documentos anteriores ao campo `transactionDate` não entram na consulta
- * ordenada — o Firestore omite da ordenação todo documento sem o campo. Eles
- * são recuperados por uma segunda consulta limitada, para que um histórico
- * legado não desapareça da tela.
+ * Janela padrão do aplicativo: os últimos `months` meses pela data civil
+ * `date`, com o mesmo teto de páginas e o sinal de truncamento da janela.
  */
 export const getTransactions = async (
   workspaceId: string,
@@ -246,115 +189,3 @@ export const getTransactions = async (
 export const getFullTransactionHistory = (
   workspaceId: string,
 ): Promise<TransactionPage> => getTransactionWindow(workspaceId, {});
-
-export const createTransaction = async (
-  workspaceId: string,
-  transaction: Omit<Transaction, "id">
-): Promise<Transaction> => {
-  assertValidWorkspaceId(workspaceId);
-
-  const normalizedTransaction = buildTransactionPayload(workspaceId, transaction);
-
-  const docRef = await addDoc(
-    txCol(workspaceId),
-    stripUndefined({
-      ...normalizedTransaction,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
-    })
-  );
-
-  return {
-    id: docRef.id,
-    ...transaction,
-    ...normalizedTransaction
-  } as Transaction;
-};
-
-export const createTransactionsBatch = async (
-  workspaceId: string,
-  transactions: Omit<Transaction, "id">[]
-): Promise<Transaction[]> => {
-  assertValidWorkspaceId(workspaceId);
-
-  if (transactions.length === 0) {
-    return [];
-  }
-
-  const batch = writeBatch(db);
-  const collectionRef = txCol(workspaceId);
-  const createdTransactions: Transaction[] = [];
-
-  transactions.forEach((transaction) => {
-    const docRef = doc(collectionRef);
-    const normalizedTransaction = buildTransactionPayload(workspaceId, transaction);
-
-    batch.set(
-      docRef,
-      stripUndefined({
-        ...normalizedTransaction,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
-      })
-    );
-
-    createdTransactions.push({
-      id: docRef.id,
-      ...transaction,
-      ...normalizedTransaction
-    } as Transaction);
-  });
-
-  await batch.commit();
-
-  return createdTransactions;
-};
-
-export const updateTransaction = async (
-  workspaceId: string,
-  transaction: Transaction
-): Promise<void> => {
-  assertValidWorkspaceId(workspaceId);
-
-  const { id, ...data } = transaction;
-
-  const docRef = doc(db, "workspaces", workspaceId, "transactions", String(id));
-
-  await updateDoc(
-    docRef,
-    stripUndefined({
-      ...buildTransactionPayload(workspaceId, data as Omit<Transaction, "id">),
-      updatedAt: serverTimestamp()
-    })
-  );
-};
-
-/**
- * Baixa lógica de transação (INV-P2-032).
- *
- * `AGENTS.md` proíbe hard delete de histórico financeiro, e as Rules agora
- * negam `delete` em `transactions`. Uma transação legada apagada é a origem de
- * um movimento migrado: apagá-la torna a reconciliação da migração impossível
- * para sempre. O documento permanece, marcado com quem baixou, quando e por
- * quê, e desaparece de toda leitura do produto.
- */
-export const deleteTransaction = async (
-  workspaceId: string,
-  transaction: Transaction,
-): Promise<void> => {
-  assertValidWorkspaceId(workspaceId);
-
-  const docRef = doc(db, "workspaces", workspaceId, "transactions", String(transaction.id));
-  const actorId = auth.currentUser?.uid;
-
-  if (!actorId) {
-    throw new Error("Sessão expirada. Entre novamente para excluir a transação.");
-  }
-
-  await updateDoc(docRef, {
-    voidedAt: serverTimestamp(),
-    voidedBy: actorId,
-    voidReason: "Excluída pelo usuário",
-    updatedAt: serverTimestamp(),
-  });
-};

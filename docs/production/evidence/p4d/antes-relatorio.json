@@ -1,0 +1,182 @@
+{
+  "screens": {
+    "desktop-claro-01-painel": {
+      "overflow": 0
+    },
+    "desktop-claro-02-lista": {
+      "overflow": 0
+    },
+    "desktop-claro-03-novo-depositado": {
+      "overflow": 0
+    },
+    "desktop-claro-04-novo-pendente": {
+      "overflow": 0
+    },
+    "desktop-claro-05-confirmar-deposito": {
+      "overflow": 0
+    },
+    "desktop-claro-06-retirar": {
+      "overflow": 0
+    },
+    "desktop-claro-07-desfazer": {
+      "overflow": 0
+    },
+    "desktop-claro-08-contas": {
+      "overflow": 0
+    },
+    "desktop-escuro-01-painel": {
+      "overflow": 0
+    },
+    "desktop-escuro-02-lista": {
+      "overflow": 0
+    },
+    "desktop-escuro-03-novo-depositado": {
+      "overflow": 0
+    },
+    "desktop-escuro-04-novo-pendente": {
+      "overflow": 0
+    },
+    "desktop-escuro-05-confirmar-deposito": {
+      "overflow": 0
+    },
+    "desktop-escuro-06-retirar": {
+      "overflow": 0
+    },
+    "desktop-escuro-07-desfazer": {
+      "overflow": 0
+    },
+    "desktop-escuro-08-contas": {
+      "overflow": 0
+    },
+    "mobile-claro-01-painel": {
+      "overflow": 0
+    },
+    "mobile-claro-02-lista": {
+      "overflow": 0
+    },
+    "mobile-claro-03-novo-depositado": {
+      "overflow": 0
+    },
+    "mobile-claro-04-novo-pendente": {
+      "overflow": 0
+    },
+    "mobile-claro-05-confirmar-deposito": {
+      "overflow": 0
+    },
+    "mobile-claro-06-retirar": {
+      "overflow": 0
+    },
+    "mobile-claro-07-desfazer": {
+      "overflow": 0
+    },
+    "mobile-claro-08-contas": {
+      "overflow": 0
+    },
+    "mobile-escuro-01-painel": {
+      "overflow": 0
+    },
+    "mobile-escuro-02-lista": {
+      "overflow": 0
+    },
+    "mobile-escuro-03-novo-depositado": {
+      "overflow": 0
+    },
+    "mobile-escuro-04-novo-pendente": {
+      "overflow": 0
+    },
+    "mobile-escuro-05-confirmar-deposito": {
+      "overflow": 0
+    },
+    "mobile-escuro-06-retirar": {
+      "overflow": 0
+    },
+    "mobile-escuro-07-desfazer": {
+      "overflow": 0
+    },
+    "mobile-escuro-08-contas": {
+      "overflow": 0
+    }
+  },
+  "dialogs": {
+    "desktop-claro-novo": {
+      "escapeCloses": true,
+      "focus": {
+        "initial": true,
+        "afterTabs": true
+      },
+      "axe": []
+    },
+    "desktop-claro-confirmar-deposito": {
+      "escapeCloses": true,
+      "focus": {
+        "initial": true,
+        "afterTabs": true
+      },
+      "axe": []
+    },
+    "desktop-claro-retirar": {
+      "escapeCloses": true,
+      "focus": {
+        "initial": true,
+        "afterTabs": true
+      },
+      "axe": []
+    },
+    "desktop-claro-desfazer": {
+      "escapeCloses": true,
+      "focus": {
+        "initial": true,
+        "afterTabs": true
+      },
+      "axe": []
+    },
+    "desktop-escuro-novo": {
+      "escapeCloses": true,
+      "axe": []
+    },
+    "desktop-escuro-confirmar-deposito": {
+      "escapeCloses": true,
+      "axe": []
+    },
+    "desktop-escuro-retirar": {
+      "escapeCloses": true,
+      "axe": []
+    },
+    "desktop-escuro-desfazer": {
+      "escapeCloses": true,
+      "axe": []
+    },
+    "mobile-claro-novo": {
+      "escapeCloses": true,
+      "axe": []
+    },
+    "mobile-claro-confirmar-deposito": {
+      "escapeCloses": true,
+      "axe": []
+    },
+    "mobile-claro-retirar": {
+      "escapeCloses": true,
+      "axe": []
+    },
+    "mobile-claro-desfazer": {
+      "escapeCloses": true,
+      "axe": []
+    },
+    "mobile-escuro-novo": {
+      "escapeCloses": true,
+      "axe": []
+    },
+    "mobile-escuro-confirmar-deposito": {
+      "escapeCloses": true,
+      "axe": []
+    },
+    "mobile-escuro-retirar": {
+      "escapeCloses": true,
+      "axe": []
+    },
+    "mobile-escuro-desfazer": {
+      "escapeCloses": true,
+      "axe": []
+    }
+  }
+}

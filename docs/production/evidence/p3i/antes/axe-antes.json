@@ -1,0 +1,292 @@
+{
+  "desktop-claro-overflow-recebiveis": 0,
+  "listaRecebiveis": [
+    {
+      "id": "color-contrast",
+      "impact": "serious",
+      "help": "Elements must meet minimum color contrast ratio thresholds",
+      "count": 3,
+      "nodes": [
+        {
+          "target": [
+            ".text-teal-600"
+          ],
+          "html": "<span class=\"text-xs text-teal-600 dark:text-teal-400 font-bold uppercase tracking-wider flex items-center gap-1 mt-0.5\">"
+        },
+        {
+          "target": [
+            ".w-9"
+          ],
+          "html": "<div role=\"button\" tabindex=\"0\" aria-label=\"Abrir menu da conta\" aria-expanded=\"false\" class=\"w-9 h-9 rounded-full flex items-center justify-center text-white f"
+        },
+        {
+          "target": [
+            ".text-red-500"
+          ],
+          "html": "<td class=\"px-6 py-3 text-red-500 font-medium\">03/10/2026</td>"
+        }
+      ]
+    }
+  ],
+  "listaClientes": [
+    {
+      "id": "button-name",
+      "impact": "critical",
+      "help": "Buttons must have discernible text",
+      "count": 4,
+      "nodes": [
+        {
+          "target": [
+            ".hover\\:bg-background\\/50.group:nth-child(1) > .text-right > .justify-end.group-hover\\:opacity-100.gap-2 > .hover\\:bg-blue-50.text-blue-600.p-1\\.5"
+          ],
+          "html": "<button class=\"p-1.5 text-blue-600 hover:bg-blue-50 rounded\">"
+        },
+        {
+          "target": [
+            ".hover\\:bg-background\\/50.group:nth-child(1) > .text-right > .justify-end.group-hover\\:opacity-100.gap-2 > .hover\\:bg-red-50.p-1\\.5.text-red-600"
+          ],
+          "html": "<button class=\"p-1.5 text-red-600 hover:bg-red-50 rounded\">"
+        },
+        {
+          "target": [
+            ".hover\\:bg-background\\/50.group:nth-child(2) > .text-right > .justify-end.group-hover\\:opacity-100.gap-2 > .hover\\:bg-blue-50.text-blue-600.p-1\\.5"
+          ],
+          "html": "<button class=\"p-1.5 text-blue-600 hover:bg-blue-50 rounded\">"
+        },
+        {
+          "target": [
+            ".hover\\:bg-background\\/50.group:nth-child(2) > .text-right > .justify-end.group-hover\\:opacity-100.gap-2 > .hover\\:bg-red-50.p-1\\.5.text-red-600"
+          ],
+          "html": "<button class=\"p-1.5 text-red-600 hover:bg-red-50 rounded\">"
+        }
+      ]
+    },
+    {
+      "id": "color-contrast",
+      "impact": "serious",
+      "help": "Elements must meet minimum color contrast ratio thresholds",
+      "count": 4,
+      "nodes": [
+        {
+          "target": [
+            ".text-teal-600"
+          ],
+          "html": "<span class=\"text-xs text-teal-600 dark:text-teal-400 font-bold uppercase tracking-wider flex items-center gap-1 mt-0.5\">"
+        },
+        {
+          "target": [
+            ".w-9"
+          ],
+          "html": "<div role=\"button\" tabindex=\"0\" aria-label=\"Abrir menu da conta\" aria-expanded=\"false\" class=\"w-9 h-9 rounded-full flex items-center justify-center text-white f"
+        },
+        {
+          "target": [
+            ".hover\\:bg-background\\/50.group:nth-child(1) > td:nth-child(2) > .flex-col.flex > .opacity-70.text-xs"
+          ],
+          "html": "<span class=\"text-xs opacity-70\">(11) 98765-4321</span>"
+        },
+        {
+          "target": [
+            ".hover\\:bg-background\\/50.group:nth-child(2) > td:nth-child(2) > .flex-col.flex > .opacity-70.text-xs"
+          ],
+          "html": "<span class=\"text-xs opacity-70\">(21) 3333-4444</span>"
+        }
+      ]
+    }
+  ],
+  "novoCliente": [
+    {
+      "id": "button-name",
+      "impact": "critical",
+      "help": "Buttons must have discernible text",
+      "count": 5,
+      "nodes": [
+        {
+          "target": [
+            ".hover\\:bg-background\\/50.group:nth-child(1) > .text-right > .group-hover\\:opacity-100.justify-end.gap-2 > .hover\\:bg-blue-50.text-blue-600.p-1\\.5"
+          ],
+          "html": "<button class=\"p-1.5 text-blue-600 hover:bg-blue-50 rounded\">"
+        },
+        {
+          "target": [
+            ".hover\\:bg-background\\/50.group:nth-child(1) > .text-right > .group-hover\\:opacity-100.justify-end.gap-2 > .hover\\:bg-red-50.p-1\\.5.text-red-600"
+          ],
+          "html": "<button class=\"p-1.5 text-red-600 hover:bg-red-50 rounded\">"
+        },
+        {
+          "target": [
+            ".hover\\:bg-background\\/50.group:nth-child(2) > .text-right > .group-hover\\:opacity-100.justify-end.gap-2 > .hover\\:bg-blue-50.text-blue-600.p-1\\.5"
+          ],
+          "html": "<button class=\"p-1.5 text-blue-600 hover:bg-blue-50 rounded\">"
+        },
+        {
+          "target": [
+            ".hover\\:bg-background\\/50.group:nth-child(2) > .text-right > .group-hover\\:opacity-100.justify-end.gap-2 > .hover\\:bg-red-50.p-1\\.5.text-red-600"
+          ],
+          "html": "<button class=\"p-1.5 text-red-600 hover:bg-red-50 rounded\">"
+        },
+        {
+          "target": [
+            ".p-5 > .hover\\:text-on-surface"
+          ],
+          "html": "<button class=\"text-muted hover:text-on-surface\">"
+        }
+      ]
+    },
+    {
+      "id": "color-contrast",
+      "impact": "serious",
+      "help": "Elements must meet minimum color contrast ratio thresholds",
+      "count": 4,
+      "nodes": [
+        {
+          "target": [
+            ".text-teal-600"
+          ],
+          "html": "<span class=\"text-xs text-teal-600 dark:text-teal-400 font-bold uppercase tracking-wider flex items-center gap-1 mt-0.5\">"
+        },
+        {
+          "target": [
+            ".w-9"
+          ],
+          "html": "<div role=\"button\" tabindex=\"0\" aria-label=\"Abrir menu da conta\" aria-expanded=\"false\" class=\"w-9 h-9 rounded-full flex items-center justify-center text-white f"
+        },
+        {
+          "target": [
+            ".hover\\:bg-background\\/50.group:nth-child(1) > td:nth-child(2) > .flex-col.flex > .opacity-70.text-xs"
+          ],
+          "html": "<span class=\"text-xs opacity-70\">(11) 98765-4321</span>"
+        },
+        {
+          "target": [
+            ".hover\\:bg-background\\/50.group:nth-child(2) > td:nth-child(2) > .flex-col.flex > .opacity-70.text-xs"
+          ],
+          "html": "<span class=\"text-xs opacity-70\">(21) 3333-4444</span>"
+        }
+      ]
+    },
+    {
+      "id": "label",
+      "impact": "critical",
+      "help": "Form elements must have labels",
+      "count": 5,
+      "nodes": [
+        {
+          "target": [
+            "input[required=\"\"]"
+          ],
+          "html": "<input type=\"text\" class=\"w-full bg-background border border-border rounded-lg px-4 py-2 text-on-surface focus:ring-2 focus:ring-primary outline-none\" required="
+        },
+        {
+          "target": [
+            "input[type=\"email\"]"
+          ],
+          "html": "<input type=\"email\" class=\"w-full bg-background border border-border rounded-lg px-4 py-2 text-on-surface focus:ring-2 focus:ring-primary outline-none\" value=\"\""
+        },
+        {
+          "target": [
+            ".grid-cols-2 > div:nth-child(1) > input[type=\"text\"]"
+          ],
+          "html": "<input type=\"text\" class=\"w-full bg-background border border-border rounded-lg px-4 py-2 text-on-surface focus:ring-2 focus:ring-primary outline-none\" value=\"\" "
+        },
+        {
+          "target": [
+            "div:nth-child(2) > input[type=\"text\"]"
+          ],
+          "html": "<input type=\"text\" class=\"w-full bg-background border border-border rounded-lg px-4 py-2 text-on-surface focus:ring-2 focus:ring-primary outline-none\" value=\"\" "
+        },
+        {
+          "target": [
+            "textarea"
+          ],
+          "html": "<textarea class=\"w-full bg-background border border-border rounded-lg px-4 py-2 text-on-surface focus:ring-2 focus:ring-primary outline-none\" rows=\"3\" style=\"\">"
+        }
+      ]
+    }
+  ],
+  "novoRecebivel": [
+    {
+      "id": "button-name",
+      "impact": "critical",
+      "help": "Buttons must have discernible text",
+      "count": 1,
+      "nodes": [
+        {
+          "target": [
+            ".p-5 > .hover\\:text-on-surface"
+          ],
+          "html": "<button class=\"text-muted hover:text-on-surface\">"
+        }
+      ]
+    },
+    {
+      "id": "color-contrast",
+      "impact": "serious",
+      "help": "Elements must meet minimum color contrast ratio thresholds",
+      "count": 3,
+      "nodes": [
+        {
+          "target": [
+            ".text-teal-600"
+          ],
+          "html": "<span class=\"text-xs text-teal-600 dark:text-teal-400 font-bold uppercase tracking-wider flex items-center gap-1 mt-0.5\">"
+        },
+        {
+          "target": [
+            ".w-9"
+          ],
+          "html": "<div role=\"button\" tabindex=\"0\" aria-label=\"Abrir menu da conta\" aria-expanded=\"false\" class=\"w-9 h-9 rounded-full flex items-center justify-center text-white f"
+        },
+        {
+          "target": [
+            ".text-red-500"
+          ],
+          "html": "<td class=\"px-6 py-3 text-red-500 font-medium\">03/10/2026</td>"
+        }
+      ]
+    },
+    {
+      "id": "label",
+      "impact": "critical",
+      "help": "Form elements must have labels",
+      "count": 2,
+      "nodes": [
+        {
+          "target": [
+            "input[type=\"number\"]"
+          ],
+          "html": "<input type=\"number\" step=\"0.01\" class=\"w-full bg-background border border-border rounded-lg px-4 py-2 text-on-surface focus:ring-2 focus:ring-primary outline-n"
+        },
+        {
+          "target": [
+            "input[type=\"date\"]"
+          ],
+          "html": "<input type=\"date\" class=\"w-full bg-background border border-border rounded-lg px-4 py-2 text-on-surface focus:ring-2 focus:ring-primary outline-none\" required="
+        }
+      ]
+    },
+    {
+      "id": "select-name",
+      "impact": "critical",
+      "help": "Select element must have an accessible name",
+      "count": 2,
+      "nodes": [
+        {
+          "target": [
+            "div:nth-child(2) > select"
+          ],
+          "html": "<select class=\"w-full bg-background border border-border rounded-lg px-4 py-2 text-on-surface focus:ring-2 focus:ring-primary outline-none\" required=\"\">"
+        },
+        {
+          "target": [
+            "div:nth-child(4) > select"
+          ],
+          "html": "<select class=\"w-full bg-background border border-border rounded-lg px-4 py-2 text-on-surface focus:ring-2 focus:ring-primary outline-none\">"
+        }
+      ]
+    }
+  ],
+  "desktop-escuro-overflow-recebiveis": 0,
+  "mobile-claro-overflow-recebiveis": 0,
+  "mobile-escuro-overflow-recebiveis": 0
+}

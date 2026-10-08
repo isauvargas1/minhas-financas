@@ -17,8 +17,8 @@ import {
  * aplicados imediatamente antes da escrita e reproduzem as mesmas invariantes
  * de `firestore.rules`, para que backend e Rules não possam divergir.
  *
- * Dinheiro é inteiro em centavos e quantidade/preço são inteiros em micros;
- * nenhum campo autoritativo aceita float.
+ * Dinheiro é inteiro em centavos e quantidade é inteiro em micros (cota
+ * sintética do regime por valor); nenhum campo autoritativo aceita float.
  */
 
 /** Aceita `Timestamp` já materializado ou o sentinel de `serverTimestamp()`. */
@@ -42,7 +42,9 @@ const safeInt = z
 const nonNegativeInt = safeInt.nonnegative();
 const profileType = z.enum(["PF", "PJ"]);
 const currency = z.literal("BRL");
-const lifecycleStatus = z.enum(["active", "archived"]);
+// Sem arquivamento (D-15, P4-D): conta, ativo e posição técnicos nascem e
+// permanecem ativos; não há operação que os arquive.
+const lifecycleStatus = z.literal("active");
 const allocationPurpose = z.enum([
   "unassigned",
   "retirement",
@@ -65,25 +67,18 @@ export const investmentAccountDocumentSchema = z
     name: investmentString(160),
     institutionName: investmentString(160),
     /*
-     * Identidade estável da instituição (Etapa 1).
-     *
-     * Aponta para o item de `settings_catalog` do grupo
+     * Identidade estável da instituição: item de `settings_catalog` do grupo
      * `investment_institution`. É o ID, e nunca o nome normalizado, que amarra
      * a conta técnica à instituição: renomear "BTG" para "BTG Pactual" precisa
      * continuar sendo a mesma conta e o mesmo histórico.
-     *
-     * Opcional: contas criadas antes desta etapa não têm o campo.
      */
-    institutionId: investmentString(160).optional(),
+    institutionId: investmentString(160),
     currency,
     status: lifecycleStatus,
     createdBy: investmentString(128),
     createdAt: timestampLike,
     updatedBy: investmentString(128),
     updatedAt: timestampLike,
-    archivedBy: investmentString(128).optional(),
-    archivedAt: timestampLike.optional(),
-    archiveReason: z.string().max(500).optional(),
   })
   .strict();
 
@@ -93,28 +88,18 @@ export const investmentAssetDocumentSchema = z
     name: investmentString(160),
     symbol: z.string().max(24).optional(),
     assetType: investmentString(64),
-    // INV-P2-026 — classificação por catálogo do workspace. Opcionais: um
-    // ativo sem classificação cai na faixa "Não informado" da dimensão.
-    classId: investmentString(160).optional(),
-    className: investmentString(160).optional(),
-    riskId: investmentString(160).optional(),
-    riskName: investmentString(160).optional(),
-    liquidityId: investmentString(160).optional(),
-    liquidityName: investmentString(160).optional(),
-    indexerId: investmentString(160).optional(),
-    indexerName: investmentString(160).optional(),
+    // Carteira de investimentos (`investment_class`), fotografada no ativo.
+    classId: investmentString(160),
+    className: investmentString(160),
     /*
-     * Categoria do investimento (Etapa 1), item de `settings_catalog` do
-     * grupo `investment_type`. `assetType` continua obrigatório e passa a ser
-     * a projeção técnica desta categoria, derivada no backend.
+     * Categoria do investimento: item de `settings_catalog` do grupo
+     * `category` com `transactionSubtype: "investimento"` (D-15). `assetType`
+     * é a projeção técnica dela, derivada no backend.
      */
-    typeId: investmentString(160).optional(),
-    typeName: investmentString(160).optional(),
-    /*
-     * Regime de acompanhamento (Etapa 1). Ausência vale `"quantity"`: todo
-     * ativo gravado antes desta etapa continua quantitativo.
-     */
-    trackingMode: z.enum(["value", "quantity"]).optional(),
+    typeId: investmentString(160),
+    typeName: investmentString(160),
+    // Regime único por valor (D-15, P4-D): não existe ativo quantitativo.
+    trackingMode: z.literal("value"),
     // Obrigatório no documento: antes do M3 o onboarding não gravava o campo e
     // a finalidade só existia pelo default defensivo do leitor.
     allocationPurpose,
@@ -124,9 +109,6 @@ export const investmentAssetDocumentSchema = z
     createdAt: timestampLike,
     updatedBy: investmentString(128),
     updatedAt: timestampLike,
-    archivedBy: investmentString(128).optional(),
-    archivedAt: timestampLike.optional(),
-    archiveReason: z.string().max(500).optional(),
   })
   .strict();
 
@@ -141,16 +123,13 @@ export const investmentPositionDocumentSchema = z
     quantityMicros: nonNegativeInt,
     principalCents: nonNegativeInt,
     realizedGainCents: nonNegativeInt,
-    // INV-P1-009 — perda realizada acumulada. Opcional para que posições
-    // gravadas antes desta versão continuem válidas; ausência significa zero.
-    realizedLossCents: nonNegativeInt.optional(),
+    // INV-P1-009 — perda realizada acumulada (sempre zero no regime simples,
+    // que não registra perda; o campo é do contrato da posição).
+    realizedLossCents: nonNegativeInt,
     feesCents: nonNegativeInt,
     taxCents: nonNegativeInt,
     currentValueCents: nonNegativeInt,
     unrealizedAppreciationCents: safeInt,
-    valuationId: investmentString(240).optional(),
-    valuationUnitPriceMicros: nonNegativeInt.optional(),
-    valuationEffectiveAt: timestampLike.optional(),
     calculationVersion: z.literal(INVESTMENT_CALCULATION_VERSION),
     version: nonNegativeInt,
     lastMovementId: investmentString(240).optional(),
@@ -204,7 +183,13 @@ const movementBase = z
     goalCurrentValueDeltaCents: safeInt,
     currentValueDeltaCents: safeInt.optional(),
     goalId: investmentString(128).optional(),
-    walletId: investmentString(128).optional(),
+    /*
+     * Conta do Caixa movimentada pelo fato liquidado (D-30, P4-D) e o
+     * movimento de conta correspondente. Backend-only: as Rules negam escrita
+     * do cliente em `investment_movements`.
+     */
+    cashAccountId: investmentString(240).optional(),
+    accountMovementId: investmentString(240).optional(),
     /*
      * Fotografia de apresentação (Etapa 1, §10).
      *
@@ -233,13 +218,9 @@ const movementBase = z
     cancelledBy: investmentString(128).optional(),
     cancellationReason: z.string().max(500).optional(),
     cancellationCorrelationId: investmentString(200).optional(),
-    importBatchId: investmentString(240).optional(),
-    // Procedência da migração do legado: aponta para a transação de origem e
-    // para o lote que a trouxe.
     correlationId: investmentString(200),
     idempotencyKeyHash: investmentString(128),
     occurredAt: materializedTimestamp,
-    expectedSettlementAt: materializedTimestamp.optional(),
     settlementAt: materializedTimestamp.optional(),
     settlementCorrelationId: investmentString(200).optional(),
     createdBy: investmentString(128),
@@ -323,6 +304,30 @@ export const investmentMovementDocumentSchema = movementBase.superRefine(
         });
       }
     }
+    /*
+     * D-30 (P4-D): fato liquidado com dinheiro (aporte, retirada e estorno)
+     * carrega a conta e o movimento de conta; pendente, cancelado e vínculo
+     * de meta não movem conta e não os carregam.
+     */
+    const movesCash = movement.status === "settled" &&
+      movement.operation !== "goal_link" &&
+      movement.operation !== "goal_unlink";
+    const hasAccount = movement.cashAccountId !== undefined ||
+      movement.accountMovementId !== undefined;
+    if (
+      movesCash ?
+        movement.cashAccountId === undefined ||
+          movement.accountMovementId === undefined :
+        hasAccount
+    ) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["cashAccountId"],
+        message: movesCash ?
+          "Movimento liquidado com dinheiro precisa da conta movimentada." :
+          "Movimento sem efeito de caixa não movimenta conta.",
+      });
+    }
     if (movement.operation === "reversal" && !movement.reversedMovementId) {
       ctx.addIssue({
         code: "custom",
@@ -333,51 +338,17 @@ export const investmentMovementDocumentSchema = movementBase.superRefine(
   },
 );
 
-export const investmentValuationDocumentSchema = z
-  .object({
-    ...identity,
-    accountId: investmentString(128),
-    assetId: investmentString(128),
-    currency,
-    unitPriceMicros: nonNegativeInt.positive(),
-    source: z.enum(["manual", "provider", "import"]),
-    effectiveAt: materializedTimestamp,
-    correlationId: investmentString(200),
-    createdBy: investmentString(128),
-    createdAt: timestampLike,
-  })
-  .strict();
-
-export const investmentImportBatchDocumentSchema = z
-  .object({
-    ...identity,
-    status: z.enum(["pending", "running", "completed", "failed"]),
-    source: investmentString(160),
-    processedCount: nonNegativeInt,
-    failedCount: nonNegativeInt,
-    correlationId: investmentString(200),
-    createdBy: investmentString(128),
-    createdAt: timestampLike,
-    updatedAt: timestampLike,
-    completedAt: timestampLike.optional(),
-  })
-  .strict();
-
 type InvestmentDocumentKind =
   | "account"
   | "asset"
   | "movement"
-  | "position"
-  | "valuation"
-  | "importBatch";
+  | "position";
 
 const SCHEMAS: Record<InvestmentDocumentKind, z.ZodTypeAny> = {
   account: investmentAccountDocumentSchema,
   asset: investmentAssetDocumentSchema,
   movement: investmentMovementDocumentSchema,
   position: investmentPositionDocumentSchema,
-  valuation: investmentValuationDocumentSchema,
-  importBatch: investmentImportBatchDocumentSchema,
 };
 
 const LABELS: Record<InvestmentDocumentKind, string> = {
@@ -385,8 +356,6 @@ const LABELS: Record<InvestmentDocumentKind, string> = {
   asset: "ativo de investimento",
   movement: "movimento de investimento",
   position: "posição de investimento",
-  valuation: "valoração de investimento",
-  importBatch: "lote de importação de investimento",
 };
 
 /**

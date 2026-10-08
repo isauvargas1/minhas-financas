@@ -30,17 +30,15 @@ export interface GoalLinkCandidate {
 /**
  * A posição representa um investimento que o usuário reconhece?
  *
- * Fica de fora a posição arquivada e a que não tem capital nem valor — o ativo
- * técnico que o onboarding cria, ou a posição inteiramente retirada. Nenhum dos
- * dois é "um investimento" para quem abre a meta, e oferecê-los transformaria a
- * lista num inventário de infraestrutura.
+ * Fica de fora a posição sem capital nem valor — a inteiramente retirada. Ela
+ * não é "um investimento" para quem abre a meta, e oferecê-la transformaria a
+ * lista num inventário de histórico. D-15: não há posição arquivada.
  *
  * O aporte **pendente** também não aparece: ele ainda não tem posição, e não
  * precisa de vínculo retroativo — o próprio formulário já oferece a meta.
  */
 export const isLinkableInvestment = (position: InvestmentPosition): boolean =>
-  position.status === 'active' &&
-  (position.principalCents > 0 || position.currentValueCents > 0);
+  position.principalCents > 0 || position.currentValueCents > 0;
 
 const bucketOf = (position: InvestmentPosition, goalId: string): GoalLinkBucket => {
   if (position.goalId === goalId) return 'linked';

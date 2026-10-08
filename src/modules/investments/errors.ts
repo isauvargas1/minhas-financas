@@ -3,9 +3,9 @@
  *
  * Vive fora de qualquer componente porque é a parte testável em unidade da
  * regra do §15 da Etapa 2: **nada técnico chega ao usuário**. Nenhum
- * `FirebaseError`, nenhum `permission-denied`, nenhum `trackingMode`,
- * `quantityMicros`, `positionId`, `accountId`, `assetId` ou
- * `idempotencyKey` — o código do erro escolhe a frase e o resto é descartado.
+ * `FirebaseError`, nenhum `permission-denied`, nenhum `quantityMicros`,
+ * `positionId`, `accountId`, `assetId` ou `idempotencyKey` — o código do erro
+ * escolhe a frase e o resto é descartado.
  */
 
 const codeOf = (error: unknown): string =>
@@ -56,22 +56,12 @@ export const safeInvestmentError = (error: unknown): string => {
 /**
  * Erro do domínio patrimonial já orientado para a experiência simples.
  *
- * Duas recusas do backend são frequentes o bastante para merecerem o passo
- * seguinte junto da causa, em vez de deixarem o usuário sem saída:
- *
- * - **retirada acima do capital conhecido** — a saída é informar quanto do
- *   valor é rendimento, e esse campo mora atrás de "Mais detalhes";
- * - **investimento controlado por quantidade** — é um ativo do regime antigo,
- *   que a tela simples não sabe operar. A frase técnica do domínio é
- *   substituída por uma que não menciona quantidade, resgate detalhado nem
- *   resultado realizado.
+ * A recusa mais frequente — **retirada acima do capital conhecido** — ganha o
+ * passo seguinte junto da causa: informar quanto do valor é rendimento, campo
+ * que mora atrás de "Mais detalhes".
  */
 export const simpleInvestmentError = (error: unknown): string => {
   const safe = safeInvestmentError(error);
-  if (/controlado por quantidade/i.test(safe)) {
-    return 'Este investimento foi criado por um cadastro avançado e não pode ' +
-      'ser movimentado por aqui. Fale com quem administra o workspace.';
-  }
   if (/supera o capital investido/i.test(safe)) {
     return `${safe} Abra "Mais detalhes" na retirada e informe o rendimento incluído.`;
   }

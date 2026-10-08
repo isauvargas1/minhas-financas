@@ -88,6 +88,27 @@ test("owner conta como membro; convite reserva a vaga; acima do limite é " +
   assert.equal(pending.size, 1);
 });
 
+test("admin no limite do plano do titular é orientado a pedir ao titular",
+  async () => {
+    const owner = await account("q-m-owner");
+    const admin = await account("q-m-admin", "business");
+    const workspaceId = uniqueId("q-mws");
+    await seedWorkspace({workspaceId, ownerId: owner});
+    await seedMember(workspaceId, admin, "admin");
+    // Owner Free (2 membros) já no limite; o plano pago do admin não muda o
+    // limite do espaço, que é do titular (D-01).
+    await expectQuotaExceeded(inviteEmail(admin, workspaceId, email()), {
+      resource: "membersPerWorkspace", planId: "free", limit: 2,
+      audience: "nonOwner",
+    });
+    // O owner, no mesmo limite, recebe o contador e a orientação de upgrade.
+    await expectQuotaExceeded(inviteEmail(owner, workspaceId, email()), {
+      resource: "membersPerWorkspace", planId: "free", limit: 2, used: 2,
+    });
+    assert.deepEqual(await membershipQuota(workspaceId),
+      {activeMembers: 2, reservations: []});
+  });
+
 test("substituir o convite do mesmo e-mail não ocupa vaga extra", async () => {
   const owner = await account("q-m-owner");
   const workspaceId = await workspaceOf(owner);
@@ -154,8 +175,11 @@ test("downgrade entre convite e aceite: aceite negado, nada é " +
   const workspaceId = await workspaceOf(owner, [existing]);
   const {inviteId, token} = await inviteAccount(owner, workspaceId, invitee);
   await downgradeToFree(owner);
+  // O convidado não é o titular: orientação para pedir ao titular e sem o
+  // contador de membros do espaço.
   await expectQuotaExceeded(accept(invitee, token), {
-    resource: "membersPerWorkspace", planId: "free", limit: 2, used: 2,
+    resource: "membersPerWorkspace", planId: "free", limit: 2,
+    audience: "nonOwner",
   });
   assert.equal(await memberOf(workspaceId, invitee), undefined);
   assert.equal((await memberOf(workspaceId, existing))?.status, "active");
@@ -280,11 +304,29 @@ test("entitlement do workspace é o plano do owner para qualquer " +
     const owner = await account(`q-e-${plan}`, plan);
     const workspaceId = await workspaceOf(owner);
     const result = await entitlementOf(owner, workspaceId);
+    const limit = planLimits(plan).transactionsPerMonth;
     assert.deepEqual(result, {
       catalogVersion: 1,
       planId: plan,
       entitlementStatus: plan === "free" ? "free" : "active",
       limits: {...planLimits(plan)},
+      // P3-E (D-40): o titular vê o uso do mês deste workspace.
+      transactionsQuota: {
+        status: "available",
+        periodKey: saoPauloMonthKey(),
+        limit,
+        used: 0,
+        remaining: limit,
+        exhausted: false,
+      },
+      // P4-C: e o uso de grupos de divisão ativos (nenhum ainda).
+      splitGroupsQuota: {
+        status: "available",
+        limit: planLimits(plan).splitGroups,
+        used: 0,
+        remaining: planLimits(plan).splitGroups,
+        exhausted: false,
+      },
     });
   }
 
@@ -304,8 +346,26 @@ test("entitlement do workspace é o plano do owner para qualquer " +
   assert.deepEqual(seen.limits, {...planLimits("free")});
 
   const serialized = JSON.stringify(seen);
-  assert.deepEqual(Object.keys(seen).sort(),
-    ["catalogVersion", "entitlementStatus", "limits", "planId"]);
+  assert.deepEqual(Object.keys(seen).sort(), [
+    "catalogVersion", "entitlementStatus", "limits", "planId",
+    "splitGroupsQuota", "transactionsQuota",
+  ]);
+  // Quem não é o titular não recebe o uso, só se o limite foi atingido.
+  assert.deepEqual(seen.transactionsQuota, {
+    status: "available",
+    periodKey: saoPauloMonthKey(),
+    limit: planLimits("free").transactionsPerMonth,
+    used: null,
+    remaining: null,
+    exhausted: false,
+  });
+  assert.deepEqual(seen.splitGroupsQuota, {
+    status: "available",
+    limit: planLimits("free").splitGroups,
+    used: null,
+    remaining: null,
+    exhausted: false,
+  });
   assert.ok(!serialized.includes(freeOwner), "sem uid do owner");
   assert.doesNotMatch(serialized, /cus_|sub_|price_|stripe|grace/i);
 });

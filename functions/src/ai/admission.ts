@@ -86,6 +86,13 @@ export interface AiAdmissionRequest {
 export interface AiAdmission {
   periodKey: string;
   creditCost: number;
+  /**
+   * Id do recibo do débito (hash de ator + chave, sem conteúdo). Vai no log
+   * `ai.credit_consumed` como `creditDebitId` (chaves com "receipt" são
+   * descartadas pelo sanitizador), cujo contexto tem o `requestId`: liga a
+   * reclamação do usuário ao recibo sem varrer por ator e horário.
+   */
+  receiptId: string;
 }
 
 export const admitAiCall = (
@@ -157,6 +164,7 @@ export const admitAiCall = (
       used,
       adding: creditCost,
       periodKey,
+      actorIsBillingOwner: actor.uid === ownerUid,
     });
 
     writeAiUsage(transaction, {
@@ -174,6 +182,6 @@ export const admitAiCall = (
       requestHash,
     });
     rateLimitReservation.commit();
-    return {periodKey, creditCost};
+    return {periodKey, creditCost, receiptId: receiptRef.id};
   });
 };

@@ -1,9 +1,15 @@
 
 import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Loan } from '../modules/loans/types.ts';
-import { DynamicIcon, UsersIcon, CalendarIcon, WarningIcon } from './Icons.tsx';
+import type { Loan } from '../modules/loans/types.ts';
+import { DynamicIcon, CalendarIcon, WarningIcon } from './Icons.tsx';
 import { useTheme } from '../contexts/ThemeContext.tsx';
+import { formatCents, formatDayKey } from '../modules/loans/money.ts';
+import {
+    LOAN_STATUS_LABELS,
+    openBalanceCents,
+    principalProgressPercent,
+} from '../modules/loans/presentation.ts';
 
 interface LoanCardProps {
     loan: Loan;
@@ -14,13 +20,7 @@ const LoanCard: React.FC<LoanCardProps> = ({ loan, onClick }) => {
     const { playSound } = useTheme();
     const MotionDiv = motion.div as any;
 
-    const formatCurrency = (val: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
-
-    const progress = useMemo(() => {
-        const totalToSettle = loan.principalValue + (loan.interestType === 'fixed' ? loan.interestValue || 0 : 0);
-        if (totalToSettle <= 0) return 100;
-        return Math.min(100, (loan.totalPaidReceived / totalToSettle) * 100);
-    }, [loan]);
+    const progress = useMemo(() => principalProgressPercent(loan), [loan]);
 
     return (
         <MotionDiv
@@ -42,8 +42,8 @@ const LoanCard: React.FC<LoanCardProps> = ({ loan, onClick }) => {
                         <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
                             loan.status === 'active' ? 'bg-blue-100 text-blue-700' :
                             loan.status === 'paid' ? 'bg-green-100 text-green-700' :
-                            loan.status === 'overdue' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-500'
-                        }`}>{loan.status}</span>
+                            loan.status === 'overdue' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'
+                        }`}>{LOAN_STATUS_LABELS[loan.status]}</span>
                         {loan.status === 'overdue' && <span className="flex items-center gap-1 text-red-600 text-[9px] font-bold"><WarningIcon className="w-3 h-3" /> ATRASADO</span>}
                     </div>
                 </div>
@@ -57,18 +57,18 @@ const LoanCard: React.FC<LoanCardProps> = ({ loan, onClick }) => {
                     <div className="flex justify-between items-end">
                         <div>
                             <span className="text-[10px] text-muted uppercase font-bold block mb-0.5">Saldo Pendente</span>
-                            <span className="text-xl font-black text-on-surface">{formatCurrency(loan.currentBalance)}</span>
+                            <span className="text-xl font-black text-on-surface">{loan.status === 'cancelled' ? 'Cancelado' : formatCents(openBalanceCents(loan))}</span>
                         </div>
                         <div className="text-right">
                             <span className="text-[10px] text-muted uppercase font-bold block mb-0.5">Principal</span>
-                            <span className="text-sm font-bold text-muted">{formatCurrency(loan.principalValue)}</span>
+                            <span className="text-sm font-bold text-muted">{formatCents(loan.principalCents)}</span>
                         </div>
                     </div>
 
                     <div className="space-y-1.5">
                         <div className="flex justify-between text-[10px] font-bold text-muted uppercase">
-                            <span>Quitação</span>
-                            <span>{Math.round(progress)}%</span>
+                            <span>Principal liquidado</span>
+                            <span>{progress}%</span>
                         </div>
                         <div className="h-2 w-full bg-background rounded-full overflow-hidden border border-border/50">
                             <MotionDiv className="h-full bg-primary" initial={{ width: 0 }} animate={{ width: `${progress}%` }} transition={{ duration: 1 }} />
@@ -76,8 +76,8 @@ const LoanCard: React.FC<LoanCardProps> = ({ loan, onClick }) => {
                     </div>
 
                     <div className="pt-3 border-t border-border flex justify-between items-center text-[10px] font-medium text-muted">
-                        <span className="flex items-center gap-1"><CalendarIcon className="w-3 h-3" /> Fim: {new Date(loan.expectedPayoffDate).toLocaleDateString('pt-BR')}</span>
-                        <span className="flex items-center gap-1"><DynamicIcon name="Coins" size={12} /> {loan.hasInstallments ? `${loan.installmentsCount}x` : 'Única'}</span>
+                        <span className="flex items-center gap-1"><CalendarIcon className="w-3 h-3" /> Fim: {formatDayKey(loan.maturityDate)}</span>
+                        <span className="flex items-center gap-1"><DynamicIcon name="Coins" size={12} /> {loan.installmentsCount > 1 ? `${loan.installmentsCount}x` : 'Única'}</span>
                     </div>
                 </div>
             </div>

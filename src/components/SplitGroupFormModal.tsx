@@ -1,13 +1,27 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
-import { SplitGroup, SplitGroupType } from '../types.ts';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { createPortal } from 'react-dom';
+import type { SplitGroup, SplitGroupStatus, SplitGroupType } from '../modules/split-bills/types.ts';
+import { SplitInputError, toCreateGroupPayload, toGroupChanges, type SplitGroupFormState } from '../modules/split-bills/payloads.ts';
+import { splitErrorView } from '../modules/split-bills/presentation.ts';
 import { CloseIcon, SearchIcon, DynamicIcon, useTablerIconKeys } from './Icons.tsx';
 import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
+
+/**
+ * O que o formulário pede ao salvar (P4-C): na criação, o payload de
+ * `createSplitGroup`; na edição, só os campos alterados e o estado desejado
+ * (ativo/encerrado vira arquivar/reativar — operações próprias no backend).
+ */
+export interface SplitGroupSave {
+    create: ReturnType<typeof toCreateGroupPayload> | null;
+    changes: Record<string, unknown>;
+    status: SplitGroupStatus;
+}
 
 interface SplitGroupFormModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSave: (group: SplitGroup) => void;
+    onSave: (save: SplitGroupSave) => Promise<void>;
     groupToEdit?: SplitGroup | null;
     initialBusinessType?: 'rateio' | 'reembolso';
 }
@@ -44,8 +58,12 @@ const SplitGroupFormModal: React.FC<SplitGroupFormModalProps> = ({
     // Basic Info
     const [nome, setNome] = useState('');
     const [descricao, setDescricao] = useState('');
-    const [tipo, setTipo] = useState<SplitGroupType>('fixo');
+    const [tipo, setTipo] = useState<SplitGroupType>('fixed');
     const [ativo, setAtivo] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [isSaving, setIsSaving] = useState(false);
+    // Trava síncrona: dois envios no mesmo tique não passam pelo estado.
+    const submittingRef = useRef(false);
     
     // PJ Specific
     const [businessType, setBusinessType] = useState<'rateio' | 'reembolso'>('rateio');
@@ -63,20 +81,22 @@ const SplitGroupFormModal: React.FC<SplitGroupFormModalProps> = ({
 
     useEffect(() => {
         if (isOpen) {
+            setError(null);
+            setIsSaving(false);
             if (groupToEdit) {
-                setNome(groupToEdit.nome);
-                setDescricao(groupToEdit.descricao || '');
-                setTipo(groupToEdit.tipo);
-                setAtivo(groupToEdit.ativo);
-                setCorPrincipal(groupToEdit.corPrincipal);
-                setIcone(groupToEdit.icone);
-                setEmojiOpcional(groupToEdit.emojiOpcional || '');
-                if (groupToEdit.businessType) setBusinessType(groupToEdit.businessType);
+                setNome(groupToEdit.name);
+                setDescricao(groupToEdit.description || '');
+                setTipo(groupToEdit.groupType);
+                setAtivo(groupToEdit.status === 'active');
+                setCorPrincipal(groupToEdit.visual.color);
+                setIcone(groupToEdit.visual.icon);
+                setEmojiOpcional(groupToEdit.visual.emoji || '');
+                setBusinessType(groupToEdit.businessMode === 'reimbursement' ? 'reembolso' : 'rateio');
             } else {
                 // Reset
                 setNome('');
                 setDescricao('');
-                setTipo('fixo');
+                setTipo('fixed');
                 setAtivo(true);
                 setCorPrincipal(PRESET_COLORS[0]);
                 setIcone(isPJ && initialBusinessType === 'reembolso' ? 'FileInvoice' : 'Home');
@@ -111,24 +131,41 @@ const SplitGroupFormModal: React.FC<SplitGroupFormModalProps> = ({
         setVisibleIconCount(60);
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        
-        const newGroup: SplitGroup = {
-            id: groupToEdit ? groupToEdit.id : Date.now().toString(),
-            nome,
-            descricao,
-            tipo,
-            ativo,
-            corPrincipal,
-            icone,
-            emojiOpcional,
-            dataCriacao: groupToEdit ? groupToEdit.dataCriacao : new Date().toISOString().split('T')[0],
-            businessType: isPJ ? businessType : undefined
+        if (isSaving || submittingRef.current) return;
+        submittingRef.current = true;
+        setError(null);
+        const form: SplitGroupFormState = {
+            name: nome,
+            description: descricao,
+            groupType: tipo,
+            businessMode: isPJ && businessType === 'reembolso' ? 'reimbursement' : 'split',
+            color: corPrincipal,
+            icon: icone,
+            emoji: emojiOpcional,
         };
-
-        onSave(newGroup);
-        onClose();
+        try {
+            let save: SplitGroupSave;
+            if (groupToEdit) {
+                const status: SplitGroupStatus = ativo ? 'active' : 'archived';
+                const changes = toGroupChanges(form, groupToEdit);
+                if (Object.keys(changes).length === 0 && status === groupToEdit.status) {
+                    throw new SplitInputError('Nenhuma alteração para salvar.');
+                }
+                save = { create: null, changes, status };
+            } else {
+                save = { create: toCreateGroupPayload(form), changes: {}, status: 'active' };
+            }
+            setIsSaving(true);
+            await onSave(save);
+            onClose();
+        } catch (failure) {
+            setError(splitErrorView(failure).message);
+        } finally {
+            submittingRef.current = false;
+            setIsSaving(false);
+        }
     };
 
     if (!isOpen) return null;
@@ -146,7 +183,7 @@ const SplitGroupFormModal: React.FC<SplitGroupFormModalProps> = ({
     const nameLabel = isPJ ? 'Nome do Projeto / Centro de Custo' : 'Nome do Grupo';
     const descLabel = isPJ ? 'Finalidade / Descrição' : 'Descrição';
 
-    return (
+    return createPortal((
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4" onClick={onClose}>
             <div className="bg-white dark:bg-dark-100 rounded-xl shadow-lg w-full max-w-lg animate-scale-in max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
                 {/* Header */}
@@ -154,7 +191,7 @@ const SplitGroupFormModal: React.FC<SplitGroupFormModalProps> = ({
                     <h3 className="text-xl font-bold text-gray-800 dark:text-white">
                         {modalTitle}
                     </h3>
-                    <button onClick={onClose} className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
+                    <button onClick={onClose} className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200" aria-label="Fechar">
                         <CloseIcon />
                     </button>
                 </div>
@@ -324,8 +361,8 @@ const SplitGroupFormModal: React.FC<SplitGroupFormModalProps> = ({
                                     onChange={(e) => setTipo(e.target.value as SplitGroupType)} 
                                     className={commonInputClass}
                                 >
-                                    <option value="fixo">Fixa (Recorrente)</option>
-                                    <option value="temporario">Temporária</option>
+                                    <option value="fixed">Fixa (Recorrente)</option>
+                                    <option value="temporary">Temporária</option>
                                 </select>
                             </div>
                             <div>
@@ -334,6 +371,7 @@ const SplitGroupFormModal: React.FC<SplitGroupFormModalProps> = ({
                                     value={ativo ? 'ativo' : 'inativo'} 
                                     onChange={(e) => setAtivo(e.target.value === 'ativo')} 
                                     className={commonInputClass}
+                                    disabled={!groupToEdit} // Grupo novo nasce ativo
                                 >
                                     <option value="ativo">Ativo</option>
                                     <option value="inativo">Encerrado</option>
@@ -355,9 +393,15 @@ const SplitGroupFormModal: React.FC<SplitGroupFormModalProps> = ({
                         {!groupToEdit && (
                             <div className="bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-lg border border-indigo-100 dark:border-indigo-800">
                                 <p className="text-xs text-indigo-800 dark:text-indigo-300">
-                                    <strong>Nota:</strong> Você será adicionado automaticamente como administrador.
+                                    <strong>Nota:</strong> Você será adicionado automaticamente como dono do grupo.
                                 </p>
                             </div>
+                        )}
+
+                        {error && (
+                            <p role="alert" className="rounded-lg bg-red-50 dark:bg-red-900/20 p-3 text-sm text-red-700 dark:text-red-300">
+                                {error}
+                            </p>
                         )}
                     </div>
                 </form>
@@ -367,8 +411,8 @@ const SplitGroupFormModal: React.FC<SplitGroupFormModalProps> = ({
                     <button onClick={onClose} className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
                         Cancelar
                     </button>
-                    <button type="submit" form="splitGroupForm" className="px-6 py-2 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition-colors shadow-sm">
-                        {groupToEdit ? 'Salvar Alterações' : 'Criar Grupo'}
+                    <button type="submit" form="splitGroupForm" disabled={isSaving} className="px-6 py-2 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition-colors shadow-sm disabled:opacity-60">
+                        {isSaving ? 'Salvando…' : groupToEdit ? 'Salvar Alterações' : 'Criar Grupo'}
                     </button>
                 </div>
             </div>
@@ -395,7 +439,7 @@ const SplitGroupFormModal: React.FC<SplitGroupFormModalProps> = ({
                 }
             `}</style>
         </div>
-    );
+    ), document.body);
 };
 
 export default SplitGroupFormModal;

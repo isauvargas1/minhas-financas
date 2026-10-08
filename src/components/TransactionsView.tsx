@@ -13,17 +13,15 @@ import {
     CloseIcon,
 } from './Icons.tsx';
 import { useBilling } from '../modules/billing/BillingContext';
+import { transactionsQuotaView } from '../modules/billing/transactionsQuota';
+import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
 import CatalogVisualChip from './CatalogVisualChip.tsx';
 import { useSettingsCatalog } from '../modules/settings-catalog/hooks.ts';
 import { resolveTransactionVisuals } from '../modules/settings-catalog/display.ts';
 import {
-    getCreditCardInvoiceBadgeClassName,
-    getCreditCardInvoiceBadgeLabel,
-    getCreditCardInvoiceSecondaryText,
-    isCreditCardInvoiceCompatibleTransaction,
-    isCreditCardInvoicePaymentCashTransaction,
-} from '../modules/credit-cards/compatibility';
-import { transactionCashImpactCents } from '../modules/investments/semantics.ts';
+    isCreditCardPaymentCashMirror,
+    transactionCashImpactCents,
+} from '../modules/investments/semantics.ts';
 
 interface TransactionsViewProps {
     viewType: 'receita' | 'despesa';
@@ -93,28 +91,13 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({
     const catalogItems = catalogQuery.data ?? [];
 
     // Plano do WORKSPACE ativo (do owner), não o de quem está vendo.
-    const { checkWorkspaceLimit, workspaceEntitlement } = useBilling();
+    const { workspaceEntitlement } = useBilling();
+    // O limite é do plano do titular (D-01): só ele resolve com upgrade.
+    const { activeWorkspaceRole } = useWorkspace();
+    const isWorkspaceOwner = activeWorkspaceRole === 'owner';
 
-    const transactionsThisMonth = useMemo(() => {
-        const today = new Date();
-        const currentMonth = today.getMonth();
-        const currentYear = today.getFullYear();
-
-        return transactions.filter((transaction) => {
-            if (isCreditCardInvoiceCompatibleTransaction(transaction)) {
-                return false;
-            }
-
-            const date = new Date(`${transaction.date}T12:00:00`);
-            return (
-                !Number.isNaN(date.getTime()) &&
-                date.getMonth() === currentMonth &&
-                date.getFullYear() === currentYear
-            );
-        }).length;
-    }, [transactions]);
-
-    const canCreateTransaction = checkWorkspaceLimit('transactionsPerMonth', transactionsThisMonth);
+    // Uso mensal do contador do backend (D-40), não contagem local.
+    const canCreateTransaction = transactionsQuotaView(workspaceEntitlement).canCreate;
 
     const [sortConfig, setSortConfig] = useState<{
         key: SortableKeys;
@@ -173,10 +156,9 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({
         const normalizedSearch = normalizeText(searchTerm);
 
         return transactions.filter((transaction) => {
-            if (
-                viewType === 'despesa' &&
-                isCreditCardInvoicePaymentCashTransaction(transaction)
-            ) {
+            // P4-A: o pagamento de fatura (e o estorno) é liquidação do cartão,
+            // não receita nem despesa: aparece no extrato da conta e na fatura.
+            if (isCreditCardPaymentCashMirror(transaction)) {
                 return false;
             }
 
@@ -413,9 +395,11 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({
                         {!canCreateTransaction && (
                             <span className="text-[10px] text-amber-600 mt-1 absolute -bottom-5">
                                 Limite mensal ({workspaceEntitlement?.limits.transactionsPerMonth}) atingido.{' '}
-                                <a href="/planos" className="underline font-bold">
-                                    Upgrade!
-                                </a>
+                                {isWorkspaceOwner ? (
+                                    <a href="/planos" className="underline font-bold">
+                                        Upgrade!
+                                    </a>
+                                ) : 'Peça ao titular do espaço.'}
                             </span>
                         )}
                     </div>
@@ -567,16 +551,7 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({
                                         transaction,
                                         catalogItems,
                                     });
-                                    const isCreditCardInvoiceProjection = isCreditCardInvoiceCompatibleTransaction(transaction);
-                                    const creditCardInvoiceBadgeLabel = isCreditCardInvoiceProjection
-                                        ? getCreditCardInvoiceBadgeLabel(transaction.creditCardCompatibility.invoiceStatus)
-                                        : null;
-                                    const creditCardInvoiceBadgeClassName = isCreditCardInvoiceProjection
-                                        ? getCreditCardInvoiceBadgeClassName(transaction.creditCardCompatibility.invoiceStatus)
-                                        : null;
-                                    const creditCardInvoiceSecondaryText = isCreditCardInvoiceProjection
-                                        ? getCreditCardInvoiceSecondaryText(transaction)
-                                        : null;
+                                    const isCardPaymentMirror = isCreditCardPaymentCashMirror(transaction);
                                     return (
                                         <tr
                                             key={transaction.id}
@@ -607,9 +582,16 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({
                                                             <div className="font-semibold truncate">
                                                                 {transaction.description}
                                                             </div>
-                                                            <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                                                Receita registrada
-                                                            </div>
+                                                            {transaction.isPaid === false ? (
+                                                                // D-29: receita a receber (pendente ou agendada).
+                                                                <span className="inline-flex mt-1 rounded-full bg-amber-100 dark:bg-amber-900/30 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-amber-800 dark:text-amber-400">
+                                                                    Pendente
+                                                                </span>
+                                                            ) : (
+                                                                <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                                                    Receita registrada
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     </td>
 
@@ -668,18 +650,8 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({
                                                                 </div>
                                                             )}
 
-                                                            {creditCardInvoiceSecondaryText && (
-                                                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                                                    {creditCardInvoiceSecondaryText}
-                                                                </p>
-                                                            )}
-
                                                             <div className="mt-1 flex flex-wrap items-center gap-2">
-                                                                {isCreditCardInvoiceProjection && creditCardInvoiceBadgeLabel && creditCardInvoiceBadgeClassName ? (
-                                                                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-bold ${creditCardInvoiceBadgeClassName}`}>
-                                                                        {creditCardInvoiceBadgeLabel}
-                                                                    </span>
-                                                                ) : transaction.type === 'parcelado' ? (
+                                                                {transaction.type === 'parcelado' ? (
                                                                     <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-bold bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300">
                                                                         PARCELA {transaction.currentInstallment}/{transaction.installments}
                                                                     </span>
@@ -757,14 +729,14 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({
                                                         <div className="flex items-center justify-center gap-2">
                                                             <button
                                                                 onClick={() => onEditTransaction(transaction)}
-                                                                disabled={isCreditCardInvoiceProjection}
-                                                                className={`p-2 rounded-full transition-colors ${isCreditCardInvoiceProjection
+                                                                disabled={isCardPaymentMirror}
+                                                                className={`p-2 rounded-full transition-colors ${isCardPaymentMirror
                                                                     ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
                                                                     : 'text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30'
                                                                     }`}
                                                                 aria-label={
-                                                                    isCreditCardInvoiceProjection
-                                                                        ? 'Fatura de cartão não pode ser editada como transação'
+                                                                    isCardPaymentMirror
+                                                                        ? 'Pagamento de fatura de cartão: use a tela de cartões'
                                                                         : 'Editar'
                                                                 }
                                                             >
@@ -772,14 +744,14 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({
                                                             </button>
                                                             <button
                                                                 onClick={() => onDeleteTransaction(transaction)}
-                                                                disabled={isCreditCardInvoiceProjection}
-                                                                className={`p-2 rounded-full transition-colors ${isCreditCardInvoiceProjection
+                                                                disabled={isCardPaymentMirror}
+                                                                className={`p-2 rounded-full transition-colors ${isCardPaymentMirror
                                                                     ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
                                                                     : 'text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30'
                                                                     }`}
                                                                 aria-label={
-                                                                    isCreditCardInvoiceProjection
-                                                                        ? 'Fatura de cartão não pode ser excluída como transação'
+                                                                    isCardPaymentMirror
+                                                                        ? 'Pagamento de fatura de cartão: use a tela de cartões'
                                                                         : 'Deletar'
                                                                 }
                                                             >

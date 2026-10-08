@@ -143,14 +143,14 @@ test('retirada acima do capital orienta o campo de rendimento', () => {
   assert.match(message, /rendimento/i);
 });
 
-test('ativo do regime antigo é explicado sem jargão técnico', () => {
+test('conta do Caixa arquivada na liquidação chega como a frase do domínio', () => {
+  // P4-D: o fato liquidado move a conta escolhida; a recusa explica o passo.
   const message = simpleInvestmentError({
     code: 'functions/failed-precondition',
-    message: 'Este investimento é controlado por quantidade. Use o resgate ' +
-      'detalhado, que recebe quantidade e resultado realizado.',
+    message: 'A conta selecionada está arquivada e não aceita movimentos. Escolha outra conta.',
   });
-  assert.doesNotMatch(message, /quantidade|resgate detalhado|resultado realizado/i);
-  assert.match(message, /cadastro avançado/i);
+  assert.match(message, /^A conta selecionada está arquivada/);
+  assert.doesNotMatch(message, /cashAccountId|failed-precondition/);
 });
 
 test('nenhuma tradução expõe termo interno do domínio', () => {
@@ -340,31 +340,20 @@ test('a busca da tela declara que cobre o que já foi carregado', () => {
   assert.match(view, /A busca por texto procura nos lançamentos já carregados/);
 });
 
-test('a administração técnica de investimentos saiu de Configurações', () => {
+test('Configurações e App não montam administração nem tela patrimonial profissional', () => {
   /*
-   * §0.B — os componentes continuam íntegros no repositório; o que não pode
-   * voltar é o ponto de montagem na configuração comum.
+   * §0.B, §3.B e §7 — desde a P4-D (D-15) a experiência profissional não
+   * existe no repositório; a guarda por import fica em
+   * `investment-surface-guard.test.ts`. Aqui fica o ponto de montagem.
    */
   const settings = readFileSync('src/components/SettingsView.tsx', 'utf8');
-  assert.doesNotMatch(settings, /<InvestmentOnboardingCard/);
-  assert.doesNotMatch(settings, /<InvestmentRegistrySection/);
-  assert.doesNotMatch(settings, /<InvestmentOperationsPanel/);
-  // E continuam existindo, para não virar remoção disfarçada de simplificação.
-  assert.ok(existsSync('src/modules/investments/components/InvestmentOperationsPanel.tsx'));
-  assert.ok(existsSync('src/modules/investments/components/InvestmentRegistrySection.tsx'));
-  assert.ok(existsSync('src/modules/investments/components/InvestmentOnboardingCard.tsx'));
-});
-
-test('a navegação comum não monta tela nem painel profissional', () => {
-  /*
-   * §3.B e §7 — nem a tela patrimonial com abas, nem o painel de patrimônio no
-   * Dashboard. Os dois continuam no repositório e fora do caminho cotidiano.
-   */
   const app = readFileSync('src/App.tsx', 'utf8');
-  assert.doesNotMatch(app, /<InvestmentsPortfolioView/);
-  assert.doesNotMatch(app, /<InvestmentDashboardOverview/);
-  assert.ok(existsSync('src/modules/investments/components/InvestmentsPortfolioView.tsx'));
-  assert.ok(existsSync('src/modules/investments/components/InvestmentDashboardOverview.tsx'));
+  for (const name of ['InvestmentOnboardingCard', 'InvestmentRegistrySection', 'InvestmentOperationsPanel']) {
+    assert.doesNotMatch(settings, new RegExp(`<${name}`));
+  }
+  assert.doesNotMatch(app, /<InvestmentsPortfolioView|<InvestmentDashboardOverview/);
+  assert.match(app, /<SimpleInvestmentsView/);
+  assert.equal(existsSync('src/modules/investments/components'), false);
 });
 
 test('a faixa de alocação é PF ou PJ, nunca as duas', () => {

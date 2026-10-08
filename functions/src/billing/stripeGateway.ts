@@ -185,6 +185,14 @@ const isStripeError = (error: unknown): error is Stripe.errors.StripeError =>
  */
 export const MAX_SUBSCRIPTIONS_PER_CUSTOMER = 500;
 
+/** Customer acima do teto de leitura: falha fechada, com código próprio. */
+export class SubscriptionCapExceededError extends Error {
+  constructor() {
+    super("Customer com assinaturas acima do teto de leitura.");
+    this.name = "SubscriptionCapExceededError";
+  }
+}
+
 export interface StripeGatewayOptions {
   /** Somente testes: cliente HTTP falso, sem rede. */
   httpClient?: Stripe.HttpClient;
@@ -302,7 +310,7 @@ export const createStripeGateway = (
         expand: ["data.latest_invoice"],
       }).autoPagingToArray({limit: MAX_SUBSCRIPTIONS_PER_CUSTOMER + 1});
       if (subscriptions.length > MAX_SUBSCRIPTIONS_PER_CUSTOMER) {
-        throw new Error("Customer com assinaturas acima do teto de leitura.");
+        throw new SubscriptionCapExceededError();
       }
       return subscriptions.map(subscriptionSnapshotFromStripe);
     },

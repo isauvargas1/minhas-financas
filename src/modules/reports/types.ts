@@ -1,18 +1,13 @@
-import type {
-  CreditCardInstallment,
-  CreditCardInvoice,
-  CreditCardInvoicePayment,
-  CreditCardPurchase,
-} from '../credit-cards/domain/types.ts';
+import type { CardInvoice, CardPayment, CardPurchase } from '../cards/types.ts';
 
 export type ReportTimeRange = '7d' | '30d' | '90d' | '12m' | 'ytd' | 'all';
 
 export type ReportType = 'cashflow' | 'category' | 'comparison' | 'heatmap';
 
+/** Teto de leitura por coleção do domínio de cartões no relatório. */
 export interface CreditCardReportDomainCollectionMeta {
   purchases: number;
   invoices: number;
-  installments: number;
   payments: number;
 }
 
@@ -26,11 +21,15 @@ export interface CreditCardReportDomainMeta {
   isTruncated: boolean;
 }
 
+/**
+ * Dados do domínio de cartões para o relatório (P4-A), em centavos: compras
+ * e pagamentos do período e as faturas com saldo. `meta.truncated` sinaliza
+ * a coleção que passou do teto (nunca corte silencioso, PR-CC-07).
+ */
 export interface CreditCardReportDomainData {
-  purchases: CreditCardPurchase[];
-  invoices: CreditCardInvoice[];
-  installments: CreditCardInstallment[];
-  payments: CreditCardInvoicePayment[];
+  purchases: CardPurchase[];
+  invoices: CardInvoice[];
+  payments: CardPayment[];
   meta?: CreditCardReportDomainMeta;
 }
 

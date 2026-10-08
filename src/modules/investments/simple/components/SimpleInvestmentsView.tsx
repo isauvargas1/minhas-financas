@@ -48,7 +48,10 @@ import { simpleRowActions, type SimpleWorkspaceRole } from '../permissions';
 import { simpleInvestmentError } from '../../errors';
 import NewInvestmentModal, { type EditingInvestment } from './NewInvestmentModal';
 import WithdrawInvestmentModal from './WithdrawInvestmentModal';
-import ConfirmMovementModal, { type ConfirmMovementIntent } from './ConfirmMovementModal';
+import ConfirmMovementModal, {
+    type ConfirmMovementIntent,
+    type ConfirmMovementTarget,
+} from './ConfirmMovementModal';
 
 /**
  * Tela comum de Investimentos (Etapa 2, §6, §7 e §12).
@@ -133,7 +136,7 @@ const SimpleInvestmentsView: React.FC<SimpleInvestmentsViewProps> = ({
         { positionId: string; description: string; principalCents: number } | null
     >(null);
     const [confirming, setConfirming] = useState<
-        { intent: ConfirmMovementIntent; movement: { id: string; description: string } } | null
+        { intent: ConfirmMovementIntent; movement: ConfirmMovementTarget } | null
     >(null);
 
     const movementsQuery = useSimpleInvestmentMovements(workspaceId, filters);
@@ -180,20 +183,18 @@ const SimpleInvestmentsView: React.FC<SimpleInvestmentsViewProps> = ({
     );
 
     /*
-     * Chip da categoria, resolvido pelo **identificador** do movimento sobre o
-     * catálogo já carregado — uma consulta para a tela inteira, nunca uma por
-     * linha, e nunca uma correspondência por rótulo.
-     *
-     * O item pode estar em `category` (cadastro atual) ou em `investment_type`
-     * (lançamentos anteriores à unificação); o grupo sai do próprio documento
-     * encontrado. A cor de fallback continua sendo a do investimento, para que
-     * a listagem não mude de identidade visual conforme a origem do cadastro.
+     * Chip da categoria (`category`/`investimento`), resolvido pelo
+     * **identificador** do movimento sobre o catálogo já carregado — uma
+     * consulta para a tela inteira, nunca uma por linha, e nunca uma
+     * correspondência por rótulo. A cor de fallback é a do investimento.
      */
     const categoryVisual = (row: SimpleInvestmentRow): ResolvedCatalogVisual | null => {
-        const item = (catalogQuery.data ?? []).find((entry) => entry.id === row.categoryId);
+        const item = (catalogQuery.data ?? []).find(
+            (entry) => entry.id === row.categoryId && entry.group === 'category',
+        );
         if (!item) return null;
         return {
-            group: item.group === 'category' ? 'category' : 'investment_type',
+            group: 'category',
             label: item.name,
             normalizedLabel: item.normalizedName,
             icon: item.icon,
@@ -310,7 +311,12 @@ const SimpleInvestmentsView: React.FC<SimpleInvestmentsViewProps> = ({
                         <RotateCcwIcon />,
                         () => { setFeedback(undefined); setConfirming({
                             intent: 'undo',
-                            movement: { id: row.id, description: row.description },
+                            movement: {
+                                id: row.id,
+                                description: row.description,
+                                kind: row.kind,
+                                cashAccountId: row.cashAccountId,
+                            },
                         }); });
                 })}
             </div>

@@ -1,6 +1,11 @@
 import * as admin from "firebase-admin";
 import type {CallableRequest} from "firebase-functions/v2/https";
 
+import {
+  DEFAULT_CASH_ACCOUNT_NAME,
+  cashAccountDocument,
+  defaultCashAccountIdFor,
+} from "../../accounts/model";
 import type {WorkspaceRole} from "../workspaceAuth";
 
 /**
@@ -78,6 +83,15 @@ export const callableRequest = <T = Record<string, unknown>>(
 };
 
 const QUOTA_SCHEMA_VERSION = 1;
+const TRANSACTION_QUOTA_SCHEMA_VERSION = 1;
+
+/** Mês civil corrente em São Paulo (`YYYY-MM`), como o backend o calcula. */
+const currentSaoPauloMonth = (): string =>
+  new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+  }).format(new Date()).slice(0, 7);
 
 const ignoreAlreadyExists = (error: unknown): void => {
   const code = (error as {code?: unknown} | null)?.code;
@@ -205,6 +219,18 @@ export const seedWorkspace = async (input: SeedWorkspaceInput) => {
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     })
     .catch(ignoreAlreadyExists);
+  // P3-D (D-40): âncora do contador mensal de lançamentos, como a criação
+  // real do workspace a grava.
+  await db.doc(`workspaces/${input.workspaceId}/quota_state/transactions`)
+    .create({
+      workspaceId: input.workspaceId,
+      trackingSince: currentSaoPauloMonth(),
+      origin: "workspace_created",
+      initialUsed: 0,
+      schemaVersion: TRANSACTION_QUOTA_SCHEMA_VERSION,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    })
+    .catch(ignoreAlreadyExists);
   await db.doc(`workspaces/${input.workspaceId}`).set({
     name: input.name ?? input.workspaceId,
     type: input.type ?? "PF",
@@ -217,7 +243,22 @@ export const seedWorkspace = async (input: SeedWorkspaceInput) => {
     ...(input.extra ?? {}),
   });
   await seedMember(input.workspaceId, input.ownerId, "owner");
+  // P3-J (D-30): a conta padrão que o provisionamento real grava.
+  const accountId = defaultCashAccountIdFor(input.workspaceId);
+  await db.doc(`workspaces/${input.workspaceId}/cash_accounts/${accountId}`)
+    .create(cashAccountDocument({
+      id: accountId,
+      workspaceId: input.workspaceId,
+      name: DEFAULT_CASH_ACCOUNT_NAME,
+      accountType: "cash",
+      actorUid: input.ownerId,
+    }))
+    .catch(ignoreAlreadyExists);
 };
+
+/** Conta padrão do workspace semeado (D-30). */
+export const defaultAccountOf = (workspaceId: string): string =>
+  defaultCashAccountIdFor(workspaceId);
 
 /** Membership (e entrada do índice do usuário) com o papel informado. */
 export const seedMember = async (

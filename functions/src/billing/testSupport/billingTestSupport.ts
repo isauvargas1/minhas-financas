@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 
 import type {CallerIdentity} from "../../shared/callable";
-import type {OperationLogger} from "../../shared/logger";
+import type {LogFields, OperationLogger} from "../../shared/logger";
 import {testEmailFor} from "../../shared/testSupport/kernelTestSupport";
 import {bootstrapAccount} from "../../workspaces/callables";
 import {
@@ -39,6 +39,39 @@ export const silentLogger = (): OperationLogger => {
     error: () => undefined,
   };
   return logger;
+};
+
+export interface RecordedLog {
+  level: "info" | "warn" | "error";
+  event: string;
+  /** Contexto acumulado por `with` mais os campos da chamada. */
+  fields: Record<string, unknown>;
+  hasError: boolean;
+}
+
+/** Logger que grava as entradas, para as asserções sobre sinais (P2C). */
+export const recordingLogger = (): {
+  logger: OperationLogger;
+  entries: RecordedLog[];
+} => {
+  const entries: RecordedLog[] = [];
+  const build = (context: LogFields): OperationLogger => ({
+    context,
+    with: (fields) => build({...context, ...fields}),
+    info: (event, fields = {}) => {
+      entries.push({level: "info", event,
+        fields: {...context, ...fields}, hasError: false});
+    },
+    warn: (event, fields = {}) => {
+      entries.push({level: "warn", event,
+        fields: {...context, ...fields}, hasError: false});
+    },
+    error: (event, error, fields = {}) => {
+      entries.push({level: "error", event,
+        fields: {...context, ...fields}, hasError: error != null});
+    },
+  });
+  return {logger: build({}), entries};
 };
 
 export const callerFor = (uid: string): CallerIdentity => ({

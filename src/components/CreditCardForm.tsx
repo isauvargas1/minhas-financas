@@ -1,14 +1,25 @@
 
 import React, { useState, useEffect } from 'react';
-import type { CreditCard, CreditCardVisual } from '../types.ts';
+import type { CreditCard, CreditCardBrand, CreditCardVisual } from '../modules/cards/types.ts';
+import type { CreditCardFormValues } from '../modules/cards/payloads.ts';
+import { centsToNumberInput } from '../modules/cards/payloads.ts';
 import { CloseIcon, UsersIcon, BriefcaseIcon, BoltIcon, CreditCardIcon } from './Icons.tsx';
 import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
 
+/**
+ * Formulário do cartão (P4-A). Devolve os valores digitados; quem salva é a
+ * callable (`createCreditCard`/`updateCreditCard`), que converte o limite
+ * para centavos sem ponto flutuante. O estado do cartão (ativo/arquivado)
+ * não é editado aqui: arquivar e reativar são operações próprias.
+ */
 interface CreditCardFormProps {
     isOpen: boolean;
     onClose: () => void;
-    onSave: (card: CreditCard) => void;
+    onSave: (values: CreditCardFormValues) => Promise<void> | void;
     cardToEdit?: CreditCard | null;
+    /** Erro do backend (pt-BR), exibido acima dos botões. */
+    error?: string | null;
+    isSubmitting?: boolean;
 }
 
 const buildDefaultCreditCardVisual = (isPJ: boolean): CreditCardVisual => ({
@@ -40,7 +51,7 @@ const resolveCreditCardVisual = (
     };
 };
 
-const CreditCardForm: React.FC<CreditCardFormProps> = ({ isOpen, onClose, onSave, cardToEdit }) => {
+const CreditCardForm: React.FC<CreditCardFormProps> = ({ isOpen, onClose, onSave, cardToEdit, error, isSubmitting = false }) => {
     const { activeWorkspace } = useWorkspace();
     const isPJ = activeWorkspace.type === 'PJ';
 
@@ -48,12 +59,11 @@ const CreditCardForm: React.FC<CreditCardFormProps> = ({ isOpen, onClose, onSave
 
     // Financial State
     const [name, setName] = useState('');
-    const [brand, setBrand] = useState('Visa');
+    const [brand, setBrand] = useState<CreditCardBrand>('Visa');
     const [limitTotal, setLimitTotal] = useState('');
     const [closingDay, setClosingDay] = useState('1');
     const [dueDay, setDueDay] = useState('10');
     const [bestDay, setBestDay] = useState('');
-    const [status, setStatus] = useState<'active' | 'blocked' | 'cancelled'>('active');
     const [observations, setObservations] = useState('');
 
     // PJ Specific State
@@ -76,11 +86,10 @@ const CreditCardForm: React.FC<CreditCardFormProps> = ({ isOpen, onClose, onSave
             if (cardToEdit) {
                 setName(cardToEdit.name);
                 setBrand(cardToEdit.brand);
-                setLimitTotal(String(cardToEdit.limitTotal));
+                setLimitTotal(centsToNumberInput(cardToEdit.limitTotalCents));
                 setClosingDay(String(cardToEdit.closingDay));
                 setDueDay(String(cardToEdit.dueDay));
                 setBestDay(cardToEdit.bestDay ? String(cardToEdit.bestDay) : '');
-                setStatus(cardToEdit.status);
                 setObservations(cardToEdit.observations || '');
                 setResponsiblePerson(cardToEdit.responsiblePerson || '');
                 setRecommendedUse(cardToEdit.recommendedUse || '');
@@ -102,7 +111,6 @@ const CreditCardForm: React.FC<CreditCardFormProps> = ({ isOpen, onClose, onSave
                 setClosingDay('1');
                 setDueDay('10');
                 setBestDay('');
-                setStatus('active');
                 setObservations('');
                 setResponsiblePerson('');
                 setRecommendedUse('');
@@ -126,19 +134,18 @@ const CreditCardForm: React.FC<CreditCardFormProps> = ({ isOpen, onClose, onSave
 
     const handleSave = (e: React.FormEvent) => {
         e.preventDefault();
-        const newCard: CreditCard = {
-            id: cardToEdit ? cardToEdit.id : String(Date.now()),
+        if (isSubmitting) return;
+        void onSave({
             name,
             brand,
-            limitTotal: parseFloat(limitTotal),
-            closingDay: parseInt(closingDay),
-            dueDay: parseInt(dueDay),
-            bestDay: bestDay ? parseInt(bestDay) : undefined,
-            status,
+            limitTotal,
+            closingDay,
+            dueDay,
+            bestDay,
             observations,
-            responsiblePerson: isPJ ? responsiblePerson : undefined,
-            recommendedUse: isPJ ? recommendedUse : undefined,
-            defaultCostCenter: isPJ ? defaultCostCenter : undefined,
+            responsiblePerson: isPJ ? responsiblePerson : cardToEdit?.responsiblePerson,
+            recommendedUse: isPJ ? recommendedUse : cardToEdit?.recommendedUse,
+            defaultCostCenter: isPJ ? defaultCostCenter : cardToEdit?.defaultCostCenter,
             visual: {
                 bgType,
                 bgColor,
@@ -149,8 +156,7 @@ const CreditCardForm: React.FC<CreditCardFormProps> = ({ isOpen, onClose, onSave
                 showBrand,
                 showLogo
             }
-        };
-        onSave(newCard);
+        });
     };
 
     const previewStyle = () => {
@@ -208,7 +214,7 @@ const CreditCardForm: React.FC<CreditCardFormProps> = ({ isOpen, onClose, onSave
                                     </div>
                                     <div>
                                         <label className={labelClass}>Bandeira</label>
-                                        <select value={brand} onChange={e => setBrand(e.target.value)} className={inputClass}>
+                                        <select value={brand} onChange={e => setBrand(e.target.value as CreditCardBrand)} className={inputClass}>
                                             <option value="Visa">Visa</option>
                                             <option value="Mastercard">Mastercard</option>
                                             <option value="Elo">Elo</option>
@@ -352,12 +358,17 @@ const CreditCardForm: React.FC<CreditCardFormProps> = ({ isOpen, onClose, onSave
                 </div>
 
                 {/* Footer */}
+                {error && (
+                    <p role="alert" className="px-6 pt-4 text-sm font-medium text-red-600 dark:text-red-300">
+                        {error}
+                    </p>
+                )}
                 <div className="p-6 border-t border-gray-100 dark:border-gray-800 flex justify-end gap-3 bg-gray-50/50 dark:bg-dark-200/50">
-                    <button onClick={onClose} className="px-6 py-2.5 bg-white dark:bg-dark-200 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-100 dark:hover:bg-dark-300 transition-all font-bold text-sm shadow-sm">
+                    <button onClick={onClose} disabled={isSubmitting} className="px-6 py-2.5 bg-white dark:bg-dark-200 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-100 dark:hover:bg-dark-300 transition-all font-bold text-sm shadow-sm disabled:opacity-50">
                         Cancelar
                     </button>
-                    <button type="submit" form="cardForm" className="px-10 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-all shadow-lg shadow-indigo-200 dark:shadow-none font-bold text-sm active:scale-95">
-                        Salvar Cartão
+                    <button type="submit" form="cardForm" disabled={isSubmitting} aria-busy={isSubmitting} className="px-10 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-all shadow-lg shadow-indigo-200 dark:shadow-none font-bold text-sm active:scale-95 disabled:opacity-60">
+                        {isSubmitting ? 'Salvando...' : 'Salvar Cartão'}
                     </button>
                 </div>
             </div>

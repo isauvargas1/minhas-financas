@@ -1,19 +1,10 @@
 import type { Timestamp } from 'firebase/firestore';
 
-export type InvestmentStatus = 'active' | 'archived';
+// Conta, ativo e posição técnicos não têm arquivamento (D-15, P4-D).
+export type InvestmentStatus = 'active';
 // M3.D deu saída ao estado pendente: um pedido pode ser cancelado sem apagar
 // fato financeiro, já que os deltas de um pendente são todos zero.
 export type InvestmentMovementStatus = 'pending' | 'settled' | 'cancelled';
-
-export interface InvestmentAccount {
-  id: string;
-  workspaceId: string;
-  name: string;
-  institutionName: string;
-  currency: 'BRL';
-  status: InvestmentStatus;
-  updatedAt: Timestamp;
-}
 
 export interface InvestmentAsset {
   id: string;
@@ -23,20 +14,14 @@ export interface InvestmentAsset {
   assetType: 'fixed_income' | 'fund' | 'stock' | 'etf' | 'crypto' | 'other';
   allocationPurpose?: 'unassigned' | 'retirement' | 'goal' | 'reserve' | 'financial_application' | 'reinvestment' | 'fixed_asset';
   /**
-   * Classificação por catálogo do workspace (INV-P2-026).
-   *
-   * O par `id`/`name` é gravado junto: o ID vincula ao item do catálogo e o
-   * nome fica fotografado no ativo, para que renomear ou inativar o item não
-   * apague o rótulo histórico da faixa de alocação já publicada.
+   * Carteira de investimentos e categoria, fotografadas no ativo: o ID vincula
+   * ao item do catálogo e o nome preserva o rótulo histórico.
    */
-  classId?: string;
-  className?: string;
-  riskId?: string;
-  riskName?: string;
-  liquidityId?: string;
-  liquidityName?: string;
-  indexerId?: string;
-  indexerName?: string;
+  classId: string;
+  className: string;
+  typeId: string;
+  typeName: string;
+  trackingMode: 'value';
   currency: 'BRL';
   status: InvestmentStatus;
   updatedAt: Timestamp;
@@ -53,8 +38,8 @@ export interface InvestmentPosition {
   principalCents: number;
   currentValueCents: number;
   realizedGainCents: number;
-  /** Perda realizada acumulada (INV-P1-009). Ausente em documentos anteriores. */
-  realizedLossCents?: number;
+  /** Perda realizada acumulada (INV-P1-009). */
+  realizedLossCents: number;
   unrealizedAppreciationCents: number;
   updatedAt: Timestamp;
 }
@@ -86,7 +71,13 @@ export interface InvestmentMovement {
    */
   goalNetContributionDeltaCents?: number;
   goalId?: string;
-  walletId?: string;
+  /**
+   * Conta do Caixa movimentada pelo fato liquidado com dinheiro (D-30, P4-D)
+   * e o movimento de conta correspondente. Ausentes em pendente, cancelado e
+   * vínculo de meta.
+   */
+  cashAccountId?: string;
+  accountMovementId?: string;
   /**
    * Fotografia de apresentação gravada na escrita (Etapa 1, §10).
    *

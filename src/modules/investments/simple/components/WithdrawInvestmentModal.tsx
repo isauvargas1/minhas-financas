@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 import { useFinancialIntent } from '../../hooks/useIntentNonce';
 import { simpleInvestmentError } from '../../errors';
@@ -11,7 +11,9 @@ import {
   type SimpleFormErrors,
   type WithdrawFormState,
 } from '../form';
+import { defaultCashAccountId, useActiveCashAccountOptions } from '../cashAccounts';
 import {
+  CashAccountField,
   CurrencyField,
   DateField,
   ErrorBanner,
@@ -59,6 +61,10 @@ const WithdrawInvestmentModal: React.FC<WithdrawInvestmentModalProps> = ({
   );
   const mutation = useSimpleInvestmentMutation(workspaceId);
   const submitting = mutation.isPending;
+  // Trava síncrona: dois envios no mesmo tique não passam pelo `isPending`.
+  const submittingRef = useRef(false);
+  const cashAccounts = useActiveCashAccountOptions();
+  const singleAccountId = defaultCashAccountId(cashAccounts.options);
 
   useEffect(() => {
     if (!open) return;
@@ -68,6 +74,12 @@ const WithdrawInvestmentModal: React.FC<WithdrawInvestmentModalProps> = ({
     setDetailsOpen(false);
   }, [open, investment?.positionId]);
 
+  // Conta única: já vem escolhida (com duas ou mais, a escolha é explícita).
+  useEffect(() => {
+    if (!open || !singleAccountId) return;
+    setForm((current) => (current.cashAccountId ? current : { ...current, cashAccountId: singleAccountId }));
+  }, [open, singleAccountId, investment?.positionId]);
+
   if (!investment) return null;
 
   const patch = (values: Partial<WithdrawFormState>) =>
@@ -75,7 +87,7 @@ const WithdrawInvestmentModal: React.FC<WithdrawInvestmentModalProps> = ({
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (submitting) return;
+    if (submitting || submittingRef.current) return;
     const found = validateWithdraw(form);
     setErrors(found);
     if (Object.keys(found).length > 0) {
@@ -89,6 +101,7 @@ const WithdrawInvestmentModal: React.FC<WithdrawInvestmentModalProps> = ({
     const payload = buildWithdrawSimpleInvestmentInput(
       form, investment.positionId, new Date(intent.occurredAt()),
     );
+    submittingRef.current = true;
     try {
       await mutation.mutateAsync({
         name: 'withdrawSimpleInvestment',
@@ -105,6 +118,8 @@ const WithdrawInvestmentModal: React.FC<WithdrawInvestmentModalProps> = ({
       const message = simpleInvestmentError(error);
       setFailure(message);
       if (/rendimento/i.test(message)) setDetailsOpen(true);
+    } finally {
+      submittingRef.current = false;
     }
   };
 
@@ -150,6 +165,19 @@ const WithdrawInvestmentModal: React.FC<WithdrawInvestmentModalProps> = ({
               onChange={(value) => patch({ date: value })}
               error={errors.date}
             />
+            {form.received && (
+              <div className="mt-3">
+                <CashAccountField
+                  id="withdraw-cash-account"
+                  label="Conta de destino"
+                  value={form.cashAccountId}
+                  options={cashAccounts.options}
+                  onChange={(value) => patch({ cashAccountId: value })}
+                  error={errors.cashAccountId}
+                  hint="Conta do Caixa em que o dinheiro entrou. O saldo dela aumenta no mesmo instante."
+                />
+              </div>
+            )}
           </YesNoField>
 
           <details

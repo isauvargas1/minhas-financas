@@ -1,9 +1,15 @@
 
 import React, { useState, useMemo } from 'react';
-import { motion } from 'framer-motion';
-import { useLoans, useCreateLoan, useLoanTotals } from '../modules/loans/hooks.ts';
-import { Loan, LoanType, LoanStatus } from '../modules/loans/types.ts';
-// Added TrendingUpIcon and ArrowDownIcon to the imports below
+import { useLoans, useLoanTotals } from '../modules/loans/hooks.ts';
+import type { Loan, LoanType, LoanStatus } from '../modules/loans/types.ts';
+import { formatCents, formatDayKey } from '../modules/loans/money.ts';
+import {
+    LOAN_STATUS_LABELS,
+    loanPermissions,
+    openBalanceCents,
+    principalProgressPercent,
+} from '../modules/loans/presentation.ts';
+import { useAuth } from '../contexts/AuthContext.tsx';
 import { HandshakeIcon, PlusIcon, SearchIcon, FilterIcon, LayoutGridIcon, ListIcon, WarningIcon, TrendingUpIcon, ArrowDownIcon } from './Icons.tsx';
 import LoanCard from './LoanCard.tsx';
 import LoanFormModal from './LoanFormModal.tsx';
@@ -12,10 +18,9 @@ import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
 
 interface LoansViewProps {
     onSelectLoan: (loan: Loan) => void;
-    onAddTransaction: (t: any) => void;
 }
 
-const LoansView: React.FC<LoansViewProps> = ({ onSelectLoan, onAddTransaction }) => {
+const LoansView: React.FC<LoansViewProps> = ({ onSelectLoan }) => {
     const { data: loans, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } = useLoans();
     /*
      * Os indicadores vêm de agregado do servidor, não da lista carregada.
@@ -23,10 +28,10 @@ const LoansView: React.FC<LoansViewProps> = ({ onSelectLoan, onAddTransaction })
      * exatamente o que um número financeiro na tela não pode ser.
      */
     const { data: totals, isError: totalsFailed } = useLoanTotals();
-    const createLoanMutation = useCreateLoan();
     const { playSound } = useTheme();
-    const { activeWorkspace } = useWorkspace();
-    const MotionDiv = motion.div as any;
+    const { activeWorkspaceRole } = useWorkspace();
+    const { user } = useAuth();
+    const { canCreate } = loanPermissions({ role: activeWorkspaceRole, uid: user?.uid });
 
     const [viewMode, setViewMode] = useState<'card' | 'list'>('card');
     const [searchQuery, setSearchQuery] = useState('');
@@ -37,8 +42,8 @@ const LoansView: React.FC<LoansViewProps> = ({ onSelectLoan, onAddTransaction })
     const filteredLoans = useMemo(() => {
         if (!loans) return [];
         return loans.filter(l => {
-            const matchesSearch = l.personName.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                                 l.description.toLowerCase().includes(searchQuery.toLowerCase());
+            const matchesSearch = l.personName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                                 (l.description ?? '').toLowerCase().includes(searchQuery.toLowerCase());
             const matchesType = filterType === 'all' || l.type === filterType;
             const matchesStatus = filterStatus === 'all' || l.status === filterStatus;
             return matchesSearch && matchesType && matchesStatus;
@@ -46,22 +51,10 @@ const LoansView: React.FC<LoansViewProps> = ({ onSelectLoan, onAddTransaction })
     }, [loans, searchQuery, filterType, filterStatus]);
 
     const stats = useMemo(() => ({
-        lend: totals?.lend ?? 0,
-        borrow: totals?.borrow ?? 0,
+        lendCents: totals?.lendCents ?? 0,
+        borrowCents: totals?.borrowCents ?? 0,
         overdue: totals?.overdue ?? 0,
     }), [totals]);
-
-    const handleSaveLoan = (newLoan: Loan) => {
-        createLoanMutation.mutate(newLoan, {
-            onSuccess: () => {
-                playSound('success');
-                // Initial Transaction is handled inside LoanFormModal or here.
-                // Re-triggering of list is handled by react-query.
-            }
-        });
-    };
-
-    const formatCurrency = (val: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
 
     if (isLoading) return <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div></div>;
 
@@ -93,17 +86,19 @@ const LoansView: React.FC<LoansViewProps> = ({ onSelectLoan, onAddTransaction })
                             <FilterIcon className="h-4 w-4" />
                         </div>
                         <select 
-                            value={filterType} 
+                            value={filterType}
+                            aria-label="Filtrar por natureza"
                             onChange={(e) => setFilterType(e.target.value as any)}
                             className="text-sm bg-transparent border-none text-on-surface focus:ring-0 cursor-pointer"
                         >
                             <option value="all">Todos os Tipos</option>
-                            <option value="lend">Eu Emprestei</option>
-                            <option value="borrow">Eu Peguei</option>
+                            <option value="borrow">Peguei emprestado</option>
+                            <option value="lend">Emprestei dinheiro</option>
                         </select>
                         <div className="w-px h-4 bg-border mx-1"></div>
                         <select 
-                            value={filterStatus} 
+                            value={filterStatus}
+                            aria-label="Filtrar por situação"
                             onChange={(e) => setFilterStatus(e.target.value as any)}
                             className="text-sm bg-transparent border-none text-on-surface focus:ring-0 cursor-pointer"
                         >
@@ -111,30 +106,37 @@ const LoansView: React.FC<LoansViewProps> = ({ onSelectLoan, onAddTransaction })
                             <option value="active">Ativos</option>
                             <option value="overdue">Atrasados</option>
                             <option value="paid">Quitados</option>
+                            <option value="cancelled">Cancelados</option>
                         </select>
                     </div>
 
                     <div className="flex bg-surface rounded-lg p-1 border border-border">
                         <button 
                             onClick={() => setViewMode('card')}
+                            aria-label="Ver em cartões"
+                            aria-pressed={viewMode === 'card'}
                             className={`p-2 rounded-md transition-all ${viewMode === 'card' ? 'bg-primary/10 text-primary' : 'text-muted hover:text-on-surface'}`}
                         >
                             <LayoutGridIcon className="h-5 w-5" />
                         </button>
                         <button 
                             onClick={() => setViewMode('list')}
+                            aria-label="Ver em lista"
+                            aria-pressed={viewMode === 'list'}
                             className={`p-2 rounded-md transition-all ${viewMode === 'list' ? 'bg-primary/10 text-primary' : 'text-muted hover:text-on-surface'}`}
                         >
                             <ListIcon className="h-5 w-5" />
                         </button>
                     </div>
 
-                    <button 
-                        onClick={() => setIsFormOpen(true)}
-                        className="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center shadow-md transition-colors whitespace-nowrap"
-                    >
-                        <PlusIcon className="mr-2 h-4 w-4" /> Novo Empréstimo
-                    </button>
+                    {canCreate && (
+                        <button
+                            onClick={() => setIsFormOpen(true)}
+                            className="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center shadow-md transition-colors whitespace-nowrap"
+                        >
+                            <PlusIcon className="mr-2 h-4 w-4" /> Novo Empréstimo
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -148,11 +150,11 @@ const LoansView: React.FC<LoansViewProps> = ({ onSelectLoan, onAddTransaction })
                 )}
                 <div className="bg-surface p-4 rounded-xl border border-border shadow-sm flex items-center gap-4">
                     <div className="p-3 bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-400 rounded-lg"><TrendingUpIcon className="w-6 h-6" /></div>
-                    <div><p className="text-[10px] font-bold text-muted uppercase">A Receber</p><p className="text-lg font-bold text-green-600">{formatCurrency(stats.lend)}</p></div>
+                    <div><p className="text-[10px] font-bold text-muted uppercase">A Receber</p><p data-testid="loans-total-lend" className="text-lg font-bold text-green-600">{formatCents(stats.lendCents)}</p></div>
                 </div>
                 <div className="bg-surface p-4 rounded-xl border border-border shadow-sm flex items-center gap-4">
                     <div className="p-3 bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400 rounded-lg"><ArrowDownIcon className="w-6 h-6" /></div>
-                    <div><p className="text-[10px] font-bold text-muted uppercase">A Pagar</p><p className="text-lg font-bold text-red-600">{formatCurrency(stats.borrow)}</p></div>
+                    <div><p className="text-[10px] font-bold text-muted uppercase">A Pagar</p><p data-testid="loans-total-borrow" className="text-lg font-bold text-red-600">{formatCents(stats.borrowCents)}</p></div>
                 </div>
                 <div className="bg-surface p-4 rounded-xl border border-border shadow-sm flex items-center gap-4">
                     <div className="p-3 bg-yellow-50 text-yellow-600 dark:bg-yellow-900/20 dark:text-yellow-400 rounded-lg"><WarningIcon className="w-6 h-6" /></div>
@@ -186,21 +188,20 @@ const LoansView: React.FC<LoansViewProps> = ({ onSelectLoan, onAddTransaction })
                                     <tr key={loan.id} onClick={() => onSelectLoan(loan)} className="hover:bg-background/50 transition-colors cursor-pointer group">
                                         <td className="px-4 py-3"><p className="font-bold text-on-surface">{loan.personName}</p><p className="text-xs text-muted truncate max-w-[200px]">{loan.description}</p></td>
                                         <td className="px-4 py-3 text-center"><span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${loan.type === 'lend' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>{loan.type === 'lend' ? 'Emprestei' : 'Peguei'}</span></td>
-                                        <td className="px-4 py-3 text-right font-bold text-on-surface">{formatCurrency(loan.currentBalance)}</td>
+                                        <td className="px-4 py-3 text-right font-bold text-on-surface">{loan.status === 'cancelled' ? '—' : formatCents(openBalanceCents(loan))}</td>
                                         <td className="px-4 py-3 text-center">
                                             <div className="flex items-center gap-2 justify-center">
-                                                <div className="w-12 h-1.5 bg-background rounded-full overflow-hidden"><div className="h-full bg-primary" style={{ width: `${Math.min(100, (loan.totalPaidReceived / (loan.principalValue + (loan.interestType === 'fixed' ? loan.interestValue || 0 : 0))) * 100)}%` }}></div></div>
-                                                <span className="text-[10px] text-muted">{Math.round((loan.totalPaidReceived / (loan.principalValue || 1)) * 100)}%</span>
+                                                <div className="w-12 h-1.5 bg-background rounded-full overflow-hidden"><div className="h-full bg-primary" style={{ width: `${principalProgressPercent(loan)}%` }}></div></div>
+                                                <span className="text-[10px] text-muted">{principalProgressPercent(loan)}%</span>
                                             </div>
                                         </td>
-                                        <td className="px-4 py-3 text-center text-muted">{new Date(loan.expectedPayoffDate).toLocaleDateString('pt-BR')}</td>
+                                        <td className="px-4 py-3 text-center text-muted">{formatDayKey(loan.maturityDate)}</td>
                                         <td className="px-4 py-3 text-center">
                                             <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
                                                 loan.status === 'active' ? 'bg-blue-100 text-blue-700' :
                                                 loan.status === 'paid' ? 'bg-green-100 text-green-700' :
-                                                loan.status === 'overdue' ? 'bg-red-100 text-red-700' :
-                                                loan.status === 'cancelled' ? 'bg-gray-100 text-gray-500' : 'bg-gray-100 text-gray-500'
-                                            }`}>{loan.status}</span>
+                                                loan.status === 'overdue' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'
+                                            }`}>{LOAN_STATUS_LABELS[loan.status]}</span>
                                         </td>
                                     </tr>
                                 ))}
@@ -230,11 +231,10 @@ const LoansView: React.FC<LoansViewProps> = ({ onSelectLoan, onAddTransaction })
 
             </div>
 
-            <LoanFormModal 
-                isOpen={isFormOpen} 
-                onClose={() => setIsFormOpen(false)} 
-                onSave={handleSaveLoan}
-                onAddTransaction={onAddTransaction}
+            <LoanFormModal
+                isOpen={isFormOpen}
+                onClose={() => setIsFormOpen(false)}
+                onCreated={() => playSound('success')}
             />
         </div>
     );

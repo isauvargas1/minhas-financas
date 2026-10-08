@@ -1,6 +1,8 @@
 
 import React, { useState } from 'react';
-import { useAcceptInvite } from '../modules/split-bills/hooks.ts';
+import { useAcceptSplitInvite, useSplitIntentKey } from '../modules/split-bills/hooks.ts';
+import { INVITE_CODE_LENGTH, isValidInviteCode, normalizeInviteCode } from '../modules/split-bills/payloads.ts';
+import { splitErrorView } from '../modules/split-bills/presentation.ts';
 import { CloseIcon, LoginIcon } from './Icons.tsx';
 import { useTheme } from '../contexts/ThemeContext.tsx';
 
@@ -13,40 +15,40 @@ interface JoinGroupModalProps {
 const JoinGroupModal: React.FC<JoinGroupModalProps> = ({ isOpen, onClose, onSuccess }) => {
     const [code, setCode] = useState('');
     const [error, setError] = useState('');
-    const acceptInviteMutation = useAcceptInvite();
+    const acceptInviteMutation = useAcceptSplitInvite();
+    const intent = useSplitIntentKey();
     const { playSound } = useTheme();
 
     if (!isOpen) return null;
 
-    const handleSubmit = (e: React.FormEvent) => {
+    /*
+     * Só o código vai ao servidor: quem entra é o usuário autenticado, com
+     * o papel gravado no convite. O nome exibido vem do cadastro do espaço.
+     */
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (acceptInviteMutation.isPending) return;
         setError('');
-        
-        if (code.length < 6) {
-            setError('O código deve ter pelo menos 6 caracteres.');
+        const normalized = normalizeInviteCode(code);
+        if (!isValidInviteCode(normalized)) {
+            setError(`O código tem ${INVITE_CODE_LENGTH} caracteres (letras e números).`);
             return;
         }
-
-        acceptInviteMutation.mutate(
-            { code: code.toUpperCase(), userName: 'Você' },
-            {
-                onSuccess: (data) => {
-                    if (data.success && data.groupId) {
-                        playSound('success');
-                        onSuccess(data.groupId);
-                        onClose();
-                        setCode('');
-                    } else {
-                        playSound('error');
-                        setError(data.message || 'Erro ao entrar no grupo.');
-                    }
-                },
-                onError: () => {
-                    playSound('error');
-                    setError('Erro de conexão. Tente novamente.');
-                }
-            }
-        );
+        const payload = { code: normalized };
+        try {
+            const result = await acceptInviteMutation.mutateAsync({
+                payload,
+                idempotencyKey: intent.keyFor('acceptSplitGroupInvite', payload),
+            });
+            intent.reset();
+            playSound('success');
+            onSuccess(result.groupId);
+            onClose();
+            setCode('');
+        } catch (failure) {
+            playSound('error');
+            setError(splitErrorView(failure).message);
+        }
     };
 
     return (
@@ -61,17 +63,19 @@ const JoinGroupModal: React.FC<JoinGroupModalProps> = ({ isOpen, onClose, onSucc
 
                 <form onSubmit={handleSubmit} className="p-6">
                     <div className="mb-4">
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        <label htmlFor="split-invite-code" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                             Código do Convite
                         </label>
                         <div className="relative">
                             <input 
+                                id="split-invite-code"
                                 type="text" 
                                 value={code}
                                 onChange={(e) => setCode(e.target.value.toUpperCase())}
-                                placeholder="EX: A1B2C3"
+                                placeholder="EX: A1B2C3D4E5"
+                                autoComplete="off"
                                 className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white text-gray-900 dark:bg-dark-200 dark:text-white text-lg font-mono tracking-widest uppercase focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                maxLength={8}
+                                maxLength={14}
                                 autoFocus
                             />
                             <div className="absolute left-3 top-3.5 text-gray-400">
@@ -79,7 +83,7 @@ const JoinGroupModal: React.FC<JoinGroupModalProps> = ({ isOpen, onClose, onSucc
                             </div>
                         </div>
                         {error && (
-                            <p className="mt-2 text-xs text-red-500 font-medium">{error}</p>
+                            <p role="alert" className="mt-2 text-xs text-red-500 font-medium">{error}</p>
                         )}
                     </div>
 

@@ -7,21 +7,19 @@ const require = createRequire(import.meta.url);
 const admin = require('../functions/node_modules/firebase-admin') as typeof import('../functions/node_modules/firebase-admin');
 
 /**
- * Superfície operacional e alocação PJ (INV-P1-006, INV-P1-008).
+ * Superfície operacional e alocação PJ (INV-P1-006, INV-P1-008; D-15, P4-D).
  *
- * A Etapa 3 tirou a administração técnica de investimentos da configuração
- * comum (§0.B) e remontou a faixa de alocação na tela de Investimentos (§6).
- * Este arquivo acompanha as duas decisões: a alocação PJ é verificada onde ela
- * passou a morar, e as operações pesadas continuam verificadas com o runtime
- * das Functions no meio — o gatilho deixou de ser um clique e passou a ser a
- * chamada HTTP que o SDK do navegador faz.
+ * A faixa de alocação PJ é verificada onde mora (tela de Investimentos). A
+ * administração técnica, o onboarding, a valoração, a importação e as
+ * reconstruções/backfill de investimentos não existem mais (D-15): o teste
+ * prova pelo runtime das Functions que essas callables não estão expostas, e
+ * que a reconstrução de caixa (`rebuildCashPeriods`) continua concluindo.
  */
 const PROJECT = 'minhas-financas-local';
 const UID = 'e2e-investment-ops-owner';
 const EMAIL = 'e2e-investment-ops@minhas-financas.local';
 const PASSWORD = 'e2e-investment-ops-password';
 const WORKSPACE = 'e2e-investment-ops-workspace';
-const GOAL = 'e2e-investment-ops-goal';
 
 const firebaseAdmin = () => {
   process.env.GCLOUD_PROJECT = PROJECT;
@@ -110,7 +108,7 @@ test('a faixa de alocação PJ aparece na tela de Investimentos', async ({ page 
 
   await login(page);
   await page.getByText('Investimentos', { exact: true }).first().click();
-  await expect(page.getByRole('heading', { name: 'Investimentos' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Investimentos', exact: true })).toBeVisible();
 
   const faixa = page.getByRole('region', { name: 'Alocação do capital da empresa' });
   await expect(faixa).toBeVisible();
@@ -155,112 +153,32 @@ test('a administração técnica não aparece em Configurações para nenhum pap
   await expect(page.getByText('Administração técnica de investimentos')).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Preparar padrões de investimentos' })).toHaveCount(0);
 
-  // Os cadastros que o usuário comum usa continuam no lugar.
+  // Os cadastros que o usuário comum usa continuam no lugar: carteira de
+  // investimentos e instituição, e a categoria em `Categorias` › Investimentos
+  // (a segunda fonte, `investment_type`, saiu com a D-15).
   await expect(page.getByText('Produtos e Serviços')).toBeVisible();
+  for (const grupo of ['Carteiras de investimento', 'Instituições']) {
+    await expect(page.getByText(grupo).first()).toBeVisible();
+  }
+  await expect(page.getByText('Categorias', { exact: true }).first()).toBeVisible();
+  for (const removido of ['Categorias de investimento', 'Risco', 'Liquidez', 'Indexadores', 'Estratégias']) {
+    await expect(page.getByText(removido, { exact: true })).toHaveCount(0);
+  }
 });
 
-/**
- * Meta com progresso divergente e duas posições vinculadas.
- *
- * O progresso publicado é deliberadamente diferente do que as posições somam:
- * é o estado de deriva que o recálculo patrimonial existe para corrigir.
- */
-const seedGoalWithDriftedProgress = async () => {
-  const sdk = firebaseAdmin();
-  const db = sdk.firestore();
-  const now = sdk.firestore.Timestamp.now();
-
-  await db.doc(`workspaces/${WORKSPACE}/goals/${GOAL}`).set({
-    name: 'Reserva operacional',
-    category: 'patrimonio',
-    status: 'em_andamento',
-    priority: 'media',
-    targetAmount: 10_000,
-    targetAmountCents: 1_000_000,
-    startDate: '2026-01-01',
-    deadline: '2026-12-31',
-    horizon: 'medio',
-    progressBasis: 'net_contributions',
-    archived: false,
-    workspaceId: WORKSPACE,
-    profileId: WORKSPACE,
-    visual: { color: '#112233', icon: 'target', progressBarType: 'linear' },
-    investmentNetContributionCents: 999_999,
-    investmentCurrentValueCents: 999_999,
-    investmentProgressCents: 999_999,
-    createdBy: UID,
-    updatedBy: UID,
-    createdAt: now,
-    updatedAt: now,
-  });
-
-  const base = {
-    workspaceId: WORKSPACE, profileType: 'PJ' as const, currency: 'BRL',
-    createdBy: UID, updatedBy: UID, createdAt: now, updatedAt: now,
-  };
-  await db.doc(`workspaces/${WORKSPACE}/investment_accounts/ops-account`).set({
-    ...base, id: 'ops-account', name: 'Tesouraria E2E',
-    institutionName: 'Banco E2E', status: 'active',
-  });
-  await Promise.all([1, 2].map((index) =>
-    db.doc(`workspaces/${WORKSPACE}/investment_assets/ops-asset-${index}`).set({
-      ...base, id: `ops-asset-${index}`, name: `CDB ${index}`, symbol: `CDB${index}`,
-      assetType: 'fixed_income', allocationPurpose: 'reserve', status: 'active',
-    })));
-  await Promise.all([1, 2].map((index) =>
-    db.doc(`workspaces/${WORKSPACE}/investment_positions/ops-position-${index}`).set({
-      ...base, id: `ops-position-${index}`, accountId: 'ops-account',
-      assetId: `ops-asset-${index}`, goalId: GOAL, status: 'active',
-      principalCents: 25_000, currentValueCents: 25_000,
-      realizedGainCents: 0, realizedLossCents: 0, feesCents: 0, taxCents: 0,
-      quantityMicros: 1_000_000, version: 1,
-    })));
-};
-
-test('o recálculo de meta publica o valor absoluto pelo runtime das Functions', async ({ page, request }) => {
-  await seedWorkspace();
-  await seedGoalWithDriftedProgress();
-  const db = firebaseAdmin().firestore();
-  const token = await emulatorIdToken(request, EMAIL, PASSWORD);
-
-  const outcome = await runPagedCallable(
-    request, token, 'recalculateGoalInvestmentProgress',
-    { workspaceId: WORKSPACE, goalId: GOAL, pageSize: 50, reason: 'Reconciliação após deriva' },
-    'e2e-goal-rebuild-absoluto',
-  );
-  expect(outcome.status).toBe(200);
-
-  // A meta converge para a soma exata das posições vinculadas.
-  await expect.poll(
-    async () => (await db.doc(`workspaces/${WORKSPACE}/goals/${GOAL}`).get())
-      .data()?.investmentNetContributionCents,
-    { timeout: 30_000 },
-  ).toBe(50_000);
-
-  // E a tela lê o mesmo número, sem recalcular nada no cliente. Em PJ o item
-  // de menu chama-se "Metas Empresariais".
-  await login(page);
-  await page.getByText('Metas Empresariais', { exact: true }).first().click();
-  await expect(page.getByText('Reserva operacional').first()).toBeVisible();
-});
-
-test('as reconstruções paginadas concluem pelo runtime das Functions', async ({ request }) => {
+test('a reconstrução do caixa conclui pelo runtime das Functions', async ({ request }) => {
   /*
-   * Todas compartilhavam um defeito que só aparece com o runtime das Functions
-   * no meio — `admin.firestore.FieldPath` chega `undefined` no emulador — e
-   * por isso falhavam com erro interno em qualquer chamada real, enquanto os
-   * testes de integração, que chamam as funções exportadas diretamente,
-   * passavam. É por isso que a cobertura continua sendo por HTTP.
+   * A reconstrução por cursor compartilhava um defeito que só aparece com o
+   * runtime das Functions no meio — `admin.firestore.FieldPath` chega
+   * `undefined` no emulador —, por isso a cobertura continua sendo por HTTP.
    */
   await seedWorkspace();
   const db = firebaseAdmin().firestore();
   const token = await emulatorIdToken(request, EMAIL, PASSWORD);
 
-  // 1. Fluxo de caixa mensal: a projeção que substitui a varredura da coleção
-  //    inteira de transações no saldo acumulado.
   const caixa = await runPagedCallable(
     request, token, 'rebuildCashPeriods',
-    { workspaceId: WORKSPACE, pageSize: 300, reason: 'Backfill da projeção de caixa' },
+    { workspaceId: WORKSPACE, pageSize: 300, reason: 'Reconstrução da projeção de caixa' },
     'e2e-rebuild-cash',
   );
   expect(caixa.status).toBe(200);
@@ -270,33 +188,46 @@ test('as reconstruções paginadas concluem pelo runtime das Functions', async (
     return periods.docs.filter((entry) => !entry.id.startsWith('cash_periods_rebuild')).length;
   }, { timeout: 30_000 }).toBeGreaterThan(0);
 
-  // 2. Projeções patrimoniais.
-  const projecoes = await runPagedCallable(
-    request, token, 'rebuildInvestmentProjections',
-    { workspaceId: WORKSPACE, pageSize: 50, reason: 'Reconstrução das projeções' },
-    'e2e-rebuild-projections',
-  );
-  expect(projecoes.status).toBe(200);
-  expect(projecoes.result?.completed).toBe(true);
-
-  // 3. Posições e metas, em lote.
-  const backfill = await runPagedCallable(
-    request, token, 'backfillInvestmentWorkspace',
-    { workspaceId: WORKSPACE, pageSize: 20, reason: 'Recálculo de posições e metas' },
-    'e2e-backfill-workspace',
-  );
-  expect(backfill.status).toBe(200);
-  expect(backfill.result?.completed).toBe(true);
-
-  // Nenhuma delas altera fato: o caixa de receita e despesa segue intacto.
+  // Reconstruir não altera fato: os lançamentos seguem intactos.
   expect((await db.collection(`workspaces/${WORKSPACE}/transactions`).get()).size).toBe(2);
+});
+
+/** Callables removidas na D-15 (P4-D): não fazem parte do deploy. */
+const REMOVED_INVESTMENT_CALLABLES = [
+  'onboardInvestmentWorkspace',
+  'createInvestmentContribution',
+  'createInvestmentRedemption',
+  'settleInvestmentRedemption',
+  'saveInvestmentAccount',
+  'archiveInvestmentAccount',
+  'saveInvestmentAsset',
+  'archiveInvestmentAsset',
+  'recordInvestmentValuation',
+  'registerInvestmentImportBatch',
+  'recalculateInvestmentPosition',
+  'recalculateGoalInvestmentProgress',
+  'rebuildInvestmentProjections',
+  'backfillInvestmentWorkspace',
+];
+
+test('as callables da experiência profissional não existem no runtime', async ({ request }) => {
+  await seedWorkspace();
+  const token = await emulatorIdToken(request, EMAIL, PASSWORD);
+  for (const name of REMOVED_INVESTMENT_CALLABLES) {
+    const outcome = await callCallable(request, token, name, {
+      workspaceId: WORKSPACE,
+      idempotencyKey: `e2e-removida-${name}`.slice(0, 64),
+      correlationId: `e2e-removida-${name}`.slice(0, 64),
+    });
+    // Função inexistente no emulador: 404, nunca execução.
+    expect(outcome.status, `${name} ainda responde`).toBe(404);
+  }
 });
 
 test('papel sem autoridade recebe recusa do servidor, não botão escondido', async ({ request }) => {
   /*
-   * §10 — esconder é conveniência de interface; autorizar é servidor. Com a
-   * superfície fora da navegação, a única garantia que importa é esta: o
-   * backend recusa quem não pode, mesmo que a chamada chegue direto.
+   * §10 — esconder é conveniência de interface; autorizar é servidor. Desfazer
+   * lançamento é de owner/admin: o member recebe recusa mesmo chamando direto.
    */
   await seedWorkspace();
   const db = firebaseAdmin().firestore();
@@ -311,18 +242,16 @@ test('papel sem autoridade recebe recusa do servidor, não botão escondido', as
   );
 
   const token = await emulatorIdToken(request, EMAIL, PASSWORD);
-  for (const [name, payload] of [
-    ['rebuildInvestmentProjections', { pageSize: 50, reason: 'Tentativa sem autoridade' }],
-    ['backfillInvestmentWorkspace', { pageSize: 20, reason: 'Tentativa sem autoridade' }],
-    ['recalculateGoalInvestmentProgress', { goalId: GOAL, pageSize: 50, reason: 'Tentativa sem autoridade' }],
-  ] as [string, Record<string, unknown>][]) {
-    const outcome = await callCallable(request, token, name, {
-      workspaceId: WORKSPACE,
-      idempotencyKey: `e2e-sem-autoridade-${name}`,
-      correlationId: `e2e-sem-autoridade-${name}`,
-      ...payload,
-    });
-    expect(outcome.status, `${name} deveria recusar member`).toBeGreaterThanOrEqual(400);
-    expect(outcome.errorStatus).toBe('PERMISSION_DENIED');
-  }
+  const outcome = await callCallable(request, token, 'reverseInvestmentMovement', {
+    workspaceId: WORKSPACE,
+    idempotencyKey: 'e2e-sem-autoridade-reverse-0001',
+    correlationId: 'e2e-sem-autoridade-reverse',
+    movementId: 'movimento-qualquer',
+    reversedAt: new Date().toISOString(),
+    reason: 'Tentativa sem autoridade',
+  });
+  expect(outcome.status, 'reverseInvestmentMovement deveria recusar member').toBeGreaterThanOrEqual(400);
+  expect(outcome.errorStatus).toBe('PERMISSION_DENIED');
+  expect(await db.collection(`workspaces/${WORKSPACE}/investment_movements`).count().get()
+    .then((snapshot) => snapshot.data().count)).toBe(0);
 });
