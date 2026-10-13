@@ -101,6 +101,15 @@ jobs:
       - name: Testes unitários da Divisão de contas (rateio exato) e guardas
         run: npm run test:unit:split
 
+      - name: Testes unitários das notificações (estado privado, paginação, sem polling) e guardas
+        run: npm run test:unit:notifications
+
+      - name: Testes unitários das metas (fonte única, centavos, paginação) e guardas
+        run: npm run test:unit:goals
+
+      - name: Testes unitários do relatório oficial (adaptador, faixas, fuso)
+        run: npm run test:unit:reports
+
   integration-and-rules:
     name: Integração e Firestore Rules
     runs-on: ubuntu-latest

@@ -2,8 +2,12 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  LOCAL_SESSION_OWNER_KEY,
   USER_SCOPED_STORAGE_PREFIXES,
   clearUserScopedStorage,
+  readLocalSessionOwner,
+  reconcileLocalSession,
+  writeLocalSessionOwner,
 } from '../../src/lib/sessionCleanup.ts';
 
 // AUTH-11: depois do logout nada do usuário anterior pode reaparecer para a
@@ -53,6 +57,8 @@ const USER_KEYS = [
   'lastWorkspaceId_uid-a',
   'lastWorkspaceId_uid-b',
   'finance_ai_chat_history_ws-1',
+  'finance_ai_chat_history_v2:uid-a:ws-1',
+  'dindin_local_session_owner',
   'app_chat_threads',
   'app_chat_threads_ws-1',
   'app_chat_messages',
@@ -72,7 +78,13 @@ const KEPT_KEYS = [
 test('prefixes cobertos são exatamente os de dados do usuário', () => {
   assert.deepEqual(
     [...USER_SCOPED_STORAGE_PREFIXES],
-    ['lastWorkspaceId_', 'finance_ai_chat_history_', 'app_chat_threads', 'app_chat_messages'],
+    [
+      'lastWorkspaceId_',
+      'finance_ai_chat_history_',
+      'app_chat_threads',
+      'app_chat_messages',
+      'dindin_local_session_owner',
+    ],
   );
 });
 
@@ -146,4 +158,64 @@ test('sem localStorage acessível devolve lista vazia sem lançar', () => {
       delete (globalThis as { localStorage?: unknown }).localStorage;
     }
   }
+});
+
+// P5-A (PR-AI-04): dono local da sessão e reconciliação por emissão do Auth.
+test('dono local: grava, lê e recusa valores inválidos sem lançar', () => {
+  const storage = new FakeStorage();
+  assert.equal(readLocalSessionOwner(storage), null);
+  assert.equal(writeLocalSessionOwner('uid-a', storage), true);
+  assert.equal(storage.getItem(LOCAL_SESSION_OWNER_KEY), 'uid-a');
+  assert.equal(readLocalSessionOwner(storage), 'uid-a');
+  assert.equal(writeLocalSessionOwner('', storage), false);
+  assert.equal(writeLocalSessionOwner('x'.repeat(257), storage), false);
+  assert.equal(readLocalSessionOwner(null), null);
+  assert.equal(writeLocalSessionOwner('uid-a', null), false);
+});
+
+test('reconciliação: troca na aba, resíduo em carga nova e mesma conta', () => {
+  const seed = () => new FakeStorage({
+    [LOCAL_SESSION_OWNER_KEY]: 'uid-a',
+    'finance_ai_chat_history_v2:uid-a:ws-1': '{}',
+    'lastWorkspaceId_uid-a': 'ws-1',
+    'app-theme': 'dark',
+  });
+
+  const sameAccount = seed();
+  assert.equal(reconcileLocalSession(null, 'uid-a', sameAccount), 'same-account');
+  assert.equal(sameAccount.keys().length, 4);
+
+  const switched = seed();
+  assert.equal(reconcileLocalSession('uid-a', 'uid-b', switched), 'account-switch');
+  assert.deepEqual(switched.keys().sort(), ['app-theme', LOCAL_SESSION_OWNER_KEY].sort());
+  assert.equal(switched.getItem(LOCAL_SESSION_OWNER_KEY), 'uid-b');
+
+  const firstLoadOther = seed();
+  assert.equal(reconcileLocalSession(null, 'uid-b', firstLoadOther), 'residue');
+  assert.equal(firstLoadOther.getItem('finance_ai_chat_history_v2:uid-a:ws-1'), null);
+  assert.equal(firstLoadOther.getItem(LOCAL_SESSION_OWNER_KEY), 'uid-b');
+
+  const signedOut = seed();
+  assert.equal(reconcileLocalSession('uid-a', null, signedOut), 'account-switch');
+  assert.deepEqual(signedOut.keys(), ['app-theme']);
+
+  // Carga sem sessão: saem as conversas e o dono local; a preferência do
+  // último workspace (identificada pelo uid) fica para a mesma conta.
+  const noSession = seed();
+  assert.equal(reconcileLocalSession(null, null, noSession), 'residue');
+  assert.deepEqual(noSession.keys().sort(), ['app-theme', 'lastWorkspaceId_uid-a']);
+});
+
+test('resíduo na carga da conta X preserva só o que é de X', () => {
+  const storage = new FakeStorage({
+    [LOCAL_SESSION_OWNER_KEY]: 'uid-y',
+    'lastWorkspaceId_uid-x': 'ws-x',
+    'lastWorkspaceId_uid-y': 'ws-y',
+    'finance_ai_chat_history_v2:uid-y:ws-y': '{}',
+    'app_chat_threads_ws-y': '[]',
+    'app-theme': 'dark',
+  });
+  assert.equal(reconcileLocalSession(null, 'uid-x', storage), 'residue');
+  assert.deepEqual(storage.keys().sort(), ['app-theme', LOCAL_SESSION_OWNER_KEY, 'lastWorkspaceId_uid-x'].sort());
+  assert.equal(storage.getItem(LOCAL_SESSION_OWNER_KEY), 'uid-x');
 });

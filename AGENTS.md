@@ -14,3 +14,11 @@
 - Não fazer push, merge ou deploy; não acessar o projeto Firebase de produção; Firebase só via Emulator (`minhas-financas-local`) ou DEV/STAGING explicitamente autorizado.
 - Plano mestre de produção: `docs/production/PRODUCTION_READINESS_PLAN.md`.
 - Antes de concluir, executar a skill regression-release-gate.
+
+## Identidade do produto
+
+- Nome oficial: **FênixGran**.
+- Slogan oficial: "Sua grana em uma nova fase".
+- `DINDIN` e `minhas-financas` continuam como identificadores técnicos e históricos.
+- A identidade visual ainda não está definida. Não há rebranding visual, cores, logotipos ou tipografia até as fases de UI/UX aprovadas.
+- Não renomear repositório, Firebase project ID, coleções técnicas, funções publicáveis, variáveis internas estáveis nem identificadores de billing.

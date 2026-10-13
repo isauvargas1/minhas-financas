@@ -105,55 +105,15 @@ export const isUnsettledEntry = (transaction: Transaction): boolean =>
   (transaction.type === 'receita' || transaction.type === 'despesa') &&
   transaction.isPaid === false;
 
-const centsFromReais = (value: number): number => Math.round(value * 100);
-
 export const transactionCashImpactCents = (transaction: Transaction): number => {
   if (transaction.type === 'investimento') return investmentCashEffectOf(transaction).netCents;
-  const valueCents = Number.isSafeInteger(transaction.valueCents)
-    ? transaction.valueCents as number
-    : centsFromReais(transaction.value);
+  const { valueCents } = transaction;
 
   if (isUnsettledEntry(transaction)) return 0;
   if (transaction.type === 'receita') return valueCents;
-  if (transaction.type === 'despesa' || transaction.type === 'parcelado') {
-    // `parcelado` mantém a regra do domínio de cartões (P4).
-    return transaction.isPaid === false ? 0 : -valueCents;
-  }
+  if (transaction.type === 'despesa') return -valueCents;
   return 0;
 };
-
-/**
- * Saída líquida de caixa para investimentos, em centavos: aporte liquidado
- * soma, estorno de aporte subtrai. Classificação de **caixa** (o quanto saiu
- * do caixa para investir no período), nunca patrimônio — o patrimônio e o
- * aporte mensal oficial vêm de `investment_report_periods`.
- */
-export const investmentOutflowCentsOf = (transaction: Transaction): number =>
-  investmentCashEffectOf(transaction).investmentOutflowCents;
-
-export const transactionCashImpact = (transaction: Transaction): number =>
-  transactionCashImpactCents(transaction) / 100;
-
-export const investmentOutflowOf = (transaction: Transaction): number =>
-  investmentOutflowCentsOf(transaction) / 100;
-
-/**
- * Espelho de empréstimo do backend (P3-G, D-13): move o saldo (pelo sinal do
- * tipo), mas o principal e os juros não são receita nem despesa operacional
- * — a projeção os separa em fluxo de principal e resultado financeiro.
- */
-export const isLoanCashMirror = (transaction: Transaction): boolean =>
-  typeof transaction.loanEntry === 'object' && transaction.loanEntry !== null;
-
-/**
- * Espelho de caixa de recebimento de recebível (P3-I, D-39): o dinheiro
- * recebido (principal + juros + multa) move o saldo; o principal é receita
- * operacional, juros e multa são resultado financeiro — a mesma separação da
- * projeção do backend (`incomeCents` × `financialIncomeCents`). O estorno
- * (tipo `despesa`) desfaz o recebimento: não é despesa operacional.
- */
-export const isReceivableCashMirror = (transaction: Transaction): boolean =>
-  typeof transaction.receivableEntry === 'object' && transaction.receivableEntry !== null;
 
 /**
  * Espelho de caixa do pagamento de fatura de cartão (P4-A): liquidação do
@@ -165,96 +125,3 @@ export const isReceivableCashMirror = (transaction: Transaction): boolean =>
 export const isCreditCardPaymentCashMirror = (transaction: Transaction): boolean =>
   typeof transaction.creditCardPaymentEntry === 'object' &&
   transaction.creditCardPaymentEntry !== null;
-
-/** Espelhos de domínio gravados pelo backend com classificação própria. */
-const isDomainCashMirror = (transaction: Transaction): boolean =>
-  isLoanCashMirror(transaction) || isReceivableCashMirror(transaction) ||
-  isCreditCardPaymentCashMirror(transaction);
-
-/**
- * Espelho de caixa da Divisão de contas (P4-C): título pago pelo Caixa e
- * pagamento de reembolso PJ são despesa operacional; a compensação (tipo
- * `receita`) desfaz a despesa — nunca é receita. Mesma regra da projeção do
- * backend (`splitCashEffect`).
- */
-export const isSplitCashMirror = (transaction: Transaction): boolean =>
-  typeof transaction.splitEntry === 'object' && transaction.splitEntry !== null;
-
-/** Despesa do espelho da Divisão, com o sinal da compensação, em centavos. */
-const splitExpenseCents = (transaction: Transaction): number => {
-  const entry = transaction.splitEntry;
-  if (!entry || !Number.isSafeInteger(entry.amountCents) || entry.amountCents < 0) return 0;
-  return entry.reversal ? -entry.amountCents : entry.amountCents;
-};
-
-/**
- * Lançamento inteiramente operacional (D-13, P3-H, P3-I): receita ou despesa
- * comum. Os espelhos de domínio ficam fora — o de empréstimo é movimento de
- * passivo/ativo e resultado financeiro; o de recebível entra só pelo
- * principal (`operationalIncomeOf`) — e continuam no fluxo líquido de caixa
- * (`transactionCashImpact`).
- */
-export const isOperationalIncome = (transaction: Transaction): boolean =>
-  transaction.type === 'receita' && !isDomainCashMirror(transaction) &&
-  !isSplitCashMirror(transaction);
-
-export const isOperationalExpense = (transaction: Transaction): boolean =>
-  isSplitCashMirror(transaction) ||
-  ((transaction.type === 'despesa' || transaction.type === 'parcelado') &&
-    !isDomainCashMirror(transaction));
-
-/** Principal do espelho de recebível, com o sinal do estorno, em centavos. */
-const receivablePrincipalCents = (transaction: Transaction): number => {
-  const entry = transaction.receivableEntry;
-  if (!entry || !Number.isSafeInteger(entry.principalCents) || entry.principalCents < 0) return 0;
-  return entry.reversal ? -entry.principalCents : entry.principalCents;
-};
-
-/**
- * Receita operacional do lançamento, em reais: o valor da receita comum ou o
- * principal (com sinal) do espelho de recebível. Empréstimo não conta.
- */
-export const operationalIncomeOf = (transaction: Transaction): number => {
-  if (isReceivableCashMirror(transaction)) return receivablePrincipalCents(transaction) / 100;
-  return isOperationalIncome(transaction) ? transaction.value : 0;
-};
-
-/**
- * Despesa operacional do lançamento, em reais: o valor da despesa comum ou,
- * no espelho da Divisão de contas, a despesa com o sinal da compensação.
- */
-export const operationalExpenseOf = (transaction: Transaction): number => {
-  if (isSplitCashMirror(transaction)) return splitExpenseCents(transaction) / 100;
-  return isOperationalExpense(transaction) ? transaction.value : 0;
-};
-
-/**
- * Resumo do caixa realizado (D-29): receitas e despesas pendentes ou agendadas
- * ficam fora de "Receitas", "Despesas" e do saldo — são previsão, não fato.
- * `parcelado` não é mais gravado por nenhum fluxo (P4-A/B/C: a compra
- * parcelada vive no domínio de cartões); um documento fora do contrato segue
- * a regra anterior. Espelhos de empréstimo (P3-G) e de pagamento de fatura
- * de cartão (P4-A) ficam fora de "Receitas" e "Despesas" e dentro do saldo;
- * o de recebível (P3-I) entra em "Receitas" só pelo principal; o da Divisão
- * de contas (P4-C) entra em "Despesas" com o sinal da compensação. O espelho
- * de investimento (P4-D) entra só no saldo; o card "Investimentos" lê o
- * aporte do mês da projeção oficial do domínio (`investment_report_periods`).
- */
-export const summarizeCashFlow = (transactions: Transaction[]) => ({
-  income: transactions
-    .filter(transaction => !isUnsettledEntry(transaction))
-    .reduce((total, transaction) => total + operationalIncomeOf(transaction), 0),
-  expenses: transactions
-    .filter(transaction =>
-      isSplitCashMirror(transaction) ||
-      (transaction.type === 'despesa' && !isUnsettledEntry(transaction) &&
-        !isDomainCashMirror(transaction)) ||
-      transaction.type === 'parcelado')
-    .reduce((total, transaction) => total + (isSplitCashMirror(transaction)
-      ? operationalExpenseOf(transaction)
-      : transaction.value), 0),
-  balance: transactions.reduce(
-    (total, transaction) => total + transactionCashImpact(transaction),
-    0,
-  ),
-});

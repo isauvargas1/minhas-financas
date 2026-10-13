@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { BellIcon, EnvelopeIcon, SunIcon, MoonIcon, HamburgerIcon, ChevronLeftIcon, ChevronRightIcon, SearchIcon, CheckIcon, UsersIcon, BuildingIcon, BriefcaseIcon, PlusIcon } from './Icons.tsx';
 import NotificationsPanel from './NotificationsPanel.tsx';
 import MessagesPanel from './MessagesPanel.tsx';
 import CreateWorkspaceModal from './CreateWorkspaceModal.tsx';
-import NotificationBell from './NotificationBell';
+import ConfirmationModal from './ConfirmationModal.tsx';
 import { 
-    useNotifications, useUnreadNotificationCount, useMarkAllNotificationsAsRead, 
-    useMarkNotificationAsRead, useArchiveNotification 
+    useNotifications, useNotificationActions, useNotificationScope, useCanDeleteNotifications,
+    useNotificationUnreadCount
 } from '../modules/notifications/hooks.ts';
 import { 
     useUnreadMessagesCount 
@@ -15,6 +16,7 @@ import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
 // NOVO IMPORT: Hook que verifica os limites do plano
 import { useBilling } from '../modules/billing/BillingContext';
 import type { AppNotification, NotificationItem, NotificationType } from '../types.ts';
+import { pressTargetProps, usePointerOriginTracking } from '../lib/pressOrigin.ts';
 
 interface HeaderProps {
     onToggleSidebar: () => void;
@@ -45,13 +47,76 @@ const Header: React.FC<HeaderProps> = ({
     const [isMessagesOpen, setIsMessagesOpen] = useState(false);
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
     const [isCreateWorkspaceModalOpen, setIsCreateWorkspaceModalOpen] = useState(false);
+    // P5-E1.1: o fundo que fecha os menus só recebe o clique de um gesto que
+    // começou nele (um toque dentro do painel nunca o fecha).
+    usePointerOriginTracking();
     
     // --- Data Hooks ---
-    const { data: notifications } = useNotifications();
-    const unreadNotifications = useUnreadNotificationCount();
-    const markAllNotifications = useMarkAllNotificationsAsRead();
-    const markNotification = useMarkNotificationAsRead();
-    const archiveNotification = useArchiveNotification();
+    // P5-D1: notificações por (workspace, uid), paginadas, sem polling; ler e
+    // arquivar só mudam o estado do próprio usuário.
+    const notificationScope = useNotificationScope();
+    const notificationFeed = useNotifications(notificationScope);
+    const notificationUnreadCount = useNotificationUnreadCount(notificationScope);
+    const notificationActions = useNotificationActions(notificationScope);
+    const canDeleteNotifications = useCanDeleteNotifications(notificationScope);
+    // Confirmação de "Excluir para mim", presa ao escopo em que foi pedida.
+    const notificationScopeKey = notificationScope ? `${notificationScope.workspaceId}/${notificationScope.uid}` : null;
+    const [pendingDelete, setPendingDelete] = useState<{ id: string; scopeKey: string } | null>(null);
+    const pendingDeleteRef = useRef(pendingDelete);
+    pendingDeleteRef.current = pendingDelete;
+    const [deleteNotice, setDeleteNotice] = useState<string | null>(null);
+    const activePendingDelete = canDeleteNotifications && pendingDelete?.scopeKey === notificationScopeKey ? pendingDelete : null;
+    const { resetDeleteError: resetNotificationDeleteError, isDeleting: isDeletingNotification } = notificationActions;
+    // Troca de workspace, de usuário ou perda do papel descartam o pedido.
+    useEffect(() => {
+        setPendingDelete(null);
+        setDeleteNotice(null);
+    }, [notificationScopeKey, canDeleteNotifications]);
+    // Depois da exclusão o botão de origem some: o foco volta ao sino.
+    const notificationsBellRef = useRef<HTMLButtonElement>(null);
+    const notificationDeletedRef = useRef(false);
+    // Guarda síncrona: dois cliques na mesma tarefa, antes do render que
+    // desabilita o botão, mandariam duas gravações.
+    const deleteInFlightRef = useRef(false);
+    const openDeleteConfirmation = (id: string) => {
+        if (!canDeleteNotifications || !notificationScopeKey || isDeletingNotification) return;
+        // Cada pedido começa limpo: sem erro, aviso ou retorno de foco de outro.
+        notificationDeletedRef.current = false;
+        resetNotificationDeleteError();
+        setDeleteNotice(null);
+        setPendingDelete({ id, scopeKey: notificationScopeKey });
+    };
+    const closeDeleteConfirmation = () => {
+        // Com a gravação em curso o diálogo fica aberto até a resposta.
+        if (isDeletingNotification) return;
+        setPendingDelete(null);
+        setDeleteNotice(null);
+        resetNotificationDeleteError();
+    };
+    const confirmNotificationDelete = () => {
+        if (!activePendingDelete || isDeletingNotification || deleteInFlightRef.current) return;
+        deleteInFlightRef.current = true;
+        const target = activePendingDelete;
+        setDeleteNotice(null);
+        void notificationActions.deleteForMe(target.id).then((result) => {
+            deleteInFlightRef.current = false;
+            // O pedido pode ter sido descartado no meio (troca de escopo ou de papel).
+            const current = pendingDeleteRef.current;
+            if (current?.id !== target.id || current.scopeKey !== target.scopeKey) return;
+            if (result === 'deleted') {
+                notificationDeletedRef.current = true;
+                setPendingDelete(null);
+            } else if (result === 'expired') {
+                setDeleteNotice('Esta notificação expirou e não pode mais ser excluída.');
+            }
+        });
+    };
+    const deleteConfirmationReturnFocus = () => {
+        const deleted = notificationDeletedRef.current;
+        notificationDeletedRef.current = false;
+        return deleted ? notificationsBellRef.current : null;
+    };
+    const unreadSummary = notificationUnreadCount.summary;
     const unreadMessages = useUnreadMessagesCount();
 
     // Workspaces próprios ativos × limite do plano da conta (ajuda de UX; o backend decide)
@@ -86,6 +151,21 @@ const Header: React.FC<HeaderProps> = ({
         setPickerMonth(currentDate.getMonth());
         setIsPickerOpen(true);
     };
+
+    // Abrir o painel relê a primeira página se o dado passou do prazo; fechar
+    // devolve o cache à primeira página.
+    // A contagem exata também é relida ao abrir, se estiver obsoleta.
+    const { refreshIfStale: refreshNotificationsIfStale, collapse: collapseNotifications } = notificationFeed;
+    const { refreshIfStale: refreshUnreadCountIfStale } = notificationUnreadCount;
+    const wasNotificationsOpen = useRef(false);
+    useEffect(() => {
+        if (isNotificationsOpen && !wasNotificationsOpen.current) {
+            refreshNotificationsIfStale();
+            refreshUnreadCountIfStale();
+        }
+        if (!isNotificationsOpen && wasNotificationsOpen.current) collapseNotifications();
+        wasNotificationsOpen.current = isNotificationsOpen;
+    }, [isNotificationsOpen, refreshNotificationsIfStale, refreshUnreadCountIfStale, collapseNotifications]);
 
     const toggleNotifications = () => {
         if (!isNotificationsOpen) { setIsMessagesOpen(false); setIsUserMenuOpen(false); }
@@ -135,7 +215,7 @@ const mapNotificationType = (type: AppNotification['type']): NotificationType =>
 };
 
 const normalizedNotifications = useMemo<NotificationItem[]>(() => {
-    return (notifications ?? []).map((notification) => ({
+    return notificationFeed.visible.map((notification) => ({
         id: notification.id,
         title: notification.title,
         message: notification.message,
@@ -145,11 +225,11 @@ const normalizedNotifications = useMemo<NotificationItem[]>(() => {
         status: notification.read ? 'read' : 'unread',
         type: mapNotificationType(notification.type),
     }));
-}, [notifications]);
+}, [notificationFeed.visible]);
 
-    const Badge = ({ count }: { count: number }) => (
+    const Badge = ({ count = 0, label }: { count?: number; label?: string }) => (
         <span className="absolute top-0 right-0 flex h-4 w-4 -translate-y-1 translate-x-1 items-center justify-center rounded-full bg-red-500 ring-2 ring-background text-[10px] font-bold text-white shadow-sm animate-header-badge-scale-in">
-            {count > 9 ? '9+' : count}
+            {label ?? (count > 9 ? '9+' : count)}
         </span>
     );
 
@@ -158,6 +238,7 @@ const normalizedNotifications = useMemo<NotificationItem[]>(() => {
             {(isNotificationsOpen || isMessagesOpen || isUserMenuOpen) && (
                 <div 
                     className="fixed inset-0 z-30 bg-transparent" 
+                    {...pressTargetProps}
                     onClick={() => { setIsNotificationsOpen(false); setIsMessagesOpen(false); setIsUserMenuOpen(false); }}
                 />
             )}
@@ -234,25 +315,41 @@ const normalizedNotifications = useMemo<NotificationItem[]>(() => {
                     {/* NOTIFICATIONS */}
                     <div className="relative">
                         <button 
+                            ref={notificationsBellRef}
                             type="button"
                             onClick={toggleNotifications}
-                            aria-label={unreadNotifications > 0 ? `Notificações, ${unreadNotifications} não ${unreadNotifications === 1 ? 'lida' : 'lidas'}` : 'Notificações'}
+                            aria-label={unreadSummary.bellLabel}
                             aria-expanded={isNotificationsOpen}
                             className={`${iconButtonBaseClass} ${isNotificationsOpen ? iconButtonActive : iconButtonInactive}`}
                         >
                             <BellIcon className="w-5 h-5" />
-                            {unreadNotifications > 0 && <Badge count={unreadNotifications} />}
+                            {unreadSummary.badge !== '' && <Badge label={unreadSummary.badge} />}
                         </button>
-                        {isNotificationsOpen && notifications && (
+                        {isNotificationsOpen && (
                             <NotificationsPanel 
                                     notifications={normalizedNotifications}
+                                    status={notificationFeed.status}
+                                    errorMessage={notificationFeed.loadError}
+                                    noticeMessage={notificationActions.actionError ?? (notificationFeed.status === 'ready' ? notificationFeed.loadError : null)}
+                                    unreadChip={unreadSummary.chip}
+                                    unreadChipLabel={unreadSummary.chipLabel}
+                                    hasMore={notificationFeed.hasMore}
+                                    isLoadingMore={notificationFeed.isLoadingMore}
+                                    isMarking={notificationActions.isMarking}
+                                    canDelete={canDeleteNotifications}
+                                    isDeleting={notificationActions.isDeleting}
+                                    onLoadMore={notificationFeed.loadMore}
+                                    onRetry={notificationFeed.retry}
                                     onClose={() => setIsNotificationsOpen(false)}
                                 onMarkAllRead={() => {
-                                        const unreadIds = notifications.filter(n => !n.read).map(n => n.id);
-                                        if (unreadIds.length > 0) markAllNotifications.mutate(unreadIds);
+                                        const unreadIds = notificationFeed.visible.filter(n => !n.read).map(n => n.id);
+                                        notificationActions.markAsRead(unreadIds);
                                     }}
-                                onMarkAsRead={(id) => markNotification.mutate(id)}
-                                onDelete={(id) => archiveNotification.mutate(id)}
+                                onMarkAsRead={(id) => {
+                                        if (notificationFeed.visible.some(n => n.id === id && !n.read)) notificationActions.markAsRead([id]);
+                                    }}
+                                onArchive={(id) => notificationActions.dismiss(id)}
+                                onDeleteForMe={openDeleteConfirmation}
                                 onNavigate={onNavigate}
                             />
                         )}
@@ -428,6 +525,22 @@ const normalizedNotifications = useMemo<NotificationItem[]>(() => {
                 isOpen={isCreateWorkspaceModalOpen}
                 onClose={() => setIsCreateWorkspaceModalOpen(false)}
             />
+
+            {activePendingDelete && createPortal(
+                <ConfirmationModal
+                    isOpen
+                    onClose={closeDeleteConfirmation}
+                    onConfirm={confirmNotificationDelete}
+                    title="Excluir notificação"
+                    message="Excluir esta notificação apenas para você? Ela continuará disponível para os demais membros. Esta ação não poderá ser desfeita."
+                    confirmLabel="Excluir para mim"
+                    isBusy={notificationActions.isDeleting}
+                    error={notificationActions.deleteError ?? deleteNotice}
+                    manageFocus
+                    returnFocus={deleteConfirmationReturnFocus}
+                />,
+                document.body,
+            )}
 
             <style>{`
     @keyframes header-badge-scale-in {

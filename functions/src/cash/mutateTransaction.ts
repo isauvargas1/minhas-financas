@@ -48,11 +48,11 @@ import {
   type VoidCashTransactionPayload,
   type VoidCashTransactionResult,
 } from "./contracts";
+import {readEntryCategories, resolveEntryCategory} from "./categories";
 import {
   CASH_ENTRY_ROLES,
   IDEMPOTENCY_CONFLICT_MESSAGE,
   PJ_ONLY_FIELDS_MESSAGE,
-  transactionInstant,
 } from "./createTransaction";
 import {
   classifyCashEntryEligibility,
@@ -153,7 +153,7 @@ const STATE_FIELDS = [
   "status",
   "type",
   "description",
-  "category",
+  "categoryId",
   "amountCents",
   "date",
   "dueDate",
@@ -174,7 +174,7 @@ type StateValues = Record<StateField, string | number | undefined>;
  * anterior.
  */
 const SNAPSHOT_BY_FIELD: Partial<Record<StateField, string>> = {
-  category: "categorySnapshot",
+  categoryId: "categorySnapshot",
   type: "categorySnapshot",
   expenseType: "expenseTypeSnapshot",
   incomeType: "incomeTypeSnapshot",
@@ -203,7 +203,7 @@ const currentValues = (
   status: eligibility.status,
   type: eligibility.type,
   description: textOrUndefined(data.description),
-  category: textOrUndefined(data.category),
+  categoryId: textOrUndefined(data.categoryId),
   amountCents: eligibility.amountCents,
   date: eligibility.date,
   dueDate: eligibility.dueDate ?? undefined,
@@ -230,7 +230,7 @@ const nextValues = (
     status: settlement.status,
     type: entry.type,
     description: entry.description,
-    category: entry.category,
+    categoryId: entry.categoryId,
     amountCents: entry.amountCents,
     date: pending ? settlement.dueDate : settlement.date,
     dueDate: pending ? settlement.dueDate : current.dueDate,
@@ -591,6 +591,17 @@ export const executeUpdateCashTransaction = async (
         {transition: `${before.status}_to_${next.status}`},
       );
     }
+    // Categoria do catálogo (D-37.8): mesmo workspace e tipo; a atual pode
+    // continuar mesmo inativada, uma nova precisa estar ativa.
+    const categories = await readEntryCategories(
+      transaction, actor.workspaceId, [payload.entry.categoryId]);
+    const category = resolveEntryCategory(
+      payload.entry.categoryId,
+      categories.get(payload.entry.categoryId),
+      payload.entry.type,
+      {keepInactiveId: typeof before.categoryId === "string" ?
+        before.categoryId : null},
+    );
     const changedFields = STATE_FIELDS.filter(
       (field) => before[field] !== next[field],
     );
@@ -636,9 +647,9 @@ export const executeUpdateCashTransaction = async (
     const patch: admin.firestore.UpdateData<admin.firestore.DocumentData> = {
       type: next.type,
       description: next.description,
-      category: next.category,
+      category: category.name,
+      categoryId: category.categoryId,
       valueCents: amountCents,
-      value: amountCents / 100,
       date,
       isPaid: !pending,
       // Pendente: o vencimento é a data de referência. Confirmado: o
@@ -654,9 +665,6 @@ export const executeUpdateCashTransaction = async (
       updatedBy: actor.uid,
       updatedAt: FieldValue.serverTimestamp(),
     };
-    if (date !== before.date || loaded.data.transactionDate === undefined) {
-      patch.transactionDate = transactionInstant(date);
-    }
     for (const field of [
       "incomeType",
       "expenseType",
@@ -808,10 +816,8 @@ export const executeConfirmCashTransaction = async (
     const patch: admin.firestore.UpdateData<admin.firestore.DocumentData> = {
       isPaid: true,
       date: payload.date,
-      transactionDate: transactionInstant(payload.date),
       dueDate,
       valueCents: payload.amountCents,
-      value: payload.amountCents / 100,
       ...(payload.paymentMethod === undefined ?
         {} :
         {paymentMethod: payload.paymentMethod}),

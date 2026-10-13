@@ -21,6 +21,11 @@ import {
   type TransactionWriteEvent,
 } from "../../triggers/transactions";
 import {
+  DEFAULT_EXPENSE_CATEGORY_ID,
+  defaultCategoryIdFor,
+  seedDefaultCategories,
+} from "../../settingsCatalog/testSupport/categorySeeds";
+import {
   call,
   db,
   expectHttpsError,
@@ -84,6 +89,7 @@ const seedTenant = async (): Promise<Tenant> => {
   await seedMember(tenant.workspaceId, tenant.member, "member");
   await seedMember(tenant.workspaceId, tenant.otherMember, "member");
   await seedMember(tenant.workspaceId, tenant.viewer, "viewer");
+  await seedDefaultCategories(tenant.workspaceId);
   return tenant;
 };
 
@@ -143,7 +149,8 @@ const createEntry = (
   idempotencyKey: idempotencyKey(),
   type: "despesa",
   description: "Aluguel de outubro",
-  category: "Moradia",
+  categoryId: defaultCategoryIdFor(
+    overrides.type === "receita" ? "receita" : "despesa"),
   amountCents: 180_000,
   status: "pending",
   dueDate: inTwoWeeks,
@@ -199,7 +206,8 @@ const updatePayload = async (
     cashAccountId: defaultAccountOf(workspaceId),
     type: "despesa",
     description: "Aluguel de outubro",
-    category: "Moradia",
+    categoryId: defaultCategoryIdFor(
+      entry.type === "receita" ? "receita" : "despesa"),
     amountCents: 180_000,
     expenseType: "Fixa",
     paymentMethod: "Boleto",
@@ -293,7 +301,7 @@ test("P3-F — pendente e agendado: registrados sem mover o caixa realizado " +
   // Receita a receber já vencida: continua pendente, sem crédito.
   const overdue = await createDelivered(tenant.member, tenant.workspaceId, {
     type: "receita", description: "Consultoria de setembro",
-    category: "Serviços", amountCents: 90_000, dueDate: yesterday,
+    amountCents: 90_000, dueDate: yesterday,
     expenseType: undefined, paymentMethod: undefined, incomeType: "Serviço",
   });
 
@@ -336,7 +344,10 @@ test("P3-F — confirmação: data efetiva, valor liquidado, vencimento " +
   assert.equal(doc.date, yesterday, "data efetiva");
   assert.equal(doc.dueDate, inTwoWeeks, "vencimento preservado");
   assert.equal(doc.valueCents, 181_500);
-  assert.equal(doc.value, 1815);
+  // Contrato único (P5-C2): centavos exatos, sem `value` em reais nem
+  // `transactionDate` no documento.
+  assert.equal("value" in doc, false);
+  assert.equal("transactionDate" in doc, false);
   assert.equal(doc.paymentMethod, "Pix");
   assert.equal(doc.cashEntry.status, "confirmed");
   assert.equal(doc.cashEntry.confirmedBy, tenant.member);
@@ -390,7 +401,7 @@ test("P3-F — pendente criado num mês e confirmado no seguinte", async () => {
       idempotencyKey: idempotencyKey(),
       type: "despesa",
       description: "Conta de luz",
-      category: "Moradia",
+      categoryId: DEFAULT_EXPENSE_CATEGORY_ID,
       amountCents: 21_000,
       status: "pending",
       dueDate,
@@ -586,8 +597,7 @@ test("P3-F — anulação do pendente; anulado não confirma nem corrige " +
 test("P3-F — forma de pagamento só na confirmação de despesa", async () => {
   const tenant = await seedTenant();
   const income = await createDelivered(tenant.member, tenant.workspaceId, {
-    type: "receita", category: "Serviços", expenseType: undefined,
-    paymentMethod: undefined,
+    type: "receita", expenseType: undefined, paymentMethod: undefined,
   });
   const error = await expectHttpsError(confirm(tenant.member,
     await confirmPayload(tenant.workspaceId, income, {paymentMethod: "Pix"})),
@@ -614,7 +624,8 @@ test("P3-F — RBAC: member só os seus, viewer não, removido e suspenso não "
   await expectHttpsError(call(createCashTransaction, tenant.viewer, {
     workspaceId: tenant.workspaceId, idempotencyKey: idempotencyKey(),
     cashAccountId: defaultAccountOf(tenant.workspaceId),
-    type: "despesa", description: "x", category: "y", amountCents: 1,
+    type: "despesa", description: "x",
+    categoryId: DEFAULT_EXPENSE_CATEGORY_ID, amountCents: 1,
     status: "pending", dueDate: inTwoWeeks,
   }), "permission-denied");
 
@@ -699,9 +710,8 @@ const seedUnmarked = async (
     type: "despesa",
     description: "Conta de água",
     category: "Moradia",
-    value: 95.4,
+    valueCents: 9_540,
     date,
-    transactionDate: Timestamp.fromDate(new Date(`${date}T12:00:00.000Z`)),
     paymentMethod: "Boleto",
     expenseType: "Fixa",
     source: "manual",

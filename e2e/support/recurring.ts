@@ -50,6 +50,28 @@ const recurringBackend = (): RecurringBackend => {
 /** Meio-dia em São Paulo (15:00Z) do dia informado, como nas integrações. */
 const clockAt = (day: string): Clock => ({ now: () => Date.parse(`${day}T15:00:00.000Z`) });
 
+/**
+ * Categoria de despesa do catálogo (P5-C1, D-37.8): o contrato recorrente
+ * guarda o vínculo por ID, e o backend confere grupo, subtipo e estado do item.
+ * Gravada no formato autoritativo do catálogo (`schemaVersion` 1).
+ */
+export const RECURRING_CATEGORY = { id: 'e2e-rec-expense-category', name: 'Contas fixas E2E' } as const;
+
+const catalogName = (value: string) =>
+  value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().replace(/\s+/g, ' ').toLowerCase();
+
+export const seedRecurringCategory = async (workspaceId: string, ownerUid: string): Promise<void> => {
+  const now = new Date();
+  const normalizedName = catalogName(RECURRING_CATEGORY.name);
+  await db().doc(`workspaces/${workspaceId}/settings_catalog/${RECURRING_CATEGORY.id}`).set({
+    id: RECURRING_CATEGORY.id, schemaVersion: 1, workspaceId, group: 'category',
+    name: RECURRING_CATEGORY.name, normalizedName, transactionSubtype: 'despesa',
+    dedupeKey: `category::despesa::both::${normalizedName}`,
+    workspaceScope: 'both', sortOrder: 1, status: 'active',
+    createdBy: ownerUid, updatedBy: ownerUid, createdAt: now, updatedAt: now,
+  });
+};
+
 let sequence = 0;
 const nextKey = (label: string) => `e2e-rec-${label}-${Date.now().toString(36)}-${sequence += 1}`;
 
@@ -63,6 +85,7 @@ export const createRecurringFor = async (
   overrides: Record<string, unknown> = {},
   createdOn = yesterday(),
 ): Promise<string> => {
+  await seedRecurringCategory(actor.workspaceId, actor.uid);
   const result = await recurringBackend().executeCreateRecurringExpense(
     { uid: actor.uid, workspaceId: actor.workspaceId, role: actor.role ?? 'owner' },
     {
@@ -80,7 +103,7 @@ export const createRecurringFor = async (
       executionMode: 'automatic',
       cardId: null,
       cashAccountId: defaultCashAccountIdFor(actor.workspaceId),
-      category: 'Recorrentes',
+      categoryId: RECURRING_CATEGORY.id,
       visual: { color: '#4f46e5', icon: 'Repeat', emoji: null },
       business: null,
       ...overrides,

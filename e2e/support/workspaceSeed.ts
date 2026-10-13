@@ -46,6 +46,34 @@ export const adminSdk = () => {
   return admin;
 };
 
+/**
+ * Apaga todos os dados do Emulator (Firestore e Auth) pelos endpoints do
+ * próprio Emulator, numa operação só, sem gatilhos.
+ *
+ * O Emulator do Firestore recusa a limpeza (HTTP 409) enquanto houver
+ * transação aberta, por exemplo a de uma chamada do teste anterior que ainda
+ * termina no servidor (`getFinancialReport` depois que a página fechou). A
+ * limpeza espera essas transações terminarem, com teto de 30 s; passado o
+ * teto, ou com outro status, falha. É sincronização com o fim do teste
+ * anterior, não nova tentativa de asserção.
+ */
+export const clearEmulatorData = async (): Promise<void> => {
+  configureEmulatorEnvironment();
+  const firestoreUrl = `http://${process.env.FIRESTORE_EMULATOR_HOST}/emulator/v1/projects/${PROJECT_ID}/databases/(default)/documents`;
+  const authUrl = `http://${process.env.FIREBASE_AUTH_EMULATOR_HOST}/emulator/v1/projects/${PROJECT_ID}/accounts`;
+  const deadline = Date.now() + 30_000;
+  for (;;) {
+    const response = await fetch(firestoreUrl, { method: 'DELETE' });
+    if (response.ok) break;
+    if (response.status !== 409 || Date.now() > deadline) {
+      throw new Error(`Falha ao limpar o Emulator do Firestore (${response.status}).`);
+    }
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+  const auth = await fetch(authUrl, { method: 'DELETE' });
+  if (!auth.ok) throw new Error(`Falha ao limpar o Emulator do Auth (${auth.status}).`);
+};
+
 const now = () => admin.firestore.FieldValue.serverTimestamp();
 
 export interface SeedAccountInput {

@@ -77,13 +77,3 @@ export interface ReceivableTotals {
   overdueCents: number;
   upcomingCents: number;
 }
-
-/** Indicadores de recebíveis do relatório PJ, agregados no servidor. */
-export interface ReceivableReportData {
-  openNotOverdue: { count: number; balanceCents: number };
-  overdue: { count: number; balanceCents: number };
-  received: { count: number; principalCents: number };
-  topClients: Array<{ clientId: string; clientName: string; amountCents: number }>;
-  /** A amostra do ranking de clientes atingiu o teto de leitura. */
-  topClientsTruncated: boolean;
-}

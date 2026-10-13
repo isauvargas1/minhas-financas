@@ -1,11 +1,29 @@
 import { extractTransactionFromDocument, extractTransactionFromText } from '../modules/ai/api';
-import { aiCreditsExhaustedMessage, isAiCreditsExhausted } from '../modules/ai/callables';
-import { readFileAsBase64 } from '../modules/ai/documentFile';
+import { aiErrorMessage, type ExtractionResponse } from '../modules/ai/callables';
+import {
+    AI_DOCUMENT_ACCEPT,
+    AI_DOCUMENT_READ_FAILED_MESSAGE,
+    readFileAsBase64,
+    validateAiDocument,
+    type AiDocumentMimeType,
+} from '../modules/ai/documentFile';
+import {
+    EXTRACTION_MALFORMED_MESSAGE,
+    checkTranscript,
+    planExtractionApplication,
+} from '../modules/ai/extractionForm';
+import {
+    AI_SUGGESTION_DISCARDED_MESSAGE,
+    captureAiScope,
+    isSameAiScope,
+    type AiScopeSnapshot,
+} from '../modules/ai/scopeToken';
 
 import React, { useState, FormEvent, useEffect, useRef, useMemo } from 'react';
 import {
     Transaction,
     TransactionType,
+    TransactionFormType,
     CreditCard,
     EntityItem,
     TransactionModalProps,
@@ -13,12 +31,14 @@ import {
     TransactionDisplaySnapshots,
     TransactionCatalogVisualSnapshot,
 } from '../types.ts';
+import AiShareConsentDialog, { type AiShareVariant } from './AiShareConsentDialog.tsx';
 import { CloseIcon, TargetIcon, BriefcaseIcon, BuildingIcon, SparklesIcon, MicrophoneIcon, DynamicIcon } from './Icons.tsx';
 import CatalogCombobox from './CatalogCombobox.tsx';
 import CashAccountSelect from './accounts/CashAccountSelect.tsx';
 import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
 import { useTransactionCatalogOptions } from '../modules/settings-catalog/useTransactionCatalogOptions.ts';
 import SimpleInvestmentForm from '../modules/investments/simple/components/SimpleInvestmentForm.tsx';
+import type { InvestmentGoalOptionsPaging } from '../modules/goals/hooks';
 import {
     useCreateSettingsCatalogItem,
     useCatalogIntentKey,
@@ -30,6 +50,7 @@ import {
     settingsCatalogPermissions,
 } from '../modules/settings-catalog/callables.ts';
 import { normalizeSettingsCatalogName } from '../modules/settings-catalog/utils.ts';
+import { buildLegacyTransactionCatalogOptions } from '../modules/settings-catalog/transactionFormAdapters.ts';
 import {
     CashEntryInputError,
     cashErrorView,
@@ -62,6 +83,9 @@ interface SubmitRoute {
  */
 class CatalogEntryError extends Error {}
 
+/** O arquivo escolhido não pôde ser lido no navegador: nada foi enviado. */
+class LocalFileReadError extends Error {}
+
 const NOT_EDITABLE_MESSAGE =
     'Este lançamento é gerado por outro módulo e só pode ser alterado por ele.';
 
@@ -71,6 +95,8 @@ const CATALOG_ENTRY_MESSAGE =
 
 interface ExtendedTransactionModalProps extends TransactionModalProps {
     goals?: Goal[];
+    /** Paginação do seletor de metas de investimento (P5-B.1). */
+    goalPaging?: InvestmentGoalOptionsPaging;
     defaultGoalId?: string | null;
     /**
      * Feedback do aporte criado pela aba "Investimento".
@@ -94,6 +120,7 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
     currentDate,
     creditCards = [],
     goals = [],
+    goalPaging,
     transactions = [],
     defaultGoalId = null,
     onInvestmentSuccess,
@@ -109,7 +136,7 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
 
 
     const isEditing = !!transactionToEdit;
-    const [activeTab, setActiveTab] = useState<TransactionType>('receita');
+    const [activeTab, setActiveTab] = useState<TransactionFormType>('receita');
     /*
      * Envio autoritativo (P3-E). `submittingRef` barra o segundo clique antes
      * do próximo render; `intentRef` guarda a chave da intenção para que o
@@ -137,7 +164,7 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
      * documento aberto: espelho de investimento não é editável como transação
      * comum, e transação comum não vira aporte.
      */
-    const resolvedAllowedTypes = useMemo<TransactionType[]>(() => {
+    const resolvedAllowedTypes = useMemo<TransactionFormType[]>(() => {
         if (isEditing && transactionToEdit) {
             return [transactionToEdit.type];
         }
@@ -155,7 +182,8 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
 
     // State for form fields
     const [description, setDescription] = useState('');
-    const [category, setCategory] = useState('');
+    // ID da categoria do catálogo (D-23); o nome é só o texto exibido.
+    const [categoryId, setCategoryId] = useState('');
     const [value, setValue] = useState('');
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
     const [installments, setInstallments] = useState('1');
@@ -191,7 +219,7 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
      */
     const [investmentPending, setInvestmentPending] = useState(false);
     const investmentPendingRef = useRef(false);
-    const activeTabRef = useRef<TransactionType>(activeTab);
+    const activeTabRef = useRef<TransactionFormType>(activeTab);
 
     useEffect(() => {
         investmentPendingRef.current = investmentPending;
@@ -261,6 +289,26 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
         return names;
     };
 
+    /**
+     * Opções `{id, name}` da categoria. Na edição, a categoria gravada que não
+     * está mais entre as ativas continua selecionável pelo ID e pelo nome
+     * gravado, em vez de sumir do campo.
+     */
+    const buildCategoryOptions = (
+        items: EntityItem[] = [],
+        selectedId?: string
+    ): Array<{ id: string; name: string }> => {
+        const options = items.map((item) => ({ id: String(item.id), name: item.name }));
+        if (
+            isEditing && transactionToEdit &&
+            selectedId && selectedId.trim() &&
+            !options.some((option) => option.id === selectedId)
+        ) {
+            return [{ id: selectedId, name: transactionToEdit.category }, ...options];
+        }
+        return options;
+    };
+
     const effectiveTransactionType = isEditing && transactionToEdit
         ? transactionToEdit.type
         : activeTab;
@@ -268,6 +316,7 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
     const {
         options: catalogOptions,
         isLoading: isCatalogLoading,
+        data: catalogItems,
     } = useTransactionCatalogOptions(effectiveTransactionType);
 
     const mergedProductsServices = useMemo(
@@ -422,12 +471,69 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
     const [isRecording, setIsRecording] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const recognitionRef = useRef<any>(null);
+    const voiceButtonRef = useRef<HTMLButtonElement>(null);
+    const scanButtonRef = useRef<HTMLButtonElement>(null);
+    // Resultado do assistente (sugestão aplicada, conferência, erro): texto
+    // longo, em parágrafo próprio e com quebra de linha.
+    const [aiNotice, setAiNotice] = useState<{ tone: 'info' | 'error'; text: string } | null>(null);
+    // Confirmação de envio ao provedor de IA em andamento (P5-E1).
+    type AiConsentState =
+        | { kind: 'document'; file: File; mimeType: AiDocumentMimeType }
+        | { kind: 'voice_start' }
+        | { kind: 'voice_send'; transcript: string };
+    const [aiConsent, setAiConsentState] = useState<AiConsentState | null>(null);
+    const aiConsentRef = useRef<AiConsentState | null>(null);
+    // Botão que abriu a confirmação: o foco volta a ele ao fechar o diálogo.
+    const aiReturnFocusRef = useRef<React.RefObject<HTMLButtonElement | null> | null>(null);
+    // Escopo em que a confirmação foi aberta: confirmar em outro escopo
+    // (workspace, aba, abertura ou edição trocados) não envia nada.
+    const aiConsentScopeRef = useRef<AiScopeSnapshot | null>(null);
+    const setAiConsent = (value: AiConsentState | null) => {
+        aiConsentRef.current = value;
+        aiConsentScopeRef.current = value ? captureAiScope(currentAiScope()) : null;
+        if (value) aiReturnFocusRef.current = value.kind === 'document' ? scanButtonRef : voiceButtonRef;
+        setAiConsentState(value);
+    };
+    // Barra o segundo envio antes do próximo render.
+    const aiBusyRef = useRef(false);
+    // Valores atuais para o token de escopo: os callbacks assíncronos são
+    // capturados no início da operação e leriam estado congelado.
+    const isOpenRef = useRef(isOpen);
+    const openSeqRef = useRef(0);
+    const workspaceIdRef = useRef(activeWorkspace.id);
+    const isEditingRef = useRef(isEditing);
+    workspaceIdRef.current = activeWorkspace.id;
+    isEditingRef.current = isEditing;
+    const currentAiScope = (): AiScopeSnapshot => ({
+        open: isOpenRef.current,
+        workspaceId: workspaceIdRef.current,
+        tab: activeTabRef.current,
+        openSeq: openSeqRef.current,
+        editing: isEditingRef.current,
+    });
+
+    // Cada abertura é um escopo novo: confirmações, avisos e gravação de voz
+    // da abertura anterior não valem mais.
+    useEffect(() => {
+        isOpenRef.current = isOpen;
+        if (isOpen) openSeqRef.current += 1;
+        aiBusyRef.current = false;
+        setAiConsent(null);
+        setAiNotice(null);
+        setAIStatus(null);
+        setIsAILoading(false);
+        setIsRecording(false);
+        return () => {
+            isOpenRef.current = false;
+            recognitionRef.current?.stop();
+        };
+    }, [isOpen]);
 
 
 
     // Helper to get category options filtered by active tab type
     // A aba Parcelado é compra no cartão: usa as categorias de despesa (D-23).
-    const getCategoryOptions = (type: TransactionType) => {
+    const getCategoryOptions = (type: TransactionFormType) => {
         const subtype = categorySubtypeForTransactionType(type);
         return mergedSettingsCategories.filter((c) => c.type === subtype);
     };
@@ -445,10 +551,10 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
         if (isEditing) {
             setActiveTab(transactionToEdit.type);
             setDescription(transactionToEdit.description);
-            setCategory(transactionToEdit.category);
-            setValue(String(transactionToEdit.value));
+            // Sem ID gravado, nenhuma categoria vem selecionada.
+            setCategoryId(transactionToEdit.categoryId ?? '');
+            setValue(String(transactionToEdit.valueCents / 100));
             setDate(transactionToEdit.date);
-            if (transactionToEdit.installments) setInstallments(String(transactionToEdit.installments));
             if (transactionToEdit.expenseType) setExpenseType(transactionToEdit.expenseType);
             if (transactionToEdit.paymentMethod) setPaymentMethod(transactionToEdit.paymentMethod);
             if (transactionToEdit.incomeType) setIncomeType(transactionToEdit.incomeType);
@@ -478,7 +584,7 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
             setSupplier('');
             setCostCenter('');
 
-            setCategory('');
+            setCategoryId('');
             setExpenseType('');
             setIncomeType('');
             setPaymentMethod('');
@@ -495,7 +601,7 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
         resolvedAllowedTypes
     ]);
 
-    const handleTabChange = (newTab: TransactionType) => {
+    const handleTabChange = (newTab: TransactionFormType) => {
         if (!resolvedAllowedTypes.includes(newTab)) return;
         // Um aporte em curso não pode ter o próprio formulário desmontado por
         // uma troca de aba: a chamada seguiria viva sem ninguém para mostrar
@@ -513,7 +619,7 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
             /*
              * A captura por voz não vive no painel de IA: o reconhecedor é do
              * componente. Esconder o painel deixaria o microfone aberto sem
-             * botão de parar e, pior, o resultado chamaria `applyAIData`, que
+             * botão de parar e, pior, o resultado chamaria `applyAIExtraction`, que
              * troca a aba de volta e desmontaria o aporte meio preenchido.
              */
             recognitionRef.current?.stop();
@@ -521,7 +627,7 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
         }
 
         const catOptions = getCategoryOptions(newTab);
-        setCategory(catOptions.length > 0 ? catOptions[0].name : '');
+        setCategoryId(catOptions.length > 0 ? String(catOptions[0].id) : '');
 
         if (newTab !== 'despesa') {
             setExpenseType('');
@@ -533,77 +639,152 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
         }
     };
 
-    // --- AI LOGIC: Common Form Pre-filler ---
-    const applyAIData = (data: any) => {
-        if (!data) return;
-        /*
-         * Um resultado de voz ou de imagem que chega depois de a pessoa ter ido
-         * para a aba de investimento não pode arrastá-la de volta nem
-         * sobrescrever o formulário comum pelas costas. O `ref` é lido porque
-         * quem chama esta função é um callback preso ao instante em que a
-         * captura começou.
-         */
+    // --- AI LOGIC: Common Form Pre-filler (P5-E1) ---
+    const categoriesForTab = (tab: TransactionFormType) =>
+        buildLegacyTransactionCatalogOptions({
+            items: catalogItems ?? [],
+            workspaceType: activeWorkspace.type,
+            transactionType: categorySubtypeForTransactionType(tab),
+        }).settingsCategories.map((item) => ({ id: String(item.id), name: item.name }));
+    // Contexto atual do formulário para a função de aplicação, lido no retorno
+    // da callable (o callback foi capturado no início do envio).
+    const aiFormContextRef = useRef({ allowedTabs: resolvedAllowedTypes, isPJ, categoriesForTab });
+    aiFormContextRef.current = { allowedTabs: resolvedAllowedTypes, isPJ, categoriesForTab };
+
+    /**
+     * Aplica a extração tipada: só campos `identified` preenchem o formulário.
+     * Nada é salvo aqui; o lançamento só é gravado pelo botão do formulário,
+     * pelas callables oficiais. A guarda de aba de investimento continua: um
+     * resultado tardio não arrasta a pessoa de volta nem desmonta o aporte.
+     */
+    const applyAIExtraction = (response: ExtractionResponse | undefined) => {
         if (activeTabRef.current === 'investimento') return;
-        if (data.type && (['receita', 'despesa', 'parcelado'].includes(data.type))) {
-            setActiveTab(data.type);
+        const extraction = response?.extraction;
+        if (!extraction || typeof extraction !== 'object') {
+            setAiNotice({ tone: 'error', text: EXTRACTION_MALFORMED_MESSAGE });
+            return;
         }
-        if (data.description) setDescription(data.description);
-        if (data.value) setValue(String(data.value));
-        if (data.date) setDate(data.date);
-        if (data.purchaseDate) setPurchaseDate(data.purchaseDate);
-        if (data.installments) setInstallments(String(data.installments));
-        if (data.supplier) setSupplier(data.supplier);
-        if (data.costCenter) setCostCenter(data.costCenter);
-        if (data.category) {
-            const options = getCategoryOptions(data.type || activeTab);
-            const exists = options.find((o) =>
-                o.name.toLowerCase().includes(String(data.category).toLowerCase())
-            );
-            if (exists) setCategory(exists.name);
-        }
+        const form = aiFormContextRef.current;
+        const { patch, message } = planExtractionApplication(extraction, {
+            currentTab: activeTabRef.current,
+            allowedTabs: form.allowedTabs,
+            isPJ: form.isPJ,
+            categoriesFor: form.categoriesForTab,
+        });
+        if (patch.tab) setActiveTab(patch.tab);
+        if (patch.description !== undefined) setDescription(patch.description);
+        if (patch.value !== undefined) setValue(patch.value);
+        if (patch.date !== undefined) setDate(patch.date);
+        if (patch.purchaseDate !== undefined) setPurchaseDate(patch.purchaseDate);
+        if (patch.installments !== undefined) setInstallments(patch.installments);
+        if (patch.supplier !== undefined) setSupplier(patch.supplier);
+        if (patch.costCenter !== undefined) setCostCenter(patch.costCenter);
+        if (patch.categoryId !== undefined) setCategoryId(patch.categoryId);
+        setAiNotice({ tone: 'info', text: message });
     };
 
-    // Créditos de IA esgotados (P2B.2) têm mensagem própria, mais longa.
-    const showAIError = (error: unknown, fallback: string) => {
-        const exhausted = isAiCreditsExhausted(error);
-        setAIStatus(exhausted ? aiCreditsExhaustedMessage(error) : fallback);
-        setTimeout(() => setAIStatus(null), exhausted ? 6000 : 3000);
+    // Apenas o código do erro, sem conteúdo (texto, arquivo ou resposta).
+    const warnAiFailure = (error: unknown) => {
+        const code = typeof error === 'object' && error !== null && 'code' in error
+            ? String((error as { code?: unknown }).code)
+            : 'unknown';
+        console.warn('Falha na chamada de IA:', code);
+    };
+
+    /**
+     * Executa uma extração já confirmada. A chave de idempotência nasce aqui,
+     * na confirmação. O escopo é capturado agora e conferido depois da leitura
+     * do arquivo e no retorno da callable; se mudou (workspace, aba,
+     * fechamento, edição), o resultado é descartado sem preencher nada.
+     */
+    const runAiExtraction = async (
+        statusText: string,
+        call: (ctx: {
+            workspaceId: string;
+            idempotencyKey: string;
+            isCurrent: () => boolean;
+        }) => Promise<ExtractionResponse | undefined>,
+    ) => {
+        if (aiBusyRef.current) return;
+        aiBusyRef.current = true;
+        const scope = captureAiScope(currentAiScope());
+        const idempotencyKey = newIdempotencyKey();
+        setIsAILoading(true);
+        setAiNotice(null);
+        setAIStatus(statusText);
+        const isCurrent = () => isSameAiScope(scope, currentAiScope());
+        const discard = () => {
+            if (isOpenRef.current) setAiNotice({ tone: 'error', text: AI_SUGGESTION_DISCARDED_MESSAGE });
+        };
+        try {
+            const response = await call({ workspaceId: scope.workspaceId, idempotencyKey, isCurrent });
+            if (!isCurrent()) {
+                discard();
+                return;
+            }
+            applyAIExtraction(response);
+        } catch (error) {
+            if (error instanceof LocalFileReadError) {
+                if (isCurrent()) {
+                    setAiNotice({ tone: 'error', text: AI_DOCUMENT_READ_FAILED_MESSAGE });
+                } else {
+                    discard();
+                }
+                return;
+            }
+            warnAiFailure(error);
+            if (isCurrent()) {
+                setAiNotice({ tone: 'error', text: aiErrorMessage(error) });
+            } else {
+                discard();
+            }
+        } finally {
+            // Uma abertura nova já zerou o estado; esta não o sobrescreve.
+            if (scope.openSeq === openSeqRef.current) {
+                aiBusyRef.current = false;
+                setIsAILoading(false);
+                setAIStatus(null);
+            }
+        }
     };
 
     // --- AI LOGIC: Document Analysis ---
-    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Escolher o arquivo só o valida; nada sai do navegador antes de
+    // "Enviar comprovante" no diálogo de confirmação.
+    const handleFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
-        if (!file) return;
-
-        setIsAILoading(true);
-        setAIStatus("Analisando comprovante...");
-
-        // Leitura e chamada são aguardadas aqui: o carregamento e os botões de
-        // IA só voltam no `finally`, depois do fim real da extração. Um único
-        // `catch` cobre erro de leitura, da callable e créditos esgotados.
-        try {
-            const base64Data = await readFileAsBase64(file);
-            // A extração roda no backend: a chave do modelo nunca chega ao
-            // navegador. Antes, `vite.config.ts` injetava a credencial real
-            // no bundle servido a qualquer visitante. Cada envio é uma
-            // ação nova, com chave de idempotência própria.
-            const response = await extractTransactionFromDocument({
-                workspaceId: activeWorkspace.id,
-                mimeType: file.type,
-                dataBase64: base64Data,
-            });
-            const result = response.extracted ?? {};
-            applyAIData(result);
-            setAIStatus("Comprovante lido com sucesso!");
-            setTimeout(() => setAIStatus(null), 3000);
-        } catch (error) {
-            console.error("AI Document Scan Error:", error);
-            showAIError(error, "Erro ao analisar documento.");
-        } finally {
-            setIsAILoading(false);
-            if (fileInputRef.current) fileInputRef.current.value = '';
+        // Limpa o seletor para permitir escolher o mesmo arquivo de novo.
+        e.target.value = '';
+        if (!file || aiBusyRef.current || aiConsentRef.current) return;
+        const check = validateAiDocument(file);
+        if (check.ok === false) {
+            setAiNotice({ tone: 'error', text: check.message });
+            return;
         }
+        setAiNotice(null);
+        setAiConsent({ kind: 'document', file, mimeType: check.mimeType });
     };
+
+    const sendDocument = (file: File, mimeType: AiDocumentMimeType) =>
+        runAiExtraction('Analisando comprovante...', async ({ workspaceId, idempotencyKey, isCurrent }) => {
+            let dataBase64: string;
+            try {
+                dataBase64 = await readFileAsBase64(file);
+            } catch {
+                // Falha local: nada foi enviado, nenhum crédito usado.
+                throw new LocalFileReadError();
+            }
+            // Escolha de outro contexto durante a leitura: nada é enviado.
+            if (!isCurrent()) throw new LocalFileReadError();
+            // A extração roda no backend: a chave do modelo nunca chega ao
+            // navegador. O arquivo só segue depois da confirmação.
+            return extractTransactionFromDocument({
+                workspaceId,
+                mimeType,
+                dataBase64,
+                idempotencyKey,
+            });
+        });
 
     // --- AI LOGIC: Voice Entry ---
     const handleVoiceEntry = () => {
@@ -618,6 +799,19 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
             return;
         }
 
+        if (aiBusyRef.current || aiConsentRef.current) return;
+        // O microfone só abre depois da confirmação.
+        setAiNotice(null);
+        setAiConsent({ kind: 'voice_start' });
+    };
+
+    const startVoiceRecognition = () => {
+        const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+            alert("Seu navegador não suporta reconhecimento de voz.");
+            return;
+        }
+        const voiceScope = captureAiScope(currentAiScope());
         const recognition = new SpeechRecognition();
         recognition.lang = 'pt-BR';
         recognition.continuous = false;
@@ -629,27 +823,19 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
             setAIStatus("Ouvindo... Fale sobre sua transação.");
         };
 
-        recognition.onresult = async (event: any) => {
-            const transcript = event.results[0][0].transcript;
+        recognition.onresult = (event: any) => {
             setIsRecording(false);
-            setAIStatus("Interpretando sua fala...");
-            setIsAILoading(true);
-
-            try {
-                const response = await extractTransactionFromText({
-                    workspaceId: activeWorkspace.id,
-                    transcript,
-                });
-                const result = response.extracted ?? {};
-                applyAIData(result);
-                setAIStatus("Entendido! Revise os dados preenchidos.");
-                setTimeout(() => setAIStatus(null), 3000);
-            } catch (error) {
-                console.error("AI Voice Interpretation Error:", error);
-                showAIError(error, "Não consegui entender muito bem. Tente novamente.");
-            } finally {
-                setIsAILoading(false);
+            setAIStatus(null);
+            // Formulário mudou durante a gravação, ou outra confirmação já está
+            // aberta: o texto é descartado.
+            if (!isSameAiScope(voiceScope, currentAiScope()) || aiConsentRef.current) return;
+            const check = checkTranscript(event?.results?.[0]?.[0]?.transcript);
+            if (check.ok === false) {
+                setAiNotice({ tone: 'error', text: check.message });
+                return;
             }
+            // Só depois de confirmar o texto reconhecido ele é enviado.
+            setAiConsent({ kind: 'voice_send', transcript: check.transcript });
         };
 
         recognition.onerror = () => {
@@ -662,6 +848,35 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
 
         recognition.start();
     };
+
+    const sendTranscript = (transcript: string) =>
+        runAiExtraction('Interpretando sua fala...', ({ workspaceId, idempotencyKey }) =>
+            extractTransactionFromText({ workspaceId, transcript, idempotencyKey }));
+
+    const cancelAiConsent = () => setAiConsent(null);
+
+    const confirmAiConsent = () => {
+        // Consome a confirmação: o segundo clique encontra o diálogo fechado.
+        const consent = aiConsentRef.current;
+        const consentScope = aiConsentScopeRef.current;
+        if (!consent || aiBusyRef.current) return;
+        setAiConsent(null);
+        if (!consentScope || !isSameAiScope(consentScope, currentAiScope())) {
+            setAiNotice({ tone: 'error', text: AI_SUGGESTION_DISCARDED_MESSAGE });
+            return;
+        }
+        if (consent.kind === 'voice_start') startVoiceRecognition();
+        else if (consent.kind === 'document') void sendDocument(consent.file, consent.mimeType);
+        else void sendTranscript(consent.transcript);
+    };
+
+    const aiConsentVariant: AiShareVariant | null = aiConsent === null
+        ? null
+        : aiConsent.kind === 'document'
+            ? { kind: 'document', fileName: aiConsent.file.name, mimeType: aiConsent.mimeType, sizeBytes: aiConsent.file.size }
+            : aiConsent.kind === 'voice_send'
+                ? { kind: 'voice_send', transcript: aiConsent.transcript }
+                : { kind: 'voice_start' };
 
     if (!isOpen) return null;
 
@@ -738,7 +953,8 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
             const payload = toCreateCardPurchasePayload({
                 cardId: selectedCardId,
                 description: resolvedDescription,
-                category: category || 'Sem categoria',
+                category: getCategoryOptions('parcelado')
+                    .find((option) => String(option.id) === categoryId)?.name || 'Sem categoria',
                 supplier: isPJ ? supplier : undefined,
                 costCenter: isPJ ? costCenter : undefined,
                 purchaseDate,
@@ -762,7 +978,7 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
         const manualForm: ManualEntryForm = {
             type: activeTab === 'receita' ? 'receita' : 'despesa',
             description: resolvedDescription,
-            category,
+            categoryId,
             amount: value,
             date,
             incomeType,
@@ -836,7 +1052,7 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
         onClose();
     };
 
-    const tabClasses = (tabType: TransactionType) => {
+    const tabClasses = (tabType: TransactionFormType) => {
         const base = "tab-button flex-1 py-3 px-2 font-medium text-center focus:outline-none transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed";
         if (activeTab === tabType) {
             switch (tabType) {
@@ -990,9 +1206,9 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
                     />
                     <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Categoria <span className="text-red-500">*</span></label>
-                        <select value={category} onChange={e => setCategory(e.target.value)} className={commonInputClasses} required>
+                        <select value={categoryId} onChange={e => setCategoryId(e.target.value)} className={commonInputClasses} required>
                             <option value="">Selecione...</option>
-                            {currentCategoryOptions.map(cat => (<option key={cat.id} value={cat.name}>{cat.name}</option>))}
+                            {currentCategoryOptions.map(cat => (<option key={cat.id} value={String(cat.id)}>{cat.name}</option>))}
                         </select>
                     </div>
                     <div>
@@ -1083,7 +1299,6 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
 
         if (activeTab === 'receita') {
             const incomeTypeOptions = buildNameOptions(mergedIncomeTypes, incomeType);
-            const categoryOptions = buildNameOptions(getCategoryOptions(activeTab), category);
 
             return (
                 <>
@@ -1101,10 +1316,10 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Categoria <span className="text-red-500">*</span></label>
-                        <select value={category} onChange={e => setCategory(e.target.value)} className={commonInputClasses} required>
+                        <select value={categoryId} onChange={e => setCategoryId(e.target.value)} className={commonInputClasses} required>
                             <option value="">Selecione...</option>
-                            {buildNameOptions(getCategoryOptions(activeTab), category).map(name => (
-                                <option key={name} value={name}>{name}</option>
+                            {buildCategoryOptions(getCategoryOptions(activeTab), categoryId).map(option => (
+                                <option key={option.id} value={option.id}>{option.name}</option>
                             ))}
                         </select>
                     </div>
@@ -1155,7 +1370,7 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
         if (activeTab === 'despesa') {
             const expenseTypeOptions = buildNameOptions(mergedExpenseTypes, expenseType);
             const paymentTypeOptions = buildNameOptions(mergedPaymentTypes, paymentMethod);
-            const categoryOptions = buildNameOptions(getCategoryOptions(activeTab), category);
+            const categoryOptions = buildCategoryOptions(getCategoryOptions(activeTab), categoryId);
 
             return (
                 <>
@@ -1175,10 +1390,10 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                             Categoria <span className="text-red-500">*</span>
                         </label>
-                        <select value={category} onChange={e => setCategory(e.target.value)} className={commonInputClasses} required>
+                        <select value={categoryId} onChange={e => setCategoryId(e.target.value)} className={commonInputClasses} required>
                             <option value="">Selecione...</option>
-                            {categoryOptions.map((name) => (
-                                <option key={name} value={name}>{name}</option>
+                            {categoryOptions.map((option) => (
+                                <option key={option.id} value={option.id}>{option.name}</option>
                             ))}
                         </select>
                     </div>
@@ -1255,7 +1470,7 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
                   Assistente de IA (§5).
 
                   Ele preenche exclusivamente o formulário comum —
-                  `applyAIData` escreve descrição, valor, data, parcelas,
+                  `applyAIExtraction` escreve descrição, valor, data, parcelas,
                   fornecedor e categoria de transação. Na aba de investimento
                   esses campos não existem, e deixá-lo visível ofereceria um
                   preenchimento que cairia num estado que ninguém vê. Nada de
@@ -1274,21 +1489,34 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
                         </div>
                         <div className="flex gap-2">
                             <button
+                                type="button"
+                                ref={scanButtonRef}
                                 onClick={() => fileInputRef.current?.click()}
-                                disabled={isAILoading}
+                                disabled={isAILoading || aiConsent !== null || isRecording}
                                 className="flex-1 bg-white dark:bg-dark-200 border border-indigo-200 dark:border-indigo-800 p-2 rounded-lg flex items-center justify-center gap-2 text-xs font-medium text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-colors"
                             >
                                 <DynamicIcon name="FileInvoice" size={14} /> Escanear Comprovante
                             </button>
                             <button
+                                type="button"
+                                ref={voiceButtonRef}
                                 onClick={handleVoiceEntry}
-                                disabled={isAILoading}
+                                disabled={isAILoading || aiConsent !== null}
                                 className={`flex-1 border p-2 rounded-lg flex items-center justify-center gap-2 text-xs font-medium transition-all ${isRecording ? 'bg-red-100 border-red-300 text-red-700 animate-pulse' : 'bg-white dark:bg-dark-200 border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/40'}`}
                             >
                                 <MicrophoneIcon className={isRecording ? 'h-4 w-4' : 'h-4 w-4'} /> {isRecording ? 'Ouvindo...' : 'Falar Transação'}
                             </button>
                         </div>
-                        <input type="file" ref={fileInputRef} className="hidden" accept="image/*,application/pdf" onChange={handleFileUpload} />
+                        <input type="file" ref={fileInputRef} className="hidden" accept={AI_DOCUMENT_ACCEPT} onChange={handleFileSelected} />
+                        {aiNotice && (
+                            <p
+                                role={aiNotice.tone === 'error' ? 'alert' : 'status'}
+                                data-testid="ai-assistant-notice"
+                                className={`text-xs break-words ${aiNotice.tone === 'error' ? 'text-red-700 dark:text-red-300' : 'text-indigo-800 dark:text-indigo-200'}`}
+                            >
+                                {aiNotice.text}
+                            </p>
+                        )}
                         {isAILoading && (
                             <div className="h-1 bg-indigo-200 dark:bg-indigo-800 rounded-full overflow-hidden">
                                 <div className="h-full bg-indigo-600 w-1/3 animate-[shimmer_1.5s_infinite]"></div>
@@ -1361,6 +1589,7 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
                             open={isOpen}
                             workspaceId={activeWorkspace.id}
                             goals={goals}
+                            goalPaging={goalPaging}
                             initialGoalId={defaultGoalId}
                             idPrefix="transaction-investment"
                             onPendingChange={setInvestmentPending}
@@ -1406,6 +1635,13 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
                     )}
                 </div>
             </div>
+            <AiShareConsentDialog
+                variant={aiConsentVariant}
+                onCancel={cancelAiConsent}
+                onConfirm={confirmAiConsent}
+                isBusy={isAILoading}
+                returnFocus={() => aiReturnFocusRef.current?.current ?? null}
+            />
             <style>{`
                 @keyframes shimmer {
                     0% { transform: translateX(-100%); }

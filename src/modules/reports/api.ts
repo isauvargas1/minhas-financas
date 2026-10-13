@@ -1,206 +1,10 @@
 import { analyzeFinancialQuestion } from '../ai/api';
-import { aiCreditsExhaustedMessage, isAiCreditsExhausted } from '../ai/callables';
+import { aiErrorMessage } from '../ai/callables';
 import {
     FinancialReportSnapshot,
     ReportTimeRange,
     FinanceAIAnswer,
-    FinancialAlert,
-    CreditCardReportDomainData,
 } from './types';
-import {
-    calculateKPIs,
-    calculateCashFlow,
-    calculateCategoryBreakdown,
-    calculateDebtProfile,
-    generateAlerts,
-    calculateTopClients,
-    calculateReceivablesStatus,
-    calculateCreditCardExpenseReportViews,
-} from './logic';
-import { Transaction, Goal, CreditCard, Loan } from '../../types';
-// CORRECTED IMPORT
-import { Workspace } from '../workspaces/types';
-import type { ReceivableReportData } from '../clients/types';
-import { getLoanTotals } from '../loans/api';
-import type { OfficialInvestmentReportData } from '../investments/types';
-import { buildInvestmentOverview } from './investments';
-
-export const getFinancialReportSnapshot = async (
-    transactions: Transaction[],
-    goals: Goal[],
-    creditCards: CreditCard[],
-    range: ReportTimeRange = '30d',
-    workspace?: Workspace,
-    receivableData?: ReceivableReportData | null,
-    creditCardDomainData?: CreditCardReportDomainData,
-    officialInvestmentData?: OfficialInvestmentReportData,
-): Promise<FinancialReportSnapshot> => {
-
-    // Simulate network delay (optional)
-    await new Promise(resolve => setTimeout(resolve, 600));
-
-    /*
-     * Dívida bancária do relatório PJ.
-     *
-     * O relatório lia a coleção inteira de empréstimos — de todo workspace,
-     * inclusive PF, que nem exibe o indicador — para reduzi-la a uma soma.
-     * Agora é um agregado do servidor, pedido só quando o indicador existe.
-     */
-    let bankDebtTotal = 0;
-    if (workspace?.id && workspace.type === 'PJ') {
-        try {
-            // Centavos do agregado (`balanceCents`) → reais, só para exibição.
-            bankDebtTotal = (await getLoanTotals(workspace.id)).borrowCents / 100;
-        } catch (error) {
-            console.error("Error fetching loan totals:", error);
-        }
-    }
-
-    const kpis = calculateKPIs(transactions, range, workspace, receivableData, bankDebtTotal);
-    const cashFlow = calculateCashFlow(transactions);
-    const expenseCategories = calculateCategoryBreakdown(transactions, range);
-    const debtProfile = calculateDebtProfile(
-        transactions,
-        creditCards,
-        creditCardDomainData
-    );
-
-    const creditCardExpenseReportViews = calculateCreditCardExpenseReportViews(
-    creditCards,
-    creditCardDomainData,
-    range
-);
-
-    const alerts = generateAlerts(kpis, debtProfile, workspace, receivableData);
-    const investmentOverview = officialInvestmentData
-        ? buildInvestmentOverview(officialInvestmentData, range)
-        : undefined;
-    /*
-     * `kpi-investments` e `kpi-savings` medem a mesma grandeza — o quanto foi
-     * aportado no período — e precisam vir da mesma fonte.
-     *
-     * `buildPersonalKPIs` deriva os dois de `transactions`. Substituir só o
-     * primeiro deixava a taxa de poupança calculada sobre outro número, com
-     * outra janela (`reportWindowStart` conta 30 dias, `rangeStart` conta 29):
-     * dois percentuais diferentes para o mesmo período, na mesma tela.
-     */
-    const effectiveKpis = investmentOverview
-        ? (() => {
-            const contributions = investmentOverview.contributions;
-            const income = kpis.find((kpi) => kpi.id === 'kpi-income')?.value ?? 0;
-            const savingsRate = income > 0 ? (contributions / income) * 100 : 0;
-            return kpis.map((kpi) => {
-                if (kpi.id === 'kpi-investments') {
-                    return {
-                        ...kpi,
-                        value: contributions,
-                        formattedValue: new Intl.NumberFormat('pt-BR', {
-                            style: 'currency',
-                            currency: 'BRL',
-                        }).format(contributions),
-                        // Rótulo em linguagem de usuário (Etapa 3, §4.D): o que
-                        // o número é, sem o nome interno do domínio.
-                        description: 'Aportes já depositados no período.',
-                        // Continua sendo contribuição, não patrimônio: o número é o que
-                        // saiu do caixa para investimento no período, e por isso segue
-                        // comparável com receitas, despesas e fluxo líquido (INV-P2-024).
-                        nature: 'contribuicao' as const,
-                    };
-                }
-                if (kpi.id === 'kpi-savings') {
-                    return {
-                        ...kpi,
-                        value: savingsRate,
-                        formattedValue: `${savingsRate.toFixed(1)}%`,
-                    };
-                }
-                return kpi;
-            });
-        })()
-        : kpis;
-
-    if (officialInvestmentData && !investmentOverview) {
-        alerts.push({
-            id: 'investment-report-projection-unavailable',
-            title: 'Resumo patrimonial indisponível',
-            message: 'A projeção patrimonial ainda não foi criada. Processe ou reconstrua uma posição antes de analisar este relatório.',
-            severity: 'warning',
-            createdAt: new Date().toISOString(),
-        });
-    }
-    if (investmentOverview?.periodsTruncated) {
-        alerts.push({
-            id: 'investment-report-periods-truncated',
-            title: 'Histórico patrimonial limitado',
-            message: 'O histórico atingiu o limite seguro de leitura. Selecione um período menor para uma análise completa.',
-            severity: 'warning',
-            createdAt: new Date().toISOString(),
-        });
-    }
-    if (investmentOverview && Math.abs(investmentOverview.reconciliationDifference) >= 0.01) {
-        alerts.push({
-            id: 'investment-report-reconciliation',
-            title: 'Reconciliação patrimonial necessária',
-            message: 'O resumo atual e a evolução histórica apresentam diferença. Solicite a reconstrução das projeções antes de tomar decisões.',
-            severity: 'critical',
-            createdAt: new Date().toISOString(),
-        });
-    }
-
-        if (creditCardDomainData?.meta?.isTruncated) {
-        const labels: Record<string, string> = {
-            purchases: 'compras',
-            invoices: 'faturas',
-            payments: 'pagamentos',
-        };
-
-        const truncatedCollections = Object.entries(creditCardDomainData.meta.truncated)
-            .filter(([, isTruncated]) => isTruncated)
-            .map(([collection]) => labels[collection] ?? collection)
-            .join(', ');
-
-        alerts.push({
-            id: 'credit-card-report-domain-truncated',
-            title: 'Relatório de cartões limitado',
-            message: `O relatório atingiu o limite de leitura para ${truncatedCollections}. Filtre um período menor para evitar dados incompletos.`,
-            severity: 'warning',
-            createdAt: new Date().toISOString(),
-        });
-    }
-
-    let topClients = undefined;
-    let receivablesStatus = undefined;
-
-    if (workspace?.type === 'PJ' && receivableData) {
-        topClients = calculateTopClients(receivableData);
-        receivablesStatus = calculateReceivablesStatus(receivableData);
-        if (receivableData.topClientsTruncated) {
-            // P3-I: o ranking usa uma amostra com teto; acima dele, avisa.
-            alerts.push({
-                id: 'receivables-top-clients-truncated',
-                title: 'Ranking de clientes parcial',
-                message: 'O ranking de clientes considera os recebíveis com vencimento mais recente e atingiu o limite de leitura.',
-                severity: 'info',
-                createdAt: new Date().toISOString(),
-            });
-        }
-    }
-
-    return {
-        generatedAt: new Date().toISOString(),
-        periodLabel: mapRangeToLabel(range),
-        kpis: effectiveKpis,
-        cashFlow,
-        expenseCategories,
-        debtProfile,
-        creditCardIndicators: debtProfile.creditCardIndicators,
-        creditCardExpenseReportViews,
-        investmentOverview,
-        topClients,
-        receivablesStatus,
-        alerts
-    };
-};
 
 export const getAvailableReportPeriods = (): { label: string, value: ReportTimeRange }[] => {
     return [
@@ -213,44 +17,26 @@ export const getAvailableReportPeriods = (): { label: string, value: ReportTimeR
     ];
 };
 
-export const markAlertAsRead = async (alertId: string): Promise<void> => {
-    console.log(`Alert ${alertId} marked as read`);
-};
-
 /**
- * Análise por IA — executada exclusivamente no backend.
+ * Análise por IA — executada exclusivamente no backend (P5-E1).
  *
- * O cliente Gemini já foi instanciado aqui, no navegador, com a chave vinda de
- * `VITE_GOOGLE_AI_KEY`. Variável `VITE_*` entra no bundle, então a credencial
- * ficava legível para qualquer visitante. Agora o navegador só envia a
- * pergunta e um resumo já agregado; a chave existe apenas no servidor.
+ * O navegador envia só o workspace, a pergunta, o período do relatório e a
+ * chave de idempotência da intenção (gerada na confirmação de envio). Nenhum
+ * valor financeiro sai daqui: o servidor lê o relatório oficial. A chave vem
+ * do chamador para que uma repetição de transporte reuse a mesma intenção.
  */
 export const askFinanceAI = async (
     question: string,
     contextSnapshot: FinancialReportSnapshot,
     workspaceId: string,
+    idempotencyKey: string,
 ): Promise<FinanceAIAnswer> => {
-    const isPJ = contextSnapshot.kpis.some(k => k.id === 'kpi-net-profit');
     try {
-        // Cada pergunta enviada é uma ação nova: o wrapper gera a chave de
-        // idempotência (um crédito no máximo por chave).
         const result = await analyzeFinancialQuestion({
             workspaceId,
             question,
-            context: {
-                profileType: isPJ ? 'PJ' : 'PF',
-                periodLabel: contextSnapshot.periodLabel,
-                kpis: contextSnapshot.kpis.map((kpi) => ({
-                    label: kpi.label,
-                    formattedValue: kpi.formattedValue,
-                })),
-                topCategories: contextSnapshot.expenseCategories
-                    .slice(0, 5)
-                    .map((c) => `${c.categoryName} (${c.percentageOfTotal.toFixed(1)}%)`),
-                alerts: contextSnapshot.alerts.map(
-                    (a) => `[${a.severity.toUpperCase()}] ${a.title}: ${a.message}`,
-                ),
-            },
+            range: contextSnapshot.range,
+            idempotencyKey,
         });
         return {
             id: Date.now().toString(),
@@ -258,28 +44,10 @@ export const askFinanceAI = async (
             createdAt: result.createdAt,
         };
     } catch (error) {
-        const code = typeof error === 'object' && error && 'code' in error
-            ? String(error.code)
-            : '';
-        const answer = isAiCreditsExhausted(error)
-            ? aiCreditsExhaustedMessage(error)
-            : code.includes('failed-precondition')
-                ? 'A análise por IA está indisponível no momento. Se o limite de uso foi atingido, tente novamente mais tarde.'
-                : code.includes('permission-denied')
-                    ? 'Você não tem permissão para usar a análise por IA neste workspace.'
-                    : 'Não foi possível consultar a IA agora. Tente novamente mais tarde.';
-        return {id: Date.now().toString(), answer, createdAt: new Date().toISOString()};
+        return {
+            id: Date.now().toString(),
+            answer: aiErrorMessage(error),
+            createdAt: new Date().toISOString(),
+        };
     }
-};
-
-const mapRangeToLabel = (range: ReportTimeRange): string => {
-    const map: Record<ReportTimeRange, string> = {
-        '7d': 'Últimos 7 dias',
-        '30d': 'Últimos 30 dias',
-        '90d': 'Últimos 3 meses',
-        '12m': 'Últimos 12 meses',
-        'ytd': 'Ano Atual',
-        'all': 'Todo o Período'
-    };
-    return map[range];
 };

@@ -13,7 +13,6 @@ import {
   splitAccountMovementIdFor,
   type AuthoritativeCashAccountMovement,
 } from "../accounts/model";
-import {transactionInstant} from "../cash/createTransaction";
 import {ApplicationError} from "../shared/errors";
 import {MONEY_CURRENCY} from "../shared/money";
 import {workspaceRef} from "../shared/workspaceAuth";
@@ -62,10 +61,8 @@ export const splitCashMirrorDocument = (input: {
   type: input.entry.reversal ? "receita" : "despesa",
   description: input.description,
   category: input.category,
-  value: input.entry.amountCents / 100,
   valueCents: input.entry.amountCents,
   date: input.date,
-  transactionDate: transactionInstant(input.date),
   isPaid: true,
   workspaceId: input.workspaceId,
   profileId: input.workspaceId,

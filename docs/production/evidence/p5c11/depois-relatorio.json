@@ -1,0 +1,166 @@
+{
+ "relatorios-cartoes-desktop-claro": {
+  "overflow": 0
+ },
+ "axe-relatorios-cartoes-desktop-claro": [
+  {
+   "id": "color-contrast",
+   "impact": "serious",
+   "help": "Elements must meet minimum color contrast ratio thresholds",
+   "count": 6,
+   "nodes": [
+    {
+     "target": [
+      ".overflow-x-auto.border-t.border-border > table > tbody > .hover\\:bg-background\\/40:nth-child(2) > .text-green-600"
+     ],
+     "html": "<td class=\"px-5 py-4 text-right font-bold text-green-600\">R$&nbsp;0,00</td>"
+    },
+    {
+     "target": [
+      ".hover\\:bg-background\\/40:nth-child(1) > .text-green-600.px-6.font-medium"
+     ],
+     "html": "<td class=\"px-6 py-4 text-right text-green-600 font-medium\">R$&nbsp;0,00</td>"
+    },
+    {
+     "target": [
+      ".hover\\:bg-background\\/40:nth-child(1) > .text-green-600.px-6.font-black"
+     ],
+     "html": "<td class=\"px-6 py-4 text-right font-black text-green-600\">R$&nbsp;0,00</td>"
+    },
+    {
+     "target": [
+      ".hover\\:bg-background\\/40:nth-child(2) > .text-green-600.px-6.font-medium"
+     ],
+     "html": "<td class=\"px-6 py-4 text-right text-green-600 font-medium\">R$&nbsp;0,00</td>"
+    },
+    {
+     "target": [
+      ".hover\\:bg-background\\/40:nth-child(2) > .text-green-600.px-6.font-black"
+     ],
+     "html": "<td class=\"px-6 py-4 text-right font-black text-green-600\">R$&nbsp;0,00</td>"
+    },
+    {
+     "target": [
+      ".dark\\:bg-red-900\\/10 > .flex-1 > .items-start.justify-between.flex > h4"
+     ],
+     "html": "<h4 class=\"text-sm font-bold mb-1 text-red-600 dark:text-red-400\">Faturas de cartão vencidas</h4>"
+    }
+   ]
+  }
+ ],
+ "relatorios-cartoes-tabela-desktop-claro": {
+  "overflow": 0
+ },
+ "linhas-desktop-claro": {
+  "principal": "Cartão Principal\n\nVencimento atual: 05/11/2026\n\n\t12,00%\tR$ 4.400,00\tR$ 300,00\tR$ 200,00\tR$ 100,00",
+  "reserva": "Cartão Reserva\n\nSem fatura a vencer\n\n\t0,00%\tR$ 5.000,00\t—\tR$ 0,00\tR$ 0,00",
+  "arquivado": "Cartão Arquivado\n\nCartão arquivado · Sem fatura a vencer\n\n\t—\t—\t—\tR$ 0,00\tR$ 50,00",
+  "emAtraso": "EM ATRASO\n\nR$ 150,00"
+ },
+ "relatorios-graficos-cartoes-desktop-claro": {
+  "overflow": 0
+ },
+ "cartoes-desktop-claro": {
+  "overflow": 0
+ },
+ "axe-cartoes-desktop-claro": [
+  {
+   "id": "color-contrast",
+   "impact": "serious",
+   "help": "Elements must meet minimum color contrast ratio thresholds",
+   "count": 6,
+   "nodes": [
+    {
+     "target": [
+      ".group.perspective-1000.max-w-\\[325px\\]:nth-child(1) > .preserve-3d.duration-500.transition-all > .bg-gray-800.rounded-2xl.shadow-xl > .mt-12.flex-col.h-full > .border-gray-700.pt-3.border-t > div:nth-child(1) > .text-\\[10px\\].text-gray-500.uppercase"
+     ],
+     "html": "<div class=\"text-[10px] text-gray-500 uppercase\">Fechamento</div>"
+    },
+    {
+     "target": [
+      ".group.perspective-1000.max-w-\\[325px\\]:nth-child(1) > .preserve-3d.duration-500.transition-all > .bg-gray-800.rounded-2xl.shadow-xl > .mt-12.flex-col.h-full > .border-gray-700.pt-3.border-t > .text-right > .text-\\[10px\\].text-gray-500.uppercase"
+     ],
+     "html": "<div class=\"text-[10px] text-gray-500 uppercase\">Melhor Dia</div>"
+    },
+    {
+     "target": [
+      ".group.perspective-1000.max-w-\\[325px\\]:nth-child(2) > .preserve-3d.duration-500.transition-all > .bg-gray-800.rounded-2xl.shadow-xl > .mt-12.flex-col.h-full > .border-gray-700.pt-3.border-t > div:nth-child(1) > .text-\\[10px\\].text-gray-500.uppercase"
+     ],
+     "html": "<div class=\"text-[10px] text-gray-500 uppercase\">Fechamento</div>"
+    },
+    {
+     "target": [
+      ".group.perspective-1000.max-w-\\[325px\\]:nth-child(2) > .preserve-3d.duration-500.transition-all > .bg-gray-800.rounded-2xl.shadow-xl > .mt-12.flex-col.h-full > .border-gray-700.pt-3.border-t > .text-right > .text-\\[10px\\].text-gray-500.uppercase"
+     ],
+     "html": "<div class=\"text-[10px] text-gray-500 uppercase\">Melhor Dia</div>"
+    },
+    {
+     "target": [
+      ".group.perspective-1000.max-w-\\[325px\\]:nth-child(3) > .preserve-3d.duration-500.transition-all > .bg-gray-800.rounded-2xl.shadow-xl > .mt-12.flex-col.h-full > .border-gray-700.pt-3.border-t > div:nth-child(1) > .text-\\[10px\\].text-gray-500.uppercase"
+     ],
+     "html": "<div class=\"text-[10px] text-gray-500 uppercase\">Fechamento</div>"
+    },
+    {
+     "target": [
+      ".group.perspective-1000.max-w-\\[325px\\]:nth-child(3) > .preserve-3d.duration-500.transition-all > .bg-gray-800.rounded-2xl.shadow-xl > .mt-12.flex-col.h-full > .border-gray-700.pt-3.border-t > .text-right > .text-\\[10px\\].text-gray-500.uppercase"
+     ],
+     "html": "<div class=\"text-[10px] text-gray-500 uppercase\">Melhor Dia</div>"
+    }
+   ]
+  }
+ ],
+ "relatorios-cartoes-desktop-escuro": {
+  "overflow": 0
+ },
+ "relatorios-cartoes-tabela-desktop-escuro": {
+  "overflow": 0
+ },
+ "linhas-desktop-escuro": {
+  "principal": "Cartão Principal\n\nVencimento atual: 05/11/2026\n\n\t12,00%\tR$ 4.400,00\tR$ 300,00\tR$ 200,00\tR$ 100,00",
+  "reserva": "Cartão Reserva\n\nSem fatura a vencer\n\n\t0,00%\tR$ 5.000,00\t—\tR$ 0,00\tR$ 0,00",
+  "arquivado": "Cartão Arquivado\n\nCartão arquivado · Sem fatura a vencer\n\n\t—\t—\t—\tR$ 0,00\tR$ 50,00",
+  "emAtraso": "EM ATRASO\n\nR$ 150,00"
+ },
+ "relatorios-graficos-cartoes-desktop-escuro": {
+  "overflow": 0
+ },
+ "cartoes-desktop-escuro": {
+  "overflow": 0
+ },
+ "relatorios-cartoes-mobile-claro": {
+  "overflow": 0
+ },
+ "relatorios-cartoes-tabela-mobile-claro": {
+  "overflow": 0
+ },
+ "linhas-mobile-claro": {
+  "principal": "Cartão Principal\n\nVencimento atual: 05/11/2026\n\n\t12,00%\tR$ 4.400,00\tR$ 300,00\tR$ 200,00\tR$ 100,00",
+  "reserva": "Cartão Reserva\n\nSem fatura a vencer\n\n\t0,00%\tR$ 5.000,00\t—\tR$ 0,00\tR$ 0,00",
+  "arquivado": "Cartão Arquivado\n\nCartão arquivado · Sem fatura a vencer\n\n\t—\t—\t—\tR$ 0,00\tR$ 50,00",
+  "emAtraso": "EM ATRASO\n\nR$ 150,00"
+ },
+ "relatorios-graficos-cartoes-mobile-claro": {
+  "overflow": 0
+ },
+ "cartoes-mobile-claro": {
+  "overflow": 0
+ },
+ "relatorios-cartoes-mobile-escuro": {
+  "overflow": 0
+ },
+ "relatorios-cartoes-tabela-mobile-escuro": {
+  "overflow": 0
+ },
+ "linhas-mobile-escuro": {
+  "principal": "Cartão Principal\n\nVencimento atual: 05/11/2026\n\n\t12,00%\tR$ 4.400,00\tR$ 300,00\tR$ 200,00\tR$ 100,00",
+  "reserva": "Cartão Reserva\n\nSem fatura a vencer\n\n\t0,00%\tR$ 5.000,00\t—\tR$ 0,00\tR$ 0,00",
+  "arquivado": "Cartão Arquivado\n\nCartão arquivado · Sem fatura a vencer\n\n\t—\t—\t—\tR$ 0,00\tR$ 50,00",
+  "emAtraso": "EM ATRASO\n\nR$ 150,00"
+ },
+ "relatorios-graficos-cartoes-mobile-escuro": {
+  "overflow": 0
+ },
+ "cartoes-mobile-escuro": {
+  "overflow": 0
+ }
+}

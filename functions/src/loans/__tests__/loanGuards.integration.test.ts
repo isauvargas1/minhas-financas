@@ -14,6 +14,10 @@ import {
   seedMember,
 } from "../../shared/testSupport/kernelTestSupport";
 import {
+  DEFAULT_INCOME_CATEGORY_ID,
+  seedDefaultCategories,
+} from "../../settingsCatalog/testSupport/categorySeeds";
+import {
   call,
   db,
   expectHttpsError,
@@ -242,14 +246,15 @@ test("P3-G — o espelho do empréstimo não é corrigido nem anulado pelo caixa
   const loan = await create(tenant.owner, createPayload(tenant.workspaceId));
   const mirror = await readMirror(tenant.workspaceId, loan.cashTransactionId);
   const version = formatIsoInstant(mirror.updatedAt as Timestamp);
+  await seedDefaultCategories(tenant.workspaceId);
   await expectHttpsError(call(updateCashTransaction, tenant.owner, {
     workspaceId: tenant.workspaceId,
     idempotencyKey: idempotencyKey(),
     transactionId: loan.cashTransactionId,
     expectedUpdatedAt: version,
     reason: "Tentativa pelo caixa manual",
-    entry: {type: "receita", description: "Outro", category: "Outros",
-      amountCents: 1, date: today(),
+    entry: {type: "receita", description: "Outro",
+      categoryId: DEFAULT_INCOME_CATEGORY_ID, amountCents: 1, date: today(),
       cashAccountId: defaultAccountOf(tenant.workspaceId)},
   }), "failed-precondition");
   await expectHttpsError(call(voidCashTransaction, tenant.owner, {

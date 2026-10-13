@@ -24,8 +24,10 @@ import {
   openRecurring,
   openRecurringDetails,
   recurringDoc,
+  RECURRING_CATEGORY,
   recurringExpensesOf,
   runRecurringToday,
+  seedRecurringCategory,
   yesterday,
 } from './support/recurring';
 import {
@@ -91,6 +93,7 @@ test.describe('PF', () => {
   test.beforeEach(async () => {
     await resetEmulatorData();
     tenant = await seedLoanTenant('PF', 'p4b');
+    await seedRecurringCategory(ws(), tenant.owner.uid);
   });
 
   test('criar e editar pela tela em centavos, modo explícito; envio duplo cria um só', async ({ page }) => {
@@ -110,6 +113,9 @@ test.describe('PF', () => {
     await expect(dialog.locator('#conta-recorrencia')).toHaveValue(mainAccount());
     await expect(dialog.getByRole('radio', { name: 'Automático' })).toBeChecked();
     await expect(dialog.getByText(/Isso não é pagamento/)).toBeVisible();
+    // A classificação de despesa (categoria do catálogo, por ID) fica na aba Integrações.
+    await dialog.getByRole('tab', { name: 'Integrações' }).click();
+    await dialog.locator('#categoria').selectOption({ label: RECURRING_CATEGORY.name });
     await submitTwiceAtOnce(dialog.locator('form#recurringForm'));
     await expect(dialog).toBeHidden({ timeout: 30_000 });
 
@@ -118,7 +124,7 @@ test.describe('PF', () => {
     expect(body).toMatchObject({
       workspaceId: ws(), name: 'Internet Fibra', amountCents: 9_990, frequency: 'monthly', billingDay: 10,
       paymentMethod: 'pix', executionMode: 'automatic', cashAccountId: mainAccount(), cardId: null,
-      category: 'Recorrentes',
+      categoryId: RECURRING_CATEGORY.id,
     });
     for (const key of ['valorPadrao', 'status', 'nextDueDate', 'source', 'createdBy', 'splitGroupIdOpcional']) {
       expect(body).not.toHaveProperty(key);
@@ -167,6 +173,8 @@ test.describe('PF', () => {
     await dialog.getByRole('button', { name: /Pix \/ Transf\./ }).click();
     await dialog.getByRole('radio', { name: 'Confirmar antes' }).check();
     await expect(dialog.getByText(/aguardando a sua confirmação/)).toBeVisible();
+    await dialog.getByRole('tab', { name: 'Integrações' }).click();
+    await dialog.locator('#categoria').selectOption({ label: RECURRING_CATEGORY.name });
     await dialog.getByRole('button', { name: 'Cadastrar Assinatura' }).click();
     await expect(dialog).toBeHidden({ timeout: 30_000 });
     expect(bodyOf(creates[0])).toMatchObject({ frequency: 'weekly', billingDay: null,
@@ -367,7 +375,7 @@ test.describe('PF', () => {
       workspaceId: ws(), idempotencyKey: intentKey('viewer'), name: 'Forjada', type: 'other', description: null,
       amountCents: 100, frequency: 'weekly', billingDay: null, startDate: today(), endDate: null,
       paymentMethod: 'pix', executionMode: 'automatic', cardId: null, cashAccountId: mainAccount(),
-      category: 'Recorrentes', visual: { color: '#4f46e5', icon: 'Bolt', emoji: null }, business: null,
+      categoryId: RECURRING_CATEGORY.id, visual: { color: '#4f46e5', icon: 'Bolt', emoji: null }, business: null,
     });
     expect(forged.errorStatus).toBe('PERMISSION_DENIED');
     await viewer.context().close();

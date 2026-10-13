@@ -1,10 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  getFullTransactionHistory,
-  getTransactions,
-  type TransactionPage
-} from "./api";
+import { getTransactions } from "./api";
 import { billingKeys } from "../billing/queryKeys";
+import { invalidateFinancialReports } from "../reports/queryKeys";
 import {
   confirmCashTransaction,
   createCashTransaction,
@@ -18,7 +15,7 @@ const goalKey = (workspaceId: string) => ["goals", workspaceId] as const;
 const isWorkspaceReady = (workspaceId: string) => !!workspaceId && workspaceId !== "loading";
 
 /**
- * Telas que dependem dos lançamentos (lista, histórico, projeção de caixa,
+ * Telas que dependem dos lançamentos (lista, relatório financeiro oficial,
  * contas e metas). Exportada para os domínios cujo backend grava
  * espelho de caixa (empréstimos, P3-H) recarregarem as mesmas telas.
  */
@@ -28,8 +25,7 @@ export const invalidateTransactionDependents = async (
 ) => {
   await Promise.all([
     queryClient.invalidateQueries({ queryKey: transactionKey(workspaceId) }),
-    queryClient.invalidateQueries({ queryKey: ["transactions-full-history", workspaceId] }),
-    queryClient.invalidateQueries({ queryKey: ["cash-periods", workspaceId] }),
+    invalidateFinancialReports(queryClient),
     queryClient.invalidateQueries({ queryKey: goalKey(workspaceId) }),
     // P3-J (D-30): saldos e extratos das contas movem no mesmo commit.
     queryClient.invalidateQueries({ queryKey: ["cash_accounts", workspaceId] }),
@@ -41,7 +37,7 @@ export const invalidateTransactionDependents = async (
  * Janela padrão de transações (INV-P1-011).
  *
  * A carga do aplicativo lia a subcoleção inteira. Agora lê os últimos doze
- * meses, paginados por `transactionDate` no servidor — janela que cobre tudo
+ * meses, paginados por `date` (dia civil) no servidor — janela que cobre tudo
  * que o produto consulta sem pedido explícito do usuário.
  */
 export const useTransactions = (workspaceId: string) => {
@@ -56,26 +52,10 @@ export const useTransactions = (workspaceId: string) => {
     data: queryResult.data?.items,
     /** A janela bateu no teto de páginas: os agregados não cobrem tudo. */
     isTruncated: queryResult.data?.truncated === true,
+    /** Documentos fora do contrato excluídos da lista (a tela avisa). */
+    invalidCount: queryResult.data?.invalidCount ?? 0,
   };
 };
-
-/**
- * Histórico completo, sob pedido explícito.
- *
- * Só é carregado quando o usuário escolhe a faixa "tudo" do relatório. Volta
- * marcado com `truncated` quando o teto de páginas é atingido, para que a tela
- * possa avisar em vez de apresentar um agregado incompleto como total.
- */
-export const useFullTransactionHistory = (
-  workspaceId: string,
-  enabled: boolean,
-) =>
-  useQuery<TransactionPage>({
-    queryKey: ["transactions-full-history", workspaceId],
-    queryFn: () => getFullTransactionHistory(workspaceId),
-    enabled: enabled && isWorkspaceReady(workspaceId),
-    staleTime: 1000 * 60 * 5
-  });
 
 /**
  * Lançamento manual confirmado pelas callables autoritativas (P3-E).

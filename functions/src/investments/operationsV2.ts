@@ -257,16 +257,70 @@ const ensureAccountAndAsset = (
   return {account, asset};
 };
 
+export const GOAL_ARCHIVED_FOR_INVESTMENT_MESSAGE =
+  "Esta meta está arquivada e não aceita novos investimentos.";
+export const GOAL_NOT_INVESTMENT_MESSAGE =
+  "O progresso desta meta não é medido por investimentos. Altere a forma " +
+  "de acompanhamento da meta antes de vincular investimentos.";
+
+/**
+ * Guarda de toda operação que **introduz** uma meta numa posição ou num
+ * aporte: vínculo, troca para outra meta, aporte com meta (pendente ou
+ * liquidado) e liquidação que vincula pela primeira vez (D-31.4).
+ *
+ * Roda dentro da transação, sobre o documento da meta lido nela. Recusa meta
+ * arquivada e meta cuja fonte de progresso não é `investment` (D-31.1/D-31.2:
+ * uma fonte por meta). Desvincular continua permitido: é o caminho para
+ * liberar o arquivamento.
+ */
+export const assertGoalAcceptsInvestmentLink = (
+  goalSnapshot: admin.firestore.DocumentSnapshot,
+  workspaceId: string,
+): void => {
+  if (!goalSnapshot.exists) {
+    throw new ApplicationError("not_found", "Meta não encontrada.");
+  }
+  const goal = assertWorkspaceDocument(goalSnapshot, workspaceId, "Meta");
+  if (goal.archived === true) {
+    throw new ApplicationError(
+      "domain_precondition_failed",
+      GOAL_ARCHIVED_FOR_INVESTMENT_MESSAGE,
+    );
+  }
+  if (goal.progressSource !== "investment") {
+    throw new ApplicationError(
+      "domain_precondition_failed",
+      GOAL_NOT_INVESTMENT_MESSAGE,
+    );
+  }
+};
+
+/**
+ * Publica na meta a projeção dos investimentos vinculados.
+ *
+ * `linkChanged` marca operações que mudam o **conjunto** de posições da meta
+ * (vínculo, desvínculo, troca, primeira liquidação vinculada): nelas a meta é
+ * escrita mesmo com deltas zerados. A escrita no documento da meta é o que
+ * serializa o vínculo contra `archiveGoal` e contra a troca de fonte de
+ * progresso, que leem a meta e consultam as posições na mesma transação —
+ * sem ela, um vínculo de posição zerada e um arquivamento concorrentes
+ * poderiam ambos confirmar.
+ */
 export const updateGoalProjection = (
   transaction: admin.firestore.Transaction,
   goalSnapshot: admin.firestore.DocumentSnapshot | undefined,
   netContributionDeltaCents: number,
   currentValueDeltaCents: number,
   actorId: string,
+  linkChanged = false,
 ): void => {
   if (
     !goalSnapshot ||
-    (netContributionDeltaCents === 0 && currentValueDeltaCents === 0)
+    (
+      !linkChanged &&
+      netContributionDeltaCents === 0 &&
+      currentValueDeltaCents === 0
+    )
   ) {
     return;
   }
@@ -845,7 +899,11 @@ const executeGoalLinkChange = async (
       authorization.profileType,
       link,
     );
-    assertWorkspaceDocument(goalSnapshot, auth.workspaceId, "Meta");
+    if (link) {
+      assertGoalAcceptsInvestmentLink(goalSnapshot, auth.workspaceId);
+    } else {
+      assertWorkspaceDocument(goalSnapshot, auth.workspaceId, "Meta");
+    }
     if (movementSnapshot.exists) {
       throw new ApplicationError(
         "idempotency_conflict",
@@ -949,6 +1007,7 @@ const executeGoalLinkChange = async (
       movement.goalNetContributionDeltaCents,
       movement.goalCurrentValueDeltaCents,
       auth.uid,
+      true,
     );
     const result = {
       success: true,
@@ -1077,7 +1136,7 @@ export const executeChangeInvestmentGoal = async (
       authorization.profileType, true,
     );
     assertWorkspaceDocument(previousGoalSnapshot, auth.workspaceId, "Meta");
-    assertWorkspaceDocument(nextGoalSnapshot, auth.workspaceId, "Meta");
+    assertGoalAcceptsInvestmentLink(nextGoalSnapshot, auth.workspaceId);
     if (unlinkSnapshot.exists || linkSnapshot.exists) {
       throw new ApplicationError(
         "idempotency_conflict",
@@ -1177,12 +1236,14 @@ export const executeChangeInvestmentGoal = async (
       unlinkMovement.goalNetContributionDeltaCents,
       unlinkMovement.goalCurrentValueDeltaCents,
       auth.uid,
+      true,
     );
     updateGoalProjection(
       transaction, nextGoalSnapshot,
       linkMovement.goalNetContributionDeltaCents,
       linkMovement.goalCurrentValueDeltaCents,
       auth.uid,
+      true,
     );
     const result = {
       success: true,
@@ -1508,11 +1569,18 @@ export const executeSettleInvestmentContribution = async (
       );
     }
     const goalId = current.goalId ?? intendedGoalId;
+    const linksGoal = !current.goalId && intendedGoalId !== undefined;
     const goalSnapshot = goalId ?
       await transaction.get(investmentGoalDoc(auth.workspaceId, goalId)) :
       undefined;
     if (goalSnapshot) {
-      assertWorkspaceDocument(goalSnapshot, auth.workspaceId, "Meta");
+      // O aporte que nomeia uma meta é recusado se ela foi arquivada (ou
+      // deixou de medir por investimentos) depois do registro do pendente.
+      if (intendedGoalId) {
+        assertGoalAcceptsInvestmentLink(goalSnapshot, auth.workspaceId);
+      } else {
+        assertWorkspaceDocument(goalSnapshot, auth.workspaceId, "Meta");
+      }
     }
     const periodContext = await readInvestmentPeriodContext(
       transaction,
@@ -1653,6 +1721,7 @@ export const executeSettleInvestmentContribution = async (
       settledMovement.goalNetContributionDeltaCents,
       settledMovement.goalCurrentValueDeltaCents,
       auth.uid,
+      linksGoal,
     );
     writeInvestmentCashMirror(
       transaction,
@@ -1966,7 +2035,7 @@ export const executeCreateSimpleInvestment = async (
       ) :
       undefined;
     if (goalSnapshot) {
-      assertWorkspaceDocument(goalSnapshot, auth.workspaceId, "Meta");
+      assertGoalAcceptsInvestmentLink(goalSnapshot, auth.workspaceId);
     }
     const periodContext = settled ?
       await readInvestmentPeriodContext(
@@ -2261,6 +2330,7 @@ export const executeCreateSimpleInvestment = async (
         movement.goalNetContributionDeltaCents,
         movement.goalCurrentValueDeltaCents,
         auth.uid,
+        true,
       );
     }
     writeInvestmentCashMirror(

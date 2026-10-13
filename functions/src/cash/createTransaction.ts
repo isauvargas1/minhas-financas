@@ -1,5 +1,5 @@
 import * as admin from "firebase-admin";
-import {FieldValue, Timestamp} from "firebase-admin/firestore";
+import {FieldValue} from "firebase-admin/firestore";
 
 import {
   assertActiveAccount,
@@ -11,7 +11,6 @@ import {
 import {cashEntryMovementIdFor} from "../accounts/model";
 import {reserveTransactionQuota} from "../billing/transactionQuota";
 import {appendCashEvent} from "../shared/audit";
-import {saoPauloDayStart} from "../shared/dateKeys";
 import {ApplicationError} from "../shared/errors";
 import {sha256} from "../shared/hashing";
 import {
@@ -32,6 +31,7 @@ import {
   type CreateCashTransactionPayload,
   type CreateCashTransactionResult,
 } from "./contracts";
+import {readEntryCategories, resolveEntryCategory} from "./categories";
 
 /**
  * Criação autoritativa de lançamento manual (P3-A, PR-TX-01), confirmado ou
@@ -63,8 +63,8 @@ import {
  *
  * Nada aqui toca projeção ou outro domínio. A projeção mensal continua
  * com o gatilho `onTransactionWrite`, que já é idempotente por entrega
- * (INV-P3-001); trocar essa via é D-38. O valor autoritativo é `valueCents`;
- * `value` (reais) é derivado para os leitores atuais e nunca é entrada.
+ * (INV-P3-001); trocar essa via é D-38. O valor autoritativo é `valueCents`
+ * (a data civil é `date`); não há `value` em reais nem `transactionDate`.
  */
 export const CREATE_CASH_TRANSACTION_OPERATION = "createCashTransaction";
 
@@ -125,24 +125,19 @@ export const cashTransactionId = (
 ): string =>
   "cash_" + sha256(`${workspaceId}:${uid}:${idempotencyKey}`).slice(0, 40);
 
-/**
- * Instante do lançamento: meio-dia da data civil em São Paulo.
- *
- * A data civil autoritativa é `date`; `transactionDate` existe porque a
- * projeção (`cashPeriodKeyFor`) e a ordenação dos leitores o usam. Meio-dia,
- * e não meia-noite, mantém o mesmo dia civil para um leitor que converta o
- * instante no fuso local de qualquer região do Brasil (UTC−5 a UTC−2).
- */
-export const transactionInstant = (dayKey: string): Timestamp =>
-  Timestamp.fromMillis(saoPauloDayStart(dayKey).getTime() + 12 * 3_600_000);
-
 /** Lançamento validado: o que a criação, a importação e a correção gravam. */
 export interface CashEntryInput {
   type: "receita" | "despesa";
   /** Conta/carteira do lançamento (D-30). */
   cashAccountId: string;
   description: string;
+  /**
+   * Retrato do nome da categoria, resolvido pelo backend no catálogo (ou
+   * "Sem categoria"); nunca o texto do cliente (P5-C1, D-37.8).
+   */
   category: string;
+  /** ID estável do item do catálogo; `null` = sem categoria. */
+  categoryId: string | null;
   amountCents: number;
   status?: "confirmed" | "pending";
   date?: string;
@@ -185,12 +180,10 @@ export const settlementFields = (
   {
     date: settlement.dueDate,
     dueDate: settlement.dueDate,
-    transactionDate: transactionInstant(settlement.dueDate),
     isPaid: false,
   } :
   {
     date: settlement.date,
-    transactionDate: transactionInstant(settlement.date),
     isPaid: true,
   };
 
@@ -238,7 +231,7 @@ export const cashEntryDocument = (input: {
     type: entry.type,
     description: entry.description,
     category: entry.category,
-    value: valueCents / 100,
+    ...(entry.categoryId === null ? {} : {categoryId: entry.categoryId}),
     valueCents,
     ...settlementFields(settlement),
     workspaceId: input.workspaceId,
@@ -358,6 +351,11 @@ export const executeCreateCashTransaction = async (
       transaction, actor.workspaceId, [payload.cashAccountId]);
     assertActiveAccount(accounts.get(payload.cashAccountId) as
       Parameters<typeof assertActiveAccount>[0]);
+    // Categoria do catálogo (D-37.8): mesmo workspace, mesmo tipo, ativa.
+    const categories = await readEntryCategories(
+      transaction, actor.workspaceId, [payload.categoryId]);
+    const category = resolveEntryCategory(
+      payload.categoryId, categories.get(payload.categoryId), payload.type);
 
     const rateLimit = await reserveRateLimit(
       transaction,
@@ -399,7 +397,11 @@ export const executeCreateCashTransaction = async (
       actorUid: actor.uid,
       workspaceId: actor.workspaceId,
       profileType,
-      entry: payload,
+      entry: {
+        ...payload,
+        category: category.name,
+        categoryId: category.categoryId,
+      },
       requestHash: reservation.requestHash,
       origin: {kind: "manual", quotaPeriod: quota.periodKey},
       accountMovementId,

@@ -94,11 +94,11 @@ test('P4-C — sem autoridade em ponto flutuante nem campos em reais', () => {
   assert.deepEqual(offenders(all, /\bparseFloat\b|\.toFixed\(|Number\.EPSILON|normalizeMoney|Math\.round\(/), []);
   assert.deepEqual(offenders(all, /\bvalorReal\b|\bvalorDevido\b|\bvalorPago\b|\bstatusPagamento\b|\baPagar\b/), []);
   assert.deepEqual(offenders(all, /(cents|amount|value|valor)\w*\s*\*\s*100\b/i), []);
-  // A única divisão por 100 é a cópia de exibição `value` do espelho no
-  // Caixa, derivada de `valueCents` (mesmo padrão do kernel de caixa).
+  // Nenhuma divisão por 100 no backend: o espelho no Caixa só tem
+  // `valueCents` (o campo `value` em reais não existe mais).
   const divisions = backendSplit().flatMap((file) => read(file).split('\n')
     .filter((line) => /\/\s*100\b/.test(line)).map((line) => `${rel(file)}: ${line.trim()}`));
-  assert.deepEqual(divisions, ['functions/src/splitBills/cash.ts: value: input.entry.amountCents / 100,']);
+  assert.deepEqual(divisions, []);
 });
 
 test('P4-C — identidade pelo uid; nenhum ID nasce de Date.now()', () => {

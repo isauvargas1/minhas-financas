@@ -10,8 +10,21 @@ import type {WorkspaceRole} from "../shared/workspaceAuth";
  * efetivo do titular). Nada disto vai ao cliente.
  */
 
-/** Modelo atual, sem troca nesta etapa (provedor e tier: P5, D-11). */
+/**
+ * Modelo atual (D-11.2, verificação documental na P5-E1). É um modelo
+ * *preview* do Gemini: sem data de desligamento anunciada, mas com aviso
+ * mínimo de duas semanas e fora das garantias de produto GA. A troca para um
+ * modelo GA (candidatos e comparação em `docs/production/evidence/p5e1/`)
+ * depende de conferência ao vivo da documentação e de avaliação em STAGING;
+ * até lá o identificador fica num único lugar.
+ */
 export const AI_MODEL = "gemini-3-flash-preview";
+
+/**
+ * Tempo limite por tentativa na chamada ao provedor, abaixo dos 120 s da
+ * callable (`AI_CALLABLE_OPTIONS`), com folga para a resposta ao cliente.
+ */
+export const AI_PROVIDER_TIMEOUT_MS = 90_000;
 
 /**
  * Papéis que podem usar a IA: quem escreve no workspace. `viewer` é somente
@@ -36,15 +49,32 @@ export const AI_CREDIT_COSTS = Object.freeze({
 
 export type AiCreditOperation = keyof typeof AI_CREDIT_COSTS;
 
-/** Teto de saída por chamada: nenhuma chamada produz resposta ilimitada. */
+/**
+ * Teto de saída por chamada: nenhuma chamada produz resposta ilimitada. No
+ * modelo com raciocínio o teto cobre raciocínio e resposta; o raciocínio vai
+ * em nível baixo (`gateway.ts`) e o teto deixa folga para a resposta
+ * completa — um JSON de extração truncado seria crédito perdido.
+ */
 export const AI_MAX_OUTPUT_TOKENS = Object.freeze({
-  analysis: 1200,
-  extraction: 600,
+  analysis: 2048,
+  extraction: 1024,
 });
 
 export const ANALYSIS_RATE_LIMIT: RateLimitPolicy = {
   operation: "analyzeFinancialQuestion",
   limit: 20,
+  windowSeconds: 60 * 60,
+};
+
+/**
+ * Leitura do contexto financeiro oficial do consultor (P5-E1): limita quantas
+ * vezes por hora o relatório é montado para a IA, por ator e workspace,
+ * mesmo quando a admissão depois recusa (créditos esgotados, chave repetida).
+ * Reservado antes da leitura e antes da admissão; não é crédito.
+ */
+export const ANALYSIS_CONTEXT_RATE_LIMIT: RateLimitPolicy = {
+  operation: "analyzeFinancialQuestionContext",
+  limit: 60,
   windowSeconds: 60 * 60,
 };
 

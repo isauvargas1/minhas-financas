@@ -54,9 +54,16 @@ const resolveFromCatalog = (params: {
     catalogItems: SettingsCatalogItem[];
     group: CatalogDisplayGroup;
     label?: string;
+    itemId?: string;
     transactionSubtype?: TransactionType;
 }) => {
-    const { catalogItems, group, label, transactionSubtype } = params;
+    const { catalogItems, group, label, itemId, transactionSubtype } = params;
+
+    // O ID estável do catálogo vale antes do nome (renomear não perde o vínculo).
+    if (itemId) {
+        const byId = catalogItems.find((item) => item.group === group && item.id === itemId);
+        if (byId) return byId;
+    }
 
     if (!label?.trim()) return undefined;
 
@@ -78,10 +85,11 @@ export const resolveCatalogVisual = (params: {
     catalogItems: SettingsCatalogItem[];
     group: CatalogDisplayGroup;
     label?: string;
+    itemId?: string;
     transactionSubtype?: TransactionType;
     snapshot?: TransactionCatalogVisualSnapshot;
 }): ResolvedCatalogVisual | null => {
-    const { catalogItems, group, label, transactionSubtype, snapshot } = params;
+    const { catalogItems, group, label, itemId, transactionSubtype, snapshot } = params;
 
     if (snapshot?.label) {
         return toResolvedVisual(
@@ -98,6 +106,7 @@ export const resolveCatalogVisual = (params: {
         catalogItems,
         group,
         label,
+        itemId,
         transactionSubtype,
     });
 
@@ -131,6 +140,7 @@ export const resolveTransactionVisuals = (params: {
             catalogItems,
             group: 'category',
             label: transaction.category,
+            itemId: transaction.categoryId,
             transactionSubtype: transaction.type,
             snapshot: snapshots.categorySnapshot,
         }),

@@ -22,6 +22,8 @@ import {
   type WorkspaceActor,
   type WorkspaceRole,
 } from "../shared/workspaceAuth";
+import {syncReceivableOverdueWork} from
+  "../notifications/producers/receivableQueue";
 import {receiptCashCents} from "./cashEffect";
 import {
   IDEMPOTENCY_CONFLICT_MESSAGE,
@@ -31,6 +33,7 @@ import {
   assertPjWorkspace,
   assertVersion,
   findIntentAnchor,
+  todayOf,
   type OperationOptions,
 } from "./common";
 import type {
@@ -256,6 +259,14 @@ export const executeCreateReceivable = async (
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
     });
+    // P5-D2.1: o aviso de atraso nasce enfileirado na mesma transação.
+    syncReceivableOverdueWork(transaction, {
+      workspaceId: actor.workspaceId,
+      today: todayOf(options),
+      receivableId,
+      before: null,
+      after: {...state, dueDate: payload.dueDate},
+    });
     appendReceivableEvent(transaction, {
       workspaceId: actor.workspaceId,
       receivableId,
@@ -462,6 +473,18 @@ export const executeUpdateReceivable = async (
       ...patch,
       ...receivableStatePatch(next, actor.uid, revision),
     });
+    syncReceivableOverdueWork(transaction, {
+      workspaceId: actor.workspaceId,
+      today: todayOf(options),
+      receivableId: receivable.id,
+      before: receivable,
+      after: {
+        ...next,
+        dueDate: typeof patch.dueDate === "string" ?
+          patch.dueDate :
+          receivable.dueDate,
+      },
+    });
     appendReceivableEvent(transaction, {
       workspaceId: actor.workspaceId,
       receivableId: receivable.id,
@@ -630,6 +653,13 @@ export const executeReceiveReceivable = async (
       loaded.receivableRef,
       receivableStatePatch(next, actor.uid, revision),
     );
+    syncReceivableOverdueWork(transaction, {
+      workspaceId: actor.workspaceId,
+      today: todayOf(options),
+      receivableId: receivable.id,
+      before: receivable,
+      after: {...next, dueDate: receivable.dueDate},
+    });
     appendReceivableEvent(transaction, {
       workspaceId: actor.workspaceId,
       receivableId: receivable.id,
@@ -817,6 +847,13 @@ export const executeReverseReceivableReceipt = async (
       loaded.receivableRef,
       receivableStatePatch(next, actor.uid, revision),
     );
+    syncReceivableOverdueWork(transaction, {
+      workspaceId: actor.workspaceId,
+      today: todayOf(options),
+      receivableId: receivable.id,
+      before: receivable,
+      after: {...next, dueDate: receivable.dueDate},
+    });
     appendReceivableEvent(transaction, {
       workspaceId: actor.workspaceId,
       receivableId: receivable.id,
@@ -892,6 +929,13 @@ export const executeCancelReceivable = async (
       cancelReason: payload.reason,
       cancelledBy: actor.uid,
       cancelledAt: FieldValue.serverTimestamp(),
+    });
+    syncReceivableOverdueWork(transaction, {
+      workspaceId: actor.workspaceId,
+      today: todayOf(options),
+      receivableId: receivable.id,
+      before: receivable,
+      after: {...next, dueDate: receivable.dueDate},
     });
     appendReceivableEvent(transaction, {
       workspaceId: actor.workspaceId,

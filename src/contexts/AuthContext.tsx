@@ -10,7 +10,16 @@ import {
 } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore'; // IMPORT ADICIONADO
 import { auth, db } from '../lib/firebase'; // IMPORT ATUALIZADO (adicionado o db)
-import { clearUserScopedStorage } from '../lib/sessionCleanup';
+import {
+    LOCAL_SESSION_OWNER_KEY,
+    clearUserScopedStorage,
+    ownsLastWorkspaceKey,
+    reconcileLocalSession,
+    resolveBrowserStorage,
+    type LocalKeyOwnership,
+} from '../lib/sessionCleanup';
+import { isAiChatHistoryKeyOf, purgeObsoleteAiChatHistory } from '../modules/reports/aiChatStorage';
+import { resetAiChatSessions } from '../modules/reports/aiChatSession';
 
 // 1. Criamos um tipo customizado que inclui o isAdmin
 export interface AppUser {
@@ -34,6 +43,10 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const isE2EMode = import.meta.env.VITE_E2E_MODE === 'true';
 
+/** Dados locais que pertencem à conta: último workspace e histórico do chat de IA. */
+const ownsLocalKey: LocalKeyOwnership = (key, uid) =>
+    ownsLastWorkspaceKey(key, uid) || isAiChatHistoryKeyOf(key, uid);
+
 const getFirebaseAuthErrorCode = (error: unknown): string => {
     if (typeof error === 'object' && error !== null && 'code' in error) {
         return String((error as { code?: unknown }).code);
@@ -48,24 +61,56 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const [loading, setLoading] = useState(true);
     const queryClient = useQueryClient();
     const previousUid = useRef<string | null>(null);
+    // Cada emissão do Firebase Auth ganha um número; a leitura assíncrona do
+    // perfil de uma emissão antiga não pode aplicar o usuário anterior.
+    const authGeneration = useRef(0);
 
     /**
-     * Nada da sessão anterior sobrevive à troca de conta (AUTH-11): cache do
-     * React Query e chaves locais por usuário/workspace. Vale para o logout
-     * explícito e também para uma troca de conta sem logout.
+     * Nada da sessão anterior sobrevive ao logout (AUTH-11): cache do React
+     * Query, chaves locais por usuário/workspace (inclusive o histórico do
+     * chat de IA e o dono local) e as sessões do chat em memória, com as
+     * respostas pendentes.
      */
     const clearSessionState = () => {
         queryClient.clear();
         clearUserScopedStorage();
+        resetAiChatSessions();
     };
+
+    /*
+     * Logout ou troca de conta em outra aba muda (ou apaga) o dono local da
+     * sessão: as sessões do chat desta aba são invalidadas na hora, antes de o
+     * Firebase Auth avisar esta aba, e nenhuma resposta atrasada daqui volta a
+     * gravar histórico.
+     */
+    useEffect(() => {
+        const onStorage = (event: StorageEvent) => {
+            if (event.key === null || event.key === LOCAL_SESSION_OWNER_KEY) {
+                resetAiChatSessions();
+            }
+        };
+        window.addEventListener('storage', onStorage);
+        return () => window.removeEventListener('storage', onStorage);
+    }, []);
 
     useEffect(() => {
         // Escuta mudanças na autenticação em tempo real
         const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
             const nextUid = currentUser?.uid ?? null;
-            if (previousUid.current && previousUid.current !== nextUid) {
-                clearSessionState();
-            }
+            authGeneration.current += 1;
+            const generation = authGeneration.current;
+            /*
+             * Troca de conta nesta aba, ou carga nova sem sessão ou com dados
+             * locais de outra conta: tudo da sessão anterior sai antes de a
+             * interface da próxima abrir. O dono local só identifica os dados;
+             * não autoriza nada.
+             */
+            const transition = reconcileLocalSession(
+                previousUid.current, nextUid, resolveBrowserStorage(), ownsLocalKey,
+            );
+            if (transition === 'account-switch') queryClient.clear();
+            if (transition !== 'same-account') resetAiChatSessions();
+            purgeObsoleteAiChatHistory(resolveBrowserStorage());
             previousUid.current = nextUid;
             if (currentUser) {
                 let isAdmin = false;
@@ -81,6 +126,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 } catch (error) {
                     console.error("Erro ao verificar status de admin:", error);
                 }
+                // A conta mudou enquanto o perfil era lido: esta emissão
+                // ficou velha e não pode restabelecer o usuário anterior.
+                if (generation !== authGeneration.current) return;
 
                 // Monta o usuário completo e salva no estado global
                 setUser({

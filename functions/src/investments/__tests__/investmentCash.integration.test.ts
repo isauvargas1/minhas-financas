@@ -13,6 +13,7 @@ import {cashAccountDocument} from "../../accounts/model";
 import {runCashAccountReconciliation} from "../../accounts/reconciliation";
 import {
   applyCashPeriodWriteOnce,
+  CashContractViolationError,
   cashPeriodEventKey,
 } from "../../cash/periods";
 import {ApplicationError} from "../../shared/errors";
@@ -125,6 +126,7 @@ const seed = async (): Promise<void> => {
   await Promise.all([
     db().doc(`workspaces/${WS_A}/goals/${GOAL}`).set({
       id: GOAL, workspaceId: WS_A, name: "Meta de investimento",
+      progressSource: "investment", archived: false, revision: 1,
       progressBasis: "net_contributions",
       investmentNetContributionCents: 0,
       investmentCurrentValueCents: 0,
@@ -625,22 +627,24 @@ test("o espelho não move patrimônio nem meta; documento forjado não cria nada
   // Reescrever o espelho pelo Admin SDK (o cliente nem consegue) não toca o
   // domínio patrimonial: posição, resumo e meta só mudam por movimento.
   await db().doc(`workspaces/${WS_A}/transactions/${criado.transactionId}`)
-    .update({valueCents: 999_999, value: 9_999.99});
+    .update({valueCents: 999_999});
   assert.deepEqual(await resumo(), patrimonio);
   assert.equal((await meta())?.investmentNetContributionCents, progresso);
 
-  // Documento `investimento` sem marca: não é aporte, não move caixa e não
-  // cria patrimônio.
+  // Documento `investimento` sem marca: fora do contrato único (P5-C2). A
+  // entrega falha com violação tipada (nunca vira zero em silêncio), não
+  // move caixa e não cria patrimônio.
   const forjado = {
     type: "investimento", description: "Aporte forjado", category: "Investimentos",
-    value: 500, valueCents: 50_000, date: "2026-08-12", isPaid: true,
-    transactionDate: at("2026-08-12T12:00:00.000Z"),
+    valueCents: 50_000, date: "2026-08-12", isPaid: true,
     workspaceId: WS_A, userId: OWNER_A, goalId: GOAL,
     investmentMetadata: {status: "settled", cashImpact: "outflow",
       investmentOperation: "contribution", principalCents: 50_000},
   };
   await db().doc(`workspaces/${WS_A}/transactions/forjado-1`).set(forjado);
-  await entregar("evt-forjado-1", "forjado-1", undefined, forjado);
+  await assert.rejects(entregar("evt-forjado-1", "forjado-1", undefined, forjado),
+    (falha: unknown) => falha instanceof CashContractViolationError &&
+      falha.field === "type");
   const periodo = await periodoCaixa("2026-08");
   assert.equal(periodo?.investmentOutflowCents ?? 0, 0);
   assert.equal(periodo?.netCents ?? 0, 0);

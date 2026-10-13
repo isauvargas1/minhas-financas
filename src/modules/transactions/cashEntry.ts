@@ -40,7 +40,8 @@ export type CashEntryType = 'receita' | 'despesa';
 export interface ManualEntryForm {
   type: CashEntryType;
   description: string;
-  category: string;
+  /** ID da categoria do catálogo (D-23); o nome é resolvido no backend. */
+  categoryId: string;
   /** Texto do campo de valor (`input type="number"`, ponto decimal). */
   amount: string;
   /** `YYYY-MM-DD`. */
@@ -88,6 +89,22 @@ export const saoPauloToday = (now: Date = new Date()): string =>
     month: '2-digit',
     day: '2-digit',
   }).format(now);
+
+/**
+ * Mesmo dia civil de São Paulo `months` meses antes (`YYYY-MM-DD`), com o dia
+ * limitado ao fim do mês. Aritmética sobre os campos civis: sem `toISOString`,
+ * que deslocaria a data entre 21h e 24h de Brasília.
+ */
+export const saoPauloMonthsAgo = (months: number, now: Date = new Date()): string => {
+  const [year, month, day] = saoPauloToday(now).split('-').map(Number);
+  const index = year * 12 + (month - 1) - months;
+  const targetYear = Math.floor(index / 12);
+  const targetMonth = index - targetYear * 12 + 1;
+  const lastDay = new Date(Date.UTC(targetYear, targetMonth, 0)).getUTCDate();
+  return [targetYear, targetMonth, Math.min(day, lastDay)]
+    .map((value, position) => String(value).padStart(position === 0 ? 4 : 2, '0'))
+    .join('-');
+};
 
 const isDayKey = (value: string): boolean => {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
@@ -151,8 +168,6 @@ export interface StoredEntry {
   isPaid?: unknown;
   source?: unknown;
   userId?: unknown;
-  installments?: unknown;
-  currentInstallment?: unknown;
   voidedAt?: unknown;
   cashEntry?: unknown;
   [key: string]: unknown;
@@ -235,6 +250,10 @@ export const toCashEntryState = (
       'Fornecedor e centro de custo só podem ser informados em espaço PJ.',
     );
   }
+  const categoryId = text(form.categoryId);
+  if (!categoryId) {
+    throw new CashEntryInputError('Escolha a categoria do lançamento.');
+  }
   const cashAccountId = text(form.cashAccountId);
   if (!cashAccountId) {
     throw new CashEntryInputError('Escolha a conta ou carteira do lançamento.');
@@ -253,7 +272,7 @@ export const toCashEntryState = (
   return {
     type: form.type,
     description: form.description.trim(),
-    category: form.category.trim(),
+    categoryId,
     amountCents,
     cashAccountId,
     status,
@@ -309,7 +328,7 @@ export const CONFIRM_ONLY_SETTLEMENT_MESSAGE =
 
 /** Campos que a confirmação não altera (D-29): só a liquidação muda. */
 const DESCRIPTIVE_KEYS = [
-  'type', 'description', 'category', 'incomeType', 'expenseType',
+  'type', 'description', 'categoryId', 'incomeType', 'expenseType',
   'supplier', 'costCenter',
 ] as const;
 

@@ -35,7 +35,7 @@ const base = {
   executionMode: "automatic",
   cardId: null,
   cashAccountId: "acc-1",
-  category: "Utilidades",
+  categoryId: "cat-despesa-utilidades",
   visual: {color: "#4f46e5", icon: "IconCloud", emoji: null},
   business: null,
 };
@@ -49,6 +49,16 @@ test("criação válida: caixa e cartão", () => {
     cashAccountId: null}), true);
   assert.equal(ok({...base, frequency: "weekly", billingDay: null}), true);
   assert.equal(ok({...base, frequency: "biweekly", billingDay: null}), true);
+});
+
+test("criação exige categoryId; categoria em texto é recusada", () => {
+  assert.equal(ok({...base, categoryId: undefined}), false, "sem categoryId");
+  assert.equal(ok({...base, categoryId: ""}), false, "categoryId vazio");
+  assert.equal(ok({...base, categoryId: "a/b"}), false, "categoryId caminho");
+  assert.equal(ok({...base, category: "Utilidades"}), false,
+    "category texto junto do ID");
+  assert.equal(ok({...base, categoryId: undefined, category: "Utilidades"}),
+    false, "category texto no lugar do ID");
 });
 
 test("criação recusa formatos inseguros e campos autoritativos", () => {
@@ -116,6 +126,8 @@ test("edição: só campos do contrato, versão obrigatória, motivo " +
   assert.equal(update({changes: {amountCents: 12_000}}), true);
   assert.equal(update({changes: {amountCents: 12_000}, reason: "Reajuste"}),
     true);
+  assert.equal(update({changes: {categoryId: "cat-despesa-outra"}}), true);
+  assert.equal(update({changes: {category: "Outra"}}), false);
   assert.equal(update({changes: {}}), false);
   assert.equal(update({changes: {status: "paused"}}), false);
   assert.equal(update({changes: {nextDueDate: "2026-11-10"}}), false);
@@ -169,7 +181,8 @@ const stored = {
   type: "fixed_bill", description: null, amountCents: 9_990, currency: "BRL",
   frequency: "monthly", billingDay: 10, startDate: "2026-01-10",
   endDate: null, paymentMethod: "pix", executionMode: "automatic",
-  cardId: null, cashAccountId: "acc-1", category: "Utilidades",
+  cardId: null, cashAccountId: "acc-1",
+  categoryId: "cat-despesa-utilidades", category: "Utilidades",
   status: "active", nextDueDate: "2026-02-10", lastProcessedDueDate: null,
   openOccurrenceCount: 0, visual: {color: "#4f46e5", icon: "Bolt", emoji: null},
   business: null, createdBy: "uid-1", revision: 1, requestHash: "h",
@@ -184,6 +197,8 @@ test("leitor do contrato: só o schema autoritativo e coerente", () => {
     ["reais", {...stored, amountCents: 99.9}],
     ["ativo sem vencimento", {...stored, nextDueDate: null}],
     ["pausado com vencimento", {...stored, status: "paused"}],
+    ["sem categoryId", {...stored, categoryId: undefined}],
+    ["sem nome da categoria", {...stored, category: undefined}],
     ["caixa sem conta", {...stored, cashAccountId: null}],
     ["cartão com conta", {...stored, paymentMethod: "credit_card",
       cardId: "card-1"}],
