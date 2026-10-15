@@ -1,0 +1,6 @@
+SEM a correção: "b" preso no DOM em 20/20
+  DOM final (1ª execução): b(opacidade 0.00, altura 0), c(opacidade 1.00, altura 40)
+  eventos (1ª execução): 239 saída concluída a | 239 exitComplete | 354 saída concluída b | 354 exitComplete
+COM a correção: "b" preso no DOM em 0/20
+  DOM final (1ª execução): c(opacidade 1.00, altura 40)
+  eventos (1ª execução): 209 saída concluída a | 209 exitComplete | 326 saída concluída b | 326 exitComplete

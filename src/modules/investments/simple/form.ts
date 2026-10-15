@@ -306,3 +306,36 @@ export const buildWithdrawSimpleInvestmentInput = (
     ...(state.received ? { cashAccountId: state.cashAccountId } : {}),
   };
 };
+
+/** Rótulo da opção de meta quando a meta selecionada ainda não foi resolvida. */
+export const SELECTED_GOAL_FALLBACK_LABEL = 'Meta selecionada';
+
+interface GoalSelectSource {
+  id: string;
+  name: string;
+  status: string;
+  visual?: { emoji?: string };
+}
+
+/**
+ * Opções do seletor de meta (P5-B.1).
+ *
+ * Só metas em andamento são oferecidas. A meta que já está selecionada fica
+ * sempre entre as opções — mesmo carregada por ID fora das páginas do seletor,
+ * ou ainda sem resolver —, para o campo nunca mostrar "Sem meta" enquanto o
+ * formulário guarda outro `goalId`.
+ */
+export const buildGoalSelectOptions = (
+  goals: readonly GoalSelectSource[],
+  selectedGoalId: string,
+): { value: string; label: string }[] => {
+  const label = (goal: GoalSelectSource) =>
+    `${goal.visual?.emoji ? `${goal.visual.emoji} ` : ''}${goal.name}`;
+  const options = goals
+    .filter((goal) => goal.status === 'em_andamento' || goal.id === selectedGoalId)
+    .map((goal) => ({ value: goal.id, label: label(goal) }));
+  if (selectedGoalId && !options.some((option) => option.value === selectedGoalId)) {
+    options.push({ value: selectedGoalId, label: SELECTED_GOAL_FALLBACK_LABEL });
+  }
+  return options;
+};

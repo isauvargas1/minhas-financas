@@ -1,0 +1,4 @@
+layout=não correção=não: execuções com item preso 0/50 (itens presos no total: 0)
+layout=não correção=sim: execuções com item preso 0/50 (itens presos no total: 0)
+layout=sim correção=não: execuções com item preso 3/50 (itens presos no total: 3)
+layout=sim correção=sim: execuções com item preso 0/50 (itens presos no total: 0)

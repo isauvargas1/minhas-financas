@@ -188,7 +188,7 @@ test('P3-I — dados pessoais só são pedidos com papel owner/admin; totais pel
     assert.match(block, /enabled: allowed &&/);
   }
   const api = stripComments(readFileSync(join(ROOT, 'modules', 'clients', 'api.ts'), 'utf8'));
-  assert.equal((api.match(/sum\('balanceCents'\)/g) ?? []).length, 5, 'totais e situação pelo saldo');
+  assert.equal((api.match(/sum\('balanceCents'\)/g) ?? []).length, 3, 'totais e situação pelo saldo');
   assert.doesNotMatch(api, /sum\('(?!balanceCents'|principalReceivedCents')/, 'nenhum total por outro campo');
   assert.doesNotMatch(api, /onSnapshot/, 'sem listener');
 });

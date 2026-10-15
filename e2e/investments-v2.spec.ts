@@ -57,6 +57,16 @@ const seed = async (comProjecoes: boolean) => {
         taxCents: 0, costDeltaCents: 100_000, currentValueDeltaCents: 100_000,
         cashDeltaCents: -100_000, settledMovementCount: 1,
         closingCurrentValueCents: 100_000,
+        // P5-C1 (D-37.10): o relatório só aceita o mês se a soma dos dias fechar
+        // com o total mensal; o escritor real grava os dois juntos.
+        daily: {
+          [`${PERIOD}-01`]: {
+            contributionCents: 100_000, redemptionPrincipalCents: 0,
+            realizedGainCents: 0, realizedLossCents: 0, feesCents: 0, taxCents: 0,
+            costDeltaCents: 100_000, currentValueDeltaCents: 100_000,
+            cashDeltaCents: -100_000, settledMovementCount: 1,
+          },
+        },
         updatedAt: now, updatedBy: UID,
       }),
       db.doc(`workspaces/${WORKSPACE}/investment_allocation_summaries/purpose-unassigned`).set({

@@ -173,7 +173,7 @@ const seed = async () => {
       actorId: users.ownerA.uid, intentId: 'intent-1', occurredAt: ts(), createdAt: ts(),
     });
     batch.set(db.doc(`${base}/transactions/cccash_1`), {
-      type: 'despesa', description: 'Pagamento de fatura', category: 'Fatura de cartão', value: 50, valueCents: 5_000,
+      type: 'despesa', description: 'Pagamento de fatura', category: 'Fatura de cartão', valueCents: 5_000,
       date: '2026-10-04', isPaid: true, workspaceId: ws, profileId: ws, userId: users.ownerA.uid,
       cashAccountId: 'acc_main', creditCardPaymentEntry: {version: 1, cardId: CARD, invoiceId: CLOSED_INVOICE,
         paymentId: 'ccpay_1', amountCents: 5_000, direction: 'payment'},

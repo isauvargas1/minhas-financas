@@ -7,11 +7,15 @@ import {
   readCardPaymentCashEntry,
 } from "../cards/cashEffect";
 import {loanCashEffect, readLoanCashEntry} from "../loans/cashEffect";
+import {CASH_ENTRY_MAX_CENTS} from "./contracts";
 import {
   readReceivableCashEntry,
   receivableCashEffect,
 } from "../receivables/cashEffect";
-import {saoPauloMonthKey, saoPauloMonthStart} from "../shared/dateKeys";
+import {
+  isDayKey,
+  saoPauloMonthStart,
+} from "../shared/dateKeys";
 import {RETENTION_DAYS, expiresInDays} from "../shared/retention";
 import {readSplitCashEntry, splitCashEffect} from "../splitBills/cashEffect";
 import {
@@ -114,9 +118,10 @@ export const CASH_DELTA_FIELDS = [
 /**
  * Versão do formato do documento mensal: 2 = campos de empréstimos;
  * 3 = pagamento de fatura de cartão (P4-A); 4 = entrada de investimento
- * (P4-D).
+ * (P4-D); 5 = detalhe diário (`days`, P5-C1). O leitor do relatório só
+ * aceita a versão 5 com Σ dias = mês.
  */
-export const CASH_PERIOD_SCHEMA_VERSION = 4;
+export const CASH_PERIOD_SCHEMA_VERSION = 5;
 
 export const emptyCashPeriodDelta = (): CashPeriodDelta => ({
   incomeCents: 0,
@@ -153,21 +158,55 @@ export const normalizeCashPeriodDelta = (
 };
 
 /**
- * Valor da transação em centavos exatos.
+ * Documento de `transactions` fora do contrato único (P5-C2, PR-TX-03): sem
+ * `valueCents` inteiro, sem `date` civil válido, com tipo desconhecido (o
+ * `parcelado` legado inclusive) ou com marca de domínio ilegível.
  *
- * `valueCents` é a fonte: todo produtor atual o grava. O ramo de `value` em
- * ponto flutuante é a dupla representação ainda registrada em PR-TX-03 (sai
- * com a fórmula única, P5); arredondar aqui é a única conversão, e ela
- * acontece uma vez por documento.
+ * Nenhum produtor grava esse documento (todo escritor é backend e valida a
+ * entrada); se aparecer, nunca vira R$ 0,00 em silêncio: o gatilho o trata
+ * como falha permanente e marca a projeção para reconstrução
+ * (`contract_violation`), e a reconstrução recusa publicar. A mensagem não
+ * leva dado do documento.
+ */
+export class CashContractViolationError extends Error {
+  constructor(readonly field: "valueCents" | "date" | "type" | "marker") {
+    super(`transação fora do contrato: ${field}`);
+    this.name = "CashContractViolationError";
+  }
+}
+
+/**
+ * Valor da transação em centavos exatos: só `valueCents`, inteiro seguro,
+ * não negativo (o sinal vem do tipo ou da marca de domínio) e até o teto da
+ * entrada de todo produtor de receita e despesa (`CASH_ENTRY_MAX_CENTS`). Não
+ * existe outra representação — sem `value` em reais, sem arredondamento. O
+ * espelho de investimento tem o próprio teto (o do movimento), conferido
+ * contra a marca em `cashPeriodDeltaFor`.
  */
 export const transactionValueCents = (
-  data: admin.firestore.DocumentData | undefined,
+  data: admin.firestore.DocumentData,
+  maxCents: number = CASH_ENTRY_MAX_CENTS,
 ): number => {
-  if (!data) return 0;
-  if (Number.isSafeInteger(data.valueCents)) return data.valueCents as number;
-  const value = Number(data.value ?? 0);
-  return Number.isFinite(value) ? Math.round(value * 100) : 0;
+  const cents = data.valueCents;
+  if (!Number.isSafeInteger(cents) || (cents as number) < 0 ||
+    (cents as number) > maxCents) {
+    throw new CashContractViolationError("valueCents");
+  }
+  return cents as number;
 };
+
+/** Receita ou despesa: o tipo de todo documento sem `investmentEntry`. */
+const assertOperationalType = (data: admin.firestore.DocumentData): void => {
+  if (data.type !== "receita" && data.type !== "despesa") {
+    // `investimento` sem a marca, `parcelado` legado ou tipo desconhecido.
+    throw new CashContractViolationError("type");
+  }
+};
+
+/** Baixa lógica (INV-P2-032): o documento permanece, o fato não conta. */
+export const isVoidedTransaction = (
+  data: admin.firestore.DocumentData,
+): boolean => data.voidedAt !== undefined && data.voidedAt !== null;
 
 /**
  * Receita ou despesa ainda não liquidada (D-29, P3-F): pendente, agendada ou
@@ -175,7 +214,7 @@ export const transactionValueCents = (
  * pelo backend (`cashEntry.status: pending` e espelho de investimento
  * pendente); todo produtor atual grava `isPaid`. Ausência do campo não é
  * evidência de pendência: é lida como realizada, a mesma regra do frontend
- * (fórmula única: PR-TX-03, P5; `FINANCIAL_DOMAIN_MODEL.md`).
+ * (`FINANCIAL_DOMAIN_MODEL.md`).
  */
 export const isUnsettledCashEntry = (
   data: admin.firestore.DocumentData,
@@ -198,23 +237,30 @@ export const isUnsettledCashEntry = (
  * `investmentEntry` (`investmentCashEffect`): aporte liquidado sai como
  * `investmentOutflowCents`, retirada recebida entra como
  * `investmentInflowCents` (principal) e `financialIncomeCents` (rendimento),
- * pendente e cancelado não movem caixa e o estorno compensa. Documento
- * `investimento` sem marca válida está fora do contrato: efeito zero.
- * `parcelado` não é gravado por nenhum fluxo (P4-A, P4-B, P4-C: a compra de
- * cartão vive em `credit_card_purchases`); a regra anterior fica só para
- * documento fora do contrato.
+ * pendente e cancelado não movem caixa e o estorno compensa.
+ *
+ * Contrato único (P5-C2), avaliado em todo documento não anulado, com ou
+ * sem marca de domínio: fora dele — marca ilegível, `investimento` sem a
+ * marca (ou a marca em outro tipo), marca de empréstimo, cartão, recebível
+ * ou divisão em tipo diferente de receita/despesa, tipo desconhecido (o
+ * `parcelado` legado inclusive: a compra de cartão vive em
+ * `credit_card_purchases`), `valueCents` inválido ou acima do teto, ou, no
+ * espelho de investimento, diferente do valor da marca — lança
+ * `CashContractViolationError`, nunca efeito zero. Só a baixa lógica, o
+ * pendente e o investimento pendente/cancelado valem zero por regra.
  */
 export const cashPeriodDeltaFor = (
   data: admin.firestore.DocumentData | undefined,
 ): CashPeriodDelta => {
   if (!data) return ZERO_DELTA;
-  // Baixa lógica (INV-P2-032): o documento permanece, o fato não conta.
-  if (data.voidedAt !== undefined && data.voidedAt !== null) return ZERO_DELTA;
+  if (isVoidedTransaction(data)) return ZERO_DELTA;
 
   // Espelho de empréstimo (P3-G, D-13): a marca backend-only decide.
   if (data.loanEntry !== undefined) {
     const entry = readLoanCashEntry(data.loanEntry);
-    if (!entry) return ZERO_DELTA;
+    if (!entry) throw new CashContractViolationError("marker");
+    assertOperationalType(data);
+    transactionValueCents(data);
     return {...emptyCashPeriodDelta(), ...loanCashEffect(entry),
       transactionCount: 1};
   }
@@ -223,7 +269,9 @@ export const cashPeriodDeltaFor = (
   // receita e despesa operacionais; move só o caixa.
   if (data.creditCardPaymentEntry !== undefined) {
     const entry = readCardPaymentCashEntry(data.creditCardPaymentEntry);
-    if (!entry) return ZERO_DELTA;
+    if (!entry) throw new CashContractViolationError("marker");
+    assertOperationalType(data);
+    transactionValueCents(data);
     return {...emptyCashPeriodDelta(), ...cardPaymentCashEffect(entry),
       transactionCount: 1};
   }
@@ -232,7 +280,9 @@ export const cashPeriodDeltaFor = (
   // juros e multa são receita financeira, desconto não move caixa.
   if (data.receivableEntry !== undefined) {
     const entry = readReceivableCashEntry(data.receivableEntry);
-    if (!entry) return ZERO_DELTA;
+    if (!entry) throw new CashContractViolationError("marker");
+    assertOperationalType(data);
+    transactionValueCents(data);
     return {...emptyCashPeriodDelta(), ...receivableCashEffect(entry),
       transactionCount: 1};
   }
@@ -241,28 +291,35 @@ export const cashPeriodDeltaFor = (
   // PJ pago são despesa operacional; a compensação tem sinal oposto.
   if (data.splitEntry !== undefined) {
     const entry = readSplitCashEntry(data.splitEntry);
-    if (!entry) return ZERO_DELTA;
+    if (!entry) throw new CashContractViolationError("marker");
+    assertOperationalType(data);
+    transactionValueCents(data);
     return {...emptyCashPeriodDelta(), ...splitCashEffect(entry),
       transactionCount: 1};
   }
 
-  // Espelho de investimento (P4-D, D-15): só a marca do backend decide.
-  // Pendente e cancelado não movem caixa; o estorno compensa.
+  // Espelho de investimento (P4-D, D-15): só a marca do backend decide; o
+  // valor exibido (`valueCents`) é o da marca. Pendente e cancelado não
+  // movem caixa; o estorno compensa.
   if (data.investmentEntry !== undefined) {
     const entry = readInvestmentCashEntry(data.investmentEntry);
-    if (!entry || data.type !== "investimento" || entry.status !== "settled") {
-      return ZERO_DELTA;
+    if (!entry) throw new CashContractViolationError("marker");
+    if (data.type !== "investimento") {
+      throw new CashContractViolationError("type");
     }
+    if (transactionValueCents(data, Number.MAX_SAFE_INTEGER) !==
+      entry.amountCents) {
+      throw new CashContractViolationError("valueCents");
+    }
+    if (entry.status !== "settled") return ZERO_DELTA;
     return {...emptyCashPeriodDelta(), ...investmentCashEffect(entry),
       transactionCount: 1};
   }
 
+  assertOperationalType(data);
+  const type = data.type as "receita" | "despesa";
   const cents = transactionValueCents(data);
-  const type = String(data.type ?? "");
-  const manualType = type === "receita" || type === "despesa";
-  if (manualType && isUnsettledCashEntry(data)) {
-    return ZERO_DELTA;
-  }
+  if (isUnsettledCashEntry(data)) return ZERO_DELTA;
 
   if (type === "receita") {
     return {
@@ -274,36 +331,181 @@ export const cashPeriodDeltaFor = (
       transactionCount: 1,
     };
   }
-  if (type === "despesa" || type === "parcelado") {
-    return {
-      ...emptyCashPeriodDelta(),
-      incomeCents: 0,
-      expenseCents: cents,
-      investmentOutflowCents: 0,
-      netCents: -cents,
-      transactionCount: 1,
-    };
-  }
-  // `investimento` sem a marca do backend: fora do contrato, efeito zero.
-  return ZERO_DELTA;
+  return {
+    ...emptyCashPeriodDelta(),
+    incomeCents: 0,
+    expenseCents: cents,
+    investmentOutflowCents: 0,
+    netCents: -cents,
+    transactionCount: 1,
+  };
 };
 
-/** Chave mensal da transação, no fuso oficial do produto. */
-export const cashPeriodKeyFor = (
-  data: admin.firestore.DocumentData | undefined,
-): string | undefined => {
-  if (!data) return undefined;
-  const timestamp = data.transactionDate;
-  if (timestamp instanceof Timestamp) {
-    return saoPauloMonthKey(timestamp.toDate());
-  }
-  const dateOnly = typeof data.date === "string" ? data.date : undefined;
-  if (!dateOnly) return undefined;
-  const parsed = new Date(`${dateOnly}T12:00:00.000Z`);
-  return Number.isNaN(parsed.getTime()) ?
-    undefined :
-    saoPauloMonthKey(parsed);
+/**
+ * Dia civil da transação (`AAAA-MM-DD`, São Paulo): só `date`, a única data
+ * civil do contrato (P5-C2, D-17). Já é a chave do dia — sem instante, sem
+ * conversão de fuso. Data impossível ou ausente lança
+ * `CashContractViolationError`. O mês da projeção é o prefixo deste dia —
+ * dia e mês nunca discordam (P5-C1).
+ */
+export const cashDayKeyFor = (
+  data: admin.firestore.DocumentData,
+): string => {
+  if (!isDayKey(data.date)) throw new CashContractViolationError("date");
+  return data.date;
 };
+
+/** Chave mensal da transação (prefixo do dia civil). */
+export const cashPeriodKeyFor = (
+  data: admin.firestore.DocumentData,
+): string => cashDayKeyFor(data).slice(0, 7);
+
+// ------------------------------------------------------------- categorias
+
+/**
+ * Projeção por categoria (P5-C1, D-37.8): `cash_category_years`.
+ *
+ * Um documento por (geração, ano, categoria), com os totais do ano e o
+ * detalhe por dia (`days.{MMDD}`), só para receita e despesa operacionais.
+ * Nunca um documento com todas as categorias: o tamanho de cada um é
+ * limitado pelos dias do ano (≤ 366 × 3 campos), e a quantidade de chaves
+ * pelo teto do catálogo (2.000 itens por workspace) mais as três chaves
+ * fixas abaixo.
+ *
+ * A geração existe por causa da reconstrução: a varredura prepara uma
+ * geração nova enquanto o gatilho continua alimentando a vigente (e também a
+ * preparada, para eventos posteriores ao corte); a publicação troca a
+ * geração vigente no mesmo commit que publica os meses. O leitor só lê a
+ * geração vigente.
+ */
+export const CASH_CATEGORY_YEARS_COLLECTION = "cash_category_years";
+export const CASH_CATEGORY_SCHEMA_VERSION = 2;
+/** Geração inicial: workspace que nunca reconstruiu a projeção. */
+export const INITIAL_CATEGORY_GENERATION = "g0";
+
+/** Sem `categoryId` válido: classificação explícita, nunca nome digitado. */
+export const CATEGORY_KEY_UNCATEGORIZED = "sem_categoria";
+/** Principal recebido de recebível (D-39): receita operacional de domínio. */
+export const CATEGORY_KEY_RECEIVABLES = "dominio_recebiveis";
+/** Despesa da Divisão de contas (P4-C): despesa operacional de domínio. */
+export const CATEGORY_KEY_SPLIT = "dominio_divisao";
+
+export const RESERVED_CATEGORY_KEYS: readonly string[] = [
+  CATEGORY_KEY_UNCATEGORIZED,
+  CATEGORY_KEY_RECEIVABLES,
+  CATEGORY_KEY_SPLIT,
+];
+
+export type CashCategoryClassification =
+  | "catalog"
+  | "uncategorized"
+  | "receivables"
+  | "split";
+
+/** ID de item do catálogo utilizável como chave (segmento de caminho). */
+const CATALOG_ID_PATTERN = /^[A-Za-z0-9_-]{1,128}$/;
+
+export const isCatalogCategoryKey = (value: unknown): value is string =>
+  typeof value === "string" &&
+  CATALOG_ID_PATTERN.test(value) &&
+  !RESERVED_CATEGORY_KEYS.includes(value);
+
+export interface CashCategoryRef {
+  categoryKey: string;
+  categoryId: string | null;
+  classification: CashCategoryClassification;
+}
+
+/**
+ * Categoria de agregação da transação. A chave é sempre um ID estável:
+ * o `categoryId` do catálogo (gravado e validado pelo backend na criação,
+ * correção, importação ou recorrência) ou uma das chaves fixas. Renomear a
+ * categoria não muda a chave; nenhum texto vira chave.
+ */
+export const cashCategoryRefFor = (
+  data: admin.firestore.DocumentData,
+): CashCategoryRef => {
+  if (data.receivableEntry !== undefined) {
+    return {
+      categoryKey: CATEGORY_KEY_RECEIVABLES,
+      categoryId: null,
+      classification: "receivables",
+    };
+  }
+  if (data.splitEntry !== undefined) {
+    return {
+      categoryKey: CATEGORY_KEY_SPLIT,
+      categoryId: null,
+      classification: "split",
+    };
+  }
+  if (isCatalogCategoryKey(data.categoryId)) {
+    return {
+      categoryKey: data.categoryId,
+      categoryId: data.categoryId,
+      classification: "catalog",
+    };
+  }
+  return {
+    categoryKey: CATEGORY_KEY_UNCATEGORIZED,
+    categoryId: null,
+    classification: "uncategorized",
+  };
+};
+
+/**
+ * Delta da projeção por categoria. A contagem fica separada por lado: a mesma
+ * chave fixa (ex.: `sem_categoria` de uma importação) pode ter receita e
+ * despesa no mesmo dia, e um total único seria atribuído aos dois lados.
+ */
+export interface CashCategoryDelta {
+  incomeCents: number;
+  expenseCents: number;
+  incomeCount: number;
+  expenseCount: number;
+}
+
+export const CASH_CATEGORY_FIELDS = [
+  "incomeCents",
+  "expenseCents",
+  "incomeCount",
+  "expenseCount",
+] as const satisfies readonly (keyof CashCategoryDelta)[];
+
+export const emptyCashCategoryDelta = (): CashCategoryDelta => ({
+  incomeCents: 0,
+  expenseCents: 0,
+  incomeCount: 0,
+  expenseCount: 0,
+});
+
+export const normalizeCashCategoryDelta = (
+  value: Partial<Record<keyof CashCategoryDelta, unknown>> | undefined,
+): CashCategoryDelta => {
+  const delta = emptyCashCategoryDelta();
+  for (const field of CASH_CATEGORY_FIELDS) {
+    const raw = value?.[field];
+    delta[field] = Number.isSafeInteger(raw) ? raw as number : 0;
+  }
+  return delta;
+};
+
+export const cashCategoryYearDocId = (
+  generation: string,
+  year: string,
+  categoryKey: string,
+): string => `${generation}__${year}__${categoryKey}`;
+
+export const cashCategoryYearRef = (
+  workspaceId: string,
+  generation: string,
+  year: string,
+  categoryKey: string,
+): admin.firestore.DocumentReference =>
+  admin.firestore().doc(
+    `workspaces/${workspaceId}/${CASH_CATEGORY_YEARS_COLLECTION}/` +
+      cashCategoryYearDocId(generation, year, categoryKey),
+  );
 
 // `|| 0` normaliza `-0`, que viraria "-R$ 0,00" num total somado.
 const negate = (delta: CashPeriodDelta): CashPeriodDelta => {
@@ -367,13 +569,21 @@ export const cashPeriodDeltasFor = (
   after: admin.firestore.DocumentData | undefined,
 ): Record<string, CashPeriodDelta> => {
   const deltas: Record<string, CashPeriodDelta> = {};
-  const beforePeriod = cashPeriodKeyFor(before);
-  const afterPeriod = cashPeriodKeyFor(after);
-  if (beforePeriod) deltas[beforePeriod] = negate(cashPeriodDeltaFor(before));
-  if (afterPeriod) {
+  // Todo documento não anulado tem `date` válido, com ou sem efeito (o
+  // pendente inclusive); o anulado não é avaliado.
+  const beforeDelta = cashPeriodDeltaFor(before);
+  const afterDelta = cashPeriodDeltaFor(after);
+  const beforePeriod = before && !isVoidedTransaction(before) ?
+    cashPeriodKeyFor(before) : null;
+  const afterPeriod = after && !isVoidedTransaction(after) ?
+    cashPeriodKeyFor(after) : null;
+  if (beforePeriod && !isZero(beforeDelta)) {
+    deltas[beforePeriod] = negate(beforeDelta);
+  }
+  if (afterPeriod && !isZero(afterDelta)) {
     deltas[afterPeriod] = addCashPeriodDelta(
       deltas[afterPeriod] ?? ZERO_DELTA,
-      cashPeriodDeltaFor(after),
+      afterDelta,
     );
   }
   for (const [period, delta] of Object.entries(deltas)) {
@@ -382,11 +592,226 @@ export const cashPeriodDeltasFor = (
   return deltas;
 };
 
-const writeDelta = (
+/** Detalhe diário de um mês: `DD` → delta, só com campos não nulos. */
+export type CashDayDeltas = Record<string, Partial<CashPeriodDelta>>;
+
+/** Entrada da projeção por categoria tocada por uma escrita. */
+export interface CashCategoryWrite extends CashCategoryRef {
+  year: string;
+  totals: CashCategoryDelta;
+  /** `MMDD` → delta, só com campos não nulos. */
+  days: Record<string, Partial<CashCategoryDelta>>;
+}
+
+/**
+ * Plano completo de uma escrita de transação (P5-C1): meses, dias e
+ * categorias, todos derivados do **mesmo** par antes/depois. O total do mês
+ * é, por construção, a soma dos dias do plano; o total de receita e despesa
+ * operacionais do plano é a soma das categorias.
+ */
+export interface CashWritePlan {
+  months: Record<string, CashPeriodDelta>;
+  days: Record<string, CashDayDeltas>;
+  categories: Record<string, CashCategoryWrite>;
+}
+
+const addPartial = <K extends string>(
+  target: Partial<Record<K, number>>,
+  delta: Record<K, number>,
+  fields: readonly K[],
+): void => {
+  for (const field of fields) {
+    // `|| 0` normaliza `-0`.
+    const sum = (target[field] ?? 0) + delta[field] || 0;
+    if (sum === 0) {
+      delete target[field];
+    } else {
+      target[field] = sum;
+    }
+  }
+};
+
+/**
+ * Um lançamento é receita ou despesa, nunca as duas: a contagem do fato vai
+ * para o lado do valor (o sinal acompanha criação e desfazimento).
+ */
+const categoryDeltaOf = (delta: CashPeriodDelta): CashCategoryDelta => {
+  const count = Math.sign(delta.transactionCount) || 0;
+  return {
+    incomeCents: delta.incomeCents,
+    expenseCents: delta.expenseCents,
+    incomeCount: delta.incomeCents !== 0 ? count : 0,
+    expenseCount: delta.expenseCents !== 0 ? count : 0,
+  };
+};
+
+const isZeroCategory = (delta: CashCategoryDelta): boolean =>
+  CASH_CATEGORY_FIELDS.every((field) => delta[field] === 0);
+
+const addToPlan = (
+  plan: CashWritePlan,
+  data: admin.firestore.DocumentData | undefined,
+  sign: 1 | -1,
+): void => {
+  if (!data) return;
+  const base = cashPeriodDeltaFor(data);
+  // Documento não anulado exige `date` válido mesmo sem efeito (pendente).
+  if (isVoidedTransaction(data)) return;
+  const day = cashDayKeyFor(data);
+  if (isZero(base)) return;
+  const delta = sign === 1 ? base : negate(base);
+  const period = day.slice(0, 7);
+  plan.months[period] = addCashPeriodDelta(
+    plan.months[period] ?? ZERO_DELTA,
+    delta,
+  );
+  const dd = day.slice(8, 10);
+  const monthDays = plan.days[period] ?? (plan.days[period] = {});
+  addPartial(monthDays[dd] ?? (monthDays[dd] = {}), delta, CASH_DELTA_FIELDS);
+
+  const category = categoryDeltaOf(delta);
+  if (isZeroCategory(category)) return;
+  const ref = cashCategoryRefFor(data);
+  const year = day.slice(0, 4);
+  const key = `${year}__${ref.categoryKey}`;
+  const entry = plan.categories[key] ?? (plan.categories[key] = {
+    ...ref,
+    year,
+    totals: emptyCashCategoryDelta(),
+    days: {},
+  });
+  for (const field of CASH_CATEGORY_FIELDS) {
+    entry.totals[field] = entry.totals[field] + category[field] || 0;
+  }
+  const mmdd = `${day.slice(5, 7)}${day.slice(8, 10)}`;
+  addPartial(entry.days[mmdd] ?? (entry.days[mmdd] = {}), category,
+    CASH_CATEGORY_FIELDS);
+};
+
+/**
+ * Plano da escrita: retira o efeito de `before` (no dia e na categoria de
+ * `before`) e soma o de `after` (no dia e na categoria de `after`). Mudança
+ * de dia, mês, ano, categoria ou valor sai de um lugar e entra no outro;
+ * entradas que se anulam somem do plano.
+ */
+export const cashWritePlanFor = (
+  before: admin.firestore.DocumentData | undefined,
+  after: admin.firestore.DocumentData | undefined,
+): CashWritePlan => {
+  const plan: CashWritePlan = {months: {}, days: {}, categories: {}};
+  addToPlan(plan, before, -1);
+  addToPlan(plan, after, 1);
+  for (const [period, delta] of Object.entries(plan.months)) {
+    if (isZero(delta)) delete plan.months[period];
+  }
+  for (const [period, days] of Object.entries(plan.days)) {
+    for (const [dd, delta] of Object.entries(days)) {
+      if (Object.keys(delta).length === 0) delete days[dd];
+    }
+    if (Object.keys(days).length === 0) delete plan.days[period];
+  }
+  for (const [key, entry] of Object.entries(plan.categories)) {
+    for (const [mmdd, delta] of Object.entries(entry.days)) {
+      if (Object.keys(delta).length === 0) delete entry.days[mmdd];
+    }
+    if (isZeroCategory(entry.totals) && Object.keys(entry.days).length === 0) {
+      delete plan.categories[key];
+    }
+  }
+  return plan;
+};
+
+const DAY_OF_MONTH_PATTERN = /^(0[1-9]|[12]\d|3[01])$/;
+const MONTH_DAY_PATTERN = /^(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])$/;
+
+/**
+ * Lê o detalhe diário gravado (`days` do mês): chaves `DD` válidas, campos
+ * inteiros; campo ausente vale zero e dia sem nenhum campo não nulo some.
+ */
+export const readCashDayDeltas = (value: unknown): CashDayDeltas => {
+  const days: CashDayDeltas = {};
+  if (typeof value !== "object" || value === null) return days;
+  for (const [dd, raw] of Object.entries(value as Record<string, unknown>)) {
+    if (!DAY_OF_MONTH_PATTERN.test(dd)) continue;
+    const delta = normalizeCashPeriodDelta(
+      raw as Partial<Record<keyof CashPeriodDelta, unknown>>,
+    );
+    const partial: Partial<CashPeriodDelta> = {};
+    addPartial(partial, delta, CASH_DELTA_FIELDS);
+    if (Object.keys(partial).length > 0) days[dd] = partial;
+  }
+  return days;
+};
+
+/** Lê o detalhe diário de uma categoria-ano (`days.{MMDD}`). */
+export const readCashCategoryDays = (
+  value: unknown,
+): Record<string, Partial<CashCategoryDelta>> => {
+  const days: Record<string, Partial<CashCategoryDelta>> = {};
+  if (typeof value !== "object" || value === null) return days;
+  for (const [mmdd, raw] of Object.entries(value as Record<string, unknown>)) {
+    if (!MONTH_DAY_PATTERN.test(mmdd)) continue;
+    const delta = normalizeCashCategoryDelta(
+      raw as Partial<Record<keyof CashCategoryDelta, unknown>>,
+    );
+    const partial: Partial<CashCategoryDelta> = {};
+    addPartial(partial, delta, CASH_CATEGORY_FIELDS);
+    if (Object.keys(partial).length > 0) days[mmdd] = partial;
+  }
+  return days;
+};
+
+/** Soma `source` em `target`, dia a dia (dias que se anulam somem). */
+export const mergeCashDayDeltas = (
+  target: CashDayDeltas,
+  source: CashDayDeltas,
+): void => {
+  for (const [dd, delta] of Object.entries(source)) {
+    const day = target[dd] ?? (target[dd] = {});
+    addPartial(day, normalizeCashPeriodDelta(delta), CASH_DELTA_FIELDS);
+    if (Object.keys(day).length === 0) delete target[dd];
+  }
+};
+
+/** Soma dos dias, campo a campo. */
+export const sumCashDayDeltas = (days: CashDayDeltas): CashPeriodDelta => {
+  let total = emptyCashPeriodDelta();
+  for (const delta of Object.values(days)) {
+    total = addCashPeriodDelta(total, normalizeCashPeriodDelta(delta));
+  }
+  return total;
+};
+
+/**
+ * Paridade do mês (P5-C1): Σ dias = total do mês em **todos** os campos.
+ * Vale por construção para todo documento escrito pela versão 5; um
+ * documento que falhe aqui não pode ser apresentado como exato.
+ */
+export const cashDaysMatchMonth = (
+  days: CashDayDeltas,
+  month: CashPeriodDelta,
+): boolean => {
+  const sum = sumCashDayDeltas(days);
+  return CASH_DELTA_FIELDS.every((field) => sum[field] === month[field]);
+};
+
+const incrementsOf = (
+  delta: Partial<Record<string, number>>,
+): Record<string, FieldValue> => Object.fromEntries(
+  Object.entries(delta).map(([field, value]) =>
+    [field, FieldValue.increment(value as number)]),
+);
+
+/**
+ * Escreve o mês e os dias dele num único `set` com incrementos: o total e o
+ * detalhe diário mudam juntos ou não mudam.
+ */
+export const writeCashMonth = (
   writer: CashPeriodWriter,
   workspaceId: string,
   period: string,
   delta: CashPeriodDelta,
+  days: CashDayDeltas,
 ): void => {
   writer.set(
     cashPeriodRef(workspaceId, period),
@@ -397,6 +822,8 @@ const writeDelta = (
       periodStart: Timestamp.fromDate(saoPauloMonthStart(period)),
       ...Object.fromEntries(CASH_DELTA_FIELDS.map((field) =>
         [field, FieldValue.increment(delta[field])])),
+      days: Object.fromEntries(Object.entries(days).map(([dd, dayDelta]) =>
+        [dd, incrementsOf(dayDelta)])),
       schemaVersion: CASH_PERIOD_SCHEMA_VERSION,
       updatedAt: FieldValue.serverTimestamp(),
     },
@@ -404,24 +831,77 @@ const writeDelta = (
   );
 };
 
+/** Escreve uma categoria-ano de uma geração, por incremento. */
+export const writeCashCategoryYear = (
+  writer: CashPeriodWriter,
+  workspaceId: string,
+  generation: string,
+  entry: CashCategoryWrite,
+): void => {
+  writer.set(
+    cashCategoryYearRef(workspaceId, generation, entry.year,
+      entry.categoryKey),
+    {
+      workspaceId,
+      generation,
+      year: entry.year,
+      categoryKey: entry.categoryKey,
+      categoryId: entry.categoryId,
+      classification: entry.classification,
+      ...incrementsOf(entry.totals as unknown as Record<string, number>),
+      days: Object.fromEntries(Object.entries(entry.days).map(
+        ([mmdd, dayDelta]) => [mmdd, incrementsOf(dayDelta)])),
+      schemaVersion: CASH_CATEGORY_SCHEMA_VERSION,
+      updatedAt: FieldValue.serverTimestamp(),
+    },
+    {merge: true},
+  );
+};
+
 /**
- * Aplica a variação de uma escrita de transação sobre a projeção mensal.
+ * Meses tocados pelo plano: os de total alterado **e** os que só mudam a
+ * distribuição diária (lançamento movido de dia dentro do mesmo mês, com
+ * total do mês inalterado).
+ */
+export const cashPlanPeriods = (plan: CashWritePlan): string[] =>
+  [...new Set([...Object.keys(plan.months), ...Object.keys(plan.days)])]
+    .sort();
+
+/** Aplica um plano: meses com dias e categorias nas gerações informadas. */
+export const writeCashPlan = (
+  writer: CashPeriodWriter,
+  workspaceId: string,
+  plan: CashWritePlan,
+  categoryGenerations: readonly string[],
+): void => {
+  for (const period of cashPlanPeriods(plan)) {
+    writeCashMonth(writer, workspaceId, period,
+      plan.months[period] ?? ZERO_DELTA, plan.days[period] ?? {});
+  }
+  for (const generation of categoryGenerations) {
+    for (const entry of Object.values(plan.categories)) {
+      writeCashCategoryYear(writer, workspaceId, generation, entry);
+    }
+  }
+};
+
+/**
+ * Aplica a variação de uma escrita de transação sobre a projeção, sem marca
+ * de entrega (uso direto em testes da projeção). O gatilho usa
+ * `applyCashPeriodWriteOnce`.
  *
- * Devolve os períodos **efetivamente escritos**, que é o que a marca de
- * entrega registra para diagnóstico e o que uma reconciliação dirigida
- * precisaria reprocessar.
+ * Devolve os períodos **efetivamente escritos**.
  */
 export const applyCashPeriodWrite = (
   writer: CashPeriodWriter,
   workspaceId: string,
   before: admin.firestore.DocumentData | undefined,
   after: admin.firestore.DocumentData | undefined,
+  categoryGenerations: readonly string[] = [INITIAL_CATEGORY_GENERATION],
 ): string[] => {
-  const deltas = cashPeriodDeltasFor(before, after);
-  for (const [period, delta] of Object.entries(deltas)) {
-    writeDelta(writer, workspaceId, period, delta);
-  }
-  return Object.keys(deltas);
+  const plan = cashWritePlanFor(before, after);
+  writeCashPlan(writer, workspaceId, plan, categoryGenerations);
+  return cashPlanPeriods(plan);
 };
 
 /**
@@ -474,6 +954,13 @@ export const cashProjectionStateRef = (
       CASH_PROJECTION_STATE_ID,
   );
 
+export interface CashCategoryStaging {
+  /** Geração em preparação (o `rebuildId` da reconstrução). */
+  generation: string;
+  /** Corte da reconstrução: a varredura cobre os commits `<=` ele. */
+  cutoff: Timestamp;
+}
+
 export interface CashProjectionState {
   baselineCutoff: Timestamp | null;
   baselineRebuildId: string | null;
@@ -481,10 +968,34 @@ export interface CashProjectionState {
   needsRebuild: boolean;
   issueCount: number;
   issueMaxEventTime: Timestamp | null;
+  /**
+   * P5-C1 — geração vigente da projeção por categoria. Sem reconstrução
+   * publicada, a inicial (`g0`), mantida pelo gatilho desde o primeiro
+   * lançamento.
+   */
+  categoryGeneration: string;
+  /** Geração em preparação por uma reconstrução em andamento. */
+  categoryStaging: CashCategoryStaging | null;
+  /** Gerações descartadas, ainda com documentos a apagar (≤ 8). */
+  categoryGarbage: string[];
 }
 
 const timestampOrNull = (value: unknown): Timestamp | null =>
   value instanceof Timestamp ? value : null;
+
+const GENERATION_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
+
+export const isCategoryGeneration = (value: unknown): value is string =>
+  typeof value === "string" && GENERATION_PATTERN.test(value);
+
+const readStaging = (value: unknown): CashCategoryStaging | null => {
+  if (typeof value !== "object" || value === null) return null;
+  const staging = value as Record<string, unknown>;
+  return isCategoryGeneration(staging.generation) &&
+    staging.cutoff instanceof Timestamp ?
+    {generation: staging.generation, cutoff: staging.cutoff} :
+    null;
+};
 
 export const readCashProjectionState = (
   snapshot: admin.firestore.DocumentSnapshot,
@@ -501,7 +1012,35 @@ export const readCashProjectionState = (
       (data.issueCount as number) :
       0,
     issueMaxEventTime: timestampOrNull(data.issueMaxEventTime),
+    categoryGeneration: isCategoryGeneration(data.categoryGeneration) ?
+      data.categoryGeneration :
+      INITIAL_CATEGORY_GENERATION,
+    categoryStaging: readStaging(data.categoryStaging),
+    categoryGarbage: Array.isArray(data.categoryGarbage) ?
+      data.categoryGarbage.filter(isCategoryGeneration) :
+      [],
   };
+};
+
+/**
+ * Gerações de categoria que um evento aplicado alimenta: a vigente e, se
+ * houver reconstrução em andamento e o evento for posterior ao corte dela,
+ * também a preparada — a base da preparada só cobre commits `<=` corte.
+ */
+export const categoryGenerationsFor = (
+  state: CashProjectionState,
+  eventTime: Timestamp,
+): string[] => {
+  const generations = [state.categoryGeneration];
+  const staging = state.categoryStaging;
+  if (
+    staging &&
+    staging.generation !== state.categoryGeneration &&
+    compareCommitTimes(eventTime, staging.cutoff) > 0
+  ) {
+    generations.push(staging.generation);
+  }
+  return generations;
 };
 
 /**
@@ -518,7 +1057,9 @@ export const compareCommitTimes = (left: Timestamp, right: Timestamp): number =>
 export type CashProjectionIssueCode =
   | "permanent_failure"
   | "retry_window_exhausted"
-  | "ambiguous_delete";
+  | "ambiguous_delete"
+  /** Documento fora do contrato único (P5-C2): nunca efeito zero. */
+  | "contract_violation";
 
 export interface CashProjectionIssue {
   code: CashProjectionIssueCode;
@@ -692,16 +1233,19 @@ export const applyCashPeriodWriteOnce = async (
     return {applied: false, outcome: "ambiguous_delete", periods: []};
   }
 
-  const deltas = cashPeriodDeltasFor(before, after);
-  for (const [period, delta] of Object.entries(deltas)) {
-    writeDelta(transaction, workspaceId, period, delta);
-  }
-  const periods = Object.keys(deltas);
+  const plan = cashWritePlanFor(before, after);
+  const categoryGenerations = categoryGenerationsFor(state, context.eventTime);
+  writeCashPlan(transaction, workspaceId, plan, categoryGenerations);
+  const periods = cashPlanPeriods(plan);
   transaction.create(markerRef, {
     ...markerBase,
     outcome: "applied",
     periods,
-    deltas,
+    deltas: plan.months,
+    // P5-C1: detalhe diário do mesmo delta, somado pela publicação da
+    // reconstrução aos dias dos meses (eventos posteriores ao corte).
+    dayDeltas: plan.days,
+    categoryGenerations,
   });
   return {applied: true, outcome: "applied", periods};
 };

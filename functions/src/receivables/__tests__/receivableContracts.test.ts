@@ -2,7 +2,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {classifyCashEntryEligibility} from "../../cash/eligibility";
-import {cashPeriodDeltaFor} from "../../cash/periods";
+import {
+  cashPeriodDeltaFor,
+  CashContractViolationError,
+} from "../../cash/periods";
 import {addDaysToDayKey, saoPauloDayKey} from "../../shared/dateKeys";
 import {
   readReceivableCashEntry,
@@ -294,8 +297,8 @@ test("P3-I — projeção: o espelho decide por `receivableEntry`; marca " +
     "receivable",
   ]) {
     assert.equal(readReceivableCashEntry(forged), null, JSON.stringify(forged));
-    assert.equal(cashPeriodDeltaFor({...mirror, receivableEntry: forged})
-      .netCents, 0);
+    assert.throws(() => cashPeriodDeltaFor({...mirror,
+      receivableEntry: forged}), CashContractViolationError);
   }
   assert.equal(cashPeriodDeltaFor({...mirror, voidedAt: "x"}).netCents, 0);
   assert.equal(classifyCashEntryEligibility(mirror, "ws").eligible, false);

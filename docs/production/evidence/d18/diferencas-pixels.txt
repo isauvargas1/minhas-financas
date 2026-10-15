@@ -1,0 +1,14 @@
+painel-owner-acoes-desktop-claro.png {"pct":"0.01","bbox":[1076,166,1101,191]}
+painel-owner-acoes-desktop-escuro.png {"pct":"0.01","bbox":[1076,166,1101,191]}
+painel-owner-desktop-claro.png {"pct":"0.00","bbox":null}
+painel-owner-desktop-escuro.png {"pct":"0.00","bbox":null}
+painel-owner-mobile-claro.png {"pct":"15.72","bbox":[0,126,332,830]}
+painel-owner-mobile-escuro.png {"pct":"20.79","bbox":[0,126,327,806]}
+painel-vazio-desktop-claro.png {"pct":"0.00","bbox":null}
+painel-vazio-desktop-escuro.png {"pct":"0.00","bbox":null}
+painel-vazio-mobile-claro.png {"pct":"6.49","bbox":[0,126,332,422]}
+painel-vazio-mobile-escuro.png {"pct":"11.23","bbox":[0,126,327,392]}
+painel-viewer-desktop-claro.png {"pct":"0.00","bbox":null}
+painel-viewer-desktop-escuro.png {"pct":"0.00","bbox":null}
+painel-viewer-mobile-claro.png {"pct":"15.57","bbox":[0,126,332,830]}
+painel-viewer-mobile-escuro.png {"pct":"20.67","bbox":[0,126,327,806]}

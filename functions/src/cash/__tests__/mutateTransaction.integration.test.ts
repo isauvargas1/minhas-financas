@@ -4,7 +4,6 @@ import {FieldValue, Timestamp} from "firebase-admin/firestore";
 
 import {CASH_EVENTS_COLLECTION} from "../../shared/audit";
 import {formatIsoInstant} from "../../shared/commitTime";
-import {saoPauloDayKey} from "../../shared/dateKeys";
 import {sha256} from "../../shared/hashing";
 import {rateLimitDocumentId} from "../../shared/rateLimit";
 import {
@@ -17,6 +16,11 @@ import {
   handleTransactionWrite,
   type TransactionWriteEvent,
 } from "../../triggers/transactions";
+import {
+  DEFAULT_INCOME_CATEGORY_ID,
+  defaultCategoryIdFor,
+  seedDefaultCategories,
+} from "../../settingsCatalog/testSupport/categorySeeds";
 import {
   call,
   db,
@@ -83,6 +87,7 @@ const seedTenant = async (type: "PF" | "PJ" = "PF"): Promise<Tenant> => {
   await seedMember(tenant.workspaceId, tenant.member, "member");
   await seedMember(tenant.workspaceId, tenant.otherMember, "member");
   await seedMember(tenant.workspaceId, tenant.viewer, "viewer");
+  await seedDefaultCategories(tenant.workspaceId);
   return tenant;
 };
 
@@ -120,7 +125,8 @@ const create = async (
       idempotencyKey: idempotencyKey(),
       type: "receita",
       description: "Salário de agosto",
-      category: "Salário",
+      categoryId: defaultCategoryIdFor(
+        overrides.type === "despesa" ? "despesa" : "receita"),
       amountCents: 620_000,
       date: "2026-08-20",
       ...overrides,
@@ -151,7 +157,8 @@ const updatePayload = async (
     cashAccountId: defaultAccountOf(workspaceId),
     type: "receita",
     description: "Salário de agosto",
-    category: "Salário",
+    categoryId: defaultCategoryIdFor(
+      entry.type === "despesa" ? "despesa" : "receita"),
     amountCents: 620_000,
     date: "2026-08-20",
     ...entry,
@@ -206,9 +213,7 @@ const seedUnmarked = async (
     type: "despesa",
     description: "Compra de mercado",
     category: "Alimentação",
-    value: 150.5,
     date: "2026-08-20",
-    transactionDate: Timestamp.fromDate(new Date("2026-08-20T12:00:00.000Z")),
     isPaid: true,
     paymentMethod: "pix",
     expenseType: "variavel",
@@ -315,11 +320,13 @@ test("P3-C — corrige receita: valor, mês, campos; mantém origem", async () =
 
   const entry = await read(tenant.workspaceId, id);
   assert.equal(entry.valueCents, 650_000);
-  assert.equal(entry.value, 6500);
+  assert.equal("value" in entry, false);
   assert.equal(entry.date, "2026-09-02");
-  assert.equal(saoPauloDayKey(entry.transactionDate.toDate()), "2026-09-02");
+  assert.equal("transactionDate" in entry, false);
   assert.equal(entry.description, "Salário de agosto (corrigido)");
   assert.equal(entry.incomeType, "Variável");
+  assert.equal(entry.categoryId, DEFAULT_INCOME_CATEGORY_ID);
+  assert.equal(entry.category, "Salário");
   // Identidade, criação, autoria e âncora da criação preservadas.
   assert.equal(entry.userId, tenant.member);
   assert.equal(entry.createdBy, tenant.member);
@@ -371,7 +378,6 @@ test("P3-C — corrige despesa em PJ e troca o tipo para receita", async () => {
   const id = await create(tenant.admin, tenant.workspaceId, {
     type: "despesa",
     description: "Fornecedor",
-    category: "Operação",
     amountCents: 48_235,
     expenseType: "Variável",
     paymentMethod: "Pix",
@@ -381,7 +387,6 @@ test("P3-C — corrige despesa em PJ e troca o tipo para receita", async () => {
   await edit(tenant.admin, await updatePayload(tenant.workspaceId, id, {
     type: "receita",
     description: "Devolução do fornecedor",
-    category: "Reembolso",
     amountCents: 48_235,
     incomeType: "Eventual",
     supplier: "Mercado Central",
@@ -389,6 +394,8 @@ test("P3-C — corrige despesa em PJ e troca o tipo para receita", async () => {
   const entry = await read(tenant.workspaceId, id);
   assert.equal(entry.type, "receita");
   assert.equal(entry.incomeType, "Eventual");
+  assert.equal(entry.categoryId, DEFAULT_INCOME_CATEGORY_ID);
+  assert.equal(entry.category, "Salário");
   assert.equal(entry.supplier, "Mercado Central");
   for (const removed of ["expenseType", "paymentMethod", "costCenter"]) {
     assert.equal(removed in entry, false, `${removed} deveria sair`);
@@ -491,7 +498,6 @@ test("P3-C — correção de valor, mês, tipo e anulação no caixa", async () 
     edit(tenant.owner, await updatePayload(tenant.workspaceId, id, {
       type: "despesa",
       description: "Era despesa",
-      category: "Casa",
       amountCents: 12_345,
       date: "2026-09-10",
     }))));
@@ -924,7 +930,7 @@ test("P3-C — replay da criação vale após corrigir e anular", async () => {
     idempotencyKey: key,
     type: "receita",
     description: "Salário",
-    category: "Salário",
+    categoryId: DEFAULT_INCOME_CATEGORY_ID,
     amountCents: 100_000,
     date: "2026-08-10",
   };
@@ -955,19 +961,19 @@ test("P3-C — lançamentos de outros domínios: recusa intacta", async () => {
   const shapes: Array<[string, Record<string, unknown>]> = [
     ["unsupported_type", {
       type: "investimento", description: "Aporte", category: "Investimentos",
-      value: 100, valueCents: 10_000, date: "2026-08-20", isPaid: true,
+      valueCents: 10_000, date: "2026-08-20", isPaid: true,
       userId: tenant.owner, workspaceId: tenant.workspaceId,
       investmentEntry: {status: "settled", operation: "contribution"},
     }],
     ["linked_to_other_domain", {
       type: "receita", description: "Resgate", category: "Investimentos",
-      value: 100, valueCents: 10_000, date: "2026-08-20", isPaid: true,
+      valueCents: 10_000, date: "2026-08-20", isPaid: true,
       userId: tenant.owner, workspaceId: tenant.workspaceId,
       investmentEntry: {status: "settled", operation: "redemption"},
     }],
     ["unsupported_origin", {
       type: "despesa", description: "Pagamento de fatura",
-      category: "Cartão", value: 300, date: "2026-08-20", isPaid: true,
+      category: "Cartão", date: "2026-08-20", isPaid: true,
       userId: tenant.owner, workspaceId: tenant.workspaceId,
       source: "credit_card_invoice_payment",
     }],
@@ -975,18 +981,18 @@ test("P3-C — lançamentos de outros domínios: recusa intacta", async () => {
     // `source: recurring`) não tem mais escritor e continua recusado.
     ["unsupported_origin", {
       type: "despesa", description: "Aluguel (recorrente)", category: "Casa",
-      value: 1800, date: "2026-08-20", isPaid: false,
+      date: "2026-08-20", isPaid: false,
       userId: "system:recurring-expenses", workspaceId: tenant.workspaceId,
       source: "recurring",
     }],
     ["unsupported_type", {
       type: "parcelado", description: "Notebook", category: "Eletrônicos",
-      value: 500, date: "2026-08-20", installments: 10, currentInstallment: 1,
+      date: "2026-08-20", installments: 10, currentInstallment: 1,
       cardId: "card-1", userId: tenant.owner, workspaceId: tenant.workspaceId,
     }],
     ["linked_to_other_domain", {
       type: "receita", description: "Empréstimo recebido", category: "Outros",
-      value: 1000, date: "2026-08-20", userId: tenant.owner,
+      date: "2026-08-20", userId: tenant.owner,
       workspaceId: tenant.workspaceId, loanId: "loan-1",
       loanMovementId: "mov-1",
     }],
@@ -1021,7 +1027,7 @@ test("P4-D — documento sem a marca do Caixa não é corrigido nem anulado",
     const shapes: Array<[Record<string, unknown>, string[]?]> = [
       [{}],
       [{isPaid: false}],
-      [{type: "receita", category: "Salário", value: 3200},
+      [{type: "receita", category: "Salário"},
         ["isPaid", "expenseType", "paymentMethod"]],
       [{valueCents: 15_050}],
     ];

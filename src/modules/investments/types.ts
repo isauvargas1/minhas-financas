@@ -171,14 +171,6 @@ export interface InvestmentAllocationSummary {
   taxCents: number;
 }
 
-export interface OfficialInvestmentReportData {
-  summary: InvestmentSummary | null;
-  periods: InvestmentReportPeriod[];
-  allocations: Partial<Record<InvestmentAllocationDimension, InvestmentAllocationSummary[]>>;
-  periodsTruncated: boolean;
-  truncatedDimensions: InvestmentAllocationDimension[];
-}
-
 export interface InvestmentPage<T> {
   items: T[];
   nextCursor: { updatedAt: Timestamp; id: string } | null;

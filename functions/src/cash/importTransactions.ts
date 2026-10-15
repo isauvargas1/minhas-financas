@@ -26,7 +26,6 @@ import {
 import type {
   CashImportItem,
   CashImportItemStatus,
-  CashEntryState,
   ImportCashTransactionsPayload,
   ImportCashTransactionsResult,
 } from "./contracts";
@@ -35,7 +34,14 @@ import {
   PJ_ONLY_FIELDS_MESSAGE,
   cashEntryDocument,
   type CashCreateOptions,
+  type CashEntryInput,
 } from "./createTransaction";
+import {
+  UNCATEGORIZED,
+  readEntryCategories,
+  resolveEntryCategory,
+  type ResolvedEntryCategory,
+} from "./categories";
 
 /**
  * Importação autoritativa de lançamentos manuais confirmados (P3-D, D-40).
@@ -125,14 +131,53 @@ export const cashImportItemHash = (
   item,
 }));
 
-const toEntryState = (
+const toEntryInput = (
   item: CashImportItem,
   cashAccountId: string,
-): CashEntryState => {
+  category: ResolvedEntryCategory,
+): CashEntryInput => {
   // `lineId` identifica a linha; não faz parte do lançamento.
   const {lineId: _lineId, ...entry} = item;
   void _lineId;
-  return {...entry, cashAccountId};
+  return {
+    ...entry,
+    cashAccountId,
+    category: category.name,
+    categoryId: category.categoryId,
+  };
+};
+
+/**
+ * Categoria de cada linha nova (D-37.8): o ID informado, conferido no
+ * catálogo; linha sem ID fica "Sem categoria". Erro aponta a linha.
+ */
+const resolveLineCategories = async (
+  transaction: admin.firestore.Transaction,
+  workspaceId: string,
+  lines: Array<{transactionId: string; item: CashImportItem}>,
+): Promise<Map<string, ResolvedEntryCategory>> => {
+  const ids = lines.flatMap((line) =>
+    line.item.categoryId === undefined ? [] : [line.item.categoryId]);
+  const items = await readEntryCategories(transaction, workspaceId, ids);
+  const resolved = new Map<string, ResolvedEntryCategory>();
+  for (const line of lines) {
+    const categoryId = line.item.categoryId;
+    if (categoryId === undefined) {
+      resolved.set(line.transactionId, UNCATEGORIZED);
+      continue;
+    }
+    try {
+      resolved.set(line.transactionId, resolveEntryCategory(
+        categoryId, items.get(categoryId), line.item.type));
+    } catch (error) {
+      if (error instanceof ApplicationError) {
+        throw new ApplicationError(error.code, error.message,
+          {lineId: line.item.lineId});
+      }
+      throw error;
+    }
+  }
+  return resolved;
 };
 
 const plural = (count: number, one: string, many: string): string =>
@@ -256,6 +301,8 @@ export const executeImportCashTransactions = async (
       transaction, actor.workspaceId, [payload.cashAccountId]);
     assertActiveAccount(
       accounts.get(payload.cashAccountId) as PostingAccount);
+    const categories = await resolveLineCategories(
+      transaction, actor.workspaceId, fresh);
 
     const rateLimit = await reserveRateLimit(
       transaction,
@@ -298,7 +345,8 @@ export const executeImportCashTransactions = async (
         actorUid: actor.uid,
         workspaceId: actor.workspaceId,
         profileType,
-        entry: toEntryState(line.item, payload.cashAccountId),
+        entry: toEntryInput(line.item, payload.cashAccountId,
+          categories.get(line.transactionId) ?? UNCATEGORIZED),
         requestHash: line.hash,
         origin: {
           kind: "manual",

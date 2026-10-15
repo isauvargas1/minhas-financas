@@ -50,9 +50,7 @@ const entry = (
   description: "Lançamento sintético",
   category: "Teste",
   valueCents,
-  value: valueCents / 100,
   date,
-  transactionDate: Timestamp.fromDate(new Date(`${date}T15:00:00.000Z`)),
   isPaid: true,
   userId: "uid-sintetico",
 });
@@ -306,4 +304,121 @@ test("P3-B — falha só na trilha não marca o caixa", async () => {
   assert.deepEqual(result, {projection: "applied", activityLogged: false});
   assert.equal((await period(book, "2026-08"))?.incomeCents, 5_000);
   assert.equal(await projectionState(book), undefined);
+});
+
+/**
+ * P5-C2 — documento fora do contrato único (`valueCents` + `date`): nunca vira
+ * R$ 0,00 nem some em silêncio. O gatilho não aplica nada, não grava marca de
+ * entrega e deixa a projeção marcada para reconstrução com um código próprio.
+ */
+test("P5-C2 — documento fora do contrato: contract_violation, nada aplicado",
+  async () => {
+    const valid = entry("2026-08-10", 10_000);
+    // Firestore recusa `undefined`: o campo ausente é omitido de verdade.
+    const sem = (...campos: string[]): Record<string, unknown> =>
+      Object.fromEntries(
+        Object.entries(valid).filter(([campo]) => !campos.includes(campo)));
+    const semCentavos = sem("valueCents");
+    const casos: Array<[string, Record<string, unknown>]> = [
+      // Legado em reais, sem `valueCents`: não é lido.
+      ["só value em reais", {...semCentavos, value: 100}],
+      ["sem valor algum", semCentavos],
+      ["valueCents decimal", {...valid, valueCents: 10.5}],
+      ["valueCents negativo", {...valid, valueCents: -10_000}],
+      ["valueCents texto", {...valid, valueCents: "10000"}],
+      ["valueCents acima do teto seguro",
+        {...valid, valueCents: 9_007_199_254_740_992}],
+      ["parcelado", {...valid, type: "parcelado"}],
+      ["tipo desconhecido", {...valid, type: "transferencia"}],
+      ["investimento sem marca", {...valid, type: "investimento"}],
+      ["marca ilegível", {...valid, loanEntry: {}}],
+      ["sem date", sem("date")],
+      ["date impossível", {...valid, date: "2026-02-30"}],
+      ["date com instante", {...valid, date: "2026-08-10T15:00:00.000Z"}],
+      // `transactionDate` não substitui `date`.
+      ["só transactionDate", {
+        ...sem("date"),
+        transactionDate: Timestamp.fromDate(new Date("2026-08-10T15:00:00Z")),
+      }],
+    ];
+    for (const [label, data] of casos) {
+      const book = ledger();
+      const event = await write(book, "tx-1", data);
+      const result = await handleTransactionWrite(event);
+      assert.deepEqual(result, {
+        projection: "failed_recorded",
+        activityLogged: false,
+      }, label);
+      assert.equal(await period(book, "2026-08"), undefined, label);
+      assert.equal(await marker(book, event.eventId), undefined, label);
+      assert.equal(await activityLog(book, event.eventId), undefined, label);
+      const state = await projectionState(book);
+      assert.equal(state?.needsRebuild, true, label);
+      assert.equal(state?.issueCount, 1, label);
+      assert.equal(state?.lastIssueCode, "contract_violation", label);
+      assert.equal(state?.lastIssueTransactionId, "tx-1", label);
+      assert.ok(state?.issueMaxEventTime.isEqual(event.eventTime), label);
+    }
+  });
+
+test("P5-C2 — escrita fora do contrato não altera a projeção já publicada",
+  async () => {
+    const book = ledger();
+    const created = await write(book, "tx-1", entry("2026-08-10", 10_000));
+    assert.equal((await handleTransactionWrite(created)).projection, "applied");
+    const before = totals(await period(book, "2026-08"));
+    assert.equal(await projectionState(book), undefined);
+
+    // Alteração válida → inválida: o efeito anterior permanece e a projeção
+    // fica marcada; a escrita inválida não é somada nem parcialmente.
+    const {valueCents: _cents, ...semCentavos} = entry("2026-09-01", 99_999);
+    void _cents;
+    const broken = await write(book, "tx-1", {...semCentavos, value: 999.99});
+    const result = await handleTransactionWrite(broken);
+    assert.equal(result.projection, "failed_recorded");
+    assert.deepEqual(totals(await period(book, "2026-08")), before);
+    assert.equal(await period(book, "2026-09"), undefined);
+    assert.equal(await marker(book, broken.eventId), undefined);
+    const state = await projectionState(book);
+    assert.equal(state?.needsRebuild, true);
+    assert.equal(state?.lastIssueCode, "contract_violation");
+
+    // Documento inválido que sai (exclusão) também é registrado, sem efeito.
+    const removed = await write(book, "tx-1", null);
+    assert.equal((await handleTransactionWrite(removed)).projection,
+      "failed_recorded");
+    assert.deepEqual(totals(await period(book, "2026-08")), before);
+    assert.equal((await projectionState(book))?.issueCount, 2);
+  });
+
+test("P5-C2 — anulado e pendente fora do contrato de valor/data", async () => {
+  // Anulado: vale zero, mesmo com dado inválido; nada é registrado.
+  const book = ledger();
+  const voided = await write(book, "tx-1", {
+    ...entry("2026-08-10", 10_000),
+    valueCents: 10.5, date: "2026-02-30", type: "parcelado",
+    voidedAt: Timestamp.now(),
+  });
+  assert.equal((await handleTransactionWrite(voided)).projection, "applied");
+  assert.equal(await projectionState(book), undefined);
+  assert.equal(await period(book, "2026-08"), undefined);
+
+  // Pendente com valor válido: zero e aplicado (sem período tocado).
+  const pending = await write(book, "tx-2", {
+    ...entry("2026-08-10", 10_000), isPaid: false,
+    cashEntry: {status: "pending"},
+  });
+  assert.equal((await handleTransactionWrite(pending)).projection, "applied");
+  assert.equal(await projectionState(book), undefined);
+  assert.equal(await period(book, "2026-08"), undefined);
+
+  // Pendente com `valueCents` inválido: violação, não zero.
+  const badPending = await write(book, "tx-3", {
+    ...entry("2026-08-10", 10.5), isPaid: false,
+    cashEntry: {status: "pending"},
+  });
+  assert.equal((await handleTransactionWrite(badPending)).projection,
+    "failed_recorded");
+  assert.equal((await projectionState(book))?.lastIssueCode,
+    "contract_violation");
 });

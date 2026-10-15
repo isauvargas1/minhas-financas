@@ -106,6 +106,13 @@ export const splitReimbursementIdSchema = pathSegmentId("Reembolso", 128);
 export const settingsCatalogItemIdSchema = pathSegmentId("Cadastro", 128);
 
 /**
+ * Categoria do catálogo informada num lançamento (P5-C1, D-37.8): o ID
+ * estável do item, nunca o nome. A existência, o grupo, o subtipo e o
+ * estado são conferidos pelo backend na transação.
+ */
+export const categoryIdSchema = pathSegmentId("Categoria", 128);
+
+/**
  * Chave de idempotência escolhida pelo cliente. Nunca vira caminho sem hash
  * (`idempotencyDocumentId`), mas as mesmas restrições evitam ambiguidades.
  */

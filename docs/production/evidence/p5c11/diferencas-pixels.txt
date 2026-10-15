@@ -1,0 +1,17 @@
+# P5-C1.1 — diferença de pixels antes × depois (limiar 48 por pixel; % da área; caixa delimitadora x0,y0,x1,y1)
+cartoes-desktop-claro.png {"pct":"0.00","bbox":null}
+cartoes-desktop-escuro.png {"pct":"0.00","bbox":null}
+cartoes-mobile-claro.png {"pct":"0.00","bbox":null}
+cartoes-mobile-escuro.png {"pct":"0.00","bbox":null}
+relatorios-cartoes-desktop-claro.png {"pct":"0.91","bbox":[117,616,1386,867]}
+relatorios-cartoes-desktop-escuro.png {"pct":"0.92","bbox":[117,616,1386,867]}
+relatorios-cartoes-mobile-claro.png {"pct":"0.17","bbox":[85,709,169,843]}
+relatorios-cartoes-mobile-escuro.png {"pct":"0.17","bbox":[85,709,169,843]}
+relatorios-cartoes-tabela-desktop-claro.png {"pct":"0.91","bbox":[117,616,1386,867]}
+relatorios-cartoes-tabela-desktop-escuro.png {"pct":"0.92","bbox":[117,616,1386,867]}
+relatorios-cartoes-tabela-mobile-claro.png {"pct":"10.43","bbox":[16,5,373,843]}
+relatorios-cartoes-tabela-mobile-escuro.png {"pct":"19.50","bbox":[16,0,373,843]}
+relatorios-graficos-cartoes-desktop-claro.png {"pct":"1.27","bbox":[168,512,1336,899]}
+relatorios-graficos-cartoes-desktop-escuro.png {"pct":"1.28","bbox":[168,512,1336,899]}
+relatorios-graficos-cartoes-mobile-claro.png {"pct":"0.45","bbox":[60,499,347,701]}
+relatorios-graficos-cartoes-mobile-escuro.png {"pct":"0.46","bbox":[60,499,347,701]}

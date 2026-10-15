@@ -121,6 +121,7 @@ export const toRecurringExpense = (
     !isOneOf(RECURRING_EXECUTION_MODES, data.executionMode) ||
     !isNullableText(data.cardId) ||
     !isNullableText(data.cashAccountId) ||
+    !isText(data.categoryId) ||
     !isText(data.category) ||
     !isOneOf(RECURRING_STATUSES, data.status) ||
     !isNullableDay(data.nextDueDate) ||
@@ -158,6 +159,7 @@ export const toRecurringExpense = (
     executionMode: data.executionMode,
     cardId: data.cardId,
     cashAccountId: data.cashAccountId,
+    categoryId: data.categoryId,
     category: data.category,
     status: data.status,
     nextDueDate: data.nextDueDate,

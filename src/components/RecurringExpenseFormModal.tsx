@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import type { RecurringExpense, RecurringBusinessType, RecurringExecutionMode, RecurringFrequency, RecurringPaymentMethod, RecurringType } from '../modules/recurring/types.ts';
 import { usesBillingDay } from '../modules/recurring/schedule.ts';
 import {
-    DEFAULT_RECURRING_CATEGORY,
     emptyForm,
     formFromExpense,
     toContractFields,
@@ -107,7 +106,7 @@ const RecurringExpenseFormModal: React.FC<RecurringExpenseFormModalProps> = ({
     const dataFim = form.endDate;
     const metodoPagamento = form.paymentMethod;
     const cartaoId = form.cardId;
-    const categoriaDespesa = form.category;
+    const categoriaDespesa = form.categoryId;
     const corPrincipal = form.color;
     const icone = form.icon;
     const emojiOpcional = form.emoji;
@@ -441,15 +440,15 @@ const RecurringExpenseFormModal: React.FC<RecurringExpenseFormModalProps> = ({
                                         <select 
                                             id="categoria"
                                             value={categoriaDespesa}
-                                            onChange={e => set('category', e.target.value)}
+                                            onChange={e => set('categoryId', e.target.value)}
                                             className={commonInputClass}
                                         >
-                                            <option value={DEFAULT_RECURRING_CATEGORY}>Padrão (Recorrentes)</option>
-                                            {categories.filter(c => c.type === 'despesa' && c.name !== DEFAULT_RECURRING_CATEGORY).map(c => (
-                                                <option key={c.id} value={c.name}>{c.name}</option>
+                                            <option value="">Selecione...</option>
+                                            {categories.filter(c => c.type === 'despesa').map(c => (
+                                                <option key={c.id} value={String(c.id)}>{c.name}</option>
                                             ))}
-                                            {categoriaDespesa !== DEFAULT_RECURRING_CATEGORY && !categories.some(c => c.type === 'despesa' && c.name === categoriaDespesa) && (
-                                                <option value={categoriaDespesa}>{categoriaDespesa}</option>
+                                            {categoriaDespesa !== '' && !categories.some(c => c.type === 'despesa' && String(c.id) === categoriaDespesa) && (
+                                                <option value={categoriaDespesa}>{expenseToEdit?.category ?? categoriaDespesa}</option>
                                             )}
                                         </select>
                                     </div>

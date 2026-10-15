@@ -1,0 +1,736 @@
+{
+ "transacoes-pf-despesas-desktop-claro": {
+  "overflow": 0
+ },
+ "linhas-pf-despesas-desktop-claro": [
+  "Produto/Serviço\n\t\nCategoria\n\t\nTipo\n\t\nForma Pgto\n\t\nStatus\n\t\nVencimento\n\t\nValor\n\tAÇÕES",
+  "Internet\n\t\nMoradia\n\t-\t-\tPENDENTE\t16/10/2026\t• R$ 99,90\t",
+  "Supermercado\n\t\nMercado\n\t-\t-\tPAGO\t09/10/2026\t- R$ 1.200,99\t"
+ ],
+ "axe-transacoes-pf-desktop-claro": [
+  {
+   "id": "color-contrast",
+   "impact": "serious",
+   "help": "Elements must meet minimum color contrast ratio thresholds",
+   "count": 4,
+   "nodes": [
+    {
+     "target": [
+      ".border-gray-100.hover\\:bg-gray-50\\/80.dark\\:hover\\:bg-dark-200\\/80:nth-child(1) > .dark\\:text-gray-200.text-gray-800 > .max-w-\\[280px\\] > .px-2\\.5.py-1.inline-flex > span:nth-child(2)"
+     ],
+     "html": "<span>Internet</span>"
+    },
+    {
+     "target": [
+      ".border-gray-100.hover\\:bg-gray-50\\/80.dark\\:hover\\:bg-dark-200\\/80:nth-child(1) > .text-gray-600.dark\\:text-gray-300:nth-child(2) > .px-2\\.5.py-1.inline-flex > span:nth-child(2)"
+     ],
+     "html": "<span>Moradia</span>"
+    },
+    {
+     "target": [
+      ".border-gray-100.hover\\:bg-gray-50\\/80.dark\\:hover\\:bg-dark-200\\/80:nth-child(2) > .dark\\:text-gray-200.text-gray-800 > .max-w-\\[280px\\] > .px-2\\.5.py-1.inline-flex > span:nth-child(2)"
+     ],
+     "html": "<span>Supermercado</span>"
+    },
+    {
+     "target": [
+      ".border-gray-100.hover\\:bg-gray-50\\/80.dark\\:hover\\:bg-dark-200\\/80:nth-child(2) > .text-gray-600.dark\\:text-gray-300:nth-child(2) > .px-2\\.5.py-1.inline-flex > span:nth-child(2)"
+     ],
+     "html": "<span>Mercado</span>"
+    }
+   ]
+  },
+  {
+   "id": "select-name",
+   "impact": "critical",
+   "help": "Select element must have an accessible name",
+   "count": 3,
+   "nodes": [
+    {
+     "target": [
+      ".xl\\:col-span-3:nth-child(2) > select"
+     ],
+     "html": "<select class=\"w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-dark-100 px-3 py-2.5 text-sm text-gray-800 dark:text-gray-200 focu"
+    },
+    {
+     "target": [
+      ".xl\\:col-span-3:nth-child(3) > select"
+     ],
+     "html": "<select class=\"w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-dark-100 px-3 py-2.5 text-sm text-gray-800 dark:text-gray-200 focu"
+    },
+    {
+     "target": [
+      ".xl\\:col-span-2 > select"
+     ],
+     "html": "<select class=\"w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-dark-100 px-3 py-2.5 text-sm text-gray-800 dark:text-gray-200 focu"
+    }
+   ]
+  }
+ ],
+ "modal-nova-desktop-claro": {
+  "overflow": 0
+ },
+ "axe-modal-nova-desktop-claro": [
+  {
+   "id": "label",
+   "impact": "critical",
+   "help": "Form elements must have labels",
+   "count": 1,
+   "nodes": [
+    {
+     "target": [
+      "input[type=\"number\"]"
+     ],
+     "html": "<input type=\"number\" class=\"w-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-dark-200 text-gray-800 dark:text-gray-200 rounded-lg px-4 py-2"
+    }
+   ]
+  },
+  {
+   "id": "select-name",
+   "impact": "critical",
+   "help": "Select element must have an accessible name",
+   "count": 3,
+   "nodes": [
+    {
+     "target": [
+      "div:nth-child(1) > select[required=\"\"]"
+     ],
+     "html": "<select class=\"w-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-dark-200 text-gray-800 dark:text-gray-200 rounded-lg px-4 py-2 focus:outlin"
+    },
+    {
+     "target": [
+      "div:nth-child(2) > select[required=\"\"]"
+     ],
+     "html": "<select class=\"w-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-dark-200 text-gray-800 dark:text-gray-200 rounded-lg px-4 py-2 focus:outlin"
+    },
+    {
+     "target": [
+      "div:nth-child(5) > select[required=\"\"]"
+     ],
+     "html": "<select class=\"w-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-dark-200 text-gray-800 dark:text-gray-200 rounded-lg px-4 py-2 focus:outlin"
+    }
+   ]
+  }
+ ],
+ "teclado-modal-desktop-claro": {
+  "initial": true,
+  "afterTabs": true
+ },
+ "modal-compra-parcelada-desktop-claro": {
+  "overflow": 0
+ },
+ "axe-modal-compra-parcelada-desktop-claro": [
+  {
+   "id": "label",
+   "impact": "critical",
+   "help": "Form elements must have labels",
+   "count": 3,
+   "nodes": [
+    {
+     "target": [
+      "input[type=\"date\"]"
+     ],
+     "html": "<input type=\"date\" class=\"w-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-dark-200 text-gray-800 dark:text-gray-200 rounded-lg px-4 py-2 f"
+    },
+    {
+     "target": [
+      "input[step=\"0.01\"]"
+     ],
+     "html": "<input type=\"number\" step=\"0.01\" min=\"0.01\" class=\"w-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-dark-200 text-gray-800 dark:text-gray-2"
+    },
+    {
+     "target": [
+      "input[min=\"1\"]"
+     ],
+     "html": "<input type=\"number\" min=\"1\" max=\"60\" class=\"w-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-dark-200 text-gray-800 dark:text-gray-200 rou"
+    }
+   ]
+  },
+  {
+   "id": "select-name",
+   "impact": "critical",
+   "help": "Select element must have an accessible name",
+   "count": 2,
+   "nodes": [
+    {
+     "target": [
+      "div:nth-child(1) > select"
+     ],
+     "html": "<select class=\"w-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-dark-200 text-gray-800 dark:text-gray-200 rounded-lg px-4 py-2 focus:outlin"
+    },
+    {
+     "target": [
+      ".space-y-4 > div:nth-child(3) > select"
+     ],
+     "html": "<select class=\"w-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-dark-200 text-gray-800 dark:text-gray-200 rounded-lg px-4 py-2 focus:outlin"
+    }
+   ]
+  }
+ ],
+ "modal-escape-desktop-claro": true,
+ "modal-editar-desktop-claro": {
+  "overflow": 0
+ },
+ "modal-editar-valor-desktop-claro": "1200.99",
+ "relatorios-cartoes-desktop-claro": {
+  "overflow": 0
+ },
+ "axe-relatorios-desktop-claro": [
+  {
+   "id": "color-contrast",
+   "impact": "serious",
+   "help": "Elements must meet minimum color contrast ratio thresholds",
+   "count": 5,
+   "nodes": [
+    {
+     "target": [
+      ".overflow-x-auto.border-t.border-border > table > tbody > .hover\\:bg-background\\/40:nth-child(2) > .text-green-600"
+     ],
+     "html": "<td class=\"px-5 py-4 text-right font-bold text-green-600\">R$&nbsp;0,00</td>"
+    },
+    {
+     "target": [
+      ".hover\\:bg-background\\/40:nth-child(1) > .text-green-600.px-6.font-medium"
+     ],
+     "html": "<td class=\"px-6 py-4 text-right text-green-600 font-medium\">R$&nbsp;8.123,45</td>"
+    },
+    {
+     "target": [
+      ".text-green-600.px-6.font-black"
+     ],
+     "html": "<td class=\"px-6 py-4 text-right font-black text-green-600\">R$&nbsp;6.922,46</td>"
+    },
+    {
+     "target": [
+      ".hover\\:bg-background\\/40:nth-child(2) > .text-green-600.px-6.font-medium"
+     ],
+     "html": "<td class=\"px-6 py-4 text-right text-green-600 font-medium\">R$&nbsp;0,00</td>"
+    },
+    {
+     "target": [
+      "h4"
+     ],
+     "html": "<h4 class=\"text-sm font-bold mb-1 text-red-600 dark:text-red-400\">Faturas de cartão vencidas</h4>"
+    }
+   ]
+  }
+ ],
+ "relatorios-cartoes-tabela-desktop-claro": {
+  "overflow": 0
+ },
+ "linhas-relatorios-desktop-claro": [
+  "CARTÃO\tUTILIZAÇÃO\tLIMITE DISPONÍVEL\tPRÓXIMA FATURA A PAGAR\tFUTURO\tATRASO",
+  "Cartão Principal\n\nVence em 05/11/2026 · ciclo aberto\n\n\t12,00%\tR$ 4.400,00\tR$ 300,00\tR$ 200,00\tR$ 100,00",
+  "Cartão Crédito\n\nSem fatura a vencer · crédito de R$ 150,00 a compensar\n\n\t0,00%\tR$ 5.000,00\t—\tR$ 0,00\tR$ 0,00",
+  "Cartão Arquivado\n\nCartão arquivado · Sem fatura a vencer\n\n\t—\t—\t—\tR$ 0,00\tR$ 50,00",
+  "MÊS REFERÊNCIA\tENTRADAS\tSAÍDAS\tRESULTADO",
+  "Outubro De 2026 (Parcial)\tR$ 8.123,45\tR$ 1.200,99\tR$ 6.922,46",
+  "Setembro De 2026 (Parcial)\tR$ 0,00\tR$ 2.500,00\t-R$ 2.500,00"
+ ],
+ "relatorios-graficos-cartoes-desktop-claro": {
+  "overflow": 0
+ },
+ "linhas-graficos-desktop-claro": [
+  "CARTÃO\tCOMPRAS\tPAGO EM FATURAS\tPRÓXIMA FATURA A PAGAR\tFUTURO\tEM ATRASO\tUTILIZAÇÃO",
+  "Cartão Principal\n\n0 compra(s) no período\n\n\tR$ 0,00\tR$ 0,00\tR$ 300,00\tR$ 200,00\tR$ 100,00\t12,00%",
+  "Cartão Crédito\n\n0 compra(s) no período\n\n\tR$ 0,00\tR$ 0,00\t—\tR$ 0,00\tR$ 0,00\t0,00%"
+ ],
+ "colunas-graficos-desktop-claro": [
+  "CARTÃO",
+  "COMPRAS",
+  "PAGO EM FATURAS",
+  "PRÓXIMA FATURA A PAGAR",
+  "FUTURO",
+  "EM ATRASO",
+  "UTILIZAÇÃO"
+ ],
+ "axe-graficos-desktop-claro": [
+  {
+   "id": "svg-img-alt",
+   "impact": "serious",
+   "help": "<svg> elements with an img or image role must have alternative text",
+   "count": 2,
+   "nodes": [
+    {
+     "target": [
+      "path[name=\"Moradia\"]"
+     ],
+     "html": "<path cx=\"257.5\" cy=\"128\" name=\"Moradia\" stroke=\"#ffffff\" fill=\"#3b82f6\" color=\"#3b82f6\" stroke-width=\"2\" tabindex=\"-1\" class=\"recharts-sector\" d=\"M 337.5,128\n "
+    },
+    {
+     "target": [
+      "path[name=\"Mercado\"]"
+     ],
+     "html": "<path cx=\"257.5\" cy=\"128\" name=\"Mercado\" stroke=\"#ffffff\" fill=\"#ef4444\" color=\"#ef4444\" stroke-width=\"2\" tabindex=\"-1\" class=\"recharts-sector\" d=\"M 219.2331287"
+    }
+   ]
+  }
+ ],
+ "cartoes-desktop-claro": {
+  "overflow": 0
+ },
+ "axe-cartoes-desktop-claro": [
+  {
+   "id": "color-contrast",
+   "impact": "serious",
+   "help": "Elements must meet minimum color contrast ratio thresholds",
+   "count": 6,
+   "nodes": [
+    {
+     "target": [
+      ".group.perspective-1000.max-w-\\[325px\\]:nth-child(1) > .preserve-3d.duration-500.transition-all > .bg-gray-800.rounded-2xl.shadow-xl > .mt-12.flex-col.h-full > .border-gray-700.pt-3.border-t > div:nth-child(1) > .text-\\[10px\\].text-gray-500.uppercase"
+     ],
+     "html": "<div class=\"text-[10px] text-gray-500 uppercase\">Fechamento</div>"
+    },
+    {
+     "target": [
+      ".group.perspective-1000.max-w-\\[325px\\]:nth-child(1) > .preserve-3d.duration-500.transition-all > .bg-gray-800.rounded-2xl.shadow-xl > .mt-12.flex-col.h-full > .border-gray-700.pt-3.border-t > .text-right > .text-\\[10px\\].text-gray-500.uppercase"
+     ],
+     "html": "<div class=\"text-[10px] text-gray-500 uppercase\">Melhor Dia</div>"
+    },
+    {
+     "target": [
+      ".group.perspective-1000.max-w-\\[325px\\]:nth-child(2) > .preserve-3d.duration-500.transition-all > .bg-gray-800.rounded-2xl.shadow-xl > .mt-12.flex-col.h-full > .border-gray-700.pt-3.border-t > div:nth-child(1) > .text-\\[10px\\].text-gray-500.uppercase"
+     ],
+     "html": "<div class=\"text-[10px] text-gray-500 uppercase\">Fechamento</div>"
+    },
+    {
+     "target": [
+      ".group.perspective-1000.max-w-\\[325px\\]:nth-child(2) > .preserve-3d.duration-500.transition-all > .bg-gray-800.rounded-2xl.shadow-xl > .mt-12.flex-col.h-full > .border-gray-700.pt-3.border-t > .text-right > .text-\\[10px\\].text-gray-500.uppercase"
+     ],
+     "html": "<div class=\"text-[10px] text-gray-500 uppercase\">Melhor Dia</div>"
+    },
+    {
+     "target": [
+      ".group.perspective-1000.max-w-\\[325px\\]:nth-child(3) > .preserve-3d.duration-500.transition-all > .bg-gray-800.rounded-2xl.shadow-xl > .mt-12.flex-col.h-full > .border-gray-700.pt-3.border-t > div:nth-child(1) > .text-\\[10px\\].text-gray-500.uppercase"
+     ],
+     "html": "<div class=\"text-[10px] text-gray-500 uppercase\">Fechamento</div>"
+    },
+    {
+     "target": [
+      ".group.perspective-1000.max-w-\\[325px\\]:nth-child(3) > .preserve-3d.duration-500.transition-all > .bg-gray-800.rounded-2xl.shadow-xl > .mt-12.flex-col.h-full > .border-gray-700.pt-3.border-t > .text-right > .text-\\[10px\\].text-gray-500.uppercase"
+     ],
+     "html": "<div class=\"text-[10px] text-gray-500 uppercase\">Melhor Dia</div>"
+    }
+   ]
+  }
+ ],
+ "cartoes-vencida-desktop-claro": {
+  "overflow": 0
+ },
+ "detalhes-vencida-desktop-claro": "Detalhes do Cartão\nCartão Principal\n**** **** **** 1234\nUSUARIO\nVisa\nLimite Total\nR$ 5.000,00\nUtilizado\nR$ 600,00\nDisponível\nR$ 4.400,00\nFECHAMENTO\nDia 25\nMELHOR DIA\nDia 26\nATIVO\n\nFECHAMENTO\n\nDia 25\n\nVENCIMENTO\n\nDia 5\n\nFaturas\n\nFATURA DO CICLO ABERTO\n\nFatura 10/2026\n\nVencimento: 05/11/2026\n\nAberta\n\nTotal\n\nR$ 300,00\n\nPago\n\nR$ 0,00\n\nRestante\n\nR$ 300,00\n\nVer detalhes da faturaAguardando fechamento\n\nFATURA DO CICLO SEGUINTE\n\nFatura 11/2026\n\nVencimento: 05/12/2026\n\nAberta\n\nTotal\n\nR$ 200,00\n\nPago\n\nR$ 0,00\n\nRestante\n\nR$ 200,00\n\nVer detalhes da fatura\n\nHISTÓRICO DE FATURAS\n\nFatura 08/2026\n\nVencimento: 05/09/2026\n\nVencida\n\nTotal\n\nR$ 100,00\n\nPago\n\nR$ 0,00\n\nRestante\n\nR$ 100,00\n\nVer detalhes da faturaPagar total\nAdministração\nRecalcular limite\nReconstruir faturas\nLançar ajuste manual\nAuditoria recente\nEditar\nArquivar",
+ "axe-cartoes-vencida-desktop-claro": [
+  {
+   "id": "color-contrast",
+   "impact": "serious",
+   "help": "Elements must meet minimum color contrast ratio thresholds",
+   "count": 6,
+   "nodes": [
+    {
+     "target": [
+      ".transform > .group.perspective-1000.max-w-\\[325px\\] > .preserve-3d.duration-500.relative > .bg-gray-800.rounded-2xl.shadow-xl > .mt-12.flex-col.h-full > .border-gray-700.pt-3.border-t > div:nth-child(1) > .text-\\[10px\\].uppercase.text-gray-500"
+     ],
+     "html": "<div class=\"text-[10px] text-gray-500 uppercase\">Fechamento</div>"
+    },
+    {
+     "target": [
+      ".transform > .group.perspective-1000.max-w-\\[325px\\] > .preserve-3d.duration-500.relative > .bg-gray-800.rounded-2xl.shadow-xl > .mt-12.flex-col.h-full > .border-gray-700.pt-3.border-t > .text-right > .text-\\[10px\\].uppercase.text-gray-500"
+     ],
+     "html": "<div class=\"text-[10px] text-gray-500 uppercase\">Melhor Dia</div>"
+    },
+    {
+     "target": [
+      ".bg-indigo-50.dark\\:bg-indigo-900\\/20.border-indigo-100 > .items-start.gap-3.justify-between > div > .dark\\:text-gray-400.text-xs.text-gray-500"
+     ],
+     "html": "<p class=\"text-xs text-gray-500 dark:text-gray-400\">Vencimento: 05/11/2026</p>"
+    },
+    {
+     "target": [
+      ".bg-indigo-50.dark\\:bg-indigo-900\\/20.border-indigo-100 > .grid-cols-3.grid.gap-2 > div:nth-child(1) > .dark\\:text-gray-400.text-gray-500"
+     ],
+     "html": "<p class=\"text-gray-500 dark:text-gray-400\">Total</p>"
+    },
+    {
+     "target": [
+      ".bg-indigo-50.dark\\:bg-indigo-900\\/20.border-indigo-100 > .grid-cols-3.grid.gap-2 > div:nth-child(2) > .dark\\:text-gray-400.text-gray-500"
+     ],
+     "html": "<p class=\"text-gray-500 dark:text-gray-400\">Pago</p>"
+    },
+    {
+     "target": [
+      ".bg-indigo-50.dark\\:bg-indigo-900\\/20.border-indigo-100 > .grid-cols-3.grid.gap-2 > div:nth-child(3) > .dark\\:text-gray-400.text-gray-500"
+     ],
+     "html": "<p class=\"text-gray-500 dark:text-gray-400\">Restante</p>"
+    }
+   ]
+  }
+ ],
+ "cartoes-credito-desktop-claro": {
+  "overflow": 0
+ },
+ "detalhes-credito-desktop-claro": "Detalhes do Cartão\nCartão Crédito\n**** **** **** 1234\nUSUARIO\nVisa\nLimite Total\nR$ 5.000,00\nUtilizado\nR$ 0,00\nDisponível\nR$ 5.000,00\nFECHAMENTO\nDia 25\nMELHOR DIA\nDia 26\nATIVO\n\nFECHAMENTO\n\nDia 25\n\nVENCIMENTO\n\nDia 5\n\nFaturas\n\nFATURA DO CICLO ABERTO\n\nFatura 10/2026\n\nVencimento: 05/11/2026\n\nAberta\n\nTotal\n\n-R$ 150,00\n\nPago\n\nR$ 0,00\n\nRestante\n\nR$ 0,00\n\nCrédito de R$ 150,00 a transportar para a próxima fatura no fechamento.\n\nVer detalhes da faturaAguardando fechamento\nAdministração\nRecalcular limite\nReconstruir faturas\nLançar ajuste manual\nAuditoria recente\nEditar\nArquivar",
+ "axe-cartoes-credito-desktop-claro": [
+  {
+   "id": "color-contrast",
+   "impact": "serious",
+   "help": "Elements must meet minimum color contrast ratio thresholds",
+   "count": 6,
+   "nodes": [
+    {
+     "target": [
+      ".transform > .group.perspective-1000.max-w-\\[325px\\] > .preserve-3d.duration-500.relative > .bg-gray-800.rounded-2xl.shadow-xl > .mt-12.flex-col.h-full > .border-gray-700.pt-3.border-t > div:nth-child(1) > .text-\\[10px\\].uppercase.text-gray-500"
+     ],
+     "html": "<div class=\"text-[10px] text-gray-500 uppercase\">Fechamento</div>"
+    },
+    {
+     "target": [
+      ".transform > .group.perspective-1000.max-w-\\[325px\\] > .preserve-3d.duration-500.relative > .bg-gray-800.rounded-2xl.shadow-xl > .mt-12.flex-col.h-full > .border-gray-700.pt-3.border-t > .text-right > .text-\\[10px\\].uppercase.text-gray-500"
+     ],
+     "html": "<div class=\"text-[10px] text-gray-500 uppercase\">Melhor Dia</div>"
+    },
+    {
+     "target": [
+      ".items-start.gap-3.justify-between > div > .dark\\:text-gray-400.text-xs"
+     ],
+     "html": "<p class=\"text-xs text-gray-500 dark:text-gray-400\">Vencimento: 05/11/2026</p>"
+    },
+    {
+     "target": [
+      ".grid-cols-3 > div:nth-child(1) > .dark\\:text-gray-400"
+     ],
+     "html": "<p class=\"text-gray-500 dark:text-gray-400\">Total</p>"
+    },
+    {
+     "target": [
+      "div:nth-child(2) > .dark\\:text-gray-400"
+     ],
+     "html": "<p class=\"text-gray-500 dark:text-gray-400\">Pago</p>"
+    },
+    {
+     "target": [
+      "div:nth-child(3) > .dark\\:text-gray-400"
+     ],
+     "html": "<p class=\"text-gray-500 dark:text-gray-400\">Restante</p>"
+    }
+   ]
+  }
+ ],
+ "transacoes-pj-receitas-desktop-claro": {
+  "overflow": 0
+ },
+ "linhas-pj-receitas-desktop-claro": [
+  "Tipo de Receita\n\t\nCategoria\n\t\nOrigem/Descrição\n\t\nValor (R$)\n\t\nData\n\tAÇÕES",
+  "-\t\nServiços\n\t\nProjeto A\nReceita registrada\n\t+ R$ 15.000,00\t07/10/2026\t"
+ ],
+ "axe-transacoes-pj-desktop-claro": [
+  {
+   "id": "color-contrast",
+   "impact": "serious",
+   "help": "Elements must meet minimum color contrast ratio thresholds",
+   "count": 4,
+   "nodes": [
+    {
+     "target": [
+      ".text-teal-600"
+     ],
+     "html": "<span class=\"text-xs text-teal-600 dark:text-teal-400 font-bold uppercase tracking-wider flex items-center gap-1 mt-0.5\">"
+    },
+    {
+     "target": [
+      ".w-9"
+     ],
+     "html": "<div role=\"button\" tabindex=\"0\" aria-label=\"Abrir menu da conta\" aria-expanded=\"false\" class=\"w-9 h-9 rounded-full flex items-center justify-center text-white f"
+    },
+    {
+     "target": [
+      ".px-2\\.5 > span:nth-child(2)"
+     ],
+     "html": "<span>Serviços</span>"
+    },
+    {
+     "target": [
+      ".text-green-600"
+     ],
+     "html": "<td class=\"py-4 px-4 text-center font-semibold whitespace-nowrap text-green-600 dark:text-green-400\">+ R$&nbsp;15.000,00</td>"
+    }
+   ]
+  },
+  {
+   "id": "select-name",
+   "impact": "critical",
+   "help": "Select element must have an accessible name",
+   "count": 2,
+   "nodes": [
+    {
+     "target": [
+      ".xl\\:col-span-3:nth-child(2) > select"
+     ],
+     "html": "<select class=\"w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-dark-100 px-3 py-2.5 text-sm text-gray-800 dark:text-gray-200 focu"
+    },
+    {
+     "target": [
+      ".xl\\:col-span-3:nth-child(3) > select"
+     ],
+     "html": "<select class=\"w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-dark-100 px-3 py-2.5 text-sm text-gray-800 dark:text-gray-200 focu"
+    }
+   ]
+  }
+ ],
+ "relatorios-indisponivel-desktop-claro": {
+  "overflow": 0
+ },
+ "texto-indisponivel-desktop-claro": "Minhas Finanças\nOutubro de 2026\nHoje\nOlá, Usuário\nPESSOAL\nU\nRelatórios de Finanças Pessoais\n\nAnálise inteligente da saúde financeira.\n\nÚltimos 30 dias\nVisão Geral\nGráficos\nIA Financeira\nCAIXA\n\nRECEITA TOTAL\n\nR$ 0,00\nCAIXA\n\nDESPESA TOTAL\n\nR$ 0,00\nCONTRIBUIÇÃO\n\nINVESTIMENTOS\n\nR$ 0,00\nCAIXA\n↑\nPOSITIVO\n\nRESULTADO OPERACIONAL\n\nR$ 0,00\n\nFluxo líquido total: R$ 0,00\n\nIndicadores de Cartão de Crédito\n\nIndisponível no momento.\n\nResumo de Fluxo de Caixa Mensal\nMÊS REFERÊNCIA\tENTRADAS\tSAÍDAS\tRESULTADO\nOutubro De 2026 (Parcial)\tR$ 0,00\tR$ 0,00\tR$ 0,00\nSetembro De 2026 (Parcial)\tR$ 0,00\tR$ 0,00\tR$ 0,00\nAlertas e Insights\n1\nBase insuficiente\n\nNão há recebimentos realizados no período; os indicadores proporcionais ficam indisponíveis.\n\n10/10/2026\nPERFIL DE RISCO\n\nIndisponível no momento.\n\nLEITURA DOS INDICADORES\n\nAportes líquidos sobre os recebimentos operacionais: Indisponível: sem recebimentos no período.\n\nPRINCIPAIS CATEGORIAS DE DESPESA\n\nSem movimentação no período.",
+ "axe-indisponivel-desktop-claro": [
+  {
+   "id": "color-contrast",
+   "impact": "serious",
+   "help": "Elements must meet minimum color contrast ratio thresholds",
+   "count": 4,
+   "nodes": [
+    {
+     "target": [
+      ".hover\\:bg-background\\/40:nth-child(1) > .text-green-600:nth-child(2)"
+     ],
+     "html": "<td class=\"px-6 py-4 text-right text-green-600 font-medium\">R$&nbsp;0,00</td>"
+    },
+    {
+     "target": [
+      ".hover\\:bg-background\\/40:nth-child(1) > .text-green-600:nth-child(4)"
+     ],
+     "html": "<td class=\"px-6 py-4 text-right font-black text-green-600\">R$&nbsp;0,00</td>"
+    },
+    {
+     "target": [
+      ".hover\\:bg-background\\/40:nth-child(2) > .text-green-600:nth-child(2)"
+     ],
+     "html": "<td class=\"px-6 py-4 text-right text-green-600 font-medium\">R$&nbsp;0,00</td>"
+    },
+    {
+     "target": [
+      ".hover\\:bg-background\\/40:nth-child(2) > .text-green-600:nth-child(4)"
+     ],
+     "html": "<td class=\"px-6 py-4 text-right font-black text-green-600\">R$&nbsp;0,00</td>"
+    }
+   ]
+  }
+ ],
+ "transacoes-pf-despesas-desktop-escuro": {
+  "overflow": 0
+ },
+ "linhas-pf-despesas-desktop-escuro": [
+  "Produto/Serviço\n\t\nCategoria\n\t\nTipo\n\t\nForma Pgto\n\t\nStatus\n\t\nVencimento\n\t\nValor\n\tAÇÕES",
+  "Internet\n\t\nMoradia\n\t-\t-\tPENDENTE\t16/10/2026\t• R$ 99,90\t",
+  "Supermercado\n\t\nMercado\n\t-\t-\tPAGO\t09/10/2026\t- R$ 1.200,99\t"
+ ],
+ "modal-nova-desktop-escuro": {
+  "overflow": 0
+ },
+ "modal-compra-parcelada-desktop-escuro": {
+  "overflow": 0
+ },
+ "modal-escape-desktop-escuro": true,
+ "modal-editar-desktop-escuro": {
+  "overflow": 0
+ },
+ "modal-editar-valor-desktop-escuro": "1200.99",
+ "relatorios-cartoes-desktop-escuro": {
+  "overflow": 0
+ },
+ "relatorios-cartoes-tabela-desktop-escuro": {
+  "overflow": 0
+ },
+ "linhas-relatorios-desktop-escuro": [
+  "CARTÃO\tUTILIZAÇÃO\tLIMITE DISPONÍVEL\tPRÓXIMA FATURA A PAGAR\tFUTURO\tATRASO",
+  "Cartão Principal\n\nVence em 05/11/2026 · ciclo aberto\n\n\t12,00%\tR$ 4.400,00\tR$ 300,00\tR$ 200,00\tR$ 100,00",
+  "Cartão Crédito\n\nSem fatura a vencer · crédito de R$ 150,00 a compensar\n\n\t0,00%\tR$ 5.000,00\t—\tR$ 0,00\tR$ 0,00",
+  "Cartão Arquivado\n\nCartão arquivado · Sem fatura a vencer\n\n\t—\t—\t—\tR$ 0,00\tR$ 50,00",
+  "MÊS REFERÊNCIA\tENTRADAS\tSAÍDAS\tRESULTADO",
+  "Outubro De 2026 (Parcial)\tR$ 8.123,45\tR$ 1.200,99\tR$ 6.922,46",
+  "Setembro De 2026 (Parcial)\tR$ 0,00\tR$ 2.500,00\t-R$ 2.500,00"
+ ],
+ "relatorios-graficos-cartoes-desktop-escuro": {
+  "overflow": 0
+ },
+ "linhas-graficos-desktop-escuro": [
+  "CARTÃO\tCOMPRAS\tPAGO EM FATURAS\tPRÓXIMA FATURA A PAGAR\tFUTURO\tEM ATRASO\tUTILIZAÇÃO",
+  "Cartão Principal\n\n0 compra(s) no período\n\n\tR$ 0,00\tR$ 0,00\tR$ 300,00\tR$ 200,00\tR$ 100,00\t12,00%",
+  "Cartão Crédito\n\n0 compra(s) no período\n\n\tR$ 0,00\tR$ 0,00\t—\tR$ 0,00\tR$ 0,00\t0,00%"
+ ],
+ "colunas-graficos-desktop-escuro": [
+  "CARTÃO",
+  "COMPRAS",
+  "PAGO EM FATURAS",
+  "PRÓXIMA FATURA A PAGAR",
+  "FUTURO",
+  "EM ATRASO",
+  "UTILIZAÇÃO"
+ ],
+ "cartoes-desktop-escuro": {
+  "overflow": 0
+ },
+ "cartoes-vencida-desktop-escuro": {
+  "overflow": 0
+ },
+ "detalhes-vencida-desktop-escuro": "Detalhes do Cartão\nCartão Principal\n**** **** **** 1234\nUSUARIO\nVisa\nLimite Total\nR$ 5.000,00\nUtilizado\nR$ 600,00\nDisponível\nR$ 4.400,00\nFECHAMENTO\nDia 25\nMELHOR DIA\nDia 26\nATIVO\n\nFECHAMENTO\n\nDia 25\n\nVENCIMENTO\n\nDia 5\n\nFaturas\n\nFATURA DO CICLO ABERTO\n\nFatura 10/2026\n\nVencimento: 05/11/2026\n\nAberta\n\nTotal\n\nR$ 300,00\n\nPago\n\nR$ 0,00\n\nRestante\n\nR$ 300,00\n\nVer detalhes da faturaAguardando fechamento\n\nFATURA DO CICLO SEGUINTE\n\nFatura 11/2026\n\nVencimento: 05/12/2026\n\nAberta\n\nTotal\n\nR$ 200,00\n\nPago\n\nR$ 0,00\n\nRestante\n\nR$ 200,00\n\nVer detalhes da fatura\n\nHISTÓRICO DE FATURAS\n\nFatura 08/2026\n\nVencimento: 05/09/2026\n\nVencida\n\nTotal\n\nR$ 100,00\n\nPago\n\nR$ 0,00\n\nRestante\n\nR$ 100,00\n\nVer detalhes da faturaPagar total\nAdministração\nRecalcular limite\nReconstruir faturas\nLançar ajuste manual\nAuditoria recente\nEditar\nArquivar",
+ "cartoes-credito-desktop-escuro": {
+  "overflow": 0
+ },
+ "detalhes-credito-desktop-escuro": "Detalhes do Cartão\nCartão Crédito\n**** **** **** 1234\nUSUARIO\nVisa\nLimite Total\nR$ 5.000,00\nUtilizado\nR$ 0,00\nDisponível\nR$ 5.000,00\nFECHAMENTO\nDia 25\nMELHOR DIA\nDia 26\nATIVO\n\nFECHAMENTO\n\nDia 25\n\nVENCIMENTO\n\nDia 5\n\nFaturas\n\nFATURA DO CICLO ABERTO\n\nFatura 10/2026\n\nVencimento: 05/11/2026\n\nAberta\n\nTotal\n\n-R$ 150,00\n\nPago\n\nR$ 0,00\n\nRestante\n\nR$ 0,00\n\nCrédito de R$ 150,00 a transportar para a próxima fatura no fechamento.\n\nVer detalhes da faturaAguardando fechamento\nAdministração\nRecalcular limite\nReconstruir faturas\nLançar ajuste manual\nAuditoria recente\nEditar\nArquivar",
+ "transacoes-pj-receitas-desktop-escuro": {
+  "overflow": 0
+ },
+ "linhas-pj-receitas-desktop-escuro": [
+  "Tipo de Receita\n\t\nCategoria\n\t\nOrigem/Descrição\n\t\nValor (R$)\n\t\nData\n\tAÇÕES",
+  "-\t\nServiços\n\t\nProjeto A\nReceita registrada\n\t+ R$ 15.000,00\t07/10/2026\t"
+ ],
+ "relatorios-indisponivel-desktop-escuro": {
+  "overflow": 0
+ },
+ "texto-indisponivel-desktop-escuro": "Minhas Finanças\nOutubro de 2026\nHoje\nOlá, Usuário\nPESSOAL\nU\nRelatórios de Finanças Pessoais\n\nAnálise inteligente da saúde financeira.\n\nÚltimos 30 dias\nVisão Geral\nGráficos\nIA Financeira\nCAIXA\n\nRECEITA TOTAL\n\nR$ 0,00\nCAIXA\n\nDESPESA TOTAL\n\nR$ 0,00\nCONTRIBUIÇÃO\n\nINVESTIMENTOS\n\nR$ 0,00\nCAIXA\n↑\nPOSITIVO\n\nRESULTADO OPERACIONAL\n\nR$ 0,00\n\nFluxo líquido total: R$ 0,00\n\nIndicadores de Cartão de Crédito\n\nIndisponível no momento.\n\nResumo de Fluxo de Caixa Mensal\nMÊS REFERÊNCIA\tENTRADAS\tSAÍDAS\tRESULTADO\nOutubro De 2026 (Parcial)\tR$ 0,00\tR$ 0,00\tR$ 0,00\nSetembro De 2026 (Parcial)\tR$ 0,00\tR$ 0,00\tR$ 0,00\nAlertas e Insights\n1\nBase insuficiente\n\nNão há recebimentos realizados no período; os indicadores proporcionais ficam indisponíveis.\n\n10/10/2026\nPERFIL DE RISCO\n\nIndisponível no momento.\n\nLEITURA DOS INDICADORES\n\nAportes líquidos sobre os recebimentos operacionais: Indisponível: sem recebimentos no período.\n\nPRINCIPAIS CATEGORIAS DE DESPESA\n\nSem movimentação no período.",
+ "transacoes-pf-despesas-mobile-claro": {
+  "overflow": 0
+ },
+ "linhas-pf-despesas-mobile-claro": [
+  "Produto/Serviço\n\t\nCategoria\n\t\nTipo\n\t\nForma Pgto\n\t\nStatus\n\t\nVencimento\n\t\nValor\n\tAÇÕES",
+  "Internet\n\t\nMoradia\n\t-\t-\tPENDENTE\t16/10/2026\t• R$ 99,90\t",
+  "Supermercado\n\t\nMercado\n\t-\t-\tPAGO\t09/10/2026\t- R$ 1.200,99\t"
+ ],
+ "modal-nova-mobile-claro": {
+  "overflow": 0
+ },
+ "modal-compra-parcelada-mobile-claro": {
+  "overflow": 0
+ },
+ "modal-escape-mobile-claro": true,
+ "modal-editar-mobile-claro": {
+  "overflow": 0
+ },
+ "modal-editar-valor-mobile-claro": "1200.99",
+ "relatorios-cartoes-mobile-claro": {
+  "overflow": 0
+ },
+ "relatorios-cartoes-tabela-mobile-claro": {
+  "overflow": 0
+ },
+ "linhas-relatorios-mobile-claro": [
+  "CARTÃO\tUTILIZAÇÃO\tLIMITE DISPONÍVEL\tPRÓXIMA FATURA A PAGAR\tFUTURO\tATRASO",
+  "Cartão Principal\n\nVence em 05/11/2026 · ciclo aberto\n\n\t12,00%\tR$ 4.400,00\tR$ 300,00\tR$ 200,00\tR$ 100,00",
+  "Cartão Crédito\n\nSem fatura a vencer · crédito de R$ 150,00 a compensar\n\n\t0,00%\tR$ 5.000,00\t—\tR$ 0,00\tR$ 0,00",
+  "Cartão Arquivado\n\nCartão arquivado · Sem fatura a vencer\n\n\t—\t—\t—\tR$ 0,00\tR$ 50,00",
+  "MÊS REFERÊNCIA\tENTRADAS\tSAÍDAS\tRESULTADO",
+  "Outubro De 2026 (Parcial)\tR$ 8.123,45\tR$ 1.200,99\tR$ 6.922,46",
+  "Setembro De 2026 (Parcial)\tR$ 0,00\tR$ 2.500,00\t-R$ 2.500,00"
+ ],
+ "relatorios-graficos-cartoes-mobile-claro": {
+  "overflow": 0
+ },
+ "linhas-graficos-mobile-claro": [
+  "CARTÃO\tCOMPRAS\tPAGO EM FATURAS\tPRÓXIMA FATURA A PAGAR\tFUTURO\tEM ATRASO\tUTILIZAÇÃO",
+  "Cartão Principal\n\n0 compra(s) no período\n\n\tR$ 0,00\tR$ 0,00\tR$ 300,00\tR$ 200,00\tR$ 100,00\t12,00%",
+  "Cartão Crédito\n\n0 compra(s) no período\n\n\tR$ 0,00\tR$ 0,00\t—\tR$ 0,00\tR$ 0,00\t0,00%"
+ ],
+ "colunas-graficos-mobile-claro": [
+  "CARTÃO",
+  "COMPRAS",
+  "PAGO EM FATURAS",
+  "PRÓXIMA FATURA A PAGAR",
+  "FUTURO",
+  "EM ATRASO",
+  "UTILIZAÇÃO"
+ ],
+ "cartoes-mobile-claro": {
+  "overflow": 0
+ },
+ "cartoes-vencida-mobile-claro": {
+  "overflow": 0
+ },
+ "detalhes-vencida-mobile-claro": "Detalhes do Cartão\nCartão Principal\n**** **** **** 1234\nUSUARIO\nVisa\nLimite Total\nR$ 5.000,00\nUtilizado\nR$ 600,00\nDisponível\nR$ 4.400,00\nFECHAMENTO\nDia 25\nMELHOR DIA\nDia 26\nATIVO\n\nFECHAMENTO\n\nDia 25\n\nVENCIMENTO\n\nDia 5\n\nFaturas\n\nFATURA DO CICLO ABERTO\n\nFatura 10/2026\n\nVencimento: 05/11/2026\n\nAberta\n\nTotal\n\nR$ 300,00\n\nPago\n\nR$ 0,00\n\nRestante\n\nR$ 300,00\n\nVer detalhes da faturaAguardando fechamento\n\nFATURA DO CICLO SEGUINTE\n\nFatura 11/2026\n\nVencimento: 05/12/2026\n\nAberta\n\nTotal\n\nR$ 200,00\n\nPago\n\nR$ 0,00\n\nRestante\n\nR$ 200,00\n\nVer detalhes da fatura\n\nHISTÓRICO DE FATURAS\n\nFatura 08/2026\n\nVencimento: 05/09/2026\n\nVencida\n\nTotal\n\nR$ 100,00\n\nPago\n\nR$ 0,00\n\nRestante\n\nR$ 100,00\n\nVer detalhes da faturaPagar total\nAdministração\nRecalcular limite\nReconstruir faturas\nLançar ajuste manual\nAuditoria recente\nEditar\nArquivar",
+ "cartoes-credito-mobile-claro": {
+  "overflow": 0
+ },
+ "detalhes-credito-mobile-claro": "Detalhes do Cartão\nCartão Crédito\n**** **** **** 1234\nUSUARIO\nVisa\nLimite Total\nR$ 5.000,00\nUtilizado\nR$ 0,00\nDisponível\nR$ 5.000,00\nFECHAMENTO\nDia 25\nMELHOR DIA\nDia 26\nATIVO\n\nFECHAMENTO\n\nDia 25\n\nVENCIMENTO\n\nDia 5\n\nFaturas\n\nFATURA DO CICLO ABERTO\n\nFatura 10/2026\n\nVencimento: 05/11/2026\n\nAberta\n\nTotal\n\n-R$ 150,00\n\nPago\n\nR$ 0,00\n\nRestante\n\nR$ 0,00\n\nCrédito de R$ 150,00 a transportar para a próxima fatura no fechamento.\n\nVer detalhes da faturaAguardando fechamento\nAdministração\nRecalcular limite\nReconstruir faturas\nLançar ajuste manual\nAuditoria recente\nEditar\nArquivar",
+ "transacoes-pj-receitas-mobile-claro": {
+  "overflow": 0
+ },
+ "linhas-pj-receitas-mobile-claro": [
+  "Tipo de Receita\n\t\nCategoria\n\t\nOrigem/Descrição\n\t\nValor (R$)\n\t\nData\n\tAÇÕES",
+  "-\t\nServiços\n\t\nProjeto A\nReceita registrada\n\t+ R$ 15.000,00\t07/10/2026\t"
+ ],
+ "relatorios-indisponivel-mobile-claro": {
+  "overflow": 0
+ },
+ "texto-indisponivel-mobile-claro": "Minhas Finanças\nOutubro de 2026\nHoje\nRelatórios de Finanças Pessoais\n\nAnálise inteligente da saúde financeira.\n\nÚltimos 30 dias\nVisão Geral\nGráficos\nIA Financeira\nCAIXA\n\nRECEITA TOTAL\n\nR$ 0,00\nCAIXA\n\nDESPESA TOTAL\n\nR$ 0,00\nCONTRIBUIÇÃO\n\nINVESTIMENTOS\n\nR$ 0,00\nCAIXA\n↑\nPOSITIVO\n\nRESULTADO OPERACIONAL\n\nR$ 0,00\n\nFluxo líquido total: R$ 0,00\n\nIndicadores de Cartão de Crédito\n\nIndisponível no momento.\n\nResumo de Fluxo de Caixa Mensal\nMÊS REFERÊNCIA\tENTRADAS\tSAÍDAS\tRESULTADO\nOutubro De 2026 (Parcial)\tR$ 0,00\tR$ 0,00\tR$ 0,00\nSetembro De 2026 (Parcial)\tR$ 0,00\tR$ 0,00\tR$ 0,00\nAlertas e Insights\n1\nBase insuficiente\n\nNão há recebimentos realizados no período; os indicadores proporcionais ficam indisponíveis.\n\n10/10/2026\nPERFIL DE RISCO\n\nIndisponível no momento.\n\nLEITURA DOS INDICADORES\n\nAportes líquidos sobre os recebimentos operacionais: Indisponível: sem recebimentos no período.\n\nPRINCIPAIS CATEGORIAS DE DESPESA\n\nSem movimentação no período.",
+ "transacoes-pf-despesas-mobile-escuro": {
+  "overflow": 0
+ },
+ "linhas-pf-despesas-mobile-escuro": [
+  "Produto/Serviço\n\t\nCategoria\n\t\nTipo\n\t\nForma Pgto\n\t\nStatus\n\t\nVencimento\n\t\nValor\n\tAÇÕES",
+  "Internet\n\t\nMoradia\n\t-\t-\tPENDENTE\t16/10/2026\t• R$ 99,90\t",
+  "Supermercado\n\t\nMercado\n\t-\t-\tPAGO\t09/10/2026\t- R$ 1.200,99\t"
+ ],
+ "modal-nova-mobile-escuro": {
+  "overflow": 0
+ },
+ "modal-compra-parcelada-mobile-escuro": {
+  "overflow": 0
+ },
+ "modal-escape-mobile-escuro": true,
+ "modal-editar-mobile-escuro": {
+  "overflow": 0
+ },
+ "modal-editar-valor-mobile-escuro": "1200.99",
+ "relatorios-cartoes-mobile-escuro": {
+  "overflow": 0
+ },
+ "relatorios-cartoes-tabela-mobile-escuro": {
+  "overflow": 0
+ },
+ "linhas-relatorios-mobile-escuro": [
+  "CARTÃO\tUTILIZAÇÃO\tLIMITE DISPONÍVEL\tPRÓXIMA FATURA A PAGAR\tFUTURO\tATRASO",
+  "Cartão Principal\n\nVence em 05/11/2026 · ciclo aberto\n\n\t12,00%\tR$ 4.400,00\tR$ 300,00\tR$ 200,00\tR$ 100,00",
+  "Cartão Crédito\n\nSem fatura a vencer · crédito de R$ 150,00 a compensar\n\n\t0,00%\tR$ 5.000,00\t—\tR$ 0,00\tR$ 0,00",
+  "Cartão Arquivado\n\nCartão arquivado · Sem fatura a vencer\n\n\t—\t—\t—\tR$ 0,00\tR$ 50,00",
+  "MÊS REFERÊNCIA\tENTRADAS\tSAÍDAS\tRESULTADO",
+  "Outubro De 2026 (Parcial)\tR$ 8.123,45\tR$ 1.200,99\tR$ 6.922,46",
+  "Setembro De 2026 (Parcial)\tR$ 0,00\tR$ 2.500,00\t-R$ 2.500,00"
+ ],
+ "relatorios-graficos-cartoes-mobile-escuro": {
+  "overflow": 0
+ },
+ "linhas-graficos-mobile-escuro": [
+  "CARTÃO\tCOMPRAS\tPAGO EM FATURAS\tPRÓXIMA FATURA A PAGAR\tFUTURO\tEM ATRASO\tUTILIZAÇÃO",
+  "Cartão Principal\n\n0 compra(s) no período\n\n\tR$ 0,00\tR$ 0,00\tR$ 300,00\tR$ 200,00\tR$ 100,00\t12,00%",
+  "Cartão Crédito\n\n0 compra(s) no período\n\n\tR$ 0,00\tR$ 0,00\t—\tR$ 0,00\tR$ 0,00\t0,00%"
+ ],
+ "colunas-graficos-mobile-escuro": [
+  "CARTÃO",
+  "COMPRAS",
+  "PAGO EM FATURAS",
+  "PRÓXIMA FATURA A PAGAR",
+  "FUTURO",
+  "EM ATRASO",
+  "UTILIZAÇÃO"
+ ],
+ "cartoes-mobile-escuro": {
+  "overflow": 0
+ },
+ "cartoes-vencida-mobile-escuro": {
+  "overflow": 0
+ },
+ "detalhes-vencida-mobile-escuro": "Detalhes do Cartão\nCartão Principal\n**** **** **** 1234\nUSUARIO\nVisa\nLimite Total\nR$ 5.000,00\nUtilizado\nR$ 600,00\nDisponível\nR$ 4.400,00\nFECHAMENTO\nDia 25\nMELHOR DIA\nDia 26\nATIVO\n\nFECHAMENTO\n\nDia 25\n\nVENCIMENTO\n\nDia 5\n\nFaturas\n\nFATURA DO CICLO ABERTO\n\nFatura 10/2026\n\nVencimento: 05/11/2026\n\nAberta\n\nTotal\n\nR$ 300,00\n\nPago\n\nR$ 0,00\n\nRestante\n\nR$ 300,00\n\nVer detalhes da faturaAguardando fechamento\n\nFATURA DO CICLO SEGUINTE\n\nFatura 11/2026\n\nVencimento: 05/12/2026\n\nAberta\n\nTotal\n\nR$ 200,00\n\nPago\n\nR$ 0,00\n\nRestante\n\nR$ 200,00\n\nVer detalhes da fatura\n\nHISTÓRICO DE FATURAS\n\nFatura 08/2026\n\nVencimento: 05/09/2026\n\nVencida\n\nTotal\n\nR$ 100,00\n\nPago\n\nR$ 0,00\n\nRestante\n\nR$ 100,00\n\nVer detalhes da faturaPagar total\nAdministração\nRecalcular limite\nReconstruir faturas\nLançar ajuste manual\nAuditoria recente\nEditar\nArquivar",
+ "cartoes-credito-mobile-escuro": {
+  "overflow": 0
+ },
+ "detalhes-credito-mobile-escuro": "Detalhes do Cartão\nCartão Crédito\n**** **** **** 1234\nUSUARIO\nVisa\nLimite Total\nR$ 5.000,00\nUtilizado\nR$ 0,00\nDisponível\nR$ 5.000,00\nFECHAMENTO\nDia 25\nMELHOR DIA\nDia 26\nATIVO\n\nFECHAMENTO\n\nDia 25\n\nVENCIMENTO\n\nDia 5\n\nFaturas\n\nFATURA DO CICLO ABERTO\n\nFatura 10/2026\n\nVencimento: 05/11/2026\n\nAberta\n\nTotal\n\n-R$ 150,00\n\nPago\n\nR$ 0,00\n\nRestante\n\nR$ 0,00\n\nCrédito de R$ 150,00 a transportar para a próxima fatura no fechamento.\n\nVer detalhes da faturaAguardando fechamento\nAdministração\nRecalcular limite\nReconstruir faturas\nLançar ajuste manual\nAuditoria recente\nEditar\nArquivar",
+ "transacoes-pj-receitas-mobile-escuro": {
+  "overflow": 0
+ },
+ "linhas-pj-receitas-mobile-escuro": [
+  "Tipo de Receita\n\t\nCategoria\n\t\nOrigem/Descrição\n\t\nValor (R$)\n\t\nData\n\tAÇÕES",
+  "-\t\nServiços\n\t\nProjeto A\nReceita registrada\n\t+ R$ 15.000,00\t07/10/2026\t"
+ ],
+ "relatorios-indisponivel-mobile-escuro": {
+  "overflow": 0
+ },
+ "texto-indisponivel-mobile-escuro": "Minhas Finanças\nOutubro de 2026\nHoje\nRelatórios de Finanças Pessoais\n\nAnálise inteligente da saúde financeira.\n\nÚltimos 30 dias\nVisão Geral\nGráficos\nIA Financeira\nCAIXA\n\nRECEITA TOTAL\n\nR$ 0,00\nCAIXA\n\nDESPESA TOTAL\n\nR$ 0,00\nCONTRIBUIÇÃO\n\nINVESTIMENTOS\n\nR$ 0,00\nCAIXA\n↑\nPOSITIVO\n\nRESULTADO OPERACIONAL\n\nR$ 0,00\n\nFluxo líquido total: R$ 0,00\n\nIndicadores de Cartão de Crédito\n\nIndisponível no momento.\n\nResumo de Fluxo de Caixa Mensal\nMÊS REFERÊNCIA\tENTRADAS\tSAÍDAS\tRESULTADO\nOutubro De 2026 (Parcial)\tR$ 0,00\tR$ 0,00\tR$ 0,00\nSetembro De 2026 (Parcial)\tR$ 0,00\tR$ 0,00\tR$ 0,00\nAlertas e Insights\n1\nBase insuficiente\n\nNão há recebimentos realizados no período; os indicadores proporcionais ficam indisponíveis.\n\n10/10/2026\nPERFIL DE RISCO\n\nIndisponível no momento.\n\nLEITURA DOS INDICADORES\n\nAportes líquidos sobre os recebimentos operacionais: Indisponível: sem recebimentos no período.\n\nPRINCIPAIS CATEGORIAS DE DESPESA\n\nSem movimentação no período."
+}

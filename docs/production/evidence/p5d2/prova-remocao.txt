@@ -1,0 +1,39 @@
+# Prova de remoção — P5-D2 (2026-10-11T20:47:30Z)
+## markAlertAsRead
+(nenhuma ocorrência em código de produção/E2E)
+## readAlertIds
+(nenhuma ocorrência em código de produção/E2E)
+## summarizeUnread\b
+(nenhuma ocorrência em código de produção/E2E)
+## UnreadSummary\b
+(nenhuma ocorrência em código de produção/E2E)
+## entre as exibidas
+(nenhuma ocorrência em código de produção/E2E)
+## Marcar como lido
+(nenhuma ocorrência em código de produção/E2E)
+## Alertas e Insights
+(nenhuma ocorrência em código de produção/E2E)
+## UNREAD_COUNT_READ_TIME_LAG_MS
+(nenhuma ocorrência em código de produção/E2E)
+## getCountFromServer
+(nenhuma ocorrência em código de produção/E2E)
+## refetchInterval
+(nenhuma ocorrência em código de produção/E2E)
+## Math.max(0 na contagem (backend e frontend de notificações, sem comentários)
+(nenhuma)
+## entre as mais recentes (texto do painel vazio, mantido de propósito)
+src/components/NotificationsPanel.tsx:170:                        <p className="text-sm font-medium text-on-surface">Nada para exibir entre as mais recentes</p>
+e2e/notifications-retention-d18.spec.ts:615:  await expect(page.getByText('Nada para exibir entre as mais recentes')).toBeVisible();
+e2e/notifications-retention-d18.spec.ts:625:  await expect(page.getByText('Nada para exibir entre as mais recentes')).toHaveCount(0);
+## Escritas de notificação pelo cliente (create/update/delete em notifications)
+(nenhuma)
+## Referências backend a notifications (escrita só por create em closing.ts e publish.ts; unreadCount.ts só conta)
+functions/src/cards/closing.ts:164:      .collection("notifications").doc(notificationId);
+functions/src/cards/closing.ts:279:        await workspaceRef(workspaceId).collection("notifications").doc(id)
+functions/src/notifications/publish.ts:24:  workspaceRef(workspaceId).collection("notifications");
+functions/src/notifications/publish.ts:30:    await notificationsRef(document.workspaceId).doc(document.id)
+functions/src/notifications/unreadCount.ts:141:      transaction.get(notificationsRef(actor.workspaceId)
+## Escrita do backend em notification_entries/notification_user_states (deve ser nenhuma)
+(nenhuma; só a leitura da contagem em unreadCount.ts)
+## Leitura de client_private pelos produtores (deve ser nenhuma)
+(nenhuma)

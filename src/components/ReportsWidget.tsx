@@ -1,26 +1,26 @@
 
 import React from 'react';
-import { useFinancialReportSnapshot } from '../modules/reports/hooks.ts';
-import { Transaction, Goal, CreditCard } from '../types.ts';
+import { useFinancialReportView } from '../modules/reports/hooks.ts';
+import { blockEmptyText } from '../modules/reports/adapter.ts';
 import { ReportIcon, WarningIcon, ChevronRightIcon, CheckIcon } from './Icons.tsx';
-import { useTheme } from '../contexts/ThemeContext.tsx';
+import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
 
 interface ReportsWidgetProps {
-    transactions: Transaction[];
-    goals: Goal[];
-    creditCards: CreditCard[];
     onNavigate: () => void;
 }
 
-const ReportsWidget: React.FC<ReportsWidgetProps> = ({ transactions, goals, creditCards, onNavigate }) => {
-    // We use a fixed 30d range for the dashboard snapshot to give immediate context
-    // INV-P2-035 — o widget não exibe nenhum indicador patrimonial: não há
-    // por que carregar resumo, períodos e alocações do domínio aqui.
-    const { data: snapshot, isLoading } = useFinancialReportSnapshot(
-        transactions, goals, creditCards, '30d', undefined,
-        { includeInvestmentDomain: false },
-    );
-    const { theme } = useTheme();
+/**
+ * Blocos que o widget exibe: resultado, taxa/margem e o alerta principal. Os
+ * alertas já leem contas, cartões e dívidas no servidor; pedir esses blocos
+ * só traria dados que o widget não mostra.
+ */
+const WIDGET_SECTIONS = ['cash', 'kpis', 'alerts'] as const;
+
+const ReportsWidget: React.FC<ReportsWidgetProps> = ({ onNavigate }) => {
+    // Faixa fixa de 30 dias: contexto imediato no Dashboard, pelo relatório oficial.
+    const { snapshot, view, isLoading, isError, error } = useFinancialReportView('30d', WIDGET_SECTIONS);
+    const { activeWorkspace } = useWorkspace();
+    const isPJ = activeWorkspace.type === 'PJ';
 
     if (isLoading) {
         return (
@@ -30,10 +30,16 @@ const ReportsWidget: React.FC<ReportsWidgetProps> = ({ transactions, goals, cred
         );
     }
     
-    if (!snapshot) return null;
+    if (isError || !snapshot || !view) {
+        return (
+            <div role="alert" className="bg-surface rounded-card p-5 shadow-md border border-border h-full flex items-center justify-center text-center text-sm text-muted">
+                {error?.message || 'Não foi possível carregar o relatório. Tente novamente.'}
+            </div>
+        );
+    }
 
     const balanceKPI = snapshot.kpis.find(k => k.id === 'kpi-balance');
-    const savingsKPI = snapshot.kpis.find(k => k.id === 'kpi-savings');
+    const rateKPI = snapshot.kpis.find(k => k.id === (isPJ ? 'kpi-profit-margin' : 'kpi-net-contribution-rate'));
     
     // Find most important alert (Critical first, then Warning)
     const topAlert = snapshot.alerts.find(a => a.severity === 'critical') || 
@@ -61,16 +67,22 @@ const ReportsWidget: React.FC<ReportsWidgetProps> = ({ transactions, goals, cred
 
             <div className="grid grid-cols-2 gap-4 mb-4">
                 <div className="bg-background rounded-lg p-3 border border-border">
-                    <span className="text-[10px] uppercase font-bold text-muted block mb-1">Saldo</span>
-                    <span className={`text-lg font-bold truncate block ${balanceKPI && balanceKPI.value >= 0 ? 'text-success' : 'text-error'}`}>
-                        {balanceKPI?.formattedValue}
+                    <span className="text-[10px] uppercase font-bold text-muted block mb-1">Resultado</span>
+                    <span className={`text-lg font-bold truncate block ${balanceKPI?.value == null ? 'text-on-surface' : balanceKPI.value >= 0 ? 'text-success' : 'text-error'}`}>
+                        {balanceKPI?.formattedValue ?? '—'}
                     </span>
+                    {balanceKPI?.value == null && (
+                        <span className="text-[10px] text-muted block truncate">{balanceKPI?.description}</span>
+                    )}
                 </div>
                 <div className="bg-background rounded-lg p-3 border border-border">
-                    <span className="text-[10px] uppercase font-bold text-muted block mb-1">Poupança</span>
+                    <span className="text-[10px] uppercase font-bold text-muted block mb-1">{isPJ ? 'Margem' : 'Aportes líq.'}</span>
                     <span className="text-lg font-bold text-on-surface truncate block">
-                        {savingsKPI?.formattedValue}
+                        {rateKPI?.formattedValue ?? '—'}
                     </span>
+                    {rateKPI?.value == null && (
+                        <span className="text-[10px] text-muted block truncate">{rateKPI?.description}</span>
+                    )}
                 </div>
             </div>
 
@@ -82,6 +94,11 @@ const ReportsWidget: React.FC<ReportsWidgetProps> = ({ transactions, goals, cred
                 }`}>
                     <WarningIcon className="w-4 h-4 flex-shrink-0 mt-0.5" />
                     <span className="line-clamp-2 font-medium leading-snug">{topAlert.message}</span>
+                </div>
+            ) : !view.blocks.alerts.hasNumbers ? (
+                <div className="text-xs p-3 rounded-lg bg-background text-muted border border-border flex gap-2 items-center">
+                    <WarningIcon className="w-4 h-4 flex-shrink-0" />
+                    <span className="font-medium">{blockEmptyText(view.blocks.alerts)}</span>
                 </div>
             ) : (
                 <div className="text-xs p-3 rounded-lg bg-success/10 text-success border border-success/20 flex gap-2 items-center">

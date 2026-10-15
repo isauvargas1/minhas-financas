@@ -13,6 +13,10 @@ import {
   seedWorkspace,
 } from "../../shared/testSupport/kernelTestSupport";
 import {
+  DEFAULT_INCOME_CATEGORY_ID,
+  seedDefaultCategories,
+} from "../../settingsCatalog/testSupport/categorySeeds";
+import {
   call,
   db,
   expectHttpsError,
@@ -56,6 +60,7 @@ const tenant = async () => {
   await seedPaidPlan(owner, "pro");
   await seedWorkspace({workspaceId, ownerId: owner});
   await seedMember(workspaceId, admin, "admin");
+  await seedDefaultCategories(workspaceId);
   return {workspaceId, owner, admin};
 };
 
@@ -75,7 +80,7 @@ const create = async (uid: string, workspaceId: string, amount = 10_000) =>
     idempotencyKey: idempotencyKey(),
     type: "receita",
     description: "Receita",
-    category: "Salário",
+    categoryId: DEFAULT_INCOME_CATEGORY_ID,
     amountCents: amount,
     date: "2026-09-10",
   })).transactionId;
@@ -96,7 +101,7 @@ const editPayload = async (
     cashAccountId: defaultAccountOf(workspaceId),
     type: "receita",
     description: "Receita",
-    category: "Salário",
+    categoryId: DEFAULT_INCOME_CATEGORY_ID,
     amountCents,
     date: "2026-09-10",
   },

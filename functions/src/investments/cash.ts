@@ -245,11 +245,9 @@ export const writeInvestmentCashMirror = (
       type: "investimento",
       description: movement.description,
       category: "Investimentos",
-      // Apresentação: a autoridade é `valueCents` e a marca.
-      value: entry.amountCents / 100,
+      // A autoridade é `valueCents` e a marca.
       valueCents: entry.amountCents,
       date: investmentCashDate({occurredAt, settlementAt}),
-      transactionDate: settlementAt ?? occurredAt,
       isPaid: settled,
       workspaceId: auth.workspaceId,
       profileId: auth.workspaceId,

@@ -4,6 +4,7 @@ import {isDayKey, saoPauloDayKey} from "../shared/dateKeys";
 import {isIsoInstant} from "../shared/commitTime";
 import {
   cashAccountIdSchema,
+  categoryIdSchema,
   correlationIdSchema,
   hasControlCharacter,
   idempotencyKeySchema,
@@ -33,13 +34,12 @@ import {isMoneyCents} from "../shared/money";
  * (`cashAccountId`). O confirmado move o saldo dela no mesmo commit; o
  * pendente guarda a conta e só a move na confirmação.
  *
- * Os tetos são os mesmos das Rules de `transactions` (`value <= 1000000000`,
- * descrição até 300, categoria até 120, fornecedor e centro de custo até 200),
- * para que nenhum lançamento aceito aqui fique fora do que o resto do produto
- * aceita.
+ * Os tetos (valor até `CASH_ENTRY_MAX_CENTS`, descrição até 300, categoria
+ * até 120, fornecedor e centro de custo até 200) são validados aqui: as Rules
+ * de `transactions` negam toda escrita do cliente e não validam campos.
  */
 
-/** R$ 1.000.000.000,00: mesmo teto das Rules, em centavos. */
+/** R$ 1.000.000.000,00 em centavos: teto de um lançamento. */
 export const CASH_ENTRY_MAX_CENTS = 100_000_000_000;
 
 /** Primeira data civil aceita para um lançamento. */
@@ -97,10 +97,13 @@ export const cashEntryDueDateSchema = dayKeySchema("Vencimento")
     `Vencimento: no máximo ${CASH_ENTRY_MAX_DUE_YEARS} anos à frente.`,
   );
 
-/** Campos descritivos e o valor, iguais na criação e na correção. */
+/**
+ * Campos descritivos e o valor, iguais na criação, correção e importação.
+ * A categoria vem à parte: obrigatória (ID do catálogo) na criação e na
+ * correção; opcional na importação (P5-C1, D-37.8).
+ */
 const baseEntryFields = {
   description: textSchema("Descrição", 300),
-  category: textSchema("Categoria", 120),
   amountCents: amountCentsSchema,
   /** Só em workspace PJ; a checagem usa o tipo persistido do workspace. */
   supplier: textSchema("Fornecedor", 200).optional(),
@@ -120,6 +123,8 @@ const settlementFields = {
 /** Campos do lançamento, iguais na criação e na correção. */
 const entryFields = {
   ...baseEntryFields,
+  /** Categoria do catálogo (ID estável), do mesmo tipo do lançamento. */
+  categoryId: categoryIdSchema,
   ...settlementFields,
   /** Conta/carteira do lançamento (D-30): ativa, no mesmo workspace. */
   cashAccountId: cashAccountIdSchema,
@@ -376,12 +381,15 @@ export const cashImportItemSchema = z.discriminatedUnion("type", [
   z.object({
     lineId: importLineIdSchema,
     ...baseEntryFields,
+    /** Ausente: a linha fica "Sem categoria" (nunca ID inventado). */
+    categoryId: categoryIdSchema.optional(),
     date: cashEntryDateSchema,
     ...incomeFields,
   }).strict(),
   z.object({
     lineId: importLineIdSchema,
     ...baseEntryFields,
+    categoryId: categoryIdSchema.optional(),
     date: cashEntryDateSchema,
     ...expenseFields,
   }).strict(),

@@ -1,0 +1,329 @@
+STATUS FAIL-r36
+STATES [["ca_4fd9d9908c91139e94fabf707198701e",{"read":true,"dismissed":null,"deleted":null}],["f_00",{"read":null,"dismissed":true,"deleted":null}],["f_01",{"read":null,"dismissed":true,"deleted":null}],["f_02",{"read":null,"dismissed":true,"deleted":null}],["f_03",{"read":null,"dismissed":true,"deleted":null}],["f_04",{"read":null,"dismissed":true,"deleted":null}]]
+1791895203775 N RES 200 /google.firestore.v1.Firestore/Listen/channel?VER=8&database=projects%2Fminhas-financas-local%2Fdatabases%2F(d
+1791895203827 N REQ /google.firestore.v1.Firestore/Listen/channel?VER=8&database=projects%2Fminhas-financas-local%2Fdatabases%2F(d raw=count=1&ofs=16&req0___data__=%7B%22database%22%3A%22projects
+1791895203833 P DOM open=false bell="Notificações" items= rows=
+1791895203845 N RES 200 /minhas-financas-local/southamerica-east1/getNotificationUnreadCount
+1791895203849 P DOM open=false bell="Notificações, 13 não lidas" items= rows=
+1791895203896 N RES 200 /google.firestore.v1.Firestore/Listen/channel?VER=8&database=projects%2Fminhas-financas-local%2Fdatabases%2F(d
+1791895203896 N RES 200 /minhas-financas-local/southamerica-east1/getWorkspaceEntitlement
+1791895203905 N REQ /google.firestore.v1.Firestore/Listen/channel?VER=8&database=projects%2Fminhas-financas-local%2Fdatabases%2F(d raw=count=6&ofs=17&req0___data__=%7B%22database%22%3A%22projects
+1791895203909 N RES 200 /minhas-financas-local/southamerica-east1/getFinancialReport
+1791895204000 N RES 200 /minhas-financas-local/southamerica-east1/getFinancialReport
+1791895204063 P LIST done#i7mw [ca_4fd9d9908c91139e94fabf707198701e 00 01 02 03 04 05 06 07 08 09 10 11]
+1791895204064 P SHARE prev=undefined | next=p0[ca_4fd9d9908c91139e94fabf707198701e 00 01 02 03 04 05 06 07 08 09 10 11] | kept=same
+1791895204068 N REQ /google.firestore.v1.Firestore/Listen/channel?VER=8&database=projects%2Fminhas-financas-local%2Fdatabases%2F(d raw=count=1&ofs=23&req0___data__=%7B%22database%22%3A%22projects
+1791895204068 N RES 200 /google.firestore.v1.Firestore/Listen/channel?VER=8&database=projects%2Fminhas-financas-local%2Fdatabases%2F(d
+1791895204070 P FEED data=p0[ca_4fd9d9908c91139e94fabf707198701e 00 01 02 03 04 05 06 07 08 09 10 11] visible=ca_4fd9d9908c91139e94fabf707198701e,00,01,02,03,04,05,06,07,08,09,10,11 fetch=idle
+1791895204088 P FEED data=p0[ca_4fd9d9908c91139e94fabf707198701e 00 01 02 03 04 05 06 07 08 09 10 11] visible=ca_4fd9d9908c91139e94fabf707198701e,00,01,02,03,04,05,06,07,08,09,10,11 fetch=idle
+1791895204133 N RES 200 /google.firestore.v1.Firestore/Listen/channel?VER=8&database=projects%2Fminhas-financas-local%2Fdatabases%2F(d
+1791895204986 N CONSOLE warning Couldn't load preload assets:  ProgressEvent
+1791895204987 N CONSOLE error Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID
+1791895205473 N CONSOLE warning Couldn't load preload assets:  ProgressEvent
+1791895205474 N CONSOLE error Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID
+1791895205562 P EV pointerdown svg. <BUTTON:Notificações, 13 não lidas> conn=true xy=34,88 d=0 pid=2 pt=touch trusted=true canc=true
+1791895205562 P EV touchstart svg. <BUTTON:Notificações, 13 não lidas> conn=true xy=34,88 d=0 pid=undefined pt=undefined trusted=true canc=true
+1791895205563 P EV pointerup svg. <BUTTON:Notificações, 13 não lidas> conn=true xy=34,88 d=0 pid=2 pt=touch trusted=true canc=true
+1791895205563 P EV touchend svg. <BUTTON:Notificações, 13 não lidas> conn=true xy=34,88 d=0 pid=undefined pt=undefined trusted=true canc=true
+1791895205566 P EV mousedown svg. <BUTTON:Notificações, 13 não lidas> conn=true xy=34,88 d=1 pid=undefined pt=undefined trusted=true canc=true
+1791895205567 P EV click svg. <BUTTON:Notificações, 13 não lidas> conn=true xy=34,88 d=1 pid=2 pt=touch trusted=true canc=true
+1791895205567 P EV mouseup svg. <BUTTON:Notificações, 13 não lidas> conn=true xy=34,88 d=1 pid=undefined pt=undefined trusted=true canc=true
+1791895205567 P FOCUS BUTTON.relative.p-2.rounded-full <BUTTON:Notificações, 13 não lidas> conn=true
+1791895205568 P ROUTE pass d=1 pid=2 originPid=2 originType=touch dt=0
+1791895205597 P ANIM start ca_4fd9d9908c91139e94fabf707198701e {"opacity":1,"x":0}
+1791895205600 P ANIM start f_00 {"opacity":1,"x":0}
+1791895205601 P ANIM start f_01 {"opacity":1,"x":0}
+1791895205601 P ANIM start f_02 {"opacity":1,"x":0}
+1791895205601 P ANIM start f_03 {"opacity":1,"x":0}
+1791895205602 P ANIM start f_04 {"opacity":1,"x":0}
+1791895205602 P ANIM start f_05 {"opacity":1,"x":0}
+1791895205602 P ANIM start f_06 {"opacity":1,"x":0}
+1791895205603 P ANIM start f_07 {"opacity":1,"x":0}
+1791895205603 P ANIM start f_08 {"opacity":1,"x":0}
+1791895205603 P ANIM start f_09 {"opacity":1,"x":0}
+1791895205603 P ANIM start f_10 {"opacity":1,"x":0}
+1791895205604 P ANIM start f_11 {"opacity":1,"x":0}
+1791895205612 P DOM open=true bell="Notificações, 13 não lidas" items=00,01,02,03,04,05,06,07,08,09,10,11 rows=00[op=1.00 h=152 st=opacity:1;transform:none;] 01[op=1.00 h=152 st=opacity:1;transform:none;] 02[op=1.00 h=152 st=opacity:1;transform:none;] 03[op=1.00 h=152 st=opacity:1;transform:none;] 04[op=1.00 h=152 st=opacity:1;transform:none;] 05[op=1.00 h=152 st=opacity:1;transform:none;] 06[op=1.00 h=152 st=opacity:1;transform:none;] 07[op=1.00 h=152 st=opacity:1;transform:none;] 08[op=1.00 h=152 st=opacity:1;transform:none;] 09[op=1.00 h=152 st=opacity:1;transform:none;] 10[op=1.00 h=152 st=opacity:1;transform:none;] 11[op=1.00 h=152 st=opacity:1;transform:none;]
+1791895205612 P EVB click svg. <BUTTON:Notificações, 13 não lidas> conn=true d=1 pid=2 trusted=true prevented=false
+1791895205621 P DOM open=true bell="Notificações, 13 não lidas" items=00,01,02,03,04,05,06,07,08,09,10,11 rows=00[op=1.00 h=153 st=opacity:1;transform:none;] 01[op=1.00 h=153 st=opacity:1;transform:none;] 02[op=1.00 h=153 st=opacity:1;transform:none;] 03[op=1.00 h=153 st=opacity:1;transform:none;] 04[op=1.00 h=153 st=opacity:1;transform:none;] 05[op=1.00 h=153 st=opacity:1;transform:none;] 06[op=1.00 h=153 st=opacity:1;transform:none;] 07[op=1.00 h=153 st=opacity:1;transform:none;] 08[op=1.00 h=153 st=opacity:1;transform:none;] 09[op=1.00 h=153 st=opacity:1;transform:none;] 10[op=1.00 h=153 st=opacity:1;transform:none;] 11[op=1.00 h=153 st=opacity:1;transform:none;]
+1791895205651 P DOM open=true bell="Notificações, 13 não lidas" items=00,01,02,03,04,05,06,07,08,09,10,11 rows=00[op=1.00 h=155 st=opacity:1;transform:none;] 01[op=1.00 h=155 st=opacity:1;transform:none;] 02[op=1.00 h=155 st=opacity:1;transform:none;] 03[op=1.00 h=155 st=opacity:1;transform:none;] 04[op=1.00 h=155 st=opacity:1;transform:none;] 05[op=1.00 h=155 st=opacity:1;transform:none;] 06[op=1.00 h=155 st=opacity:1;transform:none;] 07[op=1.00 h=155 st=opacity:1;transform:none;] 08[op=1.00 h=155 st=opacity:1;transform:none;] 09[op=1.00 h=155 st=opacity:1;transform:none;] 10[op=1.00 h=155 st=opacity:1;transform:none;] 11[op=1.00 h=155 st=opacity:1;transform:none;]
+1791895205669 P DOM open=true bell="Notificações, 13 não lidas" items=00,01,02,03,04,05,06,07,08,09,10,11 rows=00[op=1.00 h=156 st=opacity:1;transform:none;] 01[op=1.00 h=156 st=opacity:1;transform:none;] 02[op=1.00 h=156 st=opacity:1;transform:none;] 03[op=1.00 h=156 st=opacity:1;transform:none;] 04[op=1.00 h=156 st=opacity:1;transform:none;] 05[op=1.00 h=156 st=opacity:1;transform:none;] 06[op=1.00 h=156 st=opacity:1;transform:none;] 07[op=1.00 h=156 st=opacity:1;transform:none;] 08[op=1.00 h=156 st=opacity:1;transform:none;] 09[op=1.00 h=156 st=opacity:1;transform:none;] 10[op=1.00 h=156 st=opacity:1;transform:none;] 11[op=1.00 h=156 st=opacity:1;transform:none;]
+1791895205696 P DOM open=true bell="Notificações, 13 não lidas" items=00,01,02,03,04,05,06,07,08,09,10,11 rows=00[op=1.00 h=157 st=opacity:1;transform:none;] 01[op=1.00 h=157 st=opacity:1;transform:none;] 02[op=1.00 h=157 st=opacity:1;transform:none;] 03[op=1.00 h=157 st=opacity:1;transform:none;] 04[op=1.00 h=157 st=opacity:1;transform:none;] 05[op=1.00 h=157 st=opacity:1;transform:none;] 06[op=1.00 h=157 st=opacity:1;transform:none;] 07[op=1.00 h=157 st=opacity:1;transform:none;] 08[op=1.00 h=157 st=opacity:1;transform:none;] 09[op=1.00 h=157 st=opacity:1;transform:none;] 10[op=1.00 h=157 st=opacity:1;transform:none;] 11[op=1.00 h=157 st=opacity:1;transform:none;]
+1791895205714 P DOM open=true bell="Notificações, 13 não lidas" items=00,01,02,03,04,05,06,07,08,09,10,11 rows=00[op=1.00 h=158 st=opacity:1;transform:none;] 01[op=1.00 h=158 st=opacity:1;transform:none;] 02[op=1.00 h=158 st=opacity:1;transform:none;] 03[op=1.00 h=158 st=opacity:1;transform:none;] 04[op=1.00 h=158 st=opacity:1;transform:none;] 05[op=1.00 h=158 st=opacity:1;transform:none;] 06[op=1.00 h=158 st=opacity:1;transform:none;] 07[op=1.00 h=158 st=opacity:1;transform:none;] 08[op=1.00 h=158 st=opacity:1;transform:none;] 09[op=1.00 h=158 st=opacity:1;transform:none;] 10[op=1.00 h=158 st=opacity:1;transform:none;] 11[op=1.00 h=158 st=opacity:1;transform:none;]
+1791895205748 P DOM open=true bell="Notificações, 13 não lidas" items=00,01,02,03,04,05,06,07,08,09,10,11 rows=00[op=1.00 h=159 st=opacity:1;transform:none;] 01[op=1.00 h=159 st=opacity:1;transform:none;] 02[op=1.00 h=159 st=opacity:1;transform:none;] 03[op=1.00 h=159 st=opacity:1;transform:none;] 04[op=1.00 h=159 st=opacity:1;transform:none;] 05[op=1.00 h=159 st=opacity:1;transform:none;] 06[op=1.00 h=159 st=opacity:1;transform:none;] 07[op=1.00 h=159 st=opacity:1;transform:none;] 08[op=1.00 h=159 st=opacity:1;transform:none;] 09[op=1.00 h=159 st=opacity:1;transform:none;] 10[op=1.00 h=159 st=opacity:1;transform:none;] 11[op=1.00 h=159 st=opacity:1;transform:none;]
+1791895205780 P DOM open=true bell="Notificações, 13 não lidas" items=00,01,02,03,04,05,06,07,08,09,10,11 rows=00[op=1.00 h=160 st=opacity:1;transform:none;] 01[op=1.00 h=160 st=opacity:1;transform:none;] 02[op=1.00 h=160 st=opacity:1;transform:none;] 03[op=1.00 h=160 st=opacity:1;transform:none;] 04[op=1.00 h=160 st=opacity:1;transform:none;] 05[op=1.00 h=160 st=opacity:1;transform:none;] 06[op=1.00 h=160 st=opacity:1;transform:none;] 07[op=1.00 h=160 st=opacity:1;transform:none;] 08[op=1.00 h=160 st=opacity:1;transform:none;] 09[op=1.00 h=160 st=opacity:1;transform:none;] 10[op=1.00 h=160 st=opacity:1;transform:none;] 11[op=1.00 h=160 st=opacity:1;transform:none;]
+1791895205909 P ANIM done ca_4fd9d9908c91139e94fabf707198701e {"opacity":1,"x":0}
+1791895205909 P ANIM done f_00 {"opacity":1,"x":0}
+1791895205909 P ANIM done f_01 {"opacity":1,"x":0}
+1791895205909 P ANIM done f_02 {"opacity":1,"x":0}
+1791895205909 P ANIM done f_03 {"opacity":1,"x":0}
+1791895205909 P ANIM done f_04 {"opacity":1,"x":0}
+1791895205910 P ANIM done f_05 {"opacity":1,"x":0}
+1791895205910 P ANIM done f_06 {"opacity":1,"x":0}
+1791895205910 P ANIM done f_07 {"opacity":1,"x":0}
+1791895205910 P ANIM done f_08 {"opacity":1,"x":0}
+1791895205910 P ANIM done f_09 {"opacity":1,"x":0}
+1791895205910 P ANIM done f_10 {"opacity":1,"x":0}
+1791895205910 P ANIM done f_11 {"opacity":1,"x":0}
+1791895206401 N CONSOLE error Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID
+1791895206401 N CONSOLE warning Couldn't load preload assets:  ProgressEvent
+1791895206955 N CONSOLE error Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID
+1791895206955 N CONSOLE warning Couldn't load preload assets:  ProgressEvent
+1791895207011 P EV pointerdown H4.text-sm.font-semibold.truncate <-:> conn=true xy=167,218 d=0 pid=3 pt=touch trusted=true canc=true
+1791895207011 P EV pointerup H4.text-sm.font-semibold.truncate <-:> conn=true xy=167,218 d=0 pid=3 pt=touch trusted=true canc=true
+1791895207011 P EV touchend H4.text-sm.font-semibold.truncate <-:> conn=true xy=167,218 d=0 pid=undefined pt=undefined trusted=true canc=true
+1791895207011 P EV touchstart H4.text-sm.font-semibold.truncate <-:> conn=true xy=167,218 d=0 pid=undefined pt=undefined trusted=true canc=true
+1791895207013 P EV mousedown H4.text-sm.font-semibold.truncate <-:> conn=true xy=167,218 d=1 pid=undefined pt=undefined trusted=true canc=true
+1791895207015 P EV click H4.text-sm.font-semibold.truncate <-:> conn=true xy=167,218 d=1 pid=3 pt=touch trusted=true canc=true
+1791895207015 P EV mouseup H4.text-sm.font-semibold.truncate <-:> conn=true xy=167,218 d=1 pid=undefined pt=undefined trusted=true canc=true
+1791895207015 P ROUTE pass d=1 pid=3 originPid=3 originType=touch dt=0
+1791895207034 P SHARE prev=p0[ca_4fd9d9908c91139e94fabf707198701e 00 01 02 03 04 05 06 07 08 09 10 11] | next=p0[ca_4fd9d9908c91139e94fabf707198701e 00 01 02 03 04 05 06 07 08 09 10 11] | kept=same
+1791895207035 P DOM open=false bell="Notificações, 13 não lidas" items= rows=
+1791895207035 P MUT start {"read":true} ca_4fd9d9908c91139e94fabf707198701e
+1791895207037 P EVB click H4.text-sm.font-semibold.truncate <-:> conn=false d=1 pid=3 trusted=true prevented=false
+1791895207047 N REQ /google.firestore.v1.Firestore/Listen/channel?VER=8&database=projects%2Fminhas-financas-local%2Fdatabases%2F(d raw=count=1&ofs=24&req0___data__=%7B%22database%22%3A%22projects
+1791895207060 N REQ /D:batchGet?key=e2e-api-key batchGet notification_entries/ca_4fd9d9908c91139e94fabf707198701e
+1791895207060 P FEED data=p0[ca_4fd9d9908c91139e94fabf707198701e 00 01 02 03 04 05 06 07 08 09 10 11] visible=ca_4fd9d9908c91139e94fabf707198701e,00,01,02,03,04,05,06,07,08,09,10,11 fetch=idle
+1791895207083 N RES 200 /google.firestore.v1.Firestore/Listen/channel?VER=8&database=projects%2Fminhas-financas-local%2Fdatabases%2F(d
+1791895207084 N REQ /google.firestore.v1.Firestore/Listen/channel?VER=8&database=projects%2Fminhas-financas-local%2Fdatabases%2F(d raw=count=1&ofs=25&req0___data__=%7B%22database%22%3A%22projects
+1791895207098 N RES 200 /google.firestore.v1.Firestore/Listen/channel?VER=8&database=projects%2Fminhas-financas-local%2Fdatabases%2F(d
+1791895207101 N REQ /D:batchGet?key=e2e-api-key batchGet notifications/ca_4fd9d9908c91139e94fabf707198701e
+1791895207101 N RES 200 /D:batchGet?key=e2e-api-key
+1791895207110 N RES 200 /D:batchGet?key=e2e-api-key
+1791895207116 N REQ /D:commit?key=e2e-api-key commit writes=notification_entries/ca_4fd9d9908c91139e94fabf707198701e,? tx=no
+1791895207141 P MUT applied {"read":true} cache=p0[ca_4fd9d9908c91139e94fabf707198701er 00 01 02 03 04 05 06 07 08 09 10 11]
+1791895207141 P MUT ok {"read":true} marked=ca_4fd9d9908c91139e94fabf707198701e
+1791895207141 P MUT settled {"read":true} error=-
+1791895207141 P SHARE prev=p0[ca_4fd9d9908c91139e94fabf707198701e 00 01 02 03 04 05 06 07 08 09 10 11] | next=p0[ca_4fd9d9908c91139e94fabf707198701er 00 01 02 03 04 05 06 07 08 09 10 11] | kept=same
+1791895207144 N REQ /minhas-financas-local/southamerica-east1/getNotificationUnreadCount callable data={"workspaceId":"p5d2-f-mv6o4yu2"}
+1791895207144 N RES 200 /D:commit?key=e2e-api-key
+1791895207147 P FEED data=p0[ca_4fd9d9908c91139e94fabf707198701er 00 01 02 03 04 05 06 07 08 09 10 11] visible=ca_4fd9d9908c91139e94fabf707198701e,00,01,02,03,04,05,06,07,08,09,10,11 fetch=idle
+1791895207148 P FEED data=p0[ca_4fd9d9908c91139e94fabf707198701er 00 01 02 03 04 05 06 07 08 09 10 11] visible=ca_4fd9d9908c91139e94fabf707198701e,00,01,02,03,04,05,06,07,08,09,10,11 fetch=idle
+1791895207163 N CONSOLE error Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED
+1791895207185 N RES 200 /minhas-financas-local/southamerica-east1/getNotificationUnreadCount
+1791895207188 P DOM open=false bell="Notificações, 12 não lidas" items= rows=
+1791895207333 P EV click line. <BUTTON:Abrir menu> conn=true xy=35,35 d=1 pid=1 pt=mouse trusted=true canc=true
+1791895207333 P EV mousedown line. <BUTTON:Abrir menu> conn=true xy=35,35 d=1 pid=undefined pt=undefined trusted=true canc=true
+1791895207333 P EV mouseup line. <BUTTON:Abrir menu> conn=true xy=35,35 d=1 pid=undefined pt=undefined trusted=true canc=true
+1791895207333 P EV pointerdown line. <BUTTON:Abrir menu> conn=true xy=35,35 d=0 pid=1 pt=mouse trusted=true canc=true
+1791895207333 P EV pointerup line. <BUTTON:Abrir menu> conn=true xy=35,35 d=0 pid=1 pt=mouse trusted=true canc=true
+1791895207333 P FOCUS BUTTON.lg:hidden.p-2.rounded-md <BUTTON:Abrir menu> conn=true
+1791895207334 P ROUTE pass d=1 pid=1 originPid=1 originType=mouse dt=0
+1791895207339 P EVB click line. <BUTTON:Fechar menu> conn=true d=1 pid=1 trusted=true prevented=false
+1791895207362 P FOCUS A.flex.items-center.py-3 <A:Dashboard> conn=true
+1791895207437 P EV pointerdown SPAN.ml-4.whitespace-nowrap.transition-opacity <A:Relatórios> conn=true xy=29,400 d=0 pid=4 pt=touch trusted=true canc=true
+1791895207437 P EV pointerup SPAN.ml-4.whitespace-nowrap.transition-opacity <A:Relatórios> conn=true xy=29,400 d=0 pid=4 pt=touch trusted=true canc=true
+1791895207437 P EV touchend SPAN.ml-4.whitespace-nowrap.transition-opacity <A:Relatórios> conn=true xy=29,400 d=0 pid=undefined pt=undefined trusted=true canc=true
+1791895207437 P EV touchstart SPAN.ml-4.whitespace-nowrap.transition-opacity <A:Relatórios> conn=true xy=29,400 d=0 pid=undefined pt=undefined trusted=true canc=true
+1791895207438 P EV mousedown SPAN.ml-4.whitespace-nowrap.transition-opacity <A:Relatórios> conn=true xy=29,400 d=1 pid=undefined pt=undefined trusted=true canc=true
+1791895207439 P EV click SPAN.ml-4.whitespace-nowrap.transition-opacity <A:Relatórios> conn=true xy=29,400 d=1 pid=4 pt=touch trusted=true canc=true
+1791895207439 P EV mouseup SPAN.ml-4.whitespace-nowrap.transition-opacity <A:Relatórios> conn=true xy=29,400 d=1 pid=undefined pt=undefined trusted=true canc=true
+1791895207439 P FOCUS A.flex.items-center.py-3 <A:Relatórios> conn=true
+1791895207439 P ROUTE pass d=1 pid=4 originPid=4 originType=touch dt=0
+1791895207446 P EVB click SPAN.ml-4.whitespace-nowrap.transition-opacity <A:Relatórios> conn=true d=1 pid=4 trusted=true prevented=true
+1791895207452 N REQ /minhas-financas-local/southamerica-east1/getFinancialReport callable data={"workspaceId":"p5d2-f-mv6o4yu2","range":{"kind":"preset","preset":"30d"}}
+1791895207557 N RES 200 /minhas-financas-local/southamerica-east1/getFinancialReport
+1791895208783 N CONSOLE error Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID
+1791895208783 N CONSOLE warning Couldn't load preload assets:  ProgressEvent
+1791895208787 N MARK reabrir painel
+1791895208847 P EV pointerdown svg. <BUTTON:Notificações, 12 não lidas> conn=true xy=34,88 d=0 pid=5 pt=touch trusted=true canc=true
+1791895208847 P EV pointerup svg. <BUTTON:Notificações, 12 não lidas> conn=true xy=34,88 d=0 pid=5 pt=touch trusted=true canc=true
+1791895208847 P EV touchstart svg. <BUTTON:Notificações, 12 não lidas> conn=true xy=34,88 d=0 pid=undefined pt=undefined trusted=true canc=true
+1791895208848 P EV touchend svg. <BUTTON:Notificações, 12 não lidas> conn=true xy=34,88 d=0 pid=undefined pt=undefined trusted=true canc=true
+1791895208849 P EV mousedown svg. <BUTTON:Notificações, 12 não lidas> conn=true xy=34,88 d=1 pid=undefined pt=undefined trusted=true canc=true
+1791895208850 P EV click svg. <BUTTON:Notificações, 12 não lidas> conn=true xy=34,88 d=1 pid=5 pt=touch trusted=true canc=true
+1791895208850 P EV mouseup svg. <BUTTON:Notificações, 12 não lidas> conn=true xy=34,88 d=1 pid=undefined pt=undefined trusted=true canc=true
+1791895208850 P FOCUS BUTTON.relative.p-2.rounded-full <BUTTON:Notificações, 12 não lidas> conn=true
+1791895208850 P ROUTE pass d=1 pid=5 originPid=5 originType=touch dt=0
+1791895208860 P ANIM start ca_4fd9d9908c91139e94fabf707198701e {"opacity":1,"x":0}
+1791895208860 P ANIM start f_00 {"opacity":1,"x":0}
+1791895208860 P ANIM start f_01 {"opacity":1,"x":0}
+1791895208861 P ANIM start f_02 {"opacity":1,"x":0}
+1791895208861 P ANIM start f_03 {"opacity":1,"x":0}
+1791895208861 P ANIM start f_04 {"opacity":1,"x":0}
+1791895208861 P ANIM start f_05 {"opacity":1,"x":0}
+1791895208861 P ANIM start f_06 {"opacity":1,"x":0}
+1791895208861 P ANIM start f_07 {"opacity":1,"x":0}
+1791895208861 P ANIM start f_08 {"opacity":1,"x":0}
+1791895208861 P ANIM start f_09 {"opacity":1,"x":0}
+1791895208861 P ANIM start f_10 {"opacity":1,"x":0}
+1791895208861 P ANIM start f_11 {"opacity":1,"x":0}
+1791895208864 P DOM open=true bell="Notificações, 12 não lidas" items=00,01,02,03,04,05,06,07,08,09,10,11 rows=00[op=1.00 h=152 st=opacity:1;transform:none;] 01[op=1.00 h=152 st=opacity:1;transform:none;] 02[op=1.00 h=152 st=opacity:1;transform:none;] 03[op=1.00 h=152 st=opacity:1;transform:none;] 04[op=1.00 h=152 st=opacity:1;transform:none;] 05[op=1.00 h=152 st=opacity:1;transform:none;] 06[op=1.00 h=152 st=opacity:1;transform:none;] 07[op=1.00 h=152 st=opacity:1;transform:none;] 08[op=1.00 h=152 st=opacity:1;transform:none;] 09[op=1.00 h=152 st=opacity:1;transform:none;] 10[op=1.00 h=152 st=opacity:1;transform:none;] 11[op=1.00 h=152 st=opacity:1;transform:none;]
+1791895208864 P EVB click svg. <BUTTON:Notificações, 12 não lidas> conn=true d=1 pid=5 trusted=true prevented=false
+1791895208877 N MARK arquivar F 00
+1791895208898 N CONSOLE error Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED
+1791895209147 P EV pointerdown path. <BUTTON:Arquivar para mim: Aviso F 00> conn=true xy=304,15 d=0 pid=6 pt=touch trusted=true canc=true
+1791895209148 P EV pointerup path. <BUTTON:Arquivar para mim: Aviso F 00> conn=true xy=304,15 d=0 pid=6 pt=touch trusted=true canc=true
+1791895209148 P EV touchend path. <BUTTON:Arquivar para mim: Aviso F 00> conn=true xy=304,15 d=0 pid=undefined pt=undefined trusted=true canc=true
+1791895209148 P EV touchstart path. <BUTTON:Arquivar para mim: Aviso F 00> conn=true xy=304,15 d=0 pid=undefined pt=undefined trusted=true canc=true
+1791895209149 P EV mousedown path. <BUTTON:Arquivar para mim: Aviso F 00> conn=true xy=304,15 d=1 pid=undefined pt=undefined trusted=true canc=true
+1791895209150 P EV click path. <BUTTON:Arquivar para mim: Aviso F 00> conn=true xy=304,15 d=1 pid=6 pt=touch trusted=true canc=true
+1791895209150 P EV mouseup path. <BUTTON:Arquivar para mim: Aviso F 00> conn=true xy=304,15 d=1 pid=undefined pt=undefined trusted=true canc=true
+1791895209150 P FOCUS BUTTON.p-1.5.[@media(hover:none)]:p-2.text-muted <BUTTON:Arquivar para mim: Aviso F 00> conn=true
+1791895209150 P ROUTE pass d=1 pid=6 originPid=6 originType=touch dt=0
+1791895209151 P MUT start {"dismissed":true} f_00
+1791895209154 N MARK arquivar F 01
+1791895209175 P DOM open=true bell="Notificações, 12 não lidas" items=00,01,02,03,04,05,06,07,08,09,10,11 rows=00[op=1.00 h=160 st=opacity:1;transform:none;] 01[op=1.00 h=160 st=opacity:1;transform:none;] 02[op=1.00 h=160 st=opacity:1;transform:none;] 03[op=1.00 h=160 st=opacity:1;transform:none;] 04[op=1.00 h=160 st=opacity:1;transform:none;] 05[op=1.00 h=160 st=opacity:1;transform:none;] 06[op=1.00 h=160 st=opacity:1;transform:none;] 07[op=1.00 h=160 st=opacity:1;transform:none;] 08[op=1.00 h=160 st=opacity:1;transform:none;] 09[op=1.00 h=160 st=opacity:1;transform:none;] 10[op=1.00 h=160 st=opacity:1;transform:none;] 11[op=1.00 h=160 st=opacity:1;transform:none;]
+1791895209177 N REQ /D:batchGet?key=e2e-api-key batchGet notification_entries/f_00
+1791895209190 N RES 200 /D:batchGet?key=e2e-api-key
+1791895209193 N REQ /D:batchGet?key=e2e-api-key batchGet notifications/f_00
+1791895209193 P ANIM done ca_4fd9d9908c91139e94fabf707198701e {"opacity":1,"x":0}
+1791895209193 P ANIM done f_00 {"opacity":1,"x":0}
+1791895209193 P ANIM done f_01 {"opacity":1,"x":0}
+1791895209193 P ANIM done f_02 {"opacity":1,"x":0}
+1791895209193 P ANIM done f_03 {"opacity":1,"x":0}
+1791895209193 P ANIM done f_04 {"opacity":1,"x":0}
+1791895209193 P ANIM done f_05 {"opacity":1,"x":0}
+1791895209193 P ANIM done f_06 {"opacity":1,"x":0}
+1791895209193 P ANIM done f_07 {"opacity":1,"x":0}
+1791895209193 P ANIM done f_08 {"opacity":1,"x":0}
+1791895209193 P ANIM done f_09 {"opacity":1,"x":0}
+1791895209193 P ANIM done f_10 {"opacity":1,"x":0}
+1791895209193 P ANIM done f_11 {"opacity":1,"x":0}
+1791895209194 N CONSOLE error Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED
+1791895209204 N REQ /D:commit?key=e2e-api-key commit writes=notification_entries/f_00,? tx=no
+1791895209204 N RES 200 /D:batchGet?key=e2e-api-key
+1791895209218 N RES 200 /D:commit?key=e2e-api-key
+1791895209219 P MUT applied {"dismissed":true} cache=p0[ca_4fd9d9908c91139e94fabf707198701er 00d 01 02 03 04 05 06 07 08 09 10 11]
+1791895209219 P MUT ok {"dismissed":true} marked=f_00
+1791895209219 P MUT settled {"dismissed":true} error=-
+1791895209219 P SHARE prev=p0[ca_4fd9d9908c91139e94fabf707198701er 00 01 02 03 04 05 06 07 08 09 10 11] | next=p0[ca_4fd9d9908c91139e94fabf707198701er 00d 01 02 03 04 05 06 07 08 09 10 11] | kept=same
+1791895209222 N REQ /minhas-financas-local/southamerica-east1/getNotificationUnreadCount callable data={"workspaceId":"p5d2-f-mv6o4yu2"}
+1791895209233 P ANIM start f_00 {"opacity":0,"height":0,"overflow":"hidden"}
+1791895209240 P FEED data=p0[ca_4fd9d9908c91139e94fabf707198701er 00d 01 02 03 04 05 06 07 08 09 10 11] visible=ca_4fd9d9908c91139e94fabf707198701e,01,02,03,04,05,06,07,08,09,10,11 fetch=idle
+1791895209268 P DOM open=true bell="Notificações, 12 não lidas" items=00,01,02,03,04,05,06,07,08,09,10,11 rows=00[op=1.00 h=158 st=opacity:1;transform:none;height:158.423px;overflow:hidden;] 01[op=1.00 h=160 st=opacity:1;transform:none;] 02[op=1.00 h=160 st=opacity:1;transform:none;] 03[op=1.00 h=160 st=opacity:1;transform:none;] 04[op=1.00 h=160 st=opacity:1;transform:none;] 05[op=1.00 h=160 st=opacity:1;transform:none;] 06[op=1.00 h=160 st=opacity:1;transform:none;] 07[op=1.00 h=160 st=opacity:1;transform:none;] 08[op=1.00 h=160 st=opacity:1;transform:none;] 09[op=1.00 h=160 st=opacity:1;transform:none;] 10[op=1.00 h=160 st=opacity:1;transform:none;] 11[op=1.00 h=160 st=opacity:1;transform:none;]
+1791895209272 P FEED data=p0[ca_4fd9d9908c91139e94fabf707198701er 00d 01 02 03 04 05 06 07 08 09 10 11] visible=ca_4fd9d9908c91139e94fabf707198701e,01,02,03,04,05,06,07,08,09,10,11 fetch=idle
+1791895209279 N RES 200 /minhas-financas-local/southamerica-east1/getNotificationUnreadCount
+1791895209285 P DOM open=true bell="Notificações, 11 não lidas" items=00,01,02,03,04,05,06,07,08,09,10,11 rows=00[op=1.00 h=141 st=opacity:1;transform:none;height:140.827px;overflow:hidden;] 01[op=1.00 h=160 st=opacity:1;transform:none;] 02[op=1.00 h=160 st=opacity:1;transform:none;] 03[op=1.00 h=160 st=opacity:1;transform:none;] 04[op=1.00 h=160 st=opacity:1;transform:none;] 05[op=1.00 h=160 st=opacity:1;transform:none;] 06[op=1.00 h=160 st=opacity:1;transform:none;] 07[op=1.00 h=160 st=opacity:1;transform:none;] 08[op=1.00 h=160 st=opacity:1;transform:none;] 09[op=1.00 h=160 st=opacity:1;transform:none;] 10[op=1.00 h=160 st=opacity:1;transform:none;] 11[op=1.00 h=160 st=opacity:1;transform:none;]
+1791895209478 P EV pointerdown path. <BUTTON:Arquivar para mim: Aviso F 01> conn=true xy=304,422 d=0 pid=8 pt=touch trusted=true canc=true
+1791895209478 P EV pointerup path. <BUTTON:Arquivar para mim: Aviso F 01> conn=true xy=304,422 d=0 pid=8 pt=touch trusted=true canc=true
+1791895209478 P EV touchstart path. <BUTTON:Arquivar para mim: Aviso F 01> conn=true xy=304,422 d=0 pid=undefined pt=undefined trusted=true canc=true
+1791895209479 P EV touchend path. <BUTTON:Arquivar para mim: Aviso F 01> conn=true xy=304,422 d=0 pid=undefined pt=undefined trusted=true canc=true
+1791895209493 P EV mousedown path. <BUTTON:Arquivar para mim: Aviso F 01> conn=true xy=304,422 d=1 pid=undefined pt=undefined trusted=true canc=true
+1791895209493 P FOCUS BUTTON.p-1.5.[@media(hover:none)]:p-2.text-muted <BUTTON:Arquivar para mim: Aviso F 01> conn=true
+1791895209494 P EV mouseup path. <BUTTON:Arquivar para mim: Aviso F 01> conn=true xy=304,422 d=1 pid=undefined pt=undefined trusted=true canc=true
+1791895209495 P EV click path. <BUTTON:Arquivar para mim: Aviso F 01> conn=true xy=304,422 d=1 pid=8 pt=touch trusted=true canc=true
+1791895209495 P MUT start {"dismissed":true} f_01
+1791895209495 P ROUTE pass d=1 pid=8 originPid=8 originType=touch dt=0
+1791895209516 P DOM open=true bell="Notificações, 11 não lidas" items=00,01,02,03,04,05,06,07,08,09,10,11 rows=00[op=0.04 h=65 st=opacity:1;transform:none;height:1.19338px;overflow:hidden;] 01[op=1.00 h=160 st=opacity:1;transform:none;] 02[op=1.00 h=160 st=opacity:1;transform:none;] 03[op=1.00 h=160 st=opacity:1;transform:none;] 04[op=1.00 h=160 st=opacity:1;transform:none;] 05[op=1.00 h=160 st=opacity:1;transform:none;] 06[op=1.00 h=160 st=opacity:1;transform:none;] 07[op=1.00 h=160 st=opacity:1;transform:none;] 08[op=1.00 h=160 st=opacity:1;transform:none;] 09[op=1.00 h=160 st=opacity:1;transform:none;] 10[op=1.00 h=160 st=opacity:1;transform:none;] 11[op=1.00 h=160 st=opacity:1;transform:none;]
+1791895209519 N REQ /D:batchGet?key=e2e-api-key batchGet notification_entries/f_01
+1791895209520 N MARK arquivar F 02
+1791895209536 N REQ /D:batchGet?key=e2e-api-key batchGet notifications/f_01
+1791895209536 N RES 200 /D:batchGet?key=e2e-api-key
+1791895209555 N REQ /D:commit?key=e2e-api-key commit writes=notification_entries/f_01,? tx=no
+1791895209555 N RES 200 /D:batchGet?key=e2e-api-key
+1791895209563 P MUT ok {"dismissed":true} marked=f_01
+1791895209564 P MUT applied {"dismissed":true} cache=p0[ca_4fd9d9908c91139e94fabf707198701er 00d 01d 02 03 04 05 06 07 08 09 10 11]
+1791895209564 P MUT settled {"dismissed":true} error=-
+1791895209564 P SHARE prev=p0[ca_4fd9d9908c91139e94fabf707198701er 00d 01 02 03 04 05 06 07 08 09 10 11] | next=p0[ca_4fd9d9908c91139e94fabf707198701er 00d 01d 02 03 04 05 06 07 08 09 10 11] | kept=same
+1791895209567 N REQ /minhas-financas-local/southamerica-east1/getNotificationUnreadCount callable data={"workspaceId":"p5d2-f-mv6o4yu2"}
+1791895209567 N RES 200 /D:commit?key=e2e-api-key
+1791895209573 P ANIM start f_01 {"opacity":0,"height":0,"overflow":"hidden"}
+1791895209574 P FEED data=p0[ca_4fd9d9908c91139e94fabf707198701er 00d 01d 02 03 04 05 06 07 08 09 10 11] visible=ca_4fd9d9908c91139e94fabf707198701e,02,03,04,05,06,07,08,09,10,11 fetch=idle
+1791895209576 P DOM open=true bell="Notificações, 11 não lidas" items=00,01,02,03,04,05,06,07,08,09,10,11 rows=00[op=0.00 h=65 st=opacity:1;transform:none;height:0px;overflow:hidden;] 01[op=1.00 h=160 st=opacity:1;transform:none;] 02[op=1.00 h=160 st=opacity:1;transform:none;] 03[op=1.00 h=160 st=opacity:1;transform:none;] 04[op=1.00 h=160 st=opacity:1;transform:none;] 05[op=1.00 h=160 st=opacity:1;transform:none;] 06[op=1.00 h=160 st=opacity:1;transform:none;] 07[op=1.00 h=160 st=opacity:1;transform:none;] 08[op=1.00 h=160 st=opacity:1;transform:none;] 09[op=1.00 h=160 st=opacity:1;transform:none;] 10[op=1.00 h=160 st=opacity:1;transform:none;] 11[op=1.00 h=160 st=opacity:1;transform:none;]
+1791895209586 P FEED data=p0[ca_4fd9d9908c91139e94fabf707198701er 00d 01d 02 03 04 05 06 07 08 09 10 11] visible=ca_4fd9d9908c91139e94fabf707198701e,02,03,04,05,06,07,08,09,10,11 fetch=idle
+1791895209587 P DOM open=true bell="Notificações, 11 não lidas" items=00,01,02,03,04,05,06,07,08,09,10,11 rows=00[op=0.00 h=65 st=opacity:1;transform:none;height:0px;overflow:hidden;] 01[op=1.00 h=159 st=opacity:1;transform:none;height:159.287px;overflow:hidden;] 02[op=1.00 h=160 st=opacity:1;transform:none;] 03[op=1.00 h=160 st=opacity:1;transform:none;] 04[op=1.00 h=160 st=opacity:1;transform:none;] 05[op=1.00 h=160 st=opacity:1;transform:none;] 06[op=1.00 h=160 st=opacity:1;transform:none;] 07[op=1.00 h=160 st=opacity:1;transform:none;] 08[op=1.00 h=160 st=opacity:1;transform:none;] 09[op=1.00 h=160 st=opacity:1;transform:none;] 10[op=1.00 h=160 st=opacity:1;transform:none;] 11[op=1.00 h=160 st=opacity:1;transform:none;]
+1791895209596 P ANIM done f_00 {"opacity":0,"height":0,"overflow":"hidden"}
+1791895209605 N RES 200 /minhas-financas-local/southamerica-east1/getNotificationUnreadCount
+1791895209609 P DOM open=true bell="Notificações, 10 não lidas" items=01,02,03,04,05,06,07,08,09,10,11 rows=01[op=1.00 h=151 st=opacity:1;transform:none;height:151.247px;overflow:hidden;] 02[op=1.00 h=160 st=opacity:1;transform:none;] 03[op=1.00 h=160 st=opacity:1;transform:none;] 04[op=1.00 h=160 st=opacity:1;transform:none;] 05[op=1.00 h=160 st=opacity:1;transform:none;] 06[op=1.00 h=160 st=opacity:1;transform:none;] 07[op=1.00 h=160 st=opacity:1;transform:none;] 08[op=1.00 h=160 st=opacity:1;transform:none;] 09[op=1.00 h=160 st=opacity:1;transform:none;] 10[op=1.00 h=160 st=opacity:1;transform:none;] 11[op=1.00 h=160 st=opacity:1;transform:none;]
+1791895209762 P EV pointerdown path. <BUTTON:Arquivar para mim: Aviso F 02> conn=true xy=304,422 d=0 pid=10 pt=touch trusted=true canc=true
+1791895209762 P EV pointerup path. <BUTTON:Arquivar para mim: Aviso F 02> conn=true xy=304,422 d=0 pid=10 pt=touch trusted=true canc=true
+1791895209762 P EV touchend path. <BUTTON:Arquivar para mim: Aviso F 02> conn=true xy=304,422 d=0 pid=undefined pt=undefined trusted=true canc=true
+1791895209762 P EV touchstart path. <BUTTON:Arquivar para mim: Aviso F 02> conn=true xy=304,422 d=0 pid=undefined pt=undefined trusted=true canc=true
+1791895209763 P EV mousedown path. <BUTTON:Arquivar para mim: Aviso F 02> conn=true xy=304,422 d=1 pid=undefined pt=undefined trusted=true canc=true
+1791895209763 P FOCUS BUTTON.p-1.5.[@media(hover:none)]:p-2.text-muted <BUTTON:Arquivar para mim: Aviso F 02> conn=true
+1791895209764 P EV click path. <BUTTON:Arquivar para mim: Aviso F 02> conn=true xy=304,422 d=1 pid=10 pt=touch trusted=true canc=true
+1791895209764 P EV mouseup path. <BUTTON:Arquivar para mim: Aviso F 02> conn=true xy=304,422 d=1 pid=undefined pt=undefined trusted=true canc=true
+1791895209764 P MUT start {"dismissed":true} f_02
+1791895209764 P ROUTE pass d=1 pid=10 originPid=10 originType=touch dt=0
+1791895209766 N MARK arquivar F 03
+1791895209782 P DOM open=true bell="Notificações, 10 não lidas" items=01,02,03,04,05,06,07,08,09,10,11 rows=01[op=0.25 h=65 st=opacity:1;transform:none;height:15.1656px;overflow:hidden;] 02[op=1.00 h=160 st=opacity:1;transform:none;] 03[op=1.00 h=160 st=opacity:1;transform:none;] 04[op=1.00 h=160 st=opacity:1;transform:none;] 05[op=1.00 h=160 st=opacity:1;transform:none;] 06[op=1.00 h=160 st=opacity:1;transform:none;] 07[op=1.00 h=160 st=opacity:1;transform:none;] 08[op=1.00 h=160 st=opacity:1;transform:none;] 09[op=1.00 h=160 st=opacity:1;transform:none;] 10[op=1.00 h=160 st=opacity:1;transform:none;] 11[op=1.00 h=160 st=opacity:1;transform:none;]
+1791895209784 N REQ /D:batchGet?key=e2e-api-key batchGet notification_entries/f_02
+1791895209792 N REQ /D:batchGet?key=e2e-api-key batchGet notifications/f_02
+1791895209792 N RES 200 /D:batchGet?key=e2e-api-key
+1791895209799 N RES 200 /D:batchGet?key=e2e-api-key
+1791895209801 N REQ /D:commit?key=e2e-api-key commit writes=notification_entries/f_02,? tx=no
+1791895209811 P MUT ok {"dismissed":true} marked=f_02
+1791895209811 P SHARE prev=p0[ca_4fd9d9908c91139e94fabf707198701er 00d 01d 02 03 04 05 06 07 08 09 10 11] | next=p0[ca_4fd9d9908c91139e94fabf707198701er 00d 01d 02d 03 04 05 06 07 08 09 10 11] | kept=same
+1791895209812 P MUT applied {"dismissed":true} cache=p0[ca_4fd9d9908c91139e94fabf707198701er 00d 01d 02d 03 04 05 06 07 08 09 10 11]
+1791895209812 P MUT settled {"dismissed":true} error=-
+1791895209813 P EV pointerdown path. <BUTTON:Arquivar para mim: Aviso F 03> conn=true xy=304,582 d=0 pid=11 pt=touch trusted=true canc=true
+1791895209814 N REQ /minhas-financas-local/southamerica-east1/getNotificationUnreadCount callable data={"workspaceId":"p5d2-f-mv6o4yu2"}
+1791895209814 N RES 200 /D:commit?key=e2e-api-key
+1791895209814 P EV pointerup path. <BUTTON:Arquivar para mim: Aviso F 03> conn=true xy=304,582 d=0 pid=11 pt=touch trusted=true canc=true
+1791895209814 P EV touchend path. <BUTTON:Arquivar para mim: Aviso F 03> conn=true xy=304,582 d=0 pid=undefined pt=undefined trusted=true canc=true
+1791895209814 P EV touchstart path. <BUTTON:Arquivar para mim: Aviso F 03> conn=true xy=304,582 d=0 pid=undefined pt=undefined trusted=true canc=true
+1791895209815 P EV click path. <BUTTON:Arquivar para mim: Aviso F 03> conn=true xy=304,582 d=1 pid=11 pt=touch trusted=true canc=true
+1791895209815 P EV mousedown path. <BUTTON:Arquivar para mim: Aviso F 03> conn=true xy=304,582 d=1 pid=undefined pt=undefined trusted=true canc=true
+1791895209815 P EV mouseup path. <BUTTON:Arquivar para mim: Aviso F 03> conn=true xy=304,582 d=1 pid=undefined pt=undefined trusted=true canc=true
+1791895209815 P FOCUS BUTTON.p-1.5.[@media(hover:none)]:p-2.text-muted <BUTTON:Arquivar para mim: Aviso F 03> conn=true
+1791895209815 P ROUTE pass d=1 pid=11 originPid=11 originType=touch dt=0
+1791895209816 P MUT start {"dismissed":true} f_03
+1791895209819 N MARK esperar sino 8
+1791895209832 P ANIM start f_02 {"opacity":0,"height":0,"overflow":"hidden"}
+1791895209833 P FEED data=p0[ca_4fd9d9908c91139e94fabf707198701er 00d 01d 02d 03 04 05 06 07 08 09 10 11] visible=ca_4fd9d9908c91139e94fabf707198701e,03,04,05,06,07,08,09,10,11 fetch=idle
+1791895209834 P DOM open=true bell="Notificações, 10 não lidas" items=01,02,03,04,05,06,07,08,09,10,11 rows=01[op=0.10 h=65 st=opacity:1;transform:none;height:3.34203px;overflow:hidden;] 02[op=1.00 h=160 st=opacity:1;transform:none;] 03[op=1.00 h=160 st=opacity:1;transform:none;] 04[op=1.00 h=160 st=opacity:1;transform:none;] 05[op=1.00 h=160 st=opacity:1;transform:none;] 06[op=1.00 h=160 st=opacity:1;transform:none;] 07[op=1.00 h=160 st=opacity:1;transform:none;] 08[op=1.00 h=160 st=opacity:1;transform:none;] 09[op=1.00 h=160 st=opacity:1;transform:none;] 10[op=1.00 h=160 st=opacity:1;transform:none;] 11[op=1.00 h=160 st=opacity:1;transform:none;]
+1791895209836 N REQ /D:batchGet?key=e2e-api-key batchGet notification_entries/f_03
+1791895209841 P FEED data=p0[ca_4fd9d9908c91139e94fabf707198701er 00d 01d 02d 03 04 05 06 07 08 09 10 11] visible=ca_4fd9d9908c91139e94fabf707198701e,03,04,05,06,07,08,09,10,11 fetch=idle
+1791895209851 N REQ /D:batchGet?key=e2e-api-key batchGet notifications/f_03
+1791895209851 N RES 200 /D:batchGet?key=e2e-api-key
+1791895209852 N RES 200 /minhas-financas-local/southamerica-east1/getNotificationUnreadCount
+1791895209856 P DOM open=true bell="Notificações, 9 não lidas" items=01,02,03,04,05,06,07,08,09,10,11 rows=01[op=0.06 h=65 st=opacity:1;transform:none;height:1.28053px;overflow:hidden;] 02[op=1.00 h=157 st=opacity:1;transform:none;height:156.67px;overflow:hidden;] 03[op=1.00 h=160 st=opacity:1;transform:none;] 04[op=1.00 h=160 st=opacity:1;transform:none;] 05[op=1.00 h=160 st=opacity:1;transform:none;] 06[op=1.00 h=160 st=opacity:1;transform:none;] 07[op=1.00 h=160 st=opacity:1;transform:none;] 08[op=1.00 h=160 st=opacity:1;transform:none;] 09[op=1.00 h=160 st=opacity:1;transform:none;] 10[op=1.00 h=160 st=opacity:1;transform:none;] 11[op=1.00 h=160 st=opacity:1;transform:none;]
+1791895209873 N REQ /D:commit?key=e2e-api-key commit writes=notification_entries/f_03,? tx=no
+1791895209873 N RES 200 /D:batchGet?key=e2e-api-key
+1791895209882 P MUT ok {"dismissed":true} marked=f_03
+1791895209883 P MUT applied {"dismissed":true} cache=p0[ca_4fd9d9908c91139e94fabf707198701er 00d 01d 02d 03d 04 05 06 07 08 09 10 11]
+1791895209883 P MUT settled {"dismissed":true} error=-
+1791895209883 P SHARE prev=p0[ca_4fd9d9908c91139e94fabf707198701er 00d 01d 02d 03 04 05 06 07 08 09 10 11] | next=p0[ca_4fd9d9908c91139e94fabf707198701er 00d 01d 02d 03d 04 05 06 07 08 09 10 11] | kept=same
+1791895209885 N REQ /minhas-financas-local/southamerica-east1/getNotificationUnreadCount callable data={"workspaceId":"p5d2-f-mv6o4yu2"}
+1791895209885 N RES 200 /D:commit?key=e2e-api-key
+1791895209887 P ANIM start f_03 {"opacity":0,"height":0,"overflow":"hidden"}
+1791895209888 P FEED data=p0[ca_4fd9d9908c91139e94fabf707198701er 00d 01d 02d 03d 04 05 06 07 08 09 10 11] visible=ca_4fd9d9908c91139e94fabf707198701e,04,05,06,07,08,09,10,11 fetch=idle
+1791895209889 P DOM open=true bell="Notificações, 9 não lidas" items=01,02,03,04,05,06,07,08,09,10,11 rows=01[op=0.02 h=65 st=opacity:1;transform:none;height:0px;overflow:hidden;] 02[op=0.90 h=137 st=opacity:1;transform:none;height:136.561px;overflow:hidden;] 03[op=1.00 h=160 st=opacity:1;transform:none;] 04[op=1.00 h=160 st=opacity:1;transform:none;] 05[op=1.00 h=160 st=opacity:1;transform:none;] 06[op=1.00 h=160 st=opacity:1;transform:none;] 07[op=1.00 h=160 st=opacity:1;transform:none;] 08[op=1.00 h=160 st=opacity:1;transform:none;] 09[op=1.00 h=160 st=opacity:1;transform:none;] 10[op=1.00 h=160 st=opacity:1;transform:none;] 11[op=1.00 h=160 st=opacity:1;transform:none;]
+1791895209892 P FEED data=p0[ca_4fd9d9908c91139e94fabf707198701er 00d 01d 02d 03d 04 05 06 07 08 09 10 11] visible=ca_4fd9d9908c91139e94fabf707198701e,04,05,06,07,08,09,10,11 fetch=idle
+1791895209925 N RES 200 /minhas-financas-local/southamerica-east1/getNotificationUnreadCount
+1791895209937 P DOM open=true bell="Notificações, 8 não lidas" items=01,02,03,04,05,06,07,08,09,10,11 rows=01[op=0.00 h=65 st=opacity:1;transform:none;height:0px;overflow:hidden;] 02[op=0.60 h=84 st=opacity:1;transform:none;height:83.5406px;overflow:hidden;] 03[op=0.90 h=138 st=opacity:1;transform:none;height:138.288px;overflow:hidden;] 04[op=1.00 h=160 st=opacity:1;transform:none;] 05[op=1.00 h=160 st=opacity:1;transform:none;] 06[op=1.00 h=160 st=opacity:1;transform:none;] 07[op=1.00 h=160 st=opacity:1;transform:none;] 08[op=1.00 h=160 st=opacity:1;transform:none;] 09[op=1.00 h=160 st=opacity:1;transform:none;] 10[op=1.00 h=160 st=opacity:1;transform:none;] 11[op=1.00 h=160 st=opacity:1;transform:none;]
+1791895209942 P ANIM done f_01 {"opacity":0,"height":0,"overflow":"hidden"}
+1791895210069 N MARK limite da contagem gravado; arquivar F 04
+1791895210129 P EV pointerdown path. <BUTTON:Arquivar para mim: Aviso F 04> conn=true xy=304,552 d=0 pid=12 pt=touch trusted=true canc=true
+1791895210129 P EV pointerup path. <BUTTON:Arquivar para mim: Aviso F 04> conn=true xy=304,552 d=0 pid=12 pt=touch trusted=true canc=true
+1791895210129 P EV touchend path. <BUTTON:Arquivar para mim: Aviso F 04> conn=true xy=304,552 d=0 pid=undefined pt=undefined trusted=true canc=true
+1791895210129 P EV touchstart path. <BUTTON:Arquivar para mim: Aviso F 04> conn=true xy=304,552 d=0 pid=undefined pt=undefined trusted=true canc=true
+1791895210131 P EV click path. <BUTTON:Arquivar para mim: Aviso F 04> conn=true xy=304,552 d=1 pid=12 pt=touch trusted=true canc=true
+1791895210131 P EV mousedown path. <BUTTON:Arquivar para mim: Aviso F 04> conn=true xy=304,552 d=1 pid=undefined pt=undefined trusted=true canc=true
+1791895210131 P EV mouseup path. <BUTTON:Arquivar para mim: Aviso F 04> conn=true xy=304,552 d=1 pid=undefined pt=undefined trusted=true canc=true
+1791895210131 P FOCUS BUTTON.p-1.5.[@media(hover:none)]:p-2.text-muted <BUTTON:Arquivar para mim: Aviso F 04> conn=true
+1791895210131 P MUT start {"dismissed":true} f_04
+1791895210131 P ROUTE pass d=1 pid=12 originPid=12 originType=touch dt=0
+1791895210143 P ANIM done f_02 {"opacity":0,"height":0,"overflow":"hidden"}
+1791895210155 P DOM open=true bell="Notificações, 8 não lidas" items=03,04,05,06,07,08,09,10,11 rows=03[op=0.02 h=65 st=opacity:1;transform:none;height:2.77282px;overflow:hidden;] 04[op=1.00 h=160 st=opacity:1;transform:none;] 05[op=1.00 h=160 st=opacity:1;transform:none;] 06[op=1.00 h=160 st=opacity:1;transform:none;] 07[op=1.00 h=160 st=opacity:1;transform:none;] 08[op=1.00 h=160 st=opacity:1;transform:none;] 09[op=1.00 h=160 st=opacity:1;transform:none;] 10[op=1.00 h=160 st=opacity:1;transform:none;] 11[op=1.00 h=160 st=opacity:1;transform:none;]
+1791895210157 N REQ /D:batchGet?key=e2e-api-key batchGet notification_entries/f_04
+1791895210175 N REQ /D:batchGet?key=e2e-api-key batchGet notifications/f_04
+1791895210175 N RES 200 /D:batchGet?key=e2e-api-key
+1791895210191 N REQ /D:commit?key=e2e-api-key commit writes=notification_entries/f_04,? tx=no
+1791895210191 N RES 200 /D:batchGet?key=e2e-api-key
+1791895210194 P ANIM done f_03 {"opacity":0,"height":0,"overflow":"hidden"}
+1791895210194 P ANIM exitComplete (AnimatePresence)
+1791895210199 P MUT applied {"dismissed":true} cache=p0[ca_4fd9d9908c91139e94fabf707198701er 00d 01d 02d 03d 04d 05 06 07 08 09 10 11]
+1791895210199 P MUT ok {"dismissed":true} marked=f_04
+1791895210199 P MUT settled {"dismissed":true} error=-
+1791895210199 P SHARE prev=p0[ca_4fd9d9908c91139e94fabf707198701er 00d 01d 02d 03d 04 05 06 07 08 09 10 11] | next=p0[ca_4fd9d9908c91139e94fabf707198701er 00d 01d 02d 03d 04d 05 06 07 08 09 10 11] | kept=same
+1791895210201 N REQ /minhas-financas-local/southamerica-east1/getNotificationUnreadCount callable data={"workspaceId":"p5d2-f-mv6o4yu2"}
+1791895210201 N RES 200 /D:commit?key=e2e-api-key
+1791895210204 P ANIM start f_04 {"opacity":0,"height":0,"overflow":"hidden"}
+1791895210205 P FEED data=p0[ca_4fd9d9908c91139e94fabf707198701er 00d 01d 02d 03d 04d 05 06 07 08 09 10 11] visible=ca_4fd9d9908c91139e94fabf707198701e,05,06,07,08,09,10,11 fetch=idle
+1791895210207 P DOM open=true bell="Notificações, 8 não lidas" items=04,05,06,07,08,09,10,11 rows=04[op=1.00 h=160 st=opacity:1;transform:none;] 05[op=1.00 h=160 st=opacity:1;transform:none;] 06[op=1.00 h=160 st=opacity:1;transform:none;] 07[op=1.00 h=160 st=opacity:1;transform:none;] 08[op=1.00 h=160 st=opacity:1;transform:none;] 09[op=1.00 h=160 st=opacity:1;transform:none;] 10[op=1.00 h=160 st=opacity:1;transform:none;] 11[op=1.00 h=160 st=opacity:1;transform:none;]
+1791895210212 P FEED data=p0[ca_4fd9d9908c91139e94fabf707198701er 00d 01d 02d 03d 04d 05 06 07 08 09 10 11] visible=ca_4fd9d9908c91139e94fabf707198701e,05,06,07,08,09,10,11 fetch=idle
+1791895210223 N CONSOLE error Failed to load resource: the server responded with a status of 400 (Bad Request)
+1791895210223 N RES 400 /minhas-financas-local/southamerica-east1/getNotificationUnreadCount
+1791895210231 P DOM open=true bell="Notificações, total de não lidas indisponível" items=04,05,06,07,08,09,10,11 rows=04[op=1.00 h=157 st=opacity:1;transform:none;height:157.423px;overflow:hidden;] 05[op=1.00 h=160 st=opacity:1;transform:none;] 06[op=1.00 h=160 st=opacity:1;transform:none;] 07[op=1.00 h=160 st=opacity:1;transform:none;] 08[op=1.00 h=160 st=opacity:1;transform:none;] 09[op=1.00 h=160 st=opacity:1;transform:none;] 10[op=1.00 h=160 st=opacity:1;transform:none;] 11[op=1.00 h=160 st=opacity:1;transform:none;]
+1791895210509 P ANIM done f_04 {"opacity":0,"height":0,"overflow":"hidden"}
+1791895210509 P ANIM exitComplete (AnimatePresence)
+1791895211427 N CONSOLE warning Couldn't load preload assets:  ProgressEvent
+1791895211428 N CONSOLE error Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID
+1791895211914 N CONSOLE warning Couldn't load preload assets:  ProgressEvent
+1791895211915 N CONSOLE error Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID
+1791895212420 N CONSOLE error Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID
+1791895212420 N CONSOLE warning Couldn't load preload assets:  ProgressEvent
+1791895212422 N MARK esperar 7 itens
+1791895224431 P DOM open=true bell="Notificações, total de não lidas indisponível" items=04,05,06,07,08,09,10,11 rows=04[op=0.00 h=65 st=opacity:0;transform:none;height:0px;overflow:hidden;] 05[op=1.00 h=160 st=opacity:1;transform:none;] 06[op=1.00 h=160 st=opacity:1;transform:none;] 07[op=1.00 h=160 st=opacity:1;transform:none;] 08[op=1.00 h=160 st=opacity:1;transform:none;] 09[op=1.00 h=160 st=opacity:1;transform:none;] 10[op=1.00 h=160 st=opacity:1;transform:none;] 11[op=1.00 h=160 st=opacity:1;transform:none;]

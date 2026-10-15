@@ -28,7 +28,7 @@ export class RecurringInputError extends Error {
 export const RECURRING_TEXT_LIMITS = {
   name: 80,
   description: 300,
-  category: 80,
+  categoryId: 128,
   supplier: 80,
   costCenter: 80,
   responsible: 80,
@@ -36,9 +36,6 @@ export const RECURRING_TEXT_LIMITS = {
   emoji: 16,
   reason: 140,
 } as const;
-
-/** Categoria padrão do formulário ("Padrão (Recorrentes)"). */
-export const DEFAULT_RECURRING_CATEGORY = 'Recorrentes';
 
 export interface RecurringFormState {
   name: string;
@@ -53,7 +50,8 @@ export interface RecurringFormState {
   executionMode: RecurringExecutionMode;
   cardId: string;
   cashAccountId: string;
-  category: string;
+  /** ID da categoria de despesa do catálogo (D-23, D-37.8). */
+  categoryId: string;
   color: string;
   icon: string;
   emoji: string;
@@ -112,7 +110,7 @@ export interface RecurringContractFields {
   executionMode: RecurringExecutionMode;
   cardId: string | null;
   cashAccountId: string | null;
-  category: string;
+  categoryId: string;
   visual: { color: string; icon: string; emoji: string | null };
   business: RecurringBusinessDetails | null;
 }
@@ -162,8 +160,7 @@ export const toContractFields = (
     executionMode: form.executionMode,
     cardId: card ? form.cardId : null,
     cashAccountId: card ? null : form.cashAccountId,
-    category: requiredText(form.category || DEFAULT_RECURRING_CATEGORY, 'Categoria',
-      RECURRING_TEXT_LIMITS.category),
+    categoryId: requiredText(form.categoryId, 'Categoria', RECURRING_TEXT_LIMITS.categoryId),
     visual: {
       color: form.color,
       icon: form.icon,
@@ -217,7 +214,7 @@ export const formFromExpense = (expense: RecurringExpense): RecurringFormState =
   executionMode: expense.executionMode,
   cardId: expense.cardId ?? '',
   cashAccountId: expense.cashAccountId ?? '',
-  category: expense.category,
+  categoryId: expense.categoryId,
   color: expense.visual.color,
   icon: expense.visual.icon,
   emoji: expense.visual.emoji ?? '',
@@ -246,7 +243,7 @@ export const emptyForm = (isPJ: boolean, today: string, defaults: {
   executionMode: 'automatic',
   cardId: '',
   cashAccountId: '',
-  category: DEFAULT_RECURRING_CATEGORY,
+  categoryId: '',
   color: defaults.color,
   icon: defaults.icon,
   emoji: '',

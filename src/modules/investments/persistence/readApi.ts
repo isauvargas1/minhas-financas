@@ -21,7 +21,6 @@ import type {
   InvestmentAllocationDimension,
   InvestmentAllocationSummary,
   InvestmentReportPeriod,
-  OfficialInvestmentReportData,
 } from '../types';
 import {
   investmentAssetsRef,
@@ -208,75 +207,15 @@ export const getInvestmentSummary = async (workspaceId: string): Promise<Investm
   return snapshot.exists() ? ({ ...snapshot.data(), id: 'current' } as InvestmentSummary) : null;
 };
 
-// Teto de listagem imposto pelas Rules (`isBoundedInvestmentList`).
-const RULES_LIST_LIMIT = 100;
-// Um a menos que o teto, para caber a sonda n+1 de truncamento dentro dele.
-const REPORT_PERIOD_LIMIT = RULES_LIST_LIMIT - 1;
 const ALLOCATION_LIMIT = 10;
-const ALLOCATION_DIMENSIONS: InvestmentAllocationDimension[] = [
-  'account', 'class', 'asset', 'goal', 'risk', 'liquidity', 'indexer', 'purpose',
-];
-
-export const getOfficialInvestmentReportData = async (
-  workspaceId: string,
-  options: { periodLimit?: number; includeAllocations?: boolean } = {},
-): Promise<OfficialInvestmentReportData> => {
-  const periodLimit = Math.min(
-    Math.max(options.periodLimit ?? REPORT_PERIOD_LIMIT, 1),
-    REPORT_PERIOD_LIMIT,
-  );
-  const dimensions = options.includeAllocations === false ? [] : ALLOCATION_DIMENSIONS;
-  const [summary, periodSnapshot, ...allocationSnapshots] = await Promise.all([
-    getInvestmentSummary(workspaceId),
-    getDocs(query(
-      investmentReportPeriodsRef(workspaceId),
-      orderBy('periodStart', 'desc'),
-      orderBy(documentId(), 'desc'),
-      // Sonda n+1, como já se faz nas alocações: pede um a mais para saber se
-      // há período além da janela. A heurística anterior comparava o tamanho
-      // com o teto de 100 e, como as faixas usuais pedem 3, 5, 7 ou 14
-      // períodos, nunca sinalizava truncamento fora da faixa "tudo".
-      limit(periodLimit + 1),
-    )),
-    ...dimensions.map((dimension) => getDocs(query(
-      investmentAllocationSummariesRef(workspaceId),
-      where('dimension', '==', dimension),
-      orderBy('currentValueCents', 'desc'),
-      orderBy(documentId(), 'desc'),
-      limit(ALLOCATION_LIMIT + 1),
-    ))),
-  ]);
-  const periodsTruncated = periodSnapshot.size > periodLimit;
-  const periods = periodSnapshot.docs.slice(0, periodLimit).map((entry) => ({
-    ...entry.data(), id: entry.id,
-  }) as InvestmentReportPeriod).reverse();
-  const allocations: OfficialInvestmentReportData['allocations'] = {};
-  const truncatedDimensions: InvestmentAllocationDimension[] = [];
-  dimensions.forEach((dimension, index) => {
-    const snapshot = allocationSnapshots[index];
-    if (snapshot.size > ALLOCATION_LIMIT) truncatedDimensions.push(dimension);
-    allocations[dimension] = snapshot.docs.slice(0, ALLOCATION_LIMIT).map((entry) => ({
-      ...entry.data(), id: entry.id,
-    }) as InvestmentAllocationSummary);
-  });
-  return {
-    summary,
-    periods,
-    allocations,
-    periodsTruncated,
-    truncatedDimensions,
-  };
-};
 
 /**
  * Cortes de alocação de um punhado de dimensões (Etapa 3, §5 e §6).
  *
- * `getOfficialInvestmentReportData` lê as oito dimensões porque o relatório
- * oficial mostra as oito. A faixa de alocação da tela comum mostra duas — a
- * carteira e um segundo corte por perfil —, e pedir as outras seis seria
- * pagar seis consultas por uma informação que ninguém vê. Mesmo teto e mesma
- * sonda de truncamento da leitura oficial, sobre o mesmo índice
- * (`dimension` + `currentValueCents desc`).
+ * A faixa de alocação da tela comum mostra duas dimensões — a carteira e um
+ * segundo corte por perfil —, e pedir as outras seis seria pagar seis
+ * consultas por uma informação que ninguém vê. Teto com sonda de truncamento
+ * sobre o índice (`dimension` + `currentValueCents desc`).
  */
 export interface InvestmentAllocationSlice {
   dimension: InvestmentAllocationDimension;

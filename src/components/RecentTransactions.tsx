@@ -6,6 +6,7 @@ import CatalogVisualChip from './CatalogVisualChip.tsx';
 import { useBilling } from '../modules/billing/BillingContext';
 import { transactionsQuotaView } from '../modules/billing/transactionsQuota';
 import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
+import { transactionAmount } from '../modules/transactions/amount.ts';
 import { formatDateBR } from '../utils/date.ts';
 import { useSettingsCatalog } from '../modules/settings-catalog/hooks.ts';
 import { resolveTransactionVisuals } from '../modules/settings-catalog/display.ts';
@@ -20,7 +21,7 @@ interface RecentTransactionsProps {
     onNewTransaction: () => void;
 }
 
-type SortableKeys = 'description' | 'category' | 'date' | 'value';
+type SortableKeys = 'description' | 'category' | 'date' | 'valueCents';
 
 const getHeaderAlignClass = (align: 'left' | 'right' | 'center') => {
     if (align === 'right') return 'text-right';
@@ -99,7 +100,7 @@ const RecentTransactions: React.FC<RecentTransactionsProps> = ({ transactions, o
         { key: 'description', label: 'Descrição', align: 'left' },
         { key: 'category', label: 'Categoria', align: 'left' },
         { key: 'date', label: 'Data', align: 'left' },
-        { key: 'value', label: 'Valor', align: 'center' },
+        { key: 'valueCents', label: 'Valor', align: 'center' },
     ];
 
     return (
@@ -140,7 +141,6 @@ const RecentTransactions: React.FC<RecentTransactionsProps> = ({ transactions, o
                         <option value="receita">Receitas</option>
                         <option value="despesa">Despesas</option>
                         <option value="investimento">Investimentos</option>
-                        <option value="parcelado">Parceladas</option>
                     </select>
                 </div>
             </div>
@@ -178,7 +178,7 @@ const RecentTransactions: React.FC<RecentTransactionsProps> = ({ transactions, o
                                 <tr key={t.id} className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-dark-200 transition-colors duration-200">
                                     <td className="py-4 px-4 text-gray-800 dark:text-gray-200">
                                         <div className="flex flex-col gap-1">
-                                            {(t.type === 'despesa' || t.type === 'parcelado') && (
+                                            {t.type === 'despesa' && (
                                                 <CatalogVisualChip
                                                     visual={visuals.productService}
                                                     fallbackLabel={t.description}
@@ -197,10 +197,6 @@ const RecentTransactions: React.FC<RecentTransactionsProps> = ({ transactions, o
                                                 <span className="text-xs text-emerald-600 dark:text-emerald-300 font-medium">
                                                     Resgate de investimento
                                                 </span>
-                                            ) : t.type === 'parcelado' ? (
-                                                <span className="text-xs text-purple-600 dark:text-purple-300 font-medium">
-                                                    Parcela {t.currentInstallment}/{t.installments}
-                                                </span>
                                             ) : null}
                                         </div>
                                     </td>
@@ -217,7 +213,7 @@ const RecentTransactions: React.FC<RecentTransactionsProps> = ({ transactions, o
                                     </td>
 
                                     <td className={`py-4 px-4 text-center font-medium ${transactionTypeColors[t.type] || ''}`}>
-                                        {cashImpactCents > 0 ? '+' : cashImpactCents < 0 ? '-' : '•'} {formatCurrency(t.value)}
+                                        {cashImpactCents > 0 ? '+' : cashImpactCents < 0 ? '-' : '•'} {formatCurrency(transactionAmount(t))}
                                     </td>
                                 </tr>
                             );

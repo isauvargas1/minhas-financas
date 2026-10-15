@@ -302,6 +302,9 @@ test.describe('PF', () => {
     // Fatura aberta não é paga.
     const openCard = invoiceSummary(page, `Fatura ${competenceLabel(open.competenceMonth)}`);
     await expect(openCard.getByRole('button', { name: 'Aguardando fechamento' })).toBeDisabled();
+    // Seções: a fechada e não vencida é a próxima a pagar; a aberta é a do ciclo aberto.
+    await expect(page.getByText('Fatura do ciclo aberto', { exact: true })).toBeVisible();
+    await expect(page.getByText('Próxima fatura a pagar', { exact: true })).toBeVisible();
 
     const closedCard = invoiceSummary(page, `Fatura ${competenceLabel(closed.competenceMonth)}`);
     await expect(closedCard).toContainText('Fechada');

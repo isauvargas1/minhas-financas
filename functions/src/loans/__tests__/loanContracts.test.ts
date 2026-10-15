@@ -2,7 +2,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {classifyCashEntryEligibility} from "../../cash/eligibility";
-import {cashPeriodDeltaFor} from "../../cash/periods";
+import {
+  cashPeriodDeltaFor,
+  CashContractViolationError,
+} from "../../cash/periods";
 import {saoPauloDayKey} from "../../shared/dateKeys";
 import {loanCashEffect, readLoanCashEntry} from "../cashEffect";
 import {
@@ -178,7 +181,7 @@ test("P3-G — projeção: o espelho decide por `loanEntry`; marca inválida nã
   assert.equal(delta.financialExpenseCents, 10_000);
   assert.equal(delta.netCents, -110_000);
   assert.equal(delta.transactionCount, 1);
-  // Baixa lógica e marcas forjadas ou incompletas: nenhum efeito.
+  // Baixa lógica: nenhum efeito. Marcas forjadas ou incompletas: violação.
   assert.equal(cashPeriodDeltaFor({...mirror, voidedAt: "x"}).netCents, 0);
   for (const forged of [
     {...entry({}), domainVersion: 2},
@@ -191,8 +194,8 @@ test("P3-G — projeção: o espelho decide por `loanEntry`; marca inválida nã
     "loan",
   ]) {
     assert.equal(readLoanCashEntry(forged), null, JSON.stringify(forged));
-    assert.equal(cashPeriodDeltaFor({...mirror, loanEntry: forged}).netCents,
-      0);
+    assert.throws(() => cashPeriodDeltaFor({...mirror, loanEntry: forged}),
+      CashContractViolationError);
   }
   // Espelho não é corrigível pelo caixa manual.
   assert.equal(classifyCashEntryEligibility(mirror, "ws").eligible, false);

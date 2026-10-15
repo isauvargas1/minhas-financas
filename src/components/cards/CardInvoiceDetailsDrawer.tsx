@@ -17,6 +17,7 @@ import {
   entryLabel,
   entryNote,
   invoiceDisplayStatus,
+  openInvoiceCreditNote,
   payableCents,
 } from '../../modules/cards/presentation.ts';
 import {
@@ -135,6 +136,7 @@ const CardInvoiceDetailsDrawer: React.FC<CardInvoiceDetailsDrawerProps> = ({
   };
 
   const competenceLabel = formatCompetence(invoice.competenceMonth);
+  const creditNote = openInvoiceCreditNote(invoice);
 
   return (
     <div
@@ -205,6 +207,9 @@ const CardInvoiceDetailsDrawer: React.FC<CardInvoiceDetailsDrawerProps> = ({
               <p className="font-bold text-gray-800 dark:text-white" data-testid="card-invoice-remaining">{formatCents(payableCents(invoice))}</p>
             </div>
           </div>
+          {creditNote && (
+            <p className="text-xs text-gray-600 dark:text-gray-300" data-testid="card-invoice-credit-note">{creditNote}</p>
+          )}
 
           <div className="mt-3 border-t border-gray-200 dark:border-gray-700 pt-3 space-y-4">
             <div>

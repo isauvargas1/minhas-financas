@@ -1,0 +1,527 @@
+{
+ "milestone": "P5-D2",
+ "data": "2026-10-11",
+ "metodo": "cópia isolada do working tree por git archive (índice temporário); repositório conferido por SHA-256 antes e depois; um Emulator por vez; mutante que não compila é inválido e não conta",
+ "arvores_da_copia": {
+  "rodada 2 (todos)": "8bce111af42dfd451b95ed462555aabfd79d081d",
+  "rodada 3 (receivables.ts com cursor)": "e6c569891658a2418c2a40187a02843386b6cb0e",
+  "rodada 4 (cursor por página, testes da revisão do delta; I01, I02, I04, I21–I27)": "619fd70dda583924ff86d71e4fa070502d40976b"
+ },
+ "total": 38,
+ "validos": 38,
+ "mortos": 38,
+ "invalidos": 0,
+ "historico": "I03, I13 e I15 não compilavam na 1ª rodada (variável ou import sem uso) e foram reescritos; não contam. I04 teve o padrão ajustado à nova indentação de receivables.ts.",
+ "mutantes": {
+  "F01": {
+   "grupo": "front",
+   "ref": "§21.11",
+   "descricao": "contagem indisponível exibida como zero",
+   "arquivo": "src/modules/notifications/model.ts",
+   "morto": true,
+   "invalido": false,
+   "restaurado_sha256": true,
+   "assercoes_que_mataram": [
+    "not ok 28 - contagem: erro vira indisponível (\"?\"), nunca zero, e volta ao tentar de novo",
+    "not ok 31 - contagem: a última tentativa falhou, então o número antigo não é mostrado como atual",
+    "not ok 60 - resumo da contagem exata: carregando, indisponível e pronta (n = 0, 1, 2, 9, 10, 137)"
+   ]
+  },
+  "F02": {
+   "grupo": "front",
+   "ref": "§21.13",
+   "descricao": "cache da contagem sem uid (A aplicado a B)",
+   "arquivo": "src/modules/notifications/model.ts",
+   "morto": true,
+   "invalido": false,
+   "restaurado_sha256": true,
+   "assercoes_que_mataram": [
+    "not ok 33 - contagem: troca de escopo nunca mostra o número do outro workspace ou conta",
+    "not ok 51 - contagem exata (P5-D2): vem da callable, sem contagem parcial, agregação no cliente, polling nem listener",
+    "not ok 61 - chave da contagem: por workspace e uid, sem reaproveitar entre escopos"
+   ]
+  },
+  "F03": {
+   "grupo": "front",
+   "ref": "§21.14",
+   "descricao": "cache da contagem sem workspace",
+   "arquivo": "src/modules/notifications/model.ts",
+   "morto": true,
+   "invalido": false,
+   "restaurado_sha256": true,
+   "assercoes_que_mataram": [
+    "not ok 33 - contagem: troca de escopo nunca mostra o número do outro workspace ou conta",
+    "not ok 35 - contagem: ação concluída depois da troca de escopo atualiza só a contagem do escopo da ação",
+    "not ok 37 - contagem: trocar de escopo não conta como publicação nova",
+    "not ok 51 - contagem exata (P5-D2): vem da callable, sem contagem parcial, agregação no cliente, polling nem listener"
+   ]
+  },
+  "F04": {
+   "grupo": "front",
+   "ref": "§9.5",
+   "descricao": "ação do painel não relê a contagem",
+   "arquivo": "src/modules/notifications/feed.ts",
+   "morto": true,
+   "invalido": false,
+   "restaurado_sha256": true,
+   "assercoes_que_mataram": [
+    "not ok 34 - contagem: toda ação do painel, em sucesso ou erro, relê a contagem do escopo da ação",
+    "not ok 35 - contagem: ação concluída depois da troca de escopo atualiza só a contagem do escopo da ação",
+    "not ok 51 - contagem exata (P5-D2): vem da callable, sem contagem parcial, agregação no cliente, polling nem listener"
+   ]
+  },
+  "F05": {
+   "grupo": "front",
+   "ref": "§21.10",
+   "descricao": "alerta contextual com botão de leitura falsa",
+   "arquivo": "src/components/ReportsAlertsPanel.tsx",
+   "morto": true,
+   "invalido": false,
+   "restaurado_sha256": true,
+   "assercoes_que_mataram": [
+    "not ok 29 - o painel não tem \"Marcar como lido\", readAlertIds nem markAsRead"
+   ]
+  },
+  "I01": {
+   "grupo": "int",
+   "ref": "§21.1",
+   "descricao": "duplicação: episódio do recebível pelo dia da execução",
+   "arquivo": "functions/src/notifications/producers/receivables.ts",
+   "morto": true,
+   "invalido": false,
+   "restaurado_sha256": true,
+   "assercoes_que_mataram": [
+    "not ok 15 - §16.8 reexecução no dia seguinte: já existe, createdAt e expiresAt inalterados mesmo com outro instante",
+    "not ok 18 - §16.12 recebível: vencimento editado para outra data passada na janela abre um novo episódio (segundo aviso, outro ID)",
+    "not ok 34 - §16.17 evento antigo não reaparece após a expiração física: empréstimo, conta, meta e recebível (o Emulator não executa TTL: a remoção é simulada pelo Admin SDK)",
+    "not ok 37 - §16.18 retry não prorroga o TTL: reentrega ou reexecução depois de dias mantém createdAt e expiresAt de cada produtor"
+   ]
+  },
+  "I02": {
+   "grupo": "int",
+   "ref": "§21.5",
+   "descricao": "reemissão após expiração: janela de recebíveis maior que a retenção",
+   "arquivo": "functions/src/notifications/producers/receivables.ts",
+   "morto": true,
+   "invalido": false,
+   "restaurado_sha256": true,
+   "assercoes_que_mataram": [
+    "not ok 14 - §16.8 janela de sete dias: hoje−1 e hoje−7 avisam; hoje−8, hoje e futuro não; parcialmente recebido (ainda aberto) avisa",
+    "not ok 34 - §16.17 evento antigo não reaparece após a expiração física: empréstimo, conta, meta e recebível (o Emulator não executa TTL: a remoção é simulada pelo Admin SDK)",
+    "not ok 42 - §14 rotina de recebíveis: cursor fora da janela ou malformado é descartado e a execução percorre a janela inteira",
+    "not ok 43 - §14 rotina de recebíveis: falha no meio da execução não perde o progresso (cursor salvo a cada página)"
+   ]
+  },
+  "I03": {
+   "grupo": "int",
+   "ref": "§21.6",
+   "descricao": "liquidação (pagamento) reemite atraso: guarda de transição removida",
+   "arquivo": "functions/src/notifications/producers/loans.ts",
+   "morto": true,
+   "invalido": false,
+   "restaurado_sha256": true,
+   "assercoes_que_mataram": [
+    "not ok 11 - §16.6 pagamento que mantém o atraso mas muda overdueFrom (parcela 1 quitada, parcela 2 também vencida) não gera novo aviso",
+    "not ok 34 - §16.17 evento antigo não reaparece após a expiração física: empréstimo, conta, meta e recebível (o Emulator não executa TTL: a remoção é simulada pelo Admin SDK)"
+   ]
+  },
+  "I04": {
+   "grupo": "int",
+   "ref": "§21.7",
+   "descricao": "recebível recebido gera atraso",
+   "arquivo": "functions/src/notifications/producers/receivables.ts",
+   "morto": true,
+   "invalido": false,
+   "restaurado_sha256": true,
+   "assercoes_que_mataram": [
+    "not ok 16 - §16.9 recebível recebido não gera aviso de atraso"
+   ]
+  },
+  "I05": {
+   "grupo": "int",
+   "ref": "§21.8",
+   "descricao": "saldo positivo gera aviso de saldo negativo",
+   "arquivo": "functions/src/notifications/producers/cashAccounts.ts",
+   "morto": true,
+   "invalido": false,
+   "restaurado_sha256": true,
+   "assercoes_que_mataram": [
+    "not ok 22 - §16.12 conta criada com saldo inicial negativo não avisa; transferência que negativa só a conta de origem avisa"
+   ]
+  },
+  "I06": {
+   "grupo": "int",
+   "ref": "§21.9",
+   "descricao": "consulta de relatório cria notificação",
+   "arquivo": "functions/src/reports/report.ts",
+   "morto": true,
+   "invalido": false,
+   "restaurado_sha256": true,
+   "assercoes_que_mataram": [
+    "not ok 26 - §16.13 meta não cria avisos apenas por consulta (leitura da meta, visão geral de metas e relatório financeiro)",
+    "not ok 27 - §16.13 relatório com condições de alerta (conta negativa, empréstimo vencido) mostra o alerta contextual, mas não cria notificação nem mexe no domínio"
+   ]
+  },
+  "I07": {
+   "grupo": "int",
+   "ref": "§21.11",
+   "descricao": "falha da contagem vira zero (Math.max)",
+   "arquivo": "functions/src/notifications/unreadCount.ts",
+   "morto": true,
+   "invalido": false,
+   "restaurado_sha256": true,
+   "assercoes_que_mataram": [
+    "not ok 30 - §17.28 invariante violado (estado sem evento ou com expiração futura para evento expirado): erro interno, nunca zero nem total limitado"
+   ]
+  },
+  "I08": {
+   "grupo": "int",
+   "ref": "§21.12",
+   "descricao": "contagem limitada à página (25)",
+   "arquivo": "functions/src/notifications/unreadCount.ts",
+   "morto": true,
+   "invalido": false,
+   "restaurado_sha256": true,
+   "assercoes_que_mataram": [
+    "not ok 17 - §17.15 mais de 25 notificações: o total não é o da primeira página",
+    "not ok 18 - §17.16 mais de 100 notificações: o total não é o da página nem o do teto de listagem",
+    "not ok 19 - §17.17 mais de 1.000 notificações: o total ultrapassa o bloco de 1.000 entradas de índice de cada agregação",
+    "not ok 28 - §17.26 exclusão concorrente: exclusões para si e marcas intercaladas com criações e com a contagem, de dois usuários"
+   ]
+  },
+  "I09": {
+   "grupo": "int",
+   "ref": "§21.15",
+   "descricao": "arquivada ainda conta como não lida (só \"lida\" suprime)",
+   "arquivo": "functions/src/notifications/unreadCount.ts",
+   "morto": true,
+   "invalido": false,
+   "restaurado_sha256": true,
+   "assercoes_que_mataram": [
+    "not ok 4 - §17.4 uma notificação arquivada deixa de contar",
+    "not ok 5 - §17.5 uma notificação excluída para si deixa de contar",
+    "not ok 6 - §17.6 vários estados sobre o mesmo evento: lida, arquivada e excluída juntas contam como um único evento fora das não lidas",
+    "not ok 7 - §17.7 dois usuários com leituras diferentes: cada um vê o próprio total e a marca de um não altera o outro"
+   ]
+  },
+  "I10": {
+   "grupo": "int",
+   "ref": "§21.16",
+   "descricao": "excluída ainda conta como não lida (só \"arquivada\" suprime)",
+   "arquivo": "functions/src/notifications/unreadCount.ts",
+   "morto": true,
+   "invalido": false,
+   "restaurado_sha256": true,
+   "assercoes_que_mataram": [
+    "not ok 3 - §17.3 uma notificação lida deixa de contar, só para quem leu",
+    "not ok 5 - §17.5 uma notificação excluída para si deixa de contar",
+    "not ok 6 - §17.6 vários estados sobre o mesmo evento: lida, arquivada e excluída juntas contam como um único evento fora das não lidas",
+    "not ok 7 - §17.7 dois usuários com leituras diferentes: cada um vê o próprio total e a marca de um não altera o outro"
+   ]
+  },
+  "I11": {
+   "grupo": "int",
+   "ref": "§21.17",
+   "descricao": "evento expirado entra na contagem",
+   "arquivo": "functions/src/notifications/unreadCount.ts",
+   "morto": true,
+   "invalido": false,
+   "restaurado_sha256": true,
+   "assercoes_que_mataram": [
+    "not ok 12 - §17.10 evento expirado logicamente (expiresAt passado, ainda no banco) não conta, nem com estado",
+    "not ok 13 - §17.11 evento removido fisicamente: apagar o evento expirado não muda o total",
+    "not ok 14 - §17.12 estado privado removido pelo TTL: apagar os estados expirados não muda o total",
+    "not ok 16 - §17.14 estado expirado antes da remoção física do evento: os dois lados já expirados saem da contagem juntos"
+   ]
+  },
+  "I12": {
+   "grupo": "int",
+   "ref": "§21.14",
+   "descricao": "contagem de outro workspace (estados do workspace errado)",
+   "arquivo": "functions/src/notifications/unreadCount.ts",
+   "morto": true,
+   "invalido": false,
+   "restaurado_sha256": true,
+   "assercoes_que_mataram": [
+    "not ok 3 - §17.3 uma notificação lida deixa de contar, só para quem leu",
+    "not ok 4 - §17.4 uma notificação arquivada deixa de contar",
+    "not ok 5 - §17.5 uma notificação excluída para si deixa de contar",
+    "not ok 6 - §17.6 vários estados sobre o mesmo evento: lida, arquivada e excluída juntas contam como um único evento fora das não lidas"
+   ]
+  },
+  "I13": {
+   "grupo": "int",
+   "ref": "§21.13",
+   "descricao": "contagem de A aplicada a B (estados privados de outro sujeito)",
+   "arquivo": "functions/src/notifications/unreadCount.ts",
+   "morto": true,
+   "invalido": false,
+   "restaurado_sha256": true,
+   "assercoes_que_mataram": [
+    "not ok 3 - §17.3 uma notificação lida deixa de contar, só para quem leu",
+    "not ok 4 - §17.4 uma notificação arquivada deixa de contar",
+    "not ok 5 - §17.5 uma notificação excluída para si deixa de contar",
+    "not ok 6 - §17.6 vários estados sobre o mesmo evento: lida, arquivada e excluída juntas contam como um único evento fora das não lidas"
+   ]
+  },
+  "I14": {
+   "grupo": "int",
+   "ref": "§21.22",
+   "descricao": "remoção da autorização backend (workspace do payload, sem membership)",
+   "arquivo": "functions/src/notifications/unreadCount.ts",
+   "morto": true,
+   "invalido": false,
+   "restaurado_sha256": true,
+   "assercoes_que_mataram": [
+    "not ok 20 - §17.18 membro removido: a chamada é recusada e nenhum total sai",
+    "not ok 21 - §17.19 workspace arquivado: a chamada é recusada com o motivo, sem total",
+    "not ok 23 - §17.21 troca de workspace: o mesmo usuário recebe o total de cada workspace, sem reaproveitar o outro",
+    "not ok 25 - §17.23 alteração de papel: member → viewer continua contando; removido nega; reativado volta a contar com os estados que tinha"
+   ]
+  },
+  "I15": {
+   "grupo": "int",
+   "ref": "§21.20",
+   "descricao": "reprocessamento cria segundo aviso (episódio pelo relógio)",
+   "arquivo": "functions/src/notifications/producers/goals.ts",
+   "morto": true,
+   "invalido": false,
+   "restaurado_sha256": true,
+   "assercoes_que_mataram": [
+    "not ok 37 - §16.18 retry não prorroga o TTL: reentrega ou reexecução depois de dias mantém createdAt e expiresAt de cada produtor"
+   ]
+  },
+  "I16": {
+   "grupo": "int",
+   "ref": "§21.19",
+   "descricao": "evento de domínio com dado pessoal (nome da pessoa no texto)",
+   "arquivo": "functions/src/notifications/producers/loans.ts",
+   "morto": true,
+   "invalido": false,
+   "restaurado_sha256": true,
+   "assercoes_que_mataram": [
+    "not ok 6 - §16.5 empréstimo a pagar vencido, atrasado pela rotina real runLoanStatusRefresh, gera um evento apropriado (texto exato, link loans, sem pessoa nem valores)",
+    "not ok 8 - §16.7 empréstimo concedido (lend) não é classificado como dívida tomada",
+    "not ok 9 - §16.5 empréstimo criado já em atraso gera um aviso"
+   ]
+  },
+  "I17": {
+   "grupo": "int",
+   "ref": "§21.21",
+   "descricao": "aviso de fatura soma de novo o total (dupla contagem)",
+   "arquivo": "functions/src/cards/closing.ts",
+   "morto": true,
+   "invalido": false,
+   "restaurado_sha256": true,
+   "assercoes_que_mataram": [
+    "not ok 1 - §16.1 fatura fechada gera exatamente um aviso",
+    "not ok 5 - §16.1b fechamento com crédito transportado: o aviso traz o total gravado na fatura fechada, não o total antes do transporte"
+   ]
+  },
+  "I18": {
+   "grupo": "int",
+   "ref": "§21.10",
+   "descricao": "recorrência gerada normalmente vira aviso (spam)",
+   "arquivo": "functions/src/notifications/producers/recurring.ts",
+   "morto": true,
+   "invalido": false,
+   "restaurado_sha256": true,
+   "assercoes_que_mataram": [
+    "not ok 23 - §16.14 meta: em_andamento → alcancada gera um aviso (sem nome nem valores); alcancada → alcancada não; alcancada → em_andamento → alcancada gera o segundo",
+    "not ok 30 - §16.15 geração normal (generated) e confirmação posterior não geram aviso"
+   ]
+  },
+  "I19": {
+   "grupo": "int",
+   "ref": "§15.1",
+   "descricao": "caixa indisponível fora da completude (\"Tudo certo\" com fonte faltando)",
+   "arquivo": "functions/src/reports/report.ts",
+   "morto": true,
+   "invalido": false,
+   "restaurado_sha256": true,
+   "assercoes_que_mataram": [
+    "not ok 1 - P5-D2 alertas com o caixa indisponível (todo o período acima do teto) declaram cobertura parcial, nunca completa"
+   ]
+  },
+  "I20": {
+   "grupo": "int",
+   "ref": "observabilidade",
+   "descricao": "log do gatilho sem a correlação do evento do Eventarc",
+   "arquivo": "functions/src/notifications/producers/loans.ts",
+   "morto": true,
+   "invalido": false,
+   "restaurado_sha256": true,
+   "assercoes_que_mataram": [
+    "not ok 38 - P5-D2 correlação: o gatilho registra a publicação com o ID do evento do Eventarc, o mesmo na reentrega, só com identificadores"
+   ]
+  },
+  "I21": {
+   "grupo": "int",
+   "ref": "observabilidade",
+   "descricao": "rotina de recebíveis sem a correlação do instante agendado",
+   "arquivo": "functions/src/notifications/producers/receivables.ts",
+   "morto": true,
+   "invalido": false,
+   "restaurado_sha256": true,
+   "assercoes_que_mataram": [
+    "not ok 39 - P5-D2 correlação: o corpo da rotina de recebíveis deriva a correlação do instante agendado e publica o aviso do dia"
+   ]
+  },
+  "I22": {
+   "grupo": "int",
+   "ref": "§14",
+   "descricao": "rotina de recebíveis sem retomada (ignora o cursor salvo)",
+   "arquivo": "functions/src/notifications/producers/receivables.ts",
+   "morto": true,
+   "invalido": false,
+   "restaurado_sha256": true,
+   "assercoes_que_mataram": [
+    "not ok 41 - §14 rotina de recebíveis: retoma do cursor salvo entre execuções (os já avisados continuam na consulta) e dá a volta na janela",
+    "not ok 43 - §14 rotina de recebíveis: falha no meio da execução não perde o progresso (cursor salvo a cada página)"
+   ]
+  },
+  "I23": {
+   "grupo": "int",
+   "ref": "§14",
+   "descricao": "rotina de recebíveis sem a volta na janela (itens antes do cursor esquecidos)",
+   "arquivo": "functions/src/notifications/producers/receivables.ts",
+   "morto": true,
+   "invalido": false,
+   "restaurado_sha256": true,
+   "assercoes_que_mataram": [
+    "not ok 41 - §14 rotina de recebíveis: retoma do cursor salvo entre execuções (os já avisados continuam na consulta) e dá a volta na janela"
+   ]
+  },
+  "I24": {
+   "grupo": "int",
+   "ref": "§14",
+   "descricao": "cursor salvo só no fim (execução interrompida perde o progresso)",
+   "arquivo": "functions/src/notifications/producers/receivables.ts",
+   "morto": true,
+   "invalido": false,
+   "restaurado_sha256": true,
+   "assercoes_que_mataram": [
+    "not ok 43 - §14 rotina de recebíveis: falha no meio da execução não perde o progresso (cursor salvo a cada página)"
+   ]
+  },
+  "I25": {
+   "grupo": "int",
+   "ref": "§14",
+   "descricao": "volta na janela sem o limite do cursor (relê o que a 1ª passada cobriu)",
+   "arquivo": "functions/src/notifications/producers/receivables.ts",
+   "morto": true,
+   "invalido": false,
+   "restaurado_sha256": true,
+   "assercoes_que_mataram": [
+    "not ok 41 - §14 rotina de recebíveis: retoma do cursor salvo entre execuções (os já avisados continuam na consulta) e dá a volta na janela"
+   ]
+  },
+  "I26": {
+   "grupo": "int",
+   "ref": "observabilidade",
+   "descricao": "gatilho de conta não passa o event.id do Eventarc",
+   "arquivo": "functions/src/notifications/producers/cashAccounts.ts",
+   "morto": true,
+   "invalido": false,
+   "restaurado_sha256": true,
+   "assercoes_que_mataram": [
+    "not ok 44 - P5-D2 correlação: os quatro gatilhos exportados (corpo real) passam o event.id do Eventarc ao log como sourceEventId"
+   ]
+  },
+  "I27": {
+   "grupo": "int",
+   "ref": "§21.1",
+   "descricao": "publicação com set no lugar de create (reentrega regrava e conta duas criações)",
+   "arquivo": "functions/src/notifications/publish.ts",
+   "morto": true,
+   "invalido": false,
+   "restaurado_sha256": true,
+   "assercoes_que_mataram": [
+    "not ok 7 - §16.5 reentrega do mesmo antes/depois: já existe, createdAt e expiresAt idênticos; retry tardio com outro instante cai no mesmo ID",
+    "not ok 12 - §16.6 pagamento que quita o atraso e estorno que volta a overdue com o mesmo overdueFrom continuam sendo um único aviso (mesmo ID)",
+    "not ok 15 - §16.8 reexecução no dia seguinte: já existe, createdAt e expiresAt inalterados mesmo com outro instante",
+    "not ok 37 - §16.18 retry não prorroga o TTL: reentrega ou reexecução depois de dias mantém createdAt e expiresAt de cada produtor"
+   ]
+  },
+  "R01": {
+   "grupo": "rules",
+   "ref": "§21.18",
+   "descricao": "viewer recebe exclusão indevida (deleted liberado)",
+   "arquivo": "firestore.rules",
+   "morto": true,
+   "invalido": false,
+   "restaurado_sha256": true,
+   "assercoes_que_mataram": [
+    "not ok 7 - D-18-NOTIF Rules — viewer não exclui (deleted) nem na criação nem na atualização",
+    "not ok 32 - D-18-NOTIF Rules — viewer com read e deleted (ou dismissed e deleted) no mesmo payload é negado",
+    "not ok 76 - P5-D2 Rules — excluir para si (deleted) é permitido a owner, admin e member e negado ao viewer, nos novos tipos"
+   ]
+  },
+  "U01": {
+   "grupo": "unit",
+   "ref": "§21.2",
+   "descricao": "ID aleatório no lugar do determinístico",
+   "arquivo": "functions/src/notifications/ids.ts",
+   "morto": true,
+   "invalido": false,
+   "restaurado_sha256": true,
+   "assercoes_que_mataram": [
+    "not ok 202 - notificationIdFor é determinístico e tem prefixo por domínio",
+    "not ok 208 - empréstimo a pagar: transição para atraso emite o texto exato",
+    "not ok 211 - empréstimo: episódios diferentes geram IDs diferentes",
+    "not ok 212 - conta: 0 → −1 emite com o texto exato e episódio do commit"
+   ]
+  },
+  "U02": {
+   "grupo": "unit",
+   "ref": "§21.3",
+   "descricao": "workspace omitido da identidade",
+   "arquivo": "functions/src/notifications/ids.ts",
+   "morto": true,
+   "invalido": false,
+   "restaurado_sha256": true,
+   "assercoes_que_mataram": [
+    "not ok 203 - notificationIdFor muda quando qualquer componente muda",
+    "not ok 204 - notificationIdFor rejeita segmento inválido",
+    "not ok 224 - identidade inválida no produtor vira contrato violado: registrada e sem relançar (o gatilho não reentrega uma mensagem envenenada)"
+   ]
+  },
+  "U03": {
+   "grupo": "unit",
+   "ref": "§21.4",
+   "descricao": "retry renova o TTL (expiresAt do relógio da execução)",
+   "arquivo": "functions/src/notifications/builder.ts",
+   "morto": true,
+   "invalido": false,
+   "restaurado_sha256": true,
+   "assercoes_que_mataram": [
+    "not ok 189 - expiresAt é um Timestamp 180 dias exatos depois de createdAt",
+    "not ok 191 - aviso de cartão equivale ao documento de cards/closing.ts"
+   ]
+  },
+  "U04": {
+   "grupo": "unit",
+   "ref": "§21.19",
+   "descricao": "builder aceita campo extra na entidade (dado indevido)",
+   "arquivo": "functions/src/notifications/builder.ts",
+   "morto": true,
+   "invalido": false,
+   "restaurado_sha256": true,
+   "assercoes_que_mataram": [
+    "not ok 200 - rejeita entidade fora do contrato do domínio"
+   ]
+  },
+  "U05": {
+   "grupo": "unit",
+   "ref": "implantação",
+   "descricao": "gatilhos de notificação sem retry",
+   "arquivo": "functions/src/shared/runtimeOptions.ts",
+   "morto": true,
+   "invalido": false,
+   "restaurado_sha256": true,
+   "assercoes_que_mataram": [
+    "not ok 492 - P5-D2: gatilhos de notificação reentregam e mantêm o perfil"
+   ]
+  }
+ }
+}

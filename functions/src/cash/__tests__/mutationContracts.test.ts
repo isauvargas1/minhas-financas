@@ -29,7 +29,7 @@ const update = (overrides: Record<string, unknown> = {}) => ({
   entry: {
     type: "receita",
     description: "Salário",
-    category: "Salário",
+    categoryId: "cat-receita-salario",
     amountCents: 620_000,
     date: "2026-09-15",
     cashAccountId: "acc_contrato",
@@ -59,7 +59,7 @@ test("P3-C — contrato de correção aceita o estado completo e o motivo", () =
     entry: {
       type: "despesa",
       description: "Mercado",
-      category: "Casa",
+      categoryId: "cat-despesa-casa",
       amountCents: 1,
       date: saoPauloDayKey(),
       expenseType: "Variável",
@@ -170,7 +170,6 @@ const cashEntryDoc = (overrides: Record<string, unknown> = {}) => ({
   type: "receita",
   description: "Salário",
   category: "Salário",
-  value: 6200,
   valueCents: 620_000,
   date: "2026-09-15",
   isPaid: true,
@@ -251,7 +250,7 @@ test("P4-D — documento sem a marca do Caixa não é adotado", () => {
   void _marker; void _cents; void _account;
   for (const data of [
     plain,
-    {...plain, value: 150.5, source: "manual"},
+    {...plain, source: "manual"},
     {...plain, isPaid: false},
     {...plain, valueCents: 15_050},
   ]) {

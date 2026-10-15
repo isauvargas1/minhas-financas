@@ -4,12 +4,7 @@ import test from 'node:test';
 import {
   saoPauloDayKey,
   saoPauloMonthKey,
-  shiftSaoPauloDays,
-  startOfSaoPauloTwelveMonths,
-  startOfSaoPauloYear,
-  reportWindowStart,
 } from '../../src/modules/reports/dateWindow.ts';
-import { investmentRangeStartForTest } from '../../src/modules/reports/investments.ts';
 
 // INV-P2-048 — o domínio materializa toda chave de período em
 // `America/Sao_Paulo`, e o recorte do frontend usava UTC. Entre 21:00 e 23:59
@@ -31,34 +26,11 @@ test('instante às 22:00 BRT permanece no dia e no mês corretos', () => {
   assert.notEqual(saoPauloDayKey(LATE_NIGHT_BRT), LATE_NIGHT_BRT.toISOString().slice(0, 10));
 });
 
-test('deslocamento de dias parte do dia local, não do dia UTC', () => {
-  assert.equal(shiftSaoPauloDays(0, LATE_NIGHT_BRT), '2026-08-31');
-  assert.equal(shiftSaoPauloDays(-1, LATE_NIGHT_BRT), '2026-08-30');
-  assert.equal(shiftSaoPauloDays(-30, LATE_NIGHT_BRT), '2026-08-01');
-  assert.equal(shiftSaoPauloDays(-31, LATE_NIGHT_BRT), '2026-07-31');
-});
-
-test('início do ano acompanha o ano local na virada', () => {
-  assert.equal(startOfSaoPauloYear(NEW_YEAR_EVE_BRT), '2026-01-01');
-  assert.equal(startOfSaoPauloYear(LATE_NIGHT_BRT), '2026-01-01');
-});
-
-test('janela de 12 meses fecha um ano exato mais um dia', () => {
-  assert.equal(startOfSaoPauloTwelveMonths(LATE_NIGHT_BRT), '2025-09-01');
-});
-
-test('as janelas do relatório principal usam o fuso oficial', () => {
-  assert.equal(reportWindowStart('30d', LATE_NIGHT_BRT), '2026-08-01');
-  assert.equal(reportWindowStart('7d', LATE_NIGHT_BRT), '2026-08-24');
-  assert.equal(reportWindowStart('ytd', NEW_YEAR_EVE_BRT), '2026-01-01');
-  assert.equal(reportWindowStart('all', LATE_NIGHT_BRT), undefined);
-});
-
-test('as janelas do relatório patrimonial usam o mesmo fuso', () => {
-  assert.equal(investmentRangeStartForTest('7d', LATE_NIGHT_BRT), '2026-08-25');
-  assert.equal(investmentRangeStartForTest('30d', LATE_NIGHT_BRT), '2026-08-02');
-  assert.equal(investmentRangeStartForTest('ytd', NEW_YEAR_EVE_BRT), '2026-01-01');
-  assert.equal(investmentRangeStartForTest('all', LATE_NIGHT_BRT), undefined);
+test('virada do ano às 22:00 BRT: o mês corrente ainda é dezembro', () => {
+  // Chave do documento do mês que o Dashboard escuta (P5-C1); as janelas do
+  // relatório são resolvidas no servidor (`functions/src/reports/window.ts`).
+  assert.equal(saoPauloDayKey(NEW_YEAR_EVE_BRT), '2026-12-31');
+  assert.equal(saoPauloMonthKey(NEW_YEAR_EVE_BRT), '2026-12');
 });
 
 test('o offset é resolvido por data, e não fixado em -3', () => {

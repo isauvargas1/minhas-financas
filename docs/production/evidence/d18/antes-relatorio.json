@@ -1,0 +1,156 @@
+{
+ "arvore": "before",
+ "estadosEm": "items",
+ "painel-owner-desktop-claro": {
+  "painelEsquerda": 757,
+  "painelDireita": 1141,
+  "larguraTela": 1440,
+  "acoesCortadasNaTela": 0,
+  "overflow": 0,
+  "hoverNone": false,
+  "botoesExcluir": 0,
+  "botoesArquivar": 4
+ },
+ "axe-painel-desktop-claro": [],
+ "painel-owner-acoes-desktop-claro": {
+  "painelEsquerda": 757,
+  "painelDireita": 1141,
+  "larguraTela": 1440,
+  "acoesCortadasNaTela": 0,
+  "overflow": 0,
+  "hoverNone": false,
+  "botoesExcluir": 0,
+  "botoesArquivar": 4
+ },
+ "axe-painel-acoes-desktop-claro": [],
+ "teclado-ordem-do-tab-desktop-claro": [
+  "Marcar exibidas como lidas",
+  "Fechar notificações",
+  "Arquivar para mim: Fatura vencida",
+  "Arquivar para mim: Fatura próxima do vencimento",
+  "Arquivar para mim: Fatura fechada"
+ ],
+ "teclado-foco-no-arquivar-desktop-claro": "Arquivar para mim: Fatura vencida",
+ "painel-viewer-desktop-claro": {
+  "painelEsquerda": 757,
+  "painelDireita": 1141,
+  "larguraTela": 1440,
+  "acoesCortadasNaTela": 0,
+  "overflow": 0,
+  "hoverNone": false,
+  "botoesExcluir": 0,
+  "botoesArquivar": 4
+ },
+ "axe-painel-viewer-desktop-claro": [],
+ "painel-vazio-desktop-claro": {
+  "painelEsquerda": 757,
+  "painelDireita": 1141,
+  "larguraTela": 1440,
+  "acoesCortadasNaTela": 0,
+  "overflow": 0,
+  "hoverNone": false,
+  "botoesExcluir": 0,
+  "botoesArquivar": 0
+ },
+ "axe-painel-vazio-desktop-claro": [],
+ "painel-owner-desktop-escuro": {
+  "painelEsquerda": 757,
+  "painelDireita": 1141,
+  "larguraTela": 1440,
+  "acoesCortadasNaTela": 0,
+  "overflow": 0,
+  "hoverNone": false,
+  "botoesExcluir": 0,
+  "botoesArquivar": 4
+ },
+ "painel-owner-acoes-desktop-escuro": {
+  "painelEsquerda": 757,
+  "painelDireita": 1141,
+  "larguraTela": 1440,
+  "acoesCortadasNaTela": 0,
+  "overflow": 0,
+  "hoverNone": false,
+  "botoesExcluir": 0,
+  "botoesArquivar": 4
+ },
+ "painel-viewer-desktop-escuro": {
+  "painelEsquerda": 757,
+  "painelDireita": 1141,
+  "larguraTela": 1440,
+  "acoesCortadasNaTela": 0,
+  "overflow": 0,
+  "hoverNone": false,
+  "botoesExcluir": 0,
+  "botoesArquivar": 4
+ },
+ "painel-vazio-desktop-escuro": {
+  "painelEsquerda": 757,
+  "painelDireita": 1141,
+  "larguraTela": 1440,
+  "acoesCortadasNaTela": 0,
+  "overflow": 0,
+  "hoverNone": false,
+  "botoesExcluir": 0,
+  "botoesArquivar": 0
+ },
+ "painel-owner-mobile-claro": {
+  "painelEsquerda": -268,
+  "painelDireita": 52,
+  "larguraTela": 390,
+  "acoesCortadasNaTela": 0,
+  "overflow": 0,
+  "hoverNone": true,
+  "botoesExcluir": 0,
+  "botoesArquivar": 4
+ },
+ "painel-viewer-mobile-claro": {
+  "painelEsquerda": -268,
+  "painelDireita": 52,
+  "larguraTela": 390,
+  "acoesCortadasNaTela": 0,
+  "overflow": 0,
+  "hoverNone": true,
+  "botoesExcluir": 0,
+  "botoesArquivar": 4
+ },
+ "painel-vazio-mobile-claro": {
+  "painelEsquerda": -268,
+  "painelDireita": 52,
+  "larguraTela": 390,
+  "acoesCortadasNaTela": 0,
+  "overflow": 0,
+  "hoverNone": true,
+  "botoesExcluir": 0,
+  "botoesArquivar": 0
+ },
+ "painel-owner-mobile-escuro": {
+  "painelEsquerda": -268,
+  "painelDireita": 52,
+  "larguraTela": 390,
+  "acoesCortadasNaTela": 0,
+  "overflow": 0,
+  "hoverNone": true,
+  "botoesExcluir": 0,
+  "botoesArquivar": 4
+ },
+ "painel-viewer-mobile-escuro": {
+  "painelEsquerda": -268,
+  "painelDireita": 52,
+  "larguraTela": 390,
+  "acoesCortadasNaTela": 0,
+  "overflow": 0,
+  "hoverNone": true,
+  "botoesExcluir": 0,
+  "botoesArquivar": 4
+ },
+ "painel-vazio-mobile-escuro": {
+  "painelEsquerda": -268,
+  "painelDireita": 52,
+  "larguraTela": 390,
+  "acoesCortadasNaTela": 0,
+  "overflow": 0,
+  "hoverNone": true,
+  "botoesExcluir": 0,
+  "botoesArquivar": 0
+ }
+}

@@ -159,6 +159,9 @@ export interface AuthoritativeRecurringExpense extends ScheduleRule {
   executionMode: RecurringExecutionMode;
   cardId: string | null;
   cashAccountId: string | null;
+  /** ID estável da categoria de despesa do catálogo (D-37.8). */
+  categoryId: string;
+  /** Retrato do nome da categoria (lido do catálogo pelo backend). */
   category: string;
   status: RecurringStatus;
   nextDueDate: string | null;
@@ -255,6 +258,7 @@ export const readAuthoritativeRecurringExpense = (
     !isOneOf(RECURRING_EXECUTION_MODES, data.executionMode) ||
     !isNullableText(data.cardId) ||
     !isNullableText(data.cashAccountId) ||
+    !isText(data.categoryId) ||
     !isText(data.category) ||
     !isOneOf(RECURRING_STATUSES, data.status) ||
     !isNullableDay(data.nextDueDate) ||
@@ -303,6 +307,7 @@ export const readAuthoritativeRecurringExpense = (
     executionMode: data.executionMode,
     cardId: data.cardId,
     cashAccountId: data.cashAccountId,
+    categoryId: data.categoryId,
     category: data.category,
     status: data.status,
     nextDueDate: data.nextDueDate,

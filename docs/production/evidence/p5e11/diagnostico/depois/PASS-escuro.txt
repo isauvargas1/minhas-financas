@@ -1,0 +1,169 @@
+STATUS PASS-r0
+STATES [["ca_0a7efa93aac0b37b5793ac2f50ca5c24",{"read":true,"dismissed":null,"deleted":null}],["f_00",{"read":null,"dismissed":true,"deleted":null}],["f_01",{"read":null,"dismissed":true,"deleted":null}],["f_02",{"read":null,"dismissed":true,"deleted":null}],["f_03",{"read":null,"dismissed":true,"deleted":null}],["f_04",{"read":null,"dismissed":true,"deleted":null}]]
+1791885245612 P DOM open=false bell="Notificações" items=
+1791885245786 N RES 200 /minhas-financas-local/southamerica-east1/getNotificationUnreadCount
+1791885245799 P DOM open=false bell="Notificações, 13 não lidas" items=
+1791885245805 N RES 200 /minhas-financas-local/southamerica-east1/getWorkspaceEntitlement
+1791885245830 N RES 200 /google.firestore.v1.Firestore/Listen/channel?VER=8&database=projects%2Fminhas-financas-local%2Fdatabases%2F(d
+1791885245845 N REQ /google.firestore.v1.Firestore/Listen/channel?VER=8&database=projects%2Fminhas-financas-local%2Fdatabases%2F(d raw=count=1&ofs=16&req0___data__=%7B%22database%22%3A%22projects
+1791885245870 N RES 200 /google.firestore.v1.Firestore/Listen/channel?VER=8&database=projects%2Fminhas-financas-local%2Fdatabases%2F(d
+1791885245875 N REQ /google.firestore.v1.Firestore/Listen/channel?VER=8&database=projects%2Fminhas-financas-local%2Fdatabases%2F(d raw=count=6&ofs=17&req0___data__=%7B%22database%22%3A%22projects
+1791885245949 N RES 200 /google.firestore.v1.Firestore/Listen/channel?VER=8&database=projects%2Fminhas-financas-local%2Fdatabases%2F(d
+1791885245954 N REQ /google.firestore.v1.Firestore/Listen/channel?VER=8&database=projects%2Fminhas-financas-local%2Fdatabases%2F(d raw=count=1&ofs=23&req0___data__=%7B%22database%22%3A%22projects
+1791885245973 N RES 200 /google.firestore.v1.Firestore/Listen/channel?VER=8&database=projects%2Fminhas-financas-local%2Fdatabases%2F(d
+1791885246532 N CONSOLE warning Couldn't load preload assets:  ProgressEvent
+1791885246533 N CONSOLE error Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID
+1791885247056 N CONSOLE warning Couldn't load preload assets:  ProgressEvent
+1791885247057 N CONSOLE error Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID
+1791885247109 P EV pointerdown svg. <BUTTON:Notificações, 13 não lidas> conn=true xy=34,88
+1791885247109 P EV pointerup svg. <BUTTON:Notificações, 13 não lidas> conn=true xy=34,88
+1791885247109 P EV touchstart svg. <BUTTON:Notificações, 13 não lidas> conn=true xy=34,88
+1791885247110 P EV touchend svg. <BUTTON:Notificações, 13 não lidas> conn=true xy=34,88
+1791885247112 P EV mousedown svg. <BUTTON:Notificações, 13 não lidas> conn=true xy=34,88
+1791885247113 P EV click svg. <BUTTON:Notificações, 13 não lidas> conn=true xy=34,88
+1791885247113 P EV mouseup svg. <BUTTON:Notificações, 13 não lidas> conn=true xy=34,88
+1791885247113 P FOCUS BUTTON.relative.p-2.rounded-full <BUTTON:Notificações, 13 não lidas> conn=true
+1791885247166 P DOM open=true bell="Notificações, 13 não lidas" items=00,01,02,03,04,05,06,07,08,09,10,11
+1791885247919 N RES 200 /minhas-financas-local/southamerica-east1/getFinancialReport
+1791885248211 N CONSOLE error Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID
+1791885248211 N CONSOLE warning Couldn't load preload assets:  ProgressEvent
+1791885248782 N CONSOLE error Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID
+1791885248782 N CONSOLE warning Couldn't load preload assets:  ProgressEvent
+1791885248844 P EV pointerdown H4.text-sm.font-semibold.truncate <-:> conn=true xy=167,218
+1791885248844 P EV touchstart H4.text-sm.font-semibold.truncate <-:> conn=true xy=167,218
+1791885248845 P EV pointerup H4.text-sm.font-semibold.truncate <-:> conn=true xy=167,218
+1791885248845 P EV touchend H4.text-sm.font-semibold.truncate <-:> conn=true xy=167,218
+1791885248847 P EV mousedown H4.text-sm.font-semibold.truncate <-:> conn=true xy=167,218
+1791885248849 P EV click H4.text-sm.font-semibold.truncate <-:> conn=true xy=167,218
+1791885248849 P EV mouseup H4.text-sm.font-semibold.truncate <-:> conn=true xy=167,218
+1791885248872 P DOM open=false bell="Notificações, 13 não lidas" items=
+1791885248890 N REQ /google.firestore.v1.Firestore/Listen/channel?VER=8&database=projects%2Fminhas-financas-local%2Fdatabases%2F(d raw=count=1&ofs=24&req0___data__=%7B%22database%22%3A%22projects
+1791885248915 N REQ /D:batchGet?key=e2e-api-key batchGet notification_entries/ca_0a7efa93aac0b37b5793ac2f50ca5c24
+1791885248948 N RES 200 /google.firestore.v1.Firestore/Listen/channel?VER=8&database=projects%2Fminhas-financas-local%2Fdatabases%2F(d
+1791885248962 N REQ /google.firestore.v1.Firestore/Listen/channel?VER=8&database=projects%2Fminhas-financas-local%2Fdatabases%2F(d raw=count=1&ofs=25&req0___data__=%7B%22database%22%3A%22projects
+1791885248963 N RES 200 /D:batchGet?key=e2e-api-key
+1791885248968 N REQ /D:batchGet?key=e2e-api-key batchGet notifications/ca_0a7efa93aac0b37b5793ac2f50ca5c24
+1791885248989 N RES 200 /google.firestore.v1.Firestore/Listen/channel?VER=8&database=projects%2Fminhas-financas-local%2Fdatabases%2F(d
+1791885248995 N RES 200 /minhas-financas-local/southamerica-east1/getFinancialReport
+1791885249013 N REQ /D:commit?key=e2e-api-key commit writes=notification_entries/ca_0a7efa93aac0b37b5793ac2f50ca5c24,? tx=no
+1791885249013 N RES 200 /D:batchGet?key=e2e-api-key
+1791885249050 N RES 200 /D:commit?key=e2e-api-key
+1791885249051 N REQ /minhas-financas-local/southamerica-east1/getNotificationUnreadCount callable data={"workspaceId":"p5d2-f-mv6i7jaz"}
+1791885249137 N RES 200 /minhas-financas-local/southamerica-east1/getNotificationUnreadCount
+1791885249140 P DOM open=false bell="Notificações, 12 não lidas" items=
+1791885249208 N CONSOLE error Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED
+1791885249232 P EV click line. <BUTTON:Abrir menu> conn=true xy=35,35
+1791885249232 P EV mousedown line. <BUTTON:Abrir menu> conn=true xy=35,35
+1791885249232 P EV mouseup line. <BUTTON:Abrir menu> conn=true xy=35,35
+1791885249232 P EV pointerdown line. <BUTTON:Abrir menu> conn=true xy=35,35
+1791885249232 P EV pointerup line. <BUTTON:Abrir menu> conn=true xy=35,35
+1791885249232 P FOCUS BUTTON.lg:hidden.p-2.rounded-md <BUTTON:Abrir menu> conn=true
+1791885249261 P FOCUS A.flex.items-center.py-3 <A:Dashboard> conn=true
+1791885249347 P EV pointerdown SPAN.ml-4.whitespace-nowrap.transition-opacity <A:Relatórios> conn=true xy=41,400
+1791885249348 P EV pointerup SPAN.ml-4.whitespace-nowrap.transition-opacity <A:Relatórios> conn=true xy=41,400
+1791885249348 P EV touchend SPAN.ml-4.whitespace-nowrap.transition-opacity <A:Relatórios> conn=true xy=41,400
+1791885249348 P EV touchstart SPAN.ml-4.whitespace-nowrap.transition-opacity <A:Relatórios> conn=true xy=41,400
+1791885249349 P EV click SPAN.ml-4.whitespace-nowrap.transition-opacity <A:Relatórios> conn=true xy=41,400
+1791885249349 P EV mousedown SPAN.ml-4.whitespace-nowrap.transition-opacity <A:Relatórios> conn=true xy=41,400
+1791885249349 P EV mouseup SPAN.ml-4.whitespace-nowrap.transition-opacity <A:Relatórios> conn=true xy=41,400
+1791885249349 P FOCUS A.flex.items-center.py-3 <A:Relatórios> conn=true
+1791885249368 N REQ /minhas-financas-local/southamerica-east1/getFinancialReport callable data={"workspaceId":"p5d2-f-mv6i7jaz","range":{"kind":"preset","preset":"30d"}}
+1791885249516 N CONSOLE error Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED
+1791885249538 N RES 200 /minhas-financas-local/southamerica-east1/getFinancialReport
+1791885249779 N CONSOLE error Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED
+1791885250539 N CONSOLE warning Couldn't load preload assets:  ProgressEvent
+1791885250540 N CONSOLE error Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID
+1791885250545 N MARK reabrir painel
+1791885250595 P EV pointerdown svg. <BUTTON:Notificações, 12 não lidas> conn=true xy=34,88
+1791885250595 P EV pointerup svg. <BUTTON:Notificações, 12 não lidas> conn=true xy=34,88
+1791885250595 P EV touchend svg. <BUTTON:Notificações, 12 não lidas> conn=true xy=34,88
+1791885250595 P EV touchstart svg. <BUTTON:Notificações, 12 não lidas> conn=true xy=34,88
+1791885250597 P EV mousedown svg. <BUTTON:Notificações, 12 não lidas> conn=true xy=34,88
+1791885250598 P EV click svg. <BUTTON:Notificações, 12 não lidas> conn=true xy=34,88
+1791885250598 P EV mouseup svg. <BUTTON:Notificações, 12 não lidas> conn=true xy=34,88
+1791885250598 P FOCUS BUTTON.relative.p-2.rounded-full <BUTTON:Notificações, 12 não lidas> conn=true
+1791885250619 P DOM open=true bell="Notificações, 12 não lidas" items=00,01,02,03,04,05,06,07,08,09,10,11
+1791885250636 N MARK arquivar F 00
+1791885250920 P EV pointerdown path. <BUTTON:Arquivar para mim: Aviso F 00> conn=true xy=304,15
+1791885250920 P EV touchstart path. <BUTTON:Arquivar para mim: Aviso F 00> conn=true xy=304,15
+1791885250921 P EV pointerup path. <BUTTON:Arquivar para mim: Aviso F 00> conn=true xy=304,15
+1791885250921 P EV touchend path. <BUTTON:Arquivar para mim: Aviso F 00> conn=true xy=304,15
+1791885250942 N MARK arquivar F 01
+1791885250942 N REQ /D:batchGet?key=e2e-api-key batchGet notification_entries/f_00
+1791885250981 N REQ /D:batchGet?key=e2e-api-key batchGet notifications/f_00
+1791885250981 N RES 200 /D:batchGet?key=e2e-api-key
+1791885251004 N RES 200 /D:batchGet?key=e2e-api-key
+1791885251005 N REQ /D:commit?key=e2e-api-key commit writes=notification_entries/f_00,? tx=no
+1791885251037 N RES 200 /D:commit?key=e2e-api-key
+1791885251039 N REQ /minhas-financas-local/southamerica-east1/getNotificationUnreadCount callable data={"workspaceId":"p5d2-f-mv6i7jaz"}
+1791885251167 N RES 200 /minhas-financas-local/southamerica-east1/getNotificationUnreadCount
+1791885251172 P DOM open=true bell="Notificações, 11 não lidas" items=00,01,02,03,04,05,06,07,08,09,10,11
+1791885251277 P EV pointerdown path. <BUTTON:Arquivar para mim: Aviso F 01> conn=true xy=304,15
+1791885251278 P EV pointerup path. <BUTTON:Arquivar para mim: Aviso F 01> conn=true xy=304,15
+1791885251278 P EV touchend path. <BUTTON:Arquivar para mim: Aviso F 01> conn=true xy=304,15
+1791885251278 P EV touchstart path. <BUTTON:Arquivar para mim: Aviso F 01> conn=true xy=304,15
+1791885251281 N MARK arquivar F 02
+1791885251302 N REQ /D:batchGet?key=e2e-api-key batchGet notification_entries/f_01
+1791885251321 N REQ /D:batchGet?key=e2e-api-key batchGet notifications/f_01
+1791885251321 N RES 200 /D:batchGet?key=e2e-api-key
+1791885251341 N RES 200 /D:batchGet?key=e2e-api-key
+1791885251345 N REQ /D:commit?key=e2e-api-key commit writes=notification_entries/f_01,? tx=no
+1791885251345 P EV pointerdown path. <BUTTON:Arquivar para mim: Aviso F 02> conn=true xy=304,175
+1791885251345 P EV pointerup path. <BUTTON:Arquivar para mim: Aviso F 02> conn=true xy=304,175
+1791885251345 P EV touchend path. <BUTTON:Arquivar para mim: Aviso F 02> conn=true xy=304,175
+1791885251345 P EV touchstart path. <BUTTON:Arquivar para mim: Aviso F 02> conn=true xy=304,175
+1791885251348 N MARK arquivar F 03
+1791885251379 P DOM open=true bell="Notificações, 11 não lidas" items=01,02,03,04,05,06,07,08,09,10,11
+1791885251386 N REQ /minhas-financas-local/southamerica-east1/getNotificationUnreadCount callable data={"workspaceId":"p5d2-f-mv6i7jaz"}
+1791885251386 N RES 200 /D:commit?key=e2e-api-key
+1791885251399 N REQ /D:batchGet?key=e2e-api-key batchGet notification_entries/f_02
+1791885251422 N REQ /D:batchGet?key=e2e-api-key batchGet notifications/f_02
+1791885251422 N RES 200 /D:batchGet?key=e2e-api-key
+1791885251442 N RES 200 /minhas-financas-local/southamerica-east1/getNotificationUnreadCount
+1791885251447 N RES 200 /D:batchGet?key=e2e-api-key
+1791885251448 N REQ /D:commit?key=e2e-api-key commit writes=notification_entries/f_02,? tx=no
+1791885251450 P DOM open=true bell="Notificações, 10 não lidas" items=01,02,03,04,05,06,07,08,09,10,11
+1791885251496 N REQ /minhas-financas-local/southamerica-east1/getNotificationUnreadCount callable data={"workspaceId":"p5d2-f-mv6i7jaz"}
+1791885251496 N RES 200 /D:commit?key=e2e-api-key
+1791885251549 N RES 200 /minhas-financas-local/southamerica-east1/getNotificationUnreadCount
+1791885251553 P DOM open=true bell="Notificações, 9 não lidas" items=01,02,03,04,05,06,07,08,09,10,11
+1791885251680 P EV pointerdown path. <BUTTON:Arquivar para mim: Aviso F 03> conn=true xy=304,15
+1791885251680 P EV pointerup path. <BUTTON:Arquivar para mim: Aviso F 03> conn=true xy=304,15
+1791885251680 P EV touchend path. <BUTTON:Arquivar para mim: Aviso F 03> conn=true xy=304,15
+1791885251680 P EV touchstart path. <BUTTON:Arquivar para mim: Aviso F 03> conn=true xy=304,15
+1791885251682 N MARK esperar sino 8
+1791885251706 N REQ /D:batchGet?key=e2e-api-key batchGet notification_entries/f_03
+1791885251733 N REQ /D:batchGet?key=e2e-api-key batchGet notifications/f_03
+1791885251733 N RES 200 /D:batchGet?key=e2e-api-key
+1791885251768 N RES 200 /D:batchGet?key=e2e-api-key
+1791885251769 N REQ /D:commit?key=e2e-api-key commit writes=notification_entries/f_03,? tx=no
+1791885251822 P DOM open=true bell="Notificações, 9 não lidas" items=02,03,04,05,06,07,08,09,10,11
+1791885251830 N RES 200 /D:commit?key=e2e-api-key
+1791885251831 N REQ /minhas-financas-local/southamerica-east1/getNotificationUnreadCount callable data={"workspaceId":"p5d2-f-mv6i7jaz"}
+1791885251916 N RES 200 /minhas-financas-local/southamerica-east1/getNotificationUnreadCount
+1791885251918 P DOM open=true bell="Notificações, 8 não lidas" items=03,04,05,06,07,08,09,10,11
+1791885252028 N MARK limite da contagem gravado; arquivar F 04
+1791885252093 P EV pointerdown path. <BUTTON:Arquivar para mim: Aviso F 04> conn=true xy=304,80
+1791885252093 P EV pointerup path. <BUTTON:Arquivar para mim: Aviso F 04> conn=true xy=304,80
+1791885252093 P EV touchend path. <BUTTON:Arquivar para mim: Aviso F 04> conn=true xy=304,80
+1791885252093 P EV touchstart path. <BUTTON:Arquivar para mim: Aviso F 04> conn=true xy=304,80
+1791885252115 N REQ /D:batchGet?key=e2e-api-key batchGet notification_entries/f_04
+1791885252125 N RES 200 /D:batchGet?key=e2e-api-key
+1791885252127 N REQ /D:batchGet?key=e2e-api-key batchGet notifications/f_04
+1791885252143 N REQ /D:commit?key=e2e-api-key commit writes=notification_entries/f_04,? tx=no
+1791885252143 N RES 200 /D:batchGet?key=e2e-api-key
+1791885252146 P DOM open=true bell="Notificações, 8 não lidas" items=04,05,06,07,08,09,10,11
+1791885252167 N RES 200 /D:commit?key=e2e-api-key
+1791885252171 N REQ /minhas-financas-local/southamerica-east1/getNotificationUnreadCount callable data={"workspaceId":"p5d2-f-mv6i7jaz"}
+1791885252190 N CONSOLE error Failed to load resource: the server responded with a status of 400 (Bad Request)
+1791885252190 N RES 400 /minhas-financas-local/southamerica-east1/getNotificationUnreadCount
+1791885252194 P DOM open=true bell="Notificações, total de não lidas indisponível" items=04,05,06,07,08,09,10,11
+1791885252510 P DOM open=true bell="Notificações, total de não lidas indisponível" items=05,06,07,08,09,10,11
+1791885252914 N CONSOLE error Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID
+1791885252914 N CONSOLE warning Couldn't load preload assets:  ProgressEvent
+1791885253482 N CONSOLE warning Couldn't load preload assets:  ProgressEvent
+1791885253484 N CONSOLE error Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID
+1791885253904 N CONSOLE error Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID
+1791885253904 N CONSOLE warning Couldn't load preload assets:  ProgressEvent
+1791885253906 N MARK esperar 7 itens
+1791885253911 N MARK 7 itens ok

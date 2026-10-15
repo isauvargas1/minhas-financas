@@ -6,35 +6,42 @@ import type {WorkspaceActor, WorkspaceRole} from "../shared/workspaceAuth";
 import {
   archiveGoalPayloadSchema,
   createGoalPayloadSchema,
+  getGoalKpiProgressPayloadSchema,
+  getGoalsOverviewPayloadSchema,
+  setGoalStatusPayloadSchema,
+  updateGoalManualProgressPayloadSchema,
   updateGoalPayloadSchema,
 } from "./contracts";
+import {executeGetGoalKpiProgress, executeGetGoalsOverview} from "./kpi";
 import {
   executeArchiveGoal,
   executeCreateGoal,
+  executeSetGoalStatus,
   executeUpdateGoal,
+  executeUpdateGoalManualProgress,
 } from "./operations";
 
-type GoalRole = Extract<WorkspaceRole, "owner" | "admin" | "member">;
-
-const ALL_ACTIVE_ROLES: GoalRole[] = ["owner", "admin", "member"];
+const MANAGER_ROLES: WorkspaceRole[] = ["owner", "admin", "member"];
+const READER_ROLES: WorkspaceRole[] = ["owner", "admin", "member", "viewer"];
 
 /**
  * Matriz declarativa de papéis das callables de metas.
  *
- * Segue o formato de `investments/writeStrategy.ts`. Antes, o papel de cada
- * operação vivia solto no ponto de construção da callable, sem nada que
- * pudesse ser afirmado por teste: `rebuildGoalProgress` aceitava `member`
- * enquanto a contraparte do domínio patrimonial exigia `owner`/`admin`, e a
- * divergência não aparecia em lugar nenhum.
- *
- * A matriz é a única fonte, e o teste percorre ela inteira — uma callable nova
- * sem entrada aqui não compila.
+ * Segue o formato de `investments/writeStrategy.ts`: a matriz é a única
+ * fonte, e o teste percorre ela inteira — uma callable nova sem entrada aqui
+ * não compila. Owner, admin e member gerenciam metas (D-31.5); viewer só lê,
+ * e as únicas callables abertas a ele são as de leitura (contagem do painel e
+ * indicadores PJ), que não escrevem nada.
  */
 export const GOAL_OPERATION_ROLES = {
-  createGoal: ALL_ACTIVE_ROLES,
-  updateGoal: ALL_ACTIVE_ROLES,
-  archiveGoal: ALL_ACTIVE_ROLES,
-} as const satisfies Record<string, readonly GoalRole[]>;
+  createGoal: MANAGER_ROLES,
+  updateGoal: MANAGER_ROLES,
+  updateGoalManualProgress: MANAGER_ROLES,
+  setGoalStatus: MANAGER_ROLES,
+  archiveGoal: MANAGER_ROLES,
+  getGoalsOverview: READER_ROLES,
+  getGoalKpiProgress: READER_ROLES,
+} as const satisfies Record<string, readonly WorkspaceRole[]>;
 
 type GoalOperation = keyof typeof GOAL_OPERATION_ROLES;
 
@@ -45,16 +52,8 @@ const requireActor = (actor: WorkspaceActor | null): WorkspaceActor => {
 };
 
 /**
- * As callables de metas não declaravam recurso nenhum.
- *
- * `setGlobalOptions` fixa região e `maxInstances`, mas não tempo limite nem
- * memória: as sete rodavam no padrão da plataforma, 60 s e 256 MiB. Serve para
- * criar e editar meta; **não** serve para `rebuildGoalProgress`, que soma os
- * aportes fora da transação, por páginas com cursor, até o teto de 100.000 —
- * mais de trezentas consultas sequenciais no pior caso. O corte por tempo
- * aconteceria no meio da varredura, e a reconciliação que a área operacional
- * oferece falharia justamente nas metas grandes, que são as únicas que
- * precisam dela.
+ * Recursos declarados explicitamente: `setGlobalOptions` fixa região e
+ * `maxInstances`, mas não tempo limite nem memória.
  */
 const goalCallable = <TPayload extends {workspaceId: string}>(
   operation: GoalOperation,
@@ -62,15 +61,15 @@ const goalCallable = <TPayload extends {workspaceId: string}>(
   execute: (
     actor: WorkspaceActor,
     payload: TPayload,
-  ) => Promise<Record<string, unknown>>,
+  ) => Promise<object>,
 ) => {
   return defineCallable({
     operation,
     schema,
     runtime: DOMAIN_CALLABLE_OPTIONS,
     workspaceRoles: [...GOAL_OPERATION_ROLES[operation]],
-    // A pré-checagem do kernel recusa cedo; a decisão que vale é a releitura
-    // dentro da transação de cada operação (`operations.ts`).
+    // A pré-checagem do kernel recusa cedo; nas mutações, a decisão que vale
+    // é a releitura dentro da transação de cada operação (`operations.ts`).
     handler: ({actor, payload}) => execute(requireActor(actor), payload),
   });
 };
@@ -87,8 +86,32 @@ export const updateGoal = goalCallable(
   executeUpdateGoal,
 );
 
+export const updateGoalManualProgress = goalCallable(
+  "updateGoalManualProgress",
+  updateGoalManualProgressPayloadSchema,
+  executeUpdateGoalManualProgress,
+);
+
+export const setGoalStatus = goalCallable(
+  "setGoalStatus",
+  setGoalStatusPayloadSchema,
+  executeSetGoalStatus,
+);
+
 export const archiveGoal = goalCallable(
   "archiveGoal",
   archiveGoalPayloadSchema,
   executeArchiveGoal,
+);
+
+export const getGoalsOverview = goalCallable(
+  "getGoalsOverview",
+  getGoalsOverviewPayloadSchema,
+  (actor) => executeGetGoalsOverview(actor),
+);
+
+export const getGoalKpiProgress = goalCallable(
+  "getGoalKpiProgress",
+  getGoalKpiProgressPayloadSchema,
+  (actor, payload) => executeGetGoalKpiProgress(actor, payload),
 );
