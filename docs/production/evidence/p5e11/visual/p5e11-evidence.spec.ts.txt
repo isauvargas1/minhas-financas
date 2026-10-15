@@ -1,0 +1,324 @@
+import { expect, test, type Browser, type Page } from '@playwright/test';
+import { mkdirSync, writeFileSync } from 'node:fs';
+
+import { PASSWORD } from './support/loans';
+import { adminSdk, seedAccountProfile, seedMembership, seedOwnedWorkspace } from './support/workspaceSeed';
+import { audit, horizontalOverflow, VIEWPORTS, type Scheme, type ViewportName } from './p4d-evidence-common';
+
+/*
+ * P5-E1.1 — evidência visual com o mesmo roteiro e os mesmos dados na árvore
+ * anterior (P5-E1, 43ffbfa1) e na árvore final da P5-E1.1:
+ * - painel de notificações (dono com 30 não lidas, viewer, vazio, total
+ *   indisponível e a lista depois de arquivar dois avisos, com as saídas
+ *   concluídas), desktop e celular (toque), claro e escuro;
+ * - diálogo de envio ao provedor (variante análise) em 1440×900, 390×844 e
+ *   360×740: captura, axe e se o corpo rola e é focável.
+ * Arquivo temporário de evidência; não faz parte da suíte.
+ */
+test.setTimeout(3_000_000);
+
+const TREE = process.env.EVIDENCE_TREE === 'antes' ? 'antes' : 'depois';
+const STATES = 'notification_entries';
+
+const OWN = { uid: 'e2e-p5e11-ev-own', email: 'e2e-p5e11-ev-own@minhas-financas.local', ws: 'e2e-p5e11-ev-own' };
+const SHARED_OWNER = { uid: 'e2e-p5e11-ev-shared', email: 'e2e-p5e11-ev-shared@minhas-financas.local', ws: 'e2e-p5e11-ev-shared' };
+const VIEW = { uid: 'e2e-p5e11-ev-view', email: 'e2e-p5e11-ev-view@minhas-financas.local' };
+const EMPTY = { uid: 'e2e-p5e11-ev-empty', email: 'e2e-p5e11-ev-empty@minhas-financas.local', ws: 'e2e-p5e11-ev-empty' };
+const UNAV = { uid: 'e2e-p5e11-ev-unav', email: 'e2e-p5e11-ev-unav@minhas-financas.local', ws: 'e2e-p5e11-ev-unav' };
+const ARCH = { uid: 'e2e-p5e11-ev-arch', email: 'e2e-p5e11-ev-arch@minhas-financas.local', ws: 'e2e-p5e11-ev-arch' };
+
+const COMBOS: Array<[ViewportName, Scheme]> = [
+  ['desktop', 'light'], ['desktop', 'dark'], ['mobile', 'light'], ['mobile', 'dark'],
+];
+const label = (viewport: ViewportName, scheme: Scheme) => `${viewport}-${scheme === 'dark' ? 'escuro' : 'claro'}`;
+const RETENTION_MS = 180 * 86_400_000;
+const NOW = Date.now();
+const hoursAgo = (hours: number) => new Date(NOW - hours * 3_600_000).toISOString();
+
+interface EventSeed { id: string; title: string; message: string; createdAt: string }
+
+const FIXED_EVENTS: EventSeed[] = [
+  { id: 'ev_00', title: 'Fatura vencida', createdAt: hoursAgo(5.5), message: 'A fatura de outubro de 2026 do cartão Nubank venceu em 05/10 e está em aberto: R$ 1.234,56.' },
+  { id: 'ev_01', title: 'Fatura próxima do vencimento', createdAt: hoursAgo(26), message: 'A fatura de outubro de 2026 do cartão Inter vence em 3 dias: R$ 482,10.' },
+  { id: 'ev_02', title: 'Fatura fechada', createdAt: hoursAgo(50), message: 'A fatura de setembro de 2026 do cartão Nubank fechou com R$ 2.310,00.' },
+  { id: 'ev_03', title: 'Fatura paga', createdAt: hoursAgo(100), message: 'A fatura de agosto de 2026 do cartão Inter foi paga.' },
+];
+const OWNER_EVENTS: EventSeed[] = [
+  ...FIXED_EVENTS,
+  ...Array.from({ length: 26 }, (_, index) => ({
+    id: `ev_${String(index + 4).padStart(2, '0')}`,
+    title: `Fatura fechada ${String(index + 1).padStart(2, '0')}`,
+    message: 'A fatura do cartão Nubank fechou.',
+    createdAt: hoursAgo(120 + index),
+  })),
+];
+
+const resetEmulatorData = async () => {
+  const sdk = adminSdk();
+  const users = await sdk.auth().listUsers(1000);
+  if (users.users.length > 0) await sdk.auth().deleteUsers(users.users.map((user) => user.uid));
+  const db = sdk.firestore();
+  await Promise.all((await db.listCollections()).map((collection) => db.recursiveDelete(collection)));
+};
+
+const seedEvents = async (workspaceId: string, events: EventSeed[]) => {
+  const sdk = adminSdk();
+  const db = sdk.firestore();
+  const batch = db.batch();
+  for (const event of events) {
+    batch.set(db.doc(`workspaces/${workspaceId}/notifications/${event.id}`), {
+      id: event.id, workspaceId, title: event.title, message: event.message, type: 'credit_card',
+      link: 'cards', actionLabel: 'Ver cartões', createdAt: event.createdAt,
+      expiresAt: sdk.firestore.Timestamp.fromMillis(Date.parse(event.createdAt) + RETENTION_MS),
+      source: 'credit_card_invoice', domain: 'credit_card', domainEventType: 'invoice_closed',
+    });
+  }
+  await batch.commit();
+};
+
+const seedRead = async (workspaceId: string, uid: string, events: EventSeed[]) => {
+  const sdk = adminSdk();
+  const db = sdk.firestore();
+  const batch = db.batch();
+  for (const event of events) {
+    batch.set(db.doc(`workspaces/${workspaceId}/notification_user_states/${uid}/${STATES}/${event.id}`), {
+      read: true, readAt: sdk.firestore.Timestamp.now(),
+      expiresAt: sdk.firestore.Timestamp.fromMillis(Date.parse(event.createdAt) + RETENTION_MS),
+    });
+  }
+  await batch.commit();
+};
+
+const seedAll = async () => {
+  await resetEmulatorData();
+  const sdk = adminSdk();
+  for (const user of [OWN, SHARED_OWNER, VIEW, EMPTY, UNAV, ARCH]) {
+    await sdk.auth().createUser({ uid: user.uid, email: user.email, password: PASSWORD, emailVerified: true });
+  }
+  await seedOwnedWorkspace({ uid: OWN.uid, email: OWN.email, workspaceId: OWN.ws, name: 'Pessoal', type: 'PF' });
+  await seedEvents(OWN.ws, OWNER_EVENTS);
+  await seedOwnedWorkspace({ uid: SHARED_OWNER.uid, email: SHARED_OWNER.email, workspaceId: SHARED_OWNER.ws, name: 'Pessoal', type: 'PF' });
+  await seedAccountProfile({ uid: VIEW.uid, email: VIEW.email });
+  await seedMembership({ workspaceId: SHARED_OWNER.ws, uid: VIEW.uid, email: VIEW.email, role: 'viewer', name: 'Pessoal', type: 'PF' });
+  await seedEvents(SHARED_OWNER.ws, FIXED_EVENTS);
+  await seedRead(SHARED_OWNER.ws, VIEW.uid, FIXED_EVENTS.slice(3));
+  await seedOwnedWorkspace({ uid: EMPTY.uid, email: EMPTY.email, workspaceId: EMPTY.ws, name: 'Pessoal', type: 'PF' });
+  await seedOwnedWorkspace({ uid: ARCH.uid, email: ARCH.email, workspaceId: ARCH.ws, name: 'Pessoal', type: 'PF' });
+  await seedEvents(ARCH.ws, FIXED_EVENTS);
+  await seedOwnedWorkspace({ uid: UNAV.uid, email: UNAV.email, workspaceId: UNAV.ws, name: 'Pessoal', type: 'PF' });
+  await seedEvents(UNAV.ws, FIXED_EVENTS);
+  await sdk.firestore().doc(`workspaces/${UNAV.ws}/rate_limits/getNotificationUnreadCount_${UNAV.uid.replace(/[^a-zA-Z0-9_-]/g, '_')}`).set({
+    id: 'x', workspaceId: UNAV.ws, actorId: UNAV.uid, operation: 'getNotificationUnreadCount',
+    windowStart: sdk.firestore.Timestamp.now(), windowSeconds: 3600, limit: 600, count: 600,
+    expiresAt: sdk.firestore.Timestamp.fromMillis(Date.now() + 86_400_000),
+  });
+};
+
+const loginDevice = async (browser: Browser, email: string, viewport: ViewportName, scheme: Scheme) => {
+  const context = await browser.newContext({
+    viewport: VIEWPORTS[viewport], colorScheme: scheme, locale: 'pt-BR', timezoneId: 'America/Sao_Paulo',
+    deviceScaleFactor: 1,
+    ...(viewport === 'mobile' ? { isMobile: true, hasTouch: true } : {}),
+  });
+  const page = await context.newPage();
+  page.setDefaultTimeout(30_000);
+  await page.goto(`/?e2eEmail=${encodeURIComponent(email)}&e2ePassword=${PASSWORD}`);
+  await page.getByTestId('e2e-login-button').click();
+  await expect(page.getByText('Saldo Atual').first()).toBeVisible({ timeout: 45_000 });
+  const html = page.locator('html');
+  const isDark = async () => /(^|\s)dark(\s|$)/.test((await html.getAttribute('class')) ?? '');
+  if ((scheme === 'dark') !== (await isDark())) {
+    await page.getByRole('button', { name: scheme === 'dark' ? 'Ativar modo escuro' : 'Ativar modo claro' }).click();
+  }
+  await expect.poll(isDark).toBe(scheme === 'dark');
+  return page;
+};
+
+const loaded = async (page: Page) => {
+  await expect(page.getByText(/Carregando/).filter({ visible: true })).toHaveCount(0, { timeout: 60_000 });
+  await page.waitForTimeout(2_500);
+};
+
+const bell = (page: Page) => page.getByRole('button', { name: /^Notificações/ });
+const panelHeading = (page: Page) => page.getByRole('heading', { name: 'Notificações', level: 3 });
+
+const openPanel = async (page: Page) => {
+  await bell(page).click();
+  await expect(panelHeading(page)).toBeVisible();
+  await expect(page.getByText('Carregando notificações…')).toHaveCount(0, { timeout: 20_000 });
+  await page.waitForTimeout(800);
+};
+
+const tagPanel = (page: Page) => page.evaluate(() => {
+  const heading = [...document.querySelectorAll('h3')].find((node) => node.textContent?.trim() === 'Notificações');
+  heading?.closest('.shadow-2xl')?.setAttribute('data-evidence', 'painel');
+  document.querySelector('header')?.setAttribute('data-evidence', 'cabecalho');
+});
+
+const awayFromPanel = async (page: Page) => {
+  const size = page.viewportSize() ?? VIEWPORTS.desktop;
+  await page.mouse.move(8, size.height - 8);
+};
+
+const quiet = async (page: Page) => {
+  await page.evaluate(() => Promise.all(document.getAnimations()
+    .filter((animation) => Number.isFinite(Number(animation.effect?.getComputedTiming().endTime)))
+    .map((animation) => animation.finished.catch(() => undefined))));
+  await page.waitForTimeout(900);
+};
+
+const axeOf = async (page: Page, scope: string) => {
+  const violations = await audit(page, scope);
+  return violations.map((violation: { id: string; impact: string | null; count: number; nodes: Array<{ html: string }> }) => ({
+    regra: violation.id, impacto: violation.impact, nos: violation.count,
+    exemplos: violation.nodes.slice(0, 3).map((node) => node.html.replace(/\s+/g, ' ').slice(0, 110)),
+  }));
+};
+
+const archiveButton = (page: Page, title: string) => page.getByRole('button', { name: `Arquivar para mim: ${title}` });
+
+test('P5-E1.1 — evidência visual', async ({ browser }) => {
+  const dir = process.env.EVIDENCE_DIR!;
+  mkdirSync(dir, { recursive: true });
+  const report: Record<string, unknown> = { arvore: TREE };
+
+  const step = async (name: string, action: () => Promise<void>) => {
+    try {
+      await action();
+    } catch (error) {
+      report[`erro-${name}`] = String(error).slice(0, 600);
+    }
+  };
+
+  const sino = async (page: Page) => {
+    const badge = await bell(page).innerText();
+    const painelAberto = (await panelHeading(page).count()) > 0;
+    const chip = painelAberto ? await panelHeading(page).locator('xpath=following-sibling::span[1]').innerText() : null;
+    return { rotuloDoSino: await bell(page).getAttribute('aria-label'), badge: badge.trim(), chipDoPainel: chip?.replace(/\s+/g, ' ').trim() ?? null };
+  };
+
+  const record = async (page: Page, name: string, extra: Record<string, unknown> = {}) => {
+    await quiet(page);
+    await page.screenshot({ path: `${dir}/${name}.png`, fullPage: false });
+    const geometria = await page.evaluate(() => {
+      const heading = [...document.querySelectorAll('h3')].find((node) => node.textContent?.trim() === 'Notificações');
+      const panel = heading?.closest('.shadow-2xl');
+      if (!panel) return null;
+      const rect = panel.getBoundingClientRect();
+      const titles = [...panel.querySelectorAll('h4')].map((node) => node.textContent?.trim() ?? '');
+      return { painelEsquerda: Math.round(rect.x), painelDireita: Math.round(rect.right), larguraTela: window.innerWidth, avisosNoDom: titles };
+    });
+    report[name] = { ...(geometria ?? {}), overflow: await horizontalOverflow(page), ...(await sino(page)), ...extra };
+  };
+
+  for (const [viewport, scheme] of COMBOS) {
+    const tag = label(viewport, scheme);
+    const desktop = viewport === 'desktop';
+    await seedAll();
+
+    const owner = await loginDevice(browser, OWN.email, viewport, scheme);
+    await loaded(owner);
+    await step(`sino-owner-${tag}`, async () => {
+      await tagPanel(owner);
+      await awayFromPanel(owner);
+      await record(owner, `sino-owner-${tag}`);
+      report[`axe-cabecalho-owner-${tag}`] = await axeOf(owner, '[data-evidence="cabecalho"]');
+    });
+    await step(`painel-owner-${tag}`, async () => {
+      await openPanel(owner);
+      await tagPanel(owner);
+      await awayFromPanel(owner);
+      await record(owner, `painel-owner-${tag}`);
+      report[`axe-painel-owner-${tag}`] = await axeOf(owner, '[data-evidence="painel"]');
+    });
+    // Diálogo de análise: abre na tela de IA e mede nos tamanhos pedidos.
+    await step(`dialogo-analise-${tag}`, async () => {
+      await owner.keyboard.press('Escape');
+      if (await panelHeading(owner).count()) await owner.getByRole('button', { name: 'Fechar notificações' }).click();
+      if (!desktop) await owner.getByRole('button', { name: 'Abrir menu', exact: true }).click();
+      const link = desktop
+        ? owner.getByText(/^Relatórios( Empresariais)?$/).first()
+        : owner.getByRole('complementary', { name: 'Menu principal' }).getByText(/^Relatórios( Empresariais)?$/).first();
+      await link.click();
+      await owner.getByText('IA Financeira', { exact: true }).click();
+      await expect(owner.getByRole('heading', { name: /^Consultor IA/ })).toBeVisible({ timeout: 30_000 });
+      const input = owner.getByPlaceholder('Digite sua pergunta sobre suas finanças...');
+      await input.fill('Quanto gastei com mercado neste período?');
+      await input.press('Enter');
+      const dialog = owner.getByRole('dialog', { name: 'Enviar pergunta ao assistente de IA' });
+      await expect(dialog).toBeVisible();
+      const sizes: Array<[string, { width: number; height: number }]> = desktop
+        ? [['1440x900', VIEWPORTS.desktop]]
+        : [['390x844', VIEWPORTS.mobile], ['360x740', { width: 360, height: 740 }]];
+      for (const [sizeLabel, size] of sizes) {
+        await owner.setViewportSize(size);
+        await quiet(owner);
+        await owner.screenshot({ path: `${dir}/dialogo-analise-${sizeLabel}-${scheme === 'dark' ? 'escuro' : 'claro'}.png` });
+        const body = await owner.locator('[data-testid="ai-share-dialog"] .overflow-y-auto.min-h-0').first().evaluate((node) => ({
+          rola: node.scrollHeight > node.clientHeight + 1, alturaVisivel: node.clientHeight, alturaConteudo: node.scrollHeight,
+          tabIndex: (node as HTMLElement).tabIndex, focavel: (node as HTMLElement).tabIndex >= 0,
+        }));
+        report[`dialogo-analise-${sizeLabel}-${scheme}`] = {
+          corpo: body, overflow: await horizontalOverflow(owner),
+          axe: await axeOf(owner, '[data-testid="ai-share-dialog"]'),
+        };
+      }
+      await owner.setViewportSize(VIEWPORTS[viewport]);
+    });
+    await owner.context().close();
+
+    const viewer = await loginDevice(browser, VIEW.email, viewport, scheme);
+    await loaded(viewer);
+    await step(`painel-viewer-${tag}`, async () => {
+      await openPanel(viewer);
+      await tagPanel(viewer);
+      await awayFromPanel(viewer);
+      await record(viewer, `painel-viewer-${tag}`);
+      report[`axe-painel-viewer-${tag}`] = await axeOf(viewer, '[data-evidence="painel"]');
+    });
+    await viewer.context().close();
+
+    const empty = await loginDevice(browser, EMPTY.email, viewport, scheme);
+    await loaded(empty);
+    await step(`painel-vazio-${tag}`, async () => {
+      await openPanel(empty);
+      await expect(empty.getByText('Tudo limpo por aqui!')).toBeVisible();
+      await tagPanel(empty);
+      await awayFromPanel(empty);
+      await record(empty, `painel-vazio-${tag}`);
+      report[`axe-painel-vazio-${tag}`] = await axeOf(empty, '[data-evidence="painel"]');
+    });
+    await empty.context().close();
+
+    // Lista depois de arquivar dois avisos, um de cada vez, com a saída concluída.
+    const arch = await loginDevice(browser, ARCH.email, viewport, scheme);
+    await loaded(arch);
+    await step(`painel-apos-arquivar-${tag}`, async () => {
+      await openPanel(arch);
+      for (const title of ['Fatura vencida', 'Fatura fechada']) {
+        const button = archiveButton(arch, title);
+        await (desktop ? button.click() : button.tap());
+        await expect(arch.getByRole('heading', { name: title, level: 4, exact: true })).toHaveCount(0, { timeout: 15_000 });
+        await quiet(arch);
+      }
+      await tagPanel(arch);
+      await awayFromPanel(arch);
+      await record(arch, `painel-apos-arquivar-${tag}`);
+      report[`axe-painel-apos-arquivar-${tag}`] = await axeOf(arch, '[data-evidence="painel"]');
+    });
+    await arch.context().close();
+
+    const unav = await loginDevice(browser, UNAV.email, viewport, scheme);
+    await loaded(unav);
+    await step(`painel-indisponivel-${tag}`, async () => {
+      await expect(bell(unav)).toHaveAccessibleName('Notificações, total de não lidas indisponível');
+      await openPanel(unav);
+      await tagPanel(unav);
+      await awayFromPanel(unav);
+      await record(unav, `painel-indisponivel-${tag}`);
+      report[`axe-painel-indisponivel-${tag}`] = await axeOf(unav, '[data-evidence="painel"]');
+    });
+    await unav.context().close();
+  }
+  writeFileSync(`${dir}/relatorio.json`, JSON.stringify(report, null, 1));
+});

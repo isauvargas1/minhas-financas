@@ -15,6 +15,10 @@ import {
   today,
 } from "../../loans/testSupport/loanTestSupport";
 import {
+  DEFAULT_INCOME_CATEGORY_ID,
+  seedDefaultCategories,
+} from "../../settingsCatalog/testSupport/categorySeeds";
+import {
   call,
   expectHttpsError,
   idempotencyKey,
@@ -252,6 +256,7 @@ async () => {
   const discounted = movements.find((m) => m.discountCents === 5_000);
   assert.equal(discounted?.cashCents, 45_000);
   // O espelho não é corrigido nem anulado pelo caixa manual.
+  await seedDefaultCategories(tenant.workspaceId);
   const mirrorVersion = formatIsoInstant(third$.updatedAt as Timestamp);
   await expectHttpsError(call(updateCashTransaction, tenant.owner, {
     workspaceId: tenant.workspaceId,
@@ -259,8 +264,8 @@ async () => {
     transactionId: third.cashTransactionId,
     expectedUpdatedAt: mirrorVersion,
     reason: "Tentativa pelo caixa manual",
-    entry: {type: "receita", description: "Outro", category: "Outros",
-      amountCents: 1, date: today(),
+    entry: {type: "receita", description: "Outro",
+      categoryId: DEFAULT_INCOME_CATEGORY_ID, amountCents: 1, date: today(),
       cashAccountId: defaultAccountOf(tenant.workspaceId)},
   }), "failed-precondition");
   await expectHttpsError(call(voidCashTransaction, tenant.owner, {

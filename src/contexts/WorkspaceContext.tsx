@@ -9,6 +9,13 @@ import { useAuth } from './AuthContext';
 interface WorkspaceContextValue {
     workspaces: Workspace[];
     activeWorkspace: Workspace;
+    /**
+     * Uid para o qual o workspace ativo foi carregado. Difere do usuário atual
+     * durante a troca de conta, até a seleção da nova conta: quem guarda dado
+     * por usuário e workspace (histórico do chat de IA, P5-A) só usa o par
+     * quando os dois coincidem.
+     */
+    activeWorkspaceUid: string | null;
     activeWorkspaceRole: Workspace['myRole'];
     canManageActiveWorkspace: boolean;
     isLoading: boolean;
@@ -73,6 +80,7 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children 
 
     const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
     const [activeWorkspace, setActiveWorkspace] = useState<Workspace | null>(null);
+    const [activeWorkspaceUid, setActiveWorkspaceUid] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [loadError, setLoadError] = useState<string | null>(null);
     const [workspaceCursor, setWorkspaceCursor] = useState<QueryDocumentSnapshot | null>(null);
@@ -81,8 +89,14 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children 
     // UID cuja conta o bootstrap confirmou; nunca vale para outro usuário.
     const [accountReadyUid, setAccountReadyUid] = useState<string | null>(null);
 
-    const applySelection = (workspace: Workspace) => {
+    const clearSelection = () => {
+        setActiveWorkspace(null);
+        setActiveWorkspaceUid(null);
+    };
+
+    const applySelection = (workspace: Workspace, uid: string) => {
         setActiveWorkspace(workspace);
+        setActiveWorkspaceUid(uid);
         if (user) {
             try {
                 localStorage.setItem(lastWorkspaceKey(user.uid), workspace.id);
@@ -119,7 +133,7 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children 
             if (list.length === 0) {
                 setWorkspaces([]);
                 setWorkspaceCursor(null);
-                setActiveWorkspace(null);
+                clearSelection();
                 setLoadError(LOAD_FAILURE_MESSAGE);
                 return;
             }
@@ -140,12 +154,12 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children 
                 [selected],
             ));
             setWorkspaceCursor(page.nextCursor);
-            applySelection(selected);
+            applySelection(selected, uid);
         } catch (error) {
             console.error("Falha ao carregar a conta e os workspaces", error);
             if (loadingUid.current !== uid) return;
             if (!bootstrapped) setAccountReadyUid(null);
-            setActiveWorkspace(null);
+            clearSelection();
             setLoadError(
                 callableErrorReason(error) === 'account_suspended'
                     ? workspaceErrorMessage(error, LOAD_FAILURE_MESSAGE)
@@ -164,7 +178,7 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children 
             setAccountReadyUid(null);
             setWorkspaces([]);
             setWorkspaceCursor(null);
-            setActiveWorkspace(null);
+            clearSelection();
             setLoadError(null);
             // Volta ao estado inicial: a próxima conta só vê o app depois do
             // próprio bootstrap e da própria listagem.
@@ -181,7 +195,7 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children 
                 setWorkspaces((current) => current.map((entry) => (
                     entry.id === workspace.id ? workspace : entry
                 )));
-                applySelection(workspace);
+                applySelection(workspace, uid);
             })
             .catch((error) => {
                 // Acesso removido entre a listagem e a seleção: recarrega a lista.
@@ -211,6 +225,7 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children 
     return (
         <WorkspaceContext.Provider value={{
             activeWorkspace: resolvedActiveWorkspace,
+            activeWorkspaceUid: activeWorkspace ? activeWorkspaceUid : null,
             activeWorkspaceRole,
             canManageActiveWorkspace,
             workspaces,

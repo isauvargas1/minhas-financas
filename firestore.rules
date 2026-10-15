@@ -453,14 +453,101 @@ function isBackendOwnedCollection(collectionName) {
       // saldo do workspace ficaria para trás; um cliente que conseguisse
       // apagá-la reabriria a duplicação. Server-only nos dois sentidos.
       'cash_period_events',
+      // P5-C1 (D-37.8) — projeção por categoria e acumuladores da
+      // reconstrução: só a callable `getFinancialReport` e a reconstrução
+      // (Admin SDK) leem e escrevem. Fora desta lista a catch-all daria
+      // leitura sem limite a qualquer membro.
+      'cash_category_years',
+      'cash_rebuild_shards',
       // P4-E (D-23) — catálogo de configurações: leitura pelo bloco próprio,
       // com teto de listagem; reservas de nome e auditoria fechadas. Fora
       // desta lista a catch-all concederia listagem sem limite a qualquer
       // membro, e leitura das reservas e da auditoria.
       'settings_catalog',
       'settings_catalog_uniques',
-      'settings_catalog_events'
+      'settings_catalog_events',
+      // P5-B (D-31) — metas: leitura pelo bloco próprio, com teto de
+      // listagem. O prefixo `goal_` não alcança `goals`; fora desta lista a
+      // catch-all concederia a qualquer membro listagem sem limite e
+      // neutralizaria o teto.
+      'goals',
+      // P5-D2.1 — trabalho pendente e confirmação durável dos avisos de
+      // recebível vencido: só a rotina (Admin SDK) e as operações de
+      // recebíveis leem e escrevem. Fora desta lista a catch-all daria a
+      // qualquer membro leitura do controle de entrega. Um cliente que
+      // criasse uma confirmação suprimiria o aviso; um que a apagasse
+      // reabriria a reemissão depois do TTL do aviso.
+      'receivable_overdue_queue',
+      'receivable_overdue_deliveries',
+      // P5-D1 (PR-NOTIF-01) — notificações: leitura pelo bloco próprio, com
+      // teto de listagem; o estado de cada usuário só pelo próprio dono.
+      // Fora desta lista a catch-all concederia a qualquer membro listagem
+      // sem limite das notificações e leitura do documento intermediário do
+      // estado de outro usuário.
+      'notifications',
+      'notification_user_states'
     ];
+}
+
+// P5-D1/D-18-NOTIF — estado privado de notificação
+// (`notification_user_states/{uid}/notification_entries/{notificationId}`):
+// só o dono, membro ativo do workspace.
+function isOwnNotificationState(workspaceId, stateOwner) {
+  return signedIn() &&
+    request.auth.uid == stateOwner &&
+    isMember(workspaceId);
+}
+
+// Forma do estado: `read`/`readAt`, `dismissed`/`dismissedAt` e
+// `deleted`/`deletedAt` (cada marca presente vem com o seu carimbo, é `true`
+// e o carimbo é timestamp) e `expiresAt` obrigatório (timestamp), cópia da
+// expiração do evento (D-18-NOTIF, 180 dias).
+function isValidNotificationState(data) {
+  return data.keys().hasOnly(['read', 'readAt', 'dismissed', 'dismissedAt',
+      'deleted', 'deletedAt', 'expiresAt']) &&
+    data.get('expiresAt', null) is timestamp &&
+    ('read' in data) == ('readAt' in data) &&
+    ('dismissed' in data) == ('dismissedAt' in data) &&
+    ('deleted' in data) == ('deletedAt' in data) &&
+    (!('read' in data) || (data.read == true && data.readAt is timestamp)) &&
+    (!('dismissed' in data) || (data.dismissed == true && data.dismissedAt is timestamp)) &&
+    (!('deleted' in data) || (data.deleted == true && data.deletedAt is timestamp));
+}
+
+// D-18-NOTIF — excluir para si (marca `deleted`) só owner, admin e member,
+// com o papel relido do membership (nunca enviado pelo cliente). Viewer lê,
+// marca como lida e arquiva, mas não exclui. Uma marca `deleted` já gravada
+// fica como está para qualquer papel (ninguém a remove nem a altera).
+function isAllowedNotificationDeletion(workspaceId) {
+  return !('deleted' in request.resource.data) ||
+    (resource != null && 'deleted' in resource.data) ||
+    hasRole(workspaceId, ['owner', 'admin', 'member']);
+}
+
+// Marca ausente, ou criada agora: `true` com o carimbo do servidor.
+function isNewNotificationMark(data, flag, stamp) {
+  return !(flag in data) ||
+    (data[flag] == true && data[stamp] == request.time);
+}
+
+// D-18-NOTIF — o estado nasce só para evento existente e ainda não
+// expirado, com a mesma expiração (Timestamp) do evento: o cliente não
+// escolhe, não prorroga nem remove o prazo.
+function isNotificationStateOfLiveEvent(workspaceId, notificationId) {
+  let event = get(/databases/$(database)/documents/workspaces/$(workspaceId)/notifications/$(notificationId));
+  return event != null &&
+    event.data.get('expiresAt', null) is timestamp &&
+    request.time < event.data.expiresAt &&
+    request.resource.data.expiresAt == event.data.expiresAt;
+}
+
+// Na atualização, uma marca já gravada fica como está (valor e carimbo);
+// uma marca ainda ausente pode nascer agora.
+function isKeptOrNewNotificationMark(flag, stamp) {
+  return (flag in resource.data)
+    ? (request.resource.data.get(flag, null) == resource.data[flag] &&
+        request.resource.data.get(stamp, null) == resource.data[stamp])
+    : isNewNotificationMark(request.resource.data, flag, stamp);
 }
 
     match /workspaces/{workspaceId} {
@@ -615,13 +702,23 @@ function isBackendOwnedCollection(collectionName) {
         allow create, update, delete: if false;
       }
 
+      // P5-B (D-31) — metas: escrita só pelas callables (Admin SDK);
+      // leitura por membro ativo, `viewer` incluso (somente leitura). A
+      // listagem tem teto de uma página do painel (25 + 1 de sonda para
+      // "carregar mais"): a lista é paginada por cursor e os contadores vêm
+      // de `getGoalsOverview`, nunca de uma leitura da coleção inteira.
       match /goals/{docId} {
-        allow read: if isMember(workspaceId);
+        allow get: if isMember(workspaceId);
+        allow list: if isMember(workspaceId) && request.query.limit <= 26;
         allow write: if false;
       }
 
+      // Trilha das metas (histórico do progresso manual, status,
+      // arquivamento): owner/admin, histórico de uma meta por vez, até 20.
       match /goal_audit_logs/{docId} {
-        allow read: if canWriteWorkspaceScopedData(workspaceId);
+        allow get: if canWriteWorkspaceScopedData(workspaceId);
+        allow list: if canWriteWorkspaceScopedData(workspaceId) &&
+          request.query.limit <= 20;
         allow write: if false;
       }
 
@@ -701,6 +798,17 @@ function isBackendOwnedCollection(collectionName) {
       // exclusivas do Admin SDK: o cliente não pode nem conferir nem forjar a
       // marca que decide se um delta financeiro é aplicado.
       match /cash_period_events/{docId} {
+        allow read, write: if false;
+      }
+
+      // P5-C1 (D-37.8) — projeção de caixa por categoria (uma geração por
+      // reconstrução) e shards da reconstrução. Backend-only nos dois
+      // sentidos: o cliente recebe as categorias pelo relatório autoritativo,
+      // nunca lê nem forja a projeção.
+      match /cash_category_years/{docId} {
+        allow read, write: if false;
+      }
+      match /cash_rebuild_shards/{docId} {
         allow read, write: if false;
       }
 
@@ -874,18 +982,77 @@ match /cash_account_events/{eventId} {
   allow write: if false;
 }
 
-match /notifications/{docId} {
-  allow read: if canReadWorkspaceScopedData(workspaceId);
+// P5-D1 (PR-NOTIF-01) — notificações. O evento é compartilhado pelo
+// workspace e só o backend grava (produtores com Admin SDK, ID
+// determinístico): nenhum papel cria, altera ou apaga — nem para marcar como
+// lida, nem para arquivar. Leitura de todo membro ativo (inclusive viewer),
+// com teto de listagem (o painel lê 25 + 1 de sonda por página).
+match /notifications/{notificationId} {
+  allow get: if canReadWorkspaceScopedData(workspaceId);
+  allow list: if canReadWorkspaceScopedData(workspaceId) &&
+    request.query.limit <= 50;
+  allow create, update, delete: if false;
+}
 
-  allow create: if false;
+// Estado de cada usuário sobre cada notificação: lida e arquivada para si.
+// Um documento por (usuário, notificação), nunca um mapa crescente. Só o
+// próprio usuário, membro ativo, lê e grava o seu; outro usuário, outro
+// workspace, conta suspensa e membro removido não alcançam nada. O documento
+// intermediário `notification_user_states/{uid}` não existe e é fechado.
+//
+// Cada marca é monotônica: nasce `true` com o carimbo `request.time` e
+// depois não muda nem some (não há "desmarcar" nem restaurar). Arquivar é
+// `dismissed`; excluir para si (D-18-NOTIF) é a marca `deleted` — um
+// tombstone individual, nunca `delete` do estado nem do evento. Escrita só em
+// workspace ativo (arquivado é somente leitura), só para notificação
+// existente e ainda não expirada: na criação, `expiresAt` é exatamente o do
+// evento (lido com `get`) e `request.time` precisa ser anterior a ele; na
+// atualização, `expiresAt` não muda e `request.time` precisa ser anterior a
+// ele. Custo de acesso: 5 fixos por requisição ou lote (`exists` e `get` do
+// perfil e do membership, `get` do workspace) e 1 por estado criado (`get`
+// da notificação); a atualização não lê o evento. Teto de 20 por lote; o
+// cliente grava em lotes de 10.
+match /notification_user_states/{stateOwner} {
+  allow read, write: if false;
 
-  allow update: if
-    canReadWorkspaceScopedData(workspaceId) &&
-    isWorkspaceActive(workspaceId) &&
-    request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']) &&
-    request.resource.data.read is bool;
+  match /notification_entries/{notificationId} {
+    allow get: if isOwnNotificationState(workspaceId, stateOwner);
+    allow list: if isOwnNotificationState(workspaceId, stateOwner) &&
+      request.query.limit <= 50;
+    allow create: if isOwnNotificationState(workspaceId, stateOwner) &&
+      isWorkspaceActive(workspaceId) &&
+      isValidNotificationState(request.resource.data) &&
+      isNotificationStateOfLiveEvent(workspaceId, notificationId) &&
+      isNewNotificationMark(request.resource.data, 'read', 'readAt') &&
+      isNewNotificationMark(request.resource.data, 'dismissed', 'dismissedAt') &&
+      isNewNotificationMark(request.resource.data, 'deleted', 'deletedAt') &&
+      isAllowedNotificationDeletion(workspaceId) &&
+      ('read' in request.resource.data || 'dismissed' in request.resource.data ||
+        'deleted' in request.resource.data);
+    allow update: if isOwnNotificationState(workspaceId, stateOwner) &&
+      isWorkspaceActive(workspaceId) &&
+      isValidNotificationState(request.resource.data) &&
+      request.resource.data.expiresAt == resource.data.expiresAt &&
+      request.time < resource.data.expiresAt &&
+      isKeptOrNewNotificationMark('read', 'readAt') &&
+      isKeptOrNewNotificationMark('dismissed', 'dismissedAt') &&
+      isKeptOrNewNotificationMark('deleted', 'deletedAt') &&
+      isAllowedNotificationDeletion(workspaceId) &&
+      request.resource.data.diff(resource.data).affectedKeys().size() > 0;
+    allow delete: if false;
+  }
+}
 
-  allow delete: if canWriteWorkspaceScopedData(workspaceId);
+// P5-D2.1 — avisos de recebível vencido: trabalho pendente (existe só
+// enquanto há trabalho) e confirmação de entrega por episódio (sem TTL; é o
+// que impede a reemissão depois que o TTL apaga o aviso). Estado operacional
+// do backend: nenhum papel lê ou escreve, nem o titular.
+match /receivable_overdue_queue/{receivableId} {
+  allow read, write: if false;
+}
+
+match /receivable_overdue_deliveries/{notificationId} {
+  allow read, write: if false;
 }
 
 // P4-C (D-14) — Divisão de contas autoritativa. Toda escrita é do backend

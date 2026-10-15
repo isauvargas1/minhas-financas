@@ -1,0 +1,159 @@
+== FAIL-r27-celular_390_844_toque_tema_escu 52
+     0 MARK reabrir painel
+    60 EV click svg. <BUTTON:Notificações, 12 não lidas> conn=true xy=34,88 d=1 pid=5 pt=touch trusted=true canc=true
+    60 ROUTE pass d=1 pid=5 originPid=5 originType=touch dt=0
+    88 MARK arquivar F 00
+   361 EV click path. <BUTTON:Arquivar para mim: Aviso F 00> conn=true xy=304,15 d=1 pid=6 pt=touch trusted=true canc=true
+   361 MUT start {"dismissed":true} f_00
+   361 ROUTE pass d=1 pid=6 originPid=6 originType=touch dt=0
+   364 MARK arquivar F 01
+   410 MUT applied {"dismissed":true}
+   410 MUT ok {"dismissed":true} marked=f_00
+   410 SHARE kept=same
+   416 ANIM start f_00 EXIT
+   450 EV click BUTTON.p-1.5.[@media(hover:none)]:p-2.text-muted <BUTTON:Arquivar para mim: Aviso F 01> conn=true xy=304,175 d=1 pid=7 pt=touch trusted=true
+   450 MUT start {"dismissed":true} f_01
+   450 ROUTE pass d=1 pid=7 originPid=7 originType=touch dt=0
+   453 MARK arquivar F 02
+   529 MUT applied {"dismissed":true}
+   529 MUT ok {"dismissed":true} marked=f_01
+   529 SHARE kept=same
+   535 ANIM start f_01 EXIT
+   721 ANIM done f_00 EXIT
+   824 EV click path. <BUTTON:Arquivar para mim: Aviso F 02> conn=true xy=304,15 d=1 pid=8 pt=touch trusted=true canc=true
+   824 MUT start {"dismissed":true} f_02
+   824 ROUTE pass d=1 pid=8 originPid=8 originType=touch dt=0
+   827 MARK arquivar F 03
+   880 MUT ok {"dismissed":true} marked=f_02
+   881 MUT applied {"dismissed":true}
+   881 SHARE kept=same
+   885 ANIM start f_02 EXIT
+   888 ANIM done f_01 EXIT
+   893 EV click svg. <BUTTON:Arquivar para mim: Aviso F 03> conn=true xy=304,175 d=1 pid=9 pt=touch trusted=true canc=true
+   893 ROUTE pass d=1 pid=9 originPid=9 originType=touch dt=0
+   894 MUT start {"dismissed":true} f_03
+   898 MARK esperar sino 8
+   980 MUT applied {"dismissed":true}
+   980 MUT ok {"dismissed":true} marked=f_03
+   980 SHARE kept=same
+   984 ANIM start f_03 EXIT
+  1161 MARK limite da contagem gravado; arquivar F 04
+  1204 ANIM done f_02 EXIT
+  1243 EV click path. <BUTTON:Arquivar para mim: Aviso F 04> conn=true xy=304,145 d=1 pid=10 pt=touch trusted=true canc=true
+  1243 MUT start {"dismissed":true} f_04
+  1243 ROUTE pass d=1 pid=10 originPid=10 originType=touch dt=0
+  1303 MUT ok {"dismissed":true} marked=f_04
+  1304 MUT applied {"dismissed":true}
+  1304 SHARE kept=same
+  1306 ANIM done f_03 EXIT
+  1306 ANIM exitComplete (AnimatePresence)
+  1313 ANIM start f_04 EXIT
+  1654 ANIM done f_04 EXIT
+  1654 ANIM exitComplete (AnimatePresence)
+  3065 MARK esperar 7 itens
+== FAIL-r35-celular_390_844_toque_tema_clar 52
+     0 MARK reabrir painel
+    57 EV click svg. <BUTTON:Notificações, 12 não lidas> conn=true xy=34,88 d=1 pid=5 pt=touch trusted=true canc=true
+    57 ROUTE pass d=1 pid=5 originPid=5 originType=touch dt=0
+    86 MARK arquivar F 00
+   359 EV click path. <BUTTON:Arquivar para mim: Aviso F 00> conn=true xy=304,15 d=1 pid=6 pt=touch trusted=true canc=true
+   359 ROUTE pass d=1 pid=6 originPid=6 originType=touch dt=0
+   360 MUT start {"dismissed":true} f_00
+   363 MARK arquivar F 01
+   442 EV click path. <BUTTON:Arquivar para mim: Aviso F 01> conn=true xy=304,175 d=1 pid=7 pt=touch trusted=true canc=true
+   442 ROUTE pass d=1 pid=7 originPid=7 originType=touch dt=0
+   443 MUT start {"dismissed":true} f_01
+   448 MARK arquivar F 02
+   459 MUT applied {"dismissed":true}
+   459 MUT ok {"dismissed":true} marked=f_00
+   459 SHARE kept=same
+   468 ANIM start f_00 EXIT
+   524 MUT ok {"dismissed":true} marked=f_01
+   525 MUT applied {"dismissed":true}
+   525 SHARE kept=same
+   529 ANIM start f_01 EXIT
+   772 EV click path. <BUTTON:Arquivar para mim: Aviso F 02> conn=true xy=304,15 d=1 pid=8 pt=touch trusted=true canc=true
+   772 MUT start {"dismissed":true} f_02
+   772 ROUTE pass d=1 pid=8 originPid=8 originType=touch dt=0
+   775 MARK arquivar F 03
+   786 ANIM done f_00 EXIT
+   821 MUT applied {"dismissed":true}
+   821 MUT ok {"dismissed":true} marked=f_02
+   821 SHARE kept=same
+   826 ANIM start f_02 EXIT
+   857 EV click BUTTON.p-1.5.[@media(hover:none)]:p-2.text-muted <BUTTON:Arquivar para mim: Aviso F 03> conn=true xy=304,175 d=1 pid=9 pt=touch trusted=true
+   857 MUT start {"dismissed":true} f_03
+   857 ROUTE pass d=1 pid=9 originPid=9 originType=touch dt=0
+   859 MARK esperar sino 8
+   870 ANIM done f_01 EXIT
+   909 MUT ok {"dismissed":true} marked=f_03
+   910 MUT applied {"dismissed":true}
+   910 SHARE kept=same
+   916 ANIM start f_03 EXIT
+  1098 MARK limite da contagem gravado; arquivar F 04
+  1167 ANIM done f_02 EXIT
+  1173 EV click path. <BUTTON:Arquivar para mim: Aviso F 04> conn=true xy=304,145 d=1 pid=10 pt=touch trusted=true canc=true
+  1173 ROUTE pass d=1 pid=10 originPid=10 originType=touch dt=0
+  1174 MUT start {"dismissed":true} f_04
+  1234 ANIM done f_03 EXIT
+  1234 ANIM exitComplete (AnimatePresence)
+  1244 MUT applied {"dismissed":true}
+  1244 MUT ok {"dismissed":true} marked=f_04
+  1244 SHARE kept=same
+  1255 ANIM start f_04 EXIT
+  1584 ANIM done f_04 EXIT
+  1584 ANIM exitComplete (AnimatePresence)
+  2960 MARK esperar 7 itens
+== FAIL-r36-celular_390_844_toque_tema_escu 52
+     0 MARK reabrir painel
+    63 EV click svg. <BUTTON:Notificações, 12 não lidas> conn=true xy=34,88 d=1 pid=5 pt=touch trusted=true canc=true
+    63 ROUTE pass d=1 pid=5 originPid=5 originType=touch dt=0
+    90 MARK arquivar F 00
+   363 EV click path. <BUTTON:Arquivar para mim: Aviso F 00> conn=true xy=304,15 d=1 pid=6 pt=touch trusted=true canc=true
+   363 ROUTE pass d=1 pid=6 originPid=6 originType=touch dt=0
+   364 MUT start {"dismissed":true} f_00
+   367 MARK arquivar F 01
+   432 MUT applied {"dismissed":true}
+   432 MUT ok {"dismissed":true} marked=f_00
+   432 SHARE kept=same
+   446 ANIM start f_00 EXIT
+   708 EV click path. <BUTTON:Arquivar para mim: Aviso F 01> conn=true xy=304,422 d=1 pid=8 pt=touch trusted=true canc=true
+   708 MUT start {"dismissed":true} f_01
+   708 ROUTE pass d=1 pid=8 originPid=8 originType=touch dt=0
+   733 MARK arquivar F 02
+   776 MUT ok {"dismissed":true} marked=f_01
+   777 MUT applied {"dismissed":true}
+   777 SHARE kept=same
+   786 ANIM start f_01 EXIT
+   809 ANIM done f_00 EXIT
+   977 EV click path. <BUTTON:Arquivar para mim: Aviso F 02> conn=true xy=304,422 d=1 pid=10 pt=touch trusted=true canc=true
+   977 MUT start {"dismissed":true} f_02
+   977 ROUTE pass d=1 pid=10 originPid=10 originType=touch dt=0
+   979 MARK arquivar F 03
+  1024 MUT ok {"dismissed":true} marked=f_02
+  1024 SHARE kept=same
+  1025 MUT applied {"dismissed":true}
+  1028 EV click path. <BUTTON:Arquivar para mim: Aviso F 03> conn=true xy=304,582 d=1 pid=11 pt=touch trusted=true canc=true
+  1028 ROUTE pass d=1 pid=11 originPid=11 originType=touch dt=0
+  1029 MUT start {"dismissed":true} f_03
+  1032 MARK esperar sino 8
+  1045 ANIM start f_02 EXIT
+  1095 MUT ok {"dismissed":true} marked=f_03
+  1096 MUT applied {"dismissed":true}
+  1096 SHARE kept=same
+  1100 ANIM start f_03 EXIT
+  1155 ANIM done f_01 EXIT
+  1282 MARK limite da contagem gravado; arquivar F 04
+  1344 EV click path. <BUTTON:Arquivar para mim: Aviso F 04> conn=true xy=304,552 d=1 pid=12 pt=touch trusted=true canc=true
+  1344 MUT start {"dismissed":true} f_04
+  1344 ROUTE pass d=1 pid=12 originPid=12 originType=touch dt=0
+  1356 ANIM done f_02 EXIT
+  1407 ANIM done f_03 EXIT
+  1407 ANIM exitComplete (AnimatePresence)
+  1412 MUT applied {"dismissed":true}
+  1412 MUT ok {"dismissed":true} marked=f_04
+  1412 SHARE kept=same
+  1417 ANIM start f_04 EXIT
+  1722 ANIM done f_04 EXIT
+  1722 ANIM exitComplete (AnimatePresence)
+  3635 MARK esperar 7 itens

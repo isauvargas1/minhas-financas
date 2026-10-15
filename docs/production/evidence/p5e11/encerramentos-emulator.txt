@@ -1,0 +1,129 @@
+P5-E1.1 — Encerramentos da JVM órfã do Firestore Emulator (registro integral do stop-own-emulator.sh)
+
+Cada bloco é uma verificação feita depois de uma execução (E2E no repositório, porta 8080, ou numa cópia
+com portas trocadas, porta 8280). Campos:
+- inicio_proc / inicio_execucao: a JVM tem de ter começado depois do início da execução (propriedade);
+- cwd: diretório da JVM; tem de ser o repositório ou a cópia da execução (identidade, com a linha de comando:
+  java + cloud-firestore-emulator + --port <porta> + --project_id minhas-financas-local);
+- ativos: playwright, firebase ou vite ativos (até as 13:41Z, em qualquer diretório do sistema; desde então,
+  só os da mesma execução); tem de ser 0;
+- conexoes: conexões TCP estabelecidas com a porta, de outro processo; tem de ser 0. Campo presente desde
+  as 13:41Z, quando a regra passou a contar só os processos da mesma execução e a exigir esta prova
+  (detalhe em ambiente-porta-8080.md);
+- só com tudo comprovado: SIGTERM ao PID específico e espera de até 15 s; nunca SIGKILL, pkill, killall
+  ou e2e:kill-ports. O caminho do scratchpad da sessão aparece como <scratchpad>.
+Fora deste registro (descritos em ambiente-porta-8080.md): até as 12:41Z, as JVMs das cópias de diagnóstico
+(porta exclusiva 8280) foram encerradas com SIGTERM pelo próprio script de execução, que conferia só a porta
+na linha de comando.
+
+Resumo: 27 verificações; 27 SIGTERM; 27 com o processo encerrado e a porta liberada; 0 recusas por identidade,
+propriedade ou uso não comprovados; 0 processos que não terminaram com SIGTERM.
+
+2026-10-13T10:52:58Z porta=8080 pid=25494 inicio_proc=2026-10-13T10:50:01Z inicio_execucao=2026-10-13T10:40:00Z cwd=/home/user/minhas-financas ativos=0
+  cmd: java -Dgoogle.cloud_firestore.debug_log_level=FINE -Duser.language=en -jar /root/.cache/firebase/emulators/cloud-firestore-emulator-v1.22.0.jar --host 127.0.0.1 --port 8080 --websocket_port 9150 --database-edition standard --project_id minhas-financas-local --
+  SIGTERM enviado ao PID 25494
+  PID 25494 terminou; porta 8080 livre: sim
+2026-10-13T11:01:48Z porta=8080 pid=27067 inicio_proc=2026-10-13T10:54:14Z inicio_execucao=2026-10-13T10:53:16Z cwd=/home/user/minhas-financas ativos=0
+  cmd: java -Dgoogle.cloud_firestore.debug_log_level=FINE -Duser.language=en -jar /root/.cache/firebase/emulators/cloud-firestore-emulator-v1.22.0.jar --host 127.0.0.1 --port 8080 --websocket_port 9150 --database-edition standard --project_id minhas-financas-local --
+  SIGTERM enviado ao PID 27067
+  PID 27067 terminou; porta 8080 livre: sim
+2026-10-13T11:13:16Z porta=8080 pid=30800 inicio_proc=2026-10-13T11:11:37Z inicio_execucao=2026-10-13T11:10:35Z cwd=/home/user/minhas-financas ativos=0
+  cmd: java -Dgoogle.cloud_firestore.debug_log_level=FINE -Duser.language=en -jar /root/.cache/firebase/emulators/cloud-firestore-emulator-v1.22.0.jar --host 127.0.0.1 --port 8080 --websocket_port 9150 --database-edition standard --project_id minhas-financas-local --
+  SIGTERM enviado ao PID 30800
+  PID 30800 terminou; porta 8080 livre: sim
+2026-10-13T11:22:20Z porta=8080 pid=31998 inicio_proc=2026-10-13T11:14:26Z inicio_execucao=2026-10-13T11:13:25Z cwd=/home/user/minhas-financas ativos=0
+  cmd: java -Dgoogle.cloud_firestore.debug_log_level=FINE -Duser.language=en -jar /root/.cache/firebase/emulators/cloud-firestore-emulator-v1.22.0.jar --host 127.0.0.1 --port 8080 --websocket_port 9150 --database-edition standard --project_id minhas-financas-local --
+  SIGTERM enviado ao PID 31998
+  PID 31998 terminou; porta 8080 livre: sim
+2026-10-13T12:18:18Z porta=8080 pid=14946 inicio_proc=2026-10-13T12:02:26Z inicio_execucao=2026-10-13T12:01:24Z cwd=/home/user/minhas-financas ativos=0
+  cmd: java -Dgoogle.cloud_firestore.debug_log_level=FINE -Duser.language=en -jar /root/.cache/firebase/emulators/cloud-firestore-emulator-v1.22.0.jar --host 127.0.0.1 --port 8080 --websocket_port 9150 --database-edition standard --project_id minhas-financas-local --
+  SIGTERM enviado ao PID 14946
+  PID 14946 terminou; porta 8080 livre: sim
+2026-10-13T12:51:21Z porta=8080 pid=32509 inicio_proc=2026-10-13T12:49:37Z inicio_execucao=2026-10-13T12:48:35Z cwd=/home/user/minhas-financas ativos=0
+  cmd: java -Dgoogle.cloud_firestore.debug_log_level=FINE -Duser.language=en -jar /root/.cache/firebase/emulators/cloud-firestore-emulator-v1.22.0.jar --host 127.0.0.1 --port 8080 --websocket_port 9150 --database-edition standard --project_id minhas-financas-local --
+  SIGTERM enviado ao PID 32509
+  PID 32509 terminou; porta 8080 livre: sim
+2026-10-13T13:08:21Z porta=8080 pid=1286 inicio_proc=2026-10-13T12:52:33Z inicio_execucao=2026-10-13T12:51:32Z cwd=/home/user/minhas-financas ativos=0
+  cmd: java -Dgoogle.cloud_firestore.debug_log_level=FINE -Duser.language=en -jar /root/.cache/firebase/emulators/cloud-firestore-emulator-v1.22.0.jar --host 127.0.0.1 --port 8080 --websocket_port 9150 --database-edition standard --project_id minhas-financas-local --
+  SIGTERM enviado ao PID 1286
+  PID 1286 terminou; porta 8080 livre: sim
+2026-10-13T13:34:47Z porta=8280 pid=23115 inicio_proc=2026-10-13T13:31:07Z inicio_execucao=2026-10-13T13:29:58Z cwd=<scratchpad>/p5e11/e2e-diag ativos=0
+  cmd: java -Dgoogle.cloud_firestore.debug_log_level=FINE -Duser.language=en -jar /root/.cache/firebase/emulators/cloud-firestore-emulator-v1.22.0.jar --host 127.0.0.1 --port 8280 --websocket_port 9350 --database-edition standard --project_id minhas-financas-local --
+  SIGTERM enviado ao PID 23115
+  PID 23115 terminou; porta 8280 livre: sim
+2026-10-13T13:40:50Z porta=8280 pid=27019 inicio_proc=2026-10-13T13:37:04Z inicio_execucao=2026-10-13T13:35:56Z cwd=<scratchpad>/p5e11/mut-e2e ativos=0
+  cmd: java -Dgoogle.cloud_firestore.debug_log_level=FINE -Duser.language=en -jar /root/.cache/firebase/emulators/cloud-firestore-emulator-v1.22.0.jar --host 127.0.0.1 --port 8280 --websocket_port 9350 --database-edition standard --project_id minhas-financas-local --
+  SIGTERM enviado ao PID 27019
+  PID 27019 terminou; porta 8280 livre: sim
+2026-10-13T13:44:01Z porta=8280 pid=29974 inicio_proc=2026-10-13T13:42:42Z inicio_execucao=2026-10-13T13:41:29Z cwd=<scratchpad>/p5e11/e2e-final2 ativos=0 conexoes=0
+  cmd: java -Dgoogle.cloud_firestore.debug_log_level=FINE -Duser.language=en -jar /root/.cache/firebase/emulators/cloud-firestore-emulator-v1.22.0.jar --host 127.0.0.1 --port 8280 --websocket_port 9350 --database-edition standard --project_id minhas-financas-local --
+  SIGTERM enviado ao PID 29974
+  PID 29974 terminou; porta 8280 livre: sim
+2026-10-13T13:48:57Z porta=8280 pid=31441 inicio_proc=2026-10-13T13:45:22Z inicio_execucao=2026-10-13T13:44:03Z cwd=<scratchpad>/p5e11/e2e-final2 ativos=0 conexoes=0
+  cmd: java -Dgoogle.cloud_firestore.debug_log_level=FINE -Duser.language=en -jar /root/.cache/firebase/emulators/cloud-firestore-emulator-v1.22.0.jar --host 127.0.0.1 --port 8280 --websocket_port 9350 --database-edition standard --project_id minhas-financas-local --
+  SIGTERM enviado ao PID 31441
+  PID 31441 terminou; porta 8280 livre: sim
+2026-10-13T13:51:09Z porta=8280 pid=862 inicio_proc=2026-10-13T13:50:09Z inicio_execucao=2026-10-13T13:48:59Z cwd=<scratchpad>/p5e11/mut-e2e ativos=0 conexoes=0
+  cmd: java -Dgoogle.cloud_firestore.debug_log_level=FINE -Duser.language=en -jar /root/.cache/firebase/emulators/cloud-firestore-emulator-v1.22.0.jar --host 127.0.0.1 --port 8280 --websocket_port 9350 --database-edition standard --project_id minhas-financas-local --
+  SIGTERM enviado ao PID 862
+  PID 862 terminou; porta 8280 livre: sim
+2026-10-13T13:53:04Z porta=8280 pid=1549 inicio_proc=2026-10-13T13:52:21Z inicio_execucao=2026-10-13T13:51:11Z cwd=<scratchpad>/p5e11/mut-e2e ativos=0 conexoes=0
+  cmd: java -Dgoogle.cloud_firestore.debug_log_level=FINE -Duser.language=en -jar /root/.cache/firebase/emulators/cloud-firestore-emulator-v1.22.0.jar --host 127.0.0.1 --port 8280 --websocket_port 9350 --database-edition standard --project_id minhas-financas-local --
+  SIGTERM enviado ao PID 1549
+  PID 1549 terminou; porta 8280 livre: sim
+2026-10-13T13:54:57Z porta=8280 pid=2281 inicio_proc=2026-10-13T13:54:13Z inicio_execucao=2026-10-13T13:53:06Z cwd=<scratchpad>/p5e11/mut-e2e ativos=0 conexoes=0
+  cmd: java -Dgoogle.cloud_firestore.debug_log_level=FINE -Duser.language=en -jar /root/.cache/firebase/emulators/cloud-firestore-emulator-v1.22.0.jar --host 127.0.0.1 --port 8280 --websocket_port 9350 --database-edition standard --project_id minhas-financas-local --
+  SIGTERM enviado ao PID 2281
+  PID 2281 terminou; porta 8280 livre: sim
+2026-10-13T13:57:09Z porta=8280 pid=2896 inicio_proc=2026-10-13T13:56:08Z inicio_execucao=2026-10-13T13:54:59Z cwd=<scratchpad>/p5e11/mut-e2e ativos=0 conexoes=0
+  cmd: java -Dgoogle.cloud_firestore.debug_log_level=FINE -Duser.language=en -jar /root/.cache/firebase/emulators/cloud-firestore-emulator-v1.22.0.jar --host 127.0.0.1 --port 8280 --websocket_port 9350 --database-edition standard --project_id minhas-financas-local --
+  SIGTERM enviado ao PID 2896
+  PID 2896 terminou; porta 8280 livre: sim
+2026-10-13T13:59:09Z porta=8280 pid=4319 inicio_proc=2026-10-13T13:58:23Z inicio_execucao=2026-10-13T13:57:12Z cwd=<scratchpad>/p5e11/mut-e2e ativos=0 conexoes=0
+  cmd: java -Dgoogle.cloud_firestore.debug_log_level=FINE -Duser.language=en -jar /root/.cache/firebase/emulators/cloud-firestore-emulator-v1.22.0.jar --host 127.0.0.1 --port 8280 --websocket_port 9350 --database-edition standard --project_id minhas-financas-local --
+  SIGTERM enviado ao PID 4319
+  PID 4319 terminou; porta 8280 livre: sim
+2026-10-13T14:01:23Z porta=8280 pid=5620 inicio_proc=2026-10-13T14:00:23Z inicio_execucao=2026-10-13T13:59:12Z cwd=<scratchpad>/p5e11/mut-e2e ativos=0 conexoes=0
+  cmd: java -Dgoogle.cloud_firestore.debug_log_level=FINE -Duser.language=en -jar /root/.cache/firebase/emulators/cloud-firestore-emulator-v1.22.0.jar --host 127.0.0.1 --port 8280 --websocket_port 9350 --database-edition standard --project_id minhas-financas-local --
+  SIGTERM enviado ao PID 5620
+  PID 5620 terminou; porta 8280 livre: sim
+2026-10-13T14:06:39Z porta=8280 pid=7555 inicio_proc=2026-10-13T14:05:38Z inicio_execucao=2026-10-13T14:04:35Z cwd=<scratchpad>/p5e11/mut-e2e ativos=0 conexoes=0
+  cmd: java -Dgoogle.cloud_firestore.debug_log_level=FINE -Duser.language=en -jar /root/.cache/firebase/emulators/cloud-firestore-emulator-v1.22.0.jar --host 127.0.0.1 --port 8280 --websocket_port 9350 --database-edition standard --project_id minhas-financas-local --
+  SIGTERM enviado ao PID 7555
+  PID 7555 terminou; porta 8280 livre: sim
+2026-10-13T14:23:53Z porta=8080 pid=8406 inicio_proc=2026-10-13T14:08:57Z inicio_execucao=2026-10-13T14:07:51Z cwd=/home/user/minhas-financas ativos=0 conexoes=0
+  cmd: java -Dgoogle.cloud_firestore.debug_log_level=FINE -Duser.language=en -jar /root/.cache/firebase/emulators/cloud-firestore-emulator-v1.22.0.jar --host 127.0.0.1 --port 8080 --websocket_port 9150 --database-edition standard --project_id minhas-financas-local --
+  SIGTERM enviado ao PID 8406
+  PID 8406 terminou; porta 8080 livre: sim
+2026-10-13T14:27:58Z porta=8080 pid=15745 inicio_proc=2026-10-13T14:25:24Z inicio_execucao=2026-10-13T14:24:23Z cwd=/home/user/minhas-financas ativos=0 conexoes=0
+  cmd: java -Dgoogle.cloud_firestore.debug_log_level=FINE -Duser.language=en -jar /root/.cache/firebase/emulators/cloud-firestore-emulator-v1.22.0.jar --host 127.0.0.1 --port 8080 --websocket_port 9150 --database-edition standard --project_id minhas-financas-local --
+  SIGTERM enviado ao PID 15745
+  PID 15745 terminou; porta 8080 livre: sim
+2026-10-13T15:43:51Z porta=8080 pid=30143 inicio_proc=2026-10-13T15:25:39Z inicio_execucao=2026-10-13T14:58:50Z cwd=/home/user/minhas-financas ativos=0 conexoes=0
+  cmd: java -Dgoogle.cloud_firestore.debug_log_level=FINE -Duser.language=en -jar /root/.cache/firebase/emulators/cloud-firestore-emulator-v1.22.0.jar --host 127.0.0.1 --port 8080 --websocket_port 9150 --database-edition standard --project_id minhas-financas-local --
+  SIGTERM enviado ao PID 30143
+  PID 30143 terminou; porta 8080 livre: sim
+2026-10-13T15:47:43Z porta=8280 pid=7297 inicio_proc=2026-10-13T15:47:01Z inicio_execucao=2026-10-13T15:46:03Z cwd=<scratchpad>/p5e11/mut-e2e ativos=0 conexoes=0
+  cmd: java -Dgoogle.cloud_firestore.debug_log_level=FINE -Duser.language=en -jar /root/.cache/firebase/emulators/cloud-firestore-emulator-v1.22.0.jar --host 127.0.0.1 --port 8280 --websocket_port 9350 --database-edition standard --project_id minhas-financas-local --
+  SIGTERM enviado ao PID 7297
+  PID 7297 terminou; porta 8280 livre: sim
+2026-10-13T15:49:44Z porta=8280 pid=8083 inicio_proc=2026-10-13T15:48:45Z inicio_execucao=2026-10-13T15:47:45Z cwd=<scratchpad>/p5e11/mut-e2e ativos=0 conexoes=0
+  cmd: java -Dgoogle.cloud_firestore.debug_log_level=FINE -Duser.language=en -jar /root/.cache/firebase/emulators/cloud-firestore-emulator-v1.22.0.jar --host 127.0.0.1 --port 8280 --websocket_port 9350 --database-edition standard --project_id minhas-financas-local --
+  SIGTERM enviado ao PID 8083
+  PID 8083 terminou; porta 8280 livre: sim
+2026-10-13T15:51:36Z porta=8280 pid=8823 inicio_proc=2026-10-13T15:50:55Z inicio_execucao=2026-10-13T15:49:46Z cwd=<scratchpad>/p5e11/mut-e2e ativos=0 conexoes=0
+  cmd: java -Dgoogle.cloud_firestore.debug_log_level=FINE -Duser.language=en -jar /root/.cache/firebase/emulators/cloud-firestore-emulator-v1.22.0.jar --host 127.0.0.1 --port 8280 --websocket_port 9350 --database-edition standard --project_id minhas-financas-local --
+  SIGTERM enviado ao PID 8823
+  PID 8823 terminou; porta 8280 livre: sim
+2026-10-13T15:53:23Z porta=8280 pid=9352 inicio_proc=2026-10-13T15:52:41Z inicio_execucao=2026-10-13T15:51:38Z cwd=<scratchpad>/p5e11/mut-e2e ativos=0 conexoes=0
+  cmd: java -Dgoogle.cloud_firestore.debug_log_level=FINE -Duser.language=en -jar /root/.cache/firebase/emulators/cloud-firestore-emulator-v1.22.0.jar --host 127.0.0.1 --port 8280 --websocket_port 9350 --database-edition standard --project_id minhas-financas-local --
+  SIGTERM enviado ao PID 9352
+  PID 9352 terminou; porta 8280 livre: sim
+2026-10-13T15:55:29Z porta=8280 pid=9882 inicio_proc=2026-10-13T15:54:31Z inicio_execucao=2026-10-13T15:53:25Z cwd=<scratchpad>/p5e11/mut-e2e ativos=0 conexoes=0
+  cmd: java -Dgoogle.cloud_firestore.debug_log_level=FINE -Duser.language=en -jar /root/.cache/firebase/emulators/cloud-firestore-emulator-v1.22.0.jar --host 127.0.0.1 --port 8280 --websocket_port 9350 --database-edition standard --project_id minhas-financas-local --
+  SIGTERM enviado ao PID 9882
+  PID 9882 terminou; porta 8280 livre: sim
+2026-10-13T15:57:20Z porta=8280 pid=10498 inicio_proc=2026-10-13T15:56:39Z inicio_execucao=2026-10-13T15:55:32Z cwd=<scratchpad>/p5e11/mut-e2e ativos=0 conexoes=0
+  cmd: java -Dgoogle.cloud_firestore.debug_log_level=FINE -Duser.language=en -jar /root/.cache/firebase/emulators/cloud-firestore-emulator-v1.22.0.jar --host 127.0.0.1 --port 8280 --websocket_port 9350 --database-edition standard --project_id minhas-financas-local --
+  SIGTERM enviado ao PID 10498
+  PID 10498 terminou; porta 8280 livre: sim

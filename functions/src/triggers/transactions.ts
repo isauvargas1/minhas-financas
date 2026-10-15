@@ -3,11 +3,13 @@ import {FieldValue, Timestamp} from "firebase-admin/firestore";
 import {onDocumentWritten} from "firebase-functions/v2/firestore";
 
 import {
+  CashContractViolationError,
   applyCashPeriodWriteOnce,
   cashPeriodDeltaFor,
   cashPeriodEventKey,
   recordCashProjectionIssue,
   type CashPeriodEventOutcomeKind,
+  type CashProjectionIssueCode,
 } from "../cash/periods";
 import {parseIsoInstant} from "../shared/commitTime";
 import {isContentionAbortedError} from "../shared/errors";
@@ -305,11 +307,15 @@ export const handleTransactionWrite = async (
       throw error;
     }
     log.error("cash_projection.failed", error, fields);
+    // Documento fora do contrato único (P5-C2) tem código próprio: a
+    // reconciliação sabe que o problema é o dado, não a infraestrutura.
+    const issueCode: CashProjectionIssueCode =
+      error instanceof CashContractViolationError ? "contract_violation" :
+        errorClass === "transient" ? "retry_window_exhausted" :
+          "permanent_failure";
     try {
       await recordCashProjectionIssue(event.workspaceId, {
-        code: errorClass === "transient" ?
-          "retry_window_exhausted" :
-          "permanent_failure",
+        code: issueCode,
         eventTime: event.eventTime,
         transactionId: event.transactionId,
       });
@@ -319,11 +325,7 @@ export const handleTransactionWrite = async (
       });
       throw error;
     }
-    log.error("cash_projection.needs_rebuild", null, {
-      reason: errorClass === "transient" ?
-        "retry_window_exhausted" :
-        "permanent_failure",
-    });
+    log.error("cash_projection.needs_rebuild", null, {reason: issueCode});
     return {projection: "failed_recorded", activityLogged: false};
   }
 

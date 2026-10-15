@@ -92,7 +92,7 @@ const seedCatalog = async (workspaceId: string) => {
   await Promise.all(items.map(([id, group, name, transactionSubtype]) => {
     const normalizedName = normalize(name);
     return db().doc(`workspaces/${workspaceId}/settings_catalog/${id}`).set({
-      id, workspaceId, group, name, normalizedName,
+      id, schemaVersion: 1, workspaceId, group, name, normalizedName,
       ...(transactionSubtype ? { transactionSubtype } : {}),
       dedupeKey: `${group}::${transactionSubtype ?? 'all'}::both::${normalizedName}`,
       workspaceScope: 'both', sortOrder: 1, status: 'active',
@@ -103,6 +103,12 @@ const seedCatalog = async (workspaceId: string) => {
 
 const seed = async () => {
   await resetEmulatorData();
+  // P5-C1: o Dashboard lê a projeção do caixa. A limpeza do Emulator apaga os
+  // lançamentos do teste anterior e o gatilho processa essas exclusões depois;
+  // com o mesmo ID de workspace, os deltas negativos cairiam no teste seguinte.
+  const suffix = Date.now().toString(36);
+  WS_MAIN.id = `e2e-p3e-main-${suffix}`;
+  WS_OTHER.id = `e2e-p3e-other-${suffix}`;
   await Promise.all([OWNER, MEMBER].map((user) => adminSdk().auth().createUser({
     uid: user.uid, email: user.email, password: PASSWORD, emailVerified: true,
   })));
@@ -174,7 +180,7 @@ const createIncomeThroughBackend = async (
     cashAccountId: defaultCashAccountIdFor(WS_MAIN.id),
     type: 'receita',
     description,
-    category: CATALOG.incomeCategory,
+    categoryId: 'p3e-income-category',
     incomeType: CATALOG.incomeType,
     amountCents,
     date: saoPauloToday(),
@@ -312,7 +318,7 @@ test('correção leva motivo e versão completa; conflito orienta; anulação sa
     ),
     reason: 'Correção concorrente',
     entry: {
-      type: 'receita', description: 'Receita P3-E corrigir', category: CATALOG.incomeCategory,
+      type: 'receita', description: 'Receita P3-E corrigir', categoryId: 'p3e-income-category',
       incomeType: CATALOG.incomeType, amountCents: 11_000, date: saoPauloToday(),
       cashAccountId: defaultCashAccountIdFor(WS_MAIN.id),
     },
@@ -401,7 +407,7 @@ test('quota esgotada: titular orientado ao upgrade e backend recusa mesmo assim'
   const refused = await callCallable(request, token, 'createCashTransaction', {
     workspaceId: WS_MAIN.id, idempotencyKey: 'e2e-p3e-quota-esgotada', type: 'receita',
     cashAccountId: defaultCashAccountIdFor(WS_MAIN.id),
-    description: 'Além do limite', category: CATALOG.incomeCategory, amountCents: 100,
+    description: 'Além do limite', categoryId: 'p3e-income-category', amountCents: 100,
     date: saoPauloToday(),
   });
   expect(refused.errorStatus).toBe('RESOURCE_EXHAUSTED');
@@ -426,7 +432,7 @@ test('quota esgotada para membro: orientação ao titular, sem o uso exato', asy
   const refused = await callCallable(request, token, 'createCashTransaction', {
     workspaceId: WS_MAIN.id, idempotencyKey: 'e2e-p3e-quota-membro', type: 'receita',
     cashAccountId: defaultCashAccountIdFor(WS_MAIN.id),
-    description: 'Além do limite (membro)', category: CATALOG.incomeCategory, amountCents: 100,
+    description: 'Além do limite (membro)', categoryId: 'p3e-income-category', amountCents: 100,
     date: saoPauloToday(),
   });
   expect(refused.errorStatus).toBe('RESOURCE_EXHAUSTED');

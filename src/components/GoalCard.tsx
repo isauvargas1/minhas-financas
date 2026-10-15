@@ -1,77 +1,61 @@
-
 import React, { useMemo, useEffect, useRef } from 'react';
-import { Goal, Transaction } from '../types.ts';
+import { Goal } from '../types.ts';
 import { 
-    CheckIcon, WarningIcon, DynamicIcon, TrendingUpIcon, ClockIcon, WifiIcon
+    CheckIcon, DynamicIcon, ClockIcon
 } from './Icons.tsx';
 import { useTheme } from '../contexts/ThemeContext.tsx';
 import { motion } from 'framer-motion';
 // @ts-ignore
 import confetti from 'canvas-confetti';
-import { calculateBusinessGoalProgress, getGoalPaceStatus } from '../modules/goals/logic.ts';
 import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
-import { cashBalanceFromPeriods, useCashPeriods } from '../modules/transactions/cashPeriods.ts';
+import {
+    businessTypeLabel, civilDateKey, formatBasisPoints, formatCentsWhole, formatCivilDate,
+    goalHealthBadge, goalPaceStatus, goalProgressView, goalTarget, isMarginGoal,
+    type GoalKpiInput,
+} from '../modules/goals/model.ts';
 
 interface GoalCardProps {
     goal: Goal;
     onClick: () => void;
     mode: 'card' | 'list';
-    transactions: Transaction[]; 
+    /** Resultado do indicador PJ (servidor); só para metas `business_kpi`. */
+    kpi?: GoalKpiInput;
 }
 
 const adjustBrightness = (color: string, amount: number) => {
     return '#' + color.replace(/^#/, '').replace(/../g, color => ('0'+Math.min(255, Math.max(0, parseInt(color, 16) + amount)).toString(16)).substr(-2));
 }
 
-const GoalCard: React.FC<GoalCardProps> = ({ goal, onClick, mode, transactions }) => {
+const GoalCard: React.FC<GoalCardProps> = ({ goal, onClick, mode, kpi }) => {
     const { theme } = useTheme();
     const { activeWorkspace } = useWorkspace();
-    const workspaceId = activeWorkspace.id;
     const isPJ = activeWorkspace.type === 'PJ';
     const cardRef = useRef<HTMLDivElement>(null);
     const MotionDiv = motion.div as any;
 
-    /*
-     * INV-P1-011 — o saldo de caixa acumulado vem da projeção mensal.
-     *
-     * Só a meta PJ do tipo `caixa_minimo` precisa desse agregado global, e ele
-     * era obtido somando o array inteiro de transações do workspace — o que
-     * obrigava toda a aplicação a carregar a subcoleção completa. A projeção é
-     * mantida por delta pelo gatilho de escrita e somar meses é O(meses).
-     *
-     * As demais metas PJ automáticas usam a janela do próprio período, que a
-     * carga padrão de doze meses cobre.
-     */
-    const needsGlobalBalance = isPJ && goal.isAutomatic && goal.businessType === 'caixa_minimo';
-    const cashPeriods = useCashPeriods(workspaceId, needsGlobalBalance);
-    const cashBalance = cashBalanceFromPeriods(cashPeriods.data);
-    /*
-     * Projeção cortada no teto de leitura: o saldo acumulado sairia menor que
-     * o real, e com ele o progresso desta meta. A tela declara a limitação em
-     * vez de exibir um número incompleto como se fosse o saldo.
-     */
-    const cashBalanceIncomplete =
-        needsGlobalBalance && cashPeriods.data?.truncated === true;
+    // --- PROGRESSO: uma única fonte (progressSource), calculada no servidor ---
+    const view = useMemo(() => goalProgressView(goal, kpi), [goal, kpi]);
+    const today = civilDateKey();
+    const paceStatus = goalPaceStatus(goal, view, today);
+    const ready = view.state === 'ready';
 
-    // --- BUSINESS LOGIC ---
-    const currentVal = useMemo(() => {
-        if (isPJ && goal.isAutomatic) {
-            return calculateBusinessGoalProgress(goal, transactions, cashBalance ?? 0);
-        }
-        return goal.currentAmount;
-    }, [isPJ, goal, transactions, cashBalance]);
-
-    const percentage = useMemo(() => {
-        if (goal.targetAmount <= 0) return 0;
-        const pct = (currentVal / goal.targetAmount) * 100;
-        return goal.businessType === 'reducao_custos' ? Math.min(100, pct) : pct;
-    }, [currentVal, goal.targetAmount, goal.businessType]);
-
-    const paceStatus = useMemo(() => getGoalPaceStatus(goal, currentVal), [goal, currentVal]);
-    
-    const isCompleted = percentage >= 100 || goal.status === 'alcancada';
-    const isInvalid = goal.targetAmount <= 0;
-    const isOverLimit = goal.businessType === 'reducao_custos' && percentage > 100;
+    // Alvo atingido (progresso >= alvo) é diferente do status 'alcancada'.
+    const isCompleted = goal.status === 'alcancada' || (view.state === 'ready' && view.achieved);
+    const isOverLimit = view.state === 'ready' && view.overLimit;
+    const barPercent = view.state === 'ready' ? view.barBasisPoints / 100 : 0;
+    const exceedsTarget = view.state === 'ready' && view.percentBasisPoints > 10_000;
+    const percentLabel = view.state === 'ready' ? view.percentShortText : '';
+    // Os cartões mostram reais inteiros, como antes; margem em percentual pt-BR.
+    const formatCardValue = (value: number) =>
+        isMarginGoal(goal) ? formatBasisPoints(value) : formatCentsWhole(value);
+    const valueText = view.state === 'ready'
+        ? formatCardValue(view.value)
+        : view.state === 'loading' ? 'Calculando...' : '—';
+    const targetText = formatCardValue(goalTarget(goal));
+    const statusMessage = view.state === 'error' || view.state === 'unavailable' ? view.message : '';
+    const deadlineText = formatCivilDate(goal.deadline);
+    const indicatorLabel = businessTypeLabel(goal.businessType);
+    const hasAutomaticProgress = goal.progressSource !== 'manual';
 
     useEffect(() => {
         if (isCompleted && theme.effects.enableAnimations && !isOverLimit) {
@@ -90,40 +74,25 @@ const GoalCard: React.FC<GoalCardProps> = ({ goal, onClick, mode, transactions }
         }
     }, [isCompleted, goal.visual.color, theme.effects.enableAnimations, isOverLimit]);
 
-    const formatValue = (val: number) => {
-        if (goal.businessType === 'margem') return `${val.toFixed(1)}%`;
-        return new Intl.NumberFormat('pt-BR', {
-            style: 'currency',
-            currency: 'BRL',
-            maximumFractionDigits: 0 
-        }).format(val);
-    };
-
     const getHealthBadge = () => {
         if (!theme.goals?.showBadges) return null;
-        if (goal.status === 'pausada') return <span className="text-[10px] px-2 py-0.5 rounded bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-300 font-bold">PAUSADA</span>;
-        if (goal.status === 'cancelada') return <span className="text-[10px] px-2 py-0.5 rounded bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 font-bold">CANCELADA</span>;
-        if (isCompleted) return <span className="text-[10px] px-2 py-0.5 rounded bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 font-bold">CONCLUÍDA</span>;
-        
-        // Logic for PF Pace
-        const start = new Date(goal.startDate).getTime();
-        const end = new Date(goal.deadline).getTime();
-        const now = new Date().getTime();
-        const totalDuration = end - start;
-        const elapsed = now - start;
-        if (elapsed < 0) return null; 
-        const timeProgress = elapsed / totalDuration;
-        const valueProgress = currentVal / goal.targetAmount;
-        
-        if (valueProgress >= timeProgress * 0.9) return <span className="text-[10px] px-2 py-0.5 rounded bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 font-bold">NO TRILHO</span>;
-        if (valueProgress >= timeProgress * 0.7) return <span className="text-[10px] px-2 py-0.5 rounded bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 font-bold">ATENÇÃO</span>;
-        return <span className="text-[10px] px-2 py-0.5 rounded bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 font-bold">ATRASADA</span>;
+        switch (goalHealthBadge(goal, view, today)) {
+            case 'paused': return <span className="text-[10px] px-2 py-0.5 rounded bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-300 font-bold">PAUSADA</span>;
+            case 'cancelled': return <span className="text-[10px] px-2 py-0.5 rounded bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 font-bold">CANCELADA</span>;
+            case 'completed': return <span className="text-[10px] px-2 py-0.5 rounded bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 font-bold">CONCLUÍDA</span>;
+            case 'target_reached': return <span className="text-[10px] px-2 py-0.5 rounded bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 font-bold">ALVO ATINGIDO</span>;
+            case 'on_track': return <span className="text-[10px] px-2 py-0.5 rounded bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 font-bold">NO TRILHO</span>;
+            case 'warning': return <span className="text-[10px] px-2 py-0.5 rounded bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 font-bold">ATENÇÃO</span>;
+            case 'late': return <span className="text-[10px] px-2 py-0.5 rounded bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 font-bold">ATRASADA</span>;
+            default: return null;
+        }
     };
 
     const getPaceBadgePJ = () => {
         if (!theme.goals?.showBadges || goal.status !== 'em_andamento') return null;
+        if (!ready) return null;
         if (goal.businessType === 'reducao_custos') {
-            if (percentage > 90) return <span className="text-[10px] px-2 py-0.5 rounded bg-red-100 text-red-700 font-bold">LIMITE PRÓXIMO</span>;
+            if (view.percentBasisPoints > 9000) return <span className="text-[10px] px-2 py-0.5 rounded bg-red-100 text-red-700 font-bold">LIMITE PRÓXIMO</span>;
             return <span className="text-[10px] px-2 py-0.5 rounded bg-green-100 text-green-700 font-bold">SAUDÁVEL</span>;
         }
         switch(paceStatus) {
@@ -167,31 +136,26 @@ const GoalCard: React.FC<GoalCardProps> = ({ goal, onClick, mode, transactions }
                             {getHealthBadge()}
                         </div>
                         <div className="text-xs text-muted flex items-center gap-2 mt-0.5">
-                            <span>Até {new Date(goal.deadline).toLocaleDateString('pt-BR')}</span>
+                            <span>Até {deadlineText}</span>
                         </div>
                     </div>
                     <div className="w-32 mr-6 hidden sm:block">
                         <div className="flex justify-between text-xs mb-1">
-                            <span className="font-medium text-on-surface">{percentage > 100 ? '100%+' : `${percentage.toFixed(0)}%`}</span>
-                            {cashBalanceIncomplete && (
-                                <span role="alert" className="text-[10px] font-bold text-amber-700">
-                                    saldo incompleto
-                                </span>
-                            )}
+                            <span className="font-medium text-on-surface">{exceedsTarget ? '100%+' : percentLabel}</span>
                         </div>
                         <div className="h-2 w-full bg-background rounded-full overflow-hidden relative">
                             <MotionDiv 
                                 className="h-full rounded-full absolute top-0 left-0" 
                                 initial={{ width: 0 }} 
-                                animate={{ width: `${Math.min(100, percentage)}%` }} 
+                                animate={{ width: `${barPercent}%` }}
                                 transition={{ duration: 1, ease: "easeOut" }} 
                                 style={{ backgroundColor: goal.visual.color }} 
                             />
                         </div>
                     </div>
                     <div className="text-right">
-                        <div className="font-bold text-on-surface">{formatValue(currentVal)}</div>
-                        <div className="text-xs text-muted">de {formatValue(goal.targetAmount)}</div>
+                        <div className="font-bold text-on-surface">{valueText}</div>
+                        <div className="text-xs text-muted">de {targetText}</div>
                     </div>
                 </MotionDiv>
             );
@@ -222,24 +186,24 @@ const GoalCard: React.FC<GoalCardProps> = ({ goal, onClick, mode, transactions }
                     </div>
                     <div className="mt-auto">
                         <div className="flex justify-between items-end mb-2">
-                            <div><span className="text-xs text-muted block mb-0.5">Acumulado</span><span className={`font-bold ${percentage > 100 ? 'text-green-600 dark:text-green-400' : 'text-on-surface'} ${density === 'compact' ? 'text-lg' : 'text-xl'}`}>{formatValue(currentVal)}</span></div>
-                            <div className="text-right"><span className="text-xs text-muted block mb-0.5">Meta</span><span className="text-sm font-semibold text-muted">{formatValue(goal.targetAmount)}</span></div>
+                            <div><span className="text-xs text-muted block mb-0.5">Acumulado</span><span className={`font-bold ${exceedsTarget ? 'text-green-600 dark:text-green-400' : 'text-on-surface'} ${density === 'compact' ? 'text-lg' : 'text-xl'}`}>{valueText}</span></div>
+                            <div className="text-right"><span className="text-xs text-muted block mb-0.5">Meta</span><span className="text-sm font-semibold text-muted">{targetText}</span></div>
                         </div>
                         <div className="relative h-3 w-full bg-gray-200 dark:bg-dark-200 rounded-full overflow-hidden">
                             <MotionDiv 
                                 className="absolute top-0 left-0 h-full rounded-full z-10" 
                                 initial={{ width: 0 }} 
-                                animate={{ width: `${Math.min(100, percentage)}%` }} 
+                                animate={{ width: `${barPercent}%` }}
                                 transition={{ duration: 1.5, ease: "circOut" }} 
                                 style={{ backgroundColor: goal.visual.color }} 
                             />
-                            {!isCompleted && !isInvalid && (
+                            {!isCompleted && ready && (
                                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/50 dark:via-white/30 to-transparent w-full -translate-x-full animate-[shimmer_2s_infinite]"></div>
                             )}
                         </div>
                         <div className="flex justify-between mt-2 items-center">
-                            <span className="text-xs font-bold" style={{ color: goal.visual.color }}>{percentage.toFixed(0)}% {percentage > 100 ? '🎉' : ''}</span>
-                            <span className="text-xs text-muted">Até {new Date(goal.deadline).toLocaleDateString('pt-BR')}</span>
+                            <span className="text-xs font-bold truncate" style={{ color: goal.visual.color }} title={statusMessage || undefined}>{ready ? `${percentLabel} ${exceedsTarget ? '🎉' : ''}` : statusMessage}</span>
+                            <span className="text-xs text-muted">Até {deadlineText}</span>
                         </div>
                     </div>
                 </div>
@@ -264,11 +228,12 @@ const GoalCard: React.FC<GoalCardProps> = ({ goal, onClick, mode, transactions }
                     <div className="flex items-center gap-2">
                         <h3 className="font-semibold text-on-surface truncate">{goal.name}</h3>
                         {getPaceBadgePJ()}
-                        {goal.isAutomatic && <span className="text-[9px] bg-indigo-50 text-indigo-600 px-1 rounded border border-indigo-100">AUTO</span>}
+                        {hasAutomaticProgress && <span className="text-[9px] bg-indigo-50 text-indigo-600 px-1 rounded border border-indigo-100">AUTO</span>}
                     </div>
                     <div className="text-xs text-muted flex items-center gap-2 mt-0.5">
-                        <span>Até {new Date(goal.deadline).toLocaleDateString('pt-BR')}</span>
+                        <span>Até {deadlineText}</span>
                         {goal.period && <span className="capitalize">• {goal.period}</span>}
+                        {statusMessage && <span className="truncate text-amber-700" title={statusMessage}>• {statusMessage}</span>}
                     </div>
                 </div>
                 {/* Barra de Progresso (Esquerda) */}
@@ -277,7 +242,7 @@ const GoalCard: React.FC<GoalCardProps> = ({ goal, onClick, mode, transactions }
                         <MotionDiv 
                             className="h-full rounded-full"
                             initial={{ width: 0 }} 
-                            animate={{ width: `${Math.min(100, percentage)}%` }} 
+                            animate={{ width: `${barPercent}%` }}
                             style={{ backgroundColor: isOverLimit ? '#ef4444' : goal.visual.color }} 
                         />
                     </div>
@@ -285,8 +250,8 @@ const GoalCard: React.FC<GoalCardProps> = ({ goal, onClick, mode, transactions }
 
                 {/* Valores (Direita) */}
                 <div className="text-right">
-                    <div className="font-bold text-on-surface">{formatValue(currentVal)}</div>
-                    <div className="text-xs text-muted">alvo {formatValue(goal.targetAmount)}</div>
+                    <div className="font-bold text-on-surface">{valueText}</div>
+                    <div className="text-xs text-muted">alvo {targetText}</div>
                 </div>
             </MotionDiv>
         );
@@ -297,24 +262,24 @@ const GoalCard: React.FC<GoalCardProps> = ({ goal, onClick, mode, transactions }
             <div className="w-full h-24 relative" style={{ background: gradientStyle }}>
                 <div className="absolute top-3 right-3 z-10">{getPaceBadgePJ()}</div>
                 <div className="absolute left-5 -bottom-5 rounded-2xl shadow-lg flex items-center justify-center border-4 border-surface w-14 h-14" style={{ background: gradientStyle, color: '#fff' }}><DynamicIcon name={goal.visual.icon} size={28} /></div>
-                {goal.isAutomatic && <div className="absolute top-3 left-3 bg-white/20 backdrop-blur-sm text-white text-[9px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1"><ClockIcon className="w-3 h-3" /> AUTOMÁTICA</div>}
+                {hasAutomaticProgress && <div className="absolute top-3 left-3 bg-white/20 backdrop-blur-sm text-white text-[9px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1"><ClockIcon className="w-3 h-3" /> AUTOMÁTICA</div>}
             </div>
             <div className="px-5 pb-5 pt-8 flex-1 flex flex-col">
                 <div className="mb-4">
                     <h3 className="font-bold text-lg text-on-surface leading-tight mb-1 truncate">{goal.name}</h3>
-                    <div className="flex items-center gap-2"><p className="text-xs font-medium text-muted uppercase tracking-wide">{isPJ && goal.businessType ? goal.businessType.replace('_', ' ') : goal.category.replace('_', ' ')}</p>{goal.period && <span className="text-[10px] text-muted font-bold px-1.5 py-0.5 bg-gray-100 dark:bg-dark-200 rounded uppercase">{goal.period}</span>}</div>
+                    <div className="flex items-center gap-2"><p className="text-xs font-medium text-muted uppercase tracking-wide truncate" title={isPJ ? indicatorLabel : undefined}>{isPJ && goal.businessType ? indicatorLabel : goal.category.replace('_', ' ')}</p>{goal.period && <span className="text-[10px] text-muted font-bold px-1.5 py-0.5 bg-gray-100 dark:bg-dark-200 rounded uppercase">{goal.period}</span>}</div>
                 </div>
                 <div className="mt-auto">
                     <div className="flex justify-between items-end mb-2">
-                        <div><span className="text-[10px] text-muted uppercase font-bold block mb-0.5">{goal.businessType === 'reducao_custos' ? 'Consumido' : 'Progresso'}</span><span className={`font-bold text-xl ${percentage > 100 && goal.businessType !== 'reducao_custos' ? 'text-green-600' : 'text-on-surface'}`}>{formatValue(currentVal)}</span></div>
-                        <div className="text-right"><span className="text-[10px] text-muted uppercase font-bold block mb-0.5">Objetivo</span><span className="text-sm font-semibold text-muted">{formatValue(goal.targetAmount)}</span></div>
+                        <div><span className="text-[10px] text-muted uppercase font-bold block mb-0.5">{goal.businessType === 'reducao_custos' ? 'Consumido' : 'Progresso'}</span><span className={`font-bold text-xl ${exceedsTarget && goal.businessType !== 'reducao_custos' ? 'text-green-600' : 'text-on-surface'}`}>{valueText}</span></div>
+                        <div className="text-right"><span className="text-[10px] text-muted uppercase font-bold block mb-0.5">Objetivo</span><span className="text-sm font-semibold text-muted">{targetText}</span></div>
                     </div>
                     <div className="relative h-2.5 w-full bg-gray-200 dark:bg-dark-200 rounded-full overflow-hidden">
-                        <MotionDiv className="absolute top-0 left-0 h-full rounded-full" initial={{ width: 0 }} animate={{ width: `${Math.min(100, percentage)}%` }} style={{ backgroundColor: isOverLimit ? '#ef4444' : goal.visual.color }} />
+                        <MotionDiv className="absolute top-0 left-0 h-full rounded-full" initial={{ width: 0 }} animate={{ width: `${barPercent}%` }} style={{ backgroundColor: isOverLimit ? '#ef4444' : goal.visual.color }} />
                     </div>
                     <div className="flex justify-between mt-2 items-center">
-                        <span className="text-xs font-bold" style={{ color: isOverLimit ? '#ef4444' : goal.visual.color }}>{percentage.toFixed(0)}% {isOverLimit ? '⚠️' : (isCompleted ? '🎉' : '')}</span>
-                        <span className="text-[10px] text-muted font-medium">Até {new Date(goal.deadline).toLocaleDateString('pt-BR')}</span>
+                        <span className="text-xs font-bold truncate" style={{ color: isOverLimit ? '#ef4444' : goal.visual.color }} title={statusMessage || undefined}>{ready ? `${percentLabel} ${isOverLimit ? '⚠️' : (isCompleted ? '🎉' : '')}` : statusMessage}</span>
+                        <span className="text-[10px] text-muted font-medium">Até {deadlineText}</span>
                     </div>
                 </div>
             </div>

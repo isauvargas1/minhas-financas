@@ -13,10 +13,17 @@ import {
   cashPeriodDeltaFor,
   cashPeriodKeyFor,
   cashProjectionStateRef,
+  cashWritePlanFor,
   emptyCashPeriodDelta,
+  mergeCashDayDeltas,
+  readCashCategoryDays,
+  readCashDayDeltas,
+  readCashProjectionState,
+  type CashDayDeltas,
   type CashPeriodDelta,
 } from "../periods";
 import {
+  CASH_REBUILD_CONTRACT_VIOLATION_MESSAGE,
   CASH_REBUILD_STATE_IDS,
   executeRebuildCashPeriods,
   type RebuildOptions,
@@ -57,9 +64,7 @@ const entry = (
   description: "Lançamento sintético",
   category: "Teste",
   valueCents,
-  value: valueCents / 100,
   date,
-  transactionDate: Timestamp.fromDate(new Date(`${date}T15:00:00.000Z`)),
   isPaid: true,
   userId: "uid-sintetico",
 });
@@ -151,11 +156,147 @@ const projected = async (target: Book): Promise<Totals> => {
   return result;
 };
 
-const assertConsistent = async (target: Book, label: string) =>
+/**
+ * P5-C1: o detalhe diário de cada mês e a projeção por categoria (geração
+ * vigente) também precisam ser iguais ao ledger recalculado.
+ */
+type DayView = Record<string, CashDayDeltas>;
+type CategoryView = Record<string, {
+  incomeCents: number; expenseCents: number;
+  incomeCount: number; expenseCount: number;
+  days: Record<string, Record<string, number>>;
+}>;
+
+const truthDetail = async (
+  target: Book,
+): Promise<{days: DayView; categories: CategoryView}> => {
+  const snapshot = await db()
+    .collection(`workspaces/${target.workspaceId}/transactions`).get();
+  const days: DayView = {};
+  const categories: CategoryView = {};
+  for (const doc of snapshot.docs) {
+    const plan = cashWritePlanFor(undefined, doc.data());
+    for (const [period, monthDays] of Object.entries(plan.days)) {
+      mergeCashDayDeltas(days[period] ?? (days[period] = {}), monthDays);
+    }
+    for (const [key, entry] of Object.entries(plan.categories)) {
+      const bucket = categories[key] ?? (categories[key] = {
+        incomeCents: 0, expenseCents: 0, incomeCount: 0, expenseCount: 0,
+        days: {},
+      });
+      bucket.incomeCents += entry.totals.incomeCents;
+      bucket.expenseCents += entry.totals.expenseCents;
+      bucket.incomeCount += entry.totals.incomeCount;
+      bucket.expenseCount += entry.totals.expenseCount;
+      for (const [mmdd, delta] of Object.entries(entry.days)) {
+        const day = bucket.days[mmdd] ?? (bucket.days[mmdd] = {});
+        for (const [field, value] of Object.entries(delta)) {
+          day[field] = (day[field] ?? 0) + (value as number);
+        }
+      }
+    }
+  }
+  return {days: cleanDays(days), categories: cleanCategories(categories)};
+};
+
+const cleanDays = (view: DayView): DayView => {
+  const result: DayView = {};
+  for (const [period, monthDays] of Object.entries(view)) {
+    const clean: CashDayDeltas = {};
+    mergeCashDayDeltas(clean, monthDays);
+    if (Object.keys(clean).length > 0) result[period] = clean;
+  }
+  return result;
+};
+
+const cleanCategories = (view: CategoryView): CategoryView => {
+  const result: CategoryView = {};
+  for (const [key, entry] of Object.entries(view)) {
+    const days: Record<string, Record<string, number>> = {};
+    for (const [mmdd, delta] of Object.entries(entry.days)) {
+      const clean = Object.fromEntries(
+        Object.entries(delta).filter(([, value]) => value !== 0));
+      if (Object.keys(clean).length > 0) days[mmdd] = clean;
+    }
+    if (
+      entry.incomeCents !== 0 || entry.expenseCents !== 0 ||
+      entry.incomeCount !== 0 || entry.expenseCount !== 0 ||
+      Object.keys(days).length > 0
+    ) {
+      result[key] = {...entry, days};
+    }
+  }
+  return result;
+};
+
+const projectedDetail = async (
+  target: Book,
+): Promise<{days: DayView; categories: CategoryView}> => {
+  const months = await db()
+    .collection(`workspaces/${target.workspaceId}/cash_report_periods`).get();
+  const days: DayView = {};
+  for (const doc of months.docs) {
+    if ((CASH_REBUILD_STATE_IDS as readonly string[]).includes(doc.id)) {
+      continue;
+    }
+    days[doc.id] = readCashDayDeltas(doc.data().days);
+  }
+  const generation = readCashProjectionState(
+    await cashProjectionStateRef(target.workspaceId).get(),
+  ).categoryGeneration;
+  const years = await db()
+    .collection(`workspaces/${target.workspaceId}/cash_category_years`)
+    .where("generation", "==", generation).get();
+  const categories: CategoryView = {};
+  for (const doc of years.docs) {
+    const data = doc.data();
+    categories[doc.id.slice(generation.length + 2)] = {
+      incomeCents: data.incomeCents ?? 0,
+      expenseCents: data.expenseCents ?? 0,
+      incomeCount: data.incomeCount ?? 0,
+      expenseCount: data.expenseCount ?? 0,
+      days: readCashCategoryDays(data.days) as Record<
+        string, Record<string, number>>,
+    };
+  }
+  return {days: cleanDays(days), categories: cleanCategories(categories)};
+};
+
+const assertConsistent = async (target: Book, label: string) => {
   assert.deepEqual(await projected(target), await truth(target), label);
+  const [actual, expected] = await Promise.all([
+    projectedDetail(target), truthDetail(target),
+  ]);
+  assert.deepEqual(actual.days, expected.days, `${label} (dias)`);
+  assert.deepEqual(actual.categories, expected.categories,
+    `${label} (categorias)`);
+};
 
 const state = async (target: Book) =>
   (await cashProjectionStateRef(target.workspaceId).get()).data();
+
+/**
+ * Nenhuma publicação no estado da projeção: sem corte, sem publicação e a
+ * geração de categorias inicial. Desde a P5-C1 o checkpoint real registra a
+ * geração em preparação (`categoryStaging`) no próprio estado — isso não é
+ * publicação: o leitor só usa `categoryGeneration` e os meses.
+ */
+const assertNothingPublished = async (
+  target: Book,
+  label: string,
+  rebuildId?: unknown,
+) => {
+  const current = await state(target);
+  assert.equal(current?.baselineCutoff, undefined, `${label}: sem corte`);
+  assert.equal(current?.lastPublishedAt, undefined, `${label}: sem publicação`);
+  assert.equal(current?.baselineRebuildId, undefined, `${label}: sem base`);
+  assert.equal(current?.categoryGeneration, undefined,
+    `${label}: geração de categorias inicial`);
+  if (rebuildId !== undefined) {
+    assert.equal(current?.categoryStaging?.generation, rebuildId,
+      `${label}: preparação da execução em andamento`);
+  }
+};
 
 const checkpoint = async (target: Book, dryRun = false) =>
   (await db()
@@ -275,6 +416,9 @@ test("P3-B — simulação não publica e não toca na execução real", async (
   const realStep = await rebuild(target, {pageSize: 2});
   assert.equal(realStep.completed, false);
   const realCheckpoint = await checkpoint(target);
+  const realState = await state(target);
+  await assertNothingPublished(target, "execução real em andamento",
+    realCheckpoint?.rebuildId);
 
   const dry = await rebuildToEnd(target, {pageSize: 2, dryRun: true});
   const dryFinal = dry[dry.length - 1];
@@ -289,7 +433,8 @@ test("P3-B — simulação não publica e não toca na execução real", async (
     .doc(`workspaces/${target.workspaceId}/cash_report_periods/2026-08`)
     .get()).data();
   assert.equal(after?.incomeCents, 1);
-  assert.equal(await state(target), undefined);
+  assert.deepEqual(await state(target), realState,
+    "simulação não toca no estado");
   assert.deepEqual(await checkpoint(target), realCheckpoint);
   assert.equal(await checkpoint(target, true), undefined);
 
@@ -351,7 +496,9 @@ test("P3-B — edição de documento não lido recomeça", async () => {
   assert.notEqual(restarted?.rebuildId, firstCheckpoint?.rebuildId);
   assert.equal(restarted?.cursor, null);
   assert.equal(restarted?.restarts, 1);
-  assert.equal(await state(target), undefined, "nada publicado");
+  await assertNothingPublished(target, "nada publicado", restarted?.rebuildId);
+  assert.deepEqual((await state(target))?.categoryGarbage,
+    [firstCheckpoint?.rebuildId], "preparação abandonada vai para descarte");
 
   await rebuildToEnd(target);
   await assertConsistent(target, "corte novo, base correta");
@@ -512,8 +659,9 @@ test("P3-B — falha durante a publicação não deixa estado parcial", async ()
     },
   }));
   assert.deepEqual(await projected(target), before, "nenhum mês mudou");
-  assert.equal(await state(target), undefined, "estado intacto");
-  assert.ok(await checkpoint(target), "checkpoint preservado para retomar");
+  const kept = await checkpoint(target);
+  await assertNothingPublished(target, "estado intacto", kept?.rebuildId);
+  assert.ok(kept, "checkpoint preservado para retomar");
 
   await rebuildToEnd(target);
   await assertConsistent(target, "a nova tentativa publica tudo");
@@ -531,7 +679,8 @@ test("P3-B — acima do teto de escritas recusa sem efeito", async () => {
       error.details?.requiredWrites === 6,
   );
   assert.deepEqual(await projected(target), {});
-  assert.equal(await state(target), undefined);
+  await assertNothingPublished(target, "recusa sem efeito",
+    (await checkpoint(target))?.rebuildId);
   // Com orçamento suficiente, a mesma execução publica.
   await rebuild(target, {pageSize: 10}, {publishWriteBudget: 6});
   await assertConsistent(target, "publicado dentro do teto");
@@ -559,22 +708,48 @@ const seedMonths = async (target: Book, count: number) => {
   }
 };
 
+/**
+ * Chama a reconstrução até ela concluir ou falhar. Desde a P5-C1 a página é
+ * cortada pelo orçamento de documentos tocados por commit (shards de dias e
+ * categorias), então um ledger com um lançamento por mês avança em mais de
+ * uma chamada mesmo com páginas de 500.
+ */
+const rebuildUntilSettled = async (
+  target: Book,
+  overrides: {pageSize?: number} = {},
+): Promise<{result?: Record<string, unknown>; error?: unknown;
+  maxStoredPeriods: number}> => {
+  let maxStoredPeriods = 0;
+  for (let call = 0; call < 20; call += 1) {
+    try {
+      const result = await rebuild(target, overrides);
+      const stored = (await checkpoint(target))?.periods ?? {};
+      maxStoredPeriods = Math.max(maxStoredPeriods, Object.keys(stored).length);
+      if (result.completed === true) return {result, maxStoredPeriods};
+    } catch (error) {
+      return {error, maxStoredPeriods};
+    }
+  }
+  assert.fail("a reconstrução não terminou em 20 chamadas");
+};
+
 test("P3-B — limite real: 500 escritas sim, 501 não", async () => {
   const atLimit = book();
   await seedMonths(atLimit, 498); // 498 meses + estado + checkpoint = 500
-  const published = await rebuild(atLimit, {pageSize: 500});
-  assert.equal(published.completed, true);
-  assert.equal(published.periods, 498);
+  const published = await rebuildUntilSettled(atLimit, {pageSize: 500});
+  assert.equal(published.error, undefined);
+  assert.equal(published.result?.completed, true);
+  assert.equal(published.result?.periods, 498);
   await assertConsistent(atLimit, "498 meses num commit");
 
   const overLimit = book();
   await seedMonths(overLimit, 499);
-  await assert.rejects(
-    rebuild(overLimit, {pageSize: 500}),
-    (error: unknown) =>
-      error instanceof ApplicationError &&
-      error.details?.requiredWrites === 501 &&
-      error.details?.writeLimit === 500,
+  const refused = await rebuildUntilSettled(overLimit, {pageSize: 500});
+  assert.ok(
+    refused.error instanceof ApplicationError &&
+      refused.error.details?.requiredWrites === 501 &&
+      refused.error.details?.writeLimit === 500,
+    "501 escritas recusadas",
   );
   assert.deepEqual(await projected(overLimit), {}, "nada publicado");
 });
@@ -582,15 +757,15 @@ test("P3-B — limite real: 500 escritas sim, 501 não", async () => {
 test("P3-B — checkpoint suporta 500 meses e recusa passar de 600", async () => {
   const target = book();
   await seedMonths(target, 601);
-  const first = await rebuild(target, {pageSize: 500});
-  assert.equal(first.completed, false);
-  const stored = (await checkpoint(target))?.periods ?? {};
-  assert.equal(Object.keys(stored).length, 500);
-  await assert.rejects(
-    rebuild(target, {pageSize: 500}),
-    (error: unknown) =>
-      error instanceof ApplicationError &&
-      /excedeu 600 períodos/.test(error.message),
+  // Páginas de 250 cabem no orçamento do commit: 250 e 500 meses no
+  // checkpoint; a terceira página passaria de 600 e é recusada.
+  const outcome = await rebuildUntilSettled(target, {pageSize: 250});
+  assert.equal(outcome.maxStoredPeriods, 500,
+    `checkpoint chegou a ${outcome.maxStoredPeriods} meses`);
+  assert.ok(
+    outcome.error instanceof ApplicationError &&
+      /excedeu 600 períodos/.test(outcome.error.message),
+    "acima de 600 meses é recusado",
   );
   assert.deepEqual(await projected(target), {});
 });
@@ -674,3 +849,86 @@ test("P3-B — incidente só é coberto por corte posterior a ele", async () => 
   });
   assert.equal((await state(target))?.needsRebuild, true);
 });
+
+// ------------------------------------------------- contrato único (P5-C2)
+
+test("P5-C2 — documento fora do contrato: gatilho marca, reconstrução " +
+  "recusa e não publica; corrigido, publica", async () => {
+  const target = book();
+  await seed(target, ids(4).map((id) =>
+    [id, "2026-08-10", 1_000] as [string, string, number]));
+  await rebuildToEnd(target);
+  await assertConsistent(target, "base inicial");
+  const base = await projected(target);
+  const publishedAt = (await state(target))?.lastPublishedAt;
+  assert.ok(publishedAt, "base publicada");
+
+  // Documento gravado pelo Admin SDK fora do contrato (`parcelado` legado).
+  const forged = await write(target, "a05", {
+    ...entry("2026-08-10", 5_000), type: "parcelado",
+  });
+  assert.equal((await handleTransactionWrite(forged)).projection,
+    "failed_recorded");
+  const flagged = await state(target);
+  assert.equal(flagged?.needsRebuild, true);
+  assert.equal(flagged?.lastIssueCode, "contract_violation");
+  assert.equal(flagged?.lastIssueTransactionId, "a05");
+  assert.deepEqual(await projected(target), base, "gatilho não aplicou nada");
+
+  // A reconstrução recusa, com mensagem fixa em pt-BR e sem dado do documento.
+  const refused = await rebuildUntilSettled(target);
+  assert.equal(refused.result, undefined);
+  assert.ok(
+    refused.error instanceof ApplicationError &&
+      refused.error.code === "domain_precondition_failed" &&
+      refused.error.message === CASH_REBUILD_CONTRACT_VIOLATION_MESSAGE,
+    "recusada por violação de contrato",
+  );
+  assert.deepEqual(await projected(target), base, "nenhum total mudou");
+  const after = await state(target);
+  assert.equal(after?.needsRebuild, true, "o sinal continua ligado");
+  assert.ok(after?.lastPublishedAt.isEqual(publishedAt), "sem nova publicação");
+
+  // Corrigido o documento (dentro do contrato), a reconstrução publica e
+  // desliga o sinal. O gatilho do `before` inválido também é registrado.
+  const fixed = await write(target, "a05", entry("2026-08-10", 5_000));
+  await handleTransactionWrite(fixed);
+  await rebuildToEnd(target);
+  await assertConsistent(target, "reconstrução após a correção");
+  assert.equal((await projected(target))["2026-08"].incomeCents, 9_000);
+  assert.equal((await state(target))?.needsRebuild, false);
+});
+
+test("P5-C2 — documento sem valueCents ou sem date também recusa publicar",
+  async () => {
+    for (const [label, mutate] of [
+      ["só value em reais", (data: Record<string, unknown>) => {
+        delete data.valueCents;
+        data.value = 10;
+      }],
+      ["valueCents decimal", (data: Record<string, unknown>) => {
+        data.valueCents = 10.5;
+      }],
+      ["sem date", (data: Record<string, unknown>) => {
+        delete data.date;
+        data.transactionDate = Timestamp.fromDate(
+          new Date("2026-08-10T15:00:00.000Z"));
+      }],
+    ] as const) {
+      const target = book();
+      await seed(target, ids(2).map((id) =>
+        [id, "2026-08-10", 1_000] as [string, string, number]));
+      const broken = entry("2026-08-10", 1_000);
+      mutate(broken);
+      await target.ref("a03").set(broken);
+
+      const refused = await rebuildUntilSettled(target);
+      assert.ok(
+        refused.error instanceof ApplicationError &&
+          refused.error.message === CASH_REBUILD_CONTRACT_VIOLATION_MESSAGE,
+        label,
+      );
+      assert.deepEqual(await projected(target), {}, `${label}: nada publicado`);
+      await assertNothingPublished(target, label);
+    }
+  });

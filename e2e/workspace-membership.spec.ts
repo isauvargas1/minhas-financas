@@ -1,5 +1,6 @@
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
 
+import { resolveAiChatScope } from '../src/modules/reports/aiChatStorage';
 import { callCallable, emulatorIdToken } from './support/callables';
 import { adminSdk, issueInviteTokenForE2E, seedPaidPlan } from './support/workspaceSeed';
 
@@ -75,16 +76,21 @@ test('primeiro login prepara a conta no backend e o logout não vaza dados para 
   await db.doc(`workspaces/${workspaceA}/transactions/p1-exclusiva-a`).set({
     userId: a.uid, workspaceId: workspaceA, profileId: workspaceA, isPaid: true,
     type: 'receita', description: 'Receita exclusiva da conta A', category: 'Salário',
-    value: 4321, date: now.toISOString().slice(0, 10), transactionDate: now,
+    valueCents: 432_100, date: now.toISOString().slice(0, 10),
     createdAt: now, updatedAt: now,
   });
   await page.reload();
   await expect(page.getByText('Receita exclusiva da conta A').first()).toBeVisible({ timeout: 30_000 });
-  await page.evaluate((workspaceId) => {
-    localStorage.setItem(`finance_ai_chat_history_${workspaceId}`, JSON.stringify([
-      { id: '1', type: 'user', text: 'pergunta privada de A', timestamp: new Date().toISOString() },
-    ]));
-  }, workspaceA);
+  // Histórico do chat de IA de A no formato atual (P5-A: por usuário e workspace).
+  const chatScopeA = resolveAiChatScope(a.uid, workspaceA);
+  expect(chatScopeA).not.toBeNull();
+  await page.evaluate(([key, uid, workspaceId]) => {
+    localStorage.setItem(key, JSON.stringify({
+      v: 2, uid, workspaceId,
+      messages: [{ id: '1', type: 'user', text: 'pergunta privada de A', timestamp: new Date().toISOString() }],
+    }));
+  }, [chatScopeA!.key, a.uid, workspaceA]);
+  expect(await page.evaluate(() => localStorage.getItem('dindin_local_session_owner'))).toBe(a.uid);
   expect(await page.evaluate((uid) => localStorage.getItem(`lastWorkspaceId_${uid}`), a.uid))
     .toBe(workspaceA);
 
@@ -103,7 +109,7 @@ test('primeiro login prepara a conta no backend e o logout não vaza dados para 
   await expect(page.getByTestId('e2e-login-button')).toBeVisible();
   const leftovers = await page.evaluate(() => Object.keys(localStorage).filter((key) =>
     key.startsWith('lastWorkspaceId_') || key.startsWith('finance_ai_chat_history_') ||
-    key.startsWith('app_chat_')));
+    key.startsWith('app_chat_') || key === 'dindin_local_session_owner'));
   expect(leftovers).toEqual([]);
 
   /*

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 
 import type { Goal } from '../../../../types';
+import type { InvestmentGoalOptionsPaging } from '../../../goals/hooks';
 import SimpleInvestmentForm, {
   type EditingInvestment,
 } from './SimpleInvestmentForm';
@@ -22,6 +23,8 @@ export interface NewInvestmentModalProps {
   open: boolean;
   workspaceId: string;
   goals: Goal[];
+  /** Paginação do seletor de metas (P5-B.1). */
+  goalPaging?: InvestmentGoalOptionsPaging;
   /** Meta pré-selecionada quando o modal é aberto a partir de uma meta (§13). */
   initialGoalId?: string | null;
   /** A meta não pode ser trocada dentro deste formulário (Etapa 3, §2.A). */
@@ -33,7 +36,7 @@ export interface NewInvestmentModalProps {
 }
 
 const NewInvestmentModal: React.FC<NewInvestmentModalProps> = ({
-  open, workspaceId, goals, initialGoalId, goalLocked = false, editing, onClose, onSuccess,
+  open, workspaceId, goals, goalPaging, initialGoalId, goalLocked = false, editing, onClose, onSuccess,
 }) => {
   const [submitting, setSubmitting] = useState(false);
 
@@ -47,6 +50,7 @@ const NewInvestmentModal: React.FC<NewInvestmentModalProps> = ({
         open={open}
         workspaceId={workspaceId}
         goals={goals}
+        goalPaging={goalPaging}
         initialGoalId={initialGoalId}
         goalLocked={goalLocked}
         editing={editing}

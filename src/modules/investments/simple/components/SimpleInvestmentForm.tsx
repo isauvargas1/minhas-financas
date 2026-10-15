@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import type { Goal } from '../../../../types';
+import { mergeGoalsById } from '../../../goals/model';
+import { useInvestmentGoalsByIds, type InvestmentGoalOptionsPaging } from '../../../goals/hooks';
 import {
   useSettingsCatalog,
   useSettingsCatalogGroup,
@@ -11,6 +13,7 @@ import { useSimpleInvestmentMutation } from '../api';
 import {
   buildCategoryOptions,
   buildCreateSimpleInvestmentInput,
+  buildGoalSelectOptions,
   emptyNewInvestmentForm,
   formatCentsInput,
   maskCurrencyInput,
@@ -85,6 +88,11 @@ export interface SimpleInvestmentFormProps {
   open: boolean;
   workspaceId: string;
   goals: Goal[];
+  /**
+   * Paginação do seletor de metas (P5-B.1). Com mais páginas, o formulário
+   * oferece "Carregar mais metas"; sem ela, só as metas recebidas aparecem.
+   */
+  goalPaging?: InvestmentGoalOptionsPaging;
   /** Meta pré-selecionada quando o formulário nasce de uma meta (§13). */
   initialGoalId?: string | null;
   /**
@@ -122,15 +130,8 @@ export interface SimpleInvestmentFormProps {
   onSuccess(message: string): void;
 }
 
-const goalOptions = (goals: Goal[]): SelectOption[] => goals
-  .filter((goal) => goal.status === 'em_andamento')
-  .map((goal) => ({
-    value: goal.id,
-    label: `${goal.visual?.emoji ? `${goal.visual.emoji} ` : ''}${goal.name}`,
-  }));
-
 const SimpleInvestmentForm: React.FC<SimpleInvestmentFormProps> = ({
-  open, workspaceId, goals, initialGoalId, goalLocked = false, editing,
+  open, workspaceId, goals, goalPaging, initialGoalId, goalLocked = false, editing,
   idPrefix = 'simple', onPendingChange, onClose, onSuccess,
 }) => {
   const [form, setForm] = useState<NewInvestmentFormState>(
@@ -269,14 +270,31 @@ const SimpleInvestmentForm: React.FC<SimpleInvestmentFormProps> = ({
     }
   };
 
-  const availableGoals = useMemo(() => goalOptions(goals), [goals]);
+  /*
+   * A meta selecionada pode estar além das páginas carregadas do seletor
+   * (por exemplo, ao editar um aporte ligado à 150ª meta): ela é resolvida
+   * por ID, e só ela, para continuar visível como opção.
+   */
+  const selectedMissingIds = useMemo(
+    () => (form.goalId && !goals.some((goal) => goal.id === form.goalId) ? [form.goalId] : []),
+    [form.goalId, goals],
+  );
+  const selectedGoalQuery = useInvestmentGoalsByIds(selectedMissingIds);
+  const selectableGoals = useMemo(
+    () => mergeGoalsById(goals, selectedGoalQuery.data),
+    [goals, selectedGoalQuery.data],
+  );
+  const availableGoals = useMemo(
+    () => buildGoalSelectOptions(selectableGoals, form.goalId),
+    [selectableGoals, form.goalId],
+  );
   /*
    * Rótulo da meta travada. Sai da lista completa, e não só das metas em
    * andamento: quem abriu o formulário de dentro de uma meta pausada tem
    * direito de ver o nome dela, mesmo que ela não apareça no seletor livre.
    */
   const lockedGoalLabel = goalLocked && initialGoalId
-    ? goals.find((goal) => goal.id === initialGoalId)?.name ?? 'Meta selecionada'
+    ? selectableGoals.find((goal) => goal.id === initialGoalId)?.name ?? 'Meta selecionada'
     : null;
 
   return (
@@ -315,6 +333,21 @@ const SimpleInvestmentForm: React.FC<SimpleInvestmentFormProps> = ({
               <p className="mt-1.5 text-xs text-indigo-700 dark:text-indigo-300">
                 Este aporte já vai para esta meta.
               </p>
+            )}
+            {!lockedGoalLabel && goalPaging?.hasMore && (
+              <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
+                <p className="text-xs text-indigo-700 dark:text-indigo-300">
+                  Mostrando {availableGoals.length} metas; carregue mais para ver as demais.
+                </p>
+                <button
+                  type="button"
+                  onClick={goalPaging.loadMore}
+                  disabled={goalPaging.isLoadingMore}
+                  className="text-xs font-semibold text-indigo-700 dark:text-indigo-300 underline underline-offset-2 hover:text-indigo-900 dark:hover:text-indigo-100 disabled:opacity-60 disabled:no-underline"
+                >
+                  {goalPaging.isLoadingMore ? 'Carregando metas…' : 'Carregar mais metas'}
+                </button>
+              </div>
             )}
           </div>
 

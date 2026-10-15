@@ -3,17 +3,51 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { useFinancialAlerts } from '../modules/reports/hooks.ts';
 import { FinancialReportSnapshot, AlertSeverity } from '../modules/reports/types.ts';
-import { WarningIcon, BellIcon, CheckIcon, CloseIcon, TrendingUpIcon } from './Icons.tsx';
+import { WarningIcon, BellIcon, CheckIcon, TrendingUpIcon } from './Icons.tsx';
 
 interface ReportsAlertsPanelProps {
     snapshot: FinancialReportSnapshot;
 }
 
 const ReportsAlertsPanel: React.FC<ReportsAlertsPanelProps> = ({ snapshot }) => {
-    const { alerts, markAsRead } = useFinancialAlerts(snapshot);
+    const { alerts } = useFinancialAlerts(snapshot);
     const MotionDiv = motion.div as any;
+    const alertsView = snapshot.coverage?.alerts;
+
+    // Sem número de alertas (indisponível, aguardando reconstrução) não se afirma "tudo certo".
+    if (alertsView && !alertsView.hasNumbers) {
+        return (
+            <MotionDiv
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="bg-surface rounded-card border border-border p-6 text-center shadow-sm"
+            >
+                <div className="w-12 h-12 bg-yellow-100 dark:bg-yellow-900/20 text-yellow-600 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <WarningIcon className="w-6 h-6" />
+                </div>
+                <h3 className="text-on-surface font-medium">Condições do período indisponíveis</h3>
+                <p className="text-muted text-sm mt-1">{alertsView.message ?? 'Indisponível no momento.'}</p>
+            </MotionDiv>
+        );
+    }
 
     if (alerts.length === 0) {
+        // Fontes incompletas (amostra, leitura parcial): ausência de condições não é "tudo certo".
+        if (alertsView?.note) {
+            return (
+                <MotionDiv
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="bg-surface rounded-card border border-border p-6 text-center shadow-sm"
+                >
+                    <div className="w-12 h-12 bg-yellow-100 dark:bg-yellow-900/20 text-yellow-600 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <WarningIcon className="w-6 h-6" />
+                    </div>
+                    <h3 className="text-on-surface font-medium">Nenhuma condição identificada nas fontes disponíveis</h3>
+                    <p className="text-muted text-sm mt-1">{alertsView.note}</p>
+                </MotionDiv>
+            );
+        }
         return (
             <MotionDiv 
                 initial={{ opacity: 0, scale: 0.95 }}
@@ -24,7 +58,7 @@ const ReportsAlertsPanel: React.FC<ReportsAlertsPanelProps> = ({ snapshot }) => 
                     <CheckIcon className="w-6 h-6" />
                 </div>
                 <h3 className="text-on-surface font-medium">Tudo certo por aqui!</h3>
-                <p className="text-muted text-sm mt-1">Nenhum alerta financeiro encontrado para o período.</p>
+                <p className="text-muted text-sm mt-1">Nenhuma condição de atenção identificada no período.</p>
             </MotionDiv>
         );
     }
@@ -64,13 +98,17 @@ const ReportsAlertsPanel: React.FC<ReportsAlertsPanelProps> = ({ snapshot }) => 
 
     return (
         <div className="space-y-4">
-            <h3 className="text-lg font-bold text-on-surface flex items-center gap-2">
-                <BellIcon className="w-5 h-5 text-primary" />
-                Alertas e Insights
-                <span className="text-xs bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-300 px-2 py-0.5 rounded-full font-bold">
-                    {alerts.length}
-                </span>
-            </h3>
+            <div className="space-y-1">
+                <h3 className="text-lg font-bold text-on-surface flex items-center gap-2">
+                    <BellIcon className="w-5 h-5 text-primary" />
+                    Condições do período
+                    <span className="text-xs bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-300 px-2 py-0.5 rounded-full font-bold">
+                        {alerts.length}
+                    </span>
+                </h3>
+                <p className="text-xs text-muted">Calculadas a partir dos dados do período selecionado; não ficam salvas como notificações.</p>
+                {alertsView?.note && <p className="text-xs text-muted">{alertsView.note}</p>}
+            </div>
             <div className="space-y-3">
                 {alerts.map((alert, index) => {
                     const styles = getSeverityStyles(alert.severity);
@@ -91,20 +129,13 @@ const ReportsAlertsPanel: React.FC<ReportsAlertsPanelProps> = ({ snapshot }) => 
                             <div className="flex-1">
                                 <div className="flex justify-between items-start">
                                     <h4 className={`text-sm font-bold mb-1 ${styles.iconColor}`}>{alert.title}</h4>
-                                    <button 
-                                        onClick={() => markAsRead(alert.id)}
-                                        className="p-1.5 -mt-2 -mr-2 text-muted/60 hover:text-on-surface hover:bg-black/5 dark:hover:bg-white/10 rounded-full transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100 outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                                        title="Marcar como lido"
-                                    >
-                                        <CloseIcon className="w-4 h-4" />
-                                    </button>
                                 </div>
                                 <p className="text-sm text-on-surface opacity-90 leading-relaxed">
                                     {alert.message}
                                 </p>
                                 <div className="flex justify-between items-center mt-3">
                                     <span className="text-xs text-muted/80">
-                                        {new Date(alert.createdAt).toLocaleDateString('pt-BR')}
+                                        Calculado em {new Date(alert.createdAt).toLocaleDateString('pt-BR')}
                                     </span>
                                 </div>
                             </div>

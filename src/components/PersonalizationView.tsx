@@ -9,7 +9,7 @@ import {
 import SummaryCard from './SummaryCard.tsx';
 import Sidebar from './Sidebar.tsx';
 import Header from './Header.tsx';
-import TransactionsChart from './TransactionsChart.tsx';
+import DistributionChart, { type DistributionItem } from './DistributionChart.tsx';
 import RecentTransactions from './RecentTransactions.tsx';
 import { PRESET_THEMES } from '../contexts/themePresets.ts';
 import { SoundKey, ThemeColors, Transaction } from '../types.ts';
@@ -98,14 +98,21 @@ const ColorRow: React.FC<{
 
 // Mock data for preview
 const MOCK_TRANSACTIONS: Transaction[] = [
-    { id: 1, type: 'receita', description: 'Salário Mensal', category: 'Salário', value: 8500, date: '2025-12-05' },
-    { id: 2, type: 'despesa', description: 'Aluguel Apartamento', category: 'Moradia', value: 2200, date: '2025-12-10' },
-    { id: 3, type: 'despesa', description: 'Supermercado Semanal', category: 'Alimentação', value: 450.50, date: '2025-12-15' },
-    { id: 4, type: 'investimento', description: 'Aporte Tesouro', category: 'Investimentos', value: 1000, date: '2025-12-20' },
-    { id: 5, type: 'receita', description: 'Freelance Design', category: 'Honorários', value: 1200, date: '2025-12-22' },
-    { id: 6, type: 'parcelado', description: 'Notebook Gamer', category: 'Eletrônicos', value: 500, date: '2025-12-24', installments: 10, currentInstallment: 3 },
+    { id: 1, type: 'receita', description: 'Salário Mensal', category: 'Salário', valueCents: 850000, date: '2025-12-05' },
+    { id: 2, type: 'despesa', description: 'Aluguel Apartamento', category: 'Moradia', valueCents: 220000, date: '2025-12-10' },
+    { id: 3, type: 'despesa', description: 'Supermercado Semanal', category: 'Alimentação', valueCents: 45050, date: '2025-12-15' },
+    { id: 4, type: 'investimento', description: 'Aporte Tesouro', category: 'Investimentos', valueCents: 100000, date: '2025-12-20' },
+    { id: 5, type: 'receita', description: 'Freelance Design', category: 'Honorários', valueCents: 120000, date: '2025-12-22' },
+    { id: 6, type: 'despesa', description: 'Notebook Gamer', category: 'Eletrônicos', valueCents: 50000, date: '2025-12-24' },
 ];
 
+// Totais de demonstração do gráfico de distribuição (já agregados).
+const MOCK_DISTRIBUTION: DistributionItem[] = [
+    { name: 'Receitas', kind: 'income', value: 9700 },
+    { name: 'Despesas', kind: 'expense', value: 2650.5 },
+    { name: 'Investimentos', kind: 'investment', value: 0 },
+    { name: 'Parceladas', kind: 'installment', value: 500 },
+];
 
 const PersonalizationView: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     const { theme, setTheme, updateTheme, toggleMode, resetTheme, playSound, availableSounds } = useTheme();
@@ -639,7 +646,7 @@ const PersonalizationView: React.FC<{ onBack: () => void }> = ({ onBack }) => {
 
                                     <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 mb-8">
                                         <div className="lg:col-span-2">
-                                            <TransactionsChart transactions={MOCK_TRANSACTIONS} />
+                                            <DistributionChart items={MOCK_DISTRIBUTION} />
                                         </div>
                                         <div className="lg:col-span-3">
                                             <RecentTransactions 

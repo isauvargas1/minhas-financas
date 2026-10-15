@@ -5,17 +5,21 @@ import {
     FinancialReportSnapshot,
     KPI_NATURE_LABELS,
     type KpiNature,
+    type ReportViewModel,
 } from '../modules/reports/types.ts';
+import { blockEmptyText, REPORT_MESSAGES } from '../modules/reports/adapter.ts';
+import { formatPercent } from '../modules/reports/format.ts';
 import {
     TrendingUpIcon, WalletIcon, ChartBarIcon, ArrowUpIcon,
     ArrowDownIcon, TargetIcon, BuildingIcon, SparklesIcon,
-    BriefcaseIcon, PiggyBankIcon, WarningIcon, CheckIcon, DynamicIcon
+    BriefcaseIcon, PiggyBankIcon, DynamicIcon
 } from './Icons.tsx';
 import ReportsAlertsPanel from './ReportsAlertsPanel.tsx';
 import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
 const MotionDiv = motion.div as any;
 interface ReportsOverviewProps {
     snapshot?: FinancialReportSnapshot;
+    view?: ReportViewModel;
     isLoading?: boolean;
 }
 
@@ -90,7 +94,7 @@ const KPICard: React.FC<{
     </MotionDiv>
 );
 
-const ReportsOverview: React.FC<ReportsOverviewProps> = ({ snapshot, isLoading }) => {
+const ReportsOverview: React.FC<ReportsOverviewProps> = ({ snapshot, view, isLoading }) => {
     const { activeWorkspace } = useWorkspace();
     const isPJ = activeWorkspace.type === 'PJ';
     
@@ -102,14 +106,14 @@ const ReportsOverview: React.FC<ReportsOverviewProps> = ({ snapshot, isLoading }
         if (isPJ) {
             return [
                 {
-                    label: 'Faturamento',
+                    label: 'Recebimentos operacionais realizados',
                     id: 'kpi-gross-revenue',
                     icon: <BriefcaseIcon className="w-6 h-6" />,
                     color: 'text-indigo-600 dark:text-indigo-400',
                     bg: 'bg-indigo-50 dark:bg-indigo-900/20'
                 },
                 {
-                    label: 'Margem Líquida',
+                    label: 'Margem operacional de caixa',
                     id: 'kpi-profit-margin',
                     icon: <TrendingUpIcon className="w-6 h-6" />,
                     color: 'text-emerald-600 dark:text-emerald-400',
@@ -155,7 +159,7 @@ const ReportsOverview: React.FC<ReportsOverviewProps> = ({ snapshot, isLoading }
                 bg: 'bg-blue-50 dark:bg-blue-900/20'
             },
             {
-                label: 'Resultado Líquido',
+                label: 'Resultado operacional',
                 id: 'kpi-balance',
                 icon: <PiggyBankIcon className="w-6 h-6" />,
                 color: 'text-purple-600 dark:text-purple-400',
@@ -176,7 +180,7 @@ const ReportsOverview: React.FC<ReportsOverviewProps> = ({ snapshot, isLoading }
     const creditCardIndicators = snapshot?.creditCardIndicators ?? [];
     const hasCreditCardIndicators = creditCardIndicators.length > 0;
 
-    if (isLoading || !snapshot) {
+    if (isLoading || !snapshot || !view) {
         return (
             <div className="space-y-8 animate-fade-in">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -198,7 +202,7 @@ const ReportsOverview: React.FC<ReportsOverviewProps> = ({ snapshot, isLoading }
                     <KPICard
                         key={index}
                         label={kpi.label}
-                        value={kpi.data?.formattedValue || 'R$ 0,00'}
+                        value={kpi.data?.formattedValue ?? REPORT_MESSAGES.noValue}
                         trend={kpi.data?.trend}
                         trendBasis={kpi.data?.trendBasis}
                         trendPercentage={kpi.data?.trendPercentage}
@@ -226,35 +230,65 @@ const ReportsOverview: React.FC<ReportsOverviewProps> = ({ snapshot, isLoading }
               Rendimento, taxas e impostos só aparecem quando existem: um
               "R$ 0,00" fixo faria o relatório afirmar que houve apuração de
               rendimento quando não houve nenhuma.
+
+              P5-C1: sem investimento nenhum (zero verdadeiro do servidor) o
+              painel não aparece, como na base; indisponível, reconstrução e
+              falta de permissão aparecem com o aviso do bloco.
             */}
-            {snapshot.investmentOverview && (
+            {view.blocks.investments.status !== 'not_requested' &&
+                view.blocks.investments.status !== 'zero' && (
                 <section aria-labelledby="investment-overview-title" className="space-y-5 rounded-card border border-border bg-surface p-5 shadow-sm">
                     <div>
                         <h3 id="investment-overview-title" className="font-bold text-on-surface">Patrimônio de investimentos</h3>
                         <p className="text-xs text-muted">Aportes, retiradas e rendimento aparecem separados do saldo em caixa.</p>
                     </div>
-                    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-                        {([
-                            ['Patrimônio atual', snapshot.investmentOverview.currentValue, true],
-                            ['Aportes', snapshot.investmentOverview.contributions, true],
-                            ['Retiradas', snapshot.investmentOverview.redeemedPrincipal, true],
-                            ['Rendimento realizado', snapshot.investmentOverview.realizedResult,
-                                snapshot.investmentOverview.realizedResult !== 0],
-                            ['Taxas', snapshot.investmentOverview.fees,
-                                snapshot.investmentOverview.fees !== 0],
-                            ['Impostos', snapshot.investmentOverview.taxes,
-                                snapshot.investmentOverview.taxes !== 0],
-                        ] as [string, number, boolean][]).filter(([, , visible]) => visible).map(([label, value]) => (
-                            <article key={label} className="rounded-xl border border-border bg-background p-3">
-                                <p className="text-xs text-muted">{label}</p>
-                                <p className="mt-1 font-bold text-on-surface">{formatCurrency(Number(value))}</p>
-                            </article>
-                        ))}
-                    </div>
+                    {snapshot.investmentOverview ? (
+                        <>
+                            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                                {([
+                                    ['Patrimônio atual', snapshot.investmentOverview.currentValue, true],
+                                    ['Aportes', snapshot.investmentOverview.contributions, true],
+                                    ['Retiradas', snapshot.investmentOverview.redeemedPrincipal, true],
+                                    ['Rendimento realizado', snapshot.investmentOverview.realizedResult,
+                                        snapshot.investmentOverview.realizedResult !== 0],
+                                    ['Taxas', snapshot.investmentOverview.fees,
+                                        snapshot.investmentOverview.fees !== 0],
+                                    ['Impostos', snapshot.investmentOverview.taxes,
+                                        snapshot.investmentOverview.taxes !== 0],
+                                ] as [string, number | null, boolean][]).filter(([, , visible]) => visible).map(([label, value]) => (
+                                    <article key={label} className="rounded-xl border border-border bg-background p-3">
+                                        <p className="text-xs text-muted">{label}</p>
+                                        <p className="mt-1 font-bold text-on-surface">{value === null ? REPORT_MESSAGES.noValue : formatCurrency(value)}</p>
+                                    </article>
+                                ))}
+                            </div>
+                            {(view.blocks.investments.note || view.investmentNote) && (
+                                <p role="status" className="text-xs text-muted">
+                                    {view.blocks.investments.note} {view.investmentNote}
+                                </p>
+                            )}
+                        </>
+                    ) : (
+                        <p role="status" className="text-sm text-muted">
+                            {view.blocks.investments.message}
+                        </p>
+                    )}
                 </section>
             )}
 
-            {hasCreditCardIndicators && (
+            {!view.blocks.cards.hasNumbers && view.blocks.cards.status !== 'not_requested' && (
+                <div className="bg-surface rounded-card border border-border shadow-sm overflow-hidden">
+                    <div className="p-5 border-b border-border bg-background/30">
+                        <h3 className="font-bold text-on-surface flex items-center gap-2">
+                            <WalletIcon className="w-5 h-5 text-primary" />
+                            Indicadores de Cartão de Crédito
+                        </h3>
+                    </div>
+                    <p role="status" className="p-5 text-sm text-muted">{view.blocks.cards.message}</p>
+                </div>
+            )}
+
+            {view.blocks.cards.hasNumbers && hasCreditCardIndicators && (
                 <div className="bg-surface rounded-card border border-border shadow-sm overflow-hidden">
                     <div className="p-5 border-b border-border bg-background/30">
                         <h3 className="font-bold text-on-surface flex items-center gap-2">
@@ -270,12 +304,12 @@ const ReportsOverview: React.FC<ReportsOverviewProps> = ({ snapshot, isLoading }
                         <div className="bg-background rounded-xl border border-border p-4">
                             <p className="text-xs font-bold text-muted uppercase">Limite usado</p>
                             <p className="text-xl font-black text-on-surface mt-1">
-                                {formatCurrency(snapshot.debtProfile.totalCreditCardDebt)}
+                                {formatCurrency(snapshot.debtProfile.creditCardLimitUsed)}
                             </p>
                         </div>
 
                         <div className="bg-background rounded-xl border border-border p-4">
-                            <p className="text-xs font-bold text-muted uppercase">Faturas abertas</p>
+                            <p className="text-xs font-bold text-muted uppercase">Próximas faturas a pagar</p>
                             <p className="text-xl font-black text-on-surface mt-1">
                                 {formatCurrency(snapshot.debtProfile.creditCardOpenInvoiceBalance)}
                             </p>
@@ -286,6 +320,11 @@ const ReportsOverview: React.FC<ReportsOverviewProps> = ({ snapshot, isLoading }
                             <p className="text-xl font-black text-on-surface mt-1">
                                 {formatCurrency(snapshot.debtProfile.creditCardFutureCommittedBalance)}
                             </p>
+                            {snapshot.debtProfile.creditCardOpenCreditAmount > 0 && (
+                                <p className="text-[11px] text-muted mt-1">
+                                    Crédito a compensar no fechamento: {formatCurrency(snapshot.debtProfile.creditCardOpenCreditAmount)} (não abate o futuro).
+                                </p>
+                            )}
                         </div>
 
                         <div className="bg-background rounded-xl border border-border p-4">
@@ -313,7 +352,7 @@ const ReportsOverview: React.FC<ReportsOverviewProps> = ({ snapshot, isLoading }
                                     <th className="px-5 py-4">Cartão</th>
                                     <th className="px-5 py-4 text-right">Utilização</th>
                                     <th className="px-5 py-4 text-right">Limite disponível</th>
-                                    <th className="px-5 py-4 text-right">Fatura atual</th>
+                                    <th className="px-5 py-4 text-right">Próxima fatura a pagar</th>
                                     <th className="px-5 py-4 text-right">Futuro</th>
                                     <th className="px-5 py-4 text-right">Atraso</th>
                                 </tr>
@@ -325,29 +364,28 @@ const ReportsOverview: React.FC<ReportsOverviewProps> = ({ snapshot, isLoading }
                                         <td className="px-5 py-4">
                                             <p className="font-bold text-on-surface">{card.cardName}</p>
                                             <p className="text-xs text-muted">
+                                                {card.status === 'archived' ? 'Cartão arquivado · ' : ''}
                                                 {card.currentInvoiceDueDate
-                                                    ? `Vencimento atual: ${new Date(`${card.currentInvoiceDueDate}T12:00:00`).toLocaleDateString('pt-BR')}`
-                                                    : 'Sem fatura aberta'}
+                                                    ? `Vence em ${new Date(`${card.currentInvoiceDueDate}T12:00:00`).toLocaleDateString('pt-BR')}${card.currentInvoiceOpenCycle ? ' · fatura do ciclo aberto' : ''}`
+                                                    : 'Sem fatura a vencer'}
+                                                {card.openCreditAmount > 0
+                                                    ? ` · crédito de ${formatCurrency(card.openCreditAmount)} a compensar`
+                                                    : ''}
                                             </p>
                                         </td>
 
                                         <td className="px-5 py-4 text-right">
-                                            <span className={`font-black ${card.utilizationRate >= 90
-                                                ? 'text-red-600'
-                                                : card.utilizationRate >= 75
-                                                    ? 'text-amber-600'
-                                                    : 'text-green-600'
-                                                }`}>
-                                                {card.utilizationRate.toFixed(1)}%
+                                            <span className="font-black text-on-surface">
+                                                {card.utilizationRate === null ? REPORT_MESSAGES.noValue : formatPercent(card.utilizationRate)}
                                             </span>
                                         </td>
 
                                         <td className="px-5 py-4 text-right font-medium text-on-surface">
-                                            {formatCurrency(card.limitAvailable)}
+                                            {card.status === 'archived' ? REPORT_MESSAGES.noValue : formatCurrency(card.limitAvailable)}
                                         </td>
 
                                         <td className="px-5 py-4 text-right font-medium text-on-surface">
-                                            {formatCurrency(card.openInvoiceBalance)}
+                                            {card.openInvoiceBalance === null ? REPORT_MESSAGES.noValue : formatCurrency(card.openInvoiceBalance)}
                                         </td>
 
                                         <td className="px-5 py-4 text-right font-medium text-on-surface">
@@ -363,6 +401,10 @@ const ReportsOverview: React.FC<ReportsOverviewProps> = ({ snapshot, isLoading }
                             </tbody>
                         </table>
                     </div>
+                    <p className="px-5 py-3 text-xs text-muted border-t border-border">{view.cardsNote}</p>
+                    {view.blocks.cards.note && (
+                        <p className="px-5 pb-3 text-xs text-muted">{view.blocks.cards.note}</p>
+                    )}
                 </div>
             )}
 
@@ -388,10 +430,17 @@ const ReportsOverview: React.FC<ReportsOverviewProps> = ({ snapshot, isLoading }
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-border">
-                                    {snapshot.cashFlow.map((month, idx) => (
+                                    {view.cashFlowRows.length === 0 && (
+                                        <tr>
+                                            <td colSpan={4} className="px-6 py-6 text-center text-muted">
+                                                {blockEmptyText(view.blocks.series)}
+                                            </td>
+                                        </tr>
+                                    )}
+                                    {view.cashFlowRows.map((month, idx) => (
                                         <tr key={idx} className="hover:bg-background/40 transition-colors">
                                             <td className="px-6 py-4 font-bold text-on-surface capitalize">
-                                                {formatDateMonth(month.month)}
+                                                {formatDateMonth(month.month)}{month.partial ? ' (parcial)' : ''}
                                             </td>
                                             <td className="px-6 py-4 text-right text-green-600 font-medium">
                                                 {formatCurrency(month.totalIncome)}
@@ -399,14 +448,19 @@ const ReportsOverview: React.FC<ReportsOverviewProps> = ({ snapshot, isLoading }
                                             <td className="px-6 py-4 text-right text-red-600 font-medium">
                                                 {formatCurrency(month.totalExpenses)}
                                             </td>
-                                            <td className={`px-6 py-4 text-right font-black ${month.netCashFlow >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                                {formatCurrency(month.netCashFlow)}
+                                            <td className={`px-6 py-4 text-right font-black ${month.operationalResult >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                                {formatCurrency(month.operationalResult)}
                                             </td>
                                         </tr>
                                     ))}
                                 </tbody>
                             </table>
                         </div>
+                        {(view.cashFlowNote || view.blocks.series.note) && (
+                            <p className="px-6 py-3 text-xs text-muted border-t border-border">
+                                {[view.cashFlowNote, view.blocks.series.note].filter(Boolean).join(' ')}
+                            </p>
+                        )}
                     </div>
 
                     <ReportsAlertsPanel snapshot={snapshot} />
@@ -419,41 +473,38 @@ const ReportsOverview: React.FC<ReportsOverviewProps> = ({ snapshot, isLoading }
                         <h3 className="text-sm font-bold text-muted uppercase tracking-widest mb-6 flex items-center gap-2">
                             <TargetIcon className="w-4 h-4 text-primary" /> Perfil de Risco
                         </h3>
-                        <div className="space-y-5">
-                            <div className="flex justify-between items-center">
-                                <span className="text-sm text-on-surface font-medium">Utilização do Crédito</span>
-                                <span className={`text-sm font-black ${snapshot.debtProfile.utilizationRate > 70 ? 'text-red-600' : 'text-green-600'}`}>
-                                    {snapshot.debtProfile.utilizationRate.toFixed(1)}%
-                                </span>
+                        {view.blocks.cards.hasNumbers ? (
+                            <div className="space-y-5">
+                                <div className="flex justify-between items-center">
+                                    <span className="text-sm text-on-surface font-medium">Utilização do Crédito</span>
+                                    <span className="text-sm font-black text-on-surface">
+                                        {snapshot.debtProfile.utilizationRate === null
+                                            ? REPORT_MESSAGES.noValue
+                                            : formatPercent(snapshot.debtProfile.utilizationRate)}
+                                    </span>
+                                </div>
+                                <div className="w-full h-2.5 bg-background rounded-full overflow-hidden border border-border/50">
+                                    <MotionDiv
+                                        initial={{ width: 0 }}
+                                        animate={{ width: `${Math.min(100, snapshot.debtProfile.utilizationRate ?? 0)}%` }}
+                                        transition={{ duration: 1.5, ease: "easeOut" }}
+                                        className="h-full bg-primary"
+                                    />
+                                </div>
                             </div>
-                            <div className="w-full h-2.5 bg-background rounded-full overflow-hidden border border-border/50">
-                                <MotionDiv
-                                    initial={{ width: 0 }}
-                                    animate={{ width: `${Math.min(100, snapshot.debtProfile.utilizationRate)}%` }}
-                                    transition={{ duration: 1.5, ease: "easeOut" }}
-                                    className={`h-full ${snapshot.debtProfile.utilizationRate > 75 ? 'bg-red-500' : snapshot.debtProfile.utilizationRate > 40 ? 'bg-yellow-500' : 'bg-green-500'}`}
-                                />
-                            </div>
-                            <div className="flex items-center gap-3 p-4 bg-background rounded-xl border border-border">
-                                <WarningIcon className={`w-5 h-5 flex-shrink-0 ${snapshot.debtProfile.riskLevel === 'baixo' ? 'text-green-500' : 'text-orange-500'}`} />
-                                <span className="text-xs font-bold text-on-surface leading-tight">
-                                    Grau de Endividamento: <strong className="uppercase text-primary">{snapshot.debtProfile.riskLevel}</strong>
-                                </span>
-                            </div>
-                        </div>
+                        ) : (
+                            <p role="status" className="text-sm text-muted">{view.blocks.cards.message}</p>
+                        )}
                     </div>
 
                     {/* IA Insight - Integrated */}
                     <div className="bg-primary/5 rounded-card p-6 border border-primary/10 shadow-sm relative overflow-hidden group">
                         <div className="relative z-10">
                             <h3 className="text-xs font-black text-primary uppercase tracking-widest mb-4 flex items-center gap-2">
-                                <SparklesIcon className="w-4 h-4 animate-pulse" /> Insight Financeiro IA
+                                <SparklesIcon className="w-4 h-4 animate-pulse" /> Leitura dos indicadores
                             </h3>
                             <p className="text-sm text-on-surface/90 leading-relaxed italic font-medium">
-                                {isPJ
-                                    ? "Sua margem líquida atual é de " + (snapshot.kpis.find(k => k.id === 'kpi-profit-margin')?.formattedValue || '0%') + ". No seu setor, margens acima de 15% são consideradas saudáveis para expansão."
-                                    : "Sua taxa de poupança está em " + (snapshot.kpis.find(k => k.id === 'kpi-savings')?.value || 0).toFixed(1) + "%. Manter esse ritmo permitirá atingir suas metas de longo prazo antecipadamente."
-                                }
+                                {view.insight}
                             </p>
                         </div>
                         <DynamicIcon name="ChartPie" className="absolute right-[-20px] bottom-[-20px] w-24 h-24 text-primary/10 -rotate-12 group-hover:rotate-0 transition-transform duration-700" />
@@ -461,19 +512,27 @@ const ReportsOverview: React.FC<ReportsOverviewProps> = ({ snapshot, isLoading }
 
                     {/* Top Expense Mini-Chart - Fusion Gain */}
                     <div className="bg-surface rounded-card p-6 border border-border shadow-sm">
-                        <h3 className="text-sm font-bold text-muted uppercase tracking-widest mb-4">Principais Centros de Custo</h3>
+                        <h3 className="text-sm font-bold text-muted uppercase tracking-widest mb-4">Principais categorias de despesa</h3>
                         <div className="space-y-4">
+                            {snapshot.expenseCategories.length === 0 && (
+                                <p role="status" className="text-xs text-muted">{blockEmptyText(view.blocks.categories)}</p>
+                            )}
                             {snapshot.expenseCategories.slice(0, 3).map((cat, i) => (
                                 <div key={i} className="space-y-1">
                                     <div className="flex justify-between text-xs">
                                         <span className="font-medium text-on-surface">{cat.categoryName}</span>
-                                        <span className="font-bold text-muted">{cat.percentageOfTotal.toFixed(0)}%</span>
+                                        <span className="font-bold text-muted">
+                                            {cat.percentageOfTotal === null ? formatCurrency(cat.totalAmount) : `${cat.percentageOfTotal.toFixed(0)}%`}
+                                        </span>
                                     </div>
                                     <div className="h-1.5 w-full bg-background rounded-full overflow-hidden">
-                                        <div className="h-full bg-primary/40" style={{ width: `${cat.percentageOfTotal}%` }}></div>
+                                        <div className="h-full bg-primary/40" style={{ width: `${cat.percentageOfTotal ?? 0}%` }}></div>
                                     </div>
                                 </div>
                             ))}
+                            {view.blocks.categories.note && (
+                                <p className="text-xs text-muted">{view.blocks.categories.note}</p>
+                            )}
                         </div>
                     </div>
                 </div>

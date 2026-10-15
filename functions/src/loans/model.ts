@@ -1,7 +1,6 @@
 import * as admin from "firebase-admin";
 import {FieldValue, Timestamp} from "firebase-admin/firestore";
 
-import {transactionInstant} from "../cash/createTransaction";
 import {sha256} from "../shared/hashing";
 import {MONEY_CURRENCY} from "../shared/money";
 import {workspaceRef, type WorkspaceRole} from "../shared/workspaceAuth";
@@ -387,10 +386,8 @@ export const loanCashMirrorDocument = (input: {
     type: net >= 0 ? "receita" : "despesa",
     description: mirrorDescription(input.entry),
     category: LOAN_CASH_CATEGORY,
-    value: valueCents / 100,
     valueCents,
     date: input.date,
-    transactionDate: transactionInstant(input.date),
     isPaid: true,
     workspaceId: input.workspaceId,
     profileId: input.workspaceId,

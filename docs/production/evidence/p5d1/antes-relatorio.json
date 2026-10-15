@@ -1,0 +1,134 @@
+{
+ "vazio-desktop-claro": {
+  "overflow": 0,
+  "bell": "Notificações",
+  "itens": 0
+ },
+ "axe-vazio-desktop-claro": [
+  {
+   "id": "button-name",
+   "impact": "critical",
+   "help": "Buttons must have discernible text",
+   "count": 1,
+   "nodes": [
+    {
+     "target": [
+      ".p-1.hover\\:text-on-surface.hover\\:bg-background"
+     ],
+     "html": "<button class=\"p-1 text-muted hover:text-on-surface rounded-full hover:bg-background transition-colors\">"
+    }
+   ]
+  }
+ ],
+ "com-notificacoes-desktop-claro": {
+  "overflow": 0,
+  "bell": "Notificações, 2 não lidas",
+  "itens": 3
+ },
+ "axe-com-notificacoes-desktop-claro": [
+  {
+   "id": "button-name",
+   "impact": "critical",
+   "help": "Buttons must have discernible text",
+   "count": 1,
+   "nodes": [
+    {
+     "target": [
+      ".p-1.hover\\:text-on-surface.hover\\:bg-background"
+     ],
+     "html": "<button class=\"p-1 text-muted hover:text-on-surface rounded-full hover:bg-background transition-colors\">"
+    }
+   ]
+  }
+ ],
+ "arquivada-desktop-claro": {
+  "overflow": 0,
+  "bell": "Notificações, 1 não lida",
+  "itens": 2
+ },
+ "paginacao-topo-desktop-claro": {
+  "overflow": 0,
+  "bell": "Notificações, 30 não lidas",
+  "itens": 30
+ },
+ "paginacao-fim-desktop-claro": {
+  "overflow": 0,
+  "bell": "Notificações, 30 não lidas",
+  "itens": 30
+ },
+ "vazio-desktop-escuro": {
+  "overflow": 0,
+  "bell": "Notificações",
+  "itens": 0
+ },
+ "com-notificacoes-desktop-escuro": {
+  "overflow": 0,
+  "bell": "Notificações, 2 não lidas",
+  "itens": 3
+ },
+ "arquivada-desktop-escuro": {
+  "overflow": 0,
+  "bell": "Notificações, 1 não lida",
+  "itens": 2
+ },
+ "paginacao-topo-desktop-escuro": {
+  "overflow": 0,
+  "bell": "Notificações, 30 não lidas",
+  "itens": 30
+ },
+ "paginacao-fim-desktop-escuro": {
+  "overflow": 0,
+  "bell": "Notificações, 30 não lidas",
+  "itens": 30
+ },
+ "vazio-mobile-claro": {
+  "overflow": 0,
+  "bell": "Notificações",
+  "itens": 0
+ },
+ "com-notificacoes-mobile-claro": {
+  "overflow": 0,
+  "bell": "Notificações, 2 não lidas",
+  "itens": 3
+ },
+ "arquivada-mobile-claro": {
+  "overflow": 0,
+  "bell": "Notificações, 1 não lida",
+  "itens": 2
+ },
+ "paginacao-topo-mobile-claro": {
+  "overflow": 0,
+  "bell": "Notificações, 30 não lidas",
+  "itens": 30
+ },
+ "paginacao-fim-mobile-claro": {
+  "overflow": 0,
+  "bell": "Notificações, 30 não lidas",
+  "itens": 30
+ },
+ "vazio-mobile-escuro": {
+  "overflow": 0,
+  "bell": "Notificações",
+  "itens": 0
+ },
+ "com-notificacoes-mobile-escuro": {
+  "overflow": 0,
+  "bell": "Notificações, 2 não lidas",
+  "itens": 3
+ },
+ "arquivada-mobile-escuro": {
+  "overflow": 0,
+  "bell": "Notificações, 1 não lida",
+  "itens": 2
+ },
+ "paginacao-topo-mobile-escuro": {
+  "overflow": 0,
+  "bell": "Notificações, 30 não lidas",
+  "itens": 30
+ },
+ "paginacao-fim-mobile-escuro": {
+  "overflow": 0,
+  "bell": "Notificações, 30 não lidas",
+  "itens": 30
+ }
+}

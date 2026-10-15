@@ -1,0 +1,605 @@
+{
+ "arvore": "depois",
+ "sino-owner-desktop-claro": {
+  "overflow": 0,
+  "rotuloDoSino": "Notificações, 30 não lidas",
+  "badge": "9+",
+  "chipDoPainel": null
+ },
+ "axe-cabecalho-owner-desktop-claro": [
+  {
+   "regra": "color-contrast",
+   "impacto": "serious",
+   "nos": 1,
+   "exemplos": [
+    "<span class=\"absolute top-0 right-0 flex h-4 w-4 -translate-y-1 translate-x-1 items-center justify-center roun"
+   ]
+  }
+ ],
+ "painel-owner-desktop-claro": {
+  "painelEsquerda": 757,
+  "painelDireita": 1141,
+  "larguraTela": 1440,
+  "avisosNoDom": [
+   "Fatura vencida",
+   "Fatura próxima do vencimento",
+   "Fatura fechada",
+   "Fatura paga",
+   "Fatura fechada 01",
+   "Fatura fechada 02",
+   "Fatura fechada 03",
+   "Fatura fechada 04",
+   "Fatura fechada 05",
+   "Fatura fechada 06",
+   "Fatura fechada 07",
+   "Fatura fechada 08",
+   "Fatura fechada 09",
+   "Fatura fechada 10",
+   "Fatura fechada 11",
+   "Fatura fechada 12",
+   "Fatura fechada 13",
+   "Fatura fechada 14",
+   "Fatura fechada 15",
+   "Fatura fechada 16",
+   "Fatura fechada 17",
+   "Fatura fechada 18",
+   "Fatura fechada 19",
+   "Fatura fechada 20",
+   "Fatura fechada 21"
+  ],
+  "overflow": 0,
+  "rotuloDoSino": "Notificações, 30 não lidas",
+  "badge": "9+",
+  "chipDoPainel": "30 30 não lidas"
+ },
+ "axe-painel-owner-desktop-claro": [],
+ "dialogo-analise-1440x900-light": {
+  "corpo": {
+   "rola": false,
+   "alturaVisivel": 582,
+   "alturaConteudo": 582,
+   "tabIndex": -1,
+   "focavel": false
+  },
+  "overflow": 0,
+  "axe": []
+ },
+ "painel-viewer-desktop-claro": {
+  "painelEsquerda": 757,
+  "painelDireita": 1141,
+  "larguraTela": 1440,
+  "avisosNoDom": [
+   "Fatura vencida",
+   "Fatura próxima do vencimento",
+   "Fatura fechada",
+   "Fatura paga"
+  ],
+  "overflow": 0,
+  "rotuloDoSino": "Notificações, 3 não lidas",
+  "badge": "3",
+  "chipDoPainel": "3 3 não lidas"
+ },
+ "axe-painel-viewer-desktop-claro": [],
+ "painel-vazio-desktop-claro": {
+  "painelEsquerda": 757,
+  "painelDireita": 1141,
+  "larguraTela": 1440,
+  "avisosNoDom": [],
+  "overflow": 0,
+  "rotuloDoSino": "Notificações, nenhuma não lida",
+  "badge": "",
+  "chipDoPainel": "0 Nenhuma não lida"
+ },
+ "axe-painel-vazio-desktop-claro": [],
+ "painel-apos-arquivar-desktop-claro": {
+  "painelEsquerda": 757,
+  "painelDireita": 1141,
+  "larguraTela": 1440,
+  "avisosNoDom": [
+   "Fatura próxima do vencimento",
+   "Fatura paga"
+  ],
+  "overflow": 0,
+  "rotuloDoSino": "Notificações, 2 não lidas",
+  "badge": "2",
+  "chipDoPainel": "2 2 não lidas"
+ },
+ "axe-painel-apos-arquivar-desktop-claro": [],
+ "painel-indisponivel-desktop-claro": {
+  "painelEsquerda": 757,
+  "painelDireita": 1141,
+  "larguraTela": 1440,
+  "avisosNoDom": [
+   "Fatura vencida",
+   "Fatura próxima do vencimento",
+   "Fatura fechada",
+   "Fatura paga"
+  ],
+  "overflow": 0,
+  "rotuloDoSino": "Notificações, total de não lidas indisponível",
+  "badge": "?",
+  "chipDoPainel": "? Total de não lidas indisponível"
+ },
+ "axe-painel-indisponivel-desktop-claro": [],
+ "sino-owner-desktop-escuro": {
+  "overflow": 0,
+  "rotuloDoSino": "Notificações, 30 não lidas",
+  "badge": "9+",
+  "chipDoPainel": null
+ },
+ "axe-cabecalho-owner-desktop-escuro": [
+  {
+   "regra": "color-contrast",
+   "impacto": "serious",
+   "nos": 1,
+   "exemplos": [
+    "<span class=\"absolute top-0 right-0 flex h-4 w-4 -translate-y-1 translate-x-1 items-center justify-center roun"
+   ]
+  }
+ ],
+ "painel-owner-desktop-escuro": {
+  "painelEsquerda": 757,
+  "painelDireita": 1141,
+  "larguraTela": 1440,
+  "avisosNoDom": [
+   "Fatura vencida",
+   "Fatura próxima do vencimento",
+   "Fatura fechada",
+   "Fatura paga",
+   "Fatura fechada 01",
+   "Fatura fechada 02",
+   "Fatura fechada 03",
+   "Fatura fechada 04",
+   "Fatura fechada 05",
+   "Fatura fechada 06",
+   "Fatura fechada 07",
+   "Fatura fechada 08",
+   "Fatura fechada 09",
+   "Fatura fechada 10",
+   "Fatura fechada 11",
+   "Fatura fechada 12",
+   "Fatura fechada 13",
+   "Fatura fechada 14",
+   "Fatura fechada 15",
+   "Fatura fechada 16",
+   "Fatura fechada 17",
+   "Fatura fechada 18",
+   "Fatura fechada 19",
+   "Fatura fechada 20",
+   "Fatura fechada 21"
+  ],
+  "overflow": 0,
+  "rotuloDoSino": "Notificações, 30 não lidas",
+  "badge": "9+",
+  "chipDoPainel": "30 30 não lidas"
+ },
+ "axe-painel-owner-desktop-escuro": [
+  {
+   "regra": "color-contrast",
+   "impacto": "serious",
+   "nos": 7,
+   "exemplos": [
+    "<span aria-hidden=\"true\">30</span>",
+    "<button type=\"button\" aria-busy=\"false\" class=\"text-xs text-primary hover:underline font-medium disabled:opaci",
+    "<span class=\"text-[10px] font-bold text-primary hover:underline uppercase tracking-wide\">Ver cartões →</span>"
+   ]
+  }
+ ],
+ "dialogo-analise-1440x900-dark": {
+  "corpo": {
+   "rola": false,
+   "alturaVisivel": 582,
+   "alturaConteudo": 582,
+   "tabIndex": -1,
+   "focavel": false
+  },
+  "overflow": 0,
+  "axe": []
+ },
+ "painel-viewer-desktop-escuro": {
+  "painelEsquerda": 757,
+  "painelDireita": 1141,
+  "larguraTela": 1440,
+  "avisosNoDom": [
+   "Fatura vencida",
+   "Fatura próxima do vencimento",
+   "Fatura fechada",
+   "Fatura paga"
+  ],
+  "overflow": 0,
+  "rotuloDoSino": "Notificações, 3 não lidas",
+  "badge": "3",
+  "chipDoPainel": "3 3 não lidas"
+ },
+ "axe-painel-viewer-desktop-escuro": [
+  {
+   "regra": "color-contrast",
+   "impacto": "serious",
+   "nos": 5,
+   "exemplos": [
+    "<button type=\"button\" aria-busy=\"false\" class=\"text-xs text-primary hover:underline font-medium disabled:opaci",
+    "<span class=\"text-[10px] font-bold text-primary hover:underline uppercase tracking-wide\">Ver cartões →</span>",
+    "<span class=\"text-[10px] font-bold text-primary hover:underline uppercase tracking-wide\">Ver cartões →</span>"
+   ]
+  }
+ ],
+ "painel-vazio-desktop-escuro": {
+  "painelEsquerda": 757,
+  "painelDireita": 1141,
+  "larguraTela": 1440,
+  "avisosNoDom": [],
+  "overflow": 0,
+  "rotuloDoSino": "Notificações, nenhuma não lida",
+  "badge": "",
+  "chipDoPainel": "0 Nenhuma não lida"
+ },
+ "axe-painel-vazio-desktop-escuro": [
+  {
+   "regra": "color-contrast",
+   "impacto": "serious",
+   "nos": 1,
+   "exemplos": [
+    "<button type=\"button\" aria-busy=\"false\" class=\"text-xs text-primary hover:underline font-medium disabled:opaci"
+   ]
+  }
+ ],
+ "painel-apos-arquivar-desktop-escuro": {
+  "painelEsquerda": 757,
+  "painelDireita": 1141,
+  "larguraTela": 1440,
+  "avisosNoDom": [
+   "Fatura próxima do vencimento",
+   "Fatura paga"
+  ],
+  "overflow": 0,
+  "rotuloDoSino": "Notificações, 2 não lidas",
+  "badge": "2",
+  "chipDoPainel": "2 2 não lidas"
+ },
+ "axe-painel-apos-arquivar-desktop-escuro": [
+  {
+   "regra": "color-contrast",
+   "impacto": "serious",
+   "nos": 3,
+   "exemplos": [
+    "<button type=\"button\" aria-busy=\"false\" class=\"text-xs text-primary hover:underline font-medium disabled:opaci",
+    "<span class=\"text-[10px] font-bold text-primary hover:underline uppercase tracking-wide\">Ver cartões →</span>",
+    "<span class=\"text-[10px] font-bold text-primary hover:underline uppercase tracking-wide\">Ver cartões →</span>"
+   ]
+  }
+ ],
+ "painel-indisponivel-desktop-escuro": {
+  "painelEsquerda": 757,
+  "painelDireita": 1141,
+  "larguraTela": 1440,
+  "avisosNoDom": [
+   "Fatura vencida",
+   "Fatura próxima do vencimento",
+   "Fatura fechada",
+   "Fatura paga"
+  ],
+  "overflow": 0,
+  "rotuloDoSino": "Notificações, total de não lidas indisponível",
+  "badge": "?",
+  "chipDoPainel": "? Total de não lidas indisponível"
+ },
+ "axe-painel-indisponivel-desktop-escuro": [
+  {
+   "regra": "color-contrast",
+   "impacto": "serious",
+   "nos": 5,
+   "exemplos": [
+    "<button type=\"button\" aria-busy=\"false\" class=\"text-xs text-primary hover:underline font-medium disabled:opaci",
+    "<span class=\"text-[10px] font-bold text-primary hover:underline uppercase tracking-wide\">Ver cartões →</span>",
+    "<span class=\"text-[10px] font-bold text-primary hover:underline uppercase tracking-wide\">Ver cartões →</span>"
+   ]
+  }
+ ],
+ "sino-owner-mobile-claro": {
+  "overflow": 0,
+  "rotuloDoSino": "Notificações, 30 não lidas",
+  "badge": "9+",
+  "chipDoPainel": null
+ },
+ "axe-cabecalho-owner-mobile-claro": [
+  {
+   "regra": "color-contrast",
+   "impacto": "serious",
+   "nos": 1,
+   "exemplos": [
+    "<span class=\"absolute top-0 right-0 flex h-4 w-4 -translate-y-1 translate-x-1 items-center justify-center roun"
+   ]
+  }
+ ],
+ "painel-owner-mobile-claro": {
+  "painelEsquerda": 8,
+  "painelDireita": 328,
+  "larguraTela": 390,
+  "avisosNoDom": [
+   "Fatura vencida",
+   "Fatura próxima do vencimento",
+   "Fatura fechada",
+   "Fatura paga",
+   "Fatura fechada 01",
+   "Fatura fechada 02",
+   "Fatura fechada 03",
+   "Fatura fechada 04",
+   "Fatura fechada 05",
+   "Fatura fechada 06",
+   "Fatura fechada 07",
+   "Fatura fechada 08",
+   "Fatura fechada 09",
+   "Fatura fechada 10",
+   "Fatura fechada 11",
+   "Fatura fechada 12",
+   "Fatura fechada 13",
+   "Fatura fechada 14",
+   "Fatura fechada 15",
+   "Fatura fechada 16",
+   "Fatura fechada 17",
+   "Fatura fechada 18",
+   "Fatura fechada 19",
+   "Fatura fechada 20",
+   "Fatura fechada 21"
+  ],
+  "overflow": 0,
+  "rotuloDoSino": "Notificações, 30 não lidas",
+  "badge": "9+",
+  "chipDoPainel": "30 30 não lidas"
+ },
+ "axe-painel-owner-mobile-claro": [],
+ "dialogo-analise-390x844-light": {
+  "corpo": {
+   "rola": true,
+   "alturaVisivel": 591,
+   "alturaConteudo": 722,
+   "tabIndex": 0,
+   "focavel": true
+  },
+  "overflow": 0,
+  "axe": []
+ },
+ "dialogo-analise-360x740-light": {
+  "corpo": {
+   "rola": true,
+   "alturaVisivel": 497,
+   "alturaConteudo": 802,
+   "tabIndex": 0,
+   "focavel": true
+  },
+  "overflow": 0,
+  "axe": []
+ },
+ "painel-viewer-mobile-claro": {
+  "painelEsquerda": 8,
+  "painelDireita": 328,
+  "larguraTela": 390,
+  "avisosNoDom": [
+   "Fatura vencida",
+   "Fatura próxima do vencimento",
+   "Fatura fechada",
+   "Fatura paga"
+  ],
+  "overflow": 0,
+  "rotuloDoSino": "Notificações, 3 não lidas",
+  "badge": "3",
+  "chipDoPainel": "3 3 não lidas"
+ },
+ "axe-painel-viewer-mobile-claro": [],
+ "painel-vazio-mobile-claro": {
+  "painelEsquerda": 8,
+  "painelDireita": 328,
+  "larguraTela": 390,
+  "avisosNoDom": [],
+  "overflow": 0,
+  "rotuloDoSino": "Notificações, nenhuma não lida",
+  "badge": "",
+  "chipDoPainel": "0 Nenhuma não lida"
+ },
+ "axe-painel-vazio-mobile-claro": [],
+ "painel-apos-arquivar-mobile-claro": {
+  "painelEsquerda": 8,
+  "painelDireita": 328,
+  "larguraTela": 390,
+  "avisosNoDom": [
+   "Fatura próxima do vencimento",
+   "Fatura paga"
+  ],
+  "overflow": 0,
+  "rotuloDoSino": "Notificações, 2 não lidas",
+  "badge": "2",
+  "chipDoPainel": "2 2 não lidas"
+ },
+ "axe-painel-apos-arquivar-mobile-claro": [],
+ "painel-indisponivel-mobile-claro": {
+  "painelEsquerda": 8,
+  "painelDireita": 328,
+  "larguraTela": 390,
+  "avisosNoDom": [
+   "Fatura vencida",
+   "Fatura próxima do vencimento",
+   "Fatura fechada",
+   "Fatura paga"
+  ],
+  "overflow": 0,
+  "rotuloDoSino": "Notificações, total de não lidas indisponível",
+  "badge": "?",
+  "chipDoPainel": "? Total de não lidas indisponível"
+ },
+ "axe-painel-indisponivel-mobile-claro": [],
+ "sino-owner-mobile-escuro": {
+  "overflow": 0,
+  "rotuloDoSino": "Notificações, 30 não lidas",
+  "badge": "9+",
+  "chipDoPainel": null
+ },
+ "axe-cabecalho-owner-mobile-escuro": [
+  {
+   "regra": "color-contrast",
+   "impacto": "serious",
+   "nos": 1,
+   "exemplos": [
+    "<span class=\"absolute top-0 right-0 flex h-4 w-4 -translate-y-1 translate-x-1 items-center justify-center roun"
+   ]
+  }
+ ],
+ "painel-owner-mobile-escuro": {
+  "painelEsquerda": 8,
+  "painelDireita": 328,
+  "larguraTela": 390,
+  "avisosNoDom": [
+   "Fatura vencida",
+   "Fatura próxima do vencimento",
+   "Fatura fechada",
+   "Fatura paga",
+   "Fatura fechada 01",
+   "Fatura fechada 02",
+   "Fatura fechada 03",
+   "Fatura fechada 04",
+   "Fatura fechada 05",
+   "Fatura fechada 06",
+   "Fatura fechada 07",
+   "Fatura fechada 08",
+   "Fatura fechada 09",
+   "Fatura fechada 10",
+   "Fatura fechada 11",
+   "Fatura fechada 12",
+   "Fatura fechada 13",
+   "Fatura fechada 14",
+   "Fatura fechada 15",
+   "Fatura fechada 16",
+   "Fatura fechada 17",
+   "Fatura fechada 18",
+   "Fatura fechada 19",
+   "Fatura fechada 20",
+   "Fatura fechada 21"
+  ],
+  "overflow": 0,
+  "rotuloDoSino": "Notificações, 30 não lidas",
+  "badge": "9+",
+  "chipDoPainel": "30 30 não lidas"
+ },
+ "axe-painel-owner-mobile-escuro": [
+  {
+   "regra": "color-contrast",
+   "impacto": "serious",
+   "nos": 5,
+   "exemplos": [
+    "<span aria-hidden=\"true\">30</span>",
+    "<span class=\"text-[10px] font-bold text-primary hover:underline uppercase tracking-wide\">Ver cartões →</span>",
+    "<span class=\"text-[10px] font-bold text-primary hover:underline uppercase tracking-wide\">Ver cartões →</span>"
+   ]
+  }
+ ],
+ "dialogo-analise-390x844-dark": {
+  "corpo": {
+   "rola": true,
+   "alturaVisivel": 591,
+   "alturaConteudo": 722,
+   "tabIndex": 0,
+   "focavel": true
+  },
+  "overflow": 0,
+  "axe": []
+ },
+ "dialogo-analise-360x740-dark": {
+  "corpo": {
+   "rola": true,
+   "alturaVisivel": 497,
+   "alturaConteudo": 802,
+   "tabIndex": 0,
+   "focavel": true
+  },
+  "overflow": 0,
+  "axe": []
+ },
+ "painel-viewer-mobile-escuro": {
+  "painelEsquerda": 8,
+  "painelDireita": 328,
+  "larguraTela": 390,
+  "avisosNoDom": [
+   "Fatura vencida",
+   "Fatura próxima do vencimento",
+   "Fatura fechada",
+   "Fatura paga"
+  ],
+  "overflow": 0,
+  "rotuloDoSino": "Notificações, 3 não lidas",
+  "badge": "3",
+  "chipDoPainel": "3 3 não lidas"
+ },
+ "axe-painel-viewer-mobile-escuro": [
+  {
+   "regra": "color-contrast",
+   "impacto": "serious",
+   "nos": 4,
+   "exemplos": [
+    "<span class=\"text-[10px] font-bold text-primary hover:underline uppercase tracking-wide\">Ver cartões →</span>",
+    "<span class=\"text-[10px] font-bold text-primary hover:underline uppercase tracking-wide\">Ver cartões →</span>",
+    "<span class=\"text-[10px] font-bold text-primary hover:underline uppercase tracking-wide\">Ver cartões →</span>"
+   ]
+  }
+ ],
+ "painel-vazio-mobile-escuro": {
+  "painelEsquerda": 8,
+  "painelDireita": 328,
+  "larguraTela": 390,
+  "avisosNoDom": [],
+  "overflow": 0,
+  "rotuloDoSino": "Notificações, nenhuma não lida",
+  "badge": "",
+  "chipDoPainel": "0 Nenhuma não lida"
+ },
+ "axe-painel-vazio-mobile-escuro": [],
+ "painel-apos-arquivar-mobile-escuro": {
+  "painelEsquerda": 8,
+  "painelDireita": 328,
+  "larguraTela": 390,
+  "avisosNoDom": [
+   "Fatura próxima do vencimento",
+   "Fatura paga"
+  ],
+  "overflow": 0,
+  "rotuloDoSino": "Notificações, 2 não lidas",
+  "badge": "2",
+  "chipDoPainel": "2 2 não lidas"
+ },
+ "axe-painel-apos-arquivar-mobile-escuro": [
+  {
+   "regra": "color-contrast",
+   "impacto": "serious",
+   "nos": 2,
+   "exemplos": [
+    "<span class=\"text-[10px] font-bold text-primary hover:underline uppercase tracking-wide\">Ver cartões →</span>",
+    "<span class=\"text-[10px] font-bold text-primary hover:underline uppercase tracking-wide\">Ver cartões →</span>"
+   ]
+  }
+ ],
+ "painel-indisponivel-mobile-escuro": {
+  "painelEsquerda": 8,
+  "painelDireita": 328,
+  "larguraTela": 390,
+  "avisosNoDom": [
+   "Fatura vencida",
+   "Fatura próxima do vencimento",
+   "Fatura fechada",
+   "Fatura paga"
+  ],
+  "overflow": 0,
+  "rotuloDoSino": "Notificações, total de não lidas indisponível",
+  "badge": "?",
+  "chipDoPainel": "? Total de não lidas indisponível"
+ },
+ "axe-painel-indisponivel-mobile-escuro": [
+  {
+   "regra": "color-contrast",
+   "impacto": "serious",
+   "nos": 4,
+   "exemplos": [
+    "<span class=\"text-[10px] font-bold text-primary hover:underline uppercase tracking-wide\">Ver cartões →</span>",
+    "<span class=\"text-[10px] font-bold text-primary hover:underline uppercase tracking-wide\">Ver cartões →</span>",
+    "<span class=\"text-[10px] font-bold text-primary hover:underline uppercase tracking-wide\">Ver cartões →</span>"
+   ]
+  }
+ ]
+}

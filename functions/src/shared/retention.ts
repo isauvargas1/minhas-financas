@@ -48,6 +48,15 @@ export const RETENTION_DAYS = {
    */
   cashPeriodEvents: 90,
   /**
+   * Acumulador intermediário da reconstrução da projeção de caixa (P5-C1):
+   * detalhe diário por mês e, na simulação, categorias. Não é fato nem
+   * projeção publicada — a publicação copia o conteúdo para os meses no
+   * mesmo commit, e a reconstrução apaga os próprios shards ao terminar. A
+   * TTL é a rede de segurança de uma reconstrução abandonada (o checkpoint
+   * vence em 24 horas).
+   */
+  cashRebuildShards: 7,
+  /**
    * Recibo idempotente de evento do Stripe (P2A). O Stripe reentrega por até
    * 3 dias e permite reenvio manual de eventos de até 30 dias; o recibo
    * precisa sobreviver a toda essa janela para o replay continuar sem efeito.
@@ -61,8 +70,27 @@ export const RETENTION_DAYS = {
    * P8).
    */
   aiUsageReceipts: 90,
+  /**
+   * Evento de notificação compartilhado (`notifications`) e o estado privado
+   * de cada usuário sobre ele (`notification_entries`): os dois expiram juntos,
+   * com o mesmo `expiresAt`. A contagem parte da criação do evento no
+   * servidor e nunca é prorrogada por reexecução do produtor. A interface
+   * esconde a notificação já na expiração lógica; a remoção física é do TTL
+   * do Firestore, declarado em `firestore.indexes.json` e só efetivo depois
+   * de publicado e ativo no ambiente (E-07, pendente). Não é fato
+   * financeiro: o fato vive na fatura, no lançamento e nos eventos do cartão,
+   * que nunca expiram.
+   */
+  notifications: 180,
 } as const;
 
 /** Instante de expiração a partir de agora, em dias. */
 export const expiresInDays = (days: number): Timestamp =>
   Timestamp.fromMillis(Date.now() + days * 24 * 60 * 60 * 1000);
+
+/**
+ * Instante de expiração a partir de um instante já capturado, em dias.
+ * Determinístico: o mesmo instante e os mesmos dias dão o mesmo `Timestamp`.
+ */
+export const expiresAfterDays = (fromMillis: number, days: number): Timestamp =>
+  Timestamp.fromMillis(fromMillis + days * 24 * 60 * 60 * 1000);

@@ -1,0 +1,494 @@
+{
+ "pf-dashboard-desktop-claro": {
+  "overflow": 0
+ },
+ "axe-pf-dashboard-desktop-claro": [
+  {
+   "id": "color-contrast",
+   "impact": "serious",
+   "help": "Elements must meet minimum color contrast ratio thresholds",
+   "count": 9,
+   "nodes": [
+    {
+     "target": [
+      ".mt-2.text-green-600.dark\\:text-green-400 > span"
+     ],
+     "html": "<span>Mensal</span>"
+    },
+    {
+     "target": [
+      ".border-gray-100.dark\\:border-gray-800:nth-child(1) > .dark\\:text-gray-200.text-gray-800 > .gap-1.flex-col.flex > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+     ],
+     "html": "<span>Supermercado</span>"
+    },
+    {
+     "target": [
+      ".border-gray-100.dark\\:border-gray-800:nth-child(1) > .text-gray-600.dark\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+     ],
+     "html": "<span>Mercado</span>"
+    },
+    {
+     "target": [
+      ".border-gray-100.dark\\:border-gray-800:nth-child(2) > .text-gray-600.dark\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+     ],
+     "html": "<span>Salário</span>"
+    },
+    {
+     "target": [
+      ".border-gray-100.dark\\:border-gray-800:nth-child(2) > .text-green-600.dark\\:text-green-400.text-center"
+     ],
+     "html": "<td class=\"py-4 px-4 text-center font-medium text-green-600 dark:text-green-400\">+ R$&nbsp;8.000,00</td>"
+    },
+    {
+     "target": [
+      ".border-gray-100.dark\\:border-gray-800:nth-child(3) > .dark\\:text-gray-200.text-gray-800 > .gap-1.flex-col.flex > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+     ],
+     "html": "<span>Aluguel</span>"
+    },
+    {
+     "target": [
+      ".border-gray-100.dark\\:border-gray-800:nth-child(3) > .text-gray-600.dark\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+     ],
+     "html": "<span>Moradia</span>"
+    },
+    {
+     "target": [
+      ".border-gray-100.dark\\:border-gray-800:nth-child(4) > .text-gray-600.dark\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+     ],
+     "html": "<span>Salário</span>"
+    }
+   ]
+  },
+  {
+   "id": "select-name",
+   "impact": "critical",
+   "help": "Select element must have an accessible name",
+   "count": 1,
+   "nodes": [
+    {
+     "target": [
+      "select"
+     ],
+     "html": "<select class=\"border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-200 text-gray-800 dark:text-gray-200 rounded-lg px-3 py-2 text-sm focus:outline"
+    }
+   ]
+  },
+  {
+   "id": "svg-img-alt",
+   "impact": "serious",
+   "help": "<svg> elements with an img or image role must have alternative text",
+   "count": 2,
+   "nodes": [
+    {
+     "target": [
+      "path[name=\"Receitas\"]"
+     ],
+     "html": "<path cx=\"297\" cy=\"128\" name=\"Receitas\" stroke=\"#fff\" fill=\"#22c55e\" tabindex=\"-1\" class=\"recharts-sector\" d=\"M 397,128\n    A 100,100,0,\n    1,0,\n    365.255314"
+    },
+    {
+     "target": [
+      "path[name=\"Despesas\"]"
+     ],
+     "html": "<path cx=\"297\" cy=\"128\" name=\"Despesas\" stroke=\"#fff\" fill=\"#ef4444\" tabindex=\"-1\" class=\"recharts-sector\" d=\"M 365.2553143218654,201.0835964278124\n    A 100,10"
+    }
+   ]
+  }
+ ],
+ "pf-relatorios-visao-desktop-claro": {
+  "overflow": 0
+ },
+ "axe-pf-relatorios-visao-desktop-claro": [
+  {
+   "id": "color-contrast",
+   "impact": "serious",
+   "help": "Elements must meet minimum color contrast ratio thresholds",
+   "count": 3,
+   "nodes": [
+    {
+     "target": [
+      ".hover\\:bg-background\\/40:nth-child(1) > .text-green-600:nth-child(2)"
+     ],
+     "html": "<td class=\"px-6 py-4 text-right text-green-600 font-medium\">R$&nbsp;8.000,00</td>"
+    },
+    {
+     "target": [
+      ".text-green-600:nth-child(4)"
+     ],
+     "html": "<td class=\"px-6 py-4 text-right font-black text-green-600\">R$&nbsp;6.800,00</td>"
+    },
+    {
+     "target": [
+      ".hover\\:bg-background\\/40:nth-child(2) > .text-green-600"
+     ],
+     "html": "<td class=\"px-6 py-4 text-right text-green-600 font-medium\">R$&nbsp;0,00</td>"
+    }
+   ]
+  }
+ ],
+ "pf-relatorios-fluxo-desktop-claro": {
+  "overflow": 0
+ },
+ "pf-relatorios-graficos-desktop-claro": {
+  "overflow": 0
+ },
+ "axe-pf-relatorios-graficos-desktop-claro": [
+  {
+   "id": "svg-img-alt",
+   "impact": "serious",
+   "help": "<svg> elements with an img or image role must have alternative text",
+   "count": 2,
+   "nodes": [
+    {
+     "target": [
+      "path[name=\"Moradia\"]"
+     ],
+     "html": "<path cx=\"257.5\" cy=\"128\" name=\"Moradia\" stroke=\"#ffffff\" fill=\"#3b82f6\" color=\"#3b82f6\" stroke-width=\"2\" tabindex=\"-1\" class=\"recharts-sector\" d=\"M 337.5,128\n "
+    },
+    {
+     "target": [
+      "path[name=\"Mercado\"]"
+     ],
+     "html": "<path cx=\"257.5\" cy=\"128\" name=\"Mercado\" stroke=\"#ffffff\" fill=\"#ef4444\" color=\"#ef4444\" stroke-width=\"2\" tabindex=\"-1\" class=\"recharts-sector\" d=\"M 219.3107183"
+    }
+   ]
+  }
+ ],
+ "teclado-pf": {
+  "1-foco no seletor": {
+   "texto": "Selecionar período do relatório",
+   "papel": "button",
+   "anelDeFoco": true,
+   "abaSelecionada": "Gráficos"
+  },
+  "2-Enter: seletor aberto": "false",
+  "3-Espaço: seletor aberto": "false",
+  "4-Tab": {
+   "texto": "Gráficos",
+   "papel": "tab",
+   "anelDeFoco": true,
+   "abaSelecionada": "Gráficos"
+  },
+  "5-Seta para a esquerda": {
+   "texto": "Visão Geral",
+   "papel": "tab",
+   "anelDeFoco": true,
+   "abaSelecionada": "Visão Geral"
+  },
+  "6-Seta para a direita": {
+   "texto": "Gráficos",
+   "papel": "tab",
+   "anelDeFoco": true,
+   "abaSelecionada": "Gráficos"
+  },
+  "7-Tab (painel)": {
+   "texto": "Fluxo de Caixa Mensalset.*out.*R$0kR$2kR",
+   "papel": "tabpanel",
+   "anelDeFoco": true,
+   "abaSelecionada": "Gráficos"
+  },
+  "8-Shift+Tab": {
+   "texto": "Gráficos",
+   "papel": "tab",
+   "anelDeFoco": true,
+   "abaSelecionada": "Gráficos"
+  }
+ },
+ "pj-dashboard-desktop-claro": {
+  "overflow": 0
+ },
+ "axe-pj-dashboard-desktop-claro": [
+  {
+   "id": "color-contrast",
+   "impact": "serious",
+   "help": "Elements must meet minimum color contrast ratio thresholds",
+   "count": 9,
+   "nodes": [
+    {
+     "target": [
+      ".text-teal-600"
+     ],
+     "html": "<span class=\"text-xs text-teal-600 dark:text-teal-400 font-bold uppercase tracking-wider flex items-center gap-1 mt-0.5\">"
+    },
+    {
+     "target": [
+      ".w-9"
+     ],
+     "html": "<div role=\"button\" tabindex=\"0\" aria-label=\"Abrir menu da conta\" aria-expanded=\"false\" class=\"w-9 h-9 rounded-full flex items-center justify-center text-white f"
+    },
+    {
+     "target": [
+      ".text-green-600.dark\\:text-green-400.mt-2 > span"
+     ],
+     "html": "<span>Mensal</span>"
+    },
+    {
+     "target": [
+      ".border-gray-100.dark\\:border-gray-800:nth-child(1) > .dark\\:text-gray-200.text-gray-800 > .gap-1.flex-col.flex > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+     ],
+     "html": "<span>Insumos</span>"
+    },
+    {
+     "target": [
+      ".border-gray-100.dark\\:border-gray-800:nth-child(1) > .text-gray-600.dark\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+     ],
+     "html": "<span>Fornecedores</span>"
+    },
+    {
+     "target": [
+      ".border-gray-100.dark\\:border-gray-800:nth-child(2) > .text-gray-600.dark\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+     ],
+     "html": "<span>Serviços</span>"
+    },
+    {
+     "target": [
+      ".text-green-600.dark\\:text-green-400.text-center"
+     ],
+     "html": "<td class=\"py-4 px-4 text-center font-medium text-green-600 dark:text-green-400\">+ R$&nbsp;15.000,00</td>"
+    },
+    {
+     "target": [
+      ".border-gray-100.dark\\:border-gray-800:nth-child(3) > .dark\\:text-gray-200.text-gray-800 > .gap-1.flex-col.flex > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+     ],
+     "html": "<span>DAS</span>"
+    }
+   ]
+  },
+  {
+   "id": "select-name",
+   "impact": "critical",
+   "help": "Select element must have an accessible name",
+   "count": 1,
+   "nodes": [
+    {
+     "target": [
+      "select"
+     ],
+     "html": "<select class=\"border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-200 text-gray-800 dark:text-gray-200 rounded-lg px-3 py-2 text-sm focus:outline"
+    }
+   ]
+  },
+  {
+   "id": "svg-img-alt",
+   "impact": "serious",
+   "help": "<svg> elements with an img or image role must have alternative text",
+   "count": 2,
+   "nodes": [
+    {
+     "target": [
+      "path[name=\"Receitas\"]"
+     ],
+     "html": "<path cx=\"297\" cy=\"128\" name=\"Receitas\" stroke=\"#fff\" fill=\"#0f766e\" tabindex=\"-1\" class=\"recharts-sector\" d=\"M 397,128\n    A 100,100,0,\n    1,0,\n    321.548548"
+    },
+    {
+     "target": [
+      "path[name=\"Despesas\"]"
+     ],
+     "html": "<path cx=\"297\" cy=\"128\" name=\"Despesas\" stroke=\"#fff\" fill=\"#ef4444\" tabindex=\"-1\" class=\"recharts-sector\" d=\"M 321.54854871407986,224.94002659393306\n    A 100,"
+    }
+   ]
+  }
+ ],
+ "pj-relatorios-visao-desktop-claro": {
+  "overflow": 0
+ },
+ "axe-pj-relatorios-visao-desktop-claro": [
+  {
+   "id": "color-contrast",
+   "impact": "serious",
+   "help": "Elements must meet minimum color contrast ratio thresholds",
+   "count": 5,
+   "nodes": [
+    {
+     "target": [
+      ".text-teal-600"
+     ],
+     "html": "<span class=\"text-xs text-teal-600 dark:text-teal-400 font-bold uppercase tracking-wider flex items-center gap-1 mt-0.5\">"
+    },
+    {
+     "target": [
+      ".w-9"
+     ],
+     "html": "<div role=\"button\" tabindex=\"0\" aria-label=\"Abrir menu da conta\" aria-expanded=\"false\" class=\"w-9 h-9 rounded-full flex items-center justify-center text-white f"
+    },
+    {
+     "target": [
+      ".hover\\:bg-background\\/40:nth-child(1) > .text-green-600:nth-child(2)"
+     ],
+     "html": "<td class=\"px-6 py-4 text-right text-green-600 font-medium\">R$&nbsp;15.000,00</td>"
+    },
+    {
+     "target": [
+      ".text-green-600:nth-child(4)"
+     ],
+     "html": "<td class=\"px-6 py-4 text-right font-black text-green-600\">R$&nbsp;11.000,00</td>"
+    },
+    {
+     "target": [
+      ".hover\\:bg-background\\/40:nth-child(2) > .text-green-600"
+     ],
+     "html": "<td class=\"px-6 py-4 text-right text-green-600 font-medium\">R$&nbsp;0,00</td>"
+    }
+   ]
+  }
+ ],
+ "pj-relatorios-fluxo-desktop-claro": {
+  "overflow": 0
+ },
+ "pj-relatorios-graficos-desktop-claro": {
+  "overflow": 0
+ },
+ "axe-pj-relatorios-graficos-desktop-claro": [
+  {
+   "id": "color-contrast",
+   "impact": "serious",
+   "help": "Elements must meet minimum color contrast ratio thresholds",
+   "count": 2,
+   "nodes": [
+    {
+     "target": [
+      ".text-teal-600"
+     ],
+     "html": "<span class=\"text-xs text-teal-600 dark:text-teal-400 font-bold uppercase tracking-wider flex items-center gap-1 mt-0.5\">"
+    },
+    {
+     "target": [
+      ".w-9"
+     ],
+     "html": "<div role=\"button\" tabindex=\"0\" aria-label=\"Abrir menu da conta\" aria-expanded=\"false\" class=\"w-9 h-9 rounded-full flex items-center justify-center text-white f"
+    }
+   ]
+  },
+  {
+   "id": "svg-img-alt",
+   "impact": "serious",
+   "help": "<svg> elements with an img or image role must have alternative text",
+   "count": 2,
+   "nodes": [
+    {
+     "target": [
+      "path[name=\"Fornecedores\"]"
+     ],
+     "html": "<path cx=\"244\" cy=\"128\" name=\"Fornecedores\" stroke=\"#ffffff\" fill=\"#ef4444\" color=\"#ef4444\" stroke-width=\"2\" tabindex=\"-1\" class=\"recharts-sector\" d=\"M 324,128\n"
+    },
+    {
+     "target": [
+      "path[name=\"Impostos\"]"
+     ],
+     "html": "<path cx=\"244\" cy=\"128\" name=\"Impostos\" stroke=\"#ffffff\" fill=\"#ef4444\" color=\"#ef4444\" stroke-width=\"2\" tabindex=\"-1\" class=\"recharts-sector\" d=\"M 211.94560740"
+    }
+   ]
+  }
+ ],
+ "teclado-pj": {
+  "1-foco no seletor": {
+   "texto": "Selecionar período do relatório",
+   "papel": "button",
+   "anelDeFoco": true,
+   "abaSelecionada": "Gráficos"
+  },
+  "2-Enter: seletor aberto": "false",
+  "3-Espaço: seletor aberto": "false",
+  "4-Tab": {
+   "texto": "Gráficos",
+   "papel": "tab",
+   "anelDeFoco": true,
+   "abaSelecionada": "Gráficos"
+  },
+  "5-Seta para a esquerda": {
+   "texto": "Visão Geral",
+   "papel": "tab",
+   "anelDeFoco": true,
+   "abaSelecionada": "Visão Geral"
+  },
+  "6-Seta para a direita": {
+   "texto": "Gráficos",
+   "papel": "tab",
+   "anelDeFoco": true,
+   "abaSelecionada": "Gráficos"
+  },
+  "7-Tab (painel)": {
+   "texto": "Evolução de Recebimentos x Pagamentos Op",
+   "papel": "tabpanel",
+   "anelDeFoco": true,
+   "abaSelecionada": "Gráficos"
+  },
+  "8-Shift+Tab": {
+   "texto": "Gráficos",
+   "papel": "tab",
+   "anelDeFoco": true,
+   "abaSelecionada": "Gráficos"
+  }
+ },
+ "pf-dashboard-desktop-escuro": {
+  "overflow": 0
+ },
+ "pf-relatorios-visao-desktop-escuro": {
+  "overflow": 0
+ },
+ "pf-relatorios-fluxo-desktop-escuro": {
+  "overflow": 0
+ },
+ "pf-relatorios-graficos-desktop-escuro": {
+  "overflow": 0
+ },
+ "pj-dashboard-desktop-escuro": {
+  "overflow": 0
+ },
+ "pj-relatorios-visao-desktop-escuro": {
+  "overflow": 0
+ },
+ "pj-relatorios-fluxo-desktop-escuro": {
+  "overflow": 0
+ },
+ "pj-relatorios-graficos-desktop-escuro": {
+  "overflow": 0
+ },
+ "pf-dashboard-mobile-claro": {
+  "overflow": 0
+ },
+ "pf-relatorios-visao-mobile-claro": {
+  "overflow": 0
+ },
+ "pf-relatorios-fluxo-mobile-claro": {
+  "overflow": 0
+ },
+ "pf-relatorios-graficos-mobile-claro": {
+  "overflow": 0
+ },
+ "pj-dashboard-mobile-claro": {
+  "overflow": 0
+ },
+ "pj-relatorios-visao-mobile-claro": {
+  "overflow": 0
+ },
+ "pj-relatorios-fluxo-mobile-claro": {
+  "overflow": 0
+ },
+ "pj-relatorios-graficos-mobile-claro": {
+  "overflow": 0
+ },
+ "pf-dashboard-mobile-escuro": {
+  "overflow": 0
+ },
+ "pf-relatorios-visao-mobile-escuro": {
+  "overflow": 0
+ },
+ "pf-relatorios-fluxo-mobile-escuro": {
+  "overflow": 0
+ },
+ "pf-relatorios-graficos-mobile-escuro": {
+  "overflow": 0
+ },
+ "pj-dashboard-mobile-escuro": {
+  "overflow": 0
+ },
+ "pj-relatorios-visao-mobile-escuro": {
+  "overflow": 0
+ },
+ "pj-relatorios-fluxo-mobile-escuro": {
+  "overflow": 0
+ },
+ "pj-relatorios-graficos-mobile-escuro": {
+  "overflow": 0
+ }
+}

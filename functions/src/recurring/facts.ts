@@ -223,6 +223,7 @@ export const commitFact = (
     cashAccountId: plan.cashAccountId,
     description: contract.name,
     category: contract.category,
+    categoryId: contract.categoryId,
     amountCents: context.amountCents,
     expenseType: "Recorrente",
     ...(paymentMethod === undefined ? {} : {paymentMethod}),

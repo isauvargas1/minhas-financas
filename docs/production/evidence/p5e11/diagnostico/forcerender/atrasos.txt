@@ -1,0 +1,2 @@
+FAIL 3 atrasos (ms) do início da saída de f_04 após o último exitComplete: [7, 10, 21]
+PASS 77 atrasos (ms) do início da saída de f_04 após o último exitComplete: [14, 16, 18, 25, 29, 80, 266, 283, 309, 311, 318, 329, 353, 386, 394, 438, 445, 612, 632, 655, 658, 720, 804]

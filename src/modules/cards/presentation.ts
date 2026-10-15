@@ -77,6 +77,56 @@ export const canPayInvoice = (invoice: CardInvoice, today: string): boolean =>
 export const payableCents = (invoice: CardInvoice): number =>
   invoice.cycleStatus === 'open' ? Math.max(invoice.totalCents, 0) : invoice.remainingCents;
 
+/**
+ * Seções das faturas de um cartão (M2). "Próxima fatura a pagar" é a obrigação
+ * de menor vencimento entre as fechadas com saldo, não pagas e não vencidas e a
+ * fatura aberta já efetivamente fechada com saldo a pagar. A fatura do ciclo
+ * aberto é a primeira aberta que ainda recebe compras; a do ciclo seguinte, a
+ * aberta logo depois dela. Vencidas ficam no histórico (com o selo "Vencida").
+ */
+export interface InvoiceSections {
+  nextToPay: CardInvoice | null;
+  openCycle: CardInvoice | null;
+  followingCycle: CardInvoice | null;
+  /** Fechadas (inclusive vencidas) e abertas já fechadas que não são a próxima a pagar. */
+  history: CardInvoice[];
+}
+
+export const selectInvoiceSections = (
+  openItems: CardInvoice[],
+  closedItems: CardInvoice[],
+  today: string,
+): InvoiceSections => {
+  const cycleOpen = openItems.filter((invoice) => !isCycleEffectivelyClosed(invoice, today));
+  const openClosedByDate = openItems.filter((invoice) => isCycleEffectivelyClosed(invoice, today));
+  const candidates = [
+    ...closedItems.filter((invoice) =>
+      invoice.paymentStatus !== 'paid' && invoice.remainingCents > 0 && !isInvoiceOverdue(invoice, today)),
+    ...openClosedByDate.filter((invoice) => canPayInvoice(invoice, today)),
+  ];
+  const nextToPay = candidates.reduce<CardInvoice | null>((best, invoice) => {
+    if (!best) return invoice;
+    const order = invoice.dueDate.localeCompare(best.dueDate)
+      || invoice.competenceMonth.localeCompare(best.competenceMonth);
+    return order < 0 ? invoice : best;
+  }, null);
+  return {
+    nextToPay,
+    openCycle: cycleOpen[0] ?? null,
+    followingCycle: cycleOpen[1] ?? null,
+    history: [...openClosedByDate, ...closedItems].filter((invoice) => invoice.id !== nextToPay?.id),
+  };
+};
+
+/**
+ * Fatura aberta com total negativo: o crédito é transportado para a fatura
+ * seguinte no fechamento. Só transparência; não é pagamento nem muda valores.
+ */
+export const openInvoiceCreditNote = (invoice: CardInvoice): string | null =>
+  invoice.cycleStatus === 'open' && invoice.totalCents < 0
+    ? `Crédito de ${formatCents(-invoice.totalCents)} a transportar para a próxima fatura no fechamento.`
+    : null;
+
 export const PURCHASE_STATUS_LABELS: Record<CardPurchase['status'], string> = {
   active: 'Ativa',
   cancelled: 'Cancelada',

@@ -1,13 +1,22 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Goal, GoalCategory, GoalPriority, GoalHorizon, EntityItem, Transaction, GoalStatus, BusinessGoalType, GoalPeriod } from '../types.ts';
-import { CloseIcon, SearchIcon, SparklesIcon, DynamicIcon, useTablerIconKeys, BriefcaseIcon, BuildingIcon, ClockIcon } from './Icons.tsx';
+import { Goal, GoalCategory, GoalPriority, GoalStatus, BusinessGoalType, GoalPeriod } from '../types.ts';
+import { CloseIcon, SearchIcon, SparklesIcon, DynamicIcon, useTablerIconKeys, BriefcaseIcon, BuildingIcon } from './Icons.tsx';
 import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
+import {
+    BUSINESS_TYPE_LABELS, GOAL_CASH_REGIME_NOTE, GOAL_COST_CENTER_NOTE, buildGoalSubmission, businessTypeNeedsCashNote,
+    emptyGoalFormState, formProgressSource, formTargetIsPercent, formatCents, formatCivilDate,
+    goalErrorView, goalToFormState, monthlySuggestionCents, parseReaisToCents,
+    type GoalFormState, type GoalMeasure, type GoalSubmission,
+} from '../modules/goals/model.ts';
+import { resolveIntentKey, type IntentKey } from '../modules/transactions/cashEntry.ts';
+import { newIdempotencyKey } from '../modules/workspaces/callables.ts';
 
 interface GoalFormModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSave: (goal: Omit<Goal, 'id'> & { id?: string }, idempotencyKey: string) => Promise<Goal>;
+    /** Envia ao backend; rejeita com o erro da callable (a mensagem é tratada aqui). */
+    onSave: (submission: GoalSubmission, idempotencyKey: string) => Promise<void>;
     goalToEdit?: Goal | null;
 }
 
@@ -22,14 +31,22 @@ const GOAL_CATEGORIES: { value: GoalCategory, label: string }[] = [
     { value: 'outro', label: 'Outro' },
 ];
 
+/** Indicadores PJ: os rótulos são os do contrato (regime de caixa realizado). */
 const BUSINESS_GOAL_TYPES: { value: BusinessGoalType, label: string, icon: string, description: string }[] = [
-    { value: 'faturamento', label: 'Faturamento', icon: 'CurrencyDollar', description: 'Receita bruta total no período' },
-    { value: 'lucro', label: 'Lucro Líquido', icon: 'Briefcase', description: 'Receitas menos despesas' },
-    { value: 'margem', label: 'Margem de Lucro (%)', icon: 'TrendingUp', description: 'Percentual de lucro sobre a receita' },
-    { value: 'reducao_custos', label: 'Redução de Custos', icon: 'ArrowDown', description: 'Economia em relação a um teto de gastos' },
-    { value: 'caixa_minimo', label: 'Reserva de Caixa', icon: 'PiggyBank', description: 'Garantir saldo mínimo em conta' },
+    { value: 'faturamento', label: BUSINESS_TYPE_LABELS.faturamento, icon: 'CurrencyDollar', description: 'Recebimentos operacionais realizados no período' },
+    { value: 'lucro', label: BUSINESS_TYPE_LABELS.lucro, icon: 'Briefcase', description: 'Recebimentos menos despesas operacionais realizadas; não é lucro contábil' },
+    { value: 'margem', label: BUSINESS_TYPE_LABELS.margem, icon: 'TrendingUp', description: 'Resultado operacional de caixa em percentual dos recebimentos' },
+    { value: 'reducao_custos', label: BUSINESS_TYPE_LABELS.reducao_custos, icon: 'ArrowDown', description: 'Teto de despesas operacionais no período; acompanha o consumo do limite' },
+    { value: 'caixa_minimo', label: BUSINESS_TYPE_LABELS.caixa_minimo, icon: 'PiggyBank', description: 'Saldo disponível em contas, medido no momento, sem período' },
     { value: 'investimento', label: 'Investimento / Expansão', icon: 'Building', description: 'Acúmulo para compra de ativos ou expansão' },
 ];
+
+/** Meta empresarial com valor informado pelo usuário (mesmo contrato da meta manual pessoal). */
+const PJ_MANUAL_GOAL = {
+    label: 'Valor informado',
+    icon: 'Target',
+    description: 'Você informa o valor acumulado e o atualiza quando quiser. Não cria lançamento, não move conta e não aporta em investimento.',
+};
 
 const PRESET_COLORS = ['#6366f1', '#ef4444', '#22c55e', '#eab308', '#ec4899', '#8b5cf6', '#06b6d4', '#f97316'];
 
@@ -50,39 +67,19 @@ const GoalFormModal: React.FC<GoalFormModalProps> = ({
 }) => {
     const { activeWorkspace } = useWorkspace();
     const isPJ = activeWorkspace.type === 'PJ';
+    const profile = isPJ ? 'PJ' : 'PF';
 
-    // Basic Info
-    const [name, setName] = useState('');
-    const [description, setDescription] = useState('');
-    const [category, setCategory] = useState<GoalCategory>('outro');
-    const [priority, setPriority] = useState<GoalPriority>('media');
-    const [status, setStatus] = useState<GoalStatus>('em_andamento');
-
-    // PJ Specific
-    const [businessType, setBusinessType] = useState<BusinessGoalType>('faturamento');
-    const [period, setPeriod] = useState<GoalPeriod>('mensal');
-    const [costCenter, setCostCenter] = useState('');
-
-    // Financial
-    const [targetAmount, setTargetAmount] = useState('');
-    const [currentAmount, setCurrentAmount] = useState('0');
     /*
-     * INV-P2-027 — base de progresso da meta.
+     * Estado do formulário no mesmo formato do modelo (`GoalFormState`): o
+     * payload do backend sai de `buildGoalSubmission`, sem ponto flutuante —
+     * valores digitados em reais viram centavos por dígitos e a margem vira
+     * pontos-base.
      *
-     * O backend suporta as duas bases desde o M3, e nenhum formulário as
-     * expunha: toda meta nascia em `net_contributions` e `current_value` era
-     * inalcançável pelo produto. A escolha muda o que o número da meta
-     * significa — quanto foi aportado, ou quanto a posição vale hoje.
+     * INV-P2-027 — "Como medir o progresso": aportes líquidos, valor atual da
+     * posição ou valor informado pelo usuário (meta manual).
      */
-    const [progressBasis, setProgressBasis] =
-        useState<'net_contributions' | 'current_value'>('net_contributions');
-    const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
-    const [deadline, setDeadline] = useState('');
-
-    // Visual
-    const [color, setColor] = useState(PRESET_COLORS[0]);
-    const [icon, setIcon] = useState('Target');
-    const [emoji, setEmoji] = useState('');
+    const [form, setForm] = useState<GoalFormState>(() => emptyGoalFormState(profile));
+    const patch = (changes: Partial<GoalFormState>) => setForm((current) => ({ ...current, ...changes }));
 
     // Icon Picker State
     const [isIconPickerOpen, setIsIconPickerOpen] = useState(false);
@@ -90,91 +87,43 @@ const GoalFormModal: React.FC<GoalFormModalProps> = ({
     const [visibleIconCount, setVisibleIconCount] = useState(60);
     const [selectedCategory, setSelectedCategory] = useState('');
 
-    // Suggestion State
-    const [monthlySuggestion, setMonthlySuggestion] = useState<number | null>(null);
-
-    // Retroactive Linking State
     const [isSaving, setIsSaving] = useState(false);
-    const [saveError, setSaveError] = useState<string | null>(null);
+    const [saveErrors, setSaveErrors] = useState<string[]>([]);
 
     const formRef = useRef<HTMLFormElement>(null);
     const modalRef = useRef<HTMLDivElement>(null);
     const titleRef = useRef<HTMLHeadingElement>(null);
     const previousFocusRef = useRef<HTMLElement | null>(null);
-    const saveRequestId = useRef(crypto.randomUUID());
+    // Mesmo conteúdo reenviado depois de falha: mesma chave; conteúdo novo, chave nova.
+    const intentRef = useRef<IntentKey | null>(null);
+    const savingRef = useRef(false);
 
     useEffect(() => {
         if (isOpen) {
-            if (goalToEdit) {
-                setName(goalToEdit.name);
-                setDescription(goalToEdit.description || '');
-                setCategory(goalToEdit.category);
-                setPriority(goalToEdit.priority);
-                setStatus(goalToEdit.status);
-                setTargetAmount(String(goalToEdit.targetAmount));
-                setCurrentAmount(String(goalToEdit.currentAmount));
-                setProgressBasis(goalToEdit.progressBasis ?? 'net_contributions');
-                setStartDate(goalToEdit.startDate);
-                setDeadline(goalToEdit.deadline);
-                setColor(goalToEdit.visual.color);
-                setIcon(goalToEdit.visual.icon);
-                setEmoji(goalToEdit.visual.emoji || '');
-                
-                // PJ Fields
-                setBusinessType(goalToEdit.businessType || 'investimento');
-                setPeriod(goalToEdit.period || 'custom');
-                setCostCenter(goalToEdit.costCenter || '');
-                
-            } else {
-                // Reset
-                setName('');
-                setDescription('');
-                setCategory('outro');
-                setPriority('media');
-                setStatus('em_andamento');
-                setTargetAmount('');
-                setCurrentAmount('0');
-                setStartDate(new Date().toISOString().split('T')[0]);
-                const nextYear = new Date();
-                nextYear.setFullYear(nextYear.getFullYear() + 1);
-                setDeadline(nextYear.toISOString().split('T')[0]);
-                
-                setColor(isPJ ? '#0f766e' : PRESET_COLORS[0]);
-                setIcon(isPJ ? 'Briefcase' : 'Target');
-                setEmoji('');
-                setBusinessType(isPJ ? 'faturamento' : 'investimento');
-                setPeriod(isPJ ? 'mensal' : 'custom');
-                setCostCenter('');
-            }
+            setForm(goalToEdit ? goalToFormState(goalToEdit, profile) : emptyGoalFormState(profile));
             // Reset Picker
             setIsIconPickerOpen(false);
             setIconSearch('');
-            setSaveError(null);
+            setSaveErrors([]);
             setIsSaving(false);
-            saveRequestId.current = crypto.randomUUID();
+            savingRef.current = false;
+            intentRef.current = null;
         }
-    }, [isOpen, goalToEdit, isPJ]);
+    }, [isOpen, goalToEdit, profile]);
 
-    // Calculate suggestion (PF Only mostly)
-    useEffect(() => {
-        if (targetAmount && deadline) {
-            const target = parseFloat(targetAmount);
-            const current = parseFloat(currentAmount) || 0;
-            const remaining = target - current;
-            
-            const start = new Date();
-            const end = new Date(deadline);
-            const months = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
-            
-            if (months > 0 && remaining > 0) {
-                setMonthlySuggestion(remaining / months);
-            } else {
-                setMonthlySuggestion(null);
-            }
-        } else {
-            setMonthlySuggestion(null);
-        }
-    }, [targetAmount, currentAmount, deadline]);
+    const targetIsPercent = formTargetIsPercent(form, profile);
+    const progressSource = formProgressSource(form, profile);
+
+    // Sugestão de aporte (meta pessoal): inteira, em centavos.
+    const suggestionCents = useMemo(() => {
+        if (isPJ) return 0;
+        const targetCents = parseReaisToCents(form.target);
+        if (targetCents === null) return 0;
+        const progressCents = form.measure === 'manual'
+            ? parseReaisToCents(form.manual, { allowZero: true }) ?? 0
+            : goalToEdit?.progressSource === 'investment' ? goalToEdit.investmentProgressCents ?? 0 : 0;
+        return monthlySuggestionCents(targetCents, progressCents, form.deadline);
+    }, [isPJ, form.target, form.measure, form.manual, form.deadline, goalToEdit]);
 
     useEffect(() => {
         if (!isOpen) return;
@@ -230,50 +179,29 @@ const GoalFormModal: React.FC<GoalFormModalProps> = ({
         setVisibleIconCount(60);
     };
 
-    const calculateHorizon = (start: string, end: string): GoalHorizon => {
-        const s = new Date(start);
-        const e = new Date(end);
-        const years = (e.getFullYear() - s.getFullYear()) + (e.getMonth() - s.getMonth()) / 12;
-        if (years <= 1) return 'curto';
-        if (years <= 5) return 'medio';
-        return 'longo';
-    };
-
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (isSaving) return;
+        if (savingRef.current) return;
+        const built = buildGoalSubmission(form, profile, goalToEdit);
+        if (built.ok === false) {
+            setSaveErrors(Object.values(built.errors).filter((message): message is string => Boolean(message)));
+            return;
+        }
+        savingRef.current = true;
         setIsSaving(true);
-        setSaveError(null);
-
-        const newGoal: Omit<Goal, 'id'> & { id?: string } = {
-            ...(goalToEdit ? { id: goalToEdit.id } : {}),
-            name,
-            description,
-            category,
-            priority,
-            status,
-            targetAmount: parseFloat(targetAmount),
-            currentAmount: parseFloat(currentAmount), 
-            startDate,
-            deadline,
-            horizon: calculateHorizon(startDate, deadline),
-            businessType: isPJ ? businessType : undefined,
-            period: isPJ ? period : undefined,
-            costCenter: isPJ ? costCenter : undefined,
-            isAutomatic: isPJ && businessType !== 'investimento',
-            progressBasis,
-            visual: { color, icon, emoji, progressBarType: 'linear' },
-            createdAt: goalToEdit ? goalToEdit.createdAt : new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-        };
-
+        setSaveErrors([]);
         try {
-            await onSave(newGoal, saveRequestId.current);
+            const intent = resolveIntentKey(
+                intentRef.current, 'saveGoal', built.submission as unknown as Record<string, unknown>, newIdempotencyKey,
+            );
+            intentRef.current = intent;
+            await onSave(built.submission, intent.key);
             onClose();
         } catch (error) {
             console.error('Falha ao salvar meta:', error);
-            setSaveError('Não foi possível salvar a meta. Revise os dados e tente novamente.');
+            setSaveErrors([goalErrorView(error).message]);
         } finally {
+            savingRef.current = false;
             setIsSaving(false);
         }
     };
@@ -282,8 +210,8 @@ const GoalFormModal: React.FC<GoalFormModalProps> = ({
 
     const commonInputClass = "w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 bg-white text-gray-900 dark:bg-dark-200 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all";
     const labelClass = "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1";
-    const darkerColor = adjustBrightness(color, -50);
-    const previewGradient = `radial-gradient(circle at top left, rgba(255,255,255,0.2) 0%, transparent 40%), linear-gradient(135deg, ${color} 0%, ${darkerColor} 100%)`;
+    const darkerColor = adjustBrightness(form.color, -50);
+    const previewGradient = `radial-gradient(circle at top left, rgba(255,255,255,0.2) 0%, transparent 40%), linear-gradient(135deg, ${form.color} 0%, ${darkerColor} 100%)`;
 
     // --- PJ MODE RENDER ---
     if (isPJ) {
@@ -303,34 +231,48 @@ const GoalFormModal: React.FC<GoalFormModalProps> = ({
                                 <BriefcaseIcon className="w-4 h-4" /> Objetivo de Negócio
                             </h4>
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                                {BUSINESS_GOAL_TYPES.map(t => (
+                                {BUSINESS_GOAL_TYPES.map(t => {
+                                    const selected = progressSource !== 'manual' && form.businessType === t.value;
+                                    return (
                                     <button
                                         key={t.value}
                                         type="button"
-                                        onClick={() => {
-                                            setBusinessType(t.value);
-                                            setIcon(t.icon);
-                                        }}
-                                        className={`flex flex-col items-center justify-center p-3 rounded-xl border transition-all ${businessType === t.value ? 'bg-indigo-600 border-indigo-600 text-white shadow-md' : 'bg-white dark:bg-dark-200 border-gray-200 dark:border-gray-700 text-gray-500 hover:bg-gray-50'}`}
+                                        onClick={() => patch({ businessType: t.value, icon: t.icon, measure: 'net_contributions' })}
+                                        aria-pressed={selected}
+                                        className={`flex flex-col items-center justify-center p-3 rounded-xl border transition-all ${selected ? 'bg-indigo-600 border-indigo-600 text-white shadow-md' : 'bg-white dark:bg-dark-200 border-gray-200 dark:border-gray-700 text-gray-500 hover:bg-gray-50'}`}
                                     >
                                         <DynamicIcon name={t.icon} size={24} className="mb-2" />
                                         <span className="text-[10px] font-bold text-center uppercase leading-tight">{t.label}</span>
                                     </button>
-                                ))}
+                                    );
+                                })}
+                                <button
+                                    type="button"
+                                    onClick={() => patch({ measure: 'manual', icon: PJ_MANUAL_GOAL.icon })}
+                                    aria-pressed={progressSource === 'manual'}
+                                    className={`flex flex-col items-center justify-center p-3 rounded-xl border transition-all ${progressSource === 'manual' ? 'bg-indigo-600 border-indigo-600 text-white shadow-md' : 'bg-white dark:bg-dark-200 border-gray-200 dark:border-gray-700 text-gray-500 hover:bg-gray-50'}`}
+                                >
+                                    <DynamicIcon name={PJ_MANUAL_GOAL.icon} size={24} className="mb-2" />
+                                    <span className="text-[10px] font-bold text-center uppercase leading-tight">{PJ_MANUAL_GOAL.label}</span>
+                                </button>
                             </div>
                             <p className="text-[11px] text-indigo-700 dark:text-indigo-300 italic">
-                                * {BUSINESS_GOAL_TYPES.find(t => t.value === businessType)?.description}
+                                * {progressSource === 'manual'
+                                    ? PJ_MANUAL_GOAL.description
+                                    : BUSINESS_GOAL_TYPES.find(t => t.value === form.businessType)?.description}
+                                {progressSource !== 'manual' && businessTypeNeedsCashNote(form.businessType) ? ` ${GOAL_CASH_REGIME_NOTE}` : ''}
                             </p>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                             <div className="md:col-span-2">
-                                <label className={labelClass}>Nome da Meta <span className="text-red-500">*</span></label>
-                                <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Ex: Atingir Breakeven" className={commonInputClass} required />
+                                <label htmlFor="goal-name" className={labelClass}>Nome da Meta <span className="text-red-500">*</span></label>
+                                <input id="goal-name" type="text" value={form.name} onChange={e => patch({ name: e.target.value })} placeholder="Ex: Atingir Breakeven" className={commonInputClass} required />
                             </div>
+                            {progressSource === 'business_kpi' && form.businessType !== 'caixa_minimo' && (
                             <div>
-                                <label className={labelClass}>Período de Apuração</label>
-                                <select value={period} onChange={e => setPeriod(e.target.value as any)} className={commonInputClass}>
+                                <label htmlFor="goal-period" className={labelClass}>Período de Apuração</label>
+                                <select id="goal-period" value={form.period} onChange={e => patch({ period: e.target.value as GoalPeriod })} className={commonInputClass}>
                                     <option value="mensal">Mensal</option>
                                     <option value="trimestral">Trimestral</option>
                                     <option value="semestral">Semestral</option>
@@ -338,20 +280,41 @@ const GoalFormModal: React.FC<GoalFormModalProps> = ({
                                     <option value="custom">Personalizado</option>
                                 </select>
                             </div>
+                            )}
                             <div>
-                                <label className={labelClass}>Centro de Custo (Opcional)</label>
+                                <label htmlFor="goal-cost-center" className={labelClass}>Centro de Custo (Opcional)</label>
                                 <div className="relative">
-                                    <input type="text" value={costCenter} onChange={e => setCostCenter(e.target.value)} placeholder="Ex: Comercial" className={`${commonInputClass} pl-9`} />
+                                    <input id="goal-cost-center" type="text" value={form.costCenter} onChange={e => patch({ costCenter: e.target.value })} placeholder="Ex: Comercial" aria-describedby="goal-cost-center-help" className={`${commonInputClass} pl-9`} />
                                     <BuildingIcon className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
                                 </div>
+                                <p id="goal-cost-center-help" className="text-xs text-gray-500 mt-1">{GOAL_COST_CENTER_NOTE}</p>
+                            </div>
+                            {progressSource === 'manual' && (
+                                !goalToEdit || goalToEdit.progressSource !== 'manual' ? (
+                                    <div>
+                                        <label htmlFor="goal-manual-value" className={labelClass}>Valor já acumulado (R$) <span className="text-red-500">*</span></label>
+                                        <input id="goal-manual-value" type="text" inputMode="decimal" value={form.manual} onChange={e => patch({ manual: e.target.value })} placeholder="Ex: 1.500,00 (zero vale)" className={commonInputClass} required />
+                                        <p className="text-xs text-gray-500 mt-1">
+                                            {goalToEdit
+                                                ? 'O valor da fonte anterior não é aproveitado: informe o valor inicial desta meta.'
+                                                : 'Quanto a empresa já acumulou para esta meta.'}
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <div>
+                                        <span className={labelClass}>Valor acumulado</span>
+                                        <p className={`${commonInputClass} bg-gray-50 text-gray-500`}>{formatCents(goalToEdit.manualProgressCents ?? 0)}</p>
+                                        <p className="text-xs text-gray-500 mt-1">Para alterar o valor acumulado, use "Atualizar valor acumulado" na página da meta.</p>
+                                    </div>
+                                )
+                            )}
+                            <div>
+                                <label htmlFor="goal-target" className={labelClass}>{targetIsPercent ? 'Alvo (%)' : 'Valor Alvo (R$)'} <span className="text-red-500">*</span></label>
+                                <input id="goal-target" type="text" inputMode="decimal" value={form.target} onChange={e => patch({ target: e.target.value })} placeholder={targetIsPercent ? 'Ex: 15,5' : 'Ex: 10.000,00'} className={`${commonInputClass} font-bold text-lg`} required />
                             </div>
                             <div>
-                                <label className={labelClass}>{businessType === 'margem' ? 'Alvo (%)' : 'Valor Alvo (R$)'} <span className="text-red-500">*</span></label>
-                                <input type="number" step="0.01" value={targetAmount} onChange={e => setTargetAmount(e.target.value)} className={`${commonInputClass} font-bold text-lg`} required />
-                            </div>
-                            <div>
-                                <label className={labelClass}>Data Limite <span className="text-red-500">*</span></label>
-                                <input type="date" value={deadline} onChange={e => setDeadline(e.target.value)} className={commonInputClass} required />
+                                <label htmlFor="goal-deadline" className={labelClass}>Data Limite <span className="text-red-500">*</span></label>
+                                <input id="goal-deadline" type="date" value={form.deadline} onChange={e => patch({ deadline: e.target.value })} className={commonInputClass} required />
                             </div>
                         </div>
 
@@ -359,8 +322,8 @@ const GoalFormModal: React.FC<GoalFormModalProps> = ({
                             <h4 className="text-sm font-bold text-gray-500 uppercase tracking-wider">Estilo e Prioridade</h4>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                                  <div>
-                                    <label className={labelClass}>Prioridade</label>
-                                    <select value={priority} onChange={e => setPriority(e.target.value as any)} className={commonInputClass}>
+                                    <label htmlFor="goal-priority" className={labelClass}>Prioridade</label>
+                                    <select id="goal-priority" value={form.priority} onChange={e => patch({ priority: e.target.value as GoalPriority })} className={commonInputClass}>
                                         <option value="alta">Alta</option>
                                         <option value="media">Média</option>
                                         <option value="baixa">Baixa</option>
@@ -370,18 +333,18 @@ const GoalFormModal: React.FC<GoalFormModalProps> = ({
                                     <label className={labelClass}>Cor Principal</label>
                                     <div className="flex gap-2">
                                         {PRESET_COLORS.map(c => (
-                                            <button key={c} type="button" onClick={() => setColor(c)} className={`w-8 h-8 rounded-full border-2 ${color === c ? 'border-gray-800' : 'border-transparent'}`} style={{ backgroundColor: c }} />
+                                            <button key={c} type="button" onClick={() => patch({ color: c })} aria-label={`Cor ${c}`} className={`w-8 h-8 rounded-full border-2 ${form.color === c ? 'border-gray-800' : 'border-transparent'}`} style={{ backgroundColor: c }} />
                                         ))}
-                                        <input type="color" value={color} onChange={e => setColor(e.target.value)} className="w-8 h-8 rounded-full border-0 p-0 cursor-pointer" />
+                                        <input type="color" value={form.color} onChange={e => patch({ color: e.target.value })} aria-label="Cor personalizada" className="w-8 h-8 rounded-full border-0 p-0 cursor-pointer" />
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </form>
 
-                    {saveError && <p role="alert" className="px-6 pt-4 text-sm text-red-600 dark:text-red-400">{saveError}</p>}
+                    {saveErrors.length > 0 && <div role="alert" className="px-6 pt-4 text-sm text-red-600 dark:text-red-400">{saveErrors.map((message) => <p key={message}>{message}</p>)}</div>}
                     <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3">
-                        <button onClick={onClose} className="px-5 py-2 bg-gray-100 dark:bg-dark-200 text-gray-700 dark:text-gray-300 rounded-lg font-medium">Cancelar</button>
+                        <button type="button" onClick={onClose} disabled={isSaving} className="px-5 py-2 bg-gray-100 dark:bg-dark-200 text-gray-700 dark:text-gray-300 rounded-lg font-medium">Cancelar</button>
                         <button type="submit" form="goalForm" disabled={isSaving} className="px-8 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white rounded-lg font-bold shadow-md">{isSaving ? 'Salvando...' : 'Salvar Meta'}</button>
                     </div>
                 </div>
@@ -417,7 +380,7 @@ const GoalFormModal: React.FC<GoalFormModalProps> = ({
                             >
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent"></div>
                                 <div className="relative z-10 w-12 h-12 flex items-center justify-center">
-                                    {emoji ? <span className="text-4xl">{emoji}</span> : <DynamicIcon name={icon} size={40} />}
+                                    {form.emoji ? <span className="text-4xl">{form.emoji}</span> : <DynamicIcon name={form.icon} size={40} />}
                                 </div>
                             </div>
                             
@@ -430,15 +393,17 @@ const GoalFormModal: React.FC<GoalFormModalProps> = ({
                                             <button
                                                 key={c}
                                                 type="button"
-                                                onClick={() => setColor(c)}
-                                                className={`w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 ${color === c ? 'border-gray-500 dark:border-white scale-110 shadow-sm' : 'border-transparent'}`}
+                                                onClick={() => patch({ color: c })}
+                                                aria-label={`Cor ${c}`}
+                                                className={`w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 ${form.color === c ? 'border-gray-500 dark:border-white scale-110 shadow-sm' : 'border-transparent'}`}
                                                 style={{ backgroundColor: c }}
                                             />
                                         ))}
                                         <input 
                                             type="color" 
-                                            value={color}
-                                            onChange={(e) => setColor(e.target.value)}
+                                            value={form.color}
+                                            onChange={(e) => patch({ color: e.target.value })}
+                                            aria-label="Cor personalizada"
                                             className="w-8 h-8 rounded-full cursor-pointer p-0 border-0"
                                         />
                                     </div>
@@ -457,16 +422,17 @@ const GoalFormModal: React.FC<GoalFormModalProps> = ({
                                                     className="flex-1 flex items-center justify-between border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-dark-200 text-gray-700 dark:text-white hover:bg-gray-50 dark:hover:bg-dark-300 transition-colors"
                                                 >
                                                     <div className="flex items-center gap-2">
-                                                        <DynamicIcon name={icon} size={20} className="text-gray-500" />
-                                                        <span>{icon}</span>
+                                                        <DynamicIcon name={form.icon} size={20} className="text-gray-500" />
+                                                        <span>{form.icon}</span>
                                                     </div>
                                                     <SearchIcon className="w-4 h-4 text-gray-400" />
                                                 </button>
                                                 <input 
                                                     type="text" 
-                                                    value={emoji} 
-                                                    onChange={(e) => setEmoji(e.target.value)} 
+                                                    value={form.emoji}
+                                                    onChange={(e) => patch({ emoji: e.target.value })}
                                                     placeholder="Emoji (Opcional)"
+                                                    aria-label="Emoji (Opcional)"
                                                     className="w-1/3 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 dark:bg-dark-200 dark:text-white"
                                                 />
                                             </div>
@@ -518,13 +484,13 @@ const GoalFormModal: React.FC<GoalFormModalProps> = ({
                                                 {/* Grid */}
                                                 <div className="grid grid-cols-6 sm:grid-cols-8 gap-2 max-h-[180px] overflow-y-auto custom-scrollbar p-1">
                                                     {filteredIcons.slice(0, visibleIconCount).map((iconKey) => {
-                                                        const isSelected = icon === iconKey;
+                                                        const isSelected = form.icon === iconKey;
                                                         return (
                                                             <button
                                                                 key={iconKey}
                                                                 type="button"
                                                                 onClick={() => {
-                                                                    setIcon(iconKey);
+                                                                    patch({ icon: iconKey });
                                                                     setIsIconPickerOpen(false); 
                                                                 }}
                                                                 className={`aspect-square rounded flex items-center justify-center border transition-all hover:bg-white dark:hover:bg-dark-100 hover:shadow-sm ${
@@ -564,32 +530,37 @@ const GoalFormModal: React.FC<GoalFormModalProps> = ({
                          <h4 className="text-sm font-bold text-gray-500 uppercase tracking-wider">Detalhes da Meta</h4>
                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="md:col-span-2">
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nome da Meta <span className="text-red-500">*</span></label>
+                                <label htmlFor="goal-name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nome da Meta <span className="text-red-500">*</span></label>
                                 <input 
+                                    id="goal-name"
                                     type="text" 
-                                    value={name} 
-                                    onChange={(e) => setName(e.target.value)} 
+                                    value={form.name}
+                                    onChange={(e) => patch({ name: e.target.value })}
                                     placeholder="Ex: Viagem Disney 2026"
                                     className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 dark:bg-dark-200 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none"
                                     required
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Categoria <span className="text-red-500">*</span></label>
+                                <label htmlFor="goal-category" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Categoria <span className="text-red-500">*</span></label>
                                 <select 
-                                    value={category} 
-                                    onChange={(e) => setCategory(e.target.value as GoalCategory)} 
+                                    id="goal-category"
+                                    value={form.category}
+                                    onChange={(e) => patch({ category: e.target.value as GoalCategory })}
                                     className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 dark:bg-dark-200 dark:text-white outline-none"
                                 >
                                     {GOAL_CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
                                 </select>
                             </div>
                             
+                            {/* O status só nasce aqui; depois muda pelos botões da meta (setGoalStatus). */}
+                            {!goalToEdit && (
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
+                                <label htmlFor="goal-status" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
                                 <select 
-                                    value={status} 
-                                    onChange={(e) => setStatus(e.target.value as GoalStatus)} 
+                                    id="goal-status"
+                                    value={form.status}
+                                    onChange={(e) => patch({ status: e.target.value as GoalStatus })}
                                     className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 dark:bg-dark-200 dark:text-white outline-none"
                                 >
                                     <option value="em_andamento">Em Andamento</option>
@@ -598,12 +569,14 @@ const GoalFormModal: React.FC<GoalFormModalProps> = ({
                                     <option value="cancelada">Cancelada</option>
                                 </select>
                             </div>
+                            )}
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Prioridade</label>
+                                <label htmlFor="goal-priority" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Prioridade</label>
                                 <select 
-                                    value={priority} 
-                                    onChange={(e) => setPriority(e.target.value as GoalPriority)} 
+                                    id="goal-priority"
+                                    value={form.priority}
+                                    onChange={(e) => patch({ priority: e.target.value as GoalPriority })}
                                     className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 dark:bg-dark-200 dark:text-white outline-none"
                                 >
                                     <option value="alta">Alta</option>
@@ -612,10 +585,11 @@ const GoalFormModal: React.FC<GoalFormModalProps> = ({
                                 </select>
                             </div>
                             <div className="md:col-span-2">
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Descrição</label>
+                                <label htmlFor="goal-description" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Descrição</label>
                                 <textarea 
-                                    value={description} 
-                                    onChange={(e) => setDescription(e.target.value)} 
+                                    id="goal-description"
+                                    value={form.description}
+                                    onChange={(e) => patch({ description: e.target.value })}
                                     rows={2}
                                     className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 dark:bg-dark-200 dark:text-white outline-none"
                                 />
@@ -630,39 +604,41 @@ const GoalFormModal: React.FC<GoalFormModalProps> = ({
                         <h4 className="text-sm font-bold text-gray-500 uppercase tracking-wider">Planejamento</h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Valor Objetivo (R$) <span className="text-red-500">*</span></label>
+                                <label htmlFor="goal-target" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Valor Objetivo (R$) <span className="text-red-500">*</span></label>
                                 <input 
-                                    type="number" 
-                                    value={targetAmount} 
-                                    onChange={(e) => setTargetAmount(e.target.value)} 
+                                    id="goal-target"
+                                    type="text"
+                                    inputMode="decimal"
+                                    value={form.target}
+                                    onChange={(e) => patch({ target: e.target.value })}
+                                    placeholder="Ex: 10.000,00"
                                     className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 dark:bg-dark-200 dark:text-white text-lg font-bold"
-                                    min="1"
-                                    step="0.01"
                                     required
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Data Limite <span className="text-red-500">*</span></label>
+                                <label htmlFor="goal-deadline" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Data Limite <span className="text-red-500">*</span></label>
                                 <input 
+                                    id="goal-deadline"
                                     type="date" 
-                                    value={deadline} 
-                                    onChange={(e) => setDeadline(e.target.value)} 
+                                    value={form.deadline}
+                                    onChange={(e) => patch({ deadline: e.target.value })}
                                     className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 dark:bg-dark-200 dark:text-white"
                                     required
                                 />
                             </div>
                             
                             {/* Suggestion Box */}
-                            {monthlySuggestion && monthlySuggestion > 0 && (
+                            {suggestionCents > 0 && (
                                 <div className="md:col-span-2 bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-xl flex items-start gap-3 border border-indigo-100 dark:border-indigo-800">
                                     <SparklesIcon className="text-indigo-500 mt-1 flex-shrink-0" />
                                     <div>
                                         <p className="text-sm font-bold text-indigo-700 dark:text-indigo-300">Sugestão de Aporte</p>
                                         <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-1">
-                                            Para atingir <b>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(parseFloat(targetAmount))}</b> até <b>{new Date(deadline).toLocaleDateString('pt-BR')}</b>, você precisa investir aproximadamente:
+                                            Para atingir <b>{formatCents(parseReaisToCents(form.target) ?? 0)}</b> até <b>{formatCivilDate(form.deadline)}</b>, você precisa investir aproximadamente:
                                         </p>
                                         <p className="text-xl font-bold text-indigo-600 dark:text-indigo-400 mt-1">
-                                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(monthlySuggestion)} / mês
+                                            {formatCents(suggestionCents)} / mês
                                         </p>
                                     </div>
                                 </div>
@@ -674,38 +650,74 @@ const GoalFormModal: React.FC<GoalFormModalProps> = ({
                                 </label>
                                 <select
                                     id="goal-progress-basis"
-                                    value={progressBasis}
-                                    onChange={(event) => setProgressBasis(event.target.value as typeof progressBasis)}
+                                    value={form.measure}
+                                    onChange={(event) => patch({ measure: event.target.value as GoalMeasure })}
                                     className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 dark:bg-dark-200 dark:text-white"
                                 >
                                     <option value="net_contributions">Pelo valor aportado</option>
                                     <option value="current_value">Pelo valor atual da posição</option>
+                                    <option value="manual">Informado por mim</option>
                                 </select>
                                 <p className="text-xs text-gray-500 mt-1">
-                                    {progressBasis === 'net_contributions'
+                                    {form.measure === 'net_contributions'
                                         ? 'O progresso soma os aportes líquidos vinculados e não muda com a variação de mercado.'
-                                        : 'O progresso acompanha o valor atual das posições vinculadas. Sem marcação a mercado, ele é o capital aplicado.'}
+                                        : form.measure === 'current_value'
+                                            ? 'O progresso acompanha o valor atual das posições vinculadas. Sem marcação a mercado, ele é o capital aplicado.'
+                                            : 'Você informa o valor já acumulado e o atualiza quando quiser. Não cria lançamento, não move conta e não aporta em investimento.'}
                                 </p>
                             </div>
 
-                             <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Saldo Atual (Automático)</label>
-                                <input 
-                                    type="text" 
-                                    value={new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(parseFloat(currentAmount))}
-                                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 dark:bg-dark-200 dark:text-white bg-gray-50 text-gray-500 cursor-not-allowed"
-                                    disabled
-                                />
-                                <p className="text-xs text-gray-500 mt-1">
-                                    O saldo vem das posições de investimento vinculadas à meta, em Investimentos.
-                                </p>
-                            </div>
+                            {form.measure === 'manual' ? (
+                                !goalToEdit || goalToEdit.progressSource !== 'manual' ? (
+                                    <div>
+                                        <label htmlFor="goal-manual-value" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Valor já acumulado (R$) <span className="text-red-500">*</span></label>
+                                        <input
+                                            id="goal-manual-value"
+                                            type="text"
+                                            inputMode="decimal"
+                                            value={form.manual}
+                                            onChange={(e) => patch({ manual: e.target.value })}
+                                            placeholder="Ex: 1.500,00 (zero vale)"
+                                            className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 dark:bg-dark-200 dark:text-white"
+                                            required
+                                        />
+                                        <p className="text-xs text-gray-500 mt-1">
+                                            {goalToEdit
+                                                ? 'O valor da fonte anterior não é aproveitado: informe o valor inicial desta meta.'
+                                                : 'Quanto você já tem guardado para esta meta.'}
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <div>
+                                        <span className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Valor acumulado</span>
+                                        <p className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 dark:bg-dark-200 bg-gray-50 text-gray-500">{formatCents(goalToEdit.manualProgressCents ?? 0)}</p>
+                                        <p className="text-xs text-gray-500 mt-1">
+                                            Para alterar o valor acumulado, use "Atualizar valor acumulado" na página da meta.
+                                        </p>
+                                    </div>
+                                )
+                            ) : (
+                                <div>
+                                    <label htmlFor="goal-current-balance" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Saldo Atual (Automático)</label>
+                                    <input
+                                        id="goal-current-balance"
+                                        type="text"
+                                        value={formatCents(goalToEdit?.progressSource === 'investment' ? goalToEdit.investmentProgressCents ?? 0 : 0)}
+                                        className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 dark:bg-dark-200 dark:text-white bg-gray-50 text-gray-500 cursor-not-allowed"
+                                        disabled
+                                    />
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        O saldo vem das posições de investimento vinculadas à meta, em Investimentos.
+                                    </p>
+                                </div>
+                            )}
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Data de Início</label>
+                                <label htmlFor="goal-start-date" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Data de Início</label>
                                 <input 
+                                    id="goal-start-date"
                                     type="date" 
-                                    value={startDate} 
-                                    onChange={(e) => setStartDate(e.target.value)} 
+                                    value={form.startDate}
+                                    onChange={(e) => patch({ startDate: e.target.value })}
                                     className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 dark:bg-dark-200 dark:text-white"
                                 />
                             </div>
@@ -714,10 +726,10 @@ const GoalFormModal: React.FC<GoalFormModalProps> = ({
 
                 </form>
 
-                {saveError && <p role="alert" className="px-6 pt-4 text-sm text-red-600 dark:text-red-400">{saveError}</p>}
+                {saveErrors.length > 0 && <div role="alert" className="px-6 pt-4 text-sm text-red-600 dark:text-red-400">{saveErrors.map((message) => <p key={message}>{message}</p>)}</div>}
                 {/* Footer */}
                 <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3">
-                    <button onClick={onClose} className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
+                    <button type="button" onClick={onClose} disabled={isSaving} className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
                         Cancelar
                     </button>
                     <button type="submit" form="goalForm" disabled={isSaving} className="px-6 py-2 bg-indigo-600 disabled:opacity-60 text-white font-medium rounded-lg hover:bg-indigo-700 transition-colors shadow-sm">

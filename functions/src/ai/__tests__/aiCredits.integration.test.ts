@@ -48,9 +48,21 @@ import {
   AI_IDEMPOTENCY_CONFLICT_MESSAGE,
   AI_REQUEST_ALREADY_PROCESSED_MESSAGE,
 } from "../admission";
-import {analyzeFinancialQuestion, createAiCallables} from "../callables";
+import {
+  AI_PROVIDER_FAILED_REASON,
+  ANALYSIS_EMPTY_ANSWER_MESSAGE,
+  EXTRACTION_INVALID_RESPONSE_MESSAGE,
+  analyzeFinancialQuestion,
+  createAiCallables,
+  type AiDependencies,
+  type AnalysisAnswer,
+} from "../callables";
+import {AI_PROVIDER_CONSENT_VERSION} from "../consent";
+import {EXTRACTION_SYSTEM_INSTRUCTION, type ExtractionResult} from
+  "../extraction";
 import type {AiGenerationRequest} from "../gateway";
 import {ANALYSIS_RATE_LIMIT, EXTRACTION_RATE_LIMIT} from "../policy";
+import {analysisSystemInstruction} from "../prompts";
 
 /**
  * P2B.2 — créditos de IA por plano do titular (PR-AI-03), no Emulator.
@@ -73,17 +85,42 @@ interface ProviderCall {
 
 type Respond = (request: AiGenerationRequest) => Promise<string>;
 
+/** Resposta estruturada válida da extração (P5-E1). */
+const EXTRACTION_JSON = JSON.stringify({
+  outcome: "extracted",
+  operation: "expense",
+  description: "Almoço",
+  amount: "45.00",
+  date: null,
+  categoryHint: "Alimentação",
+  supplier: null,
+  costCenterHint: null,
+  installments: null,
+  ambiguousFields: [],
+});
+
 const defaultRespond: Respond = async (request) =>
-  request.json ?
-    "{\"type\":\"despesa\",\"value\":45}" :
-    "Resposta da IA de teste.";
+  request.responseJsonSchema ? EXTRACTION_JSON : "Resposta da IA de teste.";
+
+/** Confirmação de envio por operação (P5-E1, D-11.3). */
+const consent = (operation: "analysis" | "extraction_text" |
+  "extraction_document") => ({
+  version: AI_PROVIDER_CONSENT_VERSION,
+  operation,
+  confirmed: true,
+});
 
 const harness = (
-  options: {now?: () => number; respond?: Respond} = {},
+  options: {
+    now?: () => number;
+    respond?: Respond;
+    readReport?: AiDependencies["readReport"];
+  } = {},
 ) => {
   const calls: ProviderCall[] = [];
   const callables = createAiCallables(() => ({
     now: options.now ?? (() => NOW),
+    readReport: options.readReport,
     gateway: {
       generate: async (request) => {
         if (insideTransaction()) {
@@ -98,7 +135,7 @@ const harness = (
     uid: string,
     workspaceId: string,
     overrides: Record<string, unknown> = {},
-  ) => call<{answer: string}>(callables.analyzeFinancialQuestion, uid, {
+  ) => call<AnalysisAnswer>(callables.analyzeFinancialQuestion, uid, {
     ...analysisPayload(workspaceId),
     ...overrides,
   });
@@ -106,7 +143,7 @@ const harness = (
     uid: string,
     workspaceId: string,
     overrides: Record<string, unknown> = {},
-  ) => call<{extracted: unknown}>(
+  ) => call<{extraction: ExtractionResult}>(
     callables.extractTransactionFromContent,
     uid,
     {
@@ -114,6 +151,7 @@ const harness = (
       workspaceId,
       idempotencyKey: idempotencyKey(),
       transcript: "Almoço de R$ 45,00 hoje",
+      providerConsent: consent("extraction_text"),
       ...overrides,
     },
   );
@@ -121,7 +159,7 @@ const harness = (
     uid: string,
     workspaceId: string,
     overrides: Record<string, unknown> = {},
-  ) => call<{extracted: unknown}>(
+  ) => call<{extraction: ExtractionResult}>(
     callables.extractTransactionFromContent,
     uid,
     {
@@ -130,23 +168,23 @@ const harness = (
       idempotencyKey: idempotencyKey(),
       mimeType: "image/png",
       dataBase64: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAAB",
+      providerConsent: consent("extraction_document"),
       ...overrides,
     },
   );
   return {calls, analyze, extractText, extractDocument};
 };
 
+/**
+ * P5-E1: só pergunta, período, chave e confirmação. O contexto financeiro é
+ * montado pelo backend a partir do relatório oficial.
+ */
 const analysisPayload = (workspaceId: string) => ({
   workspaceId,
   idempotencyKey: idempotencyKey(),
   question: "Como está minha taxa de poupança?",
-  context: {
-    profileType: "PF",
-    periodLabel: "Últimos 30 dias",
-    kpis: [{label: "Receitas", formattedValue: "R$ 5.000,00"}],
-    topCategories: ["Moradia (40.0%)"],
-    alerts: [],
-  },
+  range: {kind: "preset", preset: "30d"},
+  providerConsent: consent("analysis"),
 });
 
 // ---------------------------------------------------------------------------
@@ -768,12 +806,17 @@ test("recibo guarda só metadados e hash, com TTL de 90 dias", async () => {
     answer: "RESPOSTA-SIGILOSA-5519",
     transcript: "TRANSCRICAO-SIGILOSA-2208 almoço de 45 reais",
     extracted: "EXTRAIDO-SIGILOSO-9034",
-    document: "RE9DVU1FTlRPLVNJR0lMT1NPLTQ0MTc=",
+    // PNG de verdade nos primeiros bytes (a assinatura é conferida), com
+    // conteúdo sigiloso em seguida.
+    document: Buffer.concat([
+      Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+      Buffer.from("DOCUMENTO-SIGILOSO-4417"),
+    ]).toString("base64"),
   };
   const keys = [idempotencyKey(), idempotencyKey(), idempotencyKey()];
   const provider = harness({
-    respond: async (request) => request.json ?
-      JSON.stringify({description: secrets.extracted}) :
+    respond: async (request) => request.responseJsonSchema ?
+      JSON.stringify({outcome: "extracted", description: secrets.extracted}) :
       secrets.answer,
   });
   const startedAt = Date.now();
@@ -910,7 +953,8 @@ test("provedor só depois do commit do crédito, fora de transação",
     ]);
   });
 
-test("teto de saída por chamada: análise 1200, extração 600", async () => {
+test("teto de saída por chamada: análise 2048, extração 1024; regras do " +
+  "backend separadas do conteúdo", async () => {
   const owner = await account("ai-tokens");
   const workspaceId = await newWorkspace(owner);
   const provider = harness();
@@ -918,8 +962,19 @@ test("teto de saída por chamada: análise 1200, extração 600", async () => {
   await provider.extractText(owner, workspaceId);
   await provider.extractDocument(owner, workspaceId);
   assert.deepEqual(
-    provider.calls.map(({request}) => [request.maxOutputTokens, request.json]),
-    [[1200, undefined], [600, true], [600, true]],
+    provider.calls.map(({request}) => [
+      request.maxOutputTokens,
+      request.responseJsonSchema !== undefined,
+    ]),
+    [[2048, false], [1024, true], [1024, true]],
+  );
+  assert.deepEqual(
+    provider.calls.map(({request}) => request.systemInstruction),
+    [
+      analysisSystemInstruction("PF"),
+      EXTRACTION_SYSTEM_INSTRUCTION,
+      EXTRACTION_SYSTEM_INSTRUCTION,
+    ],
   );
   const documentParts = provider.calls[2].request.parts;
   assert.deepEqual(documentParts[0], {
@@ -942,13 +997,16 @@ test("falha do provedor depois do commit mantém o crédito e não repete a " +
     },
   });
   const payload = analysisPayload(workspaceId);
+  // P5-E1: mensagem pt-BR que diz o que houve e que a tentativa contou;
+  // nenhum detalhe do provedor.
   const error = await expectHttpsError(
     failing.analyze(owner, workspaceId, payload),
-    "internal",
-    {message: "Não foi possível concluir a operação. Tente novamente em " +
-      "instantes."},
+    "failed-precondition",
+    {message: "O serviço de IA está indisponível no momento. A tentativa " +
+      "foi contabilizada nos créditos de IA do plano. Tente novamente mais " +
+      "tarde."},
   );
-  assert.deepEqual(Object.keys(error.details as object), ["requestId"]);
+  assert.deepEqual(error.details, {reason: AI_PROVIDER_FAILED_REASON});
   assert.equal(
     JSON.stringify(error.toJSON()).includes("detalhe interno"),
     false,
@@ -960,14 +1018,14 @@ test("falha do provedor depois do commit mantém o crédito e não repete a " +
     "failed-precondition", {message: AI_REQUEST_ALREADY_PROCESSED_MESSAGE});
   assert.equal(failing.calls.length, 1);
 
-  // Resposta vazia e JSON inválido também já consumiram o crédito.
+  // Resposta vazia e JSON inválido também já consumiram o crédito; nenhum
+  // vira resposta inventada nem formulário preenchido.
   const empty = harness({respond: async () => ""});
-  const answer = await empty.analyze(owner, workspaceId);
-  assert.equal(answer.answer, "Não foi possível processar a análise agora.");
+  await expectHttpsError(empty.analyze(owner, workspaceId),
+    "failed-precondition", {message: ANALYSIS_EMPTY_ANSWER_MESSAGE});
   const invalid = harness({respond: async () => "isto não é JSON"});
   await expectHttpsError(invalid.extractText(owner, workspaceId),
-    "failed-precondition",
-    {message: "Não foi possível interpretar o conteúdo enviado."});
+    "failed-precondition", {message: EXTRACTION_INVALID_RESPONSE_MESSAGE});
   assert.equal(await usedCredits(owner), 3);
 });
 

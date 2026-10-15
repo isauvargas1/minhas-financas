@@ -5,6 +5,7 @@ import {HEX_COLOR_PATTERN} from "../cards/model";
 import {isIsoInstant} from "../shared/commitTime";
 import {saoPauloDayKey} from "../shared/dateKeys";
 import {
+  categoryIdSchema,
   cashAccountIdSchema,
   correlationIdSchema,
   creditCardIdSchema,
@@ -139,7 +140,11 @@ const contractFields = {
     {message: "Modo de execução: escolha Automático ou Confirmar antes."}),
   cardId: creditCardIdSchema.nullable(),
   cashAccountId: cashAccountIdSchema.nullable(),
-  category: textSchema("Categoria", RECURRING_TEXT_LIMITS.category),
+  /**
+   * Categoria de despesa do catálogo (P5-C1, D-37.8): ID estável, conferido
+   * pelo backend; o nome gravado no contrato é o retrato do catálogo.
+   */
+  categoryId: categoryIdSchema,
   visual: visualSchema,
   business: businessSchema.nullable(),
 };

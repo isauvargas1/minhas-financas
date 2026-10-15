@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import {Timestamp} from "firebase-admin/firestore";
+
 import {ACCOUNT_ARCHIVED_MESSAGE} from "../../accounts/ledger";
 import {
   archiveAccount,
@@ -428,7 +430,8 @@ test("P4-A — rotina concorrente: duas execuções simultâneas fecham cada " +
 });
 
 test("P4-A — alertas: fechada, próxima do vencimento e vencida uma vez " +
-  "cada; o atraso não é persistido e o 'lida' não volta", async () => {
+  "cada; o atraso não é persistido e o 'lida' não volta (P5-D1: estado " +
+  "privado, fora do evento)", async () => {
   const t = await seedCardTenant("PF", "cc-alert");
   const cardId = await createCard(t, {closingDay: 10, dueDay: 20,
     name: "Cartão Alerta"});
@@ -444,13 +447,28 @@ test("P4-A — alertas: fechada, próxima do vencimento e vencida uma vez " +
   assert.ok(dueSoon, "vence em 20/01, dentro de 3 dias");
   assert.match(String(dueSoon.message), /Cartão Alerta/);
   assert.match(String(dueSoon.message), /20\/01\/2014/);
-  await db().doc(`workspaces/${t.workspaceId}/notifications/${dueSoon.id}`)
-    .update({read: true});
+  // P5-D1: o evento compartilhado não carrega estado de leitura; ID
+  // determinístico por (tipo, fatura).
+  for (const item of current) {
+    assert.equal("read" in item, false, `${String(item.id)} sem 'read'`);
+    assert.match(String(item.id), /^cc(closed|due|overdue)_[0-9a-f]{32}$/);
+  }
+  // A leitura de um usuário vive no estado privado dele.
+  const statePath = `workspaces/${t.workspaceId}/notification_user_states/` +
+    `${t.viewer}/notification_entries/${String(dueSoon.id)}`;
+  await db().doc(statePath).set({
+    read: true, readAt: Timestamp.now(), expiresAt: dueSoon.expiresAt,
+  });
+  const before = (await db().doc(
+    `workspaces/${t.workspaceId}/notifications/${String(dueSoon.id)}`).get())
+    .data();
   await runCreditCardInvoiceClosing({today: "2014-01-19"});
   current = await notifications();
   assert.equal(current.filter((item) =>
     item.title === "Fatura próxima do vencimento").length, 1);
-  assert.equal(current.find((item) => item.id === dueSoon.id)?.read, true,
+  assert.deepEqual(current.find((item) => item.id === dueSoon.id),
+    {id: dueSoon.id, ...before}, "o evento não é regravado");
+  assert.equal((await db().doc(statePath).get()).get("read"), true,
     "o 'lida' do usuário não volta");
   await runCreditCardInvoiceClosing({today: "2014-01-22"});
   await runCreditCardInvoiceClosing({today: "2014-01-23"});

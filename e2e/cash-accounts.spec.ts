@@ -103,7 +103,7 @@ const seedCatalog = async (workspaceId: string, uid: string) => {
   await Promise.all(items.map(([id, group, name, transactionSubtype]) => {
     const normalizedName = normalize(name);
     return db().doc(`workspaces/${workspaceId}/settings_catalog/${id}`).set({
-      id, workspaceId, group, name, normalizedName,
+      id, schemaVersion: 1, workspaceId, group, name, normalizedName,
       ...(transactionSubtype ? { transactionSubtype } : {}),
       dedupeKey: `${group}::${transactionSubtype ?? 'all'}::both::${normalizedName}`,
       workspaceScope: 'both', sortOrder: 1, status: 'active',
@@ -525,7 +525,7 @@ test.describe('PF', () => {
     const refusals = await Promise.all([
       callCallable(request, token, 'createCashTransaction', {
         workspaceId: ws(), idempotencyKey: intentKey('archived-entry'), cashAccountId: old, type: 'receita',
-        description: 'Na conta arquivada', category: CATALOG.incomeCategory, incomeType: CATALOG.incomeType,
+        description: 'Na conta arquivada', categoryId: 'p3j-income-category', incomeType: CATALOG.incomeType,
         amountCents: 1_000, date: today(),
       }),
       callCallable(request, token, 'createCashTransfer', {

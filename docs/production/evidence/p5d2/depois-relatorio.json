@@ -1,0 +1,457 @@
+{
+ "arvore": "after",
+ "estadosEm": "notification_entries",
+ "sino-owner-desktop-claro": {
+  "overflow": 0,
+  "rotuloDoSino": "Notificações, 30 não lidas",
+  "badge": "9+",
+  "chipDoPainel": null
+ },
+ "axe-cabecalho-owner-desktop-claro": [
+  {
+   "regra": "color-contrast",
+   "impacto": "serious",
+   "nos": 1,
+   "exemplos": [
+    "<span class=\"absolute top-0 right-0 flex h-4 w-4 -translate-y-1 translate-x-1 items-center justify-center roun"
+   ]
+  }
+ ],
+ "painel-owner-desktop-claro": {
+  "painelEsquerda": 757,
+  "painelDireita": 1141,
+  "larguraTela": 1440,
+  "overflow": 0,
+  "rotuloDoSino": "Notificações, 30 não lidas",
+  "badge": "9+",
+  "chipDoPainel": "30 30 não lidas"
+ },
+ "axe-painel-owner-desktop-claro": [],
+ "painel-viewer-desktop-claro": {
+  "painelEsquerda": 757,
+  "painelDireita": 1141,
+  "larguraTela": 1440,
+  "overflow": 0,
+  "rotuloDoSino": "Notificações, 3 não lidas",
+  "badge": "3",
+  "chipDoPainel": "3 3 não lidas"
+ },
+ "axe-painel-viewer-desktop-claro": [],
+ "painel-vazio-desktop-claro": {
+  "painelEsquerda": 757,
+  "painelDireita": 1141,
+  "larguraTela": 1440,
+  "overflow": 0,
+  "rotuloDoSino": "Notificações, nenhuma não lida",
+  "badge": "",
+  "chipDoPainel": "0 Nenhuma não lida"
+ },
+ "axe-painel-vazio-desktop-claro": [],
+ "relatorio-condicoes-desktop-claro": {
+  "overflow": 0,
+  "rotuloDoSino": "Notificações, 1 não lida",
+  "badge": "1",
+  "chipDoPainel": null,
+  "titulo": "Condições do período 3",
+  "botoesNaLista": 0,
+  "botoesMarcarComoLido": 0,
+  "itens": [
+   "Saldo negativo em conta",
+   "Resultado operacional negativo",
+   "Base insuficiente"
+  ],
+  "rodapesDeData": [
+   "3",
+   "Calculado em 11/10/2026",
+   "Calculado em 11/10/2026",
+   "Calculado em 11/10/2026"
+  ],
+  "paragrafoExplicativo": [
+   "Calculadas a partir dos dados do período selecionado; não ficam salvas como notificações.",
+   "1 conta está com saldo negativo. Saldo total das contas: -R$ 123,45.",
+   "Os pagamentos operacionais (R$ 123,45) superaram os recebimentos operacionais (R$ 0,00) no período. Resultado: -R$ 123,45.",
+   "Não há recebimentos realizados no período; os indicadores proporcionais ficam indisponíveis."
+  ]
+ },
+ "axe-relatorio-condicoes-desktop-claro": [
+  {
+   "regra": "color-contrast",
+   "impacto": "serious",
+   "nos": 2,
+   "exemplos": [
+    "<h4 class=\"text-sm font-bold mb-1 text-red-600 dark:text-red-400\">Saldo negativo em conta</h4>",
+    "<h4 class=\"text-sm font-bold mb-1 text-yellow-600 dark:text-yellow-400\">Resultado operacional negativo</h4>"
+   ]
+  }
+ ],
+ "painel-indisponivel-desktop-claro": {
+  "painelEsquerda": 757,
+  "painelDireita": 1141,
+  "larguraTela": 1440,
+  "overflow": 0,
+  "rotuloDoSino": "Notificações, total de não lidas indisponível",
+  "badge": "?",
+  "chipDoPainel": "? Total de não lidas indisponível"
+ },
+ "axe-painel-indisponivel-desktop-claro": [],
+ "axe-cabecalho-indisponivel-desktop-claro": [],
+ "sino-owner-desktop-escuro": {
+  "overflow": 0,
+  "rotuloDoSino": "Notificações, 30 não lidas",
+  "badge": "9+",
+  "chipDoPainel": null
+ },
+ "axe-cabecalho-owner-desktop-escuro": [
+  {
+   "regra": "color-contrast",
+   "impacto": "serious",
+   "nos": 1,
+   "exemplos": [
+    "<span class=\"absolute top-0 right-0 flex h-4 w-4 -translate-y-1 translate-x-1 items-center justify-center roun"
+   ]
+  }
+ ],
+ "painel-owner-desktop-escuro": {
+  "painelEsquerda": 757,
+  "painelDireita": 1141,
+  "larguraTela": 1440,
+  "overflow": 0,
+  "rotuloDoSino": "Notificações, 30 não lidas",
+  "badge": "9+",
+  "chipDoPainel": "30 30 não lidas"
+ },
+ "axe-painel-owner-desktop-escuro": [
+  {
+   "regra": "color-contrast",
+   "impacto": "serious",
+   "nos": 7,
+   "exemplos": [
+    "<span aria-hidden=\"true\">30</span>",
+    "<button type=\"button\" aria-busy=\"false\" class=\"text-xs text-primary hover:underline font-medium disabled:opaci",
+    "<span class=\"text-[10px] font-bold text-primary hover:underline uppercase tracking-wide\">Ver cartões →</span>"
+   ]
+  }
+ ],
+ "painel-viewer-desktop-escuro": {
+  "painelEsquerda": 757,
+  "painelDireita": 1141,
+  "larguraTela": 1440,
+  "overflow": 0,
+  "rotuloDoSino": "Notificações, 3 não lidas",
+  "badge": "3",
+  "chipDoPainel": "3 3 não lidas"
+ },
+ "axe-painel-viewer-desktop-escuro": [
+  {
+   "regra": "color-contrast",
+   "impacto": "serious",
+   "nos": 4,
+   "exemplos": [
+    "<button type=\"button\" aria-busy=\"false\" class=\"text-xs text-primary hover:underline font-medium disabled:opaci",
+    "<span class=\"text-[10px] font-bold text-primary hover:underline uppercase tracking-wide\">Ver cartões →</span>",
+    "<span class=\"text-[10px] font-bold text-primary hover:underline uppercase tracking-wide\">Ver cartões →</span>"
+   ]
+  }
+ ],
+ "painel-vazio-desktop-escuro": {
+  "painelEsquerda": 757,
+  "painelDireita": 1141,
+  "larguraTela": 1440,
+  "overflow": 0,
+  "rotuloDoSino": "Notificações, nenhuma não lida",
+  "badge": "",
+  "chipDoPainel": "0 Nenhuma não lida"
+ },
+ "axe-painel-vazio-desktop-escuro": [
+  {
+   "regra": "color-contrast",
+   "impacto": "serious",
+   "nos": 1,
+   "exemplos": [
+    "<button type=\"button\" aria-busy=\"false\" class=\"text-xs text-primary hover:underline font-medium disabled:opaci"
+   ]
+  }
+ ],
+ "relatorio-condicoes-desktop-escuro": {
+  "overflow": 0,
+  "rotuloDoSino": "Notificações, 1 não lida",
+  "badge": "1",
+  "chipDoPainel": null,
+  "titulo": "Condições do período 3",
+  "botoesNaLista": 0,
+  "botoesMarcarComoLido": 0,
+  "itens": [
+   "Saldo negativo em conta",
+   "Resultado operacional negativo",
+   "Base insuficiente"
+  ],
+  "rodapesDeData": [
+   "3",
+   "Calculado em 11/10/2026",
+   "Calculado em 11/10/2026",
+   "Calculado em 11/10/2026"
+  ],
+  "paragrafoExplicativo": [
+   "Calculadas a partir dos dados do período selecionado; não ficam salvas como notificações.",
+   "1 conta está com saldo negativo. Saldo total das contas: -R$ 123,45.",
+   "Os pagamentos operacionais (R$ 123,45) superaram os recebimentos operacionais (R$ 0,00) no período. Resultado: -R$ 123,45.",
+   "Não há recebimentos realizados no período; os indicadores proporcionais ficam indisponíveis."
+  ]
+ },
+ "axe-relatorio-condicoes-desktop-escuro": [],
+ "painel-indisponivel-desktop-escuro": {
+  "painelEsquerda": 757,
+  "painelDireita": 1141,
+  "larguraTela": 1440,
+  "overflow": 0,
+  "rotuloDoSino": "Notificações, total de não lidas indisponível",
+  "badge": "?",
+  "chipDoPainel": "? Total de não lidas indisponível"
+ },
+ "axe-painel-indisponivel-desktop-escuro": [
+  {
+   "regra": "color-contrast",
+   "impacto": "serious",
+   "nos": 4,
+   "exemplos": [
+    "<button type=\"button\" aria-busy=\"false\" class=\"text-xs text-primary hover:underline font-medium disabled:opaci",
+    "<span class=\"text-[10px] font-bold text-primary hover:underline uppercase tracking-wide\">Ver cartões →</span>",
+    "<span class=\"text-[10px] font-bold text-primary hover:underline uppercase tracking-wide\">Ver cartões →</span>"
+   ]
+  }
+ ],
+ "axe-cabecalho-indisponivel-desktop-escuro": [
+  {
+   "regra": "color-contrast",
+   "impacto": "serious",
+   "nos": 4,
+   "exemplos": [
+    "<button type=\"button\" aria-busy=\"false\" class=\"text-xs text-primary hover:underline font-medium disabled:opaci",
+    "<span class=\"text-[10px] font-bold text-primary hover:underline uppercase tracking-wide\">Ver cartões →</span>",
+    "<span class=\"text-[10px] font-bold text-primary hover:underline uppercase tracking-wide\">Ver cartões →</span>"
+   ]
+  }
+ ],
+ "sino-owner-mobile-claro": {
+  "overflow": 0,
+  "rotuloDoSino": "Notificações, 30 não lidas",
+  "badge": "9+",
+  "chipDoPainel": null
+ },
+ "axe-cabecalho-owner-mobile-claro": [
+  {
+   "regra": "color-contrast",
+   "impacto": "serious",
+   "nos": 1,
+   "exemplos": [
+    "<span class=\"absolute top-0 right-0 flex h-4 w-4 -translate-y-1 translate-x-1 items-center justify-center roun"
+   ]
+  }
+ ],
+ "painel-owner-mobile-claro": {
+  "painelEsquerda": 8,
+  "painelDireita": 328,
+  "larguraTela": 390,
+  "overflow": 0,
+  "rotuloDoSino": "Notificações, 30 não lidas",
+  "badge": "9+",
+  "chipDoPainel": "30 30 não lidas"
+ },
+ "axe-painel-owner-mobile-claro": [],
+ "painel-viewer-mobile-claro": {
+  "painelEsquerda": 8,
+  "painelDireita": 328,
+  "larguraTela": 390,
+  "overflow": 0,
+  "rotuloDoSino": "Notificações, 3 não lidas",
+  "badge": "3",
+  "chipDoPainel": "3 3 não lidas"
+ },
+ "axe-painel-viewer-mobile-claro": [],
+ "painel-vazio-mobile-claro": {
+  "painelEsquerda": 8,
+  "painelDireita": 328,
+  "larguraTela": 390,
+  "overflow": 0,
+  "rotuloDoSino": "Notificações, nenhuma não lida",
+  "badge": "",
+  "chipDoPainel": "0 Nenhuma não lida"
+ },
+ "axe-painel-vazio-mobile-claro": [],
+ "relatorio-condicoes-mobile-claro": {
+  "overflow": 0,
+  "rotuloDoSino": "Notificações, 1 não lida",
+  "badge": "1",
+  "chipDoPainel": null,
+  "titulo": "Condições do período 3",
+  "botoesNaLista": 0,
+  "botoesMarcarComoLido": 0,
+  "itens": [
+   "Saldo negativo em conta",
+   "Resultado operacional negativo",
+   "Base insuficiente"
+  ],
+  "rodapesDeData": [
+   "3",
+   "Calculado em 11/10/2026",
+   "Calculado em 11/10/2026",
+   "Calculado em 11/10/2026"
+  ],
+  "paragrafoExplicativo": [
+   "Calculadas a partir dos dados do período selecionado; não ficam salvas como notificações.",
+   "1 conta está com saldo negativo. Saldo total das contas: -R$ 123,45.",
+   "Os pagamentos operacionais (R$ 123,45) superaram os recebimentos operacionais (R$ 0,00) no período. Resultado: -R$ 123,45.",
+   "Não há recebimentos realizados no período; os indicadores proporcionais ficam indisponíveis."
+  ]
+ },
+ "axe-relatorio-condicoes-mobile-claro": [
+  {
+   "regra": "color-contrast",
+   "impacto": "serious",
+   "nos": 2,
+   "exemplos": [
+    "<h4 class=\"text-sm font-bold mb-1 text-red-600 dark:text-red-400\">Saldo negativo em conta</h4>",
+    "<h4 class=\"text-sm font-bold mb-1 text-yellow-600 dark:text-yellow-400\">Resultado operacional negativo</h4>"
+   ]
+  }
+ ],
+ "painel-indisponivel-mobile-claro": {
+  "painelEsquerda": 8,
+  "painelDireita": 328,
+  "larguraTela": 390,
+  "overflow": 0,
+  "rotuloDoSino": "Notificações, total de não lidas indisponível",
+  "badge": "?",
+  "chipDoPainel": "? Total de não lidas indisponível"
+ },
+ "axe-painel-indisponivel-mobile-claro": [],
+ "axe-cabecalho-indisponivel-mobile-claro": [],
+ "sino-owner-mobile-escuro": {
+  "overflow": 0,
+  "rotuloDoSino": "Notificações, 30 não lidas",
+  "badge": "9+",
+  "chipDoPainel": null
+ },
+ "axe-cabecalho-owner-mobile-escuro": [
+  {
+   "regra": "color-contrast",
+   "impacto": "serious",
+   "nos": 1,
+   "exemplos": [
+    "<span class=\"absolute top-0 right-0 flex h-4 w-4 -translate-y-1 translate-x-1 items-center justify-center roun"
+   ]
+  }
+ ],
+ "painel-owner-mobile-escuro": {
+  "painelEsquerda": 8,
+  "painelDireita": 328,
+  "larguraTela": 390,
+  "overflow": 0,
+  "rotuloDoSino": "Notificações, 30 não lidas",
+  "badge": "9+",
+  "chipDoPainel": "30 30 não lidas"
+ },
+ "axe-painel-owner-mobile-escuro": [
+  {
+   "regra": "color-contrast",
+   "impacto": "serious",
+   "nos": 4,
+   "exemplos": [
+    "<span aria-hidden=\"true\">30</span>",
+    "<span class=\"text-[10px] font-bold text-primary hover:underline uppercase tracking-wide\">Ver cartões →</span>",
+    "<span class=\"text-[10px] font-bold text-primary hover:underline uppercase tracking-wide\">Ver cartões →</span>"
+   ]
+  }
+ ],
+ "painel-viewer-mobile-escuro": {
+  "painelEsquerda": 8,
+  "painelDireita": 328,
+  "larguraTela": 390,
+  "overflow": 0,
+  "rotuloDoSino": "Notificações, 3 não lidas",
+  "badge": "3",
+  "chipDoPainel": "3 3 não lidas"
+ },
+ "axe-painel-viewer-mobile-escuro": [
+  {
+   "regra": "color-contrast",
+   "impacto": "serious",
+   "nos": 3,
+   "exemplos": [
+    "<span class=\"text-[10px] font-bold text-primary hover:underline uppercase tracking-wide\">Ver cartões →</span>",
+    "<span class=\"text-[10px] font-bold text-primary hover:underline uppercase tracking-wide\">Ver cartões →</span>",
+    "<span class=\"text-[10px] font-bold text-primary hover:underline uppercase tracking-wide\">Ver cartões →</span>"
+   ]
+  }
+ ],
+ "painel-vazio-mobile-escuro": {
+  "painelEsquerda": 8,
+  "painelDireita": 328,
+  "larguraTela": 390,
+  "overflow": 0,
+  "rotuloDoSino": "Notificações, nenhuma não lida",
+  "badge": "",
+  "chipDoPainel": "0 Nenhuma não lida"
+ },
+ "axe-painel-vazio-mobile-escuro": [],
+ "relatorio-condicoes-mobile-escuro": {
+  "overflow": 0,
+  "rotuloDoSino": "Notificações, 1 não lida",
+  "badge": "1",
+  "chipDoPainel": null,
+  "titulo": "Condições do período 3",
+  "botoesNaLista": 0,
+  "botoesMarcarComoLido": 0,
+  "itens": [
+   "Saldo negativo em conta",
+   "Resultado operacional negativo",
+   "Base insuficiente"
+  ],
+  "rodapesDeData": [
+   "3",
+   "Calculado em 11/10/2026",
+   "Calculado em 11/10/2026",
+   "Calculado em 11/10/2026"
+  ],
+  "paragrafoExplicativo": [
+   "Calculadas a partir dos dados do período selecionado; não ficam salvas como notificações.",
+   "1 conta está com saldo negativo. Saldo total das contas: -R$ 123,45.",
+   "Os pagamentos operacionais (R$ 123,45) superaram os recebimentos operacionais (R$ 0,00) no período. Resultado: -R$ 123,45.",
+   "Não há recebimentos realizados no período; os indicadores proporcionais ficam indisponíveis."
+  ]
+ },
+ "axe-relatorio-condicoes-mobile-escuro": [],
+ "painel-indisponivel-mobile-escuro": {
+  "painelEsquerda": 8,
+  "painelDireita": 328,
+  "larguraTela": 390,
+  "overflow": 0,
+  "rotuloDoSino": "Notificações, total de não lidas indisponível",
+  "badge": "?",
+  "chipDoPainel": "? Total de não lidas indisponível"
+ },
+ "axe-painel-indisponivel-mobile-escuro": [
+  {
+   "regra": "color-contrast",
+   "impacto": "serious",
+   "nos": 3,
+   "exemplos": [
+    "<span class=\"text-[10px] font-bold text-primary hover:underline uppercase tracking-wide\">Ver cartões →</span>",
+    "<span class=\"text-[10px] font-bold text-primary hover:underline uppercase tracking-wide\">Ver cartões →</span>",
+    "<span class=\"text-[10px] font-bold text-primary hover:underline uppercase tracking-wide\">Ver cartões →</span>"
+   ]
+  }
+ ],
+ "axe-cabecalho-indisponivel-mobile-escuro": [
+  {
+   "regra": "color-contrast",
+   "impacto": "serious",
+   "nos": 3,
+   "exemplos": [
+    "<span class=\"text-[10px] font-bold text-primary hover:underline uppercase tracking-wide\">Ver cartões →</span>",
+    "<span class=\"text-[10px] font-bold text-primary hover:underline uppercase tracking-wide\">Ver cartões →</span>",
+    "<span class=\"text-[10px] font-bold text-primary hover:underline uppercase tracking-wide\">Ver cartões →</span>"
+   ]
+  }
+ ]
+}

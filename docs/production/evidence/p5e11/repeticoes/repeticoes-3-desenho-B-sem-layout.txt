@@ -1,0 +1,218 @@
+> finace-dashboard-21@0.0.0 test:e2e
+> npm run build:e2e && playwright test e2e/notifications-p5d2.spec.ts --grep celular --repeat-each=40 --reporter=list
+> finace-dashboard-21@0.0.0 build:e2e
+> VITE_E2E_MODE=true VITE_USE_FIREBASE_EMULATORS=true VITE_FIREBASE_API_KEY=e2e-api-key VITE_FIREBASE_AUTH_DOMAIN=localhost VITE_FIREBASE_PROJECT_ID=minhas-financas-local VITE_FIREBASE_STORAGE_BUCKET=minhas-financas-local.appspot.com VITE_FIREBASE_MESSAGING_SENDER_ID=000000000000 VITE_FIREBASE_APP_ID=1:000000000000:web:e2e npm run build
+> finace-dashboard-21@0.0.0 build
+> NODE_OPTIONS=--max-old-space-size=4096 vite build
+vite v6.4.1 building for production...
+✓ built in 31.34s
+Running 80 tests using 1 worker
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema claro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (18.4s)
+  ✓   2 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema escuro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (10.4s)
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   3 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema claro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (10.4s)
+  ✓   4 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema escuro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (9.9s)
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   5 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema claro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (10.6s)
+  ✓   6 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema escuro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (10.3s)
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   7 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema claro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (22.5s)
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   8 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema escuro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (10.4s)
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   9 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema claro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (21.9s)
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  10 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema escuro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (14.0s)
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  11 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema claro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (9.5s)
+  ✓  12 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema escuro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (9.3s)
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  13 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema claro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (10.9s)
+  ✓  14 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema escuro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (9.3s)
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  15 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema claro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (10.2s)
+  ✓  16 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema escuro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (9.7s)
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  17 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema claro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (10.5s)
+  ✓  18 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema escuro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (8.9s)
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  19 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema claro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (10.5s)
+  ✓  20 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema escuro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (8.5s)
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  21 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema claro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (11.2s)
+  ✓  22 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema escuro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (8.5s)
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  23 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema claro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (10.2s)
+  ✓  24 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema escuro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (10.0s)
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  25 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema claro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (10.3s)
+  ✓  26 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema escuro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (9.2s)
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  27 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema claro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (10.5s)
+  ✓  28 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema escuro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (9.5s)
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  29 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema claro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (10.1s)
+  ✓  30 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema escuro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (9.6s)
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  31 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema claro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (12.4s)
+  ✓  32 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema escuro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (10.1s)
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  33 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema claro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (10.5s)
+  ✓  34 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema escuro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (9.7s)
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  35 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema claro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (11.7s)
+  ✓  36 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema escuro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (10.0s)
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  37 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema claro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (11.0s)
+  ✓  38 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema escuro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (8.9s)
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  39 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema claro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (10.5s)
+  ✓  40 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema escuro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (10.0s)
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  41 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema claro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (10.3s)
+  ✓  42 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema escuro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (10.1s)
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  43 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema claro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (9.9s)
+  ✓  44 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema escuro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (9.7s)
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  45 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema claro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (11.1s)
+  ✓  46 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema escuro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (9.2s)
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  47 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema claro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (10.0s)
+  ✓  48 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema escuro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (10.4s)
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  49 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema claro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (10.4s)
+  ✓  50 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema escuro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (10.2s)
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  51 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema claro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (9.7s)
+  ✓  52 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema escuro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (9.4s)
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  53 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema claro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (9.4s)
+  ✓  54 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema escuro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (8.8s)
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  55 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema claro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (10.3s)
+  ✓  56 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema escuro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (11.0s)
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  57 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema claro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (23.5s)
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  58 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema escuro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (23.0s)
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  59 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema claro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (12.5s)
+  ✓  60 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema escuro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (9.3s)
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  61 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema claro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (10.4s)
+  ✓  62 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema escuro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (9.9s)
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  63 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema claro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (11.3s)
+  ✓  64 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema escuro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (9.1s)
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  65 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema claro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (11.7s)
+  ✓  66 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema escuro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (9.4s)
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  67 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema claro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (13.0s)
+  ✓  68 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema escuro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (9.7s)
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  69 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema claro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (12.1s)
+  ✓  70 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema escuro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (9.9s)
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  71 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema claro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (10.4s)
+  ✓  72 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema escuro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (10.2s)
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  73 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema claro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (10.5s)
+  ✓  74 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema escuro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (10.3s)
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  75 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema claro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (10.2s)
+  ✓  76 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema escuro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (9.9s)
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  77 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema claro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (10.4s)
+  ✓  78 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema escuro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (9.8s)
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  79 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema claro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (12.0s)
+  ✓  80 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema escuro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (12.6s)
+  1) [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema claro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal
+    Error: expect(locator).toHaveCount(expected) failed
+    Locator:  locator('h4').filter({ hasText: /^Aviso F \d\d$/ })
+    Expected: 7
+    Received: 8
+    Timeout:  12000ms
+    Call log:
+      - Expect "toHaveCount" with timeout 12000ms
+      - waiting for locator('h4').filter({ hasText: /^Aviso F \d\d$/ })
+        28 × locator resolved to 8 elements
+           - unexpected value "8"
+      969 |     await recordBadgeContrast('?');
+      970 |     // A lista continua utilizável com a contagem indisponível.
+    > 971 |     await expect(itemTitles(page, 'Aviso F')).toHaveCount(7);
+          |                                               ^
+      972 |
+      973 |     // Teclado (desktop): Tab até o sino, Enter abre, foco visível e ordem.
+      974 |     if (!touch) {
+        at /home/user/minhas-financas/e2e/notifications-p5d2.spec.ts:971:47
+    Error Context: test-results/notifications-p5d2-F-—-cel-74b6c-xe-e-sem-rolagem-horizontal-chromium-repeat3/error-context.md
+  2) [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema claro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal
+    Error: expect(locator).toHaveCount(expected) failed
+    Locator:  locator('h4').filter({ hasText: /^Aviso F \d\d$/ })
+    Expected: 7
+    Received: 8
+    Timeout:  12000ms
+    Call log:
+      - Expect "toHaveCount" with timeout 12000ms
+      - waiting for locator('h4').filter({ hasText: /^Aviso F \d\d$/ })
+        28 × locator resolved to 8 elements
+           - unexpected value "8"
+      969 |     await recordBadgeContrast('?');
+      970 |     // A lista continua utilizável com a contagem indisponível.
+    > 971 |     await expect(itemTitles(page, 'Aviso F')).toHaveCount(7);
+          |                                               ^
+      972 |
+      973 |     // Teclado (desktop): Tab até o sino, Enter abre, foco visível e ordem.
+      974 |     if (!touch) {
+        at /home/user/minhas-financas/e2e/notifications-p5d2.spec.ts:971:47
+    Error Context: test-results/notifications-p5d2-F-—-cel-74b6c-xe-e-sem-rolagem-horizontal-chromium-repeat4/error-context.md
+  3) [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema claro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal
+    Error: expect(locator).toHaveCount(expected) failed
+    Locator:  locator('h4').filter({ hasText: /^Aviso F \d\d$/ })
+    Expected: 7
+    Received: 8
+    Timeout:  12000ms
+    Call log:
+      - Expect "toHaveCount" with timeout 12000ms
+      - waiting for locator('h4').filter({ hasText: /^Aviso F \d\d$/ })
+        28 × locator resolved to 8 elements
+           - unexpected value "8"
+      969 |     await recordBadgeContrast('?');
+      970 |     // A lista continua utilizável com a contagem indisponível.
+    > 971 |     await expect(itemTitles(page, 'Aviso F')).toHaveCount(7);
+          |                                               ^
+      972 |
+      973 |     // Teclado (desktop): Tab até o sino, Enter abre, foco visível e ordem.
+      974 |     if (!touch) {
+        at /home/user/minhas-financas/e2e/notifications-p5d2.spec.ts:971:47
+    Error Context: test-results/notifications-p5d2-F-—-cel-74b6c-xe-e-sem-rolagem-horizontal-chromium-repeat28/error-context.md
+  4) [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema escuro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal
+    Error: expect(locator).toHaveCount(expected) failed
+    Locator:  locator('h4').filter({ hasText: /^Aviso F \d\d$/ })
+    Expected: 7
+    Received: 8
+    Timeout:  12000ms
+    Call log:
+      - Expect "toHaveCount" with timeout 12000ms
+      - waiting for locator('h4').filter({ hasText: /^Aviso F \d\d$/ })
+        28 × locator resolved to 8 elements
+           - unexpected value "8"
+      969 |     await recordBadgeContrast('?');
+      970 |     // A lista continua utilizável com a contagem indisponível.
+    > 971 |     await expect(itemTitles(page, 'Aviso F')).toHaveCount(7);
+          |                                               ^
+      972 |
+      973 |     // Teclado (desktop): Tab até o sino, Enter abre, foco visível e ordem.
+      974 |     if (!touch) {
+        at /home/user/minhas-financas/e2e/notifications-p5d2.spec.ts:971:47
+    Error Context: test-results/notifications-p5d2-F-—-cel-ecf24-xe-e-sem-rolagem-horizontal-chromium-repeat28/error-context.md
+  4 failed
+    [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema claro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal
+    [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema claro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal
+    [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema claro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal
+    [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema escuro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal
+  76 passed (16.3m)

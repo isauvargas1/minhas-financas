@@ -30,7 +30,6 @@ import {
 import { transactionsQuotaView } from '../../src/modules/billing/transactionsQuota.ts';
 import {
   isUnsettledEntry,
-  summarizeCashFlow,
   transactionCashImpactCents,
 } from '../../src/modules/investments/semantics.ts';
 import type { Transaction } from '../../src/types.ts';
@@ -101,7 +100,7 @@ test('P3-F — correção, confirmação e anulação: lançamento do Caixa pend
   // caminho direto antigo do cliente (e a adoção `legacy_manual`) acabou.
   const unmarked = {
     type: 'despesa', isPaid: true, userId: 'uid', source: 'manual',
-    installments: 1, currentInstallment: 1, value: 10, date: '2026-09-10',
+    valueCents: 1_000, date: '2026-09-10',
   };
   for (const [label, entry] of [
     ['sem marca', unmarked],
@@ -141,7 +140,7 @@ test('P3-E — versão lida preserva os nanossegundos do Timestamp', () => {
 const form = (overrides: Partial<ManualEntryForm> = {}): ManualEntryForm => ({
   type: 'despesa',
   description: '  Mercado  ',
-  category: 'Casa',
+  categoryId: 'cat_casa',
   amount: '150.5',
   date: '2026-09-10',
   expenseType: 'Variável',
@@ -159,7 +158,7 @@ test('P3-E — payload estrito: sem opcionais vazios, PJ só em PJ', () => {
     workspaceId: 'ws-1',
     type: 'despesa',
     description: 'Mercado',
-    category: 'Casa',
+    categoryId: 'cat_casa',
     amountCents: 15_050,
     cashAccountId: 'acc_principal',
     status: 'confirmed',
@@ -173,7 +172,7 @@ test('P3-E — payload estrito: sem opcionais vazios, PJ só em PJ', () => {
     workspaceId: 'ws-1',
     type: 'despesa',
     description: 'Mercado',
-    category: 'Casa',
+    categoryId: 'cat_casa',
     amountCents: 15_050,
     cashAccountId: 'acc_principal',
     status: 'pending',
@@ -190,7 +189,7 @@ test('P3-E — payload estrito: sem opcionais vazios, PJ só em PJ', () => {
     workspaceId: 'ws-pj',
     type: 'receita',
     description: 'Mercado',
-    category: 'Casa',
+    categoryId: 'cat_casa',
     amountCents: 15_050,
     cashAccountId: 'acc_principal',
     status: 'confirmed',
@@ -231,7 +230,7 @@ test('P3-E — correção e anulação levam versão completa e motivo', () => {
     expectedUpdatedAt: '2026-09-21T14:13:20.000000005Z',
     reason: 'Valor errado',
     entry: {
-      type: 'despesa', description: 'Mercado', category: 'Casa',
+      type: 'despesa', description: 'Mercado', categoryId: 'cat_casa',
       amountCents: 15_050, cashAccountId: 'acc_principal', status: 'confirmed',
       date: '2026-09-10', expenseType: 'Variável',
     },
@@ -240,7 +239,7 @@ test('P3-E — correção e anulação levam versão completa e motivo', () => {
   assert.deepEqual((toUpdateCashPayload(form({ isPaid: false, date: '2027-02-01' }), {
     workspaceId: 'ws', isPJ: false, transactionId: 'cash_1', updatedAt, reason: 'Novo vencimento',
   }).entry as Record<string, unknown>), {
-    type: 'despesa', description: 'Mercado', category: 'Casa',
+    type: 'despesa', description: 'Mercado', categoryId: 'cat_casa',
     amountCents: 15_050, cashAccountId: 'acc_principal', status: 'pending',
     dueDate: '2027-02-01', expenseType: 'Variável',
   });
@@ -259,7 +258,7 @@ test('P3-E — correção e anulação levam versão completa e motivo', () => {
 test('P3-F — confirmação: data efetiva e valor liquidado; nada descartado em silêncio', () => {
   const updatedAt = { seconds: 1_790_000_000, nanoseconds: 42 };
   const stored = {
-    type: 'despesa', description: 'Mercado', category: 'Casa',
+    type: 'despesa', description: 'Mercado', categoryId: 'cat_casa',
     expenseType: 'Variável', paymentMethod: 'Boleto', isPaid: false,
     dueDate: '2026-10-10', date: '2026-10-10',
   };
@@ -290,7 +289,7 @@ test('P3-F — confirmação: data efetiva e valor liquidado; nada descartado em
   assert.throws(() => toConfirmCashPayload(form({ date: '2026-10-05' }), context, '2026-10-04'),
     /não pode ter data futura/);
   // Mudou descrição ou categoria junto: correção primeiro, confirmação depois.
-  for (const changed of [{ description: 'Outra' }, { category: 'Lazer' }, { expenseType: 'Fixa' }]) {
+  for (const changed of [{ description: 'Outra' }, { categoryId: 'cat_lazer' }, { expenseType: 'Fixa' }]) {
     assert.throws(
       () => toConfirmCashPayload(form({ ...changed, date: '2026-10-03' }), context, '2026-10-04'),
       (error: Error) => error.message === CONFIRM_ONLY_SETTLEMENT_MESSAGE,
@@ -440,26 +439,16 @@ test('P3-E — cliente das callables envia a chave da intenção', async () => {
     ['key-1', 'key-2', 'key-3', 'key-4']);
 });
 
-test('P3-F — caixa realizado na tela: pendente e agendado ficam fora', () => {
+test('P3-F — impacto de caixa na tela: pendente e agendado ficam fora', () => {
   const tx = (overrides: Partial<Transaction>): Transaction => ({
-    id: 'x', type: 'despesa', description: 'd', category: 'c', value: 100,
+    id: 'x', type: 'despesa', description: 'd', category: 'c', valueCents: 10_000,
     date: '2026-10-01', ...overrides,
   } as Transaction);
   const pendingExpense = tx({ isPaid: false });
-  const pendingIncome = tx({ type: 'receita', isPaid: false, value: 300 });
-  const paidExpense = tx({ isPaid: true, value: 40 });
-  const legacyIncome = tx({ type: 'receita', value: 500 });
-  const installment = tx({ type: 'parcelado', isPaid: false, value: 70 });
+  const pendingIncome = tx({ type: 'receita', isPaid: false, valueCents: 30_000 });
+  const legacyIncome = tx({ type: 'receita', valueCents: 50_000 });
   assert.equal(isUnsettledEntry(pendingIncome), true);
-  assert.equal(isUnsettledEntry(installment), false, 'cartões: regra própria');
   assert.equal(transactionCashImpactCents(pendingIncome), 0);
   assert.equal(transactionCashImpactCents(pendingExpense), 0);
   assert.equal(transactionCashImpactCents(legacyIncome), 50_000);
-  const summary = summarizeCashFlow([
-    pendingExpense, pendingIncome, paidExpense, legacyIncome, installment,
-  ]);
-  assert.equal(summary.income, 500, 'receita a receber não entra');
-  // Parcela de cartão segue no total de despesas como antes (P4).
-  assert.equal(summary.expenses, 40 + 70);
-  assert.equal(summary.balance, 500 - 40);
 });

@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import {cashPeriodDeltaFor} from "../../cash/periods";
+import {
+  cashPeriodDeltaFor,
+  CashContractViolationError,
+} from "../../cash/periods";
 import {
   INVESTMENT_CASH_ENTRY_VERSION,
   investmentCashEffect,
@@ -11,8 +14,8 @@ import {
 
 /**
  * Espelho de caixa de investimento (D-15, P4-D): a marca `investmentEntry`
- * decide a classificação, e nenhuma outra coisa — nem `type`, nem `value`,
- * nem metadado antigo.
+ * decide a classificação, e nenhuma outra coisa — nem `type`, nem valor em
+ * reais, nem metadado antigo.
  */
 
 const entry = (
@@ -31,10 +34,11 @@ const entry = (
   ...overrides,
 });
 
+/** Espelho como o backend grava: `valueCents` é o valor da marca. */
 const mirror = (value: unknown) => ({
   type: "investimento",
-  valueCents: 10_000,
-  value: 100,
+  valueCents: typeof (value as {amountCents?: unknown})?.amountCents ===
+    "number" ? (value as {amountCents: number}).amountCents : 10_000,
   date: "2026-10-10",
   isPaid: true,
   investmentEntry: value,
@@ -94,10 +98,10 @@ test("pendente e cancelado não movem caixa", () => {
   }
 });
 
-test("documento investimento sem marca válida está fora do contrato (PR-INV-01)", () => {
-  // Sem marca: não é aporte, não move caixa, não usa `value`.
+test("documento investimento sem marca válida viola o contrato (PR-INV-01)", () => {
+  // Sem marca: não é aporte, não move caixa, não usa `type`.
   for (const forged of [
-    {type: "investimento", value: 100, valueCents: 10_000, date: "2026-10-10"},
+    {type: "investimento", valueCents: 10_000, date: "2026-10-10"},
     {...mirror(undefined), investmentMetadata: {
       status: "settled", cashImpact: "outflow", investmentOperation: "contribution",
     }},
@@ -110,15 +114,14 @@ test("documento investimento sem marca válida está fora do contrato (PR-INV-01
     mirror(entry({principalCents: -1, amountCents: -1})),
     mirror(entry({principalCents: 10.5, amountCents: 10.5})),
   ]) {
-    const delta = cashPeriodDeltaFor(forged);
-    assert.equal(delta.netCents, 0, JSON.stringify(forged));
-    assert.equal(delta.investmentOutflowCents, 0);
-    assert.equal(delta.transactionCount, 0);
+    assert.throws(() => cashPeriodDeltaFor(forged),
+      CashContractViolationError, JSON.stringify(forged));
   }
   assert.equal(readInvestmentCashEntry({}), null);
   assert.equal(readInvestmentCashEntry(null), null);
   // A marca só vale no tipo `investimento`.
-  const delta = cashPeriodDeltaFor({...mirror(entry()), type: "despesa"});
-  assert.equal(delta.netCents, 0);
-  assert.equal(delta.expenseCents, 0);
+  assert.throws(
+    () => cashPeriodDeltaFor({...mirror(entry()), type: "despesa"}),
+    CashContractViolationError,
+  );
 });

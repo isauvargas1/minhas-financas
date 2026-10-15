@@ -153,7 +153,6 @@ const useRecurringCallable = <TResult,>(
   const refresh = () => Promise.all([
     queryClient.invalidateQueries({ queryKey: RECURRING_KEYS.all(workspaceId) }),
     queryClient.invalidateQueries({ queryKey: ['credit_cards', workspaceId] }),
-    queryClient.invalidateQueries({ queryKey: ['financialReportCreditCardDomain'] }),
     invalidateTransactionDependents(queryClient, workspaceId),
   ]);
   return useMutation({

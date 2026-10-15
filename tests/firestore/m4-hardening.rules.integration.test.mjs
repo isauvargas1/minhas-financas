@@ -65,6 +65,8 @@ const ts = (iso) => getAdmin().firestore.Timestamp.fromDate(new Date(iso));
 /** Timestamp do SDK cliente, para payloads enviados como cliente. */
 const clientTs = (iso) => ClientTimestamp.fromDate(new Date(iso));
 const NOW = '2026-08-20T15:00:00.000Z';
+/** D-18-NOTIF: expiração (180 dias) do evento semeado, copiada no estado privado. */
+const NOTIFICATION_EXPIRES_MS = Math.floor(Date.now() / 1000) * 1000 + 180 * 86_400_000;
 
 /** Coleções do domínio que nenhum cliente pode escrever, em nenhum papel. */
 const BACKEND_ONLY_COLLECTIONS = [
@@ -87,7 +89,11 @@ const BACKEND_ONLY_COLLECTIONS = [
   'investment_operation_leases',
 ];
 
-/** Payload exatamente como `buildTransactionPayload` do frontend o monta. */
+/**
+ * Payload no formato que a interface anterior à P4-D gravava (reais em `value`
+ * e `transactionDate`, fora do contrato desde a P5-C2). Fica assim de propósito:
+ * nem o formato antigo nem o canônico são aceitos do cliente.
+ */
 const clientTransaction = (workspaceId, userId, overrides = {}) => ({
   type: 'despesa',
   description: 'Compra de mercado',
@@ -181,7 +187,8 @@ const seed = async () => {
       profileId: wsArchived, createdAt: ts(NOW), updatedAt: ts(NOW),
     }),
     db.doc(`workspaces/${wsArchived}/notifications/notif-1`).set({
-      title: 'Aviso', read: false, createdAt: ts(NOW),
+      title: 'Aviso', createdAt: ts(NOW),
+      expiresAt: getAdmin().firestore.Timestamp.fromMillis(NOTIFICATION_EXPIRES_MS),
     }),
   ]);
 
@@ -1422,8 +1429,11 @@ test('P1 — workspace arquivado é legível pelos membros e não aceita escrita
       'owner não grava catálogo de workspace arquivado',
     );
     await assert.rejects(
-      () => updateDoc(doc(memberA.db, `workspaces/${wsArchived}/notifications/notif-1`), {read: true}),
-      'member não marca notificação de workspace arquivado',
+      () => setDoc(
+        doc(memberA.db, `workspaces/${wsArchived}/notification_user_states/${users.memberA.uid}/notification_entries/notif-1`),
+        {read: true, readAt: serverTimestamp(), expiresAt: ClientTimestamp.fromMillis(NOTIFICATION_EXPIRES_MS)},
+      ),
+      'member não marca a própria leitura em workspace arquivado',
     );
   });
 
@@ -1432,14 +1442,24 @@ test('P1 — workspace arquivado é legível pelos membros e não aceita escrita
   assert.equal(persistedOwner.data().voidedAt, undefined);
   assert.equal((await db.doc(`workspaces/${wsArchived}/transactions/tx-member`).get()).data().description, 'Semente do membro');
   assert.equal((await db.doc(`workspaces/${wsArchived}/transactions/nova-owner`).get()).exists, false);
-  assert.equal((await db.doc(`workspaces/${wsArchived}/notifications/notif-1`).get()).data().read, false);
+  const notificationStatePath =
+    `workspaces/${wsArchived}/notification_user_states/${users.memberA.uid}/notification_entries/notif-1`;
+  assert.equal((await db.doc(notificationStatePath).get()).exists, false);
 
-  // Controle: o que nega a notificação é o arquivamento — reativado pelo
-  // backend, o mesmo membro marca a notificação como lida. O catálogo
-  // continua fechado ao cliente (D-23, P4-E) e `transactions` também (P4-D).
+  // Controle: o que nega a marcação é o arquivamento — reativado pelo
+  // backend, o mesmo membro marca a própria leitura (estado privado, P5-D1);
+  // o evento compartilhado segue fechado ao cliente. O catálogo continua
+  // fechado ao cliente (D-23, P4-E) e `transactions` também (P4-D).
   await db.doc(`workspaces/${wsArchived}`).update({status: 'active'});
   await withClients(['ownerA', 'memberA'], async ({ownerA, memberA}) => {
-    await updateDoc(doc(memberA.db, `workspaces/${wsArchived}/notifications/notif-1`), {read: true});
+    await setDoc(doc(memberA.db, notificationStatePath), {
+      read: true, readAt: serverTimestamp(),
+      expiresAt: ClientTimestamp.fromMillis(NOTIFICATION_EXPIRES_MS),
+    });
+    await deniedByRules(
+      updateDoc(doc(memberA.db, `workspaces/${wsArchived}/notifications/notif-1`), {read: true}),
+      'evento compartilhado segue fechado no workspace ativo',
+    );
     await deniedByRules(setDoc(doc(ownerA.db, `workspaces/${wsArchived}/settings_catalog/class-arquivo`), {
       workspaceId: wsArchived, group: 'investment_class', name: 'Baixo',
       normalizedName: 'baixo', dedupeKey: 'investment_class::all::PF::baixo',
@@ -1533,8 +1553,8 @@ test('P3-A — lançamento com cashEntry não é criado, editado nem anulado pel
   const db = getAdmin().firestore();
   const backendEntry = (userId, overrides = {}) => ({
     type: 'receita', description: 'Salário', category: 'Salário',
-    value: 6200, valueCents: 620_000, date: '2026-08-20',
-    transactionDate: ts(NOW), isPaid: true, workspaceId: wsA, profileId: wsA,
+    valueCents: 620_000, date: '2026-08-20',
+    isPaid: true, workspaceId: wsA, profileId: wsA,
     profileType: 'PF', userId, createdBy: userId, updatedBy: userId,
     cashEntry: {
       domainVersion: 1, origin: 'manual', status: 'confirmed', currency: 'BRL',
@@ -1605,8 +1625,8 @@ test('P3-C — lançamento corrigido e anulado pelo backend ficam fora do client
   const db = getAdmin().firestore();
   const corrected = (userId, overrides = {}) => ({
     type: 'despesa', description: 'Compra', category: 'Mercado',
-    value: 160, valueCents: 16_000, date: '2026-08-20',
-    transactionDate: ts(NOW), isPaid: true, workspaceId: wsA, profileId: wsA,
+    valueCents: 16_000, date: '2026-08-20',
+    isPaid: true, workspaceId: wsA, profileId: wsA,
     profileType: 'PF', userId, createdBy: userId, updatedBy: userId, cashAccountId: 'acc-1',
     cashEntry: {
       domainVersion: 1, origin: 'manual', status: 'confirmed', currency: 'BRL',
@@ -1730,7 +1750,7 @@ test('P3-H — empréstimos só pelo backend: nenhum papel cria, altera nem apag
     workspaceId: wsA, loanId: 'loan_autoritativo'});
   await db.doc(mirrorPath).set({
     type: 'receita', description: 'Empréstimo recebido', category: 'Empréstimos',
-    value: 3000, valueCents: 300000, date: '2026-08-20', transactionDate: now, isPaid: true,
+    valueCents: 300000, date: '2026-08-20', isPaid: true,
     workspaceId: wsA, profileId: wsA, userId: users.memberA.uid, source: 'loan',
     loanEntry: {domainVersion: 1, loanId: 'loan_autoritativo', loanMovementId: 'lmv_autoritativo',
       loanType: 'borrow', kind: 'disbursement', reversal: false, principalCents: 300000,

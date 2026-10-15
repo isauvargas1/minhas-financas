@@ -1,0 +1,364 @@
+{
+ "arvore": "after",
+ "estadosEm": "notification_entries",
+ "painel-owner-desktop-claro": {
+  "painelEsquerda": 757,
+  "painelDireita": 1141,
+  "larguraTela": 1440,
+  "acoesCortadasNaTela": 0,
+  "overflow": 0,
+  "hoverNone": false,
+  "botoesExcluir": 4,
+  "botoesArquivar": 4
+ },
+ "axe-painel-desktop-claro": [],
+ "painel-owner-acoes-desktop-claro": {
+  "painelEsquerda": 757,
+  "painelDireita": 1141,
+  "larguraTela": 1440,
+  "acoesCortadasNaTela": 0,
+  "overflow": 0,
+  "hoverNone": false,
+  "botoesExcluir": 4,
+  "botoesArquivar": 4
+ },
+ "axe-painel-acoes-desktop-claro": [],
+ "teclado-ordem-do-tab-desktop-claro": [
+  "Marcar exibidas como lidas",
+  "Fechar notificações",
+  "Excluir para mim: Fatura vencida",
+  "Arquivar para mim: Fatura vencida",
+  "Excluir para mim: Fatura próxima do vencimento"
+ ],
+ "teclado-foco-inicial-no-dialogo-desktop-claro": "Cancelar",
+ "teclado-foco-preso-desktop-claro": {
+  "initial": true,
+  "afterTabs": true
+ },
+ "axe-dialogo-logo-apos-abrir-desktop-claro": [
+  {
+   "id": "color-contrast",
+   "impact": "serious",
+   "help": "Elements must meet minimum color contrast ratio thresholds",
+   "count": 3,
+   "nodes": [
+    {
+     "target": [
+      "#confirmation-modal-title"
+     ],
+     "html": "<h3 id=\"confirmation-modal-title\" class=\"text-lg font-bold text-gray-800 dark:text-white\">Excluir notificação</h3>"
+    },
+    {
+     "target": [
+      ".bg-gray-200"
+     ],
+     "html": "<button class=\"py-2 px-4 rounded-lg bg-gray-200 hover:bg-gray-300 dark:bg-gray-600 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 font-medium transitio"
+    },
+    {
+     "target": [
+      ".bg-red-600"
+     ],
+     "html": "<button aria-busy=\"false\" class=\"py-2 px-4 rounded-lg bg-red-600 hover:bg-red-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-medium shadow-"
+    }
+   ]
+  }
+ ],
+ "teclado-escape-fecha-desktop-claro": true,
+ "teclado-foco-depois-do-escape-desktop-claro": "Excluir para mim: Fatura vencida",
+ "confirmacao-excluir-desktop-claro": {
+  "painelEsquerda": 757,
+  "painelDireita": 1141,
+  "larguraTela": 1440,
+  "acoesCortadasNaTela": 0,
+  "overflow": 0,
+  "hoverNone": false,
+  "botoesExcluir": 4,
+  "botoesArquivar": 4
+ },
+ "axe-dialogo-assentado-desktop-claro": [],
+ "erro-excluir-mensagem-desktop-claro": "Sem conexão com o servidor. Verifique sua internet e tente novamente.",
+ "erro-excluir-desktop-claro": {
+  "painelEsquerda": 757,
+  "painelDireita": 1141,
+  "larguraTela": 1440,
+  "acoesCortadasNaTela": 0,
+  "overflow": 0,
+  "hoverNone": false,
+  "botoesExcluir": 4,
+  "botoesArquivar": 4
+ },
+ "apos-excluir-foco-desktop-claro": "Notificações, 1 não lida",
+ "apos-excluir-desktop-claro": {
+  "painelEsquerda": 757,
+  "painelDireita": 1141,
+  "larguraTela": 1440,
+  "acoesCortadasNaTela": 0,
+  "overflow": 0,
+  "hoverNone": false,
+  "botoesExcluir": 3,
+  "botoesArquivar": 3,
+  "focoNoSino": true
+ },
+ "painel-viewer-desktop-claro": {
+  "painelEsquerda": 757,
+  "painelDireita": 1141,
+  "larguraTela": 1440,
+  "acoesCortadasNaTela": 0,
+  "overflow": 0,
+  "hoverNone": false,
+  "botoesExcluir": 0,
+  "botoesArquivar": 4
+ },
+ "axe-painel-viewer-desktop-claro": [],
+ "painel-vazio-desktop-claro": {
+  "painelEsquerda": 757,
+  "painelDireita": 1141,
+  "larguraTela": 1440,
+  "acoesCortadasNaTela": 0,
+  "overflow": 0,
+  "hoverNone": false,
+  "botoesExcluir": 0,
+  "botoesArquivar": 0
+ },
+ "axe-painel-vazio-desktop-claro": [],
+ "painel-nada-exibir-desktop-claro": {
+  "painelEsquerda": 757,
+  "painelDireita": 1141,
+  "larguraTela": 1440,
+  "acoesCortadasNaTela": 0,
+  "overflow": 0,
+  "hoverNone": false,
+  "botoesExcluir": 0,
+  "botoesArquivar": 0
+ },
+ "axe-painel-nada-exibir-desktop-claro": [],
+ "painel-owner-desktop-escuro": {
+  "painelEsquerda": 757,
+  "painelDireita": 1141,
+  "larguraTela": 1440,
+  "acoesCortadasNaTela": 0,
+  "overflow": 0,
+  "hoverNone": false,
+  "botoesExcluir": 4,
+  "botoesArquivar": 4
+ },
+ "painel-owner-acoes-desktop-escuro": {
+  "painelEsquerda": 757,
+  "painelDireita": 1141,
+  "larguraTela": 1440,
+  "acoesCortadasNaTela": 0,
+  "overflow": 0,
+  "hoverNone": false,
+  "botoesExcluir": 4,
+  "botoesArquivar": 4
+ },
+ "confirmacao-excluir-desktop-escuro": {
+  "painelEsquerda": 757,
+  "painelDireita": 1141,
+  "larguraTela": 1440,
+  "acoesCortadasNaTela": 0,
+  "overflow": 0,
+  "hoverNone": false,
+  "botoesExcluir": 4,
+  "botoesArquivar": 4
+ },
+ "erro-excluir-mensagem-desktop-escuro": "Sem conexão com o servidor. Verifique sua internet e tente novamente.",
+ "erro-excluir-desktop-escuro": {
+  "painelEsquerda": 757,
+  "painelDireita": 1141,
+  "larguraTela": 1440,
+  "acoesCortadasNaTela": 0,
+  "overflow": 0,
+  "hoverNone": false,
+  "botoesExcluir": 4,
+  "botoesArquivar": 4
+ },
+ "apos-excluir-foco-desktop-escuro": "Notificações, 1 não lida",
+ "apos-excluir-desktop-escuro": {
+  "painelEsquerda": 757,
+  "painelDireita": 1141,
+  "larguraTela": 1440,
+  "acoesCortadasNaTela": 0,
+  "overflow": 0,
+  "hoverNone": false,
+  "botoesExcluir": 3,
+  "botoesArquivar": 3,
+  "focoNoSino": true
+ },
+ "painel-viewer-desktop-escuro": {
+  "painelEsquerda": 757,
+  "painelDireita": 1141,
+  "larguraTela": 1440,
+  "acoesCortadasNaTela": 0,
+  "overflow": 0,
+  "hoverNone": false,
+  "botoesExcluir": 0,
+  "botoesArquivar": 4
+ },
+ "painel-vazio-desktop-escuro": {
+  "painelEsquerda": 757,
+  "painelDireita": 1141,
+  "larguraTela": 1440,
+  "acoesCortadasNaTela": 0,
+  "overflow": 0,
+  "hoverNone": false,
+  "botoesExcluir": 0,
+  "botoesArquivar": 0
+ },
+ "painel-nada-exibir-desktop-escuro": {
+  "painelEsquerda": 757,
+  "painelDireita": 1141,
+  "larguraTela": 1440,
+  "acoesCortadasNaTela": 0,
+  "overflow": 0,
+  "hoverNone": false,
+  "botoesExcluir": 0,
+  "botoesArquivar": 0
+ },
+ "painel-owner-mobile-claro": {
+  "painelEsquerda": 8,
+  "painelDireita": 328,
+  "larguraTela": 390,
+  "acoesCortadasNaTela": 0,
+  "overflow": 0,
+  "hoverNone": true,
+  "botoesExcluir": 4,
+  "botoesArquivar": 4
+ },
+ "confirmacao-excluir-mobile-claro": {
+  "painelEsquerda": 8,
+  "painelDireita": 328,
+  "larguraTela": 390,
+  "acoesCortadasNaTela": 0,
+  "overflow": 0,
+  "hoverNone": true,
+  "botoesExcluir": 4,
+  "botoesArquivar": 4
+ },
+ "erro-excluir-mensagem-mobile-claro": "Sem conexão com o servidor. Verifique sua internet e tente novamente.",
+ "erro-excluir-mobile-claro": {
+  "painelEsquerda": 8,
+  "painelDireita": 328,
+  "larguraTela": 390,
+  "acoesCortadasNaTela": 0,
+  "overflow": 0,
+  "hoverNone": true,
+  "botoesExcluir": 4,
+  "botoesArquivar": 4
+ },
+ "apos-excluir-foco-mobile-claro": "Notificações, 1 não lida",
+ "apos-excluir-mobile-claro": {
+  "painelEsquerda": 8,
+  "painelDireita": 328,
+  "larguraTela": 390,
+  "acoesCortadasNaTela": 0,
+  "overflow": 0,
+  "hoverNone": true,
+  "botoesExcluir": 3,
+  "botoesArquivar": 3,
+  "focoNoSino": true
+ },
+ "painel-viewer-mobile-claro": {
+  "painelEsquerda": 8,
+  "painelDireita": 328,
+  "larguraTela": 390,
+  "acoesCortadasNaTela": 0,
+  "overflow": 0,
+  "hoverNone": true,
+  "botoesExcluir": 0,
+  "botoesArquivar": 4
+ },
+ "painel-vazio-mobile-claro": {
+  "painelEsquerda": 8,
+  "painelDireita": 328,
+  "larguraTela": 390,
+  "acoesCortadasNaTela": 0,
+  "overflow": 0,
+  "hoverNone": true,
+  "botoesExcluir": 0,
+  "botoesArquivar": 0
+ },
+ "painel-nada-exibir-mobile-claro": {
+  "painelEsquerda": 8,
+  "painelDireita": 328,
+  "larguraTela": 390,
+  "acoesCortadasNaTela": 0,
+  "overflow": 0,
+  "hoverNone": true,
+  "botoesExcluir": 0,
+  "botoesArquivar": 0
+ },
+ "painel-owner-mobile-escuro": {
+  "painelEsquerda": 8,
+  "painelDireita": 328,
+  "larguraTela": 390,
+  "acoesCortadasNaTela": 0,
+  "overflow": 0,
+  "hoverNone": true,
+  "botoesExcluir": 4,
+  "botoesArquivar": 4
+ },
+ "confirmacao-excluir-mobile-escuro": {
+  "painelEsquerda": 8,
+  "painelDireita": 328,
+  "larguraTela": 390,
+  "acoesCortadasNaTela": 0,
+  "overflow": 0,
+  "hoverNone": true,
+  "botoesExcluir": 4,
+  "botoesArquivar": 4
+ },
+ "erro-excluir-mensagem-mobile-escuro": "Sem conexão com o servidor. Verifique sua internet e tente novamente.",
+ "erro-excluir-mobile-escuro": {
+  "painelEsquerda": 8,
+  "painelDireita": 328,
+  "larguraTela": 390,
+  "acoesCortadasNaTela": 0,
+  "overflow": 0,
+  "hoverNone": true,
+  "botoesExcluir": 4,
+  "botoesArquivar": 4
+ },
+ "apos-excluir-foco-mobile-escuro": "Notificações, 1 não lida",
+ "apos-excluir-mobile-escuro": {
+  "painelEsquerda": 8,
+  "painelDireita": 328,
+  "larguraTela": 390,
+  "acoesCortadasNaTela": 0,
+  "overflow": 0,
+  "hoverNone": true,
+  "botoesExcluir": 3,
+  "botoesArquivar": 3,
+  "focoNoSino": true
+ },
+ "painel-viewer-mobile-escuro": {
+  "painelEsquerda": 8,
+  "painelDireita": 328,
+  "larguraTela": 390,
+  "acoesCortadasNaTela": 0,
+  "overflow": 0,
+  "hoverNone": true,
+  "botoesExcluir": 0,
+  "botoesArquivar": 4
+ },
+ "painel-vazio-mobile-escuro": {
+  "painelEsquerda": 8,
+  "painelDireita": 328,
+  "larguraTela": 390,
+  "acoesCortadasNaTela": 0,
+  "overflow": 0,
+  "hoverNone": true,
+  "botoesExcluir": 0,
+  "botoesArquivar": 0
+ },
+ "painel-nada-exibir-mobile-escuro": {
+  "painelEsquerda": 8,
+  "painelDireita": 328,
+  "larguraTela": 390,
+  "acoesCortadasNaTela": 0,
+  "overflow": 0,
+  "hoverNone": true,
+  "botoesExcluir": 0,
+  "botoesArquivar": 0
+ }
+}

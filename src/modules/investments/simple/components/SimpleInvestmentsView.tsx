@@ -18,6 +18,8 @@ import CatalogVisualChip from '../../../../components/CatalogVisualChip';
 import type { ResolvedCatalogVisual } from '../../../settings-catalog/display';
 import { useSettingsCatalog } from '../../../settings-catalog/hooks';
 import type { Goal } from '../../../../types';
+import { mergeGoalsById } from '../../../goals/model';
+import { useInvestmentGoalsByIds, type InvestmentGoalOptionsPaging } from '../../../goals/hooks';
 import type { InvestmentAllocationDimension } from '../../types';
 import {
     isRedeemablePosition,
@@ -42,7 +44,7 @@ import {
     type SimpleSortConfig,
     type SimpleSortKey,
 } from '../rows';
-import { buildSimpleGoalCards, summarizeSimpleInvestmentChips } from '../summary';
+import { buildSimpleGoalCards, collectUnloadedGoalIds, summarizeSimpleInvestmentChips } from '../summary';
 import InvestmentAllocationBand from './AllocationPanels';
 import { simpleRowActions, type SimpleWorkspaceRole } from '../permissions';
 import { simpleInvestmentError } from '../../errors';
@@ -112,7 +114,10 @@ export interface SimpleInvestmentsViewProps {
     workspaceId: string;
     /** Decide qual faixa de alocação é montada — nunca as duas (Etapa 3, §6). */
     profileType: 'PF' | 'PJ';
+    /** Metas de investimento já carregadas pelo seletor paginado. */
     goals: Goal[];
+    /** Paginação do seletor de metas (P5-B.1): sem teto fixo de metas. */
+    goalPaging?: InvestmentGoalOptionsPaging;
     role: SimpleWorkspaceRole;
     onBack(): void;
 }
@@ -125,7 +130,7 @@ export interface SimpleInvestmentsViewProps {
 const GOAL_CARD_DIMENSIONS: InvestmentAllocationDimension[] = ['goal'];
 
 const SimpleInvestmentsView: React.FC<SimpleInvestmentsViewProps> = ({
-    workspaceId, profileType, goals, role, onBack,
+    workspaceId, profileType, goals: loadedGoals, goalPaging, role, onBack,
 }) => {
     const [filters, setFilters] = useState<SimpleInvestmentFilters>(EMPTY_SIMPLE_FILTERS);
     const [sort, setSort] = useState<SimpleSortConfig>(DEFAULT_SIMPLE_SORT);
@@ -146,6 +151,27 @@ const SimpleInvestmentsView: React.FC<SimpleInvestmentsViewProps> = ({
     );
     const positionsQuery = useSimpleInvestmentPositions(workspaceId, rows);
     const catalogQuery = useSettingsCatalog({ includeInactive: true });
+
+    const goalAllocation = useInvestmentAllocation(workspaceId, GOAL_CARD_DIMENSIONS);
+    /*
+     * P5-B.1 — o seletor carrega as metas por página. Uma posição ligada a uma
+     * meta que ainda não veio nas páginas (a 150ª, por exemplo) não pode virar
+     * "Meta removida" nem cair em "Sem Meta Definida": só os IDs que a tela
+     * precisa nomear (linhas carregadas e faixas da alocação) são buscados.
+     */
+    const unloadedGoalIds = useMemo(
+        () => collectUnloadedGoalIds(
+            rows,
+            goalAllocation.data?.slices[0]?.items ?? [],
+            loadedGoals.map((goal) => goal.id),
+        ),
+        [rows, goalAllocation.data, loadedGoals],
+    );
+    const resolvedGoals = useInvestmentGoalsByIds(unloadedGoalIds);
+    const goals = useMemo(
+        () => mergeGoalsById(loadedGoals, resolvedGoals.data),
+        [loadedGoals, resolvedGoals.data],
+    );
 
     const goalNames = useMemo(
         () => new Map(goals.map((goal) => [goal.id, goal.name])),
@@ -168,7 +194,6 @@ const SimpleInvestmentsView: React.FC<SimpleInvestmentsViewProps> = ({
      * pergunta certa, sem filtro e sem depender de quantas páginas foram
      * carregadas.
      */
-    const goalAllocation = useInvestmentAllocation(workspaceId, GOAL_CARD_DIMENSIONS);
     const cards = useMemo(
         () => buildSimpleGoalCards(
             goalAllocation.data?.slices[0]?.items ?? [],
@@ -668,6 +693,7 @@ const SimpleInvestmentsView: React.FC<SimpleInvestmentsViewProps> = ({
                 open={creating || editing !== null}
                 workspaceId={workspaceId}
                 goals={goals}
+                goalPaging={goalPaging}
                 editing={editing}
                 onClose={() => { setCreating(false); setEditing(null); }}
                 onSuccess={setFeedback}

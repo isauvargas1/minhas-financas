@@ -227,16 +227,23 @@ test('P4-D — o espelho em `transactions` não é lido como fonte patrimonial',
   assert.doesNotMatch(cash, /\bgoalId\b|\binvestmentMetadata\b|\bwalletId\b|settlementDate/);
 });
 
-test('P4-D — o card "Investimentos" lê a projeção mensal, não o espelho', () => {
+test('P5-C1 — o card "Investimentos" lê o relatório oficial, não o espelho', () => {
+  // O Dashboard lê o aporte do mês do relatório do servidor (D-37.5), não a
+  // projeção mensal no navegador nem o espelho de caixa.
   const app = stripComments(read('src/App.tsx'));
-  assert.match(app, /useInvestmentMonthContribution\(/);
-  assert.match(app, /<SummaryCard title="Investimentos" value=\{\(investmentMonthCents \?\? 0\) \/ 100\}/);
-  assert.doesNotMatch(app, /summary\.investments|\binvestmentOutflowOf\b/);
-  const semantics = stripComments(read('src/modules/investments/semantics.ts'));
-  const summarize = semantics.slice(semantics.indexOf('export const summarizeCashFlow'));
-  assert.doesNotMatch(summarize, /investments\s*:/);
+  assert.match(app, /useFinancialReport\(/);
+  assert.match(app, /<SummaryCard title="Investimentos" \{\.\.\.summaryFigure\(dashboard\.investments, 'Mensal'\)\}/);
+  assert.doesNotMatch(app, /useInvestmentMonthContribution|summary\.investments|\binvestmentOutflowOf\b/);
+  const adapter = stripComments(read('src/modules/reports/adapter.ts'));
+  assert.match(adapter, /data\.flows\.contributionsCents/);
+  // A fórmula antiga do Dashboard no navegador não existe mais (sem fonte de
+  // verdade concorrente): o fluxo de caixa oficial é o do servidor.
+  const legacyCashFormula = frontendFiles.filter((path) =>
+    /\b(summarizeCashFlow|operationalIncomeOf|operationalExpenseOf|isOperationalIncome|isOperationalExpense|isSplitCashMirror|isLoanCashMirror|isReceivableCashMirror)\b/
+      .test(stripComments(read(path))));
+  assert.deepEqual(legacyCashFormula, []);
   const api = stripComments(read('src/modules/investments/simple/api.ts'));
-  assert.match(api, /getInvestmentReportPeriod\(/);
+  assert.doesNotMatch(api, /useInvestmentMonthContribution|investment-month/);
   assert.doesNotMatch(api, /investment-transactions|listTransactions|transactionsRef/);
 });
 
