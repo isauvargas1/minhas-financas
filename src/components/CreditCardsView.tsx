@@ -31,7 +31,9 @@ import {
     cardsErrorView,
     eventLabel,
     invoiceDisplayStatus,
+    openInvoiceCreditNote,
     payableCents,
+    selectInvoiceSections,
 } from '../modules/cards/presentation.ts';
 import {
     toCardStatusPayload,
@@ -67,6 +69,7 @@ const InvoiceSummaryCard: React.FC<{
     const status = invoiceDisplayStatus(invoice, today);
     const canPay = canManage && canPayInvoice(invoice, today);
     const competence = formatCompetence(invoice.competenceMonth);
+    const creditNote = openInvoiceCreditNote(invoice);
     return (
         <div
             data-testid="card-invoice-summary"
@@ -98,6 +101,10 @@ const InvoiceSummaryCard: React.FC<{
                     <p className="font-bold">{formatCents(payableCents(invoice))}</p>
                 </div>
             </div>
+
+            {creditNote && (
+                <p className="text-xs text-gray-600 dark:text-gray-300">{creditNote}</p>
+            )}
 
             <button
                 type="button"
@@ -181,8 +188,7 @@ const CreditCardsView: React.FC = () => {
     const selectedCard = cards.find(card => card.id === selectedCardId) ?? null;
     const openItems = openInvoices.data?.items ?? [];
     const closedItems = closedInvoices.data ?? [];
-    const currentInvoice = openItems[0] ?? null;
-    const nextInvoice = openItems[1] ?? null;
+    const { nextToPay, openCycle, followingCycle, history } = selectInvoiceSections(openItems, closedItems, today);
     const allInvoices = [...openItems, ...closedItems];
     const selectedInvoice = selectedInvoiceId
         ? allInvoices.find((invoice) => invoice.id === selectedInvoiceId) ?? null
@@ -465,47 +471,64 @@ const CreditCardsView: React.FC = () => {
 
                                 {allInvoices.length > 0 && (
                                     <div className="space-y-4">
-                                        {currentInvoice && (
+                                        {nextToPay && (
                                             <div className="space-y-2">
                                                 <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">
-                                                    Fatura atual
+                                                    Próxima fatura a pagar
                                                 </p>
                                                 <InvoiceSummaryCard
-                                                    invoice={currentInvoice}
+                                                    invoice={nextToPay}
                                                     today={today}
                                                     highlighted
                                                     canManage={permissions.canManage}
                                                     showPay
-                                                    onDetails={() => setSelectedInvoiceId(currentInvoice.id)}
-                                                    onPay={() => setPaymentDraft({ invoice: currentInvoice, mode: 'total' })}
+                                                    onDetails={() => setSelectedInvoiceId(nextToPay.id)}
+                                                    onPay={() => setPaymentDraft({ invoice: nextToPay, mode: 'total' })}
                                                 />
                                             </div>
                                         )}
 
-                                        {nextInvoice && (
+                                        {openCycle && (
                                             <div className="space-y-2">
                                                 <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">
-                                                    Próxima fatura
+                                                    Fatura do ciclo aberto
                                                 </p>
                                                 <InvoiceSummaryCard
-                                                    invoice={nextInvoice}
+                                                    invoice={openCycle}
+                                                    today={today}
+                                                    highlighted={!nextToPay}
+                                                    canManage={permissions.canManage}
+                                                    showPay
+                                                    onDetails={() => setSelectedInvoiceId(openCycle.id)}
+                                                    onPay={() => setPaymentDraft({ invoice: openCycle, mode: 'total' })}
+                                                />
+                                            </div>
+                                        )}
+
+                                        {followingCycle && (
+                                            <div className="space-y-2">
+                                                <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">
+                                                    Fatura do ciclo seguinte
+                                                </p>
+                                                <InvoiceSummaryCard
+                                                    invoice={followingCycle}
                                                     today={today}
                                                     highlighted={false}
                                                     canManage={permissions.canManage}
                                                     showPay={false}
-                                                    onDetails={() => setSelectedInvoiceId(nextInvoice.id)}
+                                                    onDetails={() => setSelectedInvoiceId(followingCycle.id)}
                                                     onPay={() => undefined}
                                                 />
                                             </div>
                                         )}
 
-                                        {closedItems.length > 0 && (
+                                        {(history.length > 0 || closedInvoices.hasNextPage) && (
                                             <div className="space-y-2">
                                                 <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">
                                                     Histórico de faturas
                                                 </p>
 
-                                                {closedItems.map((invoice) => (
+                                                {history.map((invoice) => (
                                                     <InvoiceSummaryCard
                                                         key={invoice.id}
                                                         invoice={invoice}

@@ -1,0 +1,38 @@
+{
+ "chat-pf-vazio-desktop-claro": {
+  "overflow": 0
+ },
+ "chat-pf-conversa-desktop-claro": {
+  "overflow": 0
+ },
+ "chat-pj-depois-da-troca-desktop-claro": {
+  "overflow": 0
+ },
+ "chat-pf-de-volta-desktop-claro": {
+  "overflow": 0
+ },
+ "chat-pf-vazio-desktop-escuro": {
+  "overflow": 0
+ },
+ "chat-pf-conversa-desktop-escuro": {
+  "overflow": 0
+ },
+ "chat-pj-depois-da-troca-desktop-escuro": {
+  "overflow": 0
+ },
+ "chat-pf-de-volta-desktop-escuro": {
+  "overflow": 0
+ },
+ "chat-pf-vazio-mobile-claro": {
+  "overflow": 0
+ },
+ "chat-pf-conversa-mobile-claro": {
+  "overflow": 0
+ },
+ "chat-pf-vazio-mobile-escuro": {
+  "overflow": 0
+ },
+ "chat-pf-conversa-mobile-escuro": {
+  "overflow": 0
+ }
+}

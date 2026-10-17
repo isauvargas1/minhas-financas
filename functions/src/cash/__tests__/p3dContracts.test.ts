@@ -29,7 +29,7 @@ const item = (lineId: string, overrides: Record<string, unknown> = {}) => ({
   lineId,
   type: "despesa",
   description: "Mercado",
-  category: "Casa",
+  categoryId: "cat-despesa-casa",
   amountCents: 1_000,
   date: "2026-09-10",
   ...overrides,
@@ -73,6 +73,22 @@ test("P3-D — contrato da importação: lote limitado e linhas estritas", () =>
   ]) {
     assert.equal(ok(payload([item("1", {[forged]: "x"})])), false, forged);
   }
+});
+
+test("P5-C1 — importação: categoryId opcional; categoria em texto " +
+  "recusada", () => {
+  assert.ok(ok(payload([item("1", {categoryId: undefined})])));
+  assert.ok(ok(payload([item("1", {categoryId: "seed_0123456789abcdef"})])));
+  assert.equal(ok(payload([item("1", {categoryId: ""})])), false, "vazio");
+  assert.equal(ok(payload([item("1", {categoryId: "a/b"})])), false,
+    "caminho");
+  assert.equal(ok(payload([item("1", {category: "Casa"})])), false,
+    "category texto junto do ID");
+  assert.equal(
+    ok(payload([item("1", {categoryId: undefined, category: "Casa"})])),
+    false,
+    "category texto no lugar do ID",
+  );
 });
 
 test("P3-D — identidade da linha e resumo em pt-BR", () => {

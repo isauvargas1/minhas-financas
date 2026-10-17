@@ -1,323 +1,166 @@
-import { useState, useCallback, useMemo, useEffect } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { doc, onSnapshot } from 'firebase/firestore';
 import * as api from './api';
-import { Transaction, Goal, CreditCard } from '../../types';
-import {
-    ReportTimeRange,
-    FinancialReportSnapshot,
-    CreditCardReportDomainData,
-    CreditCardReportDomainMeta,
-} from './types';
+import { toReportSnapshot, type ReportAdapterResult } from './adapter';
+import { fetchFinancialReport } from './officialApi';
+import type { FinancialReport, ReportRange, ReportSection } from './official';
+import { financialReportKey, invalidateFinancialReports } from './queryKeys';
+import { presetRange, rangeKey, sectionsKey } from './range';
+import { saoPauloMonthKey } from './dateWindow';
+import { createLiveRefreshScheduler } from './liveRefresh';
+import { FinancialReportSnapshot, ReportTimeRange } from './types';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
-import { resolveReportDateRange } from './logic';
-import type { ReceivableReportData } from '../clients/types';
-import {
-    LIST_LIMIT as CARD_REPORT_LIST_LIMIT,
-    listInvoicesWithBalanceForReport,
-    listPaymentsForReport,
-    listPurchasesForReport,
-} from '../cards/api';
-import { getOfficialInvestmentReportData } from '../investments/persistence/readApi';
+import { useAuth } from '../../contexts/AuthContext';
+import { db } from '../../lib/firebase';
+import { resolveAiChatScope } from './aiChatStorage';
+import { useScopedAiChat } from './aiChatSession';
 
-export const reportKeys = {
-    snapshot: (range: string, ws: string) => ['financialReportSnapshot', range, ws],
-    creditCardDomain: (range: string, ws: string) => ['financialReportCreditCardDomain', range, ws],
-    investmentDomain: (range: string, ws: string) => ['financialReportInvestmentDomain', range, ws],
-};
-
-
-const buildTransactionsVersion = (transactions: Transaction[]): string =>
-    transactions
-        .map((transaction) => [
-            transaction.id,
-            transaction.type,
-            transaction.value,
-            transaction.date,
-            transaction.isPaid,
-            transaction.source,
-            transaction.creditCardPaymentEntry?.paymentId,
-        ].join(':'))
-        .join('|');
-
-const buildCreditCardsVersion = (creditCards: CreditCard[]): string =>
-    creditCards
-        .map((card) => [
-            card.id,
-            card.status,
-            card.limitTotalCents,
-            card.limitUsedCents,
-            card.limitAvailableCents,
-            card.closingDay,
-            card.dueDay,
-        ].join(':'))
-        .join('|');
-
-const buildGoalsVersion = (goals: Goal[]): string =>
-    goals
-        .map((goal) => [
-            goal.id,
-            goal.name,
-            goal.currentAmount,
-            goal.targetAmount,
-            goal.status,
-        ].join(':'))
-        .join('|');
-
-const buildReceivablesVersion = (data?: ReceivableReportData | null): string =>
-    data ? JSON.stringify(data) : '';
+export { invalidateFinancialReports } from './queryKeys';
 
 /**
- * Teto de leitura do domínio de cartões no relatório (P4-A, PR-CC-07): o
- * mesmo das Rules (500 + 1 de sonda). O corte é detectado pelo documento a
- * mais e sinalizado — nunca silencioso.
+ * Relatório financeiro oficial (P5-C1): uma callable, um contrato, os mesmos
+ * números no Dashboard e nos Relatórios. A chave de cache inclui usuário,
+ * workspace e papel — o papel muda o que o servidor entrega (investimentos) —
+ * e só habilita a consulta com sessão e workspace carregados para ela.
  */
-const CREDIT_CARD_REPORT_QUERY_LIMITS = {
-    purchases: CARD_REPORT_LIST_LIMIT,
-    invoices: CARD_REPORT_LIST_LIMIT,
-    payments: CARD_REPORT_LIST_LIMIT,
-};
-
-const buildCreditCardReportDomainMeta = (
-    range: ReportTimeRange,
-    dateRange: ReturnType<typeof resolveReportDateRange>,
-    truncated: CreditCardReportDomainMeta['truncated'],
-): CreditCardReportDomainMeta => {
-    return {
-        range,
-        startDate: dateRange.startDate,
-        endDate: dateRange.endDate,
-        isAllTime: dateRange.isAllTime,
-        limits: { ...CREDIT_CARD_REPORT_QUERY_LIMITS },
-        truncated,
-        isTruncated: Object.values(truncated).some(Boolean),
-    };
-};
-
-export interface FinancialReportSnapshotOptions {
-    /**
-     * Carregar o domínio patrimonial junto do snapshot (INV-P2-035).
-     *
-     * O widget do dashboard usa apenas `kpi-balance`, `kpi-savings` e alertas —
-     * nada que venha do domínio patrimonial. Consumidores que não exibem
-     * indicadores patrimoniais dispensam a carga do resumo, dos períodos e
-     * das alocações.
-     */
-    includeInvestmentDomain?: boolean;
-}
-
-export const useFinancialReportSnapshot = (
-    transactions: Transaction[],
-    goals: Goal[],
-    creditCards: CreditCard[],
-    range: ReportTimeRange,
-    receivableData?: ReceivableReportData | null,
-    options: FinancialReportSnapshotOptions = {}
+export const useFinancialReport = (
+    range: ReportRange,
+    sections?: readonly ReportSection[],
+    options: { enabled?: boolean } = {},
 ) => {
-    const includeInvestmentDomain = options.includeInvestmentDomain !== false;
-    const { activeWorkspace } = useWorkspace();
-
-
-    const workspaceId = activeWorkspace?.id;
-
-    const investmentDomainQuery = useQuery({
-        queryKey: workspaceId && workspaceId !== 'loading'
-            ? reportKeys.investmentDomain(range, workspaceId)
-            : ['financialReportInvestmentDomain', 'disabled'],
-        /*
-         * Sem os cortes de alocação (Etapa 3, §4 e §9).
-         *
-         * O relatório deixou de exibir a taxonomia por conta, ativo, risco,
-         * liquidez, indexador e finalidade — a distribuição por carteira mora
-         * na tela de Investimentos. Pedi-los aqui custava oito consultas por
-         * abertura do relatório para alimentar uma seção que ninguém vê.
-         */
-        queryFn: () => getOfficialInvestmentReportData(workspaceId!, {
-            periodLimit: range === 'all' ? 100 : range === '12m' || range === 'ytd' ? 14 : range === '90d' ? 5 : 3,
-            includeAllocations: false,
+    const { user } = useAuth();
+    const { activeWorkspace, activeWorkspaceUid, activeWorkspaceRole } = useWorkspace();
+    const uid = user?.uid ?? null;
+    const workspaceId = activeWorkspace?.id ?? '';
+    const ready = uid !== null &&
+        activeWorkspaceUid === uid &&
+        workspaceId !== '' &&
+        workspaceId !== 'loading';
+    return useQuery<FinancialReport>({
+        queryKey: financialReportKey(
+            uid ?? '',
+            workspaceId,
+            activeWorkspaceRole ?? 'unknown',
+            rangeKey(range),
+            sectionsKey(sections),
+        ),
+        queryFn: () => fetchFinancialReport({
+            workspaceId,
+            range,
+            ...(sections ? { sections: [...sections] } : {}),
         }),
-        enabled: Boolean(workspaceId) && workspaceId !== 'loading' && includeInvestmentDomain,
-        staleTime: 1000 * 60 * 2,
-    });
-
-        const creditCardDomainQuery = useQuery({
-        queryKey: workspaceId && workspaceId !== 'loading'
-            ? reportKeys.creditCardDomain(range, workspaceId)
-            : ['financialReportCreditCardDomain', range, 'disabled'],
-        queryFn: async (): Promise<CreditCardReportDomainData> => {
-            if (!workspaceId || workspaceId === 'loading') {
-                return EMPTY_CREDIT_CARD_REPORT_DOMAIN_DATA;
-            }
-
-            const dateRange = resolveReportDateRange(range);
-            const dateRangeOptions = dateRange.isAllTime
-                ? {}
-                : {
-                    startDate: dateRange.startDate,
-                    endDate: dateRange.endDate,
-                };
-
-            const [purchases, invoices, payments] = await Promise.all([
-                listPurchasesForReport(workspaceId, dateRangeOptions),
-                listInvoicesWithBalanceForReport(workspaceId),
-                listPaymentsForReport(workspaceId, dateRangeOptions),
-            ]);
-
-            return {
-                purchases: purchases.items,
-                invoices: invoices.items,
-                payments: payments.items,
-                meta: buildCreditCardReportDomainMeta(range, dateRange, {
-                    purchases: purchases.truncated,
-                    invoices: invoices.truncated,
-                    payments: payments.truncated,
-                }),
-            };
-        },
-        enabled: Boolean(workspaceId) && workspaceId !== 'loading',
-        staleTime: 1000 * 60 * 2,
-    });
-
-    const creditCardDomainData =
-        creditCardDomainQuery.data ?? EMPTY_CREDIT_CARD_REPORT_DOMAIN_DATA;
-
-    const dataVersion = [
-        buildTransactionsVersion(transactions),
-        buildGoalsVersion(goals),
-        buildCreditCardsVersion(creditCards),
-        buildReceivablesVersion(receivableData),
-        buildCreditCardDomainVersion(creditCardDomainData),
-        String(investmentDomainQuery.dataUpdatedAt),
-    ].join('::');
-
-    return useQuery({
-        queryKey: workspaceId && workspaceId !== 'loading'
-            ? [...reportKeys.snapshot(range, workspaceId), dataVersion]
-            : ['financialReportSnapshot', range, 'disabled', dataVersion],
-        queryFn: () => {
-            if (includeInvestmentDomain && investmentDomainQuery.isError) {
-                throw new Error('Não foi possível carregar o domínio patrimonial.');
-            }
-            return api.getFinancialReportSnapshot(
-                transactions,
-                goals,
-                creditCards,
-                range,
-                activeWorkspace,
-                receivableData,
-                creditCardDomainData,
-                investmentDomainQuery.data,
-            );
-        },
-        enabled: Boolean(workspaceId) && workspaceId !== 'loading' &&
-            !creditCardDomainQuery.isLoading &&
-            (!includeInvestmentDomain || !investmentDomainQuery.isLoading),
-        staleTime: 1000 * 60 * 5
+        enabled: ready && (options.enabled ?? true),
+        staleTime: 30_000,
+        retry: 1,
     });
 };
 
-const EMPTY_CREDIT_CARD_REPORT_DOMAIN_DATA: CreditCardReportDomainData = {
-    purchases: [],
-    invoices: [],
-    payments: [],
-};
-
-const buildCreditCardDomainVersion = (
-    data: CreditCardReportDomainData,
-): string =>
-    [
-        data.purchases
-            .map((purchase) => [purchase.id, purchase.status, purchase.version].join(':'))
-            .join('|'),
-        data.invoices
-            .map((invoice) => [invoice.id, invoice.version].join(':'))
-            .join('|'),
-        data.payments
-            .map((payment) => [payment.id, payment.kind, payment.reversedBy ?? ''].join(':'))
-            .join('|'),
-    ].join('::');
-
-export const useFinancialAlerts = (snapshotData?: FinancialReportSnapshot) => {
-    const [readAlertIds, setReadAlertIds] = useState<string[]>([]);
-
-    const rawAlerts = snapshotData?.alerts || [];
-
-    const activeAlerts = useMemo(() => {
-        return rawAlerts.filter(a => !readAlertIds.includes(a.id));
-    }, [rawAlerts, readAlertIds]);
-
-    const markAsRead = useCallback((id: string) => {
-        setReadAlertIds(prev => [...prev, id]);
-        api.markAlertAsRead(id);
-    }, []);
-
-    return {
-        alerts: activeAlerts,
-        totalActive: activeAlerts.length,
-        markAsRead
-    };
-};
-
-export const useFinanceAIChat = () => {
+/** Relatório da faixa escolhida nos Relatórios, já adaptado para as telas. */
+export const useFinancialReportView = (
+    preset: ReportTimeRange,
+    sections?: readonly ReportSection[],
+) => {
     const { activeWorkspace } = useWorkspace();
-    const STORAGE_KEY = `finance_ai_chat_history_${activeWorkspace.id}`;
+    const query = useFinancialReport(presetRange(preset), sections);
+    const workspaceType = activeWorkspace?.type === 'PJ' ? 'PJ' : 'PF';
+    const adapted = useMemo<ReportAdapterResult | undefined>(
+        () => (query.data ? toReportSnapshot(query.data, workspaceType) : undefined),
+        [query.data, workspaceType],
+    );
+    return { ...query, snapshot: adapted?.snapshot, view: adapted?.view };
+};
 
-    const [history, setHistory] = useState<Array<{ id: string; type: 'user' | 'ai'; text: string; timestamp: string }>>([]);
+/**
+ * O caixa é projetado por gatilho assíncrono depois da mutação: o relatório
+ * relido logo após o sucesso pode ainda não incluí-la. Escuta o documento da
+ * projeção do mês corrente e, quando diferente, o do mês escolhido no Header
+ * (no máximo dois documentos) e, a cada mudança depois do primeiro retorno,
+ * relê os relatórios. Mudanças em rajada (vários lançamentos, outros membros)
+ * são agrupadas numa só releitura, com orçamento por hora abaixo do limite de
+ * frequência da callable (`./liveRefresh.ts`). Falha do listener não quebra a
+ * tela. Na virada do mês em São Paulo (aba aberta), troca para o documento do
+ * mês novo e relê os relatórios, cujo "hoje" também mudou.
+ */
+const MONTH_CHECK_INTERVAL_MS = 60_000;
 
-    // Load History
+export const useFinancialReportLiveRefresh = (
+    workspaceId: string,
+    selectedMonth?: string,
+) => {
+    const queryClient = useQueryClient();
+    const [monthKey, setMonthKey] = useState(() => saoPauloMonthKey());
+    // Um agendador (e um orçamento) por montagem, mantido nas trocas de mês e
+    // de workspace.
+    const scheduler = useRef<ReturnType<typeof createLiveRefreshScheduler> | null>(null);
+    if (scheduler.current === null) {
+        scheduler.current = createLiveRefreshScheduler(() => {
+            void invalidateFinancialReports(queryClient);
+        });
+    }
     useEffect(() => {
-        try {
-            const saved = localStorage.getItem(STORAGE_KEY);
-            if (saved) setHistory(JSON.parse(saved));
-        } catch (e) { console.error(e); }
-    }, [STORAGE_KEY]);
-
-    // Save History
+        const timer = setInterval(() => {
+            const current = saoPauloMonthKey();
+            if (current === monthKey) return;
+            setMonthKey(current);
+            void invalidateFinancialReports(queryClient);
+        }, MONTH_CHECK_INTERVAL_MS);
+        return () => clearInterval(timer);
+    }, [monthKey, queryClient]);
+    const extraMonth = selectedMonth && selectedMonth !== monthKey ? selectedMonth : null;
     useEffect(() => {
-        if (history.length > 0) localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
-    }, [history, STORAGE_KEY]);
-
-    const mutation = useMutation({
-        mutationFn: (params: { question: string; context: FinancialReportSnapshot }) =>
-            api.askFinanceAI(params.question, params.context, activeWorkspace.id),
-        onSuccess: (data) => {
-            setHistory(prev => [
-                ...prev,
-                { id: data.id || Date.now().toString(), type: 'ai', text: data.answer, timestamp: new Date().toISOString() }
-            ]);
-        },
-        onError: () => {
-            setHistory(prev => [
-                ...prev,
-                { id: Date.now().toString(), type: 'ai', text: 'Erro ao consultar a IA. Verifique sua chave API ou tente novamente.', timestamp: new Date().toISOString() }
-            ]);
-        }
-    });
-
-    const sendQuestion = useCallback((question: string, context: FinancialReportSnapshot) => {
-        if (!question.trim()) return;
-
-        const userMsg = {
-            id: Date.now().toString(),
-            type: 'user' as const,
-            text: question,
-            timestamp: new Date().toISOString()
+        if (!workspaceId || workspaceId === 'loading') return undefined;
+        const refresh = scheduler.current;
+        const unsubscribes = [monthKey, ...(extraMonth ? [extraMonth] : [])].map((month) => {
+            let first = true;
+            return onSnapshot(
+                doc(db, 'workspaces', workspaceId, 'cash_report_periods', month),
+                () => {
+                    if (first) {
+                        first = false;
+                        return;
+                    }
+                    refresh?.notify();
+                },
+                () => { /* sem projeção legível: o relatório segue pelo staleTime */ },
+            );
+        });
+        return () => {
+            refresh?.cancel();
+            unsubscribes.forEach((unsubscribe) => unsubscribe());
         };
-        setHistory(prev => [...prev, userMsg]);
+    }, [workspaceId, monthKey, extraMonth]);
+};
 
-        mutation.mutate({ question, context });
-    }, [mutation]);
-
-    const clearHistory = useCallback(() => {
-        setHistory([]);
-        localStorage.removeItem(STORAGE_KEY);
-        mutation.reset();
-    }, [STORAGE_KEY, mutation]);
-
+/**
+ * Condições do período, como vieram do snapshot do relatório. Não há estado
+ * de leitura: são calculadas a cada consulta e não ficam salvas.
+ */
+export const useFinancialAlerts = (snapshotData?: FinancialReportSnapshot) => {
+    const alerts = snapshotData?.alerts || [];
     return {
-        history,
-        isLoading: mutation.isPending,
-        isError: mutation.isError,
-        sendQuestion,
-        clearHistory
+        alerts,
+        totalActive: alerts.length,
     };
+};
+
+/**
+ * Chat de IA dos relatórios (P5-A, PR-AI-04). O histórico pertence ao par
+ * (uid da sessão do Firebase Auth, workspace ativo carregado para esse uid) e
+ * fica no `localStorage` por esse par; enquanto qualquer um dos dois estiver
+ * indefinido ou carregando, não há escopo e nada é lido, gravado nem enviado.
+ * Regras de sessão, geração e respostas atrasadas: `./aiChatSession.ts`.
+ */
+export const useFinanceAIChat = () => {
+    const { user } = useAuth();
+    const { activeWorkspace, activeWorkspaceUid } = useWorkspace();
+    const uid = user?.uid ?? null;
+    const workspaceId = activeWorkspace.id;
+    const scope = useMemo(
+        () => (uid !== null && activeWorkspaceUid === uid
+            ? resolveAiChatScope(uid, workspaceId)
+            : null),
+        [uid, activeWorkspaceUid, workspaceId],
+    );
+    return useScopedAiChat<FinancialReportSnapshot>(scope, api.askFinanceAI);
 };

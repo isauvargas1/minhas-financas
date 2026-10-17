@@ -73,8 +73,11 @@ test("o codebase exporta funções e todas ficam na região do Firestore", () =>
 test("as rotinas agendadas declaram fuso e perfil de execução longa", () => {
   const scheduled = endpoints().filter(([, e]) => e.scheduleTrigger);
   // P3-G: + `processLoanStatusRefresh` (atraso de empréstimos).
-  assert.equal(scheduled.length, 4);
+  // P5-D2: + processReceivableOverdueNotifications
+  assert.equal(scheduled.length, 5);
   assert.ok(scheduled.some(([name]) => name === "processLoanStatusRefresh"));
+  assert.ok(scheduled.some(([name]) =>
+    name === "processReceivableOverdueNotifications"));
 
   for (const [name, endpoint] of scheduled) {
     assert.equal(
@@ -100,6 +103,14 @@ test("toda callable declara tempo limite e memória", () => {
     assert.equal(typeof endpoint.availableMemoryMb, "number", `${name} sem memória`);
   }
 });
+
+test("o relatório financeiro tem memória para o pior caso de todo o período",
+  () => {
+    const endpoint = endpointOf("getFinancialReport");
+    assert.equal(endpoint.timeoutSeconds, 60);
+    assert.equal(endpoint.availableMemoryMb, 1024);
+    assert.equal(endpoint.maxInstances, 20);
+  });
 
 test("as operações paginadas pesadas têm a janela longa", () => {
   const heavy = ["rebuildCashPeriods"];
@@ -442,6 +453,37 @@ test("P3-B: gatilho de caixa reentrega falhas e mantém o perfil", () => {
   assert.equal(endpoint.availableMemoryMb, 256);
   assert.equal(endpoint.maxInstances, 20);
   assert.deepEqual(secretsOf("onTransactionWrite"), []);
+});
+
+test("P5-D2: gatilhos de notificação reentregam e mantêm o perfil", () => {
+  for (const name of [
+    "onLoanWriteNotification",
+    "onCashAccountWriteNotification",
+    "onGoalWriteNotification",
+    "onRecurringOccurrenceCreatedNotification",
+  ]) {
+    const endpoint = endpointOf(name) as Endpoint & {
+      eventTrigger?: {retry?: boolean};
+    };
+    assert.ok(endpoint.eventTrigger, `${name} não é gatilho de evento`);
+    assert.equal(endpoint.eventTrigger?.retry, true, `retry de ${name}`);
+    assert.deepEqual(endpoint.region, [FUNCTIONS_REGION], `região de ${name}`);
+    assert.equal(endpoint.timeoutSeconds, 60, `tempo limite de ${name}`);
+    assert.equal(endpoint.availableMemoryMb, 256, `memória de ${name}`);
+    assert.equal(endpoint.maxInstances, 20, `concorrência de ${name}`);
+    assert.deepEqual(secretsOf(name), [], `${name} não lê segredo`);
+  }
+});
+
+test("P5-D2: callable da contagem de não lidas com perfil de domínio", () => {
+  const name = "getNotificationUnreadCount";
+  const endpoint = endpointOf(name);
+  assert.ok(endpoint.callableTrigger, `${name} não é callable`);
+  assert.deepEqual(endpoint.region, [FUNCTIONS_REGION], name);
+  assert.equal(endpoint.timeoutSeconds, 60, name);
+  assert.equal(endpoint.availableMemoryMb, 256, name);
+  assert.equal(endpoint.maxInstances, 20, name);
+  assert.deepEqual(secretsOf(name), [], name);
 });
 
 test("P1: gatilho do índice do usuário é idempotente e limitado", () => {

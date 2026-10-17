@@ -39,7 +39,6 @@ const seedWorkspace = async () => {
   }
   await sdk.auth().createUser({ uid: UID, email: EMAIL, password: PASSWORD, emailVerified: true });
   const now = sdk.firestore.Timestamp.now();
-  const at = (iso: string) => sdk.firestore.Timestamp.fromDate(new Date(iso));
 
   await seedOwnedWorkspace({
     uid: UID, email: EMAIL, workspaceId: WORKSPACE, name: 'Empresa E2E', type: 'PJ',
@@ -48,14 +47,12 @@ const seedWorkspace = async () => {
     // Caixa de receita e despesa: continua sendo domínio de `transactions`.
     db.doc(`workspaces/${WORKSPACE}/transactions/caixa-1`).set({
       type: 'receita', description: 'Faturamento do mês', category: 'Serviços',
-      value: 2_000, valueCents: 200_000, date: '2026-06-10',
-      transactionDate: at('2026-06-10T15:00:00.000Z'),
+      valueCents: 200_000, date: '2026-06-10',
       isPaid: true, userId: UID, workspaceId: WORKSPACE,
     }),
     db.doc(`workspaces/${WORKSPACE}/transactions/caixa-2`).set({
       type: 'despesa', description: 'Aluguel', category: 'Moradia',
-      value: 1_000, valueCents: 100_000, date: '2026-07-10',
-      transactionDate: at('2026-07-10T15:00:00.000Z'),
+      valueCents: 100_000, date: '2026-07-10',
       isPaid: true, userId: UID, workspaceId: WORKSPACE,
     }),
   ]);

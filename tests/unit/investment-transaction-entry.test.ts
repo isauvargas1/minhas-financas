@@ -105,7 +105,7 @@ test('B. trocar de aba não submete nada nem prepara o formulário comum', () =>
   assert.ok(ramo > 0, 'a troca para investimento não tem saída própria');
   assert.match(trecho.slice(ramo), /return;/);
   assert.ok(
-    trecho.indexOf('setCategory(') > ramo,
+    trecho.indexOf('setCategoryId(') > ramo,
     'o formulário comum é preparado antes da saída da aba de investimento',
   );
 
@@ -160,11 +160,11 @@ test('C. resultado de IA que chega tarde não atropela a aba de investimento', (
   /*
    * Voz e imagem preenchem só o formulário comum. A captura é do componente,
    * não do painel: esconder o painel não a interrompe, e o resultado chamaria
-   * `applyAIData`, que troca de aba e desmontaria o aporte meio preenchido.
+   * `applyAIExtraction`, que troca de aba e desmontaria o aporte meio preenchido.
    */
   assert.match(
     modal,
-    /const applyAIData = \(data: any\) => \{[\s\S]{0,700}?if \(activeTabRef\.current === 'investimento'\) return;/,
+    /const applyAIExtraction = \(response: ExtractionResponse \| undefined\) => \{[\s\S]{0,700}?if \(activeTabRef\.current === 'investimento'\) return;/,
   );
   assert.match(
     modal,
@@ -550,9 +550,11 @@ test('H. receita, despesa e cartão seguem no formulário comum', () => {
 test('H. a IA continua ligada só ao formulário que ela sabe preencher', () => {
   // Escanear comprovante e falar transação seguem intactos nas outras abas
   // (P2B.2: pelos wrappers do contrato de IA, com chave de idempotência)...
-  assert.match(modal, /await extractTransactionFromDocument\(\{/);
-  assert.match(modal, /await extractTransactionFromText\(\{/);
-  assert.match(modal, /\['receita', 'despesa', 'parcelado'\]\.includes\(data\.type\)/);
+  assert.match(modal, /extractTransactionFromDocument\(\{/);
+  assert.match(modal, /extractTransactionFromText\(\{/);
+  // A aplicação é tipada e só preenche campos identificados (P5-E1).
+  assert.match(modal, /planExtractionApplication\(extraction, \{/);
+  assert.equal(/applyAIData|data: any/.test(modal), false);
   // ...e o painel some enquanto a aba de investimento está ativa.
   assert.match(modal, /\{!isEditing && activeTab !== 'investimento' && \(/);
 });

@@ -1,19 +1,23 @@
-
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Goal, Transaction, GoalStatus } from '../types.ts';
+import { Goal, GoalStatus } from '../types.ts';
 import { 
     BackIcon, EditIcon, DeleteIcon, CheckIcon, TargetIcon, 
     TrendingUpIcon, ClockIcon, HistoryIcon, PlusIcon, 
-    DynamicIcon, PiggyBankIcon, BriefcaseIcon, BuildingIcon
+    DynamicIcon, PiggyBankIcon, BuildingIcon
 } from './Icons.tsx';
 import { useTheme } from '../contexts/ThemeContext.tsx';
 import { motion } from 'framer-motion';
 // @ts-ignore
 import confetti from 'canvas-confetti';
 import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
-import { calculateBusinessGoalProgress, getGoalPaceStatus, getPeriodDates } from '../modules/goals/logic.ts';
-import { cashBalanceFromPeriods, useCashPeriods } from '../modules/transactions/cashPeriods.ts';
+import { useGoalKpiProgress, useGoalManualHistory } from '../modules/goals/hooks';
+import {
+    GOAL_CASH_REGIME_NOTE, GOAL_COST_CENTER_KPI_NOTE, businessTypeLabel, businessTypeNeedsCashNote, civilDateKey,
+    formatBasisPoints, formatCents, formatCivilDate, formatInstantDate, goalPaceStatus,
+    goalProgressView, goalTargetText, monthlySuggestionCents, parseReaisToCents,
+} from '../modules/goals/model.ts';
+import { goalForecastLabel, goalTimelineEvents, type GoalMovementFact } from '../modules/goals/timeline.ts';
 import { listGoalInvestmentMovements } from '../modules/investments/persistence/readApi.ts';
 import { toGoalHistoryRows, type GoalHistoryRow } from '../modules/investments/simple/goalHistory.ts';
 import NewInvestmentModal from '../modules/investments/simple/components/NewInvestmentModal.tsx';
@@ -21,19 +25,24 @@ import LinkGoalInvestmentsModal from '../modules/investments/simple/components/L
 
 interface GoalDetailsViewProps {
     goal: Goal;
-    transactions: Transaction[];
     onBack: () => void;
     onEdit: (goal: Goal) => void;
-    onDelete: (goalId: string) => void;
-    onUpdateStatus?: (goal: Goal, status: GoalStatus) => void;
+    /** Arquiva a meta; devolve a mensagem de erro (pt-BR) ou `null` se arquivou. */
+    onDelete: (goalId: string) => Promise<string | null>;
+    /** Muda o status pelo backend; devolve a mensagem de erro ou `null`. */
+    onUpdateStatus: (goal: Goal, status: GoalStatus) => Promise<string | null>;
+    /** Atualiza o valor acumulado de meta manual; devolve a mensagem de erro ou `null`. */
+    onUpdateManualProgress: (goal: Goal, manualProgressCents: number) => Promise<string | null>;
 }
 
 const adjustBrightness = (color: string, amount: number) => {
     return '#' + color.replace(/^#/, '').replace(/../g, color => ('0'+Math.min(255, Math.max(0, parseInt(color, 16) + amount)).toString(16)).substr(-2));
 }
 
+const ARCHIVE_LINK_HINT = 'Use "Vincular Existente" para desvincular ou transferir os investimentos desta meta.';
+
 const GoalDetailsView: React.FC<GoalDetailsViewProps> = ({ 
-    goal, transactions, onBack, onEdit, onDelete, onUpdateStatus 
+    goal, onBack, onEdit, onDelete, onUpdateStatus, onUpdateManualProgress
 }) => {
     const { theme } = useTheme();
     const { activeWorkspace, activeWorkspaceRole } = useWorkspace();
@@ -49,10 +58,19 @@ const GoalDetailsView: React.FC<GoalDetailsViewProps> = ({
     const [isContributionOpen, setContributionOpen] = useState(false);
     const [isLinkOpen, setLinkOpen] = useState(false);
     const [feedback, setFeedback] = useState<string>();
+    const [actionError, setActionError] = useState<{ message: string; hint?: string } | null>(null);
+    const [isStatusBusy, setStatusBusy] = useState(false);
+    const [isArchiveBusy, setArchiveBusy] = useState(false);
+    const busyRef = useRef(false);
     const isPJ = activeWorkspace.type === 'PJ';
     const MotionDiv = motion.div as any;
+    const isInvestment = goal.progressSource === 'investment';
+    const isManual = goal.progressSource === 'manual';
+    const canWrite = activeWorkspaceRole === 'owner' || activeWorkspaceRole === 'admin' || activeWorkspaceRole === 'member';
+    const canSeeAudit = activeWorkspaceRole === 'owner' || activeWorkspaceRole === 'admin';
     /*
-     * Histórico patrimonial da meta, direto do ledger.
+     * Histórico patrimonial da meta, direto do ledger — só para meta de
+     * investimentos (meta manual e indicador PJ não têm posições vinculadas).
      *
      * O sinal de cada linha vem de `goalNetContributionDeltaCents`, que é o
      * valor que o backend aplicou no progresso da meta. Derivar o sinal da
@@ -61,50 +79,207 @@ const GoalDetailsView: React.FC<GoalDetailsViewProps> = ({
      */
     const goalMovements = useQuery<GoalHistoryRow[]>({
         queryKey: ['goal-investment-movements', activeWorkspace.id, goal.id],
-        enabled: Boolean(goal.id),
+        enabled: Boolean(goal.id) && isInvestment,
         queryFn: async () => toGoalHistoryRows(await listGoalInvestmentMovements(
             activeWorkspace.id,
             String(goal.id),
         )),
     });
 
-    // INV-P1-011 — saldo de caixa acumulado vem da projeção mensal, não da
-    // soma do array inteiro de transações do workspace.
-    const needsGlobalBalance = isPJ && goal.isAutomatic && goal.businessType === 'caixa_minimo';
-    const cashPeriods = useCashPeriods(activeWorkspace.id, needsGlobalBalance);
-    const cashBalance = cashBalanceFromPeriods(cashPeriods.data);
-    /*
-     * Projeção cortada no teto de leitura: o saldo acumulado sairia menor que
-     * o real, e com ele o progresso desta meta. A tela declara a limitação em
-     * vez de exibir um número incompleto como se fosse o saldo.
-     */
-    const cashBalanceIncomplete =
-        needsGlobalBalance && cashPeriods.data?.truncated === true;
+    // Indicador PJ calculado no servidor; as demais fontes não o consultam.
+    const kpiStates = useGoalKpiProgress(useMemo(
+        () => (goal.progressSource === 'business_kpi' ? [goal.id] : []),
+        [goal.id, goal.progressSource],
+    ));
+    const view = goalProgressView(goal, kpiStates.get(goal.id));
+    const today = civilDateKey();
+    const paceStatus = goalPaceStatus(goal, view, today);
+    const readyView = view.state === 'ready' ? view : null;
+    const percentBasisPoints = readyView?.percentBasisPoints ?? 0;
+    const barPercent = (readyView?.barBasisPoints ?? 0) / 100;
+    const progressText = readyView
+        ? readyView.valueText
+        : view.state === 'loading' ? 'Calculando...' : '—';
+    const targetText = readyView ? readyView.targetText : goalTargetText(goal);
+    const statusMessage = view.state === 'error' || view.state === 'unavailable' ? view.message : '';
+    const cashNote = businessTypeNeedsCashNote(goal.businessType) ? GOAL_CASH_REGIME_NOTE : '';
+    const progressCents = readyView && readyView.unit === 'cents' ? readyView.value : 0;
+    const targetCents = goal.targetAmountCents ?? 0;
 
-    const currentVal = useMemo(() => {
-        if (isPJ && goal.isAutomatic) {
-            return calculateBusinessGoalProgress(goal, transactions, cashBalance ?? 0);
+    const runGuarded = async (
+        setBusy: (busy: boolean) => void,
+        action: () => Promise<string | null>,
+        hint?: string,
+    ): Promise<boolean> => {
+        if (busyRef.current) return false;
+        busyRef.current = true;
+        setBusy(true);
+        setActionError(null);
+        setFeedback(undefined);
+        try {
+            const message = await action();
+            if (message) {
+                setActionError({ message, hint });
+                return false;
+            }
+            return true;
+        } finally {
+            busyRef.current = false;
+            setBusy(false);
         }
-        return goal.currentAmount;
-    }, [isPJ, goal, transactions, cashBalance]);
-
-    const percentage = goal.targetAmount > 0 ? (currentVal / goal.targetAmount) * 100 : 0;
-    const paceStatus = getGoalPaceStatus(goal, currentVal);
-
-    const periodInfo = useMemo(() => {
-        if (!isPJ || !goal.period) return null;
-        return getPeriodDates(goal.period, goal.startDate, goal.deadline);
-    }, [isPJ, goal]);
-
-    const formatValue = (val: number) => {
-        if (isPJ && goal.businessType === 'margem') return `${val.toFixed(1)}%`;
-        return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
     };
 
-  const handleComplete = () => {
-    confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: [goal.visual.color, '#ffffff'] });
-    onUpdateStatus?.(goal, 'alcancada');
-};
+    const handleStatus = async (status: GoalStatus) => {
+        if (goal.status === status) return;
+        const ok = await runGuarded(setStatusBusy, () => onUpdateStatus(goal, status));
+        if (ok && status === 'alcancada') {
+            confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: [goal.visual.color, '#ffffff'] });
+        }
+    };
+
+    const handleArchive = () => {
+        void runGuarded(setArchiveBusy, () => onDelete(goal.id), isInvestment ? ARCHIVE_LINK_HINT : undefined);
+    };
+
+    // --- Valor acumulado informado pelo usuário (meta manual) ---
+    const [isManualEditing, setManualEditing] = useState(false);
+    const [manualInput, setManualInput] = useState('');
+    const [manualError, setManualError] = useState<string | null>(null);
+    const [isManualSaving, setManualSaving] = useState(false);
+    const manualHistory = useGoalManualHistory(goal.id, isManual && canSeeAudit);
+
+    const openManualEditor = () => {
+        setManualInput('');
+        setManualError(null);
+        setFeedback(undefined);
+        setManualEditing(true);
+    };
+
+    const submitManual = async (event: React.FormEvent) => {
+        event.preventDefault();
+        if (busyRef.current) return;
+        const cents = parseReaisToCents(manualInput, { allowZero: true });
+        if (cents === null) {
+            setManualError('Informe o valor acumulado em reais, com até duas casas decimais (zero vale).');
+            return;
+        }
+        setManualError(null);
+        busyRef.current = true;
+        setManualSaving(true);
+        try {
+            const message = await onUpdateManualProgress(goal, cents);
+            if (message) {
+                setManualError(message);
+            } else {
+                setManualEditing(false);
+                setManualInput('');
+                setFeedback('Valor acumulado atualizado.');
+            }
+        } finally {
+            busyRef.current = false;
+            setManualSaving(false);
+        }
+    };
+
+    const manualPanel = (
+        <div className="flex flex-col min-h-0">
+            <div className="flex justify-between items-center mb-4 gap-2 flex-wrap">
+                <h3 className="font-bold text-lg text-gray-800 dark:text-white flex items-center gap-2"><HistoryIcon className="h-5 w-5 text-gray-400" /> Valor acumulado</h3>
+                {canWrite && !isManualEditing && goal.status !== 'cancelada' && (
+                    <button type="button" onClick={openManualEditor} className="text-xs bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg transition-colors">Atualizar valor acumulado</button>
+                )}
+            </div>
+            {feedback && (
+                <div role="status" className="mb-3 rounded-lg border border-green-200 dark:border-green-900/40 bg-green-50 dark:bg-green-900/20 px-3 py-2 text-sm text-green-700 dark:text-green-300">
+                    {feedback}
+                </div>
+            )}
+            {isManualEditing && (
+                <form onSubmit={submitManual} className="mb-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-dark-100 p-4 space-y-3">
+                    <div>
+                        <label htmlFor="goal-manual-progress" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Novo valor acumulado (R$)</label>
+                        <input
+                            id="goal-manual-progress"
+                            type="text"
+                            inputMode="decimal"
+                            value={manualInput}
+                            onChange={(event) => setManualInput(event.target.value)}
+                            placeholder="Ex: 1.500,00"
+                            autoFocus
+                            className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 dark:bg-dark-200 dark:text-white"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">O valor substitui o acumulado atual ({formatCents(goal.manualProgressCents ?? 0)}). Não cria lançamento nem move conta.</p>
+                    </div>
+                    {manualError && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{manualError}</p>}
+                    <div className="flex justify-end gap-2">
+                        <button type="button" disabled={isManualSaving} onClick={() => { setManualEditing(false); setManualError(null); }} className="px-3 py-1.5 text-sm bg-gray-100 dark:bg-dark-200 text-gray-700 dark:text-gray-300 rounded-lg">Cancelar</button>
+                        <button type="submit" disabled={isManualSaving} className="px-4 py-1.5 text-sm bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white rounded-lg font-medium">{isManualSaving ? 'Salvando...' : 'Salvar valor'}</button>
+                    </div>
+                </form>
+            )}
+            <div className="bg-white dark:bg-dark-100 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-4 space-y-3">
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                    Atualizado em {formatInstantDate(goal.manualProgressUpdatedAt)}
+                </p>
+                {canSeeAudit && (
+                    manualHistory.isError ? (
+                        <p role="alert" className="text-sm text-red-600 dark:text-red-400">Não foi possível carregar o histórico de atualizações.</p>
+                    ) : manualHistory.isLoading ? (
+                        <p className="text-sm text-gray-400">Carregando histórico...</p>
+                    ) : (manualHistory.data ?? []).length > 0 ? (
+                        <ul aria-label="Histórico de atualizações do valor acumulado" className="divide-y divide-gray-100 dark:divide-gray-800 text-sm">
+                            {(manualHistory.data ?? []).map((entry) => (
+                                <li key={entry.id} className="flex justify-between gap-3 py-2">
+                                    <span className="text-gray-500 dark:text-gray-400">{formatInstantDate(entry.timestamp)}</span>
+                                    <span className="font-medium text-gray-800 dark:text-gray-200 text-right">{formatCents(entry.beforeCents)} → {formatCents(entry.afterCents)}</span>
+                                </li>
+                            ))}
+                        </ul>
+                    ) : (
+                        <p className="text-sm text-gray-400">Nenhuma atualização manual registrada.</p>
+                    )
+                )}
+            </div>
+        </div>
+    );
+
+    const investmentButtons = (
+        <div className="flex gap-2">
+            <button type="button" onClick={() => { setFeedback(undefined); setLinkOpen(true); }} className="text-xs bg-gray-100 hover:bg-gray-200 dark:bg-dark-200 dark:hover:bg-dark-300 text-gray-700 dark:text-gray-300 px-3 py-1.5 rounded-lg transition-colors">Vincular Existente</button>
+            <button type="button" onClick={() => { setFeedback(undefined); setContributionOpen(true); }} className="text-xs bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1"><PlusIcon className="h-3 w-3" /> Novo Aporte</button>
+        </div>
+    );
+
+    const investmentModals = isInvestment ? (
+        <>
+            <NewInvestmentModal
+                open={isContributionOpen}
+                workspaceId={activeWorkspace.id}
+                goals={[goal]}
+                initialGoalId={String(goal.id)}
+                goalLocked
+                onClose={() => setContributionOpen(false)}
+                onSuccess={setFeedback}
+            />
+
+            <LinkGoalInvestmentsModal
+                open={isLinkOpen}
+                workspaceId={activeWorkspace.id}
+                goalId={String(goal.id)}
+                goalName={goal.name}
+                role={activeWorkspaceRole}
+                onClose={() => setLinkOpen(false)}
+                onSuccess={setFeedback}
+            />
+        </>
+    ) : null;
+
+    const actionBanner = actionError && (
+        <div role="alert" className="mb-4 rounded-lg border border-red-200 dark:border-red-900/40 bg-red-50 dark:bg-red-900/20 px-4 py-3 text-sm text-red-700 dark:text-red-300">
+            <p>{actionError.message}</p>
+            {actionError.hint && <p className="mt-1">{actionError.hint}</p>}
+        </div>
+    );
 
     const darkerColor = adjustBrightness(goal.visual.color, -50);
     const gradientStyle = `radial-gradient(circle at top left, rgba(255,255,255,0.2) 0%, transparent 40%), linear-gradient(135deg, ${goal.visual.color} 0%, ${darkerColor} 100%)`;
@@ -125,69 +300,33 @@ const GoalDetailsView: React.FC<GoalDetailsViewProps> = ({
         const goalTransactions = (goalMovements.data ?? [])
             .map((row) => ({
                 ...row,
-                date: row.occurredAt ? row.occurredAt.toISOString().slice(0, 10) : '',
-                /** Efeito no progresso, em reais — zero enquanto o lançamento é pendente. */
-                impact: row.impactCents / 100,
-                /** Valor do lançamento, que é o que o pendente tem a mostrar. */
-                value: row.valueCents / 100,
+                /** Data civil (AAAA-MM-DD) em São Paulo, ou vazio se desconhecida. */
+                date: row.occurredAt ? civilDateKey(row.occurredAt) : '',
             }))
-            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+            .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+        const movementFacts: GoalMovementFact[] = goalTransactions
+            .filter((row) => row.effective)
+            .map((row) => ({ dateKey: row.date, impactCents: row.impactCents }));
 
-        const remaining = Math.max(0, goal.targetAmount - goal.currentAmount);
-        
-        const monthlySuggestion = (() => {
-            if (goal.status !== 'em_andamento' || percentage >= 100) return 0;
-            const start = new Date();
-            const end = new Date(goal.deadline);
-            const months = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
-            return months > 0 ? remaining / months : remaining;
-        })();
+        const remainingCents = Math.max(0, targetCents - progressCents);
+        const reachedTarget = Boolean(readyView?.achieved);
 
-        const forecast = (() => {
-            if (percentage >= 100 || goal.status !== 'em_andamento') return null;
-            if (goalTransactions.length < 2) return null;
-            const sixMonthsAgo = new Date();
-            sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-            const recent = goalTransactions.filter(t => new Date(t.date) >= sixMonthsAgo);
-            const distinctMonths = new Set(recent.map(t => t.date.substring(0, 7))).size;
-            const divider = Math.max(1, distinctMonths);
-            const avgMonthly = recent.reduce((acc, row) => acc + row.impact, 0) / divider;
-            if (avgMonthly <= 0) return null;
-            const monthsNeeded = remaining / avgMonthly;
-            if (monthsNeeded > 120) return "> 10 anos";
-            const estimatedDate = new Date();
-            estimatedDate.setMonth(estimatedDate.getMonth() + Math.ceil(monthsNeeded));
-            return estimatedDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
-        })();
+        const monthlySuggestion = goal.status !== 'em_andamento' || reachedTarget
+            ? 0
+            : monthlySuggestionCents(targetCents, progressCents, goal.deadline, today);
 
-        // Timeline Logic Recreated
-        const timelineEvents = (() => {
-            const events = [];
-            events.push({ date: goal.startDate, title: 'Meta Criada', type: 'start', value: 0 });
-            const chronological = [...goalTransactions].reverse();
-            let runningTotal = 0;
-            let milestones = [0.25, 0.50, 0.75, 1.0];
-            let nextMilestoneIdx = 0;
-            chronological.forEach(t => {
-                const impact = t.impact;
-                runningTotal += impact;
-                const progress = runningTotal / goal.targetAmount;
-                while (nextMilestoneIdx < milestones.length && progress >= milestones[nextMilestoneIdx]) {
-                    const pct = milestones[nextMilestoneIdx] * 100;
-                    events.push({ date: t.date, title: `Alcançou ${pct}%`, type: 'milestone', value: runningTotal });
-                    nextMilestoneIdx++;
-                }
-                if (impact >= goal.targetAmount * 0.1) {
-                    events.push({ date: t.date, title: 'Grande Aporte', type: 'deposit', value: impact });
-                }
-            });
-            if (goal.status === 'alcancada' || percentage >= 100) {
-                 if (nextMilestoneIdx < milestones.length) {
-                     events.push({ date: new Date().toISOString().split('T')[0], title: 'Meta Concluída! 🎉', type: 'completion', value: goal.currentAmount });
-                 }
-            }
-            return events.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-        })();
+        const forecast = reachedTarget || goal.status !== 'em_andamento' || !isInvestment
+            ? null
+            : goalForecastLabel(movementFacts, remainingCents, today);
+
+        const timelineEvents = goalTimelineEvents({
+            startDate: goal.startDate,
+            status: goal.status,
+            statusUpdatedAt: goal.statusUpdatedAt,
+            targetCents,
+            progressCents,
+            achieved: reachedTarget,
+        }, isInvestment ? movementFacts : [], today);
 
         return (
             <div className="h-full flex flex-col animate-fade-in pb-10">
@@ -212,7 +351,12 @@ const GoalDetailsView: React.FC<GoalDetailsViewProps> = ({
                                  return (
                                      <button
                                          key={option.key}
-onClick={() => { if (option.key === 'alcancada' && !isActive) handleComplete(); else if (!isActive) onUpdateStatus?.(goal, option.key as GoalStatus); }}                                         className={`p-2 rounded-md transition-all flex items-center justify-center gap-2 text-sm font-medium ${activeClass}`}
+                                         type="button"
+                                         onClick={() => { if (!isActive) void handleStatus(option.key as GoalStatus); }}
+                                         disabled={isStatusBusy}
+                                         aria-label={isActive ? option.activeLabel : option.label}
+                                         aria-pressed={isActive}
+                                         className={`p-2 rounded-md transition-all flex items-center justify-center gap-2 text-sm font-medium disabled:opacity-60 ${activeClass}`}
                                          title={isActive ? option.activeLabel : option.label}
                                      >
                                          <DynamicIcon name={option.icon} size={18} />
@@ -222,10 +366,12 @@ onClick={() => { if (option.key === 'alcancada' && !isActive) handleComplete(); 
                             })}
                         </div>
                         <div className="h-6 w-px bg-gray-200 dark:bg-gray-700"></div>
-                        <button onClick={() => onEdit(goal)} className="p-2 bg-gray-100 text-gray-700 dark:bg-dark-200 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-dark-300 transition-colors"><EditIcon className="h-4 w-4" /></button>
-                        <button onClick={() => onDelete(goal.id)} aria-label="Arquivar meta" title="Arquivar meta" className="p-2 bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"><DeleteIcon className="h-4 w-4" /></button>
+                        <button type="button" onClick={() => onEdit(goal)} aria-label="Editar meta" title="Editar meta" className="p-2 bg-gray-100 text-gray-700 dark:bg-dark-200 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-dark-300 transition-colors"><EditIcon className="h-4 w-4" /></button>
+                        <button type="button" onClick={handleArchive} disabled={isArchiveBusy} aria-label="Arquivar meta" title="Arquivar meta" className="p-2 bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors disabled:opacity-60"><DeleteIcon className="h-4 w-4" /></button>
                     </div>
                 </div>
+
+                {actionBanner}
 
                 {/* Hero Section */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
@@ -248,30 +394,24 @@ onClick={() => { if (option.key === 'alcancada' && !isActive) handleComplete(); 
                         </div>
                         <div className="mt-8 relative z-10">
                             <div className="flex justify-between items-end mb-2">
-                                <div><span className="text-sm text-gray-500 dark:text-gray-400">Progresso Atual</span><div className="text-3xl font-bold text-gray-800 dark:text-white flex items-baseline gap-2">{formatValue(goal.currentAmount)}<span className="text-sm font-medium text-gray-400">/ {formatValue(goal.targetAmount)}</span></div></div>
-                                <div className="text-right"><span className="text-2xl font-bold" style={{ color: goal.visual.color }}>{percentage.toFixed(1)}%</span></div>
+                                <div><span className="text-sm text-gray-500 dark:text-gray-400">Progresso Atual</span><div className="text-3xl font-bold text-gray-800 dark:text-white flex items-baseline gap-2">{progressText}<span className="text-sm font-medium text-gray-400">/ {targetText}</span></div></div>
+                                <div className="text-right"><span className="text-2xl font-bold" style={{ color: goal.visual.color }}>{readyView ? formatBasisPoints(percentBasisPoints) : ''}</span></div>
                             </div>
-                            {cashBalanceIncomplete && (
-                                <p role="alert" className="mb-2 rounded-lg bg-amber-50 p-3 text-sm text-amber-900">
-                                    A projeção de caixa atingiu o limite seguro de leitura. O saldo
-                                    acumulado desta meta não cobre todo o histórico.
-                                </p>
-                            )}
                             <div className="h-4 bg-gray-100 dark:bg-dark-200 rounded-full overflow-hidden">
-                                <MotionDiv className="h-full rounded-full relative" initial={{ width: 0 }} animate={{ width: `${Math.min(100, percentage)}%` }} transition={{ duration: 1 }} style={{ backgroundColor: goal.visual.color }}><div className="absolute inset-0 bg-white/20 animate-pulse"></div></MotionDiv>
+                                <MotionDiv className="h-full rounded-full relative" initial={{ width: 0 }} animate={{ width: `${barPercent}%` }} transition={{ duration: 1 }} style={{ backgroundColor: goal.visual.color }}><div className="absolute inset-0 bg-white/20 animate-pulse"></div></MotionDiv>
                             </div>
-                            <div className="flex justify-between mt-2 text-xs font-medium text-gray-500 dark:text-gray-400"><span>Início: {new Date(goal.startDate).toLocaleDateString('pt-BR')}</span><span>Prazo: {new Date(goal.deadline).toLocaleDateString('pt-BR')}</span></div>
+                            <div className="flex justify-between mt-2 text-xs font-medium text-gray-500 dark:text-gray-400"><span>Início: {formatCivilDate(goal.startDate)}</span><span>Prazo: {formatCivilDate(goal.deadline)}</span></div>
                         </div>
                     </div>
 
                     <div className="grid grid-rows-3 gap-4">
                         <div className="bg-white dark:bg-dark-100 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 flex items-center gap-4">
                             <div className="p-3 bg-red-50 text-red-500 dark:bg-red-900/20 rounded-lg"><TargetIcon className="h-6 w-6" /></div>
-                            <div><span className="text-xs text-gray-500 dark:text-gray-400 uppercase font-bold">Falta Acumular</span><div className="text-lg font-bold text-gray-800 dark:text-white">{remaining > 0 ? formatValue(remaining) : 'Concluído!'}</div></div>
+                            <div><span className="text-xs text-gray-500 dark:text-gray-400 uppercase font-bold">Falta Acumular</span><div className="text-lg font-bold text-gray-800 dark:text-white">{remainingCents > 0 ? formatCents(remainingCents) : 'Alvo atingido!'}</div></div>
                         </div>
                         <div className="bg-white dark:bg-dark-100 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 flex items-center gap-4">
                             <div className="p-3 bg-indigo-50 text-indigo-500 dark:bg-indigo-900/20 rounded-lg"><TrendingUpIcon className="h-6 w-6" /></div>
-                            <div><span className="text-xs text-gray-500 dark:text-gray-400 uppercase font-bold">Sugestão Mensal</span><div className="text-lg font-bold text-gray-800 dark:text-white">{monthlySuggestion > 0 ? formatValue(monthlySuggestion) : '-'}</div></div>
+                            <div><span className="text-xs text-gray-500 dark:text-gray-400 uppercase font-bold">Sugestão Mensal</span><div className="text-lg font-bold text-gray-800 dark:text-white">{monthlySuggestion > 0 ? formatCents(monthlySuggestion) : '-'}</div></div>
                         </div>
                         <div className="bg-white dark:bg-dark-100 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 flex items-center gap-4">
                             <div className="p-3 bg-purple-50 text-purple-500 dark:bg-purple-900/20 rounded-lg"><ClockIcon className="h-6 w-6" /></div>
@@ -281,13 +421,13 @@ onClick={() => { if (option.key === 'alcancada' && !isActive) handleComplete(); 
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 flex-1 min-h-0">
+                    {isManual ? (
+                        <div className="lg:col-span-2 flex flex-col min-h-0">{manualPanel}</div>
+                    ) : (
                     <div className="lg:col-span-2 flex flex-col min-h-0">
                         <div className="flex justify-between items-center mb-4">
                             <h3 className="font-bold text-lg text-gray-800 dark:text-white flex items-center gap-2"><HistoryIcon className="h-5 w-5 text-gray-400" /> Histórico de investimentos</h3>
-                            <div className="flex gap-2">
-                                <button onClick={() => { setFeedback(undefined); setLinkOpen(true); }} className="text-xs bg-gray-100 hover:bg-gray-200 dark:bg-dark-200 dark:hover:bg-dark-300 text-gray-700 dark:text-gray-300 px-3 py-1.5 rounded-lg transition-colors">Vincular Existente</button>
-                                <button onClick={() => { setFeedback(undefined); setContributionOpen(true); }} className="text-xs bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1"><PlusIcon className="h-3 w-3" /> Novo Aporte</button>
-                            </div>
+                            {investmentButtons}
                         </div>
                         {feedback && (
                             <div role="status" className="mb-3 rounded-lg border border-green-200 dark:border-green-900/40 bg-green-50 dark:bg-green-900/20 px-3 py-2 text-sm text-green-700 dark:text-green-300">
@@ -315,11 +455,11 @@ onClick={() => { if (option.key === 'alcancada' && !isActive) handleComplete(); 
                                                         {t.description}
                                                     </td>
                                                     <td className="px-5 py-3 text-gray-500 dark:text-gray-400">{t.label}</td>
-                                                    <td className="px-5 py-3 text-gray-500 dark:text-gray-400">{t.date ? new Date(t.date).toLocaleDateString('pt-BR') : '—'}</td>
+                                                    <td className="px-5 py-3 text-gray-500 dark:text-gray-400">{formatCivilDate(t.date)}</td>
                                                     <td className={`px-5 py-3 text-right font-bold ${t.effective ? 'text-gray-800 dark:text-white' : 'text-gray-400 dark:text-gray-500'}`}>
                                                         {t.effective
-                                                            ? `${t.impact < 0 ? '−' : '+'} ${formatValue(Math.abs(t.impact))}`
-                                                            : formatValue(t.value)}
+                                                            ? `${t.impactCents < 0 ? '−' : '+'} ${formatCents(Math.abs(t.impactCents))}`
+                                                            : formatCents(t.valueCents)}
                                                     </td>
                                                 </tr>
                                             ))}
@@ -329,9 +469,10 @@ onClick={() => { if (option.key === 'alcancada' && !isActive) handleComplete(); 
                                     <div className="flex flex-col items-center justify-center h-48 text-gray-400"><PiggyBankIcon className="h-10 w-10 mb-2 opacity-50" /><p>Nenhum investimento vinculado ainda.</p></div>
                                 )}
                             </div>
-                            {goalTransactions.length > 0 && (<div className="p-4 border-t border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-dark-200/50 flex justify-between items-center"><span className="text-sm font-medium text-gray-600 dark:text-gray-300">Progresso Atual</span><span className="text-lg font-bold text-gray-800 dark:text-white">{formatValue(goal.currentAmount)}</span></div>)}
+                            {goalTransactions.length > 0 && (<div className="p-4 border-t border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-dark-200/50 flex justify-between items-center"><span className="text-sm font-medium text-gray-600 dark:text-gray-300">Progresso Atual</span><span className="text-lg font-bold text-gray-800 dark:text-white">{progressText}</span></div>)}
                         </div>
                     </div>
+                    )}
                     <div className="flex flex-col min-h-0">
                         <h3 className="font-bold text-lg text-gray-800 dark:text-white mb-4">Linha do Tempo</h3>
                         <div className="bg-white dark:bg-dark-100 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 flex-1 overflow-y-auto custom-scrollbar">
@@ -340,9 +481,9 @@ onClick={() => { if (option.key === 'alcancada' && !isActive) handleComplete(); 
                                     <div key={idx} className="relative pl-8">
                                         <div className={`absolute -left-[9px] top-0 w-4 h-4 rounded-full border-2 border-white dark:border-dark-100 shadow-sm ${event.type === 'start' ? 'bg-gray-400' : event.type === 'milestone' ? 'bg-indigo-500' : event.type === 'completion' ? 'bg-green-500' : 'bg-blue-400'}`}></div>
                                         <div>
-                                            <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{new Date(event.date).toLocaleDateString('pt-BR')}</span>
+                                            <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{formatCivilDate(event.date)}</span>
                                             <h4 className="font-bold text-gray-800 dark:text-white mt-0.5">{event.title}</h4>
-                                            {event.value > 0 && <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{event.type === 'deposit' ? `+ ${formatValue(event.value)}` : `Saldo: ${formatValue(event.value)}`}</p>}
+                                            {event.valueCents > 0 && <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{event.type === 'deposit' ? `+ ${formatCents(event.valueCents)}` : `Saldo: ${formatCents(event.valueCents)}`}</p>}
                                         </div>
                                     </div>
                                 ))}
@@ -356,45 +497,35 @@ onClick={() => { if (option.key === 'alcancada' && !isActive) handleComplete(); 
                   único destino do aporte — nenhuma transação é escrita aqui —,
                   e o vínculo retroativo usa as operações autoritativas de meta.
                 */}
-                <NewInvestmentModal
-                    open={isContributionOpen}
-                    workspaceId={activeWorkspace.id}
-                    goals={[goal]}
-                    initialGoalId={String(goal.id)}
-                    goalLocked
-                    onClose={() => setContributionOpen(false)}
-                    onSuccess={setFeedback}
-                />
-
-                <LinkGoalInvestmentsModal
-                    open={isLinkOpen}
-                    workspaceId={activeWorkspace.id}
-                    goalId={String(goal.id)}
-                    goalName={goal.name}
-                    role={activeWorkspaceRole}
-                    onClose={() => setLinkOpen(false)}
-                    onSuccess={setFeedback}
-                />
+                {investmentModals}
             </div>
         );
     }
 
     // --- PJ MODE RENDER (EXISTENTE) ---
+    const paceLabel = paceStatus === 'on_track' || paceStatus === 'completed'
+        ? 'No Ritmo'
+        : paceStatus === 'warning'
+            ? 'Atenção'
+            : paceStatus === 'neutral' ? '—' : 'Fora do Ritmo';
+    const periodWindow = readyView?.window;
     return (
         <div className="h-full flex flex-col animate-fade-in pb-10">
             <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
-                <button onClick={onBack} className="flex items-center gap-2 text-gray-500 hover:text-gray-800 transition-colors">
+                <button type="button" onClick={onBack} className="flex items-center gap-2 text-gray-500 hover:text-gray-800 transition-colors">
                     <BackIcon className="h-5 w-5" /> Voltar para Metas
                 </button>
                 <div className="flex items-center gap-3">
-                    <button onClick={() => onEdit(goal)} className="p-2 bg-gray-100 text-gray-700 dark:bg-dark-200 rounded-lg hover:bg-gray-200 transition-colors" title="Editar">
+                    <button type="button" onClick={() => onEdit(goal)} className="p-2 bg-gray-100 text-gray-700 dark:bg-dark-200 rounded-lg hover:bg-gray-200 transition-colors" title="Editar" aria-label="Editar meta">
                         <EditIcon className="h-4 w-4" />
                     </button>
-                    <button onClick={() => onDelete(goal.id)} className="p-2 bg-red-50 text-red-600 dark:bg-red-900/20 rounded-lg hover:bg-red-100 transition-colors" title="Arquivar" aria-label="Arquivar meta">
+                    <button type="button" onClick={handleArchive} disabled={isArchiveBusy} className="p-2 bg-red-50 text-red-600 dark:bg-red-900/20 rounded-lg hover:bg-red-100 transition-colors disabled:opacity-60" title="Arquivar" aria-label="Arquivar meta">
                         <DeleteIcon className="h-4 w-4" />
                     </button>
                 </div>
             </div>
+
+            {actionBanner}
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
                 <div className="lg:col-span-2 bg-white dark:bg-dark-100 rounded-2xl p-8 shadow-md border border-gray-100 dark:border-gray-700 relative overflow-hidden">
@@ -405,14 +536,14 @@ onClick={() => { if (option.key === 'alcancada' && !isActive) handleComplete(); 
                         <div className="flex-1">
                             <div className="flex items-center gap-3 mb-2">
                                 <span className="px-2.5 py-1 rounded text-[10px] uppercase font-bold tracking-widest bg-indigo-50 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400">
-                                    {isPJ && goal.businessType ? `Empresa • ${goal.businessType.replace('_', ' ')}` : goal.category.replace('_', ' ')}
+                                    {isPJ && goal.businessType ? `Empresa • ${businessTypeLabel(goal.businessType)}` : goal.category.replace('_', ' ')}
                                 </span>
                                 {goal.period && <span className="px-2.5 py-1 rounded text-[10px] uppercase font-bold bg-gray-100 text-gray-600">{goal.period}</span>}
                             </div>
                             <h1 className="text-4xl font-black text-gray-800 dark:text-white mb-2">{goal.name}</h1>
                             {goal.costCenter && (
                                 <p className="text-sm font-bold text-primary flex items-center gap-2 mb-3">
-                                    <BuildingIcon className="w-4 h-4" /> {goal.costCenter}
+                                    <BuildingIcon className="w-4 h-4" /> Centro de custo: {goal.costCenter}
                                 </p>
                             )}
                             <p className="text-gray-500 dark:text-gray-400 text-sm">{goal.description}</p>
@@ -423,20 +554,30 @@ onClick={() => { if (option.key === 'alcancada' && !isActive) handleComplete(); 
                         <div className="flex justify-between items-end mb-3">
                             <div>
                                 <span className="text-sm font-bold text-gray-400 uppercase tracking-widest">Atual</span>
-                                <div className="text-4xl font-black text-gray-800 dark:text-white">{formatValue(currentVal)}</div>
+                                <div className="text-4xl font-black text-gray-800 dark:text-white">{progressText}</div>
                             </div>
                             <div className="text-right">
                                 <span className="text-sm font-bold text-gray-400 uppercase tracking-widest">Objetivo</span>
-                                <div className="text-2xl font-bold text-gray-400">{formatValue(goal.targetAmount)}</div>
+                                <div className="text-2xl font-bold text-gray-400">{targetText}</div>
                             </div>
                         </div>
+                        {statusMessage && (
+                            <p role="status" className="mb-3 rounded-lg bg-amber-50 p-3 text-sm text-amber-900">{statusMessage}</p>
+                        )}
                         <div className="h-5 bg-gray-100 dark:bg-dark-200 rounded-full overflow-hidden relative">
-                            <MotionDiv className="h-full rounded-full" initial={{ width: 0 }} animate={{ width: `${Math.min(100, percentage)}%` }} transition={{ duration: 1 }} style={{ backgroundColor: goal.visual.color }} />
+                            <MotionDiv className="h-full rounded-full" initial={{ width: 0 }} animate={{ width: `${barPercent}%` }} transition={{ duration: 1 }} style={{ backgroundColor: readyView?.overLimit ? '#ef4444' : goal.visual.color }} />
                         </div>
                         <div className="flex justify-between mt-3 text-xs font-bold text-gray-400 uppercase">
-                            <span>Início: {new Date(goal.startDate).toLocaleDateString('pt-BR')}</span>
-                            <span>Prazo: {new Date(goal.deadline).toLocaleDateString('pt-BR')}</span>
+                            <span>Início: {formatCivilDate(goal.startDate)}</span>
+                            <span>Prazo: {formatCivilDate(goal.deadline)}</span>
                         </div>
+                        {readyView?.asOf && (
+                            <p className="mt-2 text-xs text-gray-500">Saldo em {formatInstantDate(readyView.asOf)}.</p>
+                        )}
+                        {cashNote && <p className="mt-2 text-xs text-gray-500">{cashNote}</p>}
+                        {goal.costCenter && goal.progressSource === 'business_kpi' && (
+                            <p className="mt-2 text-xs text-gray-500">{GOAL_COST_CENTER_KPI_NOTE}</p>
+                        )}
                     </div>
                 </div>
 
@@ -445,24 +586,40 @@ onClick={() => { if (option.key === 'alcancada' && !isActive) handleComplete(); 
                         <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl"><TargetIcon className="h-6 w-6" /></div>
                         <div>
                             <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block">Status do Ritmo</span>
-                            <p className={`text-lg font-black uppercase ${paceStatus === 'on_track' ? 'text-green-600' : 'text-red-500'}`}>
-                                {paceStatus === 'on_track' ? 'No Ritmo' : paceStatus === 'warning' ? 'Atenção' : 'Fora do Ritmo'}
+                            <p className={`text-lg font-black uppercase ${paceStatus === 'on_track' || paceStatus === 'completed' ? 'text-green-600' : paceStatus === 'neutral' ? 'text-gray-400' : 'text-red-500'}`}>
+                                {paceLabel}
                             </p>
                         </div>
                     </div>
-                    {isPJ && goal.period && (
+                    {isPJ && periodWindow && (
                          <div className="bg-white dark:bg-dark-100 rounded-2xl p-5 shadow-sm border border-gray-100 flex items-center gap-4">
                             <div className="p-3 bg-purple-50 text-purple-600 rounded-xl"><ClockIcon className="h-6 w-6" /></div>
                             <div>
                                 <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block">Período Vigente</span>
                                 <p className="text-sm font-bold text-gray-800 dark:text-white">
-                                    {periodInfo?.start.toLocaleDateString('pt-BR')} até {periodInfo?.end.toLocaleDateString('pt-BR')}
+                                    {formatCivilDate(periodWindow.startDate)} até {formatCivilDate(periodWindow.endDate)}
                                 </p>
                             </div>
                         </div>
                     )}
                 </div>
             </div>
+
+            {isInvestment && (
+                <div className="flex flex-col gap-3">
+                    <div className="flex justify-between items-center">
+                        <h3 className="font-bold text-lg text-gray-800 dark:text-white flex items-center gap-2"><HistoryIcon className="h-5 w-5 text-gray-400" /> Investimentos da meta</h3>
+                        {investmentButtons}
+                    </div>
+                    {feedback && (
+                        <div role="status" className="rounded-lg border border-green-200 dark:border-green-900/40 bg-green-50 dark:bg-green-900/20 px-3 py-2 text-sm text-green-700 dark:text-green-300">
+                            {feedback}
+                        </div>
+                    )}
+                </div>
+            )}
+            {isManual && manualPanel}
+            {investmentModals}
         </div>
     );
 };

@@ -2,7 +2,7 @@
 import React from 'react';
 import { SummaryCardProps } from '../types.ts';
 
-const SummaryCard: React.FC<SummaryCardProps> = ({ title, value, trend, icon, color, isClickable, onClick }) => {
+const SummaryCard: React.FC<SummaryCardProps> = ({ title, value, displayValue, trend, icon, color, isClickable, onClick }) => {
     const formatCurrency = (val: number) => {
         return new Intl.NumberFormat('pt-BR', {
             style: 'currency',
@@ -68,7 +68,7 @@ const SummaryCard: React.FC<SummaryCardProps> = ({ title, value, trend, icon, co
                     {icon}
                 </div>
             </div>
-            <p className="text-3xl font-bold text-on-surface">{formatCurrency(value)}</p>
+            <p className="text-3xl font-bold text-on-surface">{displayValue ?? formatCurrency(value)}</p>
             <div className={`mt-2 text-sm ${selectedColor.trendText}`}>
                 <span>{trend}</span>
             </div>

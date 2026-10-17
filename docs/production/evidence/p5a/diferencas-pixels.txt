@@ -1,0 +1,12 @@
+chat-pf-conversa-desktop-claro.png {"pct":"0.00","bbox":null}
+chat-pf-conversa-desktop-escuro.png {"pct":"0.00","bbox":null}
+chat-pf-conversa-mobile-claro.png {"pct":"0.00","bbox":null}
+chat-pf-conversa-mobile-escuro.png {"pct":"0.00","bbox":null}
+chat-pf-de-volta-desktop-claro.png {"pct":"0.00","bbox":null}
+chat-pf-de-volta-desktop-escuro.png {"pct":"0.00","bbox":null}
+chat-pf-vazio-desktop-claro.png {"pct":"0.00","bbox":null}
+chat-pf-vazio-desktop-escuro.png {"pct":"0.00","bbox":null}
+chat-pf-vazio-mobile-claro.png {"pct":"0.00","bbox":null}
+chat-pf-vazio-mobile-escuro.png {"pct":"0.00","bbox":null}
+chat-pj-depois-da-troca-desktop-claro.png {"pct":"0.00","bbox":null}
+chat-pj-depois-da-troca-desktop-escuro.png {"pct":"0.00","bbox":null}

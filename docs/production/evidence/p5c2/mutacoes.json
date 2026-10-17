@@ -1,0 +1,634 @@
+{
+ "T01": {
+  "group": "int",
+  "description": "fallback por `value` em reais quando falta valueCents",
+  "file": "functions/src/cash/periods.ts",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 53,
+  "evidence": [
+   "not ok 2 - documento fora do contrato lança violação; anulado vale zero",
+   "# (node:19891) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+   "not ok 12 - reconstrução recusa publicar com documento fora do contrato",
+   "# (node:19903) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+   "not ok 28 - documento fora do contrato gravado à mão (escritor indevido): a projeção não muda e o estado fica `needsRebuild` com `contract_violation`",
+   "# pass 27"
+  ]
+ },
+ "T02": {
+  "group": "unit",
+  "description": "valor inválido vira R$ 0,00 em vez de violação",
+  "file": "functions/src/cash/periods.ts",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 26,
+  "evidence": [
+   "not ok 71 - P3-F — caixa realizado: pendente e agendado não movem o caixa",
+   "not ok 86 - fora do contrato lança violação: nunca efeito zero silencioso",
+   "not ok 87 - anulado e pendente valem zero; só o pendente exige valor válido",
+   "not ok 89 - valor no teto do produto é aceito; um centavo acima lança violação",
+   "not ok 90 - documento com marca de domínio também segue o contrato: tipo coerente com a marca e valor válido (nunca efeito sem validação)",
+   "# Subtest: ApplicationError recent_login_required → failed-precondition"
+  ]
+ },
+ "T03": {
+  "group": "int",
+  "description": "fallback por `transactionDate` convertido em UTC",
+  "file": "functions/src/cash/periods.ts",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 51,
+  "evidence": [
+   "# (node:20426) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+   "not ok 6 - chave mensal é o prefixo de `date`, sem conversão de fuso",
+   "# (node:20438) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+   "not ok 28 - documento fora do contrato gravado à mão (escritor indevido): a projeção não muda e o estado fica `needsRebuild` com `contract_violation`",
+   "# pass 28",
+   "# fail 2"
+  ]
+ },
+ "T04": {
+  "group": "unit",
+  "description": "`parcelado` contado como despesa",
+  "file": "functions/src/cash/periods.ts",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 26,
+  "evidence": [
+   "not ok 73 - P3-F — contratos de cartões e investimentos preservados",
+   "not ok 86 - fora do contrato lança violação: nunca efeito zero silencioso",
+   "not ok 87 - anulado e pendente valem zero; só o pendente exige valor válido",
+   "not ok 90 - documento com marca de domínio também segue o contrato: tipo coerente com a marca e valor válido (nunca efeito sem validação)",
+   "# Subtest: ApplicationError recent_login_required → failed-precondition",
+   "ok 256 - ApplicationError recent_login_required → failed-precondition"
+  ]
+ },
+ "T05": {
+  "group": "unit",
+  "description": "pendente move caixa (D-29)",
+  "file": "functions/src/cash/periods.ts",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 26,
+  "evidence": [
+   "not ok 55 - pendente fica fora do realizado: receitas, despesas e saldo",
+   "not ok 71 - P3-F — caixa realizado: pendente e agendado não movem o caixa",
+   "not ok 72 - P3-F — confirmação no mês seguinte entra no mês da data efetiva",
+   "not ok 79 - pendente não move; confirmação entra na data efetiva; anulação sai",
+   "not ok 87 - anulado e pendente valem zero; só o pendente exige valor válido",
+   "# Subtest: ApplicationError recent_login_required → failed-precondition"
+  ]
+ },
+ "T06": {
+  "group": "unit",
+  "description": "espelho de investimento com tipo diferente de `investimento` aceito",
+  "file": "functions/src/cash/periods.ts",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 26,
+  "evidence": [
+   "not ok 86 - fora do contrato lança violação: nunca efeito zero silencioso",
+   "not ok 129 - documento investimento sem marca válida viola o contrato (PR-INV-01)",
+   "# Subtest: ApplicationError recent_login_required → failed-precondition",
+   "ok 256 - ApplicationError recent_login_required → failed-precondition",
+   "# Subtest: ApplicationError account_not_initialized → failed-precondition",
+   "ok 258 - ApplicationError account_not_initialized → failed-precondition"
+  ]
+ },
+ "T07": {
+  "group": "int",
+  "description": "gatilho classifica violação como falha genérica (sem contract_violation)",
+  "file": "functions/src/triggers/transactions.ts",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 50,
+  "evidence": [
+   "# (node:21634) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+   "not ok 13 - documento fora do contrato gravado à mão (escritor indevido): a projeção não muda e o estado fica `needsRebuild` com `contract_violation`",
+   "# pass 14",
+   "# fail 1"
+  ]
+ },
+ "T08": {
+  "group": "int",
+  "description": "reconstrução ignora o documento fora do contrato (reconciliação ignorada)",
+  "file": "functions/src/cash/rebuild.ts",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 68,
+  "evidence": [
+   "# (node:21833) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+   "# (node:21850) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+   "not ok 32 - P5-C2 — documento fora do contrato: gatilho marca, reconstrução recusa e não publica; corrigido, publica",
+   "not ok 33 - P5-C2 — documento sem valueCents ou sem date também recusa publicar",
+   "# pass 31",
+   "# fail 2"
+  ]
+ },
+ "T12": {
+  "group": "unit",
+  "description": "espelho com marca de domínio aplicado sem validar tipo e valor",
+  "file": "functions/src/cash/periods.ts",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 28,
+  "evidence": [
+   "not ok 90 - documento com marca de domínio também segue o contrato: tipo coerente com a marca e valor válido (nunca efeito sem validação)",
+   "# Subtest: ApplicationError recent_login_required → failed-precondition",
+   "ok 256 - ApplicationError recent_login_required → failed-precondition",
+   "# Subtest: ApplicationError account_not_initialized → failed-precondition",
+   "ok 258 - ApplicationError account_not_initialized → failed-precondition",
+   "# Subtest: ApplicationError workspace_archived → failed-precondition"
+  ]
+ },
+ "T13": {
+  "group": "unit",
+  "description": "sem teto de produto (só o teto seguro do JavaScript)",
+  "file": "functions/src/cash/periods.ts",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 27,
+  "evidence": [
+   "not ok 89 - valor no teto do produto é aceito; um centavo acima lança violação",
+   "# Subtest: ApplicationError recent_login_required → failed-precondition",
+   "ok 256 - ApplicationError recent_login_required → failed-precondition",
+   "# Subtest: ApplicationError account_not_initialized → failed-precondition",
+   "ok 258 - ApplicationError account_not_initialized → failed-precondition",
+   "# Subtest: ApplicationError workspace_archived → failed-precondition"
+  ]
+ },
+ "T14": {
+  "group": "unit",
+  "description": "espelho de investimento com valor diferente da marca aceito",
+  "file": "functions/src/cash/periods.ts",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 26,
+  "evidence": [
+   "not ok 90 - documento com marca de domínio também segue o contrato: tipo coerente com a marca e valor válido (nunca efeito sem validação)",
+   "# Subtest: ApplicationError recent_login_required → failed-precondition",
+   "ok 256 - ApplicationError recent_login_required → failed-precondition",
+   "# Subtest: ApplicationError account_not_initialized → failed-precondition",
+   "ok 258 - ApplicationError account_not_initialized → failed-precondition",
+   "# Subtest: ApplicationError workspace_archived → failed-precondition"
+  ]
+ },
+ "T15": {
+  "group": "unit",
+  "description": "pendente com `date` inválido aceito em silêncio",
+  "file": "functions/src/cash/periods.ts",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 27,
+  "evidence": [
+   "not ok 86 - fora do contrato lança violação: nunca efeito zero silencioso",
+   "# Subtest: ApplicationError recent_login_required → failed-precondition",
+   "ok 256 - ApplicationError recent_login_required → failed-precondition",
+   "# Subtest: ApplicationError account_not_initialized → failed-precondition",
+   "ok 258 - ApplicationError account_not_initialized → failed-precondition",
+   "# Subtest: ApplicationError workspace_archived → failed-precondition"
+  ]
+ },
+ "T09": {
+  "group": "int",
+  "description": "espelho de empréstimo volta a gravar `value` em reais",
+  "file": "functions/src/loans/model.ts",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 47,
+  "evidence": [
+   "# (node:23443) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+   "not ok 7 - contrato — empréstimo: espelhos de pagamento e recebimento gravam o schema canônico",
+   "not ok 10 - conciliação — todos os produtores no mesmo workspace: mês = Σ cashPeriodDeltaFor, dia a dia e Σ dias = mês",
+   "# pass 13",
+   "# fail 2"
+  ]
+ },
+ "T10": {
+  "group": "int",
+  "description": "espelho de investimento gravado como despesa",
+  "file": "functions/src/investments/cash.ts",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 48,
+  "evidence": [
+   "# (node:23646) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+   "not ok 6 - contrato — investimento: aporte, retirada e estorno gravam o schema canônico (tipo `investimento` só com `investmentEntry`)",
+   "not ok 10 - conciliação — todos os produtores no mesmo workspace: mês = Σ cashPeriodDeltaFor, dia a dia e Σ dias = mês",
+   "# pass 13",
+   "# fail 2"
+  ]
+ },
+ "T11": {
+  "group": "int",
+  "description": "lançamento manual volta a gravar `transactionDate`",
+  "file": "functions/src/cash/createTransaction.ts",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 45,
+  "evidence": [
+   "# (node:23849) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+   "not ok 2 - contrato — caixa manual: criação confirmada (receita e despesa), pendente, correção, confirmação e anulação gravam só o schema canônico",
+   "not ok 3 - contrato — importação em lote grava só o schema canônico",
+   "not ok 4 - contrato — recorrente: a ocorrência confirmada que gera lançamento grava só o schema canônico",
+   "not ok 10 - conciliação — todos os produtores no mesmo workspace: mês = Σ cashPeriodDeltaFor, dia a dia e Σ dias = mês",
+   "not ok 11 - virada de ano e de mês: 31/12 e 01/01 caem nos meses certos (`date` decide), inclusive depois de uma correção de data"
+  ]
+ },
+ "F01": {
+  "group": "front",
+  "description": "leitura usa `value` em reais quando falta valueCents",
+  "file": "src/modules/transactions/contract.ts",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 17,
+  "evidence": [
+   "not ok 17 - value em reais não substitui valueCents ausente",
+   "# pass 22",
+   "# fail 1"
+  ]
+ },
+ "F02": {
+  "group": "front",
+  "description": "leitura aceita `parcelado`",
+  "file": "src/modules/transactions/contract.ts",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 17,
+  "evidence": [
+   "not ok 19 - type fora de receita/despesa/investimento (inclusive parcelado): excluído",
+   "# pass 22",
+   "# fail 1"
+  ]
+ },
+ "F03": {
+  "group": "front",
+  "description": "documento inválido vira R$ 0,00 em vez de excluído",
+  "file": "src/modules/transactions/contract.ts",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 18,
+  "evidence": [
+   "not ok 16 - valueCents ausente, float, negativo, texto ou não seguro: excluído",
+   "not ok 17 - value em reais não substitui valueCents ausente",
+   "# pass 21",
+   "# fail 2"
+  ]
+ },
+ "F04": {
+  "group": "front",
+  "description": "valor exibido arredondado para reais inteiros",
+  "file": "src/modules/transactions/amount.ts",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 18,
+  "evidence": [
+   "not ok 21 - helper de apresentação deriva reais de valueCents",
+   "# pass 22",
+   "# fail 1"
+  ]
+ },
+ "F05": {
+  "group": "front",
+  "description": "frontend aceita `investimento` sem a marca",
+  "file": "src/modules/transactions/contract.ts",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 17,
+  "evidence": [
+   "not ok 15 - tipo coerente com a marca e valor no teto, como no backend: senão excluído",
+   "# pass 22",
+   "# fail 1"
+  ]
+ },
+ "F06": {
+  "group": "front",
+  "description": "início da janela calculado em UTC",
+  "file": "src/modules/transactions/cashEntry.ts",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 17,
+  "evidence": [
+   "not ok 23 - início da janela é o dia civil de São Paulo, sem deslocamento UTC",
+   "# pass 22",
+   "# fail 1"
+  ]
+ },
+ "E01": {
+  "group": "e2e",
+  "description": "aba de compra parcelada desviada para lançamento de caixa",
+  "file": "src/components/TransactionModal.tsx",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 119,
+  "evidence": [
+   "    Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeHidden\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed",
+   "\u001b[1A\u001b[2K  1 failed"
+  ]
+ },
+ "M01": {
+  "group": "int",
+  "description": "M2: ciclo aberto sempre marcado como não fechado",
+  "file": "functions/src/reports/cards.ts",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 48,
+  "evidence": [
+   "# (node:28703) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+   "not ok 5 - 04 fatura corrente fechada e parcialmente paga: é a atual pelo restante; o ciclo aberto seguinte é futuro",
+   "not ok 10 - 09 estorno de compra faturada: o saldo cai e as classes refletem",
+   "not ok 12 - 10b estorno de pagamento de fatura ainda não vencida: volta a ser a atual",
+   "not ok 13 - 11 mesmo vencimento: o modelo permite empate (fevereiro curto com fechamento 28 e vencimento 29–31); a competência mais antiga é a atual",
+   "not ok 14 - 12 virada de ano e de mês em São Paulo: vence em 31/12 e em 28/02"
+  ]
+ },
+ "M02": {
+  "group": "int",
+  "description": "M3: crédito não aplicado omitido",
+  "file": "functions/src/reports/cards.ts",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 48,
+  "evidence": [
+   "# (node:25564) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+   "not ok 10 - 09 estorno de compra faturada: o saldo cai e as classes refletem",
+   "not ok 21 - M3-01 crédito em fatura aberta: informado à parte, sem abater a próxima fatura a pagar nem o futuro, sem mexer no limite",
+   "not ok 23 - M3-03 crédito maior que as compras do ciclo; o fechamento o transporta uma única vez (reexecução idempotente) e a compra seguinte o consome",
+   "not ok 24 - M3-04 duas faturas abertas com crédito (dois cartões) e um cartão arquivado com obrigação: o crédito do bloco é a soma, sem dupla contagem",
+   "# pass 20"
+  ]
+ },
+ "M03": {
+  "group": "int",
+  "description": "M3: compensação prematura (crédito abate o pendente)",
+  "file": "functions/src/reports/cards.ts",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 49,
+  "evidence": [
+   "# (node:25785) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+   "not ok 10 - 09 estorno de compra faturada: o saldo cai e as classes refletem",
+   "not ok 21 - M3-01 crédito em fatura aberta: informado à parte, sem abater a próxima fatura a pagar nem o futuro, sem mexer no limite",
+   "not ok 23 - M3-03 crédito maior que as compras do ciclo; o fechamento o transporta uma única vez (reexecução idempotente) e a compra seguinte o consome",
+   "not ok 24 - M3-04 duas faturas abertas com crédito (dois cartões) e um cartão arquivado com obrigação: o crédito do bloco é a soma, sem dupla contagem",
+   "# pass 20"
+  ]
+ },
+ "M04": {
+  "group": "int",
+  "description": "vencida tratada como atual (próxima fatura de qualquer pendente)",
+  "file": "functions/src/reports/cards.ts",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 47,
+  "evidence": [
+   "# (node:26005) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+   "not ok 1 - 00 adversarial: vencida 100, corrente 300 e futura 200 no mesmo cartão — a atual não é a vencida",
+   "not ok 3 - 02 fatura anterior vencida mais a corrente",
+   "not ok 4 - 03 duas faturas vencidas mais a corrente",
+   "not ok 9 - 08 cartão arquivado: sem saldo fica fora da lista; com saldo (estorno de pagamento depois do arquivamento, aceito pela P4-A) aparece marcado e fecha com o bloco",
+   "not ok 10 - 09 estorno de compra faturada: o saldo cai e as classes refletem"
+  ]
+ },
+ "M05": {
+  "group": "front",
+  "description": "M2: \"ciclo aberto\" mesmo com ciclo efetivamente fechado",
+  "file": "src/modules/reports/adapter.ts",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 17,
+  "evidence": [
+   "not ok 22 - P5-C2 M2 — ciclo aberto vem do servidor: só aberta e não efetivamente fechada",
+   "# pass 36",
+   "# fail 1"
+  ]
+ },
+ "M06": {
+  "group": "front",
+  "description": "M2: Cartões oferece fatura vencida como próxima a pagar",
+  "file": "src/modules/cards/presentation.ts",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 17,
+  "evidence": [
+   "not ok 9 - seções das faturas: fechada não vencida vira a próxima a pagar; ciclo aberto e seguinte separados",
+   "not ok 12 - seções das faturas: vencida não é a próxima a pagar; sem nenhuma, a seção não existe",
+   "# pass 28",
+   "# fail 2"
+  ]
+ },
+ "M07": {
+  "group": "front",
+  "description": "M3: nota de crédito da fatura aberta suprimida",
+  "file": "src/modules/cards/presentation.ts",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 17,
+  "evidence": [
+   "not ok 13 - crédito em fatura aberta: nota só quando aberta e com total negativo",
+   "# pass 29",
+   "# fail 1"
+  ]
+ },
+ "M08": {
+  "group": "e2e",
+  "description": "L5: coluna \"Em atraso\" sem o valor autoritativo",
+  "file": "src/components/ReportsChartsView.tsx",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 89,
+  "evidence": [
+   "    Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed",
+   "\u001b[1A\u001b[2K  1 failed"
+  ]
+ },
+ "M09": {
+  "group": "front",
+  "description": "L5: atraso de arquivado fora da nota de reconciliação",
+  "file": "src/modules/reports/adapter.ts",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 18,
+  "evidence": [
+   "not ok 25 - P5-C2 L5 — atraso de cartões arquivados fica fora da tabela por cartão e é somado para a nota",
+   "# pass 36",
+   "# fail 1"
+  ]
+ },
+ "L01": {
+  "group": "int",
+  "description": "L8: catch genérico (toda exceção vira indisponível)",
+  "file": "functions/src/reports/report.ts",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 42,
+  "evidence": [
+   "# (node:27301) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+   "not ok 5 - L8-04 erro de autorização ou de domínio dentro do leitor não é mascarado como indisponibilidade",
+   "not ok 6 - L8-05 invariante quebrada e falha estrutural derrubam a chamada (nunca resultado parcial)",
+   "# pass 8",
+   "# fail 2"
+  ]
+ },
+ "L02": {
+  "group": "int",
+  "description": "L8: PERMISSION_DENIED e UNAUTHENTICATED mascarados como indisponível",
+  "file": "functions/src/reports/report.ts",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 43,
+  "evidence": [
+   "not ok 1 - isRecoverableReadError: só infraestrutura passageira do Firestore",
+   "# (node:27503) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+   "not ok 5 - L8-04 erro de autorização ou de domínio dentro do leitor não é mascarado como indisponibilidade",
+   "# pass 8",
+   "# fail 2"
+  ]
+ },
+ "L03": {
+  "group": "int",
+  "description": "L8: dívidas exatas com cartões indisponíveis",
+  "file": "functions/src/reports/report.ts",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 43,
+  "evidence": [
+   "# (node:28922) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+   "not ok 3 - L8-02 dívidas dependem de cartões: empréstimos e recebíveis seguem, mas o bloco vem parcial e sem obrigações de cartão",
+   "# pass 9",
+   "# fail 1"
+  ]
+ },
+ "L04": {
+  "group": "int",
+  "description": "L8: obrigação de cartão indisponível vira R$ 0,00",
+  "file": "functions/src/reports/report.ts",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 41,
+  "evidence": [
+   "# (node:27859) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+   "not ok 3 - L8-02 dívidas dependem de cartões: empréstimos e recebíveis seguem, mas o bloco vem parcial e sem obrigações de cartão",
+   "# pass 9",
+   "# fail 1"
+  ]
+ },
+ "L05": {
+  "group": "int",
+  "description": "L8: log leva a mensagem do SDK em vez do código",
+  "file": "functions/src/reports/report.ts",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 42,
+  "evidence": [
+   "# (node:28055) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+   "not ok 7 - L8-06 erro de rede transitório e contenção isolados por bloco; o log leva o bloco e o código, sem a mensagem",
+   "# pass 9",
+   "# fail 1"
+  ]
+ },
+ "L07": {
+  "group": "int",
+  "description": "L8: alertas de empréstimo somem com cartões indisponíveis",
+  "file": "functions/src/reports/report.ts",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 42,
+  "evidence": [
+   "# (node:29127) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+   "not ok 4 - L8-03 alertas com cartões indisponíveis declaram cobertura parcial e mantêm os alertas de empréstimo, que não dependem de cartões",
+   "# pass 9",
+   "# fail 1"
+  ]
+ },
+ "L06": {
+  "group": "int",
+  "description": "revalidação de membership removida da admissão do relatório",
+  "file": "functions/src/reports/callables.ts",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 44,
+  "evidence": [
+   "# (node:28413) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+   "not ok 6 - 26b callable: papel rebaixado ou acesso removido entre a pré-checagem e a admissão — vale o papel relido, sem dado indevido",
+   "# pass 9",
+   "# fail 1"
+  ]
+ }
+}

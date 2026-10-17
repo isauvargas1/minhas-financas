@@ -1,0 +1,55 @@
+# P5-C2 — prova de remoção por busca (working tree, 2026-10-11T00:35:12Z)
+
+## 1. transactionDate em produção (src, functions/src; sem testes) — só comentários e a lista de campos descartados na leitura
+src/modules/transactions/api.ts:94: * janela é feito por ela. `transactionDate` (instante) saiu do contrato na
+src/modules/transactions/contract.ts:32:const LEGACY_FIELDS = ['value', 'transactionDate', 'installments', 'currentInstallment'] as const;
+functions/src/cash/createTransaction.ts:67: * (a data civil é `date`); não há `value` em reais nem `transactionDate`.
+
+## 2. gravação de value em reais: 'value:' derivado de centavos em functions/src (sem testes)
+(nenhuma ocorrência)
+
+## 3. leitura de .value de Transaction no frontend (as ocorrências abaixo são pontos de gráfico do relatório oficial e tipos de meta, não Transaction)
+src/components/TransactionsChart.tsx:19:            value: item.value,
+src/components/DistributionChart.tsx:52:        return items.map((item) => ({ name: item.name, value: item.value, fill: fills[item.kind] }));
+src/components/GoalFormModal.tsx:235:                                    const selected = progressSource !== 'manual' && form.businessType === t.value;
+src/components/GoalFormModal.tsx:238:                                        key={t.value}
+src/components/GoalFormModal.tsx:240:                                        onClick={() => patch({ businessType: t.value, icon: t.icon, measure: 'net_contributions' })}
+src/components/GoalFormModal.tsx:262:                                    : BUSINESS_GOAL_TYPES.find(t => t.value === form.businessType)?.description}
+
+## 4. conversões valueCents/100 no frontend (apresentação)
+src/modules/transactions/amount.ts:8:  transaction.valueCents / 100;
+src/components/TransactionModal.tsx:476:            setValue(String(transactionToEdit.valueCents / 100));
+
+## 5. parcelado em produção — aba 'Cartão' do formulário (compra pelo domínio de Cartões), mapeamento do catálogo, prompt de IA e comentários
+src/modules/settings-catalog/callables.ts:63: * `parcelado`.
+src/modules/settings-catalog/callables.ts:69:  return type === 'parcelado' ? 'despesa' : type;
+src/modules/settings-catalog/types.ts:17: * e usa categoria de despesa; não existe subtipo `parcelado`.
+src/components/TransactionModal.tsx:158:        return ['receita', 'despesa', 'investimento', 'parcelado'];
+src/components/TransactionModal.tsx:422:        if (activeTab !== 'parcelado' || !selectedCreditCardForPurchase) {
+src/components/TransactionModal.tsx:573:        if (data.type && (['receita', 'despesa', 'parcelado'].includes(data.type))) {
+src/components/TransactionModal.tsx:741:        if (activeTab === 'despesa' || activeTab === 'parcelado') {
+src/components/TransactionModal.tsx:750:        if (activeTab === 'parcelado' && !isEditing) {
+src/components/TransactionModal.tsx:753:             * `createCreditCardPurchase`. Nenhum lançamento `parcelado` é
+src/components/TransactionModal.tsx:767:                category: getCategoryOptions('parcelado')
+src/components/TransactionModal.tsx:873:                case 'parcelado': return `${base} text-purple-600 dark:text-purple-400 border-b-2 border-purple-600 dark:border-purple-400`;
+src/components/TransactionModal.tsx:883:        parcelado: 'focus:ring-purple-500'
+src/components/TransactionModal.tsx:890:        parcelado: 'bg-purple-600 hover:bg-purple-700 dark:bg-purple-700 dark:hover:bg-purple-800'
+src/components/TransactionModal.tsx:898:        const showSupplier = activeTab === 'despesa' || activeTab === 'parcelado';
+src/components/TransactionModal.tsx:995:        if (activeTab === 'parcelado') {
+src/components/TransactionModal.tsx:1359:                            {resolvedAllowedTypes.includes('parcelado') && (
+src/components/TransactionModal.tsx:1361:                                    onClick={() => handleTabChange('parcelado')}
+src/components/TransactionModal.tsx:1362:                                    className={tabClasses('parcelado')}
+src/App.tsx:160:            setTransactionModalAllowedTypes(['despesa', 'parcelado']);
+src/types.ts:21: * Aba/tipo do formulário de lançamento. `parcelado` é a aba de compra parcelada
+src/types.ts:24:export type TransactionFormType = TransactionType | 'parcelado';
+functions/src/ai/callables.ts:172:  "investimento, parcelado), description, value (número), date (YYYY-MM-DD), " +
+functions/src/cash/periods.ts:163: * `parcelado` legado inclusive) ou com marca de domínio ilegível.
+functions/src/cash/periods.ts:201:    // `investimento` sem a marca, `parcelado` legado ou tipo desconhecido.
+functions/src/cash/periods.ts:246: * `parcelado` legado inclusive: a compra de cartão vive em
+functions/src/settingsCatalog/model.ts:53: * `parcelado`.
+functions/src/recurring/facts.ts:41: *   `parcelado` nem `cardId` em `transactions`.
+
+## 6. Guardas executáveis
+- functions/src/shared/__tests__/transactionsContract.integration.test.ts (FORBIDDEN_FIELDS value/transactionDate, tipo, marca, teto, date, Timestamp) sobre os documentos gravados por todos os produtores no Emulator
+- createTransaction/mutateTransaction/importTransactions/d29Lifecycle/simpleMode: '"value" in doc === false' e '"transactionDate" in doc === false'
+- tests/unit/transactions-contract.test.ts (frontend)

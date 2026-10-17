@@ -4,10 +4,10 @@ import { useWorkspace } from '../../contexts/WorkspaceContext.tsx';
 import { categorySubtypeForTransactionType } from './callables';
 import { useSettingsCatalog } from './hooks';
 import { buildLegacyTransactionCatalogOptions } from './transactionFormAdapters';
-import type { TransactionType } from '../../types.ts';
+import type { TransactionFormType } from '../../types.ts';
 
 export const useTransactionCatalogOptions = (
-  transactionType?: TransactionType | null
+  transactionType?: TransactionFormType | null
 ) => {
   const { activeWorkspace } = useWorkspace();
 

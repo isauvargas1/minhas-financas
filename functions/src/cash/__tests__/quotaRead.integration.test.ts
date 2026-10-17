@@ -13,6 +13,11 @@ import {
 } from "../../shared/testSupport/kernelTestSupport";
 import {transferWorkspaceOwnership} from "../../workspaces/callables";
 import {
+  DEFAULT_EXPENSE_CATEGORY_ID,
+  DEFAULT_INCOME_CATEGORY_ID,
+  seedDefaultCategories,
+} from "../../settingsCatalog/testSupport/categorySeeds";
+import {
   call,
   db,
   expectHttpsError,
@@ -50,6 +55,7 @@ const team = async () => {
   await seedMember(workspaceId, admin, "admin");
   await seedMember(workspaceId, member, "member");
   await seedMember(workspaceId, viewer, "viewer");
+  await seedDefaultCategories(workspaceId);
   return {workspaceId, owner, admin, member, viewer};
 };
 
@@ -76,7 +82,7 @@ const create = (uid: string, workspaceId: string) =>
     idempotencyKey: idempotencyKey(),
     type: "receita",
     description: "Receita",
-    category: "Salário",
+    categoryId: DEFAULT_INCOME_CATEGORY_ID,
     amountCents: 1_000,
     date: "2026-09-10",
   });
@@ -123,7 +129,7 @@ test("P3-E — a leitura acompanha criação e importação", async () => {
       lineId: `l${index}`,
       type: "despesa",
       description: `Linha ${index}`,
-      category: "Casa",
+      categoryId: DEFAULT_EXPENSE_CATEGORY_ID,
       amountCents: 100 * index,
       date: "2026-09-10",
     })),

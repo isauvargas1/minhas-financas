@@ -35,15 +35,6 @@ import {
   RECEIVABLE_STATUS_LABELS,
 } from '../../src/modules/clients/presentation.ts';
 import type { Client, Receivable, ReceivableMovement } from '../../src/modules/clients/types.ts';
-import {
-  isOperationalExpense,
-  isOperationalIncome,
-  operationalExpenseOf,
-  operationalIncomeOf,
-  summarizeCashFlow,
-  transactionCashImpact,
-} from '../../src/modules/investments/semantics.ts';
-import type { Transaction } from '../../src/types.ts';
 
 /**
  * P3-I — o frontend de clientes e recebíveis lê um único formato (o
@@ -272,31 +263,4 @@ test('P3-I — erros: pt-BR do backend preservado; resultado incerto orienta ree
   assert.match(clientsErrorView({ code: 'functions/internal', message: 'internal' }).message, /não duplica/);
   assert.deepEqual(clientsErrorView(new ClientInputError('Selecione o cliente.')),
     { kind: 'validation', message: 'Selecione o cliente.', refresh: false });
-});
-
-test('P3-I — espelho de recebimento: principal é receita operacional; juros e multa só no saldo', () => {
-  const mirror = (reversal: boolean): Transaction => ({
-    id: reversal ? 'estorno' : 'recebimento', type: reversal ? 'despesa' : 'receita',
-    description: 'Recebimento de recebível', category: 'Recebíveis', value: 920, valueCents: 92_000,
-    date: '2026-10-05', isPaid: true,
-    receivableEntry: {
-      receivableId: 'rcv_1', receivableMovementId: 'rmv_1', clientId: 'cli_1', reversal,
-      principalCents: 90_000, interestCents: 1_500, penaltyCents: 500, discountCents: 10_000,
-    },
-  } as Transaction);
-  const plain = { id: 'p', type: 'receita', description: 'Venda', category: 'Vendas', value: 100, date: '2026-10-05', isPaid: true } as Transaction;
-  assert.equal(isOperationalIncome(mirror(false)), false, 'não é receita comum inteira');
-  assert.equal(operationalIncomeOf(mirror(false)), 900, 'só o principal');
-  assert.equal(operationalIncomeOf(mirror(true)), -900, 'estorno desfaz o principal');
-  assert.equal(isOperationalExpense(mirror(true)), false, 'estorno não é despesa');
-  assert.equal(operationalExpenseOf(mirror(true)), 0);
-  assert.equal(transactionCashImpact(mirror(false)), 920, 'o caixa recebe principal + juros + multa');
-  const summary = summarizeCashFlow([mirror(false), plain]);
-  assert.equal(summary.income, 1000);
-  assert.equal(summary.expenses, 0);
-  assert.equal(summary.balance, 1020);
-  const reversed = summarizeCashFlow([mirror(false), mirror(true), plain]);
-  assert.equal(reversed.income, 100);
-  assert.equal(reversed.expenses, 0);
-  assert.equal(reversed.balance, 100);
 });

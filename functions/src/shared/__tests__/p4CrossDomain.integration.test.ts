@@ -48,6 +48,9 @@ import {
   executeCreateSettingsCatalogItem,
   executeUpdateSettingsCatalogItem,
 } from "../../settingsCatalog/operations";
+import {
+  seedDefaultCategories,
+} from "../../settingsCatalog/testSupport/categorySeeds";
 import {executeCreateSplitBill} from "../../splitBills/billOperations";
 import {executeCreateSplitGroup} from "../../splitBills/groupOperations";
 import {
@@ -287,6 +290,7 @@ test("gate P4 — caixa: cartão, recorrente, divisão, reembolso PJ e " +
   "sem quota manual; trilha do gatilho com o efeito autoritativo",
 async () => {
   const t = await seedSplitTenant("PJ", "p4g-cash");
+  await seedDefaultCategories(t.workspaceId);
   tenants.push(t);
   const accountId = defaultAccountOf(t.workspaceId);
 
@@ -416,28 +420,65 @@ test("gate P4 — `transactions` forjado não vira saldo, patrimônio, fatura " 
     .find((doc) => doc.get("investmentEntry"))?.get("investmentEntry");
   assert.ok(realEntry);
 
+  const projectionView = async () => ({
+    periods: (await ws(t.workspaceId).collection("cash_report_periods").get())
+      .docs.map((doc) => [doc.id, doc.data()]),
+    state: (await ws(t.workspaceId).collection("cash_period_events")
+      .doc("projection_state").get()).data(),
+  });
+  const projectionBefore = await projectionView();
+  assert.notEqual(projectionBefore.state?.needsRebuild, true);
+
   // Escritas que nenhum produtor faz (as Rules negam ao cliente; aqui o Admin
   // SDK simula um documento que chegou por fora).
   const forged = ws(t.workspaceId).collection("transactions");
   await forged.doc("forjado-sem-marca").set({
-    type: "investimento", value: 9_999.99, valueCents: 999_999,
+    type: "investimento", valueCents: 999_999,
     date: "2026-08-11", isPaid: true, cashAccountId: accountId,
     workspaceId: t.workspaceId,
   });
   await forged.doc("forjado-com-marca").set({
-    type: "investimento", value: 7_777.77, valueCents: 777_777,
+    type: "investimento", valueCents: 777_777,
     date: "2026-08-12", isPaid: true, cashAccountId: accountId,
     accountMovementId: "acm_inexistente", workspaceId: t.workspaceId,
     investmentEntry: {...realEntry, movementId: "mov-forjado",
       amountCents: 777_777},
   });
   await forged.doc("forjado-pagamento").set({
-    type: "despesa", value: 200, valueCents: 20_000, date: "2026-03-26",
+    type: "despesa", valueCents: 20_000, date: "2026-03-26",
     isPaid: true, cashAccountId: accountId, workspaceId: t.workspaceId,
     creditCardPaymentEntry: {cardId, invoiceId: invoiceIdFor(cardId,
       "2026-03"), paymentId: "pagamento-forjado", amountCents: 20_000,
     accountMovementId: "acm_forjado", reversal: false},
   });
+
+  // Contrato único (P5-C2): `investimento` sem marca e marca de pagamento
+  // ilegível estão fora do contrato. Entregues ao gatilho, não aplicam nada
+  // à projeção de caixa e a deixam marcada para reconstrução.
+  const deliverForged = async (id: string) => {
+    const snapshot = await forged.doc(id).get();
+    return handleTransactionWrite({
+      eventId: `evt-forjado-${id}`,
+      workspaceId: t.workspaceId,
+      transactionId: id,
+      eventTime: Timestamp.now(),
+      after: snapshot.data(),
+    });
+  };
+  assert.equal((await deliverForged("forjado-sem-marca")).projection,
+    "failed_recorded");
+  const flagged = (await projectionView()).state;
+  assert.equal(flagged?.needsRebuild, true);
+  assert.equal(flagged?.lastIssueCode, "contract_violation");
+  assert.equal(flagged?.lastIssueTransactionId, "forjado-sem-marca");
+  assert.equal((await deliverForged("forjado-pagamento")).projection,
+    "failed_recorded");
+  const flaggedTwice = (await projectionView()).state;
+  assert.equal(flaggedTwice?.issueCount, 2);
+  assert.equal(flaggedTwice?.lastIssueCode, "contract_violation");
+  assert.equal(flaggedTwice?.lastIssueTransactionId, "forjado-pagamento");
+  assert.deepEqual((await projectionView()).periods, projectionBefore.periods,
+    "os totais mensais de caixa não mudaram");
 
   // Nenhuma autoridade mudou.
   assert.deepEqual(await read(`cash_accounts/${accountId}`), before.account);
@@ -502,6 +543,7 @@ test("gate P4 — RBAC uniforme: papel relido na transação; viewer, " +
   "membership removido e member em operação administrativa recusados, " +
   "sem escrita", async () => {
   const t = await seedSplitTenant("PF", "p4g-rbac");
+  await seedDefaultCategories(t.workspaceId);
   const cardId = await createCard(t);
   await buy(t, cardId, "2026-03-10", {totalCents: 5_000});
   const catalog = await investmentCatalog(t);
@@ -568,7 +610,9 @@ test("gate P4 — workspace: conta, cartão, posição e item de outro " +
   "workspace são recusados em toda integração crítica, sem escrita",
 async () => {
   const a = await seedSplitTenant("PF", "p4g-ws-a");
+  await seedDefaultCategories(a.workspaceId);
   const b = await seedSplitTenant("PF", "p4g-ws-b");
+  await seedDefaultCategories(b.workspaceId);
   const cardA = await createCard(a);
   await buy(a, cardA, "2026-03-10", {totalCents: 10_000});
   const cardB = await createCard(b);

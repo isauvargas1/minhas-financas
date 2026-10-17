@@ -25,6 +25,10 @@ import {
   transferWorkspaceOwnership,
 } from "../../workspaces/callables";
 import {
+  DEFAULT_EXPENSE_CATEGORY_ID,
+  seedDefaultCategories,
+} from "../../settingsCatalog/testSupport/categorySeeds";
+import {
   call,
   db,
   expectHttpsError,
@@ -72,6 +76,7 @@ const tenant = async (plan: Plan = "free") => {
     await seedMember(workspaceId, admin, "admin");
     await seedMember(workspaceId, viewer, "viewer");
   }
+  await seedDefaultCategories(workspaceId);
   return {workspaceId, owner, admin, member, viewer};
 };
 
@@ -100,7 +105,7 @@ const entryInput = (workspaceId: string, overrides = {}) => ({
   idempotencyKey: idempotencyKey(),
   type: "despesa",
   description: "Mercado",
-  category: "Casa",
+  categoryId: DEFAULT_EXPENSE_CATEGORY_ID,
   amountCents: 10_000,
   date: "2026-09-15",
   ...overrides,
@@ -176,6 +181,8 @@ test("P3-D — conta por workspace: um espaço não consome outro", async () => 
   const [a, b] = [uniqueId("quota-a"), uniqueId("quota-b")];
   await seedWorkspace({workspaceId: a, ownerId: owner});
   await seedWorkspace({workspaceId: b, ownerId: owner});
+  await seedDefaultCategories(a);
+  await seedDefaultCategories(b);
   await setUsed(a, month(), 1000);
   await expectHttpsError(create(owner, a), "resource-exhausted");
   await create(owner, b);
@@ -320,7 +327,8 @@ test("P3-D — correção e anulação não consomem nem devolvem", async () => 
     reason: "Valor",
     entry: {
       cashAccountId: defaultAccountOf(t.workspaceId),
-      type: "despesa", description: "Mercado", category: "Casa",
+      type: "despesa", description: "Mercado",
+      categoryId: DEFAULT_EXPENSE_CATEGORY_ID,
       amountCents: 12_000, date: "2026-09-15",
     },
   });
@@ -362,7 +370,8 @@ test("P3-D — downgrade: uso acima do limite só barra criações", async () =>
     reason: "Ajuste",
     entry: {
       cashAccountId: defaultAccountOf(t.workspaceId),
-      type: "despesa", description: "Mercado", category: "Casa",
+      type: "despesa", description: "Mercado",
+      categoryId: DEFAULT_EXPENSE_CATEGORY_ID,
       amountCents: 9_000, date: "2026-09-15",
     },
   });

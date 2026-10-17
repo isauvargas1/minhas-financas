@@ -12,6 +12,7 @@ import {
     FilterIcon,
     CloseIcon,
 } from './Icons.tsx';
+import { transactionAmount } from '../modules/transactions/amount.ts';
 import { useBilling } from '../modules/billing/BillingContext';
 import { transactionsQuotaView } from '../modules/billing/transactionsQuota';
 import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
@@ -26,6 +27,8 @@ import {
 interface TransactionsViewProps {
     viewType: 'receita' | 'despesa';
     transactions: Transaction[];
+    /** Lançamentos fora do contrato excluídos da lista (nunca viram R$ 0,00). */
+    invalidCount?: number;
     onBack: () => void;
     onAddTransaction: () => void;
     onEditTransaction: (transaction: Transaction) => void;
@@ -36,7 +39,7 @@ type SortableKeys =
     | 'description'
     | 'category'
     | 'date'
-    | 'value'
+    | 'valueCents'
     | 'incomeType'
     | 'expenseType'
     | 'paymentMethod'
@@ -81,6 +84,7 @@ const formatDate = (dateString: string) => {
 const TransactionsView: React.FC<TransactionsViewProps> = ({
     viewType,
     transactions,
+    invalidCount = 0,
     onBack,
     onAddTransaction,
     onEditTransaction,
@@ -137,9 +141,7 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({
             return transaction.incomeType || '';
         }
 
-        return transaction.type === 'parcelado'
-            ? 'Parcelamento'
-            : transaction.expenseType || '';
+        return transaction.expenseType || '';
     };
 
     const secondaryOptions = useMemo<string[]>(() => {
@@ -170,7 +172,6 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({
                 transaction.expenseType,
                 transaction.paymentMethod || (transaction.cardId ? 'Cartão de Crédito' : ''),
                 getSecondaryFilterValue(transaction),
-                transaction.type === 'parcelado' ? 'Parcelamento' : '',
                 transaction.isPaid ? 'Pago' : 'Pendente',
             ];
 
@@ -220,16 +221,12 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({
             switch (key) {
                 case 'date':
                     return getDateTimestamp(transaction.date);
-                case 'value':
-                    return transaction.value ?? 0;
+                case 'valueCents':
+                    return transaction.valueCents;
                 case 'incomeType':
                     return normalizeText(transaction.incomeType);
                 case 'expenseType':
-                    return normalizeText(
-                        transaction.type === 'parcelado'
-                            ? 'Parcelamento'
-                            : transaction.expenseType,
-                    );
+                    return normalizeText(transaction.expenseType);
                 case 'paymentMethod':
                     return normalizeText(
                         transaction.paymentMethod ||
@@ -267,18 +264,21 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({
         return sortableItems;
     }, [filteredTransactions, sortConfig]);
 
-    const filteredTotal = useMemo(
+    // Soma em centavos inteiros; a conversão para reais é só de exibição.
+    const filteredTotalCents = useMemo(
         () =>
             filteredTransactions.reduce(
-                (total, transaction) => total + transaction.value,
+                (total, transaction) => total + transaction.valueCents,
                 0,
             ),
         [filteredTransactions],
     );
 
+    const filteredTotal = filteredTotalCents / 100;
+
     const filteredAverage =
         filteredTransactions.length > 0
-            ? filteredTotal / filteredTransactions.length
+            ? filteredTotalCents / filteredTransactions.length / 100
             : 0;
 
     const paidTransactionsCount = useMemo(
@@ -328,7 +328,7 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({
                 { key: 'incomeType', label: 'Tipo de Receita', align: 'left' },
                 { key: 'category', label: 'Categoria', align: 'left' },
                 { key: 'description', label: 'Origem/Descrição', align: 'left' },
-                { key: 'value', label: 'Valor (R$)', align: 'center' },
+                { key: 'valueCents', label: 'Valor (R$)', align: 'center' },
                 { key: 'date', label: 'Data', align: 'center' },
             ];
         }
@@ -341,7 +341,7 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({
                 { key: 'paymentMethod', label: 'Forma Pgto', align: 'left' },
                 { key: 'isPaid', label: 'Status', align: 'center' },
                 { key: 'date', label: 'Vencimento', align: 'left' },
-                { key: 'value', label: 'Valor', align: 'center' },
+                { key: 'valueCents', label: 'Valor', align: 'center' },
             ];
         }
 
@@ -350,7 +350,7 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({
             { key: 'category', label: 'Categoria', align: 'left' },
             { key: 'isPaid', label: 'Status', align: 'center' },
             { key: 'date', label: 'Data', align: 'left' },
-            { key: 'value', label: 'Valor', align: 'center' },
+            { key: 'valueCents', label: 'Valor', align: 'center' },
         ];
     }, [viewType]);
 
@@ -520,6 +520,14 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({
                             </button>
                         )}
                     </div>
+
+                    {invalidCount > 0 && (
+                        <p role="status" className="mt-3 text-xs text-gray-500 dark:text-gray-400">
+                            {invalidCount === 1
+                                ? '1 lançamento com dados inconsistentes não exibido nos meses carregados.'
+                                : `${invalidCount} lançamentos com dados inconsistentes não exibidos nos meses carregados.`}
+                        </p>
+                    )}
                 </div>
 
                 <div className="overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-dark-100 shadow-sm">
@@ -601,7 +609,7 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({
                                                         ] || ''
                                                             }`}
                                                     >
-                                                        + {formatCurrency(transaction.value)}
+                                                        + {formatCurrency(transactionAmount(transaction))}
                                                     </td>
 
                                                     <td className="py-4 px-4 text-center text-gray-600 dark:text-gray-300 whitespace-nowrap">
@@ -639,7 +647,7 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({
                                                 <>
                                                     <td className="py-4 px-4 text-gray-800 dark:text-gray-200">
                                                         <div className="max-w-[280px]">
-                                                            {(transaction.type === 'despesa' || transaction.type === 'parcelado') ? (
+                                                            {transaction.type === 'despesa' ? (
                                                                 <CatalogVisualChip
                                                                     visual={visuals.productService}
                                                                     fallbackLabel={transaction.description}
@@ -650,13 +658,8 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({
                                                                 </div>
                                                             )}
 
-                                                            <div className="mt-1 flex flex-wrap items-center gap-2">
-                                                                {transaction.type === 'parcelado' ? (
-                                                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-bold bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300">
-                                                                        PARCELA {transaction.currentInstallment}/{transaction.installments}
-                                                                    </span>
-                                                                ) : null}
-                                                            </div>
+                                                            {/* Espaço da linha mantido (o selo de parcela saiu com o tipo `parcelado`). */}
+                                                            <div className="mt-1 flex flex-wrap items-center gap-2" />
                                                         </div>
                                                     </td>
 
@@ -670,14 +673,10 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({
                                                     {viewType === 'despesa' && (
                                                         <>
                                                             <td className="py-4 px-4 text-gray-600 dark:text-gray-300">
-                                                                {transaction.expenseType || transaction.type === 'parcelado' ? (
+                                                                {transaction.expenseType ? (
                                                                     <CatalogVisualChip
                                                                         visual={visuals.expenseType}
-                                                                        fallbackLabel={
-                                                                            transaction.type === 'parcelado'
-                                                                                ? 'Parcelamento'
-                                                                                : transaction.expenseType
-                                                                        }
+                                                                        fallbackLabel={transaction.expenseType}
                                                                     />
                                                                 ) : (
                                                                     '-'
@@ -722,7 +721,7 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({
                                                         ] || ''
                                                             }`}
                                                     >
-                                                        {transactionCashImpactCents(transaction) > 0 ? '+' : transactionCashImpactCents(transaction) < 0 ? '-' : '•'} {formatCurrency(transaction.value)}
+                                                        {transactionCashImpactCents(transaction) > 0 ? '+' : transactionCashImpactCents(transaction) < 0 ? '-' : '•'} {formatCurrency(transactionAmount(transaction))}
                                                     </td>
 
                                                     <td className="py-4 px-4 text-center">

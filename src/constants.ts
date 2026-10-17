@@ -4,21 +4,18 @@ export const transactionTypeColors = {
     receita: 'text-green-600 dark:text-green-400',
     despesa: 'text-red-600 dark:text-red-400',
     investimento: 'text-blue-600 dark:text-blue-400',
-    parcelado: 'text-purple-600 dark:text-purple-400',
 };
 
 export const chartColors = {
     light: {
         receita: '#22c55e',
         despesa: '#ef4444',
-        investimento: '#3b82f6',
-        parcelado: '#a855f7'
+        investimento: '#3b82f6'
     },
     dark: {
         receita: '#4ade80',
         despesa: '#f87171',
-        investimento: '#60a5fa',
-        parcelado: '#c084fc'
+        investimento: '#60a5fa'
     }
 }
 

@@ -29,9 +29,7 @@ const delta = (fields: Partial<CashPeriodDelta>): CashPeriodDelta =>
 const receita = (date: string, valueCents: number) => ({
   type: "receita",
   valueCents,
-  value: valueCents / 100,
   date,
-  transactionDate: Timestamp.fromDate(new Date(`${date}T15:00:00.000Z`)),
 });
 
 test("P3-B — falha passageira é relançada; permanente não", () => {

@@ -1,0 +1,28 @@
+# P5-D2.1 — prova de remoção do legado substituído (2026-10-12T09:28:45Z)
+Busca em functions/src, src, tests, e2e, firestore.rules, firestore.indexes.json (sem node_modules, lib, dist).
+
+== 'RECEIVABLE_OVERDUE_ALERT_DAYS': 0 ocorrência(s)
+== 'RECEIVABLE_OVERDUE_CURSOR_DOC': 0 ocorrência(s)
+== 'system/receivable_overdue_notifications': 3 ocorrência(s)
+tests/firestore/notifications-p5d2.rules.integration.test.mjs:629:// P5-D2.1 — o cursor global `system/receivable_overdue_notifications` da
+tests/firestore/notifications-p5d2.rules.integration.test.mjs:690:      await denied(getDoc(doc(clientDb, 'system/receivable_overdue_notifications')), `${name} lê o cursor antigo`);
+tests/firestore/notifications-p5d2.rules.integration.test.mjs:691:      await denied(setDoc(doc(clientDb, 'system/receivable_overdue_notifications'), {cursor: null}),
+== 'savedCursor': 0 ocorrência(s)
+== 'RECEIVABLE_OVERDUE_PAGE_SIZE = 200': 0 ocorrência(s)
+== 'RECEIVABLE_OVERDUE_MAX_PAGES = 25': 0 ocorrência(s)
+== 'every day 06:45': 0 ocorrência(s)
+== 'collectionGroup(RECEIVABLES_COLLECTION': 0 ocorrência(s)
+== 'collectionGroup("receivables"': 0 ocorrência(s)
+
+== Índice de grupo de 'receivables' em firestore.indexes.json:
+0 índice(s)
+overrides das coleções novas: [{"collectionGroup": "receivable_overdue_queue", "fieldPath": "runAfterDay", "indexes": [{"order": "ASCENDING", "queryScope": "COLLECTION"}, {"order": "ASCENDING", "queryScope": "COLLECTION_GROUP"}]}]
+
+== Rules: as coleções novas em isBackendOwnedCollection e blocos próprios
+480:      'receivable_overdue_queue',
+481:      'receivable_overdue_deliveries',
+1050:match /receivable_overdue_queue/{receivableId} {
+1054:match /receivable_overdue_deliveries/{notificationId} {
+
+== O caminho antigo system/{doc} não tem Rule (negado por padrão):
+nenhuma regra para /system (negado)

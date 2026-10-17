@@ -8,6 +8,8 @@ import {sha256} from "../shared/hashing";
 import {createOperationLogger} from "../shared/logger";
 import {SCHEDULED_FUNCTION_OPTIONS} from "../shared/runtimeOptions";
 import {workspaceRef} from "../shared/workspaceAuth";
+import {buildNotificationDocument} from "../notifications/builder";
+import {NotificationContractError} from "../notifications/contract";
 import {formatBrl} from "./common";
 import {appendInvoiceClosedEvent} from "./invoiceOperations";
 import {
@@ -82,6 +84,12 @@ const dayLabel = (dayKey: string): string =>
 const notificationIdFor = (kind: string, invoiceId: string): string =>
   `cc${kind}_${sha256(`${kind}:${invoiceId}`).slice(0, 32)}`;
 
+/**
+ * Documento do aviso de cartão. Passa pelo builder único das notificações
+ * (P5-D2), que valida o contrato e lança `NotificationContractError` se o
+ * texto ou os identificadores não couberem nele; o formato do documento e o
+ * ID `cc<tipo>_<hash>` (D-36) continuam os mesmos.
+ */
 const notificationDocument = (input: {
   id: string;
   workspaceId: string;
@@ -90,23 +98,43 @@ const notificationDocument = (input: {
   type: "credit_card" | "warning" | "error";
   cardId: string;
   invoiceId: string;
-  kind: string;
-}): admin.firestore.DocumentData => ({
+  kind: "invoice_closed" | "invoice_due_soon" | "invoice_overdue";
+  /** Instante de criação, capturado uma única vez por documento. */
+  createdAtMs: number;
+}): admin.firestore.DocumentData => buildNotificationDocument({
   id: input.id,
   workspaceId: input.workspaceId,
+  eventType: input.kind,
   title: input.title,
   message: input.message,
   type: input.type,
-  read: false,
   link: "cards",
-  actionLabel: "Ver cartões",
-  createdAt: new Date().toISOString(),
-  source: "credit_card_invoice",
-  domain: "credit_card",
-  domainEventType: input.kind,
-  cardId: input.cardId,
-  invoiceId: input.invoiceId,
+  createdAtMs: input.createdAtMs,
+  entity: {cardId: input.cardId, invoiceId: input.invoiceId},
 });
+
+/**
+ * Aviso aceito pelo contrato, ou `null` com o erro registrado só com IDs.
+ * Um aviso inválido nunca impede o fechamento financeiro nem a varredura.
+ */
+const safeNotificationDocument = (
+  input: Parameters<typeof notificationDocument>[0],
+): admin.firestore.DocumentData | null => {
+  try {
+    return notificationDocument(input);
+  } catch (error) {
+    if (!(error instanceof NotificationContractError)) throw error;
+    createOperationLogger({operation: CARD_CLOSING_OPERATION}).error(
+      "credit_card_notification_contract_violation", error, {
+        workspaceId: input.workspaceId,
+        invoiceId: input.invoiceId,
+        cardId: input.cardId,
+        notificationId: input.id,
+        reason: error.reason,
+      });
+    return null;
+  }
+};
 
 const closeOne = async (
   ref: admin.firestore.DocumentReference,
@@ -129,6 +157,12 @@ const closeOne = async (
         .data(),
       workspaceId);
     if (!card) throw new Error("cartão fora do schema autoritativo");
+    // Leitura antes de qualquer escrita da transação. O aviso é criado só se
+    // ausente: um retry nunca prorroga a retenção nem reabre o evento.
+    const notificationId = notificationIdFor("closed", invoice.id);
+    const notificationRef = workspaceRef(workspaceId)
+      .collection("notifications").doc(notificationId);
+    const notificationExists = (await transaction.get(notificationRef)).exists;
     const book = new InvoiceBook(transaction, {
       workspaceId,
       cardId: card.id,
@@ -156,21 +190,23 @@ const closeOne = async (
       actorRole: null,
       requestId,
     });
-    const notificationId = notificationIdFor("closed", invoice.id);
-    transaction.set(
-      workspaceRef(workspaceId).collection("notifications").doc(notificationId),
-      notificationDocument({
-        id: notificationId,
-        workspaceId,
-        title: "Fatura fechada",
-        message: `A fatura de ${monthLabel(invoice.competenceMonth)} do ` +
-          `cartão ${card.name} fechou em ${formatBrl(slot.next.totalCents)}, ` +
-          `com vencimento em ${dayLabel(invoice.dueDate)}.`,
-        type: "credit_card",
-        cardId: card.id,
-        invoiceId: invoice.id,
-        kind: "invoice_closed",
-      }));
+    // O total vem do fechamento já aplicado (`slot.next`). O builder não
+    // lança aqui: aviso fora do contrato vira `null`, registrado, e a fatura
+    // fecha sem ele — o aviso nunca impede o fechamento financeiro.
+    const notification = notificationExists ? null : safeNotificationDocument({
+      id: notificationId,
+      workspaceId,
+      title: "Fatura fechada",
+      message: `A fatura de ${monthLabel(invoice.competenceMonth)} do ` +
+        `cartão ${card.name} fechou em ${formatBrl(slot.next.totalCents)}, ` +
+        `com vencimento em ${dayLabel(invoice.dueDate)}.`,
+      type: "credit_card",
+      cardId: card.id,
+      invoiceId: invoice.id,
+      kind: "invoice_closed",
+      createdAtMs: Date.now(),
+    });
+    if (notification) transaction.create(notificationRef, notification);
     return {
       status: "closed",
       carryover: plan.carryover !== null,
@@ -223,21 +259,25 @@ const notifyDueWindow = async (input: {
       if (!cardName) continue;
       const id = notificationIdFor(input.kind, invoice.id);
       const overdue = input.kind === "overdue";
+      const document = safeNotificationDocument({
+        id,
+        workspaceId,
+        title: overdue ? "Fatura vencida" : "Fatura próxima do vencimento",
+        message: `A fatura de ${monthLabel(invoice.competenceMonth)} do ` +
+          `cartão ${cardName} ${overdue ? "venceu" : "vence"} em ` +
+          `${dayLabel(invoice.dueDate)}, com saldo de ` +
+          `${formatBrl(invoice.remainingCents)}.`,
+        type: overdue ? "error" : "warning",
+        cardId: invoice.cardId,
+        invoiceId: invoice.id,
+        kind: overdue ? "invoice_overdue" : "invoice_due_soon",
+        createdAtMs: Date.now(),
+      });
+      // Aviso fora do contrato: registrado e ignorado; segue para a próxima.
+      if (!document) continue;
       try {
         await workspaceRef(workspaceId).collection("notifications").doc(id)
-          .create(notificationDocument({
-            id,
-            workspaceId,
-            title: overdue ? "Fatura vencida" : "Fatura próxima do vencimento",
-            message: `A fatura de ${monthLabel(invoice.competenceMonth)} do ` +
-              `cartão ${cardName} ${overdue ? "venceu" : "vence"} em ` +
-              `${dayLabel(invoice.dueDate)}, com saldo de ` +
-              `${formatBrl(invoice.remainingCents)}.`,
-            type: overdue ? "error" : "warning",
-            cardId: invoice.cardId,
-            invoiceId: invoice.id,
-            kind: overdue ? "invoice_overdue" : "invoice_due_soon",
-          }));
+          .create(document);
         if (overdue) input.summary.overdueNotified += 1;
         else input.summary.dueSoonNotified += 1;
       } catch (error) {

@@ -52,6 +52,21 @@ export const DOMAIN_CALLABLE_OPTIONS: CallableOptions = {
 };
 
 /**
+ * Relatório financeiro (P5-C1): só leitura, a callable mais chamada do
+ * produto (Dashboard e Relatórios). Memória maior que a de domínio porque o
+ * pior caso de "todo o período" mantém em memória até 601 meses de caixa,
+ * 2.000 documentos de categoria-ano e 601 períodos de investimento. A
+ * concorrência efetiva (CPU) e a latência p95 em produção ficam para a
+ * verificação de capacidade da P6.
+ */
+export const REPORT_CALLABLE_OPTIONS: CallableOptions = {
+  region: FUNCTIONS_REGION,
+  timeoutSeconds: 60,
+  memory: "1GiB",
+  maxInstances: 20,
+};
+
+/**
  * Callable operacional pesada: paginada, com checkpoint e retomada.
  *
  * `maxInstances: 3` é o limite deliberado de concorrência global dessas
@@ -127,6 +142,25 @@ export const WORKSPACE_INDEX_SYNC_OPTIONS = {
  * herdava das opções globais e do padrão da plataforma.
  */
 export const TRANSACTION_WRITE_TRIGGER_OPTIONS = {
+  region: FUNCTIONS_REGION,
+  timeoutSeconds: 60,
+  memory: "256MiB",
+  maxInstances: 20,
+  retry: true,
+} as const;
+
+/**
+ * Gatilhos produtores de notificação (P5-D2): empréstimos, contas, metas e
+ * ocorrências de recorrentes.
+ *
+ * Cada execução lê só o antes e o depois que vêm no evento e, quando há a
+ * transição do fato, faz um único `create` com ID determinístico — nenhuma
+ * leitura extra, nenhuma escrita no domínio. `retry: true`: uma falha
+ * passageira é reentregue pelo Eventarc por até 24 horas, e a reentrega cai
+ * no mesmo ID (ALREADY_EXISTS = já publicado). `maxInstances` como o gatilho
+ * de caixa: o de contas dispara a cada saldo gravado.
+ */
+export const NOTIFICATION_TRIGGER_OPTIONS = {
   region: FUNCTIONS_REGION,
   timeoutSeconds: 60,
   memory: "256MiB",

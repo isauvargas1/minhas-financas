@@ -220,50 +220,6 @@ export const listCardEvents = async (
   ], CARD_EVENTS_LIMIT, toCardEvent, 'evento de cartão')).items;
 };
 
-// ---------------------------------------------------------------- relatórios
-
-export interface CardReportRange {
-  startDate?: string;
-  endDate?: string;
-}
-
-const rangeConstraints = (field: string, range: CardReportRange): QueryConstraint[] => [
-  ...(range.startDate ? [where(field, '>=', range.startDate)] : []),
-  ...(range.endDate ? [where(field, '<=', range.endDate)] : []),
-  orderBy(field, 'desc'),
-];
-
-/** Compras do período (por data da compra), com corte sinalizado. */
-export const listPurchasesForReport = async (
-  workspaceId: string | undefined,
-  range: CardReportRange,
-): Promise<Bounded<CardPurchase>> => {
-  if (!isReady(workspaceId)) return { items: [], truncated: false };
-  return readBounded(workspaceId, PURCHASES_COLL, rangeConstraints('purchaseDate', range),
-    LIST_LIMIT, toCardPurchase, 'compra');
-};
-
-/** Pagamentos e estornos do período (por data do pagamento). */
-export const listPaymentsForReport = async (
-  workspaceId: string | undefined,
-  range: CardReportRange,
-): Promise<Bounded<CardPayment>> => {
-  if (!isReady(workspaceId)) return { items: [], truncated: false };
-  return readBounded(workspaceId, PAYMENTS_COLL, rangeConstraints('paymentDate', range),
-    LIST_LIMIT, toCardPayment, 'pagamento de fatura');
-};
-
-/** Faturas com saldo (abertas e fechadas a pagar), por vencimento. */
-export const listInvoicesWithBalanceForReport = async (
-  workspaceId: string | undefined,
-): Promise<Bounded<CardInvoice>> => {
-  if (!isReady(workspaceId)) return { items: [], truncated: false };
-  return readBounded(workspaceId, INVOICES_COLL, [
-    where('paymentStatus', 'in', ['unpaid', 'partial']),
-    orderBy('dueDate', 'asc'),
-  ], LIST_LIMIT, toCardInvoice, 'fatura');
-};
-
 const invoke: CardsInvoke = async <TResult>(name: string, payload: Record<string, unknown>) =>
   (await httpsCallable<Record<string, unknown>, TResult>(functions, name)(payload)).data;
 

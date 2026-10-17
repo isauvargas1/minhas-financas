@@ -1,37 +1,8 @@
-import type { CardInvoice, CardPayment, CardPurchase } from '../cards/types.ts';
+import type { ReportRange, ReportSectionStatus } from './official.ts';
 
 export type ReportTimeRange = '7d' | '30d' | '90d' | '12m' | 'ytd' | 'all';
 
 export type ReportType = 'cashflow' | 'category' | 'comparison' | 'heatmap';
-
-/** Teto de leitura por coleção do domínio de cartões no relatório. */
-export interface CreditCardReportDomainCollectionMeta {
-  purchases: number;
-  invoices: number;
-  payments: number;
-}
-
-export interface CreditCardReportDomainMeta {
-  range: ReportTimeRange;
-  startDate?: string;
-  endDate: string;
-  isAllTime: boolean;
-  limits: CreditCardReportDomainCollectionMeta;
-  truncated: Record<keyof CreditCardReportDomainCollectionMeta, boolean>;
-  isTruncated: boolean;
-}
-
-/**
- * Dados do domínio de cartões para o relatório (P4-A), em centavos: compras
- * e pagamentos do período e as faturas com saldo. `meta.truncated` sinaliza
- * a coleção que passou do teto (nunca corte silencioso, PR-CC-07).
- */
-export interface CreditCardReportDomainData {
-  purchases: CardPurchase[];
-  invoices: CardInvoice[];
-  payments: CardPayment[];
-  meta?: CreditCardReportDomainMeta;
-}
 
 export interface CreditCardDueBuckets {
   next7Days: number;
@@ -47,9 +18,11 @@ export interface CreditCardReportIndicator {
   limitTotal: number;
   limitUsed: number;
   limitAvailable: number;
-  utilizationRate: number;
+  /** Utilização do limite em %, ou `null` sem limite (pontos-base ÷ 100). */
+  utilizationRate: number | null;
 
-  openInvoiceBalance: number;
+  /** Próxima fatura a pagar (próxima obrigação não vencida); `null` sem fatura a vencer, nunca 0 fingindo fatura. */
+  openInvoiceBalance: number | null;
   futureCommittedBalance: number;
   overdueAmount: number;
 
@@ -61,13 +34,18 @@ export interface CreditCardReportIndicator {
   currentInvoiceId?: string;
   currentInvoiceDueDate?: string;
   currentInvoiceStatus?: string;
+  /** A próxima fatura a pagar é de um ciclo ainda aberto (recebe compras); vem do servidor. */
+  currentInvoiceOpenCycle?: boolean;
+  /** Crédito de fatura aberta ainda não transportado (informativo; não abate nada). */
+  openCreditAmount: number;
 }
 
 export interface CreditCardExpenseByPeriodItem {
   period: string;
   label: string;
   amount: number;
-  count: number;
+  /** `null` quando o relatório oficial não traz a contagem (pagamentos por mês). */
+  count: number | null;
 }
 
 export interface CreditCardExpenseByCardItem {
@@ -76,10 +54,11 @@ export interface CreditCardExpenseByCardItem {
   purchaseAmount: number;
   purchaseCount: number;
   paidAmount: number;
-  openInvoiceBalance: number;
+  /** Próxima fatura a pagar; `null` sem fatura a vencer. */
+  openInvoiceBalance: number | null;
   futureCommittedBalance: number;
   overdueAmount: number;
-  utilizationRate: number;
+  utilizationRate: number | null;
 }
 
 export interface CreditCardExpenseReportViews {
@@ -93,13 +72,6 @@ export interface ChartDataPoint {
   value: number;
   color?: string;
   secondaryValue?: number; // For comparisons (e.g., previous period)
-}
-
-export interface ReportSummary {
-  totalIncome: number;
-  totalExpense: number;
-  netResult: number;
-  savingsRate: number;
 }
 
 export interface CategoryMetric {
@@ -147,7 +119,12 @@ export interface FinancialKPI {
   id: string;
   label: string;
   description?: string;
-  value: number;
+  /**
+   * Valor de exibição (reais ou %); `null` quando o relatório oficial não
+   * entrega número (indisponível, sem permissão, aguardando reconstrução).
+   */
+  value: number | null;
+  /** Texto do valor; "—" quando não há número (o estado vai na `description`). */
   formattedValue: string;
   trend?: 'up' | 'down' | 'stable';
   trendPercentage?: number;
@@ -168,31 +145,51 @@ export interface FinancialKPI {
 
 export interface CashFlowSummary {
   month: string; // '2025-03'
+  /** Recebimentos operacionais realizados do mês. */
   totalIncome: number;
+  /** Pagamentos operacionais realizados do mês. */
   totalExpenses: number;
+  /** Resultado operacional (recebimentos − pagamentos) do mês. */
+  operationalResult: number;
+  /** Pagamentos de fatura de cartão do mês (saída de caixa). */
+  cardPayments: number;
+  /** Fluxo líquido total do mês. */
   netCashFlow: number;
-  savingsRate: number; // % da renda que sobra
+  /** O mês não está inteiro na janela (ponta ou mês corrente). */
+  partial: boolean;
 }
 
 export interface ExpenseCategoryBreakdown {
   categoryId: string;
   categoryName: string;
   totalAmount: number;
-  percentageOfTotal: number;
+  /** Participação no total de despesas em %; `null` sem base de cálculo. */
+  percentageOfTotal: number | null;
 }
 
+/**
+ * Dívidas e cartões do relatório oficial. Valores só são válidos quando o
+ * bloco correspondente tem números (`ReportViewModel.blocks`); fora disso os
+ * campos valem 0 e NÃO devem ser exibidos.
+ */
 export interface DebtProfile {
+  /** Obrigações de cartão em aberto (faturas abertas e fechadas a pagar). */
   totalCreditCardDebt: number;
+  /** Saldo devedor de empréstimos tomados. Recebíveis e concedidos não são dívida. */
   totalLoans: number;
-  totalInstallments: number;
-  utilizationRate: number;
-  riskLevel: 'baixo' | 'moderado' | 'alto' | 'critico';
+  /** Utilização do limite de todos os cartões ativos, em %; `null` sem limite. */
+  utilizationRate: number | null;
 
+  creditCardLimitUsed: number;
   creditCardTotalLimit: number;
   creditCardAvailableLimit: number;
   creditCardOpenInvoiceBalance: number;
   creditCardFutureCommittedBalance: number;
   creditCardOverdueAmount: number;
+  /** Atraso de cartões arquivados (fora da tabela de consumo dos Gráficos). */
+  creditCardArchivedOverdueAmount: number;
+  /** Crédito de faturas abertas a compensar no fechamento (informativo; não abate o futuro). */
+  creditCardOpenCreditAmount: number;
   creditCardDueNext7Days: number;
   creditCardDueNext15Days: number;
   creditCardDueNext30Days: number;
@@ -200,40 +197,26 @@ export interface DebtProfile {
   reversedInvoicePaymentsAmount: number;
 
   creditCardIndicators: CreditCardReportIndicator[];
-
 }
 
-
+/** Investimentos do relatório oficial (D-37.5), em reais de exibição. */
 export interface InvestmentOverview {
-  source: 'official-v2';
   contributions: number;
-  redemptionGross: number;
-  redemptionNet: number;
   redeemedPrincipal: number;
   realizedGain: number;
-  /** Perda realizada acumulada no período (INV-P1-009). Não-negativa. */
   realizedLoss: number;
-  /** Resultado realizado com sinal: `realizedGain − realizedLoss`. */
+  /** Resultado realizado com sinal: ganho − perda. */
   realizedResult: number;
-  investmentIncome: number;
   fees: number;
   taxes: number;
-  cost: number;
-  currentValue: number;
-  unrealizedGain: number;
-  cashImpact: number;
-  settledMovementCount: number;
-  evolution: Array<{ period: string; currentValue: number }>;
-  /** Série indisponível: períodos ainda sem fechamento materializado. */
-  evolutionUnavailable: boolean;
-  allocations: Array<{
-    dimension: 'account' | 'class' | 'asset' | 'goal' | 'risk' | 'liquidity' | 'indexer' | 'purpose';
-    label: string;
-    items: Array<{ key: string; label: string; amount: number; percentage: number }>;
-    truncated: boolean;
-  }>;
-  reconciliationDifference: number;
-  periodsTruncated: boolean;
+  /** `null`: sem permissão para o patrimônio (viewer). */
+  cost: number | null;
+  currentValue: number | null;
+  unrealizedGain: number | null;
+  /** Fechamento do valor atual por mês da janela; `null` para o viewer. */
+  evolution: Array<{ period: string; currentValue: number }> | null;
+  /** Só em "tudo": patrimônio atual − último fechamento da série, em centavos. */
+  reconciliationDifferenceCents: number | null;
 }
 
 // --- PHASE 4: Business Specifics ---
@@ -241,7 +224,8 @@ export interface ClientMetric {
   clientId: string;
   clientName: string;
   totalValue: number;
-  percentage: number;
+  /** `null`: participação indisponível (sem total positivo). */
+  percentage: number | null;
 }
 
 export interface ReceivableStatusMetric {
@@ -263,11 +247,63 @@ export interface FinancialAlert {
   relatedCategoryId?: string;
 }
 
+/** Blocos do relatório oficial que a interface apresenta. */
+export type ReportBlockKey =
+  | 'accounts'
+  | 'cash'
+  | 'kpis'
+  | 'series'
+  | 'categories'
+  | 'cards'
+  | 'debts'
+  | 'investments'
+  | 'alerts'
+  | 'topClients';
+
+/**
+ * Estado de apresentação de um bloco (D-37.10). Só `hasNumbers` autoriza
+ * exibir valores; `message` ocupa o lugar dos números e `note` acompanha
+ * números parciais.
+ */
+export interface ReportBlockView {
+  status: ReportSectionStatus;
+  hasNumbers: boolean;
+  /** Texto no lugar dos números (indisponível, aguardando reconstrução). */
+  message: string | null;
+  /** Aviso de cobertura parcial exibido junto dos números (amostra, teto). */
+  note: string | null;
+}
+
+export type ReportCoverage = Record<ReportBlockKey, ReportBlockView>;
+
+/** O que as telas precisam além do snapshot: estados por bloco e notas fixas. */
+export interface ReportViewModel {
+  blocks: ReportCoverage;
+  /** O papel do ator lê o domínio de investimentos. */
+  investmentsPermitted: boolean;
+  /** Linhas da tabela de fluxo mensal: no máximo os 12 meses mais recentes. */
+  cashFlowRows: CashFlowSummary[];
+  cashFlowNote: string | null;
+  /** Nota fixa D-37.3 sobre compra no cartão × pagamento da fatura. */
+  cardsNote: string;
+  purchaseSeriesNote: string | null;
+  topClientsNote: string | null;
+  investmentNote: string | null;
+  /** Texto objetivo de "Leitura dos indicadores" (sem IA e sem limiar). */
+  insight: string;
+}
+
 export interface FinancialReportSnapshot {
+  /** Tipo do workspace do relatório (PF ou PJ). */
+  workspaceType?: 'PF' | 'PJ';
+  /** Estado de cada bloco; ausente = tudo completo. */
+  coverage?: ReportCoverage;
   creditCardIndicators: CreditCardReportIndicator[];
   debtProfile: DebtProfile;
   generatedAt: string;
   periodLabel: string; // ex.: "Últimos 30 dias", "Ano de 2025", etc.
+  /** Faixa do relatório (contrato oficial); é o que a análise por IA envia ao servidor. */
+  range: ReportRange;
   kpis: FinancialKPI[];
   cashFlow: CashFlowSummary[];
   expenseCategories: ExpenseCategoryBreakdown[];

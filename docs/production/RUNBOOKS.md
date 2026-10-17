@@ -245,7 +245,7 @@ Severidades, papéis, fluxo e playbooks (inclusive segredo exposto e incidente c
 
 ### RB-T10 — Alteração de política de TTL (P6)
 
-- **CURRENT:** 12 `fieldOverrides` de TTL versionados em `firestore.indexes.json` (lista em [DATA_RETENTION_LIFECYCLE.md](DATA_RETENTION_LIFECYCLE.md) §2.2); publicação e estado por ambiente NÃO VERIFICADOS (E-07). A política só passa a valer depois de publicada (`functions/src/shared/retention.ts:17-20`).
+- **CURRENT:** 13 `fieldOverrides` de TTL versionados em `firestore.indexes.json` (lista em [DATA_RETENTION_LIFECYCLE.md](DATA_RETENTION_LIFECYCLE.md) §2.2); publicação e estado por ambiente NÃO VERIFICADOS (E-07). A política só passa a valer depois de publicada (`functions/src/shared/retention.ts:17-20`).
 - **Procedimento TARGET:**
   1. PR que altera os `fieldOverrides` com `ttl: true`, junto com o teste que os compara com a lista do código.
   2. Deploy em STAGING pelo CD e conferência com `gcloud firestore fields ttls list --project=<STAGING>`.

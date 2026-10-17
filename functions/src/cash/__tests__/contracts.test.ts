@@ -20,14 +20,18 @@ const receita = (overrides: Record<string, unknown> = {}) => ({
   cashAccountId: "acc_contrato",
   type: "receita",
   description: "Salário",
-  category: "Salário",
+  categoryId: "cat-receita-salario",
   amountCents: 620_000,
   date: "2026-09-15",
   ...overrides,
 });
 
 const despesa = (overrides: Record<string, unknown> = {}) => ({
-  ...receita({type: "despesa", description: "Mercado", category: "Casa"}),
+  ...receita({
+    type: "despesa",
+    description: "Mercado",
+    categoryId: "cat-despesa-casa",
+  }),
   ...overrides,
 });
 
@@ -160,18 +164,29 @@ test("P3-A — textos obrigatórios, com teto e sem controle", () => {
     ["description", "   "],
     ["description", "x".repeat(301)],
     ["description", "Mercado\u0000"],
-    ["category", ""],
-    ["category", "x".repeat(121)],
-    ["category", "Casa\nNova"],
     ["supplier", "x".repeat(201)],
     ["costCenter", ""],
     ["description", 123],
   ] as const) {
     rejects(despesa({[field]: value}), `${field} ${JSON.stringify(value)}`);
   }
-  accepts(despesa({description: "x".repeat(300), category: "y".repeat(120)}));
+  accepts(despesa({description: "x".repeat(300)}));
   rejects({...despesa(), description: undefined}, "descrição ausente");
-  rejects({...despesa(), category: undefined}, "categoria ausente");
+});
+
+test("P5-C1 — categoria obrigatória por ID; texto livre recusado", () => {
+  const parsed = accepts(despesa({categoryId: "seed_0123456789abcdef"}));
+  assert.equal(parsed.categoryId, "seed_0123456789abcdef");
+  rejects({...despesa(), categoryId: undefined}, "categoryId ausente");
+  for (const value of ["", "a/b", "__reservada__", "x".repeat(129), 123]) {
+    rejects(despesa({categoryId: value}), `categoryId ${String(value)}`);
+  }
+  rejects(
+    {...despesa(), categoryId: undefined, category: "Casa"},
+    "category texto no lugar do ID",
+  );
+  rejects(despesa({category: "Casa"}), "category texto junto do ID");
+  rejects(receita({category: "Salário"}), "category texto em receita");
 });
 
 test("P3-A — workspace e chave validados como caminho", () => {

@@ -1,0 +1,44 @@
+> finace-dashboard-21@0.0.0 test:e2e
+> npm run build:e2e && playwright test e2e/ai-consent-extraction.spec.ts e2e/notifications-mobile-p5e11.spec.ts e2e/notifications-exit-race.spec.ts --reporter=list
+> finace-dashboard-21@0.0.0 build:e2e
+> VITE_E2E_MODE=true VITE_USE_FIREBASE_EMULATORS=true VITE_FIREBASE_API_KEY=e2e-api-key VITE_FIREBASE_AUTH_DOMAIN=localhost VITE_FIREBASE_PROJECT_ID=minhas-financas-local VITE_FIREBASE_STORAGE_BUCKET=minhas-financas-local.appspot.com VITE_FIREBASE_MESSAGING_SENDER_ID=000000000000 VITE_FIREBASE_APP_ID=1:000000000000:web:e2e npm run build
+> finace-dashboard-21@0.0.0 build
+> NODE_OPTIONS=--max-old-space-size=4096 vite build
+vite v6.4.1 building for production...
+✓ built in 32.54s
+Running 33 tests using 1 worker
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 [chromium] › e2e/ai-consent-extraction.spec.ts:269:1 › diálogo de análise: pergunta longa rola na citação, que fica alcançável pelo teclado (10.7s)
+  ✓   2 [chromium] › e2e/ai-consent-extraction.spec.ts:293:1 › chat: cancelar e Escape não enviam; confirmar envia só o contrato, e o duplo clique vira um envio (6.8s)
+  ✓   3 [chromium] › e2e/ai-consent-extraction.spec.ts:381:1 › chat: erro do provedor mostra a mensagem do backend como resposta (3.7s)
+  ✓   4 [chromium] › e2e/ai-consent-extraction.spec.ts:400:1 › chat: HTML ativo na resposta aparece como texto literal, sem elementos nem script (4.5s)
+  ✓   5 [chromium] › e2e/ai-consent-extraction.spec.ts:440:1 › documento: arquivo inválido ou vazio não abre envio; PNG válido pede confirmação e preenche só o identificado (5.0s)
+  ✓   6 [chromium] › e2e/ai-consent-extraction.spec.ts:516:1 › documento: sugestão completa converte centavos sem ponto flutuante e avisa categoria sem correspondência (1.9s)
+  ✓   7 [chromium] › e2e/ai-consent-extraction.spec.ts:543:1 › documento: resposta recusada não preenche nada (1.5s)
+  ✓   8 [chromium] › e2e/ai-consent-extraction.spec.ts:563:1 › documento: trocar de aba antes da resposta descarta a sugestão (1.7s)
+  ✓   9 [chromium] › e2e/ai-consent-extraction.spec.ts:593:1 › documento: fechar o formulário antes da resposta descarta a sugestão ao reabrir (2.3s)
+  ✓  10 [chromium] › e2e/ai-consent-extraction.spec.ts:621:1 › documento: falha depois da admissão mostra a mensagem do backend e não repete (2.9s)
+  ✓  11 [chromium] › e2e/ai-consent-extraction.spec.ts:642:1 › teclado: Tab preso no diálogo, Escape fecha sem enviar e o foco volta ao botão de origem (2.6s)
+  ✓  12 [chromium] › e2e/ai-consent-extraction.spec.ts:718:1 › voz: o microfone só abre depois da confirmação e o texto só é enviado depois da segunda (6.7s)
+  ✓  13 [chromium] › e2e/notifications-exit-race.spec.ts:72:3 › P5-E1.1 — aviso que começa a sair logo depois de outro terminar › sai do DOM: o NotificationsPanel re-renderiza a cada onExitComplete (framer-motion 10.16) (12.1s)
+  ✓  14 [chromium] › e2e/notifications-mobile-p5e11.spec.ts:302:1 › P5-E1.1 01 — um arquivamento: sai da lista, o sino cai em 1 e só o estado dele é gravado (3.2s)
+  ✓  15 [chromium] › e2e/notifications-mobile-p5e11.spec.ts:333:1 › P5-E1.1 02 — dois arquivamentos rápidos: os dois persistem, o painel continua aberto e nenhum outro aviso é tocado (3.1s)
+  ✓  16 [chromium] › e2e/notifications-mobile-p5e11.spec.ts:359:1 › P5-E1.1 03 — arquivar depois de marcar como lido: guarda as duas marcas e o sino não muda no arquivamento (3.9s)
+  ✓  17 [chromium] › e2e/notifications-mobile-p5e11.spec.ts:395:1 › P5-E1.1 04 — aviso no fim da lista: arquivar o último (depois de rolar) mexe só nele e o painel fica aberto (3.2s)
+  ✓  18 [chromium] › e2e/notifications-mobile-p5e11.spec.ts:424:1 › P5-E1.1 05 — arquivar enquanto a contagem atualiza: contagem final exata, os dois persistidos e a lista certa (3.4s)
+  ✓  19 [chromium] › e2e/notifications-mobile-p5e11.spec.ts:453:1 › P5-E1.1 06 — arquivar e trocar de workspace: o outro fica intacto e, na volta, o arquivado continua fora (4.7s)
+  ✓  20 [chromium] › e2e/notifications-mobile-p5e11.spec.ts:505:1 › P5-E1.1 07 — arquivar e trocar de usuário: o outro membro ainda vê o aviso e o estado é só de quem arquivou (5.2s)
+  ✓  21 [chromium] › e2e/notifications-mobile-p5e11.spec.ts:546:1 › P5-E1.1 08 — arquivar e recarregar a página: o arquivado continua fora e o estado persiste (5.4s)
+  ✓  22 [chromium] › e2e/notifications-mobile-p5e11.spec.ts:582:1 › P5-E1.1 09 — falha do Firestore: erro em pt-BR, o aviso continua na lista, nada é gravado e, restabelecida a permissão, arquiva (6.3s)
+  ✓  23 [chromium] › e2e/notifications-mobile-p5e11.spec.ts:625:1 › P5-E1.1 10 — viewer arquivando: persiste, o sino cai em 1 e não existe nenhum botão de excluir (3.1s)
+  ✓  24 [chromium] › e2e/notifications-mobile-p5e11.spec.ts:694:1 › P5-E1.1 11 — viewer tentando excluir direto pela API: arquivar passa (200); excluir é recusado (403) e nenhum deleted é gravado (1.6s)
+  ✓  25 [chromium] › e2e/notifications-mobile-p5e11.spec.ts:752:1 › P5-E1.1 12 — toque perto do limite do painel: arquivar o aviso cujo botão está colado à borda inferior da lista mexe só nele (2.9s)
+  ✓  26 [chromium] › e2e/notifications-mobile-p5e11.spec.ts:793:1 › P5-E1.1 13 — painel perto da borda: o painel e todos os botões ficam dentro dos 390 px e arquivar o primeiro funciona (2.7s)
+  ✓  27 [chromium] › e2e/notifications-mobile-p5e11.spec.ts:829:1 › P5-E1.1 14 — sem rolagem horizontal: o excesso é 0 ao abrir o painel e depois de cada um de 3 arquivamentos (4.4s)
+  ✓  28 [chromium] › e2e/notifications-mobile-p5e11.spec.ts:859:1 › P5-E1.1 15 — tocar dentro do painel nunca o fecha pelo fundo, nem com o clique redirecionado; o fundo só fecha com gesto iniciado nele (1.8s)
+  ✓  29 [chromium] › e2e/notifications-mobile-p5e11.spec.ts:906:1 › P5-E1.1 16 — fechamento legítimo fora: tocar no fundo longe do painel fecha o painel e não grava nada (1.8s)
+  ✓  30 [chromium] › e2e/notifications-mobile-p5e11.spec.ts:937:1 › P5-E1.1 17 — teclado e foco (desktop): Enter e Espaço arquivam, o painel continua aberto e nenhum aviso é aberto por engano (3.3s)
+  ✓  31 [chromium] › e2e/notifications-mobile-p5e11.spec.ts:993:1 › P5-E1.1 18 — leitura e arquivamento persistidos entre dispositivos: o aviso lido no celular aparece lido no desktop, e arquivado lá sai do celular (5.9s)
+  ✓  32 [chromium] › e2e/notifications-mobile-p5e11.spec.ts:1063:1 › P5-E1.1 19 — clique redirecionado age no aviso em que o toque começou, nunca no aviso onde caiu (2.1s)
+  ✓  33 [chromium] › e2e/notifications-mobile-p5e11.spec.ts:1093:1 › P5-E1.1 20 — toque iniciado em área sem dono do painel não aciona "Arquivar" nem "Excluir" onde o clique caiu (2.6s)
+  33 passed (3.0m)

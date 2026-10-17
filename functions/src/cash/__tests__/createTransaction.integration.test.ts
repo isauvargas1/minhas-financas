@@ -23,6 +23,12 @@ import {
   idempotencyKey,
   uniqueId,
 } from "../../workspaces/testSupport/p1TestSupport";
+import {
+  DEFAULT_INCOME_CATEGORY_ID,
+  DEFAULT_INCOME_CATEGORY_NAME,
+  defaultCategoryIdFor,
+  seedDefaultCategories,
+} from "../../settingsCatalog/testSupport/categorySeeds";
 import {createCashTransaction} from "../callables";
 import {
   CASH_ENTRY_RATE_LIMIT,
@@ -81,6 +87,7 @@ const seedTenant = async (type: "PF" | "PJ" = "PF"): Promise<Tenant> => {
   await seedMember(tenant.workspaceId, tenant.admin, "admin");
   await seedMember(tenant.workspaceId, tenant.member, "member");
   await seedMember(tenant.workspaceId, tenant.viewer, "viewer");
+  await seedDefaultCategories(tenant.workspaceId);
   return tenant;
 };
 
@@ -93,7 +100,8 @@ const payload = (
   idempotencyKey: idempotencyKey(),
   type: "receita",
   description: "Salário de setembro",
-  category: "Salário",
+  categoryId: defaultCategoryIdFor(
+    overrides.type === "despesa" ? "despesa" : "receita"),
   amountCents: 620_000,
   date: "2026-09-15",
   ...overrides,
@@ -161,13 +169,13 @@ test("P3-A — receita válida grava um fato único e auditado", async () => {
   assert.equal(docs[0].id, result.transactionId);
   assert.equal(entry.type, "receita");
   assert.equal(entry.description, "Salário de setembro");
-  assert.equal(entry.category, "Salário");
+  assert.equal(entry.categoryId, DEFAULT_INCOME_CATEGORY_ID);
+  assert.equal(entry.category, DEFAULT_INCOME_CATEGORY_NAME);
   assert.equal(entry.incomeType, "Fixa");
   assert.equal(entry.valueCents, 620_000);
-  assert.equal(entry.value, 6200);
+  assert.equal("value" in entry, false);
   assert.equal(entry.date, "2026-09-15");
-  assert.ok(entry.transactionDate instanceof Timestamp);
-  assert.equal(saoPauloDayKey(entry.transactionDate.toDate()), "2026-09-15");
+  assert.equal("transactionDate" in entry, false);
   assert.equal(entry.isPaid, true);
   assert.equal(entry.workspaceId, tenant.workspaceId);
   assert.equal(entry.profileId, tenant.workspaceId);
@@ -239,7 +247,6 @@ test("P3-A — despesa válida em PJ, nos três papéis de escrita", async () =>
     const result = await create(uid, payload(tenant.workspaceId, {
       type: "despesa",
       description: `Fornecedor de ${role}`,
-      category: "Operação",
       amountCents: 48_235,
       expenseType: "Variável",
       paymentMethod: "Pix",
@@ -250,7 +257,7 @@ test("P3-A — despesa válida em PJ, nos três papéis de escrita", async () =>
       .get()).data();
     assert.equal(entry?.type, "despesa");
     assert.equal(entry?.valueCents, 48_235);
-    assert.equal(entry?.value, 482.35);
+    assert.equal(entry !== undefined && "value" in entry, false);
     assert.equal(entry?.expenseType, "Variável");
     assert.equal(entry?.paymentMethod, "Pix");
     assert.equal(entry?.supplier, "Mercado Central");
@@ -277,7 +284,6 @@ test("P3-A — o fato entra na projeção de caixa uma única vez", async () => 
   const expense = await create(tenant.owner, payload(tenant.workspaceId, {
     type: "despesa",
     description: "Aluguel",
-    category: "Moradia",
     amountCents: 40_000,
     date: "2026-08-01",
   }));
@@ -285,6 +291,8 @@ test("P3-A — o fato entra na projeção de caixa uma única vez", async () => 
     .get()).data();
   const expenseDoc = (await entryRef(tenant.workspaceId, expense.transactionId)
     .get()).data();
+  assert.ok(incomeDoc);
+  assert.ok(expenseDoc);
 
   assert.equal(cashPeriodKeyFor(incomeDoc), "2026-08");
   assert.equal(cashPeriodKeyFor(expenseDoc), "2026-08");
@@ -489,7 +497,7 @@ test("P3-A — papel revogado é recusado na transação", async () => {
         idempotencyKey: key,
         type: "receita",
         description: "Salário",
-        category: "Salário",
+        categoryId: DEFAULT_INCOME_CATEGORY_ID,
         amountCents: 100,
         date: "2026-09-15",
       },
@@ -509,7 +517,7 @@ test("P3-A — papel revogado é recusado na transação", async () => {
         idempotencyKey: key,
         type: "receita",
         description: "Salário",
-        category: "Salário",
+        categoryId: DEFAULT_INCOME_CATEGORY_ID,
         amountCents: 100,
         date: "2026-09-15",
       },
@@ -603,7 +611,7 @@ test("P3-A — documento alheio no ID nunca é sobrescrito", async () => {
   // caminho legado do cliente) não é tratado como replay nem sobrescrito.
   const squatter = {
     type: "despesa", description: "Pré-existente", category: "Casa",
-    value: 1, date: "2026-09-15", userId: tenant.owner,
+    valueCents: 100, date: "2026-09-15", userId: tenant.owner,
     workspaceId: tenant.workspaceId,
   };
   await entryRef(tenant.workspaceId, id).set(squatter);
@@ -698,7 +706,7 @@ test("P3-A — falha no commit não deixa efeito parcial", async () => {
         idempotencyKey: key,
         type: "receita",
         description: "Salário",
-        category: "Salário",
+        categoryId: DEFAULT_INCOME_CATEGORY_ID,
         amountCents: 100,
         date: "2026-09-15",
       },
@@ -716,7 +724,7 @@ test("P3-A — falha no commit não deixa efeito parcial", async () => {
   const result = await create(tenant.owner, payload(tenant.workspaceId, {
     idempotencyKey: key,
     description: "Salário",
-    category: "Salário",
+    categoryId: DEFAULT_INCOME_CATEGORY_ID,
     amountCents: 100,
   }));
   assert.equal(result.transactionId, transactionId);
@@ -845,7 +853,7 @@ test("P3-B — só a criação consome; recusa e falha não", async () => {
       idempotencyKey: failingKey,
       type: "receita",
       description: "Salário",
-      category: "Salário",
+      categoryId: DEFAULT_INCOME_CATEGORY_ID,
       amountCents: 100,
       date: "2026-09-15",
     },

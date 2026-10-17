@@ -91,7 +91,7 @@ const investmentEntry = (status, overrides = {}) => ({
 
 const mirror = (ws, owner, status) => ({
   type: 'investimento', description: 'CDB Banco X', category: 'Investimentos',
-  value: 1_500, valueCents: 150_000, date: '2026-10-05', transactionDate: ts(),
+  valueCents: 150_000, date: '2026-10-05',
   isPaid: status === 'settled', workspaceId: ws, profileId: ws, profileType: 'PF',
   userId: owner, source: 'investment',
   investmentEntry: investmentEntry(status, status === 'settled' ? {} : {movementId: PENDING_MOVEMENT}),

@@ -79,8 +79,16 @@ export default defineConfig({
            * uma falha de recurso que se disfarçava de flakiness do produto.
            */
           env: {...process.env, JAVA_TOOL_OPTIONS: '-Xmx1024m'},
-          url: 'http://127.0.0.1:4000',
-          reuseExistingServer: true,
+          /*
+           * Pronto só quando o Emulator anuncia que todos os emuladores estão
+           * de pé, o que acontece depois de registrar todas as Functions.
+           * A UI (:4000) responde antes: medido em 2026-10-11, cerca de 7 s
+           * antes de os callables existirem (404 do emulador de Functions),
+           * e a primeira spec da suíte falhava nessa janela. Sem `url`: o
+           * Playwright resolve `url` e `wait` em corrida, e a UI venceria.
+           * Emuladores já de pé: `E2E_START_EMULATORS=false` (RUNBOOKS.md).
+           */
+          wait: { stdout: /All emulators ready!/ },
           timeout: 180_000,
           stdout: 'pipe' as const,
           stderr: 'pipe' as const,

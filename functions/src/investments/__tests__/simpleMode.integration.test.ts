@@ -160,6 +160,7 @@ const seed = async (): Promise<void> => {
     seedKernelMember(WS_A, MEMBER_A, "member"),
     db().doc(`workspaces/${WS_A}/goals/${GOAL}`).set({
       id: GOAL, workspaceId: WS_A, name: "Meta simples",
+      progressSource: "investment", archived: false, revision: 1,
       progressBasis: "net_contributions",
       investmentNetContributionCents: 0,
       investmentCurrentValueCents: 0,
@@ -1511,6 +1512,7 @@ const GOAL_B = "simple-mode-goal-b";
 const segundaMeta = async (): Promise<void> => {
   await db().doc(`workspaces/${WS_A}/goals/${GOAL_B}`).set({
     id: GOAL_B, workspaceId: WS_A, name: "Segunda meta",
+    progressSource: "investment", archived: false, revision: 1,
     progressBasis: "net_contributions",
     investmentNetContributionCents: 0,
     investmentCurrentValueCents: 0,
@@ -1923,9 +1925,8 @@ const ocuparEspelho = async (transactionId: string): Promise<void> => {
     type: "despesa",
     description: "Compra no cartão",
     category: "Outros",
-    value: 999,
+    valueCents: 99_900,
     date: "2026-08-05",
-    transactionDate: at("2026-08-05T12:00:00.000Z"),
     isPaid: true,
     workspaceId: WS_A,
     userId: OWNER_A,
@@ -1990,7 +1991,9 @@ test(
     const projecao = await espelho(WS_A, espelhoId);
     assertEspelhoAutoritativo(projecao);
     assert.equal(projecao?.valueCents, 150_000);
-    assert.equal(projecao?.value, 1_500);
+    assert.equal("value" in (projecao ?? {}), false,
+      "sem valor em reais (contrato único, P5-C2)");
+    assert.equal("transactionDate" in (projecao ?? {}), false);
     assert.equal(projecao?.isPaid, true);
     assert.equal(projecao?.goalId, undefined, "o espelho não carrega meta");
     assert.equal(efeitoCaixa(projecao), "outflow");
@@ -2243,7 +2246,7 @@ test("edição recusada devolve o pendente original intacto", async () => {
     }, /não encontrada no cadastro deste workspace/i],
     ["meta inexistente", {
       chave: "replace-key-00000008", metaId: "meta-que-nao-existe",
-    }, /não encontrado/i],
+    }, /^Meta não encontrada\.$/],
   ];
 
   for (const [rotulo, opcoes, esperado] of recusas) {

@@ -6,7 +6,7 @@ import type {
   SettingsCatalogStatus,
   SettingsCatalogTransactionSubtype,
 } from './types.ts';
-import type { TransactionType } from '../../types.ts';
+import type { TransactionFormType } from '../../types.ts';
 
 /**
  * Contrato cliente das callables do catálogo de configurações (D-23, P4-E).
@@ -63,7 +63,7 @@ export const settingsCatalogPermissions = (role?: string | null) => ({
  * `parcelado`.
  */
 export const categorySubtypeForTransactionType = (
-  type?: TransactionType | null,
+  type?: TransactionFormType | null,
 ): SettingsCatalogTransactionSubtype | null => {
   if (!type) return null;
   return type === 'parcelado' ? 'despesa' : type;

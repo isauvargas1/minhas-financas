@@ -38,6 +38,12 @@ import {
   seedReceivableTenant,
 } from "../../receivables/testSupport/receivableTestSupport";
 import {
+  DEFAULT_EXPENSE_CATEGORY_ID,
+  DEFAULT_INCOME_CATEGORY_ID,
+  defaultCategoryIdFor,
+  seedDefaultCategories,
+} from "../../settingsCatalog/testSupport/categorySeeds";
+import {
   call,
   db,
   expectHttpsError,
@@ -81,19 +87,31 @@ const versionOf = async (workspaceId: string, id: string) =>
   formatIsoInstant((await entryRef(workspaceId, id).get())
     .get("updatedAt") as Timestamp);
 
-const createEntry = (uid: string, workspaceId: string,
-  overrides: Record<string, unknown> = {}) =>
-  call<CashResult>(createCashTransaction, uid, {
+const seededWorkspaces = new Set<string>();
+
+/** Categorias padrão do catálogo, semeadas uma vez por workspace. */
+const ensureCategories = async (workspaceId: string) => {
+  if (seededWorkspaces.has(workspaceId)) return;
+  await seedDefaultCategories(workspaceId);
+  seededWorkspaces.add(workspaceId);
+};
+
+const createEntry = async (uid: string, workspaceId: string,
+  overrides: Record<string, unknown> = {}) => {
+  await ensureCategories(workspaceId);
+  return await call<CashResult>(createCashTransaction, uid, {
     workspaceId,
     idempotencyKey: idempotencyKey(),
     cashAccountId: defaultAccountOf(workspaceId),
     type: "receita",
     description: "Salário",
-    category: "Salário",
+    categoryId: defaultCategoryIdFor(
+      overrides.type === "despesa" ? "despesa" : "receita"),
     amountCents: 500_000,
     date: "2026-09-15",
     ...overrides,
   });
+};
 
 const entryState = async (workspaceId: string, id: string) => {
   const data = (await entryRef(workspaceId, id).get()).data() ?? {};
@@ -107,12 +125,12 @@ test("P3-J — lançamento manual: receita soma, despesa subtrai; pendente não 
   await createEntry(t.member, t.workspaceId);
   assert.equal(await balanceOf(t.workspaceId, main), 500_000);
   await createEntry(t.member, t.workspaceId, {type: "despesa",
-    description: "Mercado", category: "Casa", amountCents: 12_345});
+    description: "Mercado", amountCents: 12_345});
   assert.equal(await balanceOf(t.workspaceId, main), 487_655);
 
   const second = await newAccount(t.owner, createAccountPayload(t.workspaceId));
   const pending = await createEntry(t.member, t.workspaceId, {
-    type: "despesa", description: "Aluguel", category: "Moradia",
+    type: "despesa", description: "Aluguel",
     amountCents: 200_000, status: "pending", date: undefined,
     dueDate: "2026-12-10", cashAccountId: main,
   });
@@ -142,15 +160,15 @@ test("P3-J — correção de confirmado compensa e reaplica; descrição sozinha
   const main = defaultAccountOf(t.workspaceId);
   const other = await newAccount(t.owner, createAccountPayload(t.workspaceId));
   const created = await createEntry(t.owner, t.workspaceId,
-    {type: "despesa", description: "Luz", category: "Casa",
-      amountCents: 9_000});
+    {type: "despesa", description: "Luz", amountCents: 9_000});
   const edit = async (entry: Record<string, unknown>) =>
     call(updateCashTransaction, t.owner, {
       workspaceId: t.workspaceId, idempotencyKey: idempotencyKey(),
       transactionId: created.transactionId,
       expectedUpdatedAt: await versionOf(t.workspaceId, created.transactionId),
       reason: "Ajuste",
-      entry: {type: "despesa", description: "Luz", category: "Casa",
+      entry: {type: "despesa", description: "Luz",
+        categoryId: DEFAULT_EXPENSE_CATEGORY_ID,
         amountCents: 9_000, date: "2026-09-15", cashAccountId: main, ...entry},
     });
   // Só a descrição: nenhum movimento novo.
@@ -164,11 +182,12 @@ test("P3-J — correção de confirmado compensa e reaplica; descrição sozinha
   assert.deepEqual(kinds,
     ["cash_transaction", "cash_transaction", "reversal"]);
   // Tipo novo (despesa → receita): o sinal acompanha.
-  await edit({type: "receita", description: "Reembolso", category: "Outros",
-    amountCents: 9_500});
+  await edit({type: "receita", description: "Reembolso",
+    categoryId: DEFAULT_INCOME_CATEGORY_ID, amountCents: 9_500});
   assert.equal(await balanceOf(t.workspaceId, main), 9_500);
   // Conta nova: a antiga é compensada, a nova recebe.
-  await edit({type: "receita", description: "Reembolso", category: "Outros",
+  await edit({type: "receita", description: "Reembolso",
+    categoryId: DEFAULT_INCOME_CATEGORY_ID,
     amountCents: 9_500, cashAccountId: other.accountId});
   assert.equal(await balanceOf(t.workspaceId, main), 0);
   assert.equal(await balanceOf(t.workspaceId, other.accountId), 9_500);
@@ -214,11 +233,13 @@ test("P3-J — conta arquivada ou de outro workspace: recusa sem gravar; " +
     {cashAccountId: undefined}), "invalid-argument");
   assert.equal(await countOf(t.workspaceId, "transactions"), 0);
 
+  await ensureCategories(t.workspaceId);
   await assert.rejects(executeCreateCashTransaction(
     {uid: t.member, workspaceId: t.workspaceId, role: "member"},
     {workspaceId: t.workspaceId, idempotencyKey: idempotencyKey(),
       cashAccountId: defaultAccountOf(t.workspaceId), type: "receita",
-      description: "Falha", category: "X", amountCents: 100,
+      description: "Falha", categoryId: DEFAULT_INCOME_CATEGORY_ID,
+      amountCents: 100,
       date: "2026-09-15"},
     "req-fail", {beforeCommit: () => {
       throw new Error("falha injetada");
@@ -241,8 +262,10 @@ test("P3-J — importação: cada linha nova move a conta do lote; replay não "
   });
   const line = (index: number, type: "receita" | "despesa") => ({
     lineId: `l${index}`, type, description: `Linha ${index}`,
-    category: "Importado", amountCents: 1_000 * index, date: "2026-09-10",
+    categoryId: defaultCategoryIdFor(type), amountCents: 1_000 * index,
+    date: "2026-09-10",
   });
+  await ensureCategories(t.workspaceId);
   const payload = batch([line(1, "receita"), line(2, "despesa"),
     line(3, "receita")]);
   await call(importCashTransactions, t.owner, payload);

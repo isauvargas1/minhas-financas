@@ -1,0 +1,124 @@
+{
+ "vazio-desktop-claro": {
+  "overflow": 0,
+  "bell": "Notificações",
+  "itens": 0
+ },
+ "axe-vazio-desktop-claro": [],
+ "com-notificacoes-desktop-claro": {
+  "overflow": 0,
+  "bell": "Notificações, 2 não lidas",
+  "itens": 3
+ },
+ "axe-com-notificacoes-desktop-claro": [],
+ "arquivada-desktop-claro": {
+  "overflow": 0,
+  "bell": "Notificações, 1 não lida",
+  "itens": 2
+ },
+ "paginacao-topo-desktop-claro": {
+  "overflow": 0,
+  "bell": "Notificações, 25 não lidas entre as mais recentes",
+  "itens": 25
+ },
+ "paginacao-fim-desktop-claro": {
+  "overflow": 0,
+  "bell": "Notificações, 25 não lidas entre as mais recentes",
+  "itens": 25
+ },
+ "paginacao-carregada-desktop-claro": {
+  "overflow": 0,
+  "bell": "Notificações, 30 não lidas",
+  "itens": 30
+ },
+ "vazio-desktop-escuro": {
+  "overflow": 0,
+  "bell": "Notificações",
+  "itens": 0
+ },
+ "com-notificacoes-desktop-escuro": {
+  "overflow": 0,
+  "bell": "Notificações, 2 não lidas",
+  "itens": 3
+ },
+ "arquivada-desktop-escuro": {
+  "overflow": 0,
+  "bell": "Notificações, 1 não lida",
+  "itens": 2
+ },
+ "paginacao-topo-desktop-escuro": {
+  "overflow": 0,
+  "bell": "Notificações, 25 não lidas entre as mais recentes",
+  "itens": 25
+ },
+ "paginacao-fim-desktop-escuro": {
+  "overflow": 0,
+  "bell": "Notificações, 25 não lidas entre as mais recentes",
+  "itens": 25
+ },
+ "paginacao-carregada-desktop-escuro": {
+  "overflow": 0,
+  "bell": "Notificações, 30 não lidas",
+  "itens": 30
+ },
+ "vazio-mobile-claro": {
+  "overflow": 0,
+  "bell": "Notificações",
+  "itens": 0
+ },
+ "com-notificacoes-mobile-claro": {
+  "overflow": 0,
+  "bell": "Notificações, 2 não lidas",
+  "itens": 3
+ },
+ "arquivada-mobile-claro": {
+  "overflow": 0,
+  "bell": "Notificações, 1 não lida",
+  "itens": 2
+ },
+ "paginacao-topo-mobile-claro": {
+  "overflow": 0,
+  "bell": "Notificações, 25 não lidas entre as mais recentes",
+  "itens": 25
+ },
+ "paginacao-fim-mobile-claro": {
+  "overflow": 0,
+  "bell": "Notificações, 25 não lidas entre as mais recentes",
+  "itens": 25
+ },
+ "paginacao-carregada-mobile-claro": {
+  "overflow": 0,
+  "bell": "Notificações, 30 não lidas",
+  "itens": 30
+ },
+ "vazio-mobile-escuro": {
+  "overflow": 0,
+  "bell": "Notificações",
+  "itens": 0
+ },
+ "com-notificacoes-mobile-escuro": {
+  "overflow": 0,
+  "bell": "Notificações, 2 não lidas",
+  "itens": 3
+ },
+ "arquivada-mobile-escuro": {
+  "overflow": 0,
+  "bell": "Notificações, 1 não lida",
+  "itens": 2
+ },
+ "paginacao-topo-mobile-escuro": {
+  "overflow": 0,
+  "bell": "Notificações, 25 não lidas entre as mais recentes",
+  "itens": 25
+ },
+ "paginacao-fim-mobile-escuro": {
+  "overflow": 0,
+  "bell": "Notificações, 25 não lidas entre as mais recentes",
+  "itens": 25
+ },
+ "paginacao-carregada-mobile-escuro": {
+  "overflow": 0,
+  "bell": "Notificações, 30 não lidas",
+  "itens": 30
+ }
+}

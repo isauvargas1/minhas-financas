@@ -5,6 +5,12 @@ import { useFinanceAIChat } from '../modules/reports/hooks.ts';
 import { FinancialReportSnapshot } from '../modules/reports/types.ts';
 import { SparklesIcon, ArrowUpIcon, RefreshIcon, WarningIcon } from './Icons.tsx';
 import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
+import { newIdempotencyKey } from '../modules/workspaces/callables.ts';
+import AiShareConsentDialog from './AiShareConsentDialog.tsx';
+
+/** Limites da pergunta no contrato do backend (`analyzeFinancialQuestion`). */
+const QUESTION_MIN = 3;
+const QUESTION_MAX = 2000;
 
 interface ReportsAIChatProps {
     snapshot: FinancialReportSnapshot;
@@ -37,9 +43,22 @@ const TypingIndicator = () => (
 );
 
 const ReportsAIChat: React.FC<ReportsAIChatProps> = ({ snapshot }) => {
-    const { history, isLoading, isError, sendQuestion, clearHistory } = useFinanceAIChat();
+    const { history, isLoading, isError, isReady, sendQuestion, clearHistory, sessionKey } = useFinanceAIChat();
     const { activeWorkspace } = useWorkspace();
-    const [input, setInput] = useState('');
+    // O rascunho pertence à sessão (usuário + workspace): trocar de workspace
+    // não leva o texto digitado para o outro.
+    const [draft, setDraft] = useState({ sessionKey, text: '' });
+    const input = draft.sessionKey === sessionKey ? draft.text : '';
+    const setInput = (text: string) => setDraft({ sessionKey, text });
+    // Pergunta aguardando a confirmação de envio ao provedor de IA. Também é
+    // da sessão: trocar de workspace fecha a confirmação sem enviar nada.
+    const [confirmation, setConfirmation] = useState<{ sessionKey: string; question: string } | null>(null);
+    const confirmationRef = useRef(confirmation);
+    const openConfirmation = (value: { sessionKey: string; question: string } | null) => {
+        confirmationRef.current = value;
+        setConfirmation(value);
+    };
+    const pendingQuestion = confirmation?.sessionKey === sessionKey ? confirmation.question : null;
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const MotionDiv = motion.div as any;
 
@@ -53,9 +72,24 @@ const ReportsAIChat: React.FC<ReportsAIChatProps> = ({ snapshot }) => {
         scrollToBottom();
     }, [history, isLoading]);
 
+    // Toda pergunta (digitada ou sugerida) passa pela confirmação: nada sai
+    // do navegador antes de "Enviar pergunta".
     const handleSend = (text: string) => {
-        if (!text.trim()) return;
-        sendQuestion(text, snapshot);
+        const question = text.trim();
+        // Mesmo limite do backend (3 a 2.000 caracteres): fora dele, nada
+        // abre a confirmação nem é enviado.
+        if (question.length < QUESTION_MIN || question.length > QUESTION_MAX || isLoading || !isReady) return;
+        openConfirmation({ sessionKey, question });
+    };
+
+    const handleConfirmSend = () => {
+        const current = confirmationRef.current;
+        // Segundo clique no mesmo envio: já consumido.
+        if (!current || isLoading) return;
+        openConfirmation(null);
+        if (current.sessionKey !== sessionKey) return;
+        // Uma chave nova por intenção, gerada agora, na confirmação.
+        sendQuestion(current.question, snapshot, newIdempotencyKey());
         setInput('');
     };
 
@@ -125,7 +159,9 @@ const ReportsAIChat: React.FC<ReportsAIChatProps> = ({ snapshot }) => {
                         </p>
                     </div>
                 ) : (
-                    <AnimatePresence initial={false}>
+                    // `key` por sessão: as mensagens de outro workspace saem junto
+                    // com a lista, sem animação de saída que as mantenha na tela.
+                    <AnimatePresence key={sessionKey} initial={false}>
                         {history.map((msg) => (
                             <MotionDiv 
                                 key={msg.id} 
@@ -198,12 +234,13 @@ const ReportsAIChat: React.FC<ReportsAIChatProps> = ({ snapshot }) => {
                             placeholder={activeWorkspace.type === 'PJ' ? "Pergunte sobre estratégia, custos ou lucro..." : "Digite sua pergunta sobre suas finanças..."}
                             className="w-full bg-background border border-border rounded-xl px-4 py-3 pr-12 text-sm text-on-surface outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all shadow-sm resize-none custom-scrollbar placeholder:text-muted/60"
                             rows={1}
+                            maxLength={QUESTION_MAX}
                             style={{ minHeight: '48px', maxHeight: '120px' }}
                         />
                     </div>
                     <button
                         onClick={() => handleSend(input)}
-                        disabled={!input.trim() || isLoading}
+                        disabled={input.trim().length < QUESTION_MIN || isLoading || !isReady}
                         className="p-3 bg-primary hover:bg-primary/90 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white rounded-xl transition-all shadow-md hover:shadow-lg disabled:shadow-none active:scale-95 flex-shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary"
                         aria-label="Enviar mensagem"
                     >
@@ -214,6 +251,14 @@ const ReportsAIChat: React.FC<ReportsAIChatProps> = ({ snapshot }) => {
                     A IA pode cometer erros. Verifique os dados importantes nos gráficos.
                 </p>
             </div>
+            <AiShareConsentDialog
+                variant={pendingQuestion === null
+                    ? null
+                    : { kind: 'analysis', question: pendingQuestion, periodLabel: snapshot.periodLabel }}
+                onCancel={() => openConfirmation(null)}
+                onConfirm={handleConfirmSend}
+                isBusy={isLoading}
+            />
         </div>
     );
 };
