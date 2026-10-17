@@ -1527,7 +1527,8 @@ const TransactionModal: React.FC<ExtendedTransactionModalProps> = ({
 
                 {!isEditing && resolvedAllowedTypes.length > 1 && (
                     <div className="border-b border-gray-200 dark:border-gray-700">
-                        <div className="flex">
+                        {/* Em tela estreita (360 px, com a Poppins) as quatro abas não cabem: a faixa rola em vez de alargar o diálogo. */}
+                        <div className="flex overflow-x-auto">
                             {resolvedAllowedTypes.includes('receita') && (
                                 <button
                                     onClick={() => handleTabChange('receita')}
