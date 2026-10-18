@@ -1,0 +1,33 @@
+# Saída dos 5 testes P5-E1.1 de resposta antiga (tests/unit/notifications-feed.test.ts) ANTES da correção
+# (código da P5-E1, sem keepConfirmedNotificationMarks). Comando:
+# node --experimental-strip-types --test --test-name-pattern="P5-E1.1" tests/unit/notifications-feed.test.ts
+
+not ok 1 - P5-E1.1 releitura que leu antes do arquivamento não traz o item de volta
+  location: 'tests/unit/notifications-feed.test.ts:1038:1'
+    + actual - expected
+    +   'n2',
+  expected:
+  actual:
+not ok 2 - P5-E1.1 "Carregar mais" em curso não desfaz arquivamento confirmado na primeira página
+  location: 'tests/unit/notifications-feed.test.ts:1058:1'
+  expected: false
+  actual: true
+not ok 3 - P5-E1.1 leitura antiga não desmarca lida nem desfaz "Excluir para mim"
+  location: 'tests/unit/notifications-feed.test.ts:1081:1'
+    + actual - expected
+    +   'n1'
+  expected:
+  actual:
+not ok 4 - P5-E1.1 dois arquivamentos em sequência com releitura antiga no meio: contagem final certa
+  location: 'tests/unit/notifications-feed.test.ts:1105:1'
+    + actual - expected
+    + [
+    +   'p004'
+    + ]
+    - []
+  expected:
+  actual:
+ok 5 - P5-E1.1 a fusão só preserva marcas do mesmo escopo e nunca inventa marca
+# tests 5
+# pass 1
+# fail 4

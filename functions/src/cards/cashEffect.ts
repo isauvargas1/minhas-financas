@@ -1,7 +1,6 @@
 import * as admin from "firebase-admin";
 import {FieldValue} from "firebase-admin/firestore";
 
-import {transactionInstant} from "../cash/createTransaction";
 import {isMoneyCents} from "../shared/money";
 
 /**
@@ -101,10 +100,8 @@ export const cardPaymentCashMirrorDocument = (input: {
     "Estorno: pagamento de fatura de cartão" :
     "Pagamento de fatura de cartão",
   category: CARD_PAYMENT_CASH_CATEGORY,
-  value: input.entry.amountCents / 100,
   valueCents: input.entry.amountCents,
   date: input.date,
-  transactionDate: transactionInstant(input.date),
   isPaid: true,
   workspaceId: input.workspaceId,
   profileId: input.workspaceId,

@@ -28,8 +28,16 @@ import LoansView from "./components/LoansView";
 import LoanDetailsView from "./components/LoanDetailsView";
 import PJLoansView from "./components/PJLoansView";
 import PJLoanDetailsView from "./components/PJLoanDetailsView";
-import { useGoals, useCreateGoal, useUpdateGoal, useArchiveGoal } from "./modules/goals/hooks";
-import type { GoalWriteInput } from "./modules/goals/api";
+import {
+    useGoals,
+    useInvestmentGoalOptions,
+    useCreateGoal,
+    useUpdateGoal,
+    useUpdateGoalManualProgress,
+    useSetGoalStatus,
+    useArchiveGoal,
+} from "./modules/goals/hooks";
+import { goalErrorView, type GoalSubmission } from "./modules/goals/model";
 import { AdminDashboard } from './components/AdminDashboard';
 import { PricingTable } from './modules/billing/components/PricingTable';
 import { BillingSuccessModal } from './modules/billing/components/BillingSuccessModal';
@@ -41,15 +49,19 @@ import { REPORT_CATEGORY_PALETTE } from "./constants";
 
 import type {
     Transaction,
-    TransactionType,
-    SummaryData,
+    TransactionFormType,
     Goal,
+    GoalStatus,
 } from "./types";
 
 import { WalletIcon, ArrowUpIcon, ArrowDownIcon, ChartBarIcon } from "./components/Icons";
 import { isSameMonthYear } from "./utils/date";
+import { useFinancialReport, useFinancialReportLiveRefresh } from "./modules/reports/hooks";
+import { toDashboardSummary, type DashboardFigure } from "./modules/reports/adapter";
+import { centsToDisplay } from "./modules/reports/format";
+import { monthRange } from "./modules/reports/range";
+import { REPORT_LOAD_ERROR_MESSAGE } from "./modules/reports/official";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useCreateNotification } from "./modules/notifications/hooks";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { LoginView } from "./components/auth/LoginView";
 
@@ -77,10 +89,7 @@ import { formatCompetence } from "./modules/cards/cycle";
 import {
     investmentEntryOf,
     isCreditCardPaymentCashMirror,
-    summarizeCashFlow,
 } from "./modules/investments/semantics";
-import { investmentMonthKey } from "./modules/investments/dashboard";
-import { useInvestmentMonthContribution } from "./modules/investments/simple/api";
 const CARD_PAYMENT_MIRROR_MESSAGE =
     'Pagamentos de fatura de cartão são registrados e estornados pela tela de cartões.';
 /*
@@ -110,6 +119,14 @@ const queryClient = new QueryClient({
     },
 });
 
+/** Blocos do relatório que o Dashboard usa (mês do seletor do Header). */
+const DASHBOARD_REPORT_SECTIONS = ['accounts', 'cash', 'investments', 'kpis'] as const;
+
+/** Número do card, ou "—" com o estado do relatório no lugar da legenda. */
+const summaryFigure = (figure: DashboardFigure, trend: string) => figure.cents === null
+    ? { value: 0, displayValue: '—', trend: figure.message ?? trend }
+    : { value: centsToDisplay(figure.cents), trend };
+
 const AppContent: React.FC = () => {
     const { theme, toggleMode, playSound } = useTheme();
     const { activeWorkspace, isLoading, loadError, activeWorkspaceRole } = useWorkspace();
@@ -119,8 +136,8 @@ const AppContent: React.FC = () => {
     // Estados de UI
     const [isSidebarExpanded, setIsSidebarExpanded] = useState<boolean>(false);
     const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
-    const [transactionModalDefaultType, setTransactionModalDefaultType] = useState<TransactionType | null>(null);
-    const [transactionModalAllowedTypes, setTransactionModalAllowedTypes] = useState<TransactionType[] | null>(null);
+    const [transactionModalDefaultType, setTransactionModalDefaultType] = useState<TransactionFormType | null>(null);
+    const [transactionModalAllowedTypes, setTransactionModalAllowedTypes] = useState<TransactionFormType[] | null>(null);
     const [notification, setNotification] = useState<{ message: string; visible: boolean }>({ message: '', visible: false });
     const [view, setView] = useState<'dashboard' | 'receita' | 'despesa' | 'investimento' | 'settings' | 'cards' | 'personalizacao' | 'goals' | 'goal_details' | 'shared_expenses' | 'split_group_details' | 'recurring' | 'recurring_details' | 'reports' | 'clients_receivables' | 'loans' | 'loan_details' | 'admin' | 'planos'>('dashboard');
     const [currentDate, setCurrentDate] = useState(new Date());
@@ -176,7 +193,7 @@ const AppContent: React.FC = () => {
     // --- INTEGRACAO COM FIRESTORE (HOOKS) ---
 
     // 1. Transações
-    const { data: transactionsData } = useTransactions(workspaceId);
+    const { data: transactionsData, invalidCount: invalidTransactionsCount } = useTransactions(workspaceId);
     // P3-E: lançamento manual confirmado pelas callables autoritativas.
     const createCashMutation = useCreateCashTransaction(workspaceId);
     const updateCashMutation = useUpdateCashTransaction(workspaceId);
@@ -190,12 +207,21 @@ const AppContent: React.FC = () => {
     const { data: creditCardsData } = useCreditCards();
     const creditCards = useMemo(() => creditCardsData || [], [creditCardsData]);
 
-    // --- GOALS (MIGRADO) ---
-    const { data: goalsData } = useGoals();
+    // --- GOALS (P5-B) ---
+    // A lista paginada só carrega nas telas de metas; os seletores de aporte e
+    // vínculo (e o cache do relatório) usam só metas de investimento.
+    const { data: goalsListData } = useGoals({ enabled: view === 'goals' || view === 'goal_details' });
+    const goalsList = useMemo(() => goalsListData || [], [goalsListData]);
+    // P5-B.1 — metas de investimento por página (sem teto fixo); as telas de
+    // aporte pedem as próximas por `investmentGoalPaging.loadMore`.
+    const { goals, paging: investmentGoalPaging } = useInvestmentGoalOptions();
     const createGoalMutation = useCreateGoal();
     const updateGoalMutation = useUpdateGoal();
+    const updateGoalManualProgressMutation = useUpdateGoalManualProgress();
+    const setGoalStatusMutation = useSetGoalStatus();
     const archiveGoalMutation = useArchiveGoal();
-    const goals = useMemo(() => goalsData || [], [goalsData]);
+    // Intenção por operação: o mesmo conteúdo reenviado depois de falha reusa a chave.
+    const goalIntentRef = useRef<Record<string, IntentKey | null>>({});
 
     const [transactionToEdit, setTransactionToEdit] = useState<Transaction | null>(null);
     // Anulação autoritativa (P3-E, D-35): confirmação com justificativa.
@@ -207,10 +233,10 @@ const AppContent: React.FC = () => {
 
     useEffect(() => {
         if (selectedGoal) {
-            const fresh = goals.find(g => g.id === selectedGoal.id);
-            if (fresh) setSelectedGoal(fresh);
+            const fresh = goalsList.find(g => g.id === selectedGoal.id);
+            if (fresh && fresh !== selectedGoal) setSelectedGoal(fresh);
         }
-    }, [goals, selectedGoal]);
+    }, [goalsList, selectedGoal]);
 
     const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
 
@@ -219,7 +245,26 @@ const AppContent: React.FC = () => {
     const [selectedRecurringExpenseId, setSelectedRecurringExpenseId] = useState<string | null>(null);
     const [selectedLoanId, setSelectedLoanId] = useState<string | null>(null);
 
-    const createNotification = useCreateNotification();
+    // Relatório oficial do mês escolhido no Header: cards e gráfico do Dashboard.
+    const dashboardRange = useMemo(() => monthRange(currentDate), [currentDate]);
+    const dashboardReport = useFinancialReport(
+        dashboardRange, DASHBOARD_REPORT_SECTIONS, { enabled: view === 'dashboard' },
+    );
+    const dashboard = useMemo(
+        () => toDashboardSummary(
+            dashboardReport.data,
+            dashboardReport.isError
+                ? dashboardReport.error?.message || REPORT_LOAD_ERROR_MESSAGE
+                : undefined,
+        ),
+        [dashboardReport.data, dashboardReport.isError, dashboardReport.error],
+    );
+    // O caixa é projetado por gatilho assíncrono: relê o relatório quando o
+    // documento do mês corrente ou do mês escolhido muda.
+    useFinancialReportLiveRefresh(
+        workspaceId,
+        dashboardRange.kind === 'month' ? dashboardRange.month : undefined,
+    );
 
     // Filtros de memória para itens locais
 
@@ -233,11 +278,6 @@ const AppContent: React.FC = () => {
         if (newView.startsWith('report:')) setView('reports');
         else setView(newView as any);
         playSound('click');
-    };
-
-    const handleOpenSplitGroup = (groupId: string) => {
-        setSelectedGroupId(groupId);
-        setView('split_group_details');
     };
 
     // --- HANDLERS TRANSAÇÕES ---
@@ -339,45 +379,42 @@ const AppContent: React.FC = () => {
         }
     };
 
-    const toGoalWriteInput = (goal: Omit<Goal, 'id'> & { id?: string }): GoalWriteInput => {
-        const {
-            currentAmount: _currentAmount,
-            createdAt: _createdAt,
-            updatedAt: _updatedAt,
-            id: _id,
-            currentAmountCents: _currentAmountCents,
-            netContributionCents: _netContributionCents,
-            currentValueCents: _currentValueCents,
-            targetAmountCents: _targetAmountCents,
-            archived: _archived,
-            archivedAt: _archivedAt,
-            ...writeInput
-        } = goal;
-        return writeInput;
+    /** Chave de idempotência por intenção; `done` zera a intenção depois do sucesso. */
+    const goalIntent = (operation: string, payload: Record<string, unknown>) => {
+        const intent = resolveIntentKey(
+            goalIntentRef.current[operation] ?? null, operation, payload, newIdempotencyKey,
+        );
+        goalIntentRef.current[operation] = intent;
+        return { key: intent.key, done: () => { goalIntentRef.current[operation] = null; } };
     };
 
     const handleSaveGoal = async (
-        goal: Omit<Goal, 'id'> & { id?: string },
+        submission: GoalSubmission,
         idempotencyKey: string,
-    ): Promise<Goal> => {
+    ): Promise<void> => {
         try {
-            const writeInput = toGoalWriteInput(goal);
-            let persistedGoal: Goal;
-            if (goal.id) {
-                persistedGoal = await updateGoalMutation.mutateAsync({
-                    id: goal.id,
-                    goal: writeInput,
+            if (submission.kind === 'update') {
+                await updateGoalMutation.mutateAsync({
+                    input: {
+                        goalId: submission.goalId,
+                        expectedRevision: submission.expectedRevision,
+                        goal: submission.goal,
+                        manualProgressCents: submission.manualProgressCents,
+                    },
                     idempotencyKey,
                 });
             } else {
-                persistedGoal = await createGoalMutation.mutateAsync({
-                    goal: writeInput,
+                await createGoalMutation.mutateAsync({
+                    input: {
+                        goal: submission.goal,
+                        status: submission.status,
+                        manualProgressCents: submission.manualProgressCents,
+                    },
                     idempotencyKey,
                 });
             }
             showNotification('Meta salva com sucesso!');
             playSound('success');
-            return persistedGoal;
         } catch (e) {
             console.error(e);
             showNotification('Erro ao salvar meta.');
@@ -385,38 +422,73 @@ const AppContent: React.FC = () => {
         }
     };
 
-    const handleDeleteGoal = async (id: string) => {
-        if (confirm('Tem certeza que deseja arquivar esta meta? O histórico de aportes será preservado.')) {
-            try {
-                await archiveGoalMutation.mutateAsync({id, idempotencyKey: crypto.randomUUID()});
-                showNotification('Meta arquivada com sucesso!');
-                playSound('success');
-                // Se estiver na tela de detalhes, volta para lista
-                if (view === 'goal_details') setView('goals');
-            } catch (e) {
-                console.error(e);
-                showNotification('Erro ao arquivar meta.');
-            }
+    /** Muda o status pelo backend (sem atualização otimista); devolve o erro em pt-BR ou `null`. */
+    const handleGoalStatus = async (goal: Goal, status: GoalStatus): Promise<string | null> => {
+        const intent = goalIntent('setGoalStatus', { goalId: goal.id, status });
+        try {
+            await setGoalStatusMutation.mutateAsync({
+                input: { goalId: goal.id, status },
+                idempotencyKey: intent.key,
+            });
+            intent.done();
+            showNotification('Status da meta atualizado.');
+            playSound('success');
+            return null;
+        } catch (e) {
+            console.error(e);
+            const message = goalErrorView(e).message;
+            showNotification('Erro ao atualizar o status da meta.');
+            return message;
+        }
+    };
+
+    /** Atualiza o valor acumulado de meta manual; devolve o erro em pt-BR ou `null`. */
+    const handleGoalManualProgress = async (goal: Goal, manualProgressCents: number): Promise<string | null> => {
+        const intent = goalIntent('updateGoalManualProgress', {
+            goalId: goal.id, expectedRevision: goal.revision, manualProgressCents,
+        });
+        try {
+            await updateGoalManualProgressMutation.mutateAsync({
+                input: { goalId: goal.id, expectedRevision: goal.revision, manualProgressCents },
+                idempotencyKey: intent.key,
+            });
+            intent.done();
+            showNotification('Valor acumulado atualizado.');
+            playSound('success');
+            return null;
+        } catch (e) {
+            console.error(e);
+            return goalErrorView(e).message;
+        }
+    };
+
+    /** Arquiva a meta; devolve a mensagem do backend (ex.: investimentos vinculados) ou `null`. */
+    const handleDeleteGoal = async (id: string): Promise<string | null> => {
+        if (!confirm('Tem certeza que deseja arquivar esta meta? O histórico de aportes será preservado.')) {
+            return null;
+        }
+        const intent = goalIntent('archiveGoal', { goalId: id });
+        try {
+            await archiveGoalMutation.mutateAsync({
+                input: { goalId: id, reason: 'Arquivada pelo usuário' },
+                idempotencyKey: intent.key,
+            });
+            intent.done();
+            showNotification('Meta arquivada com sucesso!');
+            playSound('success');
+            // Se estiver na tela de detalhes, volta para lista
+            if (view === 'goal_details') setView('goals');
+            return null;
+        } catch (e) {
+            console.error(e);
+            showNotification('Erro ao arquivar meta.');
+            return goalErrorView(e).message;
         }
     };
 
     const currentMonthTransactions = useMemo(
         () => transactions.filter((transaction) => isSameMonthYear(transaction.date, currentDate)),
         [transactions, currentDate]
-    );
-
-    // P4-A: sem projeção de faturas em `transactions`. O espelho do pagamento
-    // de fatura entra no saldo e fica fora de receitas e despesas
-    // (`summarizeCashFlow`); a compra no cartão vive no domínio de cartões.
-    const currentMonthCashFlowTransactions = currentMonthTransactions;
-
-    const summaryData: SummaryData = useMemo(() => {
-        return summarizeCashFlow(currentMonthCashFlowTransactions);
-    }, [currentMonthCashFlowTransactions]);
-    // Card "Investimentos": aporte do mês na projeção oficial do domínio
-    // patrimonial (`investment_report_periods`), não no espelho de caixa.
-    const { data: investmentMonthCents } = useInvestmentMonthContribution(
-        workspaceId, investmentMonthKey(currentDate),
     );
 
     if (isLoading) return <div className="flex h-screen items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div></div>;
@@ -433,22 +505,22 @@ const AppContent: React.FC = () => {
         <div className="flex min-h-screen bg-background text-on-surface font-sans">
             <Sidebar isExpanded={isSidebarExpanded} setExpanded={setIsSidebarExpanded} onNavigate={handleNavigate} currentView={view} />
             <main className="flex-1 p-4 lg:p-8 overflow-x-hidden">
-                <Header onToggleSidebar={() => setIsSidebarExpanded(!isSidebarExpanded)} isSidebarExpanded={isSidebarExpanded} onToggleDarkMode={toggleMode} isDarkMode={theme.mode === 'dark'} currentDate={currentDate} onCurrentDateChange={setCurrentDate} onNavigate={handleNavigate} onOpenSplitGroup={handleOpenSplitGroup} />
+                <Header onToggleSidebar={() => setIsSidebarExpanded(!isSidebarExpanded)} isSidebarExpanded={isSidebarExpanded} onToggleDarkMode={toggleMode} isDarkMode={theme.mode === 'dark'} currentDate={currentDate} onCurrentDateChange={setCurrentDate} onNavigate={handleNavigate} />
 
                 {view === 'dashboard' && (
                     <div className="flex flex-col gap-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-                            <SummaryCard title="Saldo Atual" value={summaryData.balance} trend="Mensal" icon={<WalletIcon />} color={activeWorkspace.type === 'PJ' ? 'purple' : 'blue'} />
-                            <SummaryCard title="Receitas" value={summaryData.income} trend="Mensal" icon={<ArrowUpIcon />} color="green" isClickable onClick={() => handleNavigate('receita')} />
-                            <SummaryCard title="Despesas" value={summaryData.expenses} trend="Mensal" icon={<ArrowDownIcon />} color="red" isClickable onClick={() => handleNavigate('despesa')} />
-                            <SummaryCard title="Investimentos" value={(investmentMonthCents ?? 0) / 100} trend="Mensal" icon={<ChartBarIcon />} color="indigo" isClickable onClick={() => handleNavigate('investimento')} />
+                            <SummaryCard title="Saldo Atual" {...summaryFigure(dashboard.balance, 'Em contas')} icon={<WalletIcon />} color={activeWorkspace.type === 'PJ' ? 'purple' : 'blue'} />
+                            <SummaryCard title="Receitas" {...summaryFigure(dashboard.income, 'Mensal')} icon={<ArrowUpIcon />} color="green" isClickable onClick={() => handleNavigate('receita')} />
+                            <SummaryCard title="Despesas" {...summaryFigure(dashboard.expenses, 'Mensal')} icon={<ArrowDownIcon />} color="red" isClickable onClick={() => handleNavigate('despesa')} />
+                            <SummaryCard title="Investimentos" {...summaryFigure(dashboard.investments, 'Mensal')} icon={<ChartBarIcon />} color="indigo" isClickable onClick={() => handleNavigate('investimento')} />
                         </div>
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                             <div className="flex flex-col gap-6">
-                                <TransactionsChart transactions={currentMonthCashFlowTransactions} />
+                                <TransactionsChart summary={dashboard} />
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <RecurringDashboardWidget />
-                                    <ReportsWidget transactions={transactions} goals={goals} creditCards={creditCards} onNavigate={() => handleNavigate('reports')} />
+                                    <ReportsWidget onNavigate={() => handleNavigate('reports')} />
                                 </div>
                             </div>
                             <RecentTransactions transactions={transactions} onNewTransaction={openFullTransactionModal} />
@@ -456,10 +528,9 @@ const AppContent: React.FC = () => {
                     </div>
                 )}
 
-                {view === 'reports' && <ReportsView transactions={transactions} goals={goals} creditCards={creditCards} categories={REPORT_CATEGORY_PALETTE} />}
+                {view === 'reports' && <ReportsView categories={REPORT_CATEGORY_PALETTE} />}
                 {view === 'goals' && (
                     <GoalsView
-                        transactions={transactions}
                         onSelectGoal={(g) => { setSelectedGoal(g); setView('goal_details'); }}
                         onOpenGoalModal={(g) => { setGoalToEdit(g || null); setIsGoalModalOpen(true); }}
                     />
@@ -467,10 +538,11 @@ const AppContent: React.FC = () => {
                 {view === 'goal_details' && selectedGoal && (
                     <GoalDetailsView
                         goal={selectedGoal}
-                        transactions={transactions}
                         onBack={() => setView('goals')}
                         onEdit={g => { setGoalToEdit(g); setIsGoalModalOpen(true); }}
                         onDelete={handleDeleteGoal}
+                        onUpdateStatus={handleGoalStatus}
+                        onUpdateManualProgress={handleGoalManualProgress}
                     />
                 )}
                 {view === 'investimento' && (
@@ -479,6 +551,7 @@ const AppContent: React.FC = () => {
                             workspaceId={workspaceId}
                             profileType={activeWorkspace.type}
                             goals={goals}
+                            goalPaging={investmentGoalPaging}
                             role={activeWorkspaceRole}
                             onBack={() => setView('dashboard')}
                         />
@@ -486,11 +559,10 @@ const AppContent: React.FC = () => {
                 )}
                 {(view === 'receita' || view === 'despesa') && <TransactionsView
                     viewType={view}
+                    invalidCount={invalidTransactionsCount}
                     transactions={
                         view === 'despesa'
-                            ? currentMonthTransactions.filter(
-                                t => t.type === 'despesa' || t.type === 'parcelado',
-                            )
+                            ? currentMonthTransactions.filter(t => t.type === 'despesa')
                             : currentMonthTransactions.filter(t => t.type === view)
                     }
                     onBack={() => setView('dashboard')}
@@ -541,6 +613,7 @@ const AppContent: React.FC = () => {
                 currentDate={currentDate}
                 creditCards={creditCards}
                 goals={goals}
+                goalPaging={investmentGoalPaging}
                 onInvestmentSuccess={showNotification}
             />
             <ConfirmationModal

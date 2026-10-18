@@ -139,3 +139,28 @@ export const buildSimpleGoalCards = (
     ...cards,
   ];
 };
+
+/**
+ * IDs de metas que a tela precisa nomear e ainda não estão nas páginas
+ * carregadas do seletor (P5-B.1).
+ *
+ * Vêm das linhas visíveis da tabela e das faixas de alocação por meta. Só esses
+ * IDs são buscados: a tela nunca carrega todas as metas para nomear posições.
+ * Uma meta arquivada não volta da busca por ID e segue caindo em "Meta removida"
+ * / "Sem Meta Definida", como antes.
+ */
+export const collectUnloadedGoalIds = (
+  rows: ReadonlyArray<{ goalId?: string | null }>,
+  items: ReadonlyArray<{ key: string }>,
+  loadedGoalIds: Iterable<string>,
+): string[] => {
+  const loaded = new Set(loadedGoalIds);
+  const missing = new Set<string>();
+  rows.forEach((row) => {
+    if (row.goalId && !loaded.has(row.goalId)) missing.add(row.goalId);
+  });
+  items.forEach((item) => {
+    if (item.key !== UNASSIGNED_ALLOCATION_KEY && !loaded.has(item.key)) missing.add(item.key);
+  });
+  return Array.from(missing).sort();
+};

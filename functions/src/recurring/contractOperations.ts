@@ -44,6 +44,10 @@ import {
   type UpdateRecurringExpensePayload,
 } from "./contracts";
 import {
+  readEntryCategories,
+  resolveEntryCategory,
+} from "../cash/categories";
+import {
   RECURRING_LIMIT_PER_WORKSPACE,
   RECURRING_SCHEMA_VERSION,
   appendRecurringEvent,
@@ -230,6 +234,13 @@ export const executeCreateRecurringExpense = async (
     }
     assertBusinessAllowed(workspace, payload.business);
     await assertActiveTarget(transaction, actor.workspaceId, payload);
+    // Categoria de despesa do catálogo (D-37.8): mesmo workspace, ativa.
+    const category = resolveEntryCategory(
+      payload.categoryId,
+      (await readEntryCategories(transaction, actor.workspaceId,
+        [payload.categoryId])).get(payload.categoryId),
+      "despesa",
+    );
     const count = (await transaction.get(
       recurringExpensesRef(actor.workspaceId).count())).data().count;
     if (count >= RECURRING_LIMIT_PER_WORKSPACE) {
@@ -264,7 +275,8 @@ export const executeCreateRecurringExpense = async (
       executionMode: payload.executionMode,
       cardId: payload.cardId,
       cashAccountId: payload.cashAccountId,
-      category: payload.category,
+      categoryId: payload.categoryId,
+      category: category.name,
       status: "active" as RecurringStatus,
       nextDueDate,
       lastProcessedDueDate: null,
@@ -429,7 +441,7 @@ const SCHEDULE_FIELDS = [
 ] as const;
 
 const DESCRIPTIVE_FIELDS = [
-  "name", "type", "description", "category", "visual", "business",
+  "name", "type", "description", "categoryId", "visual", "business",
 ] as const;
 
 const sameValue = (left: unknown, right: unknown): boolean =>
@@ -484,6 +496,18 @@ export const executeUpdateRecurringExpense = async (
       .some((field) => changedFields.includes(field));
     if (targetChanged) {
       await assertActiveTarget(transaction, actor.workspaceId, next);
+    }
+    if (changedFields.includes("categoryId")) {
+      // Categoria nova: conferida no catálogo e ativa; o retrato do nome
+      // acompanha o ID (D-37.8).
+      const category = resolveEntryCategory(
+        next.categoryId,
+        (await readEntryCategories(transaction, actor.workspaceId,
+          [next.categoryId])).get(next.categoryId),
+        "despesa",
+      );
+      next.category = category.name;
+      changedFields.push("category");
     }
     let nextDueDate = contract.nextDueDate;
     if (scheduleChanged && contract.status === "active") {

@@ -13,7 +13,8 @@ import {
 
 import { db } from "../../lib/firebase";
 import type { Transaction } from "../../types";
-import { toDateOnlyString } from "../../utils/date";
+import { saoPauloMonthsAgo } from "./cashEntry";
+import { normalizeTransactionData } from "./contract";
 
 const txCol = (workspaceId: string) =>
   collection(db, "workspaces", workspaceId, "transactions");
@@ -27,32 +28,10 @@ function assertValidWorkspaceId(workspaceId: string | undefined): asserts worksp
 export const isVoidedTransaction = (data: DocumentData): boolean =>
   data?.voidedAt !== undefined && data?.voidedAt !== null;
 
-const getSortTime = (data: DocumentData): number => {
-  if (data.createdAt && typeof data.createdAt.toMillis === "function") {
-    return data.createdAt.toMillis();
-  }
-
-  if (data.transactionDate && typeof data.transactionDate.toMillis === "function") {
-    return data.transactionDate.toMillis();
-  }
-
-  const dateOnly = toDateOnlyString(data.date);
-  return dateOnly ? new Date(`${dateOnly}T12:00:00.000Z`).getTime() : 0;
-};
-
 const normalizeTransaction = (
   snapshot: QueryDocumentSnapshot<DocumentData>
-): Transaction => {
-  const data = snapshot.data();
-
-  return {
-    id: snapshot.id,
-    ...(data as Omit<Transaction, "id">),
-    date: toDateOnlyString(data.date ?? data.transactionDate),
-    cardId: data.cardId ? String(data.cardId) : undefined,
-    workspaceId: data.workspaceId ?? snapshot.ref.parent.parent?.id
-  };
-};
+): Transaction | null =>
+  normalizeTransactionData(snapshot.id, snapshot.data(), snapshot.ref.parent.parent?.id);
 
 /**
  * Janela padrão carregada na abertura do aplicativo, em meses.
@@ -89,14 +68,24 @@ export interface TransactionPage {
    * se fosse o total.
    */
   truncated: boolean;
+  /**
+   * Documentos fora do contrato (sem `valueCents` inteiro, com `date` textual
+   * inválido ou com `type` desconhecido) excluídos da lista. A tela precisa
+   * avisar: um lançamento inválido nunca vira R$ 0,00.
+   *
+   * Cobertura (P5-C2 L-4): só conta o que a consulta da janela devolveu, e a
+   * contagem é da janela inteira, não do mês exibido. Documento sem `date` ou
+   * com `date` não textual nem volta da consulta ordenada (o Firestore o omite
+   * do filtro e da ordenação por string) e não entra aqui; quem o detecta é o
+   * gatilho do caixa, que registra `contract_violation` e marca a projeção
+   * para reconstrução. Varredura da coleção inteira no cliente está fora de
+   * questão; a conferência completa é o detector de deriva da P7 (PR-TX-04).
+   */
+  invalidCount: number;
 }
 
-/** Início da janela como data-only `YYYY-MM-DD`, o formato do campo `date`. */
-const monthsAgoDateOnly = (months: number): string => {
-  const date = new Date();
-  date.setMonth(date.getMonth() - months);
-  return date.toISOString().slice(0, 10);
-};
+/** Início da janela como data civil `YYYY-MM-DD` de São Paulo, o formato do campo `date`. */
+const monthsAgoDateOnly = (months: number): string => saoPauloMonthsAgo(months);
 
 /**
  * Carrega transações por janela de período, paginado (INV-P1-011).
@@ -110,9 +99,8 @@ const monthsAgoDateOnly = (months: number): string => {
  * A ordenação é pelo campo `date` (`YYYY-MM-DD`), com cursor. Pelo contrato
  * atual, todo produtor do backend grava `date` em todo lançamento: é a data
  * civil em America/Sao_Paulo, lexicograficamente ordenável, e o recorte por
- * janela é feito por ela. **Não** por `transactionDate`: é a segunda
- * representação da mesma data (instante), que sai com a fórmula única
- * (PR-TX-03, P5), e o Firestore omite da consulta ordenada todo documento sem
+ * janela é feito por ela. `transactionDate` (instante) saiu do contrato na
+ * P5-C2 (PR-TX-03); o Firestore omite da consulta ordenada todo documento sem
  * o campo usado na ordenação.
  *
  * O recorte por janela é o que torna o custo proporcional ao que a tela
@@ -126,6 +114,7 @@ export const getTransactionWindow = async (
 
   const maxPages = window.maxPages ?? MAX_TRANSACTION_PAGES;
   const items: Transaction[] = [];
+  let invalidCount = 0;
   let cursor: QueryDocumentSnapshot<DocumentData> | undefined;
   let truncated = true;
 
@@ -140,7 +129,9 @@ export const getTransactionWindow = async (
     const snapshot = await getDocs(query(txCol(workspaceId), ...constraints));
     snapshot.docs.forEach((document) => {
       if (isVoidedTransaction(document.data())) return;
-      items.push(normalizeTransaction(document));
+      const transaction = normalizeTransaction(document);
+      if (transaction) items.push(transaction);
+      else invalidCount += 1;
     });
     cursor = snapshot.docs[snapshot.docs.length - 1];
     if (snapshot.size < TRANSACTION_PAGE_SIZE) {
@@ -149,7 +140,7 @@ export const getTransactionWindow = async (
     }
   }
 
-  return { items, truncated };
+  return { items, truncated, invalidCount };
 };
 
 /**
@@ -175,17 +166,6 @@ export const getTransactions = async (
   return {
     items: page.items.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0)),
     truncated: page.truncated,
+    invalidCount: page.invalidCount,
   };
 };
-
-/**
- * Histórico completo, sob pedido explícito do usuário.
- *
- * É o único caminho que percorre o histórico inteiro, e existe porque a faixa
- * "tudo" do relatório é uma pergunta legítima. Ele é paginado, tem teto de
- * páginas e devolve `truncated` para que a tela avise quando o agregado não
- * cobre tudo.
- */
-export const getFullTransactionHistory = (
-  workspaceId: string,
-): Promise<TransactionPage> => getTransactionWindow(workspaceId, {});

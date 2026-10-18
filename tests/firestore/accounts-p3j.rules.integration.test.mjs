@@ -138,7 +138,7 @@ const seed = async () => {
       accountId: 'acc_main', transferId: null, actorId: users.ownerA.uid, intentId: 'intent-1', createdAt: ts(),
     });
     batch.set(db.doc(`workspaces/${ws}/transactions/cash_1`), {
-      type: 'receita', description: 'Salário', category: 'Salário', value: 100, valueCents: 10_000,
+      type: 'receita', description: 'Salário', category: 'Salário', valueCents: 10_000,
       date: '2026-10-01', isPaid: true, workspaceId: ws, profileId: ws, userId: users.memberA.uid,
       cashAccountId: 'acc_main', cashEntry: {origin: 'manual', status: 'confirmed', accountMovementId: 'acm_x'},
       createdAt: ts(), updatedAt: ts(),

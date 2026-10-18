@@ -13,6 +13,7 @@ import {
   updateCashTransactionPayloadSchema,
 } from "../contracts";
 import {
+  CashContractViolationError,
   cashPeriodDeltaFor,
   cashPeriodDeltasFor,
   isUnsettledCashEntry,
@@ -46,7 +47,7 @@ const base = {
   cashAccountId: "acc_d29",
   type: "despesa" as const,
   description: "Aluguel",
-  category: "Moradia",
+  categoryId: "cat-despesa-moradia",
   amountCents: 150_000,
 };
 
@@ -151,6 +152,34 @@ test("P3-F — correção leva o estado atual; importação só confirmado", () 
   );
 });
 
+test("P5-C1 — correção exige categoryId; importação aceita sem ele", () => {
+  const mutation = {
+    workspaceId: WS, idempotencyKey: KEY, transactionId: "cash_x",
+    expectedUpdatedAt: null, reason: "Ajuste",
+  };
+  const {workspaceId: _w, idempotencyKey: _k, ...entry} = base;
+  void _w; void _k;
+  const full = {...entry, date: today};
+  const update = (candidate: Record<string, unknown>) =>
+    updateCashTransactionPayloadSchema.safeParse(
+      {...mutation, entry: candidate}).success;
+  assert.ok(update(full));
+  assert.equal(update({...full, categoryId: undefined}), false);
+  assert.equal(update({...full, categoryId: "a/b"}), false);
+  assert.equal(update({...full, category: "Moradia"}), false);
+
+  const {categoryId: _c, cashAccountId: _a, ...rest} = entry;
+  void _c; void _a;
+  const line = {lineId: "l1", ...rest, date: today};
+  assert.ok(cashImportItemSchema.safeParse(line).success);
+  assert.ok(cashImportItemSchema.safeParse(
+    {...line, categoryId: base.categoryId}).success);
+  assert.equal(cashImportItemSchema.safeParse(
+    {...line, category: "Moradia"}).success, false);
+  assert.equal(cashImportItemSchema.safeParse(
+    {...line, categoryId: "a/b"}).success, false);
+});
+
 test("P3-F — confirmação: data efetiva até hoje e valor liquidado", () => {
   const confirm = {
     workspaceId: WS, idempotencyKey: KEY, transactionId: "cash_x",
@@ -184,15 +213,10 @@ test("P3-F — confirmação: data efetiva até hoje e valor liquidado", () => {
   }
 });
 
-const instant = (dayKey: string) =>
-  Timestamp.fromDate(new Date(`${dayKey}T15:00:00.000Z`));
-
 const entry = (overrides: Record<string, unknown>) => ({
   type: "despesa",
-  value: 1500,
   valueCents: 150_000,
   date: "2026-10-20",
-  transactionDate: instant("2026-10-20"),
   isPaid: true,
   cashEntry: {origin: "manual", status: "confirmed"},
   ...overrides,
@@ -209,10 +233,11 @@ test("P3-F — caixa realizado: pendente e agendado não movem o caixa", () => {
   });
   assert.equal(isUnsettledCashEntry(pending), true);
   assert.deepEqual(cashPeriodDeltaFor(pending), zero);
-  // Receita pendente, legado pendente explícito e marca pendente sozinha.
+  // Receita pendente, pendente explícito (`isPaid: false`) e marca pendente
+  // sozinha.
   assert.deepEqual(cashPeriodDeltaFor({...pending, type: "receita"}), zero);
   assert.deepEqual(cashPeriodDeltaFor({
-    type: "despesa", value: 99, isPaid: false, date: "2026-10-01",
+    type: "despesa", valueCents: 9_900, isPaid: false, date: "2026-10-01",
   }), zero);
   assert.deepEqual(cashPeriodDeltaFor(entry({
     cashEntry: {origin: "manual", status: "pending"},
@@ -220,21 +245,24 @@ test("P3-F — caixa realizado: pendente e agendado não movem o caixa", () => {
   // Confirmados movem.
   assert.equal(cashPeriodDeltaFor(entry({})).netCents, -150_000);
   assert.equal(cashPeriodDeltaFor(entry({type: "receita"})).netCents, 150_000);
-  // Legado sem `isPaid`: continua realizado (sem prova de pendência).
+  // Sem `isPaid`: continua realizado (sem prova de pendência).
   assert.equal(cashPeriodDeltaFor({
-    type: "receita", value: 10, date: "2026-10-01",
+    type: "receita", valueCents: 1_000, date: "2026-10-01",
   }).netCents, 1_000);
+  // Pendente com valor fora do contrato não vira zero em silêncio.
+  assert.throws(() => cashPeriodDeltaFor({
+    type: "despesa", isPaid: false, date: "2026-10-01",
+  }), CashContractViolationError);
 });
 
 test("P3-F — confirmação no mês seguinte entra no mês da data efetiva", () => {
   const pending = entry({
     isPaid: false, date: "2026-10-28", dueDate: "2026-10-28",
-    transactionDate: instant("2026-10-28"),
     cashEntry: {origin: "manual", status: "pending"},
   });
   const confirmed = entry({
     date: "2026-11-03", dueDate: "2026-10-28",
-    transactionDate: instant("2026-11-03"), valueCents: 151_000, value: 1510,
+    valueCents: 151_000,
   });
   // Criar o pendente: nada.
   assert.deepEqual(cashPeriodDeltasFor(undefined, pending), {});
@@ -246,8 +274,7 @@ test("P3-F — confirmação no mês seguinte entra no mês da data efetiva", ()
     }),
   });
   // Corrigir a data efetiva: sai de um mês e entra no outro.
-  const moved = {...confirmed, date: "2026-10-31",
-    transactionDate: instant("2026-10-31")};
+  const moved = {...confirmed, date: "2026-10-31"};
   assert.deepEqual(cashPeriodDeltasFor(confirmed, moved), {
     "2026-11": delta({
       incomeCents: 0, expenseCents: -151_000, investmentOutflowCents: 0,
@@ -265,15 +292,22 @@ test("P3-F — confirmação no mês seguinte entra no mês da data efetiva", ()
     voidedAt: Timestamp.now()}), {});
   // Corrigir valor e vencimento do pendente: nada no realizado.
   assert.deepEqual(cashPeriodDeltasFor(pending, {...pending,
-    valueCents: 2, dueDate: "2026-12-01", date: "2026-12-01",
-    transactionDate: instant("2026-12-01")}), {});
+    valueCents: 2, dueDate: "2026-12-01", date: "2026-12-01"}), {});
 });
 
 test("P3-F — contratos de cartões e investimentos preservados", () => {
-  // Parcela de cartão: regra própria do domínio (P4), não alterada aqui.
-  assert.equal(cashPeriodDeltaFor({
-    type: "parcelado", value: 100, isPaid: false, date: "2026-10-10",
-  }).expenseCents, 10_000);
+  // Parcela de cartão: vive em `credit_card_purchases` (P4); `parcelado` em
+  // `transactions` é violação de contrato, pendente ou não, nunca despesa.
+  for (const isPaid of [false, true]) {
+    assert.throws(() => cashPeriodDeltaFor({
+      type: "parcelado", valueCents: 10_000, isPaid, date: "2026-10-10",
+    }), (error: unknown) => error instanceof CashContractViolationError &&
+      error.field === "type");
+  }
+  // Anulado vale zero antes de qualquer leitura de contrato.
+  assert.deepEqual(cashPeriodDeltaFor({
+    type: "parcelado", valueCents: 10_000, voidedAt: Timestamp.now(),
+  }), cashPeriodDeltaFor(undefined));
   // Investimento (P4-D): decide a marca `investmentEntry`, não `isPaid`.
   const investmentEntry = {
     domainVersion: 1, movementId: "mov-1", operation: "contribution",
@@ -289,9 +323,15 @@ test("P3-F — contratos de cartões e investimentos preservados", () => {
     investmentEntry: {...investmentEntry, status: "pending"},
     date: "2026-10-10",
   }).netCents, 0);
-  // Sem marca válida: fora do contrato, efeito zero (sem fallback).
-  assert.equal(cashPeriodDeltaFor({
+  // Sem marca válida: fora do contrato, violação (sem fallback, sem zero).
+  assert.throws(() => cashPeriodDeltaFor({
     type: "investimento", valueCents: 5_000, isPaid: true,
     date: "2026-10-10",
-  }).netCents, 0);
+  }), (error: unknown) => error instanceof CashContractViolationError &&
+    error.field === "type");
+  assert.throws(() => cashPeriodDeltaFor({
+    type: "investimento", valueCents: 5_000, isPaid: true,
+    investmentEntry: {}, date: "2026-10-10",
+  }), (error: unknown) => error instanceof CashContractViolationError &&
+    error.field === "marker");
 });

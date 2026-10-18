@@ -18,13 +18,6 @@ import {
   suggestedPayment,
 } from '../../src/modules/loans/presentation.ts';
 import type { Loan, LoanMovement } from '../../src/modules/loans/types.ts';
-import {
-  isOperationalExpense,
-  isOperationalIncome,
-  summarizeCashFlow,
-  transactionCashImpact,
-} from '../../src/modules/investments/semantics.ts';
-import type { Transaction } from '../../src/types.ts';
 
 /**
  * P3-H — o frontend de empréstimos lê um único formato (o contrato
@@ -207,20 +200,4 @@ test('P3-H — erros do backend em pt-BR; recarga quando o estado do servidor mu
   assert.equal(loanErrorView({ code: 'functions/internal', message: 'internal' }).kind, 'uncertain');
   assert.match(loanErrorView({ code: 'functions/unavailable', message: 'unavailable' }).message, /não duplica/);
   assert.equal(loanErrorView({ code: 'functions/failed-precondition', message: 'Este movimento já foi estornado.' }).refresh, true);
-});
-
-test('P3-H — espelho de empréstimo: no saldo, fora de receita/despesa (dashboard e relatórios)', () => {
-  const mirror = (type: 'receita' | 'despesa', value: number): Transaction => ({
-    id: `m-${type}`, type, description: 'Empréstimo', category: 'Empréstimos', value, date: '2026-10-05',
-    isPaid: true, loanEntry: { loanId: 'loan_1', loanMovementId: 'lmv_1', kind: 'disbursement' },
-  } as Transaction);
-  const plain: Transaction = { id: 'p', type: 'receita', description: 'Salário', category: 'Salário', value: 1000, date: '2026-10-05', isPaid: true } as Transaction;
-  assert.equal(isOperationalIncome(mirror('receita', 3000)), false);
-  assert.equal(isOperationalExpense(mirror('despesa', 3000)), false);
-  assert.equal(isOperationalIncome(plain), true);
-  assert.equal(transactionCashImpact(mirror('receita', 3000)), 3000, 'o principal move o caixa');
-  const summary = summarizeCashFlow([mirror('receita', 3000), mirror('despesa', 1100), plain]);
-  assert.equal(summary.income, 1000);
-  assert.equal(summary.expenses, 0);
-  assert.equal(summary.balance, 1000 + 3000 - 1100);
 });

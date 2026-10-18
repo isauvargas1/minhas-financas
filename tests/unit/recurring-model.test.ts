@@ -46,7 +46,8 @@ const stored = (overrides: Record<string, unknown> = {}) => ({
   id: 'rec_1', schemaVersion: 1, workspaceId: 'ws', name: 'Internet', type: 'fixed_bill',
   description: null, amountCents: 9_990, currency: 'BRL', frequency: 'monthly', billingDay: 10,
   startDate: '2026-01-10', endDate: null, paymentMethod: 'pix', executionMode: 'automatic',
-  cardId: null, cashAccountId: 'acc_1', category: 'Utilidades', status: 'active',
+  cardId: null, cashAccountId: 'acc_1', categoryId: 'cat_utilidades', category: 'Utilidades',
+  status: 'active',
   nextDueDate: '2026-11-10', lastProcessedDueDate: '2026-10-10', openOccurrenceCount: 1,
   visual: { color: '#4f46e5', icon: 'Bolt', emoji: null }, business: null, createdBy: 'uid-1',
   revision: 3, updatedAt: timestamp, ...overrides,
@@ -71,7 +72,7 @@ test('P4-B — valor digitado vira centavos inteiros por texto, nunca por ponto 
 
 test('P4-B — formulário → contrato: modo explícito, dia só nas mensais, destino pela forma', () => {
   const form = { ...emptyForm(false, '2026-10-06', { color: '#E50914', icon: 'Bolt' }),
-    name: '  Netflix ', amount: '55.90', cardId: 'card-1' };
+    name: '  Netflix ', amount: '55.90', cardId: 'card-1', categoryId: 'cat_rec' };
   assert.equal(form.executionMode, 'automatic');
   assert.equal(form.billingDay, '6');
   const card = toContractFields(form, false);
@@ -82,7 +83,9 @@ test('P4-B — formulário → contrato: modo explícito, dia só nas mensais, d
   assert.equal(card.cashAccountId, null);
   assert.equal(card.billingDay, 6);
   assert.equal(card.business, null);
-  assert.equal(card.category, 'Recorrentes');
+  assert.equal(card.categoryId, 'cat_rec');
+  assert.equal('category' in card, false);
+  assert.throws(() => toContractFields({ ...form, categoryId: '  ' }, false), /Categoria: valor obrigatório\./);
   assert.equal('source' in card, false);
   assert.equal('status' in card, false);
   const weekly = toContractFields({ ...form, frequency: 'weekly', billingDay: '31' }, false);

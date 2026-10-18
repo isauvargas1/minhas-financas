@@ -325,7 +325,6 @@ export const ShoppingBagIcon: React.FC<IconProps> = (props) => <AppIcon name="Sh
 export const SettingsIcon: React.FC<IconProps> = (props) => <AppIcon name="Settings" {...props} />;
 export const LogoutIcon: React.FC<IconProps> = (props) => <AppIcon name="Logout" {...props} />;
 export const BellIcon: React.FC<IconProps> = (props) => <AppIcon name="Bell" {...props} />;
-export const EnvelopeIcon: React.FC<IconProps> = (props) => <AppIcon name="Envelope" {...props} />;
 export const SunIcon: React.FC<IconProps> = (props) => <AppIcon name="Sun" {...props} />;
 export const MoonIcon: React.FC<IconProps> = (props) => <AppIcon name="Moon" {...props} />;
 export const HamburgerIcon: React.FC<IconProps> = (props) => <AppIcon name="Hamburger" {...props} />;
@@ -338,7 +337,6 @@ export const BarChartIcon: React.FC<IconProps> = (props) => <AppIcon name="Chart
 export const LineChartIcon: React.FC<IconProps> = (props) => <AppIcon name="LineChart" {...props} />;
 export const DoughnutChartIcon: React.FC<IconProps> = (props) => <AppIcon name="DoughnutChart" {...props} />;
 export const PlusIcon: React.FC<IconProps> = (props) => <AppIcon name="Plus" {...props} />;
-export const MessageCirclePlusIcon: React.FC<IconProps> = (props) => <AppIcon name="MessageCirclePlus" {...props} />;
 export const CloseIcon: React.FC<IconProps> = (props) => <AppIcon name="Close" {...props} />;
 export const BackIcon: React.FC<IconProps> = (props) => <AppIcon name="Back" {...props} />;
 export const EditIcon: React.FC<IconProps> = (props) => <AppIcon name="Edit" {...props} />;

@@ -4,6 +4,7 @@ import test from 'node:test';
 import {
   buildCategoryOptions,
   buildCreateSimpleInvestmentInput,
+  buildGoalSelectOptions,
   buildWithdrawSimpleInvestmentInput,
   dateInputToInstant,
   dateInputValue,
@@ -15,6 +16,7 @@ import {
   maskCurrencyInput,
   parseCurrencyInput,
   SELECTED_CATEGORY_FALLBACK_LABEL,
+  SELECTED_GOAL_FALLBACK_LABEL,
   validateNewInvestment,
   validateWithdraw,
   WITHDRAWAL_ACCOUNT_MESSAGE,
@@ -362,4 +364,37 @@ test('a categoria é reconhecida por identificador, nunca por rótulo', () => {
   assert.equal(opcoes.length, 4);
   assert.equal(opcoes[0].value, 'cat-acoes-antiga');
   assert.equal(opcoes[1].value, 'cat-acoes');
+});
+
+// --- P5-B.1: seletor de meta sem teto fixo ------------------------------------
+
+const goalSource = (id: string, name: string, status = 'em_andamento', emoji?: string) => ({
+  id, name, status, ...(emoji ? {visual: {emoji}} : {}),
+});
+
+test('seletor de meta: só metas em andamento, com emoji no rótulo', () => {
+  const options = buildGoalSelectOptions([
+    goalSource('g1', 'Reserva', 'em_andamento', '🏦'),
+    goalSource('g2', 'Pausada', 'pausada'),
+    goalSource('g3', 'Viagem'),
+  ], '');
+  assert.deepEqual(options, [
+    {value: 'g1', label: '🏦 Reserva'},
+    {value: 'g3', label: 'Viagem'},
+  ]);
+});
+
+test('seletor de meta: a meta selecionada nunca some, mesmo fora das páginas carregadas', () => {
+  // Resolvida por ID (a 150ª meta, por exemplo): aparece com o nome.
+  const resolved = buildGoalSelectOptions([goalSource('g1', 'Reserva'), goalSource('g150', 'Meta 150')], 'g150');
+  assert.deepEqual(resolved.map((option) => option.value), ['g1', 'g150']);
+  // Selecionada e pausada: continua visível para não virar "Sem meta" no campo.
+  const paused = buildGoalSelectOptions([goalSource('g2', 'Pausada', 'pausada')], 'g2');
+  assert.deepEqual(paused, [{value: 'g2', label: 'Pausada'}]);
+  // Ainda sem resolver: opção provisória com o mesmo valor, nunca vazio.
+  const pending = buildGoalSelectOptions([goalSource('g1', 'Reserva')], 'g201');
+  assert.deepEqual(pending.at(-1), {value: 'g201', label: SELECTED_GOAL_FALLBACK_LABEL});
+  assert.equal(SELECTED_GOAL_FALLBACK_LABEL, 'Meta selecionada');
+  // Sem seleção, nenhuma opção extra.
+  assert.equal(buildGoalSelectOptions([goalSource('g1', 'Reserva')], '').length, 1);
 });

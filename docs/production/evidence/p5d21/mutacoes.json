@@ -1,0 +1,1080 @@
+{
+ "milestone": "P5-D2.1",
+ "date": "2026-10-12",
+ "method": "Cópia isolada do working tree (git archive por índice temporário; índice real intocado) em scratchpad/p5d21/mut. Cada mutante troca um trecho exato e único, compila (tsc; não compilar = inválido, não conta), roda o teste indicado (unitário, integração no Emulator minhas-financas-local, Rules no Emulator ou padrão estático §17), restaura o original e confere o SHA-256 dos arquivos-alvo na cópia e no repositório. Um Emulator por vez; processo de teste em sessão própria, encerrado por grupo ao fim de cada mutante.",
+ "copyTree": "c856f9ea78f24f3c1b4d729650012fd47d75bd56",
+ "totals": {
+  "valid": 53,
+  "killed": 53,
+  "survived": 0,
+  "invalid": 0,
+  "byGroup": {
+   "int": 42,
+   "unit": 7,
+   "static": 1,
+   "rules": 3
+  }
+ },
+ "repositoryIntact": true,
+ "rounds": [
+  {
+   "round": 1,
+   "status": "interrompida",
+   "note": "M01–M03 mortos; interrompida para corrigir o harness (processo de teste órfão contra o Emulator seguinte)."
+  },
+  {
+   "round": 2,
+   "status": "interrompida",
+   "note": "Parcial: M05, M06 e M12 sem compilar (reescritos); M09 sobrevivente (teste §15.33 adicionado)."
+  },
+  {
+   "round": 3,
+   "status": "completa, árvore anterior às duas passadas",
+   "note": "47 mutantes: 44 mortos, 0 sobreviventes; M14, M20 e M21 sem compilar depois das correções da rodada 2 de revisão, reescritos."
+  },
+  {
+   "round": 4,
+   "status": "completa, árvore anterior às duas passadas",
+   "note": "M14, M20 e M21 reescritos: 3 mortos."
+  },
+  {
+   "round": 5,
+   "status": "completa, árvore final",
+   "note": "53 mutantes sobre a árvore final (duas passadas e correções da rodada 3 de revisão): 53 mortos, 0 sobreviventes, 0 inválidos. Novos: M48–M51 (2ª passada) e M52–M53 (achados R3-1 e R3-2); M21, M40, M41, M45 e M46 com âncoras atualizadas para o código final."
+  },
+  {
+   "round": 6,
+   "status": "completa, árvore final",
+   "note": "Só firestore.rules mudou depois da 5ª (as duas coleções novas passaram a ficar antes de 'notifications' em isBackendOwnedCollection, para preservar a guarda tests/unit/notifications-guard.test.ts): os 3 mutantes de Rules refeitos sobre a árvore final, com a âncora de M35 atualizada; 3 mortos. O código das Functions é o mesmo da 5ª, então os outros 50 resultados valem para a árvore final."
+  }
+ ],
+ "mutants": {
+  "M01": {
+   "group": "int",
+   "ref": "7 dias",
+   "description": "limite de 7 dias reintroduzido: atraso maior encerra sem publicar",
+   "file": "functions/src/notifications/producers/receivables.ts",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 106,
+   "evidence": [
+    "# (node:5080) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+    "not ok 1 - P5-D2.1 §15.1 cadastrados já vencidos há 1, 7, 8, 30, 180 e 400 dias: um aviso por recebível, sem limite de dias, com confirmação e sem dado pessoal",
+    "        failed: 0,",
+    "    failed: 0",
+    "    failed: 0",
+    "not ok 7 - P5-D2.1 §15.7 passado → outro passado depois do aviso abre novo episódio; restaurar a data já avisada não reemite",
+    "not ok 13 - P5-D2.1 §15.13 falha persistente: nunca descartada, sinalizada a partir da 5ª tentativa, com backoff limitado, e recupera",
+    "not ok 15 - P5-D2.1 §15.23 vencimento retroativo não fura a fila: entra no dia do enfileiramento, atrás de quem ficou devido antes (relógio real do domínio)"
+   ]
+  },
+  "M02": {
+   "group": "int",
+   "ref": "criado vencido",
+   "description": "cadastro já vencido não enfileira (vencimento antes do relógio real)",
+   "file": "functions/src/notifications/producers/receivableQueue.ts",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 61,
+   "evidence": [
+    "# (node:5331) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+    "not ok 13 - §16.8 recebível vencido (dueDate = hoje − 1, em aberto) gera um aviso, sem cliente nem documento, sem depender de client_private",
+    "not ok 14 - §16.8 sem limite de dias (P5-D2.1, substitui a janela de sete dias da P5-D2): hoje−1, hoje−7, hoje−8 e hoje−30 avisam; hoje e futuro não; parcialmente recebido (ainda aberto) avisa",
+    "not ok 15 - §16.8 reexecução no dia seguinte: o trabalho já saiu da fila e a confirmação existe; createdAt e expiresAt inalterados mesmo com outro instante",
+    "not ok 18 - §16.12 recebível: vencimento editado para outra data passada abre um novo episódio (segundo aviso, outro ID)",
+    "not ok 32 - §16.20 a notificação não altera ledger, saldos, projeções nem contratos: todos os documentos de domínio ficam idênticos byte a byte depois de todos os produtores",
+    "not ok 33 - §16.19 a mesma entidade (mesmo ID) em dois workspaces gera dois avisos com IDs diferentes, cada um só no seu workspace",
+    "not ok 34 - §16.17 evento antigo não reaparece após a expiração física: empréstimo, conta, meta e recebível (o Emulator não executa TTL: a remoção é simulada pelo Admin SDK)"
+   ]
+  },
+  "M03": {
+   "group": "int",
+   "ref": "avança após falha",
+   "description": "falha remove o item da fila (perda definitiva)",
+   "file": "functions/src/notifications/producers/receivables.ts",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 99,
+   "evidence": [
+    "# (node:5560) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+    "not ok 10 - P5-D2.1 §15.10 retry de falha não transitória: a 1ª volta na próxima execução do mesmo dia; a 2ª empurra para o dia seguinte",
+    "not ok 11 - P5-D2.1 §15.11 / §16.1 falha depois da consulta, durante a publicação (antes do commit) e por tempo esgotado: nada parcial, tudo recuperável",
+    "not ok 12 - P5-D2.1 §15.12 a falha de um item não perde nem atrasa os demais",
+    "not ok 13 - P5-D2.1 §15.13 falha persistente: nunca descartada, sinalizada a partir da 5ª tentativa, com backoff limitado, e recupera",
+    "not ok 14 - P5-D2.1 §15.10b falha transitória (indisponibilidade): volta a cada execução horária nas 6 primeiras tentativas e depois todo dia, sem adiar dias depois da recuperação",
+    "not ok 22 - P5-D2.1 §15.30 edição só da descrição com o item em backoff: o trabalho e as tentativas ficam como estão",
+    "not ok 28 - P5-D2.1 §15.37 a 2ª passada não repete o que a execução já tratou: a falha da 1ª passada é registrada uma única vez"
+   ]
+  },
+  "M04": {
+   "group": "int",
+   "ref": "sem retry",
+   "description": "falha empurra a próxima tentativa para nunca",
+   "file": "functions/src/notifications/producers/receivables.ts",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 105,
+   "evidence": [
+    "# (node:5814) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+    "not ok 10 - P5-D2.1 §15.10 retry de falha não transitória: a 1ª volta na próxima execução do mesmo dia; a 2ª empurra para o dia seguinte",
+    "not ok 11 - P5-D2.1 §15.11 / §16.1 falha depois da consulta, durante a publicação (antes do commit) e por tempo esgotado: nada parcial, tudo recuperável",
+    "not ok 13 - P5-D2.1 §15.13 falha persistente: nunca descartada, sinalizada a partir da 5ª tentativa, com backoff limitado, e recupera",
+    "not ok 14 - P5-D2.1 §15.10b falha transitória (indisponibilidade): volta a cada execução horária nas 6 primeiras tentativas e depois todo dia, sem adiar dias depois da recuperação",
+    "not ok 17 - P5-D2.1 §15.25 recebível fora do contrato na 5ª tentativa emite o mesmo WARN de falha persistente; o backlog é sinalizado mesmo quando o desfecho é de falha",
+    "not ok 28 - P5-D2.1 §15.37 a 2ª passada não repete o que a execução já tratou: a falha da 1ª passada é registrada uma única vez",
+    "not ok 33 - P5-D2.1 §15.36 backlog só com sobra real: uma falha transitória que volta na execução seguinte não é backlog"
+   ]
+  },
+  "M05": {
+   "group": "int",
+   "ref": "sem marca",
+   "description": "publica sem confirmação durável",
+   "file": "functions/src/notifications/producers/receivables.ts",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 101,
+   "evidence": [
+    "# (node:6065) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+    "not ok 1 - P5-D2.1 §15.1 cadastrados já vencidos há 1, 7, 8, 30, 180 e 400 dias: um aviso por recebível, sem limite de dias, com confirmação e sem dado pessoal",
+    "not ok 3 - P5-D2.1 §15.3 parcialmente recebido avisa uma vez; outro recebimento parcial depois do aviso não reabre o trabalho nem duplica",
+    "not ok 7 - P5-D2.1 §15.7 passado → outro passado depois do aviso abre novo episódio; restaurar a data já avisada não reemite",
+    "not ok 9 - P5-D2.1 §15.9 reexecução no mesmo dia e repetição do Scheduler (o mesmo runId) não duplicam nem regravam o aviso",
+    "not ok 11 - P5-D2.1 §15.11 / §16.1 falha depois da consulta, durante a publicação (antes do commit) e por tempo esgotado: nada parcial, tudo recuperável",
+    "not ok 34 - P5-D2.1 §15.34 invariante de cobertura: depois de qualquer sequência de operações de domínio, todo recebível aberto com saldo tem trabalho para o vencimento atual ou a confirmação desse episódio, e nenhum fechado tem trabalho pendente",
+    "not ok 45 - P5-D2.1 §15.20 workspace arquivado: o fato ocorreu e o aviso é publicado (precedente de recorrentes; leitura pelas Rules da D-18)"
+   ]
+  },
+  "M06": {
+   "group": "int",
+   "ref": "marca apagada com aviso",
+   "description": "deduplicação pela existência do aviso (TTL reabre)",
+   "file": "functions/src/notifications/producers/receivables.ts",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 120,
+   "evidence": [
+    "# (node:6315) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+    "not ok 47 - P5-D2.1 §10 deduplicação depois do TTL: aviso apagado 181 dias depois, recebível ainda aberto e trabalho reaberto não reemitem; a antiguidade do vencimento não bloqueia outro recebível",
+    "not ok 53 - P5-D2.1 §16.5 aviso publicado sem confirmação (rotina da P5-D2) é reconciliado: grava só a confirmação, sem duplicar nem regravar",
+    "# pass 54",
+    "# fail 2"
+   ]
+  },
+  "M07": {
+   "group": "int",
+   "ref": "duplica em concorrência",
+   "description": "sem revalidar item e confirmação na transação (dois workers)",
+   "file": "functions/src/notifications/producers/receivables.ts",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 108,
+   "evidence": [
+    "# (node:6570) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+    "not ok 7 - P5-D2.1 §15.7 passado → outro passado depois do aviso abre novo episódio; restaurar a data já avisada não reemite",
+    "not ok 8 - P5-D2.1 §15.8 estorno que reabre: sem confirmação do episódio, emite; com confirmação, não duplica",
+    "not ok 47 - P5-D2.1 §10 deduplicação depois do TTL: aviso apagado 181 dias depois, recebível ainda aberto e trabalho reaberto não reemitem; a antiguidade do vencimento não bloqueia outro recebível",
+    "not ok 50 - P5-D2.1 §16.3 dois workers simultâneos: uma publicação e uma confirmação por recebível, sem efeito financeiro e sem prorrogar o TTL",
+    "not ok 54 - P5-D2.1 §11 custo instrumentado por item e execução sem pendências",
+    "    +   failed: 2,",
+    "    -   failed: 1,"
+   ]
+  },
+  "M08": {
+   "group": "int",
+   "ref": "ID do episódio",
+   "description": "episódio pelo dia de detecção, não pelo vencimento",
+   "file": "functions/src/notifications/producers/receivables.ts",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 127,
+   "evidence": [
+    "# (node:6825) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+    "not ok 1 - P5-D2.1 §15.1 cadastrados já vencidos há 1, 7, 8, 30, 180 e 400 dias: um aviso por recebível, sem limite de dias, com confirmação e sem dado pessoal",
+    "not ok 2 - P5-D2.1 §15.2 vence hoje e vence no futuro não avisam; vencem sem nenhuma escrita e avisam no dia seguinte ao vencimento",
+    "not ok 5 - P5-D2.1 §15.5 vencimento futuro alterado para o passado: o novo episódio avisa com a nova data",
+    "not ok 6 - P5-D2.1 §15.6 vencimento passado alterado para o futuro antes do aviso: o episódio anterior não emite; o novo emite quando vencer",
+    "not ok 7 - P5-D2.1 §15.7 passado → outro passado depois do aviso abre novo episódio; restaurar a data já avisada não reemite",
+    "not ok 8 - P5-D2.1 §15.8 estorno que reabre: sem confirmação do episódio, emite; com confirmação, não duplica",
+    "not ok 9 - P5-D2.1 §15.9 reexecução no mesmo dia e repetição do Scheduler (o mesmo runId) não duplicam nem regravam o aviso"
+   ]
+  },
+  "M09": {
+   "group": "int",
+   "ref": "ignora vencimento",
+   "description": "vence hoje já avisa (fronteira do dia)",
+   "file": "functions/src/notifications/producers/receivables.ts",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 116,
+   "evidence": [
+    "# (node:7079) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+    "not ok 25 - P5-D2.1 §15.33 item devido de recebível que ainda não venceu (vence hoje ou no futuro): a transação reagenda e nunca publica",
+    "# pass 55",
+    "# fail 1"
+   ]
+  },
+  "M10": {
+   "group": "unit",
+   "ref": "ignora vencimento",
+   "description": "primeiro dia de atraso = dia do vencimento",
+   "file": "functions/src/notifications/producers/receivableQueue.ts",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 33,
+   "evidence": [
+    "not ok 229 - criação aberta com saldo enfileira para o dia em que fica devido: o seguinte ao vencimento, ou o próprio dia se o vencimento já passou (semanas, meses ou anos atrás)",
+    "not ok 234 - estorno que reabre (recebido → aberto) devolve o mesmo episódio à fila, devido no dia do estorno",
+    "not ok 235 - mudança de vencimento reescreve o episódio; o mesmo não",
+    "# Subtest: ApplicationError recent_login_required → failed-precondition",
+    "ok 322 - ApplicationError recent_login_required → failed-precondition",
+    "# Subtest: ApplicationError account_not_initialized → failed-precondition",
+    "ok 324 - ApplicationError account_not_initialized → failed-precondition",
+    "# Subtest: ApplicationError workspace_archived → failed-precondition"
+   ]
+  },
+  "M11": {
+   "group": "int",
+   "ref": "ignora quitação",
+   "description": "quitação/cancelamento não removem o trabalho pendente",
+   "file": "functions/src/notifications/producers/receivableQueue.ts",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 113,
+   "evidence": [
+    "# (node:7702) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+    "not ok 4 - P5-D2.1 §15.4 quitado, cancelado e com saldo zerado por desconto não avisam: o trabalho sai da fila na mesma transação",
+    "not ok 8 - P5-D2.1 §15.8 estorno que reabre: sem confirmação do episódio, emite; com confirmação, não duplica",
+    "not ok 20 - P5-D2.1 §15.28 recebido, vencimento editado e estorno: o episódio reaberto é o do vencimento novo",
+    "not ok 34 - P5-D2.1 §15.34 invariante de cobertura: depois de qualquer sequência de operações de domínio, todo recebível aberto com saldo tem trabalho para o vencimento atual ou a confirmação desse episódio, e nenhum fechado tem trabalho pendente",
+    "not ok 37 - P5-D2.1 §15.15b item obsoleto na fila de um recebível já quitado: a revalidação na transação encerra o trabalho sem publicar",
+    "# pass 51",
+    "# fail 5"
+   ]
+  },
+  "M12": {
+   "group": "int",
+   "ref": "ignora quitação",
+   "description": "worker não revalida status nem saldo antes de publicar",
+   "file": "functions/src/notifications/producers/receivables.ts",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 116,
+   "evidence": [
+    "# (node:7953) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+    "not ok 37 - P5-D2.1 §15.15b item obsoleto na fila de um recebível já quitado: a revalidação na transação encerra o trabalho sem publicar",
+    "# pass 55",
+    "# fail 1"
+   ]
+  },
+  "M13": {
+   "group": "unit",
+   "ref": "cancelamento",
+   "description": "cancelado com saldo continua elegível",
+   "file": "functions/src/notifications/producers/receivableQueue.ts",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 31,
+   "evidence": [
+    "not ok 231 - criação fora da forma elegível não escreve nada",
+    "not ok 233 - quitação e cancelamento removem o trabalho pendente",
+    "not ok 235 - mudança de vencimento reescreve o episódio; o mesmo não",
+    "# Subtest: ApplicationError recent_login_required → failed-precondition",
+    "ok 322 - ApplicationError recent_login_required → failed-precondition",
+    "# Subtest: ApplicationError account_not_initialized → failed-precondition",
+    "ok 324 - ApplicationError account_not_initialized → failed-precondition",
+    "# Subtest: ApplicationError workspace_archived → failed-precondition"
+   ]
+  },
+  "M14": {
+   "group": "int",
+   "ref": "parcial",
+   "description": "recebimento parcial reescreve o trabalho (mesmo episódio)",
+   "file": "functions/src/notifications/producers/receivableQueue.ts",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 117,
+   "evidence": [
+    "# (node:8581) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+    "not ok 3 - P5-D2.1 §15.3 parcialmente recebido avisa uma vez; outro recebimento parcial depois do aviso não reabre o trabalho nem duplica",
+    "not ok 21 - P5-D2.1 §15.29 estorno de recebimento parcial (aberto → aberto) depois do aviso: não reescreve a fila nem duplica",
+    "not ok 22 - P5-D2.1 §15.30 edição só da descrição com o item em backoff: o trabalho e as tentativas ficam como estão",
+    "# pass 53",
+    "# fail 3"
+   ]
+  },
+  "M15": {
+   "group": "int",
+   "ref": "saldo",
+   "description": "saldo comparado errado: recebível sem nenhum recebimento é tratado como sem saldo",
+   "file": "functions/src/notifications/producers/receivables.ts",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 83,
+   "evidence": [
+    "# (node:8839) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+    "not ok 1 - P5-D2.1 §15.1 cadastrados já vencidos há 1, 7, 8, 30, 180 e 400 dias: um aviso por recebível, sem limite de dias, com confirmação e sem dado pessoal",
+    "        failed: 0,",
+    "    failed: 0",
+    "    failed: 0",
+    "not ok 2 - P5-D2.1 §15.2 vence hoje e vence no futuro não avisam; vencem sem nenhuma escrita e avisam no dia seguinte ao vencimento",
+    "not ok 3 - P5-D2.1 §15.3 parcialmente recebido avisa uma vez; outro recebimento parcial depois do aviso não reabre o trabalho nem duplica",
+    "not ok 5 - P5-D2.1 §15.5 vencimento futuro alterado para o passado: o novo episódio avisa com a nova data"
+   ]
+  },
+  "M16": {
+   "group": "int",
+   "ref": "data UTC",
+   "description": "dia de detecção em UTC (offset fixo), não no calendário de São Paulo",
+   "file": "functions/src/notifications/producers/receivables.ts",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 127,
+   "evidence": [
+    "# (node:9092) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+    "not ok 39 - P5-D2.1 §15.22 dia civil de São Paulo, sem offset fixo: às 22h30 do dia D (01h30 UTC de D+1) o vencimento de D ainda não atrasou; à 00h30 de D+1 atrasou",
+    "# pass 55",
+    "# fail 1"
+   ]
+  },
+  "M17": {
+   "group": "int",
+   "ref": "reabre após TTL",
+   "description": "confirmação com expiresAt (seria apagada por TTL)",
+   "file": "functions/src/notifications/producers/receivables.ts",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 115,
+   "evidence": [
+    "# (node:9352) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+    "not ok 1 - P5-D2.1 §15.1 cadastrados já vencidos há 1, 7, 8, 30, 180 e 400 dias: um aviso por recebível, sem limite de dias, com confirmação e sem dado pessoal",
+    "not ok 7 - P5-D2.1 §15.7 passado → outro passado depois do aviso abre novo episódio; restaurar a data já avisada não reemite",
+    "not ok 9 - P5-D2.1 §15.9 reexecução no mesmo dia e repetição do Scheduler (o mesmo runId) não duplicam nem regravam o aviso",
+    "not ok 11 - P5-D2.1 §15.11 / §16.1 falha depois da consulta, durante a publicação (antes do commit) e por tempo esgotado: nada parcial, tudo recuperável",
+    "not ok 45 - P5-D2.1 §15.20 workspace arquivado: o fato ocorreu e o aviso é publicado (precedente de recorrentes; leitura pelas Rules da D-18)",
+    "not ok 47 - P5-D2.1 §10 deduplicação depois do TTL: aviso apagado 181 dias depois, recebível ainda aberto e trabalho reaberto não reemitem; a antiguidade do vencimento não bloqueia outro recebível",
+    "not ok 49 - P5-D2.1 §16.2 resposta perdida depois do commit: aviso e confirmação já existem; a próxima execução não duplica"
+   ]
+  },
+  "M18": {
+   "group": "static",
+   "ref": "reabre após TTL",
+   "description": "TTL declarado sobre as confirmações",
+   "file": "firestore.indexes.json",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 26,
+   "evidence": [
+    "not ok 1 - P5-D2.1 §17 declaração: índice de grupo de runAfterDay na fila, sem TTL nas estruturas de controle, sem o índice de grupo de receivables e agenda horária em São Paulo",
+    "# pass 0",
+    "# fail 1"
+   ]
+  },
+  "M19": {
+   "group": "int",
+   "ref": "encerra sem publicar",
+   "description": "confirmação gravada sem o aviso",
+   "file": "functions/src/notifications/producers/receivables.ts",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 119,
+   "evidence": [
+    "# (node:9715) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+    "not ok 1 - P5-D2.1 §15.1 cadastrados já vencidos há 1, 7, 8, 30, 180 e 400 dias: um aviso por recebível, sem limite de dias, com confirmação e sem dado pessoal",
+    "not ok 2 - P5-D2.1 §15.2 vence hoje e vence no futuro não avisam; vencem sem nenhuma escrita e avisam no dia seguinte ao vencimento",
+    "not ok 3 - P5-D2.1 §15.3 parcialmente recebido avisa uma vez; outro recebimento parcial depois do aviso não reabre o trabalho nem duplica",
+    "not ok 5 - P5-D2.1 §15.5 vencimento futuro alterado para o passado: o novo episódio avisa com a nova data",
+    "not ok 6 - P5-D2.1 §15.6 vencimento passado alterado para o futuro antes do aviso: o episódio anterior não emite; o novo emite quando vencer",
+    "not ok 7 - P5-D2.1 §15.7 passado → outro passado depois do aviso abre novo episódio; restaurar a data já avisada não reemite",
+    "not ok 8 - P5-D2.1 §15.8 estorno que reabre: sem confirmação do episódio, emite; com confirmação, não duplica"
+   ]
+  },
+  "M20": {
+   "group": "int",
+   "ref": "backlog",
+   "description": "cursor da execução removido: páginas recomeçam do início",
+   "file": "functions/src/notifications/producers/receivables.ts",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 129,
+   "evidence": [
+    "# (node:10030) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+    "not ok 27 - P5-D2.1 §15.35 justiça entre workspaces em duas passadas: na 1ª, a cota (esgotada, o cursor salta o resto do workspace no mesmo dia sem lê-lo) atende o outro workspace antes do excedente; na 2ª, o tempo que sobra atende o excedente na mesma execução",
+    "not ok 30 - P5-D2.1 §15.39 salto exatamente na fronteira da página (a cota termina no último item da página): a 2ª passada ainda atende o excedente saltado sem leitura",
+    "not ok 31 - P5-D2.1 §15.40 o salto da cota vale só para o resto do workspace naquele dia: outro workspace no mesmo dia e o mesmo workspace num dia posterior não são saltados",
+    "not ok 43 - P5-D2.1 §15.18 trabalho inserido antes do cursor da execução fica para a seguinte, sem se perder",
+    "not ok 52 - P5-D2.1 §16.4 backlog multi-workspace acima da capacidade: rodadas até esvaziar, conjunto exato de IDs, defeituosos não bloqueiam novos e concluídos não são reprocessados",
+    "# pass 51",
+    "# fail 5"
+   ]
+  },
+  "M21": {
+   "group": "int",
+   "ref": "backlog",
+   "description": "execução para depois da primeira página",
+   "file": "functions/src/notifications/producers/receivables.ts",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 107,
+   "evidence": [
+    "# (node:10287) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+    "not ok 17 - P5-D2.1 §15.25 recebível fora do contrato na 5ª tentativa emite o mesmo WARN de falha persistente; o backlog é sinalizado mesmo quando o desfecho é de falha",
+    "not ok 27 - P5-D2.1 §15.35 justiça entre workspaces em duas passadas: na 1ª, a cota (esgotada, o cursor salta o resto do workspace no mesmo dia sem lê-lo) atende o outro workspace antes do excedente; na 2ª, o tempo que sobra atende o excedente na mesma execução",
+    "not ok 30 - P5-D2.1 §15.39 salto exatamente na fronteira da página (a cota termina no último item da página): a 2ª passada ainda atende o excedente saltado sem leitura",
+    "not ok 31 - P5-D2.1 §15.40 o salto da cota vale só para o resto do workspace naquele dia: outro workspace no mesmo dia e o mesmo workspace num dia posterior não são saltados",
+    "not ok 32 - P5-D2.1 §15.41 contagem final falha com o orçamento esgotado: o backlog é afirmado, não desconhecido",
+    "not ok 40 - P5-D2.1 §15.16 backlog acima do orçamento: cada execução avança, os mais antigos primeiro, e a seguinte retoma sem cursor persistido",
+    "not ok 41 - P5-D2.1 §15.16b orçamento de tempo: a primeira página sempre roda; esgotado o tempo, a execução para de iniciar páginas e sinaliza backlog"
+   ]
+  },
+  "M22": {
+   "group": "int",
+   "ref": "reprocessa concluídos",
+   "description": "publicado continua na fila",
+   "file": "functions/src/notifications/producers/receivables.ts",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 116,
+   "evidence": [
+    "# (node:10535) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+    "not ok 1 - P5-D2.1 §15.1 cadastrados já vencidos há 1, 7, 8, 30, 180 e 400 dias: um aviso por recebível, sem limite de dias, com confirmação e sem dado pessoal",
+    "not ok 3 - P5-D2.1 §15.3 parcialmente recebido avisa uma vez; outro recebimento parcial depois do aviso não reabre o trabalho nem duplica",
+    "not ok 9 - P5-D2.1 §15.9 reexecução no mesmo dia e repetição do Scheduler (o mesmo runId) não duplicam nem regravam o aviso",
+    "        failed: 0,",
+    "    failed: 0",
+    "    failed: 0",
+    "not ok 10 - P5-D2.1 §15.10 retry de falha não transitória: a 1ª volta na próxima execução do mesmo dia; a 2ª empurra para o dia seguinte"
+   ]
+  },
+  "M23": {
+   "group": "int",
+   "ref": "workspace incorreto",
+   "description": "workspace tirado do conteúdo do item, não do caminho",
+   "file": "functions/src/notifications/producers/receivables.ts",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 118,
+   "evidence": [
+    "# (node:10796) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+    "not ok 42 - P5-D2.1 §15.17 item da fila malformado (estado de controle inválido): o caminho manda; o conteúdo não desvia o aviso para outro workspace nem para outro episódio",
+    "not ok 46 - P5-D2.1 §15.21 isolamento A/B: o item na fila de B que aponta para um recebível de A não lê A nem publica em lugar nenhum",
+    "# pass 54",
+    "# fail 2"
+   ]
+  },
+  "M24": {
+   "group": "int",
+   "ref": "dado pessoal",
+   "description": "confirmação carrega a descrição do recebível",
+   "file": "functions/src/notifications/producers/receivables.ts",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 134,
+   "evidence": [
+    "# (node:11052) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+    "not ok 1 - P5-D2.1 §15.1 cadastrados já vencidos há 1, 7, 8, 30, 180 e 400 dias: um aviso por recebível, sem limite de dias, com confirmação e sem dado pessoal",
+    "not ok 7 - P5-D2.1 §15.7 passado → outro passado depois do aviso abre novo episódio; restaurar a data já avisada não reemite",
+    "not ok 9 - P5-D2.1 §15.9 reexecução no mesmo dia e repetição do Scheduler (o mesmo runId) não duplicam nem regravam o aviso",
+    "not ok 11 - P5-D2.1 §15.11 / §16.1 falha depois da consulta, durante a publicação (antes do commit) e por tempo esgotado: nada parcial, tudo recuperável",
+    "not ok 45 - P5-D2.1 §15.20 workspace arquivado: o fato ocorreu e o aviso é publicado (precedente de recorrentes; leitura pelas Rules da D-18)",
+    "not ok 47 - P5-D2.1 §10 deduplicação depois do TTL: aviso apagado 181 dias depois, recebível ainda aberto e trabalho reaberto não reemitem; a antiguidade do vencimento não bloqueia outro recebível",
+    "not ok 49 - P5-D2.1 §16.2 resposta perdida depois do commit: aviso e confirmação já existem; a próxima execução não duplica"
+   ]
+  },
+  "M25": {
+   "group": "int",
+   "ref": "altera ledger",
+   "description": "worker grava no recebível (fato financeiro)",
+   "file": "functions/src/notifications/producers/receivables.ts",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 117,
+   "evidence": [
+    "# (node:11308) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+    "not ok 48 - P5-D2.1 §14 o aviso não toca o domínio financeiro: recebíveis, movimentos, caixa, contas e auditoria ficam idênticos",
+    "not ok 50 - P5-D2.1 §16.3 dois workers simultâneos: uma publicação e uma confirmação por recebível, sem efeito financeiro e sem prorrogar o TTL",
+    "not ok 54 - P5-D2.1 §11 custo instrumentado por item e execução sem pendências",
+    "# pass 53",
+    "# fail 3"
+   ]
+  },
+  "M26": {
+   "group": "int",
+   "ref": "renova retenção",
+   "description": "reconciliação regrava o aviso existente (createdAt/expiresAt novos)",
+   "file": "functions/src/notifications/producers/receivables.ts",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 113,
+   "evidence": [
+    "# (node:11558) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+    "not ok 53 - P5-D2.1 §16.5 aviso publicado sem confirmação (rotina da P5-D2) é reconciliado: grava só a confirmação, sem duplicar nem regravar",
+    "not ok 54 - P5-D2.1 §11 custo instrumentado por item e execução sem pendências",
+    "# pass 54",
+    "# fail 2"
+   ]
+  },
+  "M27": {
+   "group": "int",
+   "ref": "falha persistente",
+   "description": "descartado depois de 5 tentativas",
+   "file": "functions/src/notifications/producers/receivables.ts",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 133,
+   "evidence": [
+    "# (node:11815) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+    "not ok 13 - P5-D2.1 §15.13 falha persistente: nunca descartada, sinalizada a partir da 5ª tentativa, com backoff limitado, e recupera",
+    "not ok 14 - P5-D2.1 §15.10b falha transitória (indisponibilidade): volta a cada execução horária nas 6 primeiras tentativas e depois todo dia, sem adiar dias depois da recuperação",
+    "# pass 54",
+    "# fail 2"
+   ]
+  },
+  "M28": {
+   "group": "int",
+   "ref": "schema inválido",
+   "description": "recebível fora do contrato descarta o trabalho",
+   "file": "functions/src/notifications/producers/receivables.ts",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 124,
+   "evidence": [
+    "# (node:12072) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+    "not ok 17 - P5-D2.1 §15.25 recebível fora do contrato na 5ª tentativa emite o mesmo WARN de falha persistente; o backlog é sinalizado mesmo quando o desfecho é de falha",
+    "not ok 44 - P5-D2.1 §15.19 recebível fora do contrato: não publica, segue recuperável com backoff e publica depois de corrigido; recebível ausente encerra o trabalho",
+    "not ok 52 - P5-D2.1 §16.4 backlog multi-workspace acima da capacidade: rodadas até esvaziar, conjunto exato de IDs, defeituosos não bloqueiam novos e concluídos não são reprocessados",
+    "# pass 53",
+    "# fail 3"
+   ]
+  },
+  "M29": {
+   "group": "int",
+   "ref": "avança após falha",
+   "description": "registro da falha sem pré-condição de versão (sobrescreve episódio novo)",
+   "file": "functions/src/notifications/producers/receivables.ts",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 124,
+   "evidence": [
+    "# (node:12326) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+    "not ok 38 - P5-D2.1 §15.14b falha depois de o domínio regravar o item (novo episódio): o registro da falha, com pré-condição de versão, não sobrescreve o trabalho novo",
+    "# pass 55",
+    "# fail 1"
+   ]
+  },
+  "M30": {
+   "group": "unit",
+   "ref": "sem retry",
+   "description": "backoff nunca cresce (falha persistente martela toda hora)",
+   "file": "functions/src/notifications/producers/receivables.ts",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 34,
+   "evidence": [
+    "not ok 223 - recebível: backoff limitado por classe de falha, nunca descarte por tentativas",
+    "# Subtest: ApplicationError recent_login_required → failed-precondition",
+    "ok 322 - ApplicationError recent_login_required → failed-precondition",
+    "# Subtest: ApplicationError account_not_initialized → failed-precondition",
+    "ok 324 - ApplicationError account_not_initialized → failed-precondition",
+    "# Subtest: ApplicationError workspace_archived → failed-precondition",
+    "ok 326 - ApplicationError workspace_archived → failed-precondition",
+    "# Subtest: ApplicationError idempotency_conflict → failed-precondition"
+   ]
+  },
+  "M31": {
+   "group": "int",
+   "ref": "mudança de vencimento",
+   "description": "edição ignora o novo vencimento ao enfileirar",
+   "file": "functions/src/receivables/operations.ts",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 127,
+   "evidence": [
+    "# (node:12955) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+    "not ok 5 - P5-D2.1 §15.5 vencimento futuro alterado para o passado: o novo episódio avisa com a nova data",
+    "not ok 7 - P5-D2.1 §15.7 passado → outro passado depois do aviso abre novo episódio; restaurar a data já avisada não reemite",
+    "not ok 34 - P5-D2.1 §15.34 invariante de cobertura: depois de qualquer sequência de operações de domínio, todo recebível aberto com saldo tem trabalho para o vencimento atual ou a confirmação desse episódio, e nenhum fechado tem trabalho pendente",
+    "not ok 38 - P5-D2.1 §15.14b falha depois de o domínio regravar o item (novo episódio): o registro da falha, com pré-condição de versão, não sobrescreve o trabalho novo",
+    "not ok 47 - P5-D2.1 §10 deduplicação depois do TTL: aviso apagado 181 dias depois, recebível ainda aberto e trabalho reaberto não reemitem; a antiguidade do vencimento não bloqueia outro recebível",
+    "# pass 51",
+    "# fail 5"
+   ]
+  },
+  "M32": {
+   "group": "int",
+   "ref": "estorno",
+   "description": "estorno que reabre não devolve o trabalho à fila",
+   "file": "functions/src/receivables/operations.ts",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 119,
+   "evidence": [
+    "# (node:13215) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+    "not ok 8 - P5-D2.1 §15.8 estorno que reabre: sem confirmação do episódio, emite; com confirmação, não duplica",
+    "not ok 20 - P5-D2.1 §15.28 recebido, vencimento editado e estorno: o episódio reaberto é o do vencimento novo",
+    "not ok 34 - P5-D2.1 §15.34 invariante de cobertura: depois de qualquer sequência de operações de domínio, todo recebível aberto com saldo tem trabalho para o vencimento atual ou a confirmação desse episódio, e nenhum fechado tem trabalho pendente",
+    "not ok 54 - P5-D2.1 §11 custo instrumentado por item e execução sem pendências",
+    "# pass 52",
+    "# fail 4"
+   ]
+  },
+  "M33": {
+   "group": "int",
+   "ref": "observabilidade",
+   "description": "erro estrutural engolido (sem relançar)",
+   "file": "functions/src/notifications/producers/receivables.ts",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 127,
+   "evidence": [
+    "# (node:13461) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+    "not ok 55 - P5-D2.1 §18 sinais: runId, contadores e desfecho em todo log, sem dado pessoal; erro estrutural registrado e relançado sem tocar a fila",
+    "# pass 55",
+    "# fail 1"
+   ]
+  },
+  "M34": {
+   "group": "int",
+   "ref": "observabilidade",
+   "description": "desfecho não sinaliza recebível fora do contrato",
+   "file": "functions/src/notifications/producers/receivables.ts",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 130,
+   "evidence": [
+    "# (node:13720) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+    "not ok 17 - P5-D2.1 §15.25 recebível fora do contrato na 5ª tentativa emite o mesmo WARN de falha persistente; o backlog é sinalizado mesmo quando o desfecho é de falha",
+    "not ok 44 - P5-D2.1 §15.19 recebível fora do contrato: não publica, segue recuperável com backoff e publica depois de corrigido; recebível ausente encerra o trabalho",
+    "not ok 52 - P5-D2.1 §16.4 backlog multi-workspace acima da capacidade: rodadas até esvaziar, conjunto exato de IDs, defeituosos não bloqueiam novos e concluídos não são reprocessados",
+    "# pass 53",
+    "# fail 3"
+   ]
+  },
+  "M35": {
+   "group": "rules",
+   "ref": "§12",
+   "description": "fila fora da lista backend-owned (catch-all concede leitura)",
+   "file": "firestore.rules",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 72,
+   "evidence": [
+    "# (node:21801) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+    "# (node:21802) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+    "# (node:21803) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+    "not ok 82 - P5-D2.1 Rules — fila e confirmação dos avisos de recebível vencido: nenhum papel (owner, admin, member, viewer), removido, suspenso, outro workspace ou cliente sem autenticação lê ou escreve, nem em workspace arquivado; consulta de grupo negada",
+    "# pass 83",
+    "# fail 1"
+   ]
+  },
+  "M36": {
+   "group": "rules",
+   "ref": "§12",
+   "description": "confirmação legível por membro",
+   "file": "firestore.rules",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 69,
+   "evidence": [
+    "# (node:22077) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+    "# (node:22078) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+    "# (node:22084) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+    "not ok 82 - P5-D2.1 Rules — fila e confirmação dos avisos de recebível vencido: nenhum papel (owner, admin, member, viewer), removido, suspenso, outro workspace ou cliente sem autenticação lê ou escreve, nem em workspace arquivado; consulta de grupo negada",
+    "# pass 83",
+    "# fail 1"
+   ]
+  },
+  "M37": {
+   "group": "rules",
+   "ref": "§12",
+   "description": "cliente grava trabalho pendente",
+   "file": "firestore.rules",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 73,
+   "evidence": [
+    "# (node:22353) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+    "# (node:22354) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+    "# (node:22360) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+    "not ok 82 - P5-D2.1 Rules — fila e confirmação dos avisos de recebível vencido: nenhum papel (owner, admin, member, viewer), removido, suspenso, outro workspace ou cliente sem autenticação lê ou escreve, nem em workspace arquivado; consulta de grupo negada",
+    "# pass 83",
+    "# fail 1"
+   ]
+  },
+  "M38": {
+   "group": "unit",
+   "ref": "fila manipulável (M1)",
+   "description": "vencimento retroativo volta a furar a fila (sem o dia do enfileiramento)",
+   "file": "functions/src/notifications/producers/receivableQueue.ts",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 37,
+   "evidence": [
+    "not ok 229 - criação aberta com saldo enfileira para o dia em que fica devido: o seguinte ao vencimento, ou o próprio dia se o vencimento já passou (semanas, meses ou anos atrás)",
+    "not ok 230 - vencimento retroativo não fura a fila: entra no dia do enfileiramento, atrás de quem ficou devido antes",
+    "not ok 234 - estorno que reabre (recebido → aberto) devolve o mesmo episódio à fila, devido no dia do estorno",
+    "not ok 235 - mudança de vencimento reescreve o episódio; o mesmo não",
+    "# Subtest: ApplicationError recent_login_required → failed-precondition",
+    "ok 322 - ApplicationError recent_login_required → failed-precondition",
+    "# Subtest: ApplicationError account_not_initialized → failed-precondition",
+    "ok 324 - ApplicationError account_not_initialized → failed-precondition"
+   ]
+  },
+  "M39": {
+   "group": "unit",
+   "ref": "sem retry (L5)",
+   "description": "falha transitória com backoff em dias",
+   "file": "functions/src/notifications/producers/receivables.ts",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 37,
+   "evidence": [
+    "not ok 223 - recebível: backoff limitado por classe de falha, nunca descarte por tentativas",
+    "# Subtest: ApplicationError recent_login_required → failed-precondition",
+    "ok 322 - ApplicationError recent_login_required → failed-precondition",
+    "# Subtest: ApplicationError account_not_initialized → failed-precondition",
+    "ok 324 - ApplicationError account_not_initialized → failed-precondition",
+    "# Subtest: ApplicationError workspace_archived → failed-precondition",
+    "ok 326 - ApplicationError workspace_archived → failed-precondition",
+    "# Subtest: ApplicationError idempotency_conflict → failed-precondition"
+   ]
+  },
+  "M40": {
+   "group": "int",
+   "ref": "observabilidade (L3)",
+   "description": "falha da contagem final vira erro estrutural",
+   "file": "functions/src/notifications/producers/receivables.ts",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 137,
+   "evidence": [
+    "# (node:14806) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+    "not ok 16 - P5-D2.1 §15.24 falha da contagem final não vira erro estrutural: o trabalho fica feito, o total pendente fica nulo e sai um WARN",
+    "not ok 32 - P5-D2.1 §15.41 contagem final falha com o orçamento esgotado: o backlog é afirmado, não desconhecido",
+    "# pass 54",
+    "# fail 2"
+   ]
+  },
+  "M41": {
+   "group": "int",
+   "ref": "observabilidade (L4)",
+   "description": "backlog escondido pelo desfecho de falha",
+   "file": "functions/src/notifications/producers/receivables.ts",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 136,
+   "evidence": [
+    "# (node:15063) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+    "not ok 16 - P5-D2.1 §15.24 falha da contagem final não vira erro estrutural: o trabalho fica feito, o total pendente fica nulo e sai um WARN",
+    "not ok 28 - P5-D2.1 §15.37 a 2ª passada não repete o que a execução já tratou: a falha da 1ª passada é registrada uma única vez",
+    "not ok 32 - P5-D2.1 §15.41 contagem final falha com o orçamento esgotado: o backlog é afirmado, não desconhecido",
+    "not ok 33 - P5-D2.1 §15.36 backlog só com sobra real: uma falha transitória que volta na execução seguinte não é backlog",
+    "# pass 52",
+    "# fail 4"
+   ]
+  },
+  "M42": {
+   "group": "int",
+   "ref": "falha persistente (L4)",
+   "description": "fora do contrato persistente sem o WARN de falha persistente",
+   "file": "functions/src/notifications/producers/receivables.ts",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 131,
+   "evidence": [
+    "# (node:15319) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+    "not ok 17 - P5-D2.1 §15.25 recebível fora do contrato na 5ª tentativa emite o mesmo WARN de falha persistente; o backlog é sinalizado mesmo quando o desfecho é de falha",
+    "# pass 55",
+    "# fail 1"
+   ]
+  },
+  "M43": {
+   "group": "int",
+   "ref": "backlog (I1)",
+   "description": "parada rígida por item ignorada",
+   "file": "functions/src/notifications/producers/receivables.ts",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 119,
+   "evidence": [
+    "# (node:15581) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+    "not ok 18 - P5-D2.1 §15.26 parada rígida: itens não iniciados depois do limite ficam devidos para a execução seguinte, sem tentativa registrada",
+    "not ok 26 - P5-D2.1 §15.26b parada rígida no meio da página: o item em curso termina; os que não começaram ficam devidos",
+    "# pass 54",
+    "# fail 2"
+   ]
+  },
+  "M44": {
+   "group": "unit",
+   "ref": "escritor sem fila (L2)",
+   "description": "cancelamento grava o recebível sem sincronizar a fila",
+   "file": "functions/src/receivables/operations.ts",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 34,
+   "evidence": [
+    "not ok 237 - guarda: só as operações de recebíveis escrevem em receivables, e cada escrita sincroniza o trabalho do aviso na mesma transação",
+    "# Subtest: ApplicationError recent_login_required → failed-precondition",
+    "ok 322 - ApplicationError recent_login_required → failed-precondition",
+    "# Subtest: ApplicationError account_not_initialized → failed-precondition",
+    "ok 324 - ApplicationError account_not_initialized → failed-precondition",
+    "# Subtest: ApplicationError workspace_archived → failed-precondition",
+    "ok 326 - ApplicationError workspace_archived → failed-precondition",
+    "# Subtest: ApplicationError idempotency_conflict → failed-precondition"
+   ]
+  },
+  "M45": {
+   "group": "int",
+   "ref": "justiça (M1, delta)",
+   "description": "sem cota por workspace",
+   "file": "functions/src/notifications/producers/receivables.ts",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 128,
+   "evidence": [
+    "# (node:16211) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+    "not ok 27 - P5-D2.1 §15.35 justiça entre workspaces em duas passadas: na 1ª, a cota (esgotada, o cursor salta o resto do workspace no mesmo dia sem lê-lo) atende o outro workspace antes do excedente; na 2ª, o tempo que sobra atende o excedente na mesma execução",
+    "not ok 28 - P5-D2.1 §15.37 a 2ª passada não repete o que a execução já tratou: a falha da 1ª passada é registrada uma única vez",
+    "not ok 29 - P5-D2.1 §15.38 sem tempo, a 2ª passada não começa: o excedente da cota fica devido e a execução sinaliza backlog",
+    "not ok 31 - P5-D2.1 §15.40 o salto da cota vale só para o resto do workspace naquele dia: outro workspace no mesmo dia e o mesmo workspace num dia posterior não são saltados",
+    "# pass 52",
+    "# fail 4"
+   ]
+  },
+  "M46": {
+   "group": "int",
+   "ref": "justiça (M1, delta)",
+   "description": "cota sem o salto do cursor (lê o resto do workspace)",
+   "file": "functions/src/notifications/producers/receivables.ts",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 121,
+   "evidence": [
+    "# (node:16469) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+    "not ok 27 - P5-D2.1 §15.35 justiça entre workspaces em duas passadas: na 1ª, a cota (esgotada, o cursor salta o resto do workspace no mesmo dia sem lê-lo) atende o outro workspace antes do excedente; na 2ª, o tempo que sobra atende o excedente na mesma execução",
+    "not ok 30 - P5-D2.1 §15.39 salto exatamente na fronteira da página (a cota termina no último item da página): a 2ª passada ainda atende o excedente saltado sem leitura",
+    "not ok 31 - P5-D2.1 §15.40 o salto da cota vale só para o resto do workspace naquele dia: outro workspace no mesmo dia e o mesmo workspace num dia posterior não são saltados",
+    "# pass 53",
+    "# fail 3"
+   ]
+  },
+  "M47": {
+   "group": "unit",
+   "ref": "falha persistente (delta)",
+   "description": "falha transitória sinalizada como persistente já na 5ª tentativa",
+   "file": "functions/src/notifications/producers/receivables.ts",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 37,
+   "evidence": [
+    "not ok 224 - recebível: falha persistente sinalizada na 5ª tentativa; na transitória, só depois da fase horária",
+    "# Subtest: ApplicationError recent_login_required → failed-precondition",
+    "ok 322 - ApplicationError recent_login_required → failed-precondition",
+    "# Subtest: ApplicationError account_not_initialized → failed-precondition",
+    "ok 324 - ApplicationError account_not_initialized → failed-precondition",
+    "# Subtest: ApplicationError workspace_archived → failed-precondition",
+    "ok 326 - ApplicationError workspace_archived → failed-precondition",
+    "# Subtest: ApplicationError idempotency_conflict → failed-precondition"
+   ]
+  },
+  "M48": {
+   "group": "int",
+   "ref": "justiça (2 passadas)",
+   "description": "sem a 2ª passada: a cota não usa a capacidade ociosa",
+   "file": "functions/src/notifications/producers/receivables.ts",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 125,
+   "evidence": [
+    "# (node:17101) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+    "not ok 27 - P5-D2.1 §15.35 justiça entre workspaces em duas passadas: na 1ª, a cota (esgotada, o cursor salta o resto do workspace no mesmo dia sem lê-lo) atende o outro workspace antes do excedente; na 2ª, o tempo que sobra atende o excedente na mesma execução",
+    "not ok 28 - P5-D2.1 §15.37 a 2ª passada não repete o que a execução já tratou: a falha da 1ª passada é registrada uma única vez",
+    "not ok 29 - P5-D2.1 §15.38 sem tempo, a 2ª passada não começa: o excedente da cota fica devido e a execução sinaliza backlog",
+    "not ok 30 - P5-D2.1 §15.39 salto exatamente na fronteira da página (a cota termina no último item da página): a 2ª passada ainda atende o excedente saltado sem leitura",
+    "not ok 31 - P5-D2.1 §15.40 o salto da cota vale só para o resto do workspace naquele dia: outro workspace no mesmo dia e o mesmo workspace num dia posterior não são saltados",
+    "# pass 51",
+    "# fail 5"
+   ]
+  },
+  "M49": {
+   "group": "int",
+   "ref": "justiça (2 passadas)",
+   "description": "2ª passada repete itens já tratados na execução",
+   "file": "functions/src/notifications/producers/receivables.ts",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 133,
+   "evidence": [
+    "# (node:17361) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+    "not ok 28 - P5-D2.1 §15.37 a 2ª passada não repete o que a execução já tratou: a falha da 1ª passada é registrada uma única vez",
+    "# pass 55",
+    "# fail 1"
+   ]
+  },
+  "M50": {
+   "group": "int",
+   "ref": "justiça (2 passadas)",
+   "description": "2ª passada ignora o orçamento de tempo na sua 1ª página",
+   "file": "functions/src/notifications/producers/receivables.ts",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 134,
+   "evidence": [
+    "# (node:17619) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+    "not ok 29 - P5-D2.1 §15.38 sem tempo, a 2ª passada não começa: o excedente da cota fica devido e a execução sinaliza backlog",
+    "# pass 55",
+    "# fail 1"
+   ]
+  },
+  "M51": {
+   "group": "int",
+   "ref": "justiça (2 passadas)",
+   "description": "2ª passada interrompida não sinaliza orçamento esgotado",
+   "file": "functions/src/notifications/producers/receivables.ts",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 131,
+   "evidence": [
+    "# (node:17875) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+    "not ok 29 - P5-D2.1 §15.38 sem tempo, a 2ª passada não começa: o excedente da cota fica devido e a execução sinaliza backlog",
+    "# pass 55",
+    "# fail 1"
+   ]
+  },
+  "M52": {
+   "group": "int",
+   "ref": "justiça (revisão 3)",
+   "description": "salto na fronteira da página não aciona a 2ª passada",
+   "file": "functions/src/notifications/producers/receivables.ts",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 129,
+   "evidence": [
+    "# (node:18130) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+    "not ok 30 - P5-D2.1 §15.39 salto exatamente na fronteira da página (a cota termina no último item da página): a 2ª passada ainda atende o excedente saltado sem leitura",
+    "# pass 55",
+    "# fail 1"
+   ]
+  },
+  "M53": {
+   "group": "int",
+   "ref": "justiça (revisão 3)",
+   "description": "salto pula o dia inteiro (inclusive outros workspaces)",
+   "file": "functions/src/notifications/producers/receivables.ts",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 142,
+   "evidence": [
+    "# (node:18387) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+    "not ok 31 - P5-D2.1 §15.40 o salto da cota vale só para o resto do workspace naquele dia: outro workspace no mesmo dia e o mesmo workspace num dia posterior não são saltados",
+    "# pass 55",
+    "# fail 1"
+   ]
+  }
+ }
+}

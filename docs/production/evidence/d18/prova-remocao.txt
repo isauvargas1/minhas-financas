@@ -1,0 +1,55 @@
+# D-18-NOTIF — prova de remoção do caminho antigo e das escritas proibidas
+
+Busca no working tree (código, Rules, índices e testes; sem node_modules, dist, lib e evidências).
+
+## 1. Caminho antigo do estado privado (`notification_user_states/{uid}/items`)
+
+$ rg -n "notification_user_states[^\n]*items|/items/|'items'" src functions/src firestore.rules firestore.indexes.json tests e2e
+tests/firestore/notifications-d18.rules.integration.test.mjs:506:    const legacy = doc(memberA.db, `workspaces/${wsA}/notification_user_states/${users.memberA.uid}/items/${id}`);
+tests/firestore/notifications-d18.rules.integration.test.mjs:513:    await denied(getDocs(query(collection(memberA.db, `workspaces/${wsA}/notification_user_states/${users.memberA.uid}/items`), limit(10))),
+tests/firestore/notifications-d18.rules.integration.test.mjs:515:    await denied(getDocs(query(collectionGroup(ownerA.db, 'items'), limit(10))), 'collection group items');
+tests/firestore/notifications-d18.rules.integration.test.mjs:518:    (await getAdmin().firestore().doc(`workspaces/${wsA}/notification_user_states/${users.memberA.uid}/items/${id}`).get()).exists,
+tests/firestore/notifications-p5d1.rules.integration.test.mjs:430:    await denied(getDocs(query(collectionGroup(ownerA.db, 'items'), limit(10))), 'collection group da subcoleção antiga');
+tests/firestore/notifications-p5d1.rules.integration.test.mjs:431:    const legacy = doc(viewerA.db, `workspaces/${wsA}/notification_user_states/${users.viewerA.uid}/items/n-a`);
+tests/firestore/notifications-p5d1.rules.integration.test.mjs:433:    await denied(getDocs(query(collection(viewerA.db, `workspaces/${wsA}/notification_user_states/${users.viewerA.uid}/items`), limit(10))),
+tests/unit/notifications-guard.test.ts:56:    assert.doesNotMatch(source, /notification_user_states\/\{?[\w]*\}?\/items/, `${path}: caminho antigo items`);
+
+Todas as ocorrências acima estão em testes negativos (o caminho antigo é negado) ou na guarda estática que proíbe o caminho. Não há leitor, escritor, regra nem índice de `items` no código de produção.
+
+## 2. Nenhum delete de documento no módulo de notificações (excluir para mim é a marca `deleted`)
+
+$ rg -n "deleteDoc|transaction\.delete|batch\.delete" src/modules/notifications src/components/NotificationsPanel.tsx src/components/Header.tsx
+(exit=1 — 1 significa nenhuma ocorrência)
+
+## 3. Rules: evento sem escrita para nenhum papel; estado sem delete
+
+982: match /notifications/{notificationId} {
+983:   allow get: if canReadWorkspaceScopedData(workspaceId);
+984:   allow list: if canReadWorkspaceScopedData(workspaceId) &&
+985:     request.query.limit <= 50;
+986:   allow create, update, delete: if false;
+987: }
+
+1007: match /notification_user_states/{stateOwner} {
+1008:   allow read, write: if false;
+1009:
+1010:   match /notification_entries/{notificationId} {
+...
+1034:     allow delete: if false;
+
+## 4. TTL declarado (não publicado)
+
+grupos com ttl: 16
+  notifications expiresAt []
+  notification_entries expiresAt []
+
+## 5. Produtor: create-if-absent, sem set sobre o aviso
+
+139:      .collection("notifications").doc(notificationId);
+169:      transaction.create(notificationRef, notificationDocument({
+236:        await workspaceRef(workspaceId).collection("notifications").doc(id)
+
+## 6. Sem job de varredura nem Function agendada de exclusão de notificações
+
+$ rg -n "notifications" functions/src --glob "!**/__tests__/**" | rg -i "onSchedule|schedule|delete|recursiveDelete"
+(exit=1 — 1 significa nenhuma ocorrência)

@@ -7,6 +7,10 @@ import {
   type LoanTenant,
 } from "../../loans/testSupport/loanTestSupport";
 import {formatIsoInstant} from "../../shared/commitTime";
+import {
+  DEFAULT_EXPENSE_CATEGORY_ID,
+  seedDefaultCategories,
+} from "../../settingsCatalog/testSupport/categorySeeds";
 import {defaultAccountOf} from "../../shared/testSupport/kernelTestSupport";
 import type {WorkspaceActor, WorkspaceRole} from "../../shared/workspaceAuth";
 import {db, idempotencyKey} from "../../workspaces/testSupport/p1TestSupport";
@@ -35,10 +39,15 @@ import {runRecurringGeneration} from "../scheduler";
 export {defaultAccountOf, idempotencyKey};
 export type RecurringTenant = LoanTenant;
 
-export const seedRecurringTenant = (
+/** Workspace com as categorias padrão do catálogo (P5-C1, D-37.8). */
+export const seedRecurringTenant = async (
   type: "PF" | "PJ" = "PF",
   prefix = "rec",
-): Promise<RecurringTenant> => seedLoanTenant(type, prefix);
+): Promise<RecurringTenant> => {
+  const tenant = await seedLoanTenant(type, prefix);
+  await seedDefaultCategories(tenant.workspaceId);
+  return tenant;
+};
 
 /** Relógio fixo ao meio-dia em São Paulo (15:00Z) do dia informado. */
 export const clockAt = (dayKey: string): RecurringOperationOptions => ({
@@ -75,7 +84,7 @@ export const contractPayload = (
   executionMode: "automatic",
   cardId: null,
   cashAccountId: defaultAccountOf(tenant.workspaceId),
-  category: "Utilidades",
+  categoryId: DEFAULT_EXPENSE_CATEGORY_ID,
   visual: VISUAL,
   business: null,
   ...overrides,

@@ -45,13 +45,6 @@ import {
 } from '../../src/modules/split-bills/presentation.ts';
 import type { SplitBill, SplitParticipant, SplitShare } from '../../src/modules/split-bills/types.ts';
 import { splitGroupsQuotaView } from '../../src/modules/billing/transactionsQuota.ts';
-import {
-  isOperationalExpense,
-  isOperationalIncome,
-  operationalExpenseOf,
-  summarizeCashFlow,
-} from '../../src/modules/investments/semantics.ts';
-import type { Transaction } from '../../src/types.ts';
 
 /**
  * P4-C — modelo da Divisão de contas no frontend: prévia do rateio idêntica
@@ -400,31 +393,4 @@ test('P4-C — quota de grupos vem do servidor (sem contar a lista no cliente)',
   // Sem leitura disponível, o servidor decide na criação.
   assert.deepEqual(splitGroupsQuotaView(entitlement({ status: 'unavailable', limit: null, used: null,
     remaining: null, exhausted: null })), { canCreate: true, limit: 2 });
-});
-
-const mirror = (overrides: Partial<Transaction> & { splitEntry: Transaction['splitEntry'] }): Transaction => ({
-  id: 'scash_1', type: 'despesa', description: 'Divisão de contas', category: 'Restaurantes', value: 90,
-  valueCents: 9_000, date: '2026-10-04', isPaid: true, cashAccountId: 'acc_1', ...overrides,
-}) as Transaction;
-
-test('P4-C — espelho no Caixa: despesa uma vez; compensação anula na mesma categoria', () => {
-  const expense = mirror({ splitEntry: { kind: 'bill_expense', groupId: 'g', billId: 'b', reimbursementId: null,
-    reversal: false, reversalOf: null, amountCents: 9_000 } });
-  const compensation = mirror({ id: 'scash_2', type: 'receita', splitEntry: { kind: 'bill_expense', groupId: 'g',
-    billId: 'b', reimbursementId: null, reversal: true, reversalOf: 'scash_1', amountCents: 9_000 } });
-  const income: Transaction = { id: 't1', type: 'receita', description: 'Salário', category: 'Salário', value: 1_000,
-    valueCents: 100_000, date: '2026-10-01', isPaid: true } as Transaction;
-  assert.equal(isOperationalExpense(expense), true);
-  assert.equal(isOperationalExpense(compensation), true);
-  assert.equal(isOperationalIncome(compensation), false, 'compensação não é receita');
-  assert.equal(operationalExpenseOf(expense), 90);
-  assert.equal(operationalExpenseOf(compensation), -90);
-  const before = summarizeCashFlow([income, expense]);
-  assert.equal(before.income, 1_000);
-  assert.equal(before.expenses, 90);
-  assert.equal(before.balance, 910);
-  const after = summarizeCashFlow([income, expense, compensation]);
-  assert.equal(after.income, 1_000);
-  assert.equal(after.expenses, 0);
-  assert.equal(after.balance, 1_000);
 });

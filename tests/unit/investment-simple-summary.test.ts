@@ -4,6 +4,7 @@ import test from 'node:test';
 import {toSimpleInvestmentRows} from '../../src/modules/investments/simple/rows.ts';
 import {
   buildSimpleGoalCards,
+  collectUnloadedGoalIds,
   summarizeSimpleInvestmentChips,
 } from '../../src/modules/investments/simple/summary.ts';
 import type {
@@ -170,5 +171,30 @@ test('filtro de estado esvazia os chips, nunca os cards', () => {
     cards.find((card) => card.goalId === 'g1')?.totalCents,
     100_000,
     'o card zerou por causa do filtro da tabela',
+  );
+});
+
+test('P5-B.1: só os IDs de meta que a tela precisa nomear e ainda não carregou são buscados', () => {
+  const missing = collectUnloadedGoalIds(
+    [{goalId: 'g150'}, {goalId: 'g1'}, {goalId: undefined}, {goalId: null}, {goalId: 'g150'}],
+    [{key: 'unassigned'}, {key: 'g1'}, {key: 'g201'}],
+    ['g1', 'g2'],
+  );
+  assert.deepEqual(missing, ['g150', 'g201']);
+  assert.deepEqual(collectUnloadedGoalIds([], [], []), []);
+});
+
+test('P5-B.1: card da meta além das páginas carregadas usa o nome resolvido por ID', () => {
+  const items = [
+    {key: 'g150', principalCents: 30_000} as never,
+    {key: 'unassigned', principalCents: 5_000} as never,
+  ];
+  const withoutName = buildSimpleGoalCards(items, []);
+  assert.equal(withoutName[0].totalCents, 35_000, 'sem o nome, o valor caía em "Sem Meta Definida"');
+  const withResolved = buildSimpleGoalCards(items, [{id: 'g150', name: 'Meta 150'}]);
+  assert.equal(withResolved[0].totalCents, 5_000);
+  assert.deepEqual(
+    withResolved.slice(1).map((card) => [card.goalId, card.name, card.totalCents]),
+    [['g150', 'Meta 150', 30_000]],
   );
 });

@@ -48,6 +48,9 @@ export interface RecurringExpense {
   executionMode: RecurringExecutionMode;
   cardId: string | null;
   cashAccountId: string | null;
+  /** ID estável da categoria de despesa do catálogo (D-37.8). */
+  categoryId: string;
+  /** Retrato do nome da categoria, gravado pelo backend. */
   category: string;
   status: RecurringStatus;
   nextDueDate: string | null;

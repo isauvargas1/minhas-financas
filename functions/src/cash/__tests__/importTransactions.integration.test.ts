@@ -22,6 +22,11 @@ import {
 } from "../../shared/testSupport/kernelTestSupport";
 import {handleTransactionWrite} from "../../triggers/transactions";
 import {
+  DEFAULT_INCOME_CATEGORY_ID,
+  defaultCategoryIdFor,
+  seedDefaultCategories,
+} from "../../settingsCatalog/testSupport/categorySeeds";
+import {
   call,
   db,
   expectHttpsError,
@@ -63,6 +68,7 @@ const tenant = async (
   await seedWorkspace({workspaceId, ownerId: owner, type: options.type});
   await seedMember(workspaceId, member, "member");
   await seedMember(workspaceId, viewer, "viewer");
+  await seedDefaultCategories(workspaceId);
   return {workspaceId, owner, member, viewer};
 };
 
@@ -87,7 +93,7 @@ const line = (index: number, overrides: Record<string, unknown> = {}) => ({
   lineId: `linha-${index}`,
   type: index % 2 === 0 ? "receita" : "despesa",
   description: `Linha ${index}`,
-  category: index % 2 === 0 ? "Salário" : "Casa",
+  categoryId: defaultCategoryIdFor(index % 2 === 0 ? "receita" : "despesa"),
   amountCents: 1_000 + index,
   date: "2026-09-0" + String((index % 9) + 1),
   ...overrides,
@@ -147,7 +153,8 @@ test("P3-D — lote válido: cada linha uma vez, auditada e contada", async () =
     entry.id === result.items[0].transactionId);
   assert.ok(first);
   assert.equal(first.valueCents, 1_001);
-  assert.equal(first.value, 10.01);
+  assert.equal("value" in first, false);
+  assert.equal("transactionDate" in first, false);
   assert.equal(first.userId, t.member);
   assert.equal(first.isPaid, true);
   assert.equal(first.profileType, "PJ");
@@ -464,7 +471,8 @@ test("P3-D — linha importada: corrigível, anulável, sem consumo", async () =
     reason: "Valor importado errado",
     entry: {
       cashAccountId: defaultAccountOf(t.workspaceId),
-      type: "receita", description: "Linha 2", category: "Salário",
+      type: "receita", description: "Linha 2",
+      categoryId: DEFAULT_INCOME_CATEGORY_ID,
       amountCents: 5_000, date: "2026-09-03",
     },
   });

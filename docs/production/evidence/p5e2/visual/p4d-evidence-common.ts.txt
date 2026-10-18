@@ -1,0 +1,95 @@
+import { expect, type Browser, type Page } from '@playwright/test';
+
+import { PASSWORD } from './support/loans';
+
+/*
+ * P4-D — apoio comum das capturas "antes" (base P4-C) e "depois" (P4-D):
+ * mesmos viewports, temas, espera de animações e auditoria axe-core
+ * (WCAG 2.0/2.1 A e AA). Arquivo temporário de evidência; não faz parte da
+ * suíte.
+ */
+export const AXE = '<scratchpad>/axe/node_modules/axe-core/axe.min.js';
+const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
+type Violation = { id: string; impact: string | null; help: string; nodes: { target: string[]; html: string }[] };
+
+export const audit = async (page: Page, scope: string) => {
+  await page.addScriptTag({ path: AXE });
+  return page.evaluate(async ({ tags, include }) => {
+    // @ts-expect-error axe é injetado na página.
+    const result = await window.axe.run({ include: [include] }, { runOnly: { type: 'tag', values: tags } });
+    return result.violations.map((v: Violation) => ({
+      id: v.id, impact: v.impact, help: v.help, count: v.nodes.length,
+      nodes: v.nodes.slice(0, 8).map((n) => ({ target: n.target, html: n.html.slice(0, 160) })),
+    }));
+  }, { tags: TAGS, include: scope });
+};
+
+export const VIEWPORTS = { desktop: { width: 1440, height: 900 }, mobile: { width: 390, height: 844 } } as const;
+export type ViewportName = keyof typeof VIEWPORTS;
+export type Scheme = 'light' | 'dark';
+
+export const loginAs = async (browser: Browser, email: string, viewport: ViewportName, scheme: Scheme) => {
+  const context = await browser.newContext({
+    viewport: VIEWPORTS[viewport], colorScheme: scheme, locale: 'pt-BR', timezoneId: 'America/Sao_Paulo',
+    deviceScaleFactor: 1,
+  });
+  const page = await context.newPage();
+  // Ação travada falha em 30 s em vez de esperar o teto do teste.
+  page.setDefaultTimeout(30_000);
+  await page.goto(`/?e2eEmail=${encodeURIComponent(email)}&e2ePassword=${PASSWORD}`);
+  await page.getByTestId('e2e-login-button').click();
+  await expect(page.getByText('Saldo Atual').first()).toBeVisible({ timeout: 45_000 });
+  const html = page.locator('html');
+  const isDark = async () => /(^|\s)dark(\s|$)/.test((await html.getAttribute('class')) ?? '');
+  if ((scheme === 'dark') !== (await isDark())) {
+    await page.getByRole('button', { name: scheme === 'dark' ? 'Ativar modo escuro' : 'Ativar modo claro' }).click();
+  }
+  await expect.poll(isDark).toBe(scheme === 'dark');
+  return page;
+};
+
+/** Navega pelo menu lateral (no celular, abre o menu antes). */
+export const navigate = async (page: Page, viewport: ViewportName, link: string | RegExp) => {
+  if (viewport === 'mobile') await page.getByRole('button', { name: 'Abrir menu', exact: true }).click();
+  if (typeof link === 'string') {
+    await page.getByRole('link', { name: link, exact: true }).click();
+  } else {
+    await page.getByRole('link', { name: link }).click();
+  }
+};
+
+export const settle = async (page: Page) => {
+  const size = page.viewportSize() ?? { width: 1440, height: 900 };
+  await page.mouse.move(size.width - 4, Math.round(size.height / 2));
+  await page.evaluate(() => Promise.all(document.getAnimations()
+    .filter((animation) => Number.isFinite(Number(animation.effect?.getComputedTiming().endTime)))
+    .map((animation) => animation.finished.catch(() => undefined))));
+  await page.waitForTimeout(1200);
+};
+
+export const shot = async (page: Page, dir: string, name: string) => {
+  await settle(page);
+  await page.screenshot({ path: `${dir}/${name}.png`, fullPage: false });
+};
+
+export const horizontalOverflow = (page: Page) =>
+  page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+
+/** Escape fecha o diálogo aberto? (o diálogo some do DOM ou fica oculto). */
+export const escapeCloses = async (page: Page, dialog: ReturnType<Page['locator']>) => {
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(400);
+  return !(await dialog.isVisible().catch(() => false));
+};
+
+/** Foco dentro do diálogo depois de abrir e de 6 Tabs (armadilha de foco). */
+export const focusStaysInside = async (page: Page, dialogSelector: string) => {
+  const inside = async () => page.evaluate((selector) => {
+    const all = document.querySelectorAll(selector);
+    const root = all[all.length - 1];
+    return Boolean(root && document.activeElement && root.contains(document.activeElement));
+  }, dialogSelector);
+  const initial = await inside();
+  for (let index = 0; index < 6; index += 1) await page.keyboard.press('Tab');
+  return { initial, afterTabs: await inside() };
+};

@@ -31,10 +31,12 @@ import {
   canPayInvoice,
   cardPermissions,
   invoiceDisplayStatus,
+  openInvoiceCreditNote,
   payableCents,
+  selectInvoiceSections,
 } from '../../src/modules/cards/presentation.ts';
 import { createCardsCallables } from '../../src/modules/cards/callables.ts';
-import { summarizeCashFlow, isCreditCardPaymentCashMirror } from '../../src/modules/investments/semantics.ts';
+import { isCreditCardPaymentCashMirror } from '../../src/modules/investments/semantics.ts';
 import type { Transaction } from '../../src/types.ts';
 import type { CardInvoice, CreditCard } from '../../src/modules/cards/types.ts';
 
@@ -215,6 +217,83 @@ test('situação da fatura: ciclo e pagamento separados; vencida derivada; paga 
     paymentStatus: 'paid' })), 0);
 });
 
+const inv = (competenceMonth: string, overrides: Partial<CardInvoice> = {}): CardInvoice => {
+  return invoice({
+    id: `card_1_${competenceMonth}`, competenceMonth,
+    closingDate: `${competenceMonth}-25`, dueDate: `${competenceMonth}-28`,
+    ...overrides,
+  });
+};
+const idsOf = (list: CardInvoice[]) => list.map((item) => item.competenceMonth);
+
+test('seções das faturas: fechada não vencida vira a próxima a pagar; ciclo aberto e seguinte separados', () => {
+  // Hoje 10/04: a de março (vence 28/03) está vencida; a de abril fechou em 25/04? Não: ainda aberta.
+  const today = '2026-04-10';
+  const overdue = inv('2026-03', { cycleStatus: 'closed' });
+  const closedPaid = inv('2026-02', { cycleStatus: 'closed', paymentStatus: 'paid', paidCents: 30_000, remainingCents: 0 });
+  const closedToPay = inv('2026-04', { cycleStatus: 'closed', dueDate: '2026-04-28', closingDate: '2026-04-05' });
+  const sections = selectInvoiceSections(
+    [inv('2026-05', { cycleStatus: 'open', totalCents: 1_000, remainingCents: 1_000 }),
+      inv('2026-06', { cycleStatus: 'open', totalCents: 2_000, remainingCents: 2_000 })],
+    [closedToPay, overdue, closedPaid],
+    today,
+  );
+  assert.equal(sections.nextToPay?.competenceMonth, '2026-04');
+  assert.equal(sections.openCycle?.competenceMonth, '2026-05');
+  assert.equal(sections.followingCycle?.competenceMonth, '2026-06');
+  // Vencida e paga ficam no histórico; a próxima a pagar não se repete.
+  assert.deepEqual(idsOf(sections.history), ['2026-03', '2026-02']);
+});
+
+test('seções das faturas: aberta já efetivamente fechada com saldo é a próxima a pagar', () => {
+  const today = '2026-05-26';
+  const closing = inv('2026-05', { cycleStatus: 'open', totalCents: 8_000, remainingCents: 8_000 });
+  const next = inv('2026-06', { cycleStatus: 'open', totalCents: 500, remainingCents: 500 });
+  const sections = selectInvoiceSections([closing, next], [], today);
+  assert.equal(sections.nextToPay?.id, closing.id);
+  assert.equal(sections.openCycle?.id, next.id);
+  assert.equal(sections.followingCycle, null);
+  assert.deepEqual(sections.history, []);
+});
+
+test('seções das faturas: vence primeiro a de menor vencimento entre fechada e aberta já fechada', () => {
+  const today = '2026-05-26';
+  const closedLater = inv('2026-04', { cycleStatus: 'closed', dueDate: '2026-06-10' });
+  const closingSooner = inv('2026-05', { cycleStatus: 'open', dueDate: '2026-05-30', totalCents: 8_000, remainingCents: 8_000 });
+  const sections = selectInvoiceSections([closingSooner], [closedLater], today);
+  assert.equal(sections.nextToPay?.id, closingSooner.id);
+  assert.deepEqual(idsOf(sections.history), ['2026-04']);
+});
+
+test('seções das faturas: vencida não é a próxima a pagar; sem nenhuma, a seção não existe', () => {
+  const today = '2026-05-26';
+  const overdueOnly = selectInvoiceSections([], [inv('2026-03', { cycleStatus: 'closed' })], today);
+  assert.equal(overdueOnly.nextToPay, null);
+  assert.equal(overdueOnly.openCycle, null);
+  assert.equal(overdueOnly.followingCycle, null);
+  assert.deepEqual(idsOf(overdueOnly.history), ['2026-03']);
+
+  // Aberta já fechada sem saldo (crédito) não é a próxima a pagar nem some da tela.
+  const credit = inv('2026-05', { cycleStatus: 'open', totalCents: -500, remainingCents: -500 });
+  const withCredit = selectInvoiceSections([credit], [], today);
+  assert.equal(withCredit.nextToPay, null);
+  assert.deepEqual(idsOf(withCredit.history), ['2026-05']);
+
+  const none = selectInvoiceSections([], [], today);
+  assert.deepEqual(none, { nextToPay: null, openCycle: null, followingCycle: null, history: [] });
+});
+
+test('crédito em fatura aberta: nota só quando aberta e com total negativo', () => {
+  const plain = (text: string | null) => (text ?? '').replace(/\u00a0/g, ' ');
+  assert.equal(
+    plain(openInvoiceCreditNote(invoice({ cycleStatus: 'open', totalCents: -12_345, remainingCents: -12_345 }))),
+    'Crédito de R$ 123,45 a transportar para a próxima fatura no fechamento.',
+  );
+  assert.equal(openInvoiceCreditNote(invoice({ cycleStatus: 'open', totalCents: 0, remainingCents: 0 })), null);
+  assert.equal(openInvoiceCreditNote(invoice({ cycleStatus: 'open', totalCents: 500, remainingCents: 500 })), null);
+  assert.equal(openInvoiceCreditNote(invoice({ cycleStatus: 'closed', totalCents: -500, remainingCents: 0 })), null);
+});
+
 test('permissões: owner/admin administram; member compra; viewer só lê', () => {
   assert.deepEqual(cardPermissions('owner'), { canManage: true, canPurchase: true });
   assert.deepEqual(cardPermissions('admin'), { canManage: true, canPurchase: true });
@@ -239,7 +318,7 @@ test('callables: a chave decidida pelo diálogo vai junto; reconciliação sem c
   ]);
 });
 
-test('espelho de pagamento de fatura: move o saldo, nunca é despesa nem receita operacional', () => {
+test('espelho de pagamento de fatura: marca de liquidação do cartão', () => {
   const base = {
     category: 'Fatura de cartão', date: '2026-10-06', isPaid: true, workspaceId: 'ws', userId: 'u',
   };
@@ -256,8 +335,5 @@ test('espelho de pagamento de fatura: move o saldo, nunca é despesa nem receita
   } as unknown as Transaction;
   assert.equal(isCreditCardPaymentCashMirror(payment), true);
   assert.equal(isCreditCardPaymentCashMirror(purchaseLikeExpense), false);
-  const summary = summarizeCashFlow([payment, reversal, purchaseLikeExpense]);
-  assert.equal(summary.expenses, 50, 'o pagamento de fatura não entra em despesas');
-  assert.equal(summary.income, 0, 'o estorno do pagamento não entra em receitas');
-  assert.equal(summary.balance, -300 + 100 - 50, 'mas move o saldo');
+  assert.equal(isCreditCardPaymentCashMirror(reversal), true);
 });

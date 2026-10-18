@@ -1,12 +1,9 @@
 
 import React, { useState } from 'react';
-import { Transaction, Goal, CreditCard, EntityItem } from '../types.ts';
+import { EntityItem } from '../types.ts';
 import { ReportIcon, DashboardIcon, ChartBarIcon, SparklesIcon } from './Icons.tsx';
-import { useTheme } from '../contexts/ThemeContext.tsx';
 import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
-import { useFullTransactionHistory, useTransactions } from '../modules/transactions/hooks.ts';
-import { useFinancialReportSnapshot } from '../modules/reports/hooks.ts';
-import { useReceivableReportData } from '../modules/clients/hooks.ts';
+import { useFinancialReportView } from '../modules/reports/hooks.ts';
 import { ReportTimeRange } from '../modules/reports/types.ts';
 import { getAvailableReportPeriods } from '../modules/reports/api.ts';
 import ReportPeriodSelect from './ReportPeriodSelect.tsx';
@@ -17,9 +14,6 @@ import ReportsChartsView from './ReportsChartsView.tsx';
 import ReportsAIChat from './ReportsAIChat.tsx';
 
 interface ReportsViewProps {
-    transactions: Transaction[];
-    goals: Goal[];
-    creditCards: CreditCard[];
     categories: EntityItem[];
 }
 
@@ -36,45 +30,14 @@ const REPORT_TABS: Array<{
     { id: 'ai', label: 'IA Financeira', Icon: SparklesIcon },
 ];
 
-const ReportsView: React.FC<ReportsViewProps> = ({ transactions, goals, creditCards, categories }) => {
+const ReportsView: React.FC<ReportsViewProps> = ({ categories }) => {
     const [timeRange, setTimeRange] = useState<ReportTimeRange>('30d');
     const [activeTab, setActiveTab] = useState<ReportTab>('overview');
     
     const { activeWorkspace } = useWorkspace();
     
-    // P3-I: indicadores de recebíveis agregados no servidor (só em PJ).
-    const { data: receivableData } = useReceivableReportData();
-
-    /*
-     * INV-P1-011 — a faixa "tudo" é a única que precisa do histórico completo,
-     * e ela agora o carrega **sob demanda**, paginado, em vez de a aplicação
-     * inteira manter o histórico do workspace em memória o tempo todo.
-     */
-    // Chamada incondicional: o resultado é usado condicionalmente, o hook não.
-    const defaultWindow = useTransactions(activeWorkspace.id);
-    const needsFullHistory = timeRange === 'all';
-    const fullHistory = useFullTransactionHistory(activeWorkspace.id, needsFullHistory);
-    const rangeTransactions = needsFullHistory
-        ? fullHistory.data?.items ?? transactions
-        : transactions;
-    const historyTruncated = needsFullHistory && fullHistory.data?.truncated === true;
-    /*
-     * A janela padrão de doze meses também tem teto de páginas, e o sinal dela
-     * era descartado antes de chegar à tela: as faixas curtas apresentavam
-     * agregados incompletos como totais. O aviso passa a valer para as duas
-     * origens, cada uma com a saída que resolve o caso.
-     */
-    const windowTruncated = !needsFullHistory && defaultWindow.isTruncated;
-
-    const { data: snapshot, isLoading, isError } = useFinancialReportSnapshot(
-        rangeTransactions,
-        goals, 
-        creditCards, 
-        timeRange,
-        receivableData,
-    );
-    
-    const { theme } = useTheme();
+    // Relatório oficial do servidor (P5-C1): todos os blocos da faixa escolhida.
+    const { snapshot, view, isLoading, isError, error } = useFinancialReportView(timeRange);
 
     const periodOptions = getAvailableReportPeriods();
 
@@ -155,27 +118,6 @@ const ReportsView: React.FC<ReportsViewProps> = ({ transactions, goals, creditCa
                 ))}
             </div>
 
-            {historyTruncated && (
-                <p role="alert" className="mb-4 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
-                    O histórico completo atingiu o limite seguro de leitura e os totais desta
-                    faixa não cobrem todo o período. Selecione uma faixa menor para uma análise
-                    completa.
-                </p>
-            )}
-
-            {windowTruncated && (
-                <p role="alert" className="mb-4 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
-                    A janela de doze meses atingiu o limite seguro de leitura e os totais desta
-                    faixa não cobrem todo o período.
-                </p>
-            )}
-
-            {needsFullHistory && fullHistory.isLoading && (
-                <p role="status" className="mb-4 rounded-lg border border-border bg-surface p-3 text-sm text-muted">
-                    Carregando o histórico completo…
-                </p>
-            )}
-
             {/* Content Area */}
             <div
                 className="flex-1 overflow-y-auto custom-scrollbar pb-6"
@@ -186,18 +128,22 @@ const ReportsView: React.FC<ReportsViewProps> = ({ transactions, goals, creditCa
             >
                 {isError && (
                     <div role="alert" className="rounded-lg border border-red-300 bg-red-50 p-4 text-red-800">
-                        Não foi possível carregar os relatórios. Tente novamente.
+                        {error instanceof Error && error.message
+                            ? error.message
+                            : 'Não foi possível carregar o relatório. Tente novamente.'}
                     </div>
                 )}
                 {!isError && activeTab === 'overview' && (
                     <ReportsOverview 
-                        snapshot={snapshot || undefined} 
+                        snapshot={snapshot}
+                        view={view}
                         isLoading={isLoading} 
                     />
                 )}
                 {!isError && activeTab === 'charts' && (
                     <ReportsChartsView 
-                        snapshot={snapshot || undefined} 
+                        snapshot={snapshot}
+                        view={view}
                         isLoading={isLoading}
                         categories={categories}
                     />

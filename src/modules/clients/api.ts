@@ -29,7 +29,6 @@ import type {
   ClientPrivate,
   Receivable,
   ReceivableMovement,
-  ReceivableReportData,
   ReceivableTotals,
 } from './types';
 
@@ -57,8 +56,6 @@ export const RECEIVABLES_PAGE_SIZE = 100;
 export const MOVEMENTS_PAGE_SIZE = 100;
 /** Teto da lista de clientes ativos do formulário de recebível. */
 export const CLIENT_OPTIONS_LIMIT = 500;
-/** Teto da amostra (vencimentos mais recentes) do ranking de clientes. */
-export const TOP_CLIENTS_SAMPLE_LIMIT = 500;
 /** `in` do Firestore aceita até 30 valores. */
 const IN_CHUNK = 30;
 
@@ -297,57 +294,6 @@ export const listReceivableMovements = async (
     items,
     nextCursor: last ? { date: String(last.get('date') ?? ''), id: last.id } : undefined,
     hasMore: snapshot.size > pageSize,
-  };
-};
-
-/**
- * Indicadores de recebíveis do relatório PJ.
- *
- * Situação (em aberto, em atraso, recebido): agregados exatos do servidor.
- * Ranking de clientes: valor original dos recebíveis não cancelados numa
- * amostra com teto (os vencimentos mais recentes) — exato até o teto e
- * marcado como parcial acima dele. O agregado por cliente no servidor é
- * dívida registrada para a P5.
- */
-export const getReceivableReportData = async (
-  today: string,
-  workspaceId?: string,
-): Promise<ReceivableReportData | null> => {
-  if (!isReady(workspaceId)) return null;
-  const ref = collection(db, 'workspaces', workspaceId, RECEIVABLES_COLL);
-  const open = where('status', '==', 'open');
-  const [inDay, late, received, sample] = await Promise.all([
-    getAggregateFromServer(query(ref, open, where('dueDate', '>=', today)),
-      { count: count(), total: sum('balanceCents') }),
-    getAggregateFromServer(query(ref, open, where('dueDate', '<', today)),
-      { count: count(), total: sum('balanceCents') }),
-    getAggregateFromServer(query(ref, where('status', '==', 'received')),
-      { count: count(), total: sum('principalReceivedCents') }),
-    getDocs(query(ref, orderBy('dueDate', 'desc'), limit(TOP_CLIENTS_SAMPLE_LIMIT))),
-  ]);
-
-  const byClient = new Map<string, number>();
-  for (const entry of sample.docs) {
-    const receivable = toReceivable(entry.id, entry.data());
-    if (!receivable || receivable.status === 'cancelled') continue;
-    byClient.set(receivable.clientId,
-      (byClient.get(receivable.clientId) ?? 0) + receivable.amountCents);
-  }
-  const top = Array.from(byClient.entries())
-    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
-    .slice(0, 5);
-  const names = new Map((await getClientsByIds(top.map(([id]) => id), workspaceId))
-    .map((client) => [client.id, client.name]));
-  return {
-    openNotOverdue: { count: inDay.data().count ?? 0, balanceCents: cents(inDay.data().total) },
-    overdue: { count: late.data().count ?? 0, balanceCents: cents(late.data().total) },
-    received: { count: received.data().count ?? 0, principalCents: cents(received.data().total) },
-    topClients: top.map(([clientId, amountCents]) => ({
-      clientId,
-      clientName: names.get(clientId) ?? 'Cliente',
-      amountCents,
-    })),
-    topClientsTruncated: sample.size >= TOP_CLIENTS_SAMPLE_LIMIT,
   };
 };
 

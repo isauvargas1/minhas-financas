@@ -2,7 +2,6 @@ import { useMemo } from 'react';
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import {
-  getInvestmentReportPeriod,
   listInvestmentAllocations,
   listInvestmentMovements,
   listInvestmentPositions,
@@ -12,8 +11,8 @@ import {
   type MovementCursor,
 } from '../persistence/readApi';
 import { callInvestment, investmentRequestIds } from '../persistence/callableApi';
+import { invalidateFinancialReports } from '../../reports/queryKeys';
 import type { InvestmentAllocationDimension, InvestmentPosition } from '../types';
-import { monthContributionCents } from '../dashboard';
 import { toGoalLinkCandidates, type GoalLinkCandidate } from './goalLink';
 import {
   simpleMovementQueryFilter,
@@ -142,15 +141,14 @@ export const useSimpleInvestmentMutation = (workspaceId: string) => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: SIMPLE_INVESTMENT_KEYS.root }),
         queryClient.invalidateQueries({ queryKey: ['transactions', workspaceId] }),
-        queryClient.invalidateQueries({ queryKey: ['transactions-full-history', workspaceId] }),
-        queryClient.invalidateQueries({ queryKey: ['cash-periods', workspaceId] }),
         queryClient.invalidateQueries({ queryKey: ['cash_accounts', workspaceId] }),
         queryClient.invalidateQueries({ queryKey: ['cash_account_movements', workspaceId] }),
-        queryClient.invalidateQueries({ queryKey: ['investment-month', workspaceId] }),
         queryClient.invalidateQueries({ queryKey: ['goals', workspaceId] }),
         // O histórico da meta é uma consulta própria; sem isto, o aporte feito
         // de dentro da meta some da lista até um recarregamento manual.
         queryClient.invalidateQueries({ queryKey: ['goal-investment-movements', workspaceId] }),
+        // Aportes e resgates mudam o relatório financeiro oficial.
+        invalidateFinancialReports(queryClient),
       ]);
     },
   });
@@ -219,19 +217,3 @@ export const useGoalLinkCandidates = (
   retry: 1,
   refetchOnWindowFocus: false,
 });
-
-/**
- * Aporte do mês para o card "Investimentos" do dashboard (`dashboard.ts`):
- * um documento da projeção mensal oficial por mês exibido.
- */
-export const useInvestmentMonthContribution = (workspaceId: string, monthKey: string) =>
-  useQuery({
-    queryKey: ['investment-month', workspaceId, monthKey] as const,
-    queryFn: async () => monthContributionCents(
-      await getInvestmentReportPeriod(workspaceId, monthKey),
-    ),
-    enabled: workspaceId.length > 0 && workspaceId !== 'loading',
-    staleTime: 60_000,
-    retry: 1,
-    refetchOnWindowFocus: false,
-  });

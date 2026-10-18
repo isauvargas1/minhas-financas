@@ -4,13 +4,16 @@ import {
     ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
     PieChart, Pie, Cell, Legend, BarChart, Bar
 } from 'recharts';
-import { FinancialReportSnapshot } from '../modules/reports/types.ts';
+import { FinancialReportSnapshot, ReportViewModel } from '../modules/reports/types.ts';
+import { blockEmptyText, REPORT_MESSAGES } from '../modules/reports/adapter.ts';
+import { formatPercent } from '../modules/reports/format.ts';
 import { EntityItem } from '../types.ts';
 import { useTheme } from '../contexts/ThemeContext.tsx';
 import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
 
 interface ReportsChartsViewProps {
     snapshot?: FinancialReportSnapshot;
+    view?: ReportViewModel;
     isLoading?: boolean;
     categories?: EntityItem[];
 }
@@ -25,7 +28,7 @@ const ChartSkeleton = ({ height }: { height: string }) => (
     </div>
 );
 
-const ReportsChartsView: React.FC<ReportsChartsViewProps> = ({ snapshot, isLoading, categories = [] }) => {
+const ReportsChartsView: React.FC<ReportsChartsViewProps> = ({ snapshot, view, isLoading, categories = [] }) => {
     const { theme } = useTheme();
     const { activeWorkspace } = useWorkspace();
     const isPJ = activeWorkspace.type === 'PJ';
@@ -36,9 +39,9 @@ const ReportsChartsView: React.FC<ReportsChartsViewProps> = ({ snapshot, isLoadi
 
     // --- Labels based on Context ---
     const labels = {
-        income: isPJ ? 'Faturamento' : 'Receita',
-        expense: isPJ ? 'Despesas Op.' : 'Despesa',
-        balance: isPJ ? 'Lucro/Prej.' : 'Saldo',
+        income: isPJ ? 'Recebimentos Op.' : 'Receita',
+        expense: isPJ ? 'Pagamentos Op.' : 'Despesa',
+        balance: isPJ ? 'Resultado Op.' : 'Resultado',
         categoryTitle: isPJ ? 'Categorias que mais impactam o caixa' : 'Despesas por Categoria',
         debtTitle: isPJ ? 'Contas a Receber por Status' : 'Composição de Dívidas'
     };
@@ -46,12 +49,13 @@ const ReportsChartsView: React.FC<ReportsChartsViewProps> = ({ snapshot, isLoadi
     // --- Data Transformations ---
     const cashFlowData = useMemo(() => {
         if (!snapshot) return [];
-        // Reverse to show oldest first if API returns descending
+        // Reverse to show oldest first (o adaptador entrega do mais recente ao mais antigo)
+        const withYear = snapshot.cashFlow.length > 12;
         return [...snapshot.cashFlow].reverse().map(item => ({
-            name: new Date(item.month + '-02').toLocaleDateString('pt-BR', { month: 'short' }), // Force middle of month to avoid timezone skips
+            name: new Date(item.month + '-02').toLocaleDateString('pt-BR', withYear ? { month: 'short', year: '2-digit' } : { month: 'short' }) + (item.partial ? '*' : ''), // Force middle of month to avoid timezone skips
             [labels.income]: item.totalIncome,
             [labels.expense]: item.totalExpenses,
-            [labels.balance]: item.netCashFlow
+            [labels.balance]: item.operationalResult
         }));
     }, [snapshot, labels]);
 
@@ -73,12 +77,17 @@ const ReportsChartsView: React.FC<ReportsChartsViewProps> = ({ snapshot, isLoadi
     // PF: Debt Breakdown
     const debtDataPF = useMemo(() => {
         if (!snapshot || isPJ) return [];
+        // Obrigações de cartão já incluem as parcelas futuras: sem barra própria
+        // para não contar duas vezes. Recebíveis e empréstimos concedidos não são dívida.
         return [
-            { name: 'Cartão', value: snapshot.debtProfile.totalCreditCardDebt, fill: theme.colors.primary },
-            { name: 'Empréstimos', value: snapshot.debtProfile.totalLoans, fill: theme.colors.warning },
-            { name: 'Parcelamentos', value: snapshot.debtProfile.totalInstallments, fill: theme.colors.chartInstallment }
+            ...(view?.blocks.cards.hasNumbers
+                ? [{ name: 'Cartão', value: snapshot.debtProfile.totalCreditCardDebt, fill: theme.colors.primary }]
+                : []),
+            ...(view?.blocks.debts.hasNumbers
+                ? [{ name: 'Empréstimos', value: snapshot.debtProfile.totalLoans, fill: theme.colors.warning }]
+                : []),
         ].filter(d => d.value > 0);
-    }, [snapshot, theme, isPJ]);
+    }, [snapshot, view, theme, isPJ]);
 
     // PJ: Receivables Status
     const receivablesData = useMemo(() => {
@@ -103,16 +112,13 @@ const ReportsChartsView: React.FC<ReportsChartsViewProps> = ({ snapshot, isLoadi
     const creditCardUtilizationData = useMemo(() => {
         if (!snapshot?.creditCardIndicators?.length) return [];
 
-        return snapshot.creditCardIndicators.map((card) => ({
-            name: card.cardName,
-            value: card.utilizationRate,
-            fill:
-                card.utilizationRate >= 90
-                    ? theme.colors.chartExpense
-                    : card.utilizationRate >= 75
-                        ? theme.colors.warning
-                        : theme.colors.primary,
-        }));
+        return snapshot.creditCardIndicators.flatMap((card) => card.utilizationRate === null
+            ? []
+            : [{
+                name: card.cardName,
+                value: card.utilizationRate,
+                fill: theme.colors.primary,
+            }]);
     }, [snapshot, theme]);
 
     const creditCardDueData = useMemo(() => {
@@ -127,7 +133,8 @@ const ReportsChartsView: React.FC<ReportsChartsViewProps> = ({ snapshot, isLoadi
     }, [snapshot]);
 
     const creditCardExpenseViews = snapshot?.creditCardExpenseReportViews;
-    const investmentEvolutionData = snapshot?.investmentOverview?.evolution.map((item) => ({
+    // Viewer: sem fechamentos patrimoniais (`null`), a seção não aparece.
+    const investmentEvolutionData = snapshot?.investmentOverview?.evolution?.map((item) => ({
         name: new Date(`${item.period}-02T12:00:00`).toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }),
         Patrimônio: item.currentValue,
     })) ?? [];
@@ -149,7 +156,7 @@ const ReportsChartsView: React.FC<ReportsChartsViewProps> = ({ snapshot, isLoadi
     const formatCurrency = (val: number) =>
         new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
 
-    if (isLoading || !snapshot) {
+    if (isLoading || !snapshot || !view) {
         return (
             <div className="space-y-8 animate-fade-in">
                 <ChartSkeleton height="h-72" />
@@ -161,18 +168,22 @@ const ReportsChartsView: React.FC<ReportsChartsViewProps> = ({ snapshot, isLoadi
         );
     }
 
+    // Cartões indisponíveis: o bloco de dívidas vem parcial e a nota evita
+    // apresentar só os empréstimos como total completo. O gráfico PJ (status
+    // dos recebíveis) não depende de cartões e fica sem a nota.
+    const debtCompositionNote = !isPJ && view.blocks.debts.hasNumbers ? view.blocks.debts.note : null;
+
+    // Compra por competência vem do bloco de cartões; pagamento da fatura, da série de caixa.
+    const periodViewBlock = creditCardExpenseView === 'invoicePaymentDate'
+        ? view.blocks.series
+        : view.blocks.cards;
+    const periodViewNote = creditCardExpenseView === 'purchaseCompetence'
+        ? view.purchaseSeriesNote
+        : null;
+
     return (
         <div className="space-y-8 animate-fade-in">
 
-            {snapshot?.investmentOverview?.evolutionUnavailable && (
-                <section className="bg-surface p-6 rounded-card border border-amber-300 shadow-sm">
-                    <h3 className="text-lg font-bold text-on-surface mb-1">Evolução patrimonial</h3>
-                    <p role="status" className="text-sm text-amber-900">
-                        A série histórica ainda não tem o valor de fechamento de cada mês.
-                        Execute a reconstrução das projeções para disponibilizá-la.
-                    </p>
-                </section>
-            )}
             {investmentEvolutionData.length > 0 && (
                 <section className="bg-surface p-6 rounded-card border border-border shadow-sm" aria-labelledby="investment-evolution-title">
                     <h3 id="investment-evolution-title" className="text-lg font-bold text-on-surface mb-1">Evolução patrimonial</h3>
@@ -194,9 +205,14 @@ const ReportsChartsView: React.FC<ReportsChartsViewProps> = ({ snapshot, isLoadi
             {/* Row 1: Cash Flow Evolution */}
             <div className="bg-surface p-6 rounded-card border border-border shadow-sm">
                 <h3 className="text-lg font-bold text-on-surface mb-6">
-                    {isPJ ? 'Evolução Faturamento x Despesa x Lucro (6 Meses)' : 'Fluxo de Caixa (6 Meses)'}
+                    {isPJ ? 'Evolução de Recebimentos x Pagamentos Operacionais' : 'Fluxo de Caixa Mensal'}
                 </h3>
                 <div className="h-72 w-full">
+                    {cashFlowData.length === 0 ? (
+                        <div className="flex items-center justify-center h-full text-muted text-sm">
+                            {blockEmptyText(view.blocks.series)}
+                        </div>
+                    ) : (
                     <ResponsiveContainer width="100%" height="100%">
                         <AreaChart data={cashFlowData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                             <defs>
@@ -256,7 +272,11 @@ const ReportsChartsView: React.FC<ReportsChartsViewProps> = ({ snapshot, isLoadi
                             {/* For PJ we might want to emphasize Net Profit as a separate line if needed, but area overlap shows it too */}
                         </AreaChart>
                     </ResponsiveContainer>
+                    )}
                 </div>
+                {cashFlowData.length > 0 && snapshot.cashFlow.some(item => item.partial) && (
+                    <p className="mt-3 text-xs text-muted">* Mês parcial: o período não cobre o mês inteiro.</p>
+                )}
             </div>
 
             {/* Row 2: Breakdown */}
@@ -298,7 +318,7 @@ const ReportsChartsView: React.FC<ReportsChartsViewProps> = ({ snapshot, isLoadi
                             </ResponsiveContainer>
                         ) : (
                             <div className="flex items-center justify-center h-full text-muted text-sm">
-                                {isPJ ? 'Nenhuma despesa operacional registrada.' : 'Sem dados de categoria.'}
+                                {blockEmptyText(view.blocks.categories)}
                             </div>
                         )}
                     </div>
@@ -341,7 +361,7 @@ const ReportsChartsView: React.FC<ReportsChartsViewProps> = ({ snapshot, isLoadi
                                 </ResponsiveContainer>
                             ) : (
                                 <div className="flex items-center justify-center h-full text-muted text-sm">
-                                    Nenhum cliente com contas a receber neste período.
+                                    {blockEmptyText(view.blocks.debts)}
                                 </div>
                             )
                         ) : (
@@ -377,15 +397,20 @@ const ReportsChartsView: React.FC<ReportsChartsViewProps> = ({ snapshot, isLoadi
                                 </ResponsiveContainer>
                             ) : (
                                 <div className="flex items-center justify-center h-full text-muted text-sm">
-                                    Sem dados de dívidas registrados.
+                                    {view.blocks.cards.hasNumbers || view.blocks.debts.hasNumbers
+                                        ? REPORT_MESSAGES.empty
+                                        : view.blocks.debts.message ?? view.blocks.cards.message}
                                 </div>
                             )
                         )}
                     </div>
+                    {debtCompositionNote && (
+                        <p role="status" className="text-xs text-muted mt-3">{debtCompositionNote}</p>
+                    )}
                 </div>
             </div>
 
-            {!isPJ && snapshot.creditCardExpenseReportViews && (
+            {!isPJ && view.blocks.cards.status !== 'not_requested' && (
                 <div className="bg-surface p-6 rounded-card border border-border shadow-sm space-y-5">
                     <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                         <div>
@@ -436,7 +461,7 @@ const ReportsChartsView: React.FC<ReportsChartsViewProps> = ({ snapshot, isLoadi
                     {creditCardExpenseView !== 'cardAnalytics' ? (
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                             <div className="h-72">
-                                {selectedCreditCardExpensePeriodData.length > 0 ? (
+                                {selectedCreditCardExpensePeriodData.length > 0 && periodViewBlock.hasNumbers ? (
                                     <ResponsiveContainer width="100%" height="100%">
                                         <BarChart data={[...selectedCreditCardExpensePeriodData].reverse()}>
                                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme.colors.border} />
@@ -474,7 +499,7 @@ const ReportsChartsView: React.FC<ReportsChartsViewProps> = ({ snapshot, isLoadi
                                     </ResponsiveContainer>
                                 ) : (
                                     <div className="flex items-center justify-center h-full text-muted text-sm">
-                                        Sem dados para esta visão.
+                                        {blockEmptyText(periodViewBlock)}
                                     </div>
                                 )}
                             </div>
@@ -492,7 +517,7 @@ const ReportsChartsView: React.FC<ReportsChartsViewProps> = ({ snapshot, isLoadi
                                         {selectedCreditCardExpensePeriodData.map((item) => (
                                             <tr key={item.period}>
                                                 <td className="px-4 py-3 font-bold text-on-surface">{item.label}</td>
-                                                <td className="px-4 py-3 text-right text-muted">{item.count}</td>
+                                                <td className="px-4 py-3 text-right text-muted">{item.count ?? REPORT_MESSAGES.noValue}</td>
                                                 <td className="px-4 py-3 text-right font-bold text-on-surface">
                                                     {formatCurrency(item.amount)}
                                                 </td>
@@ -510,12 +535,20 @@ const ReportsChartsView: React.FC<ReportsChartsViewProps> = ({ snapshot, isLoadi
                                         <th className="px-4 py-3 text-left">Cartão</th>
                                         <th className="px-4 py-3 text-right">Compras</th>
                                         <th className="px-4 py-3 text-right">Pago em faturas</th>
-                                        <th className="px-4 py-3 text-right">Fatura aberta</th>
+                                        <th className="px-4 py-3 text-right">Próxima fatura a pagar</th>
                                         <th className="px-4 py-3 text-right">Futuro</th>
+                                        <th className="px-4 py-3 text-right">Em atraso</th>
                                         <th className="px-4 py-3 text-right">Utilização</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-border">
+                                    {selectedCreditCardExpenseCardData.length === 0 && (
+                                        <tr>
+                                            <td colSpan={7} className="px-4 py-6 text-center text-muted">
+                                                {blockEmptyText(view.blocks.cards)}
+                                            </td>
+                                        </tr>
+                                    )}
                                     {selectedCreditCardExpenseCardData.map((card) => (
                                         <tr key={card.cardId}>
                                             <td className="px-4 py-3">
@@ -529,18 +562,16 @@ const ReportsChartsView: React.FC<ReportsChartsViewProps> = ({ snapshot, isLoadi
                                                 {formatCurrency(card.paidAmount)}
                                             </td>
                                             <td className="px-4 py-3 text-right font-bold text-on-surface">
-                                                {formatCurrency(card.openInvoiceBalance)}
+                                                {card.openInvoiceBalance === null ? REPORT_MESSAGES.noValue : formatCurrency(card.openInvoiceBalance)}
                                             </td>
                                             <td className="px-4 py-3 text-right font-bold text-on-surface">
                                                 {formatCurrency(card.futureCommittedBalance)}
                                             </td>
-                                            <td className={`px-4 py-3 text-right font-black ${card.utilizationRate >= 90
-                                                    ? 'text-red-600'
-                                                    : card.utilizationRate >= 75
-                                                        ? 'text-amber-600'
-                                                        : 'text-green-600'
-                                                }`}>
-                                                {card.utilizationRate.toFixed(1)}%
+                                            <td className={`px-4 py-3 text-right font-bold ${card.overdueAmount > 0 ? 'text-red-600' : 'text-on-surface'}`}>
+                                                {formatCurrency(card.overdueAmount)}
+                                            </td>
+                                            <td className="px-4 py-3 text-right font-black text-on-surface">
+                                                {card.utilizationRate === null ? REPORT_MESSAGES.noValue : formatPercent(card.utilizationRate)}
                                             </td>
                                         </tr>
                                     ))}
@@ -548,10 +579,21 @@ const ReportsChartsView: React.FC<ReportsChartsViewProps> = ({ snapshot, isLoadi
                             </table>
                         </div>
                     )}
+                    {creditCardExpenseView === 'cardAnalytics'
+                        && view.blocks.cards.hasNumbers
+                        && snapshot.debtProfile.creditCardArchivedOverdueAmount > 0 && (
+                        <p className="text-xs text-muted">
+                            Não inclui {formatCurrency(snapshot.debtProfile.creditCardArchivedOverdueAmount)} em atraso de cartões arquivados, exibidos na Visão Geral.
+                        </p>
+                    )}
+                    <p className="text-xs text-muted">{view.cardsNote}</p>
+                    {(periodViewNote || view.blocks.cards.note) && (
+                        <p className="text-xs text-muted">{[periodViewNote, view.blocks.cards.note].filter(Boolean).join(' ')}</p>
+                    )}
                 </div>
             )}
 
-            {!isPJ && snapshot.creditCardIndicators.length > 0 && (
+            {!isPJ && view.blocks.cards.hasNumbers && snapshot.creditCardIndicators.length > 0 && (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     <div className="bg-surface p-6 rounded-card border border-border shadow-sm">
                         <h3 className="text-lg font-bold text-on-surface mb-4">
@@ -651,7 +693,7 @@ const ReportsChartsView: React.FC<ReportsChartsViewProps> = ({ snapshot, isLoadi
             {/* Row 3: Top Clients (PJ ONLY) */}
             {isPJ && (
                 <div className="bg-surface p-6 rounded-card border border-border shadow-sm">
-                    <h3 className="text-lg font-bold text-on-surface mb-4">Top 5 Clientes por Faturamento</h3>
+                    <h3 className="text-lg font-bold text-on-surface mb-4">Top 5 Clientes por Valor de Recebíveis</h3>
                     <div className="h-72">
                         {topClientsData.length > 0 ? (
                             <ResponsiveContainer width="100%" height="100%">
@@ -683,10 +725,11 @@ const ReportsChartsView: React.FC<ReportsChartsViewProps> = ({ snapshot, isLoadi
                             </ResponsiveContainer>
                         ) : (
                             <div className="flex items-center justify-center h-full text-muted text-sm">
-                                Sem dados de clientes/faturamento.
+                                {blockEmptyText(view.blocks.topClients)}
                             </div>
                         )}
                     </div>
+                    {view.topClientsNote && <p className="mt-3 text-xs text-muted">{view.topClientsNote}</p>}
                 </div>
             )}
 

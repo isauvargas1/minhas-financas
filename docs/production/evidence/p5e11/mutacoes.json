@@ -1,0 +1,954 @@
+{
+ "E01": {
+  "group": "e2e",
+  "ref": "12-14",
+  "description": "arquivar não grava (recarga restaura o arquivado)",
+  "file": "src/modules/notifications/api.ts",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 121,
+  "evidence": [
+   "    Error: expect(locator).toHaveAccessibleName(expected) failed",
+   "  2 failed"
+  ]
+ },
+ "E02": {
+  "group": "e2e",
+  "ref": "12-17",
+  "description": "viewer perde o arquivamento",
+  "file": "src/components/Header.tsx",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 112,
+  "evidence": [
+   "    Error: expect(locator).toHaveCount(expected) failed",
+   "  1 failed"
+  ]
+ },
+ "E03": {
+  "group": "e2e",
+  "ref": "12-18",
+  "description": "viewer ganha \"Excluir para mim\"",
+  "file": "src/components/Header.tsx",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 106,
+  "evidence": [
+   "    Error: expect(locator).toHaveCount(expected) failed",
+   "  1 failed"
+  ]
+ },
+ "E04": {
+  "group": "e2e",
+  "ref": "12-13",
+  "description": "arquiva o aviso vizinho (índice deslocado)",
+  "file": "src/components/NotificationsPanel.tsx",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 127,
+  "evidence": [
+   "    Error: expect(locator).toHaveCount(expected) failed",
+   "  2 failed"
+  ]
+ },
+ "E05": {
+  "group": "e2e",
+  "ref": "12-16",
+  "description": "fundo deixa de ser dono de gesto: toque no painel fecha pelo fundo",
+  "file": "src/components/Header.tsx",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 110,
+  "evidence": [
+   "    Error: expect(locator).toBeVisible() failed",
+   "  1 failed"
+  ]
+ },
+ "E06": {
+  "group": "e2e",
+  "ref": "12-13/15",
+  "description": "roteamento desligado: clique redirecionado abre o aviso errado",
+  "file": "src/lib/pressOrigin.ts",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 126,
+  "evidence": [
+   "    Error: expect(locator).toHaveCount(expected) failed",
+   "  2 failed"
+  ]
+ },
+ "N08": {
+  "group": "front",
+  "ref": "12-19",
+  "description": "resposta antiga desfaz marca confirmada (fusão desligada)",
+  "file": "src/modules/notifications/model.ts",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 23,
+  "evidence": [
+   "not ok 40 - P5-E1.1 releitura que leu antes do arquivamento não traz o item de volta",
+   "not ok 41 - P5-E1.1 \"Carregar mais\" em curso não desfaz arquivamento confirmado na primeira página",
+   "not ok 42 - P5-E1.1 leitura antiga não desmarca lida nem desfaz \"Excluir para mim\"",
+   "not ok 43 - P5-E1.1 dois arquivamentos em sequência com releitura antiga no meio: contagem final certa",
+   "not ok 71 - P5-E1.1 marca confirmada não volta atrás quando chega leitura antiga",
+   "not ok 72 - P5-E1.1 a fusão soma marcas, nunca inventa marca nem item e preserva referências sem mudança",
+   "# pass 93",
+   "# fail 6"
+  ]
+ },
+ "N09": {
+  "group": "front",
+  "ref": "12-19",
+  "description": "fusão por E em vez de OU (marca do cache perdida)",
+  "file": "src/modules/notifications/model.ts",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 24,
+  "evidence": [
+   "not ok 40 - P5-E1.1 releitura que leu antes do arquivamento não traz o item de volta",
+   "not ok 41 - P5-E1.1 \"Carregar mais\" em curso não desfaz arquivamento confirmado na primeira página",
+   "not ok 43 - P5-E1.1 dois arquivamentos em sequência com releitura antiga no meio: contagem final certa",
+   "not ok 71 - P5-E1.1 marca confirmada não volta atrás quando chega leitura antiga",
+   "not ok 72 - P5-E1.1 a fusão soma marcas, nunca inventa marca nem item e preserva referências sem mudança",
+   "# pass 94",
+   "# fail 5"
+  ]
+ },
+ "N10": {
+  "group": "front",
+  "ref": "12-19",
+  "description": "consulta do feed sem a fusão (structuralSharing removido)",
+  "file": "src/modules/notifications/feed.ts",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 23,
+  "evidence": [
+   "not ok 40 - P5-E1.1 releitura que leu antes do arquivamento não traz o item de volta",
+   "not ok 41 - P5-E1.1 \"Carregar mais\" em curso não desfaz arquivamento confirmado na primeira página",
+   "not ok 42 - P5-E1.1 leitura antiga não desmarca lida nem desfaz \"Excluir para mim\"",
+   "not ok 43 - P5-E1.1 dois arquivamentos em sequência com releitura antiga no meio: contagem final certa",
+   "# pass 95",
+   "# fail 4"
+  ]
+ },
+ "N11": {
+  "group": "front",
+  "ref": "8.1",
+  "description": "fusão liga marca que ninguém tem (exclusão inventada)",
+  "file": "src/modules/notifications/model.ts",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 23,
+  "evidence": [
+   "not ok 6 - dois usuários do mesmo workspace têm estados independentes",
+   "not ok 42 - P5-E1.1 leitura antiga não desmarca lida nem desfaz \"Excluir para mim\"",
+   "not ok 71 - P5-E1.1 marca confirmada não volta atrás quando chega leitura antiga",
+   "not ok 72 - P5-E1.1 a fusão soma marcas, nunca inventa marca nem item e preserva referências sem mudança",
+   "# pass 95",
+   "# fail 4"
+  ]
+ },
+ "N16": {
+  "group": "front",
+  "ref": "12-12",
+  "description": "arquivar não remove (marca confirmada não aplicada no cache)",
+  "file": "src/modules/notifications/feed.ts",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 24,
+  "evidence": [
+   "not ok 6 - dois usuários do mesmo workspace têm estados independentes",
+   "not ok 9 - arquivar persiste: some na releitura e o evento continua para os outros",
+   "not ok 40 - P5-E1.1 releitura que leu antes do arquivamento não traz o item de volta",
+   "not ok 41 - P5-E1.1 \"Carregar mais\" em curso não desfaz arquivamento confirmado na primeira página",
+   "not ok 43 - P5-E1.1 dois arquivamentos em sequência com releitura antiga no meio: contagem final certa",
+   "# pass 94",
+   "# fail 5"
+  ]
+ },
+ "N18": {
+  "group": "front",
+  "ref": "12-20",
+  "description": "contagem não é relida depois da ação (arquivado segue como não lido)",
+  "file": "src/modules/notifications/feed.ts",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 22,
+  "evidence": [
+   "not ok 34 - contagem: toda ação do painel, em sucesso ou erro, relê a contagem do escopo da ação",
+   "not ok 35 - contagem: ação concluída depois da troca de escopo atualiza só a contagem do escopo da ação",
+   "not ok 58 - contagem exata (P5-D2): vem da callable, sem contagem parcial, agregação no cliente, polling nem listener",
+   "      '  const failed = [markRead, dismissOne].find(\\n' +",
+   "      const failed = [markRead, dismissOne].find(",
+   "        actionError: failed ? notificationActionErrorMessage(failed.error) : null,",
+   "# pass 96",
+   "# fail 3"
+  ]
+ },
+ "N24": {
+  "group": "front",
+  "ref": "L7",
+  "description": "evento recriado com o mesmo ID herda a marca antiga",
+  "file": "src/modules/notifications/model.ts",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 22,
+  "evidence": [
+   "not ok 73 - P5-E1.1 evento recriado com o mesmo ID (outra expiração) não herda marca do cache",
+   "# pass 98",
+   "# fail 1"
+  ]
+ },
+ "R01": {
+  "group": "front",
+  "ref": "12-13/15",
+  "description": "clique desviado passa onde caiu (roteamento desligado)",
+  "file": "src/lib/pressOrigin.ts",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 28,
+  "evidence": [
+   "not ok 88 - toque em \"Arquivar\" cujo click caiu no corpo de outro aviso volta para o \"Arquivar\" de origem",
+   "not ok 89 - toque no corpo de um aviso cujo click caiu em outro aviso, num botão de outro aviso ou fora de dono volta ao aviso tocado",
+   "not ok 91 - toque começado dentro do painel (área sem dono) cujo click caiu no fundo é impedido: o painel não fecha",
+   "not ok 92 - mouse: click desviado é só impedido (nunca reentregue)",
+   "not ok 93 - dono de origem que já saiu da página: o click é só impedido",
+   "not ok 95 - click de outro ponteiro (simulado com -1 ou de outro dedo) não é o gesto registrado e passa",
+   "not ok 96 - gesto antigo (fora da janela) ou sem origem: passa",
+   "not ok 98 - roteador: reentrega o click desviado do gesto e encerra o gesto no primeiro click"
+  ]
+ },
+ "R02": {
+  "group": "front",
+  "ref": "12-12",
+  "description": "desviado só é impedido, sem reentrega (o toque se perde)",
+  "file": "src/lib/pressOrigin.ts",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 25,
+  "evidence": [
+   "not ok 88 - toque em \"Arquivar\" cujo click caiu no corpo de outro aviso volta para o \"Arquivar\" de origem",
+   "not ok 89 - toque no corpo de um aviso cujo click caiu em outro aviso, num botão de outro aviso ou fora de dono volta ao aviso tocado",
+   "not ok 95 - click de outro ponteiro (simulado com -1 ou de outro dedo) não é o gesto registrado e passa",
+   "not ok 96 - gesto antigo (fora da janela) ou sem origem: passa",
+   "not ok 98 - roteador: reentrega o click desviado do gesto e encerra o gesto no primeiro click",
+   "# pass 94",
+   "# fail 5"
+  ]
+ },
+ "R03": {
+  "group": "front",
+  "ref": "12-13",
+  "description": "reentrega ao elemento onde o clique caiu (aviso errado)",
+  "file": "src/lib/pressOrigin.ts",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 27,
+  "evidence": [
+   "not ok 88 - toque em \"Arquivar\" cujo click caiu no corpo de outro aviso volta para o \"Arquivar\" de origem",
+   "not ok 89 - toque no corpo de um aviso cujo click caiu em outro aviso, num botão de outro aviso ou fora de dono volta ao aviso tocado",
+   "not ok 95 - click de outro ponteiro (simulado com -1 ou de outro dedo) não é o gesto registrado e passa",
+   "not ok 96 - gesto antigo (fora da janela) ou sem origem: passa",
+   "not ok 98 - roteador: reentrega o click desviado do gesto e encerra o gesto no primeiro click",
+   "# pass 94",
+   "# fail 5"
+  ]
+ },
+ "R04": {
+  "group": "front",
+  "ref": "8.3",
+  "description": "mouse também reentregue (arrastar para fora deixa de cancelar)",
+  "file": "src/lib/pressOrigin.ts",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 26,
+  "evidence": [
+   "not ok 92 - mouse: click desviado é só impedido (nunca reentregue)",
+   "# pass 98",
+   "# fail 1"
+  ]
+ },
+ "R05": {
+  "group": "front",
+  "ref": "9.3-17",
+  "description": "teclado e leitor de tela tratados como gesto de toque",
+  "file": "src/lib/pressOrigin.ts",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 26,
+  "evidence": [
+   "not ok 94 - teclado, leitor de tela e click() programático (detail 0) passam como sempre",
+   "not ok 98 - roteador: reentrega o click desviado do gesto e encerra o gesto no primeiro click",
+   "# pass 97",
+   "# fail 2"
+  ]
+ },
+ "R06": {
+  "group": "front",
+  "ref": "8.3",
+  "description": "pointerId ignorado (clique simulado reentregue a origem antiga)",
+  "file": "src/lib/pressOrigin.ts",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 29,
+  "evidence": [
+   "not ok 95 - click de outro ponteiro (simulado com -1 ou de outro dedo) não é o gesto registrado e passa",
+   "# pass 98",
+   "# fail 1"
+  ]
+ },
+ "R07": {
+  "group": "front",
+  "ref": "8.3",
+  "description": "janela do gesto ignorada (gesto antigo decide)",
+  "file": "src/lib/pressOrigin.ts",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 24,
+  "evidence": [
+   "not ok 96 - gesto antigo (fora da janela) ou sem origem: passa",
+   "# pass 98",
+   "# fail 1"
+  ]
+ },
+ "R08": {
+  "group": "front",
+  "ref": "8.3",
+  "description": "gesto não termina no clique (origem reaproveitada por outro clique)",
+  "file": "src/lib/pressOrigin.ts",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 27,
+  "evidence": [
+   "not ok 98 - roteador: reentrega o click desviado do gesto e encerra o gesto no primeiro click",
+   "# pass 98",
+   "# fail 1"
+  ]
+ },
+ "R09": {
+  "group": "front",
+  "ref": "8.5",
+  "description": "clique reentregue a aviso que já saiu da página",
+  "file": "src/lib/pressOrigin.ts",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 27,
+  "evidence": [
+   "not ok 93 - dono de origem que já saiu da página: o click é só impedido",
+   "# pass 98",
+   "# fail 1"
+  ]
+ },
+ "R10": {
+  "group": "front",
+  "ref": "12-16",
+  "description": "ouvinte de clique na bolha (o React age antes do roteamento)",
+  "file": "src/lib/pressOrigin.ts",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 24,
+  "evidence": [
+   "not ok 55 - P5-E1.1 roteamento do clique: ouvintes de captura no documento, sem reimplementar o toque",
+   "not ok 99 - o roteamento usa um único par de ouvintes de captura, encerra o gesto no primeiro click e solta tudo ao sair",
+   "# pass 97",
+   "# fail 2"
+  ]
+ },
+ "R11": {
+  "group": "front",
+  "ref": "12-16",
+  "description": "fundo deixa de ser dono de gesto (toque no painel fecha pelo fundo)",
+  "file": "src/components/Header.tsx",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 25,
+  "evidence": [
+   "not ok 54 - P5-E1.1 Header: o fundo transparente é dono de gesto (só recebe o clique de gesto iniciado nele)",
+   "# pass 98",
+   "# fail 1"
+  ]
+ },
+ "R12": {
+  "group": "front",
+  "ref": "12-13",
+  "description": "aviso deixa de ser dono de gesto",
+  "file": "src/components/NotificationsPanel.tsx",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 24,
+  "evidence": [
+   "not ok 53 - painel: texto da ação explícito e estados de carregamento e erro",
+   "# pass 98",
+   "# fail 1"
+  ]
+ },
+ "R13": {
+  "group": "front",
+  "ref": "12-12",
+  "description": "sem re-render no fim da saída (aviso arquivado fica preso no DOM, framer-motion 10.16)",
+  "file": "src/components/NotificationsPanel.tsx",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 27,
+  "evidence": [
+   "not ok 53 - painel: texto da ação explícito e estados de carregamento e erro",
+   "# pass 98",
+   "# fail 1"
+  ]
+ },
+ "R13r": {
+  "group": "race",
+  "ref": "12-12",
+  "description": "sem re-render no fim da saída: aviso fica preso (spec da corrida)",
+  "file": "src/components/NotificationsPanel.tsx",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 38,
+  "evidence": [
+   "    expect(locator).toHaveText(expected) failed",
+   "  1 failed"
+  ]
+ },
+ "R14": {
+  "group": "front",
+  "ref": "12-12",
+  "description": "re-render com valor fixo (o React descarta a 2ª atualização igual)",
+  "file": "src/components/NotificationsPanel.tsx",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 25,
+  "evidence": [
+   "not ok 53 - painel: texto da ação explícito e estados de carregamento e erro",
+   "# pass 98",
+   "# fail 1"
+  ]
+ },
+ "R14r": {
+  "group": "race",
+  "ref": "12-12",
+  "description": "re-render com valor fixo: a 2ª atualização igual é descartada (spec da corrida)",
+  "file": "src/components/NotificationsPanel.tsx",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 39,
+  "evidence": [
+   "    expect(locator).toHaveText(expected) failed",
+   "  1 failed"
+  ]
+ },
+ "R15": {
+  "group": "front",
+  "ref": "UI",
+  "description": "linha perde o layout original (mudança visual fora do necessário)",
+  "file": "src/components/NotificationsPanel.tsx",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 25,
+  "evidence": [
+   "not ok 53 - painel: texto da ação explícito e estados de carregamento e erro",
+   "# pass 98",
+   "# fail 1"
+  ]
+ },
+ "R16": {
+  "group": "front",
+  "ref": "12-12",
+  "description": "re-render sem efeito (setter que não faz nada)",
+  "file": "src/components/NotificationsPanel.tsx",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 23,
+  "evidence": [
+   "not ok 53 - painel: texto da ação explícito e estados de carregamento e erro",
+   "# pass 98",
+   "# fail 1"
+  ]
+ },
+ "R16r": {
+  "group": "race",
+  "ref": "12-12",
+  "description": "re-render sem efeito, setter que não faz nada (spec da corrida)",
+  "file": "src/components/NotificationsPanel.tsx",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 37,
+  "evidence": [
+   "    expect(locator).toHaveText(expected) failed",
+   "  1 failed"
+  ]
+ },
+ "R17": {
+  "group": "front",
+  "ref": "L4",
+  "description": "foco não acompanha o clique reentregue",
+  "file": "src/lib/pressOrigin.ts",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 25,
+  "evidence": [
+   "not ok 97 - aplicar a rota: impede o click onde caiu e reentrega uma única vez ao dono de origem",
+   "# pass 98",
+   "# fail 1"
+  ]
+ },
+ "R18": {
+  "group": "front",
+  "ref": "L3",
+  "description": "reentrega a dono sem click() (erro depois do preventDefault)",
+  "file": "src/lib/pressOrigin.ts",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 27,
+  "evidence": [
+   "not ok 97 - aplicar a rota: impede o click onde caiu e reentrega uma única vez ao dono de origem",
+   "# pass 98",
+   "# fail 1"
+  ]
+ },
+ "X01": {
+  "group": "unit",
+  "ref": "4.2",
+  "description": "nome livre da categoria volta ao contexto (grupo = nome)",
+  "file": "functions/src/ai/analysisContext.ts",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 25,
+  "evidence": [
+   "not ok 2 - analysisContext: PF completo",
+   "  error: '1 subtest failed'",
+   "not ok 6 - analysisContext: categorias só pela posição (contrato v2)",
+   "  error: '22 subtests failed'",
+   "# pass 53",
+   "# fail 23"
+  ]
+ },
+ "X02": {
+  "group": "int",
+  "ref": "6",
+  "description": "nome livre da categoria volta ao contexto — pego pelo pipeline real (P01–P28)",
+  "file": "functions/src/ai/analysisContext.ts",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 78,
+  "evidence": [
+   "# (node:26908) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+   "not ok 1 - X01 PF com movimentos: números do servidor, formato BRL inteiro e só campos permitidos",
+   "not ok 22 - X29 nome de categoria malicioso: nenhum trecho do nome vai ao provedor; o item vira 'Grupo de despesas 1'",
+   "# (node:26959) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+   "not ok 23 - P01 nome comum: o pedido ao provedor traz só 'Grupo de despesas N'",
+   "not ok 24 - P02 nome com CPF: o pedido ao provedor traz só 'Grupo de despesas N'",
+   "not ok 25 - P03 nome com CNPJ: o pedido ao provedor traz só 'Grupo de despesas N'",
+   "not ok 26 - P04 nome com e-mail: o pedido ao provedor traz só 'Grupo de despesas N'"
+  ]
+ },
+ "X03": {
+  "group": "int",
+  "ref": "4.3",
+  "description": "rótulo do grupo usa a chave interna da categoria (ID persistente)",
+  "file": "functions/src/ai/analysisContext.ts",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 80,
+  "evidence": [
+   "# (node:27617) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+   "not ok 1 - X01 PF com movimentos: números do servidor, formato BRL inteiro e só campos permitidos",
+   "not ok 2 - X02 PJ com movimentos: persona PJ e os mesmos campos permitidos",
+   "not ok 22 - X29 nome de categoria malicioso: nenhum trecho do nome vai ao provedor; o item vira 'Grupo de despesas 1'",
+   "# (node:27772) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+   "not ok 23 - P01 nome comum: o pedido ao provedor traz só 'Grupo de despesas N'",
+   "not ok 24 - P02 nome com CPF: o pedido ao provedor traz só 'Grupo de despesas N'",
+   "not ok 25 - P03 nome com CNPJ: o pedido ao provedor traz só 'Grupo de despesas N'"
+  ]
+ },
+ "X04": {
+  "group": "unit",
+  "ref": "4.3",
+  "description": "posição começa em 0 (\"Grupo de despesas 0\")",
+  "file": "functions/src/ai/analysisContext.ts",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 25,
+  "evidence": [
+   "not ok 2 - analysisContext: PF completo",
+   "  error: '1 subtest failed'",
+   "not ok 6 - analysisContext: categorias só pela posição (contrato v2)",
+   "  error: '22 subtests failed'",
+   "# pass 53",
+   "# fail 23"
+  ]
+ },
+ "X05": {
+  "group": "unit",
+  "ref": "4.4",
+  "description": "ordenação por valor crescente",
+  "file": "functions/src/ai/analysisContext.ts",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 25,
+  "evidence": [
+   "not ok 2 - analysisContext: PF completo",
+   "  error: '1 subtest failed'",
+   "not ok 4 - analysisContext: cobertura sem números",
+   "  error: '1 subtest failed'",
+   "not ok 6 - analysisContext: categorias só pela posição (contrato v2)",
+   "  error: '20 subtests failed'",
+   "# pass 54",
+   "# fail 22"
+  ]
+ },
+ "X06": {
+  "group": "unit",
+  "ref": "4.4",
+  "description": "envia 6 grupos (teto de 5 ignorado)",
+  "file": "functions/src/ai/analysisContext.ts",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 25,
+  "evidence": [
+   "not ok 6 - analysisContext: categorias só pela posição (contrato v2)",
+   "  error: '1 subtest failed'",
+   "# pass 75",
+   "# fail 1"
+  ]
+ },
+ "X07": {
+  "group": "unit",
+  "ref": "4.7",
+  "description": "versão do contexto não muda (continua 1)",
+  "file": "functions/src/ai/analysisContext.ts",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 24,
+  "evidence": [
+   "not ok 1 - analysisContext: constantes",
+   "  error: '1 subtest failed'",
+   "# pass 75",
+   "# fail 1"
+  ]
+ },
+ "X08": {
+  "group": "unit",
+  "ref": "4.2",
+  "description": "nome da categoria é lido (mesmo sem ir ao contexto)",
+  "file": "functions/src/ai/analysisContext.ts",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 24,
+  "evidence": [
+   "not ok 6 - analysisContext: categorias só pela posição (contrato v2)",
+   "  error: '1 subtest failed'",
+   "# pass 75",
+   "# fail 1"
+  ]
+ },
+ "X09": {
+  "group": "unit",
+  "ref": "4.5",
+  "description": "instrução de sistema perde a regra dos grupos (consultor pode inventar nomes)",
+  "file": "functions/src/ai/prompts.ts",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 24,
+  "evidence": [
+   "not ok 6 - analysisContext: categorias só pela posição (contrato v2)",
+   "  error: '1 subtest failed'",
+   "# pass 75",
+   "# fail 1"
+  ]
+ },
+ "X10": {
+  "group": "front",
+  "ref": "5.1",
+  "description": "diálogo deixa de dizer que os nomes das categorias não vão",
+  "file": "src/components/AiShareConsentDialog.tsx",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 27,
+  "evidence": [
+   "not ok 33 - diálogo de envio ao provedor: textos exatos das quatro variantes",
+   "not ok 37 - diálogo de análise descreve o resumo agregado e a pergunta digitada",
+   "# pass 70",
+   "# fail 2"
+  ]
+ },
+ "X11": {
+  "group": "front",
+  "ref": "5.2",
+  "description": "diálogo promete anonimização",
+  "file": "src/components/AiShareConsentDialog.tsx",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 25,
+  "evidence": [
+   "not ok 33 - diálogo de envio ao provedor: textos exatos das quatro variantes",
+   "not ok 38 - diálogo não faz promessas não comprovadas",
+   "# pass 70",
+   "# fail 2"
+  ]
+ },
+ "X12": {
+  "group": "int",
+  "ref": "12-2",
+  "description": "minimização por regex de CPF (o resto do nome livre vai)",
+  "file": "functions/src/ai/analysisContext.ts",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 67,
+  "evidence": [
+   "# (node:28258) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+   "not ok 1 - P01 nome comum: o pedido ao provedor traz só 'Grupo de despesas N'",
+   "not ok 2 - P02 nome com CPF: o pedido ao provedor traz só 'Grupo de despesas N'",
+   "not ok 3 - P03 nome com CNPJ: o pedido ao provedor traz só 'Grupo de despesas N'",
+   "not ok 4 - P04 nome com e-mail: o pedido ao provedor traz só 'Grupo de despesas N'",
+   "not ok 5 - P05 nome com telefone: o pedido ao provedor traz só 'Grupo de despesas N'",
+   "not ok 6 - P06 nome de pessoa: o pedido ao provedor traz só 'Grupo de despesas N'",
+   "not ok 7 - P07 nome com número de conta: o pedido ao provedor traz só 'Grupo de despesas N'"
+  ]
+ },
+ "X13": {
+  "group": "int",
+  "ref": "12-3",
+  "description": "minimização por regex de e-mail (o resto do nome livre vai)",
+  "file": "functions/src/ai/analysisContext.ts",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 66,
+  "evidence": [
+   "# (node:28778) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+   "not ok 1 - P01 nome comum: o pedido ao provedor traz só 'Grupo de despesas N'",
+   "not ok 2 - P02 nome com CPF: o pedido ao provedor traz só 'Grupo de despesas N'",
+   "not ok 3 - P03 nome com CNPJ: o pedido ao provedor traz só 'Grupo de despesas N'",
+   "not ok 4 - P04 nome com e-mail: o pedido ao provedor traz só 'Grupo de despesas N'",
+   "not ok 5 - P05 nome com telefone: o pedido ao provedor traz só 'Grupo de despesas N'",
+   "not ok 6 - P06 nome de pessoa: o pedido ao provedor traz só 'Grupo de despesas N'",
+   "not ok 7 - P07 nome com número de conta: o pedido ao provedor traz só 'Grupo de despesas N'"
+  ]
+ },
+ "X14": {
+  "group": "int",
+  "ref": "12-4",
+  "description": "filtro de padrões (CPF, CNPJ, e-mail, telefone): dado pessoal sem padrão passa",
+  "file": "functions/src/ai/analysisContext.ts",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 64,
+  "evidence": [
+   "# (node:29338) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+   "not ok 1 - P01 nome comum: o pedido ao provedor traz só 'Grupo de despesas N'",
+   "not ok 2 - P02 nome com CPF: o pedido ao provedor traz só 'Grupo de despesas N'",
+   "not ok 3 - P03 nome com CNPJ: o pedido ao provedor traz só 'Grupo de despesas N'",
+   "not ok 4 - P04 nome com e-mail: o pedido ao provedor traz só 'Grupo de despesas N'",
+   "not ok 5 - P05 nome com telefone: o pedido ao provedor traz só 'Grupo de despesas N'",
+   "not ok 6 - P06 nome de pessoa: o pedido ao provedor traz só 'Grupo de despesas N'",
+   "not ok 7 - P07 nome com número de conta: o pedido ao provedor traz só 'Grupo de despesas N'"
+  ]
+ },
+ "X15": {
+  "group": "int",
+  "ref": "12-5",
+  "description": "minimização removida de um bloco: nomes dos cartões no contexto",
+  "file": "functions/src/ai/analysisContext.ts",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 71,
+  "evidence": [
+   "# (node:29945) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+   "not ok 1 - X01 PF com movimentos: números do servidor, formato BRL inteiro e só campos permitidos",
+   "not ok 2 - X02 PJ com movimentos: persona PJ e os mesmos campos permitidos",
+   "not ok 4 - X04/X05 saldo negativo e resultado operacional negativo, com alertas",
+   "not ok 5 - X06/X07/X09 fatura paga, fatura aberta e pagamento de cartão: o pagamento é saída de caixa, nunca segunda despesa",
+   "not ok 7 - X10/X11 investimento e resgate: aporte não é despesa, resgate não é receita; patrimônio para quem pode ler",
+   "not ok 8 - X12/X13 empréstimo tomado e concedido: principal fora de receita e despesa; dívida e valor a receber separados",
+   "not ok 9 - X14/X15 recebível pendente e recebido: aberto não é caixa; nome do cliente nunca vai ao modelo"
+  ]
+ },
+ "X16": {
+  "group": "unit",
+  "ref": "12-6",
+  "description": "categorias indisponíveis viram lista vazia \"sem movimento\" (zero)",
+  "file": "functions/src/ai/analysisContext.ts",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 24,
+  "evidence": [
+   "not ok 6 - analysisContext: categorias só pela posição (contrato v2)",
+   "  error: '1 subtest failed'",
+   "# pass 75",
+   "# fail 1"
+  ]
+ },
+ "X17": {
+  "group": "unit",
+  "ref": "12-7",
+  "description": "valor agregado do grupo alterado (+1 centavo)",
+  "file": "functions/src/ai/analysisContext.ts",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 24,
+  "evidence": [
+   "not ok 2 - analysisContext: PF completo",
+   "  error: '1 subtest failed'",
+   "not ok 4 - analysisContext: cobertura sem números",
+   "  error: '1 subtest failed'",
+   "not ok 6 - analysisContext: categorias só pela posição (contrato v2)",
+   "  error: '18 subtests failed'",
+   "# pass 56",
+   "# fail 20"
+  ]
+ },
+ "X18": {
+  "group": "int",
+  "ref": "12-10",
+  "description": "análise enviada sem confirmação da operação",
+  "file": "functions/src/ai/callables.ts",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 90,
+  "evidence": [
+   "# (node:30731) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+   "not ok 26 - P26 sem confirmação de envio: nada é lido, enviado nem cobrado",
+   "  error: 'esperava HttpsError failed-precondition'",
+   "not ok 27 - P27 confirmação de outra operação: recusada sem leitura, envio nem crédito",
+   "  error: 'esperava HttpsError failed-precondition'",
+   "# (node:30962) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN",
+   "not ok 46 - S21/S22 falha do provedor e logs: nenhum segredo, prompt, documento ou resposta sai no erro ou no log",
+   "not ok 47 - S23 sem confirmação de envio: recusa sem leitura, crédito, limite ou provedor"
+  ]
+ },
+ "X19": {
+  "group": "front",
+  "ref": "UI/a11y",
+  "description": "corpo do diálogo que rola fica fora do teclado (sem o hook)",
+  "file": "src/components/AiShareConsentDialog.tsx",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 28,
+  "evidence": [
+   "not ok 34 - diálogo de envio ao provedor: acessível, foco preso e cancelar não envia",
+   "# pass 71",
+   "# fail 1"
+  ]
+ },
+ "X20": {
+  "group": "front",
+  "ref": "UI/a11y",
+  "description": "área que rola nunca recebe tabindex",
+  "file": "src/components/AiShareConsentDialog.tsx",
+  "killed": true,
+  "invalid": false,
+  "exit": 1,
+  "restored_sha256": true,
+  "seconds": 24,
+  "evidence": [
+   "not ok 34 - diálogo de envio ao provedor: acessível, foco preso e cancelar não envia",
+   "# pass 71",
+   "# fail 1"
+  ]
+ }
+}

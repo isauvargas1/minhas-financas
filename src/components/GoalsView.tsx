@@ -1,22 +1,29 @@
 
 import React, { useState, useMemo } from 'react';
-import { Goal, Transaction } from '../types.ts';
+import { Goal } from '../types.ts';
 import GoalCard from './GoalCard.tsx';
 import { PlusIcon, LayoutGridIcon, ListIcon, SearchIcon } from './Icons.tsx';
 import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
-import { useGoals } from '../modules/goals/hooks';
+import { useGoals, useGoalsOverview, useGoalKpiProgress } from '../modules/goals/hooks';
+import { goalErrorView, kpiGoalIds } from '../modules/goals/model.ts';
 
 interface GoalsViewProps {
-    transactions: Transaction[];
     onSelectGoal: (goal: Goal) => void;
     onOpenGoalModal: (goal?: Goal) => void;
 }
 
+const LOAD_ERROR_MESSAGE = 'Não foi possível carregar as metas. Verifique a conexão e tente novamente.';
+
 const GoalsView: React.FC<GoalsViewProps> = ({ 
-    transactions, onSelectGoal, onOpenGoalModal 
+    onSelectGoal, onOpenGoalModal
 }) => {
-    const { data: goalsData, isLoading } = useGoals();
-    const goals = goalsData || []; // Garante que a variável 'goals' exista para o resto do código funcionar
+    const goalsQuery = useGoals();
+    const { data: goalsData, isLoading, isError, error, hasNextPage, fetchNextPage, isFetchingNextPage, refetch } = goalsQuery;
+    const goals = useMemo(() => goalsData || [], [goalsData]);
+    // Contadores exatos do servidor, independentes da página carregada.
+    const overview = useGoalsOverview();
+    // Indicadores PJ (servidor) só das metas da página carregada.
+    const kpiStates = useGoalKpiProgress(useMemo(() => kpiGoalIds(goals), [goals]));
 
     const [viewMode, setViewMode] = useState<'card' | 'list'>('card');
     const [searchQuery, setSearchQuery] = useState('');
@@ -31,10 +38,6 @@ const GoalsView: React.FC<GoalsViewProps> = ({
             const matchesSearch = goal.name.toLowerCase().includes(searchQuery.toLowerCase());
             const matchesStatus = filterStatus === 'all' || goal.status === filterStatus;
             return matchesSearch && matchesStatus;
-        }).sort((a, b) => {
-            // Sort by priority (Alta -> Media -> Baixa)
-            const pMap = { alta: 3, media: 2, baixa: 1 };
-            return pMap[b.priority] - pMap[a.priority];
         });
     }, [goals, searchQuery, filterStatus]);
 
@@ -46,12 +49,27 @@ const GoalsView: React.FC<GoalsViewProps> = ({
         );
     }
 
-    // Helper counts
-    const completedCount = goals.filter(g => (g.currentAmount >= g.targetAmount) || g.status === 'alcancada').length;
-    // Em andamento considers explicit status AND excludes those that are fully funded (counted as completed)
-    const inProgressCount = goals.filter(g => g.status === 'em_andamento' && g.currentAmount < g.targetAmount).length;
-    const pausedCount = goals.filter(g => g.status === 'pausada').length;
-    const cancelledCount = goals.filter(g => g.status === 'cancelada').length;
+    if (isError && !goalsData) {
+        return (
+            <div className="h-full flex flex-col items-center justify-center gap-3 text-center">
+                <p role="alert" className="text-sm text-red-600 dark:text-red-400">
+                    {goalErrorView(error).kind === 'forbidden' ? goalErrorView(error).message : LOAD_ERROR_MESSAGE}
+                </p>
+                <button onClick={() => { void refetch(); }} className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                    Tentar novamente
+                </button>
+            </div>
+        );
+    }
+
+    // Contagens do servidor (metas não arquivadas); "Concluídas" é o status 'alcancada'.
+    const counts = overview.data;
+    const countText = (value: number | undefined) => (value === undefined ? '—' : String(value));
+    const totalCount = countText(counts?.activeCount);
+    const inProgressCount = countText(counts?.byStatus.em_andamento);
+    const pausedCount = countText(counts?.byStatus.pausada);
+    const completedCount = countText(counts?.byStatus.alcancada);
+    const cancelledCount = countText(counts?.byStatus.cancelada);
 
     return (
         <div className="h-full flex flex-col animate-fade-in">
@@ -72,6 +90,7 @@ const GoalsView: React.FC<GoalsViewProps> = ({
                         <input
                             type="text"
                             placeholder="Buscar meta..."
+                            aria-label="Buscar meta"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             className="w-full sm:w-48 pl-9 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-dark-200 text-sm focus:ring-2 focus:ring-indigo-500 outline-none dark:text-white"
@@ -87,6 +106,7 @@ const GoalsView: React.FC<GoalsViewProps> = ({
                             onClick={() => setViewMode('card')}
                             className={`p-2 rounded-md transition-all ${viewMode === 'card' ? 'bg-white dark:bg-indigo-600 shadow-sm text-indigo-600 dark:text-white' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'}`}
                             title="Visualização em Cards"
+                            aria-label="Visualização em Cards"
                         >
                             <LayoutGridIcon className="h-5 w-5" />
                         </button>
@@ -94,6 +114,7 @@ const GoalsView: React.FC<GoalsViewProps> = ({
                             onClick={() => setViewMode('list')}
                             className={`p-2 rounded-md transition-all ${viewMode === 'list' ? 'bg-white dark:bg-indigo-600 shadow-sm text-indigo-600 dark:text-white' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'}`}
                             title="Visualização em Lista"
+                            aria-label="Visualização em Lista"
                         >
                             <ListIcon className="h-5 w-5" />
                         </button>
@@ -117,7 +138,7 @@ const GoalsView: React.FC<GoalsViewProps> = ({
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
                         <div className="bg-indigo-50 dark:bg-indigo-900/10 p-4 rounded-xl border border-indigo-100 dark:border-indigo-900/30">
                             <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase">Total Metas</span>
-                            <p className="text-2xl font-bold text-indigo-800 dark:text-indigo-200">{goals.length}</p>
+                            <p className="text-2xl font-bold text-indigo-800 dark:text-indigo-200">{totalCount}</p>
                         </div>
                         
                         <div className="bg-blue-50 dark:bg-blue-900/10 p-4 rounded-xl border border-blue-100 dark:border-blue-900/30">
@@ -172,7 +193,7 @@ const GoalsView: React.FC<GoalsViewProps> = ({
                                 goal={goal} 
                                 onClick={() => onSelectGoal(goal)} 
                                 mode="card"
-                                transactions={transactions} 
+                                kpi={kpiStates.get(goal.id)}
                             />
                         ))}
                     </div>
@@ -184,7 +205,7 @@ const GoalsView: React.FC<GoalsViewProps> = ({
                                 goal={goal} 
                                 onClick={() => onSelectGoal(goal)} 
                                 mode="list"
-                                transactions={transactions} 
+                                kpi={kpiStates.get(goal.id)}
                             />
                         ))}
                     </div>
@@ -195,6 +216,30 @@ const GoalsView: React.FC<GoalsViewProps> = ({
                         <p className="text-gray-500 dark:text-gray-400">Nenhuma meta encontrada.</p>
                         <button onClick={() => onOpenGoalModal()} className="mt-2 text-indigo-600 dark:text-indigo-400 font-medium hover:underline">
                             Criar minha primeira meta
+                        </button>
+                    </div>
+                )}
+
+                {isError && goalsData && (
+                    <p role="alert" className="mt-4 text-center text-sm text-red-600 dark:text-red-400">
+                        {LOAD_ERROR_MESSAGE}
+                    </p>
+                )}
+
+                {searchQuery && hasNextPage && (
+                    <p className="mt-4 text-center text-xs text-gray-500 dark:text-gray-400">
+                        A busca considera apenas as metas já carregadas.
+                    </p>
+                )}
+
+                {hasNextPage && (
+                    <div className="mt-4 flex justify-center">
+                        <button
+                            onClick={() => { void fetchNextPage(); }}
+                            disabled={isFetchingNextPage}
+                            className="px-4 py-2 text-sm font-medium rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-dark-200 dark:hover:bg-dark-300 text-gray-700 dark:text-gray-300 disabled:opacity-60 transition-colors"
+                        >
+                            {isFetchingNextPage ? 'Carregando...' : 'Carregar mais metas'}
                         </button>
                     </div>
                 )}

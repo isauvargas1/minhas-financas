@@ -4,14 +4,26 @@ import * as admin from "firebase-admin";
 import {Timestamp} from "firebase-admin/firestore";
 
 import {
+  CashContractViolationError,
   applyCashPeriodWrite,
   applyCashPeriodWriteOnce,
+  cashDayKeyFor,
   cashPeriodDeltaFor,
   cashPeriodEventKey,
   cashPeriodEventRef,
   cashPeriodKeyFor,
+  cashDaysMatchMonth,
+  cashWritePlanFor,
+  normalizeCashPeriodDelta,
+  readCashDayDeltas,
 } from "../periods";
-import {executeRebuildCashPeriods} from "../rebuild";
+import {
+  CASH_REBUILD_CONTRACT_VIOLATION_MESSAGE,
+  CASH_REBUILD_STATE_IDS,
+  executeRebuildCashPeriods,
+} from "../rebuild";
+import {CASH_ENTRY_MAX_CENTS} from "../contracts";
+import {ApplicationError} from "../../shared/errors";
 
 /**
  * Projeção mensal de caixa (INV-P1-011).
@@ -41,9 +53,8 @@ const transaction = (overrides: Record<string, unknown>) => ({
   type: "despesa",
   description: "Lançamento",
   category: "Casa",
-  value: 100,
+  valueCents: 10_000,
   date: "2026-08-10",
-  transactionDate: at("2026-08-10T15:00:00.000Z"),
   userId: ACTOR,
   workspaceId: WORKSPACE,
   ...overrides,
@@ -98,7 +109,13 @@ const deliver = async (
 test("classificação de caixa espelha a semântica do produto", () => {
   assert.equal(cashPeriodDeltaFor(transaction({type: "receita"})).netCents, 10_000);
   assert.equal(cashPeriodDeltaFor(transaction({type: "despesa"})).netCents, -10_000);
-  assert.equal(cashPeriodDeltaFor(transaction({type: "parcelado"})).netCents, -10_000);
+  // `parcelado` não existe em `transactions` (a compra vive em cartões):
+  // violação de contrato, nunca despesa.
+  assert.throws(
+    () => cashPeriodDeltaFor(transaction({type: "parcelado"})),
+    (error: unknown) => error instanceof CashContractViolationError &&
+      error.field === "type",
+  );
 
   // Espelho de investimento (P4-D): a marca `investmentEntry` decide.
   const entry = (overrides: Record<string, unknown> = {}) => ({
@@ -115,8 +132,12 @@ test("classificação de caixa espelha a semântica do produto", () => {
   assert.equal(contribution.expenseCents, 0);
   assert.equal(contribution.investmentOutflowCents, 10_000);
 
-  // Investimento sem marca: fora do contrato, efeito zero (PR-INV-01).
-  assert.equal(cashPeriodDeltaFor(transaction({type: "investimento"})).netCents, 0);
+  // Investimento sem marca: fora do contrato, violação (PR-INV-01, P5-C2).
+  assert.throws(
+    () => cashPeriodDeltaFor(transaction({type: "investimento"})),
+    (error: unknown) => error instanceof CashContractViolationError &&
+      error.field === "type",
+  );
 
   // Retirada pendente não é fato consumado: não toca caixa.
   assert.equal(cashPeriodDeltaFor(transaction({
@@ -138,33 +159,65 @@ test("classificação de caixa espelha a semântica do produto", () => {
     voidedAt: at("2026-08-11T10:00:00.000Z"),
   })).netCents, 0);
 
-  // Centavos exatos vêm de `valueCents` quando existe.
+  // Centavos exatos vêm só de `valueCents`; `value` em reais nunca é lido.
   assert.equal(cashPeriodDeltaFor(transaction({
-    type: "receita", value: 10.005, valueCents: 1_001,
+    type: "receita", valueCents: 1_001,
   })).netCents, 1_001);
+  assert.equal(cashPeriodDeltaFor(transaction({
+    type: "receita", valueCents: 1_001, value: 10.005,
+  })).netCents, 1_001);
+});
+
+test("documento fora do contrato lança violação; anulado vale zero", () => {
+  const violation = (field: string) => (error: unknown): boolean =>
+    error instanceof CashContractViolationError && error.field === field;
+  const semCentavos = transaction({type: "receita"}) as Record<string, unknown>;
+  delete semCentavos.valueCents;
+
+  // Só `value` em reais, sem `valueCents`: não é lido (nunca vira R$ 0,00).
+  assert.throws(() => cashPeriodDeltaFor({...semCentavos, value: 100}),
+    violation("valueCents"));
+  for (const valueCents of [10.5, -1, "10000", null, Number.NaN]) {
+    assert.throws(() => cashPeriodDeltaFor(transaction({valueCents})),
+      violation("valueCents"), String(valueCents));
+  }
+  // Tipo desconhecido; marca de domínio ilegível.
+  assert.throws(() => cashPeriodDeltaFor(transaction({type: "transferencia"})),
+    violation("type"));
+  assert.throws(() => cashPeriodDeltaFor(transaction({loanEntry: {}})),
+    violation("marker"));
+
+  // Anulado vale zero mesmo com dado inválido; pendente válido vale zero.
+  const anulado = at("2026-08-11T10:00:00.000Z");
+  assert.equal(cashPeriodDeltaFor(transaction({
+    type: "parcelado", valueCents: 10.5, voidedAt: anulado,
+  })).netCents, 0);
+  assert.equal(cashPeriodDeltaFor(transaction({
+    isPaid: false, cashEntry: {status: "pending"},
+  })).netCents, 0);
+  // Pendente com `valueCents` inválido ainda é violação.
+  assert.throws(() => cashPeriodDeltaFor({
+    ...semCentavos, isPaid: false, cashEntry: {status: "pending"},
+  }), violation("valueCents"));
 });
 
 test("criação, alteração, troca de mês e exclusão mantêm o saldo exato", async () => {
   await reset();
 
-  const receita = transaction({type: "receita", value: 500});
+  const receita = transaction({type: "receita", valueCents: 50_000});
   await applyWrite(undefined, receita);
   assert.equal((await period("2026-08"))?.netCents, 50_000);
   assert.equal((await period("2026-08"))?.incomeCents, 50_000);
   assert.equal((await period("2026-08"))?.transactionCount, 1);
 
   // Alteração de valor no mesmo mês: um único incremento combinado.
-  const corrigida = {...receita, value: 300};
+  const corrigida = {...receita, valueCents: 30_000};
   await applyWrite(receita, corrigida);
   assert.equal((await period("2026-08"))?.netCents, 30_000);
   assert.equal((await period("2026-08"))?.transactionCount, 1);
 
   // Troca de mês: sai de agosto, entra em julho.
-  const movida = {
-    ...corrigida,
-    date: "2026-07-05",
-    transactionDate: at("2026-07-05T15:00:00.000Z"),
-  };
+  const movida = {...corrigida, date: "2026-07-05"};
   await applyWrite(corrigida, movida);
   assert.equal((await period("2026-08"))?.netCents, 0);
   assert.equal((await period("2026-08"))?.transactionCount, 0);
@@ -181,11 +234,10 @@ test("reconstrução reproduz o caminho incremental e é idempotente", async () 
   await reset();
 
   const rows = [
-    transaction({type: "receita", value: 1_000, date: "2026-06-10", transactionDate: at("2026-06-10T15:00:00.000Z")}),
-    transaction({type: "despesa", value: 400, date: "2026-06-20", transactionDate: at("2026-06-20T15:00:00.000Z")}),
+    transaction({type: "receita", valueCents: 100_000, date: "2026-06-10"}),
+    transaction({type: "despesa", valueCents: 40_000, date: "2026-06-20"}),
     transaction({
-      type: "investimento", value: 200, valueCents: 20_000,
-      date: "2026-07-05", transactionDate: at("2026-07-05T15:00:00.000Z"),
+      type: "investimento", valueCents: 20_000, date: "2026-07-05",
       investmentEntry: {
         domainVersion: 1, movementId: "mov-c", operation: "contribution",
         reversal: false, reversalOf: null, status: "settled",
@@ -193,10 +245,9 @@ test("reconstrução reproduz o caminho incremental e é idempotente", async () 
         currency: "BRL",
       },
     }),
-    transaction({type: "receita", value: 900, date: "2026-07-25", transactionDate: at("2026-07-25T15:00:00.000Z")}),
+    transaction({type: "receita", valueCents: 90_000, date: "2026-07-25"}),
     transaction({
-      type: "investimento", value: 150, valueCents: 15_000,
-      date: "2026-08-02", transactionDate: at("2026-08-02T15:00:00.000Z"),
+      type: "investimento", valueCents: 15_000, date: "2026-08-02",
       investmentEntry: {
         domainVersion: 1, movementId: "mov-r", operation: "redemption",
         reversal: false, reversalOf: null, status: "settled",
@@ -275,7 +326,7 @@ test("reconstrução reproduz o caminho incremental e é idempotente", async () 
 
 test("reconstrução zera período órfão sem lastro no ledger", async () => {
   await reset();
-  const row = transaction({type: "receita", value: 100});
+  const row = transaction({type: "receita", valueCents: 10_000});
   await db().doc(`workspaces/${WORKSPACE}/transactions/tx-only`).set(row);
 
   // Período sobrevivente de uma execução anterior, sem transação que o sustente.
@@ -303,15 +354,23 @@ test("reconstrução zera período órfão sem lastro no ledger", async () => {
   await reset();
 });
 
-test("chave mensal usa o fuso oficial do produto, não UTC", () => {
-  // 22:00 BRT de 31/08 é 01:00 UTC de 01/09. A chave precisa ser de agosto.
+test("chave mensal é o prefixo de `date`, sem conversão de fuso", () => {
+  assert.equal(cashPeriodKeyFor({date: "2026-08-31"}), "2026-08");
+  assert.equal(cashDayKeyFor({date: "2026-08-31"}), "2026-08-31");
+  // 22:00 BRT de 31/08 é 01:00 UTC de 01/09: um `transactionDate`
+  // remanescente não compete com `date`.
   assert.equal(
-    cashPeriodKeyFor({transactionDate: at("2026-09-01T01:00:00.000Z")}),
+    cashPeriodKeyFor({
+      date: "2026-08-31",
+      transactionDate: at("2026-09-01T01:00:00.000Z"),
+    }),
     "2026-08",
   );
-  assert.equal(
-    cashPeriodKeyFor({date: "2026-08-31"}),
-    "2026-08",
+  // Sem `date`, o instante não é lido: violação de contrato.
+  assert.throws(
+    () => cashPeriodKeyFor({transactionDate: at("2026-09-01T01:00:00.000Z")}),
+    (error: unknown) => error instanceof CashContractViolationError &&
+      error.field === "date",
   );
 });
 
@@ -330,7 +389,7 @@ test("chave mensal usa o fuso oficial do produto, não UTC", () => {
 test("a mesma entrega executada duas vezes move o caixa só uma vez", async () => {
   await reset();
 
-  const receita = transaction({type: "receita", value: 500});
+  const receita = transaction({type: "receita", valueCents: 50_000});
 
   // CREATE, entregue duas vezes.
   const primeira = await deliver("evt-create-0001", undefined, receita);
@@ -348,9 +407,8 @@ test("a mesma entrega executada duas vezes move o caixa só uma vez", async () =
   // agosto e entrar em julho exatamente uma vez, nos dois períodos.
   const movida = {
     ...receita,
-    value: 300,
+    valueCents: 30_000,
     date: "2026-07-05",
-    transactionDate: at("2026-07-05T15:00:00.000Z"),
   };
   await deliver("evt-update-0001", receita, movida);
   await deliver("evt-update-0001", receita, movida);
@@ -376,7 +434,8 @@ test("a marca de entrega é por workspace e não guarda o event.id", async () =>
     "workspaces/w/transactions/tx-sensivel-0001";
   const chave = cashPeriodEventKey(eventId);
 
-  await deliver(eventId, undefined, transaction({type: "receita", value: 100}));
+  await deliver(eventId, undefined,
+    transaction({type: "receita", valueCents: 10_000}));
 
   const marca = await cashPeriodEventRef(WORKSPACE, chave).get();
   assert.equal(marca.exists, true);
@@ -401,9 +460,9 @@ test("duas entregas legítimas distintas são ambas aplicadas", async () => {
   await reset();
 
   const salario = transaction(
-    {type: "receita", value: 500, description: "Salário"});
+    {type: "receita", valueCents: 50_000, description: "Salário"});
   const aluguel = transaction(
-    {type: "despesa", value: 120, description: "Aluguel"});
+    {type: "despesa", valueCents: 12_000, description: "Aluguel"});
 
   const um = await deliver(
     "evt-legitimo-0001", undefined, salario, "tx-salario");
@@ -439,9 +498,9 @@ test("a reconstrução confere o caixa deduplicado sem alterá-lo", async () => 
 
   const linhas = [
     {id: "tx-a", evento: "evt-rec-0001",
-      dados: transaction({type: "receita", value: 1_000})},
+      dados: transaction({type: "receita", valueCents: 100_000})},
     {id: "tx-b", evento: "evt-rec-0002",
-      dados: transaction({type: "despesa", value: 250})},
+      dados: transaction({type: "despesa", valueCents: 25_000})},
   ];
   for (const linha of linhas) {
     await db().doc(`workspaces/${WORKSPACE}/transactions/${linha.id}`)
@@ -468,5 +527,150 @@ test("a reconstrução confere o caixa deduplicado sem alterá-lo", async () => 
   assert.equal(depois?.netCents, antes?.netCents);
   assert.equal(depois?.transactionCount, antes?.transactionCount);
 
+  await reset();
+});
+
+// ------------------------------------------------- contrato único (P5-C2)
+
+/** Meses publicados; o estado da reconstrução mora na mesma coleção. */
+const periodsCount = async () =>
+  (await db().collection(`workspaces/${WORKSPACE}/cash_report_periods`).get())
+    .docs.filter((doc) => !(CASH_REBUILD_STATE_IDS as readonly string[])
+      .includes(doc.id)).length;
+
+test("entrega de documento fora do contrato falha sem marca nem período",
+  async () => {
+    await reset();
+    for (const [index, data] of [
+      transaction({type: "parcelado"}),
+      transaction({type: "investimento"}),
+      transaction({valueCents: 10.5}),
+      transaction({date: "2026-02-30"}),
+    ].entries()) {
+      const eventId = `evt-violacao-${index}`;
+      await assert.rejects(deliver(eventId, undefined, data),
+        CashContractViolationError);
+      // A transação aborta inteira: nenhuma marca, nenhum mês, nenhum dia.
+      assert.equal(
+        (await cashPeriodEventRef(WORKSPACE, cashPeriodEventKey(eventId))
+          .get()).exists,
+        false,
+      );
+      assert.equal(await periodsCount(), 0);
+    }
+    await reset();
+  });
+
+test("reconstrução recusa publicar com documento fora do contrato",
+  async () => {
+    await reset();
+    await db().doc(`workspaces/${WORKSPACE}/transactions/tx-valido`).set(
+      transaction({type: "receita", valueCents: 10_000}));
+    // Legado em reais, sem `valueCents`: nunca vira R$ 0,00 na base.
+    const legado = transaction({type: "receita"}) as Record<string, unknown>;
+    delete legado.valueCents;
+    await db().doc(`workspaces/${WORKSPACE}/transactions/tx-legado`).set(
+      {...legado, value: 100});
+
+    await assert.rejects(
+      executeRebuildCashPeriods(WORKSPACE, ACTOR, {
+        workspaceId: WORKSPACE,
+        idempotencyKey: "cash-rebuild-contrato-0001",
+        correlationId: "corr-cash-rebuild-contrato",
+        pageSize: 100,
+        reason: "Reconstrução de teste",
+        dryRun: false,
+      }),
+      (error: unknown) => error instanceof ApplicationError &&
+        error.code === "domain_precondition_failed" &&
+        error.message === CASH_REBUILD_CONTRACT_VIOLATION_MESSAGE,
+    );
+    assert.equal(await periodsCount(), 0, "nenhum mês publicado");
+    await reset();
+  });
+
+test("correção retroativa de `date` move dia, mês e ano com Σ dias = mês",
+  async () => {
+    await reset();
+    const original = transaction({
+      type: "receita", valueCents: 50_000, date: "2026-12-31",
+    });
+    await applyWrite(undefined, original);
+    const corrigida = {...original, date: "2027-01-02"};
+    await applyWrite(original, corrigida);
+
+    const dezembro = await period("2026-12");
+    const janeiro = await period("2027-01");
+    assert.equal(dezembro?.netCents, 0);
+    assert.equal(dezembro?.incomeCents, 0);
+    assert.equal(dezembro?.transactionCount, 0);
+    assert.equal(janeiro?.netCents, 50_000);
+    assert.equal(janeiro?.incomeCents, 50_000);
+    assert.equal(janeiro?.transactionCount, 1);
+    for (const [month, data] of [["2026-12", dezembro], ["2027-01", janeiro]]) {
+      const days = readCashDayDeltas(data && (data as {days?: unknown}).days);
+      assert.ok(
+        cashDaysMatchMonth(days, normalizeCashPeriodDelta(
+          data as Record<string, unknown>)),
+        `Σ dias = mês em ${month}`,
+      );
+    }
+    assert.deepEqual(readCashDayDeltas(janeiro?.days), {
+      "02": {incomeCents: 50_000, netCents: 50_000, transactionCount: 1},
+    });
+    assert.deepEqual(readCashDayDeltas(dezembro?.days), {},
+      "o dia de origem fica zerado");
+
+    // A categoria troca de ano junto: sai de 2026 e entra em 2027.
+    const year = async (value: string) => (await db().doc(
+      `workspaces/${WORKSPACE}/cash_category_years/g0__${value}__sem_categoria`,
+    ).get()).data();
+    assert.equal((await year("2026"))?.incomeCents, 0);
+    assert.equal((await year("2027"))?.incomeCents, 50_000);
+    await reset();
+  });
+
+test("valor no teto do produto é aceito; acima lança e não grava", async () => {
+  await reset();
+  const teto = CASH_ENTRY_MAX_CENTS;
+  const receita = transaction({type: "receita", valueCents: teto});
+  await applyWrite(undefined, receita);
+  assert.equal((await period("2026-08"))?.incomeCents, teto);
+  assert.equal((await period("2026-08"))?.netCents, teto);
+
+  for (const valueCents of [teto + 1, Number.MAX_SAFE_INTEGER]) {
+    await reset();
+    const acima = transaction({type: "receita", valueCents});
+    await assert.rejects(applyWrite(undefined, acima),
+      CashContractViolationError);
+    assert.equal(await periodsCount(), 0);
+  }
+  await reset();
+});
+
+test("mudar só o `transactionDate` remanescente não gera delta", async () => {
+  await reset();
+  const receita = transaction({
+    type: "receita", valueCents: 50_000,
+    transactionDate: at("2026-08-10T15:00:00.000Z"),
+  });
+  await applyWrite(undefined, receita);
+  const antes = await period("2026-08");
+
+  const remanescente = {
+    ...receita, transactionDate: at("2026-09-20T15:00:00.000Z"),
+  };
+  assert.deepEqual(cashWritePlanFor(receita, remanescente),
+    {months: {}, days: {}, categories: {}});
+  await applyWrite(receita, remanescente);
+  assert.deepEqual(await period("2026-08"), antes, "mês intocado");
+  assert.equal(await period("2026-09"), undefined, "nenhum mês novo");
+
+  // Pela entrega do gatilho: aplicada, sem período tocado e sem delta.
+  const entrega = await deliver("evt-remanescente-0001", receita,
+    remanescente);
+  assert.equal(entrega.applied, true);
+  assert.deepEqual(entrega.periods, []);
+  assert.deepEqual(await period("2026-08"), antes);
   await reset();
 });

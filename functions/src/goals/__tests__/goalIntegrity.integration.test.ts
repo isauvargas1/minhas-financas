@@ -17,6 +17,7 @@ import {
   type WorkspaceRole,
 } from "../../shared/workspaceAuth";
 import {createGoal, GOAL_OPERATION_ROLES} from "../callables";
+import {archiveGoalPayloadSchema, createGoalPayloadSchema} from "../contracts";
 import {
   executeArchiveGoal,
   executeCreateGoal,
@@ -58,27 +59,29 @@ const resetWorkspace = async (workspaceId: string) => {
   await getDb().recursiveDelete(ref);
 };
 
-const goalPayload = (workspaceId: string, idempotencyKey: string) => ({
-  workspaceId,
-  idempotencyKey,
-  goal: {
-    name: "Reserva verificável",
-    description: "Meta de teste",
-    category: "reserva_emergencia" as const,
-    status: "em_andamento" as const,
-    priority: "alta" as const,
-    targetAmount: 10000,
-    startDate: "2026-01-01",
-    deadline: "2027-01-01",
-    horizon: "curto" as const,
-    progressBasis: "net_contributions" as const,
-    visual: {
-      color: "#6366f1",
-      icon: "Target",
-      progressBarType: "linear" as const,
+/** Payload do contrato P5-B, já passado pelo schema como a callable faz. */
+const goalPayload = (workspaceId: string, idempotencyKey: string) =>
+  createGoalPayloadSchema.parse({
+    workspaceId,
+    idempotencyKey,
+    goal: {
+      name: "Reserva verificável",
+      description: "Meta de teste",
+      category: "reserva_emergencia",
+      priority: "alta",
+      startDate: "2026-01-01",
+      deadline: "2027-01-01",
+      horizon: "curto",
+      progressSource: "investment",
+      progressBasis: "net_contributions",
+      targetAmountCents: 1_000_000,
+      visual: {
+        color: "#6366f1",
+        icon: "Target",
+        progressBarType: "linear",
+      },
     },
-  },
-});
+  });
 
 /** Quantidade de documentos de uma subcoleção do workspace (teste). */
 const countOf = async (workspaceId: string, collection: string) =>
@@ -103,14 +106,11 @@ const isPermissionDenied = (error: unknown) =>
   error instanceof HttpsError && error.code === "permission-denied";
 
 /*
- * Arquivamento de meta sem varredura de `transactions`.
- *
- * A versão anterior lia até 2.001 aportes legados por arquivamento só para
- * registrar quantos eram. O progresso patrimonial já é publicado na própria
- * meta por `updateGoalProjection`, a partir das posições: é ele que a trilha
- * de auditoria passa a guardar, sem custo de leitura e sem tocar em caixa.
+ * Arquivamento lógico (P5-B, D-31.4): a meta permanece, com metadados, o
+ * status de evolução preservado (arquivar não é cancelar) e o progresso
+ * patrimonial publicado intacto. Sem posição vinculada, é aceito.
  */
-test("arquivar preserva o histórico e registra o progresso patrimonial",
+test("arquivar preserva a meta, o status e o progresso patrimonial",
   async () => {
     await resetWorkspace(PF_WORKSPACE);
     await seedGoalWorkspace(PF_WORKSPACE, OWNER_A, "PF");
@@ -121,34 +121,33 @@ test("arquivar preserva o histórico e registra o progresso patrimonial",
     );
     const goalId = String(created.goalId);
 
-    // Progresso publicado pelo domínio patrimonial, como faria um aporte.
+    // Progresso publicado pelo domínio patrimonial (posição já desvinculada).
     await getDb().doc(`workspaces/${PF_WORKSPACE}/goals/${goalId}`).update({
       investmentProgressCents: 250_000,
     });
 
-    const archived = await executeArchiveGoal(actor, {
+    const archiveRequest = archiveGoalPayloadSchema.parse({
       workspaceId: PF_WORKSPACE,
       idempotencyKey: "goal-archive-0000002",
       goalId,
       reason: "Meta concluída no teste",
     });
-    assert.equal(archived.archivedProgressCents, 250_000);
+    const archived = await executeArchiveGoal(actor, archiveRequest);
+    assert.deepEqual(archived, {success: true, goalId, revision: 2});
 
     const goal = await getDb()
       .doc(`workspaces/${PF_WORKSPACE}/goals/${goalId}`)
       .get();
     assert.equal(goal.exists, true, "arquivar nunca apaga o documento da meta");
     assert.equal(goal.data()?.archived, true);
-    assert.equal(goal.data()?.status, "cancelada");
+    assert.equal(goal.data()?.status, "em_andamento",
+      "arquivar não força o status cancelada");
+    assert.equal(goal.data()?.archivedBy, OWNER_A);
+    assert.equal(goal.data()?.archiveReason, "Meta concluída no teste");
     assert.equal(goal.data()?.investmentProgressCents, 250_000);
 
     // Repetir a mesma intenção é replay, não um segundo arquivamento.
-    const replay = await executeArchiveGoal(actor, {
-      workspaceId: PF_WORKSPACE,
-      idempotencyKey: "goal-archive-0000002",
-      goalId,
-      reason: "Meta concluída no teste",
-    });
+    const replay = await executeArchiveGoal(actor, archiveRequest);
     assert.deepEqual(replay, archived);
   });
 
@@ -240,7 +239,7 @@ test("dono conhecido só por workspace.ownerId, sem membership, é recusado",
       MEMBER_A,
       goalPayload(LEGACY_OWNER_WORKSPACE, "goal-legacy-member-0001"),
     ));
-    assert.equal(created.success, true);
+    assert.equal((created as {success?: boolean}).success, true);
     await assertGoalWrites(LEGACY_OWNER_WORKSPACE, 1);
   });
 

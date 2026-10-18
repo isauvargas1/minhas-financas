@@ -47,26 +47,31 @@ const seed = async () => {
     extra: {themeColor: '#4f46e5'},
   });
   await Promise.all([
+    // Meta de investimentos no contrato de P5-B: fonte e base explícitas,
+    // progresso publicado pelo domínio patrimonial (começa zerado).
     db.doc(`workspaces/${WORKSPACE_ID}/goals/${GOAL_ID}`).set({
       workspaceId: WORKSPACE_ID,
-      profileId: WORKSPACE_ID,
       name: 'Meta M1 E2E',
       description: 'Validação do aporte patrimonial',
       category: 'reserva_emergencia',
       status: 'em_andamento',
       priority: 'alta',
-      targetAmount: 1000,
+      priorityRank: 3,
       targetAmountCents: 100000,
-      currentAmount: 0,
-      currentAmountCents: 0,
+      progressSource: 'investment',
       progressBasis: 'net_contributions',
+      investmentNetContributionCents: 0,
+      investmentCurrentValueCents: 0,
+      investmentProgressCents: 0,
       startDate: '2026-01-01',
       deadline: '2027-01-01',
       horizon: 'curto',
-      isAutomatic: false,
+      archived: false,
+      revision: 1,
       visual: {color: '#6366f1', icon: 'Target', progressBarType: 'linear'},
       createdAt: now,
       updatedAt: now,
+      statusUpdatedAt: now,
     }),
     // Nenhuma conta, ativo ou transação de investimento é semeada: o primeiro
     // aporte cria os seus (D-15), e o caixa existe só como espelho do ledger.

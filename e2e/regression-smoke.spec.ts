@@ -112,19 +112,19 @@ const seed = async (persona: Persona) => {
   });
 
   await Promise.all([
-    // Receita, despesa e parcelada: os três tipos do fluxo de caixa legado.
+    // Receita e duas despesas no contrato do documento: só `valueCents` e
+    // `date`. A compra parcelada não é transação (vive no domínio de Cartões).
     db.doc(`workspaces/${persona.workspace}/transactions/smoke-receita`).set({
       ...base, type: 'receita', description: 'Receita do smoke',
-      category: 'Salário', value: 5000, date: today, transactionDate: now,
+      category: 'Salário', valueCents: 500_000, date: today,
     }),
     db.doc(`workspaces/${persona.workspace}/transactions/smoke-despesa`).set({
       ...base, type: 'despesa', description: 'Despesa do smoke',
-      category: 'Alimentação', value: 250, date: today, transactionDate: now,
+      category: 'Alimentação', valueCents: 25_000, date: today,
     }),
-    db.doc(`workspaces/${persona.workspace}/transactions/smoke-parcelado`).set({
-      ...base, type: 'parcelado', description: 'Compra parcelada do smoke',
-      category: 'Eletrônicos', value: 300, date: today, transactionDate: now,
-      installments: 3, currentInstallment: 1,
+    db.doc(`workspaces/${persona.workspace}/transactions/smoke-despesa-2`).set({
+      ...base, type: 'despesa', description: 'Segunda despesa do smoke',
+      category: 'Eletrônicos', valueCents: 30_000, date: today,
     }),
 
     // Recorrência (P4-B): pela operação autoritativa do backend, não à mão.
@@ -144,20 +144,25 @@ const seed = async (persona: Persona) => {
       name: 'Cartão do smoke', closingDay: 10, dueDay: 20, limitTotalCents: 500_000,
     }),
 
-    // Meta.
+    // Meta no contrato de P5-B: PF mede por investimentos (progresso publicado
+    // pelo domínio patrimonial); PJ é indicador calculado no servidor
+    // (`getGoalKpiProgress`), sem progresso persistido.
     db.doc(`workspaces/${persona.workspace}/goals/smoke-meta`).set({
-      id: 'smoke-meta', workspaceId: persona.workspace, name: 'Meta do smoke',
-      targetAmount: 10000, currentAmount: 1000, currentAmountCents: 100_000,
-      netContributionCents: 100_000, progressBasis: 'net_contributions',
-      investmentNetContributionCents: 0, investmentProgressCents: 0,
-      status: 'em_andamento', archived: false,
-      // Campos obrigatórios do contrato de meta — o cartão os renderiza direto.
+      workspaceId: persona.workspace, name: 'Meta do smoke',
       category: isPJ ? 'patrimonio' : 'reserva_emergencia',
-      priority: 'alta', horizon: 'medio',
-      ...(isPJ ? {businessType: 'caixa_minimo' as const, period: 'mensal' as const} : {}),
+      priority: 'alta', priorityRank: 3, horizon: 'medio',
+      status: 'em_andamento', archived: false, revision: 1,
       startDate: today, deadline: '2027-12-31',
+      targetAmountCents: 1_000_000,
+      ...(isPJ
+        ? { progressSource: 'business_kpi', businessType: 'caixa_minimo' }
+        : {
+          progressSource: 'investment', progressBasis: 'net_contributions',
+          investmentNetContributionCents: 100_000, investmentCurrentValueCents: 100_000,
+          investmentProgressCents: 100_000,
+        }),
       visual: { color: '#6366f1', icon: 'Target', emoji: '🎯', progressBarType: 'linear' },
-      createdAt: now, updatedAt: now,
+      createdAt: now, updatedAt: now, statusUpdatedAt: now,
     }),
 
     // Carteira de investimento, cadastro comum exercitado na tela.
@@ -203,7 +208,17 @@ const seed = async (persona: Persona) => {
         realizedGainCents: 0, realizedLossCents: 0, feesCents: 0, taxCents: 0,
         costDeltaCents: 200_000, currentValueDeltaCents: 200_000,
         cashDeltaCents: -200_000, settledMovementCount: 1,
-        closingCurrentValueCents: 200_000, updatedAt: now, updatedBy: persona.uid,
+        closingCurrentValueCents: 200_000,
+        // P5-C1 (D-37.10): a soma dos dias precisa fechar com o total do mês.
+        daily: {
+          [today]: {
+            contributionCents: 200_000, redemptionPrincipalCents: 0,
+            realizedGainCents: 0, realizedLossCents: 0, feesCents: 0, taxCents: 0,
+            costDeltaCents: 200_000, currentValueDeltaCents: 200_000,
+            cashDeltaCents: -200_000, settledMovementCount: 1,
+          },
+        },
+        updatedAt: now, updatedBy: persona.uid,
       }),
   ]);
 };
@@ -264,12 +279,12 @@ const walkSurfaces = async (
 ) => {
   const isPJ = persona.type === 'PJ';
 
-  // Dashboard: receita, despesa e parcelada chegam pela leitura paginada.
+  // Dashboard: receita e despesas chegam pela leitura paginada.
   await expect(page.getByText('Receitas').first()).toBeVisible();
   await expect(page.getByText('Despesas').first()).toBeVisible();
   await expect(page.getByText('Receita do smoke').first()).toBeVisible();
   await expect(page.getByText('Despesa do smoke').first()).toBeVisible();
-  await expect(page.getByText('Compra parcelada do smoke').first()).toBeVisible();
+  await expect(page.getByText('Segunda despesa do smoke').first()).toBeVisible();
   await expectNoErrorBanner(page);
 
   /*
@@ -301,7 +316,7 @@ const walkSurfaces = async (
 
   // Relatórios, incluindo a faixa "tudo", que carrega o histórico completo.
   await openSection(page, isPJ ? 'Relatórios Empresariais' : 'Relatórios');
-  await expect(page.getByText(isPJ ? 'Faturamento' : 'Receita Total').first()).toBeVisible();
+  await expect(page.getByText(isPJ ? 'Recebimentos operacionais realizados' : 'Receita Total').first()).toBeVisible();
   await expectNoErrorBanner(page);
 
   /*

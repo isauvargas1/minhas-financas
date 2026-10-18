@@ -1,0 +1,551 @@
+{
+ "mutantes": {
+  "R01": {
+   "group": "rules",
+   "description": "viewer pode excluir para si",
+   "file": "firestore.rules",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 24,
+   "evidence": [
+    "not ok 7 - D-18-NOTIF Rules — viewer não exclui (deleted) nem na criação nem na atualização",
+    "not ok 32 - D-18-NOTIF Rules — viewer com read e deleted (ou dismissed e deleted) no mesmo payload é negado"
+   ]
+  },
+  "R02": {
+   "group": "rules",
+   "description": "estado já existente libera `deleted` para qualquer papel",
+   "file": "firestore.rules",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 23,
+   "evidence": [
+    "not ok 7 - D-18-NOTIF Rules — viewer não exclui (deleted) nem na criação nem na atualização"
+   ]
+  },
+  "R03": {
+   "group": "rules",
+   "description": "criação aceita `expiresAt` diferente do evento",
+   "file": "firestore.rules",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 23,
+   "evidence": [
+    "not ok 21 - D-18-NOTIF Rules — expiresAt diferente do evento é negado (+1 s e muito no futuro)"
+   ]
+  },
+  "R04": {
+   "group": "rules",
+   "description": "atualização pode alterar `expiresAt`",
+   "file": "firestore.rules",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 22,
+   "evidence": [
+    "not ok 23 - D-18-NOTIF Rules — atualizar alterando expiresAt é negado"
+   ]
+  },
+  "R05": {
+   "group": "rules",
+   "description": "estado criado para evento já expirado",
+   "file": "firestore.rules",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 23,
+   "evidence": [
+    "not ok 31 - D-18-NOTIF Rules — estado de evento expirado não é criado e estado expirado não é atualizado"
+   ]
+  },
+  "R06": {
+   "group": "rules",
+   "description": "estado expirado continua atualizável",
+   "file": "firestore.rules",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 23,
+   "evidence": [
+    "not ok 31 - D-18-NOTIF Rules — estado de evento expirado não é criado e estado expirado não é atualizado"
+   ]
+  },
+  "R07": {
+   "group": "rules",
+   "description": "`deleted` pode ser removido ou alterado (não monotônico)",
+   "file": "firestore.rules",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 22,
+   "evidence": [
+    "not ok 24 - D-18-NOTIF Rules — remover deleted/deletedAt ou desmarcar é negado",
+    "not ok 25 - D-18-NOTIF Rules — deletedAt escolhido pelo cliente (não serverTimestamp) é negado",
+    "not ok 33 - D-18-NOTIF Rules — viewer com deleted já gravado: adicionar read mantendo deleted é PERMITIDO; alterar ou remover deleted é NEGADO"
+   ]
+  },
+  "R08": {
+   "group": "rules",
+   "description": "`deletedAt` escolhido pelo cliente",
+   "file": "firestore.rules",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 24,
+   "evidence": [
+    "not ok 25 - D-18-NOTIF Rules — deletedAt escolhido pelo cliente (não serverTimestamp) é negado"
+   ]
+  },
+  "R09": {
+   "group": "rules",
+   "description": "campo extra aceito no estado",
+   "file": "firestore.rules",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 23,
+   "evidence": [
+    "not ok 36 - D-18-NOTIF Rules — campo extra, estado sem marca, evento inexistente e evento sem expiresAt são negados",
+    "not ok 52 - P5-D1 Rules — campos extras, valores inválidos e carimbo do cliente são rejeitados"
+   ]
+  },
+  "R10": {
+   "group": "rules",
+   "description": "dono apaga o documento de estado (deleteDoc)",
+   "file": "firestore.rules",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 22,
+   "evidence": [
+    "not ok 26 - D-18-NOTIF Rules — o dono não apaga o próprio documento de estado",
+    "not ok 55 - P5-D1 Rules — o dono não apaga o próprio estado (arquivar não é excluir)",
+    "not ok 61 - P5-D1 Rules — o dono lista o próprio estado só com teto de 50"
+   ]
+  },
+  "R11": {
+   "group": "rules",
+   "description": "estado de outro usuário gravável (dono não conferido)",
+   "file": "firestore.rules",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 23,
+   "evidence": [
+    "not ok 15 - D-18-NOTIF Rules — usuário escreve o estado de outro usuário (caminho com o uid dele): negado",
+    "not ok 27 - D-18-NOTIF Rules — ler (get/list) o estado de outro usuário é negado",
+    "not ok 50 - P5-D1 Rules — outro usuário não lê nem grava o estado do viewer"
+   ]
+  },
+  "R12": {
+   "group": "rules",
+   "description": "evento compartilhado apagável pelo owner",
+   "file": "firestore.rules",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 23,
+   "evidence": [
+    "not ok 11 - D-18-NOTIF Rules — ownerA não apaga nem altera o evento compartilhado",
+    "not ok 48 - P5-D1 Rules — nenhum papel apaga a notificação compartilhada",
+    "not ok 49 - P5-D1 Rules — viewer marca leitura e arquivamento só para si, de forma idempotente"
+   ]
+  },
+  "C01": {
+   "group": "int",
+   "description": "fechamento regrava o aviso existente (retry prorroga)",
+   "file": "functions/src/cards/closing.ts",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 51,
+   "evidence": [
+    "not ok 14 - D-18 — fechamento com aviso já existente: a transação não regrava o evento nem prorroga a retenção, e a fatura fecha"
+   ]
+  },
+  "C02": {
+   "group": "int",
+   "description": "`expiresAt` de outro instante que não o de `createdAt`",
+   "file": "functions/src/cards/closing.ts",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 42,
+   "evidence": [
+    "not ok 1 - D-18 — fechamento grava expiresAt Timestamp e createdAt ISO, 180 dias exatos",
+    "not ok 2 - D-18 — vencimento próximo e atraso gravam o mesmo contrato de retenção",
+    "not ok 5 - D-18 — fechamentos concorrentes criam um único aviso, com expiresAt de 180 dias do próprio createdAt"
+   ]
+  },
+  "C03": {
+   "group": "int",
+   "description": "`expiresAt` gravado como texto ISO",
+   "file": "functions/src/cards/closing.ts",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 42,
+   "evidence": [
+    "not ok 1 - D-18 — fechamento grava expiresAt Timestamp e createdAt ISO, 180 dias exatos",
+    "not ok 2 - D-18 — vencimento próximo e atraso gravam o mesmo contrato de retenção",
+    "not ok 3 - D-18 — IDs determinísticos e sem duplicidade: reexecução no mesmo dia e no dia seguinte não altera createdAt nem expiresAt"
+   ]
+  },
+  "C04": {
+   "group": "int",
+   "description": "retenção de 90 dias em vez de 180",
+   "file": "functions/src/shared/retention.ts",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 42,
+   "evidence": [
+    "not ok 1 - D-18 — fechamento grava expiresAt Timestamp e createdAt ISO, 180 dias exatos",
+    "not ok 2 - D-18 — vencimento próximo e atraso gravam o mesmo contrato de retenção",
+    "not ok 5 - D-18 — fechamentos concorrentes criam um único aviso, com expiresAt de 180 dias do próprio createdAt"
+   ]
+  },
+  "C05": {
+   "group": "int",
+   "description": "vencimento/atraso regravam o aviso (set em vez de create)",
+   "file": "functions/src/cards/closing.ts",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 51,
+   "evidence": [
+    "not ok 7 - P4-A — alertas: fechada, próxima do vencimento e vencida uma vez cada; o atraso não é persistido e o 'lida' não volta (P5-D1: estado privado, fora do evento)",
+    "not ok 13 - D-18 — IDs determinísticos e sem duplicidade: reexecução no mesmo dia e no dia seguinte não altera createdAt nem expiresAt",
+    "not ok 16 - D-18 — estado privado 'excluída' (semeado via Admin) não reaparece: o produtor repetido não toca o estado nem o evento"
+   ]
+  },
+  "C06": {
+   "group": "unit",
+   "description": "aritmética de dias errada no helper de expiração",
+   "file": "functions/src/shared/retention.ts",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 36,
+   "evidence": [
+    "not ok 414 - D-18 — a retenção de notificações é de 180 dias exatos",
+    "not ok 415 - D-18 — expiresAfterDays parte de um instante fixo, sem relógio",
+    "not ok 416 - D-18 — limite exato: 179 e 180 dias atrás, e 181 dias atrás"
+   ]
+  },
+  "F01": {
+   "group": "front",
+   "description": "excluída para si continua visível",
+   "file": "src/modules/notifications/model.ts",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 20,
+   "evidence": [
+    "not ok 13 - excluir para mim: some só para quem excluiu, persiste e o evento continua para os outros",
+    "not ok 14 - excluir depois de ler ou arquivar: some e não conta como não lida",
+    "not ok 15 - exclusão com erro de permissão: sem falso sucesso, patch não aplicado, tentar de novo funciona"
+   ]
+  },
+  "F02": {
+   "group": "front",
+   "description": "expirada continua visível",
+   "file": "src/modules/notifications/model.ts",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 18,
+   "evidence": [
+    "not ok 19 - expiração: o item some sozinho por relógio local, sem reler o Firestore",
+    "not ok 22 - página com poucos visíveis e cursor continua com \"carregar mais\"",
+    "not ok 48 - expiração em 179, 180 e 181 dias: o limite é inclusivo (expiresAt <= agora some)"
+   ]
+  },
+  "F03": {
+   "group": "front",
+   "description": "criação do estado sem copiar `expiresAt` do evento",
+   "file": "src/modules/notifications/model.ts",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 18,
+   "evidence": [
+    "not ok 23 - o cliente não cria, altera nem apaga o evento compartilhado",
+    "not ok 55 - marcação: criação copia o expiresAt do evento e lê todos os dados antes de qualquer escrita"
+   ]
+  },
+  "F04": {
+   "group": "front",
+   "description": "evento expirado ainda recebe estado",
+   "file": "src/modules/notifications/model.ts",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 19,
+   "evidence": [
+    "not ok 57 - marcação: evento ausente, sem expiresAt ou expirado é pulado sem gravar; estado expirado também"
+   ]
+  },
+  "F05": {
+   "group": "front",
+   "description": "viewer pode excluir (papel do botão)",
+   "file": "src/modules/notifications/model.ts",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 20,
+   "evidence": [
+    "not ok 53 - canDelete: só owner, admin e member do mesmo uid do escopo; viewer e indefinido não"
+   ]
+  },
+  "F06": {
+   "group": "front",
+   "description": "papel de outra conta habilita o botão",
+   "file": "src/modules/notifications/model.ts",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 18,
+   "evidence": [
+    "not ok 53 - canDelete: só owner, admin e member do mesmo uid do escopo; viewer e indefinido não"
+   ]
+  },
+  "F07": {
+   "group": "front",
+   "description": "evento sem `expiresAt` vira notificação sem prazo",
+   "file": "src/modules/notifications/model.ts",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 19,
+   "evidence": [
+    "not ok 47 - evento sem expiresAt (ou com expiresAt que não é Timestamp) está fora do contrato e é ignorado"
+   ]
+  },
+  "F08": {
+   "group": "front",
+   "description": "cursor tirado da lista filtrada (pula/repete itens)",
+   "file": "src/modules/notifications/model.ts",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 20,
+   "evidence": [
+    "not ok 50 - cursor sobre o último documento BRUTO lido, mesmo expirado ou excluído; filtragem só na lista visível"
+   ]
+  },
+  "F09": {
+   "group": "front",
+   "description": "atualização reenvia `expiresAt` (ou carimbo regravado)",
+   "file": "src/modules/notifications/model.ts",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 22,
+   "evidence": [
+    "not ok 23 - o cliente não cria, altera nem apaga o evento compartilhado",
+    "not ok 56 - marcação: atualização grava só a marca nova (sem expiresAt) e marca repetida não regrava"
+   ]
+  },
+  "F10": {
+   "group": "front",
+   "description": "relógio local nunca agenda a próxima expiração",
+   "file": "src/modules/notifications/model.ts",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 21,
+   "evidence": [
+    "not ok 19 - expiração: o item some sozinho por relógio local, sem reler o Firestore",
+    "not ok 20 - disparo antecipado do temporizador (teto do setTimeout ou relógio ajustado) arma o próximo",
+    "not ok 21 - troca de escopo cancela o temporizador de expiração do escopo anterior"
+   ]
+  },
+  "F11": {
+   "group": "front",
+   "description": "confirmação aplicada ao escopo atual, não ao da ação",
+   "file": "src/modules/notifications/feed.ts",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 20,
+   "evidence": [
+    "not ok 6 - troca de workspace durante a marcação: só o escopo da ação muda",
+    "not ok 16 - troca de escopo durante a exclusão: sem vazar cache nem erro, ação presa ao escopo do clique"
+   ]
+  },
+  "F12": {
+   "group": "front",
+   "description": "L-5: dado inconsistente dito como falha passageira",
+   "file": "src/modules/reports/adapter.ts",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 22,
+   "evidence": [
+    "not ok 25 - D-18 L-5 — indisponível distingue falha passageira, dado inconsistente e limite da consulta"
+   ]
+  },
+  "F13": {
+   "group": "front",
+   "description": "L-5: nota \"Parcial\" volta a afirmar \"no momento\"",
+   "file": "src/modules/reports/adapter.ts",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 21,
+   "evidence": [
+    "not ok 24 - P5-C2 L8 — truncado por fontes parciais ganha nota própria; indisponível nunca mostra o motivo",
+    "not ok 25 - D-18 L-5 — indisponível distingue falha passageira, dado inconsistente e limite da consulta"
+   ]
+  },
+  "F14": {
+   "group": "front",
+   "description": "temporizador não rearma depois de disparo antecipado",
+   "file": "src/modules/notifications/feed.ts",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 20,
+   "evidence": [
+    "not ok 20 - disparo antecipado do temporizador (teto do setTimeout ou relógio ajustado) arma o próximo"
+   ]
+  },
+  "F15": {
+   "group": "front",
+   "description": "exclusão sem gravação tratada como sucesso",
+   "file": "src/modules/notifications/feed.ts",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 22,
+   "evidence": [
+    "not ok 17 - exclusão sem gravação (evento expirado ou ausente): resultado próprio, sem falso sucesso nem patch"
+   ]
+  },
+  "L01": {
+   "group": "int",
+   "description": "L-4: `date` não textual aceito pelo leitor do caixa",
+   "file": "functions/src/cash/periods.ts",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 45,
+   "evidence": [
+    "not ok 13 - documento fora do contrato gravado à mão (escritor indevido): a projeção não muda e o estado fica `needsRebuild` com `contract_violation`"
+   ]
+  },
+  "E01": {
+   "group": "e2e",
+   "description": "viewer vê \"Excluir para mim\"",
+   "file": "src/components/NotificationsPanel.tsx",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 86,
+   "evidence": [
+    "1) [chromium] › e2e/notifications-retention-d18.spec.ts:431:1 › B — viewer não vê \"Excluir para mim\", arquiva e marca como lida; o servidor nega `deleted`"
+   ]
+  },
+  "E02": {
+   "group": "e2e",
+   "description": "Q-1: \"ciclo aberto\" sem \"fatura do\"",
+   "file": "src/components/ReportsOverview.tsx",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 88,
+   "evidence": [
+    "1) [chromium] › e2e/financial-reports.spec.ts:571:1 › cartões: atraso, próxima fatura a pagar e futuro separados e reconciliáveis; sem fatura a vencer não vira R$ 0,00; arquivado com saldo aparece marcado"
+   ]
+  },
+  "E03": {
+   "group": "e2e",
+   "description": "celular: painel não é trazido para dentro da tela",
+   "file": "src/components/NotificationsPanel.tsx",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 71,
+   "evidence": [
+    "1) [chromium] › e2e/notifications-retention-d18.spec.ts:1238:1 › E — celular: o painel e as ações cabem na tela, sem corte nas bordas"
+   ]
+  },
+  "E04": {
+   "group": "e2e",
+   "description": "sem a guarda síncrona: dois cliques mandam duas gravações",
+   "file": "src/components/Header.tsx",
+   "killed": true,
+   "invalid": false,
+   "exit": 1,
+   "restored_sha256": true,
+   "seconds": 82,
+   "evidence": [
+    "1) [chromium] › e2e/notifications-retention-d18.spec.ts:1107:1 › E — falha do servidor em pt-BR sem falso sucesso, e duplo clique em confirmar sem gravação dupla (desktop escuro)"
+   ]
+  }
+ },
+ "notas": {
+  "C01": "1ª versão (removia o if e deixava notificationExists sem uso) não compilou (TS6133) e não conta; reescrita como `if (!notificationExists || true)` + `transaction.set`, morta.",
+  "C04": "1ª rodada sobreviveu: o teste de integração espelhava RETENTION_DAYS.notifications. O teste passou a fixar o prazo aprovado (180 dias, independente da constante); rodada nova: morto.",
+  "F01": "Rodada 0 descartada: a suíte travava depois de falhar (harness sem desmontar mantinha o temporizador vivo). Corrigido com afterEach que desmonta; todos os mutantes de frontend foram refeitos."
+ },
+ "resumo": {
+  "total": 38,
+  "validos": 38,
+  "mortos": 38,
+  "restaurados_sha256": true,
+  "por_grupo": {
+   "rules": 12,
+   "int": 6,
+   "unit": 1,
+   "front": 15,
+   "e2e": 4
+  },
+  "copia_isolada": "scratchpad/d18/mut (git archive do working tree; node_modules por symlink)",
+  "arvores": {
+   "front/unit": "c9f8fea1 (alvos e testes idênticos aos finais)",
+   "rules/int/e2e": "dfb02500 (+ teste de retenção reforçado para C01/C04)"
+  }
+ }
+}

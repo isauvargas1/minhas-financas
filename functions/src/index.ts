@@ -32,6 +32,8 @@ export {
   getWorkspaceEntitlement,
 } from "./billing/callables";
 export * from "./cash/rebuild";
+// P5-C1 — relatório financeiro autoritativo (Dashboard e Relatórios).
+export {getFinancialReport} from "./reports/callables";
 // P3-A — criação; P3-C — correção e anulação; P3-D — importação em lotes de
 // lançamento manual confirmado; P3-F — pendentes, agendados e confirmação.
 export {
@@ -157,6 +159,21 @@ export {processCreditCardInvoiceClosing} from "./cards/closing";
 // por rodízio: cada execução cobre uma fatia dos workspaces com o domínio
 // ativo, sem varrer todos os tenants todo dia.
 export * from "./crons/investmentDrift";
+
+// P5-D2 — notificações persistentes: contagem exata de não lidas (callable) e
+// produtores de fatos de domínio. Os gatilhos só leem o antes e o depois do
+// documento autoritativo e criam o aviso com ID determinístico. Recebíveis
+// vencidos (atraso derivado, sem escrita no vencimento): rotina horária sobre
+// o trabalho pendente que as operações de recebíveis enfileiram (P5-D2.1).
+export {getNotificationUnreadCount} from "./notifications/unreadCount";
+export {onCashAccountWriteNotification} from
+  "./notifications/producers/cashAccounts";
+export {onGoalWriteNotification} from "./notifications/producers/goals";
+export {onLoanWriteNotification} from "./notifications/producers/loans";
+export {processReceivableOverdueNotifications} from
+  "./notifications/producers/receivables";
+export {onRecurringOccurrenceCreatedNotification} from
+  "./notifications/producers/recurring";
 
 // Webhooks (Recebem avisos de serviços externos)
 export {stripeWebhook} from "./webhooks/stripe";

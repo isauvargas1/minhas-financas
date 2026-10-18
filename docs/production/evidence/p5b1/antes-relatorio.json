@@ -1,0 +1,181 @@
+{
+ "pj-lista-desktop-claro": {
+  "overflow": 0
+ },
+ "pj-formulario-desktop-claro": {
+  "overflow": 0,
+  "objetivos": 6
+ },
+ "axe-pj-formulario-desktop-claro": [],
+ "pj-formulario-manual-desktop-claro": {
+  "disponivel": 0
+ },
+ "pj-detalhe-manual-desktop-claro": {
+  "overflow": 0
+ },
+ "pj-detalhe-manual-atualizar-desktop-claro": {
+  "overflow": 0
+ },
+ "axe-pj-detalhe-manual-desktop-claro": [
+  {
+   "id": "color-contrast",
+   "impact": "serious",
+   "help": "Elements must meet minimum color contrast ratio thresholds",
+   "count": 10,
+   "nodes": [
+    {
+     "target": [
+      ".text-teal-600"
+     ],
+     "html": "<span class=\"text-xs text-teal-600 dark:text-teal-400 font-bold uppercase tracking-wider flex items-center gap-1 mt-0.5\">"
+    },
+    {
+     "target": [
+      ".w-9"
+     ],
+     "html": "<div role=\"button\" tabindex=\"0\" aria-label=\"Abrir menu da conta\" aria-expanded=\"false\" class=\"w-9 h-9 rounded-full flex items-center justify-center text-white f"
+    },
+    {
+     "target": [
+      "div:nth-child(1) > .tracking-widest.text-gray-400.uppercase"
+     ],
+     "html": "<span class=\"text-sm font-bold text-gray-400 uppercase tracking-widest\">Atual</span>"
+    },
+    {
+     "target": [
+      ".text-right > .tracking-widest.text-gray-400.uppercase"
+     ],
+     "html": "<span class=\"text-sm font-bold text-gray-400 uppercase tracking-widest\">Objetivo</span>"
+    },
+    {
+     "target": [
+      ".text-2xl"
+     ],
+     "html": "<div class=\"text-2xl font-bold text-gray-400\">R$&nbsp;10.000,00</div>"
+    },
+    {
+     "target": [
+      ".mt-3 > span:nth-child(1)"
+     ],
+     "html": "<span>Início: 01/01/2026</span>"
+    },
+    {
+     "target": [
+      ".mt-3 > span:nth-child(2)"
+     ],
+     "html": "<span>Prazo: 31/12/2026</span>"
+    },
+    {
+     "target": [
+      ".text-\\[10px\\].block.font-black"
+     ],
+     "html": "<span class=\"text-[10px] font-black text-gray-400 uppercase tracking-widest block\">Status do Ritmo</span>"
+    }
+   ]
+  }
+ ],
+ "pj-detalhe-indicador-desktop-claro": {
+  "overflow": 0
+ },
+ "investimentos-desktop-claro": {
+  "overflow": 0
+ },
+ "investimento-seletor-desktop-claro": {
+  "overflow": 0,
+  "opcoes": 101
+ },
+ "investimento-seletor-101-desktop-claro": {
+  "opcoes": 101,
+  "meta101": 0
+ },
+ "pj-lista-desktop-escuro": {
+  "overflow": 0
+ },
+ "pj-formulario-desktop-escuro": {
+  "overflow": 0,
+  "objetivos": 6
+ },
+ "pj-formulario-manual-desktop-escuro": {
+  "disponivel": 0
+ },
+ "pj-detalhe-manual-desktop-escuro": {
+  "overflow": 0
+ },
+ "pj-detalhe-manual-atualizar-desktop-escuro": {
+  "overflow": 0
+ },
+ "pj-detalhe-indicador-desktop-escuro": {
+  "overflow": 0
+ },
+ "investimentos-desktop-escuro": {
+  "overflow": 0
+ },
+ "investimento-seletor-desktop-escuro": {
+  "overflow": 0,
+  "opcoes": 101
+ },
+ "investimento-seletor-101-desktop-escuro": {
+  "opcoes": 101,
+  "meta101": 0
+ },
+ "pj-lista-mobile-claro": {
+  "overflow": 0
+ },
+ "pj-formulario-mobile-claro": {
+  "overflow": 0,
+  "objetivos": 6
+ },
+ "pj-formulario-manual-mobile-claro": {
+  "disponivel": 0
+ },
+ "pj-detalhe-manual-mobile-claro": {
+  "overflow": 0
+ },
+ "pj-detalhe-manual-atualizar-mobile-claro": {
+  "overflow": 0
+ },
+ "pj-detalhe-indicador-mobile-claro": {
+  "overflow": 0
+ },
+ "investimentos-mobile-claro": {
+  "overflow": 0
+ },
+ "investimento-seletor-mobile-claro": {
+  "overflow": 0,
+  "opcoes": 101
+ },
+ "investimento-seletor-101-mobile-claro": {
+  "opcoes": 101,
+  "meta101": 0
+ },
+ "pj-lista-mobile-escuro": {
+  "overflow": 0
+ },
+ "pj-formulario-mobile-escuro": {
+  "overflow": 0,
+  "objetivos": 6
+ },
+ "pj-formulario-manual-mobile-escuro": {
+  "disponivel": 0
+ },
+ "pj-detalhe-manual-mobile-escuro": {
+  "overflow": 0
+ },
+ "pj-detalhe-manual-atualizar-mobile-escuro": {
+  "overflow": 0
+ },
+ "pj-detalhe-indicador-mobile-escuro": {
+  "overflow": 0
+ },
+ "investimentos-mobile-escuro": {
+  "overflow": 0
+ },
+ "investimento-seletor-mobile-escuro": {
+  "overflow": 0,
+  "opcoes": 101
+ },
+ "investimento-seletor-101-mobile-escuro": {
+  "opcoes": 101,
+  "meta101": 0
+ }
+}

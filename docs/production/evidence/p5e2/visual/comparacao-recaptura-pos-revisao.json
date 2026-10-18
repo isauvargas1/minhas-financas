@@ -1,0 +1,268 @@
+[
+  {
+    "captura": "cabecalho-1440-claro.png",
+    "dimensoes": "1312x60",
+    "pixelsDiferentes": 0,
+    "percentual": 0.0,
+    "caixaDasDiferencas": null
+  },
+  {
+    "captura": "cabecalho-1440-escuro.png",
+    "dimensoes": "1312x60",
+    "pixelsDiferentes": 0,
+    "percentual": 0.0,
+    "caixaDasDiferencas": null
+  },
+  {
+    "captura": "cabecalho-360-claro.png",
+    "dimensoes": "328x166",
+    "pixelsDiferentes": 0,
+    "percentual": 0.0,
+    "caixaDasDiferencas": null
+  },
+  {
+    "captura": "cabecalho-360-escuro.png",
+    "dimensoes": "328x166",
+    "pixelsDiferentes": 0,
+    "percentual": 0.0,
+    "caixaDasDiferencas": null
+  },
+  {
+    "captura": "cabecalho-390-claro.png",
+    "dimensoes": "358x166",
+    "pixelsDiferentes": 0,
+    "percentual": 0.0,
+    "caixaDasDiferencas": null
+  },
+  {
+    "captura": "cabecalho-390-escuro.png",
+    "dimensoes": "358x166",
+    "pixelsDiferentes": 0,
+    "percentual": 0.0,
+    "caixaDasDiferencas": null
+  },
+  {
+    "captura": "foco-sino-1440-claro.png",
+    "dimensoes": "1312x60",
+    "pixelsDiferentes": 0,
+    "percentual": 0.0,
+    "caixaDasDiferencas": null
+  },
+  {
+    "captura": "foco-sino-1440-escuro.png",
+    "dimensoes": "1312x60",
+    "pixelsDiferentes": 0,
+    "percentual": 0.0,
+    "caixaDasDiferencas": null
+  },
+  {
+    "captura": "foco-sino-360-claro.png",
+    "dimensoes": "328x166",
+    "pixelsDiferentes": 0,
+    "percentual": 0.0,
+    "caixaDasDiferencas": null
+  },
+  {
+    "captura": "foco-sino-360-escuro.png",
+    "dimensoes": "328x166",
+    "pixelsDiferentes": 0,
+    "percentual": 0.0,
+    "caixaDasDiferencas": null
+  },
+  {
+    "captura": "foco-sino-390-claro.png",
+    "dimensoes": "358x166",
+    "pixelsDiferentes": 0,
+    "percentual": 0.0,
+    "caixaDasDiferencas": null
+  },
+  {
+    "captura": "foco-sino-390-escuro.png",
+    "dimensoes": "358x166",
+    "pixelsDiferentes": 0,
+    "percentual": 0.0,
+    "caixaDasDiferencas": null
+  },
+  {
+    "captura": "menu-conta-1440-claro.png",
+    "dimensoes": "288x248",
+    "pixelsDiferentes": 0,
+    "percentual": 0.0,
+    "caixaDasDiferencas": null
+  },
+  {
+    "captura": "menu-conta-1440-escuro.png",
+    "dimensoes": "288x248",
+    "pixelsDiferentes": 0,
+    "percentual": 0.0,
+    "caixaDasDiferencas": null
+  },
+  {
+    "captura": "menu-conta-tela-1440-claro.png",
+    "dimensoes": "1440x900",
+    "pixelsDiferentes": 0,
+    "percentual": 0.0,
+    "caixaDasDiferencas": null
+  },
+  {
+    "captura": "menu-conta-tela-1440-escuro.png",
+    "dimensoes": "1440x900",
+    "pixelsDiferentes": 0,
+    "percentual": 0.0,
+    "caixaDasDiferencas": null
+  },
+  {
+    "captura": "menu-lateral-360-claro.png",
+    "dimensoes": "360x740",
+    "pixelsDiferentes": 4,
+    "percentual": 0.0015,
+    "caixaDasDiferencas": "4x1++333++373"
+  },
+  {
+    "captura": "menu-lateral-360-escuro.png",
+    "dimensoes": "360x740",
+    "pixelsDiferentes": 0,
+    "percentual": 0.0,
+    "caixaDasDiferencas": null
+  },
+  {
+    "captura": "menu-lateral-390-claro.png",
+    "dimensoes": "390x844",
+    "pixelsDiferentes": 0,
+    "percentual": 0.0,
+    "caixaDasDiferencas": null
+  },
+  {
+    "captura": "menu-lateral-390-escuro.png",
+    "dimensoes": "390x844",
+    "pixelsDiferentes": 0,
+    "percentual": 0.0,
+    "caixaDasDiferencas": null
+  },
+  {
+    "captura": "notificacoes-painel-1440-claro.png",
+    "dimensoes": "385x443",
+    "pixelsDiferentes": 0,
+    "percentual": 0.0,
+    "caixaDasDiferencas": null
+  },
+  {
+    "captura": "notificacoes-painel-1440-escuro.png",
+    "dimensoes": "385x443",
+    "pixelsDiferentes": 0,
+    "percentual": 0.0,
+    "caixaDasDiferencas": null
+  },
+  {
+    "captura": "notificacoes-painel-360-claro.png",
+    "dimensoes": "320x567",
+    "pixelsDiferentes": 0,
+    "percentual": 0.0,
+    "caixaDasDiferencas": null
+  },
+  {
+    "captura": "notificacoes-painel-360-escuro.png",
+    "dimensoes": "320x567",
+    "pixelsDiferentes": 0,
+    "percentual": 0.0,
+    "caixaDasDiferencas": null
+  },
+  {
+    "captura": "notificacoes-painel-390-claro.png",
+    "dimensoes": "320x567",
+    "pixelsDiferentes": 0,
+    "percentual": 0.0,
+    "caixaDasDiferencas": null
+  },
+  {
+    "captura": "notificacoes-painel-390-escuro.png",
+    "dimensoes": "320x567",
+    "pixelsDiferentes": 0,
+    "percentual": 0.0,
+    "caixaDasDiferencas": null
+  },
+  {
+    "captura": "notificacoes-tela-1440-claro.png",
+    "dimensoes": "1440x900",
+    "pixelsDiferentes": 0,
+    "percentual": 0.0,
+    "caixaDasDiferencas": null
+  },
+  {
+    "captura": "notificacoes-tela-1440-escuro.png",
+    "dimensoes": "1440x900",
+    "pixelsDiferentes": 0,
+    "percentual": 0.0,
+    "caixaDasDiferencas": null
+  },
+  {
+    "captura": "notificacoes-tela-360-claro.png",
+    "dimensoes": "360x740",
+    "pixelsDiferentes": 4,
+    "percentual": 0.0015,
+    "caixaDasDiferencas": "4x1++333++373"
+  },
+  {
+    "captura": "notificacoes-tela-360-escuro.png",
+    "dimensoes": "360x740",
+    "pixelsDiferentes": 0,
+    "percentual": 0.0,
+    "caixaDasDiferencas": null
+  },
+  {
+    "captura": "notificacoes-tela-390-claro.png",
+    "dimensoes": "390x844",
+    "pixelsDiferentes": 0,
+    "percentual": 0.0,
+    "caixaDasDiferencas": null
+  },
+  {
+    "captura": "notificacoes-tela-390-escuro.png",
+    "dimensoes": "390x844",
+    "pixelsDiferentes": 0,
+    "percentual": 0.0,
+    "caixaDasDiferencas": null
+  },
+  {
+    "captura": "tela-1440-claro.png",
+    "dimensoes": "1440x900",
+    "pixelsDiferentes": 0,
+    "percentual": 0.0,
+    "caixaDasDiferencas": null
+  },
+  {
+    "captura": "tela-1440-escuro.png",
+    "dimensoes": "1440x900",
+    "pixelsDiferentes": 0,
+    "percentual": 0.0,
+    "caixaDasDiferencas": null
+  },
+  {
+    "captura": "tela-360-claro.png",
+    "dimensoes": "360x740",
+    "pixelsDiferentes": 9,
+    "percentual": 0.0034,
+    "caixaDasDiferencas": "314x1++23++373"
+  },
+  {
+    "captura": "tela-360-escuro.png",
+    "dimensoes": "360x740",
+    "pixelsDiferentes": 8,
+    "percentual": 0.003,
+    "caixaDasDiferencas": "314x1++23++373"
+  },
+  {
+    "captura": "tela-390-claro.png",
+    "dimensoes": "390x844",
+    "pixelsDiferentes": 0,
+    "percentual": 0.0,
+    "caixaDasDiferencas": null
+  },
+  {
+    "captura": "tela-390-escuro.png",
+    "dimensoes": "390x844",
+    "pixelsDiferentes": 0,
+    "percentual": 0.0,
+    "caixaDasDiferencas": null
+  }
+]

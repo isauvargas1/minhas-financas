@@ -1,0 +1,12 @@
+layout=não cenário=corrida  correção=não: item preso em 20/20
+layout=não cenário=corrida  correção=sim: item preso em 0/20
+layout=não cenário=sobrepor correção=não: item preso em 0/20
+layout=não cenário=sobrepor correção=sim: item preso em 0/20
+layout=não cenário=varrer   correção=não: item preso em 2/20 (atrasos: 0ms, 4ms)
+layout=não cenário=varrer   correção=sim: item preso em 0/20
+layout=sim cenário=corrida  correção=não: item preso em 20/20
+layout=sim cenário=corrida  correção=sim: item preso em 0/20
+layout=sim cenário=sobrepor correção=não: item preso em 0/20
+layout=sim cenário=sobrepor correção=sim: item preso em 0/20
+layout=sim cenário=varrer   correção=não: item preso em 4/20 (atrasos: 0ms, 4ms, 8ms, 12ms)
+layout=sim cenário=varrer   correção=sim: item preso em 0/20

@@ -16,6 +16,10 @@ import {
   type TransactionWriteEvent,
 } from "../../triggers/transactions";
 import {
+  defaultCategoryIdFor,
+  seedDefaultCategories,
+} from "../../settingsCatalog/testSupport/categorySeeds";
+import {
   call,
   db,
   idempotencyKey,
@@ -47,7 +51,7 @@ const lineFor = (actor: number, batch: number, index: number) => ({
   lineId: `a${actor}-b${batch}-l${index}`,
   type: index % 3 === 0 ? "receita" : "despesa",
   description: `Linha ${index}`,
-  category: index % 3 === 0 ? "Salário" : "Casa",
+  categoryId: defaultCategoryIdFor(index % 3 === 0 ? "receita" : "despesa"),
   amountCents: 1_000 + actor * 100_000 + batch * 1_000 + index,
   date: `2026-0${7 + (index % 3)}-1${index % 9}`,
 });
@@ -84,6 +88,7 @@ test("P3-E — rajada: lotes simultâneos e projeção sem perda nem duplicaçã
     await seedPaidPlan(owner, "business");
     await seedWorkspace({workspaceId, ownerId: owner});
     await seedMember(workspaceId, admin, "admin");
+    await seedDefaultCategories(workspaceId);
 
     const batches = [owner, admin].flatMap((uid, actor) =>
       Array.from({length: BATCHES_PER_ACTOR}, (_, batch) => ({

@@ -1,0 +1,329 @@
+{
+  "arvore": "depois",
+  "combinacoes": {
+    "1440-claro": {
+      "controles": [
+        {
+          "nome": "Mês anterior",
+          "expandido": null
+        },
+        {
+          "nome": "Selecionar Mês e Ano",
+          "expandido": null
+        },
+        {
+          "nome": "Hoje",
+          "expandido": null
+        },
+        {
+          "nome": "Próximo mês",
+          "expandido": null
+        },
+        {
+          "nome": "Notificações, 3 não lidas",
+          "expandido": "false"
+        },
+        {
+          "nome": "Ativar modo escuro",
+          "expandido": null
+        },
+        {
+          "nome": "Abrir menu da conta",
+          "expandido": "false"
+        }
+      ],
+      "alturaDoCabecalho": 60,
+      "transbordamentoHorizontal": 0,
+      "rotuloDoSino": "Notificações, 3 não lidas",
+      "botoesMensagens": 0,
+      "rotuloMensagens": null,
+      "ordemDeFoco": [
+        "Mês anterior",
+        "Selecionar Mês e Ano",
+        "Hoje",
+        "Próximo mês",
+        "Notificações, 3 não lidas",
+        "Ativar modo escuro",
+        "Abrir menu da conta"
+      ],
+      "axeCabecalho": [],
+      "notificacoesAberto": "true",
+      "transbordamentoComPainel": 0,
+      "notificacoesFechaComToqueFora": true,
+      "menuDaContaFechaComCliqueFora": true,
+      "botoesMensagensNaTela": 0,
+      "textoMensagensNaTela": 0,
+      "opcaoNovaConversa": 0
+    },
+    "1440-escuro": {
+      "controles": [
+        {
+          "nome": "Mês anterior",
+          "expandido": null
+        },
+        {
+          "nome": "Selecionar Mês e Ano",
+          "expandido": null
+        },
+        {
+          "nome": "Hoje",
+          "expandido": null
+        },
+        {
+          "nome": "Próximo mês",
+          "expandido": null
+        },
+        {
+          "nome": "Notificações, 3 não lidas",
+          "expandido": "false"
+        },
+        {
+          "nome": "Ativar modo claro",
+          "expandido": null
+        },
+        {
+          "nome": "Abrir menu da conta",
+          "expandido": "false"
+        }
+      ],
+      "alturaDoCabecalho": 60,
+      "transbordamentoHorizontal": 0,
+      "rotuloDoSino": "Notificações, 3 não lidas",
+      "botoesMensagens": 0,
+      "rotuloMensagens": null,
+      "ordemDeFoco": [
+        "Mês anterior",
+        "Selecionar Mês e Ano",
+        "Hoje",
+        "Próximo mês",
+        "Notificações, 3 não lidas",
+        "Ativar modo claro",
+        "Abrir menu da conta"
+      ],
+      "axeCabecalho": [],
+      "notificacoesAberto": "true",
+      "transbordamentoComPainel": 0,
+      "notificacoesFechaComToqueFora": true,
+      "menuDaContaFechaComCliqueFora": true,
+      "botoesMensagensNaTela": 0,
+      "textoMensagensNaTela": 0,
+      "opcaoNovaConversa": 0
+    },
+    "390-claro": {
+      "controles": [
+        {
+          "nome": "Abrir menu",
+          "expandido": "false"
+        },
+        {
+          "nome": "Mês anterior",
+          "expandido": null
+        },
+        {
+          "nome": "Selecionar Mês e Ano",
+          "expandido": null
+        },
+        {
+          "nome": "Hoje",
+          "expandido": null
+        },
+        {
+          "nome": "Próximo mês",
+          "expandido": null
+        },
+        {
+          "nome": "Notificações, 3 não lidas",
+          "expandido": "false"
+        },
+        {
+          "nome": "Ativar modo escuro",
+          "expandido": null
+        }
+      ],
+      "alturaDoCabecalho": 166,
+      "transbordamentoHorizontal": 0,
+      "rotuloDoSino": "Notificações, 3 não lidas",
+      "botoesMensagens": 0,
+      "rotuloMensagens": null,
+      "ordemDeFoco": [
+        "Abrir menu",
+        "Mês anterior",
+        "Selecionar Mês e Ano",
+        "Hoje",
+        "Próximo mês",
+        "Notificações, 3 não lidas",
+        "Ativar modo escuro"
+      ],
+      "axeCabecalho": [],
+      "notificacoesAberto": "true",
+      "transbordamentoComPainel": 0,
+      "notificacoesFechaComToqueFora": true,
+      "menuLateralFechaComEsc": true,
+      "botoesMensagensNaTela": 0,
+      "textoMensagensNaTela": 0,
+      "opcaoNovaConversa": 0
+    },
+    "390-escuro": {
+      "controles": [
+        {
+          "nome": "Abrir menu",
+          "expandido": "false"
+        },
+        {
+          "nome": "Mês anterior",
+          "expandido": null
+        },
+        {
+          "nome": "Selecionar Mês e Ano",
+          "expandido": null
+        },
+        {
+          "nome": "Hoje",
+          "expandido": null
+        },
+        {
+          "nome": "Próximo mês",
+          "expandido": null
+        },
+        {
+          "nome": "Notificações, 3 não lidas",
+          "expandido": "false"
+        },
+        {
+          "nome": "Ativar modo claro",
+          "expandido": null
+        }
+      ],
+      "alturaDoCabecalho": 166,
+      "transbordamentoHorizontal": 0,
+      "rotuloDoSino": "Notificações, 3 não lidas",
+      "botoesMensagens": 0,
+      "rotuloMensagens": null,
+      "ordemDeFoco": [
+        "Abrir menu",
+        "Mês anterior",
+        "Selecionar Mês e Ano",
+        "Hoje",
+        "Próximo mês",
+        "Notificações, 3 não lidas",
+        "Ativar modo claro"
+      ],
+      "axeCabecalho": [],
+      "notificacoesAberto": "true",
+      "transbordamentoComPainel": 0,
+      "notificacoesFechaComToqueFora": true,
+      "menuLateralFechaComEsc": true,
+      "botoesMensagensNaTela": 0,
+      "textoMensagensNaTela": 0,
+      "opcaoNovaConversa": 0
+    },
+    "360-claro": {
+      "controles": [
+        {
+          "nome": "Abrir menu",
+          "expandido": "false"
+        },
+        {
+          "nome": "Mês anterior",
+          "expandido": null
+        },
+        {
+          "nome": "Selecionar Mês e Ano",
+          "expandido": null
+        },
+        {
+          "nome": "Hoje",
+          "expandido": null
+        },
+        {
+          "nome": "Próximo mês",
+          "expandido": null
+        },
+        {
+          "nome": "Notificações, 3 não lidas",
+          "expandido": "false"
+        },
+        {
+          "nome": "Ativar modo escuro",
+          "expandido": null
+        }
+      ],
+      "alturaDoCabecalho": 166,
+      "transbordamentoHorizontal": 0,
+      "rotuloDoSino": "Notificações, 3 não lidas",
+      "botoesMensagens": 0,
+      "rotuloMensagens": null,
+      "ordemDeFoco": [
+        "Abrir menu",
+        "Mês anterior",
+        "Selecionar Mês e Ano",
+        "Hoje",
+        "Próximo mês",
+        "Notificações, 3 não lidas",
+        "Ativar modo escuro"
+      ],
+      "axeCabecalho": [],
+      "notificacoesAberto": "true",
+      "transbordamentoComPainel": 0,
+      "notificacoesFechaComToqueFora": true,
+      "menuLateralFechaComEsc": true,
+      "botoesMensagensNaTela": 0,
+      "textoMensagensNaTela": 0,
+      "opcaoNovaConversa": 0
+    },
+    "360-escuro": {
+      "controles": [
+        {
+          "nome": "Abrir menu",
+          "expandido": "false"
+        },
+        {
+          "nome": "Mês anterior",
+          "expandido": null
+        },
+        {
+          "nome": "Selecionar Mês e Ano",
+          "expandido": null
+        },
+        {
+          "nome": "Hoje",
+          "expandido": null
+        },
+        {
+          "nome": "Próximo mês",
+          "expandido": null
+        },
+        {
+          "nome": "Notificações, 3 não lidas",
+          "expandido": "false"
+        },
+        {
+          "nome": "Ativar modo claro",
+          "expandido": null
+        }
+      ],
+      "alturaDoCabecalho": 166,
+      "transbordamentoHorizontal": 0,
+      "rotuloDoSino": "Notificações, 3 não lidas",
+      "botoesMensagens": 0,
+      "rotuloMensagens": null,
+      "ordemDeFoco": [
+        "Abrir menu",
+        "Mês anterior",
+        "Selecionar Mês e Ano",
+        "Hoje",
+        "Próximo mês",
+        "Notificações, 3 não lidas",
+        "Ativar modo claro"
+      ],
+      "axeCabecalho": [],
+      "notificacoesAberto": "true",
+      "transbordamentoComPainel": 0,
+      "notificacoesFechaComToqueFora": true,
+      "menuLateralFechaComEsc": true,
+      "botoesMensagensNaTela": 0,
+      "textoMensagensNaTela": 0,
+      "opcaoNovaConversa": 0
+    }
+  }
+}

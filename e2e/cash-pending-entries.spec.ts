@@ -68,6 +68,9 @@ const normalize = (value: string) =>
 
 const seed = async () => {
   await resetEmulatorData();
+  // P5-C1: o Dashboard lê a projeção do caixa; as exclusões da limpeza anterior
+  // são processadas depois e, com o mesmo ID, cairiam no teste seguinte.
+  WS.id = `e2e-p3f-main-${Date.now().toString(36)}`;
   await adminSdk().auth().createUser({
     uid: OWNER.uid, email: OWNER.email, password: PASSWORD, emailVerified: true,
   });
@@ -86,7 +89,7 @@ const seed = async () => {
   await Promise.all(items.map(([id, group, name, transactionSubtype]) => {
     const normalizedName = normalize(name);
     return db().doc(`workspaces/${WS.id}/settings_catalog/${id}`).set({
-      id, workspaceId: WS.id, group, name, normalizedName,
+      id, schemaVersion: 1, workspaceId: WS.id, group, name, normalizedName,
       ...(transactionSubtype ? { transactionSubtype } : {}),
       dedupeKey: `${group}::${transactionSubtype ?? 'all'}::both::${normalizedName}`,
       workspaceScope: 'both', sortOrder: 1, status: 'active',
@@ -239,7 +242,7 @@ test('recusas locais: confirmação com mudança descritiva e pago com data futu
   const created = await callCallable(request, token, 'createCashTransaction', {
     workspaceId: WS.id, idempotencyKey: 'e2e-p3f-pendente-0001', type: 'despesa',
     cashAccountId: defaultCashAccountIdFor(WS.id),
-    description: CATALOG.product, category: CATALOG.expenseCategory,
+    description: CATALOG.product, categoryId: 'p3f-expense-category',
     expenseType: CATALOG.expenseType, paymentMethod: CATALOG.paymentMethod,
     amountCents: 30_000, status: 'pending', dueDate: today(),
   });

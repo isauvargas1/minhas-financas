@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import {cashPeriodDeltaFor} from "../../cash/periods";
+import {
+  cashPeriodDeltaFor,
+  CashContractViolationError,
+} from "../../cash/periods";
 import {splitCentsEvenly} from "../../shared/money";
 import {
   cardPaymentCashEffect,
@@ -329,7 +332,6 @@ test("pagamento de fatura na projeção: liquidação do cartão, nunca despesa;
     {creditCardPaymentCents: 12_345, netCents: -12_345});
   const mirror = {
     type: "despesa",
-    value: 123.45,
     valueCents: 12_345,
     date: "2026-03-26",
     isPaid: true,
@@ -350,9 +352,10 @@ test("pagamento de fatura na projeção: liquidação do cartão, nunca despesa;
   assert.equal(delta.creditCardPaymentCents + reversal.creditCardPaymentCents,
     0);
   assert.equal(delta.netCents + reversal.netCents, 0);
-  // Marca malformada não conta (falha fechada), nem como despesa comum.
-  assert.equal(cashPeriodDeltaFor({...mirror,
-    creditCardPaymentEntry: {...entry, amountCents: 1.5}}).netCents, 0);
+  // Marca malformada está fora do contrato (violação), nunca despesa comum.
+  assert.throws(() => cashPeriodDeltaFor({...mirror,
+    creditCardPaymentEntry: {...entry, amountCents: 1.5}}),
+  CashContractViolationError);
   assert.equal(readCardPaymentCashEntry({...entry, reversal: true}), null,
     "estorno sem vínculo ao original é recusado");
 });

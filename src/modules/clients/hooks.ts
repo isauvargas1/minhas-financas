@@ -9,13 +9,13 @@ import {
 import { useWorkspace } from '../../contexts/WorkspaceContext';
 import { saoPauloToday } from '../loans/money';
 import { invalidateTransactionDependents } from '../transactions/hooks';
+import { invalidateFinancialReports } from '../reports/queryKeys';
 import { resolveIntentKey, type IntentKey } from '../transactions/cashEntry';
 import {
   clientsCallables,
   countOpenReceivablesOfClient,
   getClientPrivate,
   getClientsByIds,
-  getReceivableReportData,
   getReceivableTotals,
   listActiveClientOptions,
   listClientPrivate,
@@ -42,7 +42,6 @@ export const KEYS = {
   openOfClient: (ws: string, id: string) => ['receivables', ws, 'open-of-client', id] as const,
   receivables: (ws: string) => ['receivables', ws, 'list'] as const,
   totals: (ws: string, today: string) => ['receivables', ws, 'totals', today] as const,
-  report: (ws: string, today: string) => ['receivables', ws, 'report', today] as const,
   movements: (ws: string, id: string) => ['receivable_movements', ws, id] as const,
 };
 
@@ -150,17 +149,6 @@ export const useReceivableTotals = () => {
   });
 };
 
-/** Indicadores de recebíveis do relatório (só espaço PJ). */
-export const useReceivableReportData = () => {
-  const { activeWorkspace } = useWorkspace();
-  const today = saoPauloToday();
-  return useQuery({
-    queryKey: KEYS.report(activeWorkspace.id, today),
-    queryFn: () => getReceivableReportData(today, activeWorkspace.id),
-    enabled: isReady(activeWorkspace.id) && activeWorkspace.type === 'PJ',
-  });
-};
-
 /** Histórico de um recebível, paginado e ordenado pelo servidor. */
 export const useReceivableMovements = (receivableId: string | null) => {
   const { activeWorkspace } = useWorkspace();
@@ -198,6 +186,8 @@ const useClientsCallable = <TResult,>(
     queryClient.invalidateQueries({ queryKey: ['client_private', workspaceId] }),
     queryClient.invalidateQueries({ queryKey: ['receivables', workspaceId] }),
     queryClient.invalidateQueries({ queryKey: ['receivable_movements', workspaceId] }),
+    // Recebíveis e recebimentos entram no relatório financeiro oficial.
+    invalidateFinancialReports(queryClient),
     ...(options.touchesCash ? [invalidateTransactionDependents(queryClient, workspaceId)] : []),
   ]);
   return useMutation({

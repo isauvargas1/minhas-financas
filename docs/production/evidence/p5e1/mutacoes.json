@@ -1,0 +1,567 @@
+{
+ "milestone": "P5-E1",
+ "data": "2026-10-12",
+ "metodo": "cópia isolada do working tree (índice Git temporário), SHA-256 dos arquivos-alvo conferido no repositório e na cópia antes/depois; Emulator em portas próprias (8180/9199); mutante que não compila é inválido e não conta",
+ "rodada_final": {
+  "arvore_copia": "6fca66bcb008409b131edab9ea0b166971ad533a",
+  "nota": "todos os mutantes refeitos sobre a árvore final (depois das correções da revisão independente); M28, M29 e F11–F13 novos, das correções; âncoras de F01 e F02 atualizadas para o código de repetição revisado (mesma mutação semântica); M28 não compilou na primeira forma (TS18047) e foi reescrito (comparação com -1 no lugar de null), morto na segunda. Cada morte foi conferida no log: há ao menos uma asserção que falhou (nenhuma morte por falha de infraestrutura).",
+  "mutantes": [
+   {
+    "id": "M01",
+    "secao17": "1",
+    "descricao": "aceita contexto financeiro do cliente (schema da análise deixa de ser estrito)",
+    "arquivo": "functions/src/ai/callables.ts",
+    "estado": "morto",
+    "assercoes_que_mataram": [
+     "o cliente não envia nenhum valor financeiro: o contrato recusa",
+     "entrada inválida é recusada pelo contrato, não pelo provider"
+    ],
+    "restaurado_sha256": true,
+    "segundos": 26
+   },
+   {
+    "id": "M02",
+    "secao17": "2",
+    "descricao": "ignora o membership relido na transação de contexto",
+    "arquivo": "functions/src/ai/callables.ts",
+    "estado": "morto",
+    "assercoes_que_mataram": [
+     "X26 workspace arquivado entre a pré-checagem e o contexto: recusa sem leitura nem crédito",
+     "C07 perda de membership ou rebaixamento entre a pré-checagem e o contexto: recusa sem leitura, crédito ou limite"
+    ],
+    "restaurado_sha256": true,
+    "segundos": 67
+   },
+   {
+    "id": "M03",
+    "secao17": "3",
+    "descricao": "ignora o papel: viewer passa a usar a IA",
+    "arquivo": "functions/src/ai/policy.ts",
+    "estado": "morto",
+    "assercoes_que_mataram": [
+     "as callables do kernel mantêm segredo, recursos e papéis de escrita"
+    ],
+    "restaurado_sha256": true,
+    "segundos": 26
+   },
+   {
+    "id": "M04",
+    "secao17": "4",
+    "descricao": "expõe patrimônio de investimentos sem permissão",
+    "arquivo": "functions/src/ai/analysisContext.ts",
+    "estado": "morto",
+    "assercoes_que_mataram": [
+     "X22 papel sem acesso a uma seção: viewer não usa a IA; o patrimônio segue a permissão do relatório",
+     "S14 sem acesso ao patrimônio de investimentos: o contexto não o leva nem o infere"
+    ],
+    "restaurado_sha256": true,
+    "segundos": 69
+   },
+   {
+    "id": "M05",
+    "secao17": "5",
+    "descricao": "envia identificadores pessoais (uid/workspace) no prompt",
+    "arquivo": "functions/src/ai/callables.ts",
+    "estado": "morto",
+    "assercoes_que_mataram": [
+     "X01 PF com movimentos: números do servidor, formato BRL inteiro e só campos permitidos",
+     "X02 PJ com movimentos: persona PJ e os mesmos campos permitidos",
+     "X14/X15 recebível pendente e recebido: aberto não é caixa; nome do cliente nunca vai ao modelo",
+     "S16 pergunta pedindo segredo ou as regras: nada disso sai para o provedor e as regras não mudam"
+    ],
+    "restaurado_sha256": true,
+    "segundos": 75
+   },
+   {
+    "id": "M06",
+    "secao17": "6",
+    "descricao": "envia o nome do principal cliente (PJ) no contexto",
+    "arquivo": "functions/src/ai/analysisContext.ts",
+    "estado": "morto",
+    "assercoes_que_mataram": [
+     "X01 PF com movimentos: números do servidor, formato BRL inteiro e só campos permitidos",
+     "X02 PJ com movimentos: persona PJ e os mesmos campos permitidos",
+     "X04/X05 saldo negativo e resultado operacional negativo, com alertas",
+     "X06/X07/X09 fatura paga, fatura aberta e pagamento de cartão: o pagamento é saída de caixa, nunca segunda despesa"
+    ],
+    "restaurado_sha256": true,
+    "segundos": 61
+   },
+   {
+    "id": "M07",
+    "secao17": "7",
+    "descricao": "fonte indisponível vira \"sem movimento\" (zero) no contexto",
+    "arquivo": "functions/src/ai/analysisContext.ts",
+    "estado": "morto",
+    "assercoes_que_mataram": [
+     "X16/X17 fonte de cartões ou de investimentos indisponível: bloco sem número, nunca zero",
+     "X18 dados inconsistentes (categorias × caixa): aguardando reconstrução, sem números incoerentes",
+     "X25 falha de projeção (mês sem detalhe diário): caixa aguardando reconstrução, contas exatas",
+     "S15 fonte do relatório indisponível: o bloco vai sem número, nunca como zero"
+    ],
+    "restaurado_sha256": true,
+    "segundos": 69
+   },
+   {
+    "id": "M08",
+    "secao17": "8",
+    "descricao": "compra no cartão e pagamento da fatura somados como duas despesas",
+    "arquivo": "functions/src/ai/analysisContext.ts",
+    "estado": "morto",
+    "assercoes_que_mataram": [
+     "X06/X07/X09 fatura paga, fatura aberta e pagamento de cartão: o pagamento é saída de caixa, nunca segunda despesa"
+    ],
+    "restaurado_sha256": true,
+    "segundos": 58
+   },
+   {
+    "id": "M09",
+    "secao17": "9/13",
+    "descricao": "aceita JSON arbitrário do modelo (campos extras)",
+    "arquivo": "functions/src/ai/extraction.ts",
+    "estado": "morto",
+    "assercoes_que_mataram": [
+     "chave desconhecida invalida a resposta inteira",
+     "a mensagem de ExtractionResponseError não contém o texto da resposta"
+    ],
+    "restaurado_sha256": true,
+    "segundos": 29
+   },
+   {
+    "id": "M10",
+    "secao17": "10",
+    "descricao": "aceita NaN/Infinity como valor",
+    "arquivo": "functions/src/ai/extraction.ts",
+    "estado": "morto",
+    "assercoes_que_mataram": [
+     "formatos inválidos de valor são format",
+     "valor inválido impede o status complete"
+    ],
+    "restaurado_sha256": true,
+    "segundos": 27
+   },
+   {
+    "id": "M11",
+    "secao17": "11",
+    "descricao": "aceita data inexistente (só o formato)",
+    "arquivo": "functions/src/ai/extraction.ts",
+    "estado": "morto",
+    "assercoes_que_mataram": [
+     "datas: formato, inexistente e fora da faixa"
+    ],
+    "restaurado_sha256": true,
+    "segundos": 27
+   },
+   {
+    "id": "M12",
+    "secao17": "12",
+    "descricao": "aceita o enum financeiro legado \"parcelado\"",
+    "arquivo": "functions/src/ai/extraction.ts",
+    "estado": "morto",
+    "assercoes_que_mataram": [
+     "tipos inesperados são rejeitados como schema"
+    ],
+    "restaurado_sha256": true,
+    "segundos": 27
+   },
+   {
+    "id": "M13",
+    "secao17": "13",
+    "descricao": "aceita campos extras no payload de extração por texto",
+    "arquivo": "functions/src/ai/callables.ts",
+    "estado": "morto",
+    "assercoes_que_mataram": [
+     "extração recusa tipo de conteúdo fora do contrato"
+    ],
+    "restaurado_sha256": true,
+    "segundos": 27
+   },
+   {
+    "id": "M14",
+    "secao17": "14/15",
+    "descricao": "extração grava lançamento automaticamente (sem revisão humana)",
+    "arquivo": "functions/src/ai/callables.ts",
+    "estado": "morto",
+    "assercoes_que_mataram": [
+     "S17 comprovante com instrução maliciosa: a saída fora do schema é recusada e nenhuma gravação financeira acontece"
+    ],
+    "restaurado_sha256": true,
+    "segundos": 66
+   },
+   {
+    "id": "M15",
+    "secao17": "16",
+    "descricao": "consultor envia sem confirmação de envio",
+    "arquivo": "functions/src/ai/callables.ts",
+    "estado": "morto",
+    "assercoes_que_mataram": [
+     "S21/S22 falha do provedor e logs: nenhum segredo, prompt, documento ou resposta sai no erro ou no log",
+     "S23 sem confirmação de envio: recusa sem leitura, crédito, limite ou provedor",
+     "S24 confirmação inválida ou de outra operação: recusa sem efeito"
+    ],
+    "restaurado_sha256": true,
+    "segundos": 65
+   },
+   {
+    "id": "M16",
+    "secao17": "17",
+    "descricao": "extração consome crédito antes de recusar a falta de confirmação",
+    "arquivo": "functions/src/ai/callables.ts",
+    "estado": "morto",
+    "assercoes_que_mataram": [
+     "S23 sem confirmação de envio: recusa sem leitura, crédito, limite ou provedor",
+     "S24 confirmação inválida ou de outra operação: recusa sem efeito"
+    ],
+    "restaurado_sha256": true,
+    "segundos": 61
+   },
+   {
+    "id": "M17",
+    "secao17": "18/25",
+    "descricao": "chave de idempotência renovada a cada tentativa no servidor (débito repetido)",
+    "arquivo": "functions/src/ai/admission.ts",
+    "estado": "morto",
+    "assercoes_que_mataram": [
+     "X28 mesma pergunta com a mesma chave: um crédito, uma chamada; a repetição relê o contexto dentro do limite de leitura",
+     "C04/C05 mesma intenção duplicada (concorrente e reenviada): um débito e no máximo uma chamada ao provedor"
+    ],
+    "restaurado_sha256": true,
+    "segundos": 73
+   },
+   {
+    "id": "M18",
+    "secao17": "20",
+    "descricao": "contexto lido sem reler o papel (papel fixo \"owner\")",
+    "arquivo": "functions/src/ai/callables.ts",
+    "estado": "morto",
+    "assercoes_que_mataram": [
+     "S05–S07 owner, admin e member usam a IA; o relatório é lido com o papel relido de cada um e o crédito sai do pool do titular",
+     "S14 sem acesso ao patrimônio de investimentos: o contexto não o leva nem o infere",
+     "S25 contornar o limite de créditos: campo de custo recusado; último crédito disputado por chaves diferentes aceita só uma"
+    ],
+    "restaurado_sha256": true,
+    "segundos": 60
+   },
+   {
+    "id": "M19",
+    "secao17": "22",
+    "descricao": "mensagem do SDK (com chave/prompt) no log da falha do provedor",
+    "arquivo": "functions/src/ai/callables.ts",
+    "estado": "morto",
+    "assercoes_que_mataram": [
+     "S21/S22 falha do provedor e logs: nenhum segredo, prompt, documento ou resposta sai no erro ou no log"
+    ],
+    "restaurado_sha256": true,
+    "segundos": 61
+   },
+   {
+    "id": "M20",
+    "secao17": "22",
+    "descricao": "mensagem do SDK devolvida ao cliente",
+    "arquivo": "functions/src/ai/callables.ts",
+    "estado": "morto",
+    "assercoes_que_mataram": [
+     "S21/S22 falha do provedor e logs: nenhum segredo, prompt, documento ou resposta sai no erro ou no log"
+    ],
+    "restaurado_sha256": true,
+    "segundos": 64
+   },
+   {
+    "id": "M21",
+    "secao17": "24",
+    "descricao": "pergunta do usuário misturada à instrução de sistema",
+    "arquivo": "functions/src/ai/callables.ts",
+    "estado": "morto",
+    "assercoes_que_mataram": [
+     "S13 PF/PJ decidido pelo workspace, nunca pelo cliente",
+     "S16 pergunta pedindo segredo ou as regras: nada disso sai para o provedor e as regras não mudam"
+    ],
+    "restaurado_sha256": true,
+    "segundos": 66
+   },
+   {
+    "id": "M22",
+    "secao17": "—",
+    "descricao": "assinatura do documento não conferida (tipo declarado aceito)",
+    "arquivo": "functions/src/ai/callables.ts",
+    "estado": "morto",
+    "assercoes_que_mataram": [
+     "C15 documento cujo conteúdo não bate com o tipo: recusa antes da admissão, sem crédito"
+    ],
+    "restaurado_sha256": true,
+    "segundos": 64
+   },
+   {
+    "id": "M23",
+    "secao17": "—",
+    "descricao": "leitura de contexto sem limite próprio",
+    "arquivo": "functions/src/ai/callables.ts",
+    "estado": "morto",
+    "assercoes_que_mataram": [
+     "X28 mesma pergunta com a mesma chave: um crédito, uma chamada; a repetição relê o contexto dentro do limite de leitura",
+     "C12/C13 falha na leitura do relatório ou no contexto oficial: nenhum crédito e nenhuma chamada; só o limite de leitura de contexto conta"
+    ],
+    "restaurado_sha256": true,
+    "segundos": 73
+   },
+   {
+    "id": "M24",
+    "secao17": "—",
+    "descricao": "contexto renderizado só depois da admissão (relatório malformado consome crédito)",
+    "arquivo": "functions/src/ai/callables.ts",
+    "estado": "morto",
+    "assercoes_que_mataram": [
+     "C12/C13 falha na leitura do relatório ou no contexto oficial: nenhum crédito e nenhuma chamada; só o limite de leitura de contexto conta"
+    ],
+    "restaurado_sha256": true,
+    "segundos": 57
+   },
+   {
+    "id": "M25",
+    "secao17": "—",
+    "descricao": "resposta do consultor sem limpeza de caracteres de controle",
+    "arquivo": "functions/src/ai/callables.ts",
+    "estado": "morto",
+    "assercoes_que_mataram": [
+     "resposta do consultor: texto limpo, não vazio e com teto"
+    ],
+    "restaurado_sha256": true,
+    "segundos": 29
+   },
+   {
+    "id": "M26",
+    "secao17": "—",
+    "descricao": "SDK com repetição automática (nova cobrança do provedor)",
+    "arquivo": "functions/src/ai/gateway.ts",
+    "estado": "morto",
+    "assercoes_que_mataram": [
+     "gateway real: modelo, regras separadas, teto, raciocínio e JSON"
+    ],
+    "restaurado_sha256": true,
+    "segundos": 26
+   },
+   {
+    "id": "M27",
+    "secao17": "6",
+    "descricao": "contexto volta a ler o ranking de clientes PJ (nomes e até 500 leituras)",
+    "arquivo": "functions/src/ai/callables.ts",
+    "estado": "morto",
+    "assercoes_que_mataram": [
+     "X14/X15 recebível pendente e recebido: aberto não é caixa; nome do cliente nunca vai ao modelo"
+    ],
+    "restaurado_sha256": true,
+    "segundos": 60
+   },
+   {
+    "id": "M28",
+    "secao17": "9",
+    "descricao": "dívidas sem obrigações de cartão voltam a sair \"completo\"/\"sem movimento\" (guarda M3 removida)",
+    "arquivo": "functions/src/ai/analysisContext.ts",
+    "estado": "morto",
+    "assercoes_que_mataram": [
+     "cartões indisponíveis: dívidas nunca 'completo' nem 'sem movimento'",
+     "dívidas sem obrigações de cartão (revisão P5-E1)"
+    ],
+    "restaurado_sha256": true,
+    "segundos": 27
+   },
+   {
+    "id": "M29",
+    "secao17": "—",
+    "descricao": "resposta cortada por MAX_TOKENS sai sem o aviso de interrupção",
+    "arquivo": "functions/src/ai/gateway.ts",
+    "estado": "morto",
+    "assercoes_que_mataram": [
+     "gateway real: resposta cortada pelo teto de saída avisa a pessoa"
+    ],
+    "restaurado_sha256": true,
+    "segundos": 25
+   },
+   {
+    "id": "F01",
+    "secao17": "25",
+    "descricao": "repetição automática com chave de idempotência nova",
+    "arquivo": "src/modules/ai/callables.ts",
+    "estado": "morto",
+    "assercoes_que_mataram": [
+     "falha de transporte: uma única repetição, com a mesma chave e o mesmo payload",
+     "repetição que encontra o pedido já processado avisa que a tentativa pode ter contado"
+    ],
+    "restaurado_sha256": true,
+    "segundos": 22
+   },
+   {
+    "id": "F02",
+    "secao17": "18",
+    "descricao": "repetição automática também em recusa do backend (failed-precondition)",
+    "arquivo": "src/modules/ai/callables.ts",
+    "estado": "morto",
+    "assercoes_que_mataram": [
+     "resposta do backend nunca é repetida: sem segundo envio nem segundo crédito"
+    ],
+    "restaurado_sha256": true,
+    "segundos": 22
+   },
+   {
+    "id": "F03",
+    "secao17": "16",
+    "descricao": "cliente envia a análise sem a confirmação de envio",
+    "arquivo": "src/modules/ai/callables.ts",
+    "estado": "morto",
+    "assercoes_que_mataram": [
+     "cada wrapper envia exatamente as chaves do schema, com a chave do chamador e a confirmação"
+    ],
+    "restaurado_sha256": true,
+    "segundos": 21
+   },
+   {
+    "id": "F04",
+    "secao17": "1",
+    "descricao": "cliente volta a mandar perfil/valores no payload da análise",
+    "arquivo": "src/modules/ai/callables.ts",
+    "estado": "morto",
+    "assercoes_que_mataram": [
+     "cada wrapper envia exatamente as chaves do schema, com a chave do chamador e a confirmação",
+     "a análise não envia nenhum campo financeiro, de perfil, papel ou usuário"
+    ],
+    "restaurado_sha256": true,
+    "segundos": 21
+   },
+   {
+    "id": "F05",
+    "secao17": "14",
+    "descricao": "valor ausente preenchido como zero no formulário",
+    "arquivo": "src/modules/ai/extractionForm.ts",
+    "estado": "morto",
+    "assercoes_que_mataram": [
+     "só campos identificados preenchem; missing, invalid e ambiguous nunca",
+     "centavos inteiros viram o texto do campo numérico sem ponto flutuante"
+    ],
+    "restaurado_sha256": true,
+    "segundos": 22
+   },
+   {
+    "id": "F06",
+    "secao17": "—",
+    "descricao": "categoria por aproximação (contém), não por igualdade",
+    "arquivo": "src/modules/ai/extractionForm.ts",
+    "estado": "morto",
+    "assercoes_que_mataram": [
+     "categoria só por igualdade normalizada com as opções da aba alvo"
+    ],
+    "restaurado_sha256": true,
+    "segundos": 21
+   },
+   {
+    "id": "F07",
+    "secao17": "21",
+    "descricao": "resposta tardia aplicada depois da troca de workspace",
+    "arquivo": "src/modules/ai/scopeToken.ts",
+    "estado": "morto",
+    "assercoes_que_mataram": [
+     "token de escopo: workspace, aba, abertura e edição mudando descartam o resultado"
+    ],
+    "restaurado_sha256": true,
+    "segundos": 21
+   },
+   {
+    "id": "F08",
+    "secao17": "19/20",
+    "descricao": "resposta tardia do chat gravada noutra sessão (geração ignorada)",
+    "arquivo": "src/modules/reports/aiChatSession.ts",
+    "estado": "sobrevivente",
+    "assercoes_que_mataram": [],
+    "restaurado_sha256": true,
+    "segundos": 21
+   },
+   {
+    "id": "F09",
+    "secao17": "19",
+    "descricao": "histórico do chat sem o uid na chave de escopo",
+    "arquivo": "src/modules/reports/aiChatStorage.ts",
+    "estado": "morto",
+    "assercoes_que_mataram": [
+     "a chave é injetiva: decodificada, devolve exatamente o par (uid, workspace)",
+     "1. uid diferente no mesmo workspace gera chaves distintas, no formato v2",
+     "3. separadores nos identificadores não causam colisão; contexto indefinido é recusado",
+     "8. troca A → B no mesmo workspace: B não vê nem herda nada de A"
+    ],
+    "restaurado_sha256": true,
+    "segundos": 21
+   },
+   {
+    "id": "F10",
+    "secao17": "19/20/21",
+    "descricao": "resposta tardia do chat gravada depois da troca de workspace (sem geração e sem limpar pendentes)",
+    "arquivo": "src/modules/reports/aiChatSession.ts",
+    "estado": "morto",
+    "assercoes_que_mataram": [
+     "14. resposta do PF que chega depois da troca para PJ não aparece nem é gravada no PJ",
+     "17. PF → PJ → PF: a resposta antiga continua inválida para a sessão interrompida",
+     "18. erro tardio de outro contexto não é anexado; erro do contexto atual é",
+     "19. desmontar durante a requisição: o callback antigo não escreve nada"
+    ],
+    "restaurado_sha256": true,
+    "segundos": 22
+   },
+   {
+    "id": "F11",
+    "secao17": "—",
+    "descricao": "cliente repete pedido que chegou ao servidor (deadline-exceeded)",
+    "arquivo": "src/modules/ai/callables.ts",
+    "estado": "morto",
+    "assercoes_que_mataram": [
+     "pedido que chegou ao servidor não é repetido: deadline-exceeded e o tempo limite do cliente acima da função",
+     "resposta do backend nunca é repetida: sem segundo envio nem segundo crédito"
+    ],
+    "restaurado_sha256": true,
+    "segundos": 21
+   },
+   {
+    "id": "F12",
+    "secao17": "—",
+    "descricao": "extração tira a compra da aba Cartão e grava débito em conta",
+    "arquivo": "src/modules/ai/extractionForm.ts",
+    "estado": "morto",
+    "assercoes_que_mataram": [
+     "a partir da aba Cartão, despesa continua compra no cartão (à vista ou parcelada)"
+    ],
+    "restaurado_sha256": true,
+    "segundos": 21
+   },
+   {
+    "id": "F13",
+    "secao17": "—",
+    "descricao": "tempo limite do cliente volta ao padrão de 70 s, abaixo da função",
+    "arquivo": "src/modules/ai/callables.ts",
+    "estado": "morto",
+    "assercoes_que_mataram": [
+     "pedido que chegou ao servidor não é repetido: deadline-exceeded e o tempo limite do cliente acima da função"
+    ],
+    "restaurado_sha256": true,
+    "segundos": 20
+   }
+  ],
+  "resumo": {
+   "validos": 42,
+   "mortos": 41,
+   "sobreviventes": 1,
+   "invalidos_nao_contados": 0,
+   "equivalente_justificado": "F08 — a geração da sessão do chat é redundante com a limpeza de pendentes na troca de escopo; o F10, que remove as duas proteções, morre. Na rodada final o F08 sobreviveu, como esperado para um equivalente."
+  }
+ },
+ "rodada_1": {
+  "arvores_copia": [
+   "cbc01621b5a57fedd723243c4fbbc36fee51cab2 (M01–M26, F01–F10)",
+   "95f0dead82d343d37eb89d2333fb916c282469a9 (M27, após a opção omitTopClients)"
+  ],
+  "resumo": {
+   "validos": 36,
+   "mortos": 36,
+   "sobreviventes": 0,
+   "equivalentes": 1,
+   "invalidos_nao_contados": 0,
+   "nota_invalidos": "M11 e M20 não compilaram na primeira forma (import sem uso); foram reescritos e os resultados registrados são os da forma válida."
+  }
+ }
+}

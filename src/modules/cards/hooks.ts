@@ -8,6 +8,7 @@ import {
 
 import { useWorkspace } from '../../contexts/WorkspaceContext';
 import { invalidateTransactionDependents } from '../transactions/hooks';
+import { invalidateFinancialReports } from '../reports/queryKeys';
 import { resolveIntentKey, type IntentKey } from '../transactions/cashEntry';
 import {
   cardsCallables,
@@ -140,7 +141,6 @@ const useCardsCallable = <TResult,>(
     queryClient.invalidateQueries({ queryKey: ['credit_cards', workspaceId] }),
     queryClient.invalidateQueries({ queryKey: ['cash_accounts', workspaceId] }),
     queryClient.invalidateQueries({ queryKey: ['cash_account_movements', workspaceId] }),
-    queryClient.invalidateQueries({ queryKey: ['financialReportCreditCardDomain'] }),
     invalidateTransactionDependents(queryClient, workspaceId),
   ]);
   return useMutation({
@@ -174,9 +174,10 @@ const useCardsReconciliation = <TResult,>(
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (payload: Record<string, unknown>) => call(payload),
-    onSettled: () => queryClient.invalidateQueries({
-      queryKey: ['credit_cards', activeWorkspace.id],
-    }),
+    onSettled: () => Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['credit_cards', activeWorkspace.id] }),
+      invalidateFinancialReports(queryClient),
+    ]),
   });
 };
 

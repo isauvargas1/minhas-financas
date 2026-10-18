@@ -1,81 +1,59 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { listNotifications, createNotification, markAsRead, markAllAsRead, deleteNotification } from './api';
+import { useMemo } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
-import { AppNotification } from '../../types';
+import {
+    deleteNotificationForMe, dismissNotification, getNotificationUnreadCount, listNotificationPage, markNotificationsAsRead,
+} from './api';
+import {
+    useNotificationActions as useScopedNotificationActions,
+    useNotificationFeed,
+    useNotificationUnreadCount as useScopedNotificationUnreadCount,
+    type NotificationApi,
+} from './feed';
+import { canDeleteNotifications, resolveNotificationScope } from './model';
+import type { NotificationScope } from './types';
 
-const KEYS = {
-    all: (ws: string) => ['notifications', ws]
+/**
+ * Notificações do Header (P5-D1, PR-NOTIF-01): escopo da sessão (uid do
+ * Firebase Auth + workspace ativo carregado para esse uid) ligado ao núcleo
+ * do painel (`./feed.ts`) e à API do Firestore (`./api.ts`).
+ */
+
+const notificationApi: NotificationApi = {
+    listPage: listNotificationPage,
+    markAsRead: markNotificationsAsRead,
+    dismiss: dismissNotification,
+    deleteForMe: deleteNotificationForMe,
+    getUnreadCount: getNotificationUnreadCount,
 };
 
-export const useNotifications = () => {
-    const { activeWorkspace } = useWorkspace();
-    return useQuery({
-        queryKey: KEYS.all(activeWorkspace.id),
-        queryFn: () => listNotifications(activeWorkspace.id),
-        enabled: !!activeWorkspace.id,
-        refetchInterval: 30000, // Atualiza a cada 30s para ver se tem novidade
-    });
+export const useNotificationScope = (): NotificationScope | null => {
+    const { user } = useAuth();
+    const { activeWorkspace, activeWorkspaceUid } = useWorkspace();
+    const uid = user?.uid ?? null;
+    const workspaceId = activeWorkspace?.id;
+    return useMemo(
+        () => resolveNotificationScope(uid, workspaceId, activeWorkspaceUid),
+        [uid, workspaceId, activeWorkspaceUid],
+    );
 };
 
-// Hook para gerar notificações de dentro do sistema
-export const useCreateNotification = () => {
-    const { activeWorkspace } = useWorkspace();
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: (data: Omit<AppNotification, 'id' | 'read' | 'createdAt'>) => 
-            createNotification(data, activeWorkspace.id),
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: KEYS.all(activeWorkspace.id) })
-    });
-};
+export const useNotifications = (scope: NotificationScope | null) =>
+    useNotificationFeed(scope, notificationApi);
 
-export const useMarkAsRead = () => {
-    const { activeWorkspace } = useWorkspace();
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: (id: string) => markAsRead(id, activeWorkspace.id),
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: KEYS.all(activeWorkspace.id) })
-    });
-};
+/** Total exato de não lidas (callable do backend) do escopo da sessão. */
+export const useNotificationUnreadCount = (scope: NotificationScope | null) =>
+    useScopedNotificationUnreadCount(scope, notificationApi);
 
-export const useMarkAllAsRead = () => {
-    const { activeWorkspace } = useWorkspace();
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: (ids: string[]) => markAllAsRead(ids, activeWorkspace.id),
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: KEYS.all(activeWorkspace.id) })
-    });
-};
+export const useNotificationActions = (scope: NotificationScope | null) =>
+    useScopedNotificationActions(scope, notificationApi);
 
-export const useDeleteNotification = () => {
-    const { activeWorkspace } = useWorkspace();
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: (id: string) => deleteNotification(id, activeWorkspace.id),
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: KEYS.all(activeWorkspace.id) })
-    });
-};
-
-// Adicionado para compatibilidade com o Header
-export const useArchiveNotification = () => {
-    const { activeWorkspace } = useWorkspace();
-    const queryClient = useQueryClient();
-    
-    return useMutation({
-        // Para simplificar, estamos tratando "arquivar" como "deletar" da caixa de entrada
-        mutationFn: (id: string) => deleteNotification(id, activeWorkspace.id),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: KEYS.all(activeWorkspace.id) });
-        }
-    });
-};
-
-// Adicionado para compatibilidade com o nome esperado pelo Header
-export const useMarkAllNotificationsAsRead = useMarkAllAsRead;
-// Adicionado para compatibilidade com o nome esperado pelo Header
-export const useMarkNotificationAsRead = useMarkAsRead;
-
-// Adicionado para calcular a quantidade de notificações não lidas para o Header
-export const useUnreadNotificationCount = () => {
-    const { data: notifications = [] } = useNotifications();
-    return notifications.filter(n => !n.read).length;
+/**
+ * "Excluir para mim" só para owner, admin e member do workspace ativo
+ * carregado para o mesmo uid do escopo (viewer arquiva, mas não exclui).
+ * Enquanto o escopo é `null` ou o papel não é conhecido, `false`.
+ */
+export const useCanDeleteNotifications = (scope: NotificationScope | null): boolean => {
+    const { activeWorkspaceUid, activeWorkspaceRole } = useWorkspace();
+    return canDeleteNotifications(scope, activeWorkspaceUid, activeWorkspaceRole);
 };

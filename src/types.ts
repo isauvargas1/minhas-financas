@@ -6,7 +6,6 @@ import type { CreditCard } from './modules/cards/types.ts';
 export * from './modules/cards/types.ts';
 export * from './modules/reports/types.ts';
 export * from './modules/notifications/types.ts';
-export * from './modules/messages/types.ts';
 export * from './modules/loans/types.ts';
 export * from './modules/settings-catalog/types.ts';
 export * from './modules/settings-catalog/types.ts';
@@ -14,7 +13,14 @@ export * from './modules/settings-catalog/display.ts';
 
 export type { WorkspaceType } from './modules/workspaces/types.ts';
 
-export type TransactionType = 'receita' | 'despesa' | 'investimento' | 'parcelado';
+/** Tipo persistido de uma transação (contrato do documento `transactions`). */
+export type TransactionType = 'receita' | 'despesa' | 'investimento';
+
+/**
+ * Aba/tipo do formulário de lançamento. `parcelado` é a aba de compra parcelada
+ * no cartão (`createCreditCardPurchase`): nunca é gravada em `transactions`.
+ */
+export type TransactionFormType = TransactionType | 'parcelado';
 
 export interface EntityItem {
     id: string | number;
@@ -84,11 +90,11 @@ export interface Transaction {
     type: TransactionType;
     description: string;
     category: string;
-    value: number;
-    valueCents?: number;
+    /** ID da categoria do catálogo (D-23), gravado pelo backend. */
+    categoryId?: string;
+    /** Magnitude em centavos inteiros (≥ 0); o sinal vem do tipo. */
+    valueCents: number;
     date: string;
-    installments?: number;
-    currentInstallment?: number;
     cardId?: string;
     /** Conta/carteira do lançamento (D-30, P3-J), gravada só pelo backend. */
     cashAccountId?: string;
@@ -208,6 +214,41 @@ export type GoalPriority = 'baixa' | 'media' | 'alta';
 
 export type GoalProgressBasis = 'net_contributions' | 'current_value';
 
+/** Única fonte do progresso da meta (P5-B, D-31). */
+export type GoalProgressSource = 'manual' | 'investment' | 'business_kpi';
+
+export interface GoalVisual {
+    color: string;
+    icon: string;
+    emoji?: string;
+    coverImage?: string;
+    progressBarType: 'linear' | 'circular';
+}
+
+/**
+ * Definição editável da meta: o payload de `createGoal`/`updateGoal`, igual ao
+ * schema do backend (`goalDefinitionSchema`). Não carrega status nem progresso
+ * manual; valores em centavos inteiros e margem em pontos-base.
+ */
+export interface GoalDefinition {
+    name: string;
+    description?: string;
+    category: GoalCategory;
+    priority: GoalPriority;
+    startDate: string;
+    deadline: string;
+    horizon: GoalHorizon;
+    progressSource: GoalProgressSource;
+    progressBasis?: GoalProgressBasis;
+    businessType?: BusinessGoalType;
+    period?: GoalPeriod;
+    costCenter?: string;
+    targetAmountCents?: number;
+    targetBasisPoints?: number;
+    visual: GoalVisual;
+}
+
+/** Documento persistido `workspaces/{ws}/goals/{goalId}` (escrito só pelo backend). */
 export interface Goal {
     id: string;
     name: string;
@@ -215,49 +256,49 @@ export interface Goal {
     category: GoalCategory;
     status: GoalStatus;
     priority: GoalPriority;
-
-    targetAmount: number;
-    currentAmount: number;
-    currentAmountCents?: number;
-    netContributionCents?: number;
-    currentValue?: number;
-    currentValueCents?: number;
-    targetAmountCents?: number;
-    progressBasis?: GoalProgressBasis;
+    /** 3 = alta, 2 = média, 1 = baixa (ordenação da lista). */
+    priorityRank: number;
     startDate: string;
     deadline: string;
     horizon: GoalHorizon;
+    progressSource: GoalProgressSource;
+
+    /** Toda meta, exceto margem PJ. */
+    targetAmountCents?: number;
+    /** Só indicador PJ de margem. */
+    targetBasisPoints?: number;
+
+    /** Só fonte `manual`. */
+    manualProgressCents?: number;
+    manualProgressUpdatedAt?: string;
+
+    /** Só fonte `investment`. */
+    progressBasis?: GoalProgressBasis;
+    investmentNetContributionCents?: number;
+    investmentCurrentValueCents?: number;
+    investmentProgressCents?: number;
 
     businessType?: BusinessGoalType;
     period?: GoalPeriod;
     costCenter?: string;
-    isAutomatic?: boolean;
 
-    visual: {
-        color: string;
-        icon: string;
-        emoji?: string;
-        coverImage?: string;
-        progressBarType: 'linear' | 'circular';
-    };
+    visual: GoalVisual;
 
-    createdAt: string;
-    updatedAt: string;
-    profileId?: string;
-    archived?: boolean;
-    archivedAt?: unknown;
-}
-
-/** Saldo, receitas e despesas do mês, do espelho de caixa (`summarizeCashFlow`). */
-export interface SummaryData {
-    balance: number;
-    income: number;
-    expenses: number;
+    archived: boolean;
+    archivedAt?: string;
+    archiveReason?: string;
+    /** Versão do domínio de metas, base do `expectedRevision`. */
+    revision: number;
+    statusUpdatedAt?: string;
+    createdAt?: string;
+    updatedAt?: string;
 }
 
 export interface SummaryCardProps {
     title: string;
     value: number;
+    /** Quando presente, substitui o número formatado (estados sem valor: "—"). */
+    displayValue?: string;
     trend: string;
     icon: ReactNode;
     color: 'blue' | 'green' | 'red' | 'indigo' | 'purple';
@@ -291,10 +332,10 @@ export interface TransactionModalProps {
     /** Confirmação de pendente (P3-F, D-29): `confirmCashTransaction`. */
     onConfirmManualTransaction: (payload: Record<string, unknown>, idempotencyKey: string) => Promise<void>;
     transactionToEdit?: Transaction | null;
-    defaultType?: TransactionType | null;
+    defaultType?: TransactionFormType | null;
     currentDate: Date;
     creditCards?: CreditCard[];
-    allowedTypes?: TransactionType[] | null;
+    allowedTypes?: TransactionFormType[] | null;
     transactions?: Transaction[];
 }
 
@@ -373,7 +414,6 @@ export interface AppNotification {
     title: string;
     message: string;
     type: 'info' | 'success' | 'warning' | 'error' | 'invite' | 'credit_card';
-    read: boolean;
     link?: string;
     actionLabel?: string;
     createdAt: string;
