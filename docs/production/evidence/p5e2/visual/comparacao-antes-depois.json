@@ -1,0 +1,268 @@
+[
+  {
+    "captura": "cabecalho-1440-claro.png",
+    "dimensoes": "1312x60",
+    "pixelsDiferentes": 8722,
+    "percentual": 11.0798,
+    "caixaDasDiferencas": "828x51++484++8"
+  },
+  {
+    "captura": "cabecalho-1440-escuro.png",
+    "dimensoes": "1312x60",
+    "pixelsDiferentes": 8857,
+    "percentual": 11.2513,
+    "caixaDasDiferencas": "828x53++484++6"
+  },
+  {
+    "captura": "cabecalho-360-claro.png",
+    "dimensoes": "328x166",
+    "pixelsDiferentes": 2662,
+    "percentual": 4.8891,
+    "caixaDasDiferencas": "105x36++48++54"
+  },
+  {
+    "captura": "cabecalho-360-escuro.png",
+    "dimensoes": "328x166",
+    "pixelsDiferentes": 2694,
+    "percentual": 4.9478,
+    "caixaDasDiferencas": "105x36++48++54"
+  },
+  {
+    "captura": "cabecalho-390-claro.png",
+    "dimensoes": "358x166",
+    "pixelsDiferentes": 2662,
+    "percentual": 4.4794,
+    "caixaDasDiferencas": "105x36++48++54"
+  },
+  {
+    "captura": "cabecalho-390-escuro.png",
+    "dimensoes": "358x166",
+    "pixelsDiferentes": 2694,
+    "percentual": 4.5332,
+    "caixaDasDiferencas": "105x36++48++54"
+  },
+  {
+    "captura": "foco-sino-1440-claro.png",
+    "dimensoes": "1312x60",
+    "pixelsDiferentes": 9400,
+    "percentual": 11.9411,
+    "caixaDasDiferencas": "828x51++484++8"
+  },
+  {
+    "captura": "foco-sino-1440-escuro.png",
+    "dimensoes": "1312x60",
+    "pixelsDiferentes": 9521,
+    "percentual": 12.0948,
+    "caixaDasDiferencas": "828x53++484++6"
+  },
+  {
+    "captura": "foco-sino-360-claro.png",
+    "dimensoes": "328x166",
+    "pixelsDiferentes": 2662,
+    "percentual": 4.8891,
+    "caixaDasDiferencas": "105x36++48++54"
+  },
+  {
+    "captura": "foco-sino-360-escuro.png",
+    "dimensoes": "328x166",
+    "pixelsDiferentes": 2694,
+    "percentual": 4.9478,
+    "caixaDasDiferencas": "105x36++48++54"
+  },
+  {
+    "captura": "foco-sino-390-claro.png",
+    "dimensoes": "358x166",
+    "pixelsDiferentes": 2662,
+    "percentual": 4.4794,
+    "caixaDasDiferencas": "105x36++48++54"
+  },
+  {
+    "captura": "foco-sino-390-escuro.png",
+    "dimensoes": "358x166",
+    "pixelsDiferentes": 2694,
+    "percentual": 4.5332,
+    "caixaDasDiferencas": "105x36++48++54"
+  },
+  {
+    "captura": "menu-conta-1440-claro.png",
+    "dimensoes": "288x248",
+    "pixelsDiferentes": 0,
+    "percentual": 0.0,
+    "caixaDasDiferencas": null
+  },
+  {
+    "captura": "menu-conta-1440-escuro.png",
+    "dimensoes": "288x248",
+    "pixelsDiferentes": 0,
+    "percentual": 0.0,
+    "caixaDasDiferencas": null
+  },
+  {
+    "captura": "menu-conta-tela-1440-claro.png",
+    "dimensoes": "1440x900",
+    "pixelsDiferentes": 8722,
+    "percentual": 0.673,
+    "caixaDasDiferencas": "828x51++580++40"
+  },
+  {
+    "captura": "menu-conta-tela-1440-escuro.png",
+    "dimensoes": "1440x900",
+    "pixelsDiferentes": 8855,
+    "percentual": 0.6833,
+    "caixaDasDiferencas": "828x53++580++38"
+  },
+  {
+    "captura": "menu-lateral-360-claro.png",
+    "dimensoes": "360x740",
+    "pixelsDiferentes": 0,
+    "percentual": 0.0,
+    "caixaDasDiferencas": null
+  },
+  {
+    "captura": "menu-lateral-360-escuro.png",
+    "dimensoes": "360x740",
+    "pixelsDiferentes": 4,
+    "percentual": 0.0015,
+    "caixaDasDiferencas": "4x1++333++373"
+  },
+  {
+    "captura": "menu-lateral-390-claro.png",
+    "dimensoes": "390x844",
+    "pixelsDiferentes": 0,
+    "percentual": 0.0,
+    "caixaDasDiferencas": null
+  },
+  {
+    "captura": "menu-lateral-390-escuro.png",
+    "dimensoes": "390x844",
+    "pixelsDiferentes": 0,
+    "percentual": 0.0,
+    "caixaDasDiferencas": null
+  },
+  {
+    "captura": "notificacoes-painel-1440-claro.png",
+    "dimensoes": "385x443",
+    "pixelsDiferentes": 445,
+    "percentual": 0.2609,
+    "caixaDasDiferencas": "12x420++0++23"
+  },
+  {
+    "captura": "notificacoes-painel-1440-escuro.png",
+    "dimensoes": "385x443",
+    "pixelsDiferentes": 453,
+    "percentual": 0.2656,
+    "caixaDasDiferencas": "13x420++0++23"
+  },
+  {
+    "captura": "notificacoes-painel-360-claro.png",
+    "dimensoes": "320x567",
+    "pixelsDiferentes": 0,
+    "percentual": 0.0,
+    "caixaDasDiferencas": null
+  },
+  {
+    "captura": "notificacoes-painel-360-escuro.png",
+    "dimensoes": "320x567",
+    "pixelsDiferentes": 0,
+    "percentual": 0.0,
+    "caixaDasDiferencas": null
+  },
+  {
+    "captura": "notificacoes-painel-390-claro.png",
+    "dimensoes": "320x567",
+    "pixelsDiferentes": 0,
+    "percentual": 0.0,
+    "caixaDasDiferencas": null
+  },
+  {
+    "captura": "notificacoes-painel-390-escuro.png",
+    "dimensoes": "320x567",
+    "pixelsDiferentes": 0,
+    "percentual": 0.0,
+    "caixaDasDiferencas": null
+  },
+  {
+    "captura": "notificacoes-tela-1440-claro.png",
+    "dimensoes": "1440x900",
+    "pixelsDiferentes": 135799,
+    "percentual": 10.4783,
+    "caixaDasDiferencas": "828x573++580++40"
+  },
+  {
+    "captura": "notificacoes-tela-1440-escuro.png",
+    "dimensoes": "1440x900",
+    "pixelsDiferentes": 132750,
+    "percentual": 10.2431,
+    "caixaDasDiferencas": "828x575++580++38"
+  },
+  {
+    "captura": "notificacoes-tela-360-claro.png",
+    "dimensoes": "360x740",
+    "pixelsDiferentes": 2662,
+    "percentual": 0.9992,
+    "caixaDasDiferencas": "105x36++64++70"
+  },
+  {
+    "captura": "notificacoes-tela-360-escuro.png",
+    "dimensoes": "360x740",
+    "pixelsDiferentes": 2698,
+    "percentual": 1.0128,
+    "caixaDasDiferencas": "273x304++64++70"
+  },
+  {
+    "captura": "notificacoes-tela-390-claro.png",
+    "dimensoes": "390x844",
+    "pixelsDiferentes": 2662,
+    "percentual": 0.8087,
+    "caixaDasDiferencas": "105x36++64++70"
+  },
+  {
+    "captura": "notificacoes-tela-390-escuro.png",
+    "dimensoes": "390x844",
+    "pixelsDiferentes": 2694,
+    "percentual": 0.8184,
+    "caixaDasDiferencas": "105x36++64++70"
+  },
+  {
+    "captura": "tela-1440-claro.png",
+    "dimensoes": "1440x900",
+    "pixelsDiferentes": 8724,
+    "percentual": 0.6731,
+    "caixaDasDiferencas": "828x211++580++40"
+  },
+  {
+    "captura": "tela-1440-escuro.png",
+    "dimensoes": "1440x900",
+    "pixelsDiferentes": 8859,
+    "percentual": 0.6836,
+    "caixaDasDiferencas": "828x213++580++38"
+  },
+  {
+    "captura": "tela-360-claro.png",
+    "dimensoes": "360x740",
+    "pixelsDiferentes": 2662,
+    "percentual": 0.9992,
+    "caixaDasDiferencas": "105x36++64++70"
+  },
+  {
+    "captura": "tela-360-escuro.png",
+    "dimensoes": "360x740",
+    "pixelsDiferentes": 2694,
+    "percentual": 1.0113,
+    "caixaDasDiferencas": "105x36++64++70"
+  },
+  {
+    "captura": "tela-390-claro.png",
+    "dimensoes": "390x844",
+    "pixelsDiferentes": 2662,
+    "percentual": 0.8087,
+    "caixaDasDiferencas": "105x36++64++70"
+  },
+  {
+    "captura": "tela-390-escuro.png",
+    "dimensoes": "390x844",
+    "pixelsDiferentes": 2694,
+    "percentual": 0.8184,
+    "caixaDasDiferencas": "105x36++64++70"
+  }
+]

@@ -9,8 +9,6 @@
  * - `finance_ai_chat_history_*`: histórico local do assistente de IA, no
  *   formato atual (por usuário e workspace, `src/modules/reports/aiChatStorage.ts`)
  *   e em qualquer formato obsoleto;
- * - `app_chat_threads*` e `app_chat_messages*`: conversas locais do módulo de
- *   mensagens;
  * - `dindin_local_session_owner`: a conta dona dos dados locais (abaixo).
  *
  * `app-theme` fica: é preferência do dispositivo (modo claro/escuro), não
@@ -23,8 +21,6 @@ const LAST_WORKSPACE_PREFIX = 'lastWorkspaceId_';
 export const USER_SCOPED_STORAGE_PREFIXES = [
   LAST_WORKSPACE_PREFIX,
   'finance_ai_chat_history_',
-  'app_chat_threads',
-  'app_chat_messages',
   LOCAL_SESSION_OWNER_KEY,
 ] as const;
 
@@ -127,9 +123,9 @@ export const ownsLastWorkspaceKey: LocalKeyOwnership = (key, uid) =>
  * reconhece os resíduos de outra conta já na primeira emissão.
  *
  * - troca de conta nesta aba (inclusive o logout): sai tudo que é do usuário;
- * - carga nova sem sessão: saem as conversas e o dono local; a preferência
- *   `lastWorkspaceId_<uid>` fica (é um id identificado pelo próprio uid, não
- *   conteúdo, e só a mesma conta a lê);
+ * - carga nova sem sessão: saem o histórico do assistente de IA e o dono
+ *   local; a preferência `lastWorkspaceId_<uid>` fica (é um id identificado
+ *   pelo próprio uid, não conteúdo, e só a mesma conta a lê);
  * - carga nova com a conta X e dono local diferente ou ausente: sai tudo que
  *   não pertence a X (`ownsKey`).
  *

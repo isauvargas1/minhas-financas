@@ -1,0 +1,260 @@
+import { expect, test, type Browser, type Locator, type Page } from '@playwright/test';
+import { mkdirSync, writeFileSync } from 'node:fs';
+
+import { PASSWORD } from './support/loans';
+import { adminSdk, seedOwnedWorkspace } from './support/workspaceSeed';
+import { audit, horizontalOverflow, type Scheme } from './p4d-evidence-common';
+
+/*
+ * P5-E2 (D-09) — evidência visual do Header na base (92e5a9c, "antes") e
+ * depois da remoção das Mensagens simuladas ("depois"), com o mesmo roteiro e
+ * os mesmos dados:
+ * - Header em repouso, painel de notificações, menu da conta (a partir de
+ *   640 px) e menu lateral (celular), em 1440×900, 390×844 e 360×740, claro e
+ *   escuro;
+ * - controles visíveis do Header, ordem de foco por Tab, axe-core (WCAG 2.0/2.1
+ *   A e AA) no Header e transbordamento horizontal;
+ * - na base, também o painel de Mensagens aberto (o que sai).
+ * Arquivo temporário de evidência; não faz parte da suíte.
+ */
+test.setTimeout(1_800_000);
+
+const TREE = process.env.EVIDENCE_TREE === 'antes' ? 'antes' : 'depois';
+const USER = { uid: 'e2e-p5e2-ev', email: 'e2e-p5e2-ev@minhas-financas.local', ws: 'e2e-p5e2-ev' };
+const RETENTION_MS = 180 * 86_400_000;
+const NOW = Date.now();
+const hoursAgo = (hours: number) => new Date(NOW - hours * 3_600_000).toISOString();
+
+const EVENTS = [
+  { id: 'ev_00', title: 'Fatura vencida', createdAt: hoursAgo(5.5), message: 'A fatura de outubro de 2026 do cartão Nubank venceu em 05/10 e está em aberto: R$ 1.234,56.' },
+  { id: 'ev_01', title: 'Fatura próxima do vencimento', createdAt: hoursAgo(26), message: 'A fatura de outubro de 2026 do cartão Inter vence em 3 dias: R$ 482,10.' },
+  { id: 'ev_02', title: 'Fatura fechada', createdAt: hoursAgo(50), message: 'A fatura de setembro de 2026 do cartão Nubank fechou com R$ 2.310,00.' },
+];
+
+interface Combo { name: string; width: number; height: number; touch: boolean; scheme: Scheme }
+const COMBOS: Combo[] = [
+  { name: '1440-claro', width: 1440, height: 900, touch: false, scheme: 'light' },
+  { name: '1440-escuro', width: 1440, height: 900, touch: false, scheme: 'dark' },
+  { name: '390-claro', width: 390, height: 844, touch: true, scheme: 'light' },
+  { name: '390-escuro', width: 390, height: 844, touch: true, scheme: 'dark' },
+  { name: '360-claro', width: 360, height: 740, touch: true, scheme: 'light' },
+  { name: '360-escuro', width: 360, height: 740, touch: true, scheme: 'dark' },
+];
+
+const resetEmulatorData = async () => {
+  const sdk = adminSdk();
+  const users = await sdk.auth().listUsers(1000);
+  if (users.users.length > 0) await sdk.auth().deleteUsers(users.users.map((user) => user.uid));
+  const db = sdk.firestore();
+  await Promise.all((await db.listCollections()).map((collection) => db.recursiveDelete(collection)));
+};
+
+const seed = async () => {
+  await resetEmulatorData();
+  const sdk = adminSdk();
+  await sdk.auth().createUser({ uid: USER.uid, email: USER.email, password: PASSWORD, emailVerified: true });
+  await seedOwnedWorkspace({ uid: USER.uid, email: USER.email, workspaceId: USER.ws, name: 'Pessoal', type: 'PF' });
+  const db = sdk.firestore();
+  const batch = db.batch();
+  for (const event of EVENTS) {
+    batch.set(db.doc(`workspaces/${USER.ws}/notifications/${event.id}`), {
+      id: event.id, workspaceId: USER.ws, title: event.title, message: event.message, type: 'credit_card',
+      link: 'cards', actionLabel: 'Ver cartões', createdAt: event.createdAt,
+      expiresAt: sdk.firestore.Timestamp.fromMillis(Date.parse(event.createdAt) + RETENTION_MS),
+      source: 'credit_card_invoice', domain: 'credit_card', domainEventType: 'invoice_closed',
+    });
+  }
+  await batch.commit();
+};
+
+const login = async (browser: Browser, combo: Combo) => {
+  const context = await browser.newContext({
+    viewport: { width: combo.width, height: combo.height }, colorScheme: combo.scheme, locale: 'pt-BR',
+    timezoneId: 'America/Sao_Paulo', deviceScaleFactor: 1,
+    ...(combo.touch ? { isMobile: true, hasTouch: true } : {}),
+  });
+  const page = await context.newPage();
+  page.setDefaultTimeout(30_000);
+  await page.goto(`/?e2eEmail=${encodeURIComponent(USER.email)}&e2ePassword=${PASSWORD}`);
+  await page.getByTestId('e2e-login-button').click();
+  await expect(page.getByText('Saldo Atual').first()).toBeVisible({ timeout: 45_000 });
+  const html = page.locator('html');
+  const isDark = async () => /(^|\s)dark(\s|$)/.test((await html.getAttribute('class')) ?? '');
+  if ((combo.scheme === 'dark') !== (await isDark())) {
+    await page.getByRole('button', { name: combo.scheme === 'dark' ? 'Ativar modo escuro' : 'Ativar modo claro' }).click();
+  }
+  await expect.poll(isDark).toBe(combo.scheme === 'dark');
+  await expect(page.getByText(/Carregando/).filter({ visible: true })).toHaveCount(0, { timeout: 60_000 });
+  // O total exato de não lidas vem da callable: espera o número no nome do sino.
+  await expect.poll(async () => /\d/.test((await bell(page).getAttribute('aria-label')) ?? ''), { timeout: 30_000 }).toBe(true);
+  return page;
+};
+
+const bell = (page: Page) => page.getByRole('button', { name: /^Notificações/ });
+const messagesButton = (page: Page) => page.getByRole('button', { name: /^Mensagens/ });
+
+const settle = async (page: Page) => {
+  const size = page.viewportSize() ?? { width: 1440, height: 900 };
+  await page.mouse.move(size.width - 4, size.height - 4);
+  await page.evaluate(() => Promise.all(document.getAnimations()
+    .filter((animation) => Number.isFinite(Number(animation.effect?.getComputedTiming().endTime)))
+    .map((animation) => animation.finished.catch(() => undefined))));
+  await page.waitForTimeout(900);
+};
+
+/** Toque ou clique no fundo transparente que fecha os painéis do Header. */
+const pressBackdrop = async (page: Page, touch: boolean) => {
+  const size = page.viewportSize() ?? { width: 1440, height: 900 };
+  if (touch) await page.touchscreen.tap(8, size.height - 8);
+  else await page.mouse.click(8, size.height - 8);
+};
+
+const press = async (locator: Locator, touch: boolean) => (touch ? locator.tap() : locator.click());
+
+const headerControls = (page: Page) => page.locator('header button, header [role="button"]').evaluateAll((elements) =>
+  elements
+    .filter((element) => (element as HTMLElement).offsetParent !== null)
+    .map((element) => ({
+      nome: element.getAttribute('aria-label') ?? (element.textContent ?? '').trim().replace(/\s+/g, ' '),
+      expandido: element.getAttribute('aria-expanded'),
+    })));
+
+const tabOrder = async (page: Page) => {
+  await page.locator('header').locator('button:visible, [role="button"]:visible').first().focus();
+  const sequence: string[] = [];
+  for (let index = 0; index < 24; index += 1) {
+    const current = await page.evaluate(() => {
+      const element = document.activeElement as HTMLElement | null;
+      if (!element || !element.closest('header')) return null;
+      return element.getAttribute('aria-label') ?? (element.textContent ?? '').trim().replace(/\s+/g, ' ').slice(0, 40);
+    });
+    if (current === null) break;
+    sequence.push(current);
+    await page.keyboard.press('Tab');
+  }
+  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+  return sequence;
+};
+
+const axeHeader = async (page: Page) => {
+  const violations = await audit(page, 'header');
+  return violations.map((violation: { id: string; impact: string | null; count: number; nodes: Array<{ html: string }> }) => ({
+    regra: violation.id, impacto: violation.impact, nos: violation.count,
+    exemplos: violation.nodes.slice(0, 4).map((node) => node.html.replace(/\s+/g, ' ').slice(0, 110)),
+  }));
+};
+
+const tag = (page: Page, text: string, selector: string, name: string) => page.evaluate(({ text: wanted, selector: closest, name: value }) => {
+  const node = [...document.querySelectorAll('h2, h3, p')].find((element) => element.textContent?.trim() === wanted);
+  node?.closest(closest)?.setAttribute('data-evidence', value);
+}, { text, selector, name });
+
+test('P5-E2 — evidência visual do Header', async ({ browser }) => {
+  const dir = process.env.EVIDENCE_DIR!;
+  mkdirSync(dir, { recursive: true });
+  await seed();
+  const report: Record<string, unknown> = { arvore: TREE, combinacoes: {} as Record<string, unknown> };
+  const combos = report.combinacoes as Record<string, unknown>;
+
+  for (const combo of COMBOS) {
+    const entry: Record<string, unknown> = {};
+    combos[combo.name] = entry;
+    const step = async (name: string, action: () => Promise<void>) => {
+      try {
+        await action();
+      } catch (error) {
+        entry[`erro-${name}`] = String(error).slice(0, 600);
+      }
+    };
+    const page = await login(browser, combo);
+    const header = page.locator('header');
+
+    await step('repouso', async () => {
+      await settle(page);
+      await header.screenshot({ path: `${dir}/cabecalho-${combo.name}.png` });
+      await page.screenshot({ path: `${dir}/tela-${combo.name}.png` });
+      entry.controles = await headerControls(page);
+      entry.alturaDoCabecalho = Math.round((await header.boundingBox())?.height ?? 0);
+      entry.transbordamentoHorizontal = await horizontalOverflow(page);
+      entry.rotuloDoSino = await bell(page).getAttribute('aria-label');
+      entry.botoesMensagens = await messagesButton(page).count();
+      entry.rotuloMensagens = (await messagesButton(page).count()) > 0 ? await messagesButton(page).getAttribute('aria-label') : null;
+    });
+
+    await step('foco', async () => {
+      entry.ordemDeFoco = await tabOrder(page);
+      await bell(page).focus();
+      await page.waitForTimeout(300);
+      await header.screenshot({ path: `${dir}/foco-sino-${combo.name}.png` });
+      await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+    });
+
+    await step('axe', async () => {
+      await settle(page);
+      entry.axeCabecalho = await axeHeader(page);
+    });
+
+    await step('notificacoes', async () => {
+      await press(bell(page), combo.touch);
+      await expect(page.getByRole('heading', { name: 'Notificações', level: 3 })).toBeVisible();
+      await expect(page.getByText('Carregando notificações…')).toHaveCount(0, { timeout: 20_000 });
+      await tag(page, 'Notificações', '.shadow-2xl', 'painel');
+      await settle(page);
+      await page.locator('[data-evidence="painel"]').screenshot({ path: `${dir}/notificacoes-painel-${combo.name}.png` });
+      await page.screenshot({ path: `${dir}/notificacoes-tela-${combo.name}.png` });
+      entry.notificacoesAberto = await bell(page).getAttribute('aria-expanded');
+      entry.transbordamentoComPainel = await horizontalOverflow(page);
+      await pressBackdrop(page, combo.touch);
+      await expect(bell(page)).toHaveAttribute('aria-expanded', 'false');
+      entry.notificacoesFechaComToqueFora = true;
+    });
+
+    if (combo.width >= 640) {
+      await step('menu-conta', async () => {
+        await page.getByRole('button', { name: 'Abrir menu da conta' }).click();
+        await expect(page.getByText('Minha Conta')).toBeVisible();
+        await tag(page, 'Minha Conta', '.shadow-2xl', 'menu-conta');
+        await settle(page);
+        await page.locator('[data-evidence="menu-conta"]').screenshot({ path: `${dir}/menu-conta-${combo.name}.png` });
+        await page.screenshot({ path: `${dir}/menu-conta-tela-${combo.name}.png` });
+        await pressBackdrop(page, combo.touch);
+        await expect(page.getByRole('button', { name: 'Abrir menu da conta' })).toHaveAttribute('aria-expanded', 'false');
+        entry.menuDaContaFechaComCliqueFora = true;
+      });
+    } else {
+      await step('menu-lateral', async () => {
+        await press(page.getByRole('button', { name: 'Abrir menu', exact: true }), combo.touch);
+        await expect(page.locator('#menu-principal')).toBeVisible();
+        await settle(page);
+        await page.screenshot({ path: `${dir}/menu-lateral-${combo.name}.png` });
+        await page.keyboard.press('Escape');
+        await expect(page.getByRole('button', { name: 'Abrir menu', exact: true })).toHaveAttribute('aria-expanded', 'false');
+        entry.menuLateralFechaComEsc = true;
+      });
+    }
+
+    if (TREE === 'antes') {
+      await step('mensagens', async () => {
+        await press(messagesButton(page), combo.touch);
+        await expect(page.getByRole('heading', { name: 'Mensagens', level: 2 })).toBeVisible();
+        await settle(page);
+        await page.screenshot({ path: `${dir}/mensagens-simuladas-${combo.name}.png` });
+        await pressBackdrop(page, combo.touch);
+        await expect(messagesButton(page)).toHaveAttribute('aria-expanded', 'false');
+      });
+    } else {
+      await step('sem-mensagens', async () => {
+        entry.botoesMensagensNaTela = await page.getByRole('button', { name: /Mensagens/i }).count();
+        entry.textoMensagensNaTela = await page.getByText('Mensagens', { exact: true }).count();
+        entry.opcaoNovaConversa = await page.getByText(/nova conversa/i).count();
+      });
+    }
+
+    await page.context().close();
+  }
+
+  writeFileSync(`${dir}/relatorio-${TREE}.json`, `${JSON.stringify(report, null, 2)}\n`);
+  const errors = Object.entries(combos).flatMap(([name, value]) => Object.keys(value as object)
+    .filter((key) => key.startsWith('erro-')).map((key) => `${name}:${key}`));
+  console.log(`P5-E2 evidência (${TREE}): ${COMBOS.length} combinações; erros: ${errors.length ? errors.join(', ') : 'nenhum'}`);
+});

@@ -6,7 +6,6 @@ import type { CreditCard } from './modules/cards/types.ts';
 export * from './modules/cards/types.ts';
 export * from './modules/reports/types.ts';
 export * from './modules/notifications/types.ts';
-export * from './modules/messages/types.ts';
 export * from './modules/loans/types.ts';
 export * from './modules/settings-catalog/types.ts';
 export * from './modules/settings-catalog/types.ts';

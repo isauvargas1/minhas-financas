@@ -84,7 +84,7 @@ Fora da tabela, `activity_logs` recebe `expiresAt` de 365 dias por constante pr�
 | `workspaces` | Sem exclusão, arquivamento ou encerramento | Sem `allow delete` (`firestore.rules:990-1008`) | — | PR-AUTH-01; WS-09 |
 | `users/{uid}` e conta no Auth | Sem exclusão de conta, exportação ou cancelamento da assinatura | `firestore.rules:1467`; `functions/src/index.ts:13-37` | `delete: false` | PR-AUTH-01 |
 | Ferramenta `limpar-investimentos.mjs` | Hard delete do ledger, com override para o projeto de produção | `tools/investments/limpar-investimentos.mjs:59,88,143-148,352,409` | Admin SDK, fora das Rules | PR-PLAT-02 |
-| `localStorage` (chat de IA, Mensagens) | Chat de IA por usuário e workspace (D-41, P5-A), sem prazo de expiração, apagado no logout, na troca de conta e em carga nova com outra conta; Mensagens simuladas apagadas no logout | `src/modules/reports/aiChatStorage.ts`; `src/lib/sessionCleanup.ts`; `src/modules/messages/api.ts:29-66`; `src/contexts/AuthContext.tsx:74,108` | D-18 (prazo, se houver) | PR-AI-04 resolvido na P5-A; PR-MSG-01 |
+| `localStorage` (chat de IA) | Chat de IA por usuário e workspace (D-41, P5-A), sem prazo de expiração, apagado no logout, na troca de conta e em carga nova com outra conta. As Mensagens simuladas (`app_chat_threads`/`app_chat_messages`, apagadas no logout até a P5-E1.1) saíram do produto na P5-E2 | `src/modules/reports/aiChatStorage.ts`; `src/lib/sessionCleanup.ts`; `src/contexts/AuthContext.tsx:74,108` | D-18 (prazo, se houver) | PR-AI-04 resolvido na P5-A; PR-MSG-01 resolvido na P5-E2 (aguardando auditoria) |
 
 ## 4. Política de retenção TARGET por categoria
 
@@ -112,7 +112,7 @@ Fora da tabela, `activity_logs` recebe `expiresAt` de 365 dias por constante pr�
 | Aceite e solicitações de titular | Registro de aceite versionado; `dsr_requests` | **DECISION D-18** (prova de cumprimento) | Coleções server-only e imutáveis | P8, P9 (PR-AUTH-02, PR-PRIV-01) |
 | Backups e PITR | Cópias do banco inteiro | **DECISION D-27** (janela de PITR, frequência, retenção e export isolado) e D-18 (prazo por categoria) | §8 | P7 (PR-BKP-01, E-07) |
 | Dados após cancelamento ou inatividade | Workspace e conta sem assinatura ativa ou sem uso | **DECISION D-18**, com D-08 para downgrade com excedente | Estado de assinatura único (P2); aviso prévio e job de encerramento idempotente (P8). **CURRENT:** o webhook trata 13 tipos de evento e rebaixa o plano por grace period e restrição, com dados preservados (`functions/src/billing/webhook.ts:190-300`; `functions/src/billing/entitlements.ts`) | P2A (PR-BILL-01 fechado), P8 |
-| Armazenamento local | Histórico do chat de IA, Mensagens, preferências | Histórico da IA: enquanto a sessão existir (D-41); necessidade de banner/CMP: **DECISION D-26** | Histórico da IA no navegador por usuário e workspace, apagado no logout (D-41, P5-A); nenhum outro dado financeiro persistido no navegador | P5 (PR-AI-04 resolvido na P5-A; PR-MSG-01) |
+| Armazenamento local | Histórico do chat de IA e preferências (as Mensagens simuladas saíram na P5-E2) | Histórico da IA: enquanto a sessão existir (D-41); necessidade de banner/CMP: **DECISION D-26** | Histórico da IA no navegador por usuário e workspace, apagado no logout (D-41, P5-A); nenhum outro dado financeiro persistido no navegador | P5 (PR-AI-04 resolvido na P5-A; PR-MSG-01 resolvido na P5-E2, aguardando auditoria) |
 | Terceiros | Payloads ao Gemini (contexto mínimo do consultor; comprovantes e transcrições de voz, só após confirmação da operação); e-mail e customer no Stripe | Conforme termos do provedor. Itens [B] (resumo de busca, a conferir ao vivo): sem treinamento com tier pago; log de monitoramento de abuso por 55 dias; zero data retention só por pedido; sem seletor de região. | Minimização; tier sem treinamento: **EXTERNAL E-10** (D-11); cancelamento no Stripe na exclusão: **EXTERNAL E-06** | P8 (PR-AI-01) |
 
 ### 4.1 Notificações — prazo decidido e implementado (DECISION D-18-NOTIF)
@@ -255,7 +255,7 @@ Requisitos do job (**TARGET**, P8): executado no servidor após autenticação r
 | PR-BILL-06 | HIGH | P2 | Sem armazenamento de eventos Stripe nem auditoria de plano (fechado em P2A: `billing_webhook_events` e `billing_events`; PLAN §17.3) |
 | PR-NOTIF-01 | HIGH | P5 | Notificações sem retenção; arquivar = hard delete. Arquivar **resolvido na P5-D1** (`dismissed` por usuário; plano §20.2). Retenção de 180 dias **implementada na D-18-NOTIF** (aguardando auditoria; TTL não publicado, E-07). Parcial: falta a contagem exata (P5-D2) |
 | PR-AI-04 | HIGH | P5 | Histórico de IA no `localStorage`, sem limpeza no logout — **resolvido na P5-A** (D-41: no navegador, por usuário e workspace, apagado no logout; plano §20.1) |
-| PR-MSG-01 | HIGH | P5 | Mensagens persistidas só no `localStorage` |
+| PR-MSG-01 | HIGH | P5 | Mensagens persistidas só no `localStorage`; resolvido na P5-E2 (módulo removido), aguardando auditoria independente |
 | PR-TX-04 | HIGH | P3 | Gatilho sem retry; premissa de reentrega do comentário de retenção errada (FIRE-05). Parcial em P3-B: `retry: true`, comentário corrigido e TTL das marcas declarado (PLAN §18.2) |
 | PR-GOAL-04 | HIGH | P5 | Arquivar meta ignora posições vinculadas |
 
@@ -270,7 +270,7 @@ MEDIUM/LOW de origem: PRIV-08 (sem política de retenção de dados pessoais), R
 | D-27 | RPO/RTO, política de backup e janela de PITR | DECISION pendente (P7) |
 | D-01, D-08 | Entidade pagadora e downgrade/cancelamento, que definem o que acontece com os dados após o fim da assinatura | DECISION pendente (P2) |
 | D-03, D-05 | Owner canônico único; convite válido por 7 dias | DECISION tomada (§9.1 do plano) |
-| D-09, D-11, D-14, D-21 | Mensagens, IA, participantes externos, encarregado e canal | DECISION pendente; D-11 parcialmente tomada na P5-E1 (D-11.1 a D-11.4), com tier, base legal e modelo GA abertos |
+| D-09, D-11, D-14, D-21 | Mensagens, IA, participantes externos, encarregado e canal | D-09 tomada em 2026-10-12 (remover) e executada na P5-E2; D-11 parcialmente tomada na P5-E1 (D-11.1 a D-11.4), com tier, base legal e modelo GA abertos; D-14 e D-21 pendentes |
 | D-ORD-03 | Exclusão e exportação em P8 | DECISION tomada |
 
 | ID | Item EXTERNAL CONFIGURATION REQUIRED | Ambiente | Valor esperado | Estado | Data | Responsável |

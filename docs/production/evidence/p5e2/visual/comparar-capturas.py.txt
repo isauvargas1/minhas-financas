@@ -1,0 +1,63 @@
+"""P5-E2: compara as capturas "antes" (base 92e5a9c) e "depois" pixel a pixel.
+
+Para cada captura presente nas duas árvores: dimensões, pixels diferentes
+(ImageMagick `compare -metric AE`, sem tolerância) e a caixa que contém todas as
+diferenças (diferença absoluta, limiar 0, `-trim`). Saída em texto e JSON.
+"""
+import json
+import os
+import subprocess
+import sys
+
+BASE = '<scratchpad>/p5e2/evidence/out'
+ANTES = sys.argv[1] if len(sys.argv) > 1 else f'{BASE}/antes'
+DEPOIS = sys.argv[2] if len(sys.argv) > 2 else f'{BASE}/depois'
+OUT = sys.argv[3] if len(sys.argv) > 3 else f'{BASE}/comparacao'
+os.makedirs(OUT, exist_ok=True)
+
+
+def size(path: str) -> str:
+    return subprocess.run(['identify', '-format', '%wx%h', path], capture_output=True, text=True, check=True).stdout
+
+
+def pixels_diff(a: str, b: str, mask: str) -> int:
+    run = subprocess.run(['compare', '-metric', 'AE', a, b, mask], capture_output=True, text=True)
+    return int(float(run.stderr.split()[0]))
+
+
+def bbox(a: str, b: str) -> str:
+    run = subprocess.run(['convert', a, b, '-compose', 'difference', '-composite', '-colorspace', 'gray',
+                          '-threshold', '0', '-trim', '-format', '%wx%h+%X+%Y', 'info:'],
+                         capture_output=True, text=True, check=True)
+    return run.stdout.strip()
+
+
+rows = []
+for name in sorted(os.listdir(ANTES)):
+    if not name.endswith('.png') or name.startswith('mensagens-simuladas-'):
+        continue
+    a, b = f'{ANTES}/{name}', f'{DEPOIS}/{name}'
+    if not os.path.exists(b):
+        rows.append({'captura': name, 'situacao': 'ausente no depois'})
+        continue
+    sa, sb = size(a), size(b)
+    if sa != sb:
+        rows.append({'captura': name, 'antes': sa, 'depois': sb, 'situacao': 'dimensões diferentes'})
+        continue
+    w, h = (int(v) for v in sa.split('x'))
+    diff = pixels_diff(a, b, f'{OUT}/dif-{name}')
+    rows.append({
+        'captura': name, 'dimensoes': sa, 'pixelsDiferentes': diff,
+        'percentual': round(100 * diff / (w * h), 4),
+        'caixaDasDiferencas': bbox(a, b) if diff else None,
+    })
+
+with open(f'{OUT}/comparacao.json', 'w', encoding='utf-8') as handle:
+    json.dump(rows, handle, ensure_ascii=False, indent=2)
+for row in rows:
+    if 'pixelsDiferentes' in row:
+        extra = f" caixa={row['caixaDasDiferencas']}" if row['pixelsDiferentes'] else ''
+        print(f"{row['captura']:<36} {row['dimensoes']:>9}  {row['pixelsDiferentes']:>7} px ({row['percentual']}%){extra}")
+    else:
+        print(f"{row['captura']:<36} {row['situacao']} {row.get('antes', '')} {row.get('depois', '')}")
+sys.exit(0)

@@ -1,17 +1,13 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { BellIcon, EnvelopeIcon, SunIcon, MoonIcon, HamburgerIcon, ChevronLeftIcon, ChevronRightIcon, SearchIcon, CheckIcon, UsersIcon, BuildingIcon, BriefcaseIcon, PlusIcon } from './Icons.tsx';
+import { BellIcon, SunIcon, MoonIcon, HamburgerIcon, ChevronLeftIcon, ChevronRightIcon, SearchIcon, CheckIcon, UsersIcon, BuildingIcon, BriefcaseIcon, PlusIcon } from './Icons.tsx';
 import NotificationsPanel from './NotificationsPanel.tsx';
-import MessagesPanel from './MessagesPanel.tsx';
 import CreateWorkspaceModal from './CreateWorkspaceModal.tsx';
 import ConfirmationModal from './ConfirmationModal.tsx';
 import { 
     useNotifications, useNotificationActions, useNotificationScope, useCanDeleteNotifications,
     useNotificationUnreadCount
 } from '../modules/notifications/hooks.ts';
-import { 
-    useUnreadMessagesCount 
-} from '../modules/messages/hooks.ts';
 import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
 // NOVO IMPORT: Hook que verifica os limites do plano
 import { useBilling } from '../modules/billing/BillingContext';
@@ -26,12 +22,11 @@ interface HeaderProps {
     currentDate: Date;
     onCurrentDateChange: (newDate: Date) => void;
     onNavigate?: (view: string) => void;
-    onOpenSplitGroup?: (groupId: string) => void;
 }
 
 const Header: React.FC<HeaderProps> = ({ 
     onToggleSidebar, isSidebarExpanded, onToggleDarkMode, isDarkMode, 
-    currentDate, onCurrentDateChange, onNavigate, onOpenSplitGroup 
+    currentDate, onCurrentDateChange, onNavigate
 }) => {
     const { activeWorkspace, workspaces, switchWorkspace, hasMoreWorkspaces, loadMoreWorkspaces } = useWorkspace();
     // Plano da CONTA do usuário: é ele que limita os workspaces próprios.
@@ -44,7 +39,6 @@ const Header: React.FC<HeaderProps> = ({
 
     // --- State for Panels ---
     const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
-    const [isMessagesOpen, setIsMessagesOpen] = useState(false);
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
     const [isCreateWorkspaceModalOpen, setIsCreateWorkspaceModalOpen] = useState(false);
     // P5-E1.1: o fundo que fecha os menus só recebe o clique de um gesto que
@@ -117,7 +111,6 @@ const Header: React.FC<HeaderProps> = ({
         return deleted ? notificationsBellRef.current : null;
     };
     const unreadSummary = notificationUnreadCount.summary;
-    const unreadMessages = useUnreadMessagesCount();
 
     // Workspaces próprios ativos × limite do plano da conta (ajuda de UX; o backend decide)
     const canCreateWorkspace = checkAccountLimit('workspaces');
@@ -168,17 +161,12 @@ const Header: React.FC<HeaderProps> = ({
     }, [isNotificationsOpen, refreshNotificationsIfStale, refreshUnreadCountIfStale, collapseNotifications]);
 
     const toggleNotifications = () => {
-        if (!isNotificationsOpen) { setIsMessagesOpen(false); setIsUserMenuOpen(false); }
+        if (!isNotificationsOpen) { setIsUserMenuOpen(false); }
         setIsNotificationsOpen(!isNotificationsOpen);
     };
 
-    const toggleMessages = () => {
-        if (!isMessagesOpen) { setIsNotificationsOpen(false); setIsUserMenuOpen(false); }
-        setIsMessagesOpen(!isMessagesOpen);
-    };
-
     const toggleUserMenu = () => {
-        if (!isUserMenuOpen) { setIsNotificationsOpen(false); setIsMessagesOpen(false); }
+        if (!isUserMenuOpen) { setIsNotificationsOpen(false); }
         setIsUserMenuOpen(!isUserMenuOpen);
     };
 
@@ -227,19 +215,19 @@ const normalizedNotifications = useMemo<NotificationItem[]>(() => {
     }));
 }, [notificationFeed.visible]);
 
-    const Badge = ({ count = 0, label }: { count?: number; label?: string }) => (
+    const Badge = ({ label }: { label: string }) => (
         <span className="absolute top-0 right-0 flex h-4 w-4 -translate-y-1 translate-x-1 items-center justify-center rounded-full bg-red-500 ring-2 ring-background text-[10px] font-bold text-white shadow-sm animate-header-badge-scale-in">
-            {label ?? (count > 9 ? '9+' : count)}
+            {label}
         </span>
     );
 
     return (
         <header className="mb-8 relative z-30">
-            {(isNotificationsOpen || isMessagesOpen || isUserMenuOpen) && (
+            {(isNotificationsOpen || isUserMenuOpen) && (
                 <div 
                     className="fixed inset-0 z-30 bg-transparent" 
                     {...pressTargetProps}
-                    onClick={() => { setIsNotificationsOpen(false); setIsMessagesOpen(false); setIsUserMenuOpen(false); }}
+                    onClick={() => { setIsNotificationsOpen(false); setIsUserMenuOpen(false); }}
                 />
             )}
 
@@ -351,31 +339,6 @@ const normalizedNotifications = useMemo<NotificationItem[]>(() => {
                                 onArchive={(id) => notificationActions.dismiss(id)}
                                 onDeleteForMe={openDeleteConfirmation}
                                 onNavigate={onNavigate}
-                            />
-                        )}
-                    </div>
-                    
-                    {/* MESSAGES */}
-                    <div className="relative">
-                        <button 
-                            type="button"
-                            onClick={toggleMessages}
-                            aria-label={unreadMessages > 0 ? `Mensagens, ${unreadMessages} não ${unreadMessages === 1 ? 'lida' : 'lidas'}` : 'Mensagens'}
-                            aria-expanded={isMessagesOpen}
-                            className={`${iconButtonBaseClass} ${isMessagesOpen ? iconButtonActive : iconButtonInactive}`}
-                        >
-                            <EnvelopeIcon className="w-5 h-5" />
-                            {unreadMessages > 0 && <Badge count={unreadMessages} />}
-                        </button>
-                        {isMessagesOpen && (
-                            <MessagesPanel 
-                                onClose={() => setIsMessagesOpen(false)} 
-                                onOpenSplitGroup={(groupId) => {
-                                    if (onOpenSplitGroup) {
-                                        onOpenSplitGroup(groupId);
-                                        setIsMessagesOpen(false);
-                                    }
-                                }}
                             />
                         )}
                     </div>

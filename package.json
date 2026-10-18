@@ -14,7 +14,7 @@
     "test:unit:investments": "node --experimental-strip-types --test tests/unit/investment-semantics.test.ts tests/unit/investment-reporting.test.ts tests/unit/ai-backend-only.test.ts tests/unit/investment-idempotency.test.ts tests/unit/report-window.test.ts tests/unit/investment-simple-rows.test.ts tests/unit/investment-simple-form.test.ts tests/unit/investment-simple-summary.test.ts tests/unit/investment-simple-guards.test.ts tests/unit/investment-transaction-entry.test.ts tests/unit/investment-allocation.test.ts tests/unit/investment-goal-link.test.ts tests/unit/investment-goal-history.test.ts tests/unit/investment-surface-guard.test.ts",
     "test:unit:p1": "node --experimental-strip-types --test tests/unit/money.test.ts tests/unit/session-cleanup.test.ts tests/unit/workspace-callables.test.ts",
     "test:unit:billing": "node --experimental-strip-types --test tests/unit/billing-client.test.ts tests/unit/ai-client.test.ts tests/unit/ai-extraction-form.test.ts tests/unit/pricing-table-state.test.ts tests/unit/ai-share-contract.test.ts",
-    "test:unit:ui": "node --experimental-strip-types --test tests/unit/icon-pack-props.test.ts",
+    "test:unit:ui": "node --experimental-strip-types --test tests/unit/icon-pack-props.test.ts tests/unit/messages-removal-guard.test.ts",
     "test:unit:cash": "node --experimental-strip-types --test tests/unit/cash-entry.test.ts tests/unit/transactions-contract.test.ts",
     "test:unit:loans": "node --experimental-strip-types --test tests/unit/loan-input.test.ts tests/unit/loan-model.test.ts tests/unit/loans-no-client-writes.test.ts",
     "test:unit:clients": "node --experimental-strip-types --test tests/unit/clients-model.test.ts tests/unit/clients-no-client-writes.test.ts",

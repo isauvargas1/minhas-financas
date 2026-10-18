@@ -849,8 +849,9 @@ for (const combo of combos) {
       await spendAnimations(page);
       // O contraste do próprio badge vermelho (texto branco de 10 px sobre
       // bg-red-500, ~3,8:1) é um defeito de produção anterior à P5-D2 (o
-      // componente `Badge` do Header é o mesmo das mensagens). Fica fora da
-      // auditoria do cabeçalho e é registrado à parte, sem esconder o resto.
+      // componente `Badge` do Header já existia, também no botão de Mensagens
+      // removido na P5-E2). Fica fora da auditoria do cabeçalho e é registrado
+      // à parte, sem esconder o resto.
       const found = await axeViolations(page, include, [BADGE]);
       const contrast = found.filter((item) => item.id === 'color-contrast');
       for (const violation of contrast) {

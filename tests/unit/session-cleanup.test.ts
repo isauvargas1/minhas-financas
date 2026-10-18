@@ -59,10 +59,6 @@ const USER_KEYS = [
   'finance_ai_chat_history_ws-1',
   'finance_ai_chat_history_v2:uid-a:ws-1',
   'dindin_local_session_owner',
-  'app_chat_threads',
-  'app_chat_threads_ws-1',
-  'app_chat_messages',
-  'app_chat_messages_ws-1_thread-9',
 ];
 
 const KEPT_KEYS = [
@@ -81,8 +77,6 @@ test('prefixes cobertos são exatamente os de dados do usuário', () => {
     [
       'lastWorkspaceId_',
       'finance_ai_chat_history_',
-      'app_chat_threads',
-      'app_chat_messages',
       'dindin_local_session_owner',
     ],
   );
@@ -212,7 +206,6 @@ test('resíduo na carga da conta X preserva só o que é de X', () => {
     'lastWorkspaceId_uid-x': 'ws-x',
     'lastWorkspaceId_uid-y': 'ws-y',
     'finance_ai_chat_history_v2:uid-y:ws-y': '{}',
-    'app_chat_threads_ws-y': '[]',
     'app-theme': 'dark',
   });
   assert.equal(reconcileLocalSession(null, 'uid-x', storage), 'residue');

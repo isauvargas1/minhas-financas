@@ -334,11 +334,13 @@ As Rules impõem `request.query.limit` em `investment_*`, em `goals` (até 26) e
 
 ## 8. Messages
 
-**CURRENT:** funcionalidade simulada. Threads e mensagens ficam em `localStorage` com chave `app_chat_threads`/`app_chat_messages` sufixada só pelo `workspaceId`, sem uid (`src/modules/messages/api.ts:29-66`). Há threads e usuários fixos (`src/modules/messages/api.ts:5-27,148-154`), remetente sempre `me` (`src/modules/messages/api.ts:86-93`) e presença "Online" fixa (`src/components/MessagesPanel.tsx:240`). O painel está exposto no Header (`src/components/Header.tsx:255-274`). Não existe coleção, Rule, Function nem teste.
+**CURRENT (desde a P5-E2, plano §20.13, aguardando auditoria independente):** não há Mensagens no produto. D-09 executada: saíram `src/components/MessagesPanel.tsx`, `src/components/NewConversationModal.tsx` e `src/modules/messages/` (dados e pessoas fictícios, hooks e tipos), o botão, o contador e o painel do Header, o reexport em `src/types.ts`, as chaves `app_chat_threads`/`app_chat_messages` da limpeza de sessão e o vínculo `onOpenSplitGroup`. Nenhuma coleção, Rule, índice, Function ou API de chat foi criada; a guarda `tests/unit/messages-removal-guard.test.ts` impede a volta do módulo.
 
-**TARGET (DECISION D-09):** a auditoria recomenda remover Mensagens no lançamento (módulo, painel, badge e modal), o que altera a UI e exige aprovação. Se D-09 optar por implementar: callables com Admin SDK, coleção com Rules por participante, membros reais de `members`, retenção definida em D-18, testes no Emulator e limpeza das chaves locais.
+**Registro até a P5-E1.1:** funcionalidade simulada. Threads e mensagens ficam em `localStorage` com chave `app_chat_threads`/`app_chat_messages` sufixada só pelo `workspaceId`, sem uid (`src/modules/messages/api.ts:29-66`). Há threads e usuários fixos (`src/modules/messages/api.ts:5-27,148-154`), remetente sempre `me` (`src/modules/messages/api.ts:86-93`) e presença "Online" fixa (`src/components/MessagesPanel.tsx:240`). O painel está exposto no Header (`src/components/Header.tsx:255-274`). Não existe coleção, Rule, Function nem teste.
 
-**GAP:** PR-MSG-01 (HIGH, P5). Pré-requisito de segurança: com o catch-all atual, uma coleção de mensagens sem entrada em `isBackendOwnedCollection` seria legível por qualquer membro, porque as Rules concedem por OR (MSG-02 em PR-RULES-02, MEDIUM, P6).
+**TARGET (DECISION D-09, tomada em 2026-10-12 pela remoção e executada na P5-E2):** a auditoria recomendava remover Mensagens no lançamento (módulo, painel, badge e modal), o que alterava a UI e exigia aprovação, dada em 2026-10-12. A alternativa descartada (implementar) previa: callables com Admin SDK, coleção com Rules por participante, membros reais de `members`, retenção definida em D-18, testes no Emulator e limpeza das chaves locais.
+
+**GAP:** PR-MSG-01 (HIGH, P5) resolvido na P5-E2, aguardando auditoria independente. Pré-requisito de segurança, que continua valendo para uma futura coleção de mensagens: com o catch-all atual, uma coleção de mensagens sem entrada em `isBackendOwnedCollection` seria legível por qualquer membro, porque as Rules concedem por OR (MSG-02 em PR-RULES-02, MEDIUM, P6).
 
 ## 9. Armazenamento fora do Firestore
 
@@ -346,7 +348,7 @@ As Rules impõem `request.query.limit` em `investment_*`, em `goals` (até 26) e
 | --- | --- | --- | --- |
 | `localStorage`: histórico do chat de IA | D-41 (P5-A): chave `finance_ai_chat_history_v2:<uid>:<workspaceId>` com envelope validado; persiste entre recargas da mesma sessão; apagada no logout, na troca de conta e em carga nova com outra conta; o formato antigo (sem uid) é só expurgado | `src/modules/reports/aiChatStorage.ts`; `src/modules/reports/aiChatSession.ts`; `src/lib/sessionCleanup.ts:139`; `src/contexts/AuthContext.tsx:74,108` | Manter no navegador (D-41); retenção e direitos do titular em P8 |
 | `localStorage`: último workspace | Chave `lastWorkspaceId_<uid>`, por usuário; apagada no logout e na troca de conta | `src/contexts/WorkspaceContext.tsx:39,81`; `src/lib/sessionCleanup.ts:18-23` | Manter (preferência não essencial; o membership ativo decide o acesso) |
-| `localStorage`: Messages | §8 | `src/modules/messages/api.ts:29-66` | PR-MSG-01 |
+| `localStorage`: Messages | Removido na P5-E2 (§8): nenhum código grava ou lê `app_chat_threads`/`app_chat_messages`, e a limpeza de sessão não as lista mais | `tests/unit/messages-removal-guard.test.ts`; antes `src/modules/messages/api.ts:29-66` | PR-MSG-01 resolvido na P5-E2 (aguardando auditoria) |
 | Cloud Storage | SDK inicializado, sem uso e sem `storage` em `firebase.json` | `src/lib/firebase.ts:39`; `firebase.json:1-7` | Remover ou versionar Rules antes de usar (FIRE-12) |
 
 ## 10. Testes exigidos (TARGET)

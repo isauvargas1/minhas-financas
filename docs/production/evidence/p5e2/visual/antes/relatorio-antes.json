@@ -1,0 +1,345 @@
+{
+  "arvore": "antes",
+  "combinacoes": {
+    "1440-claro": {
+      "controles": [
+        {
+          "nome": "Mês anterior",
+          "expandido": null
+        },
+        {
+          "nome": "Selecionar Mês e Ano",
+          "expandido": null
+        },
+        {
+          "nome": "Hoje",
+          "expandido": null
+        },
+        {
+          "nome": "Próximo mês",
+          "expandido": null
+        },
+        {
+          "nome": "Notificações, 3 não lidas",
+          "expandido": "false"
+        },
+        {
+          "nome": "Mensagens",
+          "expandido": "false"
+        },
+        {
+          "nome": "Ativar modo escuro",
+          "expandido": null
+        },
+        {
+          "nome": "Abrir menu da conta",
+          "expandido": "false"
+        }
+      ],
+      "alturaDoCabecalho": 60,
+      "transbordamentoHorizontal": 0,
+      "rotuloDoSino": "Notificações, 3 não lidas",
+      "botoesMensagens": 1,
+      "rotuloMensagens": "Mensagens",
+      "ordemDeFoco": [
+        "Mês anterior",
+        "Selecionar Mês e Ano",
+        "Hoje",
+        "Próximo mês",
+        "Notificações, 3 não lidas",
+        "Mensagens",
+        "Ativar modo escuro",
+        "Abrir menu da conta"
+      ],
+      "axeCabecalho": [],
+      "notificacoesAberto": "true",
+      "transbordamentoComPainel": 0,
+      "notificacoesFechaComToqueFora": true,
+      "menuDaContaFechaComCliqueFora": true
+    },
+    "1440-escuro": {
+      "controles": [
+        {
+          "nome": "Mês anterior",
+          "expandido": null
+        },
+        {
+          "nome": "Selecionar Mês e Ano",
+          "expandido": null
+        },
+        {
+          "nome": "Hoje",
+          "expandido": null
+        },
+        {
+          "nome": "Próximo mês",
+          "expandido": null
+        },
+        {
+          "nome": "Notificações, 3 não lidas",
+          "expandido": "false"
+        },
+        {
+          "nome": "Mensagens",
+          "expandido": "false"
+        },
+        {
+          "nome": "Ativar modo claro",
+          "expandido": null
+        },
+        {
+          "nome": "Abrir menu da conta",
+          "expandido": "false"
+        }
+      ],
+      "alturaDoCabecalho": 60,
+      "transbordamentoHorizontal": 0,
+      "rotuloDoSino": "Notificações, 3 não lidas",
+      "botoesMensagens": 1,
+      "rotuloMensagens": "Mensagens",
+      "ordemDeFoco": [
+        "Mês anterior",
+        "Selecionar Mês e Ano",
+        "Hoje",
+        "Próximo mês",
+        "Notificações, 3 não lidas",
+        "Mensagens",
+        "Ativar modo claro",
+        "Abrir menu da conta"
+      ],
+      "axeCabecalho": [],
+      "notificacoesAberto": "true",
+      "transbordamentoComPainel": 0,
+      "notificacoesFechaComToqueFora": true,
+      "menuDaContaFechaComCliqueFora": true
+    },
+    "390-claro": {
+      "controles": [
+        {
+          "nome": "Abrir menu",
+          "expandido": "false"
+        },
+        {
+          "nome": "Mês anterior",
+          "expandido": null
+        },
+        {
+          "nome": "Selecionar Mês e Ano",
+          "expandido": null
+        },
+        {
+          "nome": "Hoje",
+          "expandido": null
+        },
+        {
+          "nome": "Próximo mês",
+          "expandido": null
+        },
+        {
+          "nome": "Notificações, 3 não lidas",
+          "expandido": "false"
+        },
+        {
+          "nome": "Mensagens",
+          "expandido": "false"
+        },
+        {
+          "nome": "Ativar modo escuro",
+          "expandido": null
+        }
+      ],
+      "alturaDoCabecalho": 166,
+      "transbordamentoHorizontal": 0,
+      "rotuloDoSino": "Notificações, 3 não lidas",
+      "botoesMensagens": 1,
+      "rotuloMensagens": "Mensagens",
+      "ordemDeFoco": [
+        "Abrir menu",
+        "Mês anterior",
+        "Selecionar Mês e Ano",
+        "Hoje",
+        "Próximo mês",
+        "Notificações, 3 não lidas",
+        "Mensagens",
+        "Ativar modo escuro"
+      ],
+      "axeCabecalho": [],
+      "notificacoesAberto": "true",
+      "transbordamentoComPainel": 0,
+      "notificacoesFechaComToqueFora": true,
+      "menuLateralFechaComEsc": true,
+      "erro-mensagens": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveAttribute\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator:  getByRole('button', { name: /^Mensagens/ })\nExpected: \u001b[32m\"\u001b[7mfals\u001b[27me\"\u001b[39m\nReceived: \u001b[31m\"\u001b[7mtru\u001b[27me\"\u001b[39m\nTimeout:  12000ms\n\nCall log:\n\u001b[2m  - Expect \"toHaveAttribute\" with timeout 12000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('button', { name: /^Mensagens/ })\u001b[22m\n\u001b[2m    28 × locator resolved to <button type=\"button\" aria-expanded=\"true\" aria-label=\"Mensagens\" class=\"relative p-2 rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-"
+    },
+    "390-escuro": {
+      "controles": [
+        {
+          "nome": "Abrir menu",
+          "expandido": "false"
+        },
+        {
+          "nome": "Mês anterior",
+          "expandido": null
+        },
+        {
+          "nome": "Selecionar Mês e Ano",
+          "expandido": null
+        },
+        {
+          "nome": "Hoje",
+          "expandido": null
+        },
+        {
+          "nome": "Próximo mês",
+          "expandido": null
+        },
+        {
+          "nome": "Notificações, 3 não lidas",
+          "expandido": "false"
+        },
+        {
+          "nome": "Mensagens",
+          "expandido": "false"
+        },
+        {
+          "nome": "Ativar modo claro",
+          "expandido": null
+        }
+      ],
+      "alturaDoCabecalho": 166,
+      "transbordamentoHorizontal": 0,
+      "rotuloDoSino": "Notificações, 3 não lidas",
+      "botoesMensagens": 1,
+      "rotuloMensagens": "Mensagens",
+      "ordemDeFoco": [
+        "Abrir menu",
+        "Mês anterior",
+        "Selecionar Mês e Ano",
+        "Hoje",
+        "Próximo mês",
+        "Notificações, 3 não lidas",
+        "Mensagens",
+        "Ativar modo claro"
+      ],
+      "axeCabecalho": [],
+      "notificacoesAberto": "true",
+      "transbordamentoComPainel": 0,
+      "notificacoesFechaComToqueFora": true,
+      "menuLateralFechaComEsc": true,
+      "erro-mensagens": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveAttribute\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator:  getByRole('button', { name: /^Mensagens/ })\nExpected: \u001b[32m\"\u001b[7mfals\u001b[27me\"\u001b[39m\nReceived: \u001b[31m\"\u001b[7mtru\u001b[27me\"\u001b[39m\nTimeout:  12000ms\n\nCall log:\n\u001b[2m  - Expect \"toHaveAttribute\" with timeout 12000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('button', { name: /^Mensagens/ })\u001b[22m\n\u001b[2m    28 × locator resolved to <button type=\"button\" aria-expanded=\"true\" aria-label=\"Mensagens\" class=\"relative p-2 rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-"
+    },
+    "360-claro": {
+      "controles": [
+        {
+          "nome": "Abrir menu",
+          "expandido": "false"
+        },
+        {
+          "nome": "Mês anterior",
+          "expandido": null
+        },
+        {
+          "nome": "Selecionar Mês e Ano",
+          "expandido": null
+        },
+        {
+          "nome": "Hoje",
+          "expandido": null
+        },
+        {
+          "nome": "Próximo mês",
+          "expandido": null
+        },
+        {
+          "nome": "Notificações, 3 não lidas",
+          "expandido": "false"
+        },
+        {
+          "nome": "Mensagens",
+          "expandido": "false"
+        },
+        {
+          "nome": "Ativar modo escuro",
+          "expandido": null
+        }
+      ],
+      "alturaDoCabecalho": 166,
+      "transbordamentoHorizontal": 0,
+      "rotuloDoSino": "Notificações, 3 não lidas",
+      "botoesMensagens": 1,
+      "rotuloMensagens": "Mensagens",
+      "ordemDeFoco": [
+        "Abrir menu",
+        "Mês anterior",
+        "Selecionar Mês e Ano",
+        "Hoje",
+        "Próximo mês",
+        "Notificações, 3 não lidas",
+        "Mensagens",
+        "Ativar modo escuro"
+      ],
+      "axeCabecalho": [],
+      "notificacoesAberto": "true",
+      "transbordamentoComPainel": 0,
+      "notificacoesFechaComToqueFora": true,
+      "menuLateralFechaComEsc": true,
+      "erro-mensagens": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveAttribute\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator:  getByRole('button', { name: /^Mensagens/ })\nExpected: \u001b[32m\"\u001b[7mfals\u001b[27me\"\u001b[39m\nReceived: \u001b[31m\"\u001b[7mtru\u001b[27me\"\u001b[39m\nTimeout:  12000ms\n\nCall log:\n\u001b[2m  - Expect \"toHaveAttribute\" with timeout 12000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('button', { name: /^Mensagens/ })\u001b[22m\n\u001b[2m    28 × locator resolved to <button type=\"button\" aria-expanded=\"true\" aria-label=\"Mensagens\" class=\"relative p-2 rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-"
+    },
+    "360-escuro": {
+      "controles": [
+        {
+          "nome": "Abrir menu",
+          "expandido": "false"
+        },
+        {
+          "nome": "Mês anterior",
+          "expandido": null
+        },
+        {
+          "nome": "Selecionar Mês e Ano",
+          "expandido": null
+        },
+        {
+          "nome": "Hoje",
+          "expandido": null
+        },
+        {
+          "nome": "Próximo mês",
+          "expandido": null
+        },
+        {
+          "nome": "Notificações, 3 não lidas",
+          "expandido": "false"
+        },
+        {
+          "nome": "Mensagens",
+          "expandido": "false"
+        },
+        {
+          "nome": "Ativar modo claro",
+          "expandido": null
+        }
+      ],
+      "alturaDoCabecalho": 166,
+      "transbordamentoHorizontal": 0,
+      "rotuloDoSino": "Notificações, 3 não lidas",
+      "botoesMensagens": 1,
+      "rotuloMensagens": "Mensagens",
+      "ordemDeFoco": [
+        "Abrir menu",
+        "Mês anterior",
+        "Selecionar Mês e Ano",
+        "Hoje",
+        "Próximo mês",
+        "Notificações, 3 não lidas",
+        "Mensagens",
+        "Ativar modo claro"
+      ],
+      "axeCabecalho": [],
+      "notificacoesAberto": "true",
+      "transbordamentoComPainel": 0,
+      "notificacoesFechaComToqueFora": true,
+      "menuLateralFechaComEsc": true,
+      "erro-mensagens": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveAttribute\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator:  getByRole('button', { name: /^Mensagens/ })\nExpected: \u001b[32m\"\u001b[7mfals\u001b[27me\"\u001b[39m\nReceived: \u001b[31m\"\u001b[7mtru\u001b[27me\"\u001b[39m\nTimeout:  12000ms\n\nCall log:\n\u001b[2m  - Expect \"toHaveAttribute\" with timeout 12000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('button', { name: /^Mensagens/ })\u001b[22m\n\u001b[2m    28 × locator resolved to <button type=\"button\" aria-expanded=\"true\" aria-label=\"Mensagens\" class=\"relative p-2 rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-"
+    }
+  }
+}

@@ -166,7 +166,7 @@ test('P5-E1.1 Header: o fundo transparente é dono de gesto (só recebe o clique
   assert.match(header, /usePointerOriginTracking\(\);/);
   const backdrop = /<div\s+className="fixed inset-0 z-30 bg-transparent"([\s\S]*?)\/>/.exec(header)?.[1] ?? '';
   assert.match(backdrop, /\{\.\.\.pressTargetProps\}/);
-  assert.match(backdrop, /onClick=\{\(\) => \{ setIsNotificationsOpen\(false\); setIsMessagesOpen\(false\); setIsUserMenuOpen\(false\); \}\}/);
+  assert.match(backdrop, /onClick=\{\(\) => \{ setIsNotificationsOpen\(false\); setIsUserMenuOpen\(false\); \}\}/);
 });
 
 test('P5-E1.1 roteamento do clique: ouvintes de captura no documento, sem reimplementar o toque', () => {

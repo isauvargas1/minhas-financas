@@ -280,11 +280,6 @@ const AppContent: React.FC = () => {
         playSound('click');
     };
 
-    const handleOpenSplitGroup = (groupId: string) => {
-        setSelectedGroupId(groupId);
-        setView('split_group_details');
-    };
-
     // --- HANDLERS TRANSAÇÕES ---
     /*
      * Lançamento manual confirmado do formulário (P3-E). Só o modal chama.
@@ -510,7 +505,7 @@ const AppContent: React.FC = () => {
         <div className="flex min-h-screen bg-background text-on-surface font-sans">
             <Sidebar isExpanded={isSidebarExpanded} setExpanded={setIsSidebarExpanded} onNavigate={handleNavigate} currentView={view} />
             <main className="flex-1 p-4 lg:p-8 overflow-x-hidden">
-                <Header onToggleSidebar={() => setIsSidebarExpanded(!isSidebarExpanded)} isSidebarExpanded={isSidebarExpanded} onToggleDarkMode={toggleMode} isDarkMode={theme.mode === 'dark'} currentDate={currentDate} onCurrentDateChange={setCurrentDate} onNavigate={handleNavigate} onOpenSplitGroup={handleOpenSplitGroup} />
+                <Header onToggleSidebar={() => setIsSidebarExpanded(!isSidebarExpanded)} isSidebarExpanded={isSidebarExpanded} onToggleDarkMode={toggleMode} isDarkMode={theme.mode === 'dark'} currentDate={currentDate} onCurrentDateChange={setCurrentDate} onNavigate={handleNavigate} />
 
                 {view === 'dashboard' && (
                     <div className="flex flex-col gap-6">

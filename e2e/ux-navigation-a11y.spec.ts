@@ -241,7 +241,7 @@ test.describe('menu no desktop', () => {
 });
 
 test.describe('V-05 — controles do Header com nome acessível', () => {
-  test('notificações, mensagens, tema e menu da conta, com estado', async ({ page }) => {
+  test('notificações, tema e menu da conta, com estado; sem o botão de Mensagens (D-09)', async ({ page }) => {
     test.setTimeout(120_000);
     const user = persona('header');
     await resetPersona(user);
@@ -249,9 +249,12 @@ test.describe('V-05 — controles do Header com nome acessível', () => {
     await login(page, user);
 
     const notifications = page.getByRole('button', { name: /^Notificações/ });
-    const messages = page.getByRole('button', { name: /^Mensagens/ });
+    // P5-E2 (D-09): o módulo simulado de Mensagens saiu do produto. Nenhum botão
+    // de Mensagens na página, nem oculto: o envelope, o contador e o painel de
+    // conversas não existem mais, e não ficam escondidos por CSS ou condição.
+    const messages = page.getByRole('button', { name: /Mensagens/i, includeHidden: true });
     await expect(notifications).toBeVisible();
-    await expect(messages).toBeVisible();
+    await expect(messages).toHaveCount(0);
     await expect(notifications).toHaveAttribute('aria-expanded', 'false');
     await notifications.click();
     await expect(notifications).toHaveAttribute('aria-expanded', 'true');
@@ -286,5 +289,16 @@ test.describe('V-05 — controles do Header com nome acessível', () => {
         })
         .map((element) => element.outerHTML.slice(0, 120)));
     expect(unnamed).toEqual([]);
+
+    // O menu da conta também fecha pelo clique fora (a mesma camada transparente).
+    await page.mouse.click(640, 700);
+    await expect(page.getByRole('button', { name: 'Abrir menu da conta' })).toHaveAttribute('aria-expanded', 'false');
+    await expect(page.getByText('Minha Conta')).toHaveCount(0);
+
+    // No celular ficam o sino e o tema, sem o botão removido.
+    await page.setViewportSize(MOBILE);
+    await expect(notifications).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Ativar modo escuro' })).toBeVisible();
+    await expect(messages).toHaveCount(0);
   });
 });

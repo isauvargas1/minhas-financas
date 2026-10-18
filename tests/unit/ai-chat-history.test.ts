@@ -431,7 +431,6 @@ test('11b. carga nova da conta A sem dono local: preserva só o que é de A', ()
     'finance_ai_chat_history_ws-pf': '[]',
     'lastWorkspaceId_uid-a': 'ws-pf',
     'lastWorkspaceId_uid-b': 'ws-pf',
-    'app_chat_messages_ws-pf': '[]',
     'app-theme': 'dark',
   });
   assert.equal(reconcileLocalSession(null, 'uid-a', storage, ownsLocalKey), 'residue');
