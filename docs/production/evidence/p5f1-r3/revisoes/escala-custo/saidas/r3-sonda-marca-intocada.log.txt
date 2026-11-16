@@ -1,0 +1,33 @@
+{
+ "rows": [
+  {
+   "cenario": "g0, sem reconstrução",
+   "componentes": 1,
+   "bytesDocumento": 373
+  },
+  {
+   "cenario": "intocado depois de 1 reconstrução(ões)",
+   "componentes": 2,
+   "bytesDocumento": 494
+  },
+  {
+   "cenario": "intocado depois de 2 reconstrução(ões)",
+   "componentes": 3,
+   "bytesDocumento": 615
+  },
+  {
+   "cenario": "intocado depois de 3 reconstrução(ões)",
+   "componentes": 3,
+   "bytesDocumento": 615
+  },
+  {
+   "cenario": "intocado depois de 4 reconstrução(ões)",
+   "componentes": 3,
+   "bytesDocumento": 615
+  }
+ ],
+ "posicoes": [
+  "a",
+  "b"
+ ]
+}

@@ -1,0 +1,118 @@
+TAP version 13
+# Subtest: grupos: quantidade padrão 3, inteiros de 1 a 12, e recusa do resto
+ok 1 - grupos: quantidade padrão 3, inteiros de 1 a 12, e recusa do resto
+  ---
+  duration_ms: 1.821951
+  type: 'test'
+  ...
+# Subtest: grupos: o executor divide a suíte; --shard, --last-failed e --list são recusados
+ok 2 - grupos: o executor divide a suíte; --shard, --last-failed e --list são recusados
+  ---
+  duration_ms: 0.647644
+  type: 'test'
+  ...
+# Subtest: grupos (EST-01): o prazo da espera pelas portas é 60 s e só encurta
+ok 3 - grupos (EST-01): o prazo da espera pelas portas é 60 s e só encurta
+  ---
+  duration_ms: 0.29488
+  type: 'test'
+  ...
+# Subtest: grupos: as chaves dos testes do relatório são estáveis e distinguem arquivo, linha, títulos e projeto
+ok 4 - grupos: as chaves dos testes do relatório são estáveis e distinguem arquivo, linha, títulos e projeto
+  ---
+  duration_ms: 2.522857
+  type: 'test'
+  ...
+# Subtest: grupos: a execução vale só com cada teste da lista uma vez, numa tentativa, passando
+ok 5 - grupos: a execução vale só com cada teste da lista uma vez, numa tentativa, passando
+  ---
+  duration_ms: 2.327792
+  type: 'test'
+  ...
+# Subtest: grupos: as portas conferidas entre os grupos são as do Emulator e a do frontend
+ok 6 - grupos: as portas conferidas entre os grupos são as do Emulator e a do frontend
+  ---
+  duration_ms: 0.868214
+  type: 'test'
+  ...
+# Subtest: grupos: a fiação oficial (npm run test:e2e, Playwright e CI) roda os grupos, sem nova tentativa, sem .only e com o Emulator desligado no fim de cada grupo
+ok 7 - grupos: a fiação oficial (npm run test:e2e, Playwright e CI) roda os grupos, sem nova tentativa, sem .only e com o Emulator desligado no fim de cada grupo
+  ---
+  duration_ms: 0.924853
+  type: 'test'
+  ...
+# Subtest: executor: os grupos completos e passando terminam com saída 0, em sequência, cada um com relatório e saída próprios
+ok 8 - executor: os grupos completos e passando terminam com saída 0, em sequência, cada um com relatório e saída próprios
+  ---
+  duration_ms: 247.465868
+  type: 'test'
+  ...
+# Subtest: executor: teste que não rodou, teste instável ou grupo com saída diferente de 0 reprovam a execução
+ok 9 - executor: teste que não rodou, teste instável ou grupo com saída diferente de 0 reprovam a execução
+  ---
+  duration_ms: 1251.892733
+  type: 'test'
+  ...
+# Subtest: portas (EST-01): a espera libera a porta que fecha no meio e devolve a que continua ocupada no fim do prazo
+ok 10 - portas (EST-01): a espera libera a porta que fecha no meio e devolve a que continua ocupada no fim do prazo
+  ---
+  duration_ms: 923.858924
+  type: 'test'
+  ...
+# Subtest: executor (EST-01): porta ocupada antes do primeiro grupo e depois de um grupo é esperada, sem encerrar processo, e a execução segue quando ela libera
+ok 11 - executor (EST-01): porta ocupada antes do primeiro grupo e depois de um grupo é esperada, sem encerrar processo, e a execução segue quando ela libera
+  ---
+  duration_ms: 3446.442041
+  type: 'test'
+  ...
+# Subtest: executor (EST-01): porta ocupada antes do primeiro grupo reprova sem rodar grupo nenhum, e quem a ocupa continua lá
+ok 12 - executor (EST-01): porta ocupada antes do primeiro grupo reprova sem rodar grupo nenhum, e quem a ocupa continua lá
+  ---
+  duration_ms: 645.948099
+  type: 'test'
+  ...
+# Subtest: executor (EST-01): porta que não libera depois de um grupo reprova com "ainda em uso" e para os grupos seguintes
+ok 13 - executor (EST-01): porta que não libera depois de um grupo reprova com "ainda em uso" e para os grupos seguintes
+  ---
+  duration_ms: 1615.453485
+  type: 'test'
+  ...
+# Subtest: executor (EST-02): SIGTERM no executor, SIGTERM no grupo de processos dele e Ctrl+C viram um SIGINT só ao grupo em curso; os seguintes não rodam e a saída é 128 + o sinal
+ok 14 - executor (EST-02): SIGTERM no executor, SIGTERM no grupo de processos dele e Ctrl+C viram um SIGINT só ao grupo em curso; os seguintes não rodam e a saída é 128 + o sinal
+  ---
+  duration_ms: 821.822904
+  type: 'test'
+  ...
+# Subtest: executor (EST-11): SIGHUP (o terminal fechado) e SIGQUIT (Ctrl+\\) no executor também viram um SIGINT só ao grupo em curso; a saída é 129 e 131
+ok 15 - executor (EST-11): SIGHUP (o terminal fechado) e SIGQUIT (Ctrl+\\) no executor também viram um SIGINT só ao grupo em curso; a saída é 129 e 131
+  ---
+  duration_ms: 653.748481
+  type: 'test'
+  ...
+# Subtest: executor (EST-11): o sinal durante a espera das portas entre os grupos para a execução: o grupo seguinte não roda e a saída é 143
+ok 16 - executor (EST-11): o sinal durante a espera das portas entre os grupos para a execução: o grupo seguinte não roda e a saída é 143
+  ---
+  duration_ms: 3286.682422
+  type: 'test'
+  ...
+# Subtest: executor (EST-11): o sinal depois do último grupo reprova a execução com 128 + o sinal, mesmo com todos os testes passando
+ok 17 - executor (EST-11): o sinal depois do último grupo reprova a execução com 128 + o sinal, mesmo com todos os testes passando
+  ---
+  duration_ms: 3319.337375
+  type: 'test'
+  ...
+# Subtest: executor: argumento recusado, quantidade inválida, build ou lista com falha param antes de qualquer grupo
+ok 18 - executor: argumento recusado, quantidade inválida, build ou lista com falha param antes de qualquer grupo
+  ---
+  duration_ms: 375.747735
+  type: 'test'
+  ...
+1..18
+# tests 18
+# suites 0
+# pass 18
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 16698.167984

@@ -1,0 +1,23 @@
+== remonta (SNAP)
+1ª montagem: loading → R$10560 | estimativa depois de 463 ms
+2ª montagem (mesmo cache): loading → R$10560 | estimativa depois de 419 ms
+3ª montagem (sessão nova): loading → R$10560 | estimativa depois de 426 ms | espera configurada: 400 ms
+== limite-a-direcao (SNAP)
+depois da espera, antes do gatilho: loading → R$10260
+estados: loading → R$10260 → R$10560
+consistente: R$10560; misto (valor novo tirado do total velho): R$10260 → SUBESTIMA a renda em R$ 300,00
+== limite-b-direcao (SNAP)
+gatilho fora de ordem (só +100): R$10560 → R$10360
+estados: R$10560 → R$10360 → R$10660
+consistentes: R$10560 (antes) e R$10660 (depois); misto: R$10360 (4.120 − 800 + 7.040) → SUBESTIMA
+== n05 (SNAP)
+escuta recusada, com desconsiderada: loading → erro:"Não foi possível confirmar a estimativa …" | leituras por id: 0
+== escuta-cai-durante-espera (SNAP)
+estados: loading → erro:"Não foi possível confirmar a estimativa …"
+== n06 @ arvore-d7dabb10
+estados: R$10560 → R$10560(aviso) → R$10660 | última: R$10660
+== n06 @ arvore-b97806c4
+estados: R$10560 | última: R$10560
+1ª montagem: loading → R$10560 | estimativa depois de 35 ms
+2ª montagem (mesmo cache): loading → R$10560 | estimativa depois de 5 ms
+3ª montagem (sessão nova): loading → R$10560 | estimativa depois de 26 ms | espera configurada: 400 ms

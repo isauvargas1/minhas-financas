@@ -1,0 +1,14 @@
+import { dayPlan, type DaySpec, type WorkCalendar, type WorkRoutine } from "../../wt-p5f1/src/modules/work-time/calendar.ts"; // executado de <scratchpad>/p5f1/conferir
+const w = (start: string, end: string, breakMinutes = 0): DaySpec => {
+  const m = (t: string) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5));
+  return { kind: 'window', start: m(start), end: m(end), breakMinutes };
+};
+const every = (spec: DaySpec): WorkRoutine => ({ kind: 'weekly', days: [spec, spec, spec, spec, spec, spec, spec] });
+const cal = (routines: WorkRoutine[]): WorkCalendar => ({ routines, worksOnHolidays: true, localHolidays: [], exceptions: [] } as unknown as WorkCalendar);
+const d = '2026-03-03';
+const a = every(w('08:00', '12:00')), b = every(w('13:00', '17:00')), c = every(w('09:00', '11:00', 90));
+console.log('08-12 + 13-17:', dayPlan(cal([a, b]), d).minutes);
+console.log('08-12 + 13-17 + 09-11/90:', dayPlan(cal([a, b, c]), d).minutes);
+const r1 = every(w('00:00', '10:00')), r2 = every(w('22:00', '10:00', 600));
+console.log('00-10 sozinha:', dayPlan(cal([r1]), d).minutes);
+console.log('00-10 + 22-10/600:', dayPlan(cal([r1, r2]), d).minutes);

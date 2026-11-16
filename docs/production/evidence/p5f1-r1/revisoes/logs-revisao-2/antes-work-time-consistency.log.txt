@@ -1,0 +1,335 @@
+TAP version 13
+# Subtest: prova: cada regra, na ordem, com o motivo da primeira que falha
+not ok 1 - prova: cada regra, na ordem, com o motivo da primeira que falha
+  ---
+  duration_ms: 2.818648
+  type: 'test'
+  location: '<scratchpad>/p5f1r1/revisao2/b97806c4-com-testes-d7dabb10/tests/unit/work-time-consistency.test.ts:77:1'
+  failureType: 'testCodeFailure'
+  error: 'pendingWriteKey ausente na árvore b97806c4'
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    pendingWriteKey (file://<scratchpad>/p5f1r1/revisao2/b97806c4-com-testes-d7dabb10/tests/unit/work-time-consistency.test.ts:15:59)
+    TestContext.<anonymous> (file://<scratchpad>/p5f1r1/revisao2/b97806c4-com-testes-d7dabb10/tests/unit/work-time-consistency.test.ts:113:76)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.start (node:internal/test_runner/test:944:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)
+  ...
+# Subtest: prova: as escritas que o próprio documento mostra (criação, confirmação, anulação e estorno)
+not ok 2 - prova: as escritas que o próprio documento mostra (criação, confirmação, anulação e estorno)
+  ---
+  duration_ms: 3.903202
+  type: 'test'
+  location: '<scratchpad>/p5f1r1/revisao2/b97806c4-com-testes-d7dabb10/tests/unit/work-time-consistency.test.ts:128:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+
+      [
+        {
+          at: {
+            nanoseconds: 0,
+            seconds: 3
+          },
+    -     id: 'r1',
+          month: '2026-10'
+        },
+    -   {
+    -     at: {
+    -       nanoseconds: 0,
+    -       seconds: 3
+    -     },
+    -     bounded: true,
+    -     id: 'r1',
+    -     month: '2026-10'
+    -   }
+      ]
+
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    0:
+      id: 'r1'
+      month: '2026-10'
+      at:
+        seconds: 3
+        nanoseconds: 0
+    1:
+      id: 'r1'
+      month: '2026-10'
+      at:
+        seconds: 3
+        nanoseconds: 0
+      bounded: true
+  actual:
+    0:
+      month: '2026-10'
+      at:
+        seconds: 3
+        nanoseconds: 0
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (file://<scratchpad>/p5f1r1/revisao2/b97806c4-com-testes-d7dabb10/tests/unit/work-time-consistency.test.ts:131:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: prova: as mudanças vistas entre duas leituras por id, com a hora do estado novo; uma leitura mais velha não volta o estado
+not ok 3 - prova: as mudanças vistas entre duas leituras por id, com a hora do estado novo; uma leitura mais velha não volta o estado
+  ---
+  duration_ms: 1.164676
+  type: 'test'
+  location: '<scratchpad>/p5f1r1/revisao2/b97806c4-com-testes-d7dabb10/tests/unit/work-time-consistency.test.ts:155:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    valor mudado, com espera limitada
+    + actual - expected
+
+      [
+        {
+          at: {
+            nanoseconds: 0,
+            seconds: 9
+          },
+    -     bounded: true,
+          id: 'r1',
+          month: '2026-10'
+        }
+      ]
+
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    0:
+      id: 'r1'
+      month: '2026-10'
+      at:
+        seconds: 9
+        nanoseconds: 0
+      bounded: true
+  actual:
+    0:
+      id: 'r1'
+      month: '2026-10'
+      at:
+        seconds: 9
+        nanoseconds: 0
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (file://<scratchpad>/p5f1r1/revisao2/b97806c4-com-testes-d7dabb10/tests/unit/work-time-consistency.test.ts:160:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: B03: a primeira estimativa só aparece provada pela projeção, com a leitura por id depois dela (a escuta antes das bases)
+ok 4 - B03: a primeira estimativa só aparece provada pela projeção, com a leitura por id depois dela (a escuta antes das bases)
+  ---
+  duration_ms: 116.979807
+  type: 'test'
+  ...
+# Subtest: B03: a primeira estimativa só aparece provada pela projeção, com a leitura por id depois dela (a escuta depois das bases)
+ok 5 - B03: a primeira estimativa só aparece provada pela projeção, com a leitura por id depois dela (a escuta depois das bases)
+  ---
+  duration_ms: 128.068518
+  type: 'test'
+  ...
+# Subtest: B03: a primeira estimativa só aparece provada pela projeção, com a leitura por id depois dela (a escuta só quando o servidor responde)
+ok 6 - B03: a primeira estimativa só aparece provada pela projeção, com a leitura por id depois dela (a escuta só quando o servidor responde)
+  ---
+  duration_ms: 143.758361
+  type: 'test'
+  ...
+# Subtest: B03: a projeção mais nova que a base lida na montagem: nunca a estimativa da base antiga; a base é relida e a nova aparece provada
+ok 7 - B03: a projeção mais nova que a base lida na montagem: nunca a estimativa da base antiga; a base é relida e a nova aparece provada
+  ---
+  duration_ms: 176.835715
+  type: 'test'
+  ...
+# Subtest: B03: uma base e nenhuma desconsiderada: a leitura única é provada mesmo com a escuta encerrada, com a ressalva
+ok 8 - B03: uma base e nenhuma desconsiderada: a leitura única é provada mesmo com a escuta encerrada, com a ressalva
+  ---
+  duration_ms: 21.050529
+  type: 'test'
+  ...
+# Subtest: B03: janela de 12 meses com a escuta encerrada desde o começo: sem prova, o erro com "Tentar de novo"; com a escuta de volta, a estimativa provada
+ok 9 - B03: janela de 12 meses com a escuta encerrada desde o começo: sem prova, o erro com "Tentar de novo"; com a escuta de volta, a estimativa provada
+  ---
+  duration_ms: 77.13235
+  type: 'test'
+  ...
+# Subtest: B03 (R8-02): a desconsiderada do 12º mês anulada em outra sessão e a troca para 12 meses: o mês avulso novo nunca aparece com a exclusão antiga
+ok 10 - B03 (R8-02): a desconsiderada do 12º mês anulada em outra sessão e a troca para 12 meses: o mês avulso novo nunca aparece com a exclusão antiga
+  ---
+  duration_ms: 201.993843
+  type: 'test'
+  ...
+# Subtest: B03 (R11-01): o mês avulso sai da janela com a leitura em curso e volta desatualizado: a base antiga não aparece, e é relida
+ok 11 - B03 (R11-01): o mês avulso sai da janela com a leitura em curso e volta desatualizado: a base antiga não aparece, e é relida
+  ---
+  duration_ms: 516.588875
+  type: 'test'
+  ...
+# Subtest: B03 (R11-02): 12 meses sem desconsiderada, as bases relidas sem pedido da escuta (a virada do mês) e o mês avulso falhando: nenhuma renderização mostra só a série nova
+ok 12 - B03 (R11-02): 12 meses sem desconsiderada, as bases relidas sem pedido da escuta (a virada do mês) e o mês avulso falhando: nenhuma renderização mostra só a série nova
+  ---
+  duration_ms: 527.400423
+  type: 'test'
+  ...
+# Subtest: B03: o calendário trocado durante a sincronização de uma anulação em outra sessão: nunca a base nova com a leitura por id antiga
+ok 13 - B03: o calendário trocado durante a sincronização de uma anulação em outra sessão: nunca a base nova com a leitura por id antiga
+  ---
+  duration_ms: 483.596067
+  type: 'test'
+  ...
+# Subtest: B03: troca do workspace da renda: a estimativa do anterior nunca aparece; só "calculando" até a do novo estar provada
+ok 14 - B03: troca do workspace da renda: a estimativa do anterior nunca aparece; só "calculando" até a do novo estar provada
+  ---
+  duration_ms: 207.013111
+  type: 'test'
+  ...
+# Subtest: B03: troca de conta: a estimativa da conta anterior não é reaproveitada
+ok 15 - B03: troca de conta: a estimativa da conta anterior não é reaproveitada
+  ---
+  duration_ms: 195.955015
+  type: 'test'
+  ...
+# Subtest: B03: nova receita e anulação da desconsiderada em outra sessão durante a releitura por id: nenhuma renderização desconta duas vezes
+ok 16 - B03: nova receita e anulação da desconsiderada em outra sessão durante a releitura por id: nenhuma renderização desconta duas vezes
+  ---
+  duration_ms: 480.060372
+  type: 'test'
+  ...
+# Subtest: B03: a leitura por id falha antes da primeira estimativa: o erro com "Tentar de novo", nunca o total sem as exclusões
+ok 17 - B03: a leitura por id falha antes da primeira estimativa: o erro com "Tentar de novo", nunca o total sem as exclusões
+  ---
+  duration_ms: 34.877412
+  type: 'test'
+  ...
+# Subtest: revisão da R1 (N05): com desconsiderada, a escuta encerrada antes do primeiro retorno do servidor dá o erro com "Tentar de novo", nunca "calculando" para sempre
+not ok 18 - revisão da R1 (N05): com desconsiderada, a escuta encerrada antes do primeiro retorno do servidor dá o erro com "Tentar de novo", nunca "calculando" para sempre
+  ---
+  duration_ms: 3004.660876
+  type: 'test'
+  location: '<scratchpad>/p5f1r1/revisao2/b97806c4-com-testes-d7dabb10/tests/unit/work-time-consistency.test.ts:626:1'
+  failureType: 'testCodeFailure'
+  error: 'tempo esgotado: o erro (mostrados: loading)'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  operator: 'fail'
+  stack: |-
+    until (file://<scratchpad>/p5f1r1/revisao2/b97806c4-com-testes-d7dabb10/tests/unit/work-time-consistency.test.ts:49:57)
+    async TestContext.<anonymous> (file://<scratchpad>/p5f1r1/revisao2/b97806c4-com-testes-d7dabb10/tests/unit/work-time-consistency.test.ts:631:3)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: revisão da R1 (N03): a desconsiderada editada em outra sessão antes do gatilho, na primeira leitura: nunca o valor novo com o total velho
+not ok 19 - revisão da R1 (N03): a desconsiderada editada em outra sessão antes do gatilho, na primeira leitura: nunca o valor novo com o total velho
+  ---
+  duration_ms: 213.133204
+  type: 'test'
+  location: '<scratchpad>/p5f1r1/revisao2/b97806c4-com-testes-d7dabb10/tests/unit/work-time-consistency.test.ts:646:1'
+  failureType: 'testCodeFailure'
+  error: 'antes do gatilho, nenhuma estimativa (mostrados: loading → 1026000)'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (file://<scratchpad>/p5f1r1/revisao2/b97806c4-com-testes-d7dabb10/tests/unit/work-time-consistency.test.ts:655:10)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: revisão da R1 (N03): a desconsiderada editada sem efeito na renda (o gatilho não grava): a estimativa aparece só depois da espera limitada, com o valor certo
+not ok 20 - revisão da R1 (N03): a desconsiderada editada sem efeito na renda (o gatilho não grava): a estimativa aparece só depois da espera limitada, com o valor certo
+  ---
+  duration_ms: 28.776123
+  type: 'test'
+  location: '<scratchpad>/p5f1r1/revisao2/b97806c4-com-testes-d7dabb10/tests/unit/work-time-consistency.test.ts:665:1'
+  failureType: 'testCodeFailure'
+  error: 'só depois da espera limitada (28 ms)'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (file://<scratchpad>/p5f1r1/revisao2/b97806c4-com-testes-d7dabb10/tests/unit/work-time-consistency.test.ts:674:10)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: revisão da R1 (N06): a edição sem efeito na renda depois da mudança vista não prende a estimativa; outra receita entra depois da espera limitada
+not ok 21 - revisão da R1 (N06): a edição sem efeito na renda depois da mudança vista não prende a estimativa; outra receita entra depois da espera limitada
+  ---
+  duration_ms: 3130.712554
+  type: 'test'
+  location: '<scratchpad>/p5f1r1/revisao2/b97806c4-com-testes-d7dabb10/tests/unit/work-time-consistency.test.ts:678:1'
+  failureType: 'testCodeFailure'
+  error: 'tempo esgotado: agosto novo, depois da espera limitada (mostrados: loading → 1056000)'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  operator: 'fail'
+  stack: |-
+    until (file://<scratchpad>/p5f1r1/revisao2/b97806c4-com-testes-d7dabb10/tests/unit/work-time-consistency.test.ts:49:57)
+    async TestContext.<anonymous> (file://<scratchpad>/p5f1r1/revisao2/b97806c4-com-testes-d7dabb10/tests/unit/work-time-consistency.test.ts:695:3)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: revisão da R1 (N06): a última estimativa provada mostrada no lugar da atual por mais que a espera limitada ganha o aviso e o "Tentar de novo"
+not ok 22 - revisão da R1 (N06): a última estimativa provada mostrada no lugar da atual por mais que a espera limitada ganha o aviso e o "Tentar de novo"
+  ---
+  duration_ms: 2589.292713
+  type: 'test'
+  location: '<scratchpad>/p5f1r1/revisao2/b97806c4-com-testes-d7dabb10/tests/unit/work-time-consistency.test.ts:700:1'
+  failureType: 'testCodeFailure'
+  error: 'tempo esgotado: o aviso na anterior (mostrados: loading → 1056000 → 1086000)'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  operator: 'fail'
+  stack: |-
+    until (file://<scratchpad>/p5f1r1/revisao2/b97806c4-com-testes-d7dabb10/tests/unit/work-time-consistency.test.ts:49:57)
+    async TestContext.<anonymous> (file://<scratchpad>/p5f1r1/revisao2/b97806c4-com-testes-d7dabb10/tests/unit/work-time-consistency.test.ts:711:3)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: B01: o recebimento desconsiderado é estornado em outra sessão (depois da sincronização): a exclusão perde o efeito, nunca desconta de novo
+ok 23 - B01: o recebimento desconsiderado é estornado em outra sessão (depois da sincronização): a exclusão perde o efeito, nunca desconta de novo
+  ---
+  duration_ms: 304.821996
+  type: 'test'
+  ...
+# Subtest: B01: o recebimento desconsiderado é estornado em outra sessão (durante a releitura por id): a exclusão perde o efeito, nunca desconta de novo
+ok 24 - B01: o recebimento desconsiderado é estornado em outra sessão (durante a releitura por id): a exclusão perde o efeito, nunca desconta de novo
+  ---
+  duration_ms: 474.490232
+  type: 'test'
+  ...
+# Subtest: B01: o estorno lido antes de a projeção incluí-lo nunca aparece com o total antigo (a exclusão sem efeito com A ainda somado)
+ok 25 - B01: o estorno lido antes de a projeção incluí-lo nunca aparece com o total antigo (a exclusão sem efeito com A ainda somado)
+  ---
+  duration_ms: 483.858228
+  type: 'test'
+  ...
+# Subtest: B01: o recebimento desconsiderado sem estorno continua descontado; com dois desconsiderados, só o estornado perde o efeito
+ok 26 - B01: o recebimento desconsiderado sem estorno continua descontado; com dois desconsiderados, só o estornado perde o efeito
+  ---
+  duration_ms: 287.946036
+  type: 'test'
+  ...
+1..26
+# tests 26
+# suites 0
+# pass 18
+# fail 8
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 14180.61407

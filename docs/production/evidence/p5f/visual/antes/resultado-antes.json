@@ -1,0 +1,1162 @@
+[
+  {
+    "name": "dinheiro-dashboard-desktop-light",
+    "overflow": 0,
+    "violations": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "count": 5,
+        "nodes": [
+          {
+            "target": [
+              ".text-green-600.dark\\:text-green-400.mt-2 > span"
+            ],
+            "html": "<span>Mensal</span>"
+          },
+          {
+            "target": [
+              ".border-gray-100.dark\\:border-gray-800:nth-child(1) > .text-gray-600.dark\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+            ],
+            "html": "<span>Renda P5F</span>"
+          },
+          {
+            "target": [
+              ".text-center.text-green-600.dark\\:text-green-400"
+            ],
+            "html": "<td class=\"py-4 px-4 text-center font-medium text-green-600 dark:text-green-400\">+ R$&nbsp;3.000,00</td>"
+          },
+          {
+            "target": [
+              ".gap-1.flex-col.flex > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+            ],
+            "html": "<span>Mercado P5F</span>"
+          },
+          {
+            "target": [
+              ".border-gray-100.dark\\:border-gray-800:nth-child(2) > .text-gray-600.dark\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+            ],
+            "html": "<span>Mercado P5F</span>"
+          }
+        ]
+      },
+      {
+        "id": "select-name",
+        "impact": "critical",
+        "help": "Select element must have an accessible name",
+        "count": 1,
+        "nodes": [
+          {
+            "target": [
+              "select"
+            ],
+            "html": "<select class=\"border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-200 text-gray-800 dark:text-gray-200 rounded-lg px-3 py-2 text-sm focus:outline"
+          }
+        ]
+      },
+      {
+        "id": "svg-img-alt",
+        "impact": "serious",
+        "help": "<svg> elements with an img or image role must have alternative text",
+        "count": 2,
+        "nodes": [
+          {
+            "target": [
+              "path[name=\"Receitas\"]"
+            ],
+            "html": "<path cx=\"297\" cy=\"128\" name=\"Receitas\" stroke=\"#fff\" fill=\"#22c55e\" tabindex=\"-1\" class=\"recharts-sector\" d=\"M 397,128\n    A 100,100,0,\n    1,0,\n    361.459607"
+          },
+          {
+            "target": [
+              "path[name=\"Despesas\"]"
+            ],
+            "html": "<path cx=\"297\" cy=\"128\" name=\"Despesas\" stroke=\"#fff\" fill=\"#ef4444\" tabindex=\"-1\" class=\"recharts-sector\" d=\"M 361.4596071796422,204.4523318300117\n    A 100,10"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "dinheiro-relatorios-desktop-light",
+    "overflow": 0,
+    "violations": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "count": 4,
+        "nodes": [
+          {
+            "target": [
+              ".hover\\:bg-background\\/40:nth-child(1) > .text-green-600:nth-child(2)"
+            ],
+            "html": "<td class=\"px-6 py-4 text-right text-green-600 font-medium\">R$&nbsp;3.000,00</td>"
+          },
+          {
+            "target": [
+              ".hover\\:bg-background\\/40:nth-child(1) > .text-green-600:nth-child(4)"
+            ],
+            "html": "<td class=\"px-6 py-4 text-right font-black text-green-600\">R$&nbsp;2.517,65</td>"
+          },
+          {
+            "target": [
+              ".hover\\:bg-background\\/40:nth-child(2) > .text-green-600:nth-child(2)"
+            ],
+            "html": "<td class=\"px-6 py-4 text-right text-green-600 font-medium\">R$&nbsp;0,00</td>"
+          },
+          {
+            "target": [
+              ".hover\\:bg-background\\/40:nth-child(2) > .text-green-600:nth-child(4)"
+            ],
+            "html": "<td class=\"px-6 py-4 text-right font-black text-green-600\">R$&nbsp;0,00</td>"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "dinheiro-graficos-desktop-light",
+    "overflow": 0,
+    "violations": [
+      {
+        "id": "svg-img-alt",
+        "impact": "serious",
+        "help": "<svg> elements with an img or image role must have alternative text",
+        "count": 1,
+        "nodes": [
+          {
+            "target": [
+              ".recharts-sector"
+            ],
+            "html": "<path cx=\"242.5\" cy=\"128\" name=\"Mercado P5F\" stroke=\"#ffffff\" fill=\"#ef4444\" color=\"#ef4444\" stroke-width=\"2\" tabindex=\"-1\" class=\"recharts-sector\" d=\"M 322.5,1"
+          }
+        ]
+      }
+    ],
+    "notes": {
+      "yTicks": [
+        "R$0k",
+        "R$0.75k",
+        "R$1.5k",
+        "R$2.25k",
+        "R$3k",
+        "R$0k",
+        "R$0.001k",
+        "R$0.002k",
+        "R$0.003k",
+        "R$0.004k"
+      ]
+    }
+  },
+  {
+    "name": "dinheiro-configuracoes-desktop-light",
+    "overflow": 0,
+    "violations": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "count": 1,
+        "nodes": [
+          {
+            "target": [
+              ".text-emerald-600.text-sm.font-bold"
+            ],
+            "html": "<div class=\"flex items-center text-emerald-600 font-bold text-sm\">Acessar <span class=\"ml-1\">→</span></div>"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "dinheiro-dashboard-desktop-dark",
+    "overflow": 0,
+    "violations": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "count": 3,
+        "nodes": [
+          {
+            "target": [
+              ".border-gray-100.dark\\:border-gray-800:nth-child(1) > .text-gray-600.dark\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+            ],
+            "html": "<span>Renda P5F</span>"
+          },
+          {
+            "target": [
+              ".gap-1.flex-col.flex > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+            ],
+            "html": "<span>Mercado P5F</span>"
+          },
+          {
+            "target": [
+              ".border-gray-100.dark\\:border-gray-800:nth-child(2) > .text-gray-600.dark\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+            ],
+            "html": "<span>Mercado P5F</span>"
+          }
+        ]
+      },
+      {
+        "id": "select-name",
+        "impact": "critical",
+        "help": "Select element must have an accessible name",
+        "count": 1,
+        "nodes": [
+          {
+            "target": [
+              "select"
+            ],
+            "html": "<select class=\"border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-200 text-gray-800 dark:text-gray-200 rounded-lg px-3 py-2 text-sm focus:outline"
+          }
+        ]
+      },
+      {
+        "id": "svg-img-alt",
+        "impact": "serious",
+        "help": "<svg> elements with an img or image role must have alternative text",
+        "count": 2,
+        "nodes": [
+          {
+            "target": [
+              "path[name=\"Receitas\"]"
+            ],
+            "html": "<path cx=\"297\" cy=\"128\" name=\"Receitas\" stroke=\"#fff\" fill=\"#22c55e\" tabindex=\"-1\" class=\"recharts-sector\" d=\"M 397,128\n    A 100,100,0,\n    1,0,\n    361.459607"
+          },
+          {
+            "target": [
+              "path[name=\"Despesas\"]"
+            ],
+            "html": "<path cx=\"297\" cy=\"128\" name=\"Despesas\" stroke=\"#fff\" fill=\"#f87171\" tabindex=\"-1\" class=\"recharts-sector\" d=\"M 361.4596071796422,204.4523318300117\n    A 100,10"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "dinheiro-relatorios-desktop-dark",
+    "overflow": 0,
+    "violations": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "count": 9,
+        "nodes": [
+          {
+            "target": [
+              "#reports-tab-overview"
+            ],
+            "html": "<button id=\"reports-tab-overview\" type=\"button\" role=\"tab\" aria-selected=\"true\" aria-controls=\"reports-panel-overvi...\" tabindex=\"0\" class=\"px-4 py-3 text-sm fo"
+          },
+          {
+            "target": [
+              ".text-green-700 > .uppercase"
+            ],
+            "html": "<span class=\"uppercase\">Positivo</span>"
+          },
+          {
+            "target": [
+              ".hover\\:bg-background\\/40:nth-child(1) > .text-green-600:nth-child(2)"
+            ],
+            "html": "<td class=\"px-6 py-4 text-right text-green-600 font-medium\">R$&nbsp;3.000,00</td>"
+          },
+          {
+            "target": [
+              ".hover\\:bg-background\\/40:nth-child(1) > .text-red-600"
+            ],
+            "html": "<td class=\"px-6 py-4 text-right text-red-600 font-medium\">R$&nbsp;482,35</td>"
+          },
+          {
+            "target": [
+              ".hover\\:bg-background\\/40:nth-child(1) > .text-green-600:nth-child(4)"
+            ],
+            "html": "<td class=\"px-6 py-4 text-right font-black text-green-600\">R$&nbsp;2.517,65</td>"
+          },
+          {
+            "target": [
+              ".hover\\:bg-background\\/40:nth-child(2) > .text-green-600:nth-child(2)"
+            ],
+            "html": "<td class=\"px-6 py-4 text-right text-green-600 font-medium\">R$&nbsp;0,00</td>"
+          },
+          {
+            "target": [
+              ".hover\\:bg-background\\/40:nth-child(2) > .text-red-600"
+            ],
+            "html": "<td class=\"px-6 py-4 text-right text-red-600 font-medium\">R$&nbsp;0,00</td>"
+          },
+          {
+            "target": [
+              ".hover\\:bg-background\\/40:nth-child(2) > .text-green-600:nth-child(4)"
+            ],
+            "html": "<td class=\"px-6 py-4 text-right font-black text-green-600\">R$&nbsp;0,00</td>"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "dinheiro-graficos-desktop-dark",
+    "overflow": 0,
+    "violations": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "count": 1,
+        "nodes": [
+          {
+            "target": [
+              "#reports-tab-charts"
+            ],
+            "html": "<button id=\"reports-tab-charts\" type=\"button\" role=\"tab\" aria-selected=\"true\" aria-controls=\"reports-panel-charts\" tabindex=\"0\" class=\"px-4 py-3 text-sm fo...\">"
+          }
+        ]
+      },
+      {
+        "id": "svg-img-alt",
+        "impact": "serious",
+        "help": "<svg> elements with an img or image role must have alternative text",
+        "count": 1,
+        "nodes": [
+          {
+            "target": [
+              ".recharts-sector"
+            ],
+            "html": "<path cx=\"242.5\" cy=\"128\" name=\"Mercado P5F\" stroke=\"#1E293B\" fill=\"#f87171\" color=\"#f87171\" stroke-width=\"2\" tabindex=\"-1\" class=\"recharts-sector\" d=\"M 322.5,1"
+          }
+        ]
+      }
+    ],
+    "notes": {
+      "yTicks": [
+        "R$0k",
+        "R$0.75k",
+        "R$1.5k",
+        "R$2.25k",
+        "R$3k",
+        "R$0k",
+        "R$0.001k",
+        "R$0.002k",
+        "R$0.003k",
+        "R$0.004k"
+      ]
+    }
+  },
+  {
+    "name": "dinheiro-configuracoes-desktop-dark",
+    "overflow": 0,
+    "violations": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "count": 4,
+        "nodes": [
+          {
+            "target": [
+              ".text-blue-600.text-sm.font-bold"
+            ],
+            "html": "<div class=\"flex items-center text-blue-600 font-bold text-sm\">Gerenciar <span class=\"ml-1\">→</span></div>"
+          },
+          {
+            "target": [
+              ".text-indigo-600.text-sm.font-bold"
+            ],
+            "html": "<div class=\"flex items-center text-indigo-600 font-bold text-sm\">Acessar <span class=\"ml-1\">→</span></div>"
+          },
+          {
+            "target": [
+              ".text-emerald-600.text-sm.font-bold"
+            ],
+            "html": "<div class=\"flex items-center text-emerald-600 font-bold text-sm\">Acessar <span class=\"ml-1\">→</span></div>"
+          },
+          {
+            "target": [
+              ".text-pink-600.text-sm.font-bold"
+            ],
+            "html": "<div class=\"flex items-center text-pink-600 font-bold text-sm\">Acessar <span class=\"ml-1\">→</span></div>"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "dinheiro-dashboard-mobile-light",
+    "overflow": 0,
+    "violations": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "count": 4,
+        "nodes": [
+          {
+            "target": [
+              ".text-green-600.dark\\:text-green-400.mt-2 > span"
+            ],
+            "html": "<span>Mensal</span>"
+          },
+          {
+            "target": [
+              ".border-gray-100.dark\\:border-gray-800:nth-child(1) > .text-gray-600.dark\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+            ],
+            "html": "<span>Renda P5F</span>"
+          },
+          {
+            "target": [
+              ".gap-1.flex-col.flex > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+            ],
+            "html": "<span>Mercado P5F</span>"
+          },
+          {
+            "target": [
+              ".border-gray-100.dark\\:border-gray-800:nth-child(2) > .text-gray-600.dark\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+            ],
+            "html": "<span>Mercado P5F</span>"
+          }
+        ]
+      },
+      {
+        "id": "select-name",
+        "impact": "critical",
+        "help": "Select element must have an accessible name",
+        "count": 1,
+        "nodes": [
+          {
+            "target": [
+              "select"
+            ],
+            "html": "<select class=\"border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-200 text-gray-800 dark:text-gray-200 rounded-lg px-3 py-2 text-sm focus:outline"
+          }
+        ]
+      },
+      {
+        "id": "svg-img-alt",
+        "impact": "serious",
+        "help": "<svg> elements with an img or image role must have alternative text",
+        "count": 2,
+        "nodes": [
+          {
+            "target": [
+              "path[name=\"Receitas\"]"
+            ],
+            "html": "<path cx=\"154\" cy=\"128\" name=\"Receitas\" stroke=\"#fff\" fill=\"#22c55e\" tabindex=\"-1\" class=\"recharts-sector\" d=\"M 254,128\n    A 100,100,0,\n    1,0,\n    218.459607"
+          },
+          {
+            "target": [
+              "path[name=\"Despesas\"]"
+            ],
+            "html": "<path cx=\"154\" cy=\"128\" name=\"Despesas\" stroke=\"#fff\" fill=\"#ef4444\" tabindex=\"-1\" class=\"recharts-sector\" d=\"M 218.4596071796422,204.4523318300117\n    A 100,10"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "dinheiro-relatorios-mobile-light",
+    "overflow": 0,
+    "violations": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "count": 2,
+        "nodes": [
+          {
+            "target": [
+              ".hover\\:bg-background\\/40:nth-child(1) > .text-green-600:nth-child(2)"
+            ],
+            "html": "<td class=\"px-6 py-4 text-right text-green-600 font-medium\">R$&nbsp;3.000,00</td>"
+          },
+          {
+            "target": [
+              ".hover\\:bg-background\\/40:nth-child(2) > .text-green-600:nth-child(2)"
+            ],
+            "html": "<td class=\"px-6 py-4 text-right text-green-600 font-medium\">R$&nbsp;0,00</td>"
+          }
+        ]
+      },
+      {
+        "id": "scrollable-region-focusable",
+        "impact": "serious",
+        "help": "Scrollable region must have keyboard access",
+        "count": 1,
+        "nodes": [
+          {
+            "target": [
+              ".overflow-hidden.rounded-card.shadow-sm > .overflow-x-auto"
+            ],
+            "html": "<div class=\"overflow-x-auto\">"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "dinheiro-graficos-mobile-light",
+    "overflow": 0,
+    "violations": [
+      {
+        "id": "svg-img-alt",
+        "impact": "serious",
+        "help": "<svg> elements with an img or image role must have alternative text",
+        "count": 1,
+        "nodes": [
+          {
+            "target": [
+              ".recharts-sector"
+            ],
+            "html": "<path cx=\"101.5\" cy=\"128\" name=\"Mercado P5F\" stroke=\"#ffffff\" fill=\"#ef4444\" color=\"#ef4444\" stroke-width=\"2\" tabindex=\"-1\" class=\"recharts-sector\" d=\"M 181.5,1"
+          }
+        ]
+      }
+    ],
+    "notes": {
+      "yTicks": [
+        "R$0k",
+        "R$0.75k",
+        "R$1.5k",
+        "R$2.25k",
+        "R$3k",
+        "R$0k",
+        "R$0.001k",
+        "R$0.002k",
+        "R$0.003k",
+        "R$0.004k"
+      ]
+    }
+  },
+  {
+    "name": "dinheiro-configuracoes-mobile-light",
+    "overflow": 0,
+    "violations": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "count": 1,
+        "nodes": [
+          {
+            "target": [
+              ".text-emerald-600.text-sm.font-bold"
+            ],
+            "html": "<div class=\"flex items-center text-emerald-600 font-bold text-sm\">Acessar <span class=\"ml-1\">→</span></div>"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "dinheiro-dashboard-mobile-dark",
+    "overflow": 0,
+    "violations": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "count": 3,
+        "nodes": [
+          {
+            "target": [
+              ".border-gray-100.dark\\:border-gray-800:nth-child(1) > .text-gray-600.dark\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+            ],
+            "html": "<span>Renda P5F</span>"
+          },
+          {
+            "target": [
+              ".gap-1.flex-col.flex > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+            ],
+            "html": "<span>Mercado P5F</span>"
+          },
+          {
+            "target": [
+              ".border-gray-100.dark\\:border-gray-800:nth-child(2) > .text-gray-600.dark\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+            ],
+            "html": "<span>Mercado P5F</span>"
+          }
+        ]
+      },
+      {
+        "id": "select-name",
+        "impact": "critical",
+        "help": "Select element must have an accessible name",
+        "count": 1,
+        "nodes": [
+          {
+            "target": [
+              "select"
+            ],
+            "html": "<select class=\"border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-200 text-gray-800 dark:text-gray-200 rounded-lg px-3 py-2 text-sm focus:outline"
+          }
+        ]
+      },
+      {
+        "id": "svg-img-alt",
+        "impact": "serious",
+        "help": "<svg> elements with an img or image role must have alternative text",
+        "count": 2,
+        "nodes": [
+          {
+            "target": [
+              "path[name=\"Receitas\"]"
+            ],
+            "html": "<path cx=\"154\" cy=\"128\" name=\"Receitas\" stroke=\"#fff\" fill=\"#22c55e\" tabindex=\"-1\" class=\"recharts-sector\" d=\"M 254,128\n    A 100,100,0,\n    1,0,\n    218.459607"
+          },
+          {
+            "target": [
+              "path[name=\"Despesas\"]"
+            ],
+            "html": "<path cx=\"154\" cy=\"128\" name=\"Despesas\" stroke=\"#fff\" fill=\"#f87171\" tabindex=\"-1\" class=\"recharts-sector\" d=\"M 218.4596071796422,204.4523318300117\n    A 100,10"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "dinheiro-relatorios-mobile-dark",
+    "overflow": 0,
+    "violations": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "count": 7,
+        "nodes": [
+          {
+            "target": [
+              "#reports-tab-overview"
+            ],
+            "html": "<button id=\"reports-tab-overview\" type=\"button\" role=\"tab\" aria-selected=\"true\" aria-controls=\"reports-panel-overvi...\" tabindex=\"0\" class=\"px-4 py-3 text-sm fo"
+          },
+          {
+            "target": [
+              ".text-green-700 > .uppercase"
+            ],
+            "html": "<span class=\"uppercase\">Positivo</span>"
+          },
+          {
+            "target": [
+              ".hover\\:bg-background\\/40:nth-child(1) > .text-green-600:nth-child(2)"
+            ],
+            "html": "<td class=\"px-6 py-4 text-right text-green-600 font-medium\">R$&nbsp;3.000,00</td>"
+          },
+          {
+            "target": [
+              ".hover\\:bg-background\\/40:nth-child(1) > .text-red-600"
+            ],
+            "html": "<td class=\"px-6 py-4 text-right text-red-600 font-medium\">R$&nbsp;482,35</td>"
+          },
+          {
+            "target": [
+              ".hover\\:bg-background\\/40:nth-child(2) > .text-green-600:nth-child(2)"
+            ],
+            "html": "<td class=\"px-6 py-4 text-right text-green-600 font-medium\">R$&nbsp;0,00</td>"
+          },
+          {
+            "target": [
+              ".hover\\:bg-background\\/40:nth-child(2) > .text-red-600"
+            ],
+            "html": "<td class=\"px-6 py-4 text-right text-red-600 font-medium\">R$&nbsp;0,00</td>"
+          },
+          {
+            "target": [
+              ".mb-4.text-xs.tracking-widest"
+            ],
+            "html": "<h3 class=\"text-xs font-black text-primary uppercase tracking-widest mb-4 flex items-center gap-2\">"
+          }
+        ]
+      },
+      {
+        "id": "scrollable-region-focusable",
+        "impact": "serious",
+        "help": "Scrollable region must have keyboard access",
+        "count": 1,
+        "nodes": [
+          {
+            "target": [
+              ".overflow-hidden.rounded-card.shadow-sm > .overflow-x-auto"
+            ],
+            "html": "<div class=\"overflow-x-auto\">"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "dinheiro-graficos-mobile-dark",
+    "overflow": 0,
+    "violations": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "count": 1,
+        "nodes": [
+          {
+            "target": [
+              "#reports-tab-charts"
+            ],
+            "html": "<button id=\"reports-tab-charts\" type=\"button\" role=\"tab\" aria-selected=\"true\" aria-controls=\"reports-panel-charts\" tabindex=\"0\" class=\"px-4 py-3 text-sm fo...\">"
+          }
+        ]
+      },
+      {
+        "id": "svg-img-alt",
+        "impact": "serious",
+        "help": "<svg> elements with an img or image role must have alternative text",
+        "count": 1,
+        "nodes": [
+          {
+            "target": [
+              ".recharts-sector"
+            ],
+            "html": "<path cx=\"101.5\" cy=\"128\" name=\"Mercado P5F\" stroke=\"#1E293B\" fill=\"#f87171\" color=\"#f87171\" stroke-width=\"2\" tabindex=\"-1\" class=\"recharts-sector\" d=\"M 181.5,1"
+          }
+        ]
+      }
+    ],
+    "notes": {
+      "yTicks": [
+        "R$0k",
+        "R$0.75k",
+        "R$1.5k",
+        "R$2.25k",
+        "R$3k",
+        "R$0k",
+        "R$0.001k",
+        "R$0.002k",
+        "R$0.003k",
+        "R$0.004k"
+      ]
+    }
+  },
+  {
+    "name": "dinheiro-configuracoes-mobile-dark",
+    "overflow": 0,
+    "violations": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "count": 4,
+        "nodes": [
+          {
+            "target": [
+              ".text-blue-600.text-sm.font-bold"
+            ],
+            "html": "<div class=\"flex items-center text-blue-600 font-bold text-sm\">Gerenciar <span class=\"ml-1\">→</span></div>"
+          },
+          {
+            "target": [
+              ".text-indigo-600.text-sm.font-bold"
+            ],
+            "html": "<div class=\"flex items-center text-indigo-600 font-bold text-sm\">Acessar <span class=\"ml-1\">→</span></div>"
+          },
+          {
+            "target": [
+              ".text-emerald-600.text-sm.font-bold"
+            ],
+            "html": "<div class=\"flex items-center text-emerald-600 font-bold text-sm\">Acessar <span class=\"ml-1\">→</span></div>"
+          },
+          {
+            "target": [
+              ".text-pink-600.text-sm.font-bold"
+            ],
+            "html": "<div class=\"flex items-center text-pink-600 font-bold text-sm\">Acessar <span class=\"ml-1\">→</span></div>"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "dinheiro-dashboard-small-light",
+    "overflow": 0,
+    "violations": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "count": 4,
+        "nodes": [
+          {
+            "target": [
+              ".text-green-600.dark\\:text-green-400.mt-2 > span"
+            ],
+            "html": "<span>Mensal</span>"
+          },
+          {
+            "target": [
+              ".border-gray-100.dark\\:border-gray-800:nth-child(1) > .text-gray-600.dark\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+            ],
+            "html": "<span>Renda P5F</span>"
+          },
+          {
+            "target": [
+              ".gap-1.flex-col.flex > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+            ],
+            "html": "<span>Mercado P5F</span>"
+          },
+          {
+            "target": [
+              ".border-gray-100.dark\\:border-gray-800:nth-child(2) > .text-gray-600.dark\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+            ],
+            "html": "<span>Mercado P5F</span>"
+          }
+        ]
+      },
+      {
+        "id": "select-name",
+        "impact": "critical",
+        "help": "Select element must have an accessible name",
+        "count": 1,
+        "nodes": [
+          {
+            "target": [
+              "select"
+            ],
+            "html": "<select class=\"border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-200 text-gray-800 dark:text-gray-200 rounded-lg px-3 py-2 text-sm focus:outline"
+          }
+        ]
+      },
+      {
+        "id": "svg-img-alt",
+        "impact": "serious",
+        "help": "<svg> elements with an img or image role must have alternative text",
+        "count": 2,
+        "nodes": [
+          {
+            "target": [
+              "path[name=\"Receitas\"]"
+            ],
+            "html": "<path cx=\"139\" cy=\"128\" name=\"Receitas\" stroke=\"#fff\" fill=\"#22c55e\" tabindex=\"-1\" class=\"recharts-sector\" d=\"M 239,128\n    A 100,100,0,\n    1,0,\n    203.459607"
+          },
+          {
+            "target": [
+              "path[name=\"Despesas\"]"
+            ],
+            "html": "<path cx=\"139\" cy=\"128\" name=\"Despesas\" stroke=\"#fff\" fill=\"#ef4444\" tabindex=\"-1\" class=\"recharts-sector\" d=\"M 203.4596071796422,204.4523318300117\n    A 100,10"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "dinheiro-relatorios-small-light",
+    "overflow": 0,
+    "violations": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "count": 2,
+        "nodes": [
+          {
+            "target": [
+              ".hover\\:bg-background\\/40:nth-child(1) > .text-green-600:nth-child(2)"
+            ],
+            "html": "<td class=\"px-6 py-4 text-right text-green-600 font-medium\">R$&nbsp;3.000,00</td>"
+          },
+          {
+            "target": [
+              ".hover\\:bg-background\\/40:nth-child(2) > .text-green-600:nth-child(2)"
+            ],
+            "html": "<td class=\"px-6 py-4 text-right text-green-600 font-medium\">R$&nbsp;0,00</td>"
+          }
+        ]
+      },
+      {
+        "id": "scrollable-region-focusable",
+        "impact": "serious",
+        "help": "Scrollable region must have keyboard access",
+        "count": 1,
+        "nodes": [
+          {
+            "target": [
+              ".overflow-hidden.rounded-card.shadow-sm > .overflow-x-auto"
+            ],
+            "html": "<div class=\"overflow-x-auto\">"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "dinheiro-graficos-small-light",
+    "overflow": 0,
+    "violations": [
+      {
+        "id": "svg-img-alt",
+        "impact": "serious",
+        "help": "<svg> elements with an img or image role must have alternative text",
+        "count": 1,
+        "nodes": [
+          {
+            "target": [
+              ".recharts-sector"
+            ],
+            "html": "<path cx=\"86.5\" cy=\"128\" name=\"Mercado P5F\" stroke=\"#ffffff\" fill=\"#ef4444\" color=\"#ef4444\" stroke-width=\"2\" tabindex=\"-1\" class=\"recharts-sector\" d=\"M 166.5,12"
+          }
+        ]
+      }
+    ],
+    "notes": {
+      "yTicks": [
+        "R$0k",
+        "R$0.75k",
+        "R$1.5k",
+        "R$2.25k",
+        "R$3k",
+        "R$0k",
+        "R$0.001k",
+        "R$0.002k",
+        "R$0.003k",
+        "R$0.004k"
+      ]
+    }
+  },
+  {
+    "name": "dinheiro-configuracoes-small-light",
+    "overflow": 0,
+    "violations": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "count": 1,
+        "nodes": [
+          {
+            "target": [
+              ".text-emerald-600.text-sm.font-bold"
+            ],
+            "html": "<div class=\"flex items-center text-emerald-600 font-bold text-sm\">Acessar <span class=\"ml-1\">→</span></div>"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "dinheiro-dashboard-small-dark",
+    "overflow": 0,
+    "violations": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "count": 3,
+        "nodes": [
+          {
+            "target": [
+              ".border-gray-100.dark\\:border-gray-800:nth-child(1) > .text-gray-600.dark\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+            ],
+            "html": "<span>Renda P5F</span>"
+          },
+          {
+            "target": [
+              ".gap-1.flex-col.flex > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+            ],
+            "html": "<span>Mercado P5F</span>"
+          },
+          {
+            "target": [
+              ".border-gray-100.dark\\:border-gray-800:nth-child(2) > .text-gray-600.dark\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+            ],
+            "html": "<span>Mercado P5F</span>"
+          }
+        ]
+      },
+      {
+        "id": "select-name",
+        "impact": "critical",
+        "help": "Select element must have an accessible name",
+        "count": 1,
+        "nodes": [
+          {
+            "target": [
+              "select"
+            ],
+            "html": "<select class=\"border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-200 text-gray-800 dark:text-gray-200 rounded-lg px-3 py-2 text-sm focus:outline"
+          }
+        ]
+      },
+      {
+        "id": "svg-img-alt",
+        "impact": "serious",
+        "help": "<svg> elements with an img or image role must have alternative text",
+        "count": 2,
+        "nodes": [
+          {
+            "target": [
+              "path[name=\"Receitas\"]"
+            ],
+            "html": "<path cx=\"139\" cy=\"128\" name=\"Receitas\" stroke=\"#fff\" fill=\"#22c55e\" tabindex=\"-1\" class=\"recharts-sector\" d=\"M 239,128\n    A 100,100,0,\n    1,0,\n    203.459607"
+          },
+          {
+            "target": [
+              "path[name=\"Despesas\"]"
+            ],
+            "html": "<path cx=\"139\" cy=\"128\" name=\"Despesas\" stroke=\"#fff\" fill=\"#f87171\" tabindex=\"-1\" class=\"recharts-sector\" d=\"M 203.4596071796422,204.4523318300117\n    A 100,10"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "dinheiro-relatorios-small-dark",
+    "overflow": 0,
+    "violations": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "count": 7,
+        "nodes": [
+          {
+            "target": [
+              "#reports-tab-overview"
+            ],
+            "html": "<button id=\"reports-tab-overview\" type=\"button\" role=\"tab\" aria-selected=\"true\" aria-controls=\"reports-panel-overvi...\" tabindex=\"0\" class=\"px-4 py-3 text-sm fo"
+          },
+          {
+            "target": [
+              ".text-green-700 > .uppercase"
+            ],
+            "html": "<span class=\"uppercase\">Positivo</span>"
+          },
+          {
+            "target": [
+              ".hover\\:bg-background\\/40:nth-child(1) > .text-green-600:nth-child(2)"
+            ],
+            "html": "<td class=\"px-6 py-4 text-right text-green-600 font-medium\">R$&nbsp;3.000,00</td>"
+          },
+          {
+            "target": [
+              ".hover\\:bg-background\\/40:nth-child(1) > .text-red-600"
+            ],
+            "html": "<td class=\"px-6 py-4 text-right text-red-600 font-medium\">R$&nbsp;482,35</td>"
+          },
+          {
+            "target": [
+              ".hover\\:bg-background\\/40:nth-child(2) > .text-green-600:nth-child(2)"
+            ],
+            "html": "<td class=\"px-6 py-4 text-right text-green-600 font-medium\">R$&nbsp;0,00</td>"
+          },
+          {
+            "target": [
+              ".hover\\:bg-background\\/40:nth-child(2) > .text-red-600"
+            ],
+            "html": "<td class=\"px-6 py-4 text-right text-red-600 font-medium\">R$&nbsp;0,00</td>"
+          },
+          {
+            "target": [
+              ".mb-4.text-xs.tracking-widest"
+            ],
+            "html": "<h3 class=\"text-xs font-black text-primary uppercase tracking-widest mb-4 flex items-center gap-2\">"
+          }
+        ]
+      },
+      {
+        "id": "scrollable-region-focusable",
+        "impact": "serious",
+        "help": "Scrollable region must have keyboard access",
+        "count": 1,
+        "nodes": [
+          {
+            "target": [
+              ".overflow-hidden.rounded-card.shadow-sm > .overflow-x-auto"
+            ],
+            "html": "<div class=\"overflow-x-auto\">"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "dinheiro-graficos-small-dark",
+    "overflow": 0,
+    "violations": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "count": 1,
+        "nodes": [
+          {
+            "target": [
+              "#reports-tab-charts"
+            ],
+            "html": "<button id=\"reports-tab-charts\" type=\"button\" role=\"tab\" aria-selected=\"true\" aria-controls=\"reports-panel-charts\" tabindex=\"0\" class=\"px-4 py-3 text-sm fo...\">"
+          }
+        ]
+      },
+      {
+        "id": "svg-img-alt",
+        "impact": "serious",
+        "help": "<svg> elements with an img or image role must have alternative text",
+        "count": 1,
+        "nodes": [
+          {
+            "target": [
+              ".recharts-sector"
+            ],
+            "html": "<path cx=\"86.5\" cy=\"128\" name=\"Mercado P5F\" stroke=\"#1E293B\" fill=\"#f87171\" color=\"#f87171\" stroke-width=\"2\" tabindex=\"-1\" class=\"recharts-sector\" d=\"M 166.5,12"
+          }
+        ]
+      }
+    ],
+    "notes": {
+      "yTicks": [
+        "R$0k",
+        "R$0.75k",
+        "R$1.5k",
+        "R$2.25k",
+        "R$3k",
+        "R$0k",
+        "R$0.001k",
+        "R$0.002k",
+        "R$0.003k",
+        "R$0.004k"
+      ]
+    }
+  },
+  {
+    "name": "dinheiro-configuracoes-small-dark",
+    "overflow": 0,
+    "violations": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "count": 4,
+        "nodes": [
+          {
+            "target": [
+              ".text-blue-600.text-sm.font-bold"
+            ],
+            "html": "<div class=\"flex items-center text-blue-600 font-bold text-sm\">Gerenciar <span class=\"ml-1\">→</span></div>"
+          },
+          {
+            "target": [
+              ".text-indigo-600.text-sm.font-bold"
+            ],
+            "html": "<div class=\"flex items-center text-indigo-600 font-bold text-sm\">Acessar <span class=\"ml-1\">→</span></div>"
+          },
+          {
+            "target": [
+              ".text-emerald-600.text-sm.font-bold"
+            ],
+            "html": "<div class=\"flex items-center text-emerald-600 font-bold text-sm\">Acessar <span class=\"ml-1\">→</span></div>"
+          },
+          {
+            "target": [
+              ".text-pink-600.text-sm.font-bold"
+            ],
+            "html": "<div class=\"flex items-center text-pink-600 font-bold text-sm\">Acessar <span class=\"ml-1\">→</span></div>"
+          }
+        ]
+      }
+    ]
+  }
+]

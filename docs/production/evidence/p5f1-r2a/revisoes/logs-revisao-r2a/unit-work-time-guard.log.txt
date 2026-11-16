@@ -1,0 +1,116 @@
+TAP version 13
+# Subtest: a varredura alcança o repositório real
+ok 1 - a varredura alcança o repositório real
+  ---
+  duration_ms: 3.792836
+  type: 'test'
+  ...
+# Subtest: nenhuma Function lê, grava ou menciona a preferência privada
+ok 2 - nenhuma Function lê, grava ou menciona a preferência privada
+  ---
+  duration_ms: 40.035528
+  type: 'test'
+  ...
+# Subtest: IA, notificações e relatórios autoritativos não recebem a preferência
+ok 3 - IA, notificações e relatórios autoritativos não recebem a preferência
+  ---
+  duration_ms: 3.468835
+  type: 'test'
+  ...
+# Subtest: DTOs, chamadas e adaptadores financeiros não carregam tempo de trabalho
+ok 4 - DTOs, chamadas e adaptadores financeiros não carregam tempo de trabalho
+  ---
+  duration_ms: 4.840641
+  type: 'test'
+  ...
+# Subtest: nenhuma cópia local da preferência e nenhuma leitura do cache do SDK no app
+ok 5 - nenhuma cópia local da preferência e nenhuma leitura do cache do SDK no app
+  ---
+  duration_ms: 16.615412
+  type: 'test'
+  ...
+# Subtest: logs da preferência só levam mensagem fixa e código de erro
+ok 6 - logs da preferência só levam mensagem fixa e código de erro
+  ---
+  duration_ms: 2.473477
+  type: 'test'
+  ...
+# Subtest: sessão: troca de conta e respostas atrasadas não expõem a preferência de outra conta
+ok 7 - sessão: troca de conta e respostas atrasadas não expõem a preferência de outra conta
+  ---
+  duration_ms: 0.393217
+  type: 'test'
+  ...
+# Subtest: a preferência só é lida e gravada no documento privado do próprio usuário
+ok 8 - a preferência só é lida e gravada no documento privado do próprio usuário
+  ---
+  duration_ms: 1.100212
+  type: 'test'
+  ...
+# Subtest: Rules: bloco explícito do titular, campos, gramáticas e limites iguais ao contrato v2 do cliente
+ok 9 - Rules: bloco explícito do titular, campos, gramáticas e limites iguais ao contrato v2 do cliente
+  ---
+  duration_ms: 3.171412
+  type: 'test'
+  ...
+# Subtest: nada derivado é gravado: só a API do módulo escreve, e só os campos do contrato
+ok 10 - nada derivado é gravado: só a API do módulo escreve, e só os campos do contrato
+  ---
+  duration_ms: 2.581619
+  type: 'test'
+  ...
+# Subtest: estimativa: uma por contexto, sem polling nem listener por lançamento
+ok 11 - estimativa: uma por contexto, sem polling nem listener por lançamento
+  ---
+  duration_ms: 39.548475
+  type: 'test'
+  ...
+# Subtest: falhas de leitura: mensagens fixas em pt-BR, com nova tentativa, e só o código do erro no log
+ok 12 - falhas de leitura: mensagens fixas em pt-BR, com nova tentativa, e só o código do erro no log
+  ---
+  duration_ms: 1.099889
+  type: 'test'
+  ...
+# Subtest: janela de receitas: a leitura paginada real usa `readPagedWindow` com um documento a mais
+ok 13 - janela de receitas: a leitura paginada real usa `readPagedWindow` com um documento a mais
+  ---
+  duration_ms: 0.427226
+  type: 'test'
+  ...
+# Subtest: matriz: entradas, confirmações, termos, históricos e preços ficam em BRL
+ok 14 - matriz: entradas, confirmações, termos, históricos e preços ficam em BRL
+  ---
+  duration_ms: 1.505734
+  type: 'test'
+  ...
+# Subtest: matriz: pontos em BRL dentro de arquivos elegíveis continuam em reais, linha a linha
+ok 15 - matriz: pontos em BRL dentro de arquivos elegíveis continuam em reais, linha a linha
+  ---
+  duration_ms: 1.802746
+  type: 'test'
+  ...
+# Subtest: matriz: os pontos elegíveis usam a camada de exibição, e a prévia do tema força reais
+ok 16 - matriz: os pontos elegíveis usam a camada de exibição, e a prévia do tema força reais
+  ---
+  duration_ms: 1.58618
+  type: 'test'
+  ...
+# Subtest: modo dinheiro idêntico: a camada devolve o formatador da tela, sem elemento novo
+ok 17 - modo dinheiro idêntico: a camada devolve o formatador da tela, sem elemento novo
+  ---
+  duration_ms: 0.240275
+  type: 'test'
+  ...
+1..17
+# tests 17
+# suites 0
+# pass 17
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 316.457251
+
+real	0m0.369s
+user	0m0.413s
+sys	0m0.079s

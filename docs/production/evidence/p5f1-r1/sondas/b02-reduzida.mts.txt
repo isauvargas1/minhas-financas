@@ -1,0 +1,20 @@
+// P5-F.1-R1: acrescentar uma rotina com jornada reduzida na véspera e na borda do período.
+const root = process.argv[2];
+const cal = await import(`${root}/src/modules/work-time/calendar.ts`);
+const w = (s: string, e: string, b = 0) => ({ kind: 'window', start: Number(s.slice(0,2))*60+Number(s.slice(3)), end: Number(e.slice(0,2))*60+Number(e.slice(3)), breakMinutes: b });
+const OFF = { kind: 'off' };
+const on = (days: number[], spec: any) => ({ kind: 'weekly', days: Array.from({length: 7}, (_, i) => (days.includes(i) ? spec : OFF)) });
+const total = (routines: any[], exceptions: any[], month = '2026-10') => cal.monthPlan({ routines, worksOnHolidays: true, localHolidays: [], exceptions }, month).minutes;
+// Caso 1: terça 00:00–08:00 (A); segunda com jornada reduzida a 4 h; acrescenta B: segunda 20:00–06:00.
+const A = on([1], w('00:00','08:00')), B = on([0], w('20:00','06:00'));
+const reduced = [{ kind: 'reduced', start: '2026-10-05', end: '2026-10-05', minutes: 240 }];
+console.log('reduzida na véspera:', total([A], reduced), '→', total([A, B], reduced));
+// Caso 2: borda do período: 24 h todos os dias (A24) e acrescenta sexta 22:00–06:00 (o dia 1º de agosto/2026 é sábado).
+const A24 = on([0,1,2,3,4,5,6], w('00:00','00:00')), F = on([4], w('22:00','06:00'));
+console.log('borda do mês (agosto/2026):', total([A24], [], '2026-08'), '→', total([A24, F], [], '2026-08'));
+// Com o mês abrindo o período (a janela da estimativa), o que começou na véspera fica fora.
+const totalP = (routines: any[], exceptions: any[], month: string) => cal.monthPlan({ routines, worksOnHolidays: true, localHolidays: [], exceptions }, month, { periodStart: true }).minutes;
+console.log('borda do mês, abrindo o período:', totalP([A24], [], '2026-08'), '→', totalP([A24, F], [], '2026-08'));
+// Caso 3 (teto de 24 h): segunda só com duração de 22 h (D1320) e terça 00:00–08:00; acrescenta segunda 23:00–06:00.
+const U = on([0], { kind: 'duration', minutes: 1320 }), T = on([1], w('00:00','08:00')), N = on([0], w('23:00','06:00'));
+console.log('teto com minutos sem horário:', total([U, T], []), '→', total([U, T, N], []));

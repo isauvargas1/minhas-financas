@@ -1,0 +1,1471 @@
+TAP version 13
+# Subtest: a varredura alcança o repositório real
+not ok 1 - a varredura alcança o repositório real
+  ---
+  duration_ms: 3.129488
+  type: 'test'
+  location: '<scratchpad>/p5f1r1/revisao2/b97806c4-com-testes-d7dabb10/tests/unit/work-time-guard.test.ts:78:1'
+  failureType: 'testCodeFailure'
+  error: "ENOENT: no such file or directory, scandir '<scratchpad>/p5f1r1/revisao2/b97806c4-com-testes-d7dabb10/functions/src'"
+  code: 'ENOENT'
+  stack: |-
+    readdirSync (node:fs:1590:26)
+    sourceFiles (file://<scratchpad>/p5f1r1/revisao2/b97806c4-com-testes-d7dabb10/tests/unit/work-time-guard.test.ts:62:3)
+    TestContext.<anonymous> (file://<scratchpad>/p5f1r1/revisao2/b97806c4-com-testes-d7dabb10/tests/unit/work-time-guard.test.ts:82:13)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.start (node:internal/test_runner/test:944:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)
+  ...
+# Subtest: nenhuma Function lê, grava ou menciona a preferência privada
+not ok 2 - nenhuma Function lê, grava ou menciona a preferência privada
+  ---
+  duration_ms: 0.28016
+  type: 'test'
+  location: '<scratchpad>/p5f1r1/revisao2/b97806c4-com-testes-d7dabb10/tests/unit/work-time-guard.test.ts:85:1'
+  failureType: 'testCodeFailure'
+  error: "ENOENT: no such file or directory, scandir '<scratchpad>/p5f1r1/revisao2/b97806c4-com-testes-d7dabb10/functions/src'"
+  code: 'ENOENT'
+  stack: |-
+    readdirSync (node:fs:1590:26)
+    sourceFiles (file://<scratchpad>/p5f1r1/revisao2/b97806c4-com-testes-d7dabb10/tests/unit/work-time-guard.test.ts:62:3)
+    TestContext.<anonymous> (file://<scratchpad>/p5f1r1/revisao2/b97806c4-com-testes-d7dabb10/tests/unit/work-time-guard.test.ts:86:22)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: IA, notificações e relatórios autoritativos não recebem a preferência
+ok 3 - IA, notificações e relatórios autoritativos não recebem a preferência
+  ---
+  duration_ms: 5.389125
+  type: 'test'
+  ...
+# Subtest: DTOs, chamadas e adaptadores financeiros não carregam tempo de trabalho
+ok 4 - DTOs, chamadas e adaptadores financeiros não carregam tempo de trabalho
+  ---
+  duration_ms: 6.791078
+  type: 'test'
+  ...
+# Subtest: nenhuma cópia local da preferência e nenhuma leitura do cache do SDK no app
+ok 5 - nenhuma cópia local da preferência e nenhuma leitura do cache do SDK no app
+  ---
+  duration_ms: 26.116801
+  type: 'test'
+  ...
+# Subtest: logs da preferência só levam mensagem fixa e código de erro
+ok 6 - logs da preferência só levam mensagem fixa e código de erro
+  ---
+  duration_ms: 3.948239
+  type: 'test'
+  ...
+# Subtest: sessão: troca de conta e respostas atrasadas não expõem a preferência de outra conta
+ok 7 - sessão: troca de conta e respostas atrasadas não expõem a preferência de outra conta
+  ---
+  duration_ms: 0.675402
+  type: 'test'
+  ...
+# Subtest: a preferência só é lida e gravada no documento privado do próprio usuário
+ok 8 - a preferência só é lida e gravada no documento privado do próprio usuário
+  ---
+  duration_ms: 1.446917
+  type: 'test'
+  ...
+# Subtest: Rules: bloco explícito do titular, campos, gramáticas e limites iguais ao contrato v2 do cliente
+not ok 9 - Rules: bloco explícito do titular, campos, gramáticas e limites iguais ao contrato v2 do cliente
+  ---
+  duration_ms: 0.798159
+  type: 'test'
+  location: '<scratchpad>/p5f1r1/revisao2/b97806c4-com-testes-d7dabb10/tests/unit/work-time-guard.test.ts:215:1'
+  failureType: 'testCodeFailure'
+  error: "ENOENT: no such file or directory, open '<scratchpad>/p5f1r1/revisao2/b97806c4-com-testes-d7dabb10/firestore.rules'"
+  code: 'ENOENT'
+  stack: |-
+    readFileSync (node:fs:440:20)
+    read (file://<scratchpad>/p5f1r1/revisao2/b97806c4-com-testes-d7dabb10/tests/unit/work-time-guard.test.ts:55:32)
+    TestContext.<anonymous> (file://<scratchpad>/p5f1r1/revisao2/b97806c4-com-testes-d7dabb10/tests/unit/work-time-guard.test.ts:216:17)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: nada derivado é gravado: só a API do módulo escreve, e só os campos do contrato
+ok 10 - nada derivado é gravado: só a API do módulo escreve, e só os campos do contrato
+  ---
+  duration_ms: 3.920837
+  type: 'test'
+  ...
+# Subtest: estimativa: uma por contexto, sem polling nem listener por lançamento
+not ok 11 - estimativa: uma por contexto, sem polling nem listener por lançamento
+  ---
+  duration_ms: 55.319221
+  type: 'test'
+  location: '<scratchpad>/p5f1r1/revisao2/b97806c4-com-testes-d7dabb10/tests/unit/work-time-guard.test.ts:308:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    The input did not match the regular expression /const decision = holdEstimate\(proof\.proven, holding, last\.current, identity, current, unproven\);\s*last\.current = decision\.last;/. Input:
+
+    "import { useCallback, useEffect, useMemo, useRef, useState } from 'react';\n" +
+      '\n' +
+      "import { basisIncomeOf } from '../reports/basisRefresh.ts';\n" +
+      "import { noteDependentReadStart, observeDependentRead, syncKeyOf } from '../reports/basisRegistry.ts';\n" +
+      'import {\n' +
+      '  basisKeyOf,\n' +
+      '  useFinancialReportBasisLiveRefreshWith,\n' +
+      '  useFinancialReportBasisWith,\n' +
+      '  type BasisSyncDeps,\n' +
+      '  type BasisView,\n' +
+      "} from '../reports/basisSync.ts';\n" +
+      "import { createLiveRefreshScheduler } from '../reports/liveRefresh.ts';\n" +
+      "import type { ReportRange, ReportSection } from '../reports/official.ts';\n" +
+      "import { FINANCIAL_REPORT_BASIS_REFRESH } from '../reports/queryKeys.ts';\n" +
+      "import { useTransactionsByIdsWith } from '../transactions/incomeReads.ts';\n" +
+      "import type { WorkCalendar } from './calendar.ts';\n" +
+      "import { inherentWritesOf, observeExcludedRead, proveEstimateConsistency, type ExcludedObservation } from './consistency.ts';\n" +
+      "import type { WorkTimeEstimateMode, WorkTimeHistoryMonths } from './contract.ts';\n" +
+      "import { monthKeyOf } from './dates.ts';\n" +
+      "import { computeWorkTimeEstimate, estimateWindowMonths, extraMonthNeeded, type WorkTimeEstimate } from './estimate.ts';\n" +
+      "import { excludedItemOf, type ExcludedIncomeItem, type MonthReceipts } from './incomeBasis.ts';\n" +
+      "import { readExcludedIncome, type ExcludedRead } from './receivableReversal.ts';\n" +
+      "import { ESTIMATE_UNCONFIRMED_FAILED, estimateFailureMessage } from './messages.ts';\n" +
+      '\n' +
+      '\n' +
+      '\n' +
+      "const PRESET_12M: ReportRange = { kind: 'preset', preset: '12m' };\n" +
+      "const SERIES_SECTIONS: readonly ReportSection[] = ['series'];\n" +
+      "const CASH_SECTIONS: readonly ReportSection[] = ['cash'];\n" +
+      "const EXACT = new Set(['exact', 'zero']);\n" +
+      '\n' +
+      'export interface IncomeEstimateParams {\n' +
+      '  workspaceId: string | null;\n' +
+      '  mode: WorkTimeEstimateMode;\n' +
+      '  historyMonths: WorkTimeHistoryMonths;\n' +
+      '  allowBusinessIncome: boolean;\n' +
+      '  calendar: WorkCalendar;\n' +
+      '  excludedIds: readonly string[];\n' +
+      '  enabled: boolean;\n' +
+      '}\n' +
+      '\n' +
+      'export type IncomeEstimateState =\n' +
+      "  | { status: 'idle' }\n" +
+      "  | { status: 'loading' }\n" +
+      "  | { status: 'error'; message: string; retry: () => void }\n" +
+      '  | {\n' +
+      "    status: 'done';\n" +
+      '    estimate: WorkTimeEstimate;\n' +
+      '    updatedAt: number;\n' +
+      '    \n' +
+      '    refreshFailed: boolean;\n' +
+      '    retry: () => void;\n' +
+      '  };\n' +
+      '\n' +
+      'export interface IncomeEstimateDeps {\n' +
+      '  basis: BasisSyncDeps;\n' +
+      '  \n' +
+      '  readByIds: (workspaceId: string, ids: readonly string[]) => Promise<{ found: ReadonlyArray<object>; missing: readonly string[] }>;\n' +
+      '}\n' +
+      '\n' +
+      '\n' +
+      'export const sameEstimateInputs = (a: IncomeEstimateParams, b: IncomeEstimateParams): boolean =>\n' +
+      '  a.workspaceId === b.workspaceId &&\n' +
+      '  a.mode === b.mode &&\n' +
+      '  a.historyMonths === b.historyMonths &&\n' +
+      '  a.allowBusinessIncome === b.allowBusinessIncome &&\n' +
+      '  a.calendar === b.calendar &&\n' +
+      "  a.excludedIds.join(',') === b.excludedIds.join(',');\n" +
+      '\n' +
+      '\n' +
+      'export interface EstimateIdentity {\n' +
+      '  uid: string | null;\n' +
+      '  \n' +
+      '  window: string;\n' +
+      '  params: IncomeEstimateParams;\n' +
+      '}\n' +
+      '\n' +
+      'export const sameEstimateIdentity = (a: EstimateIdentity, b: EstimateIdentity): boolean =>\n' +
+      '  a.uid === b.uid && a.window === b.window && sameEstimateInputs(a.params, b.params);\n' +
+      '\n' +
+      'export interface HeldEstimate {\n' +
+      '  identity: EstimateIdentity;\n' +
+      "  state: Extract<IncomeEstimateState, { status: 'done' }>;\n" +
+      '}\n' +
+      '\n' +
+      '\n' +
+      'export const holdEstimate = (\n' +
+      '  proven: boolean,\n' +
+      '  settling: boolean,\n' +
+      '  last: HeldEstimate | null,\n' +
+      '  identity: EstimateIdentity,\n' +
+      '  state: IncomeEstimateState,\n' +
+      "  unproven: Exclude<IncomeEstimateState, { status: 'done' }>,\n" +
+      '): { shown: IncomeEstimateState; last: HeldEstimate | null } => {\n' +
+      '  if (!proven || settling) {\n' +
+      '    if (last !== null && sameEstimateIdentity(last.identity, identity)) {\n' +
+      "      const shown = state.status === 'done'\n" +
+      '        ? { ...last.state, refreshFailed: state.refreshFailed, retry: state.retry }\n' +
+      '        : last.state;\n' +
+      '      return { shown, last };\n' +
+      '    }\n' +
+      "    if (!proven) return { shown: state.status === 'done' ? unproven : state, last };\n" +
+      '  }\n' +
+      "  return { shown: state, last: state.status === 'done' ? { identity, state } : last };\n" +
+      '};\n' +
+      '\n' +
+      '\n' +
+      'type ExcludedReadResult = ExcludedRead & { startedOrder: number };\n' +
+      '\n' +
+      'export const useIncomeEstimateWith = (\n' +
+      '  deps: IncomeEstimateDeps,\n' +
+      '  uid: string | null,\n' +
+      '  params: IncomeEstimateParams,\n' +
+      '): IncomeEstimateState => {\n' +
+      '  const { workspaceId, mode, historyMonths, allowBusinessIncome, calendar, excludedIds, enabled } = params;\n' +
+      '  const series = useFinancialReportBasisWith(deps.basis, uid, workspaceId, PRESET_12M, SERIES_SECTIONS, { enabled });\n' +
+      '  const referenceDate = series.data?.referenceDate ?? null;\n' +
+      '  const extraMonth = referenceDate ? extraMonthNeeded(mode, historyMonths, monthKeyOf(referenceDate)) : null;\n' +
+      '  const extraRange = useMemo<ReportRange>(\n' +
+      "    () => (extraMonth ? { kind: 'month', month: extraMonth } : PRESET_12M),\n" +
+      '    [extraMonth],\n' +
+      '  );\n' +
+      '  const extra = useFinancialReportBasisWith(deps.basis, uid, workspaceId, extraRange, CASH_SECTIONS, { enabled: enabled && extraMonth !== null });\n' +
+      '  \n' +
+      '  \n' +
+      '  \n' +
+      '  const windowMonths = useMemo(\n' +
+      '    () => (referenceDate ? estimateWindowMonths(mode, historyMonths, referenceDate) : []),\n' +
+      '    [referenceDate, mode, historyMonths],\n' +
+      '  );\n' +
+      '  const needsExtra = extraMonth !== null;\n' +
+      '  const needsExcluded = excludedIds.length > 0;\n' +
+      '  \n' +
+      '  \n' +
+      '  \n' +
+      '  const basis = useMemo<BasisView | null>(() => {\n' +
+      '    if (!series.data || (needsExtra && !extra.data)) return null;\n' +
+      '    return {\n' +
+      '      income: basisIncomeOf(\n' +
+      '        series.data.series.data?.points ?? [],\n' +
+      '        needsExtra && extra.data ? { month: extraMonth as string, receiptsCents: extra.data.cash.data?.receiptsCents ?? 0 } : null,\n' +
+      '      ),\n' +
+      '      exact: EXACT.has(series.data.series.status) && (!needsExtra || (!!extra.data && EXACT.has(extra.data.cash.status))),\n' +
+      '      versions: needsExtra ? [series.dataUpdatedAt, extra.dataUpdatedAt] : [series.dataUpdatedAt],\n' +
+      '      keys: needsExtra\n' +
+      '        ? [basisKeyOf(uid, workspaceId, PRESET_12M, SERIES_SECTIONS), basisKeyOf(uid, workspaceId, extraRange, CASH_SECTIONS)]\n' +
+      '        : [basisKeyOf(uid, workspaceId, PRESET_12M, SERIES_SECTIONS)],\n' +
+      "      fetching: series.fetchStatus !== 'idle' || (needsExtra && extra.fetchStatus !== 'idle'),\n" +
+      '    };\n' +
+      '  }, [series.data, series.dataUpdatedAt, series.fetchStatus, extra.data, extra.dataUpdatedAt, extra.fetchStatus, needsExtra, extraMonth, extraRange, uid, workspaceId]);\n' +
+      "  const syncKey = enabled && uid !== null && !!workspaceId && workspaceId !== 'loading' ? syncKeyOf(uid, workspaceId) : null;\n" +
+      "  const windowKey = `${syncKey ?? ''}\\n${windowMonths.join(',')}`;\n" +
+      '  \n' +
+      '  \n' +
+      '  const [projectionReady, setProjectionReady] = useState<string | null>(null);\n' +
+      '  \n' +
+      '  \n' +
+      '  const { readByIds } = deps;\n' +
+      '  const readExcluded = useCallback(\n' +
+      '    async (sourceId: string, ids: readonly string[]): Promise<ExcludedReadResult> => {\n' +
+      '      const startedOrder = noteDependentReadStart();\n' +
+      '      return { ...(await readExcludedIncome(readByIds, sourceId, ids)), startedOrder };\n' +
+      '    },\n' +
+      '    [readByIds],\n' +
+      '  );\n' +
+      '  const excluded = useTransactionsByIdsWith(readExcluded, workspaceId, excludedIds, {\n' +
+      '    enabled: enabled && needsExcluded && projectionReady === windowKey,\n' +
+      '  });\n' +
+      '  const { holding, listenFailed, retryListen, confirmed } = useFinancialReportBasisLiveRefreshWith(\n' +
+      '    deps.basis, uid, workspaceId, windowMonths, basis, needsExcluded ? excluded.data : null, { enabled },\n' +
+      '  );\n' +
+      '  const confirmedReady = confirmed !== null;\n' +
+      '  useEffect(() => {\n' +
+      '    setProjectionReady(confirmedReady ? windowKey : null);\n' +
+      '  }, [confirmedReady, windowKey]);\n' +
+      '\n' +
+      '  const { refetch: refetchSeries } = series;\n' +
+      '  const { refetch: refetchExtra } = extra;\n' +
+      '  const { refetch: refetchExcluded } = excluded;\n' +
+      '  \n' +
+      '  \n' +
+      '  const retry = useCallback(() => {\n' +
+      '    void refetchSeries();\n' +
+      '    if (extraMonth) void refetchExtra();\n' +
+      '    if (excludedIds.length > 0 && !listenFailed) void refetchExcluded();\n' +
+      '    retryListen();\n' +
+      '  }, [refetchSeries, refetchExtra, refetchExcluded, extraMonth, excludedIds.length, listenFailed, retryListen]);\n' +
+      '\n' +
+      '  const state = useMemo<IncomeEstimateState>(() => {\n' +
+      "    if (!enabled || !workspaceId) return { status: 'idle' };\n" +
+      '    const failedReport = [series, ...(needsExtra ? [extra] : [])].find((query) => query.isError && query.data === undefined);\n' +
+      "    if (failedReport) return { status: 'error', message: estimateFailureMessage('report', failedReport.error), retry };\n" +
+      '    if (needsExcluded && excluded.isError && excluded.data === undefined) {\n' +
+      "      return { status: 'error', message: estimateFailureMessage('excluded', excluded.error), retry };\n" +
+      '    }\n' +
+      "    if (!series.data || (needsExtra && !extra.data) || (needsExcluded && !excluded.data)) return { status: 'loading' };\n" +
+      '\n' +
+      '    const report = series.data;\n' +
+      '    const points = report.series.data?.points ?? [];\n' +
+      '    const receipts: MonthReceipts[] = points.map((point) => ({\n' +
+      '      month: point.month,\n' +
+      '      receiptsCents: point.receiptsCents,\n' +
+      '      partial: point.partial,\n' +
+      '    }));\n' +
+      '    let reportExact = EXACT.has(report.series.status);\n' +
+      '    if (needsExtra && extra.data && extraMonth) {\n' +
+      '      const cash = extra.data.cash;\n' +
+      "      reportExact = reportExact && EXACT.has(cash.status) && extra.data.period.range.kind === 'month';\n" +
+      '      receipts.push({ month: extraMonth, receiptsCents: cash.data?.receiptsCents ?? 0, partial: false });\n' +
+      '    }\n' +
+      '    const excludedItems: ExcludedIncomeItem[] = [];\n' +
+      '    if (needsExcluded && excluded.data) {\n' +
+      '      for (const found of excluded.data.found) {\n' +
+      '        const transaction = found as Record<string, unknown>;\n' +
+      '        const reversal = excluded.data.reversals[String(transaction.id)] as Record<string, unknown> | undefined;\n' +
+      '        excludedItems.push(excludedItemOf(transaction, reversal ?? null));\n' +
+      '      }\n' +
+      '      for (const id of excluded.data.missing) excludedItems.push({ id, month: null, classification: null });\n' +
+      '    }\n' +
+      '    const estimate = computeWorkTimeEstimate({\n' +
+      '      mode,\n' +
+      '      historyMonths,\n' +
+      '      allowBusinessIncome,\n' +
+      '      calendar,\n' +
+      '      referenceDate: report.referenceDate,\n' +
+      '      workspaceType: report.workspaceType,\n' +
+      '      reportExact,\n' +
+      '      receipts,\n' +
+      '      excluded: excludedItems,\n' +
+      '    });\n' +
+      '    const updatedAt = Math.max(series.dataUpdatedAt, needsExtra ? extra.dataUpdatedAt : 0, needsExcluded ? excluded.dataUpdatedAt : 0);\n' +
+      '    \n' +
+      '    const refreshFailed = series.isError || (needsExtra && extra.isError) |'... 3735 more characters
+
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual: |-
+    import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+
+    import { basisIncomeOf } from '../reports/basisRefresh.ts';
+    import { noteDependentReadStart, observeDependentRead, syncKeyOf } from '../reports/basisRegistry.ts';
+    import {
+      basisKeyOf,
+      useFinancialReportBasisLiveRefreshWith,
+      useFinancialReportBasisWith,
+      type BasisSyncDeps,
+      type BasisView,
+    } from '../reports/basisSync.ts';
+    import { createLiveRefreshScheduler } from '../reports/liveRefresh.ts';
+    import type { ReportRange, ReportSection } from '../reports/official.ts';
+    import { FINANCIAL_REPORT_BASIS_REFRESH } from '../reports/queryKeys.ts';
+    import { useTransactionsByIdsWith } from '../transactions/incomeReads.ts';
+    import type { WorkCalendar } from './calendar.ts';
+    import { inherentWritesOf, observeExcludedRead, proveEstimateConsistency, type ExcludedObservation } from './consistency.ts';
+    import type { WorkTimeEstimateMode, WorkTimeHistoryMonths } from './contract.ts';
+    import { monthKeyOf } from './dates.ts';
+    import { computeWorkTimeEstimate, estimateWindowMonths, extraMonthNeeded, type WorkTimeEstimate } from './estimate.ts';
+    import { excludedItemOf, type ExcludedIncomeItem, type MonthReceipts } from './incomeBasis.ts';
+    import { readExcludedIncome, type ExcludedRead } from './receivableReversal.ts';
+    import { ESTIMATE_UNCONFIRMED_FAILED, estimateFailureMessage } from './messages.ts';
+
+
+
+    const PRESET_12M: ReportRange = { kind: 'preset', preset: '12m' };
+    const SERIES_SECTIONS: readonly ReportSection[] = ['series'];
+    const CASH_SECTIONS: readonly ReportSection[] = ['cash'];
+    const EXACT = new Set(['exact', 'zero']);
+
+    export interface IncomeEstimateParams {
+      workspaceId: string | null;
+      mode: WorkTimeEstimateMode;
+      historyMonths: WorkTimeHistoryMonths;
+      allowBusinessIncome: boolean;
+      calendar: WorkCalendar;
+      excludedIds: readonly string[];
+      enabled: boolean;
+    }
+
+    export type IncomeEstimateState =
+      | { status: 'idle' }
+      | { status: 'loading' }
+      | { status: 'error'; message: string; retry: () => void }
+      | {
+        status: 'done';
+        estimate: WorkTimeEstimate;
+        updatedAt: number;
+
+        refreshFailed: boolean;
+        retry: () => void;
+      };
+
+    export interface IncomeEstimateDeps {
+      basis: BasisSyncDeps;
+
+      readByIds: (workspaceId: string, ids: readonly string[]) => Promise<{ found: ReadonlyArray<object>; missing: readonly string[] }>;
+    }
+
+
+    export const sameEstimateInputs = (a: IncomeEstimateParams, b: IncomeEstimateParams): boolean =>
+      a.workspaceId === b.workspaceId &&
+      a.mode === b.mode &&
+      a.historyMonths === b.historyMonths &&
+      a.allowBusinessIncome === b.allowBusinessIncome &&
+      a.calendar === b.calendar &&
+      a.excludedIds.join(',') === b.excludedIds.join(',');
+
+
+    export interface EstimateIdentity {
+      uid: string | null;
+
+      window: string;
+      params: IncomeEstimateParams;
+    }
+
+    export const sameEstimateIdentity = (a: EstimateIdentity, b: EstimateIdentity): boolean =>
+      a.uid === b.uid && a.window === b.window && sameEstimateInputs(a.params, b.params);
+
+    export interface HeldEstimate {
+      identity: EstimateIdentity;
+      state: Extract<IncomeEstimateState, { status: 'done' }>;
+    }
+
+
+    export const holdEstimate = (
+      proven: boolean,
+      settling: boolean,
+      last: HeldEstimate | null,
+      identity: EstimateIdentity,
+      state: IncomeEstimateState,
+      unproven: Exclude<IncomeEstimateState, { status: 'done' }>,
+    ): { shown: IncomeEstimateState; last: HeldEstimate | null } => {
+      if (!proven || settling) {
+        if (last !== null && sameEstimateIdentity(last.identity, identity)) {
+          const shown = state.status === 'done'
+            ? { ...last.state, refreshFailed: state.refreshFailed, retry: state.retry }
+            : last.state;
+          return { shown, last };
+        }
+        if (!proven) return { shown: state.status === 'done' ? unproven : state, last };
+      }
+      return { shown: state, last: state.status === 'done' ? { identity, state } : last };
+    };
+
+
+    type ExcludedReadResult = ExcludedRead & { startedOrder: number };
+
+    export const useIncomeEstimateWith = (
+      deps: IncomeEstimateDeps,
+      uid: string | null,
+      params: IncomeEstimateParams,
+    ): IncomeEstimateState => {
+      const { workspaceId, mode, historyMonths, allowBusinessIncome, calendar, excludedIds, enabled } = params;
+      const series = useFinancialReportBasisWith(deps.basis, uid, workspaceId, PRESET_12M, SERIES_SECTIONS, { enabled });
+      const referenceDate = series.data?.referenceDate ?? null;
+      const extraMonth = referenceDate ? extraMonthNeeded(mode, historyMonths, monthKeyOf(referenceDate)) : null;
+      const extraRange = useMemo<ReportRange>(
+        () => (extraMonth ? { kind: 'month', month: extraMonth } : PRESET_12M),
+        [extraMonth],
+      );
+      const extra = useFinancialReportBasisWith(deps.basis, uid, workspaceId, extraRange, CASH_SECTIONS, { enabled: enabled && extraMonth !== null });
+
+
+
+      const windowMonths = useMemo(
+        () => (referenceDate ? estimateWindowMonths(mode, historyMonths, referenceDate) : []),
+        [referenceDate, mode, historyMonths],
+      );
+      const needsExtra = extraMonth !== null;
+      const needsExcluded = excludedIds.length > 0;
+
+
+
+      const basis = useMemo<BasisView | null>(() => {
+        if (!series.data || (needsExtra && !extra.data)) return null;
+        return {
+          income: basisIncomeOf(
+            series.data.series.data?.points ?? [],
+            needsExtra && extra.data ? { month: extraMonth as string, receiptsCents: extra.data.cash.data?.receiptsCents ?? 0 } : null,
+          ),
+          exact: EXACT.has(series.data.series.status) && (!needsExtra || (!!extra.data && EXACT.has(extra.data.cash.status))),
+          versions: needsExtra ? [series.dataUpdatedAt, extra.dataUpdatedAt] : [series.dataUpdatedAt],
+          keys: needsExtra
+            ? [basisKeyOf(uid, workspaceId, PRESET_12M, SERIES_SECTIONS), basisKeyOf(uid, workspaceId, extraRange, CASH_SECTIONS)]
+            : [basisKeyOf(uid, workspaceId, PRESET_12M, SERIES_SECTIONS)],
+          fetching: series.fetchStatus !== 'idle' || (needsExtra && extra.fetchStatus !== 'idle'),
+        };
+      }, [series.data, series.dataUpdatedAt, series.fetchStatus, extra.data, extra.dataUpdatedAt, extra.fetchStatus, needsExtra, extraMonth, extraRange, uid, workspaceId]);
+      const syncKey = enabled && uid !== null && !!workspaceId && workspaceId !== 'loading' ? syncKeyOf(uid, workspaceId) : null;
+      const windowKey = `${syncKey ?? ''}\n${windowMonths.join(',')}`;
+
+
+      const [projectionReady, setProjectionReady] = useState<string | null>(null);
+
+
+      const { readByIds } = deps;
+      const readExcluded = useCallback(
+        async (sourceId: string, ids: readonly string[]): Promise<ExcludedReadResult> => {
+          const startedOrder = noteDependentReadStart();
+          return { ...(await readExcludedIncome(readByIds, sourceId, ids)), startedOrder };
+        },
+        [readByIds],
+      );
+      const excluded = useTransactionsByIdsWith(readExcluded, workspaceId, excludedIds, {
+        enabled: enabled && needsExcluded && projectionReady === windowKey,
+      });
+      const { holding, listenFailed, retryListen, confirmed } = useFinancialReportBasisLiveRefreshWith(
+        deps.basis, uid, workspaceId, windowMonths, basis, needsExcluded ? excluded.data : null, { enabled },
+      );
+      const confirmedReady = confirmed !== null;
+      useEffect(() => {
+        setProjectionReady(confirmedReady ? windowKey : null);
+      }, [confirmedReady, windowKey]);
+
+      const { refetch: refetchSeries } = series;
+      const { refetch: refetchExtra } = extra;
+      const { refetch: refetchExcluded } = excluded;
+
+
+      const retry = useCallback(() => {
+        void refetchSeries();
+        if (extraMonth) void refetchExtra();
+        if (excludedIds.length > 0 && !listenFailed) void refetchExcluded();
+        retryListen();
+      }, [refetchSeries, refetchExtra, refetchExcluded, extraMonth, excludedIds.length, listenFailed, retryListen]);
+
+      const state = useMemo<IncomeEstimateState>(() => {
+        if (!enabled || !workspaceId) return { status: 'idle' };
+        const failedReport = [series, ...(needsExtra ? [extra] : [])].find((query) => query.isError && query.data === undefined);
+        if (failedReport) return { status: 'error', message: estimateFailureMessage('report', failedReport.error), retry };
+        if (needsExcluded && excluded.isError && excluded.data === undefined) {
+          return { status: 'error', message: estimateFailureMessage('excluded', excluded.error), retry };
+        }
+        if (!series.data || (needsExtra && !extra.data) || (needsExcluded && !excluded.data)) return { status: 'loading' };
+
+        const report = series.data;
+        const points = report.series.data?.points ?? [];
+        const receipts: MonthReceipts[] = points.map((point) => ({
+          month: point.month,
+          receiptsCents: point.receiptsCents,
+          partial: point.partial,
+        }));
+        let reportExact = EXACT.has(report.series.status);
+        if (needsExtra && extra.data && extraMonth) {
+          const cash = extra.data.cash;
+          reportExact = reportExact && EXACT.has(cash.status) && extra.data.period.range.kind === 'month';
+          receipts.push({ month: extraMonth, receiptsCents: cash.data?.receiptsCents ?? 0, partial: false });
+        }
+        const excludedItems: ExcludedIncomeItem[] = [];
+        if (needsExcluded && excluded.data) {
+          for (const found of excluded.data.found) {
+            const transaction = found as Record<string, unknown>;
+            const reversal = excluded.data.reversals[String(transaction.id)] as Record<string, unknown> | undefined;
+            excludedItems.push(excludedItemOf(transaction, reversal ?? null));
+          }
+          for (const id of excluded.data.missing) excludedItems.push({ id, month: null, classification: null });
+        }
+        const estimate = computeWorkTimeEstimate({
+          mode,
+          historyMonths,
+          allowBusinessIncome,
+          calendar,
+          referenceDate: report.referenceDate,
+          workspaceType: report.workspaceType,
+          reportExact,
+          receipts,
+          excluded: excludedItems,
+        });
+        const updatedAt = Math.max(series.dataUpdatedAt, needsExtra ? extra.dataUpdatedAt : 0, needsExcluded ? excluded.dataUpdatedAt : 0);
+
+        const refreshFailed = series.isError || (needsExtra && extra.isError) || (needsExcluded && excluded.isError) || listenFailed;
+        return { status: 'done', estimate, updatedAt, refreshFailed, retry };
+      }, [enabled, workspaceId, series, extra, excluded, needsExtra, needsExcluded, extraMonth, mode, historyMonths, allowBusinessIncome, calendar, retry, listenFailed]);
+
+      const observation = useMemo<ExcludedObservation | null>(() => {
+        const read = excluded.data;
+        if (!needsExcluded || read === undefined || syncKey === null) return null;
+        return observeDependentRead<ExcludedObservation>(syncKey, read, (previous) => observeExcludedRead(read.found, read.reversals, previous));
+      }, [needsExcluded, excluded.data, syncKey]);
+      const proof = useMemo(() => {
+        const read = needsExcluded ? excluded.data : undefined;
+        const ids = new Set(excludedIds);
+        const excludedMonths: string[] = [];
+        for (const found of read?.found ?? []) {
+          const document = found as Record<string, unknown>;
+          const reversal = (read?.reversals[String(document.id)] as Record<string, unknown> | undefined) ?? null;
+          const month = excludedItemOf(document, reversal).month;
+          if (month !== null) excludedMonths.push(month);
+        }
+        return proveEstimateConsistency({
+          months: windowMonths,
+          multipleBases: needsExtra,
+          hasExclusions: needsExcluded,
+          basis: basis === null ? null : { income: basis.income, exact: basis.exact },
+          projection: confirmed,
+          excludedStartedOrder: read?.startedOrder ?? null,
+          excludedMonths,
+          pendingWrites: read === undefined
+            ? []
+            : [...inherentWritesOf(read.found, read.reversals), ...(observation?.changes ?? []).filter((change) => ids.has(change.id))],
+        });
+      }, [needsExcluded, excluded.data, excludedIds, windowMonths, needsExtra, basis, confirmed, observation]);
+
+
+
+
+      const refetchExcludedRef = useRef(refetchExcluded);
+      refetchExcludedRef.current = refetchExcluded;
+      const excludedScheduler = useRef<ReturnType<typeof createLiveRefreshScheduler> | null>(null);
+      useEffect(() => {
+        const scheduler = createLiveRefreshScheduler(
+          () => {
+            void refetchExcludedRef.current({ cancelRefetch: false });
+          },
+          deps.basis.refresh?.clock,
+          deps.basis.refresh?.options ?? { ...FINANCIAL_REPORT_BASIS_REFRESH },
+        );
+        excludedScheduler.current = scheduler;
+        return () => {
+          scheduler.cancel();
+          excludedScheduler.current = null;
+        };
+      }, [deps]);
+      const unprovenReason = 'reason' in proof ? proof.reason : null;
+      const staleExcluded = unprovenReason === 'exclusions_read' && !holding && excluded.fetchStatus === 'idle' ? excluded.data : undefined;
+      useEffect(() => {
+        const scheduler = excludedScheduler.current;
+        if (scheduler === null) return;
+        if (staleExcluded !== undefined) scheduler.notify();
+        else scheduler.cancel();
+      }, [staleExcluded]);
+
+
+
+      let failure: string | null = null;
+      if (listenFailed) failure = ESTIMATE_UNCONFIRMED_FAILED;
+      else if (series.isError) failure = estimateFailureMessage('report', series.error);
+      else if (needsExtra && extra.isError) failure = estimateFailureMessage('report', extra.error);
+      else if (needsExcluded && excluded.isError) failure = estimateFailureMessage('excluded', excluded.error);
+      const unproven: Exclude<IncomeEstimateState, { status: 'done' }> = state.status !== 'done'
+        ? state
+        : failure !== null ? { status: 'error', message: failure, retry } : { status: 'loading' };
+      const last = useRef<HeldEstimate | null>(null);
+      const identity: EstimateIdentity = { uid, window: windowMonths.join(','), params };
+      const decision = holdEstimate(proof.proven, holding, last.current, identity, state, unproven);
+      last.current = decision.last;
+      return decision.shown;
+    };
+
+  operator: 'match'
+  stack: |-
+    TestContext.<anonymous> (file://<scratchpad>/p5f1r1/revisao2/b97806c4-com-testes-d7dabb10/tests/unit/work-time-guard.test.ts:424:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: falhas de leitura: mensagens fixas em pt-BR, com nova tentativa, e só o código do erro no log
+not ok 12 - falhas de leitura: mensagens fixas em pt-BR, com nova tentativa, e só o código do erro no log
+  ---
+  duration_ms: 3.163731
+  type: 'test'
+  location: '<scratchpad>/p5f1r1/revisao2/b97806c4-com-testes-d7dabb10/tests/unit/work-time-guard.test.ts:480:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    The input did not match the regular expression /const draftCheck = useMemo\(\(\) => \(draft === null \? null : validateDraft\(draft, today\)\), \[draft, today\]\);/. Input:
+
+    "import React, { useEffect, useMemo, useRef, useState } from 'react';\n" +
+      '\n' +
+      "import { BackIcon, ClockIcon } from './Icons.tsx';\n" +
+      "import ConfirmationModal from './ConfirmationModal.tsx';\n" +
+      "import { useWorkspace } from '../contexts/WorkspaceContext';\n" +
+      "import { formatCentsBRL } from '../lib/money';\n" +
+      "import { saoPauloDayKey } from '../modules/reports/dateWindow';\n" +
+      "import { loadWorkspace } from '../modules/workspaces/api';\n" +
+      "import { workCalendarOf, type WorkTimePreference } from '../modules/work-time/contract';\n" +
+      "import { initialDraft, isSameAsSaved, validateDraft } from '../modules/work-time/draft';\n" +
+      "import { WORK_TIME_INTRO, WORK_TIME_INTRO_POINTS } from '../modules/work-time/messages';\n" +
+      "import { useIncomeEstimate } from '../modules/work-time/useIncomeEstimate';\n" +
+      "import { useWorkTime } from '../modules/work-time/WorkTimeContext';\n" +
+      "import { EstimateDetailsDialog, EstimateSummary } from './workTime/EstimateDetails';\n" +
+      "import ExceptionsEditor from './workTime/ExceptionsEditor';\n" +
+      "import HolidaysEditor from './workTime/HolidaysEditor';\n" +
+      "import IncomeEditor, { IncomePanelDialog } from './workTime/IncomeEditor';\n" +
+      "import RoutineEditor, { type RoutineEditorResult } from './workTime/RoutineEditor';\n" +
+      "import WorkTimeWizard from './workTime/WorkTimeWizard';\n" +
+      'import {\n' +
+      '  Switch,\n' +
+      '  cardClass,\n' +
+      '  dangerButtonClass,\n' +
+      '  helpTextClass,\n' +
+      '  labelClass,\n' +
+      '  linkButtonClass,\n' +
+      '  noticeClass,\n' +
+      '  primaryButtonClass,\n' +
+      '  secondaryButtonClass,\n' +
+      "} from './workTime/ui';\n" +
+      '\n' +
+      'const logCode = (label: string, error: unknown) => {\n' +
+      '  \n' +
+      '  const code = (error as { code?: unknown } | null)?.code;\n' +
+      "  console.error(label, typeof code === 'string' ? code : 'desconhecido');\n" +
+      '};\n' +
+      '\n' +
+      "type Feedback = { kind: 'success' | 'error' | 'pending'; message: string } | null;\n" +
+      '\n' +
+      '\n' +
+      "const isOffline = () => typeof navigator !== 'undefined' && navigator.onLine === false;\n" +
+      "const OFFLINE_MESSAGE = 'Sem conexão com a internet. Conecte-se e tente de novo.';\n" +
+      '\n' +
+      'const DEFAULT_SOURCE_LOOKUPS = 5;\n' +
+      "const SAVE_FAILED_MESSAGE = 'Não foi possível salvar agora. A configuração anterior continua valendo. Confira sua conexão e tente de novo.';\n" +
+      '\n' +
+      'const Section: React.FC<{ id: string; title: string; description?: string; children: React.ReactNode }> = ({ id, title, description, children }) => (\n' +
+      '  <section aria-labelledby={id} className="min-w-0 space-y-3">\n' +
+      '    <div>\n' +
+      '      <h3 id={id} className="text-base font-bold text-on-surface">{title}</h3>\n' +
+      '      {description && <p className={helpTextClass}>{description}</p>}\n' +
+      '    </div>\n' +
+      '    {children}\n' +
+      '  </section>\n' +
+      ');\n' +
+      '\n' +
+      '\n' +
+      'const WorkTimeSettingsView: React.FC<{ onBack: () => void }> = ({ onBack }) => {\n' +
+      '  const workTime = useWorkTime();\n' +
+      '  const { preference, status, ownerUid, hasPendingWrites } = workTime;\n' +
+      '  const { workspaces, activeWorkspace } = useWorkspace();\n' +
+      '  const today = saoPauloDayKey();\n' +
+      '  const [isWizardOpen, setIsWizardOpen] = useState(false);\n' +
+      '  const [draft, setDraft] = useState<WorkTimePreference | null>(null);\n' +
+      '  const [isDirty, setIsDirty] = useState(false);\n' +
+      '  const [resetNonce, setResetNonce] = useState(0);\n' +
+      '  const [routineResult, setRoutineResult] = useState<RoutineEditorResult>({ ok: true, routines: [] });\n' +
+      '  const [feedback, setFeedback] = useState<Feedback>(null);\n' +
+      '  const [wizardError, setWizardError] = useState<string | null>(null);\n' +
+      '  const [isSaving, setIsSaving] = useState(false);\n' +
+      '  const [isDeleting, setIsDeleting] = useState(false);\n' +
+      '  const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);\n' +
+      '  const [isDetailsOpen, setIsDetailsOpen] = useState(false);\n' +
+      '  const [isPanelOpen, setIsPanelOpen] = useState(false);\n' +
+      '  const [savedChangedElsewhere, setSavedChangedElsewhere] = useState(false);\n' +
+      '  const deleteButtonRef = useRef<HTMLButtonElement>(null);\n' +
+      '  const backButtonRef = useRef<HTMLButtonElement>(null);\n' +
+      '  \n' +
+      '  const ownerRef = useRef(ownerUid);\n' +
+      '  ownerRef.current = ownerUid;\n' +
+      '  const editBaseRef = useRef<WorkTimePreference | null>(null);\n' +
+      '  const draftRef = useRef(draft);\n' +
+      '  draftRef.current = draft;\n' +
+      '\n' +
+      '  \n' +
+      '  useEffect(() => {\n' +
+      '    setDraft(null);\n' +
+      '    setIsDirty(false);\n' +
+      '    setIsWizardOpen(false);\n' +
+      '    setFeedback(null);\n' +
+      '    setWizardError(null);\n' +
+      '    setSavedChangedElsewhere(false);\n' +
+      '  }, [ownerUid]);\n' +
+      '\n' +
+      '  \n' +
+      '  \n' +
+      '  \n' +
+      '  \n' +
+      '  \n' +
+      '  useEffect(() => {\n' +
+      "    if (status !== 'ready') return;\n" +
+      '    if (!isDirty) {\n' +
+      '      setDraft(preference);\n' +
+      '      setResetNonce((value) => value + 1);\n' +
+      '      setSavedChangedElsewhere(false);\n' +
+      '      return;\n' +
+      '    }\n' +
+      '    if (hasPendingWrites) return;\n' +
+      '    \n' +
+      '    \n' +
+      '    const base = editBaseRef.current ?? preference;\n' +
+      '    const current = draftRef.current;\n' +
+      '    if (preference && base && current && base.displayMode !== preference.displayMode && current.displayMode === base.displayMode) {\n' +
+      '      editBaseRef.current = { ...base, displayMode: preference.displayMode };\n' +
+      '      setDraft({ ...current, displayMode: preference.displayMode });\n' +
+      '    }\n' +
+      '    setSavedChangedElsewhere(!isSameAsSaved(editBaseRef.current ?? preference ?? ({} as WorkTimePreference), preference));\n' +
+      '  }, [status, preference, isDirty, hasPendingWrites]);\n' +
+      '\n' +
+      '  \n' +
+      '  \n' +
+      '  \n' +
+      '  \n' +
+      '  const activeId = activeWorkspace?.id ?? null;\n' +
+      "  const activeRole = activeWorkspace?.type === 'PF' ? activeWorkspace.myRole ?? null : null;\n" +
+      '  const personalCandidates = useMemo(() => [\n' +
+      "    ...(activeWorkspace?.type === 'PF' ? [activeWorkspace.id] : []),\n" +
+      "    ...workspaces.filter((workspace) => workspace.type === 'PF' && workspace.id !== activeWorkspace?.id).map((workspace) => workspace.id),\n" +
+      "  ].slice(0, DEFAULT_SOURCE_LOOKUPS).join(','), [workspaces, activeWorkspace?.id, activeWorkspace?.type]);\n" +
+      '  const [defaultWorkspaceId, setDefaultWorkspaceId] = useState<string | null>(null);\n' +
+      '  \n' +
+      '  useEffect(() => { setDefaultWorkspaceId(null); }, [ownerUid]);\n' +
+      '  useEffect(() => {\n' +
+      "    if (status !== 'ready' || preference || !ownerUid) return undefined;\n" +
+      '    let cancelled = false;\n' +
+      '    const owner = ownerUid;\n' +
+      "    const candidates = personalCandidates ? personalCandidates.split(',') : [];\n" +
+      '    void (async () => {\n' +
+      "      let chosen = '';\n" +
+      '      for (const workspaceId of candidates) {\n' +
+      '        const role = workspaceId === activeId && activeRole\n' +
+      '          ? activeRole\n' +
+      '          : await loadWorkspace(workspaceId, owner).then((loaded) => loaded.myRole).catch(() => undefined);\n' +
+      '        if (cancelled) return;\n' +
+      "        if (role === 'owner') {\n" +
+      '          chosen = workspaceId;\n' +
+      '          break;\n' +
+      '        }\n' +
+      '      }\n' +
+      '      \n' +
+      '      if (!cancelled) setDefaultWorkspaceId(chosen);\n' +
+      '    })();\n' +
+      '    return () => { cancelled = true; };\n' +
+      '  }, [status, preference, ownerUid, personalCandidates, activeId, activeRole]);\n' +
+      '\n' +
+      '  const edit = (changes: Partial<WorkTimePreference>) => {\n' +
+      '    if (!draft) return;\n' +
+      '    if (!isDirty) editBaseRef.current = preference;\n' +
+      '    setDraft({ ...draft, ...changes });\n' +
+      '    setIsDirty(true);\n' +
+      '    setFeedback(null);\n' +
+      '  };\n' +
+      '\n' +
+      '  const calendar = useMemo(() => (draft ? workCalendarOf(draft) : null), [draft]);\n' +
+      '  const draftEstimate = useIncomeEstimate({\n' +
+      '    workspaceId: draft?.incomeWorkspaceId || null,\n' +
+      "    mode: draft?.estimateMode ?? 'habitual',\n" +
+      '    historyMonths: draft?.historyMonths ?? 3,\n' +
+      '    allowBusinessIncome: draft?.allowBusinessIncome ?? false,\n' +
+      '    calendar: calendar ?? { routines: [], worksOnHolidays: false, localHolidays: [], exceptions: [] },\n' +
+      '    excludedIds: draft?.excludedIncomeIds ?? [],\n' +
+      '    enabled: draft !== null && !isWizardOpen,\n' +
+      '  });\n' +
+      "  const sourceName = workspaces.find((workspace) => workspace.id === draft?.incomeWorkspaceId)?.name ?? 'Espaço selecionado';\n" +
+      '\n' +
+      '  const save = async (next: WorkTimePreference, fromWizard: boolean) => {\n' +
+      '    if (isSaving) return;\n' +
+      '    setFeedback(null);\n' +
+      '    setWizardError(null);\n' +
+      '    const checked = validateDraft(next, today);\n' +
+      "    const routineMessage = !fromWizard && 'message' in routineResult ? routineResult.message : null;\n" +
+      "    if ('message' in checked || routineMessage !== null) {\n" +
+      "      const message = 'message' in checked ? checked.message : routineMessage ?? '';\n" +
+      '      if (fromWizard) setWizardError(message);\n' +
+      "      else setFeedback({ kind: 'error', message });\n" +
+      '      return;\n' +
+      '    }\n' +
+      '    if (isOffline()) {\n' +
+      '      if (fromWizard) setWizardError(OFFLINE_MESSAGE);\n' +
+      "      else setFeedback({ kind: 'error', message: OFFLINE_MESSAGE });\n" +
+      '      return;\n' +
+      '    }\n' +
+      '    const owner = ownerRef.current;\n' +
+      '    setIsSaving(true);\n' +
+      '    try {\n' +
+      '      await workTime.savePreference(next);\n' +
+      '      if (ownerRef.current !== owner) return;\n' +
+      '      setIsDirty(false);\n' +
+      '      setIsWizardOpen(false);\n' +
+      '      setSavedChangedElsewhere(false);\n' +
+      "      setFeedback({ kind: 'success', message: fromWizard ? 'Tudo pronto: a configuração foi salva.' : 'Alterações salvas.' });\n" +
+      '    } catch (error) {\n' +
+      "      logCode('Falha ao salvar a preferência de tempo de trabalho', error);\n" +
+      '      if (ownerRef.current === owner) {\n' +
+      '        if (fromWizard) setWizardError(SAVE_FAILED_MESSAGE);\n' +
+      "        else setFeedback({ kind: 'error', message: SAVE_FAILED_MESSAGE });\n" +
+      '      }\n' +
+      '    } finally {\n' +
+      '      if (ownerRef.current === owner) setIsSaving(false);\n' +
+      '    }\n' +
+      '  };\n' +
+      '\n' +
+      '  const discard = () => {\n' +
+      '    setDraft(preference);\n' +
+      '    setIsDirty(false);\n' +
+      '    setResetNonce((value) => value + 1);\n' +
+      '    setFeedback(null);\n' +
+      '    setSavedChangedElsewhere(false);\n' +
+      '  };\n' +
+      '\n' +
+      '  const handleDelete = async () => {\n' +
+      '    if (isDeleting) return;\n' +
+      '    if (isOffline()) {\n' +
+      '      setIsConfirmingDelete(false);\n' +
+      "      setFeedback({ kind: 'error', message: OFFLINE_MESSAGE });\n" +
+      '      return;\n' +
+      '    }\n' +
+      '    const owner = ownerRef.current;\n' +
+      '    setIsDeleting(true);\n' +
+      '    \n' +
+      "    setFeedback({ kind: 'pending', message: 'Excluindo seus dados. A exclusão termina quando o servidor confirmar.' });\n" +
+      '    try {\n' +
+      '      await workTime.deletePreference();\n' +
+      '      if (ownerRef.current !== owner) return;\n' +
+      '      setIsConfirmingDelete(false);\n' +
+      '      setDraft(null);\n' +
+      '      setIsDirty(false);\n' +
+      "      setFeedback({ kind: 'success', message: 'Seus dados de tempo de trabalho foram excluídos.' });\n" +
+      '    } catch (error) {\n' +
+      "      logCode('Falha ao excluir a preferência de tempo de trabalho', error);\n" +
+      '      if (ownerRef.current === owner) {\n' +
+      '        setIsConfirmingDelete(false);\n' +
+      "        setFeedback({ kind: 'error', message: 'Não foi possível excluir agora. Tente de novo.' });\n" +
+      '      }\n' +
+      '    } finally {\n' +
+      '      if (ownerRef.current === owner) setIsDeleting(false);\n' +
+      '    }\n' +
+      '  }'... 12957 more characters
+
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual: |-
+    import React, { useEffect, useMemo, useRef, useState } from 'react';
+
+    import { BackIcon, ClockIcon } from './Icons.tsx';
+    import ConfirmationModal from './ConfirmationModal.tsx';
+    import { useWorkspace } from '../contexts/WorkspaceContext';
+    import { formatCentsBRL } from '../lib/money';
+    import { saoPauloDayKey } from '../modules/reports/dateWindow';
+    import { loadWorkspace } from '../modules/workspaces/api';
+    import { workCalendarOf, type WorkTimePreference } from '../modules/work-time/contract';
+    import { initialDraft, isSameAsSaved, validateDraft } from '../modules/work-time/draft';
+    import { WORK_TIME_INTRO, WORK_TIME_INTRO_POINTS } from '../modules/work-time/messages';
+    import { useIncomeEstimate } from '../modules/work-time/useIncomeEstimate';
+    import { useWorkTime } from '../modules/work-time/WorkTimeContext';
+    import { EstimateDetailsDialog, EstimateSummary } from './workTime/EstimateDetails';
+    import ExceptionsEditor from './workTime/ExceptionsEditor';
+    import HolidaysEditor from './workTime/HolidaysEditor';
+    import IncomeEditor, { IncomePanelDialog } from './workTime/IncomeEditor';
+    import RoutineEditor, { type RoutineEditorResult } from './workTime/RoutineEditor';
+    import WorkTimeWizard from './workTime/WorkTimeWizard';
+    import {
+      Switch,
+      cardClass,
+      dangerButtonClass,
+      helpTextClass,
+      labelClass,
+      linkButtonClass,
+      noticeClass,
+      primaryButtonClass,
+      secondaryButtonClass,
+    } from './workTime/ui';
+
+    const logCode = (label: string, error: unknown) => {
+
+      const code = (error as { code?: unknown } | null)?.code;
+      console.error(label, typeof code === 'string' ? code : 'desconhecido');
+    };
+
+    type Feedback = { kind: 'success' | 'error' | 'pending'; message: string } | null;
+
+
+    const isOffline = () => typeof navigator !== 'undefined' && navigator.onLine === false;
+    const OFFLINE_MESSAGE = 'Sem conexão com a internet. Conecte-se e tente de novo.';
+
+    const DEFAULT_SOURCE_LOOKUPS = 5;
+    const SAVE_FAILED_MESSAGE = 'Não foi possível salvar agora. A configuração anterior continua valendo. Confira sua conexão e tente de novo.';
+
+    const Section: React.FC<{ id: string; title: string; description?: string; children: React.ReactNode }> = ({ id, title, description, children }) => (
+      <section aria-labelledby={id} className="min-w-0 space-y-3">
+        <div>
+          <h3 id={id} className="text-base font-bold text-on-surface">{title}</h3>
+          {description && <p className={helpTextClass}>{description}</p>}
+        </div>
+        {children}
+      </section>
+    );
+
+
+    const WorkTimeSettingsView: React.FC<{ onBack: () => void }> = ({ onBack }) => {
+      const workTime = useWorkTime();
+      const { preference, status, ownerUid, hasPendingWrites } = workTime;
+      const { workspaces, activeWorkspace } = useWorkspace();
+      const today = saoPauloDayKey();
+      const [isWizardOpen, setIsWizardOpen] = useState(false);
+      const [draft, setDraft] = useState<WorkTimePreference | null>(null);
+      const [isDirty, setIsDirty] = useState(false);
+      const [resetNonce, setResetNonce] = useState(0);
+      const [routineResult, setRoutineResult] = useState<RoutineEditorResult>({ ok: true, routines: [] });
+      const [feedback, setFeedback] = useState<Feedback>(null);
+      const [wizardError, setWizardError] = useState<string | null>(null);
+      const [isSaving, setIsSaving] = useState(false);
+      const [isDeleting, setIsDeleting] = useState(false);
+      const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
+      const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+      const [isPanelOpen, setIsPanelOpen] = useState(false);
+      const [savedChangedElsewhere, setSavedChangedElsewhere] = useState(false);
+      const deleteButtonRef = useRef<HTMLButtonElement>(null);
+      const backButtonRef = useRef<HTMLButtonElement>(null);
+
+      const ownerRef = useRef(ownerUid);
+      ownerRef.current = ownerUid;
+      const editBaseRef = useRef<WorkTimePreference | null>(null);
+      const draftRef = useRef(draft);
+      draftRef.current = draft;
+
+
+      useEffect(() => {
+        setDraft(null);
+        setIsDirty(false);
+        setIsWizardOpen(false);
+        setFeedback(null);
+        setWizardError(null);
+        setSavedChangedElsewhere(false);
+      }, [ownerUid]);
+
+
+
+
+
+
+      useEffect(() => {
+        if (status !== 'ready') return;
+        if (!isDirty) {
+          setDraft(preference);
+          setResetNonce((value) => value + 1);
+          setSavedChangedElsewhere(false);
+          return;
+        }
+        if (hasPendingWrites) return;
+
+
+        const base = editBaseRef.current ?? preference;
+        const current = draftRef.current;
+        if (preference && base && current && base.displayMode !== preference.displayMode && current.displayMode === base.displayMode) {
+          editBaseRef.current = { ...base, displayMode: preference.displayMode };
+          setDraft({ ...current, displayMode: preference.displayMode });
+        }
+        setSavedChangedElsewhere(!isSameAsSaved(editBaseRef.current ?? preference ?? ({} as WorkTimePreference), preference));
+      }, [status, preference, isDirty, hasPendingWrites]);
+
+
+
+
+
+      const activeId = activeWorkspace?.id ?? null;
+      const activeRole = activeWorkspace?.type === 'PF' ? activeWorkspace.myRole ?? null : null;
+      const personalCandidates = useMemo(() => [
+        ...(activeWorkspace?.type === 'PF' ? [activeWorkspace.id] : []),
+        ...workspaces.filter((workspace) => workspace.type === 'PF' && workspace.id !== activeWorkspace?.id).map((workspace) => workspace.id),
+      ].slice(0, DEFAULT_SOURCE_LOOKUPS).join(','), [workspaces, activeWorkspace?.id, activeWorkspace?.type]);
+      const [defaultWorkspaceId, setDefaultWorkspaceId] = useState<string | null>(null);
+
+      useEffect(() => { setDefaultWorkspaceId(null); }, [ownerUid]);
+      useEffect(() => {
+        if (status !== 'ready' || preference || !ownerUid) return undefined;
+        let cancelled = false;
+        const owner = ownerUid;
+        const candidates = personalCandidates ? personalCandidates.split(',') : [];
+        void (async () => {
+          let chosen = '';
+          for (const workspaceId of candidates) {
+            const role = workspaceId === activeId && activeRole
+              ? activeRole
+              : await loadWorkspace(workspaceId, owner).then((loaded) => loaded.myRole).catch(() => undefined);
+            if (cancelled) return;
+            if (role === 'owner') {
+              chosen = workspaceId;
+              break;
+            }
+          }
+
+          if (!cancelled) setDefaultWorkspaceId(chosen);
+        })();
+        return () => { cancelled = true; };
+      }, [status, preference, ownerUid, personalCandidates, activeId, activeRole]);
+
+      const edit = (changes: Partial<WorkTimePreference>) => {
+        if (!draft) return;
+        if (!isDirty) editBaseRef.current = preference;
+        setDraft({ ...draft, ...changes });
+        setIsDirty(true);
+        setFeedback(null);
+      };
+
+      const calendar = useMemo(() => (draft ? workCalendarOf(draft) : null), [draft]);
+      const draftEstimate = useIncomeEstimate({
+        workspaceId: draft?.incomeWorkspaceId || null,
+        mode: draft?.estimateMode ?? 'habitual',
+        historyMonths: draft?.historyMonths ?? 3,
+        allowBusinessIncome: draft?.allowBusinessIncome ?? false,
+        calendar: calendar ?? { routines: [], worksOnHolidays: false, localHolidays: [], exceptions: [] },
+        excludedIds: draft?.excludedIncomeIds ?? [],
+        enabled: draft !== null && !isWizardOpen,
+      });
+      const sourceName = workspaces.find((workspace) => workspace.id === draft?.incomeWorkspaceId)?.name ?? 'Espaço selecionado';
+
+      const save = async (next: WorkTimePreference, fromWizard: boolean) => {
+        if (isSaving) return;
+        setFeedback(null);
+        setWizardError(null);
+        const checked = validateDraft(next, today);
+        const routineMessage = !fromWizard && 'message' in routineResult ? routineResult.message : null;
+        if ('message' in checked || routineMessage !== null) {
+          const message = 'message' in checked ? checked.message : routineMessage ?? '';
+          if (fromWizard) setWizardError(message);
+          else setFeedback({ kind: 'error', message });
+          return;
+        }
+        if (isOffline()) {
+          if (fromWizard) setWizardError(OFFLINE_MESSAGE);
+          else setFeedback({ kind: 'error', message: OFFLINE_MESSAGE });
+          return;
+        }
+        const owner = ownerRef.current;
+        setIsSaving(true);
+        try {
+          await workTime.savePreference(next);
+          if (ownerRef.current !== owner) return;
+          setIsDirty(false);
+          setIsWizardOpen(false);
+          setSavedChangedElsewhere(false);
+          setFeedback({ kind: 'success', message: fromWizard ? 'Tudo pronto: a configuração foi salva.' : 'Alterações salvas.' });
+        } catch (error) {
+          logCode('Falha ao salvar a preferência de tempo de trabalho', error);
+          if (ownerRef.current === owner) {
+            if (fromWizard) setWizardError(SAVE_FAILED_MESSAGE);
+            else setFeedback({ kind: 'error', message: SAVE_FAILED_MESSAGE });
+          }
+        } finally {
+          if (ownerRef.current === owner) setIsSaving(false);
+        }
+      };
+
+      const discard = () => {
+        setDraft(preference);
+        setIsDirty(false);
+        setResetNonce((value) => value + 1);
+        setFeedback(null);
+        setSavedChangedElsewhere(false);
+      };
+
+      const handleDelete = async () => {
+        if (isDeleting) return;
+        if (isOffline()) {
+          setIsConfirmingDelete(false);
+          setFeedback({ kind: 'error', message: OFFLINE_MESSAGE });
+          return;
+        }
+        const owner = ownerRef.current;
+        setIsDeleting(true);
+
+        setFeedback({ kind: 'pending', message: 'Excluindo seus dados. A exclusão termina quando o servidor confirmar.' });
+        try {
+          await workTime.deletePreference();
+          if (ownerRef.current !== owner) return;
+          setIsConfirmingDelete(false);
+          setDraft(null);
+          setIsDirty(false);
+          setFeedback({ kind: 'success', message: 'Seus dados de tempo de trabalho foram excluídos.' });
+        } catch (error) {
+          logCode('Falha ao excluir a preferência de tempo de trabalho', error);
+          if (ownerRef.current === owner) {
+            setIsConfirmingDelete(false);
+            setFeedback({ kind: 'error', message: 'Não foi possível excluir agora. Tente de novo.' });
+          }
+        } finally {
+          if (ownerRef.current === owner) setIsDeleting(false);
+        }
+      };
+
+      const hasStoredDocument = preference !== null || workTime.isStoredInvalid;
+      const isLoading = status === 'idle' || status === 'loading';
+      const savedEstimate = workTime.estimate;
+      const draftIsValid = draft !== null && validateDraft(draft, today).ok && routineResult.ok;
+
+      const feedbackView = feedback && (
+        <p
+          role={feedback.kind === 'error' ? 'alert' : 'status'}
+          data-testid="work-time-feedback"
+          className={`text-sm ${feedback.kind === 'error' ? 'text-red-600 dark:text-red-400' : feedback.kind === 'pending' ? 'text-muted' : 'text-emerald-700 dark:text-emerald-300'}`}
+        >
+          {feedback.message}
+        </p>
+      );
+
+      return (
+        <div className="animate-fade-in max-w-5xl mx-auto min-w-0" data-testid="work-time-settings">
+          <div className="flex items-center gap-4 mb-8">
+            <button
+              ref={backButtonRef}
+              type="button"
+              onClick={onBack}
+              aria-label="Voltar para Configurações"
+              className="p-2 rounded-lg bg-surface border border-border text-muted hover:text-on-surface transition-colors"
+            >
+              <BackIcon className="h-5 w-5" />
+            </button>
+            <div className="min-w-0">
+              <h2 className="text-2xl font-bold text-on-surface">Tempo de trabalho equivalente</h2>
+              <p className="text-sm text-muted">
+                Veja quanto do seu tempo de trabalho um valor representa. É opcional e só você vê.
+              </p>
+            </div>
+          </div>
+
+          {isLoading && (
+            <p className="text-sm text-muted" role="status">Carregando sua preferência...</p>
+          )}
+
+          {status === 'error' && (
+            <div className="bg-surface rounded-card border border-border p-6 shadow-sm space-y-3" role="alert">
+              <p className="text-sm text-on-surface">
+                Não foi possível carregar sua preferência agora. Enquanto isso, os valores continuam em reais.
+              </p>
+              <button type="button" onClick={workTime.retry} className="text-sm font-medium text-primary dark:text-primary-on-dark hover:underline">
+                Tentar de novo
+              </button>
+            </div>
+          )}
+
+          {status === 'ready' && isWizardOpen && (
+            <WorkTimeWizard
+              initial={preference ?? initialDraft(defaultWorkspaceId ?? '')}
+              isRedo={preference !== null}
+              isSaving={isSaving}
+              saveError={wizardError}
+              today={today}
+              onCancel={() => { setIsWizardOpen(false); setWizardError(null); }}
+              onSave={(next) => void save(next, true)}
+            />
+          )}
+
+          {status === 'ready' && !isWizardOpen && !preference && (
+            <div className="space-y-4">
+              {workTime.isStoredInvalid && (
+                <p className={noticeClass} role="alert">
+                  A preferência salva está num formato que não reconhecemos e foi ignorada. Configure de novo ou exclua.
+                </p>
+              )}
+              <div className={`${cardClass} min-w-0 space-y-3 text-sm text-on-surface`} data-testid="work-time-intro">
+                <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center text-white shadow-lg">
+                  <ClockIcon className="w-7 h-7" aria-hidden="true" />
+                </div>
+                <p>{WORK_TIME_INTRO}</p>
+                <ul className="list-disc space-y-1 pl-5">
+                  {WORK_TIME_INTRO_POINTS.map((point) => <li key={point}>{point}</li>)}
+                </ul>
+                <button type="button" className={primaryButtonClass} onClick={() => { setFeedback(null); setIsWizardOpen(true); }}
+                  disabled={defaultWorkspaceId === null} data-testid="work-time-start">
+                  {defaultWorkspaceId === null ? 'Preparando...' : 'Configurar agora'}
+                </button>
+              </div>
+              {hasStoredDocument && (
+                <button ref={deleteButtonRef} type="button" className={dangerButtonClass}
+                  onClick={() => { setFeedback(null); setIsConfirmingDelete(true); }} disabled={isDeleting}>
+                  Excluir meus dados
+                </button>
+              )}
+              {feedbackView}
+            </div>
+          )}
+
+          {status === 'ready' && !isWizardOpen && preference && draft && (
+            <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
+              <div className="min-w-0 space-y-8 md:col-span-2">
+                <Section id="wt-display" title="Exibição">
+                  <div className={`${cardClass} min-w-0 space-y-4`}>
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <p id="work-time-enabled-label" className="text-sm font-bold text-on-surface">Ativar tempo de trabalho equivalente</p>
+                        <p id="work-time-enabled-help" className={helpTextClass}>
+                          Ativado, o botão do relógio no topo alterna entre reais e tempo nas telas financeiras. Desativar guarda a configuração.
+                        </p>
+                      </div>
+                      <Switch checked={draft.enabled} labelledBy="work-time-enabled-label" describedBy="work-time-enabled-help"
+                        onChange={(enabled) => edit({ enabled })} testId="work-time-enabled" />
+                    </div>
+                    <fieldset>
+                      <legend className={labelClass}>Exibir valores em</legend>
+                      <div className="flex flex-wrap gap-4">
+                        {([['money', 'Reais (R$)'], ['time', 'Tempo de trabalho']] as const).map(([mode, label]) => (
+                          <label key={mode} className="inline-flex items-center gap-2 text-sm text-on-surface cursor-pointer">
+                            <input type="radio" name="work-time-display-mode" value={mode} checked={draft.displayMode === mode}
+                              onChange={() => edit({ displayMode: mode })} className="h-4 w-4 text-primary focus:ring-primary" />
+                            {label}
+                          </label>
+                        ))}
+                      </div>
+                    </fieldset>
+                  </div>
+                </Section>
+
+                <Section id="wt-routine" title="Rotina de trabalho" description="Dias, horários, intervalos e escalas. As horas de cada mês saem daqui.">
+                  <RoutineEditor key={`routines-${resetNonce}`} idPrefix="settings" routines={draft.routines} defaultReference={today}
+                    onChange={(result) => {
+                      setRoutineResult(result);
+                      if (result.ok && JSON.stringify(result.routines) !== JSON.stringify(draft.routines)) edit({ routines: result.routines });
+                      else if (!result.ok) {
+                        if (!isDirty) editBaseRef.current = preference;
+                        setIsDirty(true);
+                      }
+                    }} />
+                </Section>
+
+                <Section id="wt-holidays" title="Feriados e localização">
+                  <HolidaysEditor key={`holidays-${resetNonce}`} idPrefix="settings" year={Number(today.slice(0, 4))}
+                    value={{ uf: draft.uf, municipality: draft.municipality, worksOnHolidays: draft.worksOnHolidays, localHolidays: draft.localHolidays }}
+                    onChange={(value) => edit(value)} />
+                </Section>
+
+                <Section id="wt-exceptions" title="Exceções da jornada" description="Férias, folgas, plantões, horas extras e mudanças pontuais.">
+                  <ExceptionsEditor key={`exceptions-${resetNonce}`} idPrefix="settings-exceptions" calendar={calendar ?? workCalendarOf(draft)}
+                    exceptions={draft.exceptions} initialMonth={today.slice(0, 7)} onChange={(exceptions) => edit({ exceptions })} />
+                </Section>
+
+                <Section id="wt-income" title="Renda considerada" description="As receitas vêm dos seus lançamentos oficiais; nada é digitado.">
+                  <IncomeEditor idPrefix="settings-income" value={draft} onChange={(changes) => edit(changes)} state={draftEstimate} showCount={false} />
+                  <button type="button" className={secondaryButtonClass} onClick={() => setIsPanelOpen(true)} data-testid="work-time-income-panel-open">
+                    Receitas consideradas
+                  </button>
+                </Section>
+
+                <div className={`${cardClass} min-w-0 space-y-3 text-sm text-on-surface`}>
+                  <h3 className="text-base font-bold text-on-surface">Como funciona</h3>
+                  <p>
+                    O valor é dividido pelo que uma hora da sua renda representa: soma das receitas elegíveis ÷ soma das horas previstas dos mesmos meses. Exemplo: R$ 3.520,00 em 176 horas dão R$ 20,00 por hora, e R$ 482,35 equivalem a cerca de 24 h 7 min.
+                  </p>
+                  <p>
+                    É uma estimativa aproximada e informativa, arredondada ao minuto mais próximo. Não é custo contábil, preço do seu trabalho, salário líquido, produtividade nem retorno. Seus registros, saldos e relatórios continuam em reais, e pagamentos, formulários e confirmações sempre mostram reais.
+                  </p>
+                  <p>
+                    Sua rotina, seus feriados, suas exceções e o valor da sua hora ficam só na sua conta. Ninguém dos seus espaços consegue vê-los, inclusive proprietários e administradores, e eles não vão para o assistente de IA, notificações nem relatórios. Você pode excluir esses dados quando quiser.
+                  </p>
+                </div>
+              </div>
+
+              <div className="min-w-0 space-y-4">
+                <div className="bg-primary/5 rounded-card border border-primary/20 p-4 sm:p-6 space-y-4 md:sticky md:top-4">
+                  <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center text-white shadow-lg">
+                    <ClockIcon className="w-7 h-7" aria-hidden="true" />
+                  </div>
+                  <EstimateSummary state={draftEstimate} sourceName={sourceName} onOpenDetails={() => setIsDetailsOpen(true)}
+                    testId="work-time-preview" title={isDirty ? 'Prévia com as alterações' : 'Valor estimado da sua hora'} />
+                  {isDirty && (
+                    <p className="text-xs text-muted" data-testid="work-time-unsaved">
+                      Nada foi salvo ainda.
+                      {savedEstimate.status === 'done' && savedEstimate.estimate.status === 'ready'
+                        ? ` Valor em uso agora: ${formatCentsBRL(savedEstimate.estimate.hourlyRateCents)} por hora.`
+                        : ''}
+                    </p>
+                  )}
+                  {savedChangedElsewhere && (
+                    <p className={noticeClass} role="status">
+                      A configuração foi alterada em outra aba ou dispositivo. Salvar substitui pela versão desta tela; Descartar alterações carrega a versão salva.
+                    </p>
+                  )}
+                </div>
+
+                <button type="button" className={`${primaryButtonClass} w-full`} onClick={() => void save(draft, false)}
+                  disabled={isSaving || isDeleting || !isDirty || !draftIsValid} data-testid="work-time-save">
+                  {isSaving ? 'Salvando...' : 'Salvar alterações'}
+                </button>
+                {isDirty && (
+                  <button type="button" className={`${secondaryButtonClass} w-full`} onClick={discard} disabled={isSaving}>
+                    Descartar alterações
+                  </button>
+                )}
+                <button type="button" className={`${secondaryButtonClass} w-full`} onClick={() => { discard(); setIsWizardOpen(true); }}
+                  disabled={isSaving || isDeleting} data-testid="work-time-redo">
+                  Refazer assistente
+                </button>
+                {hasStoredDocument && (
+                  <button ref={deleteButtonRef} type="button" className={`${dangerButtonClass} w-full`}
+                    onClick={() => { setFeedback(null); setIsConfirmingDelete(true); }} disabled={isSaving || isDeleting}>
+                    Excluir meus dados
+                  </button>
+                )}
+                {feedbackView}
+                <button type="button" className={linkButtonClass} onClick={() => setIsDetailsOpen(true)}>
+                  Consultar a memória de cálculo
+                </button>
+              </div>
+            </div>
+          )}
+
+          {draft && (
+            <>
+              <EstimateDetailsDialog isOpen={isDetailsOpen} onClose={() => setIsDetailsOpen(false)} state={draftEstimate} sourceName={sourceName} />
+              <IncomePanelDialog isOpen={isPanelOpen} onClose={() => setIsPanelOpen(false)} value={draft}
+                onChange={(changes) => edit(changes)} state={draftEstimate} />
+            </>
+          )}
+
+          <ConfirmationModal
+            isOpen={isConfirmingDelete}
+            onClose={() => setIsConfirmingDelete(false)}
+            onConfirm={() => void handleDelete()}
+            title="Excluir dados do tempo de trabalho"
+            message="A rotina, os feriados locais, as exceções e as escolhas de renda serão apagados, e os valores voltarão a aparecer em reais. Seus lançamentos não mudam. Esta ação não pode ser desfeita."
+            confirmLabel="Excluir"
+            isBusy={isDeleting}
+            manageFocus
+            returnFocus={() => deleteButtonRef.current ?? backButtonRef.current}
+          />
+        </div>
+      );
+    };
+
+    export default WorkTimeSettingsView;
+
+  operator: 'match'
+  stack: |-
+    TestContext.<anonymous> (file://<scratchpad>/p5f1r1/revisao2/b97806c4-com-testes-d7dabb10/tests/unit/work-time-guard.test.ts:499:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: janela de receitas: a leitura paginada real usa `readPagedWindow` com um documento a mais
+ok 13 - janela de receitas: a leitura paginada real usa `readPagedWindow` com um documento a mais
+  ---
+  duration_ms: 0.647846
+  type: 'test'
+  ...
+# Subtest: matriz: entradas, confirmações, termos, históricos e preços ficam em BRL
+ok 14 - matriz: entradas, confirmações, termos, históricos e preços ficam em BRL
+  ---
+  duration_ms: 3.850757
+  type: 'test'
+  ...
+# Subtest: matriz: pontos em BRL dentro de arquivos elegíveis continuam em reais, linha a linha
+ok 15 - matriz: pontos em BRL dentro de arquivos elegíveis continuam em reais, linha a linha
+  ---
+  duration_ms: 3.040169
+  type: 'test'
+  ...
+# Subtest: matriz: os pontos elegíveis usam a camada de exibição, e a prévia do tema força reais
+ok 16 - matriz: os pontos elegíveis usam a camada de exibição, e a prévia do tema força reais
+  ---
+  duration_ms: 3.53698
+  type: 'test'
+  ...
+# Subtest: modo dinheiro idêntico: a camada devolve o formatador da tela, sem elemento novo
+ok 17 - modo dinheiro idêntico: a camada devolve o formatador da tela, sem elemento novo
+  ---
+  duration_ms: 0.295181
+  type: 'test'
+  ...
+1..17
+# tests 17
+# suites 0
+# pass 12
+# fail 5
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 387.844061

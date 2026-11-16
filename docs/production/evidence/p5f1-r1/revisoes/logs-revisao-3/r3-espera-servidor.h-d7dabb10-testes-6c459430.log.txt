@@ -1,0 +1,57 @@
+TAP version 13
+# Subtest: prova: cada regra, na ordem, com o motivo da primeira que falha
+ok 1 - prova: cada regra, na ordem, com o motivo da primeira que falha
+  ---
+  duration_ms: 2.842476
+  type: 'test'
+  ...
+# Subtest: prova: as escritas que o próprio documento mostra (criação, confirmação, anulação e estorno)
+ok 2 - prova: as escritas que o próprio documento mostra (criação, confirmação, anulação e estorno)
+  ---
+  duration_ms: 1.558352
+  type: 'test'
+  ...
+# Subtest: prova: as mudanças vistas entre duas leituras por id, com a hora do estado novo; uma leitura mais velha não volta o estado
+ok 3 - prova: as mudanças vistas entre duas leituras por id, com a hora do estado novo; uma leitura mais velha não volta o estado
+  ---
+  duration_ms: 0.828127
+  type: 'test'
+  ...
+# Subtest: sonda r3: N03 com a hora do servidor das bases (produção), sessão aberta 5 s depois da edição
+ok 4 - sonda r3: N03 com a hora do servidor das bases (produção), sessão aberta 5 s depois da edição
+  ---
+  duration_ms: 504.235071
+  type: 'test'
+  ...
+# Subtest: sonda r3: limiar da espera pela hora do servidor, base gerada 59 s depois da escrita (espera de 60 s)
+ok 5 - sonda r3: limiar da espera pela hora do servidor, base gerada 59 s depois da escrita (espera de 60 s)
+  ---
+  duration_ms: 414.79178
+  type: 'test'
+  ...
+# Subtest: sonda r3: limiar da espera pela hora do servidor, base gerada 60 s depois da escrita (espera de 60 s)
+not ok 6 - sonda r3: limiar da espera pela hora do servidor, base gerada 60 s depois da escrita (espera de 60 s)
+  ---
+  duration_ms: 3007.804035
+  type: 'test'
+  location: '<scratchpad>/p5f1r1/revisao3/h-d7dabb10-testes-6c459430/tests/unit/r3-espera-servidor.test.ts:428:3'
+  failureType: 'testCodeFailure'
+  error: 'tempo esgotado: 60 s: a espera terminou pela hora do servidor (mostrados: loading)'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  operator: 'fail'
+  stack: |-
+    until (file://<scratchpad>/p5f1r1/revisao3/h-d7dabb10-testes-6c459430/tests/unit/r3-espera-servidor.test.ts:53:57)
+    async TestContext.<anonymous> (file://<scratchpad>/p5f1r1/revisao3/h-d7dabb10-testes-6c459430/tests/unit/r3-espera-servidor.test.ts:442:7)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+1..6
+# tests 6
+# suites 0
+# pass 5
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 4247.562534

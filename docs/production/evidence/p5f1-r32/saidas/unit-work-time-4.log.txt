@@ -1,0 +1,1683 @@
+
+> finace-dashboard-21@0.0.0 test:unit:work-time
+> node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test tests/unit/work-time-calculation.test.ts tests/unit/work-time-preference.test.ts tests/unit/work-time-guard.test.ts tests/unit/work-time-calendar.test.ts tests/unit/work-time-grammar.test.ts tests/unit/work-time-estimate.test.ts tests/unit/work-time-income-estimate.test.ts tests/unit/work-time-consistency.test.ts tests/unit/work-time-projection-proof.test.ts tests/unit/transactions-paging.test.ts
+
+TAP version 13
+# Subtest: 0 documentos: 0 lidos em 1 página, completa
+ok 1 - 0 documentos: 0 lidos em 1 página, completa
+  ---
+  duration_ms: 8.476008
+  type: 'test'
+  ...
+# Subtest: 500 documentos: 500 lidos em 1 página, completa
+ok 2 - 500 documentos: 500 lidos em 1 página, completa
+  ---
+  duration_ms: 0.69794
+  type: 'test'
+  ...
+# Subtest: 501 documentos: 501 lidos em 2 páginas, completa
+ok 3 - 501 documentos: 501 lidos em 2 páginas, completa
+  ---
+  duration_ms: 0.320988
+  type: 'test'
+  ...
+# Subtest: 2000 documentos: 2000 lidos em 4 páginas, completa
+ok 4 - 2000 documentos: 2000 lidos em 4 páginas, completa
+  ---
+  duration_ms: 2.213375
+  type: 'test'
+  ...
+# Subtest: 2001 documentos: 2000 lidos em 4 páginas, truncada
+ok 5 - 2001 documentos: 2000 lidos em 4 páginas, truncada
+  ---
+  duration_ms: 0.824641
+  type: 'test'
+  ...
+# Subtest: exemplo de referência: R$ 482,35 com hora de R$ 20,00 vira 24 h 7 min
+ok 6 - exemplo de referência: R$ 482,35 com hora de R$ 20,00 vira 24 h 7 min
+  ---
+  duration_ms: 14.80249
+  type: 'test'
+  ...
+# Subtest: equivalência entre períodos: a renda inteira vale a carga inteira, e a escala não muda o resultado
+ok 7 - equivalência entre períodos: a renda inteira vale a carga inteira, e a escala não muda o resultado
+  ---
+  duration_ms: 10.150311
+  type: 'test'
+  ...
+# Subtest: arredondamento ao minuto mais próximo: meio minuto vai para longe de zero
+ok 8 - arredondamento ao minuto mais próximo: meio minuto vai para longe de zero
+  ---
+  duration_ms: 0.21292
+  type: 'test'
+  ...
+# Subtest: propriedade: o resultado é o inteiro mais próximo do quociente exato e o negativo espelha o positivo
+ok 9 - propriedade: o resultado é o inteiro mais próximo do quociente exato e o negativo espelha o positivo
+  ---
+  duration_ms: 18.490688
+  type: 'test'
+  ...
+# Subtest: zero, menos de 1 minuto e sinal
+ok 10 - zero, menos de 1 minuto e sinal
+  ---
+  duration_ms: 0.281321
+  type: 'test'
+  ...
+# Subtest: valores e configurações inválidos ficam indisponíveis (a interface mostra o dinheiro)
+ok 11 - valores e configurações inválidos ficam indisponíveis (a interface mostra o dinheiro)
+  ---
+  duration_ms: 5.517407
+  type: 'test'
+  ...
+# Subtest: limite seguro: valores muito grandes calculam em BigInt e só ficam indisponíveis acima do maior inteiro seguro
+ok 12 - limite seguro: valores muito grandes calculam em BigInt e só ficam indisponíveis acima do maior inteiro seguro
+  ---
+  duration_ms: 0.30475
+  type: 'test'
+  ...
+# Subtest: limites da janela da estimativa (P5-F.1): 12 meses de 744 h e R$ 100 mi por mês
+ok 13 - limites da janela da estimativa (P5-F.1): 12 meses de 744 h e R$ 100 mi por mês
+  ---
+  duration_ms: 0.114798
+  type: 'test'
+  ...
+# Subtest: valor estimado por hora em centavos inteiros, arredondado ao centavo mais próximo
+ok 14 - valor estimado por hora em centavos inteiros, arredondado ao centavo mais próximo
+  ---
+  duration_ms: 0.389503
+  type: 'test'
+  ...
+# Subtest: volta de reais de exibição a centavos é exata até o teto e recusa o resto
+ok 15 - volta de reais de exibição a centavos é exata até o teto e recusa o resto
+  ---
+  duration_ms: 32.318704
+  type: 'test'
+  ...
+# Subtest: formatação pt-BR em horas e minutos, sem quebra de linha e com marca de estimativa
+ok 16 - formatação pt-BR em horas e minutos, sem quebra de linha e com marca de estimativa
+  ---
+  duration_ms: 7.983084
+  type: 'test'
+  ...
+# Subtest: rótulo compacto de eixo: horas inteiras arredondadas e minutos abaixo de 1 h
+ok 17 - rótulo compacto de eixo: horas inteiras arredondadas e minutos abaixo de 1 h
+  ---
+  duration_ms: 0.506392
+  type: 'test'
+  ...
+# Subtest: eixo e tooltip de gráfico: modo dinheiro devolve o texto exato do formatador da tela
+ok 18 - eixo e tooltip de gráfico: modo dinheiro devolve o texto exato do formatador da tela
+  ---
+  duration_ms: 4.895796
+  type: 'test'
+  ...
+# Subtest: descrição por extenso para leitores de tela, com singular e plural
+ok 19 - descrição por extenso para leitores de tela, com singular e plural
+  ---
+  duration_ms: 0.975111
+  type: 'test'
+  ...
+# Subtest: apresentação: texto curto, falado, dica e tooltip trazem o valor exato em reais
+ok 20 - apresentação: texto curto, falado, dica e tooltip trazem o valor exato em reais
+  ---
+  duration_ms: 0.388134
+  type: 'test'
+  ...
+# Subtest: datas civis: dias reais, anos bissextos, intervalo 2000–2099 e dia da semana ISO
+ok 21 - datas civis: dias reais, anos bissextos, intervalo 2000–2099 e dia da semana ISO
+  ---
+  duration_ms: 1.816067
+  type: 'test'
+  ...
+# Subtest: horas do mês são do próprio mês, nunca uma carga fixa de 220 h
+ok 22 - horas do mês são do próprio mês, nunca uma carga fixa de 220 h
+  ---
+  duration_ms: 21.248045
+  type: 'test'
+  ...
+# Subtest: feriados nacionais por lei, com vigência; pontos facultativos e datas religiosas municipais nunca automáticos
+ok 23 - feriados nacionais por lei, com vigência; pontos facultativos e datas religiosas municipais nunca automáticos
+  ---
+  duration_ms: 2.667388
+  type: 'test'
+  ...
+# Subtest: domingos de eleição: só atalho, nunca automáticos; 1º e último domingo de outubro dos anos pares
+ok 24 - domingos de eleição: só atalho, nunca automáticos; 1º e último domingo de outubro dos anos pares
+  ---
+  duration_ms: 0.294337
+  type: 'test'
+  ...
+# Subtest: Páscoa e datas móveis (algoritmo gregoriano)
+ok 25 - Páscoa e datas móveis (algoritmo gregoriano)
+  ---
+  duration_ms: 0.376288
+  type: 'test'
+  ...
+# Subtest: feriados locais (anual e data única), trabalho em feriados e feriado trabalhado
+ok 26 - feriados locais (anual e data única), trabalho em feriados e feriado trabalhado
+  ---
+  duration_ms: 2.639508
+  type: 'test'
+  ...
+# Subtest: escala 12×36 e escalas cíclicas contam a partir da data de referência, também para trás
+ok 27 - escala 12×36 e escalas cíclicas contam a partir da data de referência, também para trás
+  ---
+  duration_ms: 2.151829
+  type: 'test'
+  ...
+# Subtest: turno noturno conta no dia em que começa; janelas que se cruzam contam uma vez; o intervalo sem horário nunca é adivinhado (B02)
+ok 28 - turno noturno conta no dia em que começa; janelas que se cruzam contam uma vez; o intervalo sem horário nunca é adivinhado (B02)
+  ---
+  duration_ms: 15.971753
+  type: 'test'
+  ...
+# Subtest: B02: acrescentar uma rotina contida numa janela já contada não tira horas (08–12 + 13–17 = 8 h; com 09–11 e 90 min de pausa, 8 h)
+ok 29 - B02: acrescentar uma rotina contida numa janela já contada não tira horas (08–12 + 13–17 = 8 h; com 09–11 e 90 min de pausa, 8 h)
+  ---
+  duration_ms: 8.264276
+  type: 'test'
+  ...
+# Subtest: B02: cruzamentos parciais, contenção, repetição, intervalos longos e vários intervalos
+ok 30 - B02: cruzamentos parciais, contenção, repetição, intervalos longos e vários intervalos
+  ---
+  duration_ms: 0.823857
+  type: 'test'
+  ...
+# Subtest: B02: turnos noturnos e cruzamentos entre dias, com escala semanal e cíclica
+ok 31 - B02: turnos noturnos e cruzamentos entre dias, com escala semanal e cíclica
+  ---
+  duration_ms: 16.981129
+  type: 'test'
+  ...
+# Subtest: B02: feriados, plantões, horas extras, exceções e o limite de 24 h com rotinas que se cruzam
+ok 32 - B02: feriados, plantões, horas extras, exceções e o limite de 24 h com rotinas que se cruzam
+  ---
+  duration_ms: 4.43407
+  type: 'test'
+  ...
+# Subtest: B02: o conferidor das rotinas percorre o período inteiro da combinação e é rápido no pior caso
+ok 33 - B02: o conferidor das rotinas percorre o período inteiro da combinação e é rápido no pior caso
+  ---
+  duration_ms: 75.308115
+  type: 'test'
+  ...
+# Subtest: B02 (propriedade): com cálculo seguro, as horas são a união das janelas trabalhadas, em qualquer posição das pausas
+ok 34 - B02 (propriedade): com cálculo seguro, as horas são a união das janelas trabalhadas, em qualquer posição das pausas
+  ---
+  duration_ms: 193.529969
+  type: 'test'
+  ...
+# Subtest: B02 (propriedade): todo dia recusado depende mesmo da posição das pausas
+ok 35 - B02 (propriedade): todo dia recusado depende mesmo da posição das pausas
+  ---
+  duration_ms: 134.816975
+  type: 'test'
+  ...
+# Subtest: B02 (propriedade): acrescentar uma rotina, entre configurações com cálculo seguro, nunca tira horas
+ok 36 - B02 (propriedade): acrescentar uma rotina, entre configurações com cálculo seguro, nunca tira horas
+  ---
+  duration_ms: 750.581826
+  type: 'test'
+  ...
+# Subtest: B02: o turno que começa na véspera do período não leva horas do primeiro dia; os minutos sem horário só ocupam o tempo livre do dia
+ok 37 - B02: o turno que começa na véspera do período não leva horas do primeiro dia; os minutos sem horário só ocupam o tempo livre do dia
+  ---
+  duration_ms: 2.736526
+  type: 'test'
+  ...
+# Subtest: B02 (propriedade): na janela de meses da estimativa, com exceções, durações, turnos de 24 h e feriados, acrescentar uma rotina nunca tira horas
+ok 38 - B02 (propriedade): na janela de meses da estimativa, com exceções, durações, turnos de 24 h e feriados, acrescentar uma rotina nunca tira horas
+  ---
+  duration_ms: 8235.998252
+  type: 'test'
+  ...
+# Subtest: B02 (revisão da R1, N01): num dia de jornada reduzida com plantão, acrescentar uma rotina válida não tira horas
+ok 39 - B02 (revisão da R1, N01): num dia de jornada reduzida com plantão, acrescentar uma rotina válida não tira horas
+  ---
+  duration_ms: 0.773062
+  type: 'test'
+  ...
+# Subtest: B02 (revisão da R1, N02): num dia de jornada reduzida, o dia civil nunca passa de 24 h; o trecho depois da meia-noite cabe além dele
+ok 40 - B02 (revisão da R1, N02): num dia de jornada reduzida, o dia civil nunca passa de 24 h; o trecho depois da meia-noite cabe além dele
+  ---
+  duration_ms: 0.360283
+  type: 'test'
+  ...
+# Subtest: B02 (P5-F.1-R2A, S01): segunda 20:00–06:00 reduzida a 8 h e terça 00:00–08:00 — os 960 min da R1 viram recusa, com a causa na véspera
+ok 41 - B02 (P5-F.1-R2A, S01): segunda 20:00–06:00 reduzida a 8 h e terça 00:00–08:00 — os 960 min da R1 viram recusa, com a causa na véspera
+  ---
+  duration_ms: 2.492711
+  type: 'test'
+  ...
+# Subtest: B02 (P5-F.1-R2A, R2A-01): a jornada reduzida no dia que abre o período segue a mesma regra, e acrescentar uma rotina não tira horas do período
+ok 42 - B02 (P5-F.1-R2A, R2A-01): a jornada reduzida no dia que abre o período segue a mesma regra, e acrescentar uma rotina não tira horas do período
+  ---
+  duration_ms: 0.989867
+  type: 'test'
+  ...
+# Subtest: B02 (P5-F.1-R2A, S01): o dia civil seguinte a uma jornada reduzida não recebe 24 h de plantão por cima do turno dela (contrato anterior, RR-R1-03, substituído)
+ok 43 - B02 (P5-F.1-R2A, S01): o dia civil seguinte a uma jornada reduzida não recebe 24 h de plantão por cima do turno dela (contrato anterior, RR-R1-03, substituído)
+  ---
+  duration_ms: 1.038701
+  type: 'test'
+  ...
+# Subtest: B02 (P5-F.1-R2A, S01): casos comuns de jornada reduzida continuam aceitos, com as mesmas horas
+ok 44 - B02 (P5-F.1-R2A, S01): casos comuns de jornada reduzida continuam aceitos, com as mesmas horas
+  ---
+  duration_ms: 1.764086
+  type: 'test'
+  ...
+# Subtest: B02 (P5-F.1-R2A, S01): o dia seguinte só tem cálculo seguro com os dois extremos seguros, e o plano mostrado é o da véspera sem nada
+ok 45 - B02 (P5-F.1-R2A, S01): o dia seguinte só tem cálculo seguro com os dois extremos seguros, e o plano mostrado é o da véspera sem nada
+  ---
+  duration_ms: 0.294323
+  type: 'test'
+  ...
+# Subtest: B02 (P5-F.1-R2A, S01): a cobertura que vem da véspera reduzida aponta a véspera, com mensagem própria
+ok 46 - B02 (P5-F.1-R2A, S01): a cobertura que vem da véspera reduzida aponta a véspera, com mensagem própria
+  ---
+  duration_ms: 10.512535
+  type: 'test'
+  ...
+# Subtest: B02 (P5-F.1-R2A, Teorema 2): a jornada reduzida que passa a cortar horas ao acrescentar uma rotina não tira horas do período
+ok 47 - B02 (P5-F.1-R2A, Teorema 2): a jornada reduzida que passa a cortar horas ao acrescentar uma rotina não tira horas do período
+  ---
+  duration_ms: 1.024002
+  type: 'test'
+  ...
+# Subtest: B02 (revisão 2 da R1, M03): o intervalo da véspera coberto pelo dia conta na véspera e ocupa o dia civil; o teto do dia o desconta
+ok 48 - B02 (revisão 2 da R1, M03): o intervalo da véspera coberto pelo dia conta na véspera e ocupa o dia civil; o teto do dia o desconta
+  ---
+  duration_ms: 5.18763
+  type: 'test'
+  ...
+# Subtest: B02 (propriedade, revisão da R1): com jornada reduzida, plantão e hora extra até 24 h, acrescentar uma rotina nunca tira horas
+ok 49 - B02 (propriedade, revisão da R1): com jornada reduzida, plantão e hora extra até 24 h, acrescentar uma rotina nunca tira horas
+  ---
+  duration_ms: 2919.965876
+  type: 'test'
+  ...
+# Subtest: B02 (propriedade, revisão da R1): sem janela que passe da meia-noite, nenhum dia passa de 24 h, com qualquer exceção
+ok 50 - B02 (propriedade, revisão da R1): sem janela que passe da meia-noite, nenhum dia passa de 24 h, com qualquer exceção
+  ---
+  duration_ms: 2041.694786
+  type: 'test'
+  ...
+# Subtest: B02 (revisão da R1, N07): o conferidor do calendário inteiro acha o dia sem cálculo seguro por exceção, feriado ou início do período
+ok 51 - B02 (revisão da R1, N07): o conferidor do calendário inteiro acha o dia sem cálculo seguro por exceção, feriado ou início do período
+  ---
+  duration_ms: 136.31509
+  type: 'test'
+  ...
+# Subtest: B02 (propriedade, revisão da R1): o que o conferidor do calendário inteiro aceita nunca tem dia sem cálculo seguro, e o dia que ele aponta é ambíguo
+ok 52 - B02 (propriedade, revisão da R1): o que o conferidor do calendário inteiro aceita nunca tem dia sem cálculo seguro, e o dia que ele aponta é ambíguo
+  ---
+  duration_ms: 5489.868545
+  type: 'test'
+  ...
+# Subtest: B02 (propriedade, P5-F.1-R2A): depois de uma jornada reduzida, o dia aceito vale o mesmo em qualquer parte do turno da véspera que tenha acontecido, e o recusado depende mesmo dela
+ok 53 - B02 (propriedade, P5-F.1-R2A): depois de uma jornada reduzida, o dia aceito vale o mesmo em qualquer parte do turno da véspera que tenha acontecido, e o recusado depende mesmo dela
+  ---
+  duration_ms: 188.479489
+  type: 'test'
+  ...
+# Subtest: B02 (propriedade, P5-F.1-R2A): com jornadas reduzidas em turnos que passam da meia-noite, acrescentar uma rotina nunca tira horas
+ok 54 - B02 (propriedade, P5-F.1-R2A): com jornadas reduzidas em turnos que passam da meia-noite, acrescentar uma rotina nunca tira horas
+  ---
+  duration_ms: 5104.914689
+  type: 'test'
+  ...
+# Subtest: B02 (propriedade, P5-F.1-R2A, R2A-01): com a jornada reduzida no dia que abre o período, o segundo dia aceito não depende da parte trabalhada, e acrescentar uma rotina nunca tira horas
+ok 55 - B02 (propriedade, P5-F.1-R2A, R2A-01): com a jornada reduzida no dia que abre o período, o segundo dia aceito não depende da parte trabalhada, e acrescentar uma rotina nunca tira horas
+  ---
+  duration_ms: 3815.004934
+  type: 'test'
+  ...
+# Subtest: B02 (propriedade, P5-F.1-R2A): sem intervalo nenhum, o conferidor acha o dia seguinte a cada jornada reduzida sem cálculo seguro, e o que ele aceita nunca tem dia ambíguo
+ok 56 - B02 (propriedade, P5-F.1-R2A): sem intervalo nenhum, o conferidor acha o dia seguinte a cada jornada reduzida sem cálculo seguro, e o que ele aceita nunca tem dia ambíguo
+  ---
+  duration_ms: 1398.187502
+  type: 'test'
+  ...
+# Subtest: durações sem horário somam e a possível sobreposição é sinalizada; nenhum dia passa de 24 h
+ok 57 - durações sem horário somam e a possível sobreposição é sinalizada; nenhum dia passa de 24 h
+  ---
+  duration_ms: 0.506045
+  type: 'test'
+  ...
+# Subtest: exceções: férias, folga, ausência, plantão, hora extra, jornada reduzida e alteração de escala
+ok 58 - exceções: férias, folga, ausência, plantão, hora extra, jornada reduzida e alteração de escala
+  ---
+  duration_ms: 5.307375
+  type: 'test'
+  ...
+# Subtest: P5-F.1-R2A: a memória do conferidor vale só durante a chamada e não muda resultado
+ok 59 - P5-F.1-R2A: a memória do conferidor vale só durante a chamada e não muda resultado
+  ---
+  duration_ms: 0.33696
+  type: 'test'
+  ...
+# Subtest: P5-F.1-R2A: a memória do conferidor é de um calendário só: outro calendário lido no meio da chamada não a usa nem a suja
+ok 60 - P5-F.1-R2A: a memória do conferidor é de um calendário só: outro calendário lido no meio da chamada não a usa nem a suja
+  ---
+  duration_ms: 0.548251
+  type: 'test'
+  ...
+# Subtest: o plano é determinístico e só depende das entradas (função pura)
+ok 61 - o plano é determinístico e só depende das entradas (função pura)
+  ---
+  duration_ms: 1.059408
+  type: 'test'
+  ...
+# Subtest: prova: cada regra, na ordem, com o motivo da primeira que falha
+ok 62 - prova: cada regra, na ordem, com o motivo da primeira que falha
+  ---
+  duration_ms: 2.863375
+  type: 'test'
+  ...
+# Subtest: prova (regra 5, marcas): prova nula espera, prova recusada é "projection_marks" por qualquer motivo, provada aprova, e as regras 1 a 4 vêm antes
+ok 63 - prova (regra 5, marcas): prova nula espera, prova recusada é "projection_marks" por qualquer motivo, provada aprova, e as regras 1 a 4 vêm antes
+  ---
+  duration_ms: 0.398265
+  type: 'test'
+  ...
+# Subtest: prova (regra 5, marcas): só o resultado da prova das marcas decide; escrita, hora ou prazo não aprovam nem seguram
+ok 64 - prova (regra 5, marcas): só o resultado da prova das marcas decide; escrita, hora ou prazo não aprovam nem seguram
+  ---
+  duration_ms: 2.806343
+  type: 'test'
+  ...
+# Subtest: B03: a primeira estimativa só aparece provada pela projeção, com a leitura por id depois dela (a escuta antes das bases)
+ok 65 - B03: a primeira estimativa só aparece provada pela projeção, com a leitura por id depois dela (a escuta antes das bases)
+  ---
+  duration_ms: 157.274742
+  type: 'test'
+  ...
+# Subtest: B03: a primeira estimativa só aparece provada pela projeção, com a leitura por id depois dela (a escuta depois das bases)
+ok 66 - B03: a primeira estimativa só aparece provada pela projeção, com a leitura por id depois dela (a escuta depois das bases)
+  ---
+  duration_ms: 139.897619
+  type: 'test'
+  ...
+# Subtest: B03: a primeira estimativa só aparece provada pela projeção, com a leitura por id depois dela (a escuta só quando o servidor responde)
+ok 67 - B03: a primeira estimativa só aparece provada pela projeção, com a leitura por id depois dela (a escuta só quando o servidor responde)
+  ---
+  duration_ms: 166.711957
+  type: 'test'
+  ...
+# Subtest: B03: a projeção mais nova que a base lida na montagem: nunca a estimativa da base antiga; a base é relida e a nova aparece provada
+ok 68 - B03: a projeção mais nova que a base lida na montagem: nunca a estimativa da base antiga; a base é relida e a nova aparece provada
+  ---
+  duration_ms: 218.326069
+  type: 'test'
+  ...
+# Subtest: B03 (R3.2): uma base e nenhuma desconsiderada com a escuta encerrada desde o começo: nenhuma conversão, o erro com "Tentar de novo"; com a escuta de volta, a estimativa provada
+ok 69 - B03 (R3.2): uma base e nenhuma desconsiderada com a escuta encerrada desde o começo: nenhuma conversão, o erro com "Tentar de novo"; com a escuta de volta, a estimativa provada
+  ---
+  duration_ms: 126.052035
+  type: 'test'
+  ...
+# Subtest: B03: janela de 12 meses com a escuta encerrada desde o começo: sem prova, o erro com "Tentar de novo"; com a escuta de volta, a estimativa provada
+ok 70 - B03: janela de 12 meses com a escuta encerrada desde o começo: sem prova, o erro com "Tentar de novo"; com a escuta de volta, a estimativa provada
+  ---
+  duration_ms: 85.385852
+  type: 'test'
+  ...
+# Subtest: B03 (R8-02): a desconsiderada do 12º mês anulada em outra sessão e a troca para 12 meses: o mês avulso novo nunca aparece com a exclusão antiga
+ok 71 - B03 (R8-02): a desconsiderada do 12º mês anulada em outra sessão e a troca para 12 meses: o mês avulso novo nunca aparece com a exclusão antiga
+  ---
+  duration_ms: 205.225083
+  type: 'test'
+  ...
+# Subtest: B03 (R11-01): o mês avulso sai da janela com a leitura em curso e volta desatualizado: a base antiga não aparece, e é relida
+ok 72 - B03 (R11-01): o mês avulso sai da janela com a leitura em curso e volta desatualizado: a base antiga não aparece, e é relida
+  ---
+  duration_ms: 572.147588
+  type: 'test'
+  ...
+# Subtest: B03 (R11-02): 12 meses sem desconsiderada, as bases relidas sem pedido da escuta (a virada do mês) e o mês avulso falhando: nenhuma renderização mostra só a série nova
+ok 73 - B03 (R11-02): 12 meses sem desconsiderada, as bases relidas sem pedido da escuta (a virada do mês) e o mês avulso falhando: nenhuma renderização mostra só a série nova
+  ---
+  duration_ms: 532.99146
+  type: 'test'
+  ...
+# Subtest: B03: o calendário trocado durante a sincronização de uma anulação em outra sessão: nunca a base nova com a leitura por id antiga
+ok 74 - B03: o calendário trocado durante a sincronização de uma anulação em outra sessão: nunca a base nova com a leitura por id antiga
+  ---
+  duration_ms: 491.894056
+  type: 'test'
+  ...
+# Subtest: B03: troca do workspace da renda: a estimativa do anterior nunca aparece; só "calculando" até a do novo estar provada
+ok 75 - B03: troca do workspace da renda: a estimativa do anterior nunca aparece; só "calculando" até a do novo estar provada
+  ---
+  duration_ms: 221.647544
+  type: 'test'
+  ...
+# Subtest: B03: troca de conta: a estimativa da conta anterior não é reaproveitada
+ok 76 - B03: troca de conta: a estimativa da conta anterior não é reaproveitada
+  ---
+  duration_ms: 210.998402
+  type: 'test'
+  ...
+# Subtest: B03: nova receita e anulação da desconsiderada em outra sessão durante a releitura por id: nenhuma renderização desconta duas vezes
+ok 77 - B03: nova receita e anulação da desconsiderada em outra sessão durante a releitura por id: nenhuma renderização desconta duas vezes
+  ---
+  duration_ms: 498.140513
+  type: 'test'
+  ...
+# Subtest: B03: a leitura por id falha antes da primeira estimativa: o erro com "Tentar de novo", nunca o total sem as exclusões
+ok 78 - B03: a leitura por id falha antes da primeira estimativa: o erro com "Tentar de novo", nunca o total sem as exclusões
+  ---
+  duration_ms: 45.495568
+  type: 'test'
+  ...
+# Subtest: revisão pt-BR da R3 (M-01): sem desconsiderada, 12 meses e a escuta sem retorno do servidor: depois do tempo de interface, o texto de "em atualização" sem apontar causa, nunca a conversão; com o retorno, a estimativa provada
+ok 79 - revisão pt-BR da R3 (M-01): sem desconsiderada, 12 meses e a escuta sem retorno do servidor: depois do tempo de interface, o texto de "em atualização" sem apontar causa, nunca a conversão; com o retorno, a estimativa provada
+  ---
+  duration_ms: 125.633503
+  type: 'test'
+  ...
+# Subtest: revisão pt-BR da R3 (L-03): a leitura das marcas falha: o erro fixo em pt-BR com "Tentar de novo", nunca a conversão; o "Tentar de novo" prova
+ok 80 - revisão pt-BR da R3 (L-03): a leitura das marcas falha: o erro fixo em pt-BR com "Tentar de novo", nunca a conversão; o "Tentar de novo" prova
+  ---
+  duration_ms: 49.495377
+  type: 'test'
+  ...
+# Subtest: revisão da R1 (N05): com desconsiderada, a escuta encerrada antes do primeiro retorno do servidor dá o erro com "Tentar de novo", nunca "calculando" para sempre
+ok 81 - revisão da R1 (N05): com desconsiderada, a escuta encerrada antes do primeiro retorno do servidor dá o erro com "Tentar de novo", nunca "calculando" para sempre
+  ---
+  duration_ms: 136.230358
+  type: 'test'
+  ...
+# Subtest: revisão da R1 (N03): a desconsiderada editada em outra sessão antes do gatilho, na primeira leitura: nunca o valor novo com o total velho
+ok 82 - revisão da R1 (N03): a desconsiderada editada em outra sessão antes do gatilho, na primeira leitura: nunca o valor novo com o total velho
+  ---
+  duration_ms: 381.241205
+  type: 'test'
+  ...
+# Subtest: B03 (R3, ex-N03): a desconsiderada editada sem efeito na renda e o gatilho atrasado (marca velha): nenhuma conversão em tempo nenhum, só "estimativa em atualização"; com a marca aplicada, a estimativa certa aparece sem esperar prazo
+ok 83 - B03 (R3, ex-N03): a desconsiderada editada sem efeito na renda e o gatilho atrasado (marca velha): nenhuma conversão em tempo nenhum, só "estimativa em atualização"; com a marca aplicada, a estimativa certa aparece sem esperar prazo
+  ---
+  duration_ms: 872.897054
+  type: 'test'
+  ...
+# Subtest: B03 (R3, ex-M02): a hora do servidor não aprova: uma sessão nova aberta depois de o servidor passar da escrita por mais que qualquer prazo continua sem converter com a marca velha
+ok 84 - B03 (R3, ex-M02): a hora do servidor não aprova: uma sessão nova aberta depois de o servidor passar da escrita por mais que qualquer prazo continua sem converter com a marca velha
+  ---
+  duration_ms: 511.686675
+  type: 'test'
+  ...
+# Subtest: B03 (R3, ex-P01): o N03 com a hora do servidor nas bases: sessão aberta 5 s depois da edição de valor, e mesmo 1 h depois, nunca o valor novo com o total velho; o gatilho aplica (receita e marca) e aparece o certo
+ok 85 - B03 (R3, ex-P01): o N03 com a hora do servidor nas bases: sessão aberta 5 s depois da edição de valor, e mesmo 1 h depois, nunca o valor novo com o total velho; o gatilho aplica (receita e marca) e aparece o certo
+  ---
+  duration_ms: 635.790518
+  type: 'test'
+  ...
+# Subtest: B03 (R3, ex-P01): nenhum intervalo aprova a conversão: com a base gerada 59 s depois da escrita e a marca velha, só "estimativa em atualização"
+ok 86 - B03 (R3, ex-P01): nenhum intervalo aprova a conversão: com a base gerada 59 s depois da escrita e a marca velha, só "estimativa em atualização"
+  ---
+  duration_ms: 247.684608
+  type: 'test'
+  ...
+# Subtest: B03 (R3, ex-P01): nenhum intervalo aprova a conversão: com a base gerada 60 s depois da escrita e a marca velha, só "estimativa em atualização" (o limite que antes encerrava a espera)
+ok 87 - B03 (R3, ex-P01): nenhum intervalo aprova a conversão: com a base gerada 60 s depois da escrita e a marca velha, só "estimativa em atualização" (o limite que antes encerrava a espera)
+  ---
+  duration_ms: 246.318728
+  type: 'test'
+  ...
+# Subtest: B03 (R3, ex-P01): nenhum intervalo aprova a conversão: com a base gerada 3600 s depois da escrita e a marca velha, só "estimativa em atualização"
+ok 88 - B03 (R3, ex-P01): nenhum intervalo aprova a conversão: com a base gerada 3600 s depois da escrita e a marca velha, só "estimativa em atualização"
+  ---
+  duration_ms: 249.552914
+  type: 'test'
+  ...
+# Subtest: B03 (R3, ex-N06): a edição sem efeito na renda depois da mudança vista, aplicada pelo gatilho, não prende a estimativa: outra receita entra sem esperar prazo
+ok 89 - B03 (R3, ex-N06): a edição sem efeito na renda depois da mudança vista, aplicada pelo gatilho, não prende a estimativa: outra receita entra sem esperar prazo
+  ---
+  duration_ms: 302.68879
+  type: 'test'
+  ...
+# Subtest: B03 (R3, a): a desconsiderada editada em outra sessão com o gatilho atrasado: nenhuma renderização converte com o conteúdo novo e o total velho; quando o gatilho aplica (receita e marca juntas), aparece o valor certo
+ok 90 - B03 (R3, a): a desconsiderada editada em outra sessão com o gatilho atrasado: nenhuma renderização converte com o conteúdo novo e o total velho; quando o gatilho aplica (receita e marca juntas), aparece o valor certo
+  ---
+  duration_ms: 664.087196
+  type: 'test'
+  ...
+# Subtest: B03 (R3, b): evento fora de ordem (marca com pendência): sem conversão enquanto a pendência não fecha, mesmo relendo; fechada, a estimativa aparece
+ok 91 - B03 (R3, b): evento fora de ordem (marca com pendência): sem conversão enquanto a pendência não fecha, mesmo relendo; fechada, a estimativa aparece
+  ---
+  duration_ms: 901.794242
+  type: 'test'
+  ...
+# Subtest: B03 (R3, c): marca quebrada: sem conversão e sem releitura automática além da escuta; só a reconstrução, a escuta ou o "Tentar de novo" recuperam
+ok 92 - B03 (R3, c): marca quebrada: sem conversão e sem releitura automática além da escuta; só a reconstrução, a escuta ou o "Tentar de novo" recuperam
+  ---
+  duration_ms: 988.527737
+  type: 'test'
+  ...
+# Subtest: B03 (R3, d): a desconsiderada muda de mês para fora da janela: o mês antigo só deixa de descontar quando a marca e a receita mudam juntas
+ok 93 - B03 (R3, d): a desconsiderada muda de mês para fora da janela: o mês antigo só deixa de descontar quando a marca e a receita mudam juntas
+  ---
+  duration_ms: 656.411153
+  type: 'test'
+  ...
+# Subtest: B03 (R3, e): a releitura por motivo passageiro respeita o orçamento do agendador: no máximo o orçamento, a reposição depois, e nunca um prazo que aprove
+ok 94 - B03 (R3, e): a releitura por motivo passageiro respeita o orçamento do agendador: no máximo o orçamento, a reposição depois, e nunca um prazo que aprove
+  ---
+  duration_ms: 783.651258
+  type: 'test'
+  ...
+# Subtest: revisão da R1 (N06), contrato da R3.1: a base relida devagar por mais que o tempo de interface: nunca a última provada; "calculando", depois "estimativa em atualização" com "Tentar de novo", e a nova provada, sem aviso
+ok 95 - revisão da R1 (N06), contrato da R3.1: a base relida devagar por mais que o tempo de interface: nunca a última provada; "calculando", depois "estimativa em atualização" com "Tentar de novo", e a nova provada, sem aviso
+  ---
+  duration_ms: 1453.78833
+  type: 'test'
+  ...
+# Subtest: R3.1 (R3-AUD-01): a última estimativa provada nunca aparece como a atual: leitura nova divergente, prova falsa, a mesma identidade e nenhuma falha de leitura dão só "calculando"; com a prova de volta, a estimativa nova
+ok 96 - R3.1 (R3-AUD-01): a última estimativa provada nunca aparece como a atual: leitura nova divergente, prova falsa, a mesma identidade e nenhuma falha de leitura dão só "calculando"; com a prova de volta, a estimativa nova
+  ---
+  duration_ms: 483.019191
+  type: 'test'
+  ...
+# Subtest: R3.1: antes e depois do tempo de interface (30 s no produto, 800 ms aqui): "calculando" e depois "estimativa em atualização" com "Tentar de novo"; em nenhum dos dois a última provada, e só a prova reabilita a conversão
+ok 97 - R3.1: antes e depois do tempo de interface (30 s no produto, 800 ms aqui): "calculando" e depois "estimativa em atualização" com "Tentar de novo"; em nenhum dos dois a última provada, e só a prova reabilita a conversão
+  ---
+  duration_ms: 1522.23171
+  type: 'test'
+  ...
+# Subtest: R3.1: a releitura falha depois da divergência (lançamentos por id): o erro fixo em pt-BR com "Tentar de novo", nunca a última provada com ou sem aviso; o "Tentar de novo" sem a marca aplicada continua sem conversão, e a prova reabilita
+ok 98 - R3.1: a releitura falha depois da divergência (lançamentos por id): o erro fixo em pt-BR com "Tentar de novo", nunca a última provada com ou sem aviso; o "Tentar de novo" sem a marca aplicada continua sem conversão, e a prova reabilita
+  ---
+  duration_ms: 460.864621
+  type: 'test'
+  ...
+# Subtest: R3.1: a releitura falha depois da divergência (meses e marcas): o erro fixo em pt-BR com "Tentar de novo", nunca a última provada com ou sem aviso; o "Tentar de novo" sem a marca aplicada continua sem conversão, e a prova reabilita
+ok 99 - R3.1: a releitura falha depois da divergência (meses e marcas): o erro fixo em pt-BR com "Tentar de novo", nunca a última provada com ou sem aviso; o "Tentar de novo" sem a marca aplicada continua sem conversão, e a prova reabilita
+  ---
+  duration_ms: 462.225482
+  type: 'test'
+  ...
+# Subtest: R3.1: com a releitura por id em andamento depois da divergência, "calculando", nunca a última provada; terminada sem prova, ainda sem conversão
+ok 100 - R3.1: com a releitura por id em andamento depois da divergência, "calculando", nunca a última provada; terminada sem prova, ainda sem conversão
+  ---
+  duration_ms: 761.625992
+  type: 'test'
+  ...
+# Subtest: R3.1: troca do workspace da renda com a prova pendente: nem a última provada do anterior nem estado nenhum dele; só "calculando" até a estimativa do novo estar provada
+ok 101 - R3.1: troca do workspace da renda com a prova pendente: nem a última provada do anterior nem estado nenhum dele; só "calculando" até a estimativa do novo estar provada
+  ---
+  duration_ms: 336.202146
+  type: 'test'
+  ...
+# Subtest: R3.1: mudança da preferência com a prova pendente (a receita deixa de ser desconsiderada): a estimativa das entradas novas só aparece provada; a última provada das entradas antigas nunca
+ok 102 - R3.1: mudança da preferência com a prova pendente (a receita deixa de ser desconsiderada): a estimativa das entradas novas só aparece provada; a última provada das entradas antigas nunca
+  ---
+  duration_ms: 314.251765
+  type: 'test'
+  ...
+# Subtest: R3.1: com a sincronização em curso (uma base e nenhuma desconsiderada; a base em releitura ainda diverge da projeção): nenhuma conversão até a base relida chegar, "calculando" e, passado o tempo de interface, "em atualização"; chegando, a nova, sem prazo
+ok 103 - R3.1: com a sincronização em curso (uma base e nenhuma desconsiderada; a base em releitura ainda diverge da projeção): nenhuma conversão até a base relida chegar, "calculando" e, passado o tempo de interface, "em atualização"; chegando, a nova, sem prazo
+  ---
+  duration_ms: 1481.639878
+  type: 'test'
+  ...
+# Subtest: R3.2 (RR-R31-05): a base do cache aquecido antes do primeiro retorno do servidor (uma base, nenhuma desconsiderada): nenhuma conversão, nem passado o tempo de interface; o retorno do servidor traz a conversão
+ok 104 - R3.2 (RR-R31-05): a base do cache aquecido antes do primeiro retorno do servidor (uma base, nenhuma desconsiderada): nenhuma conversão, nem passado o tempo de interface; o retorno do servidor traz a conversão
+  ---
+  duration_ms: 932.976592
+  type: 'test'
+  ...
+# Subtest: R3.2 (RR-R31-05): a base do cache aquecido antes do primeiro retorno do servidor (uma base, nenhuma desconsiderada, receita nova de outra sessão com a tela fora): nenhuma conversão, nem passado o tempo de interface; o retorno do servidor traz a conversão da base relida, nunca a do cache
+ok 105 - R3.2 (RR-R31-05): a base do cache aquecido antes do primeiro retorno do servidor (uma base, nenhuma desconsiderada, receita nova de outra sessão com a tela fora): nenhuma conversão, nem passado o tempo de interface; o retorno do servidor traz a conversão da base relida, nunca a do cache
+  ---
+  duration_ms: 976.131805
+  type: 'test'
+  ...
+# Subtest: R3.2 (RR-R31-05): mês corrente com o cache de antes de uma receita de hoje: a base do cache diverge da projeção do mês e é relida; nenhuma conversão antes, e a confirmada depois
+ok 106 - R3.2 (RR-R31-05): mês corrente com o cache de antes de uma receita de hoje: a base do cache diverge da projeção do mês e é relida; nenhuma conversão antes, e a confirmada depois
+  ---
+  duration_ms: 296.735193
+  type: 'test'
+  ...
+# Subtest: R3.2 (RR-R31-05): a prévia montada ao lado da estimativa provada, com o mesmo cache, não converte antes do retorno do servidor à escuta dela; o retorno traz a mesma estimativa
+ok 107 - R3.2 (RR-R31-05): a prévia montada ao lado da estimativa provada, com o mesmo cache, não converte antes do retorno do servidor à escuta dela; o retorno traz a mesma estimativa
+  ---
+  duration_ms: 203.801092
+  type: 'test'
+  ...
+# Subtest: R3.2 (RR-R31-05): a estimativa desligada e religada com o cache aquecido: nenhuma conversão até o retorno do servidor à escuta reaberta
+ok 108 - R3.2 (RR-R31-05): a estimativa desligada e religada com o cache aquecido: nenhuma conversão até o retorno do servidor à escuta reaberta
+  ---
+  duration_ms: 231.552606
+  type: 'test'
+  ...
+# Subtest: R3.2 (RR-R31-05): troca do workspace da renda e volta ao anterior com o cache aquecido: nenhuma conversão do anterior antes do retorno do servidor à escuta dele, nem estado do outro
+ok 109 - R3.2 (RR-R31-05): troca do workspace da renda e volta ao anterior com o cache aquecido: nenhuma conversão do anterior antes do retorno do servidor à escuta dele, nem estado do outro
+  ---
+  duration_ms: 272.321715
+  type: 'test'
+  ...
+# Subtest: R3.2 (RR-R31-05): sem conexão, a tela que volta com o cache aquecido não converte (a escuta só tem o retorno do cache local); com a conexão de volta, a conversão confirmada
+ok 110 - R3.2 (RR-R31-05): sem conexão, a tela que volta com o cache aquecido não converte (a escuta só tem o retorno do cache local); com a conexão de volta, a conversão confirmada
+  ---
+  duration_ms: 323.939003
+  type: 'test'
+  ...
+# Subtest: R3.2 (RR-R31-05): a conexão cai com a estimativa provada na tela: o retorno do cache local tira a conversão ("calculando", depois "em atualização"); com a conexão de volta, ela volta sem leitura a mais
+ok 111 - R3.2 (RR-R31-05): a conexão cai com a estimativa provada na tela: o retorno do cache local tira a conversão ("calculando", depois "em atualização"); com a conexão de volta, ela volta sem leitura a mais
+  ---
+  duration_ms: 200.476201
+  type: 'test'
+  ...
+# Subtest: R3.2 (RR-R31-05): a escuta encerrada por erro com a estimativa provada (uma base, nenhuma desconsiderada): a conversão sai e fica o erro com "Tentar de novo"; o "Tentar de novo" reabre a escuta e o retorno do servidor traz a conversão
+ok 112 - R3.2 (RR-R31-05): a escuta encerrada por erro com a estimativa provada (uma base, nenhuma desconsiderada): a conversão sai e fica o erro com "Tentar de novo"; o "Tentar de novo" reabre a escuta e o retorno do servidor traz a conversão
+  ---
+  duration_ms: 143.00036
+  type: 'test'
+  ...
+# Subtest: R3.2 (RR-R31-05): a base que não alcança a projeção depois das releituras (anomalia no servidor; uma base, nenhuma desconsiderada): nenhuma conversão, nem passadas as releituras e o tempo de interface; sem a anomalia, o "Tentar de novo" traz a estimativa provada
+ok 113 - R3.2 (RR-R31-05): a base que não alcança a projeção depois das releituras (anomalia no servidor; uma base, nenhuma desconsiderada): nenhuma conversão, nem passadas as releituras e o tempo de interface; sem a anomalia, o "Tentar de novo" traz a estimativa provada
+  ---
+  duration_ms: 1075.966074
+  type: 'test'
+  ...
+# Subtest: R3.2: o estado legitimamente indisponível (série sem bloco exato, como na reconstrução pendente) aparece como está, sem conversão, mesmo sem retorno do servidor
+ok 114 - R3.2: o estado legitimamente indisponível (série sem bloco exato, como na reconstrução pendente) aparece como está, sem conversão, mesmo sem retorno do servidor
+  ---
+  duration_ms: 66.940716
+  type: 'test'
+  ...
+# Subtest: R3.2 (ADV-01): indisponível sem números (renda PJ sem confirmação; uma base, nenhuma desconsiderada), sem retorno do servidor: aparece como está, com o motivo, sem conversão, nem passado o tempo de interface; a ressalva de leitura anterior só com a escuta encerrada
+ok 115 - R3.2 (ADV-01): indisponível sem números (renda PJ sem confirmação; uma base, nenhuma desconsiderada), sem retorno do servidor: aparece como está, com o motivo, sem conversão, nem passado o tempo de interface; a ressalva de leitura anterior só com a escuta encerrada
+  ---
+  duration_ms: 1054.797551
+  type: 'test'
+  ...
+# Subtest: R3.2 (ADV-01): indisponível sem números (renda PJ sem confirmação; uma base, nenhuma desconsiderada), com a escuta encerrada desde o começo: aparece como está, com o motivo, sem conversão, nem passado o tempo de interface; a ressalva de leitura anterior só com a escuta encerrada
+ok 116 - R3.2 (ADV-01): indisponível sem números (renda PJ sem confirmação; uma base, nenhuma desconsiderada), com a escuta encerrada desde o começo: aparece como está, com o motivo, sem conversão, nem passado o tempo de interface; a ressalva de leitura anterior só com a escuta encerrada
+  ---
+  duration_ms: 1051.726185
+  type: 'test'
+  ...
+# Subtest: R3.2 (ADV-01): indisponível sem números (renda PJ sem confirmação; uma base, nenhuma desconsiderada), com a divergência persistente: aparece como está, com o motivo, sem conversão, nem passado o tempo de interface; a ressalva de leitura anterior só com a escuta encerrada
+ok 117 - R3.2 (ADV-01): indisponível sem números (renda PJ sem confirmação; uma base, nenhuma desconsiderada), com a divergência persistente: aparece como está, com o motivo, sem conversão, nem passado o tempo de interface; a ressalva de leitura anterior só com a escuta encerrada
+  ---
+  duration_ms: 1052.667332
+  type: 'test'
+  ...
+# Subtest: R3.2 (ADV-01): indisponível sem números (relatório sem bloco exato; uma base, nenhuma desconsiderada), sem retorno do servidor: aparece como está, com o motivo, sem conversão, nem passado o tempo de interface; a ressalva de leitura anterior só com a escuta encerrada
+ok 118 - R3.2 (ADV-01): indisponível sem números (relatório sem bloco exato; uma base, nenhuma desconsiderada), sem retorno do servidor: aparece como está, com o motivo, sem conversão, nem passado o tempo de interface; a ressalva de leitura anterior só com a escuta encerrada
+  ---
+  duration_ms: 1052.837727
+  type: 'test'
+  ...
+# Subtest: R3.2 (ADV-01): indisponível sem números (relatório sem bloco exato; uma base, nenhuma desconsiderada), com a escuta encerrada desde o começo: aparece como está, com o motivo, sem conversão, nem passado o tempo de interface; a ressalva de leitura anterior só com a escuta encerrada
+ok 119 - R3.2 (ADV-01): indisponível sem números (relatório sem bloco exato; uma base, nenhuma desconsiderada), com a escuta encerrada desde o começo: aparece como está, com o motivo, sem conversão, nem passado o tempo de interface; a ressalva de leitura anterior só com a escuta encerrada
+  ---
+  duration_ms: 1051.499294
+  type: 'test'
+  ...
+# Subtest: R3.2 (ADV-01): indisponível sem números (relatório sem bloco exato; uma base, nenhuma desconsiderada), com a divergência persistente: aparece como está, com o motivo, sem conversão, nem passado o tempo de interface; a ressalva de leitura anterior só com a escuta encerrada
+ok 120 - R3.2 (ADV-01): indisponível sem números (relatório sem bloco exato; uma base, nenhuma desconsiderada), com a divergência persistente: aparece como está, com o motivo, sem conversão, nem passado o tempo de interface; a ressalva de leitura anterior só com a escuta encerrada
+  ---
+  duration_ms: 1054.070335
+  type: 'test'
+  ...
+# Subtest: R3.2 (ADV-01): renda PJ sem confirmação, 3 meses, sem desconsiderada, sem conexão depois do primeiro retorno do servidor: o indisponível sem números continua como está, com o motivo, sem conversão; a ressalva só com a escuta encerrada
+ok 121 - R3.2 (ADV-01): renda PJ sem confirmação, 3 meses, sem desconsiderada, sem conexão depois do primeiro retorno do servidor: o indisponível sem números continua como está, com o motivo, sem conversão; a ressalva só com a escuta encerrada
+  ---
+  duration_ms: 1498.565555
+  type: 'test'
+  ...
+# Subtest: R3.2 (ADV-01): renda PJ sem confirmação, 3 meses, sem desconsiderada, com a escuta encerrada depois do primeiro retorno do servidor: o indisponível sem números continua como está, com o motivo, sem conversão; a ressalva só com a escuta encerrada
+ok 122 - R3.2 (ADV-01): renda PJ sem confirmação, 3 meses, sem desconsiderada, com a escuta encerrada depois do primeiro retorno do servidor: o indisponível sem números continua como está, com o motivo, sem conversão; a ressalva só com a escuta encerrada
+  ---
+  duration_ms: 1497.536819
+  type: 'test'
+  ...
+# Subtest: R3.2 (ADV-01): renda PJ sem confirmação, 3 meses, sem desconsiderada, com a divergência persistente depois do primeiro retorno do servidor: o indisponível sem números continua como está, com o motivo, sem conversão; a ressalva só com a escuta encerrada
+ok 123 - R3.2 (ADV-01): renda PJ sem confirmação, 3 meses, sem desconsiderada, com a divergência persistente depois do primeiro retorno do servidor: o indisponível sem números continua como está, com o motivo, sem conversão; a ressalva só com a escuta encerrada
+  ---
+  duration_ms: 1507.403885
+  type: 'test'
+  ...
+# Subtest: R3.2 (ADV-01): renda PJ sem confirmação, 12 meses, com desconsiderada, sem conexão depois do primeiro retorno do servidor: o indisponível sem números continua como está, com o motivo, sem conversão; a ressalva só com a escuta encerrada
+ok 124 - R3.2 (ADV-01): renda PJ sem confirmação, 12 meses, com desconsiderada, sem conexão depois do primeiro retorno do servidor: o indisponível sem números continua como está, com o motivo, sem conversão; a ressalva só com a escuta encerrada
+  ---
+  duration_ms: 1496.35769
+  type: 'test'
+  ...
+# Subtest: R3.2 (ADV-01): renda PJ sem confirmação, 12 meses, com desconsiderada, com a escuta encerrada depois do primeiro retorno do servidor: o indisponível sem números continua como está, com o motivo, sem conversão; a ressalva só com a escuta encerrada
+ok 125 - R3.2 (ADV-01): renda PJ sem confirmação, 12 meses, com desconsiderada, com a escuta encerrada depois do primeiro retorno do servidor: o indisponível sem números continua como está, com o motivo, sem conversão; a ressalva só com a escuta encerrada
+  ---
+  duration_ms: 1497.35229
+  type: 'test'
+  ...
+# Subtest: R3.2 (ADV-01): renda PJ sem confirmação, 12 meses, com desconsiderada, com a divergência persistente depois do primeiro retorno do servidor: o indisponível sem números continua como está, com o motivo, sem conversão; a ressalva só com a escuta encerrada
+ok 126 - R3.2 (ADV-01): renda PJ sem confirmação, 12 meses, com desconsiderada, com a divergência persistente depois do primeiro retorno do servidor: o indisponível sem números continua como está, com o motivo, sem conversão; a ressalva só com a escuta encerrada
+  ---
+  duration_ms: 1498.871347
+  type: 'test'
+  ...
+# Subtest: R3.2 (F-08): indisponível com números (rotina sem horas; uma base, nenhuma desconsiderada), sem retorno do servidor: nem o motivo nem a memória de cálculo sem a prova, como a estimativa que converte; com a prova, o indisponível com o motivo
+ok 127 - R3.2 (F-08): indisponível com números (rotina sem horas; uma base, nenhuma desconsiderada), sem retorno do servidor: nem o motivo nem a memória de cálculo sem a prova, como a estimativa que converte; com a prova, o indisponível com o motivo
+  ---
+  duration_ms: 1022.853752
+  type: 'test'
+  ...
+# Subtest: R3.2 (F-08): indisponível com números (rotina sem horas; uma base, nenhuma desconsiderada), com a escuta encerrada desde o começo: nem o motivo nem a memória de cálculo sem a prova, como a estimativa que converte; com a prova, o indisponível com o motivo
+ok 128 - R3.2 (F-08): indisponível com números (rotina sem horas; uma base, nenhuma desconsiderada), com a escuta encerrada desde o começo: nem o motivo nem a memória de cálculo sem a prova, como a estimativa que converte; com a prova, o indisponível com o motivo
+  ---
+  duration_ms: 1058.466289
+  type: 'test'
+  ...
+# Subtest: R3.2 (F-08): indisponível com números (rotina sem horas; uma base, nenhuma desconsiderada), com a divergência persistente: nem o motivo nem a memória de cálculo sem a prova, como a estimativa que converte; com a prova, o indisponível com o motivo
+ok 129 - R3.2 (F-08): indisponível com números (rotina sem horas; uma base, nenhuma desconsiderada), com a divergência persistente: nem o motivo nem a memória de cálculo sem a prova, como a estimativa que converte; com a prova, o indisponível com o motivo
+  ---
+  duration_ms: 1216.573082
+  type: 'test'
+  ...
+# Subtest: R3.2 (F-08): indisponível com números (nenhuma renda na janela; uma base, nenhuma desconsiderada), sem retorno do servidor: nem o motivo nem a memória de cálculo sem a prova, como a estimativa que converte; com a prova, o indisponível com o motivo
+ok 130 - R3.2 (F-08): indisponível com números (nenhuma renda na janela; uma base, nenhuma desconsiderada), sem retorno do servidor: nem o motivo nem a memória de cálculo sem a prova, como a estimativa que converte; com a prova, o indisponível com o motivo
+  ---
+  duration_ms: 1022.298282
+  type: 'test'
+  ...
+# Subtest: R3.2 (F-08): indisponível com números (nenhuma renda na janela; uma base, nenhuma desconsiderada), com a escuta encerrada desde o começo: nem o motivo nem a memória de cálculo sem a prova, como a estimativa que converte; com a prova, o indisponível com o motivo
+ok 131 - R3.2 (F-08): indisponível com números (nenhuma renda na janela; uma base, nenhuma desconsiderada), com a escuta encerrada desde o começo: nem o motivo nem a memória de cálculo sem a prova, como a estimativa que converte; com a prova, o indisponível com o motivo
+  ---
+  duration_ms: 1058.209999
+  type: 'test'
+  ...
+# Subtest: R3.2 (F-08): indisponível com números (nenhuma renda na janela; uma base, nenhuma desconsiderada), com a divergência persistente: nem o motivo nem a memória de cálculo sem a prova, como a estimativa que converte; com a prova, o indisponível com o motivo
+ok 132 - R3.2 (F-08): indisponível com números (nenhuma renda na janela; uma base, nenhuma desconsiderada), com a divergência persistente: nem o motivo nem a memória de cálculo sem a prova, como a estimativa que converte; com a prova, o indisponível com o motivo
+  ---
+  duration_ms: 1218.936253
+  type: 'test'
+  ...
+# Subtest: R3.2 (F-08): rotina sem horas, 3 meses, sem desconsiderada, sem conexão depois do indisponível provado: o motivo e a memória de cálculo saem como a conversão sai; com a prova de volta, o indisponível provado volta
+ok 133 - R3.2 (F-08): rotina sem horas, 3 meses, sem desconsiderada, sem conexão depois do indisponível provado: o motivo e a memória de cálculo saem como a conversão sai; com a prova de volta, o indisponível provado volta
+  ---
+  duration_ms: 1505.036123
+  type: 'test'
+  ...
+# Subtest: R3.2 (F-08): rotina sem horas, 3 meses, sem desconsiderada, com a escuta encerrada depois do indisponível provado: o motivo e a memória de cálculo saem como a conversão sai; com a prova de volta, o indisponível provado volta
+ok 134 - R3.2 (F-08): rotina sem horas, 3 meses, sem desconsiderada, com a escuta encerrada depois do indisponível provado: o motivo e a memória de cálculo saem como a conversão sai; com a prova de volta, o indisponível provado volta
+  ---
+  duration_ms: 1543.875883
+  type: 'test'
+  ...
+# Subtest: R3.2 (F-08): rotina sem horas, 3 meses, sem desconsiderada, com a divergência persistente depois do indisponível provado: o motivo e a memória de cálculo saem como a conversão sai; com a prova de volta, o indisponível provado volta
+ok 135 - R3.2 (F-08): rotina sem horas, 3 meses, sem desconsiderada, com a divergência persistente depois do indisponível provado: o motivo e a memória de cálculo saem como a conversão sai; com a prova de volta, o indisponível provado volta
+  ---
+  duration_ms: 1549.182125
+  type: 'test'
+  ...
+# Subtest: R3.2 (F-08): rotina sem horas, 12 meses, com desconsiderada, sem conexão depois do indisponível provado: o motivo e a memória de cálculo saem como a conversão sai; com a prova de volta, o indisponível provado volta
+ok 136 - R3.2 (F-08): rotina sem horas, 12 meses, com desconsiderada, sem conexão depois do indisponível provado: o motivo e a memória de cálculo saem como a conversão sai; com a prova de volta, o indisponível provado volta
+  ---
+  duration_ms: 1512.329088
+  type: 'test'
+  ...
+# Subtest: R3.2 (F-08): rotina sem horas, 12 meses, com desconsiderada, com a escuta encerrada depois do indisponível provado: o motivo e a memória de cálculo saem como a conversão sai; com a prova de volta, o indisponível provado volta
+ok 137 - R3.2 (F-08): rotina sem horas, 12 meses, com desconsiderada, com a escuta encerrada depois do indisponível provado: o motivo e a memória de cálculo saem como a conversão sai; com a prova de volta, o indisponível provado volta
+  ---
+  duration_ms: 1562.032436
+  type: 'test'
+  ...
+# Subtest: R3.2 (F-08): rotina sem horas, 12 meses, com desconsiderada, com a divergência persistente depois do indisponível provado: o motivo e a memória de cálculo saem como a conversão sai; com a prova de volta, o indisponível provado volta
+ok 138 - R3.2 (F-08): rotina sem horas, 12 meses, com desconsiderada, com a divergência persistente depois do indisponível provado: o motivo e a memória de cálculo saem como a conversão sai; com a prova de volta, o indisponível provado volta
+  ---
+  duration_ms: 1546.141838
+  type: 'test'
+  ...
+# Subtest: R3.2 (F-08, sonda R2-01): rotina sem horas e a desconsiderada editada em outra sessão antes do gatilho: o indisponível nunca traz os números de um estado misto (R$ 800,00 tirados do total que ainda tem R$ 500,00); depois do gatilho, os números consistentes
+ok 139 - R3.2 (F-08, sonda R2-01): rotina sem horas e a desconsiderada editada em outra sessão antes do gatilho: o indisponível nunca traz os números de um estado misto (R$ 800,00 tirados do total que ainda tem R$ 500,00); depois do gatilho, os números consistentes
+  ---
+  duration_ms: 284.853995
+  type: 'test'
+  ...
+# Subtest: R3.2 (F-08, sonda R2-02): rotina sem horas, 12 meses, divergência persistente (a base de setembro R$ 300,00 acima da projeção): o indisponível nunca traz como receita oficial o valor da base divergente
+ok 140 - R3.2 (F-08, sonda R2-02): rotina sem horas, 12 meses, divergência persistente (a base de setembro R$ 300,00 acima da projeção): o indisponível nunca traz como receita oficial o valor da base divergente
+  ---
+  duration_ms: 372.062223
+  type: 'test'
+  ...
+# Subtest: R3.2 (F-08, sonda R2-03): rotina com horas, um mês, a desconsiderada editada antes do gatilho até igualar o total do mês: nunca "nenhuma renda" de um estado misto; os estados consistentes estão prontos
+ok 141 - R3.2 (F-08, sonda R2-03): rotina com horas, um mês, a desconsiderada editada antes do gatilho até igualar o total do mês: nunca "nenhuma renda" de um estado misto; os estados consistentes estão prontos
+  ---
+  duration_ms: 284.495087
+  type: 'test'
+  ...
+# Subtest: R3.2 (ADV-01): da renda PJ sem confirmação (indisponível sem números, mostrado sem a confirmação) para a renda confirmada, com a escuta encerrada: a estimativa que converte não aparece sem a confirmação; com a escuta de volta, a provada
+ok 142 - R3.2 (ADV-01): da renda PJ sem confirmação (indisponível sem números, mostrado sem a confirmação) para a renda confirmada, com a escuta encerrada: a estimativa que converte não aparece sem a confirmação; com a escuta de volta, a provada
+  ---
+  duration_ms: 202.171125
+  type: 'test'
+  ...
+# Subtest: R3.2 (ADV-R2-07): a escuta encerrada com a estimativa provada na tela e o tempo de interface passado: fica o erro "Não foi possível confirmar…", com "Tentar de novo", e nunca vira "em atualização"
+ok 143 - R3.2 (ADV-R2-07): a escuta encerrada com a estimativa provada na tela e o tempo de interface passado: fica o erro "Não foi possível confirmar…", com "Tentar de novo", e nunca vira "em atualização"
+  ---
+  duration_ms: 309.404966
+  type: 'test'
+  ...
+# Subtest: R3.2 (ADV-03): 12 meses, sem desconsiderada: a conexão cai com a estimativa provada na tela: nenhuma conversão sem conexão, nem passado o tempo de interface; com a conexão de volta, sem documento mudado, a mesma conversão volta sem leitura a mais
+ok 144 - R3.2 (ADV-03): 12 meses, sem desconsiderada: a conexão cai com a estimativa provada na tela: nenhuma conversão sem conexão, nem passado o tempo de interface; com a conexão de volta, sem documento mudado, a mesma conversão volta sem leitura a mais
+  ---
+  duration_ms: 335.775656
+  type: 'test'
+  ...
+# Subtest: R3.2 (ADV-03): 3 meses, com desconsiderada: a conexão cai com a estimativa provada na tela: nenhuma conversão sem conexão, nem passado o tempo de interface; com a conexão de volta, sem documento mudado, a mesma conversão volta sem leitura a mais
+ok 145 - R3.2 (ADV-03): 3 meses, com desconsiderada: a conexão cai com a estimativa provada na tela: nenhuma conversão sem conexão, nem passado o tempo de interface; com a conexão de volta, sem documento mudado, a mesma conversão volta sem leitura a mais
+  ---
+  duration_ms: 313.063924
+  type: 'test'
+  ...
+# Subtest: R3.2 (ADV-03): 12 meses, com desconsiderada: a conexão cai com a estimativa provada na tela: nenhuma conversão sem conexão, nem passado o tempo de interface; com a conexão de volta, sem documento mudado, a mesma conversão volta sem leitura a mais
+ok 146 - R3.2 (ADV-03): 12 meses, com desconsiderada: a conexão cai com a estimativa provada na tela: nenhuma conversão sem conexão, nem passado o tempo de interface; com a conexão de volta, sem documento mudado, a mesma conversão volta sem leitura a mais
+  ---
+  duration_ms: 331.855938
+  type: 'test'
+  ...
+# Subtest: R3.2 (F-04): a base abaixo da projeção depois das releituras (anomalia no servidor; uma base, nenhuma desconsiderada): nenhuma conversão, nem passadas as releituras e o tempo de interface; sem a anomalia, o "Tentar de novo" traz a estimativa provada
+ok 147 - R3.2 (F-04): a base abaixo da projeção depois das releituras (anomalia no servidor; uma base, nenhuma desconsiderada): nenhuma conversão, nem passadas as releituras e o tempo de interface; sem a anomalia, o "Tentar de novo" traz a estimativa provada
+  ---
+  duration_ms: 468.318146
+  type: 'test'
+  ...
+# Subtest: R3.2 (F-04, ADV-08): janela do mês corrente com a desconsiderada no próprio mês: o cache aquecido não converte antes do retorno do servidor; confirmado, o mesmo valor da primeira montagem, com a desconsiderada fora
+ok 148 - R3.2 (F-04, ADV-08): janela do mês corrente com a desconsiderada no próprio mês: o cache aquecido não converte antes do retorno do servidor; confirmado, o mesmo valor da primeira montagem, com a desconsiderada fora
+  ---
+  duration_ms: 270.707322
+  type: 'test'
+  ...
+# Subtest: R3.2 (F-04): a janela ampliada e reduzida na mesma montagem: a confirmação da janela anterior não vale para a nova; nenhuma conversão até o retorno do servidor à escuta dos meses novos; confirmada, a da janela nova
+ok 149 - R3.2 (F-04): a janela ampliada e reduzida na mesma montagem: a confirmação da janela anterior não vale para a nova; nenhuma conversão até o retorno do servidor à escuta dos meses novos; confirmada, a da janela nova
+  ---
+  duration_ms: 451.682392
+  type: 'test'
+  ...
+# Subtest: R3.2 (RR-R31-05): janela de 1 mês, sem desconsiderada: o cache aquecido não converte antes do retorno do servidor; confirmado, o mesmo valor da primeira montagem
+ok 150 - R3.2 (RR-R31-05): janela de 1 mês, sem desconsiderada: o cache aquecido não converte antes do retorno do servidor; confirmado, o mesmo valor da primeira montagem
+  ---
+  duration_ms: 255.513404
+  type: 'test'
+  ...
+# Subtest: R3.2 (RR-R31-05): janela de 1 mês, com desconsiderada: o cache aquecido não converte antes do retorno do servidor; confirmado, o mesmo valor da primeira montagem
+ok 151 - R3.2 (RR-R31-05): janela de 1 mês, com desconsiderada: o cache aquecido não converte antes do retorno do servidor; confirmado, o mesmo valor da primeira montagem
+  ---
+  duration_ms: 274.173325
+  type: 'test'
+  ...
+# Subtest: R3.2 (RR-R31-05): janela de 3 meses, sem desconsiderada: o cache aquecido não converte antes do retorno do servidor; confirmado, o mesmo valor da primeira montagem
+ok 152 - R3.2 (RR-R31-05): janela de 3 meses, sem desconsiderada: o cache aquecido não converte antes do retorno do servidor; confirmado, o mesmo valor da primeira montagem
+  ---
+  duration_ms: 259.699292
+  type: 'test'
+  ...
+# Subtest: R3.2 (RR-R31-05): janela de 3 meses, com desconsiderada: o cache aquecido não converte antes do retorno do servidor; confirmado, o mesmo valor da primeira montagem
+ok 153 - R3.2 (RR-R31-05): janela de 3 meses, com desconsiderada: o cache aquecido não converte antes do retorno do servidor; confirmado, o mesmo valor da primeira montagem
+  ---
+  duration_ms: 278.324535
+  type: 'test'
+  ...
+# Subtest: R3.2 (RR-R31-05): janela de 6 meses, sem desconsiderada: o cache aquecido não converte antes do retorno do servidor; confirmado, o mesmo valor da primeira montagem
+ok 154 - R3.2 (RR-R31-05): janela de 6 meses, sem desconsiderada: o cache aquecido não converte antes do retorno do servidor; confirmado, o mesmo valor da primeira montagem
+  ---
+  duration_ms: 267.674394
+  type: 'test'
+  ...
+# Subtest: R3.2 (RR-R31-05): janela de 6 meses, com desconsiderada: o cache aquecido não converte antes do retorno do servidor; confirmado, o mesmo valor da primeira montagem
+ok 155 - R3.2 (RR-R31-05): janela de 6 meses, com desconsiderada: o cache aquecido não converte antes do retorno do servidor; confirmado, o mesmo valor da primeira montagem
+  ---
+  duration_ms: 280.924085
+  type: 'test'
+  ...
+# Subtest: R3.2 (RR-R31-05): janela de 12 meses, sem desconsiderada: o cache aquecido não converte antes do retorno do servidor; confirmado, o mesmo valor da primeira montagem
+ok 156 - R3.2 (RR-R31-05): janela de 12 meses, sem desconsiderada: o cache aquecido não converte antes do retorno do servidor; confirmado, o mesmo valor da primeira montagem
+  ---
+  duration_ms: 271.812102
+  type: 'test'
+  ...
+# Subtest: R3.2 (RR-R31-05): janela de 12 meses, com desconsiderada: o cache aquecido não converte antes do retorno do servidor; confirmado, o mesmo valor da primeira montagem
+ok 157 - R3.2 (RR-R31-05): janela de 12 meses, com desconsiderada: o cache aquecido não converte antes do retorno do servidor; confirmado, o mesmo valor da primeira montagem
+  ---
+  duration_ms: 289.011606
+  type: 'test'
+  ...
+# Subtest: R3.2 (RR-R31-05): janela de mês corrente, sem desconsiderada: o cache aquecido não converte antes do retorno do servidor; confirmado, o mesmo valor da primeira montagem
+ok 158 - R3.2 (RR-R31-05): janela de mês corrente, sem desconsiderada: o cache aquecido não converte antes do retorno do servidor; confirmado, o mesmo valor da primeira montagem
+  ---
+  duration_ms: 256.5919
+  type: 'test'
+  ...
+# Subtest: B01: o recebimento desconsiderado é estornado em outra sessão (depois da sincronização): a exclusão perde o efeito, nunca desconta de novo
+ok 159 - B01: o recebimento desconsiderado é estornado em outra sessão (depois da sincronização): a exclusão perde o efeito, nunca desconta de novo
+  ---
+  duration_ms: 308.532914
+  type: 'test'
+  ...
+# Subtest: B01: o recebimento desconsiderado é estornado em outra sessão (durante a releitura por id): a exclusão perde o efeito, nunca desconta de novo
+ok 160 - B01: o recebimento desconsiderado é estornado em outra sessão (durante a releitura por id): a exclusão perde o efeito, nunca desconta de novo
+  ---
+  duration_ms: 494.458544
+  type: 'test'
+  ...
+# Subtest: B01: o estorno lido antes de a projeção incluí-lo nunca aparece com o total antigo (a exclusão sem efeito com A ainda somado)
+ok 161 - B01: o estorno lido antes de a projeção incluí-lo nunca aparece com o total antigo (a exclusão sem efeito com A ainda somado)
+  ---
+  duration_ms: 493.56737
+  type: 'test'
+  ...
+# Subtest: B01: o recebimento desconsiderado sem estorno continua descontado; com dois desconsiderados, só o estornado perde o efeito
+ok 162 - B01: o recebimento desconsiderado sem estorno continua descontado; com dois desconsiderados, só o estornado perde o efeito
+  ---
+  duration_ms: 304.057507
+  type: 'test'
+  ...
+# Subtest: espelho de receita: a fixture compartilhada com o backend dá o mesmo incomeCents
+ok 163 - espelho de receita: a fixture compartilhada com o backend dá o mesmo incomeCents
+  ---
+  duration_ms: 2.702907
+  type: 'test'
+  ...
+# Subtest: espelho de receita: a classificação não usa descrição nem categoria
+ok 164 - espelho de receita: a classificação não usa descrição nem categoria
+  ---
+  duration_ms: 2.444142
+  type: 'test'
+  ...
+# Subtest: só o que soma renda pode ser tirado da estimativa
+ok 165 - só o que soma renda pode ser tirado da estimativa
+  ---
+  duration_ms: 0.389813
+  type: 'test'
+  ...
+# Subtest: exclusões: descontadas no próprio mês, ignoradas fora da janela, nunca deixam o mês negativo
+ok 166 - exclusões: descontadas no próprio mês, ignoradas fora da janela, nunca deixam o mês negativo
+  ---
+  duration_ms: 0.63099
+  type: 'test'
+  ...
+# Subtest: janela: últimos N meses completos no habitual, mês corrente no modo mês atual, 12º mês à parte
+ok 167 - janela: últimos N meses completos no habitual, mês corrente no modo mês atual, 12º mês à parte
+  ---
+  duration_ms: 1.161021
+  type: 'test'
+  ...
+# Subtest: habitual: Σ renda dos meses completos ÷ Σ horas dos mesmos meses, em inteiros
+ok 168 - habitual: Σ renda dos meses completos ÷ Σ horas dos mesmos meses, em inteiros
+  ---
+  duration_ms: 19.321154
+  type: 'test'
+  ...
+# Subtest: habitual: meses antes da primeira renda saem da conta e a estimativa fica provisória
+ok 169 - habitual: meses antes da primeira renda saem da conta e a estimativa fica provisória
+  ---
+  duration_ms: 7.262227
+  type: 'test'
+  ...
+# Subtest: dados insuficientes: indisponível com o motivo, nunca um valor inventado
+ok 170 - dados insuficientes: indisponível com o motivo, nunca um valor inventado
+  ---
+  duration_ms: 15.322056
+  type: 'test'
+  ...
+# Subtest: B02: o primeiro mês da janela abre o período: um turno da véspera da janela não tira horas da estimativa
+ok 171 - B02: o primeiro mês da janela abre o período: um turno da véspera da janela não tira horas da estimativa
+  ---
+  duration_ms: 18.380379
+  type: 'test'
+  ...
+# Subtest: B02: rotinas sem cálculo seguro deixam a estimativa indisponível, sem nenhum mês com horas na memória de cálculo
+ok 172 - B02: rotinas sem cálculo seguro deixam a estimativa indisponível, sem nenhum mês com horas na memória de cálculo
+  ---
+  duration_ms: 38.496612
+  type: 'test'
+  ...
+# Subtest: B02 (P5-F.1-R2A, S01): a jornada reduzida que deixa o dia seguinte sem cálculo seguro deixa a estimativa indisponível, com o motivo próprio
+ok 173 - B02 (P5-F.1-R2A, S01): a jornada reduzida que deixa o dia seguinte sem cálculo seguro deixa a estimativa indisponível, com o motivo próprio
+  ---
+  duration_ms: 24.513339
+  type: 'test'
+  ...
+# Subtest: B01: o navegador deriva os IDs do estorno como o backend (fixture compartilhada)
+ok 174 - B01: o navegador deriva os IDs do estorno como o backend (fixture compartilhada)
+  ---
+  duration_ms: 30.630822
+  type: 'test'
+  ...
+# Subtest: B01: A +100 estornado (−100) e B +100, com A desconsiderado antes do estorno: a renda é a de B, R$ 100,00, nunca zero
+ok 175 - B01: A +100 estornado (−100) e B +100, com A desconsiderado antes do estorno: a renda é a de B, R$ 100,00, nunca zero
+  ---
+  duration_ms: 5.418833
+  type: 'test'
+  ...
+# Subtest: B01: estado do estorno que não se confirma suspende a estimativa; o recebimento não estornado continua descontado
+ok 176 - B01: estado do estorno que não se confirma suspende a estimativa; o recebimento não estornado continua descontado
+  ---
+  duration_ms: 10.659819
+  type: 'test'
+  ...
+# Subtest: B01: a leitura por id traz o recebimento e o estorno lado a lado, na mesma consulta, e separa os itens dos estornos
+ok 177 - B01: a leitura por id traz o recebimento e o estorno lado a lado, na mesma consulta, e separa os itens dos estornos
+  ---
+  duration_ms: 9.576244
+  type: 'test'
+  ...
+# Subtest: B01 (revisão da R1, N08): sem ID repetido e com cada par lado a lado, também com o espelho de um estorno na lista e mais de 30 IDs
+ok 178 - B01 (revisão da R1, N08): sem ID repetido e com cada par lado a lado, também com o espelho de um estorno na lista e mais de 30 IDs
+  ---
+  duration_ms: 13.622554
+  type: 'test'
+  ...
+# Subtest: PJ só com confirmação explícita, e sempre sinalizado; sem soma PF+PJ
+ok 179 - PJ só com confirmação explícita, e sempre sinalizado; sem soma PF+PJ
+  ---
+  duration_ms: 7.013735
+  type: 'test'
+  ...
+# Subtest: mês atual: renda recebida até hoje ÷ horas do mês inteiro, sempre marcada como incompleta
+ok 180 - mês atual: renda recebida até hoje ÷ horas do mês inteiro, sempre marcada como incompleta
+  ---
+  duration_ms: 3.926473
+  type: 'test'
+  ...
+# Subtest: exclusões do usuário entram só na estimativa e são somadas por mês
+ok 181 - exclusões do usuário entram só na estimativa e são somadas por mês
+  ---
+  duration_ms: 3.152879
+  type: 'test'
+  ...
+# Subtest: 12 meses: a janela usa o 12º mês completo trazido à parte
+ok 182 - 12 meses: a janela usa o 12º mês completo trazido à parte
+  ---
+  duration_ms: 13.593308
+  type: 'test'
+  ...
+# Subtest: painel: itens classificados, estorno pareado, duplicidade só sinalizada e despesa comum fora
+ok 183 - painel: itens classificados, estorno pareado, duplicidade só sinalizada e despesa comum fora
+  ---
+  duration_ms: 1.199486
+  type: 'test'
+  ...
+# Subtest: painel: texto e caixa de cada item, com o recebimento estornado dentro e depois do período
+ok 184 - painel: texto e caixa de cada item, com o recebimento estornado dentro e depois do período
+  ---
+  duration_ms: 0.740212
+  type: 'test'
+  ...
+# Subtest: falha de leitura: só mensagens em pt-BR, nunca o texto do SDK
+ok 185 - falha de leitura: só mensagens em pt-BR, nunca o texto do SDK
+  ---
+  duration_ms: 0.242522
+  type: 'test'
+  ...
+# Subtest: aviso do topo: ressalvas do mês incompleto, da estimativa provisória e da fonte PJ
+ok 186 - aviso do topo: ressalvas do mês incompleto, da estimativa provisória e da fonte PJ
+  ---
+  duration_ms: 0.439208
+  type: 'test'
+  ...
+# Subtest: corpus: cada caso é aceito ou recusado pelo cliente e pela checagem das Rules como esperado
+ok 187 - corpus: cada caso é aceito ou recusado pelo cliente e pela checagem das Rules como esperado
+  ---
+  duration_ms: 22.551652
+  type: 'test'
+  ...
+# Subtest: forma canônica: o que o cliente lê, ele grava igual
+ok 188 - forma canônica: o que o cliente lê, ele grava igual
+  ---
+  duration_ms: 2.297085
+  type: 'test'
+  ...
+# Subtest: composição: os padrões completos são montados só com as peças compartilhadas com as Rules
+ok 189 - composição: os padrões completos são montados só com as peças compartilhadas com as Rules
+  ---
+  duration_ms: 0.540999
+  type: 'test'
+  ...
+# Subtest: peças: datas reais de 2000 a 2099, minutos sem zero à esquerda, horas válidas
+ok 190 - peças: datas reais de 2000 a 2099, minutos sem zero à esquerda, horas válidas
+  ---
+  duration_ms: 16.975287
+  type: 'test'
+  ...
+# Subtest: exceções: checagens semânticas que as Rules não alcançam
+ok 191 - exceções: checagens semânticas que as Rules não alcançam
+  ---
+  duration_ms: 0.24599
+  type: 'test'
+  ...
+# Subtest: a varredura alcança o repositório real
+ok 192 - a varredura alcança o repositório real
+  ---
+  duration_ms: 15.73267
+  type: 'test'
+  ...
+# Subtest: nenhuma Function lê, grava ou menciona a preferência privada
+ok 193 - nenhuma Function lê, grava ou menciona a preferência privada
+  ---
+  duration_ms: 98.442074
+  type: 'test'
+  ...
+# Subtest: IA, notificações e relatórios autoritativos não recebem a preferência
+ok 194 - IA, notificações e relatórios autoritativos não recebem a preferência
+  ---
+  duration_ms: 3.314739
+  type: 'test'
+  ...
+# Subtest: DTOs, chamadas e adaptadores financeiros não carregam tempo de trabalho
+ok 195 - DTOs, chamadas e adaptadores financeiros não carregam tempo de trabalho
+  ---
+  duration_ms: 4.952031
+  type: 'test'
+  ...
+# Subtest: nenhuma cópia local da preferência e nenhuma leitura do cache do SDK no app
+ok 196 - nenhuma cópia local da preferência e nenhuma leitura do cache do SDK no app
+  ---
+  duration_ms: 27.097821
+  type: 'test'
+  ...
+# Subtest: logs da preferência só levam mensagem fixa e código de erro
+ok 197 - logs da preferência só levam mensagem fixa e código de erro
+  ---
+  duration_ms: 3.335421
+  type: 'test'
+  ...
+# Subtest: sessão: troca de conta e respostas atrasadas não expõem a preferência de outra conta
+ok 198 - sessão: troca de conta e respostas atrasadas não expõem a preferência de outra conta
+  ---
+  duration_ms: 0.550544
+  type: 'test'
+  ...
+# Subtest: a preferência só é lida e gravada no documento privado do próprio usuário
+ok 199 - a preferência só é lida e gravada no documento privado do próprio usuário
+  ---
+  duration_ms: 1.959472
+  type: 'test'
+  ...
+# Subtest: Rules: bloco explícito do titular, campos, gramáticas e limites iguais ao contrato v2 do cliente
+ok 200 - Rules: bloco explícito do titular, campos, gramáticas e limites iguais ao contrato v2 do cliente
+  ---
+  duration_ms: 5.335905
+  type: 'test'
+  ...
+# Subtest: nada derivado é gravado: só a API do módulo escreve, e só os campos do contrato
+ok 201 - nada derivado é gravado: só a API do módulo escreve, e só os campos do contrato
+  ---
+  duration_ms: 4.013452
+  type: 'test'
+  ...
+# Subtest: leitura das marcas de aplicação (P5-F.1-R3): só uma transação de leitura, só nas coleções da projeção, sem escrita, escuta nem cache
+ok 202 - leitura das marcas de aplicação (P5-F.1-R3): só uma transação de leitura, só nas coleções da projeção, sem escrita, escuta nem cache
+  ---
+  duration_ms: 1.905545
+  type: 'test'
+  ...
+# Subtest: estimativa: uma por contexto, sem polling nem listener por lançamento
+ok 203 - estimativa: uma por contexto, sem polling nem listener por lançamento
+  ---
+  duration_ms: 69.167613
+  type: 'test'
+  ...
+# Subtest: falhas de leitura: mensagens fixas em pt-BR, com nova tentativa, e só o código do erro no log
+ok 204 - falhas de leitura: mensagens fixas em pt-BR, com nova tentativa, e só o código do erro no log
+  ---
+  duration_ms: 1.390708
+  type: 'test'
+  ...
+# Subtest: janela de receitas: a leitura paginada real usa `readPagedWindow` com um documento a mais
+ok 205 - janela de receitas: a leitura paginada real usa `readPagedWindow` com um documento a mais
+  ---
+  duration_ms: 0.379004
+  type: 'test'
+  ...
+# Subtest: matriz: entradas, confirmações, termos, históricos e preços ficam em BRL
+ok 206 - matriz: entradas, confirmações, termos, históricos e preços ficam em BRL
+  ---
+  duration_ms: 3.275374
+  type: 'test'
+  ...
+# Subtest: matriz: pontos em BRL dentro de arquivos elegíveis continuam em reais, linha a linha
+ok 207 - matriz: pontos em BRL dentro de arquivos elegíveis continuam em reais, linha a linha
+  ---
+  duration_ms: 2.834635
+  type: 'test'
+  ...
+# Subtest: matriz: os pontos elegíveis usam a camada de exibição, e a prévia do tema força reais
+ok 208 - matriz: os pontos elegíveis usam a camada de exibição, e a prévia do tema força reais
+  ---
+  duration_ms: 2.652153
+  type: 'test'
+  ...
+# Subtest: modo dinheiro idêntico: a camada devolve o formatador da tela, sem elemento novo
+ok 209 - modo dinheiro idêntico: a camada devolve o formatador da tela, sem elemento novo
+  ---
+  duration_ms: 0.213937
+  type: 'test'
+  ...
+# Subtest: prova (P5-F.1-R3.2, RR-R31-05): nada é provado sem bloco exato, sem a projeção confirmada e sem a base igual a ela; sem exceção por base única ou falta de desconsiderada
+ok 210 - prova (P5-F.1-R3.2, RR-R31-05): nada é provado sem bloco exato, sem a projeção confirmada e sem a base igual a ela; sem exceção por base única ou falta de desconsiderada
+  ---
+  duration_ms: 0.697733
+  type: 'test'
+  ...
+# Subtest: apresentação fail-closed (R3.1, R3-AUD-01): a estimativa pronta só aparece provada e com a sincronização concluída, e é a própria atual; sem prova ou sincronizando, o estado sem conversão ("calculando" ou a falha com "Tentar de novo")
+ok 211 - apresentação fail-closed (R3.1, R3-AUD-01): a estimativa pronta só aparece provada e com a sincronização concluída, e é a própria atual; sem prova ou sincronizando, o estado sem conversão ("calculando" ou a falha com "Tentar de novo")
+  ---
+  duration_ms: 1.832656
+  type: 'test'
+  ...
+# Subtest: apresentação fail-closed (R3.1): provada, mas com a sincronização em curso, nenhuma conversão, nem a anterior nem a atual; concluída a sincronização, a atual provada, com o aviso dela quando houver
+ok 212 - apresentação fail-closed (R3.1): provada, mas com a sincronização em curso, nenhuma conversão, nem a anterior nem a atual; concluída a sincronização, a atual provada, com o aviso dela quando houver
+  ---
+  duration_ms: 0.39854
+  type: 'test'
+  ...
+# Subtest: apresentação fail-closed (R3.1), propriedade: em 20 000 renderizações aleatórias (pronta, carregando, erro ou ociosa; com ou sem prova; sincronizando ou não), o mostrado é a atual provada e sincronizada ou um estado sem conversão; nunca um estado pronto de outra renderização
+ok 213 - apresentação fail-closed (R3.1), propriedade: em 20 000 renderizações aleatórias (pronta, carregando, erro ou ociosa; com ou sem prova; sincronizando ou não), o mostrado é a atual provada e sincronizada ou um estado sem conversão; nunca um estado pronto de outra renderização
+  ---
+  duration_ms: 31.259158
+  type: 'test'
+  ...
+# Subtest: apresentação (R3.2, ADV-01 e F-08): a indisponível sem números aparece como está, com ou sem prova e sincronizando ou não; a com números das bases e a que converte, só provadas e sincronizadas
+ok 214 - apresentação (R3.2, ADV-01 e F-08): a indisponível sem números aparece como está, com ou sem prova e sincronizando ou não; a com números das bases e a que converte, só provadas e sincronizadas
+  ---
+  duration_ms: 2.092677
+  type: 'test'
+  ...
+# Subtest: leitura por id: cada leitura concluída traz um objeto novo, mesmo com os mesmos dados e no mesmo milissegundo
+ok 215 - leitura por id: cada leitura concluída traz um objeto novo, mesmo com os mesmos dados e no mesmo milissegundo
+  ---
+  duration_ms: 31.148373
+  type: 'test'
+  ...
+# Subtest: duas leituras por id concluídas no mesmo milissegundo e com os mesmos dados, a segunda pedida pela base que chegou durante a primeira: a estimativa mostra a base nova (R6-02)
+ok 216 - duas leituras por id concluídas no mesmo milissegundo e com os mesmos dados, a segunda pedida pela base que chegou durante a primeira: a estimativa mostra a base nova (R6-02)
+  ---
+  duration_ms: 544.215526
+  type: 'test'
+  ...
+# Subtest: mutação nesta aba: anular a receita desconsiderada nunca junta o item anulado com o total velho (R4-01)
+ok 217 - mutação nesta aba: anular a receita desconsiderada nunca junta o item anulado com o total velho (R4-01)
+  ---
+  duration_ms: 495.297401
+  type: 'test'
+  ...
+# Subtest: janela de 12 meses: a carga lê a série, o mês avulso e as exclusões uma vez cada, com a escuta adiantada (R4-02)
+ok 218 - janela de 12 meses: a carga lê a série, o mês avulso e as exclusões uma vez cada, com a escuta adiantada (R4-02)
+  ---
+  duration_ms: 351.418186
+  type: 'test'
+  ...
+# Subtest: leitura por id antiga: a prévia montada depois de uma mutação nesta aba não a relê antes da base (R5-01)
+ok 219 - leitura por id antiga: a prévia montada depois de uma mutação nesta aba não a relê antes da base (R5-01)
+  ---
+  duration_ms: 564.744038
+  type: 'test'
+  ...
+# Subtest: reconstrução marcada sem mudar os documentos mensais: a mutação relê a base, e a estimativa fica indisponível (R5-02)
+ok 220 - reconstrução marcada sem mudar os documentos mensais: a mutação relê a base, e a estimativa fica indisponível (R5-02)
+  ---
+  duration_ms: 201.138801
+  type: 'test'
+  ...
+# Subtest: escuta das projeções encerrada por erro, com desconsiderada: sem prova, o erro fixo com "Tentar de novo" e nenhuma conversão, nem a última leitura; "Tentar de novo" a reabre e a estimativa volta provada (R5-02, R3.1)
+ok 221 - escuta das projeções encerrada por erro, com desconsiderada: sem prova, o erro fixo com "Tentar de novo" e nenhuma conversão, nem a última leitura; "Tentar de novo" a reabre e a estimativa volta provada (R5-02, R3.1)
+  ---
+  duration_ms: 154.939978
+  type: 'test'
+  ...
+# Subtest: prévia montada durante uma sincronização: as exclusões só são relidas depois da base (R5-01)
+ok 222 - prévia montada durante uma sincronização: as exclusões só são relidas depois da base (R5-01)
+  ---
+  duration_ms: 535.322283
+  type: 'test'
+  ...
+# Subtest: releitura da mutação com a base nova antes do retorno da escuta (viva): nenhuma renderização junta o total novo com a exclusão antiga (R6-02, B03)
+ok 223 - releitura da mutação com a base nova antes do retorno da escuta (viva): nenhuma renderização junta o total novo com a exclusão antiga (R6-02, B03)
+  ---
+  duration_ms: 495.959753
+  type: 'test'
+  ...
+# Subtest: releitura da mutação com a base nova antes do retorno da escuta (encerrada): nenhuma renderização junta o total novo com a exclusão antiga (R6-02, B03)
+ok 224 - releitura da mutação com a base nova antes do retorno da escuta (encerrada): nenhuma renderização junta o total novo com a exclusão antiga (R6-02, B03)
+  ---
+  duration_ms: 448.217966
+  type: 'test'
+  ...
+# Subtest: escuta do provedor encerrada, com desconsiderada: o erro com "Tentar de novo" no provedor, sem conversão; a prévia de Configurações a reabre, e a estimativa em uso volta a acompanhar outras sessões (R6-01; R3.1)
+ok 225 - escuta do provedor encerrada, com desconsiderada: o erro com "Tentar de novo" no provedor, sem conversão; a prévia de Configurações a reabre, e a estimativa em uso volta a acompanhar outras sessões (R6-01; R3.1)
+  ---
+  duration_ms: 247.976139
+  type: 'test'
+  ...
+# Subtest: exclusão de um mês fora da janela, anulada nesta aba: a janela maior salva depois mostra a renda certa, sem juntar versões (R7-01)
+ok 226 - exclusão de um mês fora da janela, anulada nesta aba: a janela maior salva depois mostra a renda certa, sem juntar versões (R7-01)
+  ---
+  duration_ms: 478.288871
+  type: 'test'
+  ...
+# Subtest: janela de 12 meses, as duas bases relidas sem pedido e o mês avulso chegando depois: a estimativa segura até as duas chegarem, sem mostrar só uma nova (R8-03)
+ok 227 - janela de 12 meses, as duas bases relidas sem pedido e o mês avulso chegando depois: a estimativa segura até as duas chegarem, sem mostrar só uma nova (R8-03)
+  ---
+  duration_ms: 554.336801
+  type: 'test'
+  ...
+# Subtest: janela de 12 meses, a série nova sem pedido e o mês avulso falhando: sem conversão enquanto ele lê e sem prova; com a projeção que prova a série nova, a atual com a ressalva da falha (R8-03; R3.1)
+ok 228 - janela de 12 meses, a série nova sem pedido e o mês avulso falhando: sem conversão enquanto ele lê e sem prova; com a projeção que prova a série nova, a atual com a ressalva da falha (R8-03; R3.1)
+  ---
+  duration_ms: 800.637666
+  type: 'test'
+  ...
+# Subtest: janela de 12 meses sem receita desconsiderada, com a escuta encerrada e a releitura da mutação da série adiada pelo orçamento: sem prova, o erro com "Tentar de novo" e nenhuma conversão, nem a versão anterior; reaberta a escuta, as bases novas provadas (R9-01; R3.1)
+ok 229 - janela de 12 meses sem receita desconsiderada, com a escuta encerrada e a releitura da mutação da série adiada pelo orçamento: sem prova, o erro com "Tentar de novo" e nenhuma conversão, nem a versão anterior; reaberta a escuta, as bases novas provadas (R9-01; R3.1)
+  ---
+  duration_ms: 516.46782
+  type: 'test'
+  ...
+# Subtest: janela de 12 meses com a escuta encerrada: a releitura pendente da série que sai sem rede fica pausada, e nenhuma renderização converte (nem a versão anterior nem o mês avulso novo com a série antiga) até a rede voltar e a prova (R10-03; R3.1)
+ok 230 - janela de 12 meses com a escuta encerrada: a releitura pendente da série que sai sem rede fica pausada, e nenhuma renderização converte (nem a versão anterior nem o mês avulso novo com a série antiga) até a rede voltar e a prova (R10-03; R3.1)
+  ---
+  duration_ms: 588.201082
+  type: 'test'
+  ...
+# Subtest: janela de 12 meses com a releitura de uma mutação nesta aba pendente: o calendário trocado é guardado logo, e a sincronização seguinte (outro membro anula a desconsiderada) não mostra a receita descontada duas vezes (R10-02)
+ok 231 - janela de 12 meses com a releitura de uma mutação nesta aba pendente: o calendário trocado é guardado logo, e a sincronização seguinte (outro membro anula a desconsiderada) não mostra a receita descontada duas vezes (R10-02)
+  ---
+  duration_ms: 315.571865
+  type: 'test'
+  ...
+# Subtest: anulação nesta aba de uma desconsiderada do 12º mês para trás e a troca para 12 meses logo depois: o estado misto nunca aparece, e a estimativa de 12 meses só aparece com a sincronização concluída (R9-03, B03; R3.1)
+ok 232 - anulação nesta aba de uma desconsiderada do 12º mês para trás e a troca para 12 meses logo depois: o estado misto nunca aparece, e a estimativa de 12 meses só aparece com a sincronização concluída (R9-03, B03; R3.1)
+  ---
+  duration_ms: 357.182343
+  type: 'test'
+  ...
+# Subtest: caminho privado por usuário, fora do perfil server-owned e de qualquer workspace
+ok 233 - caminho privado por usuário, fora do perfil server-owned e de qualquer workspace
+  ---
+  duration_ms: 2.863867
+  type: 'test'
+  ...
+# Subtest: leitura estrita: documento v2 válido vira preferência sem updatedAt
+ok 234 - leitura estrita: documento v2 válido vira preferência sem updatedAt
+  ---
+  duration_ms: 15.015488
+  type: 'test'
+  ...
+# Subtest: leitura estrita: v1, campo a mais, campo a menos, tipo errado e gramática inválida não valem
+ok 235 - leitura estrita: v1, campo a mais, campo a menos, tipo errado e gramática inválida não valem
+  ---
+  duration_ms: 1.488746
+  type: 'test'
+  ...
+# Subtest: campos gravados pelo cliente: lista exata, forma canônica, sem updatedAt e sem valor derivado
+ok 236 - campos gravados pelo cliente: lista exata, forma canônica, sem updatedAt e sem valor derivado
+  ---
+  duration_ms: 1.574457
+  type: 'test'
+  ...
+# Subtest: modo efetivo: tempo só com preferência válida, ligada e em modo tempo; o padrão é dinheiro
+ok 237 - modo efetivo: tempo só com preferência válida, ligada e em modo tempo; o padrão é dinheiro
+  ---
+  duration_ms: 0.324719
+  type: 'test'
+  ...
+# Subtest: revisão 2 da R1 (M06): uma data de exceção fora do formato dá a mensagem do formato, sem exceção sem tratamento
+ok 238 - revisão 2 da R1 (M06): uma data de exceção fora do formato dá a mensagem do formato, sem exceção sem tratamento
+  ---
+  duration_ms: 26.830939
+  type: 'test'
+  ...
+# Subtest: rascunho inicial: semana comercial, renda PF escolhida, modo habitual de 3 meses e exibição em reais
+ok 239 - rascunho inicial: semana comercial, renda PF escolhida, modo habitual de 3 meses e exibição em reais
+  ---
+  duration_ms: 0.706128
+  type: 'test'
+  ...
+# Subtest: dia da rotina: horário, duração, turno que passa da meia-noite e mensagens em pt-BR
+ok 240 - dia da rotina: horário, duração, turno que passa da meia-noite e mensagens em pt-BR
+  ---
+  duration_ms: 0.845643
+  type: 'test'
+  ...
+# Subtest: exceções: montagem, sobreposição do mesmo tipo, limites e descrição em pt-BR
+ok 241 - exceções: montagem, sobreposição do mesmo tipo, limites e descrição em pt-BR
+  ---
+  duration_ms: 21.45928
+  type: 'test'
+  ...
+# Subtest: município digitado: apóstrofo do celular e acento decomposto viram a forma aceita pelas Rules
+ok 242 - município digitado: apóstrofo do celular e acento decomposto viram a forma aceita pelas Rules
+  ---
+  duration_ms: 1.274453
+  type: 'test'
+  ...
+# Subtest: feriados locais: anual ou data, sem 29/02 anual, sem repetição, até 40
+ok 243 - feriados locais: anual ou data, sem 29/02 anual, sem repetição, até 40
+  ---
+  duration_ms: 0.423617
+  type: 'test'
+  ...
+# Subtest: B02 (revisão da R1, N07): salvar recusa a configuração que fica sem cálculo seguro por exceção, feriado ou início do período, na seção que resolve
+ok 244 - B02 (revisão da R1, N07): salvar recusa a configuração que fica sem cálculo seguro por exceção, feriado ou início do período, na seção que resolve
+  ---
+  duration_ms: 82.547321
+  type: 'test'
+  ...
+# Subtest: B02 (P5-F.1-R2A, S01): salvar recusa a jornada reduzida que deixa o dia seguinte sem cálculo seguro, na seção das exceções, com mensagem em pt-BR
+ok 245 - B02 (P5-F.1-R2A, S01): salvar recusa a jornada reduzida que deixa o dia seguinte sem cálculo seguro, na seção das exceções, com mensagem em pt-BR
+  ---
+  duration_ms: 1.24405
+  type: 'test'
+  ...
+# Subtest: rascunho: validação por seção, prévia sem salvar e comparação com o que está salvo
+ok 246 - rascunho: validação por seção, prévia sem salvar e comparação com o que está salvo
+  ---
+  duration_ms: 42.739118
+  type: 'test'
+  ...
+# Subtest: S03 (P5-F.1-R2A): a configuração gravada que o editor recusa ao montar não é edição; a jornada para aplicar a vários dias só conta quando aplicada
+ok 247 - S03 (P5-F.1-R2A): a configuração gravada que o editor recusa ao montar não é edição; a jornada para aplicar a vários dias só conta quando aplicada
+  ---
+  duration_ms: 1.883753
+  type: 'test'
+  ...
+# Subtest: S03 (P5-F.1-R2A): digitação inválida num dia ou na escala é edição, com a mensagem do problema
+ok 248 - S03 (P5-F.1-R2A): digitação inválida num dia ou na escala é edição, com a mensagem do problema
+  ---
+  duration_ms: 1.039129
+  type: 'test'
+  ...
+# Subtest: impressão digital: bate com a fixture gerada pelo backend, caso a caso
+ok 249 - impressão digital: bate com a fixture gerada pelo backend, caso a caso
+  ---
+  duration_ms: 14.48412
+  type: 'test'
+  ...
+# Subtest: impressão digital: a fixture cobre Timestamp, GeoPoint, NaN e Infinity convertidos
+ok 250 - impressão digital: a fixture cobre Timestamp, GeoPoint, NaN e Infinity convertidos
+  ---
+  duration_ms: 1.284126
+  type: 'test'
+  ...
+# Subtest: impressão digital: ordem das chaves não importa e 1 microssegundo muda a impressão
+ok 251 - impressão digital: ordem das chaves não importa e 1 microssegundo muda a impressão
+  ---
+  duration_ms: 2.302385
+  type: 'test'
+  ...
+# Subtest: visão da marca: paridade com a fixture gerada pelo backend, caso a caso
+ok 252 - visão da marca: paridade com a fixture gerada pelo backend, caso a caso
+  ---
+  duration_ms: 3.594429
+  type: 'test'
+  ...
+# Subtest: visão da marca: a paridade também vale com o corte como objeto {seconds, nanoseconds}
+ok 253 - visão da marca: a paridade também vale com o corte como objeto {seconds, nanoseconds}
+  ---
+  duration_ms: 1.201116
+  type: 'test'
+  ...
+# Subtest: só do cliente: âncora numa posição e cadeia da mesma geração na outra dá slot_mismatch
+ok 254 - só do cliente: âncora numa posição e cadeia da mesma geração na outra dá slot_mismatch
+  ---
+  duration_ms: 0.465878
+  type: 'test'
+  ...
+# Subtest: só do cliente: componente de geração mais nova na posição lida dá superseded
+ok 255 - só do cliente: componente de geração mais nova na posição lida dá superseded
+  ---
+  duration_ms: 0.435466
+  type: 'test'
+  ...
+# Subtest: só do cliente: superseded também sem componente da geração lida e com geração inicial (corte nulo)
+ok 256 - só do cliente: superseded também sem componente da geração lida e com geração inicial (corte nulo)
+  ---
+  duration_ms: 0.207861
+  type: 'test'
+  ...
+# Subtest: só do cliente: componente de geração mais velha na mesma posição não atrapalha
+ok 257 - só do cliente: componente de geração mais velha na mesma posição não atrapalha
+  ---
+  duration_ms: 1.343854
+  type: 'test'
+  ...
+# Subtest: prova: mês da janela existente sem projectionGeneration recusa com generation
+ok 258 - prova: mês da janela existente sem projectionGeneration recusa com generation
+  ---
+  duration_ms: 0.865128
+  type: 'test'
+  ...
+# Subtest: prova: meses com gerações diferentes recusam com generation (id ou corte diferente)
+ok 259 - prova: meses com gerações diferentes recusam com generation (id ou corte diferente)
+  ---
+  duration_ms: 0.637105
+  type: 'test'
+  ...
+# Subtest: prova: receita das bases diferente da dos meses recusa com bases
+ok 260 - prova: receita das bases diferente da dos meses recusa com bases
+  ---
+  duration_ms: 0.196651
+  type: 'test'
+  ...
+# Subtest: prova: mês inexistente com base zero (ou ausente) não atrapalha
+ok 261 - prova: mês inexistente com base zero (ou ausente) não atrapalha
+  ---
+  duration_ms: 0.215179
+  type: 'test'
+  ...
+# Subtest: prova: marca quebrada recusa com mark_broken
+ok 262 - prova: marca quebrada recusa com mark_broken
+  ---
+  duration_ms: 0.166854
+  type: 'test'
+  ...
+# Subtest: prova: marca de geração mais nova (superseded) recusa com mark_broken
+ok 263 - prova: marca de geração mais nova (superseded) recusa com mark_broken
+  ---
+  duration_ms: 0.105301
+  type: 'test'
+  ...
+# Subtest: prova: pendência recusa com mark_pending
+ok 264 - prova: pendência recusa com mark_pending
+  ---
+  duration_ms: 0.153521
+  type: 'test'
+  ...
+# Subtest: prova: pendência absorvível pela cadeia não é pendência
+ok 265 - prova: pendência absorvível pela cadeia não é pendência
+  ---
+  duration_ms: 0.152114
+  type: 'test'
+  ...
+# Subtest: prova: nó vivo com impressão diferente da lida recusa com content
+ok 266 - prova: nó vivo com impressão diferente da lida recusa com content
+  ---
+  duration_ms: 2.086899
+  type: 'test'
+  ...
+# Subtest: prova: lido ausente com nó vivo recusa com content
+ok 267 - prova: lido ausente com nó vivo recusa com content
+  ---
+  duration_ms: 0.151186
+  type: 'test'
+  ...
+# Subtest: prova: nó vivo com a mesma impressão devolve o documento lido
+ok 268 - prova: nó vivo com a mesma impressão devolve o documento lido
+  ---
+  duration_ms: 0.108036
+  type: 'test'
+  ...
+# Subtest: prova: marca ausente, nó absent ou deleted: com o lançamento lido presente recusa com content (A02); não encontrado, document nulo
+ok 269 - prova: marca ausente, nó absent ou deleted: com o lançamento lido presente recusa com content (A02); não encontrado, document nulo
+  ---
+  duration_ms: 0.294834
+  type: 'test'
+  ...
+# Subtest: regressão A02 (revisão de arquitetura da R3): lançamento sem marca, num mês etiquetado depois por outro evento, nunca prova
+ok 270 - regressão A02 (revisão de arquitetura da R3): lançamento sem marca, num mês etiquetado depois por outro evento, nunca prova
+  ---
+  duration_ms: 0.188936
+  type: 'test'
+  ...
+# Subtest: prova: nenhum mês da janela existente e bases zero prova com tudo nulo (marcas são ignoradas)
+ok 271 - prova: nenhum mês da janela existente e bases zero prova com tudo nulo (marcas são ignoradas)
+  ---
+  duration_ms: 0.149838
+  type: 'test'
+  ...
+# Subtest: prova de estorno: recebimento e estorno vivos e conferidos dão {document, reversal}
+ok 272 - prova de estorno: recebimento e estorno vivos e conferidos dão {document, reversal}
+  ---
+  duration_ms: 0.116023
+  type: 'test'
+  ...
+# Subtest: prova de estorno: estorno lido sem marca (ou absent/deleted) recusa com content; estorno não encontrado dá reversal nulo
+ok 273 - prova de estorno: estorno lido sem marca (ou absent/deleted) recusa com content; estorno não encontrado dá reversal nulo
+  ---
+  duration_ms: 0.163852
+  type: 'test'
+  ...
+# Subtest: prova de estorno: estorno vivo com recebimento ausente na projeção recusa com content
+ok 274 - prova de estorno: estorno vivo com recebimento ausente na projeção recusa com content
+  ---
+  duration_ms: 0.126815
+  type: 'test'
+  ...
+# Subtest: prova de estorno: marca do estorno pendente, quebrada ou com conteúdo diferente recusa
+ok 275 - prova de estorno: marca do estorno pendente, quebrada ou com conteúdo diferente recusa
+  ---
+  duration_ms: 0.1625
+  type: 'test'
+  ...
+# Subtest: prova: a primeira desconsiderada recusada define o motivo e vários ids são provados juntos
+ok 276 - prova: a primeira desconsiderada recusada define o motivo e vários ids são provados juntos
+  ---
+  duration_ms: 0.184279
+  type: 'test'
+  ...
+# propriedade: 6000 casos, cobertura {"proven":1461,"refused":{"generation":955,"bases":565,"mark_pending":640,"mark_broken":781,"content":1598},"aliveApplied":636,"nullApplied":1881}
+# Subtest: regressão T02: leitura antiga, mudança de mês e posterior aplicado antes do predecessor
+ok 277 - regressão T02: leitura antiga, mudança de mês e posterior aplicado antes do predecessor
+  ---
+  duration_ms: 12.718812
+  type: 'test'
+  ...
+# Subtest: propriedade: só há prova com o conteúdo realmente aplicado, nunca com marca pendente ou quebrada
+ok 278 - propriedade: só há prova com o conteúdo realmente aplicado, nunca com marca pendente ou quebrada
+  ---
+  duration_ms: 82.276875
+  type: 'test'
+  ...
+1..278
+# tests 278
+# suites 0
+# pass 278
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 63025.287629

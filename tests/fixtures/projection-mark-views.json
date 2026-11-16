@@ -1,0 +1,724 @@
+{
+  "description": "P5-F.1-R3 (B03): visão da marca de aplicação para a geração lida (papel publicada). Gerada pelo backend (functions/src/cash/projectionMarks.ts: readMarkDoc + markViewOf) e conferida pelo cliente (src/modules/work-time/projectionProof.ts: readMarkDoc + markViewFor). kind rooted traz o nó e a quantidade de pendências; broken traz o código.",
+  "cases": [
+    {
+      "name": "sem marca: ausente",
+      "mark": {},
+      "generation": {
+        "id": "g0",
+        "cutoff": null
+      },
+      "expected": {
+        "kind": "rooted",
+        "node": {
+          "k": "absent"
+        },
+        "pending": 0
+      }
+    },
+    {
+      "name": "criação aplicada em g0",
+      "mark": {
+        "chains": {
+          "a": {
+            "g": "g0",
+            "cut": null,
+            "root": "absent",
+            "base": null,
+            "node": {
+              "k": "alive",
+              "fp": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            "pending": [],
+            "broken": null
+          }
+        }
+      },
+      "generation": {
+        "id": "g0",
+        "cutoff": null
+      },
+      "expected": {
+        "kind": "rooted",
+        "node": {
+          "k": "alive",
+          "fp": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "pending": 0
+      }
+    },
+    {
+      "name": "pendente em g0",
+      "mark": {
+        "chains": {
+          "a": {
+            "g": "g0",
+            "cut": null,
+            "root": "absent",
+            "base": null,
+            "node": {
+              "k": "alive",
+              "fp": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            "pending": [
+              {
+                "b": {
+                  "k": "alive",
+                  "fp": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+                },
+                "a": {
+                  "k": "alive",
+                  "fp": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+                }
+              }
+            ],
+            "broken": null
+          }
+        }
+      },
+      "generation": {
+        "id": "g0",
+        "cutoff": null
+      },
+      "expected": {
+        "kind": "rooted",
+        "node": {
+          "k": "alive",
+          "fp": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "pending": 1
+      }
+    },
+    {
+      "name": "pendente absorvível",
+      "mark": {
+        "chains": {
+          "a": {
+            "g": "g0",
+            "cut": null,
+            "root": "absent",
+            "base": null,
+            "node": {
+              "k": "alive",
+              "fp": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            "pending": [
+              {
+                "b": {
+                  "k": "alive",
+                  "fp": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                },
+                "a": {
+                  "k": "alive",
+                  "fp": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+                }
+              },
+              {
+                "b": {
+                  "k": "alive",
+                  "fp": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+                },
+                "a": {
+                  "k": "deleted"
+                }
+              }
+            ],
+            "broken": null
+          }
+        }
+      },
+      "generation": {
+        "id": "g0",
+        "cutoff": null
+      },
+      "expected": {
+        "kind": "rooted",
+        "node": {
+          "k": "deleted"
+        },
+        "pending": 0
+      }
+    },
+    {
+      "name": "quebrada",
+      "mark": {
+        "chains": {
+          "a": {
+            "g": "g0",
+            "cut": null,
+            "root": null,
+            "base": null,
+            "node": null,
+            "pending": [],
+            "broken": "pending_overflow"
+          }
+        }
+      },
+      "generation": {
+        "id": "g0",
+        "cutoff": null
+      },
+      "expected": {
+        "kind": "broken",
+        "code": "pending_overflow"
+      }
+    },
+    {
+      "name": "âncora sem cadeia",
+      "mark": {
+        "anchors": {
+          "b": {
+            "g": "r1",
+            "cut": {
+              "__timestamp": [
+                1790000000,
+                5000
+              ]
+            },
+            "fp": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          }
+        }
+      },
+      "generation": {
+        "id": "r1",
+        "cutoff": {
+          "__timestamp": [
+            1790000000,
+            5000
+          ]
+        }
+      },
+      "expected": {
+        "kind": "rooted",
+        "node": {
+          "k": "alive",
+          "fp": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        "pending": 0
+      }
+    },
+    {
+      "name": "âncora e cadeia event coerentes",
+      "mark": {
+        "anchors": {
+          "b": {
+            "g": "r1",
+            "cut": {
+              "__timestamp": [
+                1790000000,
+                5000
+              ]
+            },
+            "fp": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          }
+        },
+        "chains": {
+          "b": {
+            "g": "r1",
+            "cut": {
+              "__timestamp": [
+                1790000000,
+                5000
+              ]
+            },
+            "root": "event",
+            "base": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "node": {
+              "k": "alive",
+              "fp": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            "pending": [],
+            "broken": null
+          }
+        }
+      },
+      "generation": {
+        "id": "r1",
+        "cutoff": {
+          "__timestamp": [
+            1790000000,
+            5000
+          ]
+        }
+      },
+      "expected": {
+        "kind": "rooted",
+        "node": {
+          "k": "alive",
+          "fp": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "pending": 0
+      }
+    },
+    {
+      "name": "âncora e cadeia event de outra base",
+      "mark": {
+        "anchors": {
+          "b": {
+            "g": "r1",
+            "cut": {
+              "__timestamp": [
+                1790000000,
+                5000
+              ]
+            },
+            "fp": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          }
+        },
+        "chains": {
+          "b": {
+            "g": "r1",
+            "cut": {
+              "__timestamp": [
+                1790000000,
+                5000
+              ]
+            },
+            "root": "event",
+            "base": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "node": {
+              "k": "alive",
+              "fp": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            "pending": [],
+            "broken": null
+          }
+        }
+      },
+      "generation": {
+        "id": "r1",
+        "cutoff": {
+          "__timestamp": [
+            1790000000,
+            5000
+          ]
+        }
+      },
+      "expected": {
+        "kind": "broken",
+        "code": "anchor_mismatch"
+      }
+    },
+    {
+      "name": "âncora depois de raiz absent",
+      "mark": {
+        "anchors": {
+          "b": {
+            "g": "r1",
+            "cut": {
+              "__timestamp": [
+                1790000000,
+                5000
+              ]
+            },
+            "fp": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          }
+        },
+        "chains": {
+          "b": {
+            "g": "r1",
+            "cut": {
+              "__timestamp": [
+                1790000000,
+                5000
+              ]
+            },
+            "root": "absent",
+            "base": null,
+            "node": {
+              "k": "alive",
+              "fp": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            "pending": [],
+            "broken": null
+          }
+        }
+      },
+      "generation": {
+        "id": "r1",
+        "cutoff": {
+          "__timestamp": [
+            1790000000,
+            5000
+          ]
+        }
+      },
+      "expected": {
+        "kind": "broken",
+        "code": "anchor_after_absent"
+      }
+    },
+    {
+      "name": "âncora e cadeia sem raiz",
+      "mark": {
+        "anchors": {
+          "b": {
+            "g": "r1",
+            "cut": {
+              "__timestamp": [
+                1790000000,
+                5000
+              ]
+            },
+            "fp": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          }
+        },
+        "chains": {
+          "b": {
+            "g": "r1",
+            "cut": {
+              "__timestamp": [
+                1790000000,
+                5000
+              ]
+            },
+            "root": null,
+            "base": null,
+            "node": null,
+            "pending": [
+              {
+                "b": {
+                  "k": "alive",
+                  "fp": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+                },
+                "a": {
+                  "k": "alive",
+                  "fp": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+                }
+              }
+            ],
+            "broken": null
+          }
+        }
+      },
+      "generation": {
+        "id": "r1",
+        "cutoff": {
+          "__timestamp": [
+            1790000000,
+            5000
+          ]
+        }
+      },
+      "expected": {
+        "kind": "rooted",
+        "node": {
+          "k": "alive",
+          "fp": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "pending": 0
+      }
+    },
+    {
+      "name": "publicada sem âncora com raiz event",
+      "mark": {
+        "chains": {
+          "b": {
+            "g": "r1",
+            "cut": {
+              "__timestamp": [
+                1790000000,
+                5000
+              ]
+            },
+            "root": "event",
+            "base": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "node": {
+              "k": "alive",
+              "fp": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            "pending": [],
+            "broken": null
+          }
+        }
+      },
+      "generation": {
+        "id": "r1",
+        "cutoff": {
+          "__timestamp": [
+            1790000000,
+            5000
+          ]
+        }
+      },
+      "expected": {
+        "kind": "broken",
+        "code": "base_without_anchor"
+      }
+    },
+    {
+      "name": "publicada sem âncora e sem raiz",
+      "mark": {
+        "chains": {
+          "b": {
+            "g": "r1",
+            "cut": {
+              "__timestamp": [
+                1790000000,
+                5000
+              ]
+            },
+            "root": null,
+            "base": null,
+            "node": null,
+            "pending": [
+              {
+                "b": {
+                  "k": "none"
+                },
+                "a": {
+                  "k": "alive",
+                  "fp": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                }
+              }
+            ],
+            "broken": null
+          }
+        }
+      },
+      "generation": {
+        "id": "r1",
+        "cutoff": {
+          "__timestamp": [
+            1790000000,
+            5000
+          ]
+        }
+      },
+      "expected": {
+        "kind": "rooted",
+        "node": {
+          "k": "alive",
+          "fp": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "pending": 0
+      }
+    },
+    {
+      "name": "cadeia de g0 velha não vale para r1",
+      "mark": {
+        "chains": {
+          "a": {
+            "g": "g0",
+            "cut": null,
+            "root": "absent",
+            "base": null,
+            "node": {
+              "k": "alive",
+              "fp": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            "pending": [],
+            "broken": null
+          }
+        }
+      },
+      "generation": {
+        "id": "r1",
+        "cutoff": {
+          "__timestamp": [
+            1790000000,
+            5000
+          ]
+        }
+      },
+      "expected": {
+        "kind": "rooted",
+        "node": {
+          "k": "absent"
+        },
+        "pending": 0
+      }
+    },
+    {
+      "name": "apagado",
+      "mark": {
+        "chains": {
+          "a": {
+            "g": "g0",
+            "cut": null,
+            "root": "absent",
+            "base": null,
+            "node": {
+              "k": "deleted"
+            },
+            "pending": [],
+            "broken": null
+          }
+        }
+      },
+      "generation": {
+        "id": "g0",
+        "cutoff": null
+      },
+      "expected": {
+        "kind": "rooted",
+        "node": {
+          "k": "deleted"
+        },
+        "pending": 0
+      }
+    },
+    {
+      "name": "criação pendente sobre nó vivo não é absorvida",
+      "mark": {
+        "chains": {
+          "a": {
+            "g": "g0",
+            "cut": null,
+            "root": "absent",
+            "base": null,
+            "node": {
+              "k": "alive",
+              "fp": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            "pending": [
+              {
+                "b": {
+                  "k": "none"
+                },
+                "a": {
+                  "k": "alive",
+                  "fp": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+                }
+              }
+            ],
+            "broken": null
+          }
+        }
+      },
+      "generation": {
+        "id": "g0",
+        "cutoff": null
+      },
+      "expected": {
+        "kind": "rooted",
+        "node": {
+          "k": "alive",
+          "fp": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "pending": 1
+      }
+    },
+    {
+      "name": "âncora com criação pendente não absorvida",
+      "mark": {
+        "anchors": {
+          "b": {
+            "g": "r1",
+            "cut": {
+              "__timestamp": [
+                1790000000,
+                5000
+              ]
+            },
+            "fp": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          }
+        },
+        "chains": {
+          "b": {
+            "g": "r1",
+            "cut": {
+              "__timestamp": [
+                1790000000,
+                5000
+              ]
+            },
+            "root": null,
+            "base": null,
+            "node": null,
+            "pending": [
+              {
+                "b": {
+                  "k": "none"
+                },
+                "a": {
+                  "k": "alive",
+                  "fp": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+                }
+              }
+            ],
+            "broken": null
+          }
+        }
+      },
+      "generation": {
+        "id": "r1",
+        "cutoff": {
+          "__timestamp": [
+            1790000000,
+            5000
+          ]
+        }
+      },
+      "expected": {
+        "kind": "rooted",
+        "node": {
+          "k": "alive",
+          "fp": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        "pending": 1
+      }
+    },
+    {
+      "name": "criação pendente sobre apagado é absorvida",
+      "mark": {
+        "chains": {
+          "a": {
+            "g": "g0",
+            "cut": null,
+            "root": "absent",
+            "base": null,
+            "node": {
+              "k": "deleted"
+            },
+            "pending": [
+              {
+                "b": {
+                  "k": "none"
+                },
+                "a": {
+                  "k": "alive",
+                  "fp": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+                }
+              }
+            ],
+            "broken": null
+          }
+        }
+      },
+      "generation": {
+        "id": "g0",
+        "cutoff": null
+      },
+      "expected": {
+        "kind": "rooted",
+        "node": {
+          "k": "alive",
+          "fp": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "pending": 0
+      }
+    },
+    {
+      "name": "formato desconhecido",
+      "mark": {
+        "chains": {
+          "a": {
+            "g": "g0",
+            "cut": null,
+            "root": "outro",
+            "pending": []
+          }
+        }
+      },
+      "generation": {
+        "id": "g0",
+        "cutoff": null
+      },
+      "expected": {
+        "kind": "broken",
+        "code": "invalid_chain"
+      }
+    }
+  ]
+}

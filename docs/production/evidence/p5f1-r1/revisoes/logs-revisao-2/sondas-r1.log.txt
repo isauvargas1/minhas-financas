@@ -1,0 +1,51 @@
+== b02.mts @ arvore-d7dabb10
+duas rotinas: 480 | com a terceira contida: 480
+conferidor: null
+== b02.mts @ arvore-b97806c4
+duas rotinas: 480 | com a terceira contida: 480
+conferidor: null
+== b02.mts @ arvore-d9b33cd1
+duas rotinas: 480 | com a terceira contida: 390
+conferidor: ausente (P5-F.1)
+== b02-reduzida.mts @ arvore-d7dabb10
+reduzida na véspera: 1920 → 2880
+borda do mês (agosto/2026): 44640 → 44280
+borda do mês, abrindo o período: 44640 → 44640
+teto com minutos sem horário: 7200 → 7440
+== b02-reduzida.mts @ arvore-b97806c4
+reduzida na véspera: 1920 → 2880
+borda do mês (agosto/2026): 44640 → 44280
+borda do mês, abrindo o período: 44640 → 44640
+teto com minutos sem horário: 7200 → 7440
+== b02-reduzida.mts @ arvore-d9b33cd1
+reduzida na véspera: 1920 → 2880
+borda do mês (agosto/2026): 44640 → 42840
+borda do mês, abrindo o período: 44640 → 42840
+teto com minutos sem horário: 7200 → 6240
+== exemplo-noturno.mts @ arvore-d7dabb10
+noturno com 1 h de intervalo: 15540 min; dias ambíguos: 26
+noturno sem intervalo: 15540 min; dias ambíguos: 0
+== exemplo-noturno.mts @ arvore-b97806c4
+noturno com 1 h de intervalo: 15540 min; dias ambíguos: 26
+noturno sem intervalo: 15540 min; dias ambíguos: 0
+== exemplo-noturno.mts @ arvore-d9b33cd1
+noturno com 1 h de intervalo: 14220 min; dias ambíguos: -
+noturno sem intervalo: 15540 min; dias ambíguos: -
+== revisao2.mts @ arvore-d7dabb10
+dia 14/10: 720 min (sem cálculo seguro); dias ambíguos no mês: 31
+== revisao2.mts @ arvore-b97806c4
+dia 14/10: 720 min (sem cálculo seguro); dias ambíguos no mês: 31
+== revisao2.mts @ arvore-d9b33cd1
+dia 14/10: 120 min; dias ambíguos no mês: -
+== dia-seguinte-reduzida.mts @ arvore-d7dabb10
+{"name":"só 20:00–06:00","segunda":[480,false],"terca":[1440,false],"mes":3120}
+{"name":"com 23:00–08:00","segunda":[480,false],"terca":[1440,false],"mes":3360}
+{"name":"véspera sem redução","segunda":600,"terca":[1080,true]}
+== dia-seguinte-reduzida.mts @ arvore-b97806c4
+{"name":"só 20:00–06:00","segunda":[480,false],"terca":[1440,false],"mes":3120}
+{"name":"com 23:00–08:00","segunda":[480,false],"terca":[1440,false],"mes":3360}
+{"name":"véspera sem redução","segunda":600,"terca":[1080,true]}
+== dia-seguinte-reduzida.mts @ arvore-d9b33cd1
+{"name":"só 20:00–06:00","segunda":[480,false],"terca":[1440,false],"mes":3120}
+{"name":"com 23:00–08:00","segunda":[480,false],"terca":[1440,false],"mes":3360}
+{"name":"véspera sem redução","segunda":600,"terca":[1440,false]}

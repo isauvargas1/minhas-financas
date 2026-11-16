@@ -1,0 +1,7 @@
+{
+  "avisoRotinas": null,
+  "avisoCalendario": "A Rotina 1 e a Rotina 2 se cruzam em segunda-feira, 09/11/2026, e há intervalo no trecho em comum. Com a folga de terça-feira, 10/11/2026, o horário sem intervalo que cobria esse trecho não acontece: não dá para saber onde cai a pausa, então as horas não podem ser calculadas com segurança. Ajuste os horários das rotinas ou essa exceção.",
+  "salvarHabilitado": false,
+  "previaHora": "R$ 117,95",
+  "previaIndisponivel": null
+}

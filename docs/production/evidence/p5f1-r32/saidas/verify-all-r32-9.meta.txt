@@ -1,0 +1,4 @@
+inicio=2026-11-14T13:28:05Z script=verify:all head=1730a1df0d3870ff52496933f45cb73a8dacd29b arvore=5ea7fabee02c3ae4ca79400f416ce9e67e425ec7 node=v22.23.4 java=version "21.0.12.1" firebase=15.32.1 E2E_SHARDS=padrão
+artefatos=74M e2e-grupos grupo-1 grupo-2 grupo-3 
+fim=2026-11-14T14:16:03Z exit=0 duracao_s=2871 portas_ocupadas_no_fim=[] java_no_fim=0 arvore_no_fim=5ea7fabee02c3ae4ca79400f416ce9e67e425ec7 fim=2026-11-14T14:16:03Z pico_mib=9948 pico_em=2026-11-14T13:59:20Z
+limpeza_externa=nenhuma (o Emulator desligou sozinho)

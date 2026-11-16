@@ -1,0 +1,994 @@
+[e3] laço ocupado 300 ms a cada 1000 ms, fase check (pid 6620)
+⚠  emulators: You are not currently authenticated so some features may not work correctly. Please run firebase login to authenticate the CLI.
+i  emulators: Starting emulators: functions
+(node:6620) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN
+(Use `node --trace-warnings ...` to show where the warning was created)
+MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN
+    at Object.isAvailable (/opt/node22/lib/node_modules/firebase-tools/node_modules/gcp-metadata/build/src/index.js:356:25)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async GoogleAuth._checkIsGCE (/opt/node22/lib/node_modules/firebase-tools/node_modules/google-auth-library/build/src/auth/googleauth.js:300:51)
+    at async GoogleAuth.getApplicationDefaultAsync (/opt/node22/lib/node_modules/firebase-tools/node_modules/google-auth-library/build/src/auth/googleauth.js:283:13)
+    at async GoogleAuth._GoogleAuth_determineClient (/opt/node22/lib/node_modules/firebase-tools/node_modules/google-auth-library/build/src/auth/googleauth.js:834:32)
+    at async GoogleAuth.getClient (/opt/node22/lib/node_modules/firebase-tools/node_modules/google-auth-library/build/src/auth/googleauth.js:698:20)
+    at async GoogleAuth.getAccessToken (/opt/node22/lib/node_modules/firebase-tools/node_modules/google-auth-library/build/src/auth/googleauth.js:722:24)
+    at async autoAuth (/opt/node22/lib/node_modules/firebase-tools/lib/requireAuth.js:38:19)
+    at async requireAuth (/opt/node22/lib/node_modules/firebase-tools/lib/requireAuth.js:100:20)
+    at async Object.beforeEmulatorCommand [as fn] (/opt/node22/lib/node_modules/firebase-tools/lib/emulator/commandUtils.js:115:13)
+⚠  hub: Error when trying to check port 4400 on ::1: Error: listen EAFNOSUPPORT: address family not supported ::1:4400
+⚠  hub: Port 4400 is available on 127.0.0.1 but not ::1. This may cause issues with some clients.
+⚠  hub: If you encounter connectivity issues, consider switching to a different port or explicitly specifying "host": "<ip address>" instead of hostname in firebase.json
+⚠  logging: Error when trying to check port 4500 on ::1: Error: listen EAFNOSUPPORT: address family not supported ::1:4500
+⚠  logging: Port 4500 is available on 127.0.0.1 but not ::1. This may cause issues with some clients.
+⚠  logging: If you encounter connectivity issues, consider switching to a different port or explicitly specifying "host": "<ip address>" instead of hostname in firebase.json
+⚠  eventarc: Error when trying to check port 9299 on ::1: Error: listen EAFNOSUPPORT: address family not supported ::1:9299
+⚠  eventarc: Port 9299 is available on 127.0.0.1 but not ::1. This may cause issues with some clients.
+⚠  eventarc: If you encounter connectivity issues, consider switching to a different port or explicitly specifying "host": "<ip address>" instead of hostname in firebase.json
+⚠  tasks: Error when trying to check port 9499 on ::1: Error: listen EAFNOSUPPORT: address family not supported ::1:9499
+⚠  tasks: Port 9499 is available on 127.0.0.1 but not ::1. This may cause issues with some clients.
+⚠  tasks: If you encounter connectivity issues, consider switching to a different port or explicitly specifying "host": "<ip address>" instead of hostname in firebase.json
+⚠  functions: The following emulators are not running, calls to these services from the Functions emulator will affect production: apphosting, auth, firestore, database, hosting, pubsub, storage, dataconnect
+⚠  functions: Unable to fetch project Admin SDK configuration, Admin SDK behavior in Cloud Functions emulator may be incorrect.
+(node:6620) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN
+MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN
+    at Object.isAvailable (/opt/node22/lib/node_modules/firebase-tools/node_modules/gcp-metadata/build/src/index.js:356:25)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async GoogleAuth._checkIsGCE (/opt/node22/lib/node_modules/firebase-tools/node_modules/google-auth-library/build/src/auth/googleauth.js:300:51)
+    at async GoogleAuth.getApplicationDefaultAsync (/opt/node22/lib/node_modules/firebase-tools/node_modules/google-auth-library/build/src/auth/googleauth.js:283:13)
+    at async hasDefaultCredentials (/opt/node22/lib/node_modules/firebase-tools/lib/defaultCredentials.js:84:9)
+    at async getCredentialsEnvironment (/opt/node22/lib/node_modules/firebase-tools/lib/emulator/env.js:49:9)
+    at async FunctionsEmulator.start (/opt/node22/lib/node_modules/firebase-tools/lib/emulator/functionsEmulator.js:257:31)
+    at async EmulatorRegistry.start (/opt/node22/lib/node_modules/firebase-tools/lib/emulator/registry.js:19:9)
+    at async Object.startAll (/opt/node22/lib/node_modules/firebase-tools/lib/emulator/controller.js:425:9)
+    at async /opt/node22/lib/node_modules/firebase-tools/lib/commands/emulators-start.js:34:43
+i  functions: Watching "<scratchpad>/wt-p5f1-r32/functions" for Cloud Functions...
+⚠  functions: package.json indicates an outdated version of firebase-functions. Please upgrade using npm install --save firebase-functions@latest in your functions directory.
+⚠  functions: Your requested "node" version "24" doesn't match your global version "22". Using node@22 from host.
+⚠  Unable to fetch the CLI MOTD and remote config. This is not a fatal error, but may indicate an issue with your network connection.
+Serving at port 8941
+
+✔  functions: Loaded functions definitions from source: onWorkspaceDisplayChange, createBillingPortalSession, createCheckoutSession, getAccountUsage, getBillingCatalog, getWorkspaceEntitlement, getFinancialReport, confirmCashTransaction, createCashTransaction, importCashTransactions, updateCashTransaction, voidCashTransaction, cancelLoan, createLoan, registerLoanPayment, reverseLoanMovement, updateLoanMetadata, processLoanStatusRefresh, archiveClient, cancelReceivable, createClient, createReceivable, receiveReceivable, reverseReceivableReceipt, updateClient, updateReceivable, archiveCashAccount, createCashAccount, createCashTransfer, reactivateCashAccount, reverseCashTransfer, updateCashAccount, archiveSettingsCatalogItem, createSettingsCatalogItem, updateSettingsCatalogItem, archiveCreditCard, cancelCreditCardPurchase, createCreditCard, createCreditCardInvoiceAdjustment, createCreditCardPurchase, reactivateCreditCard, rebuildCardInvoicesForCard, recalculateCardLimit, refundCreditCardPurchase, registerInvoicePayment, reverseInvoicePayment, updateCreditCard, updateCreditCardPurchase, cancelRecurringExpense, confirmRecurringOccurrence, createRecurringExpense, ignoreRecurringOccurrence, pauseRecurringExpense, resumeRecurringExpense, retryRecurringOccurrence, updateRecurringExpense, acceptSplitGroupInvite, addExternalSplitParticipant, addWorkspaceSplitParticipant, approveSplitReimbursement, archiveSplitGroup, cancelSplitReimbursement, createSplitBill, createSplitGroup, createSplitGroupInvite, createSplitReimbursement, deactivateSplitParticipant, forgiveSplitShare, paySplitReimbursement, reactivateSplitGroup, rejectSplitReimbursement, reverseReimbursementPayment, reverseSplitShareSettlement, revokeSplitGroupInvite, settleSplitShare, updateSplitBill, updateSplitGroup, voidSplitBill, processRecurring, processCreditCardInvoiceClosing, getNotificationUnreadCount, onCashAccountWriteNotification, onGoalWriteNotification, onLoanWriteNotification, processReceivableOverdueNotifications, onRecurringOccurrenceCreatedNotification, stripeWebhook, onTransactionWrite, bootstrapAccount, createWorkspace, updateWorkspaceSettings, archiveWorkspace, inviteWorkspaceMember, acceptWorkspaceInvite, revokeWorkspaceInvite, changeWorkspaceMemberRole, removeWorkspaceMember, leaveWorkspace, transferWorkspaceOwnership, createGoal, updateGoal, updateGoalManualProgress, setGoalStatus, archiveGoal, getGoalsOverview, getGoalKpiProgress, createSimpleInvestment, settleInvestmentContribution, withdrawSimpleInvestment, settleSimpleWithdrawal, reverseInvestmentMovement, cancelInvestmentMovement, changeInvestmentGoal, linkInvestmentToGoal, unlinkInvestmentFromGoal, analyzeFinancialQuestion, extractTransactionFromContent, rebuildCashPeriods, processInvestmentDriftScan.
+i  functions[southamerica-east1-onWorkspaceDisplayChange]: function ignored because the firestore emulator does not exist or is not running.
+✔  functions[southamerica-east1-createBillingPortalSession]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/createBillingPortalSession).
+✔  functions[southamerica-east1-createCheckoutSession]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/createCheckoutSession).
+✔  functions[southamerica-east1-getAccountUsage]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/getAccountUsage).
+✔  functions[southamerica-east1-getBillingCatalog]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/getBillingCatalog).
+✔  functions[southamerica-east1-getWorkspaceEntitlement]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/getWorkspaceEntitlement).
+✔  functions[southamerica-east1-getFinancialReport]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/getFinancialReport).
+✔  functions[southamerica-east1-confirmCashTransaction]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/confirmCashTransaction).
+✔  functions[southamerica-east1-createCashTransaction]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/createCashTransaction).
+✔  functions[southamerica-east1-importCashTransactions]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/importCashTransactions).
+✔  functions[southamerica-east1-updateCashTransaction]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/updateCashTransaction).
+✔  functions[southamerica-east1-voidCashTransaction]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/voidCashTransaction).
+✔  functions[southamerica-east1-cancelLoan]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/cancelLoan).
+✔  functions[southamerica-east1-createLoan]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/createLoan).
+✔  functions[southamerica-east1-registerLoanPayment]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/registerLoanPayment).
+✔  functions[southamerica-east1-reverseLoanMovement]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/reverseLoanMovement).
+✔  functions[southamerica-east1-updateLoanMetadata]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/updateLoanMetadata).
+i  functions[southamerica-east1-processLoanStatusRefresh]: function ignored because the pubsub emulator does not exist or is not running.
+✔  functions[southamerica-east1-archiveClient]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/archiveClient).
+✔  functions[southamerica-east1-cancelReceivable]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/cancelReceivable).
+✔  functions[southamerica-east1-createClient]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/createClient).
+✔  functions[southamerica-east1-createReceivable]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/createReceivable).
+✔  functions[southamerica-east1-receiveReceivable]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/receiveReceivable).
+✔  functions[southamerica-east1-reverseReceivableReceipt]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/reverseReceivableReceipt).
+✔  functions[southamerica-east1-updateClient]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/updateClient).
+✔  functions[southamerica-east1-updateReceivable]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/updateReceivable).
+✔  functions[southamerica-east1-archiveCashAccount]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/archiveCashAccount).
+✔  functions[southamerica-east1-createCashAccount]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/createCashAccount).
+✔  functions[southamerica-east1-createCashTransfer]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/createCashTransfer).
+✔  functions[southamerica-east1-reactivateCashAccount]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/reactivateCashAccount).
+✔  functions[southamerica-east1-reverseCashTransfer]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/reverseCashTransfer).
+✔  functions[southamerica-east1-updateCashAccount]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/updateCashAccount).
+✔  functions[southamerica-east1-archiveSettingsCatalogItem]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/archiveSettingsCatalogItem).
+✔  functions[southamerica-east1-createSettingsCatalogItem]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/createSettingsCatalogItem).
+✔  functions[southamerica-east1-updateSettingsCatalogItem]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/updateSettingsCatalogItem).
+✔  functions[southamerica-east1-archiveCreditCard]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/archiveCreditCard).
+✔  functions[southamerica-east1-cancelCreditCardPurchase]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/cancelCreditCardPurchase).
+✔  functions[southamerica-east1-createCreditCard]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/createCreditCard).
+✔  functions[southamerica-east1-createCreditCardInvoiceAdjustment]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/createCreditCardInvoiceAdjustment).
+✔  functions[southamerica-east1-createCreditCardPurchase]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/createCreditCardPurchase).
+✔  functions[southamerica-east1-reactivateCreditCard]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/reactivateCreditCard).
+✔  functions[southamerica-east1-rebuildCardInvoicesForCard]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/rebuildCardInvoicesForCard).
+✔  functions[southamerica-east1-recalculateCardLimit]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/recalculateCardLimit).
+✔  functions[southamerica-east1-refundCreditCardPurchase]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/refundCreditCardPurchase).
+✔  functions[southamerica-east1-registerInvoicePayment]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/registerInvoicePayment).
+✔  functions[southamerica-east1-reverseInvoicePayment]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/reverseInvoicePayment).
+✔  functions[southamerica-east1-updateCreditCard]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/updateCreditCard).
+✔  functions[southamerica-east1-updateCreditCardPurchase]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/updateCreditCardPurchase).
+✔  functions[southamerica-east1-cancelRecurringExpense]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/cancelRecurringExpense).
+✔  functions[southamerica-east1-confirmRecurringOccurrence]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/confirmRecurringOccurrence).
+✔  functions[southamerica-east1-createRecurringExpense]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/createRecurringExpense).
+✔  functions[southamerica-east1-ignoreRecurringOccurrence]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/ignoreRecurringOccurrence).
+✔  functions[southamerica-east1-pauseRecurringExpense]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/pauseRecurringExpense).
+✔  functions[southamerica-east1-resumeRecurringExpense]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/resumeRecurringExpense).
+✔  functions[southamerica-east1-retryRecurringOccurrence]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/retryRecurringOccurrence).
+✔  functions[southamerica-east1-updateRecurringExpense]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/updateRecurringExpense).
+✔  functions[southamerica-east1-acceptSplitGroupInvite]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/acceptSplitGroupInvite).
+✔  functions[southamerica-east1-addExternalSplitParticipant]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/addExternalSplitParticipant).
+✔  functions[southamerica-east1-addWorkspaceSplitParticipant]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/addWorkspaceSplitParticipant).
+✔  functions[southamerica-east1-approveSplitReimbursement]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/approveSplitReimbursement).
+✔  functions[southamerica-east1-archiveSplitGroup]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/archiveSplitGroup).
+✔  functions[southamerica-east1-cancelSplitReimbursement]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/cancelSplitReimbursement).
+✔  functions[southamerica-east1-createSplitBill]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/createSplitBill).
+✔  functions[southamerica-east1-createSplitGroup]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/createSplitGroup).
+✔  functions[southamerica-east1-createSplitGroupInvite]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/createSplitGroupInvite).
+✔  functions[southamerica-east1-createSplitReimbursement]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/createSplitReimbursement).
+✔  functions[southamerica-east1-deactivateSplitParticipant]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/deactivateSplitParticipant).
+✔  functions[southamerica-east1-forgiveSplitShare]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/forgiveSplitShare).
+✔  functions[southamerica-east1-paySplitReimbursement]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/paySplitReimbursement).
+✔  functions[southamerica-east1-reactivateSplitGroup]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/reactivateSplitGroup).
+✔  functions[southamerica-east1-rejectSplitReimbursement]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/rejectSplitReimbursement).
+✔  functions[southamerica-east1-reverseReimbursementPayment]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/reverseReimbursementPayment).
+✔  functions[southamerica-east1-reverseSplitShareSettlement]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/reverseSplitShareSettlement).
+✔  functions[southamerica-east1-revokeSplitGroupInvite]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/revokeSplitGroupInvite).
+✔  functions[southamerica-east1-settleSplitShare]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/settleSplitShare).
+✔  functions[southamerica-east1-updateSplitBill]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/updateSplitBill).
+✔  functions[southamerica-east1-updateSplitGroup]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/updateSplitGroup).
+✔  functions[southamerica-east1-voidSplitBill]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/voidSplitBill).
+i  functions[southamerica-east1-processRecurring]: function ignored because the pubsub emulator does not exist or is not running.
+i  functions[southamerica-east1-processCreditCardInvoiceClosing]: function ignored because the pubsub emulator does not exist or is not running.
+✔  functions[southamerica-east1-getNotificationUnreadCount]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/getNotificationUnreadCount).
+i  functions[southamerica-east1-onCashAccountWriteNotification]: function ignored because the firestore emulator does not exist or is not running.
+i  functions[southamerica-east1-onGoalWriteNotification]: function ignored because the firestore emulator does not exist or is not running.
+i  functions[southamerica-east1-onLoanWriteNotification]: function ignored because the firestore emulator does not exist or is not running.
+i  functions[southamerica-east1-processReceivableOverdueNotifications]: function ignored because the pubsub emulator does not exist or is not running.
+i  functions[southamerica-east1-onRecurringOccurrenceCreatedNotification]: function ignored because the firestore emulator does not exist or is not running.
+✔  functions[southamerica-east1-stripeWebhook]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/stripeWebhook).
+i  functions[southamerica-east1-onTransactionWrite]: function ignored because the firestore emulator does not exist or is not running.
+✔  functions[southamerica-east1-bootstrapAccount]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/bootstrapAccount).
+✔  functions[southamerica-east1-createWorkspace]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/createWorkspace).
+✔  functions[southamerica-east1-updateWorkspaceSettings]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/updateWorkspaceSettings).
+✔  functions[southamerica-east1-archiveWorkspace]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/archiveWorkspace).
+✔  functions[southamerica-east1-inviteWorkspaceMember]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/inviteWorkspaceMember).
+✔  functions[southamerica-east1-acceptWorkspaceInvite]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/acceptWorkspaceInvite).
+✔  functions[southamerica-east1-revokeWorkspaceInvite]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/revokeWorkspaceInvite).
+✔  functions[southamerica-east1-changeWorkspaceMemberRole]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/changeWorkspaceMemberRole).
+✔  functions[southamerica-east1-removeWorkspaceMember]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/removeWorkspaceMember).
+✔  functions[southamerica-east1-leaveWorkspace]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/leaveWorkspace).
+✔  functions[southamerica-east1-transferWorkspaceOwnership]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/transferWorkspaceOwnership).
+✔  functions[southamerica-east1-createGoal]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/createGoal).
+✔  functions[southamerica-east1-updateGoal]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/updateGoal).
+✔  functions[southamerica-east1-updateGoalManualProgress]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/updateGoalManualProgress).
+✔  functions[southamerica-east1-setGoalStatus]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/setGoalStatus).
+✔  functions[southamerica-east1-archiveGoal]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/archiveGoal).
+✔  functions[southamerica-east1-getGoalsOverview]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/getGoalsOverview).
+✔  functions[southamerica-east1-getGoalKpiProgress]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/getGoalKpiProgress).
+✔  functions[southamerica-east1-createSimpleInvestment]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/createSimpleInvestment).
+✔  functions[southamerica-east1-settleInvestmentContribution]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/settleInvestmentContribution).
+✔  functions[southamerica-east1-withdrawSimpleInvestment]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/withdrawSimpleInvestment).
+✔  functions[southamerica-east1-settleSimpleWithdrawal]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/settleSimpleWithdrawal).
+✔  functions[southamerica-east1-reverseInvestmentMovement]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/reverseInvestmentMovement).
+✔  functions[southamerica-east1-cancelInvestmentMovement]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/cancelInvestmentMovement).
+✔  functions[southamerica-east1-changeInvestmentGoal]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/changeInvestmentGoal).
+✔  functions[southamerica-east1-linkInvestmentToGoal]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/linkInvestmentToGoal).
+✔  functions[southamerica-east1-unlinkInvestmentFromGoal]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/unlinkInvestmentFromGoal).
+✔  functions[southamerica-east1-analyzeFinancialQuestion]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/analyzeFinancialQuestion).
+✔  functions[southamerica-east1-extractTransactionFromContent]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/extractTransactionFromContent).
+✔  functions[southamerica-east1-rebuildCashPeriods]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/rebuildCashPeriods).
+i  functions[southamerica-east1-processInvestmentDriftScan]: function ignored because the pubsub emulator does not exist or is not running.
+
+┌─────────────────────────────────────────────────────────────┐
+│ ✔  All emulators ready! It is now safe to connect your app. │
+│ i  View Emulator UI at http://127.0.0.1:4000/               │
+└─────────────────────────────────────────────────────────────┘
+
+┌───────────┬────────────────┬─────────────────────────────────┐
+│ Emulator  │ Host:Port      │ View in Emulator UI             │
+├───────────┼────────────────┼─────────────────────────────────┤
+│ Functions │ 127.0.0.1:5001 │ http://127.0.0.1:4000/functions │
+└───────────┴────────────────┴─────────────────────────────────┘
+  Emulator Hub host: 127.0.0.1 port: 4400
+  Other reserved ports: 4500
+
+Issues? Report them at https://github.com/firebase/firebase-tools/issues and attach the *-debug.log files.
+ 
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"b67fdc46-37b4-4f70-9fea-ff87cc4e0ccb","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"b67fdc46-37b4-4f70-9fea-ff87cc4e0ccb","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":1}
+i  functions: Finished "southamerica-east1-createCashAccount" in 17.399567ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"9397f2cb-a23b-4f36-b689-0f72333437e2","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"9397f2cb-a23b-4f36-b689-0f72333437e2","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 3.523216ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"d1e324e1-969d-4d3c-b421-fe7baffebed3","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"d1e324e1-969d-4d3c-b421-fe7baffebed3","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 3.374399ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"55c61a3b-a1ee-45fe-a945-3cbea81ff411","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"55c61a3b-a1ee-45fe-a945-3cbea81ff411","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":1}
+i  functions: Finished "southamerica-east1-createCashAccount" in 3.290671ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"1c915abe-87cd-4eef-8727-8fdb1d6d9653","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"1c915abe-87cd-4eef-8727-8fdb1d6d9653","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.717182ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"f99468a2-92d1-4d3d-adf1-de1906f38c4f","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"f99468a2-92d1-4d3d-adf1-de1906f38c4f","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 3.8821ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"a70c9e4c-7236-4dab-b6cb-cef29e229d96","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"a70c9e4c-7236-4dab-b6cb-cef29e229d96","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.57223ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"b7731ae5-90b6-4345-9ef6-a2dce9495123","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"b7731ae5-90b6-4345-9ef6-a2dce9495123","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 4.24198ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"5318cfdd-0acc-4a36-8d33-e337c67a192a","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"5318cfdd-0acc-4a36-8d33-e337c67a192a","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 4.102775ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"46b8db23-a891-4e22-a5d4-26b39473ad6a","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"46b8db23-a891-4e22-a5d4-26b39473ad6a","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 3.702377ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"978bff2a-f4b6-4956-9e3f-9a44a1ce9cb9","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"978bff2a-f4b6-4956-9e3f-9a44a1ce9cb9","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":1}
+i  functions: Finished "southamerica-east1-createCashAccount" in 3.389518ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"0a8e3503-7205-4236-b7e2-6c23d620b35a","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"0a8e3503-7205-4236-b7e2-6c23d620b35a","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.694148ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"1d383d72-ff10-4304-b71a-9e6eb9518854","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"1d383d72-ff10-4304-b71a-9e6eb9518854","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":1}
+i  functions: Finished "southamerica-east1-createCashAccount" in 3.148427ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"5f3db424-1e28-4e3a-bce7-f8390426f513","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"5f3db424-1e28-4e3a-bce7-f8390426f513","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 3.517844ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"61965781-c025-4e94-8b0c-d83798073d29","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"61965781-c025-4e94-8b0c-d83798073d29","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.082969ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"54d9c45d-8ec6-4a83-9000-d59451d52288","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"54d9c45d-8ec6-4a83-9000-d59451d52288","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.725995ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"7d081aa4-caac-485f-be7c-1688222e1e34","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"7d081aa4-caac-485f-be7c-1688222e1e34","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.1031ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"3609ae92-9b6e-40c1-8fe4-c2a298aa6a99","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"3609ae92-9b6e-40c1-8fe4-c2a298aa6a99","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.609577ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"3d484304-00d9-4cb8-a775-cbbe594a93d6","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"3d484304-00d9-4cb8-a775-cbbe594a93d6","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.27356ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"b2243f7b-1327-4d92-849e-e3d517286558","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"b2243f7b-1327-4d92-849e-e3d517286558","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.677015ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"4dc32d37-9c75-419b-881f-90acb2f2741e","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"4dc32d37-9c75-419b-881f-90acb2f2741e","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.169921ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"24fce52f-c0a2-44eb-912d-be87cb5ef376","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"24fce52f-c0a2-44eb-912d-be87cb5ef376","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.516805ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"c968f62a-eb7e-4fd8-9763-fc9df91eaf2c","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"c968f62a-eb7e-4fd8-9763-fc9df91eaf2c","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.168544ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"d6afe1cf-6b61-4696-bf92-cb61a62bcb63","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"d6afe1cf-6b61-4696-bf92-cb61a62bcb63","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.664324ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"0e77c2b6-000c-4019-8dce-44cfb59806b7","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"0e77c2b6-000c-4019-8dce-44cfb59806b7","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":1}
+i  functions: Finished "southamerica-east1-createCashAccount" in 3.6897ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"7fa78ae5-6086-4372-bbdf-09b895134af6","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"7fa78ae5-6086-4372-bbdf-09b895134af6","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.68653ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"f87ec1cb-c08c-41f5-aac1-a3c4d2173941","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"f87ec1cb-c08c-41f5-aac1-a3c4d2173941","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.738988ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"c936d032-b8e2-4d8f-a878-6596576e9f4c","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"c936d032-b8e2-4d8f-a878-6596576e9f4c","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.701232ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"89f2ded1-25ec-48d0-8f15-d5cc03b98b59","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"89f2ded1-25ec-48d0-8f15-d5cc03b98b59","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":1}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.366847ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"7423b033-8dd7-49e7-9e20-61bcd645a9f7","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"7423b033-8dd7-49e7-9e20-61bcd645a9f7","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 4.222553ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"68c9c961-2358-49d4-af6a-852767c7255b","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"68c9c961-2358-49d4-af6a-852767c7255b","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.275971ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"dd4e4967-9688-4430-9118-5e919025db05","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"dd4e4967-9688-4430-9118-5e919025db05","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 3.001479ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"a5c8cad0-d79e-45b3-bad8-1221eb376634","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"a5c8cad0-d79e-45b3-bad8-1221eb376634","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.61527ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"3cacc736-956a-4122-831c-c5222c8acd7d","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"3cacc736-956a-4122-831c-c5222c8acd7d","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 3.001832ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"7289193b-1839-40ab-bde1-db85ab0badbe","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"7289193b-1839-40ab-bde1-db85ab0badbe","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 3.183301ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"c538aa03-d927-4cf8-a12d-bdbf5f8ff342","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"c538aa03-d927-4cf8-a12d-bdbf5f8ff342","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.598346ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"4917a8b1-b0f9-4d7f-b9fe-74378b030630","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"4917a8b1-b0f9-4d7f-b9fe-74378b030630","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.036629ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"067816c5-fbd0-4aa5-b8d4-b116836ee82c","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"067816c5-fbd0-4aa5-b8d4-b116836ee82c","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 3.227095ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"ca265ca5-335c-4ea1-a809-86ba6bedfabc","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"ca265ca5-335c-4ea1-a809-86ba6bedfabc","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.199133ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"4a7af029-275e-43f0-903d-5875d1ee42bd","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"4a7af029-275e-43f0-903d-5875d1ee42bd","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 4.108433ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"3b1f409a-af56-4571-9980-b30e6a332589","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"3b1f409a-af56-4571-9980-b30e6a332589","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.452775ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"24184137-ae3b-4b80-8c4e-cb0df6868c40","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"24184137-ae3b-4b80-8c4e-cb0df6868c40","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.731528ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"0b8a5073-55d2-43ff-9a71-2391abfa5c58","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"0b8a5073-55d2-43ff-9a71-2391abfa5c58","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.188528ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"fe71c01a-eb24-45ac-a31e-c14b114929f6","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"fe71c01a-eb24-45ac-a31e-c14b114929f6","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 4.343401ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"13a32038-ba02-461f-a880-c70d039b3786","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"13a32038-ba02-461f-a880-c70d039b3786","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.380536ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"ea5dd2b3-7f84-46f5-b13d-f5fa3bc93346","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"ea5dd2b3-7f84-46f5-b13d-f5fa3bc93346","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 3.103279ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"751de2f8-f54b-4f5d-bcb9-9f514ffd442c","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"751de2f8-f54b-4f5d-bcb9-9f514ffd442c","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.16776ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"05261a98-1651-4c50-b9ae-f3b8544d8b1a","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"05261a98-1651-4c50-b9ae-f3b8544d8b1a","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 3.024193ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"1947ef3d-f3aa-4b03-b3b3-d7a622e5460e","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"1947ef3d-f3aa-4b03-b3b3-d7a622e5460e","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.641343ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"7dcfa2de-3ba4-42c1-81ad-75a160a06ace","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"7dcfa2de-3ba4-42c1-81ad-75a160a06ace","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":1}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.820735ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"00e74bbc-55f0-4084-b021-52c228307ec4","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"00e74bbc-55f0-4084-b021-52c228307ec4","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.058787ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"32968a65-2d81-48c4-aaf0-9d42ce505ad8","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"32968a65-2d81-48c4-aaf0-9d42ce505ad8","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.975182ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"97e6f647-00ea-4c59-9ddf-0937db99e1ea","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"97e6f647-00ea-4c59-9ddf-0937db99e1ea","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 4.535995ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"3a5859ce-69c9-4620-9f3f-3574c486443e","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"3a5859ce-69c9-4620-9f3f-3574c486443e","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.906613ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"2644e8b1-2452-440b-85ad-d4828a1677bc","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"2644e8b1-2452-440b-85ad-d4828a1677bc","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.189018ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"8497ed21-fc03-42f8-bb96-4b7bcd17f118","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"8497ed21-fc03-42f8-bb96-4b7bcd17f118","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.992661ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"e2759824-94a0-416d-8ee4-9e58152ae23f","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"e2759824-94a0-416d-8ee4-9e58152ae23f","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.18884ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"f786bf7f-dc37-430d-9e60-cf655fa91955","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"f786bf7f-dc37-430d-9e60-cf655fa91955","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 4.728843ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"785678f5-11c8-46ce-98c1-597cba546da2","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"785678f5-11c8-46ce-98c1-597cba546da2","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.664482ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"e3e18b3a-67a8-4bf6-9727-5429ef8fa7c7","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"e3e18b3a-67a8-4bf6-9727-5429ef8fa7c7","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":1}
+i  functions: Finished "southamerica-east1-createCashAccount" in 3.063357ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"deaa93ed-a438-42c9-8b6a-afe34505f176","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"deaa93ed-a438-42c9-8b6a-afe34505f176","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.394234ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"3d24ca36-2f64-41b8-8131-6d3c559571df","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"3d24ca36-2f64-41b8-8131-6d3c559571df","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 3.413307ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"3b136329-cb78-44a8-a667-d0d1d53a97cf","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"3b136329-cb78-44a8-a667-d0d1d53a97cf","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.400009ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"e85023d2-d569-457e-8eab-3f8e05c6de03","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"e85023d2-d569-457e-8eab-3f8e05c6de03","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.581083ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"fbb737a2-dd2a-4614-aef3-5c3dbcaa2e93","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"fbb737a2-dd2a-4614-aef3-5c3dbcaa2e93","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 1.978332ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"8e0c78f4-671b-4ae5-bd9a-7cc64bd448fc","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"8e0c78f4-671b-4ae5-bd9a-7cc64bd448fc","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 5.288454ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"eb7d2beb-2ab2-4762-a286-69bdade88f82","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"eb7d2beb-2ab2-4762-a286-69bdade88f82","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.336603ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"31d200a5-cecc-487c-a07e-86d02a99552f","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"31d200a5-cecc-487c-a07e-86d02a99552f","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":1}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.907109ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"63c4efdc-a8fe-4ae6-bdf9-928ce72de213","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"63c4efdc-a8fe-4ae6-bdf9-928ce72de213","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.479654ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"8b285b16-2641-4159-8295-ebb8ae1b1fc9","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"8b285b16-2641-4159-8295-ebb8ae1b1fc9","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.843379ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"129d1815-2423-4d1b-873c-c6f9356d7d01","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"129d1815-2423-4d1b-873c-c6f9356d7d01","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.09777ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"201af919-c4fa-4107-a21d-64df8af2c944","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"201af919-c4fa-4107-a21d-64df8af2c944","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 3.359731ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"02bd420e-361c-4e64-8bc2-264447779f73","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"02bd420e-361c-4e64-8bc2-264447779f73","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.491283ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"4fad0965-3ec4-4f85-af1c-5eb87c4952f2","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"4fad0965-3ec4-4f85-af1c-5eb87c4952f2","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.843469ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"66368bff-731d-4b88-9605-cb686a3d3382","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"66368bff-731d-4b88-9605-cb686a3d3382","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":1}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.006828ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"5acb0f38-cf54-4cc0-a8fa-f19c15827263","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"5acb0f38-cf54-4cc0-a8fa-f19c15827263","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.940152ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"a727b483-8fcd-4f06-9942-c9dc108a4510","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"a727b483-8fcd-4f06-9942-c9dc108a4510","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.236056ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"f8741505-2103-4e55-b87c-48d576d45990","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"f8741505-2103-4e55-b87c-48d576d45990","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":1}
+i  functions: Finished "southamerica-east1-createCashAccount" in 3.441279ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"d6976e6d-dcd3-4715-8586-e4fe1cda3874","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"d6976e6d-dcd3-4715-8586-e4fe1cda3874","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":1}
+i  functions: Finished "southamerica-east1-createCashAccount" in 5.259982ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"c16d42d7-39d2-4902-b9b3-fd5693f585bb","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"c16d42d7-39d2-4902-b9b3-fd5693f585bb","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.825586ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"654249e6-cfe2-4e00-827f-182861b7bef4","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"654249e6-cfe2-4e00-827f-182861b7bef4","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.577088ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"3a331f95-2c7d-43d4-bdcf-eed15b146755","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"3a331f95-2c7d-43d4-bdcf-eed15b146755","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 5.78422ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"bf2e18e5-629e-438f-b38c-3eca3f040f43","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"bf2e18e5-629e-438f-b38c-3eca3f040f43","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 3.106405ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"041e71dc-3f79-49dd-92c9-d66ff5dd5a00","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"041e71dc-3f79-49dd-92c9-d66ff5dd5a00","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 3.714894ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"cdf2c51a-67b1-49c7-a08f-554e050b1a4a","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"cdf2c51a-67b1-49c7-a08f-554e050b1a4a","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 3.549812ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"c1318d2d-3600-41e3-9afb-71bd6eedbccb","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"c1318d2d-3600-41e3-9afb-71bd6eedbccb","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.5437ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"cdcb33a8-20ec-45cc-a196-e1fbf74bc64a","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"cdcb33a8-20ec-45cc-a196-e1fbf74bc64a","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 3.340223ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"bd3f73f0-3cd7-4def-abf7-92cbcc991186","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"bd3f73f0-3cd7-4def-abf7-92cbcc991186","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":1}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.596779ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"2d4edc49-b35e-439a-b6ab-774932c99eda","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"2d4edc49-b35e-439a-b6ab-774932c99eda","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.395286ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"32752e9e-80f7-4008-a0d1-3693d2f1e778","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"32752e9e-80f7-4008-a0d1-3693d2f1e778","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.957592ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"93051727-3990-4ea7-86a2-6b986877efca","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"93051727-3990-4ea7-86a2-6b986877efca","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.715198ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"ed684407-11b2-4439-a62f-e98e5dd5b0a7","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"ed684407-11b2-4439-a62f-e98e5dd5b0a7","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 4.057918ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"35d60634-0717-47e6-8899-d180f50c9160","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"35d60634-0717-47e6-8899-d180f50c9160","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 3.077879ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"bd253d1c-2540-4e79-b9aa-6fd1e46c520c","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"bd253d1c-2540-4e79-b9aa-6fd1e46c520c","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 3.314038ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"786c3ffa-b506-4fe9-af83-1b14163a02a2","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"786c3ffa-b506-4fe9-af83-1b14163a02a2","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.527922ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"f7dca03b-5b50-4d66-812d-fb1fac77675a","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"f7dca03b-5b50-4d66-812d-fb1fac77675a","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.357161ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"56ac205f-d799-4710-a0bd-1abbbea96c9d","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"56ac205f-d799-4710-a0bd-1abbbea96c9d","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 1.76661ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"9b274b9e-d7fd-4f55-a3a9-af2c035da750","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"9b274b9e-d7fd-4f55-a3a9-af2c035da750","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":1}
+i  functions: Finished "southamerica-east1-createCashAccount" in 3.538729ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"6cb4ef2d-c554-40eb-bec1-31ded64b09e7","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"6cb4ef2d-c554-40eb-bec1-31ded64b09e7","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.874923ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"5c0c866e-d619-4d53-8ccc-f6f17980bc4f","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"5c0c866e-d619-4d53-8ccc-f6f17980bc4f","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 6.309576ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"72978c44-a33e-46bb-8d12-3008abc7d931","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"72978c44-a33e-46bb-8d12-3008abc7d931","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.143924ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"0dbff5d4-ff6f-46a5-85d4-969a0014e389","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"0dbff5d4-ff6f-46a5-85d4-969a0014e389","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 3.925976ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"71faa902-6748-4e6e-ad52-a78b2557d640","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"71faa902-6748-4e6e-ad52-a78b2557d640","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.177969ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"edbe72f2-07e8-4440-ad1d-270f5d4f6fe7","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"edbe72f2-07e8-4440-ad1d-270f5d4f6fe7","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.908574ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"de02847b-af9c-4954-808c-665f5ec46c30","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"de02847b-af9c-4954-808c-665f5ec46c30","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.172595ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"57a9c023-ba00-4212-bc6a-fc07288eb204","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"57a9c023-ba00-4212-bc6a-fc07288eb204","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.544469ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"4743c84c-6072-4b01-aa70-d4d478c7400b","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"4743c84c-6072-4b01-aa70-d4d478c7400b","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.162701ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"a707cdbd-dc35-4bb0-9b7a-1e93ac3962ac","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"a707cdbd-dc35-4bb0-9b7a-1e93ac3962ac","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.575605ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"6c49e039-13b0-4326-be8e-ef76b13f928c","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"6c49e039-13b0-4326-be8e-ef76b13f928c","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.841124ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"bd542bcd-d971-4512-b15e-b5b2ae12901f","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"bd542bcd-d971-4512-b15e-b5b2ae12901f","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.724551ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"9bfff087-4325-49c0-968f-2abacaae129e","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"9bfff087-4325-49c0-968f-2abacaae129e","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.282362ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"ef7f0618-0165-40fb-ab56-3eba76c9bda5","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"ef7f0618-0165-40fb-ab56-3eba76c9bda5","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 3.778982ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"42da6001-cf02-4412-bc35-7938f888742e","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"42da6001-cf02-4412-bc35-7938f888742e","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 3.268844ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"6012f89e-4704-42a6-a545-1b6827b48e6d","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"6012f89e-4704-42a6-a545-1b6827b48e6d","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.864811ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"3a8e5c38-32d4-4e04-bad5-feee0be7ad45","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"3a8e5c38-32d4-4e04-bad5-feee0be7ad45","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":1}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.914111ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"74b3d53f-6489-4ce0-a8f6-b25e25b5291b","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"74b3d53f-6489-4ce0-a8f6-b25e25b5291b","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.940399ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"74901fcb-3772-4c7f-aada-284389d5eab7","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"74901fcb-3772-4c7f-aada-284389d5eab7","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.43652ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"e4491364-3d3c-4c80-9fe6-52d2c947ee10","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"e4491364-3d3c-4c80-9fe6-52d2c947ee10","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":1}
+i  functions: Finished "southamerica-east1-createCashAccount" in 3.762923ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"f605ca03-9e64-4f37-9731-f10b39786eaf","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"f605ca03-9e64-4f37-9731-f10b39786eaf","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":1}
+i  functions: Finished "southamerica-east1-createCashAccount" in 3.288652ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"356f9b9e-b8e5-4c39-9520-01ecde787fba","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"356f9b9e-b8e5-4c39-9520-01ecde787fba","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.645482ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"555ac095-fdac-49b0-bb09-ac5eb209e064","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"555ac095-fdac-49b0-bb09-ac5eb209e064","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.223284ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"3dbb05b0-a4b9-4873-8f9d-3e246113f303","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"3dbb05b0-a4b9-4873-8f9d-3e246113f303","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 3.312175ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"ae3b87ce-d5be-4fa1-9ba1-23843405f82e","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"ae3b87ce-d5be-4fa1-9ba1-23843405f82e","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.905116ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"832dfeb6-d415-4403-829f-b449436c9474","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"832dfeb6-d415-4403-829f-b449436c9474","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 3.156292ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"c0ede3bc-b210-48d7-9b35-b51d8c116e3c","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"c0ede3bc-b210-48d7-9b35-b51d8c116e3c","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.335436ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"c281fccc-b557-4b30-b769-db046841b7e4","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"c281fccc-b557-4b30-b769-db046841b7e4","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 3.184916ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"4038f54a-6ca9-41cc-a364-b2f95fa8f9f0","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"4038f54a-6ca9-41cc-a364-b2f95fa8f9f0","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.816894ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"2e2771d0-8931-424a-b451-e0fce76dc678","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"2e2771d0-8931-424a-b451-e0fce76dc678","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.572008ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"06c5e829-ed7b-4b3b-b3df-a5dec7995336","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"06c5e829-ed7b-4b3b-b3df-a5dec7995336","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.055143ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"92ce54be-0134-47d7-8512-f53b117254cb","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"92ce54be-0134-47d7-8512-f53b117254cb","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 3.094991ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"41d03cad-456a-47e4-9c8a-1d206dc024e2","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"41d03cad-456a-47e4-9c8a-1d206dc024e2","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.888149ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"b7781a17-636c-43f5-8408-049a6526cc12","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"b7781a17-636c-43f5-8408-049a6526cc12","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 5.347168ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"2d613327-e4d3-4d91-8cd8-bf6d6646aa5e","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"2d613327-e4d3-4d91-8cd8-bf6d6646aa5e","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 4.274592ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"1f9865de-ebfa-4f21-8bc0-1aede6d5a1ee","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"1f9865de-ebfa-4f21-8bc0-1aede6d5a1ee","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 3.489926ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"e5d7b7b6-c34c-476d-88b9-69118b7a836a","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"e5d7b7b6-c34c-476d-88b9-69118b7a836a","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.413977ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"a31c60f6-e84f-4cda-8d0e-bc9d8d441fc4","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"a31c60f6-e84f-4cda-8d0e-bc9d8d441fc4","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.976066ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"6cbb4bfe-78d8-42d2-8f93-ad1ff335d515","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"6cbb4bfe-78d8-42d2-8f93-ad1ff335d515","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.169603ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"c1a457e8-73c0-4bc6-b59b-013521327b71","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"c1a457e8-73c0-4bc6-b59b-013521327b71","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.91065ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"67788a2c-9451-49bf-9582-6766dd560a5b","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"67788a2c-9451-49bf-9582-6766dd560a5b","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 3.312025ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"684a6047-c395-4563-8a45-22d2d2850bf5","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"684a6047-c395-4563-8a45-22d2d2850bf5","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.294041ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"7e490727-c2c6-495e-a22c-f93c3e784185","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"7e490727-c2c6-495e-a22c-f93c3e784185","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.467938ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"538c27ec-d2fa-4c31-b39d-08ec41fc4497","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"538c27ec-d2fa-4c31-b39d-08ec41fc4497","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.574936ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"92f886b4-6c23-4001-8268-c6ca9439c4f7","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"92f886b4-6c23-4001-8268-c6ca9439c4f7","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.209448ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"a3213884-d88e-49ac-95cd-c80c024ff891","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"a3213884-d88e-49ac-95cd-c80c024ff891","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.990817ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"4f1b2338-d5c2-46da-9423-9b92b6603077","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"4f1b2338-d5c2-46da-9423-9b92b6603077","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.790166ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"7381bfa6-61c6-40a7-b3b9-3f4acec44acc","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"7381bfa6-61c6-40a7-b3b9-3f4acec44acc","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":1}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.590946ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"878605d5-81b8-4146-a32e-2db9cc0cf48d","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"878605d5-81b8-4146-a32e-2db9cc0cf48d","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.20204ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"38ca077e-90c9-4e0d-9acb-61af6fc2d753","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"38ca077e-90c9-4e0d-9acb-61af6fc2d753","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 3.558649ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"e903b37a-08f0-474e-a210-c3a82f57e10b","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"e903b37a-08f0-474e-a210-c3a82f57e10b","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.091849ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"861358a4-992a-4a0f-8d0e-16d665cddc53","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"861358a4-992a-4a0f-8d0e-16d665cddc53","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.388143ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"670f2df8-7283-41e1-8554-0faea44adb46","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"670f2df8-7283-41e1-8554-0faea44adb46","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.138007ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"c04e3eb1-d766-4334-b332-922e3bfd344d","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"c04e3eb1-d766-4334-b332-922e3bfd344d","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 3.010913ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"30c7b09c-b1f0-49fb-a058-38ccf829df05","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"30c7b09c-b1f0-49fb-a058-38ccf829df05","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.533385ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"42ba33c4-311e-4541-9cf2-c035735b85a2","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"42ba33c4-311e-4541-9cf2-c035735b85a2","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.567178ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"6c15ce55-8ad2-4d5f-ac11-baa292f7ae86","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"6c15ce55-8ad2-4d5f-ac11-baa292f7ae86","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.480011ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"3f8b73c5-14a4-4f70-bcd2-7dc78102f41f","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"3f8b73c5-14a4-4f70-bcd2-7dc78102f41f","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.893921ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"7e93fd7f-3f28-481b-85a4-4ced832fe98b","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"7e93fd7f-3f28-481b-85a4-4ced832fe98b","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 2.466906ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"bfb0a69c-ba26-400b-8272-1a3e6bb43089","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"bfb0a69c-ba26-400b-8272-1a3e6bb43089","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 4.799028ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"5a6ab048-e837-4bdd-a65f-5749eb4e1a76","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"5a6ab048-e837-4bdd-a65f-5749eb4e1a76","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":1}
+i  functions: Finished "southamerica-east1-createCashAccount" in 3.200869ms
+i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+>  {"verifications":{"app":"MISSING","auth":"MISSING"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+>  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"4ba8b65f-cd2b-4a79-9f10-12d08e53c933","actorId":null,"workspaceId":null,"actorRole":null,"appCheck":"absent"}
+>  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"4ba8b65f-cd2b-4a79-9f10-12d08e53c933","actorId":null,"workspaceId":null,"actorRole":null,"outcome":"error","errorCode":"unauthenticated","durationMs":0}
+i  functions: Finished "southamerica-east1-createCashAccount" in 3.057112ms
+ 
+i  emulators: Received SIGINT (Ctrl-C) for the first time. Starting a clean shutdown.
+i  emulators: Please wait for a clean shutdown or send the SIGINT (Ctrl-C) signal again to stop right now.
+i  emulators: Shutting down emulators.
+i  ui: Stopping Emulator UI
+i  functions: Stopping Functions Emulator
+i  eventarc: Stopping Eventarc Emulator
+i  tasks: Stopping Cloud Tasks Emulator
+i  hub: Stopping emulator hub
+i  logging: Stopping Logging Emulator

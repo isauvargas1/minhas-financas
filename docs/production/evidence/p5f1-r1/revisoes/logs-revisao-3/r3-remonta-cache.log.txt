@@ -1,0 +1,17 @@
+TAP version 13
+# {"serieRelida":0,"segundaMostrou":["loading"]}
+# Subtest: sonda r3: a base gerada nos 30 s da edição fica em cache; cada instância nova na mesma sessão espera de novo, mesmo com o servidor 61 s depois
+ok 1 - sonda r3: a base gerada nos 30 s da edição fica em cache; cada instância nova na mesma sessão espera de novo, mesmo com o servidor 61 s depois
+  ---
+  duration_ms: 937.520132
+  type: 'test'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1220.476511

@@ -1,0 +1,40 @@
+// Sonda B02: minimiza o contraexemplo de monotonia achado pela busca dirigida (b02-violacao.json).
+import { readFileSync } from 'node:fs';
+const root = process.argv[2];
+const cal = await import(`${root}/src/modules/work-time/calendar.ts`);
+const e = JSON.parse(readFileSync(new URL('./b02-violacao.json', import.meta.url), 'utf8'));
+const months: string[] = e.months;
+const plans = (c: unknown) => months.map((m, i) => cal.monthPlan(c, m, { periodStart: i === 0 }));
+const total = (c: unknown) => { const p = plans(c); return { t: p.reduce((s: number, x: { minutes: number }) => s + x.minutes, 0), amb: p.some((x: { ambiguousDays: string[] }) => x.ambiguousDays.length > 0) }; };
+const violates = (without: unknown[], all: unknown[], extra: Record<string, unknown>) => {
+  const b = total({ ...extra, routines: without }); const a = total({ ...extra, routines: all });
+  return !a.amb && !b.amb && a.t < b.t;
+};
+let without = e.without; let all = e.all; let extra = { ...e.extra };
+console.log('original viola:', violates(without, all, extra));
+// 1. Exceções: remove uma a uma enquanto continuar violando.
+for (let i = extra.exceptions.length - 1; i >= 0; i -= 1) {
+  const trial = { ...extra, exceptions: extra.exceptions.filter((_: unknown, j: number) => j !== i) };
+  if (violates(without, all, trial)) extra = trial;
+}
+if (extra.localHolidays.length && violates(without, all, { ...extra, localHolidays: [] })) extra = { ...extra, localHolidays: [] };
+// 2. Dias das rotinas: troca por folga enquanto continuar violando (mesmo dia nas duas configurações).
+const off = { kind: 'off' };
+const setDay = (routines: { kind: string; days?: unknown[] }[], r: number, d: number) => routines.map((rt, i) => (i === r && rt.kind === 'weekly' ? { ...rt, days: (rt.days as unknown[]).map((x, j) => (j === d ? off : x)) } : rt));
+for (let r = 0; r < all.length; r += 1) for (let d = 0; d < 7; d += 1) {
+  const allT = setDay(all, r, d);
+  const withoutT = r < without.length ? setDay(without, r, d) : without;
+  if (violates(withoutT, allT, extra)) { all = allT; without = withoutT; }
+}
+console.log('mínimo viola:', violates(without, all, extra));
+const b = plans({ ...extra, routines: without }); const a = plans({ ...extra, routines: all });
+console.log('total antes', b.reduce((s: number, x: { minutes: number }) => s + x.minutes, 0), 'depois', a.reduce((s: number, x: { minutes: number }) => s + x.minutes, 0));
+for (let m = 0; m < months.length; m += 1) {
+  for (let i = 0; i < b[m].days.length; i += 1) {
+    const db = b[m].days[i]; const da = a[m].days[i];
+    if (db.minutes !== da.minutes) console.log(db.date, 'antes', db.minutes, '(capped', db.capped, 'applied', db.applied.join('+') + ')', '→ depois', da.minutes, '(capped', da.capped, 'overlap', da.overlapMinutes + ')');
+  }
+}
+console.log('extra:', JSON.stringify(extra));
+console.log('sem a rotina:', JSON.stringify(without));
+console.log('com a rotina:', JSON.stringify(all));

@@ -1,0 +1,156 @@
+import { mkdirSync, writeFileSync } from 'node:fs';
+
+import { expect, test, type Browser, type Page } from '@playwright/test';
+
+import { createAccountByApi } from './support/accounts';
+import { axeViolations } from './support/axe';
+import { callCallable } from './support/callables';
+import { db, intentKey, PASSWORD, resetEmulatorData, tokenOf } from './support/loans';
+import { adminSdk, seedOwnedWorkspace, seedPaidPlan } from './support/workspaceSeed';
+
+/*
+ * P5-F.1 — roteiro TEMPORÁRIO de comparação antes × depois (não faz parte da suíte).
+ *
+ * Roda igual nas duas árvores, com os mesmos dados sintéticos: "antes" na árvore
+ * da P5-F (preferência v1: renda R$ 4.400,00 e 176 h, R$ 25,00 por hora) e
+ * "depois" na P5-F.1 (preferência v2: 8 h todos os dias, trabalho em feriados e
+ * salários fictícios de dias × 8 × R$ 25,00, também R$ 25,00 por hora). Dashboard
+ * e Relatórios em reais e em tempo, 1440/390/360 px, claro e escuro. Como a hora
+ * vale o mesmo nas duas, todo valor convertido coincide: o que mudar além da
+ * seção de Configurações é regressão.
+ */
+
+const DIR = process.env.EVIDENCE_DIR ?? 'test-results/p5f1-antes-depois';
+const TREE = process.env.ANTES_DEPOIS === 'antes' ? 'antes' : 'depois';
+const A = { uid: 'e2e-p5f1-ad', email: 'e2e-p5f1-ad@minhas-financas.local' };
+const WORKSPACE = 'e2e-p5f1-ad-ws';
+const VIEWPORTS = { desktop: { width: 1440, height: 900 }, mobile: { width: 390, height: 844 }, small: { width: 360, height: 800 } } as const;
+type ViewportName = keyof typeof VIEWPORTS;
+
+test.use({ launchOptions: { args: ['--lang=pt-BR'], env: { ...process.env, LANG: 'pt_BR.UTF-8', LANGUAGE: 'pt_BR:pt' } } });
+
+const today = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+const shiftMonth = (month: string, offset: number) => {
+  const index = Number(month.slice(0, 4)) * 12 + Number(month.slice(5, 7)) - 1 + offset;
+  return `${Math.floor(index / 12)}-${String((index % 12) + 1).padStart(2, '0')}`;
+};
+const daysIn = (month: string) => new Date(Date.UTC(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 0)).getUTCDate();
+const normalize = (value: string) => value.normalize('NFD').replace(/[̀-ͯ]/g, '').trim().replace(/\s+/g, ' ').toLowerCase();
+const EIGHT_HOURS = Array.from({ length: 7 }, () => '08:00-17:00/60').join(',');
+
+const seed = async (request: Parameters<typeof tokenOf>[0]) => {
+  await adminSdk().auth().createUser({ ...A, password: PASSWORD, emailVerified: true });
+  await seedOwnedWorkspace({ ...A, workspaceId: WORKSPACE, name: 'Pessoal (exemplo)', type: 'PF' });
+  await seedPaidPlan(A.uid, 'business');
+  const now = new Date();
+  for (const [id, group, name, subtype] of [
+    ['ad-income-type', 'income_type', 'Salário (exemplo)', undefined],
+    ['ad-income-category', 'category', 'Renda (exemplo)', 'receita'],
+  ] as const) {
+    await db().doc(`workspaces/${WORKSPACE}/settings_catalog/${id}`).set({
+      id, schemaVersion: 1, workspaceId: WORKSPACE, group, name, normalizedName: normalize(name),
+      ...(subtype ? { transactionSubtype: subtype } : {}),
+      dedupeKey: `${group}::${subtype ?? 'all'}::both::${normalize(name)}`,
+      workspaceScope: 'both', sortOrder: 1, status: 'active', createdBy: A.uid, updatedBy: A.uid, createdAt: now, updatedAt: now,
+    });
+  }
+  const token = await tokenOf(request, A.email);
+  const accountId = await createAccountByApi(request, token, WORKSPACE, 'Conta (exemplo)', { openingBalanceCents: 100_000 });
+  const month = today().slice(0, 7);
+  for (const offset of [3, 2, 1]) {
+    const target = shiftMonth(month, -offset);
+    const outcome = await callCallable(request, token, 'createCashTransaction', {
+      workspaceId: WORKSPACE, idempotencyKey: intentKey(`ad-${target}`), cashAccountId: accountId, type: 'receita',
+      description: `Salário fictício ${target}`, categoryId: 'ad-income-category', incomeType: 'Salário (exemplo)',
+      amountCents: daysIn(target) * 8 * 2_500, date: `${target}-05`,
+    });
+    expect(outcome.status, JSON.stringify(outcome)).toBe(200);
+    await expect.poll(async () => ((await db().doc(`workspaces/${WORKSPACE}/cash_report_periods/${target}`).get()).data()?.incomeCents as number | undefined) ?? 0,
+      { timeout: 45_000 }).toBe(daysIn(target) * 8 * 2_500);
+  }
+  const updatedAt = adminSdk().firestore.FieldValue.serverTimestamp();
+  await db().doc(`users/${A.uid}/private_preferences/work_time_equivalent`).set(TREE === 'antes'
+    ? { schemaVersion: 1, enabled: true, displayMode: 'money', monthlyIncomeCents: 440_000, monthlyWorkMinutes: 10_560, updatedAt }
+    : {
+      schemaVersion: 2, enabled: true, displayMode: 'money', estimateMode: 'habitual', historyMonths: 3, incomeWorkspaceId: WORKSPACE,
+      allowBusinessIncome: false, excludedIncomeIds: '', routines: `W:${EIGHT_HOURS}`, worksOnHolidays: true, uf: '', municipality: '',
+      localHolidays: '', exceptions: '', updatedAt,
+    });
+};
+
+const open = async (browser: Browser, viewport: ViewportName, scheme: 'light' | 'dark') => {
+  const context = await browser.newContext({ viewport: VIEWPORTS[viewport], colorScheme: scheme, locale: 'pt-BR', timezoneId: 'America/Sao_Paulo', deviceScaleFactor: 1 });
+  await context.addInitScript(([key, value]) => {
+    localStorage.setItem(key, value);
+  }, [`lastWorkspaceId_${A.uid}`, WORKSPACE]);
+  const page = await context.newPage();
+  page.setDefaultTimeout(30_000);
+  await page.goto(`/?e2eEmail=${encodeURIComponent(A.email)}&e2ePassword=${PASSWORD}`);
+  await page.getByTestId('e2e-login-button').click();
+  await expect(page.getByText('Saldo Atual').first()).toBeVisible({ timeout: 45_000 });
+  return { context, page };
+};
+
+/** Navegação como nas specs da base (`financial-reports.spec.ts`), abrindo o menu no celular. */
+const goTo = async (page: Page, label: RegExp) => {
+  if (!(await page.getByText(label).first().isVisible().catch(() => false))) {
+    const menu = page.getByRole('button', { name: /Abrir menu|Menu/ }).first();
+    if (await menu.isVisible().catch(() => false)) await menu.click();
+  }
+  await page.getByText(label).first().click();
+};
+const kpis = (page: Page) => page.getByRole('tabpanel').locator('div.group h3');
+
+const axe: Array<{ name: string; violations: Array<{ id: string; targets: string[] }> }> = [];
+
+const shot = async (page: Page, name: string) => {
+  // Tudo carregado: nenhum "Carregando…", nenhum indicador girando e a altura da página estável.
+  await expect(page.getByText(/Carregando/)).toHaveCount(0, { timeout: 30_000 });
+  await expect(page.locator('.animate-spin')).toHaveCount(0, { timeout: 30_000 });
+  let height = -1;
+  for (let attempt = 0; attempt < 30; attempt += 1) {
+    const current = await page.evaluate(() => document.documentElement.scrollHeight);
+    if (current === height) break;
+    height = current;
+    await page.waitForTimeout(700);
+  }
+  await page.evaluate(() => document.fonts?.ready);
+  // Sem animações nem cursor piscando, para a comparação pixel a pixel.
+  await page.addStyleTag({ content: '*, *::before, *::after { animation: none !important; transition: none !important; caret-color: transparent !important; }' });
+  await page.mouse.move(0, 0);
+  await page.waitForTimeout(800);
+  mkdirSync(DIR, { recursive: true });
+  await page.screenshot({ path: `${DIR}/${name}.png`, fullPage: true });
+  // axe da página inteira: o mesmo conjunto antes e depois prova que nenhuma violação é nova.
+  const violations = (await axeViolations(page, 'body')) as Array<{ id: string; nodes?: Array<{ target?: unknown }> }>;
+  axe.push({ name, violations: violations.map((entry) => ({ id: entry.id, targets: (entry.nodes ?? []).map((node) => JSON.stringify(node.target)) })) });
+};
+
+test(`P5-F.1 antes × depois (${TREE})`, async ({ browser, request }) => {
+  test.setTimeout(1_800_000);
+  await resetEmulatorData();
+  await seed(request);
+  for (const viewport of Object.keys(VIEWPORTS) as ViewportName[]) {
+    for (const scheme of ['light', 'dark'] as const) {
+      const preference = db().doc(`users/${A.uid}/private_preferences/work_time_equivalent`);
+      await preference.update({ displayMode: 'money' });
+      const { context, page } = await open(browser, viewport, scheme);
+      const tag = `${viewport}-${scheme}`;
+      await expect(page.locator('[data-work-time]')).toHaveCount(0);
+      await shot(page, `dinheiro-dashboard-${tag}`);
+      await goTo(page, /^Relatórios( Empresariais)?$/);
+      await expect(page.getByRole('tab', { name: 'Visão Geral' })).toBeVisible({ timeout: 30_000 });
+      await expect(kpis(page).first()).toContainText('R$', { timeout: 30_000 });
+      await shot(page, `dinheiro-relatorios-${tag}`);
+      await page.getByRole('button', { name: 'Mostrar valores em tempo de trabalho' }).click();
+      await expect(kpis(page).locator('[data-work-time]').first()).toBeVisible({ timeout: 30_000 });
+      await shot(page, `tempo-relatorios-${tag}`);
+      await goTo(page, /^Dashboard$/);
+      await expect(page.getByText('Saldo Atual').first()).toBeVisible();
+      await expect(page.locator('[data-work-time]').first()).toBeVisible({ timeout: 30_000 });
+      await shot(page, `tempo-dashboard-${tag}`);
+      await context.close();
+    }
+  }
+  writeFileSync(`${DIR}/axe-${TREE}.json`, JSON.stringify(axe, null, 2));
+});

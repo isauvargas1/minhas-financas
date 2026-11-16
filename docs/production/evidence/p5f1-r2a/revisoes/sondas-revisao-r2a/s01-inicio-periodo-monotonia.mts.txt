@@ -1,0 +1,28 @@
+// Sonda do revisor (R2A, item 2): no início do período, a certeza do dia 1 é calculada descontando a véspera de fora do
+// período, mas o dia 1 conta sem esse desconto. Acrescentar uma rotina no dia 1 pode tirar horas do período.
+// Uso: node --experimental-strip-types s01-inicio-periodo-monotonia.mts <raiz> [<raiz da estimativa>]
+const [root, estRoot] = process.argv.slice(2);
+const cal = await import(`${root}/src/modules/work-time/calendar.ts`);
+const est = estRoot ? await import(`${estRoot}/src/modules/work-time/estimate.ts`) : null;
+const t = (s: string) => +s.slice(0, 2) * 60 + +s.slice(3);
+const w = (s: string, e: string, b = 0) => ({ kind: 'window', start: t(s), end: t(e), breakMinutes: b });
+const OFF = { kind: 'off' };
+// 30/09/2026 quarta (2), 01/10 quinta (3), 02/10 sexta (4)
+const days = (wed: any, thu: any, fri: any) => ({ kind: 'weekly', days: [OFF, OFF, wed, thu, fri, OFF, OFF] });
+const exceptions = [{ kind: 'reduced', start: '2026-10-01', end: '2026-10-01', minutes: 850 }, { kind: 'vacation', start: '2026-10-03', end: '2026-10-31' }];
+const C = { worksOnHolidays: true, localHolidays: [], exceptions, routines: [days(w('20:00', '10:00'), w('06:00', '20:00'), w('00:00', '04:00'))] };
+const C2 = { ...C, routines: [...C.routines, days(OFF, w('22:00', '02:00'), OFF)] };
+const view = (c: any) => {
+  const period = cal.monthPlan(c, '2026-10', { periodStart: true });
+  const at = (date: string) => { const d = period.days.find((x: any) => x.date === date); return `${d.minutes}${d.ambiguous ? '?' : ''}${d.applied.length ? `[${d.applied}]` : ''}`; };
+  const out: any = { verdict: cal.calendarAmbiguity(c, '2026-11-06'), oct1: at('2026-10-01'), oct2: at('2026-10-02'), periodOct: period.minutes, ambiguousDays: period.ambiguousDays.length,
+    monthOct: cal.monthPlan(c, '2026-10').minutes, sepOct: cal.monthPlan(c, '2026-09', { periodStart: true }).minutes + cal.monthPlan(c, '2026-10').minutes };
+  if (est) {
+    const e = est.computeWorkTimeEstimate({ mode: 'habitual', historyMonths: 1, allowBusinessIncome: false, calendar: c, referenceDate: '2026-11-06', workspaceType: 'PF', reportExact: true,
+      receipts: [{ month: '2026-10', receiptsCents: 1_000_000, partial: false }], excluded: [] });
+    out.estimate = { status: e.status, workMinutes: e.workMinutes, hourlyRateCents: e.status === 'ready' ? e.hourlyRateCents : null };
+  }
+  return out;
+};
+const a = view(C); const b = view(C2);
+console.log(JSON.stringify({ C: a, Cmais: b, perdaNoPeriodo: a.periodOct - b.periodOct }, null, 1));

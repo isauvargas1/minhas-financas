@@ -1,0 +1,245 @@
+> finace-dashboard-21@0.0.0 verify:all
+> npm run verify:fast && npm run test:integration:emulator && npm run test:e2e
+> finace-dashboard-21@0.0.0 verify:fast
+> npm run typecheck && npm run functions:lint && npm run build && npm run functions:build && npm run functions:test:unit && npm run test:unit:investments && npm run test:unit:p1 && npm run test:unit:billing && npm run test:unit:ui && npm run test:unit:cash && npm run test:unit:loans && npm run test:unit:clients && npm run test:unit:accounts && npm run test:unit:cards && npm run test:unit:recurring && npm run test:unit:split && npm run test:unit:settings-catalog && npm run test:unit:ai-chat && npm run test:unit:notifications && npm run test:unit:goals && npm run test:unit:reports && npm run test:unit:work-time && npm run test:tools:e2e
+> finace-dashboard-21@0.0.0 typecheck
+> tsc --noEmit && npm --prefix functions run typecheck
+> typecheck
+> tsc --noEmit
+> finace-dashboard-21@0.0.0 functions:lint
+> npm --prefix functions run lint
+> lint
+> eslint --ext .js,.ts .
+> finace-dashboard-21@0.0.0 build
+> NODE_OPTIONS=--max-old-space-size=4096 vite build
+> finace-dashboard-21@0.0.0 functions:build
+> npm --prefix functions run build
+> build
+> npm run clean && tsc
+> clean
+> node -e "require('node:fs').rmSync('lib', {recursive: true, force: true})"
+> finace-dashboard-21@0.0.0 functions:test:unit
+> npm --prefix functions run test:unit
+> test:unit
+> npm run build && node --test $(find lib -name '*.test.js' ! -name '*.integration.test.js' | sort)
+> build
+> npm run clean && tsc
+> clean
+> node -e "require('node:fs').rmSync('lib', {recursive: true, force: true})"
+# tests 677
+# suites 11
+# pass 677
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+> finace-dashboard-21@0.0.0 test:unit:investments
+> node --experimental-strip-types --test tests/unit/investment-semantics.test.ts tests/unit/investment-reporting.test.ts tests/unit/ai-backend-only.test.ts tests/unit/investment-idempotency.test.ts tests/unit/report-window.test.ts tests/unit/investment-simple-rows.test.ts tests/unit/investment-simple-form.test.ts tests/unit/investment-simple-summary.test.ts tests/unit/investment-simple-guards.test.ts tests/unit/investment-transaction-entry.test.ts tests/unit/investment-allocation.test.ts tests/unit/investment-goal-link.test.ts tests/unit/investment-goal-history.test.ts tests/unit/investment-surface-guard.test.ts
+# tests 177
+# suites 0
+# pass 177
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+> finace-dashboard-21@0.0.0 test:unit:p1
+> node --experimental-strip-types --test tests/unit/money.test.ts tests/unit/session-cleanup.test.ts tests/unit/workspace-callables.test.ts
+# tests 131
+# suites 0
+# pass 131
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+> finace-dashboard-21@0.0.0 test:unit:billing
+> node --experimental-strip-types --test tests/unit/billing-client.test.ts tests/unit/ai-client.test.ts tests/unit/ai-extraction-form.test.ts tests/unit/pricing-table-state.test.ts tests/unit/ai-share-contract.test.ts
+# tests 72
+# suites 0
+# pass 72
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+> finace-dashboard-21@0.0.0 test:unit:ui
+> node --experimental-strip-types --test tests/unit/icon-pack-props.test.ts tests/unit/messages-removal-guard.test.ts
+# tests 9
+# suites 0
+# pass 9
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+> finace-dashboard-21@0.0.0 test:unit:cash
+> node --experimental-strip-types --test tests/unit/cash-entry.test.ts tests/unit/transactions-contract.test.ts
+# tests 23
+# suites 0
+# pass 23
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+> finace-dashboard-21@0.0.0 test:unit:loans
+> node --experimental-strip-types --test tests/unit/loan-input.test.ts tests/unit/loan-model.test.ts tests/unit/loans-no-client-writes.test.ts
+# tests 20
+# suites 0
+# pass 20
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+> finace-dashboard-21@0.0.0 test:unit:clients
+> node --experimental-strip-types --test tests/unit/clients-model.test.ts tests/unit/clients-no-client-writes.test.ts
+# tests 15
+# suites 0
+# pass 15
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+> finace-dashboard-21@0.0.0 test:unit:accounts
+> node --experimental-strip-types --test tests/unit/accounts-model.test.ts tests/unit/accounts-no-client-writes.test.ts
+# tests 16
+# suites 0
+# pass 16
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+> finace-dashboard-21@0.0.0 test:unit:cards
+> node --experimental-strip-types --test tests/unit/cards-model.test.ts tests/unit/cards-no-client-writes.test.ts
+# tests 30
+# suites 0
+# pass 30
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+> finace-dashboard-21@0.0.0 test:unit:recurring
+> node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test tests/unit/recurring-schedule.test.ts tests/unit/recurring-model.test.ts tests/unit/recurring-no-client-writes.test.ts
+# tests 22
+# suites 0
+# pass 22
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+> finace-dashboard-21@0.0.0 test:unit:split
+> node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test tests/unit/split-model.test.ts tests/unit/split-no-client-writes.test.ts
+# tests 22
+# suites 0
+# pass 22
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+> finace-dashboard-21@0.0.0 test:unit:settings-catalog
+> node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test tests/unit/settings-catalog-model.test.ts tests/unit/settings-catalog-no-client-writes.test.ts
+# tests 17
+# suites 0
+# pass 17
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+> finace-dashboard-21@0.0.0 test:unit:ai-chat
+> node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test tests/unit/ai-chat-history.test.ts tests/unit/ai-chat-history-guard.test.ts
+# tests 37
+# suites 0
+# pass 37
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+> finace-dashboard-21@0.0.0 test:unit:notifications
+> node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test tests/unit/notifications-model.test.ts tests/unit/notifications-callables.test.ts tests/unit/notifications-feed.test.ts tests/unit/notifications-guard.test.ts tests/unit/press-origin.test.ts
+# tests 99
+# suites 0
+# pass 99
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+> finace-dashboard-21@0.0.0 test:unit:goals
+> node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test tests/unit/goals-model.test.ts tests/unit/goals-guard.test.ts
+# tests 59
+# suites 0
+# pass 59
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+> finace-dashboard-21@0.0.0 test:unit:reports
+> node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test tests/unit/report-adapter.test.ts tests/unit/report-range.test.ts tests/unit/report-live-refresh.test.ts tests/unit/report-live-refresh-freshness.test.ts tests/unit/report-alerts-guard.test.ts tests/unit/report-basis-refresh.test.ts tests/unit/report-basis-sync.test.ts
+# tests 107
+# suites 0
+# pass 107
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+> finace-dashboard-21@0.0.0 test:unit:work-time
+> node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test tests/unit/work-time-calculation.test.ts tests/unit/work-time-preference.test.ts tests/unit/work-time-guard.test.ts tests/unit/work-time-calendar.test.ts tests/unit/work-time-grammar.test.ts tests/unit/work-time-estimate.test.ts tests/unit/work-time-income-estimate.test.ts tests/unit/work-time-consistency.test.ts tests/unit/work-time-projection-proof.test.ts tests/unit/transactions-paging.test.ts
+# tests 242
+# suites 0
+# pass 242
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+> finace-dashboard-21@0.0.0 test:tools:e2e
+> node --test tests/tools/e2e-grupos.test.mjs
+# tests 9
+# suites 0
+# pass 9
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+> finace-dashboard-21@0.0.0 test:integration:emulator
+> firebase emulators:exec --only auth,firestore --project minhas-financas-local "npm run functions:test:integration:emulator && npm run test:tools:limpeza && npm run test:tools:contas && npm run test:rules:goals && npm run test:rules:investments && npm run test:rules:investment-domain && npm run test:rules:investment-m3 && npm run test:rules:m4 && npm run test:rules:adjacent && npm run test:rules:workspaces && npm run test:rules:billing && npm run test:rules:receivables && npm run test:rules:accounts && npm run test:rules:cards && npm run test:rules:recurring && npm run test:rules:split && npm run test:rules:transactions-p4d && npm run test:rules:settings-catalog && npm run test:rules:notifications && npm run test:rules:reports && npm run test:rules:work-time && npm run test:rules:projection-marks"
+> finace-dashboard-21@0.0.0 functions:test:integration:emulator
+> FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 GCLOUD_PROJECT=minhas-financas-local npm --prefix functions run test:integration
+> test:integration
+> npm run build && node --test --test-concurrency=1 "lib/**/*.integration.test.js"
+> build
+> npm run clean && tsc
+> clean
+> node -e "require('node:fs').rmSync('lib', {recursive: true, force: true})"
+i  emulators: Received SIGINT (Ctrl-C) for the first time. Starting a clean shutdown.
+> finace-dashboard-21@0.0.0 test:e2e
+> npm run build:e2e && node tools/e2e/executar-em-grupos.mjs
+> finace-dashboard-21@0.0.0 build:e2e
+> VITE_E2E_MODE=true VITE_USE_FIREBASE_EMULATORS=true VITE_FIREBASE_API_KEY=e2e-api-key VITE_FIREBASE_AUTH_DOMAIN=localhost VITE_FIREBASE_PROJECT_ID=minhas-financas-local VITE_FIREBASE_STORAGE_BUCKET=minhas-financas-local.appspot.com VITE_FIREBASE_MESSAGING_SENDER_ID=000000000000 VITE_FIREBASE_APP_ID=1:000000000000:web:e2e npm run build
+> finace-dashboard-21@0.0.0 build
+> NODE_OPTIONS=--max-old-space-size=4096 vite build
+> build
+> npm run clean && tsc
+> clean
+> node -e "require('node:fs').rmSync('lib', {recursive: true, force: true})"
+[e2e em grupos] 217 testes em 36 arquivos, em 3 grupo(s), cada um com o próprio Emulator.
+[e2e em grupos] grupo 1 de 3
+Running 83 tests using 1 worker, shard 1 of 3
+not ok 872 - contrato — investimento: aporte, retirada e estorno gravam o schema canônico (tipo `investimento` só com `investmentEntry`)
+not ok 876 - conciliação — todos os produtores no mesmo workspace: mês = Σ cashPeriodDeltaFor, dia a dia e Σ dias = mês
+not ok 881 - isolamento: dois workspaces (PF e PJ) nunca enxergam os documentos um do outro e cada um carrega o próprio workspace e perfil
+    not ok 4 - edição: quem lançou, o pagador, o dono ou o admin; versão velha é conflito
+    not ok 5 - grupo arquivado não aceita lançamento; modo errado é recusado
+    not ok 6 - isolamento: IDs de outro workspace não existem para o ator
+not ok 888 - Divisão de contas — autorização e isolamento
+    not ok 4 - corrida no mesmo rateio: um registro de recebimento vence
+    not ok 5 - rajada no mesmo grupo: cada operação entra inteira ou não entra; agregados sempre exatos
+    not ok 6 - idempotência: replay sem duplicar; mesma chave com outros dados é conflito; âncora durável depois do recibo
+    not ok 7 - participantes simultâneos: contadores exatos
+not ok 889 - Divisão de contas — concorrência e atomicidade
+    not ok 2 - Caixa: pagador externo não integra; membro não lança pelo outro; admin lança pelo pagador membro
+    not ok 5 - Caixa: conta arquivada recusa o fato e nada é gravado
+    not ok 6 - Cartão: compra pela primitiva (origem split), parcelas, limite; anulação com tudo aberto cancela
+    not ok 8 - Cartão: limite insuficiente recusa tudo (título, rateios, compra)
+    not ok 9 - quitação não movimenta o Caixa
+not ok 890 - Divisão de contas — Caixa e Cartão
+    not ok 6 - participantes: externo entra só com nome; dono não sai; obrigação aberta impede a desativação
+    not ok 7 - arquivar exige nada em aberto e libera a vaga; reativar consome
+not ok 891 - Divisão de contas — ciclo de vida
+  ✘  14 [chromium] › e2e/ai-consent-extraction.spec.ts:718:1 › voz: o microfone só abre depois da confirmação e o texto só é enviado depois da segunda (161ms)
+  69 did not run
+  13 passed (1.6m)

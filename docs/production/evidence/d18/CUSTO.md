@@ -35,7 +35,7 @@ Medido onde há medição (Emulator); estimado e identificado como tal no resto.
 
 - Quando publicado e ativo, o TTL remove cada documento vencido como 1 exclusão, sem leitura; o evento e cada estado são documentos separados.
 - Sem job de varredura nem Function agendada: nenhuma leitura periódica.
-- Volume estimado: até 3 eventos por fatura (fechada, a vencer, vencida), ou seja, até 3 por cartão ativo por mês. Com 8 cartões, são até 24 eventos por mês e cerca de 144 vivos em 180 dias. No teto de 50 cartões por workspace (`CARD_LIMIT_PER_WORKSPACE`), até 150 por mês e cerca de 900 vivos. Há no máximo 1 estado por (usuário, evento). O painel lê só por página (25 + 1), então o volume vivo não muda o custo de abrir o painel.
+- Volume estimado: até 3 eventos por fatura (fechada, a vencer, vencida), ou seja, até 3 por cartão ativo por mês. Com 8 cartões, são até 24 eventos por mês e cerca de 144 vivos em 180 dias. No teto de 50 cartões por workspace (`CARD_LIMIT_PER_WORKSPACE`), até 150 por mês e cerca de 900 vivos. **Atualização (P5-GATE-FINAL, FIRESTORE-04, estimativa):** depois da P5-D2 e da P5-D2.1 há 9 tipos de aviso, e o de recebível vencido não tem limite de dias; num workspace PJ de volume alto, a revisão estima cerca de 6.000 avisos vivos em 180 dias. O painel não muda (lê por página); a contagem exata ganha cerca de 10 leituras (⌈E/1.000⌉). Há no máximo 1 estado por (usuário, evento). O painel lê só por página (25 + 1), então o volume vivo não muda o custo de abrir o painel.
 
 ## O que não foi medido
 

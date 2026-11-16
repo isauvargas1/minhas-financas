@@ -126,6 +126,11 @@ export interface FinancialKPI {
   value: number | null;
   /** Texto do valor; "—" quando não há número (o estado vai na `description`). */
   formattedValue: string;
+  /**
+   * Centavos do KPI monetário, só para a exibição em tempo de trabalho (P5-F);
+   * ausente nos KPIs percentuais e quando não há número.
+   */
+  cents?: number;
   trend?: 'up' | 'down' | 'stable';
   trendPercentage?: number;
   /**

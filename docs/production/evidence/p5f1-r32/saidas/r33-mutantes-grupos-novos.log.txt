@@ -1,0 +1,12 @@
+base: saída 0, 0 falha(s)
+MORTO      S07 SIGHUP sem tratamento (o R01 da estabilidade, rodada 2; EST-11) (1 falha(s); ex.: not ok 15 - executor (EST-11): SIGHUP (o terminal fechado) e SIGQUIT (Ctrl+\\) no executor também viram um SIGINT só ao )
+MORTO      S08 SIGQUIT sem tratamento (EST-12) (1 falha(s); ex.: not ok 15 - executor (EST-11): SIGHUP (o terminal fechado) e SIGQUIT (Ctrl+\\) no executor também viram um SIGINT só ao )
+MORTO      S09 o sinal sem grupo em curso é ignorado (o R03 da estabilidade, rodada 2; EST-11) (3 falha(s); ex.: not ok 16 - executor (EST-11): o sinal durante a espera das portas entre os grupos para a execução: o grupo seguinte não)
+MORTO      S06 interrupção depois do último grupo aprovada (1 falha(s); ex.: not ok 17 - executor (EST-11): o sinal depois do último grupo reprova a execução com 128 + o sinal, mesmo com todos os t)
+MORTO      T01 o SIGINT só ao processo do npx, não ao grupo (ADV-R2-02) (2 falha(s); ex.: not ok 14 - executor (EST-02): SIGTERM no executor, SIGTERM no grupo de processos dele e Ctrl+C viram um SIGINT só ao gr)
+MORTO      K01 o firebase-debug.log não é guardado por link (EST-R3-01) (1 falha(s); ex.: not ok 20 - executor (EST-R3-01): o firebase-debug.log que o firebase-tools apaga ao sair limpo fica guardado com o grup)
+MORTO      X09 os relatórios de uma execução anterior não são apagados (EST-R3-02) (1 falha(s); ex.: not ok 21 - executor (EST-R3-02): o relatório de uma execução anterior não conta: o grupo que não escreve o seu reprova )
+MORTO      U01 só o primeiro sinal é repassado (o U01 da revisão adversarial, rodada 3; ADV-R3-03) (1 falha(s); ex.: not ok 18 - executor (ADV-R3-03): cada sinal recebido vira um SIGINT ao grupo em curso; o segundo chega ao Playwright, q)
+MORTO      U17 o grupo morto por sinal conta como saída 0 (o U17 da revisão adversarial, rodada 3; ADV-R3-03) (1 falha(s); ex.: not ok 19 - executor (ADV-R3-03): o grupo morto por sinal é falha, mesmo com o relatório completo e todos os testes pass)
+MORTO      S10 cada sinal tratado uma vez só (process.once: o segundo mata o executor; EST-R3-02) (1 falha(s); ex.: not ok 18 - executor (ADV-R3-03): cada sinal recebido vira um SIGINT ao grupo em curso; o segundo chega ao Playwright, q)
+total: 10/10 mortos

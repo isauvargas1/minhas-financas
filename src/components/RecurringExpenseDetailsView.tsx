@@ -33,6 +33,7 @@ import {
 import { RECURRING_AMOUNT_HISTORY_LIMIT, RECURRING_OPEN_OCCURRENCES_LIMIT } from '../modules/recurring/api.ts';
 import type { RecurringOccurrence, RecurringStatus } from '../modules/recurring/types.ts';
 import { formatCents, formatDayKey, saoPauloToday } from '../modules/loans/money.ts';
+import { useMoneyDisplay } from '../modules/work-time/display.tsx';
 import { BackIcon, DynamicIcon, CalendarIcon, WarningIcon, TrendingUpIcon, BuildingIcon } from './Icons.tsx';
 import CashAccountSelect from './accounts/CashAccountSelect.tsx';
 import ConfirmationModal from './ConfirmationModal.tsx';
@@ -85,6 +86,7 @@ interface ActivePanel {
 const RecurringExpenseDetailsView: React.FC<RecurringExpenseDetailsViewProps> = ({ expenseId, onBack, creditCards }) => {
     const { activeWorkspace, activeWorkspaceRole } = useWorkspace();
     const { user } = useAuth();
+    const display = useMoneyDisplay();
     const isPJ = activeWorkspace.type === 'PJ';
 
     const { data: expense, isLoading: isExpenseLoading } = useRecurringExpense(expenseId);
@@ -420,7 +422,7 @@ const RecurringExpenseDetailsView: React.FC<RecurringExpenseDetailsViewProps> = 
 
                             <div className="flex flex-wrap gap-3 text-sm">
                                 <div className="flex items-center gap-1.5 text-on-surface bg-background px-3 py-1.5 rounded-lg border border-border">
-                                    <span className="font-bold text-lg">{formatCents(expense.amountCents)}</span>
+                                    <span className="font-bold text-lg">{display.cents(expense.amountCents, formatCents)}</span>
                                     <span className="text-xs text-muted">/ {FREQUENCY_LABELS[expense.frequency].toLowerCase()}</span>
                                 </div>
                                 <div className="flex items-center gap-1.5 text-on-surface bg-background px-3 py-1.5 rounded-lg capitalize border border-border">
@@ -673,7 +675,7 @@ const RecurringExpenseDetailsView: React.FC<RecurringExpenseDetailsViewProps> = 
                                                     </div>
                                                 </div>
                                                 <div className="text-right flex flex-col items-end">
-                                                    <p className="font-bold text-on-surface">{formatCents(expense.amountCents)}</p>
+                                                    <p className="font-bold text-on-surface">{display.cents(expense.amountCents, formatCents)}</p>
                                                 </div>
                                             </MotionDiv>
                                         );
@@ -714,7 +716,7 @@ const RecurringExpenseDetailsView: React.FC<RecurringExpenseDetailsViewProps> = 
                                                     {generated ? factStateLabel(fact) : OCCURRENCE_STATUS_LABELS.ignored}
                                                 </span>
                                                 <span className={`text-sm font-medium ${generated ? 'text-on-surface' : 'text-muted line-through'}`}>
-                                                    {formatCents(fact?.amountCents ?? occ.actualAmountCents ?? occ.plannedAmountCents)}
+                                                    {display.cents(fact?.amountCents ?? occ.actualAmountCents ?? occ.plannedAmountCents, formatCents)}
                                                 </span>
                                             </div>
                                         </div>

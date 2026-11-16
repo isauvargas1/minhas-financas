@@ -1,0 +1,4 @@
+{"verdict":{"date":"2026-10-02","routines":[0],"cause":{"kind":"reduced_eve","date":"2026-10-01"}},"eveCertainGlobal":false,"periodView":{"oct1":[1000,false,["reduced"]],"oct2":[240,true,[]],"total":8920,"ambiguousDays":["2026-10-02"]},"monthView":{"oct1":[960,false,[]],"oct2":[240,true,[]],"total":8880}}
+{"secondDayNone":240,"secondDayAll":120,"note":"no período, o dia 1 conta 1000 de 1200 min de janela (a redução corta); a parte trabalhada não é conhecida"}
+{"estimate":"unavailable","workMinutes":0,"hourlyRateCents":null}
+{"semQuarta":{"date":"2026-10-02","routines":[0],"cause":{"kind":"reduced_eve","date":"2026-10-01"}},"oct2":[240,true,[]]}

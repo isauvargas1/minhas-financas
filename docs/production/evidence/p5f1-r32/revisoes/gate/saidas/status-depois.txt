@@ -1,0 +1,116 @@
+ M .github/workflows/quality-gate.yml
+ M README.md
+ M docs/production/ARCHITECTURE.md
+ M docs/production/AUTH_RBAC_WORKSPACES.md
+ M docs/production/BACKUP_RESTORE_DR.md
+ M docs/production/DATA_MODEL.md
+ M docs/production/DATA_RETENTION_LIFECYCLE.md
+ M docs/production/FIREBASE_PRODUCTION.md
+ M docs/production/OBSERVABILITY.md
+ M docs/production/PRIVACY_LGPD.md
+ M docs/production/PRODUCTION_READINESS_PLAN.md
+ M docs/production/RUNBOOKS.md
+ M docs/production/SECURITY_MODEL.md
+ M docs/production/THREAT_MODEL.md
+ M firestore.indexes.json
+ M firestore.rules
+ M functions/src/cash/__tests__/dayProjection.test.ts
+ M functions/src/cash/__tests__/rebuildFence.integration.test.ts
+ M functions/src/cash/periods.ts
+ M functions/src/cash/rebuild.ts
+ M functions/src/receivables/__tests__/receivableLifecycle.integration.test.ts
+ M functions/src/triggers/transactions.ts
+ M package.json
+ M playwright.config.ts
+ M src/App.tsx
+ M src/components/ClientsReceivablesView.tsx
+ M src/components/CreditCardsView.tsx
+ M src/components/DistributionChart.tsx
+ M src/components/GoalCard.tsx
+ M src/components/GoalDetailsView.tsx
+ M src/components/Header.tsx
+ M src/components/LoanCard.tsx
+ M src/components/LoanDetailsView.tsx
+ M src/components/LoansView.tsx
+ M src/components/PJLoanCard.tsx
+ M src/components/PJLoanDetailsView.tsx
+ M src/components/PJLoansView.tsx
+ M src/components/PersonalizationView.tsx
+ M src/components/RecentTransactions.tsx
+ M src/components/RecurringDashboardWidget.tsx
+ M src/components/RecurringExpenseCard.tsx
+ M src/components/RecurringExpenseDetailsView.tsx
+ M src/components/RecurringExpenseList.tsx
+ M src/components/RecurringExpensesView.tsx
+ M src/components/ReportsChartsView.tsx
+ M src/components/ReportsOverview.tsx
+ M src/components/ReportsWidget.tsx
+ M src/components/SettingsView.tsx
+ M src/components/SplitBillDetailsModal.tsx
+ M src/components/SplitGroupCard.tsx
+ M src/components/SplitGroupCharts.tsx
+ M src/components/SplitGroupDetailsView.tsx
+ M src/components/SplitGroupList.tsx
+ M src/components/TransactionsView.tsx
+ M src/components/accounts/CashAccountsView.tsx
+ M src/components/cards/CardInvoiceDetailsDrawer.tsx
+ M src/modules/investments/simple/api.ts
+ M src/modules/investments/simple/components/AllocationPanels.tsx
+ M src/modules/investments/simple/components/SimpleInvestmentsView.tsx
+ M src/modules/reports/adapter.ts
+ M src/modules/reports/hooks.ts
+ M src/modules/reports/liveRefresh.ts
+ M src/modules/reports/queryKeys.ts
+ M src/modules/reports/types.ts
+ M src/modules/transactions/api.ts
+ M src/modules/transactions/hooks.ts
+ M src/types.ts
+ M tests/unit/report-live-refresh.test.ts
+ M tests/unit/report-range.test.ts
+?? docs/production/evidence/p5f/
+?? docs/production/evidence/p5f1-r1/
+?? docs/production/evidence/p5f1-r2a/
+?? docs/production/evidence/p5f1-r3/
+?? docs/production/evidence/p5f1-r31/
+?? docs/production/evidence/p5f1-r32/
+?? docs/production/evidence/p5f1/
+?? e2e/work-time-b03.spec.ts
+?? e2e/work-time-p5f.spec.ts
+?? functions/src/cash/__tests__/incomeClassificationFixture.test.ts
+?? functions/src/cash/__tests__/projectionMarks.integration.test.ts
+?? functions/src/cash/__tests__/projectionMarks.test.ts
+?? functions/src/cash/projectionMarks.ts
+?? functions/src/receivables/__tests__/receivableReversalIdsFixture.test.ts
+?? src/components/WorkTimeSettingsView.tsx
+?? src/components/workTime/
+?? src/modules/reports/basisRefresh.ts
+?? src/modules/reports/basisRegistry.ts
+?? src/modules/reports/basisSync.ts
+?? src/modules/transactions/incomeReads.ts
+?? src/modules/transactions/paging.ts
+?? src/modules/work-time/
+?? tests/firestore/cash-projection-marks-p5f1r3-ataques.rules.integration.test.mjs
+?? tests/firestore/cash-projection-marks-p5f1r3.rules.integration.test.mjs
+?? tests/firestore/work-time-p5f.rules.integration.test.mjs
+?? tests/fixtures/cash-income-classification.json
+?? tests/fixtures/projection-mark-views.json
+?? tests/fixtures/receivable-reversal-ids.json
+?? tests/fixtures/transaction-fingerprints.json
+?? tests/fixtures/work-time-grammar-cases.json
+?? tests/tools/e2e-grupos.test.mjs
+?? tests/tools/integracao-marco.test.mjs
+?? tests/unit/report-basis-refresh.test.ts
+?? tests/unit/report-basis-sync.test.ts
+?? tests/unit/report-live-refresh-freshness.test.ts
+?? tests/unit/transactions-paging.test.ts
+?? tests/unit/work-time-calculation.test.ts
+?? tests/unit/work-time-calendar.test.ts
+?? tests/unit/work-time-consistency.test.ts
+?? tests/unit/work-time-estimate.test.ts
+?? tests/unit/work-time-grammar.test.ts
+?? tests/unit/work-time-guard.test.ts
+?? tests/unit/work-time-income-estimate.test.ts
+?? tests/unit/work-time-preference.test.ts
+?? tests/unit/work-time-projection-proof.test.ts
+?? tools/e2e/
+?? tools/integracao/

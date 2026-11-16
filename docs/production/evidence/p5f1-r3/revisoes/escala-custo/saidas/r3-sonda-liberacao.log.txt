@@ -1,0 +1,36 @@
+TAP version 13
+# [
+#  {
+#   "cenario": "diverge e volta (receita lançada e anulada antes da releitura das bases)",
+#   "ciclos": 20,
+#   "provasNaCarga": 1,
+#   "releiturasDaBaseNaCarga": 1,
+#   "provasDepois": 20,
+#   "leiturasPorIdDepois": 20,
+#   "releiturasDaBaseDepois": 0
+#  },
+#  {
+#   "cenario": "só diverge (receitas que só crescem, sem releitura das bases)",
+#   "ciclos": 20,
+#   "provasNaCarga": 1,
+#   "releiturasDaBaseNaCarga": 1,
+#   "provasDepois": 0,
+#   "leiturasPorIdDepois": 0,
+#   "releiturasDaBaseDepois": 0
+#  }
+# ]
+# Subtest: sonda: liberação por convergência relê a prova sem orçamento; divergência sem volta não relê
+ok 1 - sonda: liberação por convergência relê a prova sem orçamento; divergência sem volta não relê
+  ---
+  duration_ms: 2927.606793
+  type: 'test'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 3201.520315

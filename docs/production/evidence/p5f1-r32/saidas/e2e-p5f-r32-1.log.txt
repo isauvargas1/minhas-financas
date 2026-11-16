@@ -1,0 +1,8 @@
+
+Running 19 tests using 1 worker
+
+(node:24850) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   1 [chromium] › e2e/work-time-p5f.spec.ts:265:1 › desativado por padrão; assistente na primeira ativação, cancelar não grava, alternância e persistência entre sessões e dispositivos (5.0m)
+(node:26526) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN
+(Use `node --trace-warnings ...` to show where the warning was created)

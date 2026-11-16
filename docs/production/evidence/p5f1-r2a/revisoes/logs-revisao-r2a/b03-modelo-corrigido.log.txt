@@ -1,0 +1,15 @@
+{
+ "contraexemplo": {
+  "provaComT_v1_marcaDepoisDoInstante": false,
+  "provaComT_v1_marcaAntesDoInstante": false,
+  "depoisDe_e2_comT_v3": true,
+  "exatoDepoisDe_e2": true
+ },
+ "propriedade": {
+  "samples": 200000,
+  "proven": 234791,
+  "falseProofs": 0,
+  "outOfOrder": 147668,
+  "monthChanges": 224938
+ }
+}

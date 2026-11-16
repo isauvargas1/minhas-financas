@@ -1,0 +1,16 @@
+{
+ "contraexemplo": {
+  "provaComT_v1_marcaDepoisDoInstante": true,
+  "provaComT_v1_marcaAntesDoInstante": true,
+  "depoisDe_e2_comT_v3": true,
+  "exatoDepoisDe_e2": true
+ },
+ "propriedade": {
+  "samples": 200000,
+  "proven": 118412,
+  "falseProofs": 71,
+  "outOfOrder": 147668,
+  "monthChanges": 224938
+ }
+}
+{"versions":[{"month":"","cents":0},{"month":"2026-01","cents":20000},{"month":"2026-02","cents":30000},{"month":"2026-02","cents":20000},{"month":"2026-02","cents":30000}],"processAt":[0,1.1495391498319805,7.144796723034233,7.2477481621317565,4.0119562414474785],"tSnap":4.071206132881343,"tT":1.292627602815628,"tMark":5.789355430752039,"v":1}

@@ -1,0 +1,13 @@
+vazão de transactionFingerprint (1 núcleo, Node v22.23.4): 203.011 impressões/s
+
+Caso A (versão de criação, instante conhecido por createdAt): CONFIRMADA {"description":"Sessão de terapia com Dra. Ana Exemplo","category":"Saúde"} em 49.388 tentativas, 277 ms
+Caso B (versão de edição, janela de 25 ms em µs × 40 categorias): CONFIRMADA {"category":"Saúde","updatedAt":"1790050000.987654"} em 453.868 tentativas, 2.5 s
+
+Extrapolação pela vazão medida (1 núcleo de CPU; GPU dedicada é ordens de grandeza mais rápida):
+  A: 1 hipótese (instante conhecido): 1.0e+0 impressões ≈ 0.0 s
+  A: 40 categorias × 365 datas: 1.5e+4 impressões ≈ 0.1 s
+  A: 10^6 descrições (dicionário): 1.0e+6 impressões ≈ 4.9 s
+  B: janela 1 s em µs × 1 hipótese: 1.0e+6 impressões ≈ 4.9 s
+  B: janela 1 s em µs × 40 categorias: 4.0e+7 impressões ≈ 3.3 min
+  B: janela 5 s em µs × 40 categorias × 365 datas: 7.3e+10 impressões ≈ 4.2 dias
+  B: janela 5 s em µs × 10^6 descrições livres: 5.0e+12 impressões ≈ 285.1 dias

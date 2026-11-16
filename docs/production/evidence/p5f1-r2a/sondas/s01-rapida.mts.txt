@@ -1,0 +1,12 @@
+const root = process.argv[2];
+const cal = await import(`${root}/src/modules/work-time/calendar.ts`);
+const win = (s: string, e: string, b = 0) => ({ kind: 'window', start: +s.slice(0, 2) * 60 + +s.slice(3), end: +e.slice(0, 2) * 60 + +e.slice(3), breakMinutes: b });
+const OFF = { kind: 'off' };
+const routines = [{ kind: 'weekly', days: [win('20:00', '06:00'), win('00:00', '08:00'), OFF, OFF, OFF, OFF, OFF] }];
+const base = { routines, worksOnHolidays: true, localHolidays: [], exceptions: [] };
+const reduced = { ...base, exceptions: [{ kind: 'reduced', start: '2026-10-05', end: '2026-10-05', minutes: 480 }] };
+for (const [name, c] of [['sem redução', base], ['com redução', reduced]] as const) {
+  const mon = cal.dayPlan(c, '2026-10-05'); const tue = cal.dayPlan(c, '2026-10-06');
+  console.log(name, { seg: mon.minutes, ter: tue.minutes, ambiguaTer: tue.ambiguous, vesperaReduzida: tue.reducedEve, soma: mon.minutes + tue.minutes });
+  console.log('  conferidor:', JSON.stringify(cal.calendarAmbiguity(c, '2026-11-06')));
+}

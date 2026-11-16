@@ -1,0 +1,15 @@
+"""P5-F: G32, G33 e G34 contra a guarda ANTERIOR ao teste estrutural da sessão.
+Prova por que o teste "sessão: troca de conta e respostas atrasadas" entrou. Cópias fora do worktree."""
+import importlib.util, shutil
+S = '<scratchpad>'
+spec = importlib.util.spec_from_file_location('m', f'{S}/p5f/mutantes.py'); m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
+PREVIOUS = f'{S}/p5f/guarda-r3b-anterior.test.ts'
+for mid in ('ORIG', 'G32', 'G33', 'G34'):
+    target = m.prepare(f'anterior-sessao-{mid}')
+    shutil.copy2(PREVIOUS, f'{target}/{m.GUARD}')
+    for mutant_id, desc, test_file, edits in m.MUTANTS:
+        if mutant_id == mid:
+            for path, old, new in edits: m.apply(target, path, old, new)
+    code, failed = m.run(target, m.GUARD)
+    print(f"{mid:<5} guarda anterior: {'MORTO' if code else 'VIVO (passa)'} {failed}")
+    shutil.rmtree(target)

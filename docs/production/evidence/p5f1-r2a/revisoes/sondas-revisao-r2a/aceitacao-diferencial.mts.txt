@@ -1,0 +1,24 @@
+// Sonda do revisor (segunda rodada): o custo da regra "bruta" do T01 — configurações aceitas numa árvore e recusadas na
+// outra, nos mesmos geradores das sondas de solidez. Uso:
+// node --experimental-strip-types aceitacao-diferencial.mts <raiz antiga> <raiz nova> <amostras> <semente>
+import { rng, genRoutine, genExceptions } from './lib.mts';
+const [rootOld, rootNew, samplesArg, seedArg] = process.argv.slice(2);
+const A = await import(`${rootOld}/src/modules/work-time/calendar.ts`);
+const B = await import(`${rootNew}/src/modules/work-time/calendar.ts`);
+const dates = await import(`${rootNew}/src/modules/work-time/dates.ts`);
+const N = Number(samplesArg ?? 3000); const next = rng(Number(seedArg ?? 1));
+const profiles = ['mix', 'night', 'early', 'shift', 'break'] as const;
+const stats = { samples: 0, bothAccepted: 0, bothRefused: 0, newlyRefused: 0, newlyAccepted: 0, newlyRefusedReducedEve: 0, withReducedNight: 0 };
+const examples: any[] = [];
+for (let s = 0; s < N; s += 1) {
+  stats.samples += 1;
+  const profile = profiles[s % profiles.length];
+  const c = { routines: Array.from({ length: 1 + Math.floor(next() * 3) }, () => genRoutine(next, profile)), exceptions: genExceptions(next, dates, '2026-09-20', 75), localHolidays: [], worksOnHolidays: next() < 0.5 };
+  const a = A.calendarAmbiguity(c, '2026-11-06'); const b = B.calendarAmbiguity(c, '2026-11-06');
+  if (a === null && b === null) stats.bothAccepted += 1;
+  else if (a !== null && b !== null) stats.bothRefused += 1;
+  else if (a === null) { stats.newlyRefused += 1; if (b.cause.kind === 'reduced_eve') stats.newlyRefusedReducedEve += 1; if (examples.length < 3) examples.push({ b, c }); }
+  else { stats.newlyAccepted += 1; if (examples.length < 6) examples.push({ newlyAccepted: true, a, c }); }
+}
+console.log(JSON.stringify(stats));
+for (const e of examples) console.log(JSON.stringify(e).slice(0, 1500));

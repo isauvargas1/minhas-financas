@@ -1,0 +1,1 @@
+{"samples":3000,"monthsCompared":12000,"differentLaterDays":0,"differentFirstDays":2772,"firstDayCutInPeriodOnlyButCertain":4}

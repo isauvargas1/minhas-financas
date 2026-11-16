@@ -1,0 +1,48 @@
+#!/usr/bin/env python3
+"""P5-F.1, revisão 8: atualiza mutantes.py (os trechos que mudaram e os mutantes novos). Cada troca exige
+exatamente uma ocorrência do trecho antigo; os novos entram depois do último (U151), sem renumerar ninguém."""
+import sys
+from pathlib import Path
+
+P = Path(sys.argv[1])
+s = P.read_text(encoding='utf-8')
+
+
+def rep(old, new):
+    global s
+    count = s.count(old)
+    assert count == 1, (count, old[:100])
+    s = s.replace(old, new)
+
+
+# alvos que mudaram com a revisão 8 (mesma intenção): todo pedido de releitura passa pelo registro, que guarda a ordem dele
+rep('''  ('base', 'src/modules/reports/basisSync.ts', '    if (decision.notify) entry.scheduler.notify();', '    entry.scheduler.notify();', T('report-basis-sync', 'work-time-guard')),''',
+    '''  ('base', 'src/modules/reports/basisSync.ts', '    if (decision.notify) scheduleBasisReread(refreshKey, entry.scheduler);', '    scheduleBasisReread(refreshKey, entry.scheduler);', T('report-basis-sync', 'work-time-guard')),''')
+rep('''  ('mutação', 'src/modules/reports/basisRegistry.ts', '    entry.mutationScheduler.notify();', '    entry.scheduler.notify();', T('report-basis-sync', 'work-time-guard')),''',
+    '''  ('mutação', 'src/modules/reports/basisRegistry.ts', '    scheduleBasisReread(key, entry.mutationScheduler);', '    scheduleBasisReread(key, entry.scheduler);', T('report-basis-sync', 'work-time-guard')),''')
+# novos: revisão 8, depois do U151 (o último da lista)
+rep('''  ('estimativa', 'src/modules/work-time/useIncomeEstimateWith.ts', '      fetching: series.isFetching || (needsExtra && extra.isFetching),', '      fetching: false,', T('work-time-guard', 'work-time-income-estimate')),
+]''',
+    '''  ('estimativa', 'src/modules/work-time/useIncomeEstimateWith.ts', '      fetching: series.isFetching || (needsExtra && extra.isFetching),', '      fetching: false,', T('work-time-guard', 'work-time-income-estimate')),
+  # revisão 8: com mais de uma base, a base nova sem pedido espera a releitura pendente de qualquer uma, nos
+  # dois agendadores, pedida depois do começo da última leitura dela; a leitura com dados zera as falhas
+  # também sem a base desatualizada, e a falha da releitura da mutação não conta (R8-01); a fiação de
+  # `fetching` e a leitura cruzada provadas por comportamento, sem a guarda (R8-03)
+  ('agendada', 'src/modules/reports/basisSync.ts', '    if (current.keys.length > 1 && current.keys.some(basisRereadScheduled)) return;\\n', '', T('report-basis-sync')),
+  ('agendada', 'src/modules/reports/basisSync.ts', '    if (current.keys.length > 1 && current.keys.some(basisRereadScheduled)) return;', '    if (current.keys.some(basisRereadScheduled)) return;', T('report-basis-sync')),
+  ('agendada', 'src/modules/reports/basisRegistry.ts', '  if (entry === undefined || !(entry.scheduler.scheduled() || entry.mutationScheduler.scheduled())) return false;', '  if (entry === undefined || !entry.scheduler.scheduled()) return false;', T('report-basis-sync')),
+  ('agendada', 'src/modules/reports/basisRegistry.ts', '  if (entry === undefined || !(entry.scheduler.scheduled() || entry.mutationScheduler.scheduled())) return false;', '  if (entry === undefined || !entry.mutationScheduler.scheduled()) return false;', T('report-basis-sync')),
+  ('agendada', 'src/modules/reports/liveRefresh.ts', '        scheduled: () => pending !== null,', '        scheduled: () => false,', T('report-live-refresh', 'report-basis-sync')),
+  ('teto', 'src/modules/reports/basisSync.ts', '      if (dataUpdatedAt !== entry.failure.dataUpdatedAt) entry.failure = { ...entry.failure, dataUpdatedAt, failures: 0 };\\n', '', T('report-basis-sync')),
+  ('teto', 'src/modules/reports/basisSync.ts', '    if (!isStale) {', '    if (false) {', T('report-basis-sync', 'work-time-income-estimate')),
+  ('teto', 'src/modules/reports/basisSync.ts', '      if (dataUpdatedAt !== entry.failure.dataUpdatedAt) entry.failure = { ...entry.failure, dataUpdatedAt, failures: 0 };', '      entry.failure = basisRefreshAfter(entry.failure, { dataUpdatedAt, errorUpdatedAt }, BASIS_RETRIES_AFTER_ERROR).state;', T('report-basis-sync')),
+  ('estimativa', 'src/modules/work-time/useIncomeEstimateWith.ts', '  }, [series.data, series.dataUpdatedAt, series.isFetching, extra.data, extra.dataUpdatedAt, extra.isFetching, needsExtra, extraMonth, extraRange, uid, workspaceId]);', '  }, [series.data, series.dataUpdatedAt, extra.data, extra.dataUpdatedAt, needsExtra, extraMonth, extraRange, uid, workspaceId]);', T('work-time-income-estimate')),
+  ('estimativa', 'src/modules/work-time/useIncomeEstimateWith.ts', '      fetching: series.isFetching || (needsExtra && extra.isFetching),', '      fetching: series.isFetching,', T('work-time-income-estimate')),
+  ('estimativa', 'src/modules/work-time/useIncomeEstimateWith.ts', '      fetching: series.isFetching || (needsExtra && extra.isFetching),', '      fetching: false,', T('work-time-income-estimate')),
+  ('cruzada', 'src/modules/reports/basisSync.ts', '      current.versions[index] !== before.versions[index] && (basisFetchStarts.get(basisKey) ?? -1) < serverSnapshotCount(key));', '      (basisFetchStarts.get(basisKey) ?? -1) < serverSnapshotCount(key));', T('report-basis-sync')),
+  ('agendada', 'src/modules/reports/basisRegistry.ts', '  return (rereadRequestedAt.get(key) ?? 0) > (readStartedAt.get(key) ?? 0);', '  return true;', T('report-basis-sync')),
+  ('agendada', 'src/modules/reports/basisSync.ts', '      noteBasisReadStart(refreshKey);\\n', '', T('report-basis-sync')),
+  ('agendada', 'src/modules/reports/basisRegistry.ts', '  rereadRequestedAt.set(key, basisOrder);\\n', '', T('report-basis-sync')),
+]''')
+P.write_text(s, encoding='utf-8')
+print('ok')

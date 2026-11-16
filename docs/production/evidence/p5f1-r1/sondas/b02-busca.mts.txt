@@ -1,0 +1,73 @@
+// Sonda B02 (revisão independente): busca aleatória adversarial de contraexemplos de monotonia
+// (acrescentar uma rotina válida nunca tira horas), na janela da estimativa com periodStart.
+// Cópia da R1: a mesma busca, as mesmas contagens e, a mais, a configuração aceita pela gravação de agora
+// (calendarAmbiguity, o conferidor do calendário inteiro) com dia ambíguo na janela, que deve ser 0.
+const root = process.argv[2];
+const SAMPLES = Number(process.argv[3] ?? 20000);
+const SEED = Number(process.argv[4] ?? 7);
+const cal = await import(`${root}/src/modules/work-time/calendar.ts`);
+const dates = await import(`${root}/src/modules/work-time/dates.ts`);
+let seed = SEED;
+const rnd = () => { seed = (seed + 0x6d2b79f5) | 0; let v = Math.imul(seed ^ (seed >>> 15), 1 | seed); v = (v + Math.imul(v ^ (v >>> 7), 61 | v)) ^ v; return ((v ^ (v >>> 14)) >>> 0) / 4294967296; };
+const pick = <T,>(a: readonly T[]) => a[Math.floor(rnd() * a.length)];
+const G = 60; // granularidade
+const OFF = { kind: 'off' };
+const randWindow = () => {
+  const start = Math.floor(rnd() * (1440 / G)) * G;
+  const len = (1 + Math.floor(rnd() * (1440 / G))) * G; // até 24 h
+  const end = (start + len) % 1440;
+  const L = len === 1440 ? 1440 : len;
+  const b = rnd() < 0.5 ? 0 : Math.min(L - G, Math.floor(rnd() * (L / G)) * G);
+  return { kind: 'window', start, end, breakMinutes: Math.max(0, b) };
+};
+const randDay = () => { const r = rnd(); if (r < 0.12) return { kind: 'duration', minutes: (1 + Math.floor(rnd() * 24)) * 60 }; return randWindow(); };
+const randRoutine = () => rnd() < 0.6
+  ? { kind: 'weekly', days: Array.from({ length: 7 }, () => (rnd() < 0.4 ? OFF : randDay())) }
+  : { kind: 'cyclic', reference: dates.addDays('2026-01-01', Math.floor(rnd() * 30)), workDays: 1 + Math.floor(rnd() * 4), restDays: Math.floor(rnd() * 4), day: randDay() };
+const randDate = () => dates.addDays('2026-07-28', Math.floor(rnd() * 100));
+const randExceptions = () => Array.from({ length: Math.floor(rnd() * 10) }, () => {
+  const start = randDate(); const end = dates.addDays(start, Math.floor(rnd() * 5));
+  const minutes = (1 + Math.floor(rnd() * 24)) * 60;
+  switch (pick(['vacation', 'day_off', 'absence', 'holiday_worked', 'on_call', 'overtime', 'reduced', 'schedule_change'] as const)) {
+    case 'vacation': return { kind: 'vacation', start, end };
+    case 'day_off': return { kind: 'day_off', start, end };
+    case 'absence': return { kind: 'absence', start, end };
+    case 'holiday_worked': return { kind: 'holiday_worked', date: pick(['2026-09-07', '2026-10-12', start]) };
+    case 'on_call': return { kind: 'on_call', date: start, minutes };
+    case 'overtime': return { kind: 'overtime', date: start, minutes };
+    case 'reduced': return { kind: 'reduced', start, end, minutes };
+    default: return { kind: 'schedule_change', date: start, minutes: Math.floor(rnd() * 25) * 60 };
+  }
+});
+const WINDOWS = [['2026-08', '2026-09', '2026-10'], ['2026-10'], ['2026-09', '2026-10']];
+const total = (c: any, months: string[]) => {
+  let t = 0; let amb = false;
+  months.forEach((m, i) => { const p = cal.monthPlan(c, m, { periodStart: i === 0 }); t += p.minutes; if ((p.ambiguousDays ?? []).length > 0) amb = true; });
+  return { t, amb };
+};
+let checked = 0, found = 0, refusedSaveButAmbiguous = 0, ambiguousRefused = 0, calendarAccepted = 0, calendarAcceptedButAmbiguous = 0;
+const examples: any[] = [];
+const t0 = performance.now();
+for (let s = 0; s < SAMPLES; s++) {
+  const routines = Array.from({ length: 1 + Math.floor(rnd() * 3) }, randRoutine);
+  const extra = { exceptions: randExceptions(), worksOnHolidays: rnd() < 0.4, localHolidays: rnd() < 0.4 ? [{ kind: 'date', date: randDate() }, { kind: 'annual', month: 9, day: Math.floor(1 + rnd() * 28) }] : [] };
+  const added = [...routines, randRoutine()];
+  const months = pick(WINDOWS);
+  const b = total({ ...extra, routines }, months);
+  const a = total({ ...extra, routines: added }, months);
+  if (cal.routinesAmbiguity) {
+    // Configuração aceita ao salvar (routinesAmbiguity nula) mas com dia ambíguo na janela (exceções/feriados).
+    if (!cal.routinesAmbiguity(added, '2026-11-05') && a.amb) { refusedSaveButAmbiguous++; if (examples.filter((e) => e.kind === 'aceita-ambigua').length < 2) examples.push({ kind: 'aceita-ambigua', routines: added, extra, months }); }
+  }
+  if (cal.calendarAmbiguity) {
+    if (cal.calendarAmbiguity({ ...extra, routines: added }, '2026-11-05') === null) {
+      calendarAccepted++;
+      if (a.amb) { calendarAcceptedButAmbiguous++; if (examples.filter((e) => e.kind === 'calendario-aceita-ambigua').length < 3) examples.push({ kind: 'calendario-aceita-ambigua', routines: added, extra, months }); }
+    }
+  }
+  if (b.amb || a.amb) { ambiguousRefused++; continue; }
+  checked++;
+  if (a.t < b.t) { found++; if (examples.filter((e) => e.kind === 'monotonia').length < 3) examples.push({ kind: 'monotonia', before: b.t, after: a.t, routines, added: added.at(-1), extra, months }); }
+}
+console.log(JSON.stringify({ samples: SAMPLES, checked, ambiguousRefused, violations: found, acceptedAtSaveButAmbiguousInWindow: refusedSaveButAmbiguous, acceptedByCalendarAmbiguity: calendarAccepted, acceptedByCalendarAmbiguityButAmbiguousInWindow: calendarAcceptedButAmbiguous, ms: Math.round(performance.now() - t0) }));
+for (const e of examples) console.log(JSON.stringify(e));

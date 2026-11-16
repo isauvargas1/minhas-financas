@@ -4,6 +4,7 @@ import { useFinancialReportView } from '../modules/reports/hooks.ts';
 import { blockEmptyText } from '../modules/reports/adapter.ts';
 import { ReportIcon, WarningIcon, ChevronRightIcon, CheckIcon } from './Icons.tsx';
 import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
+import { useMoneyDisplay } from '../modules/work-time/display';
 
 interface ReportsWidgetProps {
     onNavigate: () => void;
@@ -21,6 +22,7 @@ const ReportsWidget: React.FC<ReportsWidgetProps> = ({ onNavigate }) => {
     const { snapshot, view, isLoading, isError, error } = useFinancialReportView('30d', WIDGET_SECTIONS);
     const { activeWorkspace } = useWorkspace();
     const isPJ = activeWorkspace.type === 'PJ';
+    const display = useMoneyDisplay();
 
     if (isLoading) {
         return (
@@ -69,7 +71,7 @@ const ReportsWidget: React.FC<ReportsWidgetProps> = ({ onNavigate }) => {
                 <div className="bg-background rounded-lg p-3 border border-border">
                     <span className="text-[10px] uppercase font-bold text-muted block mb-1">Resultado</span>
                     <span className={`text-lg font-bold truncate block ${balanceKPI?.value == null ? 'text-on-surface' : balanceKPI.value >= 0 ? 'text-success' : 'text-error'}`}>
-                        {balanceKPI?.formattedValue ?? '—'}
+                        {balanceKPI?.cents !== undefined ? display.cents(balanceKPI.cents, () => balanceKPI.formattedValue) : (balanceKPI?.formattedValue ?? '—')}
                     </span>
                     {balanceKPI?.value == null && (
                         <span className="text-[10px] text-muted block truncate">{balanceKPI?.description}</span>

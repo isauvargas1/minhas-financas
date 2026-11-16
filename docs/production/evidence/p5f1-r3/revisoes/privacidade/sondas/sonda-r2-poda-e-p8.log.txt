@@ -1,0 +1,8 @@
+1a. depois da publicação de R1, antes de qualquer regravação: fp(V1) PRESENTE em anchors.b.fp, chains.a.node.fp
+1b. correção V1 → V2 aplicada pelo gatilho (poda da g0): fp(V1) PRESENTE em anchors.b.fp, chains.b.base | visão R1: {"k":"alive","fp":"09934c320c7b3c5a73a7b1b947b7edc806fc2797f15736407999238c82641fa2"}
+2a. depois de R2 publicada: fp(V1) PRESENTE em anchors.b.fp, chains.b.base
+2b. depois de R3 publicada (duas reconstruções seguidas): fp(V1) PRESENTE em chains.b.base | visão R3: {"k":"alive","fp":"09934c320c7b3c5a73a7b1b947b7edc806fc2797f15736407999238c82641fa2"}
+2c. depois da próxima regravação pelo gatilho: fp(V1) ausente
+3. ordem certa (aplicar, apagar, reconstruir): fp(V1) ausente | visão R2: {"k":"alive","fp":"09934c320c7b3c5a73a7b1b947b7edc806fc2797f15736407999238c82641fa2"}
+4a. ordem errada: entrega da correção depois de apagar a marca: fp(V1) PRESENTE em chains.b.pending.0.b.fp | visão R1: {"kind":"rooted","root":"absent","base":null,"node":{"k":"absent"},"pending":[{"b":{"k":"alive","fp":"b5e39c8670e86fde899818487cc2a26b55663bbc20080c4171cd371f2b193e15"},"a":{"k":"alive","fp":"09934c320c7b3c5a73a7b1b947b7edc806fc2797f15736407999238c82641fa2"}}]}
+4b. ordem errada, depois da reconstrução R2 publicada: fp(V1) PRESENTE em chains.b.pending.0.b.fp | visão R2: {"k":"alive","fp":"09934c320c7b3c5a73a7b1b947b7edc806fc2797f15736407999238c82641fa2"}

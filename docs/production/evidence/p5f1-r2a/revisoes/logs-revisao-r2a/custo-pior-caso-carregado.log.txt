@@ -1,0 +1,18 @@
+== 5a7dad57
+{"label":"noturno x3, 120 reduções de 366 dias (de 2025-10)","ms":[1197,1030,1048],"verdict":null}
+{"label":"noturno x3, 120 reduções de 3 dias","ms":[24,23,16],"verdict":null}
+{"label":"coberta + 120 reduções de 366 dias + 40 feriados, sem trabalho em feriado","ms":[2142,1989,1958],"verdict":null}
+{"label":"coberta + 120 reduções de 366 dias + 40 feriados, trabalha em feriado","ms":[2664,2710,2258],"verdict":null}
+{"label":"cíclica 27x26 24 h + coberta + 120 reduções de 366 dias","ms":[2029,2292,2440],"verdict":{"date":"2099-11-26","cause":"reduced_eve"}}
+== cf9cb2a9
+{"label":"noturno x3, 120 reduções de 366 dias (de 2025-10)","ms":[825,658,709],"verdict":null}
+{"label":"noturno x3, 120 reduções de 3 dias","ms":[12,15,16],"verdict":null}
+{"label":"coberta + 120 reduções de 366 dias + 40 feriados, sem trabalho em feriado","ms":[1340,1337,1088],"verdict":null}
+{"label":"coberta + 120 reduções de 366 dias + 40 feriados, trabalha em feriado","ms":[1346,1187,1392],"verdict":null}
+{"label":"cíclica 27x26 24 h + coberta + 120 reduções de 366 dias","ms":[1212,1153,1297],"verdict":{"date":"2099-11-26","cause":"reduced_eve"}}
+== R1 08d8c5a2
+{"label":"noturno x3, 120 reduções de 366 dias (de 2025-10)","ms":[0,0,0],"verdict":null}
+{"label":"noturno x3, 120 reduções de 3 dias","ms":[0,0,0],"verdict":null}
+{"label":"coberta + 120 reduções de 366 dias + 40 feriados, sem trabalho em feriado","ms":[630,511,443],"verdict":null}
+{"label":"coberta + 120 reduções de 366 dias + 40 feriados, trabalha em feriado","ms":[444,504,477],"verdict":null}
+{"label":"cíclica 27x26 24 h + coberta + 120 reduções de 366 dias","ms":[457,532,459],"verdict":null}

@@ -1,0 +1,186 @@
+{
+ "s0-configuracoes-validas": {
+  "antes": "1440x5965",
+  "depois": "1440x5997",
+  "linhas_iguais": 5930,
+  "blocos": [
+   {
+    "op": "replace",
+    "antes_y": [
+     3361,
+     3370
+    ],
+    "depois_y": [
+     3361,
+     3370
+    ],
+    "altura_antes": 9,
+    "altura_depois": 9,
+    "pixels_diferentes": 314,
+    "caixa_x": [
+     819,
+     884
+    ]
+   },
+   {
+    "op": "insert",
+    "antes_y": [
+     3374,
+     3374
+    ],
+    "depois_y": [
+     3374,
+     3406
+    ],
+    "altura_antes": 0,
+    "altura_depois": 32
+   },
+   {
+    "op": "replace",
+    "antes_y": [
+     3524,
+     3527
+    ],
+    "depois_y": [
+     3556,
+     3559
+    ],
+    "altura_antes": 3,
+    "altura_depois": 3,
+    "pixels_diferentes": 10,
+    "caixa_x": [
+     268,
+     461
+    ]
+   },
+   {
+    "op": "replace",
+    "antes_y": [
+     3555,
+     3564
+    ],
+    "depois_y": [
+     3587,
+     3596
+    ],
+    "altura_antes": 9,
+    "altura_depois": 9,
+    "pixels_diferentes": 46,
+    "caixa_x": [
+     843,
+     886
+    ]
+   },
+   {
+    "op": "replace",
+    "antes_y": [
+     4032,
+     4033
+    ],
+    "depois_y": [
+     4064,
+     4065
+    ],
+    "altura_antes": 1,
+    "altura_depois": 1,
+    "pixels_diferentes": 1,
+    "caixa_x": [
+     265,
+     265
+    ]
+   },
+   {
+    "op": "replace",
+    "antes_y": [
+     4522,
+     4524
+    ],
+    "depois_y": [
+     4554,
+     4556
+    ],
+    "altura_antes": 2,
+    "altura_depois": 2,
+    "pixels_diferentes": 2,
+    "caixa_x": [
+     802,
+     802
+    ]
+   },
+   {
+    "op": "replace",
+    "antes_y": [
+     4570,
+     4572
+    ],
+    "depois_y": [
+     4602,
+     4604
+    ],
+    "altura_antes": 2,
+    "altura_depois": 2,
+    "pixels_diferentes": 2,
+    "caixa_x": [
+     623,
+     623
+    ]
+   },
+   {
+    "op": "replace",
+    "antes_y": [
+     4792,
+     4800
+    ],
+    "depois_y": [
+     4824,
+     4832
+    ],
+    "altura_antes": 8,
+    "altura_depois": 8,
+    "pixels_diferentes": 21,
+    "caixa_x": [
+     240,
+     911
+    ]
+   },
+   {
+    "op": "replace",
+    "antes_y": [
+     5334,
+     5335
+    ],
+    "depois_y": [
+     5366,
+     5367
+    ],
+    "altura_antes": 1,
+    "altura_depois": 1,
+    "pixels_diferentes": 2,
+    "caixa_x": [
+     267,
+     276
+    ]
+   }
+  ]
+ },
+ "s0-configuracoes-validas-salvar": {
+  "antes": "320x5725",
+  "depois": "320x5757",
+  "linhas_iguais": 5725,
+  "blocos": [
+   {
+    "op": "insert",
+    "antes_y": [
+     5725,
+     5725
+    ],
+    "depois_y": [
+     5725,
+     5757
+    ],
+    "altura_antes": 0,
+    "altura_depois": 32
+   }
+  ]
+ }
+}

@@ -1,0 +1,1 @@
+{"seed":299,"stats":{"samples":20000,"pairs":10977,"violations":0,"dependsOnPart":0,"acceptedPeriodDay2":11080}}

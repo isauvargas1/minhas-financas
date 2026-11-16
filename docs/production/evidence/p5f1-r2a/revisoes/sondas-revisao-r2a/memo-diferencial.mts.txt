@@ -1,0 +1,72 @@
+// Sonda do revisor (adendo cf9cb2a9): a memória por chamada do conferidor (`callMemo`) muda algum resultado?
+// Uso: node --experimental-strip-types memo-diferencial.mts <raiz 5a7dad57> <raiz cf9cb2a9> <amostras> <semente>
+import { rng, genRoutine, genExceptions } from './lib.mts';
+import assert from 'node:assert/strict';
+
+const [rootOld, rootNew, samplesArg, seedArg] = process.argv.slice(2);
+const A = await import(`${rootOld}/src/modules/work-time/calendar.ts`);
+const B = await import(`${rootNew}/src/modules/work-time/calendar.ts`);
+const dates = await import(`${rootNew}/src/modules/work-time/dates.ts`);
+const N = Number(samplesArg ?? 2000);
+const next = rng(Number(seedArg ?? 1));
+const profiles = ['mix', 'night', 'early', 'shift', 'break'] as const;
+const TODAYS = ['2026-11-06', '2026-01-15', '2027-03-01'];
+
+let differences = 0; let refused = 0; let msOld = 0; let msNew = 0; let worstOld = 0; let worstNew = 0;
+const examples: any[] = [];
+for (let s = 0; s < N; s += 1) {
+  const profile = profiles[s % profiles.length];
+  const c = {
+    routines: Array.from({ length: 1 + Math.floor(next() * 3) }, () => genRoutine(next, profile)),
+    exceptions: genExceptions(next, dates, '2026-09-20', 75),
+    localHolidays: next() < 0.2 ? [{ kind: 'annual', month: 1 + Math.floor(next() * 12), day: 1 + Math.floor(next() * 28) }] : [],
+    worksOnHolidays: next() < 0.5,
+  };
+  for (const today of TODAYS) {
+    let t = performance.now(); const a = A.calendarAmbiguity(c, today); const da = performance.now() - t;
+    t = performance.now(); const b = B.calendarAmbiguity(c, today); const db = performance.now() - t;
+    msOld += da; msNew += db; worstOld = Math.max(worstOld, da); worstNew = Math.max(worstNew, db);
+    if (a !== null) refused += 1;
+    if (JSON.stringify(a) !== JSON.stringify(b)) { differences += 1; if (examples.length < 5) examples.push({ today, a, b, c }); }
+  }
+  // Fora do conferidor, nada fica guardado: o plano do mês é o mesmo antes e depois de uma chamada.
+  if (s % 50 === 0) {
+    const before = JSON.stringify(B.monthPlan(c, '2026-10'));
+    B.calendarAmbiguity(c, '2026-11-06');
+    assert.equal(JSON.stringify(B.monthPlan(c, '2026-10')), before);
+    assert.equal(JSON.stringify(A.monthPlan(c, '2026-10')), before);
+  }
+}
+
+// Reentrância: um calendário cujas exceções, lidas, chamam o conferidor e o plano de outro calendário (chamada
+// aninhada), e um que lança exceção no meio da conferência.
+const w = (s: number, e: number) => ({ kind: 'window', start: s, end: e, breakMinutes: 0 });
+const OFF = { kind: 'off' };
+const routines = [{ kind: 'weekly', days: [w(1200, 360), w(0, 480), OFF, OFF, OFF, OFF, OFF] }];
+const reducedMonday = { kind: 'reduced', start: '2026-10-05', end: '2026-10-05', minutes: 480 };
+const other = { routines, worksOnHolidays: true, localHolidays: [], exceptions: [] as any[] };
+let depth = 0; let nestedCalls = 0;
+const reentrant: any = { routines, worksOnHolidays: true, localHolidays: [] };
+Object.defineProperty(reentrant, 'exceptions', { enumerable: true, get() {
+  if (depth === 0) { depth += 1; nestedCalls += 1; B.calendarAmbiguity(other, '2026-11-06'); B.dayPlan(other, '2026-10-06'); depth -= 1; }
+  return [reducedMonday];
+} });
+const plainReduced = { routines, worksOnHolidays: true, localHolidays: [], exceptions: [reducedMonday] };
+const r1 = B.calendarAmbiguity(reentrant, '2026-11-06');
+assert.deepEqual(r1, A.calendarAmbiguity(plainReduced, '2026-11-06'));
+assert.equal(B.calendarAmbiguity(other, '2026-11-06'), null);
+// exceção no meio da chamada
+let reads = 0; let throwAt = Infinity;
+const throwing: any = { routines, worksOnHolidays: true, localHolidays: [] };
+const list: any[] = [reducedMonday];
+Object.defineProperty(throwing, 'exceptions', { enumerable: true, get() { reads += 1; if (reads === throwAt) throw new Error('falha injetada'); return list; } });
+B.calendarAmbiguity(throwing, '2026-11-06'); const totalReads = reads; reads = 0; throwAt = Math.max(2, Math.floor(totalReads / 2));
+let threw = false;
+try { B.calendarAmbiguity(throwing, '2026-11-06'); } catch { threw = true; }
+// depois da exceção, o mesmo objeto, com a lista mudada, é conferido do zero
+list.pop();
+const after = B.calendarAmbiguity(throwing, '2026-11-06');
+const afterPlan = B.dayPlan(throwing, '2026-10-06');
+console.log(JSON.stringify({ samples: N, calls: N * TODAYS.length, refused, differences, msOld: Math.round(msOld), msNew: Math.round(msNew),
+  worstOld: Math.round(worstOld), worstNew: Math.round(worstNew), nestedCalls, reentrantOk: true, totalReads, throwAt, threw, afterThrow: after, afterThrowTuesday: [afterPlan.minutes, afterPlan.ambiguous] }, null, 1));
+for (const e of examples) console.log(JSON.stringify(e).slice(0, 2000));

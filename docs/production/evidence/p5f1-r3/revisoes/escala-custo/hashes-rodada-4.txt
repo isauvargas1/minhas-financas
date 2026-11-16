@@ -1,0 +1,11 @@
+Rodada 4 (firestore-scale-cost-review), 2026-11-09T23:01:27Z
+Arvores: codigo 377c2f3ff3cd1729a819e5be8d89dc06dea7cf93; documentos 998177124585f0e4ab478f2ddc0d42e421cbcb5f (W, indice temporario); base do diff ad1660a336f043c7331e158e9a85efdae17e277b
+991e41a88e65c23c552955717c78aaa3a13cd762 -> 7c4ab33472135f2936c4c428117382d56330bf20  docs/production/evidence/p5f1-r3/DESENHO-MARCAS-B03.md (blob git)
+028b12ef733a62f34fc8671948efeb761c3dfeae -> c7b0fe2c8a28ab2e7638d55f63d2d9f02ed4e12c  docs/production/PRODUCTION_READINESS_PLAN.md (blob git)
+b1e87d0d6b258162eeba25589b7ad5f0ebbf2081 -> b1e87d0d6b258162eeba25589b7ad5f0ebbf2081  docs/production/evidence/p5f1-r3/matriz-requisitos.md (blob git)
+111e05b7fef17bf3643e06e34e517739b4d5c0c6 -> 9f81074fa3f64f6c913b774831c6e33d6086b3ea  docs/production/FIREBASE_PRODUCTION.md (blob git)
+20b3fcc2f8bf719ed583fadbf0351cadfbaac0b6 -> 3156e6477d8ab6e31afbbe9db8edbadeab3d28e8  docs/production/OBSERVABILITY.md (blob git)
+ausente -> bba1f4d2aab8027f7d7d9528c03f6bac1288d522  docs/production/evidence/p5f1-r3/revisoes/respostas-rodada-3.md (blob git)
+ausente -> 87cc62ab16ea8495ca78de57f0d9d0e5153080e5  docs/production/evidence/p5f1-r3/revisoes/escala-custo/PARECER-RODADA-3.md (blob git)
+ed2758c0f7bfdc77d6886ed87e806d75a8851eadba312e9173184f1709bdbc9c  r4-diff-desenho.patch
+f17ed0db1e594ed2a33d8e1482072919334a4a263c70894360480187f31c8253  r4-diff-plano.patch

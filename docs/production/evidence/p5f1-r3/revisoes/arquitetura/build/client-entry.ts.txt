@@ -1,0 +1,3 @@
+export * from "<raiz da árvore>/src/modules/work-time/projectionProof.ts";
+export { excludedItemOf, classifyIncomeDocument, applyIncomeExclusions } from "<raiz da árvore>/src/modules/work-time/incomeBasis.ts";
+export { proveEstimateConsistency } from "<raiz da árvore>/src/modules/work-time/consistency.ts";

@@ -1,0 +1,17 @@
+
+Running 3 tests using 1 worker
+
+(node:28993) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN
+(Use `node --trace-warnings ...` to show where the warning was created)
+[valores-b03-e] {"balance":["tempo|≈ 896 h","reais|R$ 22.400,00","tempo|≈ 896 h"],"hourly":["R$ 25,00"],"notice":["Valores em tempo de trabalho equivalente: uma estimativa aproximada, não o valor exato.Mostrar em R$","Calculando a estimativa de tempo de trabalho: enquanto isso, os valores ficam em reais.Mostrar em R$","Valores em tempo de trabalho equivalente: uma estimativa aproximada, não o valor exato.Mostrar em R$","Calculando a estimativa de tempo de trabalho: enquanto isso, os valores ficam em reais.Mostrar em R$","Valores em tempo de trabalho equivalente: uma estimativa aproximada, não o valor exato.Mostrar em R$"]}
+  ✓  1 [chromium] › e2e/work-time-b03.spec.ts:577:1 › B03-e: a receita desconsiderada sai da janela da estimativa e volta: o mês antigo só deixa de descontar quando projeção e marca mudam juntas (27.0s)
+(node:29222) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN
+(Use `node --trace-warnings ...` to show where the warning was created)
+[valores-b03-e] {"balance":["tempo|≈ 896 h","reais|R$ 22.400,00","tempo|≈ 896 h"],"hourly":["R$ 25,00"],"notice":["Valores em tempo de trabalho equivalente: uma estimativa aproximada, não o valor exato.Mostrar em R$","Calculando a estimativa de tempo de trabalho: enquanto isso, os valores ficam em reais.Mostrar em R$","Valores em tempo de trabalho equivalente: uma estimativa aproximada, não o valor exato.Mostrar em R$","Calculando a estimativa de tempo de trabalho: enquanto isso, os valores ficam em reais.Mostrar em R$","Valores em tempo de trabalho equivalente: uma estimativa aproximada, não o valor exato.Mostrar em R$"]}
+  ✓  2 [chromium] › e2e/work-time-b03.spec.ts:577:1 › B03-e: a receita desconsiderada sai da janela da estimativa e volta: o mês antigo só deixa de descontar quando projeção e marca mudam juntas (15.3s)
+(node:29331) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN
+(Use `node --trace-warnings ...` to show where the warning was created)
+[valores-b03-e] {"balance":["tempo|≈ 896 h","reais|R$ 22.400,00","tempo|≈ 896 h"],"hourly":["R$ 25,00"],"notice":["Valores em tempo de trabalho equivalente: uma estimativa aproximada, não o valor exato.Mostrar em R$","Calculando a estimativa de tempo de trabalho: enquanto isso, os valores ficam em reais.Mostrar em R$","Valores em tempo de trabalho equivalente: uma estimativa aproximada, não o valor exato.Mostrar em R$","Calculando a estimativa de tempo de trabalho: enquanto isso, os valores ficam em reais.Mostrar em R$","Valores em tempo de trabalho equivalente: uma estimativa aproximada, não o valor exato.Mostrar em R$"]}
+  ✓  3 [chromium] › e2e/work-time-b03.spec.ts:577:1 › B03-e: a receita desconsiderada sai da janela da estimativa e volta: o mês antigo só deixa de descontar quando projeção e marca mudam juntas (14.8s)
+
+  3 passed (1.6m)

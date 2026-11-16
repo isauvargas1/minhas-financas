@@ -188,10 +188,33 @@ test("S09 usuário de A consultando B: recusa, nada de B é lido", async () => {
     await expectHttpsError(ai.analyze(uid, b.workspaceId), "permission-denied");
     await expectHttpsError(ai.extractText(uid, b.workspaceId),
       "permission-denied");
+    await expectHttpsError(ai.extractDocument(uid, b.workspaceId),
+      "permission-denied");
+    await assertNothingConsumed(nothingFor(b, uid));
   }
   assert.equal(ai.reads.length + ai.calls.length, 0);
   assert.equal(await usedCredits(b.owner, month()), 0, "pool de B intacto");
   assert.equal(await usedCredits(a.owner, month()), 0);
+});
+
+test("S09 (B → A, MT-02) usuário de B (PJ) consultando A (PF): recusa nas " +
+  "três operações, nada de A é lido nem consumido", async () => {
+  const a = await tenant("PF", "ais09c");
+  const b = await tenant("PJ", "ais09d");
+  await createEntry(a, {type: "receita", amountCents: 456_789});
+  await sync(a.workspaceId);
+  const ai = aiHarness();
+  for (const uid of [b.owner, b.admin, b.member]) {
+    await expectHttpsError(ai.analyze(uid, a.workspaceId), "permission-denied");
+    await expectHttpsError(ai.extractText(uid, a.workspaceId),
+      "permission-denied");
+    await expectHttpsError(ai.extractDocument(uid, a.workspaceId),
+      "permission-denied");
+    await assertNothingConsumed(nothingFor(a, uid));
+  }
+  assert.equal(ai.reads.length + ai.calls.length, 0);
+  assert.equal(await usedCredits(a.owner, month()), 0, "pool de A intacto");
+  assert.equal(await usedCredits(b.owner, month()), 0);
 });
 
 test("S10/S11 UID, papel ou titular falsos no payload: recusados pelo " +
@@ -602,6 +625,22 @@ test("S26 consumir créditos de outro workspace: sem membership não há " +
   await ai.analyze(mine.owner, mine.workspaceId);
   assert.equal(await usedCredits(theirs.owner, month()), 0);
   assert.equal(await usedCredits(mine.owner, month()), 1);
+});
+
+test("S26 (B → A, MT-02) o owner do workspace PJ não consome créditos do " +
+  "titular do PF", async () => {
+  const mine = await tenant("PJ", "ais26c");
+  const theirs = await tenant("PF", "ais26d");
+  const ai = aiHarness();
+  await expectHttpsError(ai.analyze(mine.owner, theirs.workspaceId),
+    "permission-denied");
+  await expectHttpsError(ai.extractDocument(mine.owner, theirs.workspaceId),
+    "permission-denied");
+  await assertNothingConsumed(nothingFor(theirs, mine.owner));
+  await ai.analyze(mine.owner, mine.workspaceId);
+  assert.equal(await usedCredits(theirs.owner, month()), 0);
+  assert.equal(await usedCredits(mine.owner, month()), 1);
+  assert.equal(ai.calls.length, 1, "provedor só no próprio workspace");
 });
 
 // --------------------------------------------------------- §16 créditos

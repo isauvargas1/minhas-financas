@@ -1,0 +1,6 @@
+{"root":"arvore-d7dabb10","samples":60000,"seed":101,"mode":"mix","checked":31760,"ambiguous":28240,"spillPairs":4201,"reducedCappedDays":753,"violations":0,"ms":102368}
+{"root":"arvore-d7dabb10","samples":40000,"seed":202,"mode":"spill","checked":11172,"ambiguous":28828,"spillPairs":11172,"reducedCappedDays":195,"violations":0,"ms":52834}
+{"root":"arvore-d7dabb10","samples":40000,"seed":303,"mode":"reduced","checked":20989,"ambiguous":19011,"spillPairs":0,"reducedCappedDays":789,"violations":0,"ms":78270}
+{"root":"arvore-d7dabb10","samples":30000,"seed":404,"mode":"cluster","checked":23560,"ambiguous":6440,"spillPairs":0,"reducedCappedDays":414,"violations":0,"ms":45911}
+{"root":"arvore-d7dabb10","samples":30000,"seed":505,"mode":"free","checked":15677,"ambiguous":14323,"spillPairs":0,"reducedCappedDays":242,"violations":0,"ms":59344}
+done

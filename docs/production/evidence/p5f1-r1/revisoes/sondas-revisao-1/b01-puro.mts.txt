@@ -1,0 +1,70 @@
+// Sonda B01 (revisão independente): cenário A+100 / estorno −100 / B+100, paridade do ID e pareamento em lotes.
+import { createHash } from 'node:crypto';
+const root = process.argv[2];
+const ib = await import(`${root}/src/modules/work-time/incomeBasis.ts`);
+let rr: any = null;
+try { rr = await import(`${root}/src/modules/work-time/receivableReversal.ts`); } catch { rr = null; }
+const sha = (s: string) => createHash('sha256').update(s).digest('hex');
+const hash40 = (s: string) => sha(s).slice(0, 40);
+// Backend (functions/src/receivables/model.ts)
+const reversalMovementIdFor = (m: string) => `rmv_${hash40(`${m}:reversal`)}`;
+const mirrorFor = (m: string) => `recvcash_${m.replace(/^rmv_/, '')}`;
+const movA = `rmv_${hash40('rcv_x:receipt:intent1')}`;
+const mirA = mirrorFor(movA);
+const revMov = reversalMovementIdFor(movA);
+const mirRev = mirrorFor(revMov);
+const entry = (movementId: string, reversal: boolean, principal: number, reversalOf?: string) => ({
+  domainVersion: 1, receivableId: 'rcv_x', receivableMovementId: movementId, clientId: 'cli', kind: 'receipt', reversal,
+  principalCents: principal, interestCents: 0, penaltyCents: 0, discountCents: 0, currency: 'BRL', ...(reversalOf ? { reversalOf } : {}) });
+const ts = (s: number) => ({ seconds: s, nanoseconds: 0 });
+const docA = { id: mirA, type: 'receita', valueCents: 10000, date: '2026-09-10', receivableEntry: entry(movA, false, 10000), createdAt: ts(100), updatedAt: ts(100) };
+const docRev = { id: mirRev, type: 'despesa', valueCents: 10000, date: '2026-09-10', receivableEntry: entry(revMov, true, 10000, movA), createdAt: ts(200), updatedAt: ts(200) };
+const months = [{ month: '2026-09', receiptsCents: 10000, partial: false }];
+console.log('paridade do ID do estorno:', rr ? (await rr.reversalMirrorIdOf(mirA)) === mirRev : 'sem módulo (P5-F.1)');
+if (ib.excludedItemOf) {
+  const item = ib.excludedItemOf(docA, docRev);
+  const out = ib.applyIncomeExclusions(months, [item]);
+  console.log('A estornado, B=100 → elegível', out.months[0].eligibleCents, 'reversed', out.reversed, 'skipped', out.months[0].exclusionsSkipped);
+  const out2 = ib.applyIncomeExclusions(months, [ib.excludedItemOf(docA, null)]);
+  console.log('sem o estorno lido (A vivo): elegível', out2.months[0].eligibleCents);
+  // estorno com principal diferente → unconfirmed
+  const bad = { ...docRev, receivableEntry: entry(revMov, true, 5000, movA), valueCents: 5000 };
+  console.log('estorno com principal diferente →', JSON.stringify(ib.excludedItemOf(docA, bad)));
+  // juros: recebimento com juros (valueCents = principal + juros) e estorno total
+  const docJ = { ...docA, valueCents: 12000, receivableEntry: { ...entry(movA, false, 10000), interestCents: 2000 } };
+  const revJ = { ...docRev, valueCents: 12000, receivableEntry: { ...entry(revMov, true, 10000, movA), interestCents: 2000 } };
+  console.log('com juros, estornado →', JSON.stringify(ib.excludedItemOf(docJ, revJ)));
+} else {
+  const out = ib.applyIncomeExclusions(months, [{ id: mirA, month: '2026-09', classification: ib.classifyIncomeDocument(docA) }]);
+  console.log('P5-F.1: elegível', out.months[0].eligibleCents, 'skipped', out.months[0].exclusionsSkipped);
+}
+if (rr) {
+  // Leitura em lotes como getTransactionsByIds (dedup, lotes de 30, sequencial). Registra o lote de cada id.
+  const fakeRead = (store: Map<string, any>, log: string[][]) => async (_ws: string, ids: readonly string[]) => {
+    const unique = [...new Set(ids)];
+    const found: any[] = [];
+    for (let s = 0; s < unique.length; s += 30) { const chunk = unique.slice(s, s + 30); log.push(chunk); for (const id of chunk) if (store.has(id)) found.push(store.get(id)); }
+    const f = new Set(found.map((d) => d.id));
+    return { found, missing: unique.filter((id) => !f.has(id)) };
+  };
+  // 50 recebimentos desconsiderados, todos estornados
+  const store = new Map<string, any>();
+  const ids: string[] = [];
+  for (let i = 0; i < 50; i++) {
+    const m = `rmv_${hash40('r' + i)}`; const mi = mirrorFor(m); const rv = mirrorFor(reversalMovementIdFor(m));
+    ids.push(mi); store.set(mi, { ...docA, id: mi, receivableEntry: entry(m, false, 100) }); store.set(rv, { ...docRev, id: rv, receivableEntry: entry(reversalMovementIdFor(m), true, 100, m) });
+  }
+  const log: string[][] = [];
+  const read = await rr.readExcludedIncome(fakeRead(store, log), 'ws', [...ids].sort());
+  const chunkOf = new Map<string, number>(); log.forEach((c, i) => c.forEach((id) => chunkOf.set(id, i)));
+  let split = 0; for (const id of ids) { const rv = await rr.reversalMirrorIdOf(id); if (chunkOf.get(id) !== chunkOf.get(rv)) split++; }
+  console.log('50 estornados: consultas', log.length, 'tamanhos', log.map((c) => c.length).join('/'), 'pares partidos', split, 'estornos achados', Object.keys(read.reversals).length);
+  // Variante: o espelho do estorno de um deles também está na lista (id repetido na leitura)
+  const extra = [...ids.slice(0, 20)];
+  const rv0 = await rr.reversalMirrorIdOf(ids[0]);
+  const log2: string[][] = [];
+  const read2 = await rr.readExcludedIncome(fakeRead(store, log2), 'ws', [...extra, rv0, ...ids.slice(20, 49)].sort());
+  const chunk2 = new Map<string, number>(); log2.forEach((c, i) => c.forEach((id) => chunk2.set(id, i)));
+  let split2 = 0; for (const id of [...extra, ...ids.slice(20, 49)]) { const rv = await rr.reversalMirrorIdOf(id); if (chunk2.get(id) !== chunk2.get(rv)) split2++; }
+  console.log('com o espelho do estorno na lista: consultas', log2.length, 'tamanhos', log2.map((c) => c.length).join('/'), 'pares partidos', split2, 'estornos achados', Object.keys(read2.reversals).length);
+}

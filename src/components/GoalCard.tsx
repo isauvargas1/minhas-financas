@@ -13,6 +13,7 @@ import {
     goalHealthBadge, goalPaceStatus, goalProgressView, goalTarget, isMarginGoal,
     type GoalKpiInput,
 } from '../modules/goals/model.ts';
+import { useMoneyDisplay } from '../modules/work-time/display.tsx';
 
 interface GoalCardProps {
     goal: Goal;
@@ -29,6 +30,7 @@ const adjustBrightness = (color: string, amount: number) => {
 const GoalCard: React.FC<GoalCardProps> = ({ goal, onClick, mode, kpi }) => {
     const { theme } = useTheme();
     const { activeWorkspace } = useWorkspace();
+    const display = useMoneyDisplay();
     const isPJ = activeWorkspace.type === 'PJ';
     const cardRef = useRef<HTMLDivElement>(null);
     const MotionDiv = motion.div as any;
@@ -47,7 +49,7 @@ const GoalCard: React.FC<GoalCardProps> = ({ goal, onClick, mode, kpi }) => {
     const percentLabel = view.state === 'ready' ? view.percentShortText : '';
     // Os cartões mostram reais inteiros, como antes; margem em percentual pt-BR.
     const formatCardValue = (value: number) =>
-        isMarginGoal(goal) ? formatBasisPoints(value) : formatCentsWhole(value);
+        isMarginGoal(goal) ? formatBasisPoints(value) : display.cents(value, formatCentsWhole);
     const valueText = view.state === 'ready'
         ? formatCardValue(view.value)
         : view.state === 'loading' ? 'Calculando...' : '—';

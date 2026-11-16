@@ -1,0 +1,1 @@
+{"root":"arvore-6c459430","MODE":"edge","SAMPLES":40000,"conferidor":false,"seconds":88,"pairs":30501,"tried":40000,"mono":0,"civil":0,"cut":0,"oracle":0,"dneg":0,"dnonfollow":0,"dpos":102,"civilChecked":3611886,"reducedNext":77446,"confRejected":0,"maxCivil":1440,"examples":[]}

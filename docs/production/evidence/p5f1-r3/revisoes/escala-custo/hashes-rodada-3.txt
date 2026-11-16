@@ -1,0 +1,26 @@
+9dce731e358359d9b56d6ffcd7ee5a31a930f9729d3b4a3220ad30dd18b8f520  logs/r3-sonda-agendador.log
+c372a6553984f4aaadbf1ae635c2c8e82a6c408cd16ade0919a6849a9021efe8  logs/r3-sonda-custo-gatilho.log
+b76a78f0636aee5d8c1830d34051857575ed87974279f7593cc07eb21ab27c9c  logs/r3-sonda-liberacao.log
+177f03a51e1b40760b4f8cd795dec4d670b3c5c65524a4440fd2da92c2b6ad4b  logs/r3-sonda-marca-intocada.log
+51381d9f187e812fa4fa99af7c525f72c25ae7d781fe85e1477ea1c44356bd60  logs/r3-sonda-orcamento-pagina.log
+257fd214c0c0b64f8fa4350a8f66c85336fc85fa146f1bd7bdf56db041173c31  logs/r3-sonda-poda-isencao.log
+f98045b4d30df82927fd77e01519579f185c4eb3cd00f14d373204dbca16abb2  logs/r3-sonda-tamanho-marca.log
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  logs/r3-tsc-build.log
+57d132c28ded77b0103b522b821802f847b478e7041f8621b33b965dcc8ff2b3  sondas/sonda-r3-liberacao.test.mts
+8b23a63a5622723c505272cf7a0d3762faed8cd3719b2262b030114428eedf32  sondas/sonda-r3-marca-intocada.cjs
+a7ae4f81f9f7e650108bd6d9cc991f25d107de73  functions/src/cash/periods.ts (blob git)
+e8f2495125252981a4749016931d2a2512efba0e  functions/src/cash/rebuild.ts (blob git)
+dc0722b2eb6f09585063690c89ec0166028a8ea1  functions/src/cash/projectionMarks.ts (blob git)
+416aecbcd770e3353c68e79ab21008109185ab36  src/modules/work-time/projectionReads.ts (blob git)
+e9fd481f46afa38552835ba9b86039676f559d82  src/modules/work-time/projectionProof.ts (blob git)
+5fa940075a1d9ca95e9fc2f4bb4f1bc206992975  src/modules/work-time/useIncomeEstimateWith.ts (blob git)
+c8fafd6768d5d5fc80a2fdae6a1943ad59e7fed5  src/modules/reports/basisSync.ts (blob git)
+9a4ebf5e7bb273bd99f5ca7ee6617b5b956b19f8  src/modules/reports/queryKeys.ts (blob git)
+79a7da27ce81db15e9b4692fc69b68c32e3488c9  src/modules/reports/liveRefresh.ts (blob git)
+3a8458943d748534d26b2a6e9f4744ace7c87a01  src/modules/transactions/incomeReads.ts (blob git)
+f4322d86d875dcbd3e2b78d7c7325d30a7b96b47  firestore.indexes.json (blob git)
+133b422ea80159e86f77743c8b2d5c893a646fe3  firestore.rules (blob git)
+991e41a88e65c23c552955717c78aaa3a13cd762  docs/production/evidence/p5f1-r3/DESENHO-MARCAS-B03.md (blob git em ad1660a3)
+028b12ef733a62f34fc8671948efeb761c3dfeae  docs/production/PRODUCTION_READINESS_PLAN.md (blob git em ad1660a3)
+de16a890f320f55c3c91b3512c54c98498970ec9  docs/production/PRIVACY_LGPD.md (blob git em ad1660a3)
+Arvores: codigo 377c2f3ff3cd1729a819e5be8d89dc06dea7cf93; documentos ad1660a336f043c7331e158e9a85efdae17e277b

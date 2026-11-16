@@ -1,6 +1,7 @@
 import React from 'react';
 import type { SplitGroup, SplitParticipant } from '../modules/split-bills/types.ts';
 import { formatSplitCents } from '../modules/split-bills/presentation.ts';
+import { useMoneyDisplay } from '../modules/work-time/display.tsx';
 import { DynamicIcon, UsersIcon, EditIcon, DeleteIcon, RefreshIcon } from './Icons.tsx';
 
 interface GroupActions {
@@ -23,6 +24,7 @@ const GroupRow: React.FC<{
     onSelect: () => void;
     actions: GroupActions;
 }> = ({ group, myParticipant, onSelect, actions }) => {
+    const display = useMoneyDisplay();
     // Saldo do usuário no grupo: o que tem a receber menos o que deve.
     const balance = (myParticipant?.balances.receivableOpenCents ?? 0) -
         (myParticipant?.balances.owesOpenCents ?? 0);
@@ -56,15 +58,15 @@ const GroupRow: React.FC<{
                 </div>
             </td>
             <td className="px-4 py-4 text-sm font-medium text-gray-800 dark:text-white">
-                {formatSplitCents(group.businessMode === 'reimbursement' ? group.totals.reimbursementTotalCents : group.totals.billedCents)}
+                {display.cents(group.businessMode === 'reimbursement' ? group.totals.reimbursementTotalCents : group.totals.billedCents, formatSplitCents)}
             </td>
             <td className="px-4 py-4">
                 <span className={`text-sm font-bold ${
                     status === 'credit' ? 'text-green-600' :
                     status === 'debt' ? 'text-red-600' : 'text-gray-400'
                 }`}>
-                    {balance > 0 ? `+ ${formatSplitCents(balance)}` :
-                     balance < 0 ? `- ${formatSplitCents(Math.abs(balance))}` :
+                    {balance > 0 ? <>+ {display.cents(balance, formatSplitCents)}</> :
+                     balance < 0 ? <>- {display.cents(Math.abs(balance), formatSplitCents)}</> :
                      'Zerado'}
                 </span>
             </td>

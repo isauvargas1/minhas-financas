@@ -1,0 +1,19 @@
+import sys, runpy, types
+from pathlib import Path
+WT = Path(sys.argv[1])
+src = Path(sys.argv[2]).read_text(encoding='utf-8')
+# carrega só as listas, sem executar main()
+src = src.replace('\nmain()\n', '\n')
+ns = {}
+sys.argv = [sys.argv[2], str(WT), 'unit']
+exec(compile(src, 'mutantes.py', 'exec'), ns)
+bad = 0
+for idx, m in enumerate(ns['UNIT'], 1):
+  text = (WT / m[1]).read_text(encoding='utf-8')
+  c = text.count(m[2])
+  if c != 1: bad += 1; print(f'U{idx:02} INVÁLIDO ({c}) {m[1]}: {m[2].strip()[:80]}')
+for idx, m in enumerate(ns['RULES'], 1):
+  text = (WT / m[1]).read_text(encoding='utf-8')
+  c = text.count(m[2])
+  if c != 1: bad += 1; print(f'R{idx:02} INVÁLIDO ({c}) {m[1]}: {m[2].strip()[:80]}')
+print('UNIT', len(ns['UNIT']), 'RULES', len(ns['RULES']), 'inválidos', bad)

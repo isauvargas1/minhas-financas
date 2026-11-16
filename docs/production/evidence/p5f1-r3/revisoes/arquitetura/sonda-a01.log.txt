@@ -1,0 +1,13 @@
+{"caso":"corte igual ao commit, gatilho depois do checkpoint","publicacao":"published","mesLido":{"incomeCents":150000,"geracao":"R3"},"parteDeTNaProjecao":50000,"prova":"VERDADEIRA","tiradoPelaEstimativa":50000,"receitaElegivel":100000,"correto":100000,"PROVA_VERDADEIRA_COM_VALOR_ERRADO":false}
+{"caso":"corte 8 ms antes, gatilho depois do commit do checkpoint","publicacao":"published","mesLido":{"incomeCents":150000,"geracao":"R3"},"parteDeTNaProjecao":50000,"prova":"VERDADEIRA","tiradoPelaEstimativa":50000,"receitaElegivel":100000,"correto":100000,"PROVA_VERDADEIRA_COM_VALOR_ERRADO":false}
+{"caso":"corte antes do commit, gatilho de T antes do commit do checkpoint","publicacao":"published","mesLido":{"incomeCents":150000,"geracao":"R3"},"parteDeTNaProjecao":50000,"prova":"VERDADEIRA","tiradoPelaEstimativa":0,"receitaElegivel":150000,"correto":100000,"PROVA_VERDADEIRA_COM_VALOR_ERRADO":true}
+    1000000: escrita U {"v":100000,"d":"2026-10-03","pago":true,"anulada":false}
+    1050000: gatilho ev-1 (CREATE U, commit 1000000) -> applied
+    2004000: escrita T {"v":50000,"d":"2026-10-10","pago":true,"anulada":false}
+    2005000: gatilho ev-2 (CREATE T, commit 2004000) -> applied
+    2000000..2008000: checkpoint R3 corte=2000000 posição=b (commit 2008000)
+    2018000: varredura lê a página (1 na base)
+    2028000: commit da página com 1 âncora(s) na posição b
+    2038000: publicação R3 (corte 2000000, 1 marca(s) de entrega depois do corte, posição b)
+{"caso":"mesmo caso, com a correção na publicação","publicacao":"restart:marca_de_entrega_sem_a_geracao_preparada","mesLido":{"incomeCents":150000,"geracao":"g0"},"parteDeTNaProjecao":50000,"prova":"VERDADEIRA","tiradoPelaEstimativa":50000,"receitaElegivel":100000,"correto":100000,"PROVA_VERDADEIRA_COM_VALOR_ERRADO":false}
+{"caso":"mesmo caso, com a defesa no cliente","publicacao":"published","mesLido":{"incomeCents":150000,"geracao":"R3"},"parteDeTNaProjecao":50000,"prova":"recusada (defesa)","tiradoPelaEstimativa":0,"receitaElegivel":null,"correto":100000,"PROVA_VERDADEIRA_COM_VALOR_ERRADO":false}

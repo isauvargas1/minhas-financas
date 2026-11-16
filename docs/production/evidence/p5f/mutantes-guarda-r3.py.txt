@@ -1,0 +1,15 @@
+"""P5-F: G30 e G31 contra a guarda ANTERIOR à revisão 3 (só a presença da expressão em reais).
+Prova por que as entradas passaram a ter `converted`. Cópias fora do worktree."""
+import importlib.util, shutil
+S = '<scratchpad>'
+spec = importlib.util.spec_from_file_location('m', f'{S}/p5f/mutantes.py'); m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
+PREVIOUS = f'{S}/p5f/guarda-r3-anterior.test.ts'
+for mid in ('ORIG', 'G30', 'G31'):
+    target = m.prepare(f'anterior-r3-{mid}')
+    shutil.copy2(PREVIOUS, f'{target}/{m.GUARD}')
+    for mutant_id, desc, test_file, edits in m.MUTANTS:
+        if mutant_id == mid:
+            for path, old, new in edits: m.apply(target, path, old, new)
+    code, failed = m.run(target, m.GUARD)
+    print(f"{mid:<5} guarda anterior: {'MORTO' if code else 'VIVO (passa)'} {failed}")
+    shutil.rmtree(target)

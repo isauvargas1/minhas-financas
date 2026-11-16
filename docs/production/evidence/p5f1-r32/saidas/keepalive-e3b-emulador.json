@@ -1,0 +1,566 @@
+{
+ "node": "v22.23.4",
+ "pairs": 40,
+ "results": [
+  {
+   "label": "atraso, keep-alive (padrão)",
+   "idle": 5807,
+   "ok": true,
+   "status": 401,
+   "ms": 8
+  },
+  {
+   "label": "atraso, keep-alive (padrão)",
+   "idle": 4055,
+   "ok": true,
+   "status": 401,
+   "ms": 8
+  },
+  {
+   "label": "atraso, keep-alive (padrão)",
+   "idle": 4888,
+   "ok": true,
+   "status": 401,
+   "ms": 10
+  },
+  {
+   "label": "atraso, keep-alive (padrão)",
+   "idle": 5441,
+   "ok": true,
+   "status": 401,
+   "ms": 9
+  },
+  {
+   "label": "atraso, keep-alive (padrão)",
+   "idle": 5745,
+   "ok": true,
+   "status": 401,
+   "ms": 8
+  },
+  {
+   "label": "atraso, keep-alive (padrão)",
+   "idle": 5153,
+   "ok": true,
+   "status": 401,
+   "ms": 6
+  },
+  {
+   "label": "atraso, keep-alive (padrão)",
+   "idle": 5844,
+   "ok": true,
+   "status": 401,
+   "ms": 8
+  },
+  {
+   "label": "atraso, keep-alive (padrão)",
+   "idle": 5404,
+   "ok": true,
+   "status": 401,
+   "ms": 6
+  },
+  {
+   "label": "atraso, keep-alive (padrão)",
+   "idle": 4700,
+   "ok": true,
+   "status": 401,
+   "ms": 6
+  },
+  {
+   "label": "atraso, keep-alive (padrão)",
+   "idle": 4257,
+   "ok": true,
+   "status": 401,
+   "ms": 6
+  },
+  {
+   "label": "atraso, keep-alive (padrão)",
+   "idle": 5127,
+   "ok": true,
+   "status": 401,
+   "ms": 198
+  },
+  {
+   "label": "atraso, keep-alive (padrão)",
+   "idle": 4048,
+   "ok": true,
+   "status": 401,
+   "ms": 7
+  },
+  {
+   "label": "atraso, keep-alive (padrão)",
+   "idle": 5297,
+   "ok": true,
+   "status": 401,
+   "ms": 6
+  },
+  {
+   "label": "atraso, keep-alive (padrão)",
+   "idle": 5925,
+   "ok": true,
+   "status": 401,
+   "ms": 6
+  },
+  {
+   "label": "atraso, keep-alive (padrão)",
+   "idle": 5391,
+   "ok": true,
+   "status": 401,
+   "ms": 295
+  },
+  {
+   "label": "atraso, keep-alive (padrão)",
+   "idle": 4230,
+   "ok": true,
+   "status": 401,
+   "ms": 7
+  },
+  {
+   "label": "atraso, keep-alive (padrão)",
+   "idle": 4264,
+   "ok": true,
+   "status": 401,
+   "ms": 6
+  },
+  {
+   "label": "atraso, keep-alive (padrão)",
+   "idle": 4497,
+   "ok": true,
+   "status": 401,
+   "ms": 7
+  },
+  {
+   "label": "atraso, keep-alive (padrão)",
+   "idle": 4002,
+   "ok": true,
+   "status": 401,
+   "ms": 6
+  },
+  {
+   "label": "atraso, keep-alive (padrão)",
+   "idle": 4187,
+   "ok": true,
+   "status": 401,
+   "ms": 8
+  },
+  {
+   "label": "atraso, keep-alive (padrão)",
+   "idle": 5373,
+   "ok": true,
+   "status": 401,
+   "ms": 6
+  },
+  {
+   "label": "atraso, keep-alive (padrão)",
+   "idle": 5772,
+   "ok": true,
+   "status": 401,
+   "ms": 9
+  },
+  {
+   "label": "atraso, keep-alive (padrão)",
+   "idle": 5085,
+   "ok": true,
+   "status": 401,
+   "ms": 6
+  },
+  {
+   "label": "atraso, keep-alive (padrão)",
+   "idle": 4941,
+   "ok": true,
+   "status": 401,
+   "ms": 6
+  },
+  {
+   "label": "atraso, keep-alive (padrão)",
+   "idle": 5264,
+   "ok": true,
+   "status": 401,
+   "ms": 260
+  },
+  {
+   "label": "atraso, keep-alive (padrão)",
+   "idle": 4331,
+   "ok": true,
+   "status": 401,
+   "ms": 7
+  },
+  {
+   "label": "atraso, keep-alive (padrão)",
+   "idle": 4378,
+   "ok": true,
+   "status": 401,
+   "ms": 267
+  },
+  {
+   "label": "atraso, keep-alive (padrão)",
+   "idle": 4558,
+   "ok": true,
+   "status": 401,
+   "ms": 7
+  },
+  {
+   "label": "atraso, keep-alive (padrão)",
+   "idle": 5928,
+   "ok": true,
+   "status": 401,
+   "ms": 9
+  },
+  {
+   "label": "atraso, keep-alive (padrão)",
+   "idle": 4782,
+   "ok": true,
+   "status": 401,
+   "ms": 7
+  },
+  {
+   "label": "atraso, keep-alive (padrão)",
+   "idle": 5767,
+   "ok": true,
+   "status": 401,
+   "ms": 7
+  },
+  {
+   "label": "atraso, keep-alive (padrão)",
+   "idle": 4640,
+   "ok": true,
+   "status": 401,
+   "ms": 262
+  },
+  {
+   "label": "atraso, keep-alive (padrão)",
+   "idle": 5705,
+   "ok": true,
+   "status": 401,
+   "ms": 294
+  },
+  {
+   "label": "atraso, keep-alive (padrão)",
+   "idle": 4970,
+   "ok": true,
+   "status": 401,
+   "ms": 24
+  },
+  {
+   "label": "atraso, keep-alive (padrão)",
+   "idle": 5126,
+   "ok": true,
+   "status": 401,
+   "ms": 7
+  },
+  {
+   "label": "atraso, keep-alive (padrão)",
+   "idle": 4612,
+   "ok": true,
+   "status": 401,
+   "ms": 246
+  },
+  {
+   "label": "atraso, keep-alive (padrão)",
+   "idle": 5265,
+   "ok": true,
+   "status": 401,
+   "ms": 6
+  },
+  {
+   "label": "atraso, keep-alive (padrão)",
+   "idle": 4194,
+   "ok": true,
+   "status": 401,
+   "ms": 6
+  },
+  {
+   "label": "atraso, keep-alive (padrão)",
+   "idle": 5571,
+   "ok": true,
+   "status": 401,
+   "ms": 7
+  },
+  {
+   "label": "atraso, keep-alive (padrão)",
+   "idle": 5177,
+   "ok": true,
+   "status": 401,
+   "ms": 7
+  },
+  {
+   "label": "atraso, Connection: close",
+   "idle": 4534,
+   "ok": true,
+   "status": 401,
+   "ms": 196
+  },
+  {
+   "label": "atraso, Connection: close",
+   "idle": 5726,
+   "ok": true,
+   "status": 401,
+   "ms": 269
+  },
+  {
+   "label": "atraso, Connection: close",
+   "idle": 5983,
+   "ok": true,
+   "status": 401,
+   "ms": 7
+  },
+  {
+   "label": "atraso, Connection: close",
+   "idle": 4298,
+   "ok": true,
+   "status": 401,
+   "ms": 7
+  },
+  {
+   "label": "atraso, Connection: close",
+   "idle": 4362,
+   "ok": true,
+   "status": 401,
+   "ms": 7
+  },
+  {
+   "label": "atraso, Connection: close",
+   "idle": 4152,
+   "ok": true,
+   "status": 401,
+   "ms": 156
+  },
+  {
+   "label": "atraso, Connection: close",
+   "idle": 5237,
+   "ok": true,
+   "status": 401,
+   "ms": 7
+  },
+  {
+   "label": "atraso, Connection: close",
+   "idle": 5480,
+   "ok": true,
+   "status": 401,
+   "ms": 263
+  },
+  {
+   "label": "atraso, Connection: close",
+   "idle": 4054,
+   "ok": true,
+   "status": 401,
+   "ms": 7
+  },
+  {
+   "label": "atraso, Connection: close",
+   "idle": 4595,
+   "ok": true,
+   "status": 401,
+   "ms": 12
+  },
+  {
+   "label": "atraso, Connection: close",
+   "idle": 4619,
+   "ok": true,
+   "status": 401,
+   "ms": 8
+  },
+  {
+   "label": "atraso, Connection: close",
+   "idle": 5880,
+   "ok": true,
+   "status": 401,
+   "ms": 7
+  },
+  {
+   "label": "atraso, Connection: close",
+   "idle": 5238,
+   "ok": true,
+   "status": 401,
+   "ms": 6
+  },
+  {
+   "label": "atraso, Connection: close",
+   "idle": 4676,
+   "ok": true,
+   "status": 401,
+   "ms": 8
+  },
+  {
+   "label": "atraso, Connection: close",
+   "idle": 5272,
+   "ok": true,
+   "status": 401,
+   "ms": 6
+  },
+  {
+   "label": "atraso, Connection: close",
+   "idle": 5229,
+   "ok": true,
+   "status": 401,
+   "ms": 8
+  },
+  {
+   "label": "atraso, Connection: close",
+   "idle": 4544,
+   "ok": true,
+   "status": 401,
+   "ms": 8
+  },
+  {
+   "label": "atraso, Connection: close",
+   "idle": 4322,
+   "ok": true,
+   "status": 401,
+   "ms": 7
+  },
+  {
+   "label": "atraso, Connection: close",
+   "idle": 5169,
+   "ok": true,
+   "status": 401,
+   "ms": 275
+  },
+  {
+   "label": "atraso, Connection: close",
+   "idle": 4838,
+   "ok": true,
+   "status": 401,
+   "ms": 154
+  },
+  {
+   "label": "atraso, Connection: close",
+   "idle": 4281,
+   "ok": true,
+   "status": 401,
+   "ms": 8
+  },
+  {
+   "label": "atraso, Connection: close",
+   "idle": 4270,
+   "ok": true,
+   "status": 401,
+   "ms": 7
+  },
+  {
+   "label": "atraso, Connection: close",
+   "idle": 5097,
+   "ok": true,
+   "status": 401,
+   "ms": 6
+  },
+  {
+   "label": "atraso, Connection: close",
+   "idle": 5160,
+   "ok": true,
+   "status": 401,
+   "ms": 145
+  },
+  {
+   "label": "atraso, Connection: close",
+   "idle": 5622,
+   "ok": true,
+   "status": 401,
+   "ms": 7
+  },
+  {
+   "label": "atraso, Connection: close",
+   "idle": 4875,
+   "ok": true,
+   "status": 401,
+   "ms": 11
+  },
+  {
+   "label": "atraso, Connection: close",
+   "idle": 4829,
+   "ok": true,
+   "status": 401,
+   "ms": 8
+  },
+  {
+   "label": "atraso, Connection: close",
+   "idle": 5378,
+   "ok": true,
+   "status": 401,
+   "ms": 246
+  },
+  {
+   "label": "atraso, Connection: close",
+   "idle": 5536,
+   "ok": true,
+   "status": 401,
+   "ms": 7
+  },
+  {
+   "label": "atraso, Connection: close",
+   "idle": 4480,
+   "ok": true,
+   "status": 401,
+   "ms": 6
+  },
+  {
+   "label": "atraso, Connection: close",
+   "idle": 4092,
+   "ok": true,
+   "status": 401,
+   "ms": 6
+  },
+  {
+   "label": "atraso, Connection: close",
+   "idle": 5061,
+   "ok": true,
+   "status": 401,
+   "ms": 7
+  },
+  {
+   "label": "atraso, Connection: close",
+   "idle": 4616,
+   "ok": true,
+   "status": 401,
+   "ms": 162
+  },
+  {
+   "label": "atraso, Connection: close",
+   "idle": 5755,
+   "ok": true,
+   "status": 401,
+   "ms": 243
+  },
+  {
+   "label": "atraso, Connection: close",
+   "idle": 4109,
+   "ok": true,
+   "status": 401,
+   "ms": 6
+  },
+  {
+   "label": "atraso, Connection: close",
+   "idle": 5820,
+   "ok": true,
+   "status": 401,
+   "ms": 54
+  },
+  {
+   "label": "atraso, Connection: close",
+   "idle": 5309,
+   "ok": true,
+   "status": 401,
+   "ms": 7
+  },
+  {
+   "label": "atraso, Connection: close",
+   "idle": 5035,
+   "ok": true,
+   "status": 401,
+   "ms": 7
+  },
+  {
+   "label": "atraso, Connection: close",
+   "idle": 5907,
+   "ok": true,
+   "status": 401,
+   "ms": 9
+  },
+  {
+   "label": "atraso, Connection: close",
+   "idle": 5907,
+   "ok": true,
+   "status": 401,
+   "ms": 7
+  }
+ ]
+}

@@ -1,0 +1,38 @@
+
+Running 1 test using 1 worker
+
+(node:5017) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN
+(Use `node --trace-warnings ...` to show where the warning was created)
+[valores-b03-g-sem-conexao] {"balance":["tempo|≈ 776 h","reais|R$ 19.400,00"],"hourly":[],"notice":["Valores em tempo de trabalho equivalente: uma estimativa aproximada, não o valor exato.Mostrar em R$","Calculando a estimativa de tempo de trabalho: enquanto isso, os valores ficam em reais.Mostrar em R$","Estimativa de tempo de trabalho indisponível agora: os valores continuam em reais. Veja o motivo em Configurações.Mostrar em R$"]}
+  ✘  1 [chromium] › e2e/work-time-b03.spec.ts:729:1 › B03-g (R3.2, RR-R31-05): sem conexão, a conversão sai e a prévia aberta de novo com o cache aquecido não converte; com a conexão de volta, a conversão certa volta (1.8m)
+
+
+  1) [chromium] › e2e/work-time-b03.spec.ts:729:1 › B03-g (R3.2, RR-R31-05): sem conexão, a conversão sai e a prévia aberta de novo com o cache aquecido não converte; com a conexão de volta, a conversão certa volta 
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: getByRole('figure').filter({ has: getByRole('heading', { name: 'Saldo Atual' }) })
+    Expected pattern: /≈\s776\sh(?!\s?\d)/
+    Received string:  "Saldo AtualR$ 19.400,00Em contas"
+    Timeout: 60000ms
+
+    Call log:
+      - Expect "toContainText" with timeout 60000ms
+      - waiting for getByRole('figure').filter({ has: getByRole('heading', { name: 'Saldo Atual' }) })
+        123 × locator resolved to <div role="figure" tabindex="-1" class="card bg-surface rounded-card shadow-md p-6 border-l-4 border-blue-500 ">…</div>
+            - unexpected value "Saldo AtualR$ 19.400,00Em contas"
+
+
+      776 |   await expect(failure).toHaveCount(0);
+      777 |   await openDashboard(page);
+    > 778 |   await expect(balanceCard(page)).toContainText(timeRegex(minutes), { timeout: 60_000 });
+          |                                   ^
+      779 |   const seen = await recorded(page);
+      780 |   await attachRecorded('b03-g', seen);
+      781 |   expectOnlyConsistent(seen, { minutes: [minutes], balances: [balance], hourly: [2_500] });
+        at <scratchpad>/p5f1r32/copia-a02/e2e/work-time-b03.spec.ts:778:35
+
+    Error Context: test-results/work-time-b03-B03-g-R3-2-R-02757-lta-a-conversão-certa-volta-chromium/error-context.md
+
+  1 failed
+    [chromium] › e2e/work-time-b03.spec.ts:729:1 › B03-g (R3.2, RR-R31-05): sem conexão, a conversão sai e a prévia aberta de novo com o cache aquecido não converte; com a conexão de volta, a conversão certa volta 

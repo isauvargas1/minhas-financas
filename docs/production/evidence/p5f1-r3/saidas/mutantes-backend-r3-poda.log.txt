@@ -1,0 +1,8 @@
+base: saída 0, 0 falha(s), ['# pass 15']
+MORTO B01 marca não gravada no gatilho: 13 falha(s): not ok 1 - criação, edições, edição sem efeito, anulação, mudança de mês retroativa e exclusão: a marca acompa | not ok 2 - evento posterior entregue antes do anterior: pendente, sem prova, e absorvido quando o anterior che | not ok 3 - reentrega e entregas simultâneas: um delta, uma mudança de marca
+MORTO B13 gatilho sem poda (componentes superadas ficam): 1 falha(s): not ok 15 - poda (L-PRI-02): a marca regravada guarda só a geração vigente e a preparada; a âncora da preparad
+MORTO B14 poda apaga a geração preparada: 5 falha(s): not ok 7 - incidente de marca depois do corte, durante a preparação: a publicação mantém o registro e a recons | not ok 8 - reconstrução com eventos posteriores ao corte, atrasados de antes do corte, reentrega e posterior f | not ok 10 - muitas edições depois do corte, entregues antes do commit da página: a raiz no estado do corte evi
+MORTO B15 poda não tira âncoras superadas: 1 falha(s): not ok 15 - poda (L-PRI-02): a marca regravada guarda só a geração vigente e a preparada; a âncora da preparad
+MORTO B16 poda não tira cadeias superadas: 1 falha(s): not ok 15 - poda (L-PRI-02): a marca regravada guarda só a geração vigente e a preparada; a âncora da preparad
+mortos 5/5 (lista 16); recompilação final: 0
+exit=0

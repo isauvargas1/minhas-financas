@@ -1,0 +1,22 @@
+{
+  "name": "mobile-dark-s01-dashboard",
+  "scope": "[data-testid=\"work-time-notice\"]",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "scheme": "dark",
+  "background": "rgb(11, 17, 32)",
+  "overflow": 0,
+  "occluded": false,
+  "violations": [],
+  "role": null,
+  "focusAfterAction": null,
+  "tabTrail": [
+    "button: Abrir menu",
+    "button: Mês anterior",
+    "button: Selecionar Mês e Ano",
+    "button: Hoje"
+  ],
+  "text": "Estimativa de tempo de trabalho indisponível agora: os valores continuam em reais. Veja o motivo em Configurações.\nMostrar em R$"
+}

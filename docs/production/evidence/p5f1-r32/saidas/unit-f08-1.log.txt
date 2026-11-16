@@ -1,0 +1,184 @@
+TAP version 13
+# Subtest: R3.2 (ADV-01): indisponível sem números (renda PJ sem confirmação; uma base, nenhuma desconsiderada), sem retorno do servidor: aparece como está, com o motivo, sem conversão, nem passado o tempo de interface; a ressalva de leitura anterior só com a escuta encerrada
+ok 1 - R3.2 (ADV-01): indisponível sem números (renda PJ sem confirmação; uma base, nenhuma desconsiderada), sem retorno do servidor: aparece como está, com o motivo, sem conversão, nem passado o tempo de interface; a ressalva de leitura anterior só com a escuta encerrada
+  ---
+  duration_ms: 1073.681331
+  type: 'test'
+  ...
+# Subtest: R3.2 (ADV-01): indisponível sem números (renda PJ sem confirmação; uma base, nenhuma desconsiderada), com a escuta encerrada desde o começo: aparece como está, com o motivo, sem conversão, nem passado o tempo de interface; a ressalva de leitura anterior só com a escuta encerrada
+ok 2 - R3.2 (ADV-01): indisponível sem números (renda PJ sem confirmação; uma base, nenhuma desconsiderada), com a escuta encerrada desde o começo: aparece como está, com o motivo, sem conversão, nem passado o tempo de interface; a ressalva de leitura anterior só com a escuta encerrada
+  ---
+  duration_ms: 1061.043804
+  type: 'test'
+  ...
+# Subtest: R3.2 (ADV-01): indisponível sem números (renda PJ sem confirmação; uma base, nenhuma desconsiderada), com a divergência persistente: aparece como está, com o motivo, sem conversão, nem passado o tempo de interface; a ressalva de leitura anterior só com a escuta encerrada
+ok 3 - R3.2 (ADV-01): indisponível sem números (renda PJ sem confirmação; uma base, nenhuma desconsiderada), com a divergência persistente: aparece como está, com o motivo, sem conversão, nem passado o tempo de interface; a ressalva de leitura anterior só com a escuta encerrada
+  ---
+  duration_ms: 1057.553738
+  type: 'test'
+  ...
+# Subtest: R3.2 (ADV-01): indisponível sem números (relatório sem bloco exato; uma base, nenhuma desconsiderada), sem retorno do servidor: aparece como está, com o motivo, sem conversão, nem passado o tempo de interface; a ressalva de leitura anterior só com a escuta encerrada
+ok 4 - R3.2 (ADV-01): indisponível sem números (relatório sem bloco exato; uma base, nenhuma desconsiderada), sem retorno do servidor: aparece como está, com o motivo, sem conversão, nem passado o tempo de interface; a ressalva de leitura anterior só com a escuta encerrada
+  ---
+  duration_ms: 1062.759518
+  type: 'test'
+  ...
+# Subtest: R3.2 (ADV-01): indisponível sem números (relatório sem bloco exato; uma base, nenhuma desconsiderada), com a escuta encerrada desde o começo: aparece como está, com o motivo, sem conversão, nem passado o tempo de interface; a ressalva de leitura anterior só com a escuta encerrada
+ok 5 - R3.2 (ADV-01): indisponível sem números (relatório sem bloco exato; uma base, nenhuma desconsiderada), com a escuta encerrada desde o começo: aparece como está, com o motivo, sem conversão, nem passado o tempo de interface; a ressalva de leitura anterior só com a escuta encerrada
+  ---
+  duration_ms: 1056.532871
+  type: 'test'
+  ...
+# Subtest: R3.2 (ADV-01): indisponível sem números (relatório sem bloco exato; uma base, nenhuma desconsiderada), com a divergência persistente: aparece como está, com o motivo, sem conversão, nem passado o tempo de interface; a ressalva de leitura anterior só com a escuta encerrada
+ok 6 - R3.2 (ADV-01): indisponível sem números (relatório sem bloco exato; uma base, nenhuma desconsiderada), com a divergência persistente: aparece como está, com o motivo, sem conversão, nem passado o tempo de interface; a ressalva de leitura anterior só com a escuta encerrada
+  ---
+  duration_ms: 1056.381112
+  type: 'test'
+  ...
+# Subtest: R3.2 (ADV-01): renda PJ sem confirmação, 3 meses, sem desconsiderada, sem conexão depois do primeiro retorno do servidor: o indisponível sem números continua como está, com o motivo, sem conversão; a ressalva só com a escuta encerrada
+ok 7 - R3.2 (ADV-01): renda PJ sem confirmação, 3 meses, sem desconsiderada, sem conexão depois do primeiro retorno do servidor: o indisponível sem números continua como está, com o motivo, sem conversão; a ressalva só com a escuta encerrada
+  ---
+  duration_ms: 1496.308506
+  type: 'test'
+  ...
+# Subtest: R3.2 (ADV-01): renda PJ sem confirmação, 3 meses, sem desconsiderada, com a escuta encerrada depois do primeiro retorno do servidor: o indisponível sem números continua como está, com o motivo, sem conversão; a ressalva só com a escuta encerrada
+ok 8 - R3.2 (ADV-01): renda PJ sem confirmação, 3 meses, sem desconsiderada, com a escuta encerrada depois do primeiro retorno do servidor: o indisponível sem números continua como está, com o motivo, sem conversão; a ressalva só com a escuta encerrada
+  ---
+  duration_ms: 1500.812786
+  type: 'test'
+  ...
+# Subtest: R3.2 (ADV-01): renda PJ sem confirmação, 3 meses, sem desconsiderada, com a divergência persistente depois do primeiro retorno do servidor: o indisponível sem números continua como está, com o motivo, sem conversão; a ressalva só com a escuta encerrada
+ok 9 - R3.2 (ADV-01): renda PJ sem confirmação, 3 meses, sem desconsiderada, com a divergência persistente depois do primeiro retorno do servidor: o indisponível sem números continua como está, com o motivo, sem conversão; a ressalva só com a escuta encerrada
+  ---
+  duration_ms: 1505.891563
+  type: 'test'
+  ...
+# Subtest: R3.2 (ADV-01): renda PJ sem confirmação, 12 meses, com desconsiderada, sem conexão depois do primeiro retorno do servidor: o indisponível sem números continua como está, com o motivo, sem conversão; a ressalva só com a escuta encerrada
+ok 10 - R3.2 (ADV-01): renda PJ sem confirmação, 12 meses, com desconsiderada, sem conexão depois do primeiro retorno do servidor: o indisponível sem números continua como está, com o motivo, sem conversão; a ressalva só com a escuta encerrada
+  ---
+  duration_ms: 1499.730554
+  type: 'test'
+  ...
+# Subtest: R3.2 (ADV-01): renda PJ sem confirmação, 12 meses, com desconsiderada, com a escuta encerrada depois do primeiro retorno do servidor: o indisponível sem números continua como está, com o motivo, sem conversão; a ressalva só com a escuta encerrada
+ok 11 - R3.2 (ADV-01): renda PJ sem confirmação, 12 meses, com desconsiderada, com a escuta encerrada depois do primeiro retorno do servidor: o indisponível sem números continua como está, com o motivo, sem conversão; a ressalva só com a escuta encerrada
+  ---
+  duration_ms: 1498.650324
+  type: 'test'
+  ...
+# Subtest: R3.2 (ADV-01): renda PJ sem confirmação, 12 meses, com desconsiderada, com a divergência persistente depois do primeiro retorno do servidor: o indisponível sem números continua como está, com o motivo, sem conversão; a ressalva só com a escuta encerrada
+ok 12 - R3.2 (ADV-01): renda PJ sem confirmação, 12 meses, com desconsiderada, com a divergência persistente depois do primeiro retorno do servidor: o indisponível sem números continua como está, com o motivo, sem conversão; a ressalva só com a escuta encerrada
+  ---
+  duration_ms: 1500.270673
+  type: 'test'
+  ...
+# Subtest: R3.2 (F-08): indisponível com números (rotina sem horas; uma base, nenhuma desconsiderada), sem retorno do servidor: nem o motivo nem a memória de cálculo sem a prova, como a estimativa que converte; com a prova, o indisponível com o motivo
+ok 13 - R3.2 (F-08): indisponível com números (rotina sem horas; uma base, nenhuma desconsiderada), sem retorno do servidor: nem o motivo nem a memória de cálculo sem a prova, como a estimativa que converte; com a prova, o indisponível com o motivo
+  ---
+  duration_ms: 1031.716407
+  type: 'test'
+  ...
+# Subtest: R3.2 (F-08): indisponível com números (rotina sem horas; uma base, nenhuma desconsiderada), com a escuta encerrada desde o começo: nem o motivo nem a memória de cálculo sem a prova, como a estimativa que converte; com a prova, o indisponível com o motivo
+ok 14 - R3.2 (F-08): indisponível com números (rotina sem horas; uma base, nenhuma desconsiderada), com a escuta encerrada desde o começo: nem o motivo nem a memória de cálculo sem a prova, como a estimativa que converte; com a prova, o indisponível com o motivo
+  ---
+  duration_ms: 1065.54837
+  type: 'test'
+  ...
+# Subtest: R3.2 (F-08): indisponível com números (rotina sem horas; uma base, nenhuma desconsiderada), com a divergência persistente: nem o motivo nem a memória de cálculo sem a prova, como a estimativa que converte; com a prova, o indisponível com o motivo
+ok 15 - R3.2 (F-08): indisponível com números (rotina sem horas; uma base, nenhuma desconsiderada), com a divergência persistente: nem o motivo nem a memória de cálculo sem a prova, como a estimativa que converte; com a prova, o indisponível com o motivo
+  ---
+  duration_ms: 1223.727022
+  type: 'test'
+  ...
+# Subtest: R3.2 (F-08): indisponível com números (nenhuma renda na janela; uma base, nenhuma desconsiderada), sem retorno do servidor: nem o motivo nem a memória de cálculo sem a prova, como a estimativa que converte; com a prova, o indisponível com o motivo
+ok 16 - R3.2 (F-08): indisponível com números (nenhuma renda na janela; uma base, nenhuma desconsiderada), sem retorno do servidor: nem o motivo nem a memória de cálculo sem a prova, como a estimativa que converte; com a prova, o indisponível com o motivo
+  ---
+  duration_ms: 1031.034227
+  type: 'test'
+  ...
+# Subtest: R3.2 (F-08): indisponível com números (nenhuma renda na janela; uma base, nenhuma desconsiderada), com a escuta encerrada desde o começo: nem o motivo nem a memória de cálculo sem a prova, como a estimativa que converte; com a prova, o indisponível com o motivo
+ok 17 - R3.2 (F-08): indisponível com números (nenhuma renda na janela; uma base, nenhuma desconsiderada), com a escuta encerrada desde o começo: nem o motivo nem a memória de cálculo sem a prova, como a estimativa que converte; com a prova, o indisponível com o motivo
+  ---
+  duration_ms: 1065.341855
+  type: 'test'
+  ...
+# Subtest: R3.2 (F-08): indisponível com números (nenhuma renda na janela; uma base, nenhuma desconsiderada), com a divergência persistente: nem o motivo nem a memória de cálculo sem a prova, como a estimativa que converte; com a prova, o indisponível com o motivo
+ok 18 - R3.2 (F-08): indisponível com números (nenhuma renda na janela; uma base, nenhuma desconsiderada), com a divergência persistente: nem o motivo nem a memória de cálculo sem a prova, como a estimativa que converte; com a prova, o indisponível com o motivo
+  ---
+  duration_ms: 1224.902152
+  type: 'test'
+  ...
+# Subtest: R3.2 (F-08): rotina sem horas, 3 meses, sem desconsiderada, sem conexão depois do indisponível provado: o motivo e a memória de cálculo saem como a conversão sai; com a prova de volta, o indisponível provado volta
+ok 19 - R3.2 (F-08): rotina sem horas, 3 meses, sem desconsiderada, sem conexão depois do indisponível provado: o motivo e a memória de cálculo saem como a conversão sai; com a prova de volta, o indisponível provado volta
+  ---
+  duration_ms: 1508.004194
+  type: 'test'
+  ...
+# Subtest: R3.2 (F-08): rotina sem horas, 3 meses, sem desconsiderada, com a escuta encerrada depois do indisponível provado: o motivo e a memória de cálculo saem como a conversão sai; com a prova de volta, o indisponível provado volta
+ok 20 - R3.2 (F-08): rotina sem horas, 3 meses, sem desconsiderada, com a escuta encerrada depois do indisponível provado: o motivo e a memória de cálculo saem como a conversão sai; com a prova de volta, o indisponível provado volta
+  ---
+  duration_ms: 1545.249271
+  type: 'test'
+  ...
+# Subtest: R3.2 (F-08): rotina sem horas, 3 meses, sem desconsiderada, com a divergência persistente depois do indisponível provado: o motivo e a memória de cálculo saem como a conversão sai; com a prova de volta, o indisponível provado volta
+ok 21 - R3.2 (F-08): rotina sem horas, 3 meses, sem desconsiderada, com a divergência persistente depois do indisponível provado: o motivo e a memória de cálculo saem como a conversão sai; com a prova de volta, o indisponível provado volta
+  ---
+  duration_ms: 1543.025146
+  type: 'test'
+  ...
+# Subtest: R3.2 (F-08): rotina sem horas, 12 meses, com desconsiderada, sem conexão depois do indisponível provado: o motivo e a memória de cálculo saem como a conversão sai; com a prova de volta, o indisponível provado volta
+ok 22 - R3.2 (F-08): rotina sem horas, 12 meses, com desconsiderada, sem conexão depois do indisponível provado: o motivo e a memória de cálculo saem como a conversão sai; com a prova de volta, o indisponível provado volta
+  ---
+  duration_ms: 1524.049515
+  type: 'test'
+  ...
+# Subtest: R3.2 (F-08): rotina sem horas, 12 meses, com desconsiderada, com a escuta encerrada depois do indisponível provado: o motivo e a memória de cálculo saem como a conversão sai; com a prova de volta, o indisponível provado volta
+ok 23 - R3.2 (F-08): rotina sem horas, 12 meses, com desconsiderada, com a escuta encerrada depois do indisponível provado: o motivo e a memória de cálculo saem como a conversão sai; com a prova de volta, o indisponível provado volta
+  ---
+  duration_ms: 1550.605964
+  type: 'test'
+  ...
+# Subtest: R3.2 (F-08): rotina sem horas, 12 meses, com desconsiderada, com a divergência persistente depois do indisponível provado: o motivo e a memória de cálculo saem como a conversão sai; com a prova de volta, o indisponível provado volta
+ok 24 - R3.2 (F-08): rotina sem horas, 12 meses, com desconsiderada, com a divergência persistente depois do indisponível provado: o motivo e a memória de cálculo saem como a conversão sai; com a prova de volta, o indisponível provado volta
+  ---
+  duration_ms: 1550.533065
+  type: 'test'
+  ...
+# Subtest: R3.2 (F-08, sonda R2-01): rotina sem horas e a desconsiderada editada em outra sessão antes do gatilho: o indisponível nunca traz os números de um estado misto (R$ 800,00 tirados do total que ainda tem R$ 500,00); depois do gatilho, os números consistentes
+ok 25 - R3.2 (F-08, sonda R2-01): rotina sem horas e a desconsiderada editada em outra sessão antes do gatilho: o indisponível nunca traz os números de um estado misto (R$ 800,00 tirados do total que ainda tem R$ 500,00); depois do gatilho, os números consistentes
+  ---
+  duration_ms: 289.429929
+  type: 'test'
+  ...
+# Subtest: R3.2 (F-08, sonda R2-02): rotina sem horas, 12 meses, divergência persistente (a base de setembro R$ 300,00 acima da projeção): o indisponível nunca traz como receita oficial o valor da base divergente
+ok 26 - R3.2 (F-08, sonda R2-02): rotina sem horas, 12 meses, divergência persistente (a base de setembro R$ 300,00 acima da projeção): o indisponível nunca traz como receita oficial o valor da base divergente
+  ---
+  duration_ms: 367.320988
+  type: 'test'
+  ...
+# Subtest: R3.2 (F-08, sonda R2-03): rotina com horas, um mês, a desconsiderada editada antes do gatilho até igualar o total do mês: nunca "nenhuma renda" de um estado misto; os estados consistentes estão prontos
+ok 27 - R3.2 (F-08, sonda R2-03): rotina com horas, um mês, a desconsiderada editada antes do gatilho até igualar o total do mês: nunca "nenhuma renda" de um estado misto; os estados consistentes estão prontos
+  ---
+  duration_ms: 287.827301
+  type: 'test'
+  ...
+# Subtest: R3.2 (ADV-01): da renda PJ sem confirmação (indisponível sem números, mostrado sem a confirmação) para a renda confirmada, com a escuta encerrada: a estimativa que converte não aparece sem a confirmação; com a escuta de volta, a provada
+ok 28 - R3.2 (ADV-01): da renda PJ sem confirmação (indisponível sem números, mostrado sem a confirmação) para a renda confirmada, com a escuta encerrada: a estimativa que converte não aparece sem a confirmação; com a escuta de volta, a provada
+  ---
+  duration_ms: 199.010558
+  type: 'test'
+  ...
+# Subtest: R3.2 (ADV-R2-07): a escuta encerrada com a estimativa provada na tela e o tempo de interface passado: fica o erro "Não foi possível confirmar…", com "Tentar de novo", e nunca vira "em atualização"
+ok 29 - R3.2 (ADV-R2-07): a escuta encerrada com a estimativa provada na tela e o tempo de interface passado: fica o erro "Não foi possível confirmar…", com "Tentar de novo", e nunca vira "em atualização"
+  ---
+  duration_ms: 308.298565
+  type: 'test'
+  ...
+1..29
+# tests 29
+# suites 0
+# pass 29
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 33088.174055

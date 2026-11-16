@@ -1,0 +1,59 @@
+// Sonda da revisão 3 (M07): pairedReadIds/readExcludedIncome com listas aleatórias. Uso: node ... b01-pares-r3.mts <raiz> [amostras] [semente]
+import { pathToFileURL } from 'node:url';
+const root = process.argv[2];
+const samples = Number(process.argv[3] ?? 3000);
+let seed = Number(process.argv[4] ?? 7);
+const rnd = () => { seed = (seed * 1103515245 + 12345) % 2147483648; return seed / 2147483648; };
+const mod = await import(pathToFileURL(`${root}/src/modules/work-time/receivableReversal.ts`).href);
+const { readExcludedIncome, reversalMirrorIdOf } = mod;
+const hex = () => Array.from({ length: 40 }, () => '0123456789abcdef'[Math.floor(rnd() * 16)]).join('');
+let bad = 0; let maxLen = 0; let checked = 0; const examples: unknown[] = [];
+for (let s = 0; s < samples; s += 1) {
+  // Recebimentos, alguns com o espelho do estorno também na lista (antes ou depois), cadeias (estorno do estorno),
+  // IDs comuns e repetidos; até 50 IDs desconsiderados distintos.
+  const pool: string[] = [];
+  const receipts = Array.from({ length: 1 + Math.floor(rnd() * 25) }, () => `recvcash_${hex()}`);
+  for (const r of receipts) {
+    pool.push(r);
+    if (rnd() < 0.35) { const rev = await reversalMirrorIdOf(r); pool.push(rev as string); if (rnd() < 0.3) pool.push((await reversalMirrorIdOf(rev as string)) as string); }
+  }
+  for (let i = 0; i < Math.floor(rnd() * 6); i += 1) pool.push(`tx_${Math.floor(rnd() * 1e6)}`);
+  // embaralha e repete alguns
+  for (let i = pool.length - 1; i > 0; i -= 1) { const j = Math.floor(rnd() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
+  if (rnd() < 0.3 && pool.length > 0) pool.push(pool[Math.floor(rnd() * pool.length)]);
+  const unique = [...new Set(pool)].slice(0, 50);
+  const list = [...unique];
+  let calls: string[][] = [];
+  await readExcludedIncome(async (_ws: string, ids: readonly string[]) => { calls.push([...ids]); return { found: [], missing: [...ids] }; }, 'ws', list);
+  const ids = calls[0];
+  checked += 1;
+  maxLen = Math.max(maxLen, ids.length);
+  const problems: string[] = [];
+  if (new Set(ids).size !== ids.length) problems.push('repetido');
+  for (const id of unique) if (!ids.includes(id)) problems.push(`faltou ${id}`);
+  if (ids.length > 100) problems.push(`>100 (${ids.length})`);
+  // Cada desconsiderado que é espelho de recebimento e não é ele próprio o estorno de outro da lista: o estorno logo depois, em posição par.
+  const reversalsInList = new Set<string>();
+  for (const id of unique) { const r = await reversalMirrorIdOf(id); if (r !== null) reversalsInList.add(r); }
+  for (const id of unique) {
+    const rev = await reversalMirrorIdOf(id);
+    if (rev === null) continue;
+    const pos = ids.indexOf(id);
+    if (reversalsInList.has(id)) {
+      // o próprio id é o estorno de outro da lista: ele fica logo depois do recebimento dele
+      continue;
+    }
+    if (pos % 2 !== 0 || ids[pos + 1] !== rev) problems.push(`par partido: ${id.slice(0, 14)} pos ${pos}`);
+    if (Math.floor(pos / 30) !== Math.floor((pos + 1) / 30)) problems.push(`par em dois lotes: ${id.slice(0, 14)}`);
+  }
+  // Um estorno da lista cujo recebimento também está na lista: logo depois dele.
+  for (const id of unique) {
+    const rev = await reversalMirrorIdOf(id);
+    if (rev === null || !unique.includes(rev)) continue;
+    if (reversalsInList.has(id)) continue;
+    const pos = ids.indexOf(id);
+    if (ids[pos + 1] !== rev) problems.push(`estorno da lista longe do recebimento: ${id.slice(0, 14)}`);
+  }
+  if (problems.length > 0) { bad += 1; if (examples.length < 3) examples.push({ s, problems: problems.slice(0, 4) }); }
+}
+console.log(JSON.stringify({ root: root.split('/').pop(), samples: checked, bad, maxLen, examples }));

@@ -1,0 +1,36 @@
+
+// ------------------------------------------------------------------ sonda da revisão 3: remontagem com a base em cache
+/** Outra instância da estimativa na mesma sessão (o mesmo QueryClient), como a prévia de Configurações. */
+const mountWith = (w: World, client: QueryClient, initial: IncomeEstimateParams) => {
+  const renders: Render[] = [];
+  const Estimate = () => {
+    renders.push({uid: 'u1', params: initial, state: useIncomeEstimateWith(w.deps, 'u1', initial)});
+    return null;
+  };
+  let local: ReactTestRenderer | null = null;
+  act(() => { local = TestRenderer.create(createElement(QueryClientProvider, {client}, createElement(Estimate))); });
+  return {renders, latest: () => renders[renders.length - 1]?.state, unmount: () => act(() => local?.unmount())};
+};
+
+test('sonda r3: a base gerada nos 30 s da edição fica em cache; cada instância nova na mesma sessão espera de novo, mesmo com o servidor 61 s depois', async () => {
+  const w = world();
+  w.serverClock = true;
+  w.deps = {...w.deps, pendingWaitMs: 60_000};
+  standard(w);
+  w.stamp();
+  w.write('ws-a', 'r500', {date: '2026-10-15', type: 'receita', valueCents: 50_000, isPaid: true, description: 'Outra descrição'});
+  const client = new QueryClient({defaultOptions: {queries: {retryDelay: 1, refetchOnWindowFocus: false}}});
+  const first = mountWith(w, client, params());
+  await until(() => w.calls.byIds === 1, 'a leitura por id');
+  await settle(300);
+  assert.ok(first.renders.every((render) => incomeOf(render.state) === null), 'primeira: dentro da espera');
+  w.advance(61);
+  const calls = w.calls.series;
+  const second = mountWith(w, client, params());
+  await settle(600);
+  const shown = second.renders.map((render) => (render.state.status === 'done' ? String(incomeOf(render.state)) : render.state.status));
+  console.log(JSON.stringify({serieRelida: w.calls.series - calls, segundaMostrou: [...new Set(shown)]}));
+  assert.ok(second.renders.every((render) => incomeOf(render.state) === null), `segunda instância, servidor 61 s depois: ainda espera (mostrados: ${[...new Set(shown)].join(' → ')})`);
+  first.unmount();
+  second.unmount();
+});

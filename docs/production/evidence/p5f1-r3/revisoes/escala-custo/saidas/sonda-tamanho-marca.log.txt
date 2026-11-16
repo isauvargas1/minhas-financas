@@ -1,0 +1,45 @@
+{
+ "MAX_MARK_PENDING": 16,
+ "cenarios": [
+  {
+   "cenario": "típico g0 (1 cadeia, sem pendência)",
+   "pendencias": "0",
+   "bytesDocumento": 373,
+   "entradasIndice": 22,
+   "bytesIndiceEstimados": 3292,
+   "fatorIndiceSobreDoc": 8.8,
+   "broken": "-"
+  },
+  {
+   "cenario": "após reconstrução (âncora b + 2 cadeias)",
+   "pendencias": "0+0",
+   "bytesDocumento": 726,
+   "entradasIndice": 42,
+   "bytesIndiceEstimados": 6630,
+   "fatorIndiceSobreDoc": 9.1,
+   "broken": "-"
+  },
+  {
+   "cenario": "pior caso (2 âncoras + 2 cadeias com 16 pendências)",
+   "pendencias": "16+16",
+   "bytesDocumento": 5743,
+   "entradasIndice": 78,
+   "bytesIndiceEstimados": 16672,
+   "fatorIndiceSobreDoc": 2.9,
+   "broken": "-"
+  },
+  {
+   "cenario": "quebrada (17º evento fora de ordem)",
+   "pendencias": "0",
+   "bytesDocumento": 308,
+   "entradasIndice": 20,
+   "bytesIndiceEstimados": 2888,
+   "fatorIndiceSobreDoc": 9.4,
+   "broken": "pending_overflow"
+  }
+ ],
+ "ancoraPatchBytes": 237
+}
+N=10000: típico 70.2 MiB (doc 6.9 MiB); pior caso 213.8 MiB
+N=100000: típico 701.5 MiB (doc 69.2 MiB); pior caso 2137.7 MiB
+N=1000000: típico 7015.2 MiB (doc 692.4 MiB); pior caso 21376.6 MiB

@@ -1,0 +1,5 @@
+2026-11-10T22:33:47Z used_mib=13716 node=99 java=1
+2026-11-10T22:33:57Z used_mib=13838 node=100 java=1
+2026-11-10T22:34:07Z used_mib=14425 node=104 java=1
+2026-11-10T22:34:17Z used_mib=14443 node=104 java=1
+2026-11-10T22:34:27Z used_mib=1939 node=101 java=1

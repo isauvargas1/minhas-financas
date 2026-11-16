@@ -1,0 +1,9 @@
+M1-ignora-sincronizacao exit=1 # pass 74 # fail 11 
+M2-ignora-prova exit=1 # pass 44 # fail 41 
+M3-prazo-aprova exit=1 # pass 67 # fail 18 
+M4-espera-so-sem-prova exit=1 # pass 79 # fail 6 
+M5-retencao-sem-identidade exit=1 # pass 55 # fail 30 
+M6-retencao-com-aviso exit=1 # pass 55 # fail 30 
+M7-atual-sem-prova-com-aviso exit=1 # pass 31 # fail 54 
+M8-espera-nao-zera exit=1 # pass 81 # fail 4 
+FIM

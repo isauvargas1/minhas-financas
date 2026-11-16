@@ -1,0 +1,24 @@
+// Sonda B02: configuração aceita ao salvar (routinesAmbiguity nula, validateDraft ok) que fica sem cálculo seguro
+// num mês por causa de uma exceção no dia vizinho (a cobertura sem intervalo vinha do dia seguinte).
+const root = process.argv[2];
+const cal = await import(`${root}/src/modules/work-time/calendar.ts`);
+const est = await import(`${root}/src/modules/work-time/estimate.ts`);
+const OFF = { kind: 'off' };
+const w = (s: number, e: number, b = 0) => ({ kind: 'window', start: s, end: e, breakMinutes: b });
+const onDay = (i: number, spec: any) => ({ kind: 'weekly', days: Array.from({ length: 7 }, (_, d) => (d === i ? spec : OFF)) });
+// Segunda: 20:00–24:00 sem intervalo e 22:00–02:00 com 30 min; terça: 00:00–08:00 sem intervalo.
+const routines = [onDay(0, w(1200, 0)), onDay(0, w(1320, 120, 30)), onDay(1, w(0, 480))];
+const base = { routines, worksOnHolidays: true, localHolidays: [], exceptions: [] as any[] };
+console.log('conferidor (salvar):', JSON.stringify(cal.routinesAmbiguity?.(routines, '2026-11-05') ?? 'ausente'));
+const oct = cal.monthPlan(base, '2026-10', { periodStart: true });
+console.log('outubro sem exceção: minutos', oct.minutes, 'ambíguos', JSON.stringify(oct.ambiguousDays));
+const withOff = { ...base, exceptions: [{ kind: 'day_off', start: '2026-10-20', end: '2026-10-20' }] };
+const oct2 = cal.monthPlan(withOff, '2026-10', { periodStart: true });
+console.log('outubro com folga na terça 20/10: minutos', oct2.minutes, 'ambíguos', JSON.stringify(oct2.ambiguousDays));
+const estimate = est.computeWorkTimeEstimate({ mode: 'current_month', historyMonths: 3, allowBusinessIncome: false, calendar: withOff,
+  referenceDate: '2026-10-25', workspaceType: 'PF', reportExact: true, receipts: [{ month: '2026-10', receiptsCents: 500000, partial: true }], excluded: [] });
+console.log('estimativa:', estimate.status, estimate.reason ?? '');
+// Uma folga na terça (data única) num feriado local também:
+const withHoliday = { ...base, worksOnHolidays: false, localHolidays: [{ kind: 'date', date: '2026-10-27' }] };
+const oct3 = cal.monthPlan(withHoliday, '2026-10', { periodStart: true });
+console.log('outubro com feriado local na terça 27/10: ambíguos', JSON.stringify(oct3.ambiguousDays));

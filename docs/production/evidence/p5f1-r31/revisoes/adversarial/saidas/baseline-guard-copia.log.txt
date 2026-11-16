@@ -1,0 +1,172 @@
+TAP version 13
+# Subtest: a varredura alcança o repositório real
+not ok 1 - a varredura alcança o repositório real
+  ---
+  duration_ms: 5.464942
+  type: 'test'
+  location: '<scratchpad>/p5f1r31/revisoes/adversarial/r31-copia/tests/unit/work-time-guard.test.ts:78:1'
+  failureType: 'testCodeFailure'
+  error: "ENOENT: no such file or directory, scandir '<scratchpad>/p5f1r31/revisoes/adversarial/r31-copia/functions/src'"
+  code: 'ENOENT'
+  stack: |-
+    readdirSync (node:fs:1590:26)
+    sourceFiles (file://<scratchpad>/p5f1r31/revisoes/adversarial/r31-copia/tests/unit/work-time-guard.test.ts:62:3)
+    TestContext.<anonymous> (file://<scratchpad>/p5f1r31/revisoes/adversarial/r31-copia/tests/unit/work-time-guard.test.ts:82:13)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.start (node:internal/test_runner/test:944:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)
+  ...
+# Subtest: nenhuma Function lê, grava ou menciona a preferência privada
+not ok 2 - nenhuma Function lê, grava ou menciona a preferência privada
+  ---
+  duration_ms: 0.201354
+  type: 'test'
+  location: '<scratchpad>/p5f1r31/revisoes/adversarial/r31-copia/tests/unit/work-time-guard.test.ts:85:1'
+  failureType: 'testCodeFailure'
+  error: "ENOENT: no such file or directory, scandir '<scratchpad>/p5f1r31/revisoes/adversarial/r31-copia/functions/src'"
+  code: 'ENOENT'
+  stack: |-
+    readdirSync (node:fs:1590:26)
+    sourceFiles (file://<scratchpad>/p5f1r31/revisoes/adversarial/r31-copia/tests/unit/work-time-guard.test.ts:62:3)
+    TestContext.<anonymous> (file://<scratchpad>/p5f1r31/revisoes/adversarial/r31-copia/tests/unit/work-time-guard.test.ts:86:22)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: IA, notificações e relatórios autoritativos não recebem a preferência
+ok 3 - IA, notificações e relatórios autoritativos não recebem a preferência
+  ---
+  duration_ms: 3.894302
+  type: 'test'
+  ...
+# Subtest: DTOs, chamadas e adaptadores financeiros não carregam tempo de trabalho
+ok 4 - DTOs, chamadas e adaptadores financeiros não carregam tempo de trabalho
+  ---
+  duration_ms: 5.355539
+  type: 'test'
+  ...
+# Subtest: nenhuma cópia local da preferência e nenhuma leitura do cache do SDK no app
+ok 5 - nenhuma cópia local da preferência e nenhuma leitura do cache do SDK no app
+  ---
+  duration_ms: 22.293889
+  type: 'test'
+  ...
+# Subtest: logs da preferência só levam mensagem fixa e código de erro
+ok 6 - logs da preferência só levam mensagem fixa e código de erro
+  ---
+  duration_ms: 3.556511
+  type: 'test'
+  ...
+# Subtest: sessão: troca de conta e respostas atrasadas não expõem a preferência de outra conta
+ok 7 - sessão: troca de conta e respostas atrasadas não expõem a preferência de outra conta
+  ---
+  duration_ms: 0.571341
+  type: 'test'
+  ...
+# Subtest: a preferência só é lida e gravada no documento privado do próprio usuário
+ok 8 - a preferência só é lida e gravada no documento privado do próprio usuário
+  ---
+  duration_ms: 1.890523
+  type: 'test'
+  ...
+# Subtest: Rules: bloco explícito do titular, campos, gramáticas e limites iguais ao contrato v2 do cliente
+not ok 9 - Rules: bloco explícito do titular, campos, gramáticas e limites iguais ao contrato v2 do cliente
+  ---
+  duration_ms: 0.694988
+  type: 'test'
+  location: '<scratchpad>/p5f1r31/revisoes/adversarial/r31-copia/tests/unit/work-time-guard.test.ts:217:1'
+  failureType: 'testCodeFailure'
+  error: "ENOENT: no such file or directory, open '<scratchpad>/p5f1r31/revisoes/adversarial/r31-copia/firestore.rules'"
+  code: 'ENOENT'
+  stack: |-
+    readFileSync (node:fs:440:20)
+    read (file://<scratchpad>/p5f1r31/revisoes/adversarial/r31-copia/tests/unit/work-time-guard.test.ts:55:32)
+    TestContext.<anonymous> (file://<scratchpad>/p5f1r31/revisoes/adversarial/r31-copia/tests/unit/work-time-guard.test.ts:218:17)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: nada derivado é gravado: só a API do módulo escreve, e só os campos do contrato
+ok 10 - nada derivado é gravado: só a API do módulo escreve, e só os campos do contrato
+  ---
+  duration_ms: 3.299966
+  type: 'test'
+  ...
+# Subtest: leitura das marcas de aplicação (P5-F.1-R3): só uma transação de leitura, só nas coleções da projeção, sem escrita, escuta nem cache
+not ok 11 - leitura das marcas de aplicação (P5-F.1-R3): só uma transação de leitura, só nas coleções da projeção, sem escrita, escuta nem cache
+  ---
+  duration_ms: 2.108876
+  type: 'test'
+  location: '<scratchpad>/p5f1r31/revisoes/adversarial/r31-copia/tests/unit/work-time-guard.test.ts:312:1'
+  failureType: 'testCodeFailure'
+  error: "ENOENT: no such file or directory, open '<scratchpad>/p5f1r31/revisoes/adversarial/r31-copia/firestore.rules'"
+  code: 'ENOENT'
+  stack: |-
+    readFileSync (node:fs:440:20)
+    read (file://<scratchpad>/p5f1r31/revisoes/adversarial/r31-copia/tests/unit/work-time-guard.test.ts:55:32)
+    TestContext.<anonymous> (file://<scratchpad>/p5f1r31/revisoes/adversarial/r31-copia/tests/unit/work-time-guard.test.ts:336:17)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: estimativa: uma por contexto, sem polling nem listener por lançamento
+ok 12 - estimativa: uma por contexto, sem polling nem listener por lançamento
+  ---
+  duration_ms: 60.251418
+  type: 'test'
+  ...
+# Subtest: falhas de leitura: mensagens fixas em pt-BR, com nova tentativa, e só o código do erro no log
+ok 13 - falhas de leitura: mensagens fixas em pt-BR, com nova tentativa, e só o código do erro no log
+  ---
+  duration_ms: 1.586227
+  type: 'test'
+  ...
+# Subtest: janela de receitas: a leitura paginada real usa `readPagedWindow` com um documento a mais
+ok 14 - janela de receitas: a leitura paginada real usa `readPagedWindow` com um documento a mais
+  ---
+  duration_ms: 0.507978
+  type: 'test'
+  ...
+# Subtest: matriz: entradas, confirmações, termos, históricos e preços ficam em BRL
+ok 15 - matriz: entradas, confirmações, termos, históricos e preços ficam em BRL
+  ---
+  duration_ms: 2.406197
+  type: 'test'
+  ...
+# Subtest: matriz: pontos em BRL dentro de arquivos elegíveis continuam em reais, linha a linha
+ok 16 - matriz: pontos em BRL dentro de arquivos elegíveis continuam em reais, linha a linha
+  ---
+  duration_ms: 2.839871
+  type: 'test'
+  ...
+# Subtest: matriz: os pontos elegíveis usam a camada de exibição, e a prévia do tema força reais
+ok 17 - matriz: os pontos elegíveis usam a camada de exibição, e a prévia do tema força reais
+  ---
+  duration_ms: 2.935237
+  type: 'test'
+  ...
+# Subtest: modo dinheiro idêntico: a camada devolve o formatador da tela, sem elemento novo
+ok 18 - modo dinheiro idêntico: a camada devolve o formatador da tela, sem elemento novo
+  ---
+  duration_ms: 0.190598
+  type: 'test'
+  ...
+1..18
+# tests 18
+# suites 0
+# pass 14
+# fail 4
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 344.016801

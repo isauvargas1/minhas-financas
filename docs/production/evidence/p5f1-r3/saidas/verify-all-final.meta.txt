@@ -1,0 +1,4 @@
+inicio=2026-11-09T19:42:32Z head=1730a1df0d3870ff52496933f45cb73a8dacd29b java=version "21.0.12.1" firebase=15.32.1
+arvore=377c2f3ff3cd1729a819e5be8d89dc06dea7cf93
+fim=2026-11-09T20:22:55Z exit=0 duracao_s=2423
+limpeza=0 (0 = nada órfão ou encerrado com SIGTERM)

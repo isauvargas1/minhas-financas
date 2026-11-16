@@ -3,6 +3,7 @@ import React, { useState, useMemo } from 'react';
 import { useLoans, useLoanTotals } from '../modules/loans/hooks.ts';
 import type { Loan, LoanType, LoanStatus } from '../modules/loans/types.ts';
 import { formatCents, formatDayKey } from '../modules/loans/money.ts';
+import { useMoneyDisplay } from '../modules/work-time/display.tsx';
 import {
     LOAN_STATUS_LABELS,
     interestLabel,
@@ -21,6 +22,7 @@ interface PJLoansViewProps {
 }
 
 const PJLoansView: React.FC<PJLoansViewProps> = ({ onSelectLoan }) => {
+    const display = useMoneyDisplay();
     const { data: loans, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } = useLoans();
     /*
      * Os indicadores vêm de agregado do servidor, não da lista carregada.
@@ -151,11 +153,11 @@ const PJLoansView: React.FC<PJLoansViewProps> = ({ onSelectLoan }) => {
                 )}
                 <div className="bg-surface p-4 rounded-xl border border-border shadow-sm flex items-center gap-4">
                     <div className="p-3 bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400 rounded-lg"><ArrowDownIcon className="w-6 h-6" /></div>
-                    <div><p className="text-[10px] font-bold text-muted uppercase">Total em Dívidas (Passivo)</p><p data-testid="loans-total-borrow" className="text-lg font-bold text-red-600">{formatCents(stats.liabilitiesCents)}</p></div>
+                    <div><p className="text-[10px] font-bold text-muted uppercase">Total em Dívidas (Passivo)</p><p data-testid="loans-total-borrow" className="text-lg font-bold text-red-600">{display.cents(stats.liabilitiesCents, formatCents)}</p></div>
                 </div>
                 <div className="bg-surface p-4 rounded-xl border border-border shadow-sm flex items-center gap-4">
                     <div className="p-3 bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-400 rounded-lg"><TrendingUpIcon className="w-6 h-6" /></div>
-                    <div><p className="text-[10px] font-bold text-muted uppercase">A Receber (Ativo)</p><p data-testid="loans-total-lend" className="text-lg font-bold text-green-600">{formatCents(stats.assetsCents)}</p></div>
+                    <div><p className="text-[10px] font-bold text-muted uppercase">A Receber (Ativo)</p><p data-testid="loans-total-lend" className="text-lg font-bold text-green-600">{display.cents(stats.assetsCents, formatCents)}</p></div>
                 </div>
                 <div className="bg-surface p-4 rounded-xl border border-border shadow-sm flex items-center gap-4">
                     <div className="p-3 bg-yellow-50 text-yellow-600 dark:bg-yellow-900/20 dark:text-yellow-400 rounded-lg"><WarningIcon className="w-6 h-6" /></div>
@@ -200,7 +202,7 @@ const PJLoansView: React.FC<PJLoansViewProps> = ({ onSelectLoan }) => {
                                                 {loan.type === 'lend' ? 'Ativo' : 'Passivo'}
                                             </span>
                                         </td>
-                                        <td className="px-4 py-3 text-right font-bold text-on-surface">{loan.status === 'cancelled' ? '—' : formatCents(openBalanceCents(loan))}</td>
+                                        <td className="px-4 py-3 text-right font-bold text-on-surface">{loan.status === 'cancelled' ? '—' : display.cents(openBalanceCents(loan), formatCents)}</td>
                                         <td className="px-4 py-3 text-center text-xs">{interestLabel(loan.interest)}</td>
                                         <td className="px-4 py-3 text-center text-muted">{formatDayKey(loan.maturityDate)}</td>
                                         <td className="px-4 py-3 text-center">

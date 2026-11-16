@@ -1,0 +1,17 @@
+// Sonda B02: custo do conferidor de rotinas no pior caso (ciclos longos e primos entre si, o período conjunto
+// passa de 2000–2099 e o intervalo inteiro é percorrido) e de validateDraft, que roda a cada renderização de
+// Configurações (`draftIsValid`) e a cada mudança do editor de rotinas.
+const root = process.argv[2];
+const cal = await import(`${root}/src/modules/work-time/calendar.ts`);
+const draft = await import(`${root}/src/modules/work-time/draft.ts`);
+const w = (s: number, e: number, b = 0) => ({ kind: 'window', start: s, end: e, breakMinutes: b });
+const cycle = (work: number, rest: number, spec: unknown) => ({ kind: 'cyclic', reference: '2026-01-01', workDays: work, restDays: rest, day: spec });
+// Sem cruzamento (o pior caso: nada é achado, o intervalo inteiro é percorrido).
+const free = [cycle(1, 52, w(480, 720, 30)), cycle(1, 54, w(780, 1020, 30)), cycle(1, 55, w(1080, 1200, 30))];
+const time = (fn: () => unknown, n = 3) => { const t: number[] = []; for (let i = 0; i < n; i += 1) { const s = performance.now(); fn(); t.push(performance.now() - s); } return t.map((x) => x.toFixed(0)).join('/'); };
+console.log('routinesAmbiguity, pior caso sem cruzamento (ms):', time(() => cal.routinesAmbiguity(free, '2026-11-05')));
+const d = { ...draft.initialDraft('ws_abc'), routines: free };
+console.log('validateDraft com essas rotinas (ms):', time(() => draft.validateDraft(d, '2026-11-05')));
+// Caso comum: rotina semanal.
+const weekly = [{ kind: 'weekly', days: Array(5).fill(w(480, 1020, 60)).concat([{ kind: 'off' }, { kind: 'off' }]) }];
+console.log('validateDraft, rotina semanal comum (ms):', time(() => draft.validateDraft({ ...d, routines: weekly }, '2026-11-05')));

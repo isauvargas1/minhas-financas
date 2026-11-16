@@ -8,8 +8,11 @@ import { transactionsQuotaView } from '../modules/billing/transactionsQuota';
 import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
 import { transactionAmount } from '../modules/transactions/amount.ts';
 import { formatDateBR } from '../utils/date.ts';
+import { useMoneyDisplay } from '../modules/work-time/display';
 import { useSettingsCatalog } from '../modules/settings-catalog/hooks.ts';
 import { resolveTransactionVisuals } from '../modules/settings-catalog/display.ts';
+import { useRecentTransactions } from '../modules/transactions/hooks.ts';
+import { RECENT_TRANSACTIONS_COUNT } from '../modules/transactions/api.ts';
 import {
     isCreditCardPaymentCashMirror,
     isInvestmentRedemption,
@@ -17,8 +20,9 @@ import {
 } from '../modules/investments/semantics.ts';
 
 interface RecentTransactionsProps {
-    transactions: Transaction[];
     onNewTransaction: () => void;
+    /** Só a prévia de Personalização: lançamentos de exemplo, sem consulta ao Firestore. */
+    previewTransactions?: Transaction[];
 }
 
 type SortableKeys = 'description' | 'category' | 'date' | 'valueCents';
@@ -35,8 +39,21 @@ const getButtonAlignClass = (align: 'left' | 'right' | 'center') => {
     return 'w-full justify-start';
 };
 
-const RecentTransactions: React.FC<RecentTransactionsProps> = ({ transactions, onNewTransaction }) => {
+const RecentTransactions: React.FC<RecentTransactionsProps> = ({ onNewTransaction, previewTransactions }) => {
+    const display = useMoneyDisplay();
     const [filter, setFilter] = useState<TransactionType | 'todas'>('todas');
+    // P5-GATE-FINAL (FIRESTORE-01): o widget lê só as 9 mais recentes do tipo do filtro, nos últimos 12 meses.
+    // A ordenação por coluna reorganiza só as exibidas (até 9), e a legenda abaixo do título diz isso.
+    const { activeWorkspace } = useWorkspace();
+    const recent = useRecentTransactions(activeWorkspace?.id ?? '', filter === 'todas' ? null : filter, {
+        enabled: previewTransactions === undefined,
+    });
+    const transactions = useMemo(
+        () => previewTransactions === undefined
+            ? recent.data ?? []
+            : previewTransactions.filter((t) => filter === 'todas' || t.type === filter),
+        [previewTransactions, recent.data, filter],
+    );
     const [sortConfig, setSortConfig] = useState<{ key: SortableKeys; direction: 'ascending' | 'descending' }>({ key: 'date', direction: 'descending' });
 
     // --- LÓGICA DE LIMITES DE PLANO ---
@@ -52,15 +69,8 @@ const RecentTransactions: React.FC<RecentTransactionsProps> = ({ transactions, o
     const canCreateTransaction = transactionsQuotaView(workspaceEntitlement).canCreate;
     // ----------------------------------
 
-    const filteredTransactions = useMemo(() => {
-        if (filter === 'todas') {
-            return transactions;
-        }
-        return transactions.filter(t => t.type === filter);
-    }, [transactions, filter]);
-
     const sortedTransactions = useMemo(() => {
-        let sortableItems = [...filteredTransactions];
+        let sortableItems = [...transactions];
         if (sortConfig !== null) {
             sortableItems.sort((a, b) => {
                 const aValue = a[sortConfig.key];
@@ -76,7 +86,7 @@ const RecentTransactions: React.FC<RecentTransactionsProps> = ({ transactions, o
             });
         }
         return sortableItems;
-    }, [filteredTransactions, sortConfig]);
+    }, [transactions, sortConfig]);
 
     const requestSort = (key: SortableKeys) => {
         let direction: 'ascending' | 'descending' = 'ascending';
@@ -106,7 +116,12 @@ const RecentTransactions: React.FC<RecentTransactionsProps> = ({ transactions, o
     return (
         <div className="bg-white dark:bg-dark-100 rounded-xl shadow-md p-6 h-full">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-                <h2 className="text-xl font-bold text-gray-800 dark:text-white">Transações Recentes</h2>
+                <div>
+                    <h2 className="text-xl font-bold text-gray-800 dark:text-white">Transações Recentes</h2>
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                        Mostra até as {RECENT_TRANSACTIONS_COUNT} mais recentes dos últimos 12 meses. Ordenar por coluna reorganiza só as exibidas.
+                    </p>
+                </div>
                 <div className="flex items-center space-x-3">
 
                     <div className="flex flex-col items-end">
@@ -165,7 +180,31 @@ const RecentTransactions: React.FC<RecentTransactionsProps> = ({ transactions, o
                         </tr>
                     </thead>
                     <tbody>
-                        {sortedTransactions.slice(0, 9).map((t) => {
+                        {recent.isError && (
+                            <tr>
+                                <td colSpan={tableHeaders.length} role="alert" className="py-4 px-4 text-gray-600 dark:text-gray-300">
+                                    Não foi possível carregar as transações recentes.{' '}
+                                    <button type="button" onClick={() => void recent.refetch()} className="font-semibold text-indigo-600 dark:text-indigo-300 underline">
+                                        Tentar novamente
+                                    </button>
+                                </td>
+                            </tr>
+                        )}
+                        {previewTransactions === undefined && recent.isPending && (
+                            <tr>
+                                <td colSpan={tableHeaders.length} role="status" className="py-4 px-4 text-gray-600 dark:text-gray-300">
+                                    Carregando transações recentes…
+                                </td>
+                            </tr>
+                        )}
+                        {!recent.isError && recent.isTruncated && (
+                            <tr>
+                                <td colSpan={tableHeaders.length} role="status" className="py-4 px-4 text-gray-600 dark:text-gray-300">
+                                    Não foi possível reunir as {RECENT_TRANSACTIONS_COUNT} mais recentes: veja a lista completa em Receitas ou Despesas.
+                                </td>
+                            </tr>
+                        )}
+                        {!recent.isError && sortedTransactions.slice(0, RECENT_TRANSACTIONS_COUNT).map((t) => {
                             const visuals = resolveTransactionVisuals({
                                 transaction: t,
                                 catalogItems,
@@ -213,7 +252,7 @@ const RecentTransactions: React.FC<RecentTransactionsProps> = ({ transactions, o
                                     </td>
 
                                     <td className={`py-4 px-4 text-center font-medium ${transactionTypeColors[t.type] || ''}`}>
-                                        {cashImpactCents > 0 ? '+' : cashImpactCents < 0 ? '-' : '•'} {formatCurrency(transactionAmount(t))}
+                                        {cashImpactCents > 0 ? '+' : cashImpactCents < 0 ? '-' : '•'} {display.cents(t.valueCents, () => formatCurrency(transactionAmount(t)))}
                                     </td>
                                 </tr>
                             );

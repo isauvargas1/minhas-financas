@@ -1,0 +1,6 @@
+{"root": "arvore-b97806c4", "pairs": 2163, "mono": 1, "civil": 19, "cut": 0, "oracle": 0, "steps": {"days": 131438, "s1": 0, "s2": 0, "s2id": 0, "s3": 0, "s4": 0, "s5": 2, "deltaPos": 10793, "dTpos": 12100}}
+    {"kind": "passo 5", "d": "2026-01-15", "m1": 1650, "m2": 1440, "delta": 0, "f": {"holidayOff": false, "schedule": false, "reduced": 540, "absence": false, "follows": false, "happens": true}}
+    {"kind": "passo 5", "d": "2026-08-31", "m1": 960, "m2": 888, "delta": 0, "f": {"holidayOff": false, "schedule": false, "reduced": 1319, "absence": false, "follows": false, "happens": true}}
+{"root": "mut-u68-windowpart", "pairs": 2163, "mono": 0, "civil": 65, "cut": 0, "oracle": 0, "steps": {"days": 131438, "s1": 0, "s2": 0, "s2id": 0, "s3": 0, "s4": 5, "s5": 0, "deltaPos": 10793, "dTpos": 12100}}
+    {"kind": "passo 4", "d": "2026-01-30", "m1": 1170, "m2": 1397, "dT": 242, "delta": 0}
+    {"kind": "passo 4", "d": "2027-02-02", "m1": 1404, "m2": 1594, "dT": 289, "delta": 0}

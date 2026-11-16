@@ -1,0 +1,61 @@
+// Sonda do revisor (R2A, item 4): recusas conservadoras — o motor recusa, mas toda parte fisicamente possível da
+// véspera (no máximo os minutos da redução, fora do intervalo) dá o mesmo número no dia seguinte.
+// Uso: node --experimental-strip-types s01-conservadora.mts <raiz instrumentada>
+import { unite, size, meet, minus, type Span } from './lib.mts';
+const root = process.argv[2];
+const cal = await import(`${root}/src/modules/work-time/calendar.ts`);
+const dates = await import(`${root}/src/modules/work-time/dates.ts`);
+const draft = await import(`${root.replace(/instr$/, 'final')}/src/modules/work-time/draft.ts`).catch(() => null);
+const t = (s: string) => +s.slice(0, 2) * 60 + +s.slice(3);
+const w = (s: string, e: string, b = 0) => ({ kind: 'window', start: t(s), end: t(e), breakMinutes: b });
+const OFF = { kind: 'off' };
+const week = (mon: any, tue: any, sun: any = OFF) => ({ kind: 'weekly', days: [mon, tue, OFF, OFF, OFF, OFF, sun] });
+const occ = (pieces: Span[]) => unite(pieces).map(([start, end]) => ({ start, end, breakMinutes: 0, routine: 99 }));
+const valueWith = (c: any, d: string, p: string, pieces: Span[]) => cal._planDayWith(c, d, cal._routineDayOf(c.routines, dates.dayNumber(d)), cal._flagsOf(c, d), occ(pieces),
+  cal._certainWindows(cal._neighborWindowsOn(c, dates.addDays(d, 1))), cal._certainWindows(cal._neighborWindowsOn(c, dates.addDays(p, -1))));
+const physicalRange = (c: any, p: string) => {
+  const d = dates.addDays(p, 1); const dDay = dates.dayNumber(d);
+  const eve = cal._neighborWindowsOn(c, p); const R = cal._flagsOf(c, p).reduced;
+  const civil: Span = [dDay * 1440, (dDay + 1) * 1440];
+  const vals = new Set<string>();
+  // varre as partes contíguas de tamanho até R dentro do trecho de cada janela no dia civil de d (passo de 15 min)
+  for (const wv of eve.windows) {
+    const post = meet([[wv.start, wv.end]], [civil]); if (post.length === 0) continue;
+    const [a, b] = post[0]; const maxLen = Math.min(R, b - a, wv.end - wv.start - wv.breakMinutes);
+    for (let len = 0; len <= maxLen; len += 15) for (let s0 = a; s0 + len <= b; s0 += 15) {
+      const v = valueWith(c, d, p, len === 0 ? [] : [[s0, s0 + len]]);
+      vals.add(v.ambiguous ? 'amb' : String(v.minutes));
+    }
+  }
+  return [...vals];
+};
+const show = (label: string, c: any, p: string) => {
+  const d = dates.addDays(p, 1);
+  const plan = cal.dayPlan(c, d); const eve = cal.dayPlan(c, p);
+  const verdict = cal.calendarAmbiguity(c, '2026-11-06');
+  console.log(JSON.stringify({ label, eve: [p, eve.minutes, eve.applied], day: [d, plan.minutes, plan.ambiguous, plan.reducedEve], verdict: verdict && { date: verdict.date, cause: verdict.cause }, physical: physicalRange(c, p) }));
+};
+const M = '2026-10-05'; // segunda
+// A — noturno 19:00–07:00 reduzido a 6 h; terça 07:00–23:00 (16 h) com 2 h de hora extra
+show('A: noturno reduzido a 6 h, terça 16 h + 2 h extra', { routines: [week(w('19:00', '07:00'), w('07:00', '23:00'))], worksOnHolidays: true, localHolidays: [],
+  exceptions: [{ kind: 'reduced', start: M, end: M, minutes: 360 }, { kind: 'overtime', date: '2026-10-06', minutes: 120 }] }, M);
+// A' — o mesmo com 1 h de hora extra (cabe com o turno inteiro): aceito
+show("A': idem com 1 h extra", { routines: [week(w('19:00', '07:00'), w('07:00', '23:00'))], worksOnHolidays: true, localHolidays: [],
+  exceptions: [{ kind: 'reduced', start: M, end: M, minutes: 360 }, { kind: 'overtime', date: '2026-10-06', minutes: 60 }] }, M);
+// B — duas reduções seguidas: domingo 20:00–08:00 reduzido a 12 h (não corta), segunda 06:00–02:00 reduzida a 18 h 20
+//     (o turno de segunda tem 1.200 min, 1.080 depois de descontar 06:00–08:00 de domingo: a redução não corta nada);
+//     terça 00:00–04:00. A terça deveria valer 120 (04:00 − 02:00), como com a segunda seguindo a rotina.
+show('B: segunda com redução que não corta (domingo reduzido sem cortar)', { routines: [week(w('06:00', '02:00'), w('00:00', '04:00'), w('20:00', '08:00'))], worksOnHolidays: true, localHolidays: [],
+  exceptions: [{ kind: 'reduced', start: '2026-10-04', end: '2026-10-05', minutes: 1100 }] }, M);
+show('B0: o mesmo sem a redução de domingo', { routines: [week(w('06:00', '02:00'), w('00:00', '04:00'), w('20:00', '08:00'))], worksOnHolidays: true, localHolidays: [],
+  exceptions: [{ kind: 'reduced', start: M, end: M, minutes: 1100 }] }, M);
+// C — duas reduções que cortam: segunda 20:00–08:00 reduzida a 1 h; terça 06:00–18:00 reduzida a 10 h 50
+show('C: duas reduções seguidas, véspera de 1 h', { routines: [week(w('20:00', '08:00'), w('06:00', '18:00'))], worksOnHolidays: true, localHolidays: [],
+  exceptions: [{ kind: 'reduced', start: M, end: M, minutes: 60 }, { kind: 'reduced', start: '2026-10-06', end: '2026-10-06', minutes: 650 }] }, M);
+// D — exemplo do próprio documento (§5): segunda 20:00–08:00 reduzida a 4 h, terça só com 19 h sem horário
+show('D: exemplo do documento §5', { routines: [week(w('20:00', '08:00'), { kind: 'duration', minutes: 1140 })], worksOnHolidays: true, localHolidays: [],
+  exceptions: [{ kind: 'reduced', start: M, end: M, minutes: 240 }] }, M);
+if (draft) {
+  const msg = draft.calendarAmbiguityMessage(cal.calendarAmbiguity({ routines: [week(w('06:00', '02:00'), w('00:00', '04:00'), w('20:00', '08:00'))], worksOnHolidays: true, localHolidays: [], exceptions: [{ kind: 'reduced', start: '2026-10-04', end: '2026-10-05', minutes: 1100 }] }, '2026-11-06'));
+  console.log(JSON.stringify({ mensagemB: msg }));
+}

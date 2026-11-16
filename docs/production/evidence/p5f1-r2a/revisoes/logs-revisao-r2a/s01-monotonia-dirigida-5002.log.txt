@@ -1,0 +1,1 @@
+{"seed":5002,"stats":{"samples":150000,"pairs":164787,"violations":0,"uncertainPairs":53452,"monthEdge":26669}}

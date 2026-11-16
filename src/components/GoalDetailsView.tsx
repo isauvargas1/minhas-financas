@@ -15,8 +15,9 @@ import { useGoalKpiProgress, useGoalManualHistory } from '../modules/goals/hooks
 import {
     GOAL_CASH_REGIME_NOTE, GOAL_COST_CENTER_KPI_NOTE, businessTypeLabel, businessTypeNeedsCashNote, civilDateKey,
     formatBasisPoints, formatCents, formatCivilDate, formatInstantDate, goalPaceStatus,
-    goalProgressView, goalTargetText, monthlySuggestionCents, parseReaisToCents,
+    goalProgressView, goalTarget, goalTargetText, isMarginGoal, monthlySuggestionCents, parseReaisToCents,
 } from '../modules/goals/model.ts';
+import { useMoneyDisplay } from '../modules/work-time/display.tsx';
 import { goalForecastLabel, goalTimelineEvents, type GoalMovementFact } from '../modules/goals/timeline.ts';
 import { listGoalInvestmentMovements } from '../modules/investments/persistence/readApi.ts';
 import { toGoalHistoryRows, type GoalHistoryRow } from '../modules/investments/simple/goalHistory.ts';
@@ -46,6 +47,7 @@ const GoalDetailsView: React.FC<GoalDetailsViewProps> = ({
 }) => {
     const { theme } = useTheme();
     const { activeWorkspace, activeWorkspaceRole } = useWorkspace();
+    const display = useMoneyDisplay();
     /*
      * "Novo Aporte" e "Vincular Existente" abrem aqui dentro (Etapa 3, §2.A).
      *
@@ -101,6 +103,12 @@ const GoalDetailsView: React.FC<GoalDetailsViewProps> = ({
         ? readyView.valueText
         : view.state === 'loading' ? 'Calculando...' : '—';
     const targetText = readyView ? readyView.targetText : goalTargetText(goal);
+    const progressDisplay = readyView && !isMarginGoal(goal)
+        ? display.cents(readyView.value, () => progressText)
+        : progressText;
+    const targetDisplay = isMarginGoal(goal)
+        ? targetText
+        : display.cents(goalTarget(goal), () => targetText);
     const statusMessage = view.state === 'error' || view.state === 'unavailable' ? view.message : '';
     const cashNote = businessTypeNeedsCashNote(goal.businessType) ? GOAL_CASH_REGIME_NOTE : '';
     const progressCents = readyView && readyView.unit === 'cents' ? readyView.value : 0;
@@ -394,7 +402,7 @@ const GoalDetailsView: React.FC<GoalDetailsViewProps> = ({
                         </div>
                         <div className="mt-8 relative z-10">
                             <div className="flex justify-between items-end mb-2">
-                                <div><span className="text-sm text-gray-500 dark:text-gray-400">Progresso Atual</span><div className="text-3xl font-bold text-gray-800 dark:text-white flex items-baseline gap-2">{progressText}<span className="text-sm font-medium text-gray-400">/ {targetText}</span></div></div>
+                                <div><span className="text-sm text-gray-500 dark:text-gray-400">Progresso Atual</span><div className="text-3xl font-bold text-gray-800 dark:text-white flex items-baseline gap-2">{progressDisplay}<span className="text-sm font-medium text-gray-400">/ {targetDisplay}</span></div></div>
                                 <div className="text-right"><span className="text-2xl font-bold" style={{ color: goal.visual.color }}>{readyView ? formatBasisPoints(percentBasisPoints) : ''}</span></div>
                             </div>
                             <div className="h-4 bg-gray-100 dark:bg-dark-200 rounded-full overflow-hidden">
@@ -407,11 +415,11 @@ const GoalDetailsView: React.FC<GoalDetailsViewProps> = ({
                     <div className="grid grid-rows-3 gap-4">
                         <div className="bg-white dark:bg-dark-100 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 flex items-center gap-4">
                             <div className="p-3 bg-red-50 text-red-500 dark:bg-red-900/20 rounded-lg"><TargetIcon className="h-6 w-6" /></div>
-                            <div><span className="text-xs text-gray-500 dark:text-gray-400 uppercase font-bold">Falta Acumular</span><div className="text-lg font-bold text-gray-800 dark:text-white">{remainingCents > 0 ? formatCents(remainingCents) : 'Alvo atingido!'}</div></div>
+                            <div><span className="text-xs text-gray-500 dark:text-gray-400 uppercase font-bold">Falta Acumular</span><div className="text-lg font-bold text-gray-800 dark:text-white">{remainingCents > 0 ? display.cents(remainingCents, formatCents) : 'Alvo atingido!'}</div></div>
                         </div>
                         <div className="bg-white dark:bg-dark-100 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 flex items-center gap-4">
                             <div className="p-3 bg-indigo-50 text-indigo-500 dark:bg-indigo-900/20 rounded-lg"><TrendingUpIcon className="h-6 w-6" /></div>
-                            <div><span className="text-xs text-gray-500 dark:text-gray-400 uppercase font-bold">Sugestão Mensal</span><div className="text-lg font-bold text-gray-800 dark:text-white">{monthlySuggestion > 0 ? formatCents(monthlySuggestion) : '-'}</div></div>
+                            <div><span className="text-xs text-gray-500 dark:text-gray-400 uppercase font-bold">Sugestão Mensal</span><div className="text-lg font-bold text-gray-800 dark:text-white">{monthlySuggestion > 0 ? display.cents(monthlySuggestion, formatCents) : '-'}</div></div>
                         </div>
                         <div className="bg-white dark:bg-dark-100 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 flex items-center gap-4">
                             <div className="p-3 bg-purple-50 text-purple-500 dark:bg-purple-900/20 rounded-lg"><ClockIcon className="h-6 w-6" /></div>
@@ -554,11 +562,11 @@ const GoalDetailsView: React.FC<GoalDetailsViewProps> = ({
                         <div className="flex justify-between items-end mb-3">
                             <div>
                                 <span className="text-sm font-bold text-gray-400 uppercase tracking-widest">Atual</span>
-                                <div className="text-4xl font-black text-gray-800 dark:text-white">{progressText}</div>
+                                <div className="text-4xl font-black text-gray-800 dark:text-white">{progressDisplay}</div>
                             </div>
                             <div className="text-right">
                                 <span className="text-sm font-bold text-gray-400 uppercase tracking-widest">Objetivo</span>
-                                <div className="text-2xl font-bold text-gray-400">{targetText}</div>
+                                <div className="text-2xl font-bold text-gray-400">{targetDisplay}</div>
                             </div>
                         </div>
                         {statusMessage && (

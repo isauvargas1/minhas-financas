@@ -1,0 +1,136 @@
+TAP version 13
+# Subtest: retenção fail-closed: sem prova, só a estimativa provada da mesma identidade; sem ela, nenhuma estimativa aparece (B03, R10-02)
+ok 1 - retenção fail-closed: sem prova, só a estimativa provada da mesma identidade; sem ela, nenhuma estimativa aparece (B03, R10-02)
+  ---
+  duration_ms: 2.894565
+  type: 'test'
+  ...
+# Subtest: retenção fail-closed: provada durante a sincronização, a anterior da mesma identidade; sem ela, a atual provada (B03)
+ok 2 - retenção fail-closed: provada durante a sincronização, a anterior da mesma identidade; sem ela, a atual provada (B03)
+  ---
+  duration_ms: 0.411723
+  type: 'test'
+  ...
+# Subtest: retenção fail-closed: outra conta, outro período ou qualquer entrada diferente não reaproveita a anterior (B03)
+ok 3 - retenção fail-closed: outra conta, outro período ou qualquer entrada diferente não reaproveita a anterior (B03)
+  ---
+  duration_ms: 0.430553
+  type: 'test'
+  ...
+# Subtest: leitura por id: cada leitura concluída traz um objeto novo, mesmo com os mesmos dados e no mesmo milissegundo
+ok 4 - leitura por id: cada leitura concluída traz um objeto novo, mesmo com os mesmos dados e no mesmo milissegundo
+  ---
+  duration_ms: 27.268822
+  type: 'test'
+  ...
+# Subtest: duas leituras por id concluídas no mesmo milissegundo e com os mesmos dados, a segunda pedida pela base que chegou durante a primeira: a estimativa mostra a base nova (R6-02)
+ok 5 - duas leituras por id concluídas no mesmo milissegundo e com os mesmos dados, a segunda pedida pela base que chegou durante a primeira: a estimativa mostra a base nova (R6-02)
+  ---
+  duration_ms: 534.857948
+  type: 'test'
+  ...
+# Subtest: mutação nesta aba: anular a receita desconsiderada nunca junta o item anulado com o total velho (R4-01)
+ok 6 - mutação nesta aba: anular a receita desconsiderada nunca junta o item anulado com o total velho (R4-01)
+  ---
+  duration_ms: 492.163124
+  type: 'test'
+  ...
+# Subtest: janela de 12 meses: a carga lê a série, o mês avulso e as exclusões uma vez cada, com a escuta adiantada (R4-02)
+ok 7 - janela de 12 meses: a carga lê a série, o mês avulso e as exclusões uma vez cada, com a escuta adiantada (R4-02)
+  ---
+  duration_ms: 347.827033
+  type: 'test'
+  ...
+# Subtest: leitura por id antiga: a prévia montada depois de uma mutação nesta aba não a relê antes da base (R5-01)
+ok 8 - leitura por id antiga: a prévia montada depois de uma mutação nesta aba não a relê antes da base (R5-01)
+  ---
+  duration_ms: 540.689664
+  type: 'test'
+  ...
+# Subtest: reconstrução marcada sem mudar os documentos mensais: a mutação relê a base, e a estimativa fica indisponível (R5-02)
+ok 9 - reconstrução marcada sem mudar os documentos mensais: a mutação relê a base, e a estimativa fica indisponível (R5-02)
+  ---
+  duration_ms: 190.191124
+  type: 'test'
+  ...
+# Subtest: escuta das projeções encerrada por erro: a estimativa avisa que pode estar desatualizada, e "Tentar de novo" a reabre (R5-02)
+ok 10 - escuta das projeções encerrada por erro: a estimativa avisa que pode estar desatualizada, e "Tentar de novo" a reabre (R5-02)
+  ---
+  duration_ms: 92.359891
+  type: 'test'
+  ...
+# Subtest: prévia montada durante uma sincronização: as exclusões só são relidas depois da base (R5-01)
+ok 11 - prévia montada durante uma sincronização: as exclusões só são relidas depois da base (R5-01)
+  ---
+  duration_ms: 526.400732
+  type: 'test'
+  ...
+# Subtest: releitura da mutação com a base nova antes do retorno da escuta (viva): nenhuma renderização junta o total novo com a exclusão antiga (R6-02, B03)
+ok 12 - releitura da mutação com a base nova antes do retorno da escuta (viva): nenhuma renderização junta o total novo com a exclusão antiga (R6-02, B03)
+  ---
+  duration_ms: 483.505538
+  type: 'test'
+  ...
+# Subtest: releitura da mutação com a base nova antes do retorno da escuta (encerrada): nenhuma renderização junta o total novo com a exclusão antiga (R6-02, B03)
+ok 13 - releitura da mutação com a base nova antes do retorno da escuta (encerrada): nenhuma renderização junta o total novo com a exclusão antiga (R6-02, B03)
+  ---
+  duration_ms: 437.845114
+  type: 'test'
+  ...
+# Subtest: escuta do provedor encerrada: a prévia de Configurações a reabre, e a estimativa em uso volta a acompanhar outras sessões (R6-01)
+ok 14 - escuta do provedor encerrada: a prévia de Configurações a reabre, e a estimativa em uso volta a acompanhar outras sessões (R6-01)
+  ---
+  duration_ms: 260.045887
+  type: 'test'
+  ...
+# Subtest: exclusão de um mês fora da janela, anulada nesta aba: a janela maior salva depois mostra a renda certa, sem juntar versões (R7-01)
+ok 15 - exclusão de um mês fora da janela, anulada nesta aba: a janela maior salva depois mostra a renda certa, sem juntar versões (R7-01)
+  ---
+  duration_ms: 535.647267
+  type: 'test'
+  ...
+# Subtest: janela de 12 meses, as duas bases relidas sem pedido e o mês avulso chegando depois: a estimativa segura até as duas chegarem, sem mostrar só uma nova (R8-03)
+ok 16 - janela de 12 meses, as duas bases relidas sem pedido e o mês avulso chegando depois: a estimativa segura até as duas chegarem, sem mostrar só uma nova (R8-03)
+  ---
+  duration_ms: 569.20292
+  type: 'test'
+  ...
+# Subtest: janela de 12 meses, a série nova sem pedido e o mês avulso falhando: a estimativa segura enquanto ele lê e libera depois da falha, com a ressalva (R8-03)
+ok 17 - janela de 12 meses, a série nova sem pedido e o mês avulso falhando: a estimativa segura enquanto ele lê e libera depois da falha, com a ressalva (R8-03)
+  ---
+  duration_ms: 818.980274
+  type: 'test'
+  ...
+# Subtest: janela de 12 meses sem receita desconsiderada, com a escuta encerrada e a releitura da mutação da série adiada pelo orçamento: a estimativa segura a versão anterior até a série chegar (R9-01)
+ok 18 - janela de 12 meses sem receita desconsiderada, com a escuta encerrada e a releitura da mutação da série adiada pelo orçamento: a estimativa segura a versão anterior até a série chegar (R9-01)
+  ---
+  duration_ms: 516.029751
+  type: 'test'
+  ...
+# Subtest: janela de 12 meses com a escuta encerrada: a releitura pendente da série que sai sem rede fica pausada, e outra renderização não mostra o mês avulso novo com a série antiga até a rede voltar (R10-03)
+ok 19 - janela de 12 meses com a escuta encerrada: a releitura pendente da série que sai sem rede fica pausada, e outra renderização não mostra o mês avulso novo com a série antiga até a rede voltar (R10-03)
+  ---
+  duration_ms: 584.6901
+  type: 'test'
+  ...
+# Subtest: janela de 12 meses com a releitura de uma mutação nesta aba pendente: o calendário trocado é guardado logo, e a sincronização seguinte (outro membro anula a desconsiderada) não mostra a receita descontada duas vezes (R10-02)
+ok 20 - janela de 12 meses com a releitura de uma mutação nesta aba pendente: o calendário trocado é guardado logo, e a sincronização seguinte (outro membro anula a desconsiderada) não mostra a receita descontada duas vezes (R10-02)
+  ---
+  duration_ms: 319.617387
+  type: 'test'
+  ...
+# Subtest: anulação nesta aba de uma desconsiderada do 12º mês para trás e a troca para 12 meses logo depois: o estado misto nunca aparece, sem esperar a releitura pendente da série (R9-03, B03)
+ok 21 - anulação nesta aba de uma desconsiderada do 12º mês para trás e a troca para 12 meses logo depois: o estado misto nunca aparece, sem esperar a releitura pendente da série (R9-03, B03)
+  ---
+  duration_ms: 382.034265
+  type: 'test'
+  ...
+1..21
+# tests 21
+# suites 0
+# pass 21
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 7946.852073

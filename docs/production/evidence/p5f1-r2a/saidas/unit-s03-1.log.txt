@@ -1,0 +1,74 @@
+TAP version 13
+# Subtest: B02 (P5-F.1-R2A, S01): a jornada reduzida que deixa o dia seguinte sem cálculo seguro deixa a estimativa indisponível, com o motivo próprio
+ok 1 - B02 (P5-F.1-R2A, S01): a jornada reduzida que deixa o dia seguinte sem cálculo seguro deixa a estimativa indisponível, com o motivo próprio
+  ---
+  duration_ms: 15.03033
+  type: 'test'
+  ...
+1..0
+# Subtest: tests/unit/work-time-guard.test.ts
+ok 2 - tests/unit/work-time-guard.test.ts
+  ---
+  duration_ms: 216.60715
+  type: 'test'
+  ...
+# Subtest: B02 (P5-F.1-R2A, S01): salvar recusa a jornada reduzida que deixa o dia seguinte sem cálculo seguro, na seção das exceções, com mensagem em pt-BR
+not ok 3 - B02 (P5-F.1-R2A, S01): salvar recusa a jornada reduzida que deixa o dia seguinte sem cálculo seguro, na seção das exceções, com mensagem em pt-BR
+  ---
+  duration_ms: 10.651736
+  type: 'test'
+  location: '<scratchpad>/wt-p5f1-r2a/tests/unit/work-time-preference.test.ts:337:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+
+      {
+        ambiguity: 'reduced_eve',
+    +   message: 'Com a jornada reduzida de segunda-feira, 05/10/2026, não se sabe que parte do horário que passa da meia-noite (Rotina 1) foi trabalhada, e as horas de terça-feira, 06/10/2026 dependem disso: não dá para calcular com segurança. Troque a jornada reduzida desse dia por uma alteração de escala ou ajuste os horários das rotinas.',
+    -   message: 'Com a jornada reduzida de segunda-feira, 05/10/2026, não se sabe que parte do horário que passa da meia-noite (Rotina 1) foi trabalhada, e as horas de terça-feira, 06/10/2026, dependem disso: não dá para calcular com segurança. Troque a jornada reduzida desse dia por uma alteração de escala ou ajuste os horários das rotinas.',
+        ok: false,
+        section: 'exceptions'
+      }
+
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    ok: false
+    section: 'exceptions'
+    ambiguity: 'reduced_eve'
+    message: 'Com a jornada reduzida de segunda-feira, 05/10/2026, não se sabe que parte do horário que passa da meia-noite (Rotina 1) foi trabalhada, e as horas de terça-feira, 06/10/2026, dependem disso: não dá para calcular com segurança. Troque a jornada reduzida desse dia por uma alteração de escala ou ajuste os horários das rotinas.'
+  actual:
+    ok: false
+    section: 'exceptions'
+    message: 'Com a jornada reduzida de segunda-feira, 05/10/2026, não se sabe que parte do horário que passa da meia-noite (Rotina 1) foi trabalhada, e as horas de terça-feira, 06/10/2026 dependem disso: não dá para calcular com segurança. Troque a jornada reduzida desse dia por uma alteração de escala ou ajuste os horários das rotinas.'
+    ambiguity: 'reduced_eve'
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (file://<scratchpad>/wt-p5f1-r2a/tests/unit/work-time-preference.test.ts:345:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.start (node:internal/test_runner/test:944:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)
+  ...
+# Subtest: S03 (P5-F.1-R2A): a configuração gravada que o editor recusa ao montar não é edição; a jornada para aplicar a vários dias só conta quando aplicada
+ok 4 - S03 (P5-F.1-R2A): a configuração gravada que o editor recusa ao montar não é edição; a jornada para aplicar a vários dias só conta quando aplicada
+  ---
+  duration_ms: 2.173572
+  type: 'test'
+  ...
+# Subtest: S03 (P5-F.1-R2A): digitação inválida num dia ou na escala é edição, com a mensagem do problema
+ok 5 - S03 (P5-F.1-R2A): digitação inválida num dia ou na escala é edição, com a mensagem do problema
+  ---
+  duration_ms: 0.675761
+  type: 'test'
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 4
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 287.481405

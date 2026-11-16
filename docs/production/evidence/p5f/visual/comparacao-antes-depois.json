@@ -1,0 +1,170 @@
+[
+  {
+    "captura": "dinheiro-configuracoes-desktop-dark.png",
+    "dimensoes": "1440x900",
+    "pixelsDiferentes": 123630,
+    "percentual": 9.5394,
+    "caixaDasDiferencas": "877x236++91++469"
+  },
+  {
+    "captura": "dinheiro-configuracoes-desktop-light.png",
+    "dimensoes": "1440x900",
+    "pixelsDiferentes": 123625,
+    "percentual": 9.539,
+    "caixaDasDiferencas": "877x236++91++469"
+  },
+  {
+    "captura": "dinheiro-configuracoes-mobile-dark.png",
+    "dimensoes": "390x844",
+    "pixelsDiferentes": 0,
+    "percentual": 0.0,
+    "caixaDasDiferencas": null
+  },
+  {
+    "captura": "dinheiro-configuracoes-mobile-light.png",
+    "dimensoes": "390x844",
+    "pixelsDiferentes": 0,
+    "percentual": 0.0,
+    "caixaDasDiferencas": null
+  },
+  {
+    "captura": "dinheiro-configuracoes-small-dark.png",
+    "dimensoes": "360x800",
+    "pixelsDiferentes": 0,
+    "percentual": 0.0,
+    "caixaDasDiferencas": null
+  },
+  {
+    "captura": "dinheiro-configuracoes-small-light.png",
+    "dimensoes": "360x800",
+    "pixelsDiferentes": 0,
+    "percentual": 0.0,
+    "caixaDasDiferencas": null
+  },
+  {
+    "captura": "dinheiro-dashboard-desktop-dark.png",
+    "dimensoes": "1440x900",
+    "pixelsDiferentes": 13,
+    "percentual": 0.001,
+    "caixaDasDiferencas": "645x3++607++52"
+  },
+  {
+    "captura": "dinheiro-dashboard-desktop-light.png",
+    "dimensoes": "1440x900",
+    "pixelsDiferentes": 3,
+    "percentual": 0.0002,
+    "caixaDasDiferencas": "36x2++606++53"
+  },
+  {
+    "captura": "dinheiro-dashboard-mobile-dark.png",
+    "dimensoes": "390x844",
+    "pixelsDiferentes": 0,
+    "percentual": 0.0,
+    "caixaDasDiferencas": null
+  },
+  {
+    "captura": "dinheiro-dashboard-mobile-light.png",
+    "dimensoes": "390x844",
+    "pixelsDiferentes": 0,
+    "percentual": 0.0,
+    "caixaDasDiferencas": null
+  },
+  {
+    "captura": "dinheiro-dashboard-small-dark.png",
+    "dimensoes": "360x800",
+    "pixelsDiferentes": 0,
+    "percentual": 0.0,
+    "caixaDasDiferencas": null
+  },
+  {
+    "captura": "dinheiro-dashboard-small-light.png",
+    "dimensoes": "360x800",
+    "pixelsDiferentes": 0,
+    "percentual": 0.0,
+    "caixaDasDiferencas": null
+  },
+  {
+    "captura": "dinheiro-graficos-desktop-dark.png",
+    "dimensoes": "1440x900",
+    "pixelsDiferentes": 0,
+    "percentual": 0.0,
+    "caixaDasDiferencas": null
+  },
+  {
+    "captura": "dinheiro-graficos-desktop-light.png",
+    "dimensoes": "1440x900",
+    "pixelsDiferentes": 0,
+    "percentual": 0.0,
+    "caixaDasDiferencas": null
+  },
+  {
+    "captura": "dinheiro-graficos-mobile-dark.png",
+    "dimensoes": "390x844",
+    "pixelsDiferentes": 0,
+    "percentual": 0.0,
+    "caixaDasDiferencas": null
+  },
+  {
+    "captura": "dinheiro-graficos-mobile-light.png",
+    "dimensoes": "390x844",
+    "pixelsDiferentes": 0,
+    "percentual": 0.0,
+    "caixaDasDiferencas": null
+  },
+  {
+    "captura": "dinheiro-graficos-small-dark.png",
+    "dimensoes": "360x800",
+    "pixelsDiferentes": 0,
+    "percentual": 0.0,
+    "caixaDasDiferencas": null
+  },
+  {
+    "captura": "dinheiro-graficos-small-light.png",
+    "dimensoes": "360x800",
+    "pixelsDiferentes": 0,
+    "percentual": 0.0,
+    "caixaDasDiferencas": null
+  },
+  {
+    "captura": "dinheiro-relatorios-desktop-dark.png",
+    "dimensoes": "1440x900",
+    "pixelsDiferentes": 105,
+    "percentual": 0.0081,
+    "caixaDasDiferencas": "14x14++1018++684"
+  },
+  {
+    "captura": "dinheiro-relatorios-desktop-light.png",
+    "dimensoes": "1440x900",
+    "pixelsDiferentes": 99,
+    "percentual": 0.0076,
+    "caixaDasDiferencas": "14x14++1018++684"
+  },
+  {
+    "captura": "dinheiro-relatorios-mobile-dark.png",
+    "dimensoes": "390x844",
+    "pixelsDiferentes": 0,
+    "percentual": 0.0,
+    "caixaDasDiferencas": null
+  },
+  {
+    "captura": "dinheiro-relatorios-mobile-light.png",
+    "dimensoes": "390x844",
+    "pixelsDiferentes": 0,
+    "percentual": 0.0,
+    "caixaDasDiferencas": null
+  },
+  {
+    "captura": "dinheiro-relatorios-small-dark.png",
+    "dimensoes": "360x800",
+    "pixelsDiferentes": 0,
+    "percentual": 0.0,
+    "caixaDasDiferencas": null
+  },
+  {
+    "captura": "dinheiro-relatorios-small-light.png",
+    "dimensoes": "360x800",
+    "pixelsDiferentes": 0,
+    "percentual": 0.0,
+    "caixaDasDiferencas": null
+  }
+]

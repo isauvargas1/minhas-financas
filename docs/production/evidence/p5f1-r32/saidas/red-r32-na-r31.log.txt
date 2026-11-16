@@ -1,0 +1,1802 @@
+TAP version 13
+# Subtest: prova: cada regra, na ordem, com o motivo da primeira que falha
+not ok 1 - prova: cada regra, na ordem, com o motivo da primeira que falha
+  ---
+  duration_ms: 3.52882
+  type: 'test'
+  location: '<scratchpad>/p5f1r32/copia-r31-vermelho/tests/unit/work-time-consistency.test.ts:85:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    uma base, nenhuma desconsiderada e nenhum retorno do servidor (a "leitura única" da R3.1 não prova mais)
+    + actual - expected
+    
+    + 'provada'
+    - 'projection'
+          ^
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'projection'
+  actual: 'provada'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file://<scratchpad>/p5f1r32/copia-r31-vermelho/tests/unit/work-time-consistency.test.ts:94:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.start (node:internal/test_runner/test:944:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)
+  ...
+# Subtest: prova (regra 5, marcas): prova nula espera, prova recusada é "projection_marks" por qualquer motivo, provada aprova, e as regras 1 a 4 vêm antes
+not ok 2 - prova (regra 5, marcas): prova nula espera, prova recusada é "projection_marks" por qualquer motivo, provada aprova, e as regras 1 a 4 vêm antes
+  ---
+  duration_ms: 0.663535
+  type: 'test'
+  location: '<scratchpad>/p5f1r32/copia-r31-vermelho/tests/unit/work-time-consistency.test.ts:119:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + 'provada'
+    - 'projection'
+          ^
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'projection'
+  actual: 'provada'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file://<scratchpad>/p5f1r32/copia-r31-vermelho/tests/unit/work-time-consistency.test.ts:127:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: prova (regra 5, marcas): só o resultado da prova das marcas decide; escrita, hora ou prazo não aprovam nem seguram
+not ok 3 - prova (regra 5, marcas): só o resultado da prova das marcas decide; escrita, hora ou prazo não aprovam nem seguram
+  ---
+  duration_ms: 2.760895
+  type: 'test'
+  location: '<scratchpad>/p5f1r32/copia-r31-vermelho/tests/unit/work-time-consistency.test.ts:140:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    um campo antigo de "base única" não dispensa a projeção
+    + actual - expected
+    
+    + 'provada'
+    - 'projection'
+          ^
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'projection'
+  actual: 'provada'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file://<scratchpad>/p5f1r32/copia-r31-vermelho/tests/unit/work-time-consistency.test.ts:156:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: B03: a primeira estimativa só aparece provada pela projeção, com a leitura por id depois dela (a escuta antes das bases)
+ok 4 - B03: a primeira estimativa só aparece provada pela projeção, com a leitura por id depois dela (a escuta antes das bases)
+  ---
+  duration_ms: 155.778168
+  type: 'test'
+  ...
+# Subtest: B03: a primeira estimativa só aparece provada pela projeção, com a leitura por id depois dela (a escuta depois das bases)
+ok 5 - B03: a primeira estimativa só aparece provada pela projeção, com a leitura por id depois dela (a escuta depois das bases)
+  ---
+  duration_ms: 132.498425
+  type: 'test'
+  ...
+# Subtest: B03: a primeira estimativa só aparece provada pela projeção, com a leitura por id depois dela (a escuta só quando o servidor responde)
+ok 6 - B03: a primeira estimativa só aparece provada pela projeção, com a leitura por id depois dela (a escuta só quando o servidor responde)
+  ---
+  duration_ms: 151.093442
+  type: 'test'
+  ...
+# Subtest: B03: a projeção mais nova que a base lida na montagem: nunca a estimativa da base antiga; a base é relida e a nova aparece provada
+ok 7 - B03: a projeção mais nova que a base lida na montagem: nunca a estimativa da base antiga; a base é relida e a nova aparece provada
+  ---
+  duration_ms: 200.900381
+  type: 'test'
+  ...
+# Subtest: B03 (R3.2): uma base e nenhuma desconsiderada com a escuta encerrada desde o começo: nenhuma conversão, o erro com "Tentar de novo"; com a escuta de volta, a estimativa provada
+not ok 8 - B03 (R3.2): uma base e nenhuma desconsiderada com a escuta encerrada desde o começo: nenhuma conversão, o erro com "Tentar de novo"; com a escuta de volta, a estimativa provada
+  ---
+  duration_ms: 3006.511005
+  type: 'test'
+  location: '<scratchpad>/p5f1r32/copia-r31-vermelho/tests/unit/work-time-consistency.test.ts:529:1'
+  failureType: 'testCodeFailure'
+  error: 'tempo esgotado: erro (mostrados: loading → 1106000)'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  operator: 'fail'
+  stack: |-
+    until (file://<scratchpad>/p5f1r32/copia-r31-vermelho/tests/unit/work-time-consistency.test.ts:55:57)
+    async TestContext.<anonymous> (file://<scratchpad>/p5f1r32/copia-r31-vermelho/tests/unit/work-time-consistency.test.ts:534:3)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: B03: janela de 12 meses com a escuta encerrada desde o começo: sem prova, o erro com "Tentar de novo"; com a escuta de volta, a estimativa provada
+ok 9 - B03: janela de 12 meses com a escuta encerrada desde o começo: sem prova, o erro com "Tentar de novo"; com a escuta de volta, a estimativa provada
+  ---
+  duration_ms: 61.191309
+  type: 'test'
+  ...
+# Subtest: B03 (R8-02): a desconsiderada do 12º mês anulada em outra sessão e a troca para 12 meses: o mês avulso novo nunca aparece com a exclusão antiga
+ok 10 - B03 (R8-02): a desconsiderada do 12º mês anulada em outra sessão e a troca para 12 meses: o mês avulso novo nunca aparece com a exclusão antiga
+  ---
+  duration_ms: 192.891778
+  type: 'test'
+  ...
+# Subtest: B03 (R11-01): o mês avulso sai da janela com a leitura em curso e volta desatualizado: a base antiga não aparece, e é relida
+ok 11 - B03 (R11-01): o mês avulso sai da janela com a leitura em curso e volta desatualizado: a base antiga não aparece, e é relida
+  ---
+  duration_ms: 523.470833
+  type: 'test'
+  ...
+# Subtest: B03 (R11-02): 12 meses sem desconsiderada, as bases relidas sem pedido da escuta (a virada do mês) e o mês avulso falhando: nenhuma renderização mostra só a série nova
+ok 12 - B03 (R11-02): 12 meses sem desconsiderada, as bases relidas sem pedido da escuta (a virada do mês) e o mês avulso falhando: nenhuma renderização mostra só a série nova
+  ---
+  duration_ms: 509.732088
+  type: 'test'
+  ...
+# Subtest: B03: o calendário trocado durante a sincronização de uma anulação em outra sessão: nunca a base nova com a leitura por id antiga
+ok 13 - B03: o calendário trocado durante a sincronização de uma anulação em outra sessão: nunca a base nova com a leitura por id antiga
+  ---
+  duration_ms: 491.30192
+  type: 'test'
+  ...
+# Subtest: B03: troca do workspace da renda: a estimativa do anterior nunca aparece; só "calculando" até a do novo estar provada
+ok 14 - B03: troca do workspace da renda: a estimativa do anterior nunca aparece; só "calculando" até a do novo estar provada
+  ---
+  duration_ms: 215.364743
+  type: 'test'
+  ...
+# Subtest: B03: troca de conta: a estimativa da conta anterior não é reaproveitada
+ok 15 - B03: troca de conta: a estimativa da conta anterior não é reaproveitada
+  ---
+  duration_ms: 205.254333
+  type: 'test'
+  ...
+# Subtest: B03: nova receita e anulação da desconsiderada em outra sessão durante a releitura por id: nenhuma renderização desconta duas vezes
+ok 16 - B03: nova receita e anulação da desconsiderada em outra sessão durante a releitura por id: nenhuma renderização desconta duas vezes
+  ---
+  duration_ms: 496.966202
+  type: 'test'
+  ...
+# Subtest: B03: a leitura por id falha antes da primeira estimativa: o erro com "Tentar de novo", nunca o total sem as exclusões
+ok 17 - B03: a leitura por id falha antes da primeira estimativa: o erro com "Tentar de novo", nunca o total sem as exclusões
+  ---
+  duration_ms: 45.272164
+  type: 'test'
+  ...
+# Subtest: revisão pt-BR da R3 (M-01): sem desconsiderada, 12 meses e a escuta sem retorno do servidor: depois do tempo de interface, o texto de "em atualização" sem apontar causa, nunca a conversão; com o retorno, a estimativa provada
+ok 18 - revisão pt-BR da R3 (M-01): sem desconsiderada, 12 meses e a escuta sem retorno do servidor: depois do tempo de interface, o texto de "em atualização" sem apontar causa, nunca a conversão; com o retorno, a estimativa provada
+  ---
+  duration_ms: 121.815023
+  type: 'test'
+  ...
+# Subtest: revisão pt-BR da R3 (L-03): a leitura das marcas falha: o erro fixo em pt-BR com "Tentar de novo", nunca a conversão; o "Tentar de novo" prova
+ok 19 - revisão pt-BR da R3 (L-03): a leitura das marcas falha: o erro fixo em pt-BR com "Tentar de novo", nunca a conversão; o "Tentar de novo" prova
+  ---
+  duration_ms: 48.433585
+  type: 'test'
+  ...
+# Subtest: revisão da R1 (N05): com desconsiderada, a escuta encerrada antes do primeiro retorno do servidor dá o erro com "Tentar de novo", nunca "calculando" para sempre
+ok 20 - revisão da R1 (N05): com desconsiderada, a escuta encerrada antes do primeiro retorno do servidor dá o erro com "Tentar de novo", nunca "calculando" para sempre
+  ---
+  duration_ms: 132.669385
+  type: 'test'
+  ...
+# Subtest: revisão da R1 (N03): a desconsiderada editada em outra sessão antes do gatilho, na primeira leitura: nunca o valor novo com o total velho
+ok 21 - revisão da R1 (N03): a desconsiderada editada em outra sessão antes do gatilho, na primeira leitura: nunca o valor novo com o total velho
+  ---
+  duration_ms: 376.881902
+  type: 'test'
+  ...
+# Subtest: B03 (R3, ex-N03): a desconsiderada editada sem efeito na renda e o gatilho atrasado (marca velha): nenhuma conversão em tempo nenhum, só "estimativa em atualização"; com a marca aplicada, a estimativa certa aparece sem esperar prazo
+ok 22 - B03 (R3, ex-N03): a desconsiderada editada sem efeito na renda e o gatilho atrasado (marca velha): nenhuma conversão em tempo nenhum, só "estimativa em atualização"; com a marca aplicada, a estimativa certa aparece sem esperar prazo
+  ---
+  duration_ms: 877.68976
+  type: 'test'
+  ...
+# Subtest: B03 (R3, ex-M02): a hora do servidor não aprova: uma sessão nova aberta depois de o servidor passar da escrita por mais que qualquer prazo continua sem converter com a marca velha
+ok 23 - B03 (R3, ex-M02): a hora do servidor não aprova: uma sessão nova aberta depois de o servidor passar da escrita por mais que qualquer prazo continua sem converter com a marca velha
+  ---
+  duration_ms: 508.461627
+  type: 'test'
+  ...
+# Subtest: B03 (R3, ex-P01): o N03 com a hora do servidor nas bases: sessão aberta 5 s depois da edição de valor, e mesmo 1 h depois, nunca o valor novo com o total velho; o gatilho aplica (receita e marca) e aparece o certo
+ok 24 - B03 (R3, ex-P01): o N03 com a hora do servidor nas bases: sessão aberta 5 s depois da edição de valor, e mesmo 1 h depois, nunca o valor novo com o total velho; o gatilho aplica (receita e marca) e aparece o certo
+  ---
+  duration_ms: 636.932278
+  type: 'test'
+  ...
+# Subtest: B03 (R3, ex-P01): nenhum intervalo aprova a conversão: com a base gerada 59 s depois da escrita e a marca velha, só "estimativa em atualização"
+ok 25 - B03 (R3, ex-P01): nenhum intervalo aprova a conversão: com a base gerada 59 s depois da escrita e a marca velha, só "estimativa em atualização"
+  ---
+  duration_ms: 246.58111
+  type: 'test'
+  ...
+# Subtest: B03 (R3, ex-P01): nenhum intervalo aprova a conversão: com a base gerada 60 s depois da escrita e a marca velha, só "estimativa em atualização" (o limite que antes encerrava a espera)
+ok 26 - B03 (R3, ex-P01): nenhum intervalo aprova a conversão: com a base gerada 60 s depois da escrita e a marca velha, só "estimativa em atualização" (o limite que antes encerrava a espera)
+  ---
+  duration_ms: 241.766487
+  type: 'test'
+  ...
+# Subtest: B03 (R3, ex-P01): nenhum intervalo aprova a conversão: com a base gerada 3600 s depois da escrita e a marca velha, só "estimativa em atualização"
+ok 27 - B03 (R3, ex-P01): nenhum intervalo aprova a conversão: com a base gerada 3600 s depois da escrita e a marca velha, só "estimativa em atualização"
+  ---
+  duration_ms: 246.517409
+  type: 'test'
+  ...
+# Subtest: B03 (R3, ex-N06): a edição sem efeito na renda depois da mudança vista, aplicada pelo gatilho, não prende a estimativa: outra receita entra sem esperar prazo
+ok 28 - B03 (R3, ex-N06): a edição sem efeito na renda depois da mudança vista, aplicada pelo gatilho, não prende a estimativa: outra receita entra sem esperar prazo
+  ---
+  duration_ms: 305.062402
+  type: 'test'
+  ...
+# Subtest: B03 (R3, a): a desconsiderada editada em outra sessão com o gatilho atrasado: nenhuma renderização converte com o conteúdo novo e o total velho; quando o gatilho aplica (receita e marca juntas), aparece o valor certo
+ok 29 - B03 (R3, a): a desconsiderada editada em outra sessão com o gatilho atrasado: nenhuma renderização converte com o conteúdo novo e o total velho; quando o gatilho aplica (receita e marca juntas), aparece o valor certo
+  ---
+  duration_ms: 671.657645
+  type: 'test'
+  ...
+# Subtest: B03 (R3, b): evento fora de ordem (marca com pendência): sem conversão enquanto a pendência não fecha, mesmo relendo; fechada, a estimativa aparece
+ok 30 - B03 (R3, b): evento fora de ordem (marca com pendência): sem conversão enquanto a pendência não fecha, mesmo relendo; fechada, a estimativa aparece
+  ---
+  duration_ms: 901.419173
+  type: 'test'
+  ...
+# Subtest: B03 (R3, c): marca quebrada: sem conversão e sem releitura automática além da escuta; só a reconstrução, a escuta ou o "Tentar de novo" recuperam
+ok 31 - B03 (R3, c): marca quebrada: sem conversão e sem releitura automática além da escuta; só a reconstrução, a escuta ou o "Tentar de novo" recuperam
+  ---
+  duration_ms: 984.190018
+  type: 'test'
+  ...
+# Subtest: B03 (R3, d): a desconsiderada muda de mês para fora da janela: o mês antigo só deixa de descontar quando a marca e a receita mudam juntas
+ok 32 - B03 (R3, d): a desconsiderada muda de mês para fora da janela: o mês antigo só deixa de descontar quando a marca e a receita mudam juntas
+  ---
+  duration_ms: 660.069174
+  type: 'test'
+  ...
+# Subtest: B03 (R3, e): a releitura por motivo passageiro respeita o orçamento do agendador: no máximo o orçamento, a reposição depois, e nunca um prazo que aprove
+ok 33 - B03 (R3, e): a releitura por motivo passageiro respeita o orçamento do agendador: no máximo o orçamento, a reposição depois, e nunca um prazo que aprove
+  ---
+  duration_ms: 781.257252
+  type: 'test'
+  ...
+# Subtest: revisão da R1 (N06), contrato da R3.1: a base relida devagar por mais que o tempo de interface: nunca a última provada; "calculando", depois "estimativa em atualização" com "Tentar de novo", e a nova provada, sem aviso
+ok 34 - revisão da R1 (N06), contrato da R3.1: a base relida devagar por mais que o tempo de interface: nunca a última provada; "calculando", depois "estimativa em atualização" com "Tentar de novo", e a nova provada, sem aviso
+  ---
+  duration_ms: 1448.982455
+  type: 'test'
+  ...
+# Subtest: R3.1 (R3-AUD-01): a última estimativa provada nunca aparece como a atual: leitura nova divergente, prova falsa, a mesma identidade e nenhuma falha de leitura dão só "calculando"; com a prova de volta, a estimativa nova
+ok 35 - R3.1 (R3-AUD-01): a última estimativa provada nunca aparece como a atual: leitura nova divergente, prova falsa, a mesma identidade e nenhuma falha de leitura dão só "calculando"; com a prova de volta, a estimativa nova
+  ---
+  duration_ms: 472.361494
+  type: 'test'
+  ...
+# Subtest: R3.1: antes e depois do tempo de interface (30 s no produto, 800 ms aqui): "calculando" e depois "estimativa em atualização" com "Tentar de novo"; em nenhum dos dois a última provada, e só a prova reabilita a conversão
+ok 36 - R3.1: antes e depois do tempo de interface (30 s no produto, 800 ms aqui): "calculando" e depois "estimativa em atualização" com "Tentar de novo"; em nenhum dos dois a última provada, e só a prova reabilita a conversão
+  ---
+  duration_ms: 1503.536822
+  type: 'test'
+  ...
+# Subtest: R3.1: a releitura falha depois da divergência (lançamentos por id): o erro fixo em pt-BR com "Tentar de novo", nunca a última provada com ou sem aviso; o "Tentar de novo" sem a marca aplicada continua sem conversão, e a prova reabilita
+ok 37 - R3.1: a releitura falha depois da divergência (lançamentos por id): o erro fixo em pt-BR com "Tentar de novo", nunca a última provada com ou sem aviso; o "Tentar de novo" sem a marca aplicada continua sem conversão, e a prova reabilita
+  ---
+  duration_ms: 450.080339
+  type: 'test'
+  ...
+# Subtest: R3.1: a releitura falha depois da divergência (meses e marcas): o erro fixo em pt-BR com "Tentar de novo", nunca a última provada com ou sem aviso; o "Tentar de novo" sem a marca aplicada continua sem conversão, e a prova reabilita
+ok 38 - R3.1: a releitura falha depois da divergência (meses e marcas): o erro fixo em pt-BR com "Tentar de novo", nunca a última provada com ou sem aviso; o "Tentar de novo" sem a marca aplicada continua sem conversão, e a prova reabilita
+  ---
+  duration_ms: 449.650189
+  type: 'test'
+  ...
+# Subtest: R3.1: com a releitura por id em andamento depois da divergência, "calculando", nunca a última provada; terminada sem prova, ainda sem conversão
+ok 39 - R3.1: com a releitura por id em andamento depois da divergência, "calculando", nunca a última provada; terminada sem prova, ainda sem conversão
+  ---
+  duration_ms: 763.978857
+  type: 'test'
+  ...
+# Subtest: R3.1: troca do workspace da renda com a prova pendente: nem a última provada do anterior nem estado nenhum dele; só "calculando" até a estimativa do novo estar provada
+ok 40 - R3.1: troca do workspace da renda com a prova pendente: nem a última provada do anterior nem estado nenhum dele; só "calculando" até a estimativa do novo estar provada
+  ---
+  duration_ms: 332.813176
+  type: 'test'
+  ...
+# Subtest: R3.1: mudança da preferência com a prova pendente (a receita deixa de ser desconsiderada): a estimativa das entradas novas só aparece provada; a última provada das entradas antigas nunca
+ok 41 - R3.1: mudança da preferência com a prova pendente (a receita deixa de ser desconsiderada): a estimativa das entradas novas só aparece provada; a última provada das entradas antigas nunca
+  ---
+  duration_ms: 305.290056
+  type: 'test'
+  ...
+# Subtest: R3.1: provada, mas com a sincronização em curso (uma base e nenhuma desconsiderada): nenhuma conversão até a base relida chegar, "calculando" e, passado o tempo de interface, "em atualização"; chegando, a nova, sem prazo
+ok 42 - R3.1: provada, mas com a sincronização em curso (uma base e nenhuma desconsiderada): nenhuma conversão até a base relida chegar, "calculando" e, passado o tempo de interface, "em atualização"; chegando, a nova, sem prazo
+  ---
+  duration_ms: 1467.063023
+  type: 'test'
+  ...
+# Subtest: R3.2 (RR-R31-05): a base do cache aquecido antes do primeiro retorno do servidor (uma base, nenhuma desconsiderada): nenhuma conversão, nem passado o tempo de interface; o retorno do servidor traz a conversão
+not ok 43 - R3.2 (RR-R31-05): a base do cache aquecido antes do primeiro retorno do servidor (uma base, nenhuma desconsiderada): nenhuma conversão, nem passado o tempo de interface; o retorno do servidor traz a conversão
+  ---
+  duration_ms: 191.466548
+  type: 'test'
+  location: '<scratchpad>/p5f1r32/copia-r31-vermelho/tests/unit/work-time-consistency.test.ts:1464:3'
+  failureType: 'testCodeFailure'
+  error: |-
+    antes do retorno do servidor: "calculando"
+    
+    'done' !== 'loading'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'loading'
+  actual: 'done'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file://<scratchpad>/p5f1r32/copia-r31-vermelho/tests/unit/work-time-consistency.test.ts:1477:12)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R3.2 (RR-R31-05): a base do cache aquecido antes do primeiro retorno do servidor (uma base, nenhuma desconsiderada, receita nova de outra sessão com a tela fora): nenhuma conversão, nem passado o tempo de interface; o retorno do servidor traz a conversão da base relida, nunca a do cache
+not ok 44 - R3.2 (RR-R31-05): a base do cache aquecido antes do primeiro retorno do servidor (uma base, nenhuma desconsiderada, receita nova de outra sessão com a tela fora): nenhuma conversão, nem passado o tempo de interface; o retorno do servidor traz a conversão da base relida, nunca a do cache
+  ---
+  duration_ms: 193.274507
+  type: 'test'
+  location: '<scratchpad>/p5f1r32/copia-r31-vermelho/tests/unit/work-time-consistency.test.ts:1464:3'
+  failureType: 'testCodeFailure'
+  error: |-
+    antes do retorno do servidor: "calculando"
+    
+    'done' !== 'loading'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'loading'
+  actual: 'done'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file://<scratchpad>/p5f1r32/copia-r31-vermelho/tests/unit/work-time-consistency.test.ts:1477:12)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R3.2 (RR-R31-05): mês corrente com o cache de antes de uma receita de hoje: a base do cache diverge da projeção do mês e é relida; nenhuma conversão antes, e a confirmada depois
+not ok 45 - R3.2 (RR-R31-05): mês corrente com o cache de antes de uma receita de hoje: a base do cache diverge da projeção do mês e é relida; nenhuma conversão antes, e a confirmada depois
+  ---
+  duration_ms: 191.253269
+  type: 'test'
+  location: '<scratchpad>/p5f1r32/copia-r31-vermelho/tests/unit/work-time-consistency.test.ts:1497:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    o mês corrente do cache, antes do retorno do servidor (mostrados: 100000)
+    + actual - expected
+    
+    + [
+    +   '100000 sem aviso'
+    + ]
+    - []
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual:
+    0: '100000 sem aviso'
+  operator: 'deepStrictEqual'
+  stack: |-
+    assertNoConversion (file://<scratchpad>/p5f1r32/copia-r31-vermelho/tests/unit/work-time-consistency.test.ts:1196:10)
+    TestContext.<anonymous> (file://<scratchpad>/p5f1r32/copia-r31-vermelho/tests/unit/work-time-consistency.test.ts:1506:3)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R3.2 (RR-R31-05): a prévia montada ao lado da estimativa provada, com o mesmo cache, não converte antes do retorno do servidor à escuta dela; o retorno traz a mesma estimativa
+not ok 46 - R3.2 (RR-R31-05): a prévia montada ao lado da estimativa provada, com o mesmo cache, não converte antes do retorno do servidor à escuta dela; o retorno traz a mesma estimativa
+  ---
+  duration_ms: 191.386531
+  type: 'test'
+  location: '<scratchpad>/p5f1r32/copia-r31-vermelho/tests/unit/work-time-consistency.test.ts:1513:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    a prévia, antes do retorno do servidor à escuta dela (mostrados: 1106000)
+    + actual - expected
+    
+    + [
+    +   '1106000 sem aviso'
+    + ]
+    - []
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual:
+    0: '1106000 sem aviso'
+  operator: 'deepStrictEqual'
+  stack: |-
+    assertNoConversion (file://<scratchpad>/p5f1r32/copia-r31-vermelho/tests/unit/work-time-consistency.test.ts:1196:10)
+    TestContext.<anonymous> (file://<scratchpad>/p5f1r32/copia-r31-vermelho/tests/unit/work-time-consistency.test.ts:1522:3)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R3.2 (RR-R31-05): a estimativa desligada e religada com o cache aquecido: nenhuma conversão até o retorno do servidor à escuta reaberta
+not ok 47 - R3.2 (RR-R31-05): a estimativa desligada e religada com o cache aquecido: nenhuma conversão até o retorno do servidor à escuta reaberta
+  ---
+  duration_ms: 223.133149
+  type: 'test'
+  location: '<scratchpad>/p5f1r32/copia-r31-vermelho/tests/unit/work-time-consistency.test.ts:1529:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    religada, antes do retorno do servidor (mostrados: loading → 1106000 → idle → 1106000)
+    + actual - expected
+    
+    + [
+    +   '1106000 sem aviso',
+    +   '1106000 sem aviso'
+    + ]
+    - []
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual:
+    0: '1106000 sem aviso'
+    1: '1106000 sem aviso'
+  operator: 'deepStrictEqual'
+  stack: |-
+    assertNoConversion (file://<scratchpad>/p5f1r32/copia-r31-vermelho/tests/unit/work-time-consistency.test.ts:1196:10)
+    TestContext.<anonymous> (file://<scratchpad>/p5f1r32/copia-r31-vermelho/tests/unit/work-time-consistency.test.ts:1542:3)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R3.2 (RR-R31-05): troca do workspace da renda e volta ao anterior com o cache aquecido: nenhuma conversão do anterior antes do retorno do servidor à escuta dele, nem estado do outro
+not ok 48 - R3.2 (RR-R31-05): troca do workspace da renda e volta ao anterior com o cache aquecido: nenhuma conversão do anterior antes do retorno do servidor à escuta dele, nem estado do outro
+  ---
+  duration_ms: 261.514944
+  type: 'test'
+  location: '<scratchpad>/p5f1r32/copia-r31-vermelho/tests/unit/work-time-consistency.test.ts:1548:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    ws-a com o cache aquecido, antes do retorno do servidor (mostrados: loading → 1106000 → loading → 600000 → 1106000)
+    + actual - expected
+    
+    + [
+    +   '1106000 sem aviso',
+    +   '1106000 sem aviso'
+    + ]
+    - []
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual:
+    0: '1106000 sem aviso'
+    1: '1106000 sem aviso'
+  operator: 'deepStrictEqual'
+  stack: |-
+    assertNoConversion (file://<scratchpad>/p5f1r32/copia-r31-vermelho/tests/unit/work-time-consistency.test.ts:1196:10)
+    TestContext.<anonymous> (file://<scratchpad>/p5f1r32/copia-r31-vermelho/tests/unit/work-time-consistency.test.ts:1562:3)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R3.2 (RR-R31-05): sem conexão, a tela que volta com o cache aquecido não converte (a escuta só tem o retorno do cache local); com a conexão de volta, a conversão confirmada
+not ok 49 - R3.2 (RR-R31-05): sem conexão, a tela que volta com o cache aquecido não converte (a escuta só tem o retorno do cache local); com a conexão de volta, a conversão confirmada
+  ---
+  duration_ms: 189.88039
+  type: 'test'
+  location: '<scratchpad>/p5f1r32/copia-r31-vermelho/tests/unit/work-time-consistency.test.ts:1569:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    sem conexão, a base do cache não converte (mostrados: 1106000)
+    + actual - expected
+    
+    + [
+    +   '1106000 sem aviso'
+    + ]
+    - []
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual:
+    0: '1106000 sem aviso'
+  operator: 'deepStrictEqual'
+  stack: |-
+    assertNoConversion (file://<scratchpad>/p5f1r32/copia-r31-vermelho/tests/unit/work-time-consistency.test.ts:1196:10)
+    TestContext.<anonymous> (file://<scratchpad>/p5f1r32/copia-r31-vermelho/tests/unit/work-time-consistency.test.ts:1578:3)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R3.2 (RR-R31-05): a conexão cai com a estimativa provada na tela: o retorno do cache local tira a conversão ("calculando", depois "em atualização"); com a conexão de volta, ela volta sem leitura a mais
+not ok 50 - R3.2 (RR-R31-05): a conexão cai com a estimativa provada na tela: o retorno do cache local tira a conversão ("calculando", depois "em atualização"); com a conexão de volta, ela volta sem leitura a mais
+  ---
+  duration_ms: 128.646012
+  type: 'test'
+  location: '<scratchpad>/p5f1r32/copia-r31-vermelho/tests/unit/work-time-consistency.test.ts:1588:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    sem conexão: "calculando"
+    
+    'done' !== 'loading'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'loading'
+  actual: 'done'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file://<scratchpad>/p5f1r32/copia-r31-vermelho/tests/unit/work-time-consistency.test.ts:1600:10)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R3.2 (RR-R31-05): a escuta encerrada por erro com a estimativa provada (uma base, nenhuma desconsiderada): a conversão sai e fica o erro com "Tentar de novo"; o "Tentar de novo" reabre a escuta e o retorno do servidor traz a conversão
+not ok 51 - R3.2 (RR-R31-05): a escuta encerrada por erro com a estimativa provada (uma base, nenhuma desconsiderada): a conversão sai e fica o erro com "Tentar de novo"; o "Tentar de novo" reabre a escuta e o retorno do servidor traz a conversão
+  ---
+  duration_ms: 131.440594
+  type: 'test'
+  location: '<scratchpad>/p5f1r32/copia-r31-vermelho/tests/unit/work-time-consistency.test.ts:1610:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    a escuta encerrada: nenhuma conversão, nem com a ressalva (a R3.1 mostrava R$ 11.060,00 com o aviso) (mostrados: loading → 1106000)
+    + actual - expected
+    
+    + [
+    +   '1106000 com aviso',
+    +   '1106000 com aviso'
+    + ]
+    - []
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual:
+    0: '1106000 com aviso'
+    1: '1106000 com aviso'
+  operator: 'deepStrictEqual'
+  stack: |-
+    assertNoConversion (file://<scratchpad>/p5f1r32/copia-r31-vermelho/tests/unit/work-time-consistency.test.ts:1196:10)
+    TestContext.<anonymous> (file://<scratchpad>/p5f1r32/copia-r31-vermelho/tests/unit/work-time-consistency.test.ts:1619:3)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R3.2 (RR-R31-05): a base que não alcança a projeção depois das releituras (anomalia no servidor; uma base, nenhuma desconsiderada): nenhuma conversão, nem passadas as releituras e o tempo de interface; sem a anomalia, o "Tentar de novo" traz a estimativa provada
+not ok 52 - R3.2 (RR-R31-05): a base que não alcança a projeção depois das releituras (anomalia no servidor; uma base, nenhuma desconsiderada): nenhuma conversão, nem passadas as releituras e o tempo de interface; sem a anomalia, o "Tentar de novo" traz a estimativa provada
+  ---
+  duration_ms: 364.932626
+  type: 'test'
+  location: '<scratchpad>/p5f1r32/copia-r31-vermelho/tests/unit/work-time-consistency.test.ts:1627:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    a divergência persistente não vira prova (a R3.1 mostrava R$ 11.360,00 depois das releituras) (mostrados: loading → 1136000 → loading → 1136000)
+    + actual - expected
+    
+    + [
+    +   '1136000 sem aviso',
+    +   '1136000 sem aviso',
+    +   '1136000 sem aviso',
+    +   '1136000 sem aviso'
+    + ]
+    - []
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual:
+    0: '1136000 sem aviso'
+    1: '1136000 sem aviso'
+    2: '1136000 sem aviso'
+    3: '1136000 sem aviso'
+  operator: 'deepStrictEqual'
+  stack: |-
+    assertNoConversion (file://<scratchpad>/p5f1r32/copia-r31-vermelho/tests/unit/work-time-consistency.test.ts:1196:10)
+    TestContext.<anonymous> (file://<scratchpad>/p5f1r32/copia-r31-vermelho/tests/unit/work-time-consistency.test.ts:1639:3)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R3.2: o estado legitimamente indisponível (série sem bloco exato, como na reconstrução pendente) aparece como está, sem conversão, mesmo sem retorno do servidor
+ok 53 - R3.2: o estado legitimamente indisponível (série sem bloco exato, como na reconstrução pendente) aparece como está, sem conversão, mesmo sem retorno do servidor
+  ---
+  duration_ms: 66.653712
+  type: 'test'
+  ...
+# Subtest: R3.2 (RR-R31-05): janela de 1 mês, sem desconsiderada: o cache aquecido não converte antes do retorno do servidor; confirmado, o mesmo valor da primeira montagem
+not ok 54 - R3.2 (RR-R31-05): janela de 1 mês, sem desconsiderada: o cache aquecido não converte antes do retorno do servidor; confirmado, o mesmo valor da primeira montagem
+  ---
+  duration_ms: 189.35462
+  type: 'test'
+  location: '<scratchpad>/p5f1r32/copia-r31-vermelho/tests/unit/work-time-consistency.test.ts:1675:5'
+  failureType: 'testCodeFailure'
+  error: |-
+    1 mês: antes do retorno do servidor (mostrados: 300000)
+    + actual - expected
+    
+    + [
+    +   '300000 sem aviso'
+    + ]
+    - []
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual:
+    0: '300000 sem aviso'
+  operator: 'deepStrictEqual'
+  stack: |-
+    assertNoConversion (file://<scratchpad>/p5f1r32/copia-r31-vermelho/tests/unit/work-time-consistency.test.ts:1196:10)
+    TestContext.<anonymous> (file://<scratchpad>/p5f1r32/copia-r31-vermelho/tests/unit/work-time-consistency.test.ts:1685:7)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R3.2 (RR-R31-05): janela de 1 mês, com desconsiderada: o cache aquecido não converte antes do retorno do servidor; confirmado, o mesmo valor da primeira montagem
+ok 55 - R3.2 (RR-R31-05): janela de 1 mês, com desconsiderada: o cache aquecido não converte antes do retorno do servidor; confirmado, o mesmo valor da primeira montagem
+  ---
+  duration_ms: 271.597733
+  type: 'test'
+  ...
+# Subtest: R3.2 (RR-R31-05): janela de 3 meses, sem desconsiderada: o cache aquecido não converte antes do retorno do servidor; confirmado, o mesmo valor da primeira montagem
+not ok 56 - R3.2 (RR-R31-05): janela de 3 meses, sem desconsiderada: o cache aquecido não converte antes do retorno do servidor; confirmado, o mesmo valor da primeira montagem
+  ---
+  duration_ms: 191.824477
+  type: 'test'
+  location: '<scratchpad>/p5f1r32/copia-r31-vermelho/tests/unit/work-time-consistency.test.ts:1675:5'
+  failureType: 'testCodeFailure'
+  error: |-
+    3 meses: antes do retorno do servidor (mostrados: 900000)
+    + actual - expected
+    
+    + [
+    +   '900000 sem aviso'
+    + ]
+    - []
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual:
+    0: '900000 sem aviso'
+  operator: 'deepStrictEqual'
+  stack: |-
+    assertNoConversion (file://<scratchpad>/p5f1r32/copia-r31-vermelho/tests/unit/work-time-consistency.test.ts:1196:10)
+    TestContext.<anonymous> (file://<scratchpad>/p5f1r32/copia-r31-vermelho/tests/unit/work-time-consistency.test.ts:1685:7)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R3.2 (RR-R31-05): janela de 3 meses, com desconsiderada: o cache aquecido não converte antes do retorno do servidor; confirmado, o mesmo valor da primeira montagem
+ok 57 - R3.2 (RR-R31-05): janela de 3 meses, com desconsiderada: o cache aquecido não converte antes do retorno do servidor; confirmado, o mesmo valor da primeira montagem
+  ---
+  duration_ms: 275.381227
+  type: 'test'
+  ...
+# Subtest: R3.2 (RR-R31-05): janela de 6 meses, sem desconsiderada: o cache aquecido não converte antes do retorno do servidor; confirmado, o mesmo valor da primeira montagem
+not ok 58 - R3.2 (RR-R31-05): janela de 6 meses, sem desconsiderada: o cache aquecido não converte antes do retorno do servidor; confirmado, o mesmo valor da primeira montagem
+  ---
+  duration_ms: 204.948869
+  type: 'test'
+  location: '<scratchpad>/p5f1r32/copia-r31-vermelho/tests/unit/work-time-consistency.test.ts:1675:5'
+  failureType: 'testCodeFailure'
+  error: |-
+    6 meses: antes do retorno do servidor (mostrados: 1800000)
+    + actual - expected
+    
+    + [
+    +   '1800000 sem aviso'
+    + ]
+    - []
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual:
+    0: '1800000 sem aviso'
+  operator: 'deepStrictEqual'
+  stack: |-
+    assertNoConversion (file://<scratchpad>/p5f1r32/copia-r31-vermelho/tests/unit/work-time-consistency.test.ts:1196:10)
+    TestContext.<anonymous> (file://<scratchpad>/p5f1r32/copia-r31-vermelho/tests/unit/work-time-consistency.test.ts:1685:7)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R3.2 (RR-R31-05): janela de 6 meses, com desconsiderada: o cache aquecido não converte antes do retorno do servidor; confirmado, o mesmo valor da primeira montagem
+ok 59 - R3.2 (RR-R31-05): janela de 6 meses, com desconsiderada: o cache aquecido não converte antes do retorno do servidor; confirmado, o mesmo valor da primeira montagem
+  ---
+  duration_ms: 278.703885
+  type: 'test'
+  ...
+# Subtest: R3.2 (RR-R31-05): janela de 12 meses, sem desconsiderada: o cache aquecido não converte antes do retorno do servidor; confirmado, o mesmo valor da primeira montagem
+ok 60 - R3.2 (RR-R31-05): janela de 12 meses, sem desconsiderada: o cache aquecido não converte antes do retorno do servidor; confirmado, o mesmo valor da primeira montagem
+  ---
+  duration_ms: 276.753997
+  type: 'test'
+  ...
+# Subtest: R3.2 (RR-R31-05): janela de 12 meses, com desconsiderada: o cache aquecido não converte antes do retorno do servidor; confirmado, o mesmo valor da primeira montagem
+ok 61 - R3.2 (RR-R31-05): janela de 12 meses, com desconsiderada: o cache aquecido não converte antes do retorno do servidor; confirmado, o mesmo valor da primeira montagem
+  ---
+  duration_ms: 287.811351
+  type: 'test'
+  ...
+# Subtest: R3.2 (RR-R31-05): janela de mês corrente, sem desconsiderada: o cache aquecido não converte antes do retorno do servidor; confirmado, o mesmo valor da primeira montagem
+not ok 62 - R3.2 (RR-R31-05): janela de mês corrente, sem desconsiderada: o cache aquecido não converte antes do retorno do servidor; confirmado, o mesmo valor da primeira montagem
+  ---
+  duration_ms: 189.76158
+  type: 'test'
+  location: '<scratchpad>/p5f1r32/copia-r31-vermelho/tests/unit/work-time-consistency.test.ts:1675:5'
+  failureType: 'testCodeFailure'
+  error: |-
+    mês corrente: antes do retorno do servidor (mostrados: 100000)
+    + actual - expected
+    
+    + [
+    +   '100000 sem aviso'
+    + ]
+    - []
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual:
+    0: '100000 sem aviso'
+  operator: 'deepStrictEqual'
+  stack: |-
+    assertNoConversion (file://<scratchpad>/p5f1r32/copia-r31-vermelho/tests/unit/work-time-consistency.test.ts:1196:10)
+    TestContext.<anonymous> (file://<scratchpad>/p5f1r32/copia-r31-vermelho/tests/unit/work-time-consistency.test.ts:1685:7)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: B01: o recebimento desconsiderado é estornado em outra sessão (depois da sincronização): a exclusão perde o efeito, nunca desconta de novo
+ok 63 - B01: o recebimento desconsiderado é estornado em outra sessão (depois da sincronização): a exclusão perde o efeito, nunca desconta de novo
+  ---
+  duration_ms: 306.082466
+  type: 'test'
+  ...
+# Subtest: B01: o recebimento desconsiderado é estornado em outra sessão (durante a releitura por id): a exclusão perde o efeito, nunca desconta de novo
+ok 64 - B01: o recebimento desconsiderado é estornado em outra sessão (durante a releitura por id): a exclusão perde o efeito, nunca desconta de novo
+  ---
+  duration_ms: 495.701448
+  type: 'test'
+  ...
+# Subtest: B01: o estorno lido antes de a projeção incluí-lo nunca aparece com o total antigo (a exclusão sem efeito com A ainda somado)
+ok 65 - B01: o estorno lido antes de a projeção incluí-lo nunca aparece com o total antigo (a exclusão sem efeito com A ainda somado)
+  ---
+  duration_ms: 498.00753
+  type: 'test'
+  ...
+# Subtest: B01: o recebimento desconsiderado sem estorno continua descontado; com dois desconsiderados, só o estornado perde o efeito
+ok 66 - B01: o recebimento desconsiderado sem estorno continua descontado; com dois desconsiderados, só o estornado perde o efeito
+  ---
+  duration_ms: 305.192379
+  type: 'test'
+  ...
+# Subtest: a varredura alcança o repositório real
+ok 67 - a varredura alcança o repositório real
+  ---
+  duration_ms: 3.499511
+  type: 'test'
+  ...
+# Subtest: nenhuma Function lê, grava ou menciona a preferência privada
+ok 68 - nenhuma Function lê, grava ou menciona a preferência privada
+  ---
+  duration_ms: 67.042958
+  type: 'test'
+  ...
+# Subtest: IA, notificações e relatórios autoritativos não recebem a preferência
+ok 69 - IA, notificações e relatórios autoritativos não recebem a preferência
+  ---
+  duration_ms: 3.953152
+  type: 'test'
+  ...
+# Subtest: DTOs, chamadas e adaptadores financeiros não carregam tempo de trabalho
+ok 70 - DTOs, chamadas e adaptadores financeiros não carregam tempo de trabalho
+  ---
+  duration_ms: 6.499807
+  type: 'test'
+  ...
+# Subtest: nenhuma cópia local da preferência e nenhuma leitura do cache do SDK no app
+ok 71 - nenhuma cópia local da preferência e nenhuma leitura do cache do SDK no app
+  ---
+  duration_ms: 24.775912
+  type: 'test'
+  ...
+# Subtest: logs da preferência só levam mensagem fixa e código de erro
+ok 72 - logs da preferência só levam mensagem fixa e código de erro
+  ---
+  duration_ms: 3.336268
+  type: 'test'
+  ...
+# Subtest: sessão: troca de conta e respostas atrasadas não expõem a preferência de outra conta
+ok 73 - sessão: troca de conta e respostas atrasadas não expõem a preferência de outra conta
+  ---
+  duration_ms: 0.472464
+  type: 'test'
+  ...
+# Subtest: a preferência só é lida e gravada no documento privado do próprio usuário
+ok 74 - a preferência só é lida e gravada no documento privado do próprio usuário
+  ---
+  duration_ms: 2.390527
+  type: 'test'
+  ...
+# Subtest: Rules: bloco explícito do titular, campos, gramáticas e limites iguais ao contrato v2 do cliente
+ok 75 - Rules: bloco explícito do titular, campos, gramáticas e limites iguais ao contrato v2 do cliente
+  ---
+  duration_ms: 4.376362
+  type: 'test'
+  ...
+# Subtest: nada derivado é gravado: só a API do módulo escreve, e só os campos do contrato
+ok 76 - nada derivado é gravado: só a API do módulo escreve, e só os campos do contrato
+  ---
+  duration_ms: 3.660485
+  type: 'test'
+  ...
+# Subtest: leitura das marcas de aplicação (P5-F.1-R3): só uma transação de leitura, só nas coleções da projeção, sem escrita, escuta nem cache
+ok 77 - leitura das marcas de aplicação (P5-F.1-R3): só uma transação de leitura, só nas coleções da projeção, sem escrita, escuta nem cache
+  ---
+  duration_ms: 1.650168
+  type: 'test'
+  ...
+# Subtest: estimativa: uma por contexto, sem polling nem listener por lançamento
+not ok 78 - estimativa: uma por contexto, sem polling nem listener por lançamento
+  ---
+  duration_ms: 46.392633
+  type: 'test'
+  location: '<scratchpad>/p5f1r32/copia-r31-vermelho/tests/unit/work-time-guard.test.ts:345:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    The input did not match the regular expression /if \(snapshot\.fromCache\) \{\s*setConfirmed\(null\);\s*return;\s*\}\s*noteServerSnapshot\(syncKey\);\s*reopenFailedListeners\(syncKey\);/. Input:
+    
+    "import { useCallback, useEffect, useRef, useState } from 'react';\n" +
+      "import { useQuery, useQueryClient } from '@tanstack/react-query';\n" +
+      '\n' +
+      "import type { FinancialReport, ReportRange, ReportSection } from './official.ts';\n" +
+      "import { FINANCIAL_REPORT_BASIS_MUTATION_REFRESH, FINANCIAL_REPORT_BASIS_REFRESH, financialReportBasisKey } from './queryKeys.ts';\n" +
+      "import { rangeKey, sectionsKey } from './range.ts';\n" +
+      "import { createLiveRefreshScheduler, type LiveRefreshClock, type LiveRefreshOptions } from './liveRefresh.ts';\n" +
+      'import {\n' +
+      '  INITIAL_BASIS_FAILURE_STATE,\n' +
+      '  basisRefreshAfter,\n' +
+      '  divergenceRefresh,\n' +
+      '  projectedIncomeOf,\n' +
+      '  sameIncome,\n' +
+      '  serverVersionKey,\n' +
+      '  serverVersionOf,\n' +
+      '  type ConfirmedProjection,\n' +
+      '  type MonthlyIncome,\n' +
+      '  type ServerVersion,\n' +
+      "} from './basisRefresh.ts';\n" +
+      'import {\n' +
+      '  basesOutOfStep,\n' +
+      '  basisFetchStarts,\n' +
+      '  basisRefreshes,\n' +
+      '  basisRereadScheduled,\n' +
+      '  markRereadOnReturn,\n' +
+      '  noteBasisReadServed,\n' +
+      '  noteBasisReadStart,\n' +
+      '  noteProjectionSeen,\n' +
+      '  noteServerSnapshot,\n' +
+      '  refreshRegisteredBases,\n' +
+      '  registerFailedListener,\n' +
+      '  reopenFailedListeners,\n' +
+      '  scheduleBasisReread,\n' +
+      '  serverSnapshotCount,\n' +
+      '  syncKeyOf,\n' +
+      '  takeRereadOnReturn,\n' +
+      "} from './basisRegistry.ts';\n" +
+      "import { refreshIncomeReads } from '../transactions/incomeReads.ts';\n" +
+      '\n' +
+      '\n' +
+      '\n' +
+      'export interface BasisReportPayload {\n' +
+      '  workspaceId: string;\n' +
+      '  range: ReportRange;\n' +
+      '  sections: ReportSection[];\n' +
+      '}\n' +
+      '\n' +
+      '\n' +
+      'export interface PeriodsSnapshot {\n' +
+      '  \n' +
+      '  documents: ReadonlyArray<{ id: string; incomeCents: unknown; updatedAt?: unknown }>;\n' +
+      '  \n' +
+      '  fromCache: boolean;\n' +
+      '  \n' +
+      '  changes: number;\n' +
+      '}\n' +
+      '\n' +
+      'export interface BasisSyncDeps {\n' +
+      '  fetchReport: (payload: BasisReportPayload) => Promise<FinancialReport>;\n' +
+      '  \n' +
+      '  subscribePeriods: (\n' +
+      '    workspaceId: string,\n' +
+      '    firstMonth: string,\n' +
+      '    lastMonth: string,\n' +
+      '    onNext: (snapshot: PeriodsSnapshot) => void,\n' +
+      '    onError: () => void,\n' +
+      '  ) => () => void;\n' +
+      '  \n' +
+      '  refresh?: { clock?: LiveRefreshClock; options?: LiveRefreshOptions; mutationOptions?: LiveRefreshOptions };\n' +
+      '}\n' +
+      '\n' +
+      '\n' +
+      'export const BASIS_RETRIES_AFTER_ERROR = 2;\n' +
+      '\n' +
+      '\n' +
+      'export const BASIS_PERIODS_MAX = 13;\n' +
+      '\n' +
+      '\n' +
+      'export const basisKeyOf = (\n' +
+      '  uid: string | null,\n' +
+      '  workspaceId: string | null,\n' +
+      '  range: ReportRange,\n' +
+      '  sections: readonly ReportSection[],\n' +
+      "): string => JSON.stringify(financialReportBasisKey(uid ?? '', workspaceId ?? '', rangeKey(range), sectionsKey(sections)));\n" +
+      '\n' +
+      '\n' +
+      'export const useFinancialReportBasisWith = (\n' +
+      '  deps: BasisSyncDeps,\n' +
+      '  uid: string | null,\n' +
+      '  workspaceId: string | null,\n' +
+      '  range: ReportRange,\n' +
+      '  sections: readonly ReportSection[],\n' +
+      '  options: { enabled?: boolean } = {},\n' +
+      ') => {\n' +
+      '  const queryClient = useQueryClient();\n' +
+      '  const enabled = (options.enabled ?? true) &&\n' +
+      '    uid !== null &&\n' +
+      '    workspaceId !== null &&\n' +
+      "    workspaceId !== '' &&\n" +
+      "    workspaceId !== 'loading';\n" +
+      "  const queryKey = financialReportBasisKey(uid ?? '', workspaceId ?? '', rangeKey(range), sectionsKey(sections));\n" +
+      '  const refreshKey = basisKeyOf(uid, workspaceId, range, sections);\n' +
+      '  const query = useQuery<FinancialReport>({\n' +
+      '    queryKey,\n' +
+      '    queryFn: async () => {\n' +
+      '      \n' +
+      '      \n' +
+      '      basisFetchStarts.set(refreshKey, serverSnapshotCount(syncKeyOf(uid as string, workspaceId as string)));\n' +
+      '      const started = noteBasisReadStart(refreshKey);\n' +
+      '      const report = await deps.fetchReport({\n' +
+      '        workspaceId: workspaceId as string,\n' +
+      '        range,\n' +
+      '        sections: [...sections],\n' +
+      '      });\n' +
+      '      noteBasisReadServed(refreshKey, started);\n' +
+      '      return report;\n' +
+      '    },\n' +
+      '    enabled,\n' +
+      '    staleTime: Infinity,\n' +
+      '    \n' +
+      '    \n' +
+      '    \n' +
+      '    \n' +
+      '    \n' +
+      '    refetchOnMount: false,\n' +
+      '    refetchOnReconnect: false,\n' +
+      '    retry: 1,\n' +
+      '  });\n' +
+      '  useEffect(() => {\n' +
+      '    if (!enabled) return undefined;\n' +
+      '    let entry = basisRefreshes.get(refreshKey);\n' +
+      '    if (!entry) {\n' +
+      '      const exactKey = JSON.parse(refreshKey) as unknown[];\n' +
+      '      const refetch = () => {\n' +
+      '        void queryClient.refetchQueries({ queryKey: exactKey, exact: true });\n' +
+      '      };\n' +
+      '      entry = {\n' +
+      '        scheduler: createLiveRefreshScheduler(refetch, deps.refresh?.clock, deps.refresh?.options ?? { ...FINANCIAL_REPORT_BASIS_REFRESH }),\n' +
+      '        mutationScheduler: createLiveRefreshScheduler(\n' +
+      '          refetch,\n' +
+      '          deps.refresh?.clock,\n' +
+      '          deps.refresh?.mutationOptions ?? { ...FINANCIAL_REPORT_BASIS_MUTATION_REFRESH },\n' +
+      '        ),\n' +
+      '        users: 0,\n' +
+      '        failure: INITIAL_BASIS_FAILURE_STATE,\n' +
+      '        maxFailures: BASIS_RETRIES_AFTER_ERROR,\n' +
+      '        workspaceId: workspaceId as string,\n' +
+      '        loaded: () => (queryClient.getQueryState(exactKey)?.dataUpdatedAt ?? 0) !== 0,\n' +
+      '      };\n' +
+      '      basisRefreshes.set(refreshKey, entry);\n' +
+      '      \n' +
+      '      \n' +
+      '      \n' +
+      "      if (takeRereadOnReturn(refreshKey) && entry.loaded() && (queryClient.getQueryState(exactKey)?.fetchStatus ?? 'idle') === 'idle') {\n" +
+      "        void queryClient.invalidateQueries({ queryKey: exactKey, exact: true, refetchType: 'none' });\n" +
+      '        scheduleBasisReread(refreshKey, entry.scheduler);\n' +
+      '      }\n' +
+      '    }\n' +
+      '    entry.users += 1;\n' +
+      '    const current = entry;\n' +
+      '    return () => {\n' +
+      '      current.users -= 1;\n' +
+      '      if (current.users === 0) {\n' +
+      '        \n' +
+      '        \n' +
+      '        \n' +
+      '        if (basisRereadScheduled(refreshKey)) {\n' +
+      "          void queryClient.invalidateQueries({ queryKey: JSON.parse(refreshKey) as unknown[], exact: true, refetchType: 'none' });\n" +
+      '          markRereadOnReturn(refreshKey);\n' +
+      '        }\n' +
+      '        current.scheduler.cancel();\n' +
+      '        current.mutationScheduler.cancel();\n' +
+      '        basisRefreshes.delete(refreshKey);\n' +
+      '        basisFetchStarts.delete(refreshKey);\n' +
+      '      }\n' +
+      '    };\n' +
+      '  }, [enabled, refreshKey, queryClient, deps]);\n' +
+      '  const { isStale, isFetching, dataUpdatedAt, errorUpdatedAt } = query;\n' +
+      '  useEffect(() => {\n' +
+      '    if (!enabled || isFetching || dataUpdatedAt === 0) return;\n' +
+      '    const entry = basisRefreshes.get(refreshKey);\n' +
+      '    if (!entry) return;\n' +
+      '    if (!isStale) {\n' +
+      '      \n' +
+      '      \n' +
+      '      \n' +
+      '      entry.failure = { dataUpdatedAt, errorUpdatedAt, failures: dataUpdatedAt !== entry.failure.dataUpdatedAt ? 0 : entry.failure.failures };\n' +
+      '      return;\n' +
+      '    }\n' +
+      '    const decision = basisRefreshAfter(entry.failure, { dataUpdatedAt, errorUpdatedAt }, BASIS_RETRIES_AFTER_ERROR);\n' +
+      '    entry.failure = decision.state;\n' +
+      '    if (decision.notify) scheduleBasisReread(refreshKey, entry.scheduler);\n' +
+      '  }, [enabled, refreshKey, isStale, isFetching, dataUpdatedAt, errorUpdatedAt]);\n' +
+      '  return query;\n' +
+      '};\n' +
+      '\n' +
+      '\n' +
+      'export interface BasisView {\n' +
+      '  \n' +
+      '  income: MonthlyIncome;\n' +
+      '  \n' +
+      '  exact: boolean;\n' +
+      '  \n' +
+      '  versions: readonly number[];\n' +
+      '  \n' +
+      '  keys: readonly string[];\n' +
+      '  \n' +
+      '  fetching: boolean;\n' +
+      '}\n' +
+      '\n' +
+      '\n' +
+      'export type DependentRead = object | undefined | null;\n' +
+      '\n' +
+      '\n' +
+      'export const useFinancialReportBasisLiveRefreshWith = (\n' +
+      '  deps: BasisSyncDeps,\n' +
+      '  uid: string | null,\n' +
+      '  workspaceId: string | null,\n' +
+      '  months: readonly string[],\n' +
+      '  basis: BasisView | null,\n' +
+      '  reads: DependentRead,\n' +
+      '  options: { enabled?: boolean } = {},\n' +
+      '): {\n' +
+      '  syncing: boolean;\n' +
+      '  holding: boolean;\n' +
+      '  listenFailed: boolean;\n' +
+      '  retryListen: () => void;\n' +
+      '  confirmed: ConfirmedProjection | null;\n' +
+      '} => {\n' +
+      '  const queryClient = useQueryClient();\n' +
+      '  const firstMonth = months[0] ?? null;\n' +
+      '  const lastMonth = months[months.length - 1] ?? null;\n' +
+      "  const monthsKey = months.join(',');\n" +
+      '  const enabled = (options.enabled ?? true) &&\n' +
+      '    uid !== null &&\n' +
+      '    !!workspaceId &&\n' +
+      "    workspaceId !== 'loading' &&\n" +
+      '    !!firstMonth &&\n' +
+      '    !!lastMonth;\n' +
+      '  const syncKey = enabled ? syncKeyOf(uid as string, workspaceId as string) : null;\n' +
+      '  const projected = useRef<MonthlyIncome | null>(null);\n' +
+      '  \n' +
+      '  const changed = useRef(false);\n' +
+      '  const attempts = useRef(new Map<string, number>());\n' +
+      '  \n' +
+      '  const pending = useRef<{ key: string; versions: readonly number[]; signature: string | null } | null>(null);\n' +
+      '  \n' +
+      '  const readsMark = useRef<{ key: string; value: object | undefined } | null>(null);\n' +
+      '  \n' +
+      '  const released = useRef<{ key: string; income: MonthlyIncome } | null>(null);\n' +
+      '  \n' +
+      '  const paired = useRef<{ key: string; income: MonthlyIncome; reads: object | undefined } | null>(null);\n' +
+      '  \n' +
+      '  const seen = useRef<{ key: string; versions: readonly number[] } | null>(null);\n' +
+      '  const [waitingKey, setWaitingKey] = useState<string | null>(null);\n' +
+      '  \n' +
+      '  const [listenFailedKey, setListenFailedKey] = useState<string | null>(null);\n' +
+      '  const [listenAttempt, setListenAttempt] = useState(0);\n' +
+      '  \n' +
+      '  const [confirmed, setConfirmed] = useState<{ key: string; projection: ConfirmedProjection } | null>(null);\n' +
+      '  const confirmedKey = syncKey === null ? null : `${syncKey}\\n${monthsKey}`;\n' +
+      '  const basisRef = useRef(basis);\n' +
+      '  basisRef.current = basis;\n' +
+      '  const readsRef = useRef(reads);\n' +
+      '  readsRef.current = reads;\n' +
+      '  const keyRef = useRef(syncKey);\n' +
+      '  keyRef.current = syncKey;\n' +
+      '  const arrived = () => {\n' +
+      '    const current = basisRef.current;\n' +
+      '    const request = pending.current;\n' +
+      '    return !!current && !!request && current.versions.length > 0 &&\n' +
+      '      current.versions.every((version, index) => version !== 0 && version !== request.versions[index]);\n' +
+      '  };\n' +
+      '  const request = useRef<(signature: string | null) => void>(() => undefined);\n' +
+      '  request.current = (signature) => {\n' +
+      '    const key = keyRef.current;\n' +
+      '    const current = basisRef.current;\n' +
+      '    if (key === null || current === null) return;\n' +
+      '    pending.current = { key, versions: [...current.versions], signature };\n' +
+      '    \n' +
+      '    \n' +
+      '    for (const basisKey of current.keys) {\n' +
+      "      void queryClient.invalidateQueries({ queryKey: JSON.parse(basisKey) as unknown[], exact: true, refetchType: 'none' });\n" +
+      '    }\n' +
+      '    refreshRegisteredBases(current.keys);\n' +
+      '    setWaitingKey(key);\n' +
+      '  };\n' +
+      '  const release = useRef<() => void>(() => undefined);\n' +
+      '  release.current = () => {\n' +
+      '    const key = keyRef.current;\n' +
+      '    const current = basisRef.current;\n' +
+      '    pending.current = null;\n' +
+      '    readsMark.current = key !== null && readsRef.current !== null ? { key, value: readsRef.current } : null;\n' +
+      '    released.current = key !== null && current !== null ? { key, income: current.income } : null;\n' +
+      '    setWaitingKey(null);\n' +
+      '    if (key !== null) void refreshIncomeReads(queryClient, workspaceId as string);\n' +
+      '  };\n' +
+      '  const evaluate = useRef<(mayRequest: boolean) => void>(() => undefined);\n' +
+      '  evaluate.current = (mayRequest) => {\n' +
+      '    const current = basisRef.current;\n' +
+      '    if (!enabled || current === null) return;\n' +
+      '    if (projected.current === null'... 6342 more characters
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual: |-
+    import { useCallback, useEffect, useRef, useState } from 'react';
+    import { useQuery, useQueryClient } from '@tanstack/react-query';
+    
+    import type { FinancialReport, ReportRange, ReportSection } from './official.ts';
+    import { FINANCIAL_REPORT_BASIS_MUTATION_REFRESH, FINANCIAL_REPORT_BASIS_REFRESH, financialReportBasisKey } from './queryKeys.ts';
+    import { rangeKey, sectionsKey } from './range.ts';
+    import { createLiveRefreshScheduler, type LiveRefreshClock, type LiveRefreshOptions } from './liveRefresh.ts';
+    import {
+      INITIAL_BASIS_FAILURE_STATE,
+      basisRefreshAfter,
+      divergenceRefresh,
+      projectedIncomeOf,
+      sameIncome,
+      serverVersionKey,
+      serverVersionOf,
+      type ConfirmedProjection,
+      type MonthlyIncome,
+      type ServerVersion,
+    } from './basisRefresh.ts';
+    import {
+      basesOutOfStep,
+      basisFetchStarts,
+      basisRefreshes,
+      basisRereadScheduled,
+      markRereadOnReturn,
+      noteBasisReadServed,
+      noteBasisReadStart,
+      noteProjectionSeen,
+      noteServerSnapshot,
+      refreshRegisteredBases,
+      registerFailedListener,
+      reopenFailedListeners,
+      scheduleBasisReread,
+      serverSnapshotCount,
+      syncKeyOf,
+      takeRereadOnReturn,
+    } from './basisRegistry.ts';
+    import { refreshIncomeReads } from '../transactions/incomeReads.ts';
+    
+    
+    
+    export interface BasisReportPayload {
+      workspaceId: string;
+      range: ReportRange;
+      sections: ReportSection[];
+    }
+    
+    
+    export interface PeriodsSnapshot {
+      
+      documents: ReadonlyArray<{ id: string; incomeCents: unknown; updatedAt?: unknown }>;
+      
+      fromCache: boolean;
+      
+      changes: number;
+    }
+    
+    export interface BasisSyncDeps {
+      fetchReport: (payload: BasisReportPayload) => Promise<FinancialReport>;
+      
+      subscribePeriods: (
+        workspaceId: string,
+        firstMonth: string,
+        lastMonth: string,
+        onNext: (snapshot: PeriodsSnapshot) => void,
+        onError: () => void,
+      ) => () => void;
+      
+      refresh?: { clock?: LiveRefreshClock; options?: LiveRefreshOptions; mutationOptions?: LiveRefreshOptions };
+    }
+    
+    
+    export const BASIS_RETRIES_AFTER_ERROR = 2;
+    
+    
+    export const BASIS_PERIODS_MAX = 13;
+    
+    
+    export const basisKeyOf = (
+      uid: string | null,
+      workspaceId: string | null,
+      range: ReportRange,
+      sections: readonly ReportSection[],
+    ): string => JSON.stringify(financialReportBasisKey(uid ?? '', workspaceId ?? '', rangeKey(range), sectionsKey(sections)));
+    
+    
+    export const useFinancialReportBasisWith = (
+      deps: BasisSyncDeps,
+      uid: string | null,
+      workspaceId: string | null,
+      range: ReportRange,
+      sections: readonly ReportSection[],
+      options: { enabled?: boolean } = {},
+    ) => {
+      const queryClient = useQueryClient();
+      const enabled = (options.enabled ?? true) &&
+        uid !== null &&
+        workspaceId !== null &&
+        workspaceId !== '' &&
+        workspaceId !== 'loading';
+      const queryKey = financialReportBasisKey(uid ?? '', workspaceId ?? '', rangeKey(range), sectionsKey(sections));
+      const refreshKey = basisKeyOf(uid, workspaceId, range, sections);
+      const query = useQuery<FinancialReport>({
+        queryKey,
+        queryFn: async () => {
+          
+          
+          basisFetchStarts.set(refreshKey, serverSnapshotCount(syncKeyOf(uid as string, workspaceId as string)));
+          const started = noteBasisReadStart(refreshKey);
+          const report = await deps.fetchReport({
+            workspaceId: workspaceId as string,
+            range,
+            sections: [...sections],
+          });
+          noteBasisReadServed(refreshKey, started);
+          return report;
+        },
+        enabled,
+        staleTime: Infinity,
+        
+        
+        
+        
+        
+        refetchOnMount: false,
+        refetchOnReconnect: false,
+        retry: 1,
+      });
+      useEffect(() => {
+        if (!enabled) return undefined;
+        let entry = basisRefreshes.get(refreshKey);
+        if (!entry) {
+          const exactKey = JSON.parse(refreshKey) as unknown[];
+          const refetch = () => {
+            void queryClient.refetchQueries({ queryKey: exactKey, exact: true });
+          };
+          entry = {
+            scheduler: createLiveRefreshScheduler(refetch, deps.refresh?.clock, deps.refresh?.options ?? { ...FINANCIAL_REPORT_BASIS_REFRESH }),
+            mutationScheduler: createLiveRefreshScheduler(
+              refetch,
+              deps.refresh?.clock,
+              deps.refresh?.mutationOptions ?? { ...FINANCIAL_REPORT_BASIS_MUTATION_REFRESH },
+            ),
+            users: 0,
+            failure: INITIAL_BASIS_FAILURE_STATE,
+            maxFailures: BASIS_RETRIES_AFTER_ERROR,
+            workspaceId: workspaceId as string,
+            loaded: () => (queryClient.getQueryState(exactKey)?.dataUpdatedAt ?? 0) !== 0,
+          };
+          basisRefreshes.set(refreshKey, entry);
+          
+          
+          
+          if (takeRereadOnReturn(refreshKey) && entry.loaded() && (queryClient.getQueryState(exactKey)?.fetchStatus ?? 'idle') === 'idle') {
+            void queryClient.invalidateQueries({ queryKey: exactKey, exact: true, refetchType: 'none' });
+            scheduleBasisReread(refreshKey, entry.scheduler);
+          }
+        }
+        entry.users += 1;
+        const current = entry;
+        return () => {
+          current.users -= 1;
+          if (current.users === 0) {
+            
+            
+            
+            if (basisRereadScheduled(refreshKey)) {
+              void queryClient.invalidateQueries({ queryKey: JSON.parse(refreshKey) as unknown[], exact: true, refetchType: 'none' });
+              markRereadOnReturn(refreshKey);
+            }
+            current.scheduler.cancel();
+            current.mutationScheduler.cancel();
+            basisRefreshes.delete(refreshKey);
+            basisFetchStarts.delete(refreshKey);
+          }
+        };
+      }, [enabled, refreshKey, queryClient, deps]);
+      const { isStale, isFetching, dataUpdatedAt, errorUpdatedAt } = query;
+      useEffect(() => {
+        if (!enabled || isFetching || dataUpdatedAt === 0) return;
+        const entry = basisRefreshes.get(refreshKey);
+        if (!entry) return;
+        if (!isStale) {
+          
+          
+          
+          entry.failure = { dataUpdatedAt, errorUpdatedAt, failures: dataUpdatedAt !== entry.failure.dataUpdatedAt ? 0 : entry.failure.failures };
+          return;
+        }
+        const decision = basisRefreshAfter(entry.failure, { dataUpdatedAt, errorUpdatedAt }, BASIS_RETRIES_AFTER_ERROR);
+        entry.failure = decision.state;
+        if (decision.notify) scheduleBasisReread(refreshKey, entry.scheduler);
+      }, [enabled, refreshKey, isStale, isFetching, dataUpdatedAt, errorUpdatedAt]);
+      return query;
+    };
+    
+    
+    export interface BasisView {
+      
+      income: MonthlyIncome;
+      
+      exact: boolean;
+      
+      versions: readonly number[];
+      
+      keys: readonly string[];
+      
+      fetching: boolean;
+    }
+    
+    
+    export type DependentRead = object | undefined | null;
+    
+    
+    export const useFinancialReportBasisLiveRefreshWith = (
+      deps: BasisSyncDeps,
+      uid: string | null,
+      workspaceId: string | null,
+      months: readonly string[],
+      basis: BasisView | null,
+      reads: DependentRead,
+      options: { enabled?: boolean } = {},
+    ): {
+      syncing: boolean;
+      holding: boolean;
+      listenFailed: boolean;
+      retryListen: () => void;
+      confirmed: ConfirmedProjection | null;
+    } => {
+      const queryClient = useQueryClient();
+      const firstMonth = months[0] ?? null;
+      const lastMonth = months[months.length - 1] ?? null;
+      const monthsKey = months.join(',');
+      const enabled = (options.enabled ?? true) &&
+        uid !== null &&
+        !!workspaceId &&
+        workspaceId !== 'loading' &&
+        !!firstMonth &&
+        !!lastMonth;
+      const syncKey = enabled ? syncKeyOf(uid as string, workspaceId as string) : null;
+      const projected = useRef<MonthlyIncome | null>(null);
+      
+      const changed = useRef(false);
+      const attempts = useRef(new Map<string, number>());
+      
+      const pending = useRef<{ key: string; versions: readonly number[]; signature: string | null } | null>(null);
+      
+      const readsMark = useRef<{ key: string; value: object | undefined } | null>(null);
+      
+      const released = useRef<{ key: string; income: MonthlyIncome } | null>(null);
+      
+      const paired = useRef<{ key: string; income: MonthlyIncome; reads: object | undefined } | null>(null);
+      
+      const seen = useRef<{ key: string; versions: readonly number[] } | null>(null);
+      const [waitingKey, setWaitingKey] = useState<string | null>(null);
+      
+      const [listenFailedKey, setListenFailedKey] = useState<string | null>(null);
+      const [listenAttempt, setListenAttempt] = useState(0);
+      
+      const [confirmed, setConfirmed] = useState<{ key: string; projection: ConfirmedProjection } | null>(null);
+      const confirmedKey = syncKey === null ? null : `${syncKey}\n${monthsKey}`;
+      const basisRef = useRef(basis);
+      basisRef.current = basis;
+      const readsRef = useRef(reads);
+      readsRef.current = reads;
+      const keyRef = useRef(syncKey);
+      keyRef.current = syncKey;
+      const arrived = () => {
+        const current = basisRef.current;
+        const request = pending.current;
+        return !!current && !!request && current.versions.length > 0 &&
+          current.versions.every((version, index) => version !== 0 && version !== request.versions[index]);
+      };
+      const request = useRef<(signature: string | null) => void>(() => undefined);
+      request.current = (signature) => {
+        const key = keyRef.current;
+        const current = basisRef.current;
+        if (key === null || current === null) return;
+        pending.current = { key, versions: [...current.versions], signature };
+        
+        
+        for (const basisKey of current.keys) {
+          void queryClient.invalidateQueries({ queryKey: JSON.parse(basisKey) as unknown[], exact: true, refetchType: 'none' });
+        }
+        refreshRegisteredBases(current.keys);
+        setWaitingKey(key);
+      };
+      const release = useRef<() => void>(() => undefined);
+      release.current = () => {
+        const key = keyRef.current;
+        const current = basisRef.current;
+        pending.current = null;
+        readsMark.current = key !== null && readsRef.current !== null ? { key, value: readsRef.current } : null;
+        released.current = key !== null && current !== null ? { key, income: current.income } : null;
+        setWaitingKey(null);
+        if (key !== null) void refreshIncomeReads(queryClient, workspaceId as string);
+      };
+      const evaluate = useRef<(mayRequest: boolean) => void>(() => undefined);
+      evaluate.current = (mayRequest) => {
+        const current = basisRef.current;
+        if (!enabled || current === null) return;
+        if (projected.current === null) {
+          
+          
+          if (pending.current && arrived()) release.current();
+          return;
+        }
+        if (current.exact) {
+          changed.current = false;
+          const decision = divergenceRefresh(projected.current, current.income, months, attempts.current);
+          if (decision.converged) {
+            attempts.current.clear();
+            if (pending.current) release.current();
+            return;
+          }
+          
+          if (pending.current && !arrived() && pending.current.signature === decision.signature) return;
+          if (mayRequest && decision.refresh && decision.signature !== null) {
+            attempts.current.set(decision.signature, decision.attempts);
+            request.current(decision.signature);
+            return;
+          }
+          
+          if (pending.current && arrived()) release.current();
+          return;
+        }
+        if (changed.current) {
+          changed.current = false;
+          request.current(null);
+          return;
+        }
+        if (pending.current && arrived()) release.current();
+      };
+      
+      const followReads = useRef<() => void>(() => undefined);
+      followReads.current = () => {
+        const key = keyRef.current;
+        const current = basisRef.current;
+        const value = readsRef.current;
+        if (key === null || current === null || value === null) return;
+        const mark = readsMark.current;
+        if (mark && mark.key === key) {
+          if (mark.value === value) return;
+          readsMark.current = null;
+          const base = released.current;
+          paired.current = { key, income: base && base.key === key ? base.income : current.income, reads: value };
+        }
+        if (pending.current) return;
+        const pair = paired.current;
+        if (pair === null || pair.key !== key || pair.reads !== value) {
+          paired.current = { key, income: current.income, reads: value };
+          return;
+        }
+        if (current.exact && !current.fetching && !sameIncome(current.income, pair.income)) release.current();
+      };
+      useEffect(() => {
+        projected.current = null;
+        changed.current = false;
+        attempts.current = new Map();
+        
+        
+        
+        if (pending.current && pending.current.key !== syncKey) pending.current = null;
+        setWaitingKey((current) => (current === syncKey ? current : null));
+        setListenFailedKey(null);
+        setConfirmed(null);
+        if (!enabled || syncKey === null) return undefined;
+        const key = `${syncKey}\n${monthsKey}`;
+        let synced = false;
+        let unregister: (() => void) | null = null;
+        const unsubscribe = deps.subscribePeriods(workspaceId as string, firstMonth as string, lastMonth as string, (snapshot) => {
+          if (snapshot.fromCache) return;
+          noteServerSnapshot(syncKey);
+          
+          reopenFailedListeners(syncKey);
+          if (!synced || snapshot.changes > 0) changed.current = true;
+          synced = true;
+          projected.current = projectedIncomeOf(snapshot.documents);
+          
+          
+          
+          const byMonth = new Map(snapshot.documents.map((document) => [document.id, document]));
+          const versions: Record<string, ServerVersion | null> = {};
+          const seen: Record<string, number> = {};
+          for (const month of monthsKey.split(',')) {
+            const document = byMonth.get(month);
+            const version = serverVersionOf(document?.updatedAt);
+            versions[month] = version;
+            const income = Number.isSafeInteger(document?.incomeCents) ? String(document?.incomeCents) : '-';
+            seen[month] = noteProjectionSeen(syncKey, month, `${serverVersionKey(version)}|${income}`);
+          }
+          setConfirmed({ key, projection: { income: projected.current, versions, seen } });
+          evaluate.current(true);
+        }, () => {
+          
+          
+          projected.current = null;
+          changed.current = false;
+          attempts.current = new Map();
+          setConfirmed(null);
+          setListenFailedKey(syncKey);
+          unregister?.();
+          unregister = registerFailedListener(syncKey, () => setListenAttempt((attempt) => attempt + 1));
+          evaluate.current(false);
+        });
+        return () => {
+          unregister?.();
+          unsubscribe();
+        };
+      }, [enabled, syncKey, uid, workspaceId, firstMonth, lastMonth, monthsKey, deps, listenAttempt]);
+      
+      
+      
+      const versionsKey = basis ? basis.versions.join(',') : '';
+      useEffect(() => {
+        const key = keyRef.current;
+        const current = basisRef.current;
+        const before = seen.current;
+        seen.current = key !== null && current !== null ? { key, versions: current.versions } : null;
+        const loading = before === null || before.key !== key || before.versions.length !== (current?.versions.length ?? 0) ||
+          before.versions.some((version) => version === 0);
+        
+        
+        const overlapped = !loading && key !== null && current !== null && before !== null && current.keys.some((basisKey, index) =>
+          current.versions[index] !== before.versions[index] && (basisFetchStarts.get(basisKey) ?? -1) < serverSnapshotCount(key));
+        evaluate.current(loading || pending.current !== null || overlapped);
+        followReads.current();
+      }, [versionsKey, basis?.exact, basis?.income, basis?.fetching]);
+      useEffect(() => {
+        followReads.current();
+      }, [reads]);
+      const syncing = syncKey !== null && waitingKey === syncKey;
+      const mark = readsMark.current;
+      const readsBehind = syncKey !== null && mark !== null && mark.key === syncKey && reads !== null && reads === mark.value;
+      
+      
+      let pairedIncome: MonthlyIncome | null = null;
+      if (syncKey !== null && reads !== null) {
+        if (mark !== null && mark.key === syncKey) {
+          if (reads !== mark.value && released.current?.key === syncKey) pairedIncome = released.current.income;
+        } else if (paired.current !== null && paired.current.key === syncKey && paired.current.reads === reads) {
+          pairedIncome = paired.current.income;
+        }
+      }
+      const ahead = basis !== null && basis.exact && pairedIncome !== null && !sameIncome(basis.income, pairedIncome);
+      
+      
+      
+      
+      
+      const outOfStep = syncKey !== null && basis !== null && basis.keys.length > 1 &&
+        (basis.fetching || basesOutOfStep(basis.keys));
+      const retryListen = useCallback(() => {
+        
+        const key = keyRef.current;
+        if (key !== null) reopenFailedListeners(key);
+      }, []);
+      return {
+        syncing,
+        holding: syncing || readsBehind || ahead || outOfStep,
+        listenFailed: syncKey !== null && listenFailedKey === syncKey,
+        retryListen,
+        
+        confirmed: confirmed !== null && confirmed.key === confirmedKey ? confirmed.projection : null,
+      };
+    };
+    
+  operator: 'match'
+  stack: |-
+    TestContext.<anonymous> (file://<scratchpad>/p5f1r32/copia-r31-vermelho/tests/unit/work-time-guard.test.ts:420:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: falhas de leitura: mensagens fixas em pt-BR, com nova tentativa, e só o código do erro no log
+ok 79 - falhas de leitura: mensagens fixas em pt-BR, com nova tentativa, e só o código do erro no log
+  ---
+  duration_ms: 2.105618
+  type: 'test'
+  ...
+# Subtest: janela de receitas: a leitura paginada real usa `readPagedWindow` com um documento a mais
+ok 80 - janela de receitas: a leitura paginada real usa `readPagedWindow` com um documento a mais
+  ---
+  duration_ms: 0.470017
+  type: 'test'
+  ...
+# Subtest: matriz: entradas, confirmações, termos, históricos e preços ficam em BRL
+ok 81 - matriz: entradas, confirmações, termos, históricos e preços ficam em BRL
+  ---
+  duration_ms: 2.496165
+  type: 'test'
+  ...
+# Subtest: matriz: pontos em BRL dentro de arquivos elegíveis continuam em reais, linha a linha
+ok 82 - matriz: pontos em BRL dentro de arquivos elegíveis continuam em reais, linha a linha
+  ---
+  duration_ms: 2.550383
+  type: 'test'
+  ...
+# Subtest: matriz: os pontos elegíveis usam a camada de exibição, e a prévia do tema força reais
+ok 83 - matriz: os pontos elegíveis usam a camada de exibição, e a prévia do tema força reais
+  ---
+  duration_ms: 3.353188
+  type: 'test'
+  ...
+# Subtest: modo dinheiro idêntico: a camada devolve o formatador da tela, sem elemento novo
+ok 84 - modo dinheiro idêntico: a camada devolve o formatador da tela, sem elemento novo
+  ---
+  duration_ms: 0.229914
+  type: 'test'
+  ...
+# Subtest: prova (P5-F.1-R3.2, RR-R31-05): fora do estado sem bloco exato, nada é provado sem a projeção confirmada e a base igual a ela; sem exceção por base única ou falta de desconsiderada
+not ok 85 - prova (P5-F.1-R3.2, RR-R31-05): fora do estado sem bloco exato, nada é provado sem a projeção confirmada e a base igual a ela; sem exceção por base única ou falta de desconsiderada
+  ---
+  duration_ms: 0.559262
+  type: 'test'
+  location: '<scratchpad>/p5f1r32/copia-r31-vermelho/tests/unit/work-time-guard.test.ts:759:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    The input did not match the regular expression /export const proveEstimateConsistency = \(input: ConsistencyInput\): ConsistencyResult => \{\s*if \(input\.basis === null\) return \{ proven: false, reason: 'loading' \};\s*if \(!input\.basis\.exact\) return \{ proven: true \};\s*const projection = input\.projection;\s*if \(projection === null\) return \{ proven: false, reason: 'projection' \};\s*if \(incomeDiverges\(projection\.income, input\.basis\.income, input\.months\)\) return \{ proven: false, reason: 'bases' \};\s*if \(!input\.hasExclusions\) return \{ proven: true \};/. Input:
+    
+    '\n' +
+      "import { incomeDiverges, type ConfirmedProjection, type MonthlyIncome } from '../reports/basisRefresh.ts';\n" +
+      "import type { ProjectionProof } from './projectionProof.ts';\n" +
+      '\n' +
+      'export interface ConsistencyInput {\n' +
+      '  \n' +
+      '  months: readonly string[];\n' +
+      '  \n' +
+      '  multipleBases: boolean;\n' +
+      '  \n' +
+      '  hasExclusions: boolean;\n' +
+      '  \n' +
+      '  basis: { income: MonthlyIncome; exact: boolean } | null;\n' +
+      '  projection: ConfirmedProjection | null;\n' +
+      '  \n' +
+      '  excludedStartedOrder: number | null;\n' +
+      '  \n' +
+      '  excludedMonths: readonly string[];\n' +
+      '  \n' +
+      '  exclusionsProof: ProjectionProof | null;\n' +
+      '}\n' +
+      '\n' +
+      "export type ConsistencyReason = 'loading' | 'projection' | 'bases' | 'exclusions_read' | 'projection_marks';\n" +
+      '\n' +
+      'export type ConsistencyResult = { proven: true } | { proven: false; reason: ConsistencyReason };\n' +
+      '\n' +
+      '\n' +
+      'export const proveEstimateConsistency = (input: ConsistencyInput): ConsistencyResult => {\n' +
+      "  if (input.basis === null) return { proven: false, reason: 'loading' };\n" +
+      '  if (!input.multipleBases && !input.hasExclusions) return { proven: true };\n' +
+      '  \n' +
+      '  if (!input.basis.exact) return { proven: true };\n' +
+      '  const projection = input.projection;\n' +
+      "  if (projection === null) return { proven: false, reason: 'projection' };\n" +
+      "  if (incomeDiverges(projection.income, input.basis.income, input.months)) return { proven: false, reason: 'bases' };\n" +
+      '  if (!input.hasExclusions) return { proven: true };\n' +
+      '  const started = input.excludedStartedOrder;\n' +
+      "  if (started === null || input.exclusionsProof === null) return { proven: false, reason: 'loading' };\n" +
+      '  const window = new Set(input.months);\n' +
+      '  for (const month of input.excludedMonths) {\n' +
+      '    if (window.has(month) && started <= (projection.seen[month] ?? Number.POSITIVE_INFINITY)) {\n' +
+      "      return { proven: false, reason: 'exclusions_read' };\n" +
+      '    }\n' +
+      '  }\n' +
+      "  if (!input.exclusionsProof.proven) return { proven: false, reason: 'projection_marks' };\n" +
+      '  return { proven: true };\n' +
+      '};\n'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual: |-
+    
+    import { incomeDiverges, type ConfirmedProjection, type MonthlyIncome } from '../reports/basisRefresh.ts';
+    import type { ProjectionProof } from './projectionProof.ts';
+    
+    export interface ConsistencyInput {
+      
+      months: readonly string[];
+      
+      multipleBases: boolean;
+      
+      hasExclusions: boolean;
+      
+      basis: { income: MonthlyIncome; exact: boolean } | null;
+      projection: ConfirmedProjection | null;
+      
+      excludedStartedOrder: number | null;
+      
+      excludedMonths: readonly string[];
+      
+      exclusionsProof: ProjectionProof | null;
+    }
+    
+    export type ConsistencyReason = 'loading' | 'projection' | 'bases' | 'exclusions_read' | 'projection_marks';
+    
+    export type ConsistencyResult = { proven: true } | { proven: false; reason: ConsistencyReason };
+    
+    
+    export const proveEstimateConsistency = (input: ConsistencyInput): ConsistencyResult => {
+      if (input.basis === null) return { proven: false, reason: 'loading' };
+      if (!input.multipleBases && !input.hasExclusions) return { proven: true };
+      
+      if (!input.basis.exact) return { proven: true };
+      const projection = input.projection;
+      if (projection === null) return { proven: false, reason: 'projection' };
+      if (incomeDiverges(projection.income, input.basis.income, input.months)) return { proven: false, reason: 'bases' };
+      if (!input.hasExclusions) return { proven: true };
+      const started = input.excludedStartedOrder;
+      if (started === null || input.exclusionsProof === null) return { proven: false, reason: 'loading' };
+      const window = new Set(input.months);
+      for (const month of input.excludedMonths) {
+        if (window.has(month) && started <= (projection.seen[month] ?? Number.POSITIVE_INFINITY)) {
+          return { proven: false, reason: 'exclusions_read' };
+        }
+      }
+      if (!input.exclusionsProof.proven) return { proven: false, reason: 'projection_marks' };
+      return { proven: true };
+    };
+    
+  operator: 'match'
+  stack: |-
+    TestContext.<anonymous> (file://<scratchpad>/p5f1r32/copia-r31-vermelho/tests/unit/work-time-guard.test.ts:762:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+1..85
+# tests 85
+# suites 0
+# pass 65
+# fail 20
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 27593.383408

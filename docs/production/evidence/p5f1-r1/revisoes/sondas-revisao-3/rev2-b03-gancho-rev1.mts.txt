@@ -1,0 +1,183 @@
+// Sonda de gancho (revisão independente): useIncomeEstimateWith com React Query real e um Firestore em memória
+// em que o gatilho da projeção é controlado à mão (versão = hora do servidor da última gravação do mês).
+// Uso: node --experimental-strip-types b03-gancho.mts <raiz da árvore> <cenário>
+const root = process.argv[2];
+const scenario = process.argv[3];
+const nm = `${root}/node_modules`;
+const React = (await import(`${nm}/react/index.js`)).default;
+const TR = (await import(`${nm}/react-test-renderer/index.js`)).default;
+const RQ = await import(`${nm}/@tanstack/react-query/build/modern/index.js`);
+const { useIncomeEstimateWith } = await import(`${root}/src/modules/work-time/useIncomeEstimateWith.ts`);
+const { DEFAULT_WEEKLY_ROUTINE } = await import(`${root}/src/modules/work-time/draft.ts`);
+let clearBasisRegistry: () => void = () => undefined;
+try { clearBasisRegistry = (await import(`${root}/src/modules/reports/basisRegistry.ts`)).clearBasisRegistry; } catch { /* sem registro */ }
+(globalThis as Record<string, unknown>).IS_REACT_ACT_ENVIRONMENT = true;
+const { act } = TR;
+const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+// Como o `until` dos testes: passos curtos de `act`, para o React processar cada atualização.
+const settle = async (ms = 150) => { const end = performance.now() + ms; while (performance.now() < end) await act(async () => { await wait(5); }); };
+const at = (s: number) => ({ seconds: s, nanoseconds: 0 });
+const OFFICE = { routines: [DEFAULT_WEEKLY_ROUTINE], worksOnHolidays: false, localHolidays: [], exceptions: [] };
+const REFERENCE = '2026-11-04';
+
+let clock = 100;
+const tick = () => ++clock;
+const projection: Record<string, { income: number; version: number }> = {};
+const docs = new Map<string, Record<string, unknown>>();
+const listeners = new Set<{ ws: string; first: string; last: string; onNext: (s: unknown) => void; onError: () => void }>();
+const world = { listenRefused: false, byIdsMode: 'server' as 'server' | 'cache-empty', calls: { series: 0, byIds: 0 } };
+const snapshot = (first: string, last: string) => ({
+  documents: Object.entries(projection).filter(([m]) => m >= first && m <= last)
+    .map(([m, p]) => ({ id: m, incomeCents: p.income, updatedAt: at(p.version) })),
+  fromCache: false,
+  changes: 1,
+});
+const deliver = (l: { first: string; last: string; onNext: (s: unknown) => void }) => {
+  if (process.env.DEBUG) console.log('deliver', listeners.has(l as never), JSON.stringify(snapshot(l.first, l.last)));
+  if (listeners.has(l as never)) act(() => l.onNext(snapshot(l.first, l.last)));
+};
+const trigger = (month: string, income: number) => {
+  projection[month] = { income, version: tick() };
+  for (const l of [...listeners]) deliver(l);
+};
+const write = (id: string, data: Record<string, unknown>) => {
+  const now = at(tick());
+  const prev = docs.get(id);
+  docs.set(id, { ...prev, ...data, id, createdAt: prev?.createdAt ?? now, updatedAt: now });
+};
+const deps = {
+  basis: {
+    fetchReport: async (payload: { range: { kind: string; month?: string } }) => {
+      world.calls.series += 1;
+      const income = Object.fromEntries(Object.entries(projection).map(([m, p]) => [m, p.income]));
+      await wait(3);
+      if (payload.range.kind === 'month') {
+        return { referenceDate: REFERENCE, workspaceType: 'PF', period: { range: payload.range },
+          cash: { status: 'exact', data: { receiptsCents: income[payload.range.month as string] ?? 0 } } };
+      }
+      const points = Object.entries(income).filter(([m]) => m >= '2025-12').sort(([a], [b]) => a.localeCompare(b))
+        .map(([month, receiptsCents]) => ({ month, receiptsCents, partial: month === '2026-11' }));
+      return { referenceDate: REFERENCE, workspaceType: 'PF', series: { status: 'exact', data: { points } } };
+    },
+    subscribePeriods: (ws: string, first: string, last: string, onNext: (s: unknown) => void, onError: () => void) => {
+      const l = { ws, first, last, onNext, onError };
+      listeners.add(l);
+      if (process.env.DEBUG) console.log('subscribe', ws, first, last);
+      if (world.listenRefused) setTimeout(() => { if (listeners.delete(l)) act(() => onError()); }, 1);
+      else setTimeout(() => deliver(l), 1);
+      return () => { listeners.delete(l); };
+    },
+    refresh: { options: { coalesceMs: 30, burst: 100, refillMs: 60_000 }, mutationOptions: { coalesceMs: 30, burst: 100, refillMs: 60_000 } },
+  },
+  readByIds: async (_ws: string, ids: readonly string[]) => {
+    world.calls.byIds += 1;
+    const unique = [...new Set(ids)];
+    // getDocs sem rede, com o cache em memória sem esses documentos: nada encontrado, sem erro.
+    if (world.byIdsMode === 'cache-empty') { await wait(5); return { found: [], missing: unique }; }
+    const found = unique.filter((id) => docs.has(id)).map((id) => structuredClone(docs.get(id)) as object);
+    await wait(8);
+    return { found, missing: unique.filter((id) => !docs.has(id)) };
+  },
+};
+type Shown = { status: string; message?: string; refreshFailed?: boolean; estimate?: { status: string; incomeCents?: number; reason?: string } };
+const renders: Shown[] = [];
+const mount = (params: Record<string, unknown>) => {
+  const client = new RQ.QueryClient({ defaultOptions: { queries: { retryDelay: 1, refetchOnWindowFocus: false } } });
+  const Estimate = () => { renders.push(useIncomeEstimateWith(deps as never, 'u1', params as never) as Shown); return null; };
+  let r: { unmount: () => void } | undefined;
+  act(() => { r = TR.create(React.createElement(RQ.QueryClientProvider, { client }, React.createElement(Estimate))); });
+  return r as { unmount: () => void };
+};
+const show = (s: Shown) => (s.status === 'done'
+  ? (s.estimate?.status === 'ready' ? `R$${(s.estimate.incomeCents ?? 0) / 100}${s.refreshFailed ? '(ressalva)' : ''}` : `indisponível:${s.estimate?.reason}`)
+  : s.status === 'error' ? `erro:"${s.message}"` : s.status);
+const timeline = () => renders.map(show).filter((v, i, a) => i === 0 || a[i - 1] !== v).join(' → ');
+const params = (patch: Record<string, unknown> = {}) => ({ workspaceId: 'ws-a', mode: 'habitual', historyMonths: 3, allowBusinessIncome: false,
+  calendar: OFFICE, excludedIds: ['r500'], enabled: true, ...patch });
+
+// Estado inicial: ago e set R$ 3.520,00; out R$ 4.020,00 com a receita r500 (R$ 500,00) desconsiderada.
+write('r500', { date: '2026-10-15', type: 'receita', valueCents: 50_000, isPaid: true });
+projection['2026-08'] = { income: 352_000, version: tick() };
+projection['2026-09'] = { income: 352_000, version: tick() };
+projection['2026-10'] = { income: 402_000, version: tick() };
+projection['2026-11'] = { income: 100_000, version: tick() };
+
+if (scenario === 'edicao-antes-da-primeira-leitura') {
+  // Limite (a): outra sessão muda o valor de r500 de R$ 500,00 para R$ 800,00; o gatilho ainda não gravou.
+  write('r500', { valueCents: 80_000 });
+  const r = mount(params());
+  await settle(300);
+  console.log('antes do gatilho:', timeline(), '| séries:', world.calls.series, 'por id:', world.calls.byIds);
+  trigger('2026-10', 432_000); // o gatilho grava outubro: R$ 4.320,00
+  await settle(600);
+  console.log('estados:', timeline());
+  console.log('consistente: R$10560 (antes ou depois da edição); misto: R$10260');
+  r.unmount();
+} else if (scenario === 'escuta-recusada-com-exclusao') {
+  world.listenRefused = true;
+  const r = mount(params());
+  await settle(1500);
+  console.log('estados:', timeline(), '| leituras por id:', world.calls.byIds);
+  r.unmount();
+} else if (scenario === 'escuta-recusada-sem-exclusao-12m') {
+  world.listenRefused = true;
+  for (let i = 0; i < 12; i += 1) {
+    const d = new Date(Date.UTC(2025, 10 + i, 1));
+    const m = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+    projection[m] = projection[m] ?? { income: 300_000, version: tick() };
+  }
+  const r = mount(params({ excludedIds: [], historyMonths: 12 }));
+  await settle(1500);
+  console.log('estados:', timeline());
+  r.unmount();
+} else if (scenario === 'leitura-por-id-do-cache-vazio') {
+  world.byIdsMode = 'cache-empty';
+  const r = mount(params());
+  await settle(400);
+  console.log('estados:', timeline(), '| consistente: R$10560; sem as exclusões: R$11060');
+  r.unmount();
+} else if (scenario === 'limite-c-estimativa-parada') {
+  // Limite (c): a sessão já viu r500 com R$ 500,00. Outra sessão muda o valor para R$ 800,00 (o gatilho grava
+  // outubro) e, depois, só a descrição (sem gatilho). Mais tarde, uma receita nova em agosto (+R$ 100,00).
+  const r = mount(params());
+  await settle(300);
+  const first = timeline();
+  write('r500', { valueCents: 80_000 });
+  trigger('2026-10', 432_000);
+  write('r500', { description: 'outra descrição' });
+  await settle(600);
+  const afterEdit = timeline();
+  trigger('2026-08', 362_000);
+  await settle(1500);
+  console.log('início:', first);
+  console.log('depois das edições:', afterEdit);
+  console.log('depois da receita nova de agosto (estado atual consistente: R$10660):', timeline(), '| última:', show(renders[renders.length - 1]));
+  r.unmount();
+} else if (scenario === 'b01-parecer') {
+  // O cenário do parecer, em gancho: outubro com B (R$ 100,00) e o recebimento A (R$ 100,00) desconsiderado;
+  // outra sessão estorna A (espelho do estorno no ID oficial) e o gatilho grava outubro.
+  const ids = { mirror: 'recvcash_cf85542cf07eee6d9adfaf0f718dfb9b88ebd4a8', movement: 'rmv_cf85542cf07eee6d9adfaf0f718dfb9b88ebd4a8',
+    reversalMirror: 'recvcash_b05e8f3d93b70ccc508aa916c1b2d865bf3516e3', reversalMovement: 'rmv_b05e8f3d93b70ccc508aa916c1b2d865bf3516e3' };
+  const entry = (movementId: string, reversal: boolean) => ({ domainVersion: 1, receivableId: 'rcv_x', receivableMovementId: movementId, clientId: 'cli',
+    kind: 'receipt', reversal, principalCents: 10_000, interestCents: 0, penaltyCents: 0, discountCents: 0, currency: 'BRL', ...(reversal ? { reversalOf: ids.movement } : {}) });
+  write(ids.mirror, { date: '2026-10-10', type: 'receita', valueCents: 10_000, isPaid: true, receivableEntry: entry(ids.movement, false) });
+  projection['2026-10'] = { income: 20_000, version: tick() }; // A + B
+  const r = mount(params({ excludedIds: [ids.mirror], mode: 'current_month' }));
+  // mês atual = novembro na referência; usar outubro: troca a referência para 2026-10-25 não é possível aqui, então
+  // usa a janela habitual de 1 mês (outubro).
+  r.unmount();
+  renders.length = 0;
+  const r2 = mount(params({ excludedIds: [ids.mirror], historyMonths: 1 }));
+  await settle(300);
+  const before = timeline();
+  write(ids.reversalMirror, { date: '2026-10-10', type: 'despesa', valueCents: 10_000, isPaid: true, receivableEntry: entry(ids.reversalMovement, true) });
+  await settle(200);
+  trigger('2026-10', 10_000); // A + estorno + B
+  await settle(800);
+  console.log('antes do estorno:', before);
+  console.log('todas as renderizações:', timeline(), '(certo: R$100 antes e depois; dupla dedução: R$0)');
+  r2.unmount();
+} else {
+  console.log('cenário desconhecido');
+}
+clearBasisRegistry();

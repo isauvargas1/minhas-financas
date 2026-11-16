@@ -1,0 +1,22 @@
+{
+ "cenarios": 20000,
+ "janelaMs": 50,
+ "correcao": "publicacao",
+ "violacoes": 0,
+ "cenariosComViolacao": 0,
+ "provas": 127285,
+ "publicacoes": 16006,
+ "recomecos": 6159,
+ "motivos": {
+  "provada": 127285,
+  "content": 7626,
+  "mark_pending": 4339,
+  "indisponivel_needsRebuild": 716,
+  "mark_broken": 34
+ },
+ "finalSemProva": {
+  "indisponivel_needsRebuild": 122,
+  "mark_pending": 133
+ },
+ "finalSemProvaSemExclusaoFisica": {}
+}

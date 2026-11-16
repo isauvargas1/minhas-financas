@@ -1,0 +1,1123 @@
+TAP version 13
+# Subtest: a varredura alcança o repositório real
+not ok 1 - a varredura alcança o repositório real
+  ---
+  duration_ms: 3.343675
+  type: 'test'
+  location: '<scratchpad>/fdi-red/tests/unit/work-time-guard.test.ts:78:1'
+  failureType: 'testCodeFailure'
+  error: "ENOENT: no such file or directory, scandir '<scratchpad>/fdi-red/functions/src'"
+  code: 'ENOENT'
+  stack: |-
+    readdirSync (node:fs:1590:26)
+    sourceFiles (file://<scratchpad>/fdi-red/tests/unit/work-time-guard.test.ts:62:3)
+    TestContext.<anonymous> (file://<scratchpad>/fdi-red/tests/unit/work-time-guard.test.ts:82:13)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.start (node:internal/test_runner/test:944:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)
+  ...
+# Subtest: nenhuma Function lê, grava ou menciona a preferência privada
+not ok 2 - nenhuma Function lê, grava ou menciona a preferência privada
+  ---
+  duration_ms: 0.267513
+  type: 'test'
+  location: '<scratchpad>/fdi-red/tests/unit/work-time-guard.test.ts:85:1'
+  failureType: 'testCodeFailure'
+  error: "ENOENT: no such file or directory, scandir '<scratchpad>/fdi-red/functions/src'"
+  code: 'ENOENT'
+  stack: |-
+    readdirSync (node:fs:1590:26)
+    sourceFiles (file://<scratchpad>/fdi-red/tests/unit/work-time-guard.test.ts:62:3)
+    TestContext.<anonymous> (file://<scratchpad>/fdi-red/tests/unit/work-time-guard.test.ts:86:22)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: IA, notificações e relatórios autoritativos não recebem a preferência
+ok 3 - IA, notificações e relatórios autoritativos não recebem a preferência
+  ---
+  duration_ms: 5.187272
+  type: 'test'
+  ...
+# Subtest: DTOs, chamadas e adaptadores financeiros não carregam tempo de trabalho
+ok 4 - DTOs, chamadas e adaptadores financeiros não carregam tempo de trabalho
+  ---
+  duration_ms: 5.827442
+  type: 'test'
+  ...
+# Subtest: nenhuma cópia local da preferência e nenhuma leitura do cache do SDK no app
+ok 5 - nenhuma cópia local da preferência e nenhuma leitura do cache do SDK no app
+  ---
+  duration_ms: 33.835292
+  type: 'test'
+  ...
+# Subtest: logs da preferência só levam mensagem fixa e código de erro
+ok 6 - logs da preferência só levam mensagem fixa e código de erro
+  ---
+  duration_ms: 6.820154
+  type: 'test'
+  ...
+# Subtest: sessão: troca de conta e respostas atrasadas não expõem a preferência de outra conta
+ok 7 - sessão: troca de conta e respostas atrasadas não expõem a preferência de outra conta
+  ---
+  duration_ms: 0.456152
+  type: 'test'
+  ...
+# Subtest: a preferência só é lida e gravada no documento privado do próprio usuário
+ok 8 - a preferência só é lida e gravada no documento privado do próprio usuário
+  ---
+  duration_ms: 1.556046
+  type: 'test'
+  ...
+# Subtest: Rules: bloco explícito do titular, campos, gramáticas e limites iguais ao contrato v2 do cliente
+not ok 9 - Rules: bloco explícito do titular, campos, gramáticas e limites iguais ao contrato v2 do cliente
+  ---
+  duration_ms: 0.66495
+  type: 'test'
+  location: '<scratchpad>/fdi-red/tests/unit/work-time-guard.test.ts:217:1'
+  failureType: 'testCodeFailure'
+  error: "ENOENT: no such file or directory, open '<scratchpad>/fdi-red/firestore.rules'"
+  code: 'ENOENT'
+  stack: |-
+    readFileSync (node:fs:440:20)
+    read (file://<scratchpad>/fdi-red/tests/unit/work-time-guard.test.ts:55:32)
+    TestContext.<anonymous> (file://<scratchpad>/fdi-red/tests/unit/work-time-guard.test.ts:218:17)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: nada derivado é gravado: só a API do módulo escreve, e só os campos do contrato
+ok 10 - nada derivado é gravado: só a API do módulo escreve, e só os campos do contrato
+  ---
+  duration_ms: 3.048186
+  type: 'test'
+  ...
+# Subtest: leitura das marcas de aplicação (P5-F.1-R3): só uma transação de leitura, só nas coleções da projeção, sem escrita, escuta nem cache
+not ok 11 - leitura das marcas de aplicação (P5-F.1-R3): só uma transação de leitura, só nas coleções da projeção, sem escrita, escuta nem cache
+  ---
+  duration_ms: 2.145964
+  type: 'test'
+  location: '<scratchpad>/fdi-red/tests/unit/work-time-guard.test.ts:312:1'
+  failureType: 'testCodeFailure'
+  error: "ENOENT: no such file or directory, open '<scratchpad>/fdi-red/firestore.rules'"
+  code: 'ENOENT'
+  stack: |-
+    readFileSync (node:fs:440:20)
+    read (file://<scratchpad>/fdi-red/tests/unit/work-time-guard.test.ts:55:32)
+    TestContext.<anonymous> (file://<scratchpad>/fdi-red/tests/unit/work-time-guard.test.ts:336:17)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: estimativa: uma por contexto, sem polling nem listener por lançamento
+not ok 12 - estimativa: uma por contexto, sem polling nem listener por lançamento
+  ---
+  duration_ms: 78.107296
+  type: 'test'
+  location: '<scratchpad>/fdi-red/tests/unit/work-time-guard.test.ts:345:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    The input did not match the regular expression /const shown = holdEstimate\(proof\.proven, holding, current, unproven\);/. Input:
+    
+    "import { useCallback, useEffect, useMemo, useRef, useState } from 'react';\n" +
+      '\n' +
+      "import { basisIncomeOf } from '../reports/basisRefresh.ts';\n" +
+      "import { noteDependentReadStart, syncKeyOf } from '../reports/basisRegistry.ts';\n" +
+      'import {\n' +
+      '  basisKeyOf,\n' +
+      '  useFinancialReportBasisLiveRefreshWith,\n' +
+      '  useFinancialReportBasisWith,\n' +
+      '  type BasisSyncDeps,\n' +
+      '  type BasisView,\n' +
+      "} from '../reports/basisSync.ts';\n" +
+      "import { SYSTEM_LIVE_REFRESH_CLOCK, createLiveRefreshScheduler } from '../reports/liveRefresh.ts';\n" +
+      "import type { ReportRange, ReportSection } from '../reports/official.ts';\n" +
+      "import { FINANCIAL_REPORT_BASIS_REFRESH } from '../reports/queryKeys.ts';\n" +
+      "import { useTransactionsByIdsWith } from '../transactions/incomeReads.ts';\n" +
+      "import type { WorkCalendar } from './calendar.ts';\n" +
+      "import { proveEstimateConsistency, type ConsistencyInput } from './consistency.ts';\n" +
+      "import type { WorkTimeEstimateMode, WorkTimeHistoryMonths } from './contract.ts';\n" +
+      "import { monthKeyOf } from './dates.ts';\n" +
+      "import { computeWorkTimeEstimate, estimateWindowMonths, extraMonthNeeded, type WorkTimeEstimate } from './estimate.ts';\n" +
+      "import { excludedItemOf, type ExcludedIncomeItem, type MonthReceipts } from './incomeBasis.ts';\n" +
+      "import { proveProjectionExclusions, type ProjectionMarksRead, type ProjectionProof, type ReadDocument } from './projectionProof.ts';\n" +
+      "import { readExcludedIncome, type ExcludedRead, type ReadByIds } from './receivableReversal.ts';\n" +
+      "import { ESTIMATE_UNCONFIRMED_FAILED, ESTIMATE_UPDATING, estimateFailureMessage } from './messages.ts';\n" +
+      '\n' +
+      '\n' +
+      '\n' +
+      '\n' +
+      'export const ESTIMATE_PENDING_WAIT_MS = 30_000;\n' +
+      '\n' +
+      "const PRESET_12M: ReportRange = { kind: 'preset', preset: '12m' };\n" +
+      "const SERIES_SECTIONS: readonly ReportSection[] = ['series'];\n" +
+      "const CASH_SECTIONS: readonly ReportSection[] = ['cash'];\n" +
+      "const EXACT = new Set(['exact', 'zero']);\n" +
+      '\n' +
+      'export interface IncomeEstimateParams {\n' +
+      '  workspaceId: string | null;\n' +
+      '  mode: WorkTimeEstimateMode;\n' +
+      '  historyMonths: WorkTimeHistoryMonths;\n' +
+      '  allowBusinessIncome: boolean;\n' +
+      '  calendar: WorkCalendar;\n' +
+      '  excludedIds: readonly string[];\n' +
+      '  enabled: boolean;\n' +
+      '}\n' +
+      '\n' +
+      'export type IncomeEstimateState =\n' +
+      "  | { status: 'idle' }\n" +
+      "  | { status: 'loading' }\n" +
+      "  | { status: 'error'; message: string; retry: () => void }\n" +
+      '  | {\n' +
+      "    status: 'done';\n" +
+      '    estimate: WorkTimeEstimate;\n' +
+      '    updatedAt: number;\n' +
+      '    \n' +
+      '    refreshFailed: boolean;\n' +
+      '    retry: () => void;\n' +
+      '  };\n' +
+      '\n' +
+      'export interface IncomeEstimateDeps {\n' +
+      '  basis: BasisSyncDeps;\n' +
+      '  \n' +
+      '  readByIds: ReadByIds;\n' +
+      '  \n' +
+      '  readProjectionMarks: (workspaceId: string, months: readonly string[], ids: readonly string[]) => Promise<ProjectionMarksRead>;\n' +
+      '  \n' +
+      '  pendingWaitMs?: number;\n' +
+      '}\n' +
+      '\n' +
+      '\n' +
+      'export const sameEstimateInputs = (a: IncomeEstimateParams, b: IncomeEstimateParams): boolean =>\n' +
+      '  a.workspaceId === b.workspaceId &&\n' +
+      '  a.mode === b.mode &&\n' +
+      '  a.historyMonths === b.historyMonths &&\n' +
+      '  a.allowBusinessIncome === b.allowBusinessIncome &&\n' +
+      '  a.calendar === b.calendar &&\n' +
+      "  a.excludedIds.join(',') === b.excludedIds.join(',');\n" +
+      '\n' +
+      '\n' +
+      'export interface EstimateIdentity {\n' +
+      '  uid: string | null;\n' +
+      '  \n' +
+      '  window: string;\n' +
+      '  params: IncomeEstimateParams;\n' +
+      '}\n' +
+      '\n' +
+      'export const sameEstimateIdentity = (a: EstimateIdentity, b: EstimateIdentity): boolean =>\n' +
+      '  a.uid === b.uid && a.window === b.window && sameEstimateInputs(a.params, b.params);\n' +
+      '\n' +
+      'export interface HeldEstimate {\n' +
+      '  identity: EstimateIdentity;\n' +
+      "  state: Extract<IncomeEstimateState, { status: 'done' }>;\n" +
+      '}\n' +
+      '\n' +
+      '\n' +
+      'export const holdEstimate = (\n' +
+      '  proven: boolean,\n' +
+      '  settling: boolean,\n' +
+      '  last: HeldEstimate | null,\n' +
+      '  identity: EstimateIdentity,\n' +
+      '  state: IncomeEstimateState,\n' +
+      "  unproven: Exclude<IncomeEstimateState, { status: 'done' }>,\n" +
+      '): { shown: IncomeEstimateState; last: HeldEstimate | null; held: boolean } => {\n' +
+      '  if (!proven || settling) {\n' +
+      '    if (last !== null && sameEstimateIdentity(last.identity, identity)) {\n' +
+      '      let shown: IncomeEstimateState = last.state;\n' +
+      "      if (state.status === 'done') shown = { ...last.state, refreshFailed: state.refreshFailed, retry: state.retry };\n" +
+      "      else if (state.status === 'error') shown = { ...last.state, refreshFailed: true, retry: state.retry };\n" +
+      '      return { shown, last, held: true };\n' +
+      '    }\n' +
+      "    if (!proven) return { shown: state.status === 'done' ? unproven : state, last, held: false };\n" +
+      '  }\n' +
+      "  return { shown: state, last: state.status === 'done' ? { identity, state } : last, held: false };\n" +
+      '};\n' +
+      '\n' +
+      '\n' +
+      'type ExcludedReadResult = ExcludedRead & { startedOrder: number; snapshot: ProjectionMarksRead; window: string };\n' +
+      '\n' +
+      'export const useIncomeEstimateWith = (\n' +
+      '  deps: IncomeEstimateDeps,\n' +
+      '  uid: string | null,\n' +
+      '  params: IncomeEstimateParams,\n' +
+      '): IncomeEstimateState => {\n' +
+      '  const { workspaceId, mode, historyMonths, allowBusinessIncome, calendar, excludedIds, enabled } = params;\n' +
+      '  const series = useFinancialReportBasisWith(deps.basis, uid, workspaceId, PRESET_12M, SERIES_SECTIONS, { enabled });\n' +
+      '  const referenceDate = series.data?.referenceDate ?? null;\n' +
+      '  const extraMonth = referenceDate ? extraMonthNeeded(mode, historyMonths, monthKeyOf(referenceDate)) : null;\n' +
+      '  const extraRange = useMemo<ReportRange>(\n' +
+      "    () => (extraMonth ? { kind: 'month', month: extraMonth } : PRESET_12M),\n" +
+      '    [extraMonth],\n' +
+      '  );\n' +
+      '  const extra = useFinancialReportBasisWith(deps.basis, uid, workspaceId, extraRange, CASH_SECTIONS, { enabled: enabled && extraMonth !== null });\n' +
+      '  \n' +
+      '  \n' +
+      '  \n' +
+      '  const windowMonths = useMemo(\n' +
+      '    () => (referenceDate ? estimateWindowMonths(mode, historyMonths, referenceDate) : []),\n' +
+      '    [referenceDate, mode, historyMonths],\n' +
+      '  );\n' +
+      '  const needsExtra = extraMonth !== null;\n' +
+      '  const needsExcluded = excludedIds.length > 0;\n' +
+      '  \n' +
+      '  \n' +
+      '  \n' +
+      '  const basis = useMemo<BasisView | null>(() => {\n' +
+      '    if (!series.data || (needsExtra && !extra.data)) return null;\n' +
+      '    return {\n' +
+      '      income: basisIncomeOf(\n' +
+      '        series.data.series.data?.points ?? [],\n' +
+      '        needsExtra && extra.data ? { month: extraMonth as string, receiptsCents: extra.data.cash.data?.receiptsCents ?? 0 } : null,\n' +
+      '      ),\n' +
+      '      exact: EXACT.has(series.data.series.status) && (!needsExtra || (!!extra.data && EXACT.has(extra.data.cash.status))),\n' +
+      '      versions: needsExtra ? [series.dataUpdatedAt, extra.dataUpdatedAt] : [series.dataUpdatedAt],\n' +
+      '      keys: needsExtra\n' +
+      '        ? [basisKeyOf(uid, workspaceId, PRESET_12M, SERIES_SECTIONS), basisKeyOf(uid, workspaceId, extraRange, CASH_SECTIONS)]\n' +
+      '        : [basisKeyOf(uid, workspaceId, PRESET_12M, SERIES_SECTIONS)],\n' +
+      "      fetching: series.fetchStatus !== 'idle' || (needsExtra && extra.fetchStatus !== 'idle'),\n" +
+      '    };\n' +
+      '  }, [series.data, series.dataUpdatedAt, series.fetchStatus, extra.data, extra.dataUpdatedAt, extra.fetchStatus, needsExtra, extraMonth, extraRange, uid, workspaceId]);\n' +
+      "  const syncKey = enabled && uid !== null && !!workspaceId && workspaceId !== 'loading' ? syncKeyOf(uid, workspaceId) : null;\n" +
+      "  const windowKey = `${syncKey ?? ''}\\n${windowMonths.join(',')}`;\n" +
+      '  \n' +
+      '  \n' +
+      '  const [projectionReady, setProjectionReady] = useState<string | null>(null);\n' +
+      '  \n' +
+      '  \n' +
+      '  const { readByIds, readProjectionMarks } = deps;\n' +
+      "  const windowList = windowMonths.join(',');\n" +
+      '  const readExcluded = useCallback(\n' +
+      '    async (sourceId: string, ids: readonly string[]): Promise<ExcludedReadResult> => {\n' +
+      '      const startedOrder = noteDependentReadStart();\n' +
+      '      const read = await readExcludedIncome(readByIds, sourceId, ids);\n' +
+      "      const months = windowList === '' ? [] : windowList.split(',');\n" +
+      '      const snapshot = await readProjectionMarks(sourceId, months, [...new Set([...ids, ...Object.values(read.reversalIds)])]);\n' +
+      '      return { ...read, startedOrder, snapshot, window: windowList };\n' +
+      '    },\n' +
+      '    [readByIds, readProjectionMarks, windowList],\n' +
+      '  );\n' +
+      '  const excluded = useTransactionsByIdsWith(readExcluded, workspaceId, excludedIds, {\n' +
+      '    enabled: enabled && needsExcluded && projectionReady === windowKey,\n' +
+      '    scope: windowList,\n' +
+      '  });\n' +
+      '  const { holding, listenFailed, retryListen, confirmed } = useFinancialReportBasisLiveRefreshWith(\n' +
+      '    deps.basis, uid, workspaceId, windowMonths, basis, needsExcluded ? excluded.data : null, { enabled },\n' +
+      '  );\n' +
+      '  const confirmedReady = confirmed !== null;\n' +
+      '  useEffect(() => {\n' +
+      '    setProjectionReady(confirmedReady ? windowKey : null);\n' +
+      '  }, [confirmedReady, windowKey]);\n' +
+      '\n' +
+      '  const { refetch: refetchSeries } = series;\n' +
+      '  const { refetch: refetchExtra } = extra;\n' +
+      '  const { refetch: refetchExcluded } = excluded;\n' +
+      '  \n' +
+      '  \n' +
+      '  const retry = useCallback(() => {\n' +
+      '    void refetchSeries();\n' +
+      '    if (extraMonth) void refetchExtra();\n' +
+      '    if (excludedIds.length > 0 && !listenFailed) void refetchExcluded();\n' +
+      '    retryListen();\n' +
+      '  }, [refetchSeries, refetchExtra, refetchExcluded, extraMonth, excludedIds.length, listenFailed, retryListen]);\n' +
+      '\n' +
+      '  \n' +
+      '  \n' +
+      '  const exclusionsProof = useMemo<ProjectionProof | null>(() => {\n' +
+      '    const read = needsExcluded ? excluded.data : undefined;\n' +
+      "    if (read === undefined || basis === null || read.window !== windowMonths.join(',')) return null;\n" +
+      '    const documents: Record<string, ReadDocument> = {};\n' +
+      '    const idOf = (document: object) => String((document as { id?: unknown }).id);\n' +
+      '    for (const document of [...read.found, ...Object.values(read.reversals)]) {\n' +
+      '      documents[idOf(document)] = { document: document as Record<string, unknown>, fingerprint: read.fingerprints[idOf(document)] ?? null };\n' +
+      '    }\n' +
+      '    return proveProjectionExclusions({\n' +
+      '      months: windowMonths,\n' +
+      '      snapshot: read.snapshot,\n' +
+      '      basisIncome: basis.income,\n' +
+      '      excludedIds: [...new Set(excludedIds)],\n' +
+      '      read: documents,\n' +
+      '      reversalIds: read.reversalIds,\n' +
+      '    });\n' +
+      '  }, [needsExcluded, excluded.data, basis, windowMonths, excludedIds]);\n' +
+      '  const state = useMemo<IncomeEstimateState>(() => {\n' +
+      "    if (!enabled || !workspaceId) return { status: 'idle' };\n" +
+      '    const failedReport = [series, ...(needsExtra ? [extra] : [])].find((query) => query.isError && query.data === undefined);\n' +
+      "    if (failedReport) return { status: 'error', message: estimateFailureMessage('report', failedReport.error), retry };\n" +
+      '    if (needsExcluded && excluded.isError && excluded.data === undefined) {\n' +
+      "      return { status: 'error', message: estimateFailureMessage('excluded', excluded.error), retry };\n" +
+      '    }'... 7767 more characters
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual: |-
+    import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+    
+    import { basisIncomeOf } from '../reports/basisRefresh.ts';
+    import { noteDependentReadStart, syncKeyOf } from '../reports/basisRegistry.ts';
+    import {
+      basisKeyOf,
+      useFinancialReportBasisLiveRefreshWith,
+      useFinancialReportBasisWith,
+      type BasisSyncDeps,
+      type BasisView,
+    } from '../reports/basisSync.ts';
+    import { SYSTEM_LIVE_REFRESH_CLOCK, createLiveRefreshScheduler } from '../reports/liveRefresh.ts';
+    import type { ReportRange, ReportSection } from '../reports/official.ts';
+    import { FINANCIAL_REPORT_BASIS_REFRESH } from '../reports/queryKeys.ts';
+    import { useTransactionsByIdsWith } from '../transactions/incomeReads.ts';
+    import type { WorkCalendar } from './calendar.ts';
+    import { proveEstimateConsistency, type ConsistencyInput } from './consistency.ts';
+    import type { WorkTimeEstimateMode, WorkTimeHistoryMonths } from './contract.ts';
+    import { monthKeyOf } from './dates.ts';
+    import { computeWorkTimeEstimate, estimateWindowMonths, extraMonthNeeded, type WorkTimeEstimate } from './estimate.ts';
+    import { excludedItemOf, type ExcludedIncomeItem, type MonthReceipts } from './incomeBasis.ts';
+    import { proveProjectionExclusions, type ProjectionMarksRead, type ProjectionProof, type ReadDocument } from './projectionProof.ts';
+    import { readExcludedIncome, type ExcludedRead, type ReadByIds } from './receivableReversal.ts';
+    import { ESTIMATE_UNCONFIRMED_FAILED, ESTIMATE_UPDATING, estimateFailureMessage } from './messages.ts';
+    
+    
+    
+    
+    export const ESTIMATE_PENDING_WAIT_MS = 30_000;
+    
+    const PRESET_12M: ReportRange = { kind: 'preset', preset: '12m' };
+    const SERIES_SECTIONS: readonly ReportSection[] = ['series'];
+    const CASH_SECTIONS: readonly ReportSection[] = ['cash'];
+    const EXACT = new Set(['exact', 'zero']);
+    
+    export interface IncomeEstimateParams {
+      workspaceId: string | null;
+      mode: WorkTimeEstimateMode;
+      historyMonths: WorkTimeHistoryMonths;
+      allowBusinessIncome: boolean;
+      calendar: WorkCalendar;
+      excludedIds: readonly string[];
+      enabled: boolean;
+    }
+    
+    export type IncomeEstimateState =
+      | { status: 'idle' }
+      | { status: 'loading' }
+      | { status: 'error'; message: string; retry: () => void }
+      | {
+        status: 'done';
+        estimate: WorkTimeEstimate;
+        updatedAt: number;
+        
+        refreshFailed: boolean;
+        retry: () => void;
+      };
+    
+    export interface IncomeEstimateDeps {
+      basis: BasisSyncDeps;
+      
+      readByIds: ReadByIds;
+      
+      readProjectionMarks: (workspaceId: string, months: readonly string[], ids: readonly string[]) => Promise<ProjectionMarksRead>;
+      
+      pendingWaitMs?: number;
+    }
+    
+    
+    export const sameEstimateInputs = (a: IncomeEstimateParams, b: IncomeEstimateParams): boolean =>
+      a.workspaceId === b.workspaceId &&
+      a.mode === b.mode &&
+      a.historyMonths === b.historyMonths &&
+      a.allowBusinessIncome === b.allowBusinessIncome &&
+      a.calendar === b.calendar &&
+      a.excludedIds.join(',') === b.excludedIds.join(',');
+    
+    
+    export interface EstimateIdentity {
+      uid: string | null;
+      
+      window: string;
+      params: IncomeEstimateParams;
+    }
+    
+    export const sameEstimateIdentity = (a: EstimateIdentity, b: EstimateIdentity): boolean =>
+      a.uid === b.uid && a.window === b.window && sameEstimateInputs(a.params, b.params);
+    
+    export interface HeldEstimate {
+      identity: EstimateIdentity;
+      state: Extract<IncomeEstimateState, { status: 'done' }>;
+    }
+    
+    
+    export const holdEstimate = (
+      proven: boolean,
+      settling: boolean,
+      last: HeldEstimate | null,
+      identity: EstimateIdentity,
+      state: IncomeEstimateState,
+      unproven: Exclude<IncomeEstimateState, { status: 'done' }>,
+    ): { shown: IncomeEstimateState; last: HeldEstimate | null; held: boolean } => {
+      if (!proven || settling) {
+        if (last !== null && sameEstimateIdentity(last.identity, identity)) {
+          let shown: IncomeEstimateState = last.state;
+          if (state.status === 'done') shown = { ...last.state, refreshFailed: state.refreshFailed, retry: state.retry };
+          else if (state.status === 'error') shown = { ...last.state, refreshFailed: true, retry: state.retry };
+          return { shown, last, held: true };
+        }
+        if (!proven) return { shown: state.status === 'done' ? unproven : state, last, held: false };
+      }
+      return { shown: state, last: state.status === 'done' ? { identity, state } : last, held: false };
+    };
+    
+    
+    type ExcludedReadResult = ExcludedRead & { startedOrder: number; snapshot: ProjectionMarksRead; window: string };
+    
+    export const useIncomeEstimateWith = (
+      deps: IncomeEstimateDeps,
+      uid: string | null,
+      params: IncomeEstimateParams,
+    ): IncomeEstimateState => {
+      const { workspaceId, mode, historyMonths, allowBusinessIncome, calendar, excludedIds, enabled } = params;
+      const series = useFinancialReportBasisWith(deps.basis, uid, workspaceId, PRESET_12M, SERIES_SECTIONS, { enabled });
+      const referenceDate = series.data?.referenceDate ?? null;
+      const extraMonth = referenceDate ? extraMonthNeeded(mode, historyMonths, monthKeyOf(referenceDate)) : null;
+      const extraRange = useMemo<ReportRange>(
+        () => (extraMonth ? { kind: 'month', month: extraMonth } : PRESET_12M),
+        [extraMonth],
+      );
+      const extra = useFinancialReportBasisWith(deps.basis, uid, workspaceId, extraRange, CASH_SECTIONS, { enabled: enabled && extraMonth !== null });
+      
+      
+      
+      const windowMonths = useMemo(
+        () => (referenceDate ? estimateWindowMonths(mode, historyMonths, referenceDate) : []),
+        [referenceDate, mode, historyMonths],
+      );
+      const needsExtra = extraMonth !== null;
+      const needsExcluded = excludedIds.length > 0;
+      
+      
+      
+      const basis = useMemo<BasisView | null>(() => {
+        if (!series.data || (needsExtra && !extra.data)) return null;
+        return {
+          income: basisIncomeOf(
+            series.data.series.data?.points ?? [],
+            needsExtra && extra.data ? { month: extraMonth as string, receiptsCents: extra.data.cash.data?.receiptsCents ?? 0 } : null,
+          ),
+          exact: EXACT.has(series.data.series.status) && (!needsExtra || (!!extra.data && EXACT.has(extra.data.cash.status))),
+          versions: needsExtra ? [series.dataUpdatedAt, extra.dataUpdatedAt] : [series.dataUpdatedAt],
+          keys: needsExtra
+            ? [basisKeyOf(uid, workspaceId, PRESET_12M, SERIES_SECTIONS), basisKeyOf(uid, workspaceId, extraRange, CASH_SECTIONS)]
+            : [basisKeyOf(uid, workspaceId, PRESET_12M, SERIES_SECTIONS)],
+          fetching: series.fetchStatus !== 'idle' || (needsExtra && extra.fetchStatus !== 'idle'),
+        };
+      }, [series.data, series.dataUpdatedAt, series.fetchStatus, extra.data, extra.dataUpdatedAt, extra.fetchStatus, needsExtra, extraMonth, extraRange, uid, workspaceId]);
+      const syncKey = enabled && uid !== null && !!workspaceId && workspaceId !== 'loading' ? syncKeyOf(uid, workspaceId) : null;
+      const windowKey = `${syncKey ?? ''}\n${windowMonths.join(',')}`;
+      
+      
+      const [projectionReady, setProjectionReady] = useState<string | null>(null);
+      
+      
+      const { readByIds, readProjectionMarks } = deps;
+      const windowList = windowMonths.join(',');
+      const readExcluded = useCallback(
+        async (sourceId: string, ids: readonly string[]): Promise<ExcludedReadResult> => {
+          const startedOrder = noteDependentReadStart();
+          const read = await readExcludedIncome(readByIds, sourceId, ids);
+          const months = windowList === '' ? [] : windowList.split(',');
+          const snapshot = await readProjectionMarks(sourceId, months, [...new Set([...ids, ...Object.values(read.reversalIds)])]);
+          return { ...read, startedOrder, snapshot, window: windowList };
+        },
+        [readByIds, readProjectionMarks, windowList],
+      );
+      const excluded = useTransactionsByIdsWith(readExcluded, workspaceId, excludedIds, {
+        enabled: enabled && needsExcluded && projectionReady === windowKey,
+        scope: windowList,
+      });
+      const { holding, listenFailed, retryListen, confirmed } = useFinancialReportBasisLiveRefreshWith(
+        deps.basis, uid, workspaceId, windowMonths, basis, needsExcluded ? excluded.data : null, { enabled },
+      );
+      const confirmedReady = confirmed !== null;
+      useEffect(() => {
+        setProjectionReady(confirmedReady ? windowKey : null);
+      }, [confirmedReady, windowKey]);
+    
+      const { refetch: refetchSeries } = series;
+      const { refetch: refetchExtra } = extra;
+      const { refetch: refetchExcluded } = excluded;
+      
+      
+      const retry = useCallback(() => {
+        void refetchSeries();
+        if (extraMonth) void refetchExtra();
+        if (excludedIds.length > 0 && !listenFailed) void refetchExcluded();
+        retryListen();
+      }, [refetchSeries, refetchExtra, refetchExcluded, extraMonth, excludedIds.length, listenFailed, retryListen]);
+    
+      
+      
+      const exclusionsProof = useMemo<ProjectionProof | null>(() => {
+        const read = needsExcluded ? excluded.data : undefined;
+        if (read === undefined || basis === null || read.window !== windowMonths.join(',')) return null;
+        const documents: Record<string, ReadDocument> = {};
+        const idOf = (document: object) => String((document as { id?: unknown }).id);
+        for (const document of [...read.found, ...Object.values(read.reversals)]) {
+          documents[idOf(document)] = { document: document as Record<string, unknown>, fingerprint: read.fingerprints[idOf(document)] ?? null };
+        }
+        return proveProjectionExclusions({
+          months: windowMonths,
+          snapshot: read.snapshot,
+          basisIncome: basis.income,
+          excludedIds: [...new Set(excludedIds)],
+          read: documents,
+          reversalIds: read.reversalIds,
+        });
+      }, [needsExcluded, excluded.data, basis, windowMonths, excludedIds]);
+      const state = useMemo<IncomeEstimateState>(() => {
+        if (!enabled || !workspaceId) return { status: 'idle' };
+        const failedReport = [series, ...(needsExtra ? [extra] : [])].find((query) => query.isError && query.data === undefined);
+        if (failedReport) return { status: 'error', message: estimateFailureMessage('report', failedReport.error), retry };
+        if (needsExcluded && excluded.isError && excluded.data === undefined) {
+          return { status: 'error', message: estimateFailureMessage('excluded', excluded.error), retry };
+        }
+        if (!series.data || (needsExtra && !extra.data) || (needsExcluded && !excluded.data)) return { status: 'loading' };
+    
+        const report = series.data;
+        const points = report.series.data?.points ?? [];
+        const receipts: MonthReceipts[] = points.map((point) => ({
+          month: point.month,
+          receiptsCents: point.receiptsCents,
+          partial: point.partial,
+        }));
+        let reportExact = EXACT.has(report.series.status);
+        if (needsExtra && extra.data && extraMonth) {
+          const cash = extra.data.cash;
+          reportExact = reportExact && EXACT.has(cash.status) && extra.data.period.range.kind === 'month';
+          receipts.push({ month: extraMonth, receiptsCents: cash.data?.receiptsCents ?? 0, partial: false });
+        }
+        
+        
+        const excludedItems: ExcludedIncomeItem[] = [];
+        if (needsExcluded && excluded.data && exclusionsProof?.proven) {
+          for (const [id, applied] of Object.entries(exclusionsProof.applied)) {
+            excludedItems.push(applied.document === null
+              ? { id, month: null, classification: null }
+              : excludedItemOf(applied.document, applied.reversal));
+          }
+        } else if (needsExcluded && excluded.data) {
+          for (const found of excluded.data.found) {
+            const transaction = found as Record<string, unknown>;
+            const reversal = excluded.data.reversals[String(transaction.id)] as Record<string, unknown> | undefined;
+            excludedItems.push(excludedItemOf(transaction, reversal ?? null));
+          }
+          for (const id of excluded.data.missing) excludedItems.push({ id, month: null, classification: null });
+        }
+        const estimate = computeWorkTimeEstimate({
+          mode,
+          historyMonths,
+          allowBusinessIncome,
+          calendar,
+          referenceDate: report.referenceDate,
+          workspaceType: report.workspaceType,
+          reportExact,
+          receipts,
+          excluded: excludedItems,
+        });
+        const updatedAt = Math.max(series.dataUpdatedAt, needsExtra ? extra.dataUpdatedAt : 0, needsExcluded ? excluded.dataUpdatedAt : 0);
+        
+        const refreshFailed = series.isError || (needsExtra && extra.isError) || (needsExcluded && excluded.isError) || listenFailed;
+        return { status: 'done', estimate, updatedAt, refreshFailed, retry };
+      }, [enabled, workspaceId, series, extra, excluded, needsExtra, needsExcluded, extraMonth, mode, historyMonths, allowBusinessIncome, calendar, retry, listenFailed, exclusionsProof]);
+      const proofInput = useMemo<ConsistencyInput>(() => {
+        const read = needsExcluded ? excluded.data : undefined;
+        const excludedMonths: string[] = [];
+        for (const found of read?.found ?? []) {
+          const document = found as Record<string, unknown>;
+          const reversal = (read?.reversals[String(document.id)] as Record<string, unknown> | undefined) ?? null;
+          const month = excludedItemOf(document, reversal).month;
+          if (month !== null) excludedMonths.push(month);
+        }
+        return {
+          months: windowMonths,
+          multipleBases: needsExtra,
+          hasExclusions: needsExcluded,
+          basis: basis === null ? null : { income: basis.income, exact: basis.exact },
+          projection: confirmed,
+          excludedStartedOrder: read?.startedOrder ?? null,
+          excludedMonths,
+          exclusionsProof,
+        };
+      }, [needsExcluded, excluded.data, windowMonths, needsExtra, basis, confirmed, exclusionsProof]);
+      const clock = deps.basis.refresh?.clock ?? SYSTEM_LIVE_REFRESH_CLOCK;
+      const waitMs = deps.pendingWaitMs ?? ESTIMATE_PENDING_WAIT_MS;
+      const proof = useMemo(() => proveEstimateConsistency(proofInput), [proofInput]);
+      
+      
+      
+      
+      
+      
+      
+      
+      const refetchExcludedRef = useRef(refetchExcluded);
+      refetchExcludedRef.current = refetchExcluded;
+      const excludedScheduler = useRef<ReturnType<typeof createLiveRefreshScheduler> | null>(null);
+      useEffect(() => {
+        const scheduler = createLiveRefreshScheduler(
+          () => {
+            void refetchExcludedRef.current({ cancelRefetch: false });
+          },
+          deps.basis.refresh?.clock,
+          deps.basis.refresh?.options ?? { ...FINANCIAL_REPORT_BASIS_REFRESH },
+        );
+        excludedScheduler.current = scheduler;
+        return () => {
+          scheduler.cancel();
+          excludedScheduler.current = null;
+        };
+      }, [deps]);
+      const unprovenReason = 'reason' in proof ? proof.reason : null;
+      const marksReason = exclusionsProof !== null && exclusionsProof.proven === false ? exclusionsProof.reason : null;
+      const marksTransient = unprovenReason === 'projection_marks' &&
+        (marksReason === 'content' || marksReason === 'mark_pending' || marksReason === 'bases');
+      const staleExcluded = (unprovenReason === 'exclusions_read' || marksTransient) && !holding && excluded.fetchStatus === 'idle'
+        ? excluded.data
+        : undefined;
+      useEffect(() => {
+        const scheduler = excludedScheduler.current;
+        if (scheduler === null) return;
+        if (staleExcluded !== undefined) scheduler.notify();
+        else scheduler.cancel();
+      }, [staleExcluded]);
+    
+      
+      
+      let failure: string | null = null;
+      if (listenFailed) failure = ESTIMATE_UNCONFIRMED_FAILED;
+      else if (series.isError) failure = estimateFailureMessage('report', series.error);
+      else if (needsExtra && extra.isError) failure = estimateFailureMessage('report', extra.error);
+      else if (needsExcluded && excluded.isError) failure = estimateFailureMessage('excluded', excluded.error);
+      
+      
+      
+      const blockedByListen = listenFailed && needsExcluded && excluded.data === undefined && projectionReady !== windowKey;
+      const current: IncomeEstimateState = state.status === 'loading' && blockedByListen
+        ? { status: 'error', message: ESTIMATE_UNCONFIRMED_FAILED, retry }
+        : state;
+      const unproven: Exclude<IncomeEstimateState, { status: 'done' }> = current.status !== 'done'
+        ? current
+        : failure !== null ? { status: 'error', message: failure, retry } : { status: 'loading' };
+      const last = useRef<HeldEstimate | null>(null);
+      const identity: EstimateIdentity = { uid, window: windowMonths.join(','), params };
+      const decision = holdEstimate(proof.proven, holding, last.current, identity, current, unproven);
+      last.current = decision.last;
+      
+      
+      
+      const waitingProof = !proof.proven && !decision.held && current.status === 'done' && decision.shown.status === 'loading';
+      const waitingSince = useRef<number | null>(null);
+      const [waitedTooLong, setWaitedTooLong] = useState(false);
+      useEffect(() => {
+        if (!waitingProof) {
+          waitingSince.current = null;
+          setWaitedTooLong(false);
+          return undefined;
+        }
+        if (waitingSince.current === null) waitingSince.current = clock.now();
+        const remaining = waitingSince.current + waitMs - clock.now();
+        if (remaining <= 0) {
+          setWaitedTooLong(true);
+          return undefined;
+        }
+        const handle = clock.setTimer(() => setWaitedTooLong(true), remaining);
+        return () => clock.clearTimer(handle);
+      }, [waitingProof, clock, waitMs]);
+      
+      
+      const heldSince = useRef<number | null>(null);
+      const [heldTooLong, setHeldTooLong] = useState(false);
+      useEffect(() => {
+        if (!decision.held) {
+          heldSince.current = null;
+          setHeldTooLong(false);
+          return undefined;
+        }
+        if (heldSince.current === null) heldSince.current = clock.now();
+        const remaining = heldSince.current + waitMs - clock.now();
+        if (remaining <= 0) {
+          setHeldTooLong(true);
+          return undefined;
+        }
+        const handle = clock.setTimer(() => setHeldTooLong(true), remaining);
+        return () => clock.clearTimer(handle);
+      }, [decision.held, clock, waitMs]);
+      if (decision.held && heldTooLong && decision.shown.status === 'done' && !decision.shown.refreshFailed) {
+        return { ...decision.shown, refreshFailed: true, retry };
+      }
+      if (waitingProof && waitedTooLong) return { status: 'error', message: ESTIMATE_UPDATING, retry };
+      return decision.shown;
+    };
+    
+  operator: 'match'
+  stack: |-
+    TestContext.<anonymous> (file://<scratchpad>/fdi-red/tests/unit/work-time-guard.test.ts:464:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: falhas de leitura: mensagens fixas em pt-BR, com nova tentativa, e só o código do erro no log
+ok 13 - falhas de leitura: mensagens fixas em pt-BR, com nova tentativa, e só o código do erro no log
+  ---
+  duration_ms: 1.546478
+  type: 'test'
+  ...
+# Subtest: janela de receitas: a leitura paginada real usa `readPagedWindow` com um documento a mais
+ok 14 - janela de receitas: a leitura paginada real usa `readPagedWindow` com um documento a mais
+  ---
+  duration_ms: 0.464348
+  type: 'test'
+  ...
+# Subtest: matriz: entradas, confirmações, termos, históricos e preços ficam em BRL
+ok 15 - matriz: entradas, confirmações, termos, históricos e preços ficam em BRL
+  ---
+  duration_ms: 2.688952
+  type: 'test'
+  ...
+# Subtest: matriz: pontos em BRL dentro de arquivos elegíveis continuam em reais, linha a linha
+ok 16 - matriz: pontos em BRL dentro de arquivos elegíveis continuam em reais, linha a linha
+  ---
+  duration_ms: 2.235769
+  type: 'test'
+  ...
+# Subtest: matriz: os pontos elegíveis usam a camada de exibição, e a prévia do tema força reais
+ok 17 - matriz: os pontos elegíveis usam a camada de exibição, e a prévia do tema força reais
+  ---
+  duration_ms: 2.918854
+  type: 'test'
+  ...
+# Subtest: modo dinheiro idêntico: a camada devolve o formatador da tela, sem elemento novo
+ok 18 - modo dinheiro idêntico: a camada devolve o formatador da tela, sem elemento novo
+  ---
+  duration_ms: 0.195848
+  type: 'test'
+  ...
+# Subtest: apresentação fail-closed (R3.1, R3-AUD-01): a estimativa pronta só aparece provada e com a sincronização concluída, e é a própria atual; sem prova ou sincronizando, o estado sem conversão ("calculando" ou a falha com "Tentar de novo")
+not ok 19 - apresentação fail-closed (R3.1, R3-AUD-01): a estimativa pronta só aparece provada e com a sincronização concluída, e é a própria atual; sem prova ou sincronizando, o estado sem conversão ("calculando" ou a falha com "Tentar de novo")
+  ---
+  duration_ms: 1.596749
+  type: 'test'
+  location: '<scratchpad>/fdi-red/tests/unit/work-time-income-estimate.test.ts:76:1'
+  failureType: 'testCodeFailure'
+  error: "Cannot read properties of undefined (reading 'uid')"
+  code: 'ERR_TEST_FAILURE'
+  name: 'TypeError'
+  stack: |-
+    sameEstimateIdentity (file://<scratchpad>/fdi-red/src/modules/work-time/useIncomeEstimateWith.ts:120:5)
+    holdEstimate (file://<scratchpad>/fdi-red/src/modules/work-time/useIncomeEstimateWith.ts:154:26)
+    TestContext.<anonymous> (file://<scratchpad>/fdi-red/tests/unit/work-time-income-estimate.test.ts:91:25)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.start (node:internal/test_runner/test:944:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)
+  ...
+# Subtest: apresentação fail-closed (R3.1): provada, mas com a sincronização em curso, nenhuma conversão, nem a anterior nem a atual; concluída a sincronização, a atual provada, com o aviso dela quando houver
+not ok 20 - apresentação fail-closed (R3.1): provada, mas com a sincronização em curso, nenhuma conversão, nem a anterior nem a atual; concluída a sincronização, a atual provada, com o aviso dela quando houver
+  ---
+  duration_ms: 0.320131
+  type: 'test'
+  location: '<scratchpad>/fdi-red/tests/unit/work-time-income-estimate.test.ts:105:1'
+  failureType: 'testCodeFailure'
+  error: "Cannot read properties of undefined (reading 'uid')"
+  code: 'ERR_TEST_FAILURE'
+  name: 'TypeError'
+  stack: |-
+    sameEstimateIdentity (file://<scratchpad>/fdi-red/src/modules/work-time/useIncomeEstimateWith.ts:120:5)
+    holdEstimate (file://<scratchpad>/fdi-red/src/modules/work-time/useIncomeEstimateWith.ts:154:26)
+    TestContext.<anonymous> (file://<scratchpad>/fdi-red/tests/unit/work-time-income-estimate.test.ts:108:16)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: apresentação fail-closed (R3.1), propriedade: em qualquer sequência de renderizações (troca de conta, período, workspace, modo, meses, PJ, calendário ou exclusões), o mostrado é a atual provada e sincronizada ou um estado sem conversão; nunca um estado pronto de outra renderização
+not ok 21 - apresentação fail-closed (R3.1), propriedade: em qualquer sequência de renderizações (troca de conta, período, workspace, modo, meses, PJ, calendário ou exclusões), o mostrado é a atual provada e sincronizada ou um estado sem conversão; nunca um estado pronto de outra renderização
+  ---
+  duration_ms: 0.299127
+  type: 'test'
+  location: '<scratchpad>/fdi-red/tests/unit/work-time-income-estimate.test.ts:117:1'
+  failureType: 'testCodeFailure'
+  error: "Cannot read properties of undefined (reading 'uid')"
+  code: 'ERR_TEST_FAILURE'
+  name: 'TypeError'
+  stack: |-
+    sameEstimateIdentity (file://<scratchpad>/fdi-red/src/modules/work-time/useIncomeEstimateWith.ts:120:5)
+    holdEstimate (file://<scratchpad>/fdi-red/src/modules/work-time/useIncomeEstimateWith.ts:154:26)
+    TestContext.<anonymous> (file://<scratchpad>/fdi-red/tests/unit/work-time-income-estimate.test.ts:133:19)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: leitura por id: cada leitura concluída traz um objeto novo, mesmo com os mesmos dados e no mesmo milissegundo
+ok 22 - leitura por id: cada leitura concluída traz um objeto novo, mesmo com os mesmos dados e no mesmo milissegundo
+  ---
+  duration_ms: 25.897628
+  type: 'test'
+  ...
+# Subtest: duas leituras por id concluídas no mesmo milissegundo e com os mesmos dados, a segunda pedida pela base que chegou durante a primeira: a estimativa mostra a base nova (R6-02)
+ok 23 - duas leituras por id concluídas no mesmo milissegundo e com os mesmos dados, a segunda pedida pela base que chegou durante a primeira: a estimativa mostra a base nova (R6-02)
+  ---
+  duration_ms: 547.438938
+  type: 'test'
+  ...
+# Subtest: mutação nesta aba: anular a receita desconsiderada nunca junta o item anulado com o total velho (R4-01)
+ok 24 - mutação nesta aba: anular a receita desconsiderada nunca junta o item anulado com o total velho (R4-01)
+  ---
+  duration_ms: 503.59494
+  type: 'test'
+  ...
+# Subtest: janela de 12 meses: a carga lê a série, o mês avulso e as exclusões uma vez cada, com a escuta adiantada (R4-02)
+ok 25 - janela de 12 meses: a carga lê a série, o mês avulso e as exclusões uma vez cada, com a escuta adiantada (R4-02)
+  ---
+  duration_ms: 346.88189
+  type: 'test'
+  ...
+# Subtest: leitura por id antiga: a prévia montada depois de uma mutação nesta aba não a relê antes da base (R5-01)
+ok 26 - leitura por id antiga: a prévia montada depois de uma mutação nesta aba não a relê antes da base (R5-01)
+  ---
+  duration_ms: 543.497256
+  type: 'test'
+  ...
+# Subtest: reconstrução marcada sem mudar os documentos mensais: a mutação relê a base, e a estimativa fica indisponível (R5-02)
+ok 27 - reconstrução marcada sem mudar os documentos mensais: a mutação relê a base, e a estimativa fica indisponível (R5-02)
+  ---
+  duration_ms: 193.714193
+  type: 'test'
+  ...
+# Subtest: escuta das projeções encerrada por erro, com desconsiderada: sem prova, o erro fixo com "Tentar de novo" e nenhuma conversão, nem a última leitura; "Tentar de novo" a reabre e a estimativa volta provada (R5-02, R3.1)
+not ok 28 - escuta das projeções encerrada por erro, com desconsiderada: sem prova, o erro fixo com "Tentar de novo" e nenhuma conversão, nem a última leitura; "Tentar de novo" a reabre e a estimativa volta provada (R5-02, R3.1)
+  ---
+  duration_ms: 3091.28684
+  type: 'test'
+  location: '<scratchpad>/fdi-red/tests/unit/work-time-income-estimate.test.ts:636:1'
+  failureType: 'testCodeFailure'
+  error: 'tempo esgotado: o erro da escuta encerrada'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  operator: 'fail'
+  stack: |-
+    until (file://<scratchpad>/fdi-red/tests/unit/work-time-income-estimate.test.ts:45:57)
+    async TestContext.<anonymous> (file://<scratchpad>/fdi-red/tests/unit/work-time-income-estimate.test.ts:647:3)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: prévia montada durante uma sincronização: as exclusões só são relidas depois da base (R5-01)
+ok 29 - prévia montada durante uma sincronização: as exclusões só são relidas depois da base (R5-01)
+  ---
+  duration_ms: 524.503601
+  type: 'test'
+  ...
+# Subtest: releitura da mutação com a base nova antes do retorno da escuta (viva): nenhuma renderização junta o total novo com a exclusão antiga (R6-02, B03)
+not ok 30 - releitura da mutação com a base nova antes do retorno da escuta (viva): nenhuma renderização junta o total novo com a exclusão antiga (R6-02, B03)
+  ---
+  duration_ms: 257.18256
+  type: 'test'
+  location: '<scratchpad>/fdi-red/tests/unit/work-time-income-estimate.test.ts:677:3'
+  failureType: 'testCodeFailure'
+  error: |-
+    a base nova não aparece sem a projeção, nem a anterior
+    + actual - expected
+    
+    + [
+    +   1056000
+    + ]
+    - []
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual:
+    0: 1056000
+  operator: 'deepStrictEqual'
+  stack: |-
+    assertNoConversion (file://<scratchpad>/fdi-red/tests/unit/work-time-income-estimate.test.ts:430:10)
+    TestContext.<anonymous> (file://<scratchpad>/fdi-red/tests/unit/work-time-income-estimate.test.ts:704:5)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: releitura da mutação com a base nova antes do retorno da escuta (encerrada): nenhuma renderização junta o total novo com a exclusão antiga (R6-02, B03)
+not ok 31 - releitura da mutação com a base nova antes do retorno da escuta (encerrada): nenhuma renderização junta o total novo com a exclusão antiga (R6-02, B03)
+  ---
+  duration_ms: 3136.890721
+  type: 'test'
+  location: '<scratchpad>/fdi-red/tests/unit/work-time-income-estimate.test.ts:677:3'
+  failureType: 'testCodeFailure'
+  error: 'tempo esgotado: escuta encerrada'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  operator: 'fail'
+  stack: |-
+    until (file://<scratchpad>/fdi-red/tests/unit/work-time-income-estimate.test.ts:45:57)
+    async TestContext.<anonymous> (file://<scratchpad>/fdi-red/tests/unit/work-time-income-estimate.test.ts:687:7)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: escuta do provedor encerrada, com desconsiderada: o erro com "Tentar de novo" no provedor, sem conversão; a prévia de Configurações a reabre, e a estimativa em uso volta a acompanhar outras sessões (R6-01; R3.1)
+not ok 32 - escuta do provedor encerrada, com desconsiderada: o erro com "Tentar de novo" no provedor, sem conversão; a prévia de Configurações a reabre, e a estimativa em uso volta a acompanhar outras sessões (R6-01; R3.1)
+  ---
+  duration_ms: 3143.934778
+  type: 'test'
+  location: '<scratchpad>/fdi-red/tests/unit/work-time-income-estimate.test.ts:731:1'
+  failureType: 'testCodeFailure'
+  error: 'tempo esgotado: o erro no provedor'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  operator: 'fail'
+  stack: |-
+    until (file://<scratchpad>/fdi-red/tests/unit/work-time-income-estimate.test.ts:45:57)
+    async TestContext.<anonymous> (file://<scratchpad>/fdi-red/tests/unit/work-time-income-estimate.test.ts:742:3)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: exclusão de um mês fora da janela, anulada nesta aba: a janela maior salva depois mostra a renda certa, sem juntar versões (R7-01)
+ok 33 - exclusão de um mês fora da janela, anulada nesta aba: a janela maior salva depois mostra a renda certa, sem juntar versões (R7-01)
+  ---
+  duration_ms: 475.832607
+  type: 'test'
+  ...
+# Subtest: janela de 12 meses, as duas bases relidas sem pedido e o mês avulso chegando depois: a estimativa segura até as duas chegarem, sem mostrar só uma nova (R8-03)
+ok 34 - janela de 12 meses, as duas bases relidas sem pedido e o mês avulso chegando depois: a estimativa segura até as duas chegarem, sem mostrar só uma nova (R8-03)
+  ---
+  duration_ms: 543.809031
+  type: 'test'
+  ...
+# Subtest: janela de 12 meses, a série nova sem pedido e o mês avulso falhando: sem conversão enquanto ele lê e sem prova; com a projeção que prova a série nova, a atual com a ressalva da falha (R8-03; R3.1)
+not ok 35 - janela de 12 meses, a série nova sem pedido e o mês avulso falhando: sem conversão enquanto ele lê e sem prova; com a projeção que prova a série nova, a atual com a ressalva da falha (R8-03; R3.1)
+  ---
+  duration_ms: 506.023601
+  type: 'test'
+  location: '<scratchpad>/fdi-red/tests/unit/work-time-income-estimate.test.ts:849:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    sem a projeção nova, nenhuma conversão
+    + actual - expected
+    
+    + [
+    +   3550000,
+    +   3550000,
+    +   3550000,
+    +   3550000,
+    +   3550000,
+    +   3550000
+    + ]
+    - []
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual:
+    0: 3550000
+    1: 3550000
+    2: 3550000
+    3: 3550000
+    4: 3550000
+    5: 3550000
+  operator: 'deepStrictEqual'
+  stack: |-
+    assertNoConversion (file://<scratchpad>/fdi-red/tests/unit/work-time-income-estimate.test.ts:430:10)
+    TestContext.<anonymous> (file://<scratchpad>/fdi-red/tests/unit/work-time-income-estimate.test.ts:873:3)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: janela de 12 meses sem receita desconsiderada, com a escuta encerrada e a releitura da mutação da série adiada pelo orçamento: sem prova, o erro com "Tentar de novo" e nenhuma conversão, nem a versão anterior; reaberta a escuta, as bases novas provadas (R9-01; R3.1)
+not ok 36 - janela de 12 meses sem receita desconsiderada, com a escuta encerrada e a releitura da mutação da série adiada pelo orçamento: sem prova, o erro com "Tentar de novo" e nenhuma conversão, nem a versão anterior; reaberta a escuta, as bases novas provadas (R9-01; R3.1)
+  ---
+  duration_ms: 3083.786644
+  type: 'test'
+  location: '<scratchpad>/fdi-red/tests/unit/work-time-income-estimate.test.ts:890:1'
+  failureType: 'testCodeFailure'
+  error: 'tempo esgotado: o erro da escuta encerrada'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  operator: 'fail'
+  stack: |-
+    until (file://<scratchpad>/fdi-red/tests/unit/work-time-income-estimate.test.ts:45:57)
+    async TestContext.<anonymous> (file://<scratchpad>/fdi-red/tests/unit/work-time-income-estimate.test.ts:910:3)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: janela de 12 meses com a escuta encerrada: a releitura pendente da série que sai sem rede fica pausada, e nenhuma renderização converte (nem a versão anterior nem o mês avulso novo com a série antiga) até a rede voltar e a prova (R10-03; R3.1)
+not ok 37 - janela de 12 meses com a escuta encerrada: a releitura pendente da série que sai sem rede fica pausada, e nenhuma renderização converte (nem a versão anterior nem o mês avulso novo com a série antiga) até a rede voltar e a prova (R10-03; R3.1)
+  ---
+  duration_ms: 3083.025979
+  type: 'test'
+  location: '<scratchpad>/fdi-red/tests/unit/work-time-income-estimate.test.ts:948:1'
+  failureType: 'testCodeFailure'
+  error: 'tempo esgotado: o erro da escuta encerrada'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  operator: 'fail'
+  stack: |-
+    until (file://<scratchpad>/fdi-red/tests/unit/work-time-income-estimate.test.ts:45:57)
+    async TestContext.<anonymous> (file://<scratchpad>/fdi-red/tests/unit/work-time-income-estimate.test.ts:965:3)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: janela de 12 meses com a releitura de uma mutação nesta aba pendente: o calendário trocado é guardado logo, e a sincronização seguinte (outro membro anula a desconsiderada) não mostra a receita descontada duas vezes (R10-02)
+ok 38 - janela de 12 meses com a releitura de uma mutação nesta aba pendente: o calendário trocado é guardado logo, e a sincronização seguinte (outro membro anula a desconsiderada) não mostra a receita descontada duas vezes (R10-02)
+  ---
+  duration_ms: 299.965711
+  type: 'test'
+  ...
+# Subtest: anulação nesta aba de uma desconsiderada do 12º mês para trás e a troca para 12 meses logo depois: o estado misto nunca aparece, e a estimativa de 12 meses só aparece com a sincronização concluída (R9-03, B03; R3.1)
+not ok 39 - anulação nesta aba de uma desconsiderada do 12º mês para trás e a troca para 12 meses logo depois: o estado misto nunca aparece, e a estimativa de 12 meses só aparece com a sincronização concluída (R9-03, B03; R3.1)
+  ---
+  duration_ms: 190.460205
+  type: 'test'
+  location: '<scratchpad>/fdi-red/tests/unit/work-time-income-estimate.test.ts:1045:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    com a sincronização em curso, nenhuma conversão
+    + actual - expected
+    
+    + [
+    +   3550000
+    + ]
+    - []
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual:
+    0: 3550000
+  operator: 'deepStrictEqual'
+  stack: |-
+    assertNoConversion (file://<scratchpad>/fdi-red/tests/unit/work-time-income-estimate.test.ts:430:10)
+    TestContext.<anonymous> (file://<scratchpad>/fdi-red/tests/unit/work-time-income-estimate.test.ts:1071:3)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+1..39
+# tests 39
+# suites 0
+# pass 23
+# fail 16
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 20931.436719

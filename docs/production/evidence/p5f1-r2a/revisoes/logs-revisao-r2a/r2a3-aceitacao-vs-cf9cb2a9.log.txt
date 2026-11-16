@@ -1,0 +1,1 @@
+{"samples":3000,"bothAccepted":962,"bothRefused":2038,"newlyRefused":0,"newlyAccepted":0,"newlyRefusedReducedEve":0,"withReducedNight":0}

@@ -1,0 +1,70 @@
+TAP version 13
+# Subtest: prova: cada regra, na ordem, com o motivo da primeira que falha
+ok 1 - prova: cada regra, na ordem, com o motivo da primeira que falha
+  ---
+  duration_ms: 2.890781
+  type: 'test'
+  ...
+# Subtest: prova: as escritas que o próprio documento mostra (criação, confirmação, anulação e estorno)
+ok 2 - prova: as escritas que o próprio documento mostra (criação, confirmação, anulação e estorno)
+  ---
+  duration_ms: 1.526967
+  type: 'test'
+  ...
+# Subtest: prova: as mudanças vistas entre duas leituras por id, com a hora do estado novo; uma leitura mais velha não volta o estado
+ok 3 - prova: as mudanças vistas entre duas leituras por id, com a hora do estado novo; uma leitura mais velha não volta o estado
+  ---
+  duration_ms: 0.839366
+  type: 'test'
+  ...
+# Subtest: sonda r3: N03 com a hora do servidor das bases (produção), sessão aberta 5 s depois da edição
+not ok 4 - sonda r3: N03 com a hora do servidor das bases (produção), sessão aberta 5 s depois da edição
+  ---
+  duration_ms: 338.087834
+  type: 'test'
+  location: '<scratchpad>/p5f1r1/revisao3/mut-m02-limiar-1ms/tests/unit/r3-espera-servidor.test.ts:408:1'
+  failureType: 'testCodeFailure'
+  error: 'antes do gatilho, nenhuma estimativa (mostrados: loading → 1026000)'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (file://<scratchpad>/p5f1r1/revisao3/mut-m02-limiar-1ms/tests/unit/r3-espera-servidor.test.ts:419:10)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: sonda r3: limiar da espera pela hora do servidor, base gerada 59 s depois da escrita (espera de 60 s)
+not ok 5 - sonda r3: limiar da espera pela hora do servidor, base gerada 59 s depois da escrita (espera de 60 s)
+  ---
+  duration_ms: 419.702912
+  type: 'test'
+  location: '<scratchpad>/p5f1r1/revisao3/mut-m02-limiar-1ms/tests/unit/r3-espera-servidor.test.ts:428:3'
+  failureType: 'testCodeFailure'
+  error: '59 s: a espera ainda vale (mostrados: loading → 1056000)'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (file://<scratchpad>/p5f1r1/revisao3/mut-m02-limiar-1ms/tests/unit/r3-espera-servidor.test.ts:440:14)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: sonda r3: limiar da espera pela hora do servidor, base gerada 60 s depois da escrita (espera de 60 s)
+ok 6 - sonda r3: limiar da espera pela hora do servidor, base gerada 60 s depois da escrita (espera de 60 s)
+  ---
+  duration_ms: 27.422001
+  type: 'test'
+  ...
+1..6
+# tests 6
+# suites 0
+# pass 4
+# fail 2
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1036.4264

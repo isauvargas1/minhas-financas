@@ -16,6 +16,11 @@
  * Nada de dado pessoal (nome de pessoa ou cliente, documento, telefone,
  * e-mail), de texto gerado por IA ou de cópia do documento de domínio: só
  * identificadores da entidade, a data do fato e o texto fixo do evento.
+ * Exceção (D-36, `cards/closing.ts`): os avisos `invoice_*` levam na
+ * mensagem o nome do cartão (texto livre do usuário), a competência, o
+ * vencimento e o total ou o saldo da fatura em BRL, com a audiência das
+ * faturas. A cópia não acompanha a renomeação (PRIVACY_LGPD.md §3, linha 23,
+ * e §6.4).
  */
 
 /** Domínio de origem do evento. */

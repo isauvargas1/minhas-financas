@@ -1,0 +1,4 @@
+e0 criação X   visão=rooted nó=X pendências=0 projeção={"2026-10":1000}
+e3 X→Y         visão=rooted nó=Y pendências=0 projeção={"2026-10":0,"2026-11":3000}
+e1 X→Y         visão=rooted nó=Y pendências=1 projeção={"2026-10":-1000,"2026-11":6000}
+e2 Y→X         visão=rooted nó=Y pendências=0 projeção={"2026-10":0,"2026-11":3000}

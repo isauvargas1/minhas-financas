@@ -1,0 +1,41 @@
+{
+ "timestamp": {
+  "igual": true,
+  "backend": "{\"$m\":[[\"campo\",{\"$t\":[1790000000,123456000]}]]}",
+  "cliente": "{\"$m\":[[\"campo\",{\"$t\":[1790000000,123456000]}]]}"
+ },
+ "timestampNegativo": {
+  "igual": true,
+  "backend": "{\"$m\":[[\"campo\",{\"$t\":[-5,999999000]}]]}",
+  "cliente": "{\"$m\":[[\"campo\",{\"$t\":[-5,999999000]}]]}"
+ },
+ "geopoint": {
+  "igual": true,
+  "backend": "{\"$m\":[[\"campo\",{\"$g\":[-23.55,-46.63]}]]}",
+  "cliente": "{\"$m\":[[\"campo\",{\"$g\":[-23.55,-46.63]}]]}"
+ },
+ "referencia": {
+  "igual": true,
+  "backend": "{\"$m\":[[\"campo\",{\"$r\":\"workspaces/w1/transactions/t1\"}]]}",
+  "cliente": "{\"$m\":[[\"campo\",{\"$r\":\"workspaces/w1/transactions/t1\"}]]}"
+ },
+ "bytes": {
+  "igual": true,
+  "backend": "{\"$m\":[[\"campo\",{\"$b\":\"AAEC+v+A\"}]]}",
+  "cliente": "{\"$m\":[[\"campo\",{\"$b\":\"AAEC+v+A\"}]]}"
+ },
+ "numeros": {
+  "igual": true,
+  "backend": "{\"$m\":[[\"campo\",{\"$m\":[[\"big\",9007199254740994],[\"d\",1.5],[\"i\",1],[\"inf\",{\"$n\":\"-Infinity\"}],[\"nan\",{\"$n\":\"NaN\"}],[\"z\",0",
+  "cliente": "{\"$m\":[[\"campo\",{\"$m\":[[\"big\",9007199254740994],[\"d\",1.5],[\"i\",1],[\"inf\",{\"$n\":\"-Infinity\"}],[\"nan\",{\"$n\":\"NaN\"}],[\"z\",0"
+ },
+ "mapa": {
+  "igual": true,
+  "backend": "{\"$m\":[[\"campo\",{\"$m\":[[\"\",0],[\"a\",{\"$m\":[[\"$t\",\"x\"],[\"b\",[true,null,\"ç\"]]]}],[\"z\",1]]}]]}",
+  "cliente": "{\"$m\":[[\"campo\",{\"$m\":[[\"\",0],[\"a\",{\"$m\":[[\"$t\",\"x\"],[\"b\",[true,null,\"ç\"]]]}],[\"z\",1]]}]]}"
+ },
+ "vetor": {
+  "backend": "FingerprintTypeError",
+  "cliente": "FingerprintTypeError"
+ }
+}

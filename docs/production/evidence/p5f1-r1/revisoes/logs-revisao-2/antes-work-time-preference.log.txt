@@ -1,0 +1,147 @@
+TAP version 13
+# Subtest: caminho privado por usuário, fora do perfil server-owned e de qualquer workspace
+ok 1 - caminho privado por usuário, fora do perfil server-owned e de qualquer workspace
+  ---
+  duration_ms: 3.247633
+  type: 'test'
+  ...
+# Subtest: leitura estrita: documento v2 válido vira preferência sem updatedAt
+ok 2 - leitura estrita: documento v2 válido vira preferência sem updatedAt
+  ---
+  duration_ms: 14.01996
+  type: 'test'
+  ...
+# Subtest: leitura estrita: v1, campo a mais, campo a menos, tipo errado e gramática inválida não valem
+ok 3 - leitura estrita: v1, campo a mais, campo a menos, tipo errado e gramática inválida não valem
+  ---
+  duration_ms: 2.740927
+  type: 'test'
+  ...
+# Subtest: campos gravados pelo cliente: lista exata, forma canônica, sem updatedAt e sem valor derivado
+ok 4 - campos gravados pelo cliente: lista exata, forma canônica, sem updatedAt e sem valor derivado
+  ---
+  duration_ms: 1.198468
+  type: 'test'
+  ...
+# Subtest: modo efetivo: tempo só com preferência válida, ligada e em modo tempo; o padrão é dinheiro
+ok 5 - modo efetivo: tempo só com preferência válida, ligada e em modo tempo; o padrão é dinheiro
+  ---
+  duration_ms: 0.256842
+  type: 'test'
+  ...
+# Subtest: rascunho inicial: semana comercial, renda PF escolhida, modo habitual de 3 meses e exibição em reais
+ok 6 - rascunho inicial: semana comercial, renda PF escolhida, modo habitual de 3 meses e exibição em reais
+  ---
+  duration_ms: 1.862174
+  type: 'test'
+  ...
+# Subtest: dia da rotina: horário, duração, turno que passa da meia-noite e mensagens em pt-BR
+ok 7 - dia da rotina: horário, duração, turno que passa da meia-noite e mensagens em pt-BR
+  ---
+  duration_ms: 0.893088
+  type: 'test'
+  ...
+# Subtest: exceções: montagem, sobreposição do mesmo tipo, limites e descrição em pt-BR
+ok 8 - exceções: montagem, sobreposição do mesmo tipo, limites e descrição em pt-BR
+  ---
+  duration_ms: 18.132483
+  type: 'test'
+  ...
+# Subtest: município digitado: apóstrofo do celular e acento decomposto viram a forma aceita pelas Rules
+ok 9 - município digitado: apóstrofo do celular e acento decomposto viram a forma aceita pelas Rules
+  ---
+  duration_ms: 1.90738
+  type: 'test'
+  ...
+# Subtest: feriados locais: anual ou data, sem 29/02 anual, sem repetição, até 40
+ok 10 - feriados locais: anual ou data, sem 29/02 anual, sem repetição, até 40
+  ---
+  duration_ms: 1.062606
+  type: 'test'
+  ...
+# Subtest: B02 (revisão da R1, N07): salvar recusa a configuração que fica sem cálculo seguro por exceção, feriado ou início do período, na seção que resolve
+not ok 11 - B02 (revisão da R1, N07): salvar recusa a configuração que fica sem cálculo seguro por exceção, feriado ou início do período, na seção que resolve
+  ---
+  duration_ms: 2.488287
+  type: 'test'
+  location: '<scratchpad>/p5f1r1/revisao2/b97806c4-com-testes-d7dabb10/tests/unit/work-time-preference.test.ts:267:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+
+      {
+    +   ok: true
+    -   ambiguity: 'neighbor',
+    -   message: 'A Rotina 1 e a Rotina 2 se cruzam em segunda-feira, 19/10/2026, e há intervalo no trecho em comum. Com a folga de terça-feira, 20/10/2026, o horário sem intervalo que cobria esse trecho não acontece: não dá para saber onde cai a pausa, então as horas não podem ser calculadas com segurança. Ajuste os horários das rotinas ou essa exceção.',
+    -   ok: false,
+    -   section: 'exceptions'
+      }
+
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    ok: false
+    section: 'exceptions'
+    ambiguity: 'neighbor'
+    message: 'A Rotina 1 e a Rotina 2 se cruzam em segunda-feira, 19/10/2026, e há intervalo no trecho em comum. Com a folga de terça-feira, 20/10/2026, o horário sem intervalo que cobria esse trecho não acontece: não dá para saber onde cai a pausa, então as horas não podem ser calculadas com segurança. Ajuste os horários das rotinas ou essa exceção.'
+  actual:
+    ok: true
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (file://<scratchpad>/p5f1r1/revisao2/b97806c4-com-testes-d7dabb10/tests/unit/work-time-preference.test.ts:277:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: rascunho: validação por seção, prévia sem salvar e comparação com o que está salvo
+not ok 12 - rascunho: validação por seção, prévia sem salvar e comparação com o que está salvo
+  ---
+  duration_ms: 1.396485
+  type: 'test'
+  location: '<scratchpad>/p5f1r1/revisao2/b97806c4-com-testes-d7dabb10/tests/unit/work-time-preference.test.ts:312:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+
+      {
+    -   ambiguity: 'routines',
+        message: 'A Rotina 1 e a Rotina 2 se cruzam em quarta-feira, 04/11/2026, e há intervalo no trecho em comum: não dá para saber onde cai a pausa, então as horas não podem ser calculadas com segurança. Ajuste os horários para que não se cruzem ou deixe sem intervalo as rotinas que se cruzam.',
+        ok: false,
+        section: 'routines'
+      }
+
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    ok: false
+    section: 'routines'
+    ambiguity: 'routines'
+    message: 'A Rotina 1 e a Rotina 2 se cruzam em quarta-feira, 04/11/2026, e há intervalo no trecho em comum: não dá para saber onde cai a pausa, então as horas não podem ser calculadas com segurança. Ajuste os horários para que não se cruzem ou deixe sem intervalo as rotinas que se cruzam.'
+  actual:
+    ok: false
+    section: 'routines'
+    message: 'A Rotina 1 e a Rotina 2 se cruzam em quarta-feira, 04/11/2026, e há intervalo no trecho em comum: não dá para saber onde cai a pausa, então as horas não podem ser calculadas com segurança. Ajuste os horários para que não se cruzem ou deixe sem intervalo as rotinas que se cruzam.'
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (file://<scratchpad>/p5f1r1/revisao2/b97806c4-com-testes-d7dabb10/tests/unit/work-time-preference.test.ts:322:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+1..12
+# tests 12
+# suites 0
+# pass 10
+# fail 2
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 296.000177

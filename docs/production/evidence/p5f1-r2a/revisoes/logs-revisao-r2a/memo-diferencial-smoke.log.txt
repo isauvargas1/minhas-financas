@@ -1,0 +1,18 @@
+{
+ "samples": 300,
+ "calls": 900,
+ "refused": 630,
+ "differences": 0,
+ "msOld": 1101,
+ "msNew": 1182,
+ "worstOld": 59,
+ "worstNew": 64,
+ "nestedCalls": 6,
+ "reentrantOk": true,
+ "threw": false,
+ "afterThrow": null,
+ "afterThrowTuesday": [
+  120,
+  false
+ ]
+}

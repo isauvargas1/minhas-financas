@@ -1,0 +1,2 @@
+arvore=<scratchpad>/wt-p5f1-r31 head=1730a1df0d3870ff52496933f45cb73a8dacd29b inicio=2026-11-10T21:36:25Z
+fim=2026-11-10T21:42:47Z exit=0 duracao_s=382

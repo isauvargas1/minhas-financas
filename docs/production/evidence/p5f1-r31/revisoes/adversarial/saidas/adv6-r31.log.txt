@@ -1,0 +1,17 @@
+TAP version 13
+# ADV-6 releituras=2; mostrados=["1106000","1106000"]; último=done 1106000 refreshFailed=false
+# Subtest: ADV-6: uma base, sem desconsiderada, a escuta mostra uma projeção que a base relida não alcança: depois das releituras, a base divergente aparece provada e sem aviso
+ok 1 - ADV-6: uma base, sem desconsiderada, a escuta mostra uma projeção que a base relida não alcança: depois das releituras, a base divergente aparece provada e sem aviso
+  ---
+  duration_ms: 605.822714
+  type: 'test'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 910.127963

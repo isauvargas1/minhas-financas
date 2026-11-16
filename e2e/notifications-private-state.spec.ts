@@ -333,12 +333,15 @@ test('painel operado só pelo teclado: abrir, arquivar, carregar mais e marcar e
   await expect(bell(page)).toHaveAttribute('aria-expanded', 'true');
   await expect(itemTitles(page, 'Aviso PF')).toHaveCount(25);
 
-  // Ordem do Tab: ação do cabeçalho, fechar, excluir para mim e arquivar de
-  // cada item (D-18-NOTIF: A é owner, então vê as duas ações), carregar mais.
+  // Ordem do Tab: ação do cabeçalho, fechar, o próprio aviso (o título, botão
+  // nativo desde o P5-GATE-FINAL, PTBR-03), excluir para mim e arquivar de cada
+  // item (D-18-NOTIF: A é owner, então vê as duas ações), carregar mais.
   await page.keyboard.press('Tab');
   await expect(page.getByRole('button', { name: 'Marcar exibidas como lidas' })).toBeFocused();
   await page.keyboard.press('Tab');
   await expect(page.getByRole('button', { name: 'Fechar notificações' })).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(page.getByRole('button', { name: 'Aviso PF 00', exact: true })).toBeFocused();
   await page.keyboard.press('Tab');
   await expect(page.getByRole('button', { name: 'Excluir para mim: Aviso PF 00' })).toBeFocused();
   await page.keyboard.press('Tab');

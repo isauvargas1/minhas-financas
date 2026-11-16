@@ -1,0 +1,81 @@
+#!/usr/bin/env python3
+"""P5-F.1: escreve docs/production/evidence/p5f1/mutantes.md a partir das tabelas geradas e do JSON dos mutantes da P5-F."""
+import json
+import sys
+
+S = sys.argv[1]
+# Saída: o documento do worktree, ou outro caminho (preparo fora do worktree enquanto o gate roda).
+OUT = sys.argv[2] if len(sys.argv) > 2 else f'{S}/wt-p5f1/docs/production/evidence/p5f1/mutantes.md'
+tabela = open(f'{S}/p5f1/tabela-mutantes.md', encoding='utf-8').read().strip()
+unit, rules = tabela.split('\n\n')
+p5f = json.load(open(f'{S}/p5f1/mut-p5f-na-p5f1/resultado.json', encoding='utf-8'))
+
+
+def cell(text: str, limit: int = 110) -> str:
+    text = ' '.join(str(text).split()).replace('|', '\\|')
+    return text[:limit] + ('…' if len(text) > limit else '')
+
+
+rows = []
+for row in p5f:
+    if row['resultado'] == 'não se aplica':
+        rows.append(f"| {row['id']} | {row['mutante']} | não se aplica | {cell(row['motivo'])} |")
+    else:
+        first = (row.get('falhas') or [''])[0]
+        rows.append(f"| {row['id']} | {row['mutante']} | {row['resultado']} | {cell(first)} |")
+p5f_table = ('| ID da P5-F | Mutante | Resultado na P5-F.1 | Primeiro teste que reprova ou motivo |\n'
+             '| --- | --- | --- | --- |\n' + '\n'.join(rows))
+
+doc = f"""# P5-F.1 — mutantes: os testes não são vazios
+
+Cada mutante introduz um defeito plausível e roda o teste que deveria pegá-lo. Está morto quando o teste falha.
+
+- **Unidade, guarda e Rules** (`mutantes.py.txt`): cada mutante é aplicado no worktree, testado e revertido; o roteiro confere o SHA-256 do arquivo depois de restaurar e para se a troca não casar exatamente uma vez. Desde a revisão 4, antes de testar, o arquivo mutado passa pelo esbuild (o mesmo da build): mutante que não compila sai como "não compila", nunca como morto (R4-06). O `git status` do worktree foi conferido igual antes e depois de cada rodada. As Rules rodam dentro do `firebase emulators:exec` (Emulator `minhas-financas-local`).
+- **Mutantes da P5-F** (`mutantes-p5f-na-p5f1.py.txt`): os 59 mutantes de unidade e guarda do roteiro da P5-F, rodados contra as suítes da P5-F.1 em cópias fora do worktree, para provar que nada da P5-F foi enfraquecido.
+- **E2E** (`e2e-mutante.py.txt`, desde a revisão 2): cada mutante num build temporário, com o teste do comportamento; o arquivo é restaurado byte a byte (SHA-256 conferido).
+
+## Resultado
+
+| Rodada | Resultado |
+| --- | --- |
+| Unidade e guarda, final | **184/184 mortos, 0 não compilam** (revisão 10: 182/184 na rodada completa, `mutantes-unit-r10`, e os 2 sobreviventes mortos com um teste novo e uma parte nova do teste do registro, `mutantes-unit-r10-sobreviventes`; antes, 174/174 depois da correção da reprovação nas repetições da revisão 9, `mutantes-unit-r9b`, e 172/172 na revisão 9, `mutantes-unit-r9`) |
+| Rules no Emulator, final | **11/11 mortos** (Rules e suíte sem mudança desde a revisão 3; rodados de novo depois das correções da revisão 9, `mutantes-rules-r9`; a revisão 10 não mudou `firestore.rules` nem a suíte, com o mesmo SHA-256; cada mutante foi conferido: tira uma condição ou troca uma expressão por outra válida) |
+| P5-F contra a P5-F.1 | 52 dos 59 ainda se aplicam; **52/52 mortos**. Os 7 restantes miram código substituído (contrato v1, `form.ts`, teto de renda do v1). Os equivalentes no v2 estão entre os de unidade: U29, U30 e U34 para K4, K8 e K6, os de `draft.ts` para F1–F3 e os da guarda sobre `firestore.rules` para G20 |
+| E2E da revisão 1 | morto: com a escuta das projeções desligada, o teste de receita retroativa com outro workspace ativo reprova (a prévia fica em R$ 25,00 em vez de R$ 25,68) |
+| E2E da revisão 2, R2-02 | morto: sem a releitura das leituras de receitas na divergência (`invalidateIncomeReads`), o teste 8 reprova: a receita desconsiderada e anulada em outra sessão continua descontada, e a nota de que ela não muda mais a estimativa não aparece |
+| E2E da revisão 2, R2-07 | morto: com "Ver receitas consideradas" habilitado sem fonte, o teste 9 reprova (o botão deveria estar desabilitado) |
+| E2E da revisão 2, R2-06 | morto: sem a adoção do modo trocado pelo Header durante a edição, o teste 10 reprova (o rádio "Tempo de trabalho" não fica marcado e salvar desfaria o clique) |
+| E2E da revisão 3, R3-03 | morto: sem a retenção da última estimativa consistente, o teste 8 reprova (o observador vê, por um instante, a base nova com a exclusão antiga na prévia) |
+| E2E da revisão 4, R4-01 | morto nas duas rodadas: com a mutação nesta aba relendo todas as leituras de lançamentos (`predicate: () => true` em `invalidateTransactionReads`), o teste 13 reprova: o observador vê "R$ 25,68" na prévia (a receita anulada somada ao total velho, com a exclusão já ignorada) antes de "R$ 25,00". Rodado na revisão 4 (`e2e-mutante-r401`) e de novo sobre o código da revisão 5 (`e2e-mutante-r401b`) |
+| E2E da revisão 4, R1-03 | morto: com o erro da escuta da preferência engolido (o estado de erro não é posto em `WorkTimeContext.tsx`), o teste 14 reprova: o aviso de Configurações não aparece (`e2e-mutante-r103`; o arquivo e o teste não mudaram na revisão 5) |
+| E2E da revisão 6, R6-01 | morto: sem a reabertura das escutas encerradas pelo retorno do servidor a outra escuta (`reopenFailedListeners` no retorno, `e2e-mutante-r601`), o teste 15 reprova: depois de abrir Configurações, o topo continua com a ressalva da atualização que falhou |
+
+**Rodadas anteriores:**
+- unidade 53/54 na 1ª: a posição no ciclo antes da referência sobreviveu (`Math.abs` coincide com o módulo em ciclos de 1 dia de trabalho), e o teste ganhou o ciclo 6×1 para trás;
+- Rules 7/8 na 1ª: `allow list` com a condição do titular sobreviveu, porque a consulta do titular filtrada pelo próprio id não era testada; a suíte passou a exigir a negação, e entrou um mutante mais forte ("titular lista");
+- na rodada da revisão 1, U02 teve o trecho atualizado depois da correção do intervalo (R1-05), que extraiu `spill`;
+- na rodada da revisão 2, U14, U54 e U55 tiveram o trecho atualizado para o código novo, com a mesma intenção (feriado com escala classificado como trabalhado; teto de falhas aplicado pelo gancho; escuta ligada pela estimativa), e entraram U65–U84 (atualização por divergência, falhas, releituras dependentes, paginação com um a mais, estorno dentro da janela, mensagens, eleições de 2020, classificação do feriado pelo resultado e ressalvas do aviso) e R10–R11 (escuta das projeções só para membros e com limite). Antes da rodada, todos os trechos foram conferidos (nenhum ausente ou repetido).
+- na rodada da revisão 3, a lógica da base saiu de `hooks.ts` para `basisSync.ts` (testada com ganchos reais), a paginação para `paging.ts` e o tratamento do estorno para funções puras: 13 trechos (U14, U54, U55, U65, U70–U75, U79–U81) foram atualizados para o código novo com a mesma intenção, e entraram U85–U98 (retorno do cache, convergência, base sem bloco exato, invalidação que reabre a base, aviso da atualização que falhou, marco das releituras, retenção, painel). Na 1ª rodada, 97/98: o mutante que tira `cancelRefetch: false` sobreviveu, porque a retenção pelo marco de dados já garante a consistência; o teste de duas estimativas passou a exigir uma releitura só das exclusões, e ele morre.
+- na rodada da revisão 4: U14 deixou de remover a linha (o `else if` seguinte ficava solto e o arquivo não compilava, mas o roteiro contava a falha como morte) e passou a trocar a condição por `false`; a estimativa saiu para `useIncomeEstimateWith.ts` e a sincronização ganhou critério de chegada das bases e marco sem relógio, então 13 trechos (U55, U60, U71, U72, U75, U84, U86–U88, U90, U93, U96 e U97) foram atualizados com a mesma intenção (U75 passou a mirar o pareamento do estorno pelo movimento, porque o caso "estorno depois do período" saiu com R4-04); entraram U99–U115 (mutação nesta aba, base que carrega, chegada de todas as bases, teto que só a projeção e a virada do mês reabrem, base sem dado fora do agendador, marco por igualdade, aviso do estorno e a regra de retenção). Antes da rodada, os 126 trechos foram conferidos (nenhum ausente ou repetido), e o roteiro passou a separar o que não compila.
+- na rodada da revisão 5: a leitura por id passou a seguir só a sincronização, a mutação voltou a reler a base (sem zerar o teto), a escuta com erro ganhou aviso e reabertura, e a escuta passou a reler só as bases da própria estimativa; 3 trechos foram atualizados com a mesma intenção (U90, U97 e U107) e entraram U116–U130 (leitura por id sem prazo nem releitura na volta da rede, o pedido sem marcar as leituras de receitas, bases sem releitura na montagem, só as bases da estimativa, a releitura da mutação, o teto e o workspace dela, a escuta com erro e a reabertura, o descarte do pedido e da espera na troca de workspace e as duas liberações com a chegada conferida). Antes da rodada, os 141 trechos foram conferidos.
+- na rodada da revisão 6: a base nova que chega sem pedido passou a ser segurada já na renderização, com as leituras de receitas relidas depois dela; a leitura nova sem pedido deixou de pedir releitura; a escuta encerrada deixou de valer para comparação e passou a ser reaberta entre estimativas; e a releitura da mutação ganhou agendador e orçamento próprios. 3 trechos foram atualizados com a mesma intenção (U97, U109 e U130). O U102 foi trocado: ele era equivalente desde a revisão 5 e só morria pelo teste intermitente (R6-04); o novo é o pedido em curso sem projeção, que deve terminar quando as bases chegam. Entraram U131–U143: a retenção na renderização, a liberação depois da base nova, a leitura sem pedido que não pede, a projeção descartada na escuta encerrada, as duas reaberturas e o registro, o agendador e o orçamento da mutação, o par das leituras com a base da liberação (no efeito e na renderização) e a limpeza do registro e do agendador. Antes da rodada, os 154 trechos foram conferidos.
+- na rodada da revisão 7: a base nova sem pedido passou a comparar todos os meses da base e a liberar só com todas as bases fora de leitura, e a leitura que começou antes do último retorno do servidor voltou a comparar e pedir. 3 trechos foram atualizados com a mesma intenção (U131, U132 e U133). Entraram U144–U151: a condição da leitura cruzada, a contagem dos retornos, o começo de cada leitura, a espera das bases em leitura, a comparação de todos os meses no efeito e na renderização, a função pura e a fiação de `fetching`. Antes da rodada, os 162 trechos foram conferidos.
+- na rodada da revisão 8: com mais de uma base, a base nova sem pedido passou a esperar também a releitura pendente de qualquer uma, nos dois agendadores, quando pedida depois do começo da última leitura da base (todo pedido de releitura passa pelo registro, que guarda a ordem dele), e uma leitura com dados passou a zerar as falhas também sem a base desatualizada (a base relida com sucesso sai do teto). 2 trechos foram atualizados com a mesma intenção (U54 e U138: o pedido pelo registro). Entraram U152–U166: a espera da releitura pendente, a base só que não espera, cada um dos dois agendadores no registro, o `scheduled` do agendador, o zerar das falhas sem a base desatualizada, a falha sem a base desatualizada contada e relida de novo, a falha da releitura da mutação contada para o teto, e, só com o teste de comportamento da estimativa inteira (sem a guarda), as dependências do `useMemo` da base (X1), `fetching` só da série (X2) e `fetching: false` (o U151 sem a guarda), além da leitura cruzada que exige versão nova (X3) e, por fim, a ordem dos pedidos e dos começos de leitura (U164–U166). As duas primeiras rodadas foram interrompidas de propósito, com a correção ainda mudando; desde a 1ª, `mutantes.py` trata o SIGTERM e restaura o arquivo em teste.
+- na rodada da revisão 9: a espera da revisão 8 saiu da liberação das leituras dependentes e virou a retenção das bases fora de passo, na renderização, com ou sem leitura dependente; a base que sai de uso com releitura pendente passou a ficar desatualizada; o estado mostrado durante a retenção deixou de ser guardado; e a falha sem a base desatualizada passou a ficar registrada sem contar. 6 trechos foram atualizados com a mesma intenção (U97, U114, U152, U153, U157 e U159). Entraram U167–U172: a retenção das bases fora de passo tirada de `holding`, a retenção sem a base em leitura, a base que sai de uso sem ficar desatualizada, o estado mostrado durante a retenção guardado de novo, a falha sem a base desatualizada sem registro e a espera devolvida à liberação das leituras dependentes.
+- nas repetições da revisão 9, depois das correções: a leitura dependente passou a ir pelo objeto do resultado, e a leitura por id, sem compartilhamento de estrutura (um objeto novo a cada leitura concluída). 2 trechos foram atualizados com a mesma intenção (U55 e U117), e entraram U173 (sem `structuralSharing: false`) e U174 (a sincronização de volta ao `dataUpdatedAt`), os dois testados só contra a estimativa inteira
+- na rodada da revisão 10: as bases fora de passo passaram à regra "à frente" (a ordem dos dados em uso e os pedidos que eles não cobrem), a busca pausada passou a contar como leitura, e a base que sai de uso com releitura pendente passou a ficar marcada e a ser relida na volta. 12 trechos foram atualizados com a mesma intenção (U151, U152, U154, U155, U160–U162, U164–U166, U168 e U169), e entraram U175–U184. Sobreviveram U153 e U176, por falta de teste (uma base só em releitura; a leitura que falha no registro): com um teste novo (a base única) e uma parte nova do teste do registro (a leitura que falha), morreram na rodada só deles
+
+## Unidade e guarda
+
+{unit}
+
+## Rules (Emulator)
+
+{rules}
+
+## Mutantes da P5-F contra as suítes da P5-F.1
+
+{p5f_table}
+"""
+open(OUT, 'w', encoding='utf-8').write(doc)
+print('ok', len(doc))

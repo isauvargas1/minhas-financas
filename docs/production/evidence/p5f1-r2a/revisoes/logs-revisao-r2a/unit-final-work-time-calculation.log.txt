@@ -1,0 +1,100 @@
+TAP version 13
+# Subtest: exemplo de referência: R$ 482,35 com hora de R$ 20,00 vira 24 h 7 min
+ok 1 - exemplo de referência: R$ 482,35 com hora de R$ 20,00 vira 24 h 7 min
+  ---
+  duration_ms: 1.470211
+  type: 'test'
+  ...
+# Subtest: equivalência entre períodos: a renda inteira vale a carga inteira, e a escala não muda o resultado
+ok 2 - equivalência entre períodos: a renda inteira vale a carga inteira, e a escala não muda o resultado
+  ---
+  duration_ms: 4.578719
+  type: 'test'
+  ...
+# Subtest: arredondamento ao minuto mais próximo: meio minuto vai para longe de zero
+ok 3 - arredondamento ao minuto mais próximo: meio minuto vai para longe de zero
+  ---
+  duration_ms: 1.537118
+  type: 'test'
+  ...
+# Subtest: propriedade: o resultado é o inteiro mais próximo do quociente exato e o negativo espelha o positivo
+ok 4 - propriedade: o resultado é o inteiro mais próximo do quociente exato e o negativo espelha o positivo
+  ---
+  duration_ms: 10.726098
+  type: 'test'
+  ...
+# Subtest: zero, menos de 1 minuto e sinal
+ok 5 - zero, menos de 1 minuto e sinal
+  ---
+  duration_ms: 0.251405
+  type: 'test'
+  ...
+# Subtest: valores e configurações inválidos ficam indisponíveis (a interface mostra o dinheiro)
+ok 6 - valores e configurações inválidos ficam indisponíveis (a interface mostra o dinheiro)
+  ---
+  duration_ms: 0.495794
+  type: 'test'
+  ...
+# Subtest: limite seguro: valores muito grandes calculam em BigInt e só ficam indisponíveis acima do maior inteiro seguro
+ok 7 - limite seguro: valores muito grandes calculam em BigInt e só ficam indisponíveis acima do maior inteiro seguro
+  ---
+  duration_ms: 3.971234
+  type: 'test'
+  ...
+# Subtest: limites da janela da estimativa (P5-F.1): 12 meses de 744 h e R$ 100 mi por mês
+ok 8 - limites da janela da estimativa (P5-F.1): 12 meses de 744 h e R$ 100 mi por mês
+  ---
+  duration_ms: 0.117585
+  type: 'test'
+  ...
+# Subtest: valor estimado por hora em centavos inteiros, arredondado ao centavo mais próximo
+ok 9 - valor estimado por hora em centavos inteiros, arredondado ao centavo mais próximo
+  ---
+  duration_ms: 0.309473
+  type: 'test'
+  ...
+# Subtest: volta de reais de exibição a centavos é exata até o teto e recusa o resto
+ok 10 - volta de reais de exibição a centavos é exata até o teto e recusa o resto
+  ---
+  duration_ms: 17.23294
+  type: 'test'
+  ...
+# Subtest: formatação pt-BR em horas e minutos, sem quebra de linha e com marca de estimativa
+ok 11 - formatação pt-BR em horas e minutos, sem quebra de linha e com marca de estimativa
+  ---
+  duration_ms: 0.521234
+  type: 'test'
+  ...
+# Subtest: rótulo compacto de eixo: horas inteiras arredondadas e minutos abaixo de 1 h
+ok 12 - rótulo compacto de eixo: horas inteiras arredondadas e minutos abaixo de 1 h
+  ---
+  duration_ms: 0.464809
+  type: 'test'
+  ...
+# Subtest: eixo e tooltip de gráfico: modo dinheiro devolve o texto exato do formatador da tela
+ok 13 - eixo e tooltip de gráfico: modo dinheiro devolve o texto exato do formatador da tela
+  ---
+  duration_ms: 0.419218
+  type: 'test'
+  ...
+# Subtest: descrição por extenso para leitores de tela, com singular e plural
+ok 14 - descrição por extenso para leitores de tela, com singular e plural
+  ---
+  duration_ms: 0.090749
+  type: 'test'
+  ...
+# Subtest: apresentação: texto curto, falado, dica e tooltip trazem o valor exato em reais
+ok 15 - apresentação: texto curto, falado, dica e tooltip trazem o valor exato em reais
+  ---
+  duration_ms: 0.152994
+  type: 'test'
+  ...
+1..15
+# tests 15
+# suites 0
+# pass 15
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 251.457672

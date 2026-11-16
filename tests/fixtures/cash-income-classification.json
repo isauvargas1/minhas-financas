@@ -1,0 +1,284 @@
+{
+ "description": "P5-F.1: espelho do cliente (src/modules/work-time/incomeBasis.ts) e cashPeriodDeltaFor do backend devem dar o mesmo incomeCents para cada documento. Documentos válidos para o contrato de caixa do backend.",
+ "cases": [
+  {
+   "name": "receita comum liquidada",
+   "kind": "income",
+   "incomeCents": 350000,
+   "data": {
+    "date": "2026-10-05",
+    "isPaid": true,
+    "type": "receita",
+    "valueCents": 350000
+   }
+  },
+  {
+   "name": "receita comum sem isPaid explícito falso (liquidada)",
+   "kind": "income",
+   "incomeCents": 120000,
+   "data": {
+    "date": "2026-10-05",
+    "type": "receita",
+    "valueCents": 120000
+   }
+  },
+  {
+   "name": "receita pendente (isPaid falso)",
+   "kind": "pending",
+   "incomeCents": 0,
+   "data": {
+    "date": "2026-10-05",
+    "isPaid": false,
+    "type": "receita",
+    "valueCents": 200000
+   }
+  },
+  {
+   "name": "receita pendente (cashEntry pendente)",
+   "kind": "pending",
+   "incomeCents": 0,
+   "data": {
+    "date": "2026-10-05",
+    "isPaid": true,
+    "type": "receita",
+    "valueCents": 200000,
+    "cashEntry": {
+     "status": "pending"
+    }
+   }
+  },
+  {
+   "name": "receita anulada",
+   "kind": "voided",
+   "incomeCents": 0,
+   "data": {
+    "date": "2026-10-05",
+    "isPaid": true,
+    "type": "receita",
+    "valueCents": 350000,
+    "voidedAt": {
+     "seconds": 1760000000,
+     "nanoseconds": 0
+    }
+   }
+  },
+  {
+   "name": "despesa comum",
+   "kind": "expense",
+   "incomeCents": 0,
+   "data": {
+    "date": "2026-10-05",
+    "isPaid": true,
+    "type": "despesa",
+    "valueCents": 50000
+   }
+  },
+  {
+   "name": "recebimento de recebível (principal; juros e multa fora)",
+   "kind": "receivable",
+   "incomeCents": 100000,
+   "data": {
+    "date": "2026-10-05",
+    "isPaid": true,
+    "type": "receita",
+    "valueCents": 102500,
+    "receivableEntry": {
+     "domainVersion": 1,
+     "receivableId": "rcv_1",
+     "receivableMovementId": "rmv_1",
+     "clientId": "cli_1",
+     "kind": "receipt",
+     "reversal": false,
+     "currency": "BRL",
+     "principalCents": 100000,
+     "interestCents": 2000,
+     "penaltyCents": 500,
+     "discountCents": 0
+    }
+   }
+  },
+  {
+   "name": "estorno de recebimento (tipo despesa)",
+   "kind": "receivable_reversal",
+   "incomeCents": -100000,
+   "data": {
+    "date": "2026-10-05",
+    "isPaid": true,
+    "type": "despesa",
+    "valueCents": 102500,
+    "receivableEntry": {
+     "domainVersion": 1,
+     "receivableId": "rcv_1",
+     "receivableMovementId": "rmv_2",
+     "clientId": "cli_1",
+     "kind": "receipt",
+     "reversal": true,
+     "currency": "BRL",
+     "principalCents": 100000,
+     "interestCents": 2000,
+     "penaltyCents": 500,
+     "discountCents": 0,
+     "reversalOf": "rmv_1"
+    }
+   }
+  },
+  {
+   "name": "recebimento só de juros",
+   "kind": "receivable",
+   "incomeCents": 0,
+   "data": {
+    "date": "2026-10-05",
+    "isPaid": true,
+    "type": "receita",
+    "valueCents": 1000,
+    "receivableEntry": {
+     "domainVersion": 1,
+     "receivableId": "rcv_1",
+     "receivableMovementId": "rmv_1",
+     "clientId": "cli_1",
+     "kind": "receipt",
+     "reversal": false,
+     "currency": "BRL",
+     "principalCents": 0,
+     "interestCents": 1000,
+     "penaltyCents": 0,
+     "discountCents": 0
+    }
+   }
+  },
+  {
+   "name": "contratação de empréstimo tomado (principal)",
+   "kind": "loan",
+   "incomeCents": 0,
+   "data": {
+    "date": "2026-10-05",
+    "isPaid": true,
+    "type": "receita",
+    "valueCents": 500000,
+    "loanEntry": {
+     "domainVersion": 1,
+     "loanId": "loan_1",
+     "loanMovementId": "lmv_1",
+     "loanType": "borrow",
+     "kind": "disbursement",
+     "reversal": false,
+     "currency": "BRL",
+     "principalCents": 500000,
+     "interestCents": 0
+    }
+   }
+  },
+  {
+   "name": "recebimento de empréstimo concedido (principal e juros)",
+   "kind": "loan",
+   "incomeCents": 0,
+   "data": {
+    "date": "2026-10-05",
+    "isPaid": true,
+    "type": "receita",
+    "valueCents": 110000,
+    "loanEntry": {
+     "domainVersion": 1,
+     "loanId": "loan_2",
+     "loanMovementId": "lmv_2",
+     "loanType": "lend",
+     "kind": "payment",
+     "reversal": false,
+     "currency": "BRL",
+     "principalCents": 100000,
+     "interestCents": 10000
+    }
+   }
+  },
+  {
+   "name": "estorno de pagamento de fatura (entra no caixa)",
+   "kind": "card_payment",
+   "incomeCents": 0,
+   "data": {
+    "date": "2026-10-05",
+    "isPaid": true,
+    "type": "receita",
+    "valueCents": 80000,
+    "creditCardPaymentEntry": {
+     "domainVersion": 1,
+     "cardId": "card_1",
+     "invoiceId": "inv_1",
+     "paymentId": "ccpay_1",
+     "kind": "invoice_payment",
+     "reversal": true,
+     "reversalOf": "ccpay_0",
+     "currency": "BRL",
+     "amountCents": 80000
+    }
+   }
+  },
+  {
+   "name": "compensação da divisão de contas (reembolso)",
+   "kind": "split",
+   "incomeCents": 0,
+   "data": {
+    "date": "2026-10-05",
+    "isPaid": true,
+    "type": "receita",
+    "valueCents": 3000,
+    "splitEntry": {
+     "domainVersion": 1,
+     "kind": "bill_expense",
+     "groupId": "grp_1",
+     "billId": "bill_1",
+     "reimbursementId": null,
+     "reversal": true,
+     "reversalOf": "split_0",
+     "amountCents": 3000,
+     "currency": "BRL"
+    }
+   }
+  },
+  {
+   "name": "resgate de investimento (principal e rendimento)",
+   "kind": "investment",
+   "incomeCents": 0,
+   "data": {
+    "date": "2026-10-05",
+    "isPaid": true,
+    "type": "investimento",
+    "valueCents": 105000,
+    "investmentEntry": {
+     "domainVersion": 1,
+     "movementId": "imv_1",
+     "operation": "redemption",
+     "reversal": false,
+     "reversalOf": null,
+     "status": "settled",
+     "principalCents": 100000,
+     "gainCents": 5000,
+     "amountCents": 105000,
+     "currency": "BRL"
+    }
+   }
+  },
+  {
+   "name": "resgate de investimento pendente",
+   "kind": "investment",
+   "incomeCents": 0,
+   "data": {
+    "date": "2026-10-05",
+    "isPaid": false,
+    "type": "investimento",
+    "valueCents": 105000,
+    "investmentEntry": {
+     "domainVersion": 1,
+     "movementId": "imv_2",
+     "operation": "redemption",
+     "reversal": false,
+     "reversalOf": null,
+     "status": "pending",
+     "principalCents": 100000,
+     "gainCents": 5000,
+     "amountCents": 105000,
+     "currency": "BRL"
+    }
+   }
+  }
+ ]
+}

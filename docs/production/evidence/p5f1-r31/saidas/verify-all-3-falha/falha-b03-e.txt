@@ -1,0 +1,30 @@
+  1) [chromium] › e2e/work-time-b03.spec.ts:577:1 › B03-e: a receita desconsiderada sai da janela da estimativa e volta: o mês antigo só deixa de descontar quando projeção e marca mudam juntas 
+
+    Error: apiRequestContext.post: socket hang up
+    Call log:
+      - → POST http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/createCashAccount
+        - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.7778.96 Safari/537.36
+        - accept: */*
+        - accept-encoding: gzip,deflate,br
+        - Authorization: Bearer <token do Emulator omitido>
+        - Content-Type: application/json
+        - content-length: 163
+
+
+       at support/callables.ts:61
+
+      59 |   data: Record<string, unknown>,
+      60 | ): Promise<CallableOutcome> => {
+    > 61 |   const response = await request.post(callableUrl(name), {
+         |                                  ^
+      62 |     headers: {
+      63 |       Authorization: `Bearer ${token}`,
+      64 |       'Content-Type': 'application/json',
+        at callCallable (<scratchpad>/wt-p5f1-r31/e2e/support/callables.ts:61:34)
+        at createAccountByApi (<scratchpad>/wt-p5f1-r31/e2e/support/accounts.ts:83:39)
+        at seedTenant (<scratchpad>/wt-p5f1-r31/e2e/work-time-b03.spec.ts:166:59)
+        at <scratchpad>/wt-p5f1-r31/e2e/work-time-b03.spec.ts:579:18
+
+    Error Context: test-results/work-time-b03-B03-e-a-rece-c2dba-ojeção-e-marca-mudam-juntas-chromium/error-context.md
+
+  1 failed

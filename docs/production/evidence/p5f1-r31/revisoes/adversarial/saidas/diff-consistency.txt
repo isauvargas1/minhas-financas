@@ -1,0 +1,355 @@
+diff --git a/tests/unit/work-time-consistency.test.ts b/tests/unit/work-time-consistency.test.ts
+index 8e0abda..013a122 100644
+--- a/tests/unit/work-time-consistency.test.ts
++++ b/tests/unit/work-time-consistency.test.ts
+@@ -16,6 +16,7 @@ import {DEFAULT_WEEKLY_ROUTINE} from '../../src/modules/work-time/draft.ts';
+ import type {WorkTimeEstimate} from '../../src/modules/work-time/estimate.ts';
+ import {ESTIMATE_EXCLUDED_READ_FAILED, ESTIMATE_UNCONFIRMED_FAILED, ESTIMATE_UPDATING} from '../../src/modules/work-time/messages.ts';
+ import {proveProjectionExclusions, transactionFingerprint, type ProjectionProof, type SnapshotMonth} from '../../src/modules/work-time/projectionProof.ts';
++import {readExcludedIncome} from '../../src/modules/work-time/receivableReversal.ts';
+ import {
+   useIncomeEstimateWith,
+   type IncomeEstimateDeps,
+@@ -553,11 +554,16 @@ test('B03 (R11-02): 12 meses sem desconsiderada, as bases relidas sem pedido da
+   w.failing.month = true;
+   w.income['ws-a']['2026-10'] = 350_000;
+   w.income['ws-a']['2025-11'] = 250_000;
+-  // A virada do mês relê as duas bases, sem pedido da escuta: a série chega nova, e o mês avulso falha.
++  // A virada do mês relê as duas bases, sem pedido da escuta: a série chega nova, e o mês avulso falha. A série nova não
++  // bate com a projeção confirmada (ainda a anterior): sem prova, nenhuma conversão, e o erro do mês avulso com
++  // "Tentar de novo" (P5-F.1-R3.1; antes, a última provada com a ressalva).
+   await act(async () => { await invalidateFinancialReportBases(client); });
+-  await until(() => w.calls.series >= 2 && w.calls.month >= 3 && latest()?.status === 'done' && (latest() as Done).refreshFailed,
+-    'a série nova e a falha do mês avulso, com a ressalva');
++  await until(() => w.calls.series >= 2 && w.calls.month >= 3 && latest()?.status === 'error',
++    'a série nova e a falha do mês avulso: o erro, sem conversão');
++  const failedAt = renders.length - 1;
+   await settle(250);
++  assert.equal((latest() as Failed).message, 'Não foi possível carregar o relatório. Tente novamente.', 'o erro da leitura, com "Tentar de novo"');
++  assertNoConversion(renders.slice(failedAt), 'com o mês avulso falhando e a série nova sem prova');
+   assertOnly(renders.slice(from), [3_600_000], 'nunca R$ 36.500,00 (out/2026 nova com nov/2025 antiga)');
+   // O mês avulso volta e a escuta entrega a projeção: as duas bases novas aparecem juntas, provadas.
+   w.failing.month = false;
+@@ -955,8 +961,9 @@ test('B03 (R3, a): a desconsiderada editada em outra sessão com o gatilho atras
+   w.publish();
+   await until(() => w.calls.byIds >= 2 && w.calls.marks >= 2, 'a leitura por id relida, com o valor novo');
+   await settle(300);
+-  // Nunca R$ 10.460,00 (R$ 900,00 tirados do total velho de outubro); vale a última estimativa provada.
+-  assertOnly(renders.slice(from), [1_056_000], 'só a última provada enquanto o gatilho não aplicou');
++  // Nunca R$ 10.460,00 (R$ 900,00 tirados do total velho de outubro), nem a última estimativa provada no lugar da atual
++  // (P5-F.1-R3.1, R3-AUD-01: antes, este teste admitia a última provada aqui): sem prova, nenhuma conversão.
++  assertNoConversion(renders.slice(from), 'sem conversão enquanto o gatilho não aplicou');
+   const calls = w.calls.byIds;
+   // O gatilho aplica: outubro com o valor novo e a marca, no mesmo passo.
+   w.income['ws-a']['2026-10'] = 442_000;
+@@ -965,8 +972,9 @@ test('B03 (R3, a): a desconsiderada editada em outra sessão com o gatilho atras
+   await until(() => incomeOf(latest()) === 1_086_000 && !(latest() as Done).refreshFailed, 'o valor certo, provado pela marca');
+   await settle(150);
+   assert.ok(w.calls.byIds > calls, 'relida depois da aplicação');
+-  // Consistentes: antes (R$ 10.560,00) e depois (R$ 10.860,00: setembro novo, outubro com o valor novo menos R$ 900,00).
+-  assertOnly(renders.slice(from), [1_056_000, 1_086_000], 'sem o conteúdo novo com o total velho');
++  // Depois da divergência, só a estimativa nova provada (R$ 10.860,00: setembro novo, outubro com o valor novo menos
++  // R$ 900,00); nunca o conteúdo novo com o total velho nem a anterior.
++  assertUpdatingOr(renders.slice(from), [1_086_000], 'sem o conteúdo novo com o total velho nem a anterior');
+ });
+ 
+ test('B03 (R3, b): evento fora de ordem (marca com pendência): sem conversão enquanto a pendência não fecha, mesmo relendo; fechada, a estimativa aparece', async () => {
+@@ -1029,8 +1037,9 @@ test('B03 (R3, d): a desconsiderada muda de mês para fora da janela: o mês ant
+   w.publish();
+   await until(() => w.calls.byIds >= 2 && w.calls.marks >= 2, 'a leitura por id relida, com a data nova');
+   await settle(300);
+-  // Nunca R$ 11.360,00: o mês antigo sem desconto (a data nova) com outubro ainda somando a receita.
+-  assertOnly(renders.slice(from), [1_056_000], 'o mês antigo continua descontando');
++  // Nunca R$ 11.360,00: o mês antigo sem desconto (a data nova) com outubro ainda somando a receita; nem a última
++  // estimativa provada no lugar da atual (P5-F.1-R3.1): sem prova, nenhuma conversão.
++  assertNoConversion(renders.slice(from), 'sem conversão enquanto o gatilho não aplicou');
+   // O gatilho aplica: outubro sem a receita, julho com ela e a marca com o conteúdo de julho, no mesmo passo.
+   w.income['ws-a']['2026-10'] = 352_000;
+   w.income['ws-a']['2026-07'] = 50_000;
+@@ -1038,7 +1047,7 @@ test('B03 (R3, d): a desconsiderada muda de mês para fora da janela: o mês ant
+   w.publish();
+   await until(() => incomeOf(latest()) === 1_086_000 && monthOf(latest(), '2026-10') === 352_000, 'o mês antigo sem desconto, provado');
+   await settle(150);
+-  assertOnly(renders.slice(from), [1_056_000, 1_086_000], 'nunca o mês antigo sem desconto com o total velho');
++  assertUpdatingOr(renders.slice(from), [1_086_000], 'nunca o mês antigo sem desconto com o total velho, nem a anterior');
+ });
+ 
+ test('B03 (R3, e): a releitura por motivo passageiro respeita o orçamento do agendador: no máximo o orçamento, a reposição depois, e nunca um prazo que aprove', async () => {
+@@ -1073,24 +1082,270 @@ test('B03 (R3, e): a releitura por motivo passageiro respeita o orçamento do ag
+   assert.equal((latest() as Failed).message, ESTIMATE_UPDATING);
+ });
+ 
+-test('revisão da R1 (N06): a última estimativa provada mostrada no lugar da atual por mais que a espera limitada ganha o aviso e o "Tentar de novo"', async () => {
++/*
++ * Revisão da R1 (N06), contrato reescrito na P5-F.1-R3.1 (R3-AUD-01). Antes: "a última estimativa provada mostrada no
++ * lugar da atual por mais que a espera limitada ganha o aviso e o 'Tentar de novo'", ou seja, a anterior aparecia
++ * como atual, sem aviso até a espera acabar. Agora a anterior não aparece em momento nenhum; o tempo de interface só
++ * troca "calculando" por "estimativa em atualização", com "Tentar de novo" (evidence/p5f1-r31/testes-substituidos.md).
++ */
++test('revisão da R1 (N06), contrato da R3.1: a base relida devagar por mais que o tempo de interface: nunca a última provada; "calculando", depois "estimativa em atualização" com "Tentar de novo", e a nova provada, sem aviso', async () => {
+   const w = world();
+   standard(w);
+   const {renders, latest} = mount(w, params());
+   await until(() => incomeOf(latest()) === 1_056_000, 'estimativa');
+   await settle(60);
+   const from = renders.length;
+-  // Outra sessão lança R$ 300,00 em setembro, e a releitura da base demora mais que a espera limitada.
++  // Outra sessão lança R$ 300,00 em setembro, e a releitura da base demora mais que o tempo de interface (800 ms aqui).
+   w.delays.series = 1_300;
+   w.income['ws-a']['2026-09'] = 382_000;
+   w.publish();
+-  await until(() => (latest() as Done).refreshFailed === true && incomeOf(latest()) === 1_056_000, 'o aviso na anterior', 2_500);
+-  assert.equal(typeof (latest() as Done).retry, 'function');
++  await until(() => latest()?.status === 'error', '"em atualização" depois do tempo de interface', 2_500);
++  const updating = latest() as Failed;
++  assert.equal(updating.message, ESTIMATE_UPDATING);
++  assert.equal(typeof updating.retry, 'function', 'com "Tentar de novo"');
++  assertNoConversion(renders.slice(from), 'enquanto a base nova não chega, nenhuma conversão, nem a anterior com aviso');
+   await until(() => incomeOf(latest()) === 1_086_000, 'a nova provada', 3_000);
+   assert.equal((latest() as Done).refreshFailed, false, 'a nova, sem o aviso');
+-  const noted = renders.slice(from).filter((render) => render.state.status === 'done' && render.state.refreshFailed);
+-  assert.ok(noted.length > 0 && noted.every((render) => incomeOf(render.state) === 1_056_000), 'o aviso só na anterior');
+-  assertOnly(renders.slice(from), [1_056_000, 1_086_000], 'só estados consistentes');
++  assertUpdatingOr(renders.slice(from), [1_086_000], 'só "calculando", "em atualização" e a nova provada');
++});
++
++// ------------------------------------------------------------------ P5-F.1-R3.1 (R3-AUD-01): nada anterior como atual
++
++/**
++ * A prova das marcas sobre o que o servidor tem agora, com as mesmas funções do gancho (leitura por id com as
++ * impressões, transação dos meses e das marcas e `proveProjectionExclusions`): afirma a premissa do cenário
++ * (`proven=false`) sem depender do gancho.
++ */
++const proofOfWorld = async (w: World, basisIncome: Record<string, number>) => {
++  const read = await readExcludedIncome(w.deps.readByIds, 'ws-a', ['r500']);
++  const snapshot = await w.deps.readProjectionMarks('ws-a', MONTHS, ['r500', ...Object.values(read.reversalIds)]);
++  const documents: Record<string, {document: Record<string, unknown>; fingerprint: string | null}> = {};
++  for (const document of [...read.found, ...Object.values(read.reversals)]) {
++    const id = String((document as {id?: unknown}).id);
++    documents[id] = {document: document as Record<string, unknown>, fingerprint: read.fingerprints[id] ?? null};
++  }
++  return proveProjectionExclusions({months: MONTHS, snapshot, basisIncome, excludedIds: ['r500'], read: documents, reversalIds: read.reversalIds});
++};
++/** Nenhuma renderização recebeu estimativa pronta (nem a anterior nem outra, com ou sem aviso): os valores ficam em reais. */
++const assertNoConversion = (renders: readonly Render[], message: string) => {
++  const converted = renders.filter((render) => render.state.status === 'done');
++  assert.deepEqual(
++    converted.map((render) => `${incomeOf(render.state)} ${(render.state as Done).refreshFailed ? 'com aviso' : 'sem aviso'}`),
++    [],
++    `${message} (mostrados: ${shownSoFar()})`,
++  );
++};
++/** Depois da divergência, só estados sem conversão (os permitidos) até a estimativa nova provada (`allowed`). */
++const assertOnlyWithoutConversionOr = (
++  renders: readonly Render[], allowedFailures: readonly string[], allowed: readonly number[], message: string,
++) => {
++  const other = renders.filter((render) => {
++    if (render.state.status === 'loading') return false;
++    if (render.state.status === 'error') return !allowedFailures.includes(render.state.message);
++    return !allowed.includes(incomeOf(render.state) ?? -1);
++  });
++  assert.deepEqual(other.map((render) => render.state.status === 'error' ? render.state.message : `${render.state.status} ${incomeOf(render.state)}`), [],
++    `${message} (mostrados: ${shownSoFar()})`);
++};
++/**
++ * O cenário do achado R3-AUD-01, a partir da estimativa provada de R$ 10.560,00: outra sessão muda a desconsiderada de
++ * R$ 500,00 para R$ 900,00 sem o gatilho ter aplicado (outubro e a marca seguem no conteúdo anterior) e lança R$ 300,00
++ * em setembro, já aplicados. A escuta vê a projeção nova, a sincronização relê a base e, depois dela, a leitura por id
++ * traz o valor novo, que a marca ainda não contém: a prova é falsa, a identidade não muda e nenhuma leitura falhou.
++ * Devolve o índice da primeira renderização depois da divergência.
++ */
++const divergeWithoutTrigger = (w: World, renders: readonly Render[]) => {
++  w.write('ws-a', 'r500', {date: '2026-10-15', type: 'receita', valueCents: 90_000, isPaid: true});
++  w.income['ws-a']['2026-09'] = 382_000;
++  const from = renders.length;
++  w.publish();
++  return from;
++};
++/** O gatilho aplica a edição: outubro com o valor novo e a marca, no mesmo passo. Consistente: R$ 10.860,00. */
++const applyEdit = (w: World) => {
++  w.income['ws-a']['2026-10'] = 442_000;
++  w.apply('ws-a', ['r500']);
++  w.publish();
++};
++
++test('R3.1 (R3-AUD-01): a última estimativa provada nunca aparece como a atual: leitura nova divergente, prova falsa, a mesma identidade e nenhuma falha de leitura dão só "calculando"; com a prova de volta, a estimativa nova', async () => {
++  const w = world();
++  standard(w);
++  const initial = params();
++  const {renders, latest} = mount(w, initial);
++  await until(() => incomeOf(latest()) === 1_056_000 && !(latest() as Done).refreshFailed, 'a estimativa provada, sem aviso');
++  await settle(60);
++  const from = divergeWithoutTrigger(w, renders);
++  await until(() => w.calls.byIds >= 2 && w.calls.marks >= 2, 'a leitura por id relida, com o valor novo');
++  await settle(150);
++  const between = renders.slice(from);
++  // A premissa do achado: a mesma identidade (conta e entradas), nenhuma falha de leitura nem da escuta, e a prova falsa.
++  assert.ok(between.length > 0, 'a divergência renderizou');
++  assert.ok(between.every((render) => render.uid === 'u1' && render.params === initial), 'a mesma identidade');
++  assert.deepEqual([w.failing.byIds, w.failing.marks, w.failing.month, w.listenRefused], [false, false, false, false], 'nenhuma falha de leitura nem da escuta');
++  assert.ok(between.every((render) => render.state.status !== 'error' || render.state.message === ESTIMATE_UPDATING), 'nenhum erro de leitura');
++  assert.deepEqual(await proofOfWorld(w, {'2026-08': 352_000, '2026-09': 382_000, '2026-10': 402_000}), {proven: false, reason: 'content'},
++    'a prova é falsa: a marca guarda o conteúdo anterior');
++  // A interface nunca recebe a estimativa anterior (R$ 10.560,00) como a atual, nem sem aviso nem com ele.
++  assertNoConversion(between, 'nenhuma conversão depois da divergência, sem prova');
++  // A prova volta: a estimativa nova aparece sem esperar prazo nenhum e sem aviso.
++  applyEdit(w);
++  await until(() => incomeOf(latest()) === 1_086_000, 'a estimativa nova, provada');
++  await settle(100);
++  assert.equal((latest() as Done).refreshFailed, false, 'a nova, sem aviso');
++  assertUpdatingOr(renders.slice(from), [1_086_000], 'depois da divergência, só "calculando" ou "em atualização" e a estimativa nova provada');
++});
++
++test('R3.1: antes e depois do tempo de interface (30 s no produto, 800 ms aqui): "calculando" e depois "estimativa em atualização" com "Tentar de novo"; em nenhum dos dois a última provada, e só a prova reabilita a conversão', async () => {
++  const w = world();
++  const time = manualClock(w);
++  standard(w);
++  const {renders, latest} = mount(w, params());
++  await until(() => incomeOf(latest()) === 1_056_000, 'a estimativa provada');
++  await settle(60);
++  const from = divergeWithoutTrigger(w, renders);
++  await drive(time, () => w.calls.byIds >= 2 && w.calls.marks >= 2, 'a leitura por id relida');
++  await settle(100);
++  assertNoConversion(renders.slice(from), 'antes do tempo de interface');
++  assert.equal(latest()?.status, 'loading', 'antes do tempo de interface: "calculando"');
++  time.advance(1_000);
++  await settle(60);
++  const updating = latest() as Failed;
++  assert.deepEqual([updating.status, updating.message], ['error', ESTIMATE_UPDATING], 'depois do tempo de interface: "em atualização"');
++  assert.equal(typeof updating.retry, 'function', 'com "Tentar de novo"');
++  assertNoConversion(renders.slice(from), 'depois do tempo de interface');
++  // O tempo não aprova nada: 10 min no relógio da estimativa e 1 h na hora do servidor depois, ainda sem conversão.
++  await elapse(w, time, 600_000);
++  w.advance(3_600);
++  assertNoConversion(renders.slice(from), 'nem muito depois');
++  // "Tentar de novo" relê, mas sem a marca aplicada continua sem prova.
++  const reads = w.calls.byIds;
++  act(() => (latest() as Failed).retry());
++  await drive(time, () => w.calls.byIds > reads && w.calls.marks > reads, 'a releitura pedida pelo "Tentar de novo"');
++  await settle(100);
++  assertNoConversion(renders.slice(from), 'o "Tentar de novo" sem a marca aplicada');
++  // A prova volta: a conversão volta sem esperar o tempo de interface.
++  applyEdit(w);
++  const applied = time.now();
++  await drive(time, () => incomeOf(latest()) === 1_086_000, 'a estimativa nova, provada');
++  assert.ok(time.now() - applied < 800, 'sem esperar o tempo de interface nem prazo nenhum');
++  assert.equal((latest() as Done).refreshFailed, false, 'sem aviso');
++  assertUpdatingOr(renders.slice(from), [1_086_000], 'só "calculando", "em atualização" e a estimativa nova');
++});
++
++for (const failing of ['byIds', 'marks'] as const) {
++  test(`R3.1: a releitura falha depois da divergência (${failing === 'byIds' ? 'lançamentos por id' : 'meses e marcas'}): o erro fixo em pt-BR com "Tentar de novo", nunca a última provada com ou sem aviso; o "Tentar de novo" sem a marca aplicada continua sem conversão, e a prova reabilita`, async () => {
++    const w = world();
++    standard(w);
++    const {renders, latest} = mount(w, params());
++    await until(() => incomeOf(latest()) === 1_056_000, 'a estimativa provada');
++    await settle(60);
++    w.failing[failing] = true;
++    const from = divergeWithoutTrigger(w, renders);
++    await until(() => latest()?.status === 'error', 'o erro da releitura');
++    await settle(60);
++    assert.equal((latest() as Failed).message, ESTIMATE_EXCLUDED_READ_FAILED, 'o texto fixo, sem detalhe técnico');
++    assertNoConversion(renders.slice(from), 'nenhuma conversão com a releitura falhando');
++    // A rede volta; o "Tentar de novo" relê, e sem a marca aplicada ainda não há prova.
++    w.failing[failing] = false;
++    const reads = w.calls.marks;
++    act(() => (latest() as Failed).retry());
++    await until(() => w.calls.marks > reads && latest()?.status !== 'error', 'a releitura pelo "Tentar de novo"');
++    await settle(100);
++    assertNoConversion(renders.slice(from), 'o "Tentar de novo" sem a marca aplicada');
++    applyEdit(w);
++    await until(() => incomeOf(latest()) === 1_086_000 && !(latest() as Done).refreshFailed, 'a estimativa nova, provada');
++    await settle(60);
++    assertOnlyWithoutConversionOr(renders.slice(from), [ESTIMATE_EXCLUDED_READ_FAILED, ESTIMATE_UPDATING], [1_086_000],
++      'só "calculando", o erro fixo, "em atualização" e a estimativa nova');
++  });
++}
++
++test('R3.1: com a releitura por id em andamento depois da divergência, "calculando", nunca a última provada; terminada sem prova, ainda sem conversão', async () => {
++  const w = world();
++  standard(w);
++  const {renders, latest} = mount(w, params());
++  await until(() => incomeOf(latest()) === 1_056_000, 'a estimativa provada');
++  await settle(60);
++  w.delays.byIds = 400;
++  const from = divergeWithoutTrigger(w, renders);
++  await until(() => w.calls.byIds >= 2, 'a releitura por id começou');
++  await settle(100);
++  assert.equal(w.calls.marks, 1, 'a releitura ainda em andamento (as marcas vêm depois dos lançamentos)');
++  assert.equal(latest()?.status, 'loading', 'com a leitura em andamento: "calculando"');
++  assertNoConversion(renders.slice(from), 'nenhuma conversão com a leitura em andamento');
++  await until(() => w.calls.marks >= 2, 'a releitura terminou');
++  await settle(100);
++  assertNoConversion(renders.slice(from), 'terminada sem prova, ainda sem conversão');
++  w.delays.byIds = 10;
++  applyEdit(w);
++  await until(() => incomeOf(latest()) === 1_086_000, 'a estimativa nova, provada');
++  await settle(60);
++  assertUpdatingOr(renders.slice(from), [1_086_000], 'só "calculando" ou "em atualização" e a estimativa nova');
++});
++
++test('R3.1: troca do workspace da renda com a prova pendente: nem a última provada do anterior nem estado nenhum dele; só "calculando" até a estimativa do novo estar provada', async () => {
++  const w = world();
++  standard(w);
++  w.income['ws-b'] = {'2026-08': 200_000, '2026-09': 200_000, '2026-10': 200_000, '2026-11': 50_000};
++  w.write('ws-b', 'r500', {date: '2026-10-20', type: 'receita', valueCents: 20_000, isPaid: true});
++  w.apply('ws-b', ['r500']);
++  const {renders, latest, setParams} = mount(w, params());
++  await until(() => incomeOf(latest()) === 1_056_000, 'ws-a provado');
++  await settle(60);
++  const from = divergeWithoutTrigger(w, renders);
++  await until(() => w.calls.byIds >= 2 && w.calls.marks >= 2, 'ws-a relido, sem prova');
++  await settle(100);
++  assertNoConversion(renders.slice(from), 'ws-a sem prova: nenhuma conversão');
++  const switched = renders.length;
++  setParams(params({workspaceId: 'ws-b'}));
++  await until(() => incomeOf(latest()) === 580_000, 'ws-b provado');
++  await settle(60);
++  assertLoadingOr(renders.slice(from), [580_000], 'nunca a renda de ws-a, nem a anterior nem a nova');
++  assert.ok(renders.slice(switched).every((render) => render.params.workspaceId === 'ws-b'), 'só ws-b depois da troca');
++});
++
++test('R3.1: mudança da preferência com a prova pendente (a receita deixa de ser desconsiderada): a estimativa das entradas novas só aparece provada; a última provada das entradas antigas nunca', async () => {
++  const w = world();
++  standard(w);
++  const {renders, latest, setParams} = mount(w, params());
++  await until(() => incomeOf(latest()) === 1_056_000, 'a estimativa provada');
++  await settle(60);
++  const from = divergeWithoutTrigger(w, renders);
++  await until(() => w.calls.byIds >= 2 && w.calls.marks >= 2, 'a leitura por id relida, sem prova');
++  await settle(100);
++  assertNoConversion(renders.slice(from), 'sem prova: nenhuma conversão');
++  setParams(params({excludedIds: []}));
++  // Sem desconsiderada e com uma base, a leitura única basta (regra 2): R$ 3.520,00 + R$ 3.820,00 + R$ 4.020,00 (outubro
++  // ainda com os R$ 500,00 que a projeção contém).
++  await until(() => incomeOf(latest()) === 1_136_000, 'a estimativa das entradas novas');
++  await settle(60);
++  assertLoadingOr(renders.slice(from), [1_136_000], 'nunca R$ 10.560,00 (a última provada das entradas antigas)');
++});
++
++test('R3.1: provada, mas com a sincronização em curso (uma base e nenhuma desconsiderada: a prova não pede nada): nenhuma conversão até a base relida chegar, "calculando" e, passado o tempo de interface, "em atualização"; chegando, a nova, sem prazo', async () => {
++  const w = world();
++  standard(w);
++  const {renders, latest} = mount(w, params({excludedIds: []}));
++  await until(() => incomeOf(latest()) === 1_106_000, 'a estimativa');
++  await settle(60);
++  // Outra sessão lança R$ 300,00 em setembro; a releitura da base demora mais que o tempo de interface (800 ms aqui).
++  w.delays.series = 1_300;
++  w.income['ws-a']['2026-09'] = 382_000;
++  const from = renders.length;
++  w.publish();
++  await until(() => w.calls.series >= 2, 'a base em releitura');
++  await settle(100);
++  assert.equal(latest()?.status, 'loading', 'com a base em releitura: "calculando", nunca a anterior');
++  assertNoConversion(renders.slice(from), 'nenhuma conversão com a sincronização em curso');
++  // A prova não pede nada aqui (leitura única): é a sincronização que segura, e o tempo de interface só muda o texto.
++  await until(() => latest()?.status === 'error', '"em atualização" com a sincronização em curso', 2_500);
++  assert.equal((latest() as Failed).message, ESTIMATE_UPDATING);
++  assertNoConversion(renders.slice(from), 'nem depois do tempo de interface');
++  await until(() => incomeOf(latest()) === 1_136_000, 'a estimativa nova', 3_000);
++  await settle(60);
++  assert.equal((latest() as Done).refreshFailed, false);
++  assertUpdatingOr(renders.slice(from), [1_136_000], 'só "calculando", "em atualização" e a estimativa nova');
+ });
+ 
+ // ------------------------------------------------------------------ B01: recebimento desconsiderado e estornado

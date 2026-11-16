@@ -1,0 +1,43 @@
+# Trecho do log da 2ª execução do verify:all (árvore cd95e1cb): a falha e o resumo do E2E. O log completo está no ZIP de auditoria (logs/execucoes/verify-all-2-falha-e2e.log).
+
+38789:  ✘   35 [chromium] › e2e/cash-pending-entries.spec.ts:169:1 › pendente e agendado não movem o caixa; confirmar grava data efetiva e preserva o vencimento (19.9s)
+
+  1) [chromium] › e2e/cash-pending-entries.spec.ts:169:1 › pendente e agendado não movem o caixa; confirmar grava data efetiva e preserva o vencimento
+
+    Error: expect(locator).toHaveAccessibleName(expected) failed
+
+    Locator: getByRole('button', { name: /^Despesas\s+R\$/ })
+    Expected pattern: /R\$\s*205,50/
+    Received string:  "Despesas R$ 0,00 Mensal"
+    Timeout: 12000ms
+
+    Call log:
+      - Expect "toHaveAccessibleName" with timeout 12000ms
+      - waiting for getByRole('button', { name: /^Despesas\s+R\$/ })
+        28 × locator resolved to <div tabindex="0" role="button" class="card bg-surface rounded-card shadow-md p-6 border-l-4 border-red-500 cursor-pointer">…</div>
+           - unexpected value "Despesas R$ 0,00 Mensal"
+
+
+      234 |   // O dashboard passa a mostrar a saída realizada; as receitas pendentes não.
+      235 |   await page.getByRole('button', { name: 'Voltar ao dashboard' }).click();
+    > 236 |   await expect(summaryCard(page, 'Despesas')).toHaveAccessibleName(/R\$\s*205,50/);
+          |                                               ^
+      237 |   await expect(summaryCard(page, 'Receitas')).toHaveAccessibleName(/R\$\s*0,00/);
+      238 | });
+      239 |
+        at <scratchpad>/wt-p5f1-r2a/e2e/cash-pending-entries.spec.ts:236:47
+
+    Error Context: test-results/cash-pending-entries-pende-6ee8d-iva-e-preserva-o-vencimento-chromium/error-context.md
+
+  1 failed
+    [chromium] › e2e/cash-pending-entries.spec.ts:169:1 › pendente e agendado não movem o caixa; confirmar grava data efetiva e preserva o vencimento
+  209 passed (18.5m)
+
+# Gatilho onTransactionWrite do workspace do teste, entre o teste 34 e a falha:
+{"severity":"INFO","message":"cash_projection.processed","event":"cash_projection.processed","operation":"onTransactionWrite","workspaceId":"e2e-p3f-main-mw57clom","transactionId":"cash_ddb3a210ff770ec400a659083f515cd023f7ba64","action":"CREATE","outcome":"applied","periodCount":0,"ageSeconds":0}
+{"severity":"INFO","message":"cash_projection.processed","event":"cash_projection.processed","operation":"onTransactionWrite","workspaceId":"e2e-p3f-main-mw57clom","transactionId":"cash_c0dc2ffae04117249ff88044d1e0340c4eb2d785","action":"CREATE","outcome":"applied","periodCount":0,"ageSeconds":0}
+{"severity":"INFO","message":"cash_projection.processed","event":"cash_projection.processed","operation":"onTransactionWrite","workspaceId":"e2e-p3f-main-mw57clom","transactionId":"cash_fbd51aee591e4b74c2e4ab55d945b8fb2f65a09d","action":"CREATE","outcome":"applied","periodCount":0,"ageSeconds":0}
+{"severity":"INFO","message":"cash_projection.processed","event":"cash_projection.processed","operation":"onTransactionWrite","workspaceId":"e2e-p3f-main-mw57clom","transactionId":"cash_fbd51aee591e4b74c2e4ab55d945b8fb2f65a09d","action":"UPDATE","outcome":"applied","periodCount":1,"ageSeconds":0}
+
+  1 failed
+  209 passed (18.5m)

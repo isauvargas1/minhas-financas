@@ -28,6 +28,7 @@ import { formatDayKey } from '../modules/loans/money.ts';
 import type { SplitBill, SplitParticipant, SplitShare } from '../modules/split-bills/types.ts';
 import { CloseIcon, CheckIcon, EditIcon, DeleteIcon, WarningIcon } from './Icons.tsx';
 import { useCardDialogFocus } from './cards/useCardDialogFocus.ts';
+import { useMoneyDisplay } from '../modules/work-time/display.tsx';
 
 interface SplitBillDetailsModalProps {
     isOpen: boolean;
@@ -49,6 +50,7 @@ const SplitBillDetailsModal: React.FC<SplitBillDetailsModalProps> = (props) => {
 const SplitBillDetails: React.FC<SplitBillDetailsModalProps> = ({
     onClose, bill, participants, members, me, viewer, permissions, onEditBill
 }) => {
+    const display = useMoneyDisplay();
     const { data: shares, isLoading, isTruncated } = useSplitShares(bill.id);
     const settle = useSettleSplitShare();
     const reverse = useReverseSplitShareSettlement();
@@ -158,7 +160,10 @@ const SplitBillDetails: React.FC<SplitBillDetailsModalProps> = ({
                             <h4 className="font-bold">Anular esta despesa?</h4>
                         </div>
                         <p className="text-sm text-gray-700 dark:text-gray-300 mb-4">
-                            A despesa continua no histórico como anulada e sai dos totais do grupo.
+                            {/* P5-F: no modo tempo o total aparece em horas; a confirmação traz o valor exato em reais. */}
+                            {display.isTime
+                                ? `A despesa de ${formatSplitCents(bill.amountCents)} continua no histórico como anulada e sai dos totais do grupo.`
+                                : 'A despesa continua no histórico como anulada e sai dos totais do grupo.'}
                             {bill.financialIntegration === 'cash' && ' O lançamento no Caixa é compensado por um estorno na mesma conta.'}
                             {bill.financialIntegration === 'card' && ' A compra no cartão é cancelada (ou estornada, se já foi faturada).'}
                         </p>
@@ -185,7 +190,7 @@ const SplitBillDetails: React.FC<SplitBillDetailsModalProps> = ({
                         {/* Total */}
                         <div className="p-6 text-center">
                             <span className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Valor Total</span>
-                            <p className="text-4xl font-bold text-gray-900 dark:text-white mt-1">{formatSplitCents(bill.amountCents)}</p>
+                            <p className="text-4xl font-bold text-gray-900 dark:text-white mt-1">{display.cents(bill.amountCents, formatSplitCents)}</p>
                             {hasFinancialFact(bill) && (
                                 <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                                     {bill.financialIntegration === 'card' ? `Lançada no Cartão${bill.installmentsCount && bill.installmentsCount > 1 ? ` em ${bill.installmentsCount}x` : ''}` : 'Lançada no Caixa'}

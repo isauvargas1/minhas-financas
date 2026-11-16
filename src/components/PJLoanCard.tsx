@@ -5,6 +5,7 @@ import type { Loan } from '../modules/loans/types.ts';
 import { BriefcaseIcon, DynamicIcon } from './Icons.tsx';
 import { useTheme } from '../contexts/ThemeContext.tsx';
 import { formatCents, formatDayKey } from '../modules/loans/money.ts';
+import { useMoneyDisplay } from '../modules/work-time/display.tsx';
 import {
     LOAN_STATUS_LABELS,
     classificationLabel,
@@ -18,6 +19,7 @@ interface PJLoanCardProps {
 }
 
 const PJLoanCard: React.FC<PJLoanCardProps> = ({ loan, onClick }) => {
+    const display = useMoneyDisplay();
     const { playSound } = useTheme();
     const MotionDiv = motion.div as any;
 
@@ -62,7 +64,7 @@ const PJLoanCard: React.FC<PJLoanCardProps> = ({ loan, onClick }) => {
                     <div className="flex justify-between items-end">
                         <div>
                             <span className="text-[10px] text-muted uppercase font-bold block mb-0.5">{isLiab ? 'Saldo Devedor' : 'Saldo a Receber'}</span>
-                            <span className="text-xl font-black text-on-surface">{loan.status === 'cancelled' ? 'Cancelado' : formatCents(openBalanceCents(loan))}</span>
+                            <span className="text-xl font-black text-on-surface">{loan.status === 'cancelled' ? 'Cancelado' : display.cents(openBalanceCents(loan), formatCents)}</span>
                         </div>
                         <div className="text-right">
                             <span className="text-[10px] text-muted uppercase font-bold block mb-0.5">Vencimento</span>

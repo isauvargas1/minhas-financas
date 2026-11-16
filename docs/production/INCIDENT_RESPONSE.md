@@ -35,7 +35,7 @@ Este documento cobre três coisas: o que existe hoje para detectar e conter inci
 | `maxInstances` por classe | `functions/src/shared/runtimeOptions.ts:41-91` (global 20, domínio 20, pesada 3, IA 10, cron 1) | Teto de concorrência e de custo | Não é interruptor. Mudar exige deploy |
 | Firestore Rules | Default deny fora de `workspaces/` e `users/` (`firestore.rules:990,1456`). Domínios server-only (`firestore.rules:1121-1349`). Campos de plano e admin não graváveis (`firestore.rules:148-157`) | Escrita direta do cliente nos domínios server-only | Para bloquear um domínio é preciso editar e publicar Rules à mão no projeto único (PR-PLAT-01), sem ensaio |
 | Remoção de membership | `firestore.rules:1046-1050`; `src/modules/workspaces/api.ts:249-252`. O backend recusa membership inativa (`functions/src/shared/workspaceAuth.ts`) | Corta o acesso de um membro ao workspace | Feita só pelo cliente, por hard delete e sem auditoria (WS-11). Risco de trancar o titular fora (PR-WS-04) |
-| IA falha fechada sem chave | `functions/src/ai/callables.ts:131-141` | Revogar a chave no provedor interrompe a IA | Desliga a IA inteira, não só um tenant |
+| IA falha fechada sem chave | `functions/src/ai/callables.ts:133-142` | Revogar a chave no provedor interrompe a IA | Desliga a IA inteira, não só um tenant |
 | Baixa lógica em `transactions` | `firestore.rules:1094` | Preserva o histórico de caixa | Não cobre as coleções adjacentes (PR-RULES-01) |
 
 ### 1.4 Ausências verificadas no HEAD
@@ -101,7 +101,7 @@ Uma pessoa pode acumular papéis. Em SEV1, o IC deve ser separado do responsáve
 | Suspender usuário e revogar sessão | Não existe no código. Desativar no console do Auth é EXTERNAL, e o token vigente segue válido até expirar (AUTH-09) | Callable de suspensão com `revokeRefreshTokens`, `users/{uid}.status` e `checkRevoked` nas operações sensíveis | AUTH-09, PR-OBS-02, PR-ADMIN-01 | P1, P7 |
 | Remover membro | Pelo cliente, por hard delete (`src/modules/workspaces/api.ts:249-252`) | `removeMember` por callable, com remoção lógica e auditoria | PR-WS-02 | P1 |
 | Rotacionar segredo | Manual no Secret Manager. O webhook falha fechado com segredo ausente, vazio ou fora do formato: 500 sem processar (`functions/src/billing/config.ts:82-88`; `functions/src/webhooks/stripe.ts:38-51`) | Segredos por ambiente, com runbook de rotação ([RUNBOOKS.md](RUNBOOKS.md)) | PR-BILL-05 fechado em P2A (PLAN §17.3); E-05 | P6 |
-| Revogar chave de IA | Ação no console do provedor. A IA falha fechada (`functions/src/ai/callables.ts:131-141`) | Somar quota por plano e App Check | PR-AI-02 (E-00) | P0 |
+| Revogar chave de IA | Ação no console do provedor. A IA falha fechada (`functions/src/ai/callables.ts:133-142`) | Somar quota por plano e App Check | PR-AI-02 (E-00) | P0 |
 | Pausar o webhook no Stripe | Painel do Stripe (EXTERNAL) | Fila de falhas e replay idempotente | PR-OBS-01 (PR-BILL-06 fechado em P2A) | P7 |
 | App Check enforcement | Não existe | Enforcement em callables, Firestore e Auth | PR-APPCHK-01 (E-02, D-33) | P6 |
 | Bloquear escrita por Rules | Edição e publicação manual no projeto único | Versão de Rules publicada pelo CD, com rollback | PR-PLAT-01, PR-REL-01 | P6 |
@@ -125,14 +125,15 @@ Os playbooks são **TARGET**: descrevem o procedimento esperado e mostram o que 
   6. Verificar que a credencial antiga falha e que o fluxo normal funciona.
   7. Revisar o uso durante a janela (faturamento do provedor, painel do Stripe, Cloud Audit Logs) e avaliar se houve dado pessoal envolvido (§6.6).
   8. Registrar a evidência: data, responsável, IDs de versão e de chave. Nunca o valor.
-- **Caso E-00 (chave Gemini), CURRENT:** de `39806fb` (2026-01-22) até `92473c8` (2026-08-24), a chave era injetada no bundle público (`git show 39806fb:vite.config.ts:14-15`; `vite.config.ts:14-19`). Segundo a auditoria, o `.env.local` de desenvolvimento ainda guarda uma `GEMINI_API_KEY` (valor não lido), e não há evidência de rotação. **GAP:** PR-AI-02 (P0, ação externa imediata; D-ORD-06; R-06). **Passos específicos:**
-  1. Revogar toda chave que já esteve no `.env.local` ou num bundle.
-  2. Criar uma chave por ambiente, restrita à Generative Language API e com quota.
-  3. Gravá-la como `GOOGLE_AI_API_KEY` no Secret Manager de cada projeto.
-  4. Remover `GEMINI_API_KEY` do `.env.local`.
-  5. Revisar o consumo da API no período.
-  6. Verificar se há conteúdo armazenado no projeto que a chave consiga acessar. O código atual envia o documento inline (`functions/src/ai/callables.ts:227-238`).
-  7. Registrar a evidência em [SECURITY_MODEL.md](SECURITY_MODEL.md).
+- **Caso E-00 (chave Gemini), CURRENT:** de `39806fb` (2026-01-22) até `92473c8` (2026-08-24), a chave era injetada no bundle público (`git show 39806fb:vite.config.ts:14-15`; `vite.config.ts:14-19`). Segundo a auditoria, o `.env.local` de desenvolvimento ainda guarda uma `GEMINI_API_KEY` (valor não lido), e não há evidência de contenção nem de revogação. De pelo menos 2026-05-24 até 2026-08-24, o navegador também enviava ao Gemini, com a chave exposta, comprovantes, transcrições de voz e o retrato financeiro (E-00 §6, R3). **GAP:** PR-AI-02 (P0, ação externa imediata; D-ORD-06; R-06). **Passos específicos**, em três partes (resumo; a ordem, os comandos e os critérios por linha são os de [`evidence/p5-gate-final/E-00-CHAVE-GEMINI.md`](evidence/p5-gate-final/E-00-CHAVE-GEMINI.md) §2 e §3, e a evidência vai para o [SECURITY_MODEL.md](SECURITY_MODEL.md) §9.4):
+  - **Parte A, contenção e revogação** (linhas 1, 2 e 5 a 9; fecha o PR-AI-02 e é a condição da P5; não espera a chave nova):
+    1. Listar toda chave que já esteve no `.env.local` ou num bundle, ou que tenha acesso à Generative Language API e tenha sido criada até 2026-08-24, inclusive (na dúvida, todas), ou cujo valor esteve numa `VITE_*` de um build publicado, em qualquer data (classes G e V do passo 1 do E-00), e revisar o consumo de cada uma desde 2026-01-22 (para a chave web do Firebase, em todos os serviços cobrados). A chave web do Firebase não é excluída aqui: segue o passo 3.
+    2. Excluir as chaves do passo 1 e conferir `API_KEY_INVALID` pelo menos 30 minutos depois, guardando o registro de exclusão do Cloud Audit Logs e confirmando que não houve restauração (`UndeleteKey`; a exclusão é reversível por 30 dias). O teste vale para todo valor achado, inclusive no Secret Manager; só sem o valor em lugar nenhum vale a prova alternativa do D-ORD-08 (E-00 §3, linha 2).
+    3. Desativar as APIs de IA no projeto do Firebase logo depois da exclusão e restringir as chaves que continuam válidas, inclusive a chave web do Firebase (sem nenhuma API de IA ou de ML na lista, como a Firebase AI Logic API e a ML Kit API; o referenciador HTTP é do E-03, na P6, pelo D-ORD-07; se não puder ser restrita ou se houver abuso, substituí-la por build verificado (E-00 passo 5, item 7), numa estação limpa, e excluir a antiga, com publicação decidida por humano); inventariar as `VITE_*` não públicas publicadas e revogá-las, ou girá-las com a anterior invalidada na hora.
+    4. Limpar as estações em todos os locais do passo 7 do E-00 (`.env*` da raiz e de `functions/`, perfis e histórico do shell, configurações do editor, cópias), com reconferência só de nomes e declaração assinada por estação.
+    5. Avaliar o impacto aos titulares com base no uso (passo 1) e no inventário das `VITE_*` (passo 3), inclusive se há conteúdo armazenado no provedor que a chave consiga acessar, e registrar a conclusão sobre risco ou dano relevante (§6.6, passo 3; matriz do §6 do E-00, em especial R2 e R3). O código atual envia o documento inline (`functions/src/ai/callables.ts:291-298`), sem Files API nem cache.
+  - **Parte B, credenciais novas** (linhas 3 e 4; E-05, P6; antes de a IA rodar em ambiente remoto): uma chave por ambiente, restrita à Generative Language API e com quota, gravada como `GOOGLE_AI_API_KEY` no Secret Manager de cada projeto. Criar a chave nova não substitui a revogação.
+  - **Parte C, comunicação** (linha 10): a decisão sobre comunicar a ANPD e os titulares, com o jurídico e com base na avaliação da parte A, no prazo regulamentar contado da ciência se houver risco relevante e sempre antes da produção (§6.6, passos 4 e 5; o marco da ciência é definição jurídica, E-09; resumo para o jurídico no §7 do E-00).
 
 ### 6.2 Divergência financeira
 
@@ -172,7 +173,7 @@ Os playbooks são **TARGET**: descrevem o procedimento esperado e mostram o que 
 - **CURRENT:**
   - O deploy é manual, da estação, sem versão, CD nem rollback testado (PR-REL-01).
   - O alvo de deploy é fixo (PR-PLAT-01).
-  - `dist/` é compartilhado com o build E2E, e o Hosting não tem predeploy (`package.json:9,27`; `firebase.json:25-30`; PR-AUTH-04).
+  - `dist/` é compartilhado com o build E2E, e o predeploy do Hosting só roda a varredura de segredos do bundle, sem build por ambiente (`package.json:9,27`; `firebase.json:34-36`; PR-AUTH-04).
   - O Emulator não exige índice, então uma consulta sem índice só falha em produção (PR-CC-08 e PR-RULES-03 foram os exemplos, resolvidos na P4-A e na P4-E com o índice versionado; ainda vale para toda consulta nova sem gate de cobertura, READ-11).
 - **Contenção:**
   1. Congelar novos deploys e identificar o último commit bom.
@@ -324,7 +325,7 @@ Nenhum exercício foi feito (**CURRENT**). **TARGET:** tabletop dos playbooks e 
 | Ambientes para reproduzir e ensaiar | PR-PLAT-01 | P6 |
 | Releases versionadas e rollback | PR-REL-01 | P6 |
 | Canal do titular e encarregado | PR-PRIV-01 | P8 |
-| Rotação da chave Gemini | PR-AI-02 | P0 |
+| Contenção e revogação da chave Gemini exposta (E-00, parte A); a chave nova por ambiente é o E-05 (parte B, P6) | PR-AI-02 | P0 |
 
 ### 11.2 DECISION
 
@@ -342,7 +343,7 @@ Nenhum exercício foi feito (**CURRENT**). **TARGET:** tabletop dos playbooks e 
 
 | Item | ID | Estado | Data | Responsável |
 | --- | --- | --- | --- | --- |
-| Rotação da chave Gemini e revogação das anteriores, com evidência | E-00 | NÃO VERIFICADO | — | — |
+| Contenção e revogação da chave Gemini exposta e das credenciais publicadas no mesmo incidente, com evidência (§9.4 do `SECURITY_MODEL.md`, parte A); decisão de comunicação (parte C) | E-00 | NÃO VERIFICADO | — | — |
 | Projetos DEV/STAGING/PROD e plano de suporte do Google Cloud | E-01 | NÃO VERIFICADO | — | — |
 | App Check: chave reCAPTCHA Enterprise por ambiente, enforcement e monitoramento de rejeições | E-02 | NÃO VERIFICADO | — | — |
 | Auth: desativação de usuário, MFA para admins, proteção contra enumeração | E-03 | NÃO VERIFICADO | — | — |

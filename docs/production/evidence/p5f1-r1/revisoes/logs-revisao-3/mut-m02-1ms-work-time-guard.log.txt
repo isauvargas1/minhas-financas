@@ -1,0 +1,152 @@
+TAP version 13
+# Subtest: a varredura alcança o repositório real
+not ok 1 - a varredura alcança o repositório real
+  ---
+  duration_ms: 3.357603
+  type: 'test'
+  location: '<scratchpad>/p5f1r1/revisao3/mut-m02-limiar-1ms/tests/unit/work-time-guard.test.ts:78:1'
+  failureType: 'testCodeFailure'
+  error: "ENOENT: no such file or directory, scandir '<scratchpad>/p5f1r1/revisao3/mut-m02-limiar-1ms/functions/src'"
+  code: 'ENOENT'
+  stack: |-
+    readdirSync (node:fs:1590:26)
+    sourceFiles (file://<scratchpad>/p5f1r1/revisao3/mut-m02-limiar-1ms/tests/unit/work-time-guard.test.ts:62:3)
+    TestContext.<anonymous> (file://<scratchpad>/p5f1r1/revisao3/mut-m02-limiar-1ms/tests/unit/work-time-guard.test.ts:82:13)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.start (node:internal/test_runner/test:944:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)
+  ...
+# Subtest: nenhuma Function lê, grava ou menciona a preferência privada
+not ok 2 - nenhuma Function lê, grava ou menciona a preferência privada
+  ---
+  duration_ms: 0.21227
+  type: 'test'
+  location: '<scratchpad>/p5f1r1/revisao3/mut-m02-limiar-1ms/tests/unit/work-time-guard.test.ts:85:1'
+  failureType: 'testCodeFailure'
+  error: "ENOENT: no such file or directory, scandir '<scratchpad>/p5f1r1/revisao3/mut-m02-limiar-1ms/functions/src'"
+  code: 'ENOENT'
+  stack: |-
+    readdirSync (node:fs:1590:26)
+    sourceFiles (file://<scratchpad>/p5f1r1/revisao3/mut-m02-limiar-1ms/tests/unit/work-time-guard.test.ts:62:3)
+    TestContext.<anonymous> (file://<scratchpad>/p5f1r1/revisao3/mut-m02-limiar-1ms/tests/unit/work-time-guard.test.ts:86:22)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: IA, notificações e relatórios autoritativos não recebem a preferência
+ok 3 - IA, notificações e relatórios autoritativos não recebem a preferência
+  ---
+  duration_ms: 3.093897
+  type: 'test'
+  ...
+# Subtest: DTOs, chamadas e adaptadores financeiros não carregam tempo de trabalho
+ok 4 - DTOs, chamadas e adaptadores financeiros não carregam tempo de trabalho
+  ---
+  duration_ms: 5.298923
+  type: 'test'
+  ...
+# Subtest: nenhuma cópia local da preferência e nenhuma leitura do cache do SDK no app
+ok 5 - nenhuma cópia local da preferência e nenhuma leitura do cache do SDK no app
+  ---
+  duration_ms: 18.457063
+  type: 'test'
+  ...
+# Subtest: logs da preferência só levam mensagem fixa e código de erro
+ok 6 - logs da preferência só levam mensagem fixa e código de erro
+  ---
+  duration_ms: 2.80144
+  type: 'test'
+  ...
+# Subtest: sessão: troca de conta e respostas atrasadas não expõem a preferência de outra conta
+ok 7 - sessão: troca de conta e respostas atrasadas não expõem a preferência de outra conta
+  ---
+  duration_ms: 0.418391
+  type: 'test'
+  ...
+# Subtest: a preferência só é lida e gravada no documento privado do próprio usuário
+ok 8 - a preferência só é lida e gravada no documento privado do próprio usuário
+  ---
+  duration_ms: 1.003678
+  type: 'test'
+  ...
+# Subtest: Rules: bloco explícito do titular, campos, gramáticas e limites iguais ao contrato v2 do cliente
+not ok 9 - Rules: bloco explícito do titular, campos, gramáticas e limites iguais ao contrato v2 do cliente
+  ---
+  duration_ms: 0.569771
+  type: 'test'
+  location: '<scratchpad>/p5f1r1/revisao3/mut-m02-limiar-1ms/tests/unit/work-time-guard.test.ts:215:1'
+  failureType: 'testCodeFailure'
+  error: "ENOENT: no such file or directory, open '<scratchpad>/p5f1r1/revisao3/mut-m02-limiar-1ms/firestore.rules'"
+  code: 'ENOENT'
+  stack: |-
+    readFileSync (node:fs:440:20)
+    read (file://<scratchpad>/p5f1r1/revisao3/mut-m02-limiar-1ms/tests/unit/work-time-guard.test.ts:55:32)
+    TestContext.<anonymous> (file://<scratchpad>/p5f1r1/revisao3/mut-m02-limiar-1ms/tests/unit/work-time-guard.test.ts:216:17)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: nada derivado é gravado: só a API do módulo escreve, e só os campos do contrato
+ok 10 - nada derivado é gravado: só a API do módulo escreve, e só os campos do contrato
+  ---
+  duration_ms: 2.832266
+  type: 'test'
+  ...
+# Subtest: estimativa: uma por contexto, sem polling nem listener por lançamento
+ok 11 - estimativa: uma por contexto, sem polling nem listener por lançamento
+  ---
+  duration_ms: 47.441474
+  type: 'test'
+  ...
+# Subtest: falhas de leitura: mensagens fixas em pt-BR, com nova tentativa, e só o código do erro no log
+ok 12 - falhas de leitura: mensagens fixas em pt-BR, com nova tentativa, e só o código do erro no log
+  ---
+  duration_ms: 0.961619
+  type: 'test'
+  ...
+# Subtest: janela de receitas: a leitura paginada real usa `readPagedWindow` com um documento a mais
+ok 13 - janela de receitas: a leitura paginada real usa `readPagedWindow` com um documento a mais
+  ---
+  duration_ms: 0.374275
+  type: 'test'
+  ...
+# Subtest: matriz: entradas, confirmações, termos, históricos e preços ficam em BRL
+ok 14 - matriz: entradas, confirmações, termos, históricos e preços ficam em BRL
+  ---
+  duration_ms: 2.846991
+  type: 'test'
+  ...
+# Subtest: matriz: pontos em BRL dentro de arquivos elegíveis continuam em reais, linha a linha
+ok 15 - matriz: pontos em BRL dentro de arquivos elegíveis continuam em reais, linha a linha
+  ---
+  duration_ms: 1.993928
+  type: 'test'
+  ...
+# Subtest: matriz: os pontos elegíveis usam a camada de exibição, e a prévia do tema força reais
+ok 16 - matriz: os pontos elegíveis usam a camada de exibição, e a prévia do tema força reais
+  ---
+  duration_ms: 1.917117
+  type: 'test'
+  ...
+# Subtest: modo dinheiro idêntico: a camada devolve o formatador da tela, sem elemento novo
+ok 17 - modo dinheiro idêntico: a camada devolve o formatador da tela, sem elemento novo
+  ---
+  duration_ms: 0.251037
+  type: 'test'
+  ...
+1..17
+# tests 17
+# suites 0
+# pass 14
+# fail 3
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 265.852673

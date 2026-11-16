@@ -1,0 +1,37 @@
+
+Running 1 test using 1 worker
+
+(node:1986) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 [chromium] › e2e/work-time-p5f.spec.ts:1230:1 › escuta das projeções encerrada: os valores voltam a reais, sem a ressalva de leitura anterior; abrir Configurações a reabre, a conversão volta e a estimativa em uso volta a acompanhar outras sessões (46.8s)
+
+
+  1) [chromium] › e2e/work-time-p5f.spec.ts:1230:1 › escuta das projeções encerrada: os valores voltam a reais, sem a ressalva de leitura anterior; abrir Configurações a reabre, a conversão volta e a estimativa em uso volta a acompanhar outras sessões 
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: getByTestId('work-time-notice')
+    Expected substring: "Estimativa de tempo de trabalho indisponível agora: os valores continuam em reais. Veja o motivo em Configurações."
+    Received string:    "Valores em tempo de trabalho equivalente: uma estimativa aproximada, não o valor exato. Não foi possível atualizar a estimativa com os lançamentos mais recentes: ela usa a leitura anterior. Tente de novo em Configurações.Mostrar em R$"
+    Timeout: 30000ms
+
+    Call log:
+      - Expect "toContainText" with timeout 30000ms
+      - waiting for getByTestId('work-time-notice')
+        63 × locator resolved to <p data-testid="work-time-notice" class="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted">…</p>
+           - unexpected value "Valores em tempo de trabalho equivalente: uma estimativa aproximada, não o valor exato. Não foi possível atualizar a estimativa com os lançamentos mais recentes: ela usa a leitura anterior. Tente de novo em Configurações.Mostrar em R$"
+
+
+      1251 |   await db().doc(`workspaces/${tenant.pf.workspaceId}/cash_report_periods/${firstMonth}`)
+      1252 |     .update({ updatedAt: adminSdk().firestore.FieldValue.serverTimestamp() });
+    > 1253 |   await expect(notice(page)).toContainText(unavailable, { timeout: 30_000 });
+           |                              ^
+      1254 |   await expect(page.locator('[data-work-time]')).toHaveCount(0);
+      1255 |   await expect(balanceCard(page)).toContainText(brl(pjBalance));
+      1256 |   await expect(notice(page)).not.toContainText(stale);
+        at <scratchpad>/p5f1r32/copia-r31-e2e/e2e/work-time-p5f.spec.ts:1253:30
+
+    Error Context: test-results/work-time-p5f-escuta-das-p-670c7-a-acompanhar-outras-sessões-chromium/error-context.md
+
+  1 failed
+    [chromium] › e2e/work-time-p5f.spec.ts:1230:1 › escuta das projeções encerrada: os valores voltam a reais, sem a ressalva de leitura anterior; abrir Configurações a reabre, a conversão volta e a estimativa em uso volta a acompanhar outras sessões 

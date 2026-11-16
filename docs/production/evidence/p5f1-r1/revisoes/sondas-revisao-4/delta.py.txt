@@ -1,0 +1,22 @@
+import sys
+from pathlib import Path
+raw = Path(sys.argv[1]); name = sys.argv[2]; shift = int(sys.argv[3]); y_from = int(sys.argv[4])
+def load(side):
+    w, h = map(int, (raw / side / f'{name}.size').read_text().split('x'))
+    return w, h, (raw / side / f'{name}.rgba').read_bytes()
+wa, ha, a = load('antes'); wb, hb, b = load('depois')
+blocks = {}
+for y in range(y_from, ha):
+    yb = y + shift
+    if yb >= hb: break
+    ra = a[y*wa*4:(y+1)*wa*4]; rb = b[yb*wb*4:(yb+1)*wb*4]
+    if ra == rb: continue
+    for x in range(wa):
+        pa = ra[x*4:x*4+4]; pb = rb[x*4:x*4+4]
+        if pa != pb:
+            d = max(abs(pa[i]-pb[i]) for i in range(4))
+            blocks.setdefault(y, []).append((x, d))
+tot = sum(len(v) for v in blocks.values())
+print('total', tot)
+for y, v in sorted(blocks.items()):
+    print(y, len(v), 'x', v[0][0], '..', v[-1][0], 'max delta', max(d for _, d in v))

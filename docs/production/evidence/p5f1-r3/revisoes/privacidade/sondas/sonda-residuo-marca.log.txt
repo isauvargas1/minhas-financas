@@ -1,0 +1,33 @@
+
+## 1. criação na g0
+  chains.a.node.fp = fp(V1: conteúdo antes da correção)
+  tamanho JSON da marca: 292 bytes
+
+## 2. depois da reconstrução R1 (âncora em b)
+  anchors.b.fp = fp(V1: conteúdo antes da correção)
+  chains.a.node.fp = fp(V1: conteúdo antes da correção)
+  tamanho JSON da marca: 425 bytes
+
+## 3. depois da correção V1 → V2 (o lançamento só tem V2)
+  anchors.b.fp = fp(V1: conteúdo antes da correção)
+  chains.a.node.fp = fp(V1: conteúdo antes da correção)
+  chains.b.base = fp(V1: conteúdo antes da correção)
+  chains.b.node.fp = fp(V2: conteúdo atual)
+  tamanho JSON da marca: 697 bytes
+
+## 4. depois de uma exclusão física de desenvolvimento
+  anchors.b.fp = fp(V1: conteúdo antes da correção)
+  chains.a.node.fp = fp(V1: conteúdo antes da correção)
+  chains.b.base = fp(V1: conteúdo antes da correção)
+  tamanho JSON da marca: 627 bytes
+
+## 5. depois da reconstrução R2 (lançamento fora da base: nenhum escritor toca a marca de novo)
+  anchors.b.fp = fp(V1: conteúdo antes da correção)
+  chains.a.node.fp = fp(V1: conteúdo antes da correção)
+  chains.b.base = fp(V1: conteúdo antes da correção)
+  tamanho JSON da marca: 627 bytes
+
+## Resultado
+  impressões de V1 que sobram na marca depois da correção: 3
+  impressões de V1 que sobram depois da exclusão e de R2: 3
+  visão da geração vigente (R2) pela regra do backend: {"kind":"rooted","root":"absent","base":null,"node":{"k":"absent"},"pending":[]}

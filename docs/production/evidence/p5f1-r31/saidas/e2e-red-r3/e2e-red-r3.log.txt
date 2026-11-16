@@ -1,0 +1,66 @@
+
+Running 2 tests using 1 worker
+
+(node:4991) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 [chromium] › e2e/work-time-b03.spec.ts:632:1 › B03-f (R3.1): leitura nova sem prova: o saldo novo fica em reais e nunca é convertido pela estimativa anterior; a reconstrução traz a conversão certa (31.2s)
+(node:5232) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  2 [chromium] › e2e/work-time-p5f.spec.ts:1038:1 › releitura que falha: sem confirmar a receita nova, nada convertido e erro com "Tentar de novo"; com a projeção de volta à última leitura, a estimativa volta com o aviso (48.8s)
+
+
+  1) [chromium] › e2e/work-time-b03.spec.ts:632:1 › B03-f (R3.1): leitura nova sem prova: o saldo novo fica em reais e nunca é convertido pela estimativa anterior; a reconstrução traz a conversão certa 
+
+    Error: expect(locator).toHaveCount(expected) failed
+
+    Locator:  locator('[data-work-time]')
+    Expected: 0
+    Received: 9
+    Timeout:  12000ms
+
+    Call log:
+      - Expect "toHaveCount" with timeout 12000ms
+      - waiting for locator('[data-work-time]')
+        28 × locator resolved to 9 elements
+           - unexpected value "9"
+
+
+      666 |   // O saldo novo aparece em reais, sem nenhum valor convertido; o topo diz que os valores ficam em reais.
+      667 |   await expect(balanceCard(page)).toContainText(brl(after), { timeout: 60_000 });
+    > 668 |   await expect(page.locator('[data-work-time]')).toHaveCount(0);
+          |                                                  ^
+      669 |   await expect(notice(page)).toContainText(
+      670 |     /Calculando a estimativa de tempo de trabalho: enquanto isso, os valores ficam em reais\.|Estimativa de tempo de trabalho indisponível agora: os valores continuam em reais\./,
+      671 |   );
+        at <scratchpad>/p5f1r31/copia-r3-e2e/e2e/work-time-b03.spec.ts:668:50
+
+    Error Context: test-results/work-time-b03-B03-f-R3-1-l-5f16a-ução-traz-a-conversão-certa-chromium/error-context.md
+
+  2) [chromium] › e2e/work-time-p5f.spec.ts:1038:1 › releitura que falha: sem confirmar a receita nova, nada convertido e erro com "Tentar de novo"; com a projeção de volta à última leitura, a estimativa volta com o aviso 
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: getByTestId('work-time-preview-error')
+    Expected substring: "Não foi possível carregar o relatório. Tente novamente."
+    Timeout: 45000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toContainText" with timeout 45000ms
+      - waiting for getByTestId('work-time-preview-error')
+
+
+      1074 |   const failure = page.getByTestId('work-time-preview-error');
+      1075 |   const stale = page.getByTestId('work-time-preview-refresh-failed');
+    > 1076 |   await expect(failure).toContainText('Não foi possível carregar o relatório. Tente novamente.', { timeout: 45_000 });
+           |                         ^
+      1077 |   await expect(failure).not.toContainText(/internal|INTERNAL/);
+      1078 |   await expect(failure.getByRole('button', { name: 'Tentar de novo' })).toBeVisible();
+      1079 |   await expect(previewHourly(page)).toHaveCount(0);
+        at <scratchpad>/p5f1r31/copia-r3-e2e/e2e/work-time-p5f.spec.ts:1076:25
+
+    Error Context: test-results/work-time-p5f-releitura-qu-ec648-stimativa-volta-com-o-aviso-chromium/error-context.md
+
+  2 failed
+    [chromium] › e2e/work-time-b03.spec.ts:632:1 › B03-f (R3.1): leitura nova sem prova: o saldo novo fica em reais e nunca é convertido pela estimativa anterior; a reconstrução traz a conversão certa 
+    [chromium] › e2e/work-time-p5f.spec.ts:1038:1 › releitura que falha: sem confirmar a receita nova, nada convertido e erro com "Tentar de novo"; com a projeção de volta à última leitura, a estimativa volta com o aviso 

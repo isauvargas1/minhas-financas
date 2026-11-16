@@ -1,0 +1,479 @@
+{
+  "capturas": [
+    {
+      "captura": "dinheiro-dashboard-desktop-dark.png",
+      "antes": "1440x1036",
+      "depois": "1440x1036",
+      "pixels_diferentes": 0
+    },
+    {
+      "captura": "dinheiro-dashboard-desktop-light.png",
+      "antes": "1440x1036",
+      "depois": "1440x1036",
+      "pixels_diferentes": 0
+    },
+    {
+      "captura": "dinheiro-dashboard-mobile-dark.png",
+      "antes": "390x2180",
+      "depois": "390x2180",
+      "pixels_diferentes": 0
+    },
+    {
+      "captura": "dinheiro-dashboard-mobile-light.png",
+      "antes": "390x2180",
+      "depois": "390x2180",
+      "pixels_diferentes": 0
+    },
+    {
+      "captura": "dinheiro-dashboard-small-dark.png",
+      "antes": "360x2228",
+      "depois": "360x2228",
+      "pixels_diferentes": 0
+    },
+    {
+      "captura": "dinheiro-dashboard-small-light.png",
+      "antes": "360x2228",
+      "depois": "360x2228",
+      "pixels_diferentes": 0
+    },
+    {
+      "captura": "dinheiro-relatorios-desktop-dark.png",
+      "antes": "1440x1010",
+      "depois": "1440x1010",
+      "pixels_diferentes": 0
+    },
+    {
+      "captura": "dinheiro-relatorios-desktop-light.png",
+      "antes": "1440x1010",
+      "depois": "1440x1010",
+      "pixels_diferentes": 0
+    },
+    {
+      "captura": "dinheiro-relatorios-mobile-dark.png",
+      "antes": "390x2350",
+      "depois": "390x2350",
+      "pixels_diferentes": 0
+    },
+    {
+      "captura": "dinheiro-relatorios-mobile-light.png",
+      "antes": "390x2350",
+      "depois": "390x2350",
+      "pixels_diferentes": 0
+    },
+    {
+      "captura": "dinheiro-relatorios-small-dark.png",
+      "antes": "360x2417",
+      "depois": "360x2417",
+      "pixels_diferentes": 0
+    },
+    {
+      "captura": "dinheiro-relatorios-small-light.png",
+      "antes": "360x2417",
+      "depois": "360x2417",
+      "pixels_diferentes": 0
+    },
+    {
+      "captura": "tempo-dashboard-desktop-dark.png",
+      "antes": "1440x1068",
+      "depois": "1440x1068",
+      "pixels_diferentes": 0
+    },
+    {
+      "captura": "tempo-dashboard-desktop-light.png",
+      "antes": "1440x1068",
+      "depois": "1440x1068",
+      "pixels_diferentes": 0
+    },
+    {
+      "captura": "tempo-dashboard-mobile-dark.png",
+      "antes": "390x2276",
+      "depois": "390x2276",
+      "pixels_diferentes": 0
+    },
+    {
+      "captura": "tempo-dashboard-mobile-light.png",
+      "antes": "390x2276",
+      "depois": "390x2276",
+      "pixels_diferentes": 0
+    },
+    {
+      "captura": "tempo-dashboard-small-dark.png",
+      "antes": "360x2344",
+      "depois": "360x2344",
+      "pixels_diferentes": 0
+    },
+    {
+      "captura": "tempo-dashboard-small-light.png",
+      "antes": "360x2344",
+      "depois": "360x2344",
+      "pixels_diferentes": 0
+    },
+    {
+      "captura": "tempo-relatorios-desktop-dark.png",
+      "antes": "1440x1042",
+      "depois": "1440x1042",
+      "pixels_diferentes": 0
+    },
+    {
+      "captura": "tempo-relatorios-desktop-light.png",
+      "antes": "1440x1042",
+      "depois": "1440x1042",
+      "pixels_diferentes": 0
+    },
+    {
+      "captura": "tempo-relatorios-mobile-dark.png",
+      "antes": "390x2446",
+      "depois": "390x2446",
+      "pixels_diferentes": 0
+    },
+    {
+      "captura": "tempo-relatorios-mobile-light.png",
+      "antes": "390x2446",
+      "depois": "390x2446",
+      "pixels_diferentes": 14,
+      "caixa": "3x34++16++18"
+    },
+    {
+      "captura": "tempo-relatorios-small-dark.png",
+      "antes": "360x2533",
+      "depois": "360x2533",
+      "pixels_diferentes": 0
+    },
+    {
+      "captura": "tempo-relatorios-small-light.png",
+      "antes": "360x2533",
+      "depois": "360x2533",
+      "pixels_diferentes": 0
+    }
+  ],
+  "axe": [
+    {
+      "captura": "dinheiro-dashboard-desktop-dark",
+      "regras_antes": [
+        "color-contrast",
+        "label-content-name-mismatch",
+        "select-name"
+      ],
+      "regras_depois": [
+        "color-contrast",
+        "label-content-name-mismatch",
+        "select-name"
+      ],
+      "iguais": true
+    },
+    {
+      "captura": "dinheiro-dashboard-desktop-light",
+      "regras_antes": [
+        "color-contrast",
+        "label-content-name-mismatch",
+        "select-name"
+      ],
+      "regras_depois": [
+        "color-contrast",
+        "label-content-name-mismatch",
+        "select-name"
+      ],
+      "iguais": true
+    },
+    {
+      "captura": "dinheiro-dashboard-mobile-dark",
+      "regras_antes": [
+        "color-contrast",
+        "label-content-name-mismatch",
+        "select-name"
+      ],
+      "regras_depois": [
+        "color-contrast",
+        "label-content-name-mismatch",
+        "select-name"
+      ],
+      "iguais": true
+    },
+    {
+      "captura": "dinheiro-dashboard-mobile-light",
+      "regras_antes": [
+        "color-contrast",
+        "label-content-name-mismatch",
+        "select-name"
+      ],
+      "regras_depois": [
+        "color-contrast",
+        "label-content-name-mismatch",
+        "select-name"
+      ],
+      "iguais": true
+    },
+    {
+      "captura": "dinheiro-dashboard-small-dark",
+      "regras_antes": [
+        "color-contrast",
+        "label-content-name-mismatch",
+        "select-name"
+      ],
+      "regras_depois": [
+        "color-contrast",
+        "label-content-name-mismatch",
+        "select-name"
+      ],
+      "iguais": true
+    },
+    {
+      "captura": "dinheiro-dashboard-small-light",
+      "regras_antes": [
+        "color-contrast",
+        "label-content-name-mismatch",
+        "select-name"
+      ],
+      "regras_depois": [
+        "color-contrast",
+        "label-content-name-mismatch",
+        "select-name"
+      ],
+      "iguais": true
+    },
+    {
+      "captura": "dinheiro-relatorios-desktop-dark",
+      "regras_antes": [
+        "color-contrast",
+        "label-content-name-mismatch"
+      ],
+      "regras_depois": [
+        "color-contrast",
+        "label-content-name-mismatch"
+      ],
+      "iguais": true
+    },
+    {
+      "captura": "dinheiro-relatorios-desktop-light",
+      "regras_antes": [
+        "color-contrast",
+        "label-content-name-mismatch"
+      ],
+      "regras_depois": [
+        "color-contrast",
+        "label-content-name-mismatch"
+      ],
+      "iguais": true
+    },
+    {
+      "captura": "dinheiro-relatorios-mobile-dark",
+      "regras_antes": [
+        "color-contrast",
+        "label-content-name-mismatch",
+        "scrollable-region-focusable"
+      ],
+      "regras_depois": [
+        "color-contrast",
+        "label-content-name-mismatch",
+        "scrollable-region-focusable"
+      ],
+      "iguais": true
+    },
+    {
+      "captura": "dinheiro-relatorios-mobile-light",
+      "regras_antes": [
+        "color-contrast",
+        "label-content-name-mismatch",
+        "scrollable-region-focusable"
+      ],
+      "regras_depois": [
+        "color-contrast",
+        "label-content-name-mismatch",
+        "scrollable-region-focusable"
+      ],
+      "iguais": true
+    },
+    {
+      "captura": "dinheiro-relatorios-small-dark",
+      "regras_antes": [
+        "color-contrast",
+        "label-content-name-mismatch",
+        "scrollable-region-focusable"
+      ],
+      "regras_depois": [
+        "color-contrast",
+        "label-content-name-mismatch",
+        "scrollable-region-focusable"
+      ],
+      "iguais": true
+    },
+    {
+      "captura": "dinheiro-relatorios-small-light",
+      "regras_antes": [
+        "color-contrast",
+        "label-content-name-mismatch",
+        "scrollable-region-focusable"
+      ],
+      "regras_depois": [
+        "color-contrast",
+        "label-content-name-mismatch",
+        "scrollable-region-focusable"
+      ],
+      "iguais": true
+    },
+    {
+      "captura": "tempo-dashboard-desktop-dark",
+      "regras_antes": [
+        "color-contrast",
+        "label-content-name-mismatch",
+        "select-name"
+      ],
+      "regras_depois": [
+        "color-contrast",
+        "label-content-name-mismatch",
+        "select-name"
+      ],
+      "iguais": true
+    },
+    {
+      "captura": "tempo-dashboard-desktop-light",
+      "regras_antes": [
+        "color-contrast",
+        "label-content-name-mismatch",
+        "select-name"
+      ],
+      "regras_depois": [
+        "color-contrast",
+        "label-content-name-mismatch",
+        "select-name"
+      ],
+      "iguais": true
+    },
+    {
+      "captura": "tempo-dashboard-mobile-dark",
+      "regras_antes": [
+        "color-contrast",
+        "label-content-name-mismatch",
+        "select-name"
+      ],
+      "regras_depois": [
+        "color-contrast",
+        "label-content-name-mismatch",
+        "select-name"
+      ],
+      "iguais": true
+    },
+    {
+      "captura": "tempo-dashboard-mobile-light",
+      "regras_antes": [
+        "color-contrast",
+        "label-content-name-mismatch",
+        "select-name"
+      ],
+      "regras_depois": [
+        "color-contrast",
+        "label-content-name-mismatch",
+        "select-name"
+      ],
+      "iguais": true
+    },
+    {
+      "captura": "tempo-dashboard-small-dark",
+      "regras_antes": [
+        "color-contrast",
+        "label-content-name-mismatch",
+        "select-name"
+      ],
+      "regras_depois": [
+        "color-contrast",
+        "label-content-name-mismatch",
+        "select-name"
+      ],
+      "iguais": true
+    },
+    {
+      "captura": "tempo-dashboard-small-light",
+      "regras_antes": [
+        "color-contrast",
+        "label-content-name-mismatch",
+        "select-name"
+      ],
+      "regras_depois": [
+        "color-contrast",
+        "label-content-name-mismatch",
+        "select-name"
+      ],
+      "iguais": true
+    },
+    {
+      "captura": "tempo-relatorios-desktop-dark",
+      "regras_antes": [
+        "color-contrast",
+        "label-content-name-mismatch"
+      ],
+      "regras_depois": [
+        "color-contrast",
+        "label-content-name-mismatch"
+      ],
+      "iguais": true
+    },
+    {
+      "captura": "tempo-relatorios-desktop-light",
+      "regras_antes": [
+        "color-contrast",
+        "label-content-name-mismatch"
+      ],
+      "regras_depois": [
+        "color-contrast",
+        "label-content-name-mismatch"
+      ],
+      "iguais": true
+    },
+    {
+      "captura": "tempo-relatorios-mobile-dark",
+      "regras_antes": [
+        "color-contrast",
+        "label-content-name-mismatch",
+        "scrollable-region-focusable"
+      ],
+      "regras_depois": [
+        "color-contrast",
+        "label-content-name-mismatch",
+        "scrollable-region-focusable"
+      ],
+      "iguais": true
+    },
+    {
+      "captura": "tempo-relatorios-mobile-light",
+      "regras_antes": [
+        "color-contrast",
+        "label-content-name-mismatch",
+        "scrollable-region-focusable"
+      ],
+      "regras_depois": [
+        "color-contrast",
+        "label-content-name-mismatch",
+        "scrollable-region-focusable"
+      ],
+      "iguais": true
+    },
+    {
+      "captura": "tempo-relatorios-small-dark",
+      "regras_antes": [
+        "color-contrast",
+        "label-content-name-mismatch",
+        "scrollable-region-focusable"
+      ],
+      "regras_depois": [
+        "color-contrast",
+        "label-content-name-mismatch",
+        "scrollable-region-focusable"
+      ],
+      "iguais": true
+    },
+    {
+      "captura": "tempo-relatorios-small-light",
+      "regras_antes": [
+        "color-contrast",
+        "label-content-name-mismatch",
+        "scrollable-region-focusable"
+      ],
+      "regras_depois": [
+        "color-contrast",
+        "label-content-name-mismatch",
+        "scrollable-region-focusable"
+      ],
+      "iguais": true
+    }
+  ]
+}

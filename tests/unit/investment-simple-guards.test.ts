@@ -182,7 +182,8 @@ const gitFiles = (...patterns: string[]) =>
     .filter(Boolean)
     .filter((path) => existsSync(path));
 
-const sourceFiles = gitFiles('src/**/*.ts', 'src/**/*.tsx');
+// `*` atravessa `/` no pathspec do git: pega também o primeiro nível de src/ (P5-GATE-FINAL, mesmo caso do RR-R3-12).
+const sourceFiles = gitFiles('src/*.ts', 'src/*.tsx');
 
 test('nenhuma tela grava investimento direto em transactions', () => {
   /*

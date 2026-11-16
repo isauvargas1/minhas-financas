@@ -4,6 +4,7 @@ import { monthlyEstimateCents } from '../modules/recurring/payloads.ts';
 import { civilDaysBetween } from '../modules/recurring/schedule.ts';
 import { formatCents, formatDayKey, saoPauloToday } from '../modules/loans/money.ts';
 import { RepeatIcon, WarningIcon } from './Icons.tsx';
+import { useMoneyDisplay } from '../modules/work-time/display';
 
 const RecurringDashboardWidget: React.FC = () => {
     /*
@@ -11,6 +12,7 @@ const RecurringDashboardWidget: React.FC = () => {
      * servidor. Valores em centavos; a estimativa mensal é de exibição.
      */
     const { data: expenses, isLoading } = useActiveRecurringExpenses();
+    const display = useMoneyDisplay();
 
     const summary = useMemo(() => {
         if (!expenses) return { totalMonthly: 0, top3: [], expiringSoon: [] };
@@ -52,7 +54,7 @@ const RecurringDashboardWidget: React.FC = () => {
                     Assinaturas
                 </h3>
                 <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded font-medium">
-                    Mensal: {formatCents(summary.totalMonthly)}
+                    Mensal: {display.cents(summary.totalMonthly, formatCents)}
                 </span>
             </div>
 
@@ -84,7 +86,7 @@ const RecurringDashboardWidget: React.FC = () => {
                                     <div className="w-2 h-2 rounded-full" style={{ backgroundColor: exp.visual.color }}></div>
                                     <span className="text-sm font-medium text-on-surface">{exp.name}</span>
                                 </div>
-                                <span className="text-sm font-bold text-on-surface">{formatCents(exp.amountCents)}</span>
+                                <span className="text-sm font-bold text-on-surface">{display.cents(exp.amountCents, formatCents)}</span>
                             </div>
                         ))}
                     </div>

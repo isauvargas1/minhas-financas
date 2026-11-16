@@ -1,0 +1,1 @@
+{"receitaDoMes":45000,"conteudoAtual":45000,"prova":"recusada (mark_pending)","markRecoveryNeeded":false,"needsRebuild":false,"markIssueCount":0,"todasAsEntregasFeitas":true}

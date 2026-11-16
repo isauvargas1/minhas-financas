@@ -1,0 +1,57 @@
+⚠  Unable to fetch the CLI MOTD and remote config. This is not a fatal error, but may indicate an issue with your network connection.
+⚠  emulators: You are not currently authenticated so some features may not work correctly. Please run firebase login to authenticate the CLI.
+i  emulators: Starting emulators: firestore
+⚠  hub: Error when trying to check port 4400 on ::1: Error: listen EAFNOSUPPORT: address family not supported ::1:4400
+⚠  hub: Port 4400 is available on 127.0.0.1 but not ::1. This may cause issues with some clients.
+⚠  hub: If you encounter connectivity issues, consider switching to a different port or explicitly specifying "host": "<ip address>" instead of hostname in firebase.json
+⚠  logging: Error when trying to check port 4500 on ::1: Error: listen EAFNOSUPPORT: address family not supported ::1:4500
+⚠  logging: Port 4500 is available on 127.0.0.1 but not ::1. This may cause issues with some clients.
+⚠  logging: If you encounter connectivity issues, consider switching to a different port or explicitly specifying "host": "<ip address>" instead of hostname in firebase.json
+i  firestore: Firestore Emulator logging to firestore-debug.log
+✔  firestore: Firestore Emulator was started in standard edition.
+✔  firestore: Firestore Emulator UI websocket is running on 9150.
+i  Running script: node <scratchpad>/p5f1r3/sondas/sonda-updatetime.cjs
+{
+ "escritas": 40,
+ "updatedAtIgualUpdateTime": false,
+ "updateTimeCrescente": true,
+ "nanosMultiplosDe1000": true,
+ "mesmaTransacaoMesmoInstante": false,
+ "mes": "1794243120.489000000",
+ "marca": "1794243120.489000000",
+ "updateTimeMes": "1794243120.493517000",
+ "updateTimeMarca": "1794243120.493517000",
+ "amostra": [
+  [
+   1,
+   "1794243119.801496000",
+   "1794243119.793000000",
+   false
+  ],
+  [
+   2,
+   "1794243119.873984000",
+   "1794243119.870000000",
+   false
+  ],
+  [
+   3,
+   "1794243119.892844000",
+   "1794243119.891000000",
+   false
+  ],
+  [
+   4,
+   "1794243119.933649000",
+   "1794243119.928000000",
+   false
+  ]
+ ]
+}
+⚠  Script exited unsuccessfully (code 1)
+i  emulators: Shutting down emulators.
+i  firestore: Stopping Firestore Emulator
+i  hub: Stopping emulator hub
+i  logging: Stopping Logging Emulator
+
+Error: Script "node <scratchpad>/p5f1r3/sondas/sonda-updatetime.cjs" exited with code 1

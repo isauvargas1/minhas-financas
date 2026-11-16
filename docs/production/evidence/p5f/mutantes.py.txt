@@ -1,0 +1,249 @@
+"""P5-F: mutantes do cálculo, do contrato, do formulário e da guarda estática.
+
+Cada mutante roda numa cópia fora do worktree (src, functions/src, firestore.rules,
+package.json e os testes unitários do tempo de trabalho; node_modules por link
+simbólico). A troca precisa casar exatamente uma vez; senão o mutante é inválido e
+o roteiro para. Um mutante está morto quando o arquivo de teste indicado falha.
+Nada no worktree é alterado. Saída: texto e JSON em p5f/mutantes/.
+"""
+import json
+import os
+import shutil
+import subprocess
+import sys
+
+S = '<scratchpad>'
+WT = f'{S}/wt-p5f'
+OUT = f'{S}/p5f/mutantes'
+NBSP = ' '
+
+CALC = 'tests/unit/work-time-calculation.test.ts'
+PREF = 'tests/unit/work-time-preference.test.ts'
+GUARD = 'tests/unit/work-time-guard.test.ts'
+WT_DIR = 'src/modules/work-time'
+APPEND = object()
+
+MUTANTS = [
+    # Cálculo
+    ('C1', 'arredondamento vira truncamento', CALC, [(f'{WT_DIR}/calculation.ts',
+        '(TWO * numerator + denominator) / (TWO * denominator);', 'numerator / denominator;')]),
+    ('C2', 'menos de 1 minuto vira zero', CALC, [(f'{WT_DIR}/calculation.ts',
+        "if (minutes === ZERO) return { kind: 'under_a_minute', negative };", "if (minutes === ZERO) return { kind: 'zero' };")]),
+    ('C3', 'sinal negativo perdido', CALC, [(f'{WT_DIR}/calculation.ts',
+        "return { kind: 'minutes', minutes: negative ? -value : value };", "return { kind: 'minutes', minutes: value };")]),
+    ('C4', 'sem teto do maior inteiro seguro', CALC, [(f'{WT_DIR}/calculation.ts',
+        "  if (minutes > MAX_SAFE) return { kind: 'unavailable' };\n", '')]),
+    ('C5', 'sem piso de R$ 0,01 por hora', CALC, [(f'{WT_DIR}/calculation.ts',
+        "  if (income * 60 < minutes) return 'hourly_rate_too_low';\n", '')]),
+    ('C6', 'reais de exibição devolvem -0', CALC, [(f'{WT_DIR}/calculation.ts',
+        'return cents === 0 ? 0 : cents;', 'return cents;')]),
+    ('C7', 'sem teto dos reais de exibição', CALC, [(f'{WT_DIR}/calculation.ts',
+        '  if (Math.abs(reais) > WORK_TIME_MAX_DISPLAY_REAIS) return null;\n', '')]),
+    ('C8', 'sem a marca de estimativa (≈)', CALC, [(f'{WT_DIR}/calculation.ts',
+        "return `${equivalent.minutes < 0 ? '-' : ''}≈${NBSP}${parts.join(NBSP)}`;",
+        "return `${equivalent.minutes < 0 ? '-' : ''}${parts.join(NBSP)}`;")]),
+    ('C9', 'espaço comum no lugar do espaço inseparável', CALC, [(f'{WT_DIR}/calculation.ts',
+        f"const NBSP = '{NBSP}';", "const NBSP = ' ';")]),
+    ('C10', 'leitor de tela sem o valor exato em reais', CALC, [(f'{WT_DIR}/calculation.ts',
+        'spoken: `${describeWorkTime(equivalent)}, equivalente a ${money}`,', 'spoken: describeWorkTime(equivalent),')]),
+    # Contrato
+    ('K1', 'campo a mais aceito na leitura', PREF, [(f'{WT_DIR}/contract.ts',
+        '  if (keys.length !== WORK_TIME_PREFERENCE_FIELDS.length) return null;\n', '')]),
+    ('K2', 'enabled sem verificação de tipo', PREF, [(f'{WT_DIR}/contract.ts',
+        "  if (typeof data.enabled !== 'boolean') return null;\n", '')]),
+    ('K3', 'updatedAt sem verificação', PREF, [(f'{WT_DIR}/contract.ts',
+        '  if (!isTimestampLike(data.updatedAt)) return null;\n', '')]),
+    ('K4', 'modo tempo com a preferência desativada', PREF, [(f'{WT_DIR}/contract.ts',
+        "isWorkTimeAvailable(preference) && preference.displayMode === 'time' ? 'time' : 'money';",
+        "preference !== null && preference.displayMode === 'time' ? 'time' : 'money';")]),
+    ('K5', 'uid com barra vira caminho', PREF, [(f'{WT_DIR}/contract.ts', '/^[^/]{1,128}$/', '/^.{1,128}$/')]),
+    ('K6', 'valor convertido gravado no documento', PREF, [(f'{WT_DIR}/contract.ts',
+        '    monthlyWorkMinutes: preference.monthlyWorkMinutes,\n  };',
+        '    monthlyWorkMinutes: preference.monthlyWorkMinutes,\n    equivalentMinutes: 0,\n  };')]),
+    ('K7', 'schemaVersion ignorado', PREF, [(f'{WT_DIR}/contract.ts',
+        '  if (data.schemaVersion !== WORK_TIME_SCHEMA_VERSION) return null;\n', '')]),
+    ('K8', 'configuração inválida aceita na leitura', PREF, [(f'{WT_DIR}/contract.ts',
+        '  if (!isValidWorkTimeConfig(config)) return null;\n  return {\n    enabled: data.enabled,',
+        '  return {\n    enabled: data.enabled,')]),
+    # Formulário
+    ('F1', 'minutos até 60', PREF, [(f'{WT_DIR}/form.ts', 'Number(minutesText) > 59', 'Number(minutesText) > 60')]),
+    ('F2', 'renda zero cai na mensagem de mínimo', PREF, [(f'{WT_DIR}/form.ts',
+        "if (cents <= 0) return { ok: false, message: 'A renda precisa ser maior que zero.' };",
+        "if (cents < 0) return { ok: false, message: 'A renda precisa ser maior que zero.' };")]),
+    # Guarda estática
+    ('G1', 'contexto da IA recebe a renda', GUARD, [('src/modules/ai/callables.ts', APPEND,
+        "export const leakedIncome = { monthlyIncomeCents: 0 };\n")]),
+    ('G2', 'Function lê a preferência', GUARD, [('functions/src/index.ts', APPEND,
+        "export const workTimeProbe = 'work_time_equivalent';\n")]),
+    ('G3', 'cópia da preferência no localStorage', GUARD, [(f'{WT_DIR}/WorkTimeContext.tsx',
+        "(snapshot) => setState({ uid, status: 'ready', snapshot }),",
+        "(snapshot) => { localStorage.setItem('wt', JSON.stringify(snapshot)); setState({ uid, status: 'ready', snapshot }); },")]),
+    ('G4', 'leitura do cache local do Firestore', GUARD, [(f'{WT_DIR}/api.ts', APPEND,
+        "export { getDocFromCache } from 'firebase/firestore';\n")]),
+    ('G5', 'log com o objeto de erro inteiro', GUARD, [(f'{WT_DIR}/WorkTimeContext.tsx',
+        "console.error('Falha ao ler a preferência de tempo de trabalho', typeof code === 'string' ? code : 'desconhecido');",
+        "console.error('Falha ao ler a preferência de tempo de trabalho', error);")]),
+    ('G6', 'Rules liberam a listagem ao titular', GUARD, [('firestore.rules',
+        '        allow list: if false;\n      }\n\n      // Índice de participação',
+        '        allow list: if signedIn() && request.auth.uid == userId;\n      }\n\n      // Índice de participação')]),
+    ('G7', 'Rules sem hasOnly (campo extra)', GUARD, [('firestore.rules',
+        "      return data.keys().hasOnly([\n          'schemaVersion', 'enabled', 'displayMode',",
+        "      return data.keys().hasAny([\n          'schemaVersion', 'enabled', 'displayMode',")]),
+    ('G8', 'Rules aceitam updatedAt do cliente', GUARD, [('firestore.rules',
+        '        data.updatedAt == request.time;\n    }', '        data.updatedAt is timestamp;\n    }')]),
+    ('G9', 'transferência (BRL obrigatório) usa a camada', GUARD, [('src/components/accounts/CashTransferModal.tsx',
+        None, "import { useMoneyDisplay } from '../../modules/work-time/display';\n")]),
+    ('G10', 'ponto elegível sem a camada (LoanCard)', GUARD, [('src/components/LoanCard.tsx',
+        'useMoneyDisplay()', 'useLegacyMoney()')]),
+    ('G11', 'modo dinheiro ganha elemento novo', GUARD, [(f'{WT_DIR}/display.tsx',
+        'return presentation ? <WorkTimeAmount presentation={presentation} /> : formatMoney(cents);',
+        'return presentation ? <WorkTimeAmount presentation={presentation} /> : <span>{formatMoney(cents)}</span>;')]),
+    ('G12', 'DTO de relatório com tempo de trabalho', GUARD, [('src/modules/reports/types.ts', APPEND,
+        'export type WorkTimeKpi = { workTimeMinutes: number };\n')]),
+    ('G13', 'preferência no cache do React Query', GUARD, [(f'{WT_DIR}/WorkTimeContext.tsx',
+        None, "import { useQueryClient } from '@tanstack/react-query';\n")]),
+    ('G14', 'API da preferência com caminho de workspace', GUARD, [(f'{WT_DIR}/api.ts', APPEND,
+        "const PROBE_PATH = 'workspaces';\nvoid PROBE_PATH;\n")]),
+    ('G15', 'notificação carrega a renda', GUARD, [('src/modules/notifications/model.ts', APPEND,
+        "export const NOTIFY_INCOME_FIELD = 'monthlyIncomeCents';\n")]),
+    ('G16', 'prévia do tema (gráfico e lista) sem ForceMoneyDisplay', GUARD, [
+        ('src/components/PersonalizationView.tsx',
+         '<ForceMoneyDisplay>\n                                    <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 mb-8">',
+         '<>\n                                    <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 mb-8">'),
+        ('src/components/PersonalizationView.tsx',
+         '                                    </div>\n                                    </ForceMoneyDisplay>',
+         '                                    </div>\n                                    </>')]),
+    ('G17', 'Header registra a preferência no log', GUARD, [('src/components/Header.tsx',
+        "console.error('Falha ao trocar o modo de exibição', typeof code === 'string' ? code : 'desconhecido');",
+        "console.error('Falha ao trocar o modo de exibição', workTime.preference);")]),
+    ('G18', 'rótulo do log com a renda digitada', GUARD, [('src/components/WorkTimeSettingsView.tsx',
+        "logCode('Falha ao salvar a preferência de tempo de trabalho', error);",
+        "logCode(`Falha ao salvar ${form.income}`, error);")]),
+    ('G19', 'Rules sem conta ativa', GUARD, [('firestore.rules',
+        "      return hasActiveAccount() &&\n        request.auth.uid == userId &&\n        preferenceId == 'work_time_equivalent';",
+        "      return request.auth.uid == userId &&\n        preferenceId == 'work_time_equivalent';")]),
+    ('G20', 'Rules com teto de renda diferente do contrato', GUARD, [('firestore.rules',
+        'data.monthlyIncomeCents <= 10000000000 &&', 'data.monthlyIncomeCents <= 100000000000 &&')]),
+    # Correções da revisão independente
+    ('C11', 'eixo compacto trunca as horas', CALC, [(f'{WT_DIR}/calculation.ts',
+        'const hours = Number((BigInt(magnitude) + BigInt(30)) / BigInt(60));', 'const hours = Math.floor(magnitude / 60);')]),
+    ('C12', 'eixo no modo dinheiro deixa de usar o formatador da tela', CALC, [(f'{WT_DIR}/presentation.ts',
+        '  if (!config || cents === null) return formatMoney(reais);', '  if (!config || cents === null) return String(reais);')]),
+    ('F3', 'renda bem formada acima do inteiro seguro vira erro de formato', PREF, [(f'{WT_DIR}/form.ts',
+        "      if (/^(\\d{1,3}(\\.\\d{3})+|\\d+)(,\\d{1,2})?$/.test(amount)) {", "      if (false) {")]),
+    ('G21', 'Header da prévia ignora o ForceMoneyDisplay', GUARD, [('src/components/Header.tsx',
+        "const isWorkTimeMode = !moneyForced && workTime.displayMode === 'time';", "const isWorkTimeMode = workTime.displayMode === 'time';")]),
+    ('G22', 'parte da divisão volta a converter (ação de um clique)', GUARD, [('src/components/SplitBillDetailsModal.tsx',
+        '{formatSplitCents(share.amountDueCents)}', '{display.cents(share.amountDueCents, formatSplitCents)}')]),
+    ('G23', 'eixo de gráfico volta ao texto longo', GUARD, [('src/components/ReportsChartsView.tsx',
+        "tickFormatter={display.isTime ? (v) => display.reaisAxis(Number(v), (n) => new Intl.NumberFormat",
+        "tickFormatter={display.isTime ? (v) => display.reaisTooltip(Number(v), (n) => new Intl.NumberFormat")]),
+    ('G24', 'confirmação de anulação sem o valor em reais no modo tempo', GUARD, [('src/App.tsx',
+        '? `O lançamento de ${formatCentsBRL(transactionToVoid.valueCents)} sai do caixa e continua no histórico, com o motivo informado.`',
+        "? 'O lançamento sai do caixa e continua no histórico, com o motivo informado.'")]),
+    ('G25', 'import dinâmico da camada num arquivo que fica em BRL', GUARD, [('src/components/TransactionModal.tsx', APPEND,
+        "export const lazyWorkTimeDisplay = () => import('../modules/work-time/display');\n")]),
+    ('G27', 'eixo mais largo também no modo dinheiro', GUARD, [('src/components/ReportsChartsView.tsx',
+        '<YAxis tick={{ fill: theme.colors.textSecondary, fontSize: 12 }} width={display.isTime ? AXIS_WIDTH_IN_TIME_MODE : undefined} tickFormatter=',
+        '<YAxis tick={{ fill: theme.colors.textSecondary, fontSize: 12 }} width={AXIS_WIDTH_IN_TIME_MODE} tickFormatter=')]),
+    ('G28', 'anulação de despesa dividida sem o valor em reais no modo tempo', GUARD, [('src/components/SplitBillDetailsModal.tsx',
+        '? `A despesa de ${formatSplitCents(bill.amountCents)} continua no histórico como anulada e sai dos totais do grupo.`',
+        "? 'A despesa continua no histórico como anulada e sai dos totais do grupo.'")]),
+    ('G29', 'margem negativa no gráfico de fluxo também no modo tempo', GUARD, [('src/components/ReportsChartsView.tsx',
+        'left: display.isTime ? 0 : -20,', 'left: -20,')]),
+    ('G26', 'curinga recursivo com outro nome nas Rules', GUARD, [('firestore.rules',
+        '      match /private_preferences/{preferenceId} {',
+        '      match /{rest=**} {\n        allow read: if false;\n      }\n\n      match /private_preferences/{preferenceId} {')]),
+    # Revisão 3: ponto em BRL que ganha a versão convertida ao lado (só a presença dos reais não bastava)
+    ('G30', 'principal do empréstimo ganha a versão convertida ao lado dos reais', GUARD, [('src/components/LoanCard.tsx',
+        '{formatCents(loan.principalCents)}', '{formatCents(loan.principalCents)} {display.cents(loan.principalCents, formatCents)}')]),
+    ('G31', 'limite usado do cartão ganha a versão convertida ao lado dos reais', GUARD, [('src/components/ReportsOverview.tsx',
+        '{formatCurrency(snapshot.debtProfile.creditCardLimitUsed)}',
+        '{formatCurrency(snapshot.debtProfile.creditCardLimitUsed)} {display.reais(snapshot.debtProfile.creditCardLimitUsed, formatCurrency)}')]),
+    # Sessão: troca de conta e respostas atrasadas (guarda estrutural do WorkTimeContext)
+    ('G32', 'estado exposto sem conferir o uid (resposta de outra conta aparece)', GUARD, [(f'{WT_DIR}/WorkTimeContext.tsx',
+        "  const current: ListenerState = state.uid === uid\n    ? state\n    : { uid, status: uid ? 'loading' : 'idle', snapshot: null };",
+        '  const current: ListenerState = state;')]),
+    ('G33', 'listener não é cancelado na troca de conta', GUARD, [(f'{WT_DIR}/WorkTimeContext.tsx',
+        '    return subscribeWorkTimePreference(\n      uid,', '    subscribeWorkTimePreference(\n      uid,')]),
+    ('G34', 'resposta grava o estado sem o uid do listener', GUARD, [(f'{WT_DIR}/WorkTimeContext.tsx',
+        "      (snapshot) => setState({ uid, status: 'ready', snapshot }),",
+        "      (snapshot) => setState((previous) => ({ ...previous, status: 'ready', snapshot })),")]),
+    # Revisão 4: valor exposto lido de `state` e versão convertida com outro nome de variável
+    ('G35', 'valor exposto lido de state, e não de current (janela da troca de conta)', GUARD, [(f'{WT_DIR}/WorkTimeContext.tsx',
+        "  const snapshot = current.status === 'ready' ? current.snapshot : null;",
+        "  const snapshot = state.status === 'ready' ? state.snapshot : null;")]),
+    ('G36', 'valor original do recebível ganha a versão convertida via moneyDisplay', GUARD, [('src/components/ClientsReceivablesView.tsx',
+        '{formatCents(receivable.amountCents)}</td>',
+        '{formatCents(receivable.amountCents)}</td><td>{moneyDisplay.cents(receivable.amountCents, formatCents)}</td>')]),
+]
+
+
+def prepare(name: str) -> str:
+    target = f'{OUT}/{name}'
+    shutil.rmtree(target, ignore_errors=True)
+    os.makedirs(f'{target}/tests/unit')
+    os.makedirs(f'{target}/functions')
+    shutil.copytree(f'{WT}/src', f'{target}/src')
+    shutil.copytree(f'{WT}/functions/src', f'{target}/functions/src')
+    for path in ('firestore.rules', 'package.json'):
+        shutil.copy2(f'{WT}/{path}', f'{target}/{path}')
+    for path in (CALC, PREF, GUARD):
+        shutil.copy2(f'{WT}/{path}', f'{target}/{path}')
+    os.symlink(f'{WT}/node_modules', f'{target}/node_modules')
+    return target
+
+
+def apply(target: str, path: str, old, new: str) -> None:
+    file = f'{target}/{path}'
+    with open(file, encoding='utf-8') as handle:
+        source = handle.read()
+    if old is APPEND:
+        source = source + ('' if source.endswith('\n') else '\n') + new
+    elif old is None:
+        source = new + source
+    else:
+        count = source.count(old)
+        if count != 1:
+            sys.exit(f'mutante inválido: {path} contém o trecho {count} vez(es): {old[:80]!r}')
+        source = source.replace(old, new)
+    with open(file, 'w', encoding='utf-8') as handle:
+        handle.write(source)
+
+
+def run(target: str, test_file: str) -> tuple[int, list[str]]:
+    result = subprocess.run(
+        ['node', '--experimental-strip-types', '--disable-warning=MODULE_TYPELESS_PACKAGE_JSON', '--test', test_file],
+        cwd=target, capture_output=True, text=True, timeout=300)
+    failed = [line[len('not ok '):] for line in result.stdout.splitlines() if line.startswith('not ok ')]
+    return result.returncode, failed
+
+
+def main() -> None:
+    os.makedirs(OUT, exist_ok=True)
+    rows = []
+    pristine = prepare('original')
+    for test_file in (CALC, PREF, GUARD):
+        code, failed = run(pristine, test_file)
+        print(f'ORIGINAL {test_file}: saída {code}, falhas {failed}')
+        if code != 0:
+            sys.exit('a cópia original precisa passar')
+    shutil.rmtree(pristine)
+    for mutant_id, description, test_file, edits in MUTANTS:
+        target = prepare(mutant_id)
+        for path, old, new in edits:
+            apply(target, path, old, new)
+        code, failed = run(target, test_file)
+        killed = code != 0
+        rows.append({'id': mutant_id, 'mutante': description, 'teste': test_file, 'morto': killed,
+                     'saida': code, 'falhas': failed})
+        print(f"{mutant_id:<4} {'MORTO ' if killed else 'VIVO  '} {description} -> {failed[:2]}")
+        shutil.rmtree(target)
+    with open(f'{OUT}/resultado.json', 'w', encoding='utf-8') as handle:
+        json.dump(rows, handle, ensure_ascii=False, indent=2)
+    dead = sum(1 for row in rows if row['morto'])
+    print(f'mortos {dead}/{len(rows)}')
+
+
+if __name__ == '__main__':
+    main()

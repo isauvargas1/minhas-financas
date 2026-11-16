@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# P5-F. Uso: run-evidence.sh <antes|depois>
+# "antes" roda no worktree temporário destacado na base 1730a1df (wt-p5f-base); "depois", no worktree da P5-F.
+# Copia o roteiro temporário de evidência para e2e/, gera o build E2E da árvore, roda só esse roteiro contra o
+# Emulator (projeto minhas-financas-local) com o loopback-proxy seguro e a Poppins local (a mesma fonte que o CI
+# baixa do Google Fonts), e devolve o roteiro para fora de e2e/. Depois encerra só a JVM órfã desta execução
+# (identidade e cwd), com SIGTERM.
+set -u
+S=<scratchpad>
+TREE=$1
+case "$TREE" in antes) WT=$S/wt-p5f-base ;; depois) WT=$S/wt-p5f ;; *) echo "uso: $0 <antes|depois>"; exit 64 ;; esac
+E=$S/p5f/evidence; L=$S/p5f/logs; OUT=$E/out/$TREE; mkdir -p "$OUT" "$L"
+START=$(date +%s)
+export FONTCONFIG_FILE=$S/e2e-fix-01/fonts.conf
+cp "$E/p5f-evidence.spec.ts" "$E/p4d-evidence-common.ts" "$WT/e2e/"
+cd "$WT" && npm run build:e2e > "$L/evidence-build-$TREE.log" 2>&1; echo "build=$?"
+cd "$WT" && EVIDENCE_TREE=$TREE EVIDENCE_DIR=$OUT timeout 2400 bash $S/with-proxy-safe.sh 38832 \
+  npx playwright test e2e/p5f-evidence.spec.ts > "$L/evidence-$TREE.log" 2>&1
+echo "exit=$?  duração=$(( $(date +%s) - START ))s"
+mkdir -p "$E/.devolvidos/$TREE"
+mv "$WT/e2e/p5f-evidence.spec.ts" "$WT/e2e/p4d-evidence-common.ts" "$E/.devolvidos/$TREE/"
+git -C "$WT" status --short -- e2e | sed 's/^/status e2e: /'
+sed -E 's/\x1b\[[0-9;]*[A-Za-z]//g' "$L/evidence-$TREE.log" | grep -E "P5-F evidência|^\s+[0-9]+ (passed|failed)|Error:|✘" | head -20
+bash $S/p5e11/stop-own-emulator.sh 8080 "$START" "$L/emulator-cleanup.log" "$WT" >/dev/null 2>&1; echo "limpeza=$? java=$(pgrep -c java || true)"

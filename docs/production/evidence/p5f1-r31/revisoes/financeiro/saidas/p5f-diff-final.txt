@@ -1,0 +1,111 @@
+diff --git a/e2e/work-time-p5f.spec.ts b/e2e/work-time-p5f.spec.ts
+index 78b8f0a..2484545 100644
+--- a/e2e/work-time-p5f.spec.ts
++++ b/e2e/work-time-p5f.spec.ts
+@@ -1028,14 +1028,38 @@ test('falha na leitura das receitas desconsideradas: mensagem fixa em pt-BR, nad
+   expect((await storedPreference(A.uid))?.excludedIncomeIds, 'nada gravado antes de salvar').toBe('');
+ });
+ 
+-test('releitura que falha: a estimativa segue com a leitura anterior, avisa e se recupera com "Tentar de novo"', async ({ page, request }) => {
+-  test.setTimeout(240_000);
++// Contrato da P5-F.1-R3.1 (R3-AUD-01). Desde a R1, este teste afirmava que, com a releitura em falha e uma receita
++// nova ainda não lida, a prévia seguia com a hora anterior (R$ 25,00) e o aviso de leitura anterior: a conversão
++// anterior aparecia enquanto a sincronização não confirmava o estado atual. Agora, sem essa confirmação, nada é
++// convertido (o erro do relatório, com "Tentar de novo"); o aviso de leitura anterior continua, para o estado atual
++// confirmado pela escuta (a projeção de volta ao que a última leitura trouxe). As mesmas asserções de texto, de
++// ausência de detalhe interno e de recuperação seguem abaixo. Justificativa:
++// docs/production/evidence/p5f1-r31/testes-substituidos.md.
++test('releitura que falha: sem confirmar a receita nova, nada convertido e erro com "Tentar de novo"; com a projeção de volta à última leitura, a estimativa volta com o aviso', async ({ page, request }) => {
++  test.setTimeout(300_000);
+   const tenant = await seedTenant(request);
+   await seedPreference(A.uid, tenant.pf.workspaceId, { displayMode: 'time' });
+   await startOn(page, A.uid, tenant.pf.workspaceId);
+   await login(page, A.email);
+   await openWorkTimeSettings(page);
+   await expect(previewHourly(page)).toHaveText(brl(2_500), { timeout: 30_000 });
++  // Daqui em diante, cada estado da prévia (hora mostrada, erro, aviso de leitura anterior) é registrado com a hora do navegador.
++  await page.evaluate(() => {
++    const state = window as unknown as { __p5fPreview: { at: number; hourly: string; error: boolean; stale: boolean }[] };
++    state.__p5fPreview = [];
++    const read = () => {
++      const entry = {
++        at: Date.now(),
++        hourly: document.querySelector('[data-testid="work-time-preview-hourly"]')?.textContent?.trim() ?? '',
++        error: document.querySelector('[data-testid="work-time-preview-error"]') !== null,
++        stale: document.querySelector('[data-testid="work-time-preview-refresh-failed"]') !== null,
++      };
++      const last = state.__p5fPreview[state.__p5fPreview.length - 1];
++      if (!last || last.hourly !== entry.hourly || last.error !== entry.error || last.stale !== entry.stale) state.__p5fPreview.push(entry);
++    };
++    read();
++    new MutationObserver(read).observe(document.body, { subtree: true, childList: true, characterData: true });
++  });
+   // O relatório oficial passa a falhar; outra sessão lança uma receita retroativa na janela.
+   const failReport = (route: Route) => route.fulfill({
+     status: 500, contentType: 'application/json', body: JSON.stringify({ error: { status: 'INTERNAL', message: 'internal failure' } }),
+@@ -1043,21 +1067,60 @@ test('releitura que falha: a estimativa segue com a leitura anterior, avisa e se
+   await page.route('**/getFinancialReport', failReport);
+   const lastMonth = habitualMonths()[2];
+   const officialBefore = (await db().doc(`workspaces/${tenant.pf.workspaceId}/cash_report_periods/${lastMonth}`).get()).data()?.incomeCents as number;
+-  await createIncome(request, tenant.pf, `${lastMonth}-16`, 50_000, 'Retroativa sem releitura');
++  const lateId = await createIncome(request, tenant.pf, `${lastMonth}-16`, 50_000, 'Retroativa sem releitura');
+   await waitForReceipts(tenant.pf.workspaceId, { [lastMonth]: officialBefore + 50_000 });
+-  // A releitura falha: a prévia continua com a leitura anterior e avisa, sem detalhe interno; o topo também.
++  // A releitura falha e a sincronização não confirma o estado atual: nenhuma hora, nem a anterior. O erro do
++  // relatório em pt-BR, sem detalhe interno, com "Tentar de novo"; no topo, os valores ficam em reais.
++  const failure = page.getByTestId('work-time-preview-error');
+   const stale = page.getByTestId('work-time-preview-refresh-failed');
++  await expect(failure).toContainText('Não foi possível carregar o relatório. Tente novamente.', { timeout: 45_000 });
++  await expect(failure).not.toContainText(/internal|INTERNAL/);
++  await expect(failure.getByRole('button', { name: 'Tentar de novo' })).toBeVisible();
++  await expect(previewHourly(page)).toHaveCount(0);
++  await expect(stale).toHaveCount(0);
++  await expect(notice(page)).toContainText('Estimativa de tempo de trabalho indisponível agora: os valores continuam em reais. Veja o motivo em Configurações.');
++  await expect(converted(page)).toHaveCount(0);
++  // Outra sessão anula a receita nova: a projeção volta ao que a última leitura trouxe. A escuta confirma o estado
++  // atual, e a estimativa volta com o aviso imediato de que a releitura falhou, sem detalhe interno; o topo também.
++  const voidedAt = await page.evaluate(() => Date.now());
++  const lateDoc = (await db().doc(`workspaces/${tenant.pf.workspaceId}/transactions/${lateId}`).get()).data() ?? {};
++  const voided = await callCallable(request, tenant.pf.token, 'voidCashTransaction', {
++    workspaceId: tenant.pf.workspaceId, idempotencyKey: intentKey('p5f1-r31-void'), transactionId: lateId,
++    expectedUpdatedAt: versionOf(lateDoc), reason: 'Lançada por engano',
++  });
++  expect(voided.status, JSON.stringify(voided)).toBe(200);
++  await waitForReceipts(tenant.pf.workspaceId, { [lastMonth]: officialBefore });
+   await expect(stale).toContainText('Não foi possível atualizar a estimativa com os lançamentos mais recentes agora. Ela usa a última leitura.', { timeout: 45_000 });
+   await expect(stale).not.toContainText(/internal|INTERNAL/);
+   await expect(previewHourly(page)).toHaveText(brl(2_500));
++  await expect(failure).toHaveCount(0);
+   await expect(notice(page)).toContainText('Não foi possível atualizar a estimativa com os lançamentos mais recentes: ela usa a leitura anterior. Tente de novo em Configurações.');
+-  // De volta o relatório, "Tentar de novo" traz a receita nova; o aviso some.
++  // De volta o relatório, "Tentar de novo" relê: o aviso some e a hora continua a oficial.
+   await page.unroute('**/getFinancialReport', failReport);
+   await stale.getByRole('button', { name: 'Tentar de novo' }).click();
++  await expect(stale).toHaveCount(0, { timeout: 30_000 });
++  await expect(previewHourly(page)).toHaveText(brl(2_500), { timeout: 30_000 });
++  await expect(notice(page)).not.toContainText('Não foi possível atualizar a estimativa com os lançamentos mais recentes');
++  // Uma receita nova depois disso chega à estimativa: a sincronização confirma e a conversão volta normalmente.
++  await createIncome(request, tenant.pf, `${lastMonth}-17`, 50_000, 'Retroativa com releitura');
++  await waitForReceipts(tenant.pf.workspaceId, { [lastMonth]: officialBefore + 50_000 });
+   const hourlyAfter = Number((2n * BigInt(tenant.incomeCents + 50_000) * 60n + BigInt(tenant.workMinutes)) / (2n * BigInt(tenant.workMinutes)));
+-  await expect(previewHourly(page)).toHaveText(brl(hourlyAfter), { timeout: 30_000 });
++  await expect(previewHourly(page)).toHaveText(brl(hourlyAfter), { timeout: 45_000 });
++  await expect(failure).toHaveCount(0);
+   await expect(stale).toHaveCount(0);
+-  await expect(notice(page)).not.toContainText('Não foi possível atualizar a estimativa com os lançamentos mais recentes');
++  // O registro: do primeiro erro até a anulação, nenhuma hora; o aviso de leitura anterior só com a hora oficial
++  // (R$ 25,00); a hora nova só sem aviso e sem erro.
++  const states = await page.evaluate(() => (window as unknown as { __p5fPreview: { at: number; hourly: string; error: boolean; stale: boolean }[] }).__p5fPreview);
++  await test.info().attach('previa-releitura-que-falha', { body: JSON.stringify(states, null, 2), contentType: 'application/json' });
++  console.log(`[previa-releitura-que-falha] ${JSON.stringify(states)}`);
++  const spaced = (text: string) => text.replace(/\s+/g, ' ');
++  const firstError = states.findIndex((entry) => entry.error);
++  expect(firstError, `o erro apareceu: ${JSON.stringify(states)}`).toBeGreaterThan(0);
++  const unconfirmed = states.slice(firstError).filter((entry) => entry.at < voidedAt);
++  expect(unconfirmed.filter((entry) => entry.hourly !== ''), `nenhuma hora sem confirmar a receita nova: ${JSON.stringify(states)}`).toEqual([]);
++  expect(states.filter((entry) => entry.stale && spaced(entry.hourly) !== spaced(brlText(2_500))), 'aviso só com a hora oficial').toEqual([]);
++  expect(states.filter((entry) => spaced(entry.hourly) === spaced(brlText(hourlyAfter)) && (entry.stale || entry.error)), 'hora nova sem aviso nem erro').toEqual([]);
++  expect(states.some((entry) => entry.stale), 'o aviso de leitura anterior apareceu').toBe(true);
+ });
+ 
+ test('mutação nesta aba: anular em Receitas a receita desconsiderada não junta o item anulado com o total velho', async ({ page, request }) => {

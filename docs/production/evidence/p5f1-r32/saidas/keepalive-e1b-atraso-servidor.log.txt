@@ -1,0 +1,6 @@
+servidor: 200 portas, keepAliveTimeout=5000
+keep-alive (padrão) | ocupação 200 ms: 0/22 falhas; ociosos: []; []
+keep-alive (padrão) | ocupação 1000 ms: 0/22 falhas; ociosos: []; []
+Connection: close | ocupação 200 ms: 0/22 falhas; ociosos: []; []
+Connection: close | ocupação 1000 ms: 0/22 falhas; ociosos: []; []
+exit=0

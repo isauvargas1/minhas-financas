@@ -22,6 +22,22 @@ import {
   investmentCashEffect,
   readInvestmentCashEntry,
 } from "../investments/cashEffect";
+import {
+  DEFAULT_MARK_SLOT,
+  FingerprintTypeError,
+  applyMarkEvent,
+  cashProjectionMarkRef,
+  isMarkSlot,
+  markChainOf,
+  markDocumentData,
+  markEventOf,
+  markViewOf,
+  otherMarkSlot,
+  pruneMarkDoc,
+  readMarkDoc,
+  type MarkGeneration,
+  type MarkSlot,
+} from "./projectionMarks";
 
 /**
  * Projeção mensal de caixa por workspace (INV-P1-011).
@@ -169,7 +185,9 @@ export const normalizeCashPeriodDelta = (
  * leva dado do documento.
  */
 export class CashContractViolationError extends Error {
-  constructor(readonly field: "valueCents" | "date" | "type" | "marker") {
+  constructor(
+    readonly field: "valueCents" | "date" | "type" | "marker" | "content",
+  ) {
     super(`transação fora do contrato: ${field}`);
     this.name = "CashContractViolationError";
   }
@@ -803,8 +821,22 @@ const incrementsOf = (
 );
 
 /**
+ * Geração da projeção gravada em cada mês (P5-F.1-R3, B03): a inicial
+ * (`g0`, sem corte) ou a da reconstrução publicada, com o corte. Quem confere
+ * as marcas lê os meses e as marcas no mesmo instante e usa esta etiqueta
+ * para escolher a cadeia de cada marca.
+ */
+export interface ProjectionGenerationTag {
+  id: string;
+  cutoff: Timestamp | null;
+}
+
+export const INITIAL_PROJECTION_GENERATION: ProjectionGenerationTag =
+  Object.freeze({id: "g0", cutoff: null});
+
+/**
  * Escreve o mês e os dias dele num único `set` com incrementos: o total e o
- * detalhe diário mudam juntos ou não mudam.
+ * detalhe diário mudam juntos ou não mudam. A etiqueta da geração vai junto.
  */
 export const writeCashMonth = (
   writer: CashPeriodWriter,
@@ -812,6 +844,7 @@ export const writeCashMonth = (
   period: string,
   delta: CashPeriodDelta,
   days: CashDayDeltas,
+  generation: ProjectionGenerationTag = INITIAL_PROJECTION_GENERATION,
 ): void => {
   writer.set(
     cashPeriodRef(workspaceId, period),
@@ -825,6 +858,7 @@ export const writeCashMonth = (
       days: Object.fromEntries(Object.entries(days).map(([dd, dayDelta]) =>
         [dd, incrementsOf(dayDelta)])),
       schemaVersion: CASH_PERIOD_SCHEMA_VERSION,
+      projectionGeneration: {id: generation.id, cutoff: generation.cutoff},
       updatedAt: FieldValue.serverTimestamp(),
     },
     {merge: true},
@@ -873,10 +907,12 @@ export const writeCashPlan = (
   workspaceId: string,
   plan: CashWritePlan,
   categoryGenerations: readonly string[],
+  monthGeneration: ProjectionGenerationTag = INITIAL_PROJECTION_GENERATION,
 ): void => {
   for (const period of cashPlanPeriods(plan)) {
     writeCashMonth(writer, workspaceId, period,
-      plan.months[period] ?? ZERO_DELTA, plan.days[period] ?? {});
+      plan.months[period] ?? ZERO_DELTA, plan.days[period] ?? {},
+      monthGeneration);
   }
   for (const generation of categoryGenerations) {
     for (const entry of Object.values(plan.categories)) {
@@ -978,6 +1014,20 @@ export interface CashProjectionState {
   categoryStaging: CashCategoryStaging | null;
   /** Gerações descartadas, ainda com documentos a apagar (≤ 8). */
   categoryGarbage: string[];
+  /**
+   * P5-F.1-R3 — posição das marcas da geração vigente (`a` sem reconstrução);
+   * a geração em preparação usa sempre a outra.
+   */
+  markSlot: MarkSlot;
+  /**
+   * Alguma cadeia de marca quebrou (limite de pendências ou conflito com a
+   * base): a projeção continua com cada delta entregue, a prova de qual estado
+   * daquele lançamento ela contém fica indisponível, e só uma reconstrução com
+   * corte depois do último incidente (`markIssueMaxEventTime`) desliga.
+   */
+  markRecoveryNeeded: boolean;
+  markIssueCount: number;
+  markIssueMaxEventTime: Timestamp | null;
 }
 
 const timestampOrNull = (value: unknown): Timestamp | null =>
@@ -1019,7 +1069,52 @@ export const readCashProjectionState = (
     categoryGarbage: Array.isArray(data.categoryGarbage) ?
       data.categoryGarbage.filter(isCategoryGeneration) :
       [],
+    markSlot: isMarkSlot(data.markSlot) ? data.markSlot : DEFAULT_MARK_SLOT,
+    markRecoveryNeeded: data.markRecoveryNeeded === true,
+    markIssueCount: Number.isSafeInteger(data.markIssueCount) ?
+      (data.markIssueCount as number) :
+      0,
+    markIssueMaxEventTime: timestampOrNull(data.markIssueMaxEventTime),
   };
+};
+
+/** Etiqueta da geração vigente, gravada nos meses pelo gatilho. */
+export const projectionGenerationOf = (
+  state: CashProjectionState,
+): ProjectionGenerationTag => ({
+  id: state.categoryGeneration,
+  cutoff: state.baselineCutoff,
+});
+
+/**
+ * Gerações cujas cadeias de marca um evento aplicado alimenta, na mesma regra
+ * de `categoryGenerationsFor`: a vigente e, com reconstrução em andamento e o
+ * evento posterior ao corte dela, a preparada (na outra posição).
+ */
+export const markGenerationsFor = (
+  state: CashProjectionState,
+  eventTime: Timestamp,
+): MarkGeneration[] => {
+  const generations: MarkGeneration[] = [{
+    id: state.categoryGeneration,
+    cutoff: state.baselineCutoff,
+    slot: state.markSlot,
+    role: "published",
+  }];
+  const staging = state.categoryStaging;
+  if (
+    staging &&
+    staging.generation !== state.categoryGeneration &&
+    compareCommitTimes(eventTime, staging.cutoff) > 0
+  ) {
+    generations.push({
+      id: staging.generation,
+      cutoff: staging.cutoff,
+      slot: otherMarkSlot(state.markSlot),
+      role: "staging",
+    });
+  }
+  return generations;
 };
 
 /**
@@ -1091,6 +1186,33 @@ const issuePatch = (
 });
 
 /**
+ * P5-F.1-R3: registra que uma cadeia de marca quebrou. Não liga
+ * `needsRebuild`: a projeção está correta; o que se perdeu foi a prova de qual
+ * estado do lançamento ela contém. Só uma reconstrução com corte depois do
+ * incidente desliga o aviso (a geração nova tem cadeias próprias).
+ */
+const markIssuePatch = (
+  workspaceId: string,
+  state: CashProjectionState,
+  issue: {code: string; eventTime: Timestamp; transactionId: string},
+): admin.firestore.DocumentData => ({
+  id: CASH_PROJECTION_STATE_ID,
+  workspaceId,
+  kind: "cash_projection_state",
+  markRecoveryNeeded: true,
+  markIssueCount: state.markIssueCount + 1,
+  markIssueMaxEventTime:
+    state.markIssueMaxEventTime &&
+    compareCommitTimes(state.markIssueMaxEventTime, issue.eventTime) > 0 ?
+      state.markIssueMaxEventTime :
+      issue.eventTime,
+  lastMarkIssueCode: issue.code,
+  lastMarkIssueTransactionId: issue.transactionId,
+  lastMarkIssueAt: FieldValue.serverTimestamp(),
+  updatedAt: FieldValue.serverTimestamp(),
+});
+
+/**
  * Registra, numa transação própria, que a projeção pode ter divergido.
  *
  * Usado quando o gatilho não consegue aplicar um evento e a nova tentativa
@@ -1117,6 +1239,12 @@ export interface CashPeriodEventContext {
   eventTime: Timestamp;
   /** `createTime` do documento antes da escrita (UPDATE e DELETE). */
   beforeCreateTime?: Timestamp;
+  /**
+   * `updateTime` do documento antes da escrita (UPDATE e DELETE): diz se o
+   * estado anterior é o do corte de uma reconstrução em preparação (raiz
+   * `event` da marca). Sem ele, a marca da preparação espera a varredura.
+   */
+  beforeUpdateTime?: Timestamp;
 }
 
 export type CashPeriodEventOutcomeKind =
@@ -1130,6 +1258,11 @@ export interface CashPeriodEventOutcome {
   applied: boolean;
   outcome: CashPeriodEventOutcomeKind;
   periods: string[];
+  /**
+   * P5-F.1-R3: código da cadeia de marca que quebrou nesta entrega (limite de
+   * pendências ou conflito com a base), para o log; a projeção foi aplicada.
+   */
+  markBroken?: string;
 }
 
 const readPeriods = (value: unknown): string[] =>
@@ -1163,8 +1296,8 @@ const readPeriods = (value: unknown): string[] =>
  * o commit — o que a serialização da transação já impede —, a escrita falha em
  * vez de sobrescrever.
  *
- * Custo: duas leituras endereçadas por ID (marca e estado). Nenhuma consulta,
- * nenhum índice, nenhuma varredura.
+ * Custo: três leituras endereçadas por ID (marca de entrega, estado e marca
+ * de aplicação). Nenhuma consulta, nenhum índice, nenhuma varredura.
  */
 export const applyCashPeriodWriteOnce = async (
   transaction: admin.firestore.Transaction,
@@ -1176,7 +1309,9 @@ export const applyCashPeriodWriteOnce = async (
 ): Promise<CashPeriodEventOutcome> => {
   const markerRef = cashPeriodEventRef(workspaceId, eventKey);
   const stateRef = cashProjectionStateRef(workspaceId);
-  const [marker, stateSnapshot] = await transaction.getAll(markerRef, stateRef);
+  const markRef = cashProjectionMarkRef(workspaceId, context.transactionId);
+  const [marker, stateSnapshot, markSnapshot] =
+    await transaction.getAll(markerRef, stateRef, markRef);
   if (marker.exists) {
     return {
       applied: false,
@@ -1235,7 +1370,49 @@ export const applyCashPeriodWriteOnce = async (
 
   const plan = cashWritePlanFor(before, after);
   const categoryGenerations = categoryGenerationsFor(state, context.eventTime);
-  writeCashPlan(transaction, workspaceId, plan, categoryGenerations);
+  // P5-F.1-R3 (B03): a marca de aplicação do lançamento muda na mesma
+  // transação do delta, em cada geração que o evento alimenta.
+  let markEvent: ReturnType<typeof markEventOf>;
+  try {
+    markEvent = markEventOf(before, after, context.beforeUpdateTime ?? null);
+  } catch (error) {
+    if (error instanceof FingerprintTypeError) {
+      throw new CashContractViolationError("content");
+    }
+    throw error;
+  }
+  const markDoc = readMarkDoc(markSnapshot.data());
+  const storedChains = (markSnapshot.data()?.chains ?? {}) as
+    Record<string, {g?: unknown; broken?: unknown} | undefined>;
+  let markBroken: string | undefined;
+  for (const generation of markGenerationsFor(state, context.eventTime)) {
+    const previous = markViewOf(markDoc, generation);
+    const next = applyMarkEvent(previous, markEvent, generation);
+    // Registra a primeira vez que a cadeia gravada desta geração fica
+    // `broken`: estouro de pendências, ou conflito com a base que a visão já
+    // mostrava (âncora depois de raiz `absent`, base de outra impressão, raiz
+    // `event` sem âncora) e que só agora é gravado.
+    const stored = storedChains[generation.slot];
+    const recorded = stored?.g === generation.id &&
+      typeof stored.broken === "string";
+    if (next.kind === "broken" && !recorded) markBroken = next.code;
+    markDoc.chains[generation.slot] = markChainOf(next, generation);
+  }
+  // Só a geração vigente e a preparada ficam na marca regravada.
+  const liveGenerations = state.categoryStaging ?
+    [state.categoryGeneration, state.categoryStaging.generation] :
+    [state.categoryGeneration];
+  transaction.set(markRef, markDocumentData(workspaceId, context.transactionId,
+    pruneMarkDoc(markDoc, liveGenerations)));
+  if (markBroken !== undefined) {
+    transaction.set(stateRef, markIssuePatch(workspaceId, state, {
+      code: markBroken,
+      eventTime: context.eventTime,
+      transactionId: context.transactionId,
+    }), {merge: true});
+  }
+  writeCashPlan(transaction, workspaceId, plan, categoryGenerations,
+    projectionGenerationOf(state));
   const periods = cashPlanPeriods(plan);
   transaction.create(markerRef, {
     ...markerBase,
@@ -1247,5 +1424,7 @@ export const applyCashPeriodWriteOnce = async (
     dayDeltas: plan.days,
     categoryGenerations,
   });
-  return {applied: true, outcome: "applied", periods};
+  return markBroken === undefined ?
+    {applied: true, outcome: "applied", periods} :
+    {applied: true, outcome: "applied", periods, markBroken};
 };

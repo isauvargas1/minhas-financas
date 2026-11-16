@@ -11,6 +11,7 @@ import {
     BellIcon,
     PaletteIcon,
     UsersIcon,
+    ClockIcon,
     resolveTablerIcon,
     useTablerIconKeys,
 } from './Icons.tsx';
@@ -42,6 +43,7 @@ import {
     IconWallet,
 } from '@tabler/icons-react';
 import PersonalizationView from './PersonalizationView.tsx';
+import WorkTimeSettingsView from './WorkTimeSettingsView.tsx';
 import CashAccountsView from './accounts/CashAccountsView.tsx';
 import MembersManagerModal from './MembersManagerModal.tsx';
 import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
@@ -51,7 +53,7 @@ import { useSettingsCatalogScreen } from '../modules/settings-catalog/useSetting
 import type { SettingsCatalogItem, SettingsCatalogStatus, SettingsCatalogTransactionSubtype } from '../modules/settings-catalog/types.ts';
 import { createPortal } from 'react-dom';
 
-type ViewMode = 'main' | 'cadastros' | 'personalizacao' | 'workspace' | 'contas';
+type ViewMode = 'main' | 'cadastros' | 'personalizacao' | 'workspace' | 'contas' | 'tempo_trabalho';
 type CatalogViewMode = 'cards' | 'list';
 type CatalogSortField = 'name' | 'icon' | 'status' | 'transactionSubtype' | 'sortOrder';
 type CatalogSortDirection = 'asc' | 'desc';
@@ -448,6 +450,11 @@ const sortedItems = useMemo(() => {
         return <PersonalizationView onBack={() => setViewMode('main')} />;
     }
 
+    // P5-F (REQ-FUT-01): preferência privada do usuário, em qualquer papel.
+    if (viewMode === 'tempo_trabalho') {
+        return <WorkTimeSettingsView onBack={() => setViewMode('main')} />;
+    }
+
     // P3-J (D-30): contas/carteiras autoritativas e transferências.
     if (viewMode === 'contas') {
         return <CashAccountsView onBack={() => setViewMode('main')} />;
@@ -707,6 +714,24 @@ const sortedItems = useMemo(() => {
                             Ajuste temas, sons, animações e layout global.
                         </p>
                         <div className="flex items-center text-pink-600 font-bold text-sm">
+                            Acessar <span className="ml-1">→</span>
+                        </div>
+                    </button>
+
+                    <button
+                        onClick={() => setViewMode('tempo_trabalho')}
+                        className="bg-surface p-6 rounded-xl shadow-md border border-transparent hover:border-sky-500 transition-all group text-left"
+                    >
+                        <div className="w-12 h-12 rounded-lg bg-sky-100 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                            <ClockIcon className="w-6 h-6" />
+                        </div>
+                        <h3 className="text-lg font-bold text-on-surface mb-2">
+                            Tempo de trabalho equivalente
+                        </h3>
+                        <p className="text-sm text-muted mb-4">
+                            Veja valores também em horas de trabalho, a partir de uma renda que só você vê.
+                        </p>
+                        <div className="flex items-center text-sky-700 dark:text-sky-400 font-bold text-sm">
                             Acessar <span className="ml-1">→</span>
                         </div>
                     </button>

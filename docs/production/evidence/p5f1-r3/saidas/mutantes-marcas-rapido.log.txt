@@ -1,0 +1,7 @@
+MORTO (4 falha(s))           M1 sempre avança (sem pendência)
+MORTO (3 falha(s))           M2 raiz event sem âncora aceita
+MORTO (4 falha(s))           M3 ignora a âncora
+MORTO (2 falha(s))           M4 criação casa com qualquer nó
+MORTO (4 falha(s))           M5 absorção ignora conteúdo
+MORTO (3 falha(s))           M6 âncora com raiz absent aceita
+MORTO (3 falha(s))           M7 cadeia de outra geração vale

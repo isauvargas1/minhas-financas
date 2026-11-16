@@ -1,0 +1,10 @@
+// Revisão 2 (INFO): configuração aceita ao salvar (o conferidor olha de 12 meses antes do mês de hoje até 2099) com um
+// mês antigo que o calendário de exceções mostra como "horas sem cálculo seguro" (vista do mês avulso).
+const root = process.argv[2];
+const cal = await import(`${root}/src/modules/work-time/calendar.ts`);
+const OFF = { kind: 'off' };
+const w = (s: number, e: number, b = 0) => ({ kind: 'window', start: s, end: e, breakMinutes: b });
+const monday = (spec: any) => ({ kind: 'weekly', days: [spec, OFF, OFF, OFF, OFF, OFF, OFF] });
+const c = { worksOnHolidays: true, localHolidays: [], routines: [monday(w(1200, 0)), monday(w(1320, 120, 30)), { kind: 'weekly', days: [OFF, w(0, 480), OFF, OFF, OFF, OFF, OFF] }],
+  exceptions: [{ kind: 'day_off', start: '2024-10-15', end: '2024-10-15' }] };
+console.log(JSON.stringify({ conferidor: cal.calendarAmbiguity(c, '2026-11-05'), mes2024_10: cal.monthPlan(c, '2024-10').ambiguousDays }));

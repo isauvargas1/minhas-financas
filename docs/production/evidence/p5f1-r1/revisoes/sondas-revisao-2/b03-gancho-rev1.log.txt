@@ -1,0 +1,26 @@
+== edicao-antes-da-primeira-leitura @ arvore-d7dabb10
+antes do gatilho: loading | séries: 1 por id: 1
+estados: loading → R$10560
+consistente: R$10560 (antes ou depois da edição); misto: R$10260
+== escuta-recusada-com-exclusao @ arvore-d7dabb10
+estados: loading → erro:"Não foi possível confirmar a estimativa com os totais oficiais. Tente de novo." | leituras por id: 0
+== limite-c-estimativa-parada @ arvore-d7dabb10
+início: loading → R$10560
+depois das edições: loading → R$10560
+depois da receita nova de agosto (estado atual consistente: R$10660): loading → R$10560 | última: R$10560
+== b01-parecer @ arvore-d7dabb10
+antes do estorno: loading → R$100
+todas as renderizações: loading → R$100 (certo: R$100 antes e depois; dupla dedução: R$0)
+== edicao-antes-da-primeira-leitura @ arvore-b97806c4
+antes do gatilho: loading → R$10260 | séries: 1 por id: 1
+estados: loading → R$10260 → R$10560
+consistente: R$10560 (antes ou depois da edição); misto: R$10260
+== escuta-recusada-com-exclusao @ arvore-b97806c4
+estados: loading | leituras por id: 0
+== limite-c-estimativa-parada @ arvore-b97806c4
+início: loading → R$10560
+depois das edições: loading → R$10560
+depois da receita nova de agosto (estado atual consistente: R$10660): loading → R$10560 | última: R$10560
+== b01-parecer @ arvore-b97806c4
+antes do estorno: loading → R$100
+todas as renderizações: loading → R$100 (certo: R$100 antes e depois; dupla dedução: R$0)

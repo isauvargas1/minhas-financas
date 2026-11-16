@@ -1,0 +1,656 @@
+
+> finace-dashboard-21@0.0.0 test:unit:reports
+> node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test tests/unit/report-adapter.test.ts tests/unit/report-range.test.ts tests/unit/report-live-refresh.test.ts tests/unit/report-live-refresh-freshness.test.ts tests/unit/report-alerts-guard.test.ts tests/unit/report-basis-refresh.test.ts tests/unit/report-basis-sync.test.ts
+
+TAP version 13
+# Subtest: P5-C1 — formatação: centavos em R$ e pontos-base em % pt-BR
+ok 1 - P5-C1 — formatação: centavos em R$ e pontos-base em % pt-BR
+  ---
+  duration_ms: 1.246375
+  type: 'test'
+  ...
+# Subtest: P5-C1 — KPIs PF: ids mantidos, resultado operacional e taxa de aportes líquidos
+ok 2 - P5-C1 — KPIs PF: ids mantidos, resultado operacional e taxa de aportes líquidos
+  ---
+  duration_ms: 11.071843
+  type: 'test'
+  ...
+# Subtest: P5-C1 — KPIs PJ (D-37.4): caixa operacional, sem lucro, faturamento nem limiar de 15%
+ok 3 - P5-C1 — KPIs PJ (D-37.4): caixa operacional, sem lucro, faturamento nem limiar de 15%
+  ---
+  duration_ms: 0.75605
+  type: 'test'
+  ...
+# Subtest: P5-C1 — estados do caixa nunca viram "R$ 0,00": indisponível e reconstrução
+ok 4 - P5-C1 — estados do caixa nunca viram "R$ 0,00": indisponível e reconstrução
+  ---
+  duration_ms: 1.417569
+  type: 'test'
+  ...
+# Subtest: P5-C1 — zero verdadeiro é número válido; lista vazia tem texto próprio
+ok 5 - P5-C1 — zero verdadeiro é número válido; lista vazia tem texto próprio
+  ---
+  duration_ms: 0.906963
+  type: 'test'
+  ...
+# Subtest: P5-C1 — truncado e amostra mantêm os números com nota de cobertura
+ok 6 - P5-C1 — truncado e amostra mantêm os números com nota de cobertura
+  ---
+  duration_ms: 1.017092
+  type: 'test'
+  ...
+# Subtest: P5-C1 — taxa de aportes indisponível diz o motivo do servidor (sem recebimentos × investimentos)
+ok 7 - P5-C1 — taxa de aportes indisponível diz o motivo do servidor (sem recebimentos × investimentos)
+  ---
+  duration_ms: 1.207218
+  type: 'test'
+  ...
+# Subtest: P5-C1 — viewer (D-15): fluxos, taxa e card do Dashboard exibidos; patrimônio "Sem permissão", sem zero
+ok 8 - P5-C1 — viewer (D-15): fluxos, taxa e card do Dashboard exibidos; patrimônio "Sem permissão", sem zero
+  ---
+  duration_ms: 0.875228
+  type: 'test'
+  ...
+# Subtest: P5-C1 — série com mais de 12 meses: tabela mostra os 12 mais recentes com nota; gráfico, todos
+ok 9 - P5-C1 — série com mais de 12 meses: tabela mostra os 12 mais recentes com nota; gráfico, todos
+  ---
+  duration_ms: 2.748423
+  type: 'test'
+  ...
+# Subtest: P5-C1 — categorias: nome do catálogo, rótulos fixos e categoria removida
+ok 10 - P5-C1 — categorias: nome do catálogo, rótulos fixos e categoria removida
+  ---
+  duration_ms: 1.248436
+  type: 'test'
+  ...
+# Subtest: P5-C1 — cartões e dívidas: do bloco de cartões e de empréstimos tomados
+ok 11 - P5-C1 — cartões e dívidas: do bloco de cartões e de empréstimos tomados
+  ---
+  duration_ms: 1.420022
+  type: 'test'
+  ...
+# Subtest: P5-C1.1 — cartão sem próxima fatura a pagar: valor nulo, nunca 0 fingindo fatura
+ok 12 - P5-C1.1 — cartão sem próxima fatura a pagar: valor nulo, nunca 0 fingindo fatura
+  ---
+  duration_ms: 0.574466
+  type: 'test'
+  ...
+# Subtest: P5-C1.1 — atraso, próxima fatura a pagar e futuro são classes disjuntas que somam o saldo pendente
+ok 13 - P5-C1.1 — atraso, próxima fatura a pagar e futuro são classes disjuntas que somam o saldo pendente
+  ---
+  duration_ms: 0.546323
+  type: 'test'
+  ...
+# Subtest: P5-C1.1 — cartão arquivado com saldo: nos indicadores, com atraso e sem utilização; fora da visão por cartão
+ok 14 - P5-C1.1 — cartão arquivado com saldo: nos indicadores, com atraso e sem utilização; fora da visão por cartão
+  ---
+  duration_ms: 0.504579
+  type: 'test'
+  ...
+# Subtest: P5-C1 — bloco de cartões sem número não gera valores exibíveis
+ok 15 - P5-C1 — bloco de cartões sem número não gera valores exibíveis
+  ---
+  duration_ms: 0.642432
+  type: 'test'
+  ...
+# Subtest: P5-C1 — recebíveis e clientes (PJ): em dia, em atraso e recebido
+ok 16 - P5-C1 — recebíveis e clientes (PJ): em dia, em atraso e recebido
+  ---
+  duration_ms: 1.12678
+  type: 'test'
+  ...
+# Subtest: P5-C1 — investimentos: patrimônio, fluxos e evolução em reais de exibição
+ok 17 - P5-C1 — investimentos: patrimônio, fluxos e evolução em reais de exibição
+  ---
+  duration_ms: 1.218353
+  type: 'test'
+  ...
+# Subtest: P5-C1 — alertas objetivos com texto em pt-BR por código (sem persistência)
+ok 18 - P5-C1 — alertas objetivos com texto em pt-BR por código (sem persistência)
+  ---
+  duration_ms: 1.476462
+  type: 'test'
+  ...
+# Subtest: P5-C1 — leitura dos indicadores: texto objetivo, sem IA nem limiar
+ok 19 - P5-C1 — leitura dos indicadores: texto objetivo, sem IA nem limiar
+  ---
+  duration_ms: 1.630828
+  type: 'test'
+  ...
+# Subtest: P5-C1 — Dashboard: saldo em contas, receitas, despesas, aportes e faturas de cartão
+ok 20 - P5-C1 — Dashboard: saldo em contas, receitas, despesas, aportes e faturas de cartão
+  ---
+  duration_ms: 0.281817
+  type: 'test'
+  ...
+# Subtest: P5-C1 — o cliente não recalcula: valores do adaptador são os do DTO
+ok 21 - P5-C1 — o cliente não recalcula: valores do adaptador são os do DTO
+  ---
+  duration_ms: 0.571059
+  type: 'test'
+  ...
+# Subtest: P5-C2 M2 — ciclo aberto vem do servidor: só aberta e não efetivamente fechada
+ok 22 - P5-C2 M2 — ciclo aberto vem do servidor: só aberta e não efetivamente fechada
+  ---
+  duration_ms: 0.566287
+  type: 'test'
+  ...
+# Subtest: P5-C2 M3 — crédito de fatura aberta é exposto sem alterar atual, futuro, atraso nem pendente
+ok 23 - P5-C2 M3 — crédito de fatura aberta é exposto sem alterar atual, futuro, atraso nem pendente
+  ---
+  duration_ms: 1.149096
+  type: 'test'
+  ...
+# Subtest: P5-C2 L8 — truncado por fontes parciais ganha nota própria; indisponível nunca mostra o motivo
+ok 24 - P5-C2 L8 — truncado por fontes parciais ganha nota própria; indisponível nunca mostra o motivo
+  ---
+  duration_ms: 0.513659
+  type: 'test'
+  ...
+# Subtest: D-18 L-5 — indisponível distingue falha passageira, dado inconsistente e limite da consulta
+ok 25 - D-18 L-5 — indisponível distingue falha passageira, dado inconsistente e limite da consulta
+  ---
+  duration_ms: 0.452008
+  type: 'test'
+  ...
+# Subtest: P5-C2 L5 — atraso de cartões arquivados fica fora da tabela por cartão e é somado para a nota
+ok 26 - P5-C2 L5 — atraso de cartões arquivados fica fora da tabela por cartão e é somado para a nota
+  ---
+  duration_ms: 1.130857
+  type: 'test'
+  ...
+# Subtest: markAlertAsRead não existe em src/
+ok 27 - markAlertAsRead não existe em src/
+  ---
+  duration_ms: 32.211423
+  type: 'test'
+  ...
+# Subtest: useFinancialAlerts devolve os alertas do snapshot sem leitura nem ocultação local
+ok 28 - useFinancialAlerts devolve os alertas do snapshot sem leitura nem ocultação local
+  ---
+  duration_ms: 0.486421
+  type: 'test'
+  ...
+# Subtest: o painel não tem "Marcar como lido", readAlertIds nem markAsRead
+ok 29 - o painel não tem "Marcar como lido", readAlertIds nem markAsRead
+  ---
+  duration_ms: 0.375326
+  type: 'test'
+  ...
+# Subtest: o painel rotula as condições como calculadas no período, não como notificações
+ok 30 - o painel rotula as condições como calculadas no período, não como notificações
+  ---
+  duration_ms: 0.155858
+  type: 'test'
+  ...
+# Subtest: "Tudo certo por aqui!" só aparece no ramo sem note de cobertura parcial
+ok 31 - "Tudo certo por aqui!" só aparece no ramo sem note de cobertura parcial
+  ---
+  duration_ms: 0.53365
+  type: 'test'
+  ...
+# Subtest: bloco sem números não afirma "tudo certo"
+ok 32 - bloco sem números não afirma "tudo certo"
+  ---
+  duration_ms: 0.190248
+  type: 'test'
+  ...
+# Subtest: divergência: só a receita da janela importa; mês sem documento vale 0
+ok 33 - divergência: só a receita da janela importa; mês sem documento vale 0
+  ---
+  duration_ms: 0.821514
+  type: 'test'
+  ...
+# Subtest: projeção e base por mês: só inteiros seguros; o mês avulso entra na base
+ok 34 - projeção e base por mês: só inteiros seguros; o mês avulso entra na base
+  ---
+  duration_ms: 1.224123
+  type: 'test'
+  ...
+# Subtest: cada divergência pede no máximo duas releituras; projeção nova recomeça a conta
+ok 35 - cada divergência pede no máximo duas releituras; projeção nova recomeça a conta
+  ---
+  duration_ms: 0.311264
+  type: 'test'
+  ...
+# Subtest: falhas: cada uma conta uma vez, o agendador para no teto e volta com dados novos
+ok 36 - falhas: cada uma conta uma vez, o agendador para no teto e volta com dados novos
+  ---
+  duration_ms: 0.228578
+  type: 'test'
+  ...
+# Subtest: mesma receita por mês: todos os meses que a base traz, inclusive os de fora da janela e o mês avulso
+ok 37 - mesma receita por mês: todos os meses que a base traz, inclusive os de fora da janela e o mês avulso
+  ---
+  duration_ms: 0.206257
+  type: 'test'
+  ...
+# Subtest: primeiro retorno confirmado com receita diferente relê a base, e as exclusões só depois dela
+ok 38 - primeiro retorno confirmado com receita diferente relê a base, e as exclusões só depois dela
+  ---
+  duration_ms: 214.605796
+  type: 'test'
+  ...
+# Subtest: retorno só do cache local não compara; o do servidor, igual à base, não relê
+ok 39 - retorno só do cache local não compara; o do servidor, igual à base, não relê
+  ---
+  duration_ms: 248.584794
+  type: 'test'
+  ...
+# Subtest: estado que volta: cada mudança de receita relê, mesmo repetindo um estado anterior
+ok 40 - estado que volta: cada mudança de receita relê, mesmo repetindo um estado anterior
+  ---
+  duration_ms: 322.465939
+  type: 'test'
+  ...
+# Subtest: base sem bloco exato: relê no primeiro retorno do servidor e a cada mudança dos documentos, sem laço
+ok 41 - base sem bloco exato: relê no primeiro retorno do servidor e a cada mudança dos documentos, sem laço
+  ---
+  duration_ms: 356.493212
+  type: 'test'
+  ...
+# Subtest: teto de falhas: duas releituras falhas param; só a projeção nova e a virada do mês reabrem (R4-03)
+ok 42 - teto de falhas: duas releituras falhas param; só a projeção nova e a virada do mês reabrem (R4-03)
+  ---
+  duration_ms: 901.591809
+  type: 'test'
+  ...
+# Subtest: base que nunca carregou fica fora do agendador: nem invalidação, nem projeção, nem virada do mês a relêem (R4-03)
+ok 43 - base que nunca carregou fica fora do agendador: nem invalidação, nem projeção, nem virada do mês a relêem (R4-03)
+  ---
+  duration_ms: 621.555663
+  type: 'test'
+  ...
+# Subtest: dois observadores da mesma base dividem o agendador: uma releitura por mudança
+ok 44 - dois observadores da mesma base dividem o agendador: uma releitura por mudança
+  ---
+  duration_ms: 183.408232
+  type: 'test'
+  ...
+# Subtest: troca de workspace: a escuta anterior é cancelada e a nova compara com a própria base
+ok 45 - troca de workspace: a escuta anterior é cancelada e a nova compara com a própria base
+  ---
+  duration_ms: 133.780596
+  type: 'test'
+  ...
+# Subtest: duas estimativas (provedor e prévia) relendo as mesmas exclusões: nenhuma combina base nova com exclusões antigas
+ok 46 - duas estimativas (provedor e prévia) relendo as mesmas exclusões: nenhuma combina base nova com exclusões antigas
+  ---
+  duration_ms: 144.736326
+  type: 'test'
+  ...
+# Subtest: troca de workspace: a retenção de uma sincronização não passa para outro workspace (R4-05)
+ok 47 - troca de workspace: a retenção de uma sincronização não passa para outro workspace (R4-05)
+  ---
+  duration_ms: 226.443964
+  type: 'test'
+  ...
+# Subtest: marco sem relógio: o relógio do aparelho voltando para trás não prende a retenção (R4-05)
+ok 48 - marco sem relógio: o relógio do aparelho voltando para trás não prende a retenção (R4-05)
+  ---
+  duration_ms: 148.42594
+  type: 'test'
+  ...
+# Subtest: janela de 12 meses: o mês avulso ainda carregando não conta como base sem bloco exato (R4-02)
+ok 49 - janela de 12 meses: o mês avulso ainda carregando não conta como base sem bloco exato (R4-02)
+  ---
+  duration_ms: 340.364785
+  type: 'test'
+  ...
+# Subtest: janela de 12 meses, mês avulso primeiro: cada base relida uma vez e as exclusões uma vez por mudança, sem renderização mista (R4-02)
+ok 50 - janela de 12 meses, mês avulso primeiro: cada base relida uma vez e as exclusões uma vez por mudança, sem renderização mista (R4-02)
+  ---
+  duration_ms: 534.388801
+  type: 'test'
+  ...
+# Subtest: janela de 12 meses, série primeiro: cada base relida uma vez e as exclusões uma vez por mudança, sem renderização mista (R4-02)
+ok 51 - janela de 12 meses, série primeiro: cada base relida uma vez e as exclusões uma vez por mudança, sem renderização mista (R4-02)
+  ---
+  duration_ms: 536.064148
+  type: 'test'
+  ...
+# Subtest: mutação nesta aba relê a base carregada do workspace, nunca as exclusões (R5-02)
+ok 52 - mutação nesta aba relê a base carregada do workspace, nunca as exclusões (R5-02)
+  ---
+  duration_ms: 461.131584
+  type: 'test'
+  ...
+# Subtest: escuta encerrada por erro: a estimativa avisa, e "Tentar de novo" a reabre (R5-02)
+ok 53 - escuta encerrada por erro: a estimativa avisa, e "Tentar de novo" a reabre (R5-02)
+  ---
+  duration_ms: 164.025507
+  type: 'test'
+  ...
+# Subtest: troca de workspace com pedido em curso: nada é liberado no outro workspace, e nada fica preso na volta (R5-03)
+ok 54 - troca de workspace com pedido em curso: nada é liberado no outro workspace, e nada fica preso na volta (R5-03)
+  ---
+  duration_ms: 366.122897
+  type: 'test'
+  ...
+# Subtest: tentativas esgotadas com um pedido em curso: as exclusões só são relidas depois da base (R5-03)
+ok 55 - tentativas esgotadas com um pedido em curso: as exclusões só são relidas depois da base (R5-03)
+  ---
+  duration_ms: 479.878857
+  type: 'test'
+  ...
+# Subtest: registro das bases: a escuta relê só as bases da estimativa; a mutação, pelo agendador dela, as carregadas do workspace e fora do teto
+ok 56 - registro das bases: a escuta relê só as bases da estimativa; a mutação, pelo agendador dela, as carregadas do workspace e fora do teto
+  ---
+  duration_ms: 0.711581
+  type: 'test'
+  ...
+# Subtest: registro das bases: a leitura em uso cobre os pedidos anteriores ao começo dela, e as bases ficam fora de passo só quando uma leu um pedido que outra ainda vai ler (R10-01)
+ok 57 - registro das bases: a leitura em uso cobre os pedidos anteriores ao começo dela, e as bases ficam fora de passo só quando uma leu um pedido que outra ainda vai ler (R10-01)
+  ---
+  duration_ms: 0.383736
+  type: 'test'
+  ...
+# Subtest: base nova sem pedido (a releitura da mutação, depois do gatilho) antes do retorno da escuta: segura na mesma renderização, relê as exclusões depois dela e não pede outra releitura (R6-02)
+ok 58 - base nova sem pedido (a releitura da mutação, depois do gatilho) antes do retorno da escuta: segura na mesma renderização, relê as exclusões depois dela e não pede outra releitura (R6-02)
+  ---
+  duration_ms: 374.002248
+  type: 'test'
+  ...
+# Subtest: escuta encerrada: a projeção recebida deixa de valer; cada base nova sem pedido é segurada e as exclusões relidas depois dela, sem releituras contra a projeção morta (R6-02)
+ok 59 - escuta encerrada: a projeção recebida deixa de valer; cada base nova sem pedido é segurada e as exclusões relidas depois dela, sem releituras contra a projeção morta (R6-02)
+  ---
+  duration_ms: 514.984052
+  type: 'test'
+  ...
+# Subtest: escuta encerrada com um pedido em curso: a sincronização termina quando a base chega (R6-02)
+ok 60 - escuta encerrada com um pedido em curso: a sincronização termina quando a base chega (R6-02)
+  ---
+  duration_ms: 440.314994
+  type: 'test'
+  ...
+# Subtest: duas bases novas sem pedido, a segunda antes de as exclusões relidas chegarem: as exclusões são relidas de novo depois dela (R6-02)
+ok 61 - duas bases novas sem pedido, a segunda antes de as exclusões relidas chegarem: as exclusões são relidas de novo depois dela (R6-02)
+  ---
+  duration_ms: 274.039216
+  type: 'test'
+  ...
+# Subtest: o mesmo caso com as duas releituras das exclusões concluídas no mesmo milissegundo: a leitura chega como nova, e a estimativa é solta (R6-02)
+ok 62 - o mesmo caso com as duas releituras das exclusões concluídas no mesmo milissegundo: a leitura chega como nova, e a estimativa é solta (R6-02)
+  ---
+  duration_ms: 271.562442
+  type: 'test'
+  ...
+# Subtest: escuta do provedor encerrada: o retorno do servidor à escuta da prévia a reabre, e o "Tentar de novo" de qualquer estimativa reabre as encerradas (R6-01)
+ok 63 - escuta do provedor encerrada: o retorno do servidor à escuta da prévia a reabre, e o "Tentar de novo" de qualquer estimativa reabre as encerradas (R6-01)
+  ---
+  duration_ms: 328.032038
+  type: 'test'
+  ...
+# Subtest: rajadas de mutação nesta aba não gastam o orçamento da escuta: a receita nova sincroniza sem esperar a reposição (R6-03)
+ok 64 - rajadas de mutação nesta aba não gastam o orçamento da escuta: a receita nova sincroniza sem esperar a reposição (R6-03)
+  ---
+  duration_ms: 484.639204
+  type: 'test'
+  ...
+# Subtest: mês fora da janela mudado sem pedido: as exclusões são relidas depois da base, e a janela que passa a incluí-lo não junta versões nem prende a retenção (R7-01)
+ok 65 - mês fora da janela mudado sem pedido: as exclusões são relidas depois da base, e a janela que passa a incluí-lo não junta versões nem prende a retenção (R7-01)
+  ---
+  duration_ms: 370.007447
+  type: 'test'
+  ...
+# Subtest: janela de 12 meses, as duas bases relidas sem pedido: a liberação espera as duas, e as exclusões são relidas uma vez, depois delas (R7-01)
+ok 66 - janela de 12 meses, as duas bases relidas sem pedido: a liberação espera as duas, e as exclusões são relidas uma vez, depois delas (R7-01)
+  ---
+  duration_ms: 525.89718
+  type: 'test'
+  ...
+# Subtest: releitura pedida liberada pela convergência antes de chegar, com um estado intermediário: a chegada compara e pede de novo (R7-02)
+ok 67 - releitura pedida liberada pela convergência antes de chegar, com um estado intermediário: a chegada compara e pede de novo (R7-02)
+  ---
+  duration_ms: 571.241598
+  type: 'test'
+  ...
+# Subtest: releitura da mutação que começou antes do último retorno da escuta: a chegada com um estado intermediário compara e pede de novo (R7-02)
+ok 68 - releitura da mutação que começou antes do último retorno da escuta: a chegada com um estado intermediário compara e pede de novo (R7-02)
+  ---
+  duration_ms: 582.687857
+  type: 'test'
+  ...
+# Subtest: janela de 12 meses, a releitura da mutação de uma base adiada pelo orçamento (escuta viva, com receita desconsiderada): a outra base nova é segurada até ela chegar (R8-01, R9-01)
+ok 69 - janela de 12 meses, a releitura da mutação de uma base adiada pelo orçamento (escuta viva, com receita desconsiderada): a outra base nova é segurada até ela chegar (R8-01, R9-01)
+  ---
+  duration_ms: 434.063026
+  type: 'test'
+  ...
+# Subtest: janela de 12 meses, a releitura da mutação de uma base adiada pelo orçamento (escuta viva, sem receita desconsiderada): a outra base nova é segurada até ela chegar (R8-01, R9-01)
+ok 70 - janela de 12 meses, a releitura da mutação de uma base adiada pelo orçamento (escuta viva, sem receita desconsiderada): a outra base nova é segurada até ela chegar (R8-01, R9-01)
+  ---
+  duration_ms: 427.005568
+  type: 'test'
+  ...
+# Subtest: janela de 12 meses, a releitura da mutação de uma base adiada pelo orçamento (escuta encerrada, com receita desconsiderada): a outra base nova é segurada até ela chegar (R8-01, R9-01)
+ok 71 - janela de 12 meses, a releitura da mutação de uma base adiada pelo orçamento (escuta encerrada, com receita desconsiderada): a outra base nova é segurada até ela chegar (R8-01, R9-01)
+  ---
+  duration_ms: 431.520264
+  type: 'test'
+  ...
+# Subtest: janela de 12 meses, a releitura da mutação de uma base adiada pelo orçamento (escuta encerrada, sem receita desconsiderada): a outra base nova é segurada até ela chegar (R8-01, R9-01)
+ok 72 - janela de 12 meses, a releitura da mutação de uma base adiada pelo orçamento (escuta encerrada, sem receita desconsiderada): a outra base nova é segurada até ela chegar (R8-01, R9-01)
+  ---
+  duration_ms: 425.250456
+  type: 'test'
+  ...
+# Subtest: janela de 12 meses com a escuta encerrada e a série esperando a reposição: o "Tentar de novo" relê as duas bases e libera sem esperar a releitura pendente (R8-01)
+ok 73 - janela de 12 meses com a escuta encerrada e a série esperando a reposição: o "Tentar de novo" relê as duas bases e libera sem esperar a releitura pendente (R8-01)
+  ---
+  duration_ms: 436.030076
+  type: 'test'
+  ...
+# Subtest: janela de 12 meses, a nova tentativa do mês avulso agendada depois de uma falha: a série nova espera por ela (R8-01)
+ok 74 - janela de 12 meses, a nova tentativa do mês avulso agendada depois de uma falha: a série nova espera por ela (R8-01)
+  ---
+  duration_ms: 184.696284
+  type: 'test'
+  ...
+# Subtest: janela de 12 meses com a escuta encerrada: a releitura pendente da série que sai sem rede fica pausada e continua segurando a estimativa em qualquer renderização, até a rede voltar (R10-03)
+ok 75 - janela de 12 meses com a escuta encerrada: a releitura pendente da série que sai sem rede fica pausada e continua segurando a estimativa em qualquer renderização, até a rede voltar (R10-03)
+  ---
+  duration_ms: 377.066044
+  type: 'test'
+  ...
+# Subtest: janela de 12 meses, uma mutação nesta aba durante a releitura pedida pela escuta (com receita desconsiderada): as duas bases chegam em passo, e a estimativa mostra a sincronização sem esperar a releitura da mutação (R10-01)
+ok 76 - janela de 12 meses, uma mutação nesta aba durante a releitura pedida pela escuta (com receita desconsiderada): as duas bases chegam em passo, e a estimativa mostra a sincronização sem esperar a releitura da mutação (R10-01)
+  ---
+  duration_ms: 348.88137
+  type: 'test'
+  ...
+# Subtest: janela de 12 meses, uma mutação nesta aba durante a releitura pedida pela escuta (sem receita desconsiderada): as duas bases chegam em passo, e a estimativa mostra a sincronização sem esperar a releitura da mutação (R10-01)
+ok 77 - janela de 12 meses, uma mutação nesta aba durante a releitura pedida pela escuta (sem receita desconsiderada): as duas bases chegam em passo, e a estimativa mostra a sincronização sem esperar a releitura da mutação (R10-01)
+  ---
+  duration_ms: 348.934404
+  type: 'test'
+  ...
+# Subtest: janela de 12 meses com receita desconsiderada: uma mutação nesta aba durante a releitura por id que segue a sincronização não segura a estimativa até a releitura da mutação (R10-01)
+ok 78 - janela de 12 meses com receita desconsiderada: uma mutação nesta aba durante a releitura por id que segue a sincronização não segura a estimativa até a releitura da mutação (R10-01)
+  ---
+  duration_ms: 151.771532
+  type: 'test'
+  ...
+# Subtest: janela de 12 meses que sai no meio de uma leitura do mês avulso, com outro pedido feito durante ela: o mês avulso é relido na volta, mesmo com a leitura em curso terminando depois da saída (R10-03)
+ok 79 - janela de 12 meses que sai no meio de uma leitura do mês avulso, com outro pedido feito durante ela: o mês avulso é relido na volta, mesmo com a leitura em curso terminando depois da saída (R10-03)
+  ---
+  duration_ms: 517.454649
+  type: 'test'
+  ...
+# Subtest: uma base só: a releitura da mutação em curso não segura a estimativa (as bases fora de passo só valem com mais de uma base) (R10-01)
+ok 80 - uma base só: a releitura da mutação em curso não segura a estimativa (as bases fora de passo só valem com mais de uma base) (R10-01)
+  ---
+  duration_ms: 262.529468
+  type: 'test'
+  ...
+# Subtest: uma base só: a releitura sem pedido que chega com a próxima já pendente libera na hora, sem esperar por ela (R8-01)
+ok 81 - uma base só: a releitura sem pedido que chega com a próxima já pendente libera na hora, sem esperar por ela (R8-01)
+  ---
+  duration_ms: 320.79269
+  type: 'test'
+  ...
+# Subtest: janela de 12 meses com a série parada no teto: a releitura da mutação relê só o mês avulso, que libera sem ela (a série em erro); relida a série com sucesso, a mutação volta a relê-la (R8-01)
+ok 82 - janela de 12 meses com a série parada no teto: a releitura da mutação relê só o mês avulso, que libera sem ela (a série em erro); relida a série com sucesso, a mutação volta a relê-la (R8-01)
+  ---
+  duration_ms: 288.977286
+  type: 'test'
+  ...
+# Subtest: janela de 12 meses, só a série relida sem pedido depois do último retorno da escuta: o mês avulso, lido antes desse retorno e sem leitura nova, não faz pedir (R8-03)
+ok 83 - janela de 12 meses, só a série relida sem pedido depois do último retorno da escuta: o mês avulso, lido antes desse retorno e sem leitura nova, não faz pedir (R8-03)
+  ---
+  duration_ms: 324.343269
+  type: 'test'
+  ...
+# Subtest: falhas da releitura da mutação não param a base no teto: com a rede de volta, a mutação seguinte relê (R8-01)
+ok 84 - falhas da releitura da mutação não param a base no teto: com a rede de volta, a mutação seguinte relê (R8-01)
+  ---
+  duration_ms: 228.559784
+  type: 'test'
+  ...
+# Subtest: com receita desconsiderada, a estimativa de uma base só não solta a de 12 meses: a leitura por id que ela relê não pareia a série nova com o mês avulso antigo (R9-02)
+ok 85 - com receita desconsiderada, a estimativa de uma base só não solta a de 12 meses: a leitura por id que ela relê não pareia a série nova com o mês avulso antigo (R9-02)
+  ---
+  duration_ms: 276.522067
+  type: 'test'
+  ...
+# Subtest: janela de 12 meses que sai e volta enquanto as duas bases esperam a reposição: o mês avulso, que saiu de uso com a releitura pendente, é relido na volta (R9-02)
+ok 86 - janela de 12 meses que sai e volta enquanto as duas bases esperam a reposição: o mês avulso, que saiu de uso com a releitura pendente, é relido na volta (R9-02)
+  ---
+  duration_ms: 427.622371
+  type: 'test'
+  ...
+# Subtest: a falha de uma releitura da mutação não conta para o teto, nem depois: o pedido seguinte da escuta ainda tem as duas releituras (R9-04)
+ok 87 - a falha de uma releitura da mutação não conta para o teto, nem depois: o pedido seguinte da escuta ainda tem as duas releituras (R9-04)
+  ---
+  duration_ms: 274.961808
+  type: 'test'
+  ...
+# Subtest: decisão pura: só fica a leitura em curso que começou depois da mudança
+ok 88 - decisão pura: só fica a leitura em curso que começou depois da mudança
+  ---
+  duration_ms: 1.309291
+  type: 'test'
+  ...
+# Subtest: leitura em curso que começou depois da mudança vista não é cancelada: uma chamada, com o dado novo
+ok 89 - leitura em curso que começou depois da mudança vista não é cancelada: uma chamada, com o dado novo
+  ---
+  duration_ms: 16.417735
+  type: 'test'
+  ...
+# Subtest: primeira leitura (sem dado) em curso desde antes da mudança: o React Query a reaproveita, e a releitura vem depois dela
+ok 90 - primeira leitura (sem dado) em curso desde antes da mudança: o React Query a reaproveita, e a releitura vem depois dela
+  ---
+  duration_ms: 6.14533
+  type: 'test'
+  ...
+# Subtest: com dado, a leitura em curso desde antes da mudança é cancelada e relida
+ok 91 - com dado, a leitura em curso desde antes da mudança é cancelada e relida
+  ---
+  duration_ms: 7.439872
+  type: 'test'
+  ...
+# Subtest: consulta parada é invalidada e relida; desativada fica inválida e relê ao ativar
+ok 92 - consulta parada é invalidada e relida; desativada fica inválida e relê ao ativar
+  ---
+  duration_ms: 9.909091
+  type: 'test'
+  ...
+# Subtest: rajada: uma mudança depois do começo da leitura obriga outra leitura
+ok 93 - rajada: uma mudança depois do começo da leitura obriga outra leitura
+  ---
+  duration_ms: 7.017404
+  type: 'test'
+  ...
+# Subtest: só as consultas do relatório: outra chave não é tocada
+ok 94 - só as consultas do relatório: outra chave não é tocada
+  ---
+  duration_ms: 4.830587
+  type: 'test'
+  ...
+# Subtest: P5-C1 — rajada de mudanças vira uma releitura, 2 s depois da última
+ok 95 - P5-C1 — rajada de mudanças vira uma releitura, 2 s depois da última
+  ---
+  duration_ms: 1.573974
+  type: 'test'
+  ...
+# Subtest: P5-C1 — uso normal: cada mudança espaçada relê em 2 s, até o tamanho da rajada
+ok 96 - P5-C1 — uso normal: cada mudança espaçada relê em 2 s, até o tamanho da rajada
+  ---
+  duration_ms: 0.258323
+  type: 'test'
+  ...
+# Subtest: P5-C1 — sem orçamento, a releitura espera a reposição e não se perde
+ok 97 - P5-C1 — sem orçamento, a releitura espera a reposição e não se perde
+  ---
+  duration_ms: 0.292521
+  type: 'test'
+  ...
+# Subtest: P5-C1 — escrita contínua por 1 hora: no máximo 100 releituras e uma por minuto depois da rajada
+ok 98 - P5-C1 — escrita contínua por 1 hora: no máximo 100 releituras e uma por minuto depois da rajada
+  ---
+  duration_ms: 2.127646
+  type: 'test'
+  ...
+# Subtest: P5-C1 — cancelar descarta a releitura pendente
+ok 99 - P5-C1 — cancelar descarta a releitura pendente
+  ---
+  duration_ms: 0.243248
+  type: 'test'
+  ...
+# Subtest: P5-C1 — inatividade longa não acumula orçamento além da rajada
+ok 100 - P5-C1 — inatividade longa não acumula orçamento além da rajada
+  ---
+  duration_ms: 0.141521
+  type: 'test'
+  ...
+# Subtest: P5-F.1 — releitura pendente: agrupando ou esperando a reposição, até sair ou ser cancelada (R8-01)
+ok 101 - P5-F.1 — releitura pendente: agrupando ou esperando a reposição, até sair ou ser cancelada (R8-01)
+  ---
+  duration_ms: 0.258786
+  type: 'test'
+  ...
+# Subtest: P5-C1 — faixas do seletor viram faixas "preset" do contrato
+ok 102 - P5-C1 — faixas do seletor viram faixas "preset" do contrato
+  ---
+  duration_ms: 3.068942
+  type: 'test'
+  ...
+# Subtest: P5-C1 — mês do Dashboard sai dos campos locais do seletor, não de toISOString
+ok 103 - P5-C1 — mês do Dashboard sai dos campos locais do seletor, não de toISOString
+  ---
+  duration_ms: 0.340411
+  type: 'test'
+  ...
+# Subtest: P5-C1 — o mês independe do fuso do navegador (UTC e fusos extremos)
+ok 104 - P5-C1 — o mês independe do fuso do navegador (UTC e fusos extremos)
+  ---
+  duration_ms: 332.574706
+  type: 'test'
+  ...
+# Subtest: P5-C1 — chaves de cache distinguem usuário, workspace, papel, faixa e blocos
+ok 105 - P5-C1 — chaves de cache distinguem usuário, workspace, papel, faixa e blocos
+  ---
+  duration_ms: 0.235509
+  type: 'test'
+  ...
+# Subtest: P5-C1 — a invalidação usa o prefixo do relatório (e, P5-F.1, não toca as bases de longa duração)
+ok 106 - P5-C1 — a invalidação usa o prefixo do relatório (e, P5-F.1, não toca as bases de longa duração)
+  ---
+  duration_ms: 0.315024
+  type: 'test'
+  ...
+# Subtest: P5-C1 — callable: payload estrito, sections só quando pedidas; erros em pt-BR
+ok 107 - P5-C1 — callable: payload estrito, sections só quando pedidas; erros em pt-BR
+  ---
+  duration_ms: 0.399375
+  type: 'test'
+  ...
+1..107
+# tests 107
+# suites 0
+# pass 107
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 18068.668809

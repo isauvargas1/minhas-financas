@@ -1,0 +1,35 @@
+
+Running 1 test using 1 worker
+
+(node:4405) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 [chromium] › e2e/work-time-p5f.spec.ts:1310:1 › ADV-01 (R3.2): sem conexão, a estimativa indisponível continua com o motivo real, sem "calculando" nem "em atualização"; a conversão em uso sai e volta com a conexão (1.1m)
+
+
+  1) [chromium] › e2e/work-time-p5f.spec.ts:1310:1 › ADV-01 (R3.2): sem conexão, a estimativa indisponível continua com o motivo real, sem "calculando" nem "em atualização"; a conversão em uso sai e volta com a conexão 
+
+    Error: expect(locator).toHaveText(expected) failed
+
+    Locator: getByTestId('work-time-preview-unavailable')
+    Expected: "Estimativa indisponível. A fonte escolhida é um espaço PJ. Confirme que quer usar a receita empresarial, ou escolha um espaço PF."
+    Timeout: 12000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toHaveText" with timeout 12000ms
+      - waiting for getByTestId('work-time-preview-unavailable')
+
+
+      1331 |   await page.waitForTimeout(35_000);
+      1332 |   await expect(notice(page)).toContainText(unavailable);
+    > 1333 |   await expect(page.getByTestId('work-time-preview-unavailable')).toHaveText(reason);
+           |                                                                   ^
+      1334 |   const offline = await recordedEstimateStates(page);
+      1335 |   await test.info().attach('adv-01-sem-conexao', { body: JSON.stringify(offline, null, 2), contentType: 'application/json' });
+      1336 |   expect(offline.preview, 'sem conexão, a prévia só mostrou o motivo real').toEqual([`indisponivel|${reason}`]);
+        at <scratchpad>/p5f1r32/copia-adv01-pre/e2e/work-time-p5f.spec.ts:1333:67
+
+    Error Context: test-results/work-time-p5f-ADV-01-R3-2--22cf6-o-sai-e-volta-com-a-conexão-chromium/error-context.md
+
+  1 failed
+    [chromium] › e2e/work-time-p5f.spec.ts:1310:1 › ADV-01 (R3.2): sem conexão, a estimativa indisponível continua com o motivo real, sem "calculando" nem "em atualização"; a conversão em uso sai e volta com a conexão 

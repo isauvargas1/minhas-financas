@@ -1,0 +1,7 @@
+c9f7aed0f17b2dcb0129b611cba9649f5c454ddb5f60f826d6c879dbd83e3bdd  gate-verify-all-r32.log
+05c9e891f00e818ee81c369bb919e1f0a6bab97f599c39fec3ead75dfd18f969  gate-verify-all-r32.log.meta
+c4e8af4762669785fd2c54471804c3778b8bfd9def04e049f029edec74b7e1bd  gate-verify-all-r32.log.status
+0c310da71e1c812682341868c5806f6a1178d572cc4bf841c18e51547879c792  gate-verify-all-r32-memoria.txt
+da497149c80437373e982586fc6c520ff4a922981a393790413d2bef4b45f3e4  gate-verify-all-r32-artefatos/e2e-grupos/grupo-1.json
+c959b9b9a99ff846430614af82743a3d7d0d3d401ed69e0d770b24f888f03b8d  gate-verify-all-r32-artefatos/e2e-grupos/grupo-2.json
+3f694ca0bdfe3f063e474474505303292d89971ef7d2ef531ad5e07efd395fb2  gate-verify-all-r32-artefatos/e2e-grupos/grupo-3.json

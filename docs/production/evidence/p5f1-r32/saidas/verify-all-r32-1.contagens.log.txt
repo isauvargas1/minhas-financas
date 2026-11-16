@@ -1,0 +1,20 @@
+> finace-dashboard-21@0.0.0 verify:all
+> npm run verify:fast && npm run test:integration:emulator && npm run test:e2e
+> finace-dashboard-21@0.0.0 verify:fast
+> npm run typecheck && npm run functions:lint && npm run build && npm run functions:build && npm run functions:test:unit && npm run test:unit:investments && npm run test:unit:p1 && npm run test:unit:billing && npm run test:unit:ui && npm run test:unit:cash && npm run test:unit:loans && npm run test:unit:clients && npm run test:unit:accounts && npm run test:unit:cards && npm run test:unit:recurring && npm run test:unit:split && npm run test:unit:settings-catalog && npm run test:unit:ai-chat && npm run test:unit:notifications && npm run test:unit:goals && npm run test:unit:reports && npm run test:unit:work-time && npm run test:tools:e2e
+> finace-dashboard-21@0.0.0 typecheck
+> tsc --noEmit && npm --prefix functions run typecheck
+> typecheck
+> tsc --noEmit
+> finace-dashboard-21@0.0.0 functions:lint
+> npm --prefix functions run lint
+> lint
+> eslint --ext .js,.ts .
+> finace-dashboard-21@0.0.0 build
+> NODE_OPTIONS=--max-old-space-size=4096 vite build
+> finace-dashboard-21@0.0.0 functions:build
+> npm --prefix functions run build
+> build
+> npm run clean && tsc
+> clean
+> node -e "require('node:fs').rmSync('lib', {recursive: true, force: true})"

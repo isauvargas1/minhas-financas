@@ -1,0 +1,34 @@
+== arvore-6c459430 edicao-antes-da-primeira-leitura
+antes do gatilho: loading | séries: 1 por id: 1
+estados: loading → R$10560
+consistente: R$10560 (antes ou depois da edição); misto: R$10260
+== arvore-6c459430 escuta-recusada-com-exclusao
+estados: loading → erro:"Não foi possível confirmar a estimativa com os totais oficiais. Tente de novo." | leituras por id: 0
+== arvore-6c459430 escuta-recusada-sem-exclusao-12m
+estados: loading → erro:"Não foi possível confirmar a estimativa com os totais oficiais. Tente de novo."
+== arvore-6c459430 leitura-por-id-do-cache-vazio
+estados: loading → R$11060 | consistente: R$10560; sem as exclusões: R$11060
+== arvore-6c459430 limite-c-estimativa-parada
+início: loading → R$10560
+depois das edições: loading → R$10560
+depois da receita nova de agosto (estado atual consistente: R$10660): loading → R$10560 | última: R$10560
+== arvore-6c459430 b01-parecer
+antes do estorno: loading → R$100
+todas as renderizações: loading → R$100 (certo: R$100 antes e depois; dupla dedução: R$0)
+== h-d7dabb10-testes-6c459430 edicao-antes-da-primeira-leitura
+antes do gatilho: loading | séries: 1 por id: 1
+estados: loading → R$10560
+consistente: R$10560 (antes ou depois da edição); misto: R$10260
+== h-d7dabb10-testes-6c459430 escuta-recusada-com-exclusao
+estados: loading → erro:"Não foi possível confirmar a estimativa com os totais oficiais. Tente de novo." | leituras por id: 0
+== h-d7dabb10-testes-6c459430 escuta-recusada-sem-exclusao-12m
+estados: loading → erro:"Não foi possível confirmar a estimativa com os totais oficiais. Tente de novo."
+== h-d7dabb10-testes-6c459430 leitura-por-id-do-cache-vazio
+estados: loading → R$11060 | consistente: R$10560; sem as exclusões: R$11060
+== h-d7dabb10-testes-6c459430 limite-c-estimativa-parada
+início: loading → R$10560
+depois das edições: loading → R$10560
+depois da receita nova de agosto (estado atual consistente: R$10660): loading → R$10560 | última: R$10560
+== h-d7dabb10-testes-6c459430 b01-parecer
+antes do estorno: loading → R$100
+todas as renderizações: loading → R$100 (certo: R$100 antes e depois; dupla dedução: R$0)

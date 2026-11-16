@@ -1,0 +1,51 @@
+base: saída 0, 0 falha(s)
+MORTO      G01 instável, ignorado ou falho aceito (só "unexpected" reprova) (2 falha(s); ex.: not ok 5 - grupos: a execução vale só com cada teste da lista uma vez, numa tentativa, passando)
+MORTO      G02 mais de uma tentativa aceita (1 falha(s); ex.: not ok 5 - grupos: a execução vale só com cada teste da lista uma vez, numa tentativa, passando)
+MORTO      G03 teste da lista que não rodou aceito (2 falha(s); ex.: not ok 5 - grupos: a execução vale só com cada teste da lista uma vez, numa tentativa, passando)
+MORTO      G04 teste que rodou duas vezes aceito (2 falha(s); ex.: not ok 5 - grupos: a execução vale só com cada teste da lista uma vez, numa tentativa, passando)
+MORTO      G05 grupo sem relatório aceito (3 falha(s); ex.: not ok 5 - grupos: a execução vale só com cada teste da lista uma vez, numa tentativa, passando)
+MORTO      G06 teste fora da lista aceito (1 falha(s); ex.: not ok 5 - grupos: a execução vale só com cada teste da lista uma vez, numa tentativa, passando)
+MORTO      G07 lista vazia aceita (1 falha(s); ex.: not ok 5 - grupos: a execução vale só com cada teste da lista uma vez, numa tentativa, passando)
+MORTO      G08 --shard do usuário aceito (2 falha(s); ex.: not ok 2 - grupos: o executor divide a suíte; --shard, --last-failed e --list são recusados)
+MORTO      G09 --last-failed aceito (1 falha(s); ex.: not ok 2 - grupos: o executor divide a suíte; --shard, --last-failed e --list são recusados)
+MORTO      G10 quantidade 0 de grupos aceita (2 falha(s); ex.: not ok 1 - grupos: quantidade padrão 3, inteiros de 1 a 12, e recusa do resto)
+MORTO      G11 mais grupos do que arquivos (1 falha(s); ex.: not ok 1 - grupos: quantidade padrão 3, inteiros de 1 a 12, e recusa do resto)
+MORTO      G12 projeto fora da chave do teste (5 falha(s); ex.: not ok 4 - grupos: as chaves dos testes do relatório são estáveis e distinguem arquivo, linha, títulos e projeto)
+MORTO      X01 saída do grupo ignorada (1 falha(s); ex.: not ok 9 - executor: teste que não rodou, teste instável ou grupo com saída diferente de 0 reprovam a execução)
+MORTO      X02 conferência da lista ignorada (1 falha(s); ex.: not ok 9 - executor: teste que não rodou, teste instável ou grupo com saída diferente de 0 reprovam a execução)
+MORTO      X03 grupos que não rodaram não contam como sem relatório (1 falha(s); ex.: not ok 13 - executor (EST-01): porta que não libera depois de um grupo reprova com "ainda em uso" e para os grupos segui)
+MORTO      X04 build das Functions com falha ignorado (1 falha(s); ex.: not ok 15 - executor: argumento recusado, quantidade inválida, build ou lista com falha param antes de qualquer grupo)
+MORTO      X05 lista com falha ignorada (1 falha(s); ex.: not ok 15 - executor: argumento recusado, quantidade inválida, build ou lista com falha param antes de qualquer grupo)
+MORTO      X06 log do Emulator do grupo anterior não sai (1 falha(s); ex.: not ok 8 - executor: os grupos completos e passando terminam com saída 0, em sequência, cada um com relatório e saída pr)
+MORTO      X07 relatório de todos os grupos no mesmo arquivo (2 falha(s); ex.: not ok 8 - executor: os grupos completos e passando terminam com saída 0, em sequência, cada um com relatório e saída pr)
+MORTO      X08 argumentos não repassados aos grupos (1 falha(s); ex.: not ok 8 - executor: os grupos completos e passando terminam com saída 0, em sequência, cada um com relatório e saída pr)
+MORTO      W01 nova tentativa no CI (1 falha(s); ex.: not ok 7 - grupos: a fiação oficial (npm run test:e2e, Playwright e CI) roda os grupos, sem nova tentativa, sem .only e )
+MORTO      W02 .only permitido (1 falha(s); ex.: not ok 7 - grupos: a fiação oficial (npm run test:e2e, Playwright e CI) roda os grupos, sem nova tentativa, sem .only e )
+MORTO      W03 Emulator encerrado com SIGKILL (sem desligamento limpo) (1 falha(s); ex.: not ok 7 - grupos: a fiação oficial (npm run test:e2e, Playwright e CI) roda os grupos, sem nova tentativa, sem .only e )
+MORTO      W04 test:e2e direto no Playwright (sessão única) (1 falha(s); ex.: not ok 7 - grupos: a fiação oficial (npm run test:e2e, Playwright e CI) roda os grupos, sem nova tentativa, sem .only e )
+MORTO      W05 CI com o Emulator da versão do dia (1 falha(s); ex.: not ok 7 - grupos: a fiação oficial (npm run test:e2e, Playwright e CI) roda os grupos, sem nova tentativa, sem .only e )
+MORTO      W06 CI sem os testes do executor (1 falha(s); ex.: not ok 7 - grupos: a fiação oficial (npm run test:e2e, Playwright e CI) roda os grupos, sem nova tentativa, sem .only e )
+MORTO      P01 porta presa depois do grupo ignorada (1 falha(s); ex.: not ok 13 - executor (EST-01): porta que não libera depois de um grupo reprova com "ainda em uso" e para os grupos segui)
+MORTO      P02 porta presa antes do primeiro grupo ignorada (1 falha(s); ex.: not ok 12 - executor (EST-01): porta ocupada antes do primeiro grupo reprova sem rodar grupo nenhum, e quem a ocupa cont)
+MORTO      P03 "ainda em uso" fora da decisão (1 falha(s); ex.: not ok 13 - executor (EST-01): porta que não libera depois de um grupo reprova com "ainda em uso" e para os grupos segui)
+MORTO      P04 espera de 0 s por padrão (2 falha(s); ex.: not ok 3 - grupos (EST-01): o prazo da espera pelas portas é 60 s e só encurta)
+MORTO      P05 prazo da espera sem teto (pode estender) (1 falha(s); ex.: not ok 3 - grupos (EST-01): o prazo da espera pelas portas é 60 s e só encurta)
+Traceback (most recent call last):
+  File "<scratchpad>/p5f1r32/scripts/mutantes-grupos-r32.py", line 93, in <module>
+    code, fails = run()
+                  ^^^^^
+  File "<scratchpad>/p5f1r32/scripts/mutantes-grupos-r32.py", line 70, in run
+    p = subprocess.run(['node', '--test', *TESTS], cwd=D, capture_output=True, text=True, timeout=600)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/subprocess.py", line 550, in run
+    stdout, stderr = process.communicate(input, timeout=timeout)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/subprocess.py", line 1209, in communicate
+    stdout, stderr = self._communicate(input, endtime, timeout)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/subprocess.py", line 2116, in _communicate
+    self._check_timeout(endtime, orig_timeout, stdout, stderr)
+  File "/usr/lib/python3.11/subprocess.py", line 1253, in _check_timeout
+    raise TimeoutExpired(
+subprocess.TimeoutExpired: Command '['node', '--test', 'tests/tools/e2e-grupos.test.mjs', 'tests/tools/integracao-marco.test.mjs']' timed out after 600 seconds
+saida=1

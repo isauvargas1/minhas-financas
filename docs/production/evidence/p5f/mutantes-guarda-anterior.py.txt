@@ -1,0 +1,31 @@
+"""P5-F: G5, G17 e G18 contra a guarda de logs ANTERIOR ao reforço (só palavras-chave).
+Prova por que o teste passou a exigir o formato fixo. Cópias fora do worktree."""
+import importlib.util, shutil, sys
+S = '<scratchpad>'
+spec = importlib.util.spec_from_file_location('m', f'{S}/p5f/mutantes.py'); m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
+OLD = """test('logs da preferência só levam mensagem fixa e código de erro', () => {
+  const files = [...sourceFiles(WORK_TIME_MODULE), SETTINGS_VIEW, 'src/components/Header.tsx'];
+  for (const path of files) {
+    const source = read(path);
+    assert.doesNotMatch(source, /console\\.(log|info|debug|warn|table|dir)\\s*\\(/, `${path}: log fora do padrão`);
+    const errorCalls = source.match(/console\\.error\\([^;]*\\);/g) ?? [];
+    for (const call of errorCalls) {
+      assert.doesNotMatch(call, /income|Income|preference|Preference|Cents|Minutes|form\\b|draft|hourly/, `${path}: ${call}`);
+    }
+  }
+});"""
+def downgrade(target):
+    path = f'{target}/{m.GUARD}'
+    src = open(path, encoding='utf-8').read()
+    start = src.index('/** Único formato aceito')
+    end = src.index("test('a preferência só é lida e gravada")
+    open(path, 'w', encoding='utf-8').write(src[:start] + OLD + '\n\n' + src[end:])
+for mid in ('ORIG', 'G5', 'G17', 'G18'):
+    target = m.prepare(f'anterior-{mid}')
+    downgrade(target)
+    for mutant_id, desc, test_file, edits in m.MUTANTS:
+        if mutant_id == mid:
+            for path, old, new in edits: m.apply(target, path, old, new)
+    code, failed = m.run(target, m.GUARD)
+    print(f"{mid:<5} guarda anterior: {'MORTO' if code else 'VIVO (passa)'} {failed}")
+    shutil.rmtree(target)

@@ -1,0 +1,3 @@
+{"name":"sem redução","segunda":600,"terca":120,"soma":720,"uniao_max":720,"ambiguidade":null}
+{"name":"segunda reduzida a 8 h","segunda":480,"terca":480,"soma":960,"uniao_max":720,"ambiguidade":null}
+{"name":"segunda reduzida a 9 h","segunda":540,"terca":480,"soma":1020,"uniao_max":720,"ambiguidade":null}

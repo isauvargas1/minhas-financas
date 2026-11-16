@@ -1,0 +1,57 @@
+// Sonda do revisor (R2A, item 2, busca dirigida): rotinas só em torno de uma véspera reduzida (p−1, p, d=p+1, d+1),
+// com a rotina acrescentada nesses dias; p no meio do mês ou no último dia do mês (d abre o mês seguinte).
+// Uso: node --experimental-strip-types s01-monotonia-dirigida.mts <raiz> <amostras> <semente>
+import { rng } from './lib.mts';
+const [root, samplesArg, seedArg] = process.argv.slice(2);
+const cal = await import(`${root}/src/modules/work-time/calendar.ts`);
+const dates = await import(`${root}/src/modules/work-time/dates.ts`);
+const N = Number(samplesArg ?? 5000);
+const next = rng(Number(seedArg ?? 1));
+const g = (max: number) => Math.floor(next() * (Math.floor(max / 15) + 1)) * 15;
+const spec = (): any => {
+  const r = next();
+  if (r < 0.2) return { kind: 'off' };
+  if (r < 0.3) return { kind: 'duration', minutes: 15 + g(1425) };
+  const start = r < 0.65 ? 1020 + g(419) : g(1425);
+  const len = 15 + g(1425);
+  const end = (start + len) % 1440;
+  const b = next() < 0.35 ? Math.min(len - 1, g(Math.min(len - 1, 480))) : 0;
+  return { kind: 'window', start, end, breakMinutes: b };
+};
+const stats = { samples: 0, pairs: 0, violations: 0, uncertainPairs: 0, monthEdge: 0 };
+const examples: any[] = [];
+for (let s = 0; s < N; s += 1) {
+  stats.samples += 1;
+  const edge = next() < 0.4;
+  const p = edge ? '2026-09-30' : '2026-10-14'; // quarta-feira em ambos os casos? 30/09/2026 é quarta; 14/10/2026 é quarta
+  const wd = dates.weekdayIndex(p);
+  const daysAround = [-1, 0, 1, 2].map((k) => (wd + k + 7) % 7);
+  const routine = () => { const days = Array.from({ length: 7 }, () => ({ kind: 'off' })); for (const i of daysAround) if (next() < 0.75) days[i] = spec(); return { kind: 'weekly', days }; };
+  const base = Array.from({ length: 1 + Math.floor(next() * 2) }, routine);
+  const added = routine();
+  const ex: any[] = [];
+  const at = (k: number) => dates.addDays(p, k) as string;
+  ex.push({ kind: 'reduced', start: at(next() < 0.3 ? -1 : 0), end: at(next() < 0.3 ? 1 : 0), minutes: 1 + Math.floor(next() * 1440) });
+  if (next() < 0.5) ex.push({ kind: next() < 0.5 ? 'on_call' : 'overtime', date: at(1), minutes: 1 + Math.floor(next() * 1440) });
+  if (next() < 0.25) ex.push({ kind: next() < 0.5 ? 'on_call' : 'overtime', date: at(0), minutes: 1 + Math.floor(next() * 1440) });
+  if (next() < 0.15) ex.push({ kind: 'schedule_change', date: at(next() < 0.5 ? 1 : -1), minutes: g(1440) });
+  if (next() < 0.15) ex.push({ kind: 'day_off', start: at(next() < 0.5 ? 2 : -1), end: at(next() < 0.5 ? 2 : -1) });
+  const C1 = { routines: base, exceptions: ex, localHolidays: [], worksOnHolidays: true };
+  const C2 = { ...C1, routines: [...base, added] };
+  // janelas: só o mês de d, os dois meses (p e d), e o mês anterior + os dois
+  const md = at(1).slice(0, 7); const mp = p.slice(0, 7);
+  const windows = [[md], [...new Set([mp, md])], [dates.shiftMonthKey(mp, -1), ...new Set([mp, md])]];
+  for (const months of windows) {
+    const plans = (c: any) => months.map((m, i) => cal.monthPlan(c, m, { periodStart: i === 0 }));
+    const p1 = plans(C1); const p2 = plans(C2);
+    if ([...p1, ...p2].some((x) => x.ambiguousDays.length > 0)) continue;
+    stats.pairs += 1;
+    if (edge && months[0] === md) stats.monthEdge += 1;
+    const unc = (c: any) => !cal._neighborWindowsOn(c, p).certain;
+    if (unc(C1) || unc(C2)) stats.uncertainPairs += 1;
+    const h1 = p1.reduce((a, x) => a + x.minutes, 0); const h2 = p2.reduce((a, x) => a + x.minutes, 0);
+    if (h2 < h1) { stats.violations += 1; if (examples.length < 6) examples.push({ months, h1, h2, C1: JSON.stringify(C1), added: JSON.stringify(added) }); }
+  }
+}
+console.log(JSON.stringify({ seed: Number(seedArg ?? 1), stats }));
+for (const e of examples) console.log(JSON.stringify(e));

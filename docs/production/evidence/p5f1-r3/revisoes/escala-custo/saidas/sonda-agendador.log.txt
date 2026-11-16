@@ -1,0 +1,27 @@
+{
+ "orcamentoBasesEProva": {
+  "coalesceMs": 5000,
+  "burst": 5,
+  "refillMs": 120000
+ },
+ "orcamentoDashboard": {
+  "coalesceMs": 2000,
+  "burst": 40,
+  "refillMs": 60000
+ },
+ "provaPassageiraPara24h_L1s": {
+  "fires": 725,
+  "primeiraHora": 34,
+  "ultimaHora": 31
+ },
+ "provaPassageiraPara24h_L10s": {
+  "fires": 725,
+  "primeiraHora": 34,
+  "ultimaHora": 31
+ },
+ "dashboardEscritaContinua24h_L1s": {
+  "fires": 1480,
+  "primeiraHora": 99,
+  "ultimaHora": 61
+ }
+}

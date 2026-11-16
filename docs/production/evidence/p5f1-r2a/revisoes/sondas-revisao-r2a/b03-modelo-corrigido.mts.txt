@@ -1,0 +1,109 @@
+// Sonda do revisor (segunda rodada, T02): modelo executável da prova corrigida da alternativa A
+// (relatorio/PROPOSTA-ARQUITETURAL-B03.md, §5.A "No cliente"): marca lida depois do instantâneo da escuta, `pending` vazio,
+// `appliedVersion == v`, escuta >= `monthCommits` nos meses da janela, regra 4 mantida. Primeiro o contraexemplo da
+// primeira rodada; depois uma propriedade com ordens de entrega, leituras e instantâneos ao acaso.
+// Oráculo: prova verdadeira ⇒ os eventos de T que o instantâneo da escuta mostra são exatamente a cadeia até v
+// (então a receita da janela menos T@v é o valor exato).
+// Uso: node --experimental-strip-types b03-modelo-corrigido.mts [amostras] [semente]
+import { rng } from './lib.mts';
+const N = Number(process.argv[2] ?? 200000);
+const next = rng(Number(process.argv[3] ?? 1));
+const MONTHS = ['2025-12', '2026-01', '2026-02', '2026-03'];
+const WINDOW = ['2026-01', '2026-02', '2026-03'];
+
+type State = { month: string; cents: number };
+interface Sim {
+  versions: State[]; // v0 = criação (índice 1 = primeira versão), versão i tem commit i
+  processAt: number[]; // instante de processamento do evento i (cria a versão i a partir da i−1)
+}
+/** Estado da projeção e da marca num instante `t` (eventos processados até t, na ordem de processamento). */
+const at = (sim: Sim, t: number) => {
+  const order = sim.processAt.map((p, i) => ({ p, i })).filter((x) => x.i >= 1 && x.p <= t).sort((a, b) => a.p - b.p || a.i - b.i);
+  const monthVersion: Record<string, number> = Object.fromEntries(MONTHS.map((m) => [m, 0]));
+  const applied = new Set<number>();
+  const mark = { appliedVersion: 0, pending: new Map<number, number>(), monthCommits: {} as Record<string, number> };
+  for (const { p, i } of order) {
+    applied.add(i);
+    const before = i === 1 ? null : sim.versions[i - 1];
+    const after = sim.versions[i];
+    const delta: Record<string, number> = {};
+    if (before) delta[before.month] = (delta[before.month] ?? 0) - before.cents;
+    delta[after.month] = (delta[after.month] ?? 0) + after.cents;
+    for (const [m, x] of Object.entries(delta)) if (x !== 0) { monthVersion[m] = p; mark.monthCommits[m] = p; }
+    const bv = i - 1; // versão de antes
+    if (bv === mark.appliedVersion) {
+      mark.appliedVersion = i;
+      while (mark.pending.has(mark.appliedVersion)) { const nv = mark.pending.get(mark.appliedVersion) as number; mark.pending.delete(mark.appliedVersion); mark.appliedVersion = nv; }
+    } else mark.pending.set(bv, i);
+  }
+  return { applied, monthVersion, mark };
+};
+
+const proveCorrected = (sim: Sim, tSnap: number, tT: number, tMark: number): boolean => {
+  const snap = at(sim, tSnap);
+  const latestAtRead = Math.max(...sim.versions.map((_, i) => i).filter((i) => i >= 1 && i <= tT)); // commit i acontece no instante i
+  if (!Number.isFinite(latestAtRead)) return false;
+  const v = latestAtRead;
+  // regra 4 (mantida): a leitura de T começou depois de a versão atual do mês de T@v chegar à escuta
+  if (tT < snap.monthVersion[sim.versions[v].month]) return false;
+  // a marca é lida depois do instantâneo
+  if (process.env.PODER !== '1' && tMark < tSnap) return false;
+  const mk = at(sim, tMark).mark;
+  if (process.env.PODER === '1') {
+    let prefix = mk.appliedVersion; while (mk.pending.has(prefix)) prefix = mk.pending.get(prefix) as number;
+    if (prefix !== v) return false;
+  } else if (mk.pending.size > 0 || mk.appliedVersion !== v) return false;
+  return Object.entries(mk.monthCommits).every(([m, c]) => !WINDOW.includes(m) || snap.monthVersion[m] >= c);
+};
+const exact = (sim: Sim, tSnap: number, v: number): boolean => {
+  const snap = at(sim, tSnap);
+  // exatamente a cadeia até v (os eventos 1..v), olhando só o efeito na janela: compara as receitas por mês
+  const income = (events: Set<number>) => {
+    const r: Record<string, number> = Object.fromEntries(MONTHS.map((m) => [m, 0]));
+    for (const i of [...events].sort((a, b) => a - b)) {
+      const before = i === 1 ? null : sim.versions[i - 1];
+      const after = sim.versions[i];
+      if (before) r[before.month] -= before.cents;
+      r[after.month] += after.cents;
+    }
+    return r;
+  };
+  const shown = income(snap.applied);
+  const chain = income(new Set(Array.from({ length: v }, (_, k) => k + 1)));
+  return WINDOW.every((m) => shown[m] === chain[m]);
+};
+
+// 1) o contraexemplo da primeira rodada: v1 março 100; v2 fevereiro (data); v3 fevereiro 300; e3 processado antes de e2
+const c: Sim = { versions: [{ month: '', cents: 0 }, { month: '2026-03', cents: 100_00 }, { month: '2026-02', cents: 100_00 }, { month: '2026-02', cents: 300_00 }], processAt: [0, 1.5, 9, 4] };
+const caso = {
+  provaComT_v1_marcaDepoisDoInstante: proveCorrected(c, 5, 1.6, 5.5),
+  provaComT_v1_marcaAntesDoInstante: proveCorrected(c, 5, 1.6, 2),
+  depoisDe_e2_comT_v3: proveCorrected(c, 10, 10, 10.5),
+  exatoDepoisDe_e2: exact(c, 10, 3),
+};
+// 2) propriedade
+let proven = 0; let falseProofs = 0; let outOfOrder = 0; let monthChanges = 0;
+const examples: any[] = [];
+for (let s = 0; s < N; s += 1) {
+  const k = 2 + Math.floor(next() * 5); // número de versões
+  const versions: State[] = [{ month: '', cents: 0 }];
+  for (let i = 1; i <= k; i += 1) {
+    const prev = versions[i - 1];
+    const changeMonth = i === 1 || next() < 0.5;
+    versions.push({ month: changeMonth ? MONTHS[Math.floor(next() * MONTHS.length)] : prev.month, cents: next() < 0.6 || i === 1 ? (1 + Math.floor(next() * 5)) * 100_00 : prev.cents });
+    if (i > 1 && versions[i].month !== prev.month) monthChanges += 1;
+  }
+  const processAt = [0, ...Array.from({ length: k }, (_, j) => j + 1 + next() * 6)]; // commit no instante i; processamento depois
+  if (processAt.slice(1).some((p, j, all) => j > 0 && p < all[j - 1])) outOfOrder += 1;
+  const sim: Sim = { versions, processAt };
+  const horizon = k + 8;
+  for (let r = 0; r < 6; r += 1) {
+    const tSnap = next() * horizon; const tT = next() * horizon; const tMark = process.env.PODER === '1' ? next() * horizon : tSnap + next() * 3;
+    if (!proveCorrected(sim, tSnap, tT, tMark)) continue;
+    proven += 1;
+    const v = Math.max(...versions.map((_, i) => i).filter((i) => i >= 1 && i <= tT));
+    if (!exact(sim, tSnap, v)) { falseProofs += 1; if (examples.length < 5) examples.push({ versions, processAt, tSnap, tT, tMark, v }); }
+  }
+}
+console.log(JSON.stringify({ contraexemplo: caso, propriedade: { samples: N, proven, falseProofs, outOfOrder, monthChanges } }, null, 1));
+for (const e of examples) console.log(JSON.stringify(e));

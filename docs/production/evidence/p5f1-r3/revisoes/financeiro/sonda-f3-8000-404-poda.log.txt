@@ -1,0 +1,1 @@
+{"variant":{"WITHOUT_A01":false,"ABA":false,"PRUNE":true},"scenarios":8000,"snapshots":37736,"proven":16805,"violations":0,"publications":9911,"restarts":5051,"a01Restarts":3016,"refused":{"content":10195,"mark_pending":10722,"mark_broken":14}}

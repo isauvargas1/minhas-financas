@@ -1,0 +1,232 @@
+{
+  "inicio": "2026-11-06T17:49:56Z",
+  "fim": "2026-11-06T18:31:02Z",
+  "exit": "0",
+  "duracao_s": "2466",
+  "arvore": "cd95e1cbb292188638b189f67e3c8f90b0c4ba2d",
+  "node_verify_fast": {
+    "tests": 1687,
+    "pass": 1687,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "node_integracao": {
+    "tests": 1256,
+    "pass": 1256,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "lint": {
+    "problemas": 201,
+    "erros": 0,
+    "avisos": 201
+  },
+  "builds_vite": [
+    "26.16s",
+    "23.55s"
+  ],
+  "playwright": [
+    "210 passed (17.8m)"
+  ],
+  "por_script": [
+    {
+      "fase": "verify:fast",
+      "script": "functions:test:unit",
+      "testes": 664
+    },
+    {
+      "fase": "verify:fast",
+      "script": "test:unit:investments",
+      "testes": 177
+    },
+    {
+      "fase": "verify:fast",
+      "script": "test:unit:p1",
+      "testes": 131
+    },
+    {
+      "fase": "verify:fast",
+      "script": "test:unit:billing",
+      "testes": 72
+    },
+    {
+      "fase": "verify:fast",
+      "script": "test:unit:ui",
+      "testes": 9
+    },
+    {
+      "fase": "verify:fast",
+      "script": "test:unit:cash",
+      "testes": 23
+    },
+    {
+      "fase": "verify:fast",
+      "script": "test:unit:loans",
+      "testes": 20
+    },
+    {
+      "fase": "verify:fast",
+      "script": "test:unit:clients",
+      "testes": 15
+    },
+    {
+      "fase": "verify:fast",
+      "script": "test:unit:accounts",
+      "testes": 16
+    },
+    {
+      "fase": "verify:fast",
+      "script": "test:unit:cards",
+      "testes": 30
+    },
+    {
+      "fase": "verify:fast",
+      "script": "test:unit:recurring",
+      "testes": 22
+    },
+    {
+      "fase": "verify:fast",
+      "script": "test:unit:split",
+      "testes": 22
+    },
+    {
+      "fase": "verify:fast",
+      "script": "test:unit:settings-catalog",
+      "testes": 17
+    },
+    {
+      "fase": "verify:fast",
+      "script": "test:unit:ai-chat",
+      "testes": 37
+    },
+    {
+      "fase": "verify:fast",
+      "script": "test:unit:notifications",
+      "testes": 99
+    },
+    {
+      "fase": "verify:fast",
+      "script": "test:unit:goals",
+      "testes": 59
+    },
+    {
+      "fase": "verify:fast",
+      "script": "test:unit:reports",
+      "testes": 100
+    },
+    {
+      "fase": "verify:fast",
+      "script": "test:unit:work-time",
+      "testes": 174
+    },
+    {
+      "fase": "integracao",
+      "script": "functions:test:integration:emulator",
+      "testes": 969
+    },
+    {
+      "fase": "integracao",
+      "script": "test:tools:limpeza",
+      "testes": 15
+    },
+    {
+      "fase": "integracao",
+      "script": "test:tools:contas",
+      "testes": 2
+    },
+    {
+      "fase": "integracao",
+      "script": "test:rules:goals",
+      "testes": 21
+    },
+    {
+      "fase": "integracao",
+      "script": "test:rules:investments",
+      "testes": 7
+    },
+    {
+      "fase": "integracao",
+      "script": "test:rules:investment-domain",
+      "testes": 19
+    },
+    {
+      "fase": "integracao",
+      "script": "test:rules:investment-m3",
+      "testes": 7
+    },
+    {
+      "fase": "integracao",
+      "script": "test:rules:m4",
+      "testes": 41
+    },
+    {
+      "fase": "integracao",
+      "script": "test:rules:adjacent",
+      "testes": 5
+    },
+    {
+      "fase": "integracao",
+      "script": "test:rules:workspaces",
+      "testes": 10
+    },
+    {
+      "fase": "integracao",
+      "script": "test:rules:billing",
+      "testes": 10
+    },
+    {
+      "fase": "integracao",
+      "script": "test:rules:receivables",
+      "testes": 6
+    },
+    {
+      "fase": "integracao",
+      "script": "test:rules:accounts",
+      "testes": 5
+    },
+    {
+      "fase": "integracao",
+      "script": "test:rules:cards",
+      "testes": 5
+    },
+    {
+      "fase": "integracao",
+      "script": "test:rules:recurring",
+      "testes": 5
+    },
+    {
+      "fase": "integracao",
+      "script": "test:rules:split",
+      "testes": 7
+    },
+    {
+      "fase": "integracao",
+      "script": "test:rules:transactions-p4d",
+      "testes": 8
+    },
+    {
+      "fase": "integracao",
+      "script": "test:rules:settings-catalog",
+      "testes": 4
+    },
+    {
+      "fase": "integracao",
+      "script": "test:rules:notifications",
+      "testes": 84
+    },
+    {
+      "fase": "integracao",
+      "script": "test:rules:reports",
+      "testes": 12
+    },
+    {
+      "fase": "integracao",
+      "script": "test:rules:work-time",
+      "testes": 14
+    }
+  ]
+}

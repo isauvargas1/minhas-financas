@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# P5-F. Uso: run-verify-all.sh <log>
+# `npm run verify:all` no worktree da branch feat/p5-f-worktime-equivalent-2026-10-18, como está (portas padrão,
+# projeto minhas-financas-local), com o loopback-proxy seguro só durante o comando. Depois, encerra só a JVM
+# órfã do Firestore Emulator desta execução (identidade, cwd no worktree, início posterior, sem uso), com SIGTERM.
+set -u
+S=<scratchpad>
+WT=$S/wt-p5f
+LOG=$1
+START=$(date +%s)
+echo "inicio=$(date -u +%FT%TZ) head=$(git -C "$WT" rev-parse HEAD) java=$(java -version 2>&1 | grep -m1 -oE 'version "[^"]+"') firebase=$(firebase --version 2>/dev/null)" > "$LOG.meta"
+git -C "$WT" status --short > "$LOG.status"
+# Árvore exata desta execução (índice temporário; o índice real não é tocado).
+TMPIDX=$S/p5f/logs/.tmp-index-verify
+rm -f "$TMPIDX"
+TREE=$(cd "$WT" && GIT_INDEX_FILE="$TMPIDX" git read-tree HEAD && GIT_INDEX_FILE="$TMPIDX" git add -A && GIT_INDEX_FILE="$TMPIDX" git write-tree)
+rm -f "$TMPIDX"
+echo "arvore=$TREE" >> "$LOG.meta"
+cd "$WT" && timeout 7200 bash $S/with-proxy-safe.sh 38834 npm run verify:all > "$LOG" 2>&1
+CODE=$?
+echo "fim=$(date -u +%FT%TZ) exit=$CODE duracao_s=$(( $(date +%s) - START ))" >> "$LOG.meta"
+echo exit=$CODE
+bash $S/p5e11/stop-own-emulator.sh 8080 "$START" $S/p5f/logs/emulator-cleanup.log "$WT"
+echo "limpeza=$? (0 = nada órfão ou encerrado com SIGTERM)" | tee -a "$LOG.meta"
+exit $CODE

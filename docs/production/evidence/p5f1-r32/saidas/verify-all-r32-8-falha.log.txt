@@ -1,0 +1,43 @@
+20625-# {"severity":"INFO","message":"notification_published","event":"notification_published","operation":"onRecurringOccurrenceCreatedNotification","workspaceId":"rec-ws-c1c4ba7d","occurrenceId":"rocc_407244c6251999080b4f251e81ff3450f57c3a57","notificationId":"ro_7ad1c19e83d1823d3654173365307ab3","domain":"recurring","domainEventType":"recurring_awaiting_confirmation","outcome":"created"}
+20626-# Subtest: §16.15 recorrência pendente não vira pagamento realizado: a ocorrência aguarda confirmação, o aviso diz isso e nenhum lançamento de caixa é criado
+20627:not ok 581 - §16.15 recorrência pendente não vira pagamento realizado: a ocorrência aguarda confirmação, o aviso diz isso e nenhum lançamento de caixa é criado
+20628-  ---
+20629-  duration_ms: 219.177645
+20630-  type: 'test'
+20631-  location: '<scratchpad>/wt-p5f1-r32/functions/lib/notifications/__tests__/producers.integration.test.js:831:25'
+20632-  failureType: 'testCodeFailure'
+20633-  error: 'dado indevido no aviso: 9990'
+20634-  code: 'ERR_ASSERTION'
+20635-  name: 'AssertionError'
+20636-  expected: true
+20637-  actual: false
+20638-  operator: '=='
+20639-  stack: |-
+20640-    assertNoWords (<scratchpad>/wt-p5f1-r32/functions/lib/notifications/__tests__/producers.integration.test.js:136:26)
+20641-    TestContext.<anonymous> (<scratchpad>/wt-p5f1-r32/functions/lib/notifications/__tests__/producers.integration.test.js:866:5)
+20642-    process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+20643-    async Test.run (node:internal/test_runner/test:1054:7)
+20644-    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+20645-  ...
+20646-# {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"archiveCashAccount","requestId":"c4bc4782-6ffd-4568-9a41-9f3f57de8e60","actorId":"rec-owner-a50738cc","workspaceId":null,"actorRole":null,"appCheck":"absent"}
+20647-# {"severity":"INFO","message":"callable.end","event":"callable.end","operation":"archiveCashAccount","requestId":"c4bc4782-6ffd-4568-9a41-9f3f57de8e60","actorId":"rec-owner-a50738cc","workspaceId":"rec-ws-062b567b","actorRole":"owner","outcome":"ok","durationMs":32}
+20648-# {"severity":"WARNING","message":"recurring_generation_attention","event":"recurring_generation_attention","operation":"processRecurring","requestId":"req-rec-4","today":"2026-03-10","scanned":1,"processed":1,"generated":0,"awaitingConfirmation":0,"attentionRequired":1,"ended":0,"skipped":0,"failed":0,"backlog":0,"truncated":false,"attention_account_archived":1}
+20649-# {"severity":"INFO","message":"recurring_generation_completed","event":"recurring_generation_completed","operation":"processRecurring","requestId":"req-rec-4","today":"2026-03-10","scanned":1,"processed":1,"generated":0,"awaitingConfirmation":0,"attentionRequired":1,"ended":0,"skipped":0,"failed":0,"backlog":0,"truncated":false,"attention_account_archived":1}
+20650-# {"severity":"INFO","message":"notification_published","event":"notification_published","operation":"onRecurringOccurrenceCreatedNotification","workspaceId":"rec-ws-062b567b","occurrenceId":"rocc_56e041f43fe8fd39c2731a48c4a80e7f02d4197f","notificationId":"ro_607130133712322883453b26bdcdcbf1","domain":"recurring","domainEventType":"recurring_attention_required","outcome":"created"}
+20651-# Subtest: §16.15 impedimento de domínio (conta arquivada): aviso "não pôde ser gerada: a conta estava arquivada", sem lançamento
+20652-ok 582 - §16.15 impedimento de domínio (conta arquivada): aviso "não pôde ser gerada: a conta estava arquivada", sem lançamento
+20653-  ---
+20654-  duration_ms: 237.731749
+20655-  type: 'test'
+20656-  ...
+20657-# {"severity":"INFO","message":"recurring_generation_completed","event":"recurring_generation_completed","operation":"processRecurring","requestId":"req-rec-6","today":"2026-03-10","scanned":1,"processed":1,"generated":1,"awaitingConfirmation":0,"attentionRequired":0,"ended":0,"skipped":0,"failed":0,"backlog":0,"truncated":false}
+20658-# {"severity":"INFO","message":"recurring_generation_completed","event":"recurring_generation_completed","operation":"processRecurring","requestId":"req-rec-8","today":"2026-03-10","scanned":1,"processed":1,"generated":0,"awaitingConfirmation":1,"attentionRequired":0,"ended":0,"skipped":0,"failed":0,"backlog":0,"truncated":false}
+20659-# {"severity":"INFO","message":"notification_published","event":"notification_published","operation":"onRecurringOccurrenceCreatedNotification","workspaceId":"rec-ws-7a1ff88c","occurrenceId":"rocc_cdddca4a047740497246da0b2d1525128f7869b1","notificationId":"ro_35327c75292d1fa90e7da44d7cf17642","domain":"recurring","domainEventType":"recurring_awaiting_confirmation","outcome":"created"}
+20660-# Subtest: §16.15 geração normal (generated) e confirmação posterior não geram aviso
+20661-ok 583 - §16.15 geração normal (generated) e confirmação posterior não geram aviso
+20662-  ---
+20663-  duration_ms: 307.669455
+20664-  type: 'test'
+20665-  ...
+20666-# Subtest: §16.16 divisão de contas não inventa liquidação financeira: a quitação do rateio não cria notificação nem lançamento, e nenhum gatilho escuta coleções de divisão
+20667-ok 584 - §16.16 divisão de contas não inventa liquidação financeira: a quitação do rateio não cria notificação nem lançamento, e nenhum gatilho escuta coleções de divisão

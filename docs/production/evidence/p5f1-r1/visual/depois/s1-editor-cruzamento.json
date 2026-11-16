@@ -1,0 +1,7 @@
+{
+  "avisoRotinas": "A Rotina 1, a Rotina 2 e a Rotina 3 se cruzam em quinta-feira, 05/11/2026, e há intervalo no trecho em comum: não dá para saber onde cai a pausa, então as horas não podem ser calculadas com segurança. Ajuste os horários para que não se cruzem ou deixe sem intervalo as rotinas que se cruzam.",
+  "avisoCalendario": null,
+  "salvarHabilitado": false,
+  "previaHora": "R$ 25,00",
+  "previaIndisponivel": null
+}

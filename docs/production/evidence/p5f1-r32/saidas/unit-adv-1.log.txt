@@ -1,0 +1,134 @@
+TAP version 13
+# Subtest: R3.2 (ADV-01): rotina sem horas (uma base, nenhuma desconsiderada), sem retorno do servidor: o indisponível aparece como está, com o motivo, sem conversão, nem passado o tempo de interface
+ok 1 - R3.2 (ADV-01): rotina sem horas (uma base, nenhuma desconsiderada), sem retorno do servidor: o indisponível aparece como está, com o motivo, sem conversão, nem passado o tempo de interface
+  ---
+  duration_ms: 267.25409
+  type: 'test'
+  ...
+# Subtest: R3.2 (ADV-01): rotina sem horas (uma base, nenhuma desconsiderada), com a escuta encerrada desde o começo: o indisponível aparece como está, com o motivo, sem conversão, nem passado o tempo de interface
+ok 2 - R3.2 (ADV-01): rotina sem horas (uma base, nenhuma desconsiderada), com a escuta encerrada desde o começo: o indisponível aparece como está, com o motivo, sem conversão, nem passado o tempo de interface
+  ---
+  duration_ms: 247.25568
+  type: 'test'
+  ...
+# Subtest: R3.2 (ADV-01): rotina sem horas (uma base, nenhuma desconsiderada), com a divergência persistente: o indisponível aparece como está, com o motivo, sem conversão, nem passado o tempo de interface
+not ok 3 - R3.2 (ADV-01): rotina sem horas (uma base, nenhuma desconsiderada), com a divergência persistente: o indisponível aparece como está, com o motivo, sem conversão, nem passado o tempo de interface
+  ---
+  duration_ms: 249.662045
+  type: 'test'
+  location: '<scratchpad>/wt-p5f1-r32/tests/unit/work-time-consistency.test.ts:1723:5'
+  failureType: 'testCodeFailure'
+  error: |-
+    a leitura e as duas releituras pela divergência
+    
+    2 !== 3
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 3
+  actual: 2
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file://<scratchpad>/wt-p5f1-r32/tests/unit/work-time-consistency.test.ts:1737:65)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R3.2 (ADV-01): nenhuma renda na janela (uma base, nenhuma desconsiderada), sem retorno do servidor: o indisponível aparece como está, com o motivo, sem conversão, nem passado o tempo de interface
+ok 4 - R3.2 (ADV-01): nenhuma renda na janela (uma base, nenhuma desconsiderada), sem retorno do servidor: o indisponível aparece como está, com o motivo, sem conversão, nem passado o tempo de interface
+  ---
+  duration_ms: 252.879462
+  type: 'test'
+  ...
+# Subtest: R3.2 (ADV-01): nenhuma renda na janela (uma base, nenhuma desconsiderada), com a escuta encerrada desde o começo: o indisponível aparece como está, com o motivo, sem conversão, nem passado o tempo de interface
+ok 5 - R3.2 (ADV-01): nenhuma renda na janela (uma base, nenhuma desconsiderada), com a escuta encerrada desde o começo: o indisponível aparece como está, com o motivo, sem conversão, nem passado o tempo de interface
+  ---
+  duration_ms: 249.121208
+  type: 'test'
+  ...
+# Subtest: R3.2 (ADV-01): rotina sem horas, 3 meses, sem desconsiderada, sem conexão depois do primeiro retorno do servidor: o indisponível continua como está, com o motivo, sem conversão
+ok 6 - R3.2 (ADV-01): rotina sem horas, 3 meses, sem desconsiderada, sem conexão depois do primeiro retorno do servidor: o indisponível continua como está, com o motivo, sem conversão
+  ---
+  duration_ms: 1506.633155
+  type: 'test'
+  ...
+# Subtest: R3.2 (ADV-01): rotina sem horas, 3 meses, sem desconsiderada, com a escuta encerrada depois do primeiro retorno do servidor: o indisponível continua como está, com o motivo, sem conversão
+ok 7 - R3.2 (ADV-01): rotina sem horas, 3 meses, sem desconsiderada, com a escuta encerrada depois do primeiro retorno do servidor: o indisponível continua como está, com o motivo, sem conversão
+  ---
+  duration_ms: 1503.007197
+  type: 'test'
+  ...
+# Subtest: R3.2 (ADV-01): rotina sem horas, 3 meses, sem desconsiderada, com a divergência persistente depois do primeiro retorno do servidor: o indisponível continua como está, com o motivo, sem conversão
+ok 8 - R3.2 (ADV-01): rotina sem horas, 3 meses, sem desconsiderada, com a divergência persistente depois do primeiro retorno do servidor: o indisponível continua como está, com o motivo, sem conversão
+  ---
+  duration_ms: 1512.120594
+  type: 'test'
+  ...
+# Subtest: R3.2 (ADV-01): rotina sem horas, 12 meses, com desconsiderada, sem conexão depois do primeiro retorno do servidor: o indisponível continua como está, com o motivo, sem conversão
+ok 9 - R3.2 (ADV-01): rotina sem horas, 12 meses, com desconsiderada, sem conexão depois do primeiro retorno do servidor: o indisponível continua como está, com o motivo, sem conversão
+  ---
+  duration_ms: 1515.222125
+  type: 'test'
+  ...
+# Subtest: R3.2 (ADV-01): rotina sem horas, 12 meses, com desconsiderada, com a escuta encerrada depois do primeiro retorno do servidor: o indisponível continua como está, com o motivo, sem conversão
+ok 10 - R3.2 (ADV-01): rotina sem horas, 12 meses, com desconsiderada, com a escuta encerrada depois do primeiro retorno do servidor: o indisponível continua como está, com o motivo, sem conversão
+  ---
+  duration_ms: 1511.426909
+  type: 'test'
+  ...
+# Subtest: R3.2 (ADV-01): rotina sem horas, 12 meses, com desconsiderada, com a divergência persistente depois do primeiro retorno do servidor: o indisponível continua como está, com o motivo, sem conversão
+ok 11 - R3.2 (ADV-01): rotina sem horas, 12 meses, com desconsiderada, com a divergência persistente depois do primeiro retorno do servidor: o indisponível continua como está, com o motivo, sem conversão
+  ---
+  duration_ms: 1502.623511
+  type: 'test'
+  ...
+# Subtest: R3.2 (ADV-01): da rotina sem horas (indisponível, mostrado sem confirmação) para a rotina com horas, com a escuta encerrada: a estimativa que converte não aparece sem a confirmação; com a escuta de volta, a provada
+ok 12 - R3.2 (ADV-01): da rotina sem horas (indisponível, mostrado sem confirmação) para a rotina com horas, com a escuta encerrada: a estimativa que converte não aparece sem a confirmação; com a escuta de volta, a provada
+  ---
+  duration_ms: 202.71003
+  type: 'test'
+  ...
+# Subtest: R3.2 (ADV-03): 12 meses, sem desconsiderada: a conexão cai com a estimativa provada na tela: nenhuma conversão sem conexão, nem passado o tempo de interface; com a conexão de volta, sem documento mudado, a mesma conversão volta sem leitura a mais
+ok 13 - R3.2 (ADV-03): 12 meses, sem desconsiderada: a conexão cai com a estimativa provada na tela: nenhuma conversão sem conexão, nem passado o tempo de interface; com a conexão de volta, sem documento mudado, a mesma conversão volta sem leitura a mais
+  ---
+  duration_ms: 335.792625
+  type: 'test'
+  ...
+# Subtest: R3.2 (ADV-03): 3 meses, com desconsiderada: a conexão cai com a estimativa provada na tela: nenhuma conversão sem conexão, nem passado o tempo de interface; com a conexão de volta, sem documento mudado, a mesma conversão volta sem leitura a mais
+ok 14 - R3.2 (ADV-03): 3 meses, com desconsiderada: a conexão cai com a estimativa provada na tela: nenhuma conversão sem conexão, nem passado o tempo de interface; com a conexão de volta, sem documento mudado, a mesma conversão volta sem leitura a mais
+  ---
+  duration_ms: 313.934466
+  type: 'test'
+  ...
+# Subtest: R3.2 (ADV-03): 12 meses, com desconsiderada: a conexão cai com a estimativa provada na tela: nenhuma conversão sem conexão, nem passado o tempo de interface; com a conexão de volta, sem documento mudado, a mesma conversão volta sem leitura a mais
+ok 15 - R3.2 (ADV-03): 12 meses, com desconsiderada: a conexão cai com a estimativa provada na tela: nenhuma conversão sem conexão, nem passado o tempo de interface; com a conexão de volta, sem documento mudado, a mesma conversão volta sem leitura a mais
+  ---
+  duration_ms: 343.37641
+  type: 'test'
+  ...
+# Subtest: R3.2 (F-04): a base abaixo da projeção depois das releituras (anomalia no servidor; uma base, nenhuma desconsiderada): nenhuma conversão, nem passadas as releituras e o tempo de interface; sem a anomalia, o "Tentar de novo" traz a estimativa provada
+ok 16 - R3.2 (F-04): a base abaixo da projeção depois das releituras (anomalia no servidor; uma base, nenhuma desconsiderada): nenhuma conversão, nem passadas as releituras e o tempo de interface; sem a anomalia, o "Tentar de novo" traz a estimativa provada
+  ---
+  duration_ms: 472.196878
+  type: 'test'
+  ...
+# Subtest: R3.2 (F-04, ADV-08): janela do mês corrente com a desconsiderada no próprio mês: o cache aquecido não converte antes do retorno do servidor; confirmado, o mesmo valor da primeira montagem, com a desconsiderada fora
+ok 17 - R3.2 (F-04, ADV-08): janela do mês corrente com a desconsiderada no próprio mês: o cache aquecido não converte antes do retorno do servidor; confirmado, o mesmo valor da primeira montagem, com a desconsiderada fora
+  ---
+  duration_ms: 271.905733
+  type: 'test'
+  ...
+# Subtest: R3.2 (F-04): a janela ampliada e reduzida na mesma montagem: a confirmação da janela anterior não vale para a nova; nenhuma conversão até o retorno do servidor à escuta dos meses novos; confirmada, a da janela nova
+ok 18 - R3.2 (F-04): a janela ampliada e reduzida na mesma montagem: a confirmação da janela anterior não vale para a nova; nenhuma conversão até o retorno do servidor à escuta dos meses novos; confirmada, a da janela nova
+  ---
+  duration_ms: 459.866737
+  type: 'test'
+  ...
+1..18
+# tests 18
+# suites 0
+# pass 17
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 13096.47121

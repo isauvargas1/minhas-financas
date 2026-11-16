@@ -1,0 +1,69 @@
+TAP version 13
+# Subtest: marco: só a cadeia iniciada e concluída aprova; sem marco, aberto ou já conferido, a fase reprova
+ok 1 - marco: só a cadeia iniciada e concluída aprova; sem marco, aberto ou já conferido, a fase reprova
+  ---
+  duration_ms: 1019.299858
+  type: 'test'
+  ...
+# Subtest: marco: a fiação de npm run test:integration:emulator começa e termina no marco, e a cadeia fecha com todas as suítes de Rules
+not ok 2 - marco: a fiação de npm run test:integration:emulator começa e termina no marco, e a cadeia fecha com todas as suítes de Rules
+  ---
+  duration_ms: 1.023215
+  type: 'test'
+  location: '<scratchpad>/p5f1r32/copia-est10/tests/tools/integracao-marco.test.mjs:69:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    The input did not match the regular expression /^node tools\/integracao\/marco-da-fase\.mjs iniciar && firebase emulators:exec --only auth,firestore --project minhas-financas-local "/. Input:
+    
+    'firebase emulators:exec --only auth,firestore --project minhas-financas-local "npm run functions:test:integration:emulator && npm run test:tools:limpeza && npm run test:tools:contas && npm run test:rules:goals && npm run test:rules:investments && npm run test:rules:investment-domain && npm run test:rules:investment-m3 && npm run test:rules:m4 && npm run test:rules:adjacent && npm run test:rules:workspaces && npm run test:rules:billing && npm run test:rules:receivables && npm run test:rules:accounts && npm run test:rules:cards && npm run test:rules:recurring && npm run test:rules:split && npm run test:rules:transactions-p4d && npm run test:rules:settings-catalog && npm run test:rules:notifications && npm run test:rules:reports && npm run test:rules:work-time && npm run test:rules:projection-marks"'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual: 'firebase emulators:exec --only auth,firestore --project minhas-financas-local "npm run functions:test:integration:emulator && npm run test:tools:limpeza && npm run test:tools:contas && npm run test:rules:goals && npm run test:rules:investments && npm run test:rules:investment-domain && npm run test:rules:investment-m3 && npm run test:rules:m4 && npm run test:rules:adjacent && npm run test:rules:workspaces && npm run test:rules:billing && npm run test:rules:receivables && npm run test:rules:accounts && npm run test:rules:cards && npm run test:rules:recurring && npm run test:rules:split && npm run test:rules:transactions-p4d && npm run test:rules:settings-catalog && npm run test:rules:notifications && npm run test:rules:reports && npm run test:rules:work-time && npm run test:rules:projection-marks"'
+  operator: 'match'
+  stack: |-
+    TestContext.<anonymous> (file://<scratchpad>/p5f1r32/copia-est10/tests/tools/integracao-marco.test.mjs:70:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: marco (EST-10): o Emulator que sai com 0 no meio da cadeia reprova a fase; a cadeia inteira aprova; a suíte que falha reprova como antes
+not ok 3 - marco (EST-10): o Emulator que sai com 0 no meio da cadeia reprova a fase; a cadeia inteira aprova; a suíte que falha reprova como antes
+  ---
+  duration_ms: 61.334371
+  type: 'test'
+  location: '<scratchpad>/p5f1r32/copia-est10/tests/tools/integracao-marco.test.mjs:142:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    emulators: Received SIGINT (Ctrl-C) for the first time. Starting a clean shutdown.
+    
+    
+    0 !== 1
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 1
+  actual: 0
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file://<scratchpad>/p5f1r32/copia-est10/tests/tools/integracao-marco.test.mjs:144:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+1..3
+# tests 3
+# suites 0
+# pass 1
+# fail 2
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1194.811167

@@ -1,0 +1,34 @@
+// Sonda do revisor: custo do conferidor no pior caso da passada nova (muitas jornadas reduzidas em turno noturno).
+// Uso: node --experimental-strip-types custo-pior-caso.mts <raiz>
+const root = process.argv[2];
+const cal = await import(`${root}/src/modules/work-time/calendar.ts`);
+const dates = await import(`${root}/src/modules/work-time/dates.ts`);
+const w = (s: number, e: number, b = 0) => ({ kind: 'window', start: s, end: e, breakMinutes: b });
+const time = (label: string, c: any, today = '2026-11-06', reps = 3) => {
+  const runs: number[] = []; let verdict: any;
+  for (let i = 0; i < reps; i += 1) { const t = performance.now(); verdict = cal.calendarAmbiguity(c, today); runs.push(Math.round(performance.now() - t)); }
+  console.log(JSON.stringify({ label, ms: runs, verdict: verdict === null ? null : { date: verdict.date, cause: verdict.cause.kind } }));
+};
+// 120 jornadas reduzidas de 366 dias, sem sobreposição, de 2025-10-01 em diante (cobre até ~2099)
+const ranges = (from: string, count: number, len: number, minutes: number) => {
+  const out: any[] = []; let start = from;
+  for (let i = 0; i < count; i += 1) {
+    const end = dates.addDays(start, len - 1); if (end === null) break;
+    out.push({ kind: 'reduced', start, end, minutes });
+    const nextStart = dates.addDays(end, 1); if (nextStart === null) break; start = nextStart;
+  }
+  return out;
+};
+const allDays = (spec: any) => ({ kind: 'weekly', days: Array(7).fill(spec) });
+// (1) três turnos noturnos todo dia, que se cruzam sem intervalo; redução que morde e não muda o dia seguinte
+const nights = [allDays(w(1320, 360)), allDays(w(1380, 300)), allDays(w(1260, 420))];
+time('noturno x3, 120 reduções de 366 dias (de 2025-10)', { routines: nights, worksOnHolidays: true, localHolidays: [], exceptions: ranges('2025-10-01', 120, 366, 240) });
+time('noturno x3, 120 reduções de 3 dias', { routines: nights, worksOnHolidays: true, localHolidays: [], exceptions: ranges('2026-01-01', 120, 3, 240) });
+// (2) com janela com intervalo coberta (passada dos vizinhos também) e 40 feriados anuais
+const covered = [allDays(w(1200, 480)), allDays(w(1320, 360, 60)), allDays(w(1260, 420))];
+const holidays = Array.from({ length: 40 }, (_, i) => ({ kind: 'annual', month: 1 + (i % 12), day: 1 + ((i * 7) % 28) }));
+time('coberta + 120 reduções de 366 dias + 40 feriados, sem trabalho em feriado', { routines: covered, worksOnHolidays: false, localHolidays: holidays, exceptions: ranges('2025-10-01', 120, 366, 240) });
+time('coberta + 120 reduções de 366 dias + 40 feriados, trabalha em feriado', { routines: covered, worksOnHolidays: true, localHolidays: holidays, exceptions: ranges('2025-10-01', 120, 366, 240) });
+// (3) escala cíclica 27x26 com turnos de 24 h e reduções
+const cyclic = [{ kind: 'cyclic', reference: '2026-01-01', workDays: 27, restDays: 26, day: w(420, 420) }, allDays(w(1320, 360, 30)), allDays(w(1200, 480))];
+time('cíclica 27x26 24 h + coberta + 120 reduções de 366 dias', { routines: cyclic, worksOnHolidays: false, localHolidays: holidays, exceptions: ranges('2025-10-01', 120, 366, 600) });

@@ -1,0 +1,3 @@
+arvore_dir=<scratchpad>/wt-p5f1-r32 arvore=ca11bacad38c78020eadfc310fae847190222b59 inicio=2026-11-11T13:48:14Z args=--trace off e2e/work-time-p5f.spec.ts
+fim=2026-11-11T13:55:39Z exit=143 duracao_s=445 portas_ocupadas_no_fim=[4000 4400 4500 5001 8080 9099 9150 9299 9499 5173] java_no_fim=1
+limpeza_externa=2 (houve sobra)

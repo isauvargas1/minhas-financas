@@ -1,0 +1,80 @@
+árvore=cf9cb2a94a9ca270032dd25f2f00c4aad78b5d9d roteiro=mutantes-r1-na-r2a.py sha256-roteiro=7eeb66636c4ba71eaebce5228142afccc97d5aac98e14daf7410c4684107da27
+MORTO       B02         src/modules/work-time/calendar.ts: intervalsOf(others.filter((other) => other.breakMinutes === 0))
+MORTO       B02         src/modules/work-time/calendar.ts: else flag(occurrence, others);
+MORTO       B02         src/modules/work-time/calendar.ts: if (occurrence.breakMinutes === 0 || !own.some((other) => overlaps(occurrence, other))) co
+MORTO       B02         src/modules/work-time/calendar.ts: isolatedMinutes += occurrence.end - occurrence.start - occurrence.breakMinutes;
+MORTO       B02         src/modules/work-time/calendar.ts: minutes: isolatedMinutes + totalLength(crossingIntervals) - intersectionLength(crossingInt
+MORTO       B02         src/modules/work-time/calendar.ts: if (windows.some((other) => other.start === start && other.end === end && other.breakMinut
+MORTO       B02         src/modules/work-time/calendar.ts: const ambiguous = work.ambiguous && happens;
+MORTO       B02         src/modules/work-time/calendar.ts: for (let offset = 0; offset < Math.min(period, span); offset += 1) {
+MORTO       B02         src/modules/work-time/estimate.ts: if (months.some((month) => month.plan.ambiguousDays.length > 0)) {
+MORTO       B02         src/modules/work-time/calendar.ts: const limit = windowPart + Math.max(0, DAY_MINUTES - previousOccupancy);
+MORTO       B02         src/modules/work-time/calendar.ts: planDay(calendar, date, index === 0 && options.periodStart === true ? null : addDays(date,
+MORTO       B02         src/modules/work-time/estimate.ts: const plan = monthPlan(input.calendar, month.month, { periodStart: index === 0 });
+MORTO       B02         src/modules/work-time/calendar.ts: const previousOccupancy = civilOccupancy(dayNumber(date), [], previousWindows);
+MORTO       B02         src/modules/work-time/draft.ts: if (ambiguity !== null) {
+MORTO       B01         src/modules/work-time/receivableReversal.ts: (await sha256Hex(`${movementId}:reversal`))
+MORTO       B01         src/modules/work-time/receivableReversal.ts: const read = await readByIds(workspaceId, pairedReadIds(pairs, unique));
+MORTO       B01         src/modules/work-time/incomeBasis.ts: reversalEntry.reversalOf === movementId &&
+MORTO       B01         src/modules/work-time/incomeBasis.ts: reversal.date.slice(0, 7) === month;
+MORTO       B01         src/modules/work-time/incomeBasis.ts: if (movementId === null || entry.receivableMovementId !== movementId) return { id, month,
+MORTO       B01         src/modules/work-time/incomeBasis.ts: return { id, month, classification: { kind: 'receivable', contributionCents: 0 }, reversed
+MORTO       B01         src/modules/work-time/estimate.ts: return unavailable(emptyBase, 'exclusion_unconfirmed');
+MORTO       B03         src/modules/work-time/consistency.ts: if (projection === null) return { proven: false, reason: 'projection' };
+MORTO       B03         src/modules/work-time/consistency.ts: if (incomeDiverges(projection.income, input.basis.income, input.months)) return { proven:
+MORTO       B03         src/modules/work-time/consistency.ts: if (window.has(month) && started <= (projection.seen[month] ?? Number.POSITIVE_INFINITY))
+MORTO       B03         src/modules/work-time/consistency.ts: return { proven: false, reason: 'exclusions_read' };
+MORTO       B03         src/modules/work-time/consistency.ts: return write.at === null || version === null || compareServerVersions(version, write.at) <
+MORTO       B03         src/modules/work-time/consistency.ts: writes.push({ id, month, at: serverVersionOf(document.createdAt) });
+MORTO       B03         src/modules/work-time/consistency.ts: if (cashEntry && isPresent(cashEntry.confirmedAt)) writes.push({ id, month, at: serverVers
+MORTO       B03         src/modules/work-time/consistency.ts: writes.push({ id, month, at: serverVersionOf(document.voidedAt) });
+MORTO       B03         src/modules/work-time/consistency.ts: if (item.reversed && reversal) writes.push({ id, month, at: serverVersionOf(reversal.creat
+MORTO       B03         src/modules/work-time/consistency.ts: if (before.version !== null && next.version !== null && compareServerVersions(next.version
+MORTO       B03         src/modules/work-time/consistency.ts: for (const month of months) changes.push({ id, month, at: next.version, bounded: true });
+MORTO       B03         src/modules/work-time/useIncomeEstimateWith.ts: if (!proven) return { shown: state.status === 'done' ? unproven : state, last, held: false
+MORTO       B03         src/modules/work-time/useIncomeEstimateWith.ts: a.uid === b.uid && a.window === b.window && sameEstimateInputs(a.params, b.params);
+MORTO       B03         src/modules/work-time/useIncomeEstimateWith.ts: enabled: enabled && needsExcluded && projectionReady === windowKey,
+MORTO       B03         src/modules/work-time/useIncomeEstimateWith.ts: const decision = holdEstimate(proof.proven, holding, last.current, identity, current, unpr
+MORTO       B03         src/modules/work-time/useIncomeEstimateWith.ts: if (staleExcluded !== undefined) scheduler.notify();
+MORTO       B03         src/modules/work-time/useIncomeEstimateWith.ts: if (excludedIds.length > 0 && !listenFailed) void refetchExcluded();
+MORTO       B03         src/modules/work-time/useIncomeEstimateWith.ts: if (listenFailed) failure = ESTIMATE_UNCONFIRMED_FAILED;
+MORTO       B03         src/modules/reports/basisSync.ts: const version = serverVersionOf(document?.updatedAt);
+MORTO       B03         src/modules/reports/basisSync.ts: setConfirmed(null);
+MORTO       B03         src/modules/reports/basisRegistry.ts: let order = versions.get(version);
+MORTO       B03         src/modules/reports/hooks.ts: updatedAt: entry.data().updatedAt,
+MORTO       B02         src/modules/work-time/calendar.ts: const windowPart = happens ? Math.min(minutes, afterMidnight) : 0;
+MORTO       B02         src/modules/work-time/calendar.ts: ? work.minutes - (civilOccupancy(dayNumber(date), routineDay.windows, previousWindows) - p
+MORTO       B02         src/modules/work-time/calendar.ts: const happens = happensWith(calendar, flags);
+MORTO       B02         src/modules/work-time/calendar.ts: for (const near of [day - 1, day + 1, day + 2]) if (near >= first && near <= last) candida
+MORTO       B02         src/modules/work-time/calendar.ts: if (day < first || !mayChange(day) || !happens(date) || !planDay(calendar, date, null).amb
+MORTO       B02         src/modules/work-time/calendar.ts: for (const holiday of nationalHolidaysOfYear(year)) addRange(dayNumber(holiday.date), dayN
+MORTO       B02         src/modules/work-time/calendar.ts: else if (entry.kind === 'reduced' || entry.kind === 'vacation' || entry.kind === 'day_off'
+MORTO       B02         src/modules/work-time/calendar.ts: if (!scan.covered && !reducedEves) return null;
+MORTO       B02         src/modules/work-time/calendar.ts: windowWorkOf(routineWindows(day), routineWindows(day - 1), routineWindows(day + 1), routin
+MORTO       B02         src/modules/work-time/calendar.ts: if (coveredWithoutBreak(occurrence, others)) covered = true;
+MORTO       B02         src/modules/work-time/draft.ts: ambiguity = calendarAmbiguity(workCalendarOf(draft), today);
+MORTO       B02         src/modules/work-time/draft.ts: return cause.reason === 'holiday' ? 'holidays' : 'exceptions';
+MORTO       B02         src/components/WorkTimeSettingsView.tsx: const draftCheck = useMemo(() => (draft === null ? null : validateDraft(draft, today)), [d
+MORTO       B03         src/modules/work-time/consistency.ts: if (updatedAt !== null) writes.push({ id, month, at: updatedAt, bounded: true });
+MORTO       B03         src/modules/work-time/consistency.ts: if (write.bounded && input.expired?.has(pendingWriteKey(write))) return false;
+MORTO       B03         src/modules/work-time/consistency.ts: return { states, changes: changes.filter((change) => !included(change)) };
+MORTO       B03         src/modules/work-time/consistency.ts: const states = new Map([...(previous?.states ?? [])].filter(([id]) => read.has(id)));
+MORTO       B03         src/modules/work-time/useIncomeEstimateWith.ts: const proof = useMemo(() => proveEstimateConsistency({ ...proofInput, expired }), [proofIn
+MORTO       B03         src/modules/work-time/useIncomeEstimateWith.ts: for (const key of keys) if (!waitStarts.current.has(key)) waitStarts.current.set(key, now)
+MORTO       B03         src/modules/work-time/useIncomeEstimateWith.ts: const blockedByListen = listenFailed && needsExcluded && excluded.data === undefined && pr
+MORTO       B03         src/modules/work-time/useIncomeEstimateWith.ts: if (decision.held && heldTooLong && decision.shown.status === 'done' && !decision.shown.re
+MORTO       B03         src/modules/work-time/useIncomeEstimateWith.ts: else if (state.status === 'error') shown = { ...last.state, refreshFailed: true, retry: st
+MORTO       B03         src/modules/transactions/api.ts: const snapshot = await getDocsFromServer(query(txCol(workspaceId), where(documentId(), "in
+MORTO       B01         src/modules/work-time/receivableReversal.ts: if (placed.has(id) || placed.has(reversalId)) continue;
+MORTO       B02         src/modules/work-time/calendar.ts: const windowPart = happens ? Math.min(minutes, afterMidnight) : 0;
+MORTO       B03         src/modules/work-time/useIncomeEstimateWith.ts: .filter((write) => write.at !== null && write.at.seconds * 1000 + write.at.nanoseconds / 1
+MORTO       B03         src/modules/work-time/useIncomeEstimateWith.ts: const serverInstantMs = (value: unknown): number => (typeof value === 'string' && ISO_INST
+MORTO       B03         src/modules/work-time/useIncomeEstimateWith.ts: .filter((write) => write.at !== null && write.at.seconds * 1000 + write.at.nanoseconds / 1
+MORTO       B02         src/modules/work-time/draft.ts: } catch {
+MORTO       B01         src/modules/work-time/receivableReversal.ts: const ordered = [...pairs.filter(([id]) => !mirrors.has(id)), ...pairs.filter(([id]) => mi
+MORTO       B03         src/modules/work-time/useIncomeEstimateWith.ts: .filter((write) => write.at !== null && write.at.seconds * 1000 + write.at.nanoseconds / 1
+MORTO       B03         src/modules/work-time/useIncomeEstimateWith.ts: .filter((write) => write.at !== null && write.at.seconds * 1000 + write.at.nanoseconds / 1
+MORTO       B02         src/components/WorkTimeSettingsView.tsx: else if ('message' in result && result.edited) {
+MORTO       B02         src/modules/work-time/routineModels.ts: const edited = routinesKey(models) !== initialKey;
+TOTAL unit: 77/77 mortos; 0 não compilam
+saída 0; 1109 s

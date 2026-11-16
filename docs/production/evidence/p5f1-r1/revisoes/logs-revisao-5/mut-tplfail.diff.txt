@@ -1,0 +1,10 @@
+--- <scratchpad>/p5f1r1/revisao5/arvore-aff667a5/src/components/WorkTimeSettingsView.tsx	2026-11-06 02:34:08.000000000 +0000
++++ <scratchpad>/p5f1r1/revisao5/mut-tplfail/src/components/WorkTimeSettingsView.tsx	2026-11-06 02:53:10.656676380 +0000
+@@ -393,6 +393,7 @@
+                 onChange={(result) => {
+                   setRoutineResult(result);
+                   if (result.ok && JSON.stringify(result.routines) !== JSON.stringify(draft.routines)) edit({ routines: result.routines });
++                  else if ('message' in result && !result.message.includes('se cruzam')) setRoutineResult(result);
+                   // Só uma mudança da pessoa põe a tela em edição. A configuração gravada que o editor recusa ao montar
+                   // não é alteração não salva: sem o título da prévia, a nota e "Descartar alterações", e o rascunho
+                   // continua seguindo o salvo (revisão 4 da R1, Q02).

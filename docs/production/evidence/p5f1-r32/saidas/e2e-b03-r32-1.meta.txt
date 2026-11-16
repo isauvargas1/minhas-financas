@@ -1,0 +1,4 @@
+arvore_dir=<scratchpad>/wt-p5f1-r32 arvore=0f1b93209ca6c4e25e157c971e0ff69663fe6a36 inicio=2026-11-11T12:41:11Z args=--trace off e2e/work-time-b03.spec.ts
+build=0
+fim=2026-11-11T12:46:03Z exit=1 duracao_s=293 portas_ocupadas_no_fim=[] java_no_fim=0
+limpeza_externa=nenhuma (o Emulator desligou sozinho)

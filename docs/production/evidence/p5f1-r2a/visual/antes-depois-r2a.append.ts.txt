@@ -1,0 +1,117 @@
+
+// ================================================================================================
+// P5-F.1-R2A — antes × depois TEMPORÁRIO de evidência visual (não fazem parte da suíte). Este trecho é
+// acrescentado a uma CÓPIA de e2e/work-time-p5f.spec.ts só durante a execução, para reaproveitar os
+// mesmos ajudantes e dados sintéticos; a cópia é apagada depois. Estados novos da R2A (S01): a jornada
+// reduzida gravada que deixa o dia seguinte sem cálculo seguro, com o aviso junto do botão de salvar, a prévia
+// indisponível, o calendário de exceções do mês e o Dashboard no modo tempo com a estimativa indisponível. 1440 × 900 e 390 × 844,
+// claro e escuro, cada combinação num contexto próprio (o tema é lido ao carregar a página, como na
+// evidência da P5-F.1); axe (WCAG 2.0/2.1 A e AA) no escopo de cada aviso e transbordamento horizontal.
+// A navegação dos ajudantes do teste é a do desktop: a página é aberta em 1440 × 900, e a viewport móvel é
+// aplicada só para a captura (o layout responsivo segue a largura), voltando ao desktop depois. Antes de mudar a
+// largura, o mouse sai do menu lateral, que se expande no hover e cobriria o aviso no móvel (revisão 4, Q03); a
+// captura confere que o centro do aviso não está coberto por outro elemento.
+// ================================================================================================
+import * as r1fs from 'node:fs';
+
+const R1_DIR = process.env.EVIDENCE_DIR ?? 'test-results/p5f1r2a-antes-depois';
+const R1_VIEWPORTS = { desktop: { width: 1440, height: 900 }, mobile: { width: 390, height: 844 } } as const;
+
+const r1Capture = async (page: Page, combo: string, state: string, scope: string) => {
+  r1fs.mkdirSync(R1_DIR, { recursive: true });
+  const viewport = combo.split('-')[0] as keyof typeof R1_VIEWPORTS;
+  // A última coluna da página, no meio da altura: fora do menu lateral e dos cartões. O menu recolhe no
+  // `mouseleave` (transição de 300 ms).
+  await page.mouse.move(R1_VIEWPORTS.desktop.width - 1, Math.round(R1_VIEWPORTS.desktop.height / 2));
+  await expect(page.locator('#menu-principal')).not.toHaveClass(/w-\[var\(--sidebar-width\)\]/);
+  await page.waitForTimeout(400);
+  await page.setViewportSize(R1_VIEWPORTS[viewport]);
+  await page.evaluate(() => document.fonts?.ready);
+  await page.waitForTimeout(400);
+  const target = page.locator(scope).first();
+  await expect(target).toBeVisible();
+  await target.scrollIntoViewIfNeeded();
+  const occluded = await target.evaluate((element) => {
+    const box = element.getBoundingClientRect();
+    const hit = document.elementFromPoint(box.left + box.width / 2, box.top + Math.min(box.height / 2, 12));
+    return hit === null || !(element === hit || element.contains(hit));
+  });
+  const name = `${combo}-${state}`;
+  await page.screenshot({ path: `${R1_DIR}/${name}.png` });
+  await target.screenshot({ path: `${R1_DIR}/${name}-aviso.png` });
+  const violations = await axeViolations(page, scope);
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  const scheme = await page.evaluate(() => (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
+  const background = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+  // Teclado: o elemento com foco depois da ação (o aviso não toma o foco; `role="alert"` é anunciado) e a
+  // sequência de Tab a partir dele, com o nome acessível de cada parada.
+  const focused = () => page.evaluate(() => {
+    const el = document.activeElement as HTMLElement | null;
+    if (!el || el === document.body) return null;
+    const label = el.getAttribute('aria-label') || (el as HTMLInputElement).labels?.[0]?.textContent || el.textContent || '';
+    return `${el.tagName.toLowerCase()}${el.getAttribute('role') ? `[role=${el.getAttribute('role')}]` : ''}: ${label.trim().replace(/\s+/g, ' ').slice(0, 60)}${(el as HTMLButtonElement).disabled ? ' (desabilitado)' : ''}`;
+  });
+  const focusAfterAction = await focused();
+  const tabTrail: Array<string | null> = [];
+  for (let step = 0; step < 4; step += 1) {
+    await page.keyboard.press('Tab');
+    tabTrail.push(await focused());
+  }
+  const role = await target.getAttribute('role');
+  const viewportSize = page.viewportSize();
+  r1fs.writeFileSync(`${R1_DIR}/${name}.json`, JSON.stringify({ name, scope, viewport: viewportSize, scheme, background, overflow, occluded, violations, role, focusAfterAction, tabTrail, text: (await target.innerText()).trim() }, null, 2));
+  await page.setViewportSize(R1_VIEWPORTS.desktop);
+  expect(violations, `${name}: ${JSON.stringify(violations, null, 2)}`).toEqual([]);
+  expect(overflow, `${name}: transbordamento horizontal`).toBeLessThanOrEqual(0);
+  expect(occluded, `${name}: o aviso está coberto por outro elemento`).toBe(false);
+};
+
+
+
+// Roda nas duas árvores (R1 `08d8c5a2` e R2A), no mesmo estado e na mesma viewport. Só a captura da página inteira e
+// do cartão da prévia, sem as asserções de axe e oclusão do aviso (no "antes" não há aviso): a comparação é pixel a
+// pixel, fora deste roteiro.
+const R2A_ROUTINES = 'W:20:00-06:00/0,00:00-08:00/0,-,-,-,-,-';
+const r2aMonday = () => {
+  const previousMonth = shiftMonth(currentMonth(), -1);
+  const first = new Date(`${previousMonth}-01T12:00:00Z`);
+  first.setUTCDate(first.getUTCDate() + ((8 - first.getUTCDay()) % 7));
+  return first.toISOString().slice(0, 10);
+};
+const r2aShot = async (page: Page, combo: string, state: string) => {
+  r1fs.mkdirSync(R1_DIR, { recursive: true });
+  const viewport = combo.split('-')[0] as keyof typeof R1_VIEWPORTS;
+  await page.mouse.move(R1_VIEWPORTS.desktop.width - 1, Math.round(R1_VIEWPORTS.desktop.height / 2));
+  await page.waitForTimeout(400);
+  await page.setViewportSize(R1_VIEWPORTS[viewport]);
+  await page.evaluate(() => document.fonts?.ready);
+  await page.waitForTimeout(400);
+  const card = page.getByTestId('work-time-preview');
+  await card.scrollIntoViewIfNeeded();
+  await page.screenshot({ path: `${R1_DIR}/${combo}-${state}.png`, fullPage: true });
+  await card.screenshot({ path: `${R1_DIR}/${combo}-${state}-previa.png` });
+  r1fs.writeFileSync(`${R1_DIR}/${combo}-${state}.json`, JSON.stringify({ state, combo, text: (await card.innerText()).trim() }, null, 2));
+  await page.setViewportSize(R1_VIEWPORTS.desktop);
+};
+
+for (const [viewport, size] of Object.entries(R1_VIEWPORTS)) {
+  for (const scheme of ['light', 'dark'] as const) {
+    const combo = `${viewport}-${scheme}`;
+    test.describe(`antes-depois R2A (${combo})`, () => {
+      test.use({ viewport: R1_VIEWPORTS.desktop, colorScheme: scheme });
+      void size;
+      for (const [state, exceptions] of [['referencia', ''], ['s01', 'R']] as const) {
+        test(`antes-depois R2A (${combo}): ${state}`, async ({ page, request }) => {
+          test.setTimeout(240_000);
+          const tenant = await seedTenant(request);
+          await seedPreference(A.uid, tenant.pf.workspaceId, { displayMode: 'money', routines: R2A_ROUTINES, exceptions: exceptions === '' ? '' : `R${r2aMonday()}=480` });
+          await startOn(page, A.uid, tenant.pf.workspaceId);
+          await login(page, A.email);
+          await openWorkTimeSettings(page);
+          await expect(previewHourly(page).or(page.getByTestId('work-time-preview-unavailable'))).toBeVisible({ timeout: 30_000 });
+          await r2aShot(page, combo, state);
+        });
+      }
+    });
+  }
+}

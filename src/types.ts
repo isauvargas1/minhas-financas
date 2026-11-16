@@ -298,7 +298,7 @@ export interface SummaryCardProps {
     title: string;
     value: number;
     /** Quando presente, substitui o número formatado (estados sem valor: "—"). */
-    displayValue?: string;
+    displayValue?: ReactNode;
     trend: string;
     icon: ReactNode;
     color: 'blue' | 'green' | 'red' | 'indigo' | 'purple';

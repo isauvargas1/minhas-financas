@@ -1,0 +1,31 @@
+== e2e-mutante-tpl
+saída 0
+  1 failed
+limpeza=0 java=0
+RESULTADO: MORTO (o teste reprovou com o mutante)
+== e2e-mutante-tplfail
+saída 0
+  1 failed
+limpeza=0 java=0
+RESULTADO: MORTO (o teste reprovou com o mutante)
+== e2e-mutante-s01a
+saída 0
+  1 failed
+limpeza=0 java=0
+RESULTADO: MORTO (o teste reprovou com o mutante)
+== e2e-mutante-s01b
+saída 0
+  1 failed
+limpeza=0 java=0
+RESULTADO: MORTO (o teste reprovou com o mutante)
+== e2e-mutante-s01c
+saída 0
+  1 failed
+limpeza=0 java=0
+RESULTADO: MORTO (o teste reprovou com o mutante)
+== e2e-mutante-s01d
+saída 0
+  1 failed
+limpeza=0 java=0
+RESULTADO: MORTO (o teste reprovou com o mutante)
+saída 0 em 630 s

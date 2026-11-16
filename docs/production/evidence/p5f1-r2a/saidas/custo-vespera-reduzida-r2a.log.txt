@@ -1,0 +1,5 @@
+{"name":"comum (rotina semanal padrão)","ms":[2,0,0,0,0],"validateDraftMs":12,"validateOk":true,"verdict":null}
+{"name":"noturno todo dia, sem exceções","ms":[0,0,0,0,0],"validateDraftMs":3,"validateOk":true,"verdict":null}
+{"name":"noturno todo dia, 120 jornadas reduzidas de 366 dias (6 h)","ms":[1202,960,916,977,1043],"validateDraftMs":956,"validateOk":false,"verdict":null}
+{"name":"noturno + madrugada todo dia, 120 jornadas reduzidas de 366 dias (6 h), 40 feriados","ms":[959,1029,941,981,972],"validateDraftMs":975,"validateOk":false,"verdict":{"date":"2098-09-06","cause":"reduced_eve"}}
+{"name":"pior caso da R1: 3 rotinas cobertas + cíclica 27x26, 120 exceções de 366 dias, 40 feriados anuais","ms":[372,295,275,275,280],"validateDraftMs":294,"validateOk":true,"verdict":null}

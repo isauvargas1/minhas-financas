@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { getTransactions } from "./api";
+import { getIncomeWindow, getMonthTransactions, getRecentTransactions } from "./api";
+import type { TransactionType } from "../../types";
 import { billingKeys } from "../billing/queryKeys";
 import { invalidateFinancialReports } from "../reports/queryKeys";
 import {
@@ -9,22 +10,33 @@ import {
   voidCashTransaction,
 } from "./cashApi";
 import { cashRefreshScope } from "./cashEntry";
+import { incomeReadsKey, invalidateTransactionReads } from "./incomeReads";
 
-const transactionKey = (workspaceId: string) => ["transactions", workspaceId] as const;
+/*
+ * Toda leitura de lista fica sob `["transactions", workspaceId, ...]`: a mutação nesta aba relê as que estão
+ * em uso (`invalidateTransactionReads`), e só elas. A lista do mês e as recentes são consultas separadas,
+ * cada uma só do que a sua tela mostra (P5-GATE-FINAL, FIRESTORE-01).
+ */
+const monthKeyOf = (workspaceId: string, monthKey: string, type: string) =>
+  ["transactions", workspaceId, "month", monthKey, type] as const;
+const recentKeyOf = (workspaceId: string, type: TransactionType | null) =>
+  ["transactions", workspaceId, "recent", type ?? "todas"] as const;
 const goalKey = (workspaceId: string) => ["goals", workspaceId] as const;
 const isWorkspaceReady = (workspaceId: string) => !!workspaceId && workspaceId !== "loading";
 
 /**
  * Telas que dependem dos lançamentos (lista, relatório financeiro oficial,
  * contas e metas). Exportada para os domínios cujo backend grava
- * espelho de caixa (empréstimos, P3-H) recarregarem as mesmas telas.
+ * espelho de caixa (empréstimos, P3-H) recarregarem as mesmas telas. As
+ * leituras de receitas da estimativa de tempo de trabalho ficam com a
+ * sincronização dela (`invalidateTransactionReads`).
  */
 export const invalidateTransactionDependents = async (
   queryClient: ReturnType<typeof useQueryClient>,
   workspaceId: string
 ) => {
   await Promise.all([
-    queryClient.invalidateQueries({ queryKey: transactionKey(workspaceId) }),
+    invalidateTransactionReads(queryClient, workspaceId),
     invalidateFinancialReports(queryClient),
     queryClient.invalidateQueries({ queryKey: goalKey(workspaceId) }),
     // P3-J (D-30): saldos e extratos das contas movem no mesmo commit.
@@ -34,28 +46,67 @@ export const invalidateTransactionDependents = async (
 };
 
 /**
- * Janela padrão de transações (INV-P1-011).
- *
- * A carga do aplicativo lia a subcoleção inteira. Agora lê os últimos doze
- * meses, paginados por `date` (dia civil) no servidor — janela que cobre tudo
- * que o produto consulta sem pedido explícito do usuário.
+ * Lista de Receitas ou de Despesas do mês do Header (`AAAA-MM`). Só lê com a
+ * tela aberta (`type` nulo desliga a consulta): nenhuma carga de lançamentos
+ * na abertura do aplicativo.
  */
-export const useTransactions = (workspaceId: string) => {
+export const useMonthTransactions = (
+  workspaceId: string,
+  monthKey: string,
+  type: "receita" | "despesa" | null,
+) => {
   const queryResult = useQuery({
-    queryKey: transactionKey(workspaceId),
-    queryFn: () => getTransactions(workspaceId),
-    enabled: isWorkspaceReady(workspaceId),
+    queryKey: monthKeyOf(workspaceId, monthKey, type ?? ""),
+    queryFn: () => getMonthTransactions(workspaceId, monthKey, type as "receita" | "despesa"),
+    enabled: isWorkspaceReady(workspaceId) && type !== null,
     staleTime: 1000 * 60 * 5
   });
   return {
     ...queryResult,
     data: queryResult.data?.items,
-    /** A janela bateu no teto de páginas: os agregados não cobrem tudo. */
+    /** O mês bateu no teto de páginas: a lista e os totais não cobrem tudo (a tela avisa). */
     isTruncated: queryResult.data?.truncated === true,
     /** Documentos fora do contrato excluídos da lista (a tela avisa). */
     invalidCount: queryResult.data?.invalidCount ?? 0,
   };
 };
+
+/** "Transações Recentes" do Dashboard: as 9 mais recentes do tipo do filtro (ou de todos). */
+export const useRecentTransactions = (
+  workspaceId: string,
+  type: TransactionType | null,
+  options: { enabled?: boolean } = {},
+) => {
+  const queryResult = useQuery({
+    queryKey: recentKeyOf(workspaceId, type),
+    queryFn: () => getRecentTransactions(workspaceId, type),
+    enabled: (options.enabled ?? true) && isWorkspaceReady(workspaceId),
+    staleTime: 1000 * 60 * 5
+  });
+  return {
+    ...queryResult,
+    data: queryResult.data?.items,
+    /** O teto de páginas acabou antes de juntar as 9 (a tela avisa). */
+    isTruncated: queryResult.data?.truncated === true,
+  };
+};
+
+
+/**
+ * Receitas de uma janela de datas (conferência item a item), carregadas só
+ * quando alguém as pede. Mesma família de chave dos lançamentos.
+ */
+export const useIncomeWindow = (
+  workspaceId: string | null,
+  since: string | null,
+  until: string | null,
+  options: { enabled?: boolean } = {},
+) => useQuery({
+  queryKey: [...incomeReadsKey(workspaceId ?? "", "income-window"), since ?? "", until ?? ""] as const,
+  queryFn: () => getIncomeWindow(workspaceId as string, since as string, until as string),
+  enabled: (options.enabled ?? true) && workspaceId !== null && isWorkspaceReady(workspaceId) && !!since && !!until,
+  staleTime: 1000 * 60 * 5,
+});
 
 /**
  * Lançamento manual confirmado pelas callables autoritativas (P3-E).

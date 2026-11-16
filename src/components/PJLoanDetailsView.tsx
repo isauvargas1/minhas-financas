@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 
 import { useLoan, useLoanMovements } from '../modules/loans/hooks.ts';
 import { formatCents, formatDayKey, saoPauloToday } from '../modules/loans/money.ts';
+import { useMoneyDisplay } from '../modules/work-time/display.tsx';
 import {
   COUNTERPARTY_LABELS,
   LOAN_STATUS_LABELS,
@@ -39,6 +40,7 @@ const formatDocument = (digits?: string): string | null => {
 };
 
 const PJLoanDetailsView: React.FC<PJLoanDetailsViewProps> = ({ loanId, onBack }) => {
+    const display = useMoneyDisplay();
   const { data: loan, isLoading } = useLoan(loanId);
   const {
     data: movements,
@@ -129,7 +131,7 @@ const PJLoanDetailsView: React.FC<PJLoanDetailsViewProps> = ({ loanId, onBack })
             <div className="text-right flex flex-col items-end">
               <span className="text-[11px] font-black text-muted uppercase tracking-[0.2em] mb-1">{isLiab ? 'Saldo Devedor Atual' : 'Saldo a Receber Atual'}</span>
               <div data-testid="loan-balance" className="text-5xl font-black text-on-surface tracking-tighter">
-                {cancelled ? 'Cancelado' : formatCents(openBalanceCents(loan))}
+                {cancelled ? 'Cancelado' : display.cents(openBalanceCents(loan), formatCents)}
               </div>
             </div>
           </div>
@@ -141,11 +143,11 @@ const PJLoanDetailsView: React.FC<PJLoanDetailsViewProps> = ({ loanId, onBack })
             </div>
             <div>
               <dt className="text-[10px] font-black text-muted uppercase tracking-widest mb-1 block">Total Amortizado</dt>
-              <dd className="text-xl font-bold text-green-600">{formatCents(loan.totalPrincipalSettledCents)}</dd>
+              <dd className="text-xl font-bold text-green-600">{display.cents(loan.totalPrincipalSettledCents, formatCents)}</dd>
             </div>
             <div>
               <dt className="text-[10px] font-black text-muted uppercase tracking-widest mb-1 block">Juros Acumulados ({isLiab ? 'Pagos' : 'Rec.'})</dt>
-              <dd data-testid="loan-interest-settled" className="text-xl font-bold text-blue-600">{formatCents(loan.totalInterestSettledCents)}</dd>
+              <dd data-testid="loan-interest-settled" className="text-xl font-bold text-blue-600">{display.cents(loan.totalInterestSettledCents, formatCents)}</dd>
             </div>
           </dl>
 

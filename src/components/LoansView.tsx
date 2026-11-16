@@ -3,6 +3,7 @@ import React, { useState, useMemo } from 'react';
 import { useLoans, useLoanTotals } from '../modules/loans/hooks.ts';
 import type { Loan, LoanType, LoanStatus } from '../modules/loans/types.ts';
 import { formatCents, formatDayKey } from '../modules/loans/money.ts';
+import { useMoneyDisplay } from '../modules/work-time/display.tsx';
 import {
     LOAN_STATUS_LABELS,
     loanPermissions,
@@ -21,6 +22,7 @@ interface LoansViewProps {
 }
 
 const LoansView: React.FC<LoansViewProps> = ({ onSelectLoan }) => {
+    const display = useMoneyDisplay();
     const { data: loans, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } = useLoans();
     /*
      * Os indicadores vêm de agregado do servidor, não da lista carregada.
@@ -150,11 +152,11 @@ const LoansView: React.FC<LoansViewProps> = ({ onSelectLoan }) => {
                 )}
                 <div className="bg-surface p-4 rounded-xl border border-border shadow-sm flex items-center gap-4">
                     <div className="p-3 bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-400 rounded-lg"><TrendingUpIcon className="w-6 h-6" /></div>
-                    <div><p className="text-[10px] font-bold text-muted uppercase">A Receber</p><p data-testid="loans-total-lend" className="text-lg font-bold text-green-600">{formatCents(stats.lendCents)}</p></div>
+                    <div><p className="text-[10px] font-bold text-muted uppercase">A Receber</p><p data-testid="loans-total-lend" className="text-lg font-bold text-green-600">{display.cents(stats.lendCents, formatCents)}</p></div>
                 </div>
                 <div className="bg-surface p-4 rounded-xl border border-border shadow-sm flex items-center gap-4">
                     <div className="p-3 bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400 rounded-lg"><ArrowDownIcon className="w-6 h-6" /></div>
-                    <div><p className="text-[10px] font-bold text-muted uppercase">A Pagar</p><p data-testid="loans-total-borrow" className="text-lg font-bold text-red-600">{formatCents(stats.borrowCents)}</p></div>
+                    <div><p className="text-[10px] font-bold text-muted uppercase">A Pagar</p><p data-testid="loans-total-borrow" className="text-lg font-bold text-red-600">{display.cents(stats.borrowCents, formatCents)}</p></div>
                 </div>
                 <div className="bg-surface p-4 rounded-xl border border-border shadow-sm flex items-center gap-4">
                     <div className="p-3 bg-yellow-50 text-yellow-600 dark:bg-yellow-900/20 dark:text-yellow-400 rounded-lg"><WarningIcon className="w-6 h-6" /></div>
@@ -188,7 +190,7 @@ const LoansView: React.FC<LoansViewProps> = ({ onSelectLoan }) => {
                                     <tr key={loan.id} onClick={() => onSelectLoan(loan)} className="hover:bg-background/50 transition-colors cursor-pointer group">
                                         <td className="px-4 py-3"><p className="font-bold text-on-surface">{loan.personName}</p><p className="text-xs text-muted truncate max-w-[200px]">{loan.description}</p></td>
                                         <td className="px-4 py-3 text-center"><span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${loan.type === 'lend' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>{loan.type === 'lend' ? 'Emprestei' : 'Peguei'}</span></td>
-                                        <td className="px-4 py-3 text-right font-bold text-on-surface">{loan.status === 'cancelled' ? '—' : formatCents(openBalanceCents(loan))}</td>
+                                        <td className="px-4 py-3 text-right font-bold text-on-surface">{loan.status === 'cancelled' ? '—' : display.cents(openBalanceCents(loan), formatCents)}</td>
                                         <td className="px-4 py-3 text-center">
                                             <div className="flex items-center gap-2 justify-center">
                                                 <div className="w-12 h-1.5 bg-background rounded-full overflow-hidden"><div className="h-full bg-primary" style={{ width: `${principalProgressPercent(loan)}%` }}></div></div>

@@ -1,0 +1,252 @@
+[
+ {
+  "cenario": "concentrado (12 meses, 10 categorias)",
+  "N": 20000,
+  "pageSize": 300,
+  "r2a": {
+   "calls": 67,
+   "reads": 20000,
+   "leiturasPorDoc": 1,
+   "cortes": 0,
+   "menorConsumo": 200,
+   "ancoras": 0,
+   "maiorCommit": 23
+  },
+  "r3": {
+   "calls": 67,
+   "reads": 20000,
+   "leiturasPorDoc": 1,
+   "cortes": 0,
+   "menorConsumo": 200,
+   "ancoras": 20000,
+   "maiorCommit": 323
+  },
+  "chamadasR3SobreR2A": 1,
+  "leiturasR3SobreR2A": 1
+ },
+ {
+  "cenario": "concentrado (12 meses, 10 categorias)",
+  "N": 20000,
+  "pageSize": 500,
+  "r2a": {
+   "calls": 40,
+   "reads": 20000,
+   "leiturasPorDoc": 1,
+   "cortes": 0,
+   "menorConsumo": 500,
+   "ancoras": 0,
+   "maiorCommit": 23
+  },
+  "r3": {
+   "calls": 42,
+   "reads": 20943,
+   "leiturasPorDoc": 1.05,
+   "cortes": 41,
+   "menorConsumo": 443,
+   "ancoras": 20000,
+   "maiorCommit": 500
+  },
+  "chamadasR3SobreR2A": 1.05,
+  "leiturasR3SobreR2A": 1.05
+ },
+ {
+  "cenario": "típico (36 meses, 20 categorias)",
+  "N": 20000,
+  "pageSize": 300,
+  "r2a": {
+   "calls": 67,
+   "reads": 20000,
+   "leiturasPorDoc": 1,
+   "cortes": 0,
+   "menorConsumo": 200,
+   "ancoras": 0,
+   "maiorCommit": 97
+  },
+  "r3": {
+   "calls": 67,
+   "reads": 20000,
+   "leiturasPorDoc": 1,
+   "cortes": 0,
+   "menorConsumo": 200,
+   "ancoras": 20000,
+   "maiorCommit": 397
+  },
+  "chamadasR3SobreR2A": 1,
+  "leiturasR3SobreR2A": 1
+ },
+ {
+  "cenario": "típico (36 meses, 20 categorias)",
+  "N": 20000,
+  "pageSize": 500,
+  "r2a": {
+   "calls": 40,
+   "reads": 20000,
+   "leiturasPorDoc": 1,
+   "cortes": 0,
+   "menorConsumo": 500,
+   "ancoras": 0,
+   "maiorCommit": 97
+  },
+  "r3": {
+   "calls": 50,
+   "reads": 24746,
+   "leiturasPorDoc": 1.24,
+   "cortes": 49,
+   "menorConsumo": 246,
+   "ancoras": 20000,
+   "maiorCommit": 500
+  },
+  "chamadasR3SobreR2A": 1.25,
+  "leiturasR3SobreR2A": 1.24
+ },
+ {
+  "cenario": "diverso (120 meses, 60 categorias)",
+  "N": 20000,
+  "pageSize": 300,
+  "r2a": {
+   "calls": 67,
+   "reads": 20000,
+   "leiturasPorDoc": 1,
+   "cortes": 0,
+   "menorConsumo": 200,
+   "ancoras": 0,
+   "maiorCommit": 362
+  },
+  "r3": {
+   "calls": 93,
+   "reads": 27722,
+   "leiturasPorDoc": 1.39,
+   "cortes": 92,
+   "menorConsumo": 122,
+   "ancoras": 20000,
+   "maiorCommit": 500
+  },
+  "chamadasR3SobreR2A": 1.39,
+  "leiturasR3SobreR2A": 1.39
+ },
+ {
+  "cenario": "diverso (120 meses, 60 categorias)",
+  "N": 20000,
+  "pageSize": 500,
+  "r2a": {
+   "calls": 52,
+   "reads": 25845,
+   "leiturasPorDoc": 1.29,
+   "cortes": 51,
+   "menorConsumo": 345,
+   "ancoras": 0,
+   "maiorCommit": 401
+  },
+  "r3": {
+   "calls": 93,
+   "reads": 45957,
+   "leiturasPorDoc": 2.3,
+   "cortes": 92,
+   "menorConsumo": 122,
+   "ancoras": 20000,
+   "maiorCommit": 500
+  },
+  "chamadasR3SobreR2A": 1.79,
+  "leiturasR3SobreR2A": 1.78
+ },
+ {
+  "cenario": "extremo (240 meses, 150 categorias)",
+  "N": 20000,
+  "pageSize": 300,
+  "r2a": {
+   "calls": 79,
+   "reads": 23613,
+   "leiturasPorDoc": 1.18,
+   "cortes": 78,
+   "menorConsumo": 213,
+   "ancoras": 0,
+   "maiorCommit": 401
+  },
+  "r3": {
+   "calls": 107,
+   "reads": 31954,
+   "leiturasPorDoc": 1.6,
+   "cortes": 106,
+   "menorConsumo": 154,
+   "ancoras": 20000,
+   "maiorCommit": 500
+  },
+  "chamadasR3SobreR2A": 1.35,
+  "leiturasR3SobreR2A": 1.35
+ },
+ {
+  "cenario": "extremo (240 meses, 150 categorias)",
+  "N": 20000,
+  "pageSize": 500,
+  "r2a": {
+   "calls": 79,
+   "reads": 39181,
+   "leiturasPorDoc": 1.96,
+   "cortes": 78,
+   "menorConsumo": 213,
+   "ancoras": 0,
+   "maiorCommit": 401
+  },
+  "r3": {
+   "calls": 107,
+   "reads": 52993,
+   "leiturasPorDoc": 2.65,
+   "cortes": 106,
+   "menorConsumo": 154,
+   "ancoras": 20000,
+   "maiorCommit": 500
+  },
+  "chamadasR3SobreR2A": 1.35,
+  "leiturasR3SobreR2A": 1.35
+ },
+ {
+  "cenario": "adversário (600 meses, 500 categorias)",
+  "N": 20000,
+  "pageSize": 300,
+  "r2a": {
+   "calls": 93,
+   "reads": 27569,
+   "leiturasPorDoc": 1.38,
+   "cortes": 92,
+   "menorConsumo": 27,
+   "ancoras": 0,
+   "maiorCommit": 401
+  },
+  "r3": {
+   "calls": 116,
+   "reads": 34413,
+   "leiturasPorDoc": 1.72,
+   "cortes": 115,
+   "menorConsumo": 20,
+   "ancoras": 20000,
+   "maiorCommit": 500
+  },
+  "chamadasR3SobreR2A": 1.25,
+  "leiturasR3SobreR2A": 1.25
+ },
+ {
+  "cenario": "adversário (600 meses, 500 categorias)",
+  "N": 20000,
+  "pageSize": 500,
+  "r2a": {
+   "calls": 93,
+   "reads": 45728,
+   "leiturasPorDoc": 2.29,
+   "cortes": 92,
+   "menorConsumo": 27,
+   "ancoras": 0,
+   "maiorCommit": 401
+  },
+  "r3": {
+   "calls": 116,
+   "reads": 57080,
+   "leiturasPorDoc": 2.85,
+   "cortes": 115,
+   "menorConsumo": 20,
+   "ancoras": 20000,
+   "maiorCommit": 500
+  },
+  "chamadasR3SobreR2A": 1.25,
+  "leiturasR3SobreR2A": 1.25
+ }
+]

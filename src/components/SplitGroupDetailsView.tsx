@@ -37,6 +37,7 @@ import { useWorkspaceMembers } from '../modules/workspaces/hooks.ts';
 import type { CreditCard } from '../modules/cards/types.ts';
 import { BackIcon, PlusIcon, DynamicIcon, SettingsIcon, ListIcon, ChartBarIcon, UsersIcon, EditIcon } from './Icons.tsx';
 import { useTheme } from '../contexts/ThemeContext.tsx';
+import { useMoneyDisplay } from '../modules/work-time/display.tsx';
 import { useAuth } from '../contexts/AuthContext.tsx';
 import SplitBillFormModal from './SplitBillFormModal.tsx';
 import SplitBillDetailsModal from './SplitBillDetailsModal.tsx';
@@ -71,6 +72,7 @@ const SplitGroupDetailsView: React.FC<SplitGroupDetailsViewProps> = ({
 }) => {
     const { activeWorkspace, activeWorkspaceRole } = useWorkspace();
     const { user } = useAuth();
+    const display = useMoneyDisplay();
     const isPJ = activeWorkspace.type === 'PJ';
     const viewer = { uid: user?.uid, role: activeWorkspaceRole };
     const queryClient = useQueryClient();
@@ -292,28 +294,28 @@ const SplitGroupDetailsView: React.FC<SplitGroupDetailsViewProps> = ({
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                     <div className="bg-gray-50 dark:bg-dark-200 p-3 rounded-xl border border-gray-100 dark:border-gray-700">
                         <span className="text-xs text-gray-500 uppercase font-bold">{isReimbursementGroup ? 'Total Solicitado' : 'Total Grupo'}</span>
-                        <p className="text-lg font-bold text-gray-800 dark:text-white mt-1">{formatSplitCents(isReimbursementGroup ? group.totals.reimbursementTotalCents : group.totals.billedCents)}</p>
+                        <p className="text-lg font-bold text-gray-800 dark:text-white mt-1">{display.cents(isReimbursementGroup ? group.totals.reimbursementTotalCents : group.totals.billedCents, formatSplitCents)}</p>
                     </div>
                     {isReimbursementGroup ? (
                         <div className="bg-orange-50 dark:bg-orange-900/10 p-3 rounded-xl border border-orange-100 dark:border-orange-900/30">
                             <span className="text-xs text-orange-600 uppercase font-bold">Pendente Pagamento</span>
                             <p className="text-lg font-bold text-orange-800 dark:text-orange-300 mt-1">
-                                {formatSplitCents(group.totals.reimbursementPendingCents)}
+                                {display.cents(group.totals.reimbursementPendingCents, formatSplitCents)}
                             </p>
                         </div>
                     ) : (
                         <>
                             <div className="bg-green-50 dark:bg-green-900/10 p-3 rounded-xl border border-green-100 dark:border-green-900/30">
                                 <span className="text-xs text-green-600 uppercase font-bold">Eu Paguei</span>
-                                <p className="text-lg font-bold text-green-800 dark:text-green-300 mt-1">{formatSplitCents(balances?.paidCents ?? 0)}</p>
+                                <p className="text-lg font-bold text-green-800 dark:text-green-300 mt-1">{display.cents(balances?.paidCents ?? 0, formatSplitCents)}</p>
                             </div>
                             <div className="bg-blue-50 dark:bg-blue-900/10 p-3 rounded-xl border border-blue-100 dark:border-blue-900/30">
                                 <span className="text-xs text-blue-600 uppercase font-bold">A Receber</span>
-                                <p className="text-lg font-bold text-blue-800 dark:text-blue-300 mt-1">{formatSplitCents(balances?.receivableOpenCents ?? 0)}</p>
+                                <p className="text-lg font-bold text-blue-800 dark:text-blue-300 mt-1">{display.cents(balances?.receivableOpenCents ?? 0, formatSplitCents)}</p>
                             </div>
                             <div className="bg-red-50 dark:bg-red-900/10 p-3 rounded-xl border border-red-100 dark:border-red-900/30">
                                 <span className="text-xs text-red-600 uppercase font-bold">Minha Dívida</span>
-                                <p className="text-lg font-bold text-red-800 dark:text-red-300 mt-1">{formatSplitCents(balances?.owesOpenCents ?? 0)}</p>
+                                <p className="text-lg font-bold text-red-800 dark:text-red-300 mt-1">{display.cents(balances?.owesOpenCents ?? 0, formatSplitCents)}</p>
                             </div>
                         </>
                     )}
@@ -441,7 +443,7 @@ const SplitGroupDetailsView: React.FC<SplitGroupDetailsViewProps> = ({
                                                 )}
                                             </div>
 
-                                            <p className="font-bold text-gray-800 dark:text-white text-lg">{formatSplitCents(bill.amountCents)}</p>
+                                            <p className="font-bold text-gray-800 dark:text-white text-lg">{display.cents(bill.amountCents, formatSplitCents)}</p>
 
                                             {/* Action Buttons on Hover */}
                                             {(editable || voidable) && (

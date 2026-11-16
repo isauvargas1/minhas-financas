@@ -1,0 +1,40 @@
+{
+ "C": {
+  "verdict": null,
+  "oct1": "840",
+  "oct2": "240",
+  "periodOct": 1080,
+  "ambiguousDays": 0,
+  "monthOct": 840,
+  "sepOct": 8400,
+  "estimate": {
+   "status": "ready",
+   "workMinutes": 1080,
+   "hourlyRateCents": 55556
+  }
+ },
+ "Cmais": {
+  "verdict": {
+   "date": "2026-10-02",
+   "routines": [
+    1
+   ],
+   "cause": {
+    "kind": "reduced_eve",
+    "date": "2026-10-01"
+   }
+  },
+  "oct1": "850[reduced]",
+  "oct2": "240?",
+  "periodOct": 1090,
+  "ambiguousDays": 1,
+  "monthOct": 1080,
+  "sepOct": 9120,
+  "estimate": {
+   "status": "unavailable",
+   "workMinutes": 0,
+   "hourlyRateCents": null
+  }
+ },
+ "perdaNoPeriodo": -10
+}

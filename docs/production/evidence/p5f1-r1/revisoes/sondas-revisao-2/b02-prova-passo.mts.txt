@@ -1,0 +1,43 @@
+// Revisão 2, B02: os passos 1 e 4 da prova reescrita do Teorema 2 (rotinas-matematica.md §4) não valem num dia que
+// segue a rotina quando o intervalo de uma janela da véspera, pela convenção de ocupação, cai depois da meia-noite e é
+// coberto por uma janela do dia (discrepância entre "minutos que saem de d" e δ_d). O teorema continua valendo no total.
+// Uso: node ... b02-prova-passo.mts <raiz> [<raiz instrumentada>]
+const root = process.argv[2];
+const instr = process.argv[3];
+const cal = await import(`${root}/src/modules/work-time/calendar.ts`);
+const OFF = { kind: 'off' };
+const win = (start: number, end: number, breakMinutes = 0) => ({ kind: 'window', start, end, breakMinutes });
+const weekly = (...days: any[]) => ({ kind: 'weekly', days: Array.from({ length: 7 }, (_, i) => days[i] ?? OFF) });
+const base = { worksOnHolidays: true, localHolidays: [], exceptions: [] as any[] };
+// Segunda 20:00–24:00 e terça 00:00–06:00, sem intervalo. Acrescentada: segunda 22:00–04:00 com 3 h de intervalo
+// (o trecho antes da meia-noite tem 2 h: na convenção, o intervalo vai de 22:00 a 01:00).
+const before = [weekly(win(1200, 0)), weekly(OFF, win(0, 360))];
+const after = [...before, weekly(win(1320, 240, 180))];
+const cases: Array<[string, any[]]> = [['antes', before], ['depois', after]];
+for (const [label, routines] of cases) {
+  const c = { ...base, routines };
+  const mon = cal.dayPlan(c, '2026-10-05');
+  const tue = cal.dayPlan(c, '2026-10-06');
+  const month = cal.monthPlan(c, '2026-10', { periodStart: true });
+  console.log(JSON.stringify({ label, ambiguous: routinesAmbiguityOf(routines), calendarAmbiguity: cal.calendarAmbiguity(c, '2026-11-05'), segunda: mon.minutes, terca: tue.minutes, mes: month.minutes, ambiguousDays: month.ambiguousDays }));
+}
+function routinesAmbiguityOf(routines: any[]) { return cal.routinesAmbiguity(routines, '2026-10-01'); }
+if (instr) {
+  const ic = await import(`${instr}/src/modules/work-time/calendar.ts`);
+  for (const [label, routines] of cases) {
+    const c = { ...base, routines };
+    const tue = ic.__planDay(c, '2026-10-06', '2026-10-05');
+    console.log(JSON.stringify({ label, terca: { minutes: tue.minutes, debug: tue.__debug } }));
+  }
+  // δ_terça = crescimento do que o trecho depois da meia-noite das janelas de segunda ocupa no dia civil de terça.
+  const [b, a] = cases.map(([, routines]) => ic.__planDay({ ...base, routines }, '2026-10-06', '2026-10-05').__debug);
+  console.log(JSON.stringify({ delta_terca: a.previousOccupancy - b.previousOccupancy, w_terca_perde: b.workMinutes - a.workMinutes, o_terca: [b.afterMidnight, a.afterMidnight] }));
+}
+// Com 24 h de hora extra na terça, o passo 4 ("m'_d ≥ m_d + δ_{d+1} − δ_d") também falha no dia, e o total continua ≥.
+const heavy = { ...base, exceptions: [{ kind: 'overtime', date: '2026-10-06', minutes: 1440 }] };
+const [hb, ha] = [before, after].map((routines) => ({
+  seg: cal.dayPlan({ ...heavy, routines }, '2026-10-05').minutes,
+  ter: cal.dayPlan({ ...heavy, routines }, '2026-10-06').minutes,
+  mes: cal.monthPlan({ ...heavy, routines }, '2026-10', { periodStart: true }).minutes,
+}));
+console.log(JSON.stringify({ com_hora_extra_24h_na_terca: { antes: hb, depois: ha } }));

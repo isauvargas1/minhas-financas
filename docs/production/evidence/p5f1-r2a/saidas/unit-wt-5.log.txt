@@ -1,0 +1,1036 @@
+TAP version 13
+# Subtest: 0 documentos: 0 lidos em 1 página, completa
+ok 1 - 0 documentos: 0 lidos em 1 página, completa
+  ---
+  duration_ms: 1.960162
+  type: 'test'
+  ...
+# Subtest: 500 documentos: 500 lidos em 1 página, completa
+ok 2 - 500 documentos: 500 lidos em 1 página, completa
+  ---
+  duration_ms: 0.483087
+  type: 'test'
+  ...
+# Subtest: 501 documentos: 501 lidos em 2 páginas, completa
+ok 3 - 501 documentos: 501 lidos em 2 páginas, completa
+  ---
+  duration_ms: 0.315728
+  type: 'test'
+  ...
+# Subtest: 2000 documentos: 2000 lidos em 4 páginas, completa
+ok 4 - 2000 documentos: 2000 lidos em 4 páginas, completa
+  ---
+  duration_ms: 1.937745
+  type: 'test'
+  ...
+# Subtest: 2001 documentos: 2000 lidos em 4 páginas, truncada
+ok 5 - 2001 documentos: 2000 lidos em 4 páginas, truncada
+  ---
+  duration_ms: 1.619147
+  type: 'test'
+  ...
+# Subtest: exemplo de referência: R$ 482,35 com hora de R$ 20,00 vira 24 h 7 min
+ok 6 - exemplo de referência: R$ 482,35 com hora de R$ 20,00 vira 24 h 7 min
+  ---
+  duration_ms: 1.383313
+  type: 'test'
+  ...
+# Subtest: equivalência entre períodos: a renda inteira vale a carga inteira, e a escala não muda o resultado
+ok 7 - equivalência entre períodos: a renda inteira vale a carga inteira, e a escala não muda o resultado
+  ---
+  duration_ms: 7.102599
+  type: 'test'
+  ...
+# Subtest: arredondamento ao minuto mais próximo: meio minuto vai para longe de zero
+ok 8 - arredondamento ao minuto mais próximo: meio minuto vai para longe de zero
+  ---
+  duration_ms: 0.191299
+  type: 'test'
+  ...
+# Subtest: propriedade: o resultado é o inteiro mais próximo do quociente exato e o negativo espelha o positivo
+ok 9 - propriedade: o resultado é o inteiro mais próximo do quociente exato e o negativo espelha o positivo
+  ---
+  duration_ms: 10.366192
+  type: 'test'
+  ...
+# Subtest: zero, menos de 1 minuto e sinal
+ok 10 - zero, menos de 1 minuto e sinal
+  ---
+  duration_ms: 0.349062
+  type: 'test'
+  ...
+# Subtest: valores e configurações inválidos ficam indisponíveis (a interface mostra o dinheiro)
+ok 11 - valores e configurações inválidos ficam indisponíveis (a interface mostra o dinheiro)
+  ---
+  duration_ms: 0.518931
+  type: 'test'
+  ...
+# Subtest: limite seguro: valores muito grandes calculam em BigInt e só ficam indisponíveis acima do maior inteiro seguro
+ok 12 - limite seguro: valores muito grandes calculam em BigInt e só ficam indisponíveis acima do maior inteiro seguro
+  ---
+  duration_ms: 0.256229
+  type: 'test'
+  ...
+# Subtest: limites da janela da estimativa (P5-F.1): 12 meses de 744 h e R$ 100 mi por mês
+ok 13 - limites da janela da estimativa (P5-F.1): 12 meses de 744 h e R$ 100 mi por mês
+  ---
+  duration_ms: 0.153971
+  type: 'test'
+  ...
+# Subtest: valor estimado por hora em centavos inteiros, arredondado ao centavo mais próximo
+ok 14 - valor estimado por hora em centavos inteiros, arredondado ao centavo mais próximo
+  ---
+  duration_ms: 0.326131
+  type: 'test'
+  ...
+# Subtest: volta de reais de exibição a centavos é exata até o teto e recusa o resto
+ok 15 - volta de reais de exibição a centavos é exata até o teto e recusa o resto
+  ---
+  duration_ms: 14.786817
+  type: 'test'
+  ...
+# Subtest: formatação pt-BR em horas e minutos, sem quebra de linha e com marca de estimativa
+ok 16 - formatação pt-BR em horas e minutos, sem quebra de linha e com marca de estimativa
+  ---
+  duration_ms: 0.501883
+  type: 'test'
+  ...
+# Subtest: rótulo compacto de eixo: horas inteiras arredondadas e minutos abaixo de 1 h
+ok 17 - rótulo compacto de eixo: horas inteiras arredondadas e minutos abaixo de 1 h
+  ---
+  duration_ms: 0.382188
+  type: 'test'
+  ...
+# Subtest: eixo e tooltip de gráfico: modo dinheiro devolve o texto exato do formatador da tela
+ok 18 - eixo e tooltip de gráfico: modo dinheiro devolve o texto exato do formatador da tela
+  ---
+  duration_ms: 0.428826
+  type: 'test'
+  ...
+# Subtest: descrição por extenso para leitores de tela, com singular e plural
+ok 19 - descrição por extenso para leitores de tela, com singular e plural
+  ---
+  duration_ms: 0.094162
+  type: 'test'
+  ...
+# Subtest: apresentação: texto curto, falado, dica e tooltip trazem o valor exato em reais
+ok 20 - apresentação: texto curto, falado, dica e tooltip trazem o valor exato em reais
+  ---
+  duration_ms: 0.281282
+  type: 'test'
+  ...
+# Subtest: datas civis: dias reais, anos bissextos, intervalo 2000–2099 e dia da semana ISO
+ok 21 - datas civis: dias reais, anos bissextos, intervalo 2000–2099 e dia da semana ISO
+  ---
+  duration_ms: 1.470967
+  type: 'test'
+  ...
+# Subtest: horas do mês são do próprio mês, nunca uma carga fixa de 220 h
+ok 22 - horas do mês são do próprio mês, nunca uma carga fixa de 220 h
+  ---
+  duration_ms: 18.121991
+  type: 'test'
+  ...
+# Subtest: feriados nacionais por lei, com vigência; pontos facultativos e datas religiosas municipais nunca automáticos
+ok 23 - feriados nacionais por lei, com vigência; pontos facultativos e datas religiosas municipais nunca automáticos
+  ---
+  duration_ms: 4.40559
+  type: 'test'
+  ...
+# Subtest: domingos de eleição: só atalho, nunca automáticos; 1º e último domingo de outubro dos anos pares
+ok 24 - domingos de eleição: só atalho, nunca automáticos; 1º e último domingo de outubro dos anos pares
+  ---
+  duration_ms: 0.317539
+  type: 'test'
+  ...
+# Subtest: Páscoa e datas móveis (algoritmo gregoriano)
+ok 25 - Páscoa e datas móveis (algoritmo gregoriano)
+  ---
+  duration_ms: 0.362787
+  type: 'test'
+  ...
+# Subtest: feriados locais (anual e data única), trabalho em feriados e feriado trabalhado
+ok 26 - feriados locais (anual e data única), trabalho em feriados e feriado trabalhado
+  ---
+  duration_ms: 4.512951
+  type: 'test'
+  ...
+# Subtest: escala 12×36 e escalas cíclicas contam a partir da data de referência, também para trás
+ok 27 - escala 12×36 e escalas cíclicas contam a partir da data de referência, também para trás
+  ---
+  duration_ms: 4.313098
+  type: 'test'
+  ...
+# Subtest: turno noturno conta no dia em que começa; janelas que se cruzam contam uma vez; o intervalo sem horário nunca é adivinhado (B02)
+ok 28 - turno noturno conta no dia em que começa; janelas que se cruzam contam uma vez; o intervalo sem horário nunca é adivinhado (B02)
+  ---
+  duration_ms: 9.326898
+  type: 'test'
+  ...
+# Subtest: B02: acrescentar uma rotina contida numa janela já contada não tira horas (08–12 + 13–17 = 8 h; com 09–11 e 90 min de pausa, 8 h)
+ok 29 - B02: acrescentar uma rotina contida numa janela já contada não tira horas (08–12 + 13–17 = 8 h; com 09–11 e 90 min de pausa, 8 h)
+  ---
+  duration_ms: 8.296232
+  type: 'test'
+  ...
+# Subtest: B02: cruzamentos parciais, contenção, repetição, intervalos longos e vários intervalos
+ok 30 - B02: cruzamentos parciais, contenção, repetição, intervalos longos e vários intervalos
+  ---
+  duration_ms: 10.718377
+  type: 'test'
+  ...
+# Subtest: B02: turnos noturnos e cruzamentos entre dias, com escala semanal e cíclica
+ok 31 - B02: turnos noturnos e cruzamentos entre dias, com escala semanal e cíclica
+  ---
+  duration_ms: 0.683286
+  type: 'test'
+  ...
+# Subtest: B02: feriados, plantões, horas extras, exceções e o limite de 24 h com rotinas que se cruzam
+ok 32 - B02: feriados, plantões, horas extras, exceções e o limite de 24 h com rotinas que se cruzam
+  ---
+  duration_ms: 3.346047
+  type: 'test'
+  ...
+# Subtest: B02: o conferidor das rotinas percorre o período inteiro da combinação e é rápido no pior caso
+ok 33 - B02: o conferidor das rotinas percorre o período inteiro da combinação e é rápido no pior caso
+  ---
+  duration_ms: 120.854445
+  type: 'test'
+  ...
+# Subtest: B02 (propriedade): com cálculo seguro, as horas são a união das janelas trabalhadas, em qualquer posição das pausas
+ok 34 - B02 (propriedade): com cálculo seguro, as horas são a união das janelas trabalhadas, em qualquer posição das pausas
+  ---
+  duration_ms: 118.806154
+  type: 'test'
+  ...
+# Subtest: B02 (propriedade): todo dia recusado depende mesmo da posição das pausas
+ok 35 - B02 (propriedade): todo dia recusado depende mesmo da posição das pausas
+  ---
+  duration_ms: 70.67198
+  type: 'test'
+  ...
+# Subtest: B02 (propriedade): acrescentar uma rotina, entre configurações com cálculo seguro, nunca tira horas
+ok 36 - B02 (propriedade): acrescentar uma rotina, entre configurações com cálculo seguro, nunca tira horas
+  ---
+  duration_ms: 565.239989
+  type: 'test'
+  ...
+# Subtest: B02: o turno que começa na véspera do período não leva horas do primeiro dia; os minutos sem horário só ocupam o tempo livre do dia
+ok 37 - B02: o turno que começa na véspera do período não leva horas do primeiro dia; os minutos sem horário só ocupam o tempo livre do dia
+  ---
+  duration_ms: 2.899512
+  type: 'test'
+  ...
+# Subtest: B02 (propriedade): na janela de meses da estimativa, com exceções, durações, turnos de 24 h e feriados, acrescentar uma rotina nunca tira horas
+ok 38 - B02 (propriedade): na janela de meses da estimativa, com exceções, durações, turnos de 24 h e feriados, acrescentar uma rotina nunca tira horas
+  ---
+  duration_ms: 6142.409541
+  type: 'test'
+  ...
+# Subtest: B02 (revisão da R1, N01): num dia de jornada reduzida com plantão, acrescentar uma rotina válida não tira horas
+ok 39 - B02 (revisão da R1, N01): num dia de jornada reduzida com plantão, acrescentar uma rotina válida não tira horas
+  ---
+  duration_ms: 0.826971
+  type: 'test'
+  ...
+# Subtest: B02 (revisão da R1, N02): num dia de jornada reduzida, o dia civil nunca passa de 24 h; o trecho depois da meia-noite cabe além dele
+ok 40 - B02 (revisão da R1, N02): num dia de jornada reduzida, o dia civil nunca passa de 24 h; o trecho depois da meia-noite cabe além dele
+  ---
+  duration_ms: 0.398495
+  type: 'test'
+  ...
+# Subtest: B02 (P5-F.1-R2A, S01): segunda 20:00–06:00 reduzida a 8 h e terça 00:00–08:00 — os 960 min da R1 viram recusa, com a causa na véspera
+ok 41 - B02 (P5-F.1-R2A, S01): segunda 20:00–06:00 reduzida a 8 h e terça 00:00–08:00 — os 960 min da R1 viram recusa, com a causa na véspera
+  ---
+  duration_ms: 1.759449
+  type: 'test'
+  ...
+# Subtest: B02 (P5-F.1-R2A, S01): o dia civil seguinte a uma jornada reduzida não recebe 24 h de plantão por cima do turno dela (contrato anterior, RR-R1-03, substituído)
+ok 42 - B02 (P5-F.1-R2A, S01): o dia civil seguinte a uma jornada reduzida não recebe 24 h de plantão por cima do turno dela (contrato anterior, RR-R1-03, substituído)
+  ---
+  duration_ms: 1.377051
+  type: 'test'
+  ...
+# Subtest: B02 (P5-F.1-R2A, S01): casos comuns de jornada reduzida continuam aceitos, com as mesmas horas
+ok 43 - B02 (P5-F.1-R2A, S01): casos comuns de jornada reduzida continuam aceitos, com as mesmas horas
+  ---
+  duration_ms: 1.963896
+  type: 'test'
+  ...
+# Subtest: B02 (P5-F.1-R2A, S01): o dia seguinte só tem cálculo seguro com os dois extremos seguros, e o plano mostrado é o da véspera sem nada
+ok 44 - B02 (P5-F.1-R2A, S01): o dia seguinte só tem cálculo seguro com os dois extremos seguros, e o plano mostrado é o da véspera sem nada
+  ---
+  duration_ms: 0.345397
+  type: 'test'
+  ...
+# Subtest: B02 (P5-F.1-R2A, S01): a cobertura que vem da véspera reduzida aponta a véspera, com mensagem própria
+ok 45 - B02 (P5-F.1-R2A, S01): a cobertura que vem da véspera reduzida aponta a véspera, com mensagem própria
+  ---
+  duration_ms: 9.709146
+  type: 'test'
+  ...
+# Subtest: B02 (P5-F.1-R2A, Teorema 2): a jornada reduzida que passa a cortar horas ao acrescentar uma rotina não tira horas do período
+ok 46 - B02 (P5-F.1-R2A, Teorema 2): a jornada reduzida que passa a cortar horas ao acrescentar uma rotina não tira horas do período
+  ---
+  duration_ms: 0.836068
+  type: 'test'
+  ...
+# Subtest: B02 (revisão 2 da R1, M03): o intervalo da véspera coberto pelo dia conta na véspera e ocupa o dia civil; o teto do dia o desconta
+ok 47 - B02 (revisão 2 da R1, M03): o intervalo da véspera coberto pelo dia conta na véspera e ocupa o dia civil; o teto do dia o desconta
+  ---
+  duration_ms: 7.443756
+  type: 'test'
+  ...
+# Subtest: B02 (propriedade, revisão da R1): com jornada reduzida, plantão e hora extra até 24 h, acrescentar uma rotina nunca tira horas
+ok 48 - B02 (propriedade, revisão da R1): com jornada reduzida, plantão e hora extra até 24 h, acrescentar uma rotina nunca tira horas
+  ---
+  duration_ms: 3072.314984
+  type: 'test'
+  ...
+# Subtest: B02 (propriedade, revisão da R1): sem janela que passe da meia-noite, nenhum dia passa de 24 h, com qualquer exceção
+ok 49 - B02 (propriedade, revisão da R1): sem janela que passe da meia-noite, nenhum dia passa de 24 h, com qualquer exceção
+  ---
+  duration_ms: 1804.344745
+  type: 'test'
+  ...
+# Subtest: B02 (revisão da R1, N07): o conferidor do calendário inteiro acha o dia sem cálculo seguro por exceção, feriado ou início do período
+ok 50 - B02 (revisão da R1, N07): o conferidor do calendário inteiro acha o dia sem cálculo seguro por exceção, feriado ou início do período
+  ---
+  duration_ms: 98.967352
+  type: 'test'
+  ...
+# Subtest: B02 (propriedade, revisão da R1): o que o conferidor do calendário inteiro aceita nunca tem dia sem cálculo seguro, e o dia que ele aponta é ambíguo
+ok 51 - B02 (propriedade, revisão da R1): o que o conferidor do calendário inteiro aceita nunca tem dia sem cálculo seguro, e o dia que ele aponta é ambíguo
+  ---
+  duration_ms: 3875.460328
+  type: 'test'
+  ...
+# Subtest: B02 (propriedade, P5-F.1-R2A): depois de uma jornada reduzida, o dia aceito vale o mesmo em qualquer parte do turno da véspera que tenha acontecido, e o recusado depende mesmo dela
+ok 52 - B02 (propriedade, P5-F.1-R2A): depois de uma jornada reduzida, o dia aceito vale o mesmo em qualquer parte do turno da véspera que tenha acontecido, e o recusado depende mesmo dela
+  ---
+  duration_ms: 145.558093
+  type: 'test'
+  ...
+# Subtest: B02 (propriedade, P5-F.1-R2A): com jornadas reduzidas em turnos que passam da meia-noite, acrescentar uma rotina nunca tira horas
+ok 53 - B02 (propriedade, P5-F.1-R2A): com jornadas reduzidas em turnos que passam da meia-noite, acrescentar uma rotina nunca tira horas
+  ---
+  duration_ms: 3967.762533
+  type: 'test'
+  ...
+# Subtest: B02 (propriedade, P5-F.1-R2A): sem intervalo nenhum, o conferidor acha o dia seguinte a cada jornada reduzida sem cálculo seguro, e o que ele aceita nunca tem dia ambíguo
+ok 54 - B02 (propriedade, P5-F.1-R2A): sem intervalo nenhum, o conferidor acha o dia seguinte a cada jornada reduzida sem cálculo seguro, e o que ele aceita nunca tem dia ambíguo
+  ---
+  duration_ms: 1192.929552
+  type: 'test'
+  ...
+# Subtest: durações sem horário somam e a possível sobreposição é sinalizada; nenhum dia passa de 24 h
+ok 55 - durações sem horário somam e a possível sobreposição é sinalizada; nenhum dia passa de 24 h
+  ---
+  duration_ms: 0.583461
+  type: 'test'
+  ...
+# Subtest: exceções: férias, folga, ausência, plantão, hora extra, jornada reduzida e alteração de escala
+ok 56 - exceções: férias, folga, ausência, plantão, hora extra, jornada reduzida e alteração de escala
+  ---
+  duration_ms: 4.658893
+  type: 'test'
+  ...
+# Subtest: P5-F.1-R2A: a memória do conferidor vale só durante a chamada e não muda resultado
+ok 57 - P5-F.1-R2A: a memória do conferidor vale só durante a chamada e não muda resultado
+  ---
+  duration_ms: 0.357993
+  type: 'test'
+  ...
+# Subtest: o plano é determinístico e só depende das entradas (função pura)
+ok 58 - o plano é determinístico e só depende das entradas (função pura)
+  ---
+  duration_ms: 0.644819
+  type: 'test'
+  ...
+# Subtest: prova: cada regra, na ordem, com o motivo da primeira que falha
+ok 59 - prova: cada regra, na ordem, com o motivo da primeira que falha
+  ---
+  duration_ms: 3.354091
+  type: 'test'
+  ...
+# Subtest: prova: as escritas que o próprio documento mostra (criação, confirmação, anulação e estorno)
+ok 60 - prova: as escritas que o próprio documento mostra (criação, confirmação, anulação e estorno)
+  ---
+  duration_ms: 3.796731
+  type: 'test'
+  ...
+# Subtest: prova: as mudanças vistas entre duas leituras por id, com a hora do estado novo; uma leitura mais velha não volta o estado
+ok 61 - prova: as mudanças vistas entre duas leituras por id, com a hora do estado novo; uma leitura mais velha não volta o estado
+  ---
+  duration_ms: 1.347989
+  type: 'test'
+  ...
+# Subtest: B03: a primeira estimativa só aparece provada pela projeção, com a leitura por id depois dela (a escuta antes das bases)
+ok 62 - B03: a primeira estimativa só aparece provada pela projeção, com a leitura por id depois dela (a escuta antes das bases)
+  ---
+  duration_ms: 146.213964
+  type: 'test'
+  ...
+# Subtest: B03: a primeira estimativa só aparece provada pela projeção, com a leitura por id depois dela (a escuta depois das bases)
+ok 63 - B03: a primeira estimativa só aparece provada pela projeção, com a leitura por id depois dela (a escuta depois das bases)
+  ---
+  duration_ms: 137.33699
+  type: 'test'
+  ...
+# Subtest: B03: a primeira estimativa só aparece provada pela projeção, com a leitura por id depois dela (a escuta só quando o servidor responde)
+ok 64 - B03: a primeira estimativa só aparece provada pela projeção, com a leitura por id depois dela (a escuta só quando o servidor responde)
+  ---
+  duration_ms: 141.435009
+  type: 'test'
+  ...
+# Subtest: B03: a projeção mais nova que a base lida na montagem: nunca a estimativa da base antiga; a base é relida e a nova aparece provada
+ok 65 - B03: a projeção mais nova que a base lida na montagem: nunca a estimativa da base antiga; a base é relida e a nova aparece provada
+  ---
+  duration_ms: 180.838375
+  type: 'test'
+  ...
+# Subtest: B03: uma base e nenhuma desconsiderada: a leitura única é provada mesmo com a escuta encerrada, com a ressalva
+ok 66 - B03: uma base e nenhuma desconsiderada: a leitura única é provada mesmo com a escuta encerrada, com a ressalva
+  ---
+  duration_ms: 39.194862
+  type: 'test'
+  ...
+# Subtest: B03: janela de 12 meses com a escuta encerrada desde o começo: sem prova, o erro com "Tentar de novo"; com a escuta de volta, a estimativa provada
+ok 67 - B03: janela de 12 meses com a escuta encerrada desde o começo: sem prova, o erro com "Tentar de novo"; com a escuta de volta, a estimativa provada
+  ---
+  duration_ms: 93.368504
+  type: 'test'
+  ...
+# Subtest: B03 (R8-02): a desconsiderada do 12º mês anulada em outra sessão e a troca para 12 meses: o mês avulso novo nunca aparece com a exclusão antiga
+ok 68 - B03 (R8-02): a desconsiderada do 12º mês anulada em outra sessão e a troca para 12 meses: o mês avulso novo nunca aparece com a exclusão antiga
+  ---
+  duration_ms: 205.505066
+  type: 'test'
+  ...
+# Subtest: B03 (R11-01): o mês avulso sai da janela com a leitura em curso e volta desatualizado: a base antiga não aparece, e é relida
+ok 69 - B03 (R11-01): o mês avulso sai da janela com a leitura em curso e volta desatualizado: a base antiga não aparece, e é relida
+  ---
+  duration_ms: 513.88744
+  type: 'test'
+  ...
+# Subtest: B03 (R11-02): 12 meses sem desconsiderada, as bases relidas sem pedido da escuta (a virada do mês) e o mês avulso falhando: nenhuma renderização mostra só a série nova
+ok 70 - B03 (R11-02): 12 meses sem desconsiderada, as bases relidas sem pedido da escuta (a virada do mês) e o mês avulso falhando: nenhuma renderização mostra só a série nova
+  ---
+  duration_ms: 497.438433
+  type: 'test'
+  ...
+# Subtest: B03: o calendário trocado durante a sincronização de uma anulação em outra sessão: nunca a base nova com a leitura por id antiga
+ok 71 - B03: o calendário trocado durante a sincronização de uma anulação em outra sessão: nunca a base nova com a leitura por id antiga
+  ---
+  duration_ms: 480.515475
+  type: 'test'
+  ...
+# Subtest: B03: troca do workspace da renda: a estimativa do anterior nunca aparece; só "calculando" até a do novo estar provada
+ok 72 - B03: troca do workspace da renda: a estimativa do anterior nunca aparece; só "calculando" até a do novo estar provada
+  ---
+  duration_ms: 205.046973
+  type: 'test'
+  ...
+# Subtest: B03: troca de conta: a estimativa da conta anterior não é reaproveitada
+ok 73 - B03: troca de conta: a estimativa da conta anterior não é reaproveitada
+  ---
+  duration_ms: 193.551614
+  type: 'test'
+  ...
+# Subtest: B03: nova receita e anulação da desconsiderada em outra sessão durante a releitura por id: nenhuma renderização desconta duas vezes
+ok 74 - B03: nova receita e anulação da desconsiderada em outra sessão durante a releitura por id: nenhuma renderização desconta duas vezes
+  ---
+  duration_ms: 479.559493
+  type: 'test'
+  ...
+# Subtest: B03: a leitura por id falha antes da primeira estimativa: o erro com "Tentar de novo", nunca o total sem as exclusões
+ok 75 - B03: a leitura por id falha antes da primeira estimativa: o erro com "Tentar de novo", nunca o total sem as exclusões
+  ---
+  duration_ms: 39.79171
+  type: 'test'
+  ...
+# Subtest: revisão da R1 (N05): com desconsiderada, a escuta encerrada antes do primeiro retorno do servidor dá o erro com "Tentar de novo", nunca "calculando" para sempre
+ok 76 - revisão da R1 (N05): com desconsiderada, a escuta encerrada antes do primeiro retorno do servidor dá o erro com "Tentar de novo", nunca "calculando" para sempre
+  ---
+  duration_ms: 129.32377
+  type: 'test'
+  ...
+# Subtest: revisão da R1 (N03): a desconsiderada editada em outra sessão antes do gatilho, na primeira leitura: nunca o valor novo com o total velho
+ok 77 - revisão da R1 (N03): a desconsiderada editada em outra sessão antes do gatilho, na primeira leitura: nunca o valor novo com o total velho
+  ---
+  duration_ms: 367.380802
+  type: 'test'
+  ...
+# Subtest: revisão da R1 (N03): a desconsiderada editada sem efeito na renda (o gatilho não grava): a estimativa aparece só depois da espera limitada, com o valor certo
+ok 78 - revisão da R1 (N03): a desconsiderada editada sem efeito na renda (o gatilho não grava): a estimativa aparece só depois da espera limitada, com o valor certo
+  ---
+  duration_ms: 827.199412
+  type: 'test'
+  ...
+# Subtest: revisão 2 da R1 (M02): a espera limitada conta a partir da escrita, na hora do servidor: uma sessão nova depois dela não espera de novo
+ok 79 - revisão 2 da R1 (M02): a espera limitada conta a partir da escrita, na hora do servidor: uma sessão nova depois dela não espera de novo
+  ---
+  duration_ms: 337.428024
+  type: 'test'
+  ...
+# Subtest: revisão 3 da R1 (P01): o N03 no caminho de produção, com a hora do servidor nas bases: sessão aberta 5 s depois da edição de valor, nunca o valor novo com o total velho
+ok 80 - revisão 3 da R1 (P01): o N03 no caminho de produção, com a hora do servidor nas bases: sessão aberta 5 s depois da edição de valor, nunca o valor novo com o total velho
+  ---
+  duration_ms: 477.788671
+  type: 'test'
+  ...
+# Subtest: revisão 3 da R1 (P01): o limite da espera pela hora do servidor, com a base gerada 59 s depois da escrita (espera de 60 s): ainda segura
+ok 81 - revisão 3 da R1 (P01): o limite da espera pela hora do servidor, com a base gerada 59 s depois da escrita (espera de 60 s): ainda segura
+  ---
+  duration_ms: 415.26259
+  type: 'test'
+  ...
+# Subtest: revisão 3 da R1 (P01): o limite da espera pela hora do servidor, com a base gerada 60 s depois da escrita (espera de 60 s): encerra
+ok 82 - revisão 3 da R1 (P01): o limite da espera pela hora do servidor, com a base gerada 60 s depois da escrita (espera de 60 s): encerra
+  ---
+  duration_ms: 25.309727
+  type: 'test'
+  ...
+# Subtest: revisão da R1 (N06): a edição sem efeito na renda depois da mudança vista não prende a estimativa; outra receita entra depois da espera limitada
+ok 83 - revisão da R1 (N06): a edição sem efeito na renda depois da mudança vista não prende a estimativa; outra receita entra depois da espera limitada
+  ---
+  duration_ms: 1094.282229
+  type: 'test'
+  ...
+# Subtest: revisão da R1 (N06): a última estimativa provada mostrada no lugar da atual por mais que a espera limitada ganha o aviso e o "Tentar de novo"
+ok 84 - revisão da R1 (N06): a última estimativa provada mostrada no lugar da atual por mais que a espera limitada ganha o aviso e o "Tentar de novo"
+  ---
+  duration_ms: 1441.894125
+  type: 'test'
+  ...
+# Subtest: B01: o recebimento desconsiderado é estornado em outra sessão (depois da sincronização): a exclusão perde o efeito, nunca desconta de novo
+ok 85 - B01: o recebimento desconsiderado é estornado em outra sessão (depois da sincronização): a exclusão perde o efeito, nunca desconta de novo
+  ---
+  duration_ms: 306.068041
+  type: 'test'
+  ...
+# Subtest: B01: o recebimento desconsiderado é estornado em outra sessão (durante a releitura por id): a exclusão perde o efeito, nunca desconta de novo
+ok 86 - B01: o recebimento desconsiderado é estornado em outra sessão (durante a releitura por id): a exclusão perde o efeito, nunca desconta de novo
+  ---
+  duration_ms: 505.996283
+  type: 'test'
+  ...
+# Subtest: B01: o estorno lido antes de a projeção incluí-lo nunca aparece com o total antigo (a exclusão sem efeito com A ainda somado)
+ok 87 - B01: o estorno lido antes de a projeção incluí-lo nunca aparece com o total antigo (a exclusão sem efeito com A ainda somado)
+  ---
+  duration_ms: 490.389367
+  type: 'test'
+  ...
+# Subtest: B01: o recebimento desconsiderado sem estorno continua descontado; com dois desconsiderados, só o estornado perde o efeito
+ok 88 - B01: o recebimento desconsiderado sem estorno continua descontado; com dois desconsiderados, só o estornado perde o efeito
+  ---
+  duration_ms: 294.935593
+  type: 'test'
+  ...
+# Subtest: espelho de receita: a fixture compartilhada com o backend dá o mesmo incomeCents
+ok 89 - espelho de receita: a fixture compartilhada com o backend dá o mesmo incomeCents
+  ---
+  duration_ms: 1.042814
+  type: 'test'
+  ...
+# Subtest: espelho de receita: a classificação não usa descrição nem categoria
+ok 90 - espelho de receita: a classificação não usa descrição nem categoria
+  ---
+  duration_ms: 1.22792
+  type: 'test'
+  ...
+# Subtest: só o que soma renda pode ser tirado da estimativa
+ok 91 - só o que soma renda pode ser tirado da estimativa
+  ---
+  duration_ms: 0.204285
+  type: 'test'
+  ...
+# Subtest: exclusões: descontadas no próprio mês, ignoradas fora da janela, nunca deixam o mês negativo
+ok 92 - exclusões: descontadas no próprio mês, ignoradas fora da janela, nunca deixam o mês negativo
+  ---
+  duration_ms: 0.36098
+  type: 'test'
+  ...
+# Subtest: janela: últimos N meses completos no habitual, mês corrente no modo mês atual, 12º mês à parte
+ok 93 - janela: últimos N meses completos no habitual, mês corrente no modo mês atual, 12º mês à parte
+  ---
+  duration_ms: 0.527599
+  type: 'test'
+  ...
+# Subtest: habitual: Σ renda dos meses completos ÷ Σ horas dos mesmos meses, em inteiros
+ok 94 - habitual: Σ renda dos meses completos ÷ Σ horas dos mesmos meses, em inteiros
+  ---
+  duration_ms: 16.296115
+  type: 'test'
+  ...
+# Subtest: habitual: meses antes da primeira renda saem da conta e a estimativa fica provisória
+ok 95 - habitual: meses antes da primeira renda saem da conta e a estimativa fica provisória
+  ---
+  duration_ms: 2.455896
+  type: 'test'
+  ...
+# Subtest: dados insuficientes: indisponível com o motivo, nunca um valor inventado
+ok 96 - dados insuficientes: indisponível com o motivo, nunca um valor inventado
+  ---
+  duration_ms: 11.104762
+  type: 'test'
+  ...
+# Subtest: B02: o primeiro mês da janela abre o período: um turno da véspera da janela não tira horas da estimativa
+ok 97 - B02: o primeiro mês da janela abre o período: um turno da véspera da janela não tira horas da estimativa
+  ---
+  duration_ms: 15.370425
+  type: 'test'
+  ...
+# Subtest: B02: rotinas sem cálculo seguro deixam a estimativa indisponível, sem nenhum mês com horas na memória de cálculo
+ok 98 - B02: rotinas sem cálculo seguro deixam a estimativa indisponível, sem nenhum mês com horas na memória de cálculo
+  ---
+  duration_ms: 24.207853
+  type: 'test'
+  ...
+# Subtest: B02 (P5-F.1-R2A, S01): a jornada reduzida que deixa o dia seguinte sem cálculo seguro deixa a estimativa indisponível, com o motivo próprio
+ok 99 - B02 (P5-F.1-R2A, S01): a jornada reduzida que deixa o dia seguinte sem cálculo seguro deixa a estimativa indisponível, com o motivo próprio
+  ---
+  duration_ms: 12.862159
+  type: 'test'
+  ...
+# Subtest: B01: o navegador deriva os IDs do estorno como o backend (fixture compartilhada)
+ok 100 - B01: o navegador deriva os IDs do estorno como o backend (fixture compartilhada)
+  ---
+  duration_ms: 13.819976
+  type: 'test'
+  ...
+# Subtest: B01: A +100 estornado (−100) e B +100, com A desconsiderado antes do estorno: a renda é a de B, R$ 100,00, nunca zero
+ok 101 - B01: A +100 estornado (−100) e B +100, com A desconsiderado antes do estorno: a renda é a de B, R$ 100,00, nunca zero
+  ---
+  duration_ms: 2.036196
+  type: 'test'
+  ...
+# Subtest: B01: estado do estorno que não se confirma suspende a estimativa; o recebimento não estornado continua descontado
+ok 102 - B01: estado do estorno que não se confirma suspende a estimativa; o recebimento não estornado continua descontado
+  ---
+  duration_ms: 2.921066
+  type: 'test'
+  ...
+# Subtest: B01: a leitura por id traz o recebimento e o estorno lado a lado, na mesma consulta, e separa os itens dos estornos
+ok 103 - B01: a leitura por id traz o recebimento e o estorno lado a lado, na mesma consulta, e separa os itens dos estornos
+  ---
+  duration_ms: 5.413376
+  type: 'test'
+  ...
+# Subtest: B01 (revisão da R1, N08): sem ID repetido e com cada par lado a lado, também com o espelho de um estorno na lista e mais de 30 IDs
+ok 104 - B01 (revisão da R1, N08): sem ID repetido e com cada par lado a lado, também com o espelho de um estorno na lista e mais de 30 IDs
+  ---
+  duration_ms: 15.007575
+  type: 'test'
+  ...
+# Subtest: PJ só com confirmação explícita, e sempre sinalizado; sem soma PF+PJ
+ok 105 - PJ só com confirmação explícita, e sempre sinalizado; sem soma PF+PJ
+  ---
+  duration_ms: 2.654353
+  type: 'test'
+  ...
+# Subtest: mês atual: renda recebida até hoje ÷ horas do mês inteiro, sempre marcada como incompleta
+ok 106 - mês atual: renda recebida até hoje ÷ horas do mês inteiro, sempre marcada como incompleta
+  ---
+  duration_ms: 4.173418
+  type: 'test'
+  ...
+# Subtest: exclusões do usuário entram só na estimativa e são somadas por mês
+ok 107 - exclusões do usuário entram só na estimativa e são somadas por mês
+  ---
+  duration_ms: 1.509534
+  type: 'test'
+  ...
+# Subtest: 12 meses: a janela usa o 12º mês completo trazido à parte
+ok 108 - 12 meses: a janela usa o 12º mês completo trazido à parte
+  ---
+  duration_ms: 11.498056
+  type: 'test'
+  ...
+# Subtest: painel: itens classificados, estorno pareado, duplicidade só sinalizada e despesa comum fora
+ok 109 - painel: itens classificados, estorno pareado, duplicidade só sinalizada e despesa comum fora
+  ---
+  duration_ms: 0.913746
+  type: 'test'
+  ...
+# Subtest: painel: texto e caixa de cada item, com o recebimento estornado dentro e depois do período
+ok 110 - painel: texto e caixa de cada item, com o recebimento estornado dentro e depois do período
+  ---
+  duration_ms: 0.472297
+  type: 'test'
+  ...
+# Subtest: falha de leitura: só mensagens em pt-BR, nunca o texto do SDK
+ok 111 - falha de leitura: só mensagens em pt-BR, nunca o texto do SDK
+  ---
+  duration_ms: 0.165839
+  type: 'test'
+  ...
+# Subtest: aviso do topo: ressalvas do mês incompleto, da estimativa provisória e da fonte PJ
+ok 112 - aviso do topo: ressalvas do mês incompleto, da estimativa provisória e da fonte PJ
+  ---
+  duration_ms: 0.146748
+  type: 'test'
+  ...
+# Subtest: corpus: cada caso é aceito ou recusado pelo cliente e pela checagem das Rules como esperado
+ok 113 - corpus: cada caso é aceito ou recusado pelo cliente e pela checagem das Rules como esperado
+  ---
+  duration_ms: 24.668649
+  type: 'test'
+  ...
+# Subtest: forma canônica: o que o cliente lê, ele grava igual
+ok 114 - forma canônica: o que o cliente lê, ele grava igual
+  ---
+  duration_ms: 3.806609
+  type: 'test'
+  ...
+# Subtest: composição: os padrões completos são montados só com as peças compartilhadas com as Rules
+ok 115 - composição: os padrões completos são montados só com as peças compartilhadas com as Rules
+  ---
+  duration_ms: 0.764037
+  type: 'test'
+  ...
+# Subtest: peças: datas reais de 2000 a 2099, minutos sem zero à esquerda, horas válidas
+ok 116 - peças: datas reais de 2000 a 2099, minutos sem zero à esquerda, horas válidas
+  ---
+  duration_ms: 25.630131
+  type: 'test'
+  ...
+# Subtest: exceções: checagens semânticas que as Rules não alcançam
+ok 117 - exceções: checagens semânticas que as Rules não alcançam
+  ---
+  duration_ms: 0.430207
+  type: 'test'
+  ...
+# Subtest: a varredura alcança o repositório real
+ok 118 - a varredura alcança o repositório real
+  ---
+  duration_ms: 5.964207
+  type: 'test'
+  ...
+# Subtest: nenhuma Function lê, grava ou menciona a preferência privada
+ok 119 - nenhuma Function lê, grava ou menciona a preferência privada
+  ---
+  duration_ms: 51.909712
+  type: 'test'
+  ...
+# Subtest: IA, notificações e relatórios autoritativos não recebem a preferência
+ok 120 - IA, notificações e relatórios autoritativos não recebem a preferência
+  ---
+  duration_ms: 2.951367
+  type: 'test'
+  ...
+# Subtest: DTOs, chamadas e adaptadores financeiros não carregam tempo de trabalho
+ok 121 - DTOs, chamadas e adaptadores financeiros não carregam tempo de trabalho
+  ---
+  duration_ms: 4.158293
+  type: 'test'
+  ...
+# Subtest: nenhuma cópia local da preferência e nenhuma leitura do cache do SDK no app
+ok 122 - nenhuma cópia local da preferência e nenhuma leitura do cache do SDK no app
+  ---
+  duration_ms: 16.827011
+  type: 'test'
+  ...
+# Subtest: logs da preferência só levam mensagem fixa e código de erro
+ok 123 - logs da preferência só levam mensagem fixa e código de erro
+  ---
+  duration_ms: 2.765995
+  type: 'test'
+  ...
+# Subtest: sessão: troca de conta e respostas atrasadas não expõem a preferência de outra conta
+ok 124 - sessão: troca de conta e respostas atrasadas não expõem a preferência de outra conta
+  ---
+  duration_ms: 0.505131
+  type: 'test'
+  ...
+# Subtest: a preferência só é lida e gravada no documento privado do próprio usuário
+ok 125 - a preferência só é lida e gravada no documento privado do próprio usuário
+  ---
+  duration_ms: 1.257212
+  type: 'test'
+  ...
+# Subtest: Rules: bloco explícito do titular, campos, gramáticas e limites iguais ao contrato v2 do cliente
+ok 126 - Rules: bloco explícito do titular, campos, gramáticas e limites iguais ao contrato v2 do cliente
+  ---
+  duration_ms: 3.614017
+  type: 'test'
+  ...
+# Subtest: nada derivado é gravado: só a API do módulo escreve, e só os campos do contrato
+ok 127 - nada derivado é gravado: só a API do módulo escreve, e só os campos do contrato
+  ---
+  duration_ms: 2.621363
+  type: 'test'
+  ...
+# Subtest: estimativa: uma por contexto, sem polling nem listener por lançamento
+ok 128 - estimativa: uma por contexto, sem polling nem listener por lançamento
+  ---
+  duration_ms: 77.729545
+  type: 'test'
+  ...
+# Subtest: falhas de leitura: mensagens fixas em pt-BR, com nova tentativa, e só o código do erro no log
+ok 129 - falhas de leitura: mensagens fixas em pt-BR, com nova tentativa, e só o código do erro no log
+  ---
+  duration_ms: 1.675923
+  type: 'test'
+  ...
+# Subtest: janela de receitas: a leitura paginada real usa `readPagedWindow` com um documento a mais
+ok 130 - janela de receitas: a leitura paginada real usa `readPagedWindow` com um documento a mais
+  ---
+  duration_ms: 0.611304
+  type: 'test'
+  ...
+# Subtest: matriz: entradas, confirmações, termos, históricos e preços ficam em BRL
+ok 131 - matriz: entradas, confirmações, termos, históricos e preços ficam em BRL
+  ---
+  duration_ms: 2.119188
+  type: 'test'
+  ...
+# Subtest: matriz: pontos em BRL dentro de arquivos elegíveis continuam em reais, linha a linha
+ok 132 - matriz: pontos em BRL dentro de arquivos elegíveis continuam em reais, linha a linha
+  ---
+  duration_ms: 3.804904
+  type: 'test'
+  ...
+# Subtest: matriz: os pontos elegíveis usam a camada de exibição, e a prévia do tema força reais
+ok 133 - matriz: os pontos elegíveis usam a camada de exibição, e a prévia do tema força reais
+  ---
+  duration_ms: 3.491034
+  type: 'test'
+  ...
+# Subtest: modo dinheiro idêntico: a camada devolve o formatador da tela, sem elemento novo
+ok 134 - modo dinheiro idêntico: a camada devolve o formatador da tela, sem elemento novo
+  ---
+  duration_ms: 0.3831
+  type: 'test'
+  ...
+# Subtest: retenção fail-closed: sem prova, só a estimativa provada da mesma identidade; sem ela, nenhuma estimativa aparece (B03, R10-02)
+ok 135 - retenção fail-closed: sem prova, só a estimativa provada da mesma identidade; sem ela, nenhuma estimativa aparece (B03, R10-02)
+  ---
+  duration_ms: 2.683686
+  type: 'test'
+  ...
+# Subtest: retenção fail-closed: provada durante a sincronização, a anterior da mesma identidade; sem ela, a atual provada (B03)
+ok 136 - retenção fail-closed: provada durante a sincronização, a anterior da mesma identidade; sem ela, a atual provada (B03)
+  ---
+  duration_ms: 0.407076
+  type: 'test'
+  ...
+# Subtest: retenção fail-closed: outra conta, outro período ou qualquer entrada diferente não reaproveita a anterior (B03)
+ok 137 - retenção fail-closed: outra conta, outro período ou qualquer entrada diferente não reaproveita a anterior (B03)
+  ---
+  duration_ms: 0.474291
+  type: 'test'
+  ...
+# Subtest: leitura por id: cada leitura concluída traz um objeto novo, mesmo com os mesmos dados e no mesmo milissegundo
+ok 138 - leitura por id: cada leitura concluída traz um objeto novo, mesmo com os mesmos dados e no mesmo milissegundo
+  ---
+  duration_ms: 28.191448
+  type: 'test'
+  ...
+# Subtest: duas leituras por id concluídas no mesmo milissegundo e com os mesmos dados, a segunda pedida pela base que chegou durante a primeira: a estimativa mostra a base nova (R6-02)
+ok 139 - duas leituras por id concluídas no mesmo milissegundo e com os mesmos dados, a segunda pedida pela base que chegou durante a primeira: a estimativa mostra a base nova (R6-02)
+  ---
+  duration_ms: 530.721948
+  type: 'test'
+  ...
+# Subtest: mutação nesta aba: anular a receita desconsiderada nunca junta o item anulado com o total velho (R4-01)
+ok 140 - mutação nesta aba: anular a receita desconsiderada nunca junta o item anulado com o total velho (R4-01)
+  ---
+  duration_ms: 487.848518
+  type: 'test'
+  ...
+# Subtest: janela de 12 meses: a carga lê a série, o mês avulso e as exclusões uma vez cada, com a escuta adiantada (R4-02)
+ok 141 - janela de 12 meses: a carga lê a série, o mês avulso e as exclusões uma vez cada, com a escuta adiantada (R4-02)
+  ---
+  duration_ms: 347.105687
+  type: 'test'
+  ...
+# Subtest: leitura por id antiga: a prévia montada depois de uma mutação nesta aba não a relê antes da base (R5-01)
+ok 142 - leitura por id antiga: a prévia montada depois de uma mutação nesta aba não a relê antes da base (R5-01)
+  ---
+  duration_ms: 564.452508
+  type: 'test'
+  ...
+# Subtest: reconstrução marcada sem mudar os documentos mensais: a mutação relê a base, e a estimativa fica indisponível (R5-02)
+ok 143 - reconstrução marcada sem mudar os documentos mensais: a mutação relê a base, e a estimativa fica indisponível (R5-02)
+  ---
+  duration_ms: 189.179968
+  type: 'test'
+  ...
+# Subtest: escuta das projeções encerrada por erro: a estimativa avisa que pode estar desatualizada, e "Tentar de novo" a reabre (R5-02)
+ok 144 - escuta das projeções encerrada por erro: a estimativa avisa que pode estar desatualizada, e "Tentar de novo" a reabre (R5-02)
+  ---
+  duration_ms: 95.774515
+  type: 'test'
+  ...
+# Subtest: prévia montada durante uma sincronização: as exclusões só são relidas depois da base (R5-01)
+ok 145 - prévia montada durante uma sincronização: as exclusões só são relidas depois da base (R5-01)
+  ---
+  duration_ms: 525.407692
+  type: 'test'
+  ...
+# Subtest: releitura da mutação com a base nova antes do retorno da escuta (viva): nenhuma renderização junta o total novo com a exclusão antiga (R6-02, B03)
+ok 146 - releitura da mutação com a base nova antes do retorno da escuta (viva): nenhuma renderização junta o total novo com a exclusão antiga (R6-02, B03)
+  ---
+  duration_ms: 484.645142
+  type: 'test'
+  ...
+# Subtest: releitura da mutação com a base nova antes do retorno da escuta (encerrada): nenhuma renderização junta o total novo com a exclusão antiga (R6-02, B03)
+ok 147 - releitura da mutação com a base nova antes do retorno da escuta (encerrada): nenhuma renderização junta o total novo com a exclusão antiga (R6-02, B03)
+  ---
+  duration_ms: 436.781788
+  type: 'test'
+  ...
+# Subtest: escuta do provedor encerrada: a prévia de Configurações a reabre, e a estimativa em uso volta a acompanhar outras sessões (R6-01)
+ok 148 - escuta do provedor encerrada: a prévia de Configurações a reabre, e a estimativa em uso volta a acompanhar outras sessões (R6-01)
+  ---
+  duration_ms: 227.601689
+  type: 'test'
+  ...
+# Subtest: exclusão de um mês fora da janela, anulada nesta aba: a janela maior salva depois mostra a renda certa, sem juntar versões (R7-01)
+ok 149 - exclusão de um mês fora da janela, anulada nesta aba: a janela maior salva depois mostra a renda certa, sem juntar versões (R7-01)
+  ---
+  duration_ms: 530.634306
+  type: 'test'
+  ...
+# Subtest: janela de 12 meses, as duas bases relidas sem pedido e o mês avulso chegando depois: a estimativa segura até as duas chegarem, sem mostrar só uma nova (R8-03)
+ok 150 - janela de 12 meses, as duas bases relidas sem pedido e o mês avulso chegando depois: a estimativa segura até as duas chegarem, sem mostrar só uma nova (R8-03)
+  ---
+  duration_ms: 539.8627
+  type: 'test'
+  ...
+# Subtest: janela de 12 meses, a série nova sem pedido e o mês avulso falhando: a estimativa segura enquanto ele lê e libera depois da falha, com a ressalva (R8-03)
+ok 151 - janela de 12 meses, a série nova sem pedido e o mês avulso falhando: a estimativa segura enquanto ele lê e libera depois da falha, com a ressalva (R8-03)
+  ---
+  duration_ms: 790.917862
+  type: 'test'
+  ...
+# Subtest: janela de 12 meses sem receita desconsiderada, com a escuta encerrada e a releitura da mutação da série adiada pelo orçamento: a estimativa segura a versão anterior até a série chegar (R9-01)
+ok 152 - janela de 12 meses sem receita desconsiderada, com a escuta encerrada e a releitura da mutação da série adiada pelo orçamento: a estimativa segura a versão anterior até a série chegar (R9-01)
+  ---
+  duration_ms: 510.198152
+  type: 'test'
+  ...
+# Subtest: janela de 12 meses com a escuta encerrada: a releitura pendente da série que sai sem rede fica pausada, e outra renderização não mostra o mês avulso novo com a série antiga até a rede voltar (R10-03)
+ok 153 - janela de 12 meses com a escuta encerrada: a releitura pendente da série que sai sem rede fica pausada, e outra renderização não mostra o mês avulso novo com a série antiga até a rede voltar (R10-03)
+  ---
+  duration_ms: 580.001117
+  type: 'test'
+  ...
+# Subtest: janela de 12 meses com a releitura de uma mutação nesta aba pendente: o calendário trocado é guardado logo, e a sincronização seguinte (outro membro anula a desconsiderada) não mostra a receita descontada duas vezes (R10-02)
+ok 154 - janela de 12 meses com a releitura de uma mutação nesta aba pendente: o calendário trocado é guardado logo, e a sincronização seguinte (outro membro anula a desconsiderada) não mostra a receita descontada duas vezes (R10-02)
+  ---
+  duration_ms: 322.784149
+  type: 'test'
+  ...
+# Subtest: anulação nesta aba de uma desconsiderada do 12º mês para trás e a troca para 12 meses logo depois: o estado misto nunca aparece, sem esperar a releitura pendente da série (R9-03, B03)
+ok 155 - anulação nesta aba de uma desconsiderada do 12º mês para trás e a troca para 12 meses logo depois: o estado misto nunca aparece, sem esperar a releitura pendente da série (R9-03, B03)
+  ---
+  duration_ms: 377.079038
+  type: 'test'
+  ...
+# Subtest: caminho privado por usuário, fora do perfil server-owned e de qualquer workspace
+ok 156 - caminho privado por usuário, fora do perfil server-owned e de qualquer workspace
+  ---
+  duration_ms: 3.544583
+  type: 'test'
+  ...
+# Subtest: leitura estrita: documento v2 válido vira preferência sem updatedAt
+ok 157 - leitura estrita: documento v2 válido vira preferência sem updatedAt
+  ---
+  duration_ms: 14.883712
+  type: 'test'
+  ...
+# Subtest: leitura estrita: v1, campo a mais, campo a menos, tipo errado e gramática inválida não valem
+ok 158 - leitura estrita: v1, campo a mais, campo a menos, tipo errado e gramática inválida não valem
+  ---
+  duration_ms: 1.121438
+  type: 'test'
+  ...
+# Subtest: campos gravados pelo cliente: lista exata, forma canônica, sem updatedAt e sem valor derivado
+ok 159 - campos gravados pelo cliente: lista exata, forma canônica, sem updatedAt e sem valor derivado
+  ---
+  duration_ms: 0.877551
+  type: 'test'
+  ...
+# Subtest: modo efetivo: tempo só com preferência válida, ligada e em modo tempo; o padrão é dinheiro
+ok 160 - modo efetivo: tempo só com preferência válida, ligada e em modo tempo; o padrão é dinheiro
+  ---
+  duration_ms: 0.146827
+  type: 'test'
+  ...
+# Subtest: revisão 2 da R1 (M06): uma data de exceção fora do formato dá a mensagem do formato, sem exceção sem tratamento
+ok 161 - revisão 2 da R1 (M06): uma data de exceção fora do formato dá a mensagem do formato, sem exceção sem tratamento
+  ---
+  duration_ms: 28.981042
+  type: 'test'
+  ...
+# Subtest: rascunho inicial: semana comercial, renda PF escolhida, modo habitual de 3 meses e exibição em reais
+ok 162 - rascunho inicial: semana comercial, renda PF escolhida, modo habitual de 3 meses e exibição em reais
+  ---
+  duration_ms: 0.542369
+  type: 'test'
+  ...
+# Subtest: dia da rotina: horário, duração, turno que passa da meia-noite e mensagens em pt-BR
+ok 163 - dia da rotina: horário, duração, turno que passa da meia-noite e mensagens em pt-BR
+  ---
+  duration_ms: 0.913818
+  type: 'test'
+  ...
+# Subtest: exceções: montagem, sobreposição do mesmo tipo, limites e descrição em pt-BR
+ok 164 - exceções: montagem, sobreposição do mesmo tipo, limites e descrição em pt-BR
+  ---
+  duration_ms: 15.415072
+  type: 'test'
+  ...
+# Subtest: município digitado: apóstrofo do celular e acento decomposto viram a forma aceita pelas Rules
+ok 165 - município digitado: apóstrofo do celular e acento decomposto viram a forma aceita pelas Rules
+  ---
+  duration_ms: 1.83693
+  type: 'test'
+  ...
+# Subtest: feriados locais: anual ou data, sem 29/02 anual, sem repetição, até 40
+ok 166 - feriados locais: anual ou data, sem 29/02 anual, sem repetição, até 40
+  ---
+  duration_ms: 1.133689
+  type: 'test'
+  ...
+# Subtest: B02 (revisão da R1, N07): salvar recusa a configuração que fica sem cálculo seguro por exceção, feriado ou início do período, na seção que resolve
+ok 167 - B02 (revisão da R1, N07): salvar recusa a configuração que fica sem cálculo seguro por exceção, feriado ou início do período, na seção que resolve
+  ---
+  duration_ms: 104.267478
+  type: 'test'
+  ...
+# Subtest: B02 (P5-F.1-R2A, S01): salvar recusa a jornada reduzida que deixa o dia seguinte sem cálculo seguro, na seção das exceções, com mensagem em pt-BR
+ok 168 - B02 (P5-F.1-R2A, S01): salvar recusa a jornada reduzida que deixa o dia seguinte sem cálculo seguro, na seção das exceções, com mensagem em pt-BR
+  ---
+  duration_ms: 1.628471
+  type: 'test'
+  ...
+# Subtest: rascunho: validação por seção, prévia sem salvar e comparação com o que está salvo
+ok 169 - rascunho: validação por seção, prévia sem salvar e comparação com o que está salvo
+  ---
+  duration_ms: 33.438409
+  type: 'test'
+  ...
+# Subtest: S03 (P5-F.1-R2A): a configuração gravada que o editor recusa ao montar não é edição; a jornada para aplicar a vários dias só conta quando aplicada
+ok 170 - S03 (P5-F.1-R2A): a configuração gravada que o editor recusa ao montar não é edição; a jornada para aplicar a vários dias só conta quando aplicada
+  ---
+  duration_ms: 1.287952
+  type: 'test'
+  ...
+# Subtest: S03 (P5-F.1-R2A): digitação inválida num dia ou na escala é edição, com a mensagem do problema
+ok 171 - S03 (P5-F.1-R2A): digitação inválida num dia ou na escala é edição, com a mensagem do problema
+  ---
+  duration_ms: 0.63719
+  type: 'test'
+  ...
+1..171
+# tests 171
+# suites 0
+# pass 171
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 21540.502057

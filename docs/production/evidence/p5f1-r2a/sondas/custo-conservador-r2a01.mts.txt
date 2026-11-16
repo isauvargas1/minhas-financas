@@ -1,0 +1,41 @@
+// P5-F.1-R2A, R2A-01 — quanto a regra nova (máximo sem descontar a véspera) recusa a mais que a anterior (máximo
+// descontando a véspera que segue a rotina), num gerador genérico: rotinas semanais com turnos que passam da meia-noite e
+// janelas que começam na madrugada (como `nightOrEarly` do teste), jornadas reduzidas e acréscimos em nov/2025–fev/2027.
+// Uso: node --experimental-strip-types custo-conservador-r2a01.mts <árvore com a regra anterior> <árvore com a regra nova>
+const [oldRoot, newRoot] = process.argv.slice(2);
+const OLD = await import(`${oldRoot}/src/modules/work-time/calendar.ts`);
+const NEW = await import(`${newRoot}/src/modules/work-time/calendar.ts`);
+const dates = await import(`${newRoot}/src/modules/work-time/dates.ts`);
+let seed = 20261117;
+const next = () => { seed = (seed + 0x6d2b79f5) | 0; let v = Math.imul(seed ^ (seed >>> 15), 1 | seed); v = (v + Math.imul(v ^ (v >>> 7), 61 | v)) ^ v; return ((v ^ (v >>> 14)) >>> 0) / 4294967296; };
+const grid = (max: number) => Math.floor(next() * (Math.floor(max / 15) + 1)) * 15;
+const OFF = { kind: 'off' };
+const day = () => {
+  const roll = next();
+  if (roll < 0.25) return OFF;
+  if (roll < 0.6) return { kind: 'window', start: 1080 + grid(345), end: grid(540), breakMinutes: 0 };
+  if (roll < 0.9) { const start = grid(360); return { kind: 'window', start, end: start + 120 + grid(480), breakMinutes: 0 }; }
+  return { kind: 'duration', minutes: 60 + grid(720) };
+};
+const exceptions = () => {
+  const out: unknown[] = [];
+  for (let i = 0; i < 1 + Math.floor(next() * 3); i += 1) {
+    const start = dates.addDays('2025-11-01', Math.floor(next() * 480)) as string;
+    out.push({ kind: 'reduced', start, end: dates.addDays(start, Math.floor(next() * 5)), minutes: 60 + grid(1380) });
+  }
+  for (let i = 0; i < Math.floor(next() * 3); i += 1) out.push({ kind: next() < 0.5 ? 'on_call' : 'overtime', date: dates.addDays('2025-11-01', Math.floor(next() * 480)), minutes: 60 + grid(1380) });
+  return out;
+};
+let samples = 0, oldRefused = 0, newRefused = 0, onlyNew = 0, onlyOld = 0, onlyNewMonthStart = 0;
+for (let s = 0; s < 3000; s += 1) {
+  const routines = Array.from({ length: 1 + Math.floor(next() * 2) }, () => ({ kind: 'weekly', days: Array.from({ length: 7 }, day) }));
+  const c = { routines, worksOnHolidays: true, localHolidays: [], exceptions: exceptions() };
+  const a = OLD.calendarAmbiguity(c, '2026-11-05');
+  const b = NEW.calendarAmbiguity(c, '2026-11-05');
+  samples += 1;
+  if (a) oldRefused += 1;
+  if (b) newRefused += 1;
+  if (b && !a) { onlyNew += 1; if (b.cause.kind === 'reduced_eve' && b.cause.date.endsWith('-01')) onlyNewMonthStart += 1; }
+  if (a && !b) onlyOld += 1;
+}
+console.log(JSON.stringify({ samples, oldRefused, newRefused, onlyNew, onlyNewMonthStart, onlyOld }));

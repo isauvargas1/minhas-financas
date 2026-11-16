@@ -1,0 +1,87 @@
+TAP version 13
+# Subtest: B02 (P5-F.1-R2A, S01): segunda 20:00–06:00 reduzida a 8 h e terça 00:00–08:00 — os 960 min da R1 viram recusa, com a causa na véspera
+ok 1 - B02 (P5-F.1-R2A, S01): segunda 20:00–06:00 reduzida a 8 h e terça 00:00–08:00 — os 960 min da R1 viram recusa, com a causa na véspera
+  ---
+  duration_ms: 8.056988
+  type: 'test'
+  ...
+# Subtest: B02 (P5-F.1-R2A, S01): o dia civil seguinte a uma jornada reduzida não recebe 24 h de plantão por cima do turno dela (contrato anterior, RR-R1-03, substituído)
+ok 2 - B02 (P5-F.1-R2A, S01): o dia civil seguinte a uma jornada reduzida não recebe 24 h de plantão por cima do turno dela (contrato anterior, RR-R1-03, substituído)
+  ---
+  duration_ms: 3.251427
+  type: 'test'
+  ...
+# Subtest: B02 (P5-F.1-R2A, S01): casos comuns de jornada reduzida continuam aceitos, com as mesmas horas
+ok 3 - B02 (P5-F.1-R2A, S01): casos comuns de jornada reduzida continuam aceitos, com as mesmas horas
+  ---
+  duration_ms: 5.418028
+  type: 'test'
+  ...
+# Subtest: B02 (P5-F.1-R2A, S01): a cobertura que vem da véspera reduzida aponta a véspera, com mensagem própria
+ok 4 - B02 (P5-F.1-R2A, S01): a cobertura que vem da véspera reduzida aponta a véspera, com mensagem própria
+  ---
+  duration_ms: 25.426801
+  type: 'test'
+  ...
+# Subtest: B02 (P5-F.1-R2A, Teorema 2): a jornada reduzida que passa a cortar horas ao acrescentar uma rotina não tira horas do período
+ok 5 - B02 (P5-F.1-R2A, Teorema 2): a jornada reduzida que passa a cortar horas ao acrescentar uma rotina não tira horas do período
+  ---
+  duration_ms: 2.077893
+  type: 'test'
+  ...
+# Subtest: B02 (propriedade, P5-F.1-R2A): depois de uma jornada reduzida, o dia aceito vale o mesmo em qualquer parte do turno da véspera que tenha acontecido, e o recusado depende mesmo dela
+not ok 6 - B02 (propriedade, P5-F.1-R2A): depois de uma jornada reduzida, o dia aceito vale o mesmo em qualquer parte do turno da véspera que tenha acontecido, e o recusado depende mesmo dela
+  ---
+  duration_ms: 149.736309
+  type: 'test'
+  location: '<scratchpad>/wt-p5f1-r2a/tests/unit/work-time-calendar.test.ts:1116:1'
+  failureType: 'testCodeFailure'
+  error: 'aceitas: 771'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (file://<scratchpad>/wt-p5f1-r2a/tests/unit/work-time-calendar.test.ts:1205:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+  ...
+# Subtest: B02 (propriedade, P5-F.1-R2A): com jornadas reduzidas em turnos que passam da meia-noite, acrescentar uma rotina nunca tira horas
+ok 7 - B02 (propriedade, P5-F.1-R2A): com jornadas reduzidas em turnos que passam da meia-noite, acrescentar uma rotina nunca tira horas
+  ---
+  duration_ms: 4196.231999
+  type: 'test'
+  ...
+# Subtest: B02 (propriedade, P5-F.1-R2A): sem intervalo nenhum, o conferidor acha o dia seguinte a cada jornada reduzida sem cálculo seguro, e o que ele aceita nunca tem dia ambíguo
+not ok 8 - B02 (propriedade, P5-F.1-R2A): sem intervalo nenhum, o conferidor acha o dia seguinte a cada jornada reduzida sem cálculo seguro, e o que ele aceita nunca tem dia ambíguo
+  ---
+  duration_ms: 1483.417318
+  type: 'test'
+  location: '<scratchpad>/wt-p5f1-r2a/tests/unit/work-time-calendar.test.ts:1270:1'
+  failureType: 'testCodeFailure'
+  error: 'recusadas pela véspera reduzida: 12'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (file://<scratchpad>/wt-p5f1-r2a/tests/unit/work-time-calendar.test.ts:1299:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+1..8
+# tests 8
+# suites 0
+# pass 6
+# fail 2
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 6057.098784

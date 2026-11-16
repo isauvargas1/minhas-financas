@@ -1,0 +1,210 @@
+{
+  "imagens": [
+    {
+      "imagem": "desktop-dark-referencia-previa.png",
+      "antes": "270x242",
+      "depois": "270x242",
+      "pixels_diferentes": 0,
+      "caixa": null
+    },
+    {
+      "imagem": "desktop-dark-referencia.png",
+      "antes": "1440x3917",
+      "depois": "1440x3917",
+      "pixels_diferentes": 0,
+      "caixa": null
+    },
+    {
+      "imagem": "desktop-dark-s01-previa.png",
+      "antes": "270x242",
+      "depois": "270x282",
+      "pixels_diferentes": null
+    },
+    {
+      "imagem": "desktop-dark-s01.png",
+      "antes": "1440x3917",
+      "depois": "1440x3917",
+      "pixels_diferentes": 71745,
+      "caixa": "328x643++940++321"
+    },
+    {
+      "imagem": "desktop-light-referencia-previa.png",
+      "antes": "270x242",
+      "depois": "270x242",
+      "pixels_diferentes": 0,
+      "caixa": null
+    },
+    {
+      "imagem": "desktop-light-referencia.png",
+      "antes": "1440x3917",
+      "depois": "1440x3917",
+      "pixels_diferentes": 0,
+      "caixa": null
+    },
+    {
+      "imagem": "desktop-light-s01-previa.png",
+      "antes": "270x242",
+      "depois": "270x282",
+      "pixels_diferentes": null
+    },
+    {
+      "imagem": "desktop-light-s01.png",
+      "antes": "1440x3917",
+      "depois": "1440x3917",
+      "pixels_diferentes": 71868,
+      "caixa": "328x643++940++321"
+    },
+    {
+      "imagem": "mobile-dark-referencia-previa.png",
+      "antes": "324x243",
+      "depois": "324x243",
+      "pixels_diferentes": 0,
+      "caixa": null
+    },
+    {
+      "imagem": "mobile-dark-referencia.png",
+      "antes": "390x5743",
+      "depois": "390x5743",
+      "pixels_diferentes": 0,
+      "caixa": null
+    },
+    {
+      "imagem": "mobile-dark-s01-previa.png",
+      "antes": "324x243",
+      "depois": "324x243",
+      "pixels_diferentes": 18147,
+      "caixa": "315x184++0++25"
+    },
+    {
+      "imagem": "mobile-dark-s01.png",
+      "antes": "390x5763",
+      "depois": "390x5875",
+      "pixels_diferentes": null
+    },
+    {
+      "imagem": "mobile-light-referencia-previa.png",
+      "antes": "324x243",
+      "depois": "324x243",
+      "pixels_diferentes": 0,
+      "caixa": null
+    },
+    {
+      "imagem": "mobile-light-referencia.png",
+      "antes": "390x5743",
+      "depois": "390x5743",
+      "pixels_diferentes": 0,
+      "caixa": null
+    },
+    {
+      "imagem": "mobile-light-s01-previa.png",
+      "antes": "324x243",
+      "depois": "324x243",
+      "pixels_diferentes": 18203,
+      "caixa": "315x184++0++25"
+    },
+    {
+      "imagem": "mobile-light-s01.png",
+      "antes": "390x5763",
+      "depois": "390x5875",
+      "pixels_diferentes": null
+    }
+  ],
+  "fatos": {
+    "desktop-dark-referencia": {
+      "antes": {
+        "state": "referencia",
+        "combo": "desktop-dark",
+        "text": "VALOR ESTIMADO DA SUA HORA\n\nR$ 117,95\n\nFonte: Pessoal P5F (PF)\nModo: Habitual: últimos 3 meses completos\nPeríodo: agosto de 2026 a outubro de 2026\nReceitas elegíveis: R$ 18.400,00\nHoras previstas: 156 h\n\nUma compra de R$ 150,00 equivale a ≈ 1 h 16 min de trabalho.\n\nComo este valor foi calculado?"
+      },
+      "depois": {
+        "state": "referencia",
+        "combo": "desktop-dark",
+        "text": "VALOR ESTIMADO DA SUA HORA\n\nR$ 117,95\n\nFonte: Pessoal P5F (PF)\nModo: Habitual: últimos 3 meses completos\nPeríodo: agosto de 2026 a outubro de 2026\nReceitas elegíveis: R$ 18.400,00\nHoras previstas: 156 h\n\nUma compra de R$ 150,00 equivale a ≈ 1 h 16 min de trabalho.\n\nComo este valor foi calculado?"
+      }
+    },
+    "desktop-dark-s01": {
+      "antes": {
+        "state": "s01",
+        "combo": "desktop-dark",
+        "text": "VALOR ESTIMADO DA SUA HORA\n\nR$ 115,00\n\nFonte: Pessoal P5F (PF)\nModo: Habitual: últimos 3 meses completos\nPeríodo: agosto de 2026 a outubro de 2026\nReceitas elegíveis: R$ 18.400,00\nHoras previstas: 160 h\n\nUma compra de R$ 150,00 equivale a ≈ 1 h 18 min de trabalho.\n\nComo este valor foi calculado?"
+      },
+      "depois": {
+        "state": "s01",
+        "combo": "desktop-dark",
+        "text": "VALOR ESTIMADO DA SUA HORA\n\nEstimativa indisponível. Em algum dia do período, o dia anterior tem jornada reduzida num horário que passa da meia-noite, e não dá para confirmar que parte dele foi trabalhada: as horas desse dia não podem ser calculadas com segurança. Ajuste as exceções ou as rotinas em Configurações.\n\nFonte: Pessoal P5F (PF)\nModo: Habitual: últimos 3 meses completos\nComo este valor foi calculado?"
+      }
+    },
+    "desktop-light-referencia": {
+      "antes": {
+        "state": "referencia",
+        "combo": "desktop-light",
+        "text": "VALOR ESTIMADO DA SUA HORA\n\nR$ 117,95\n\nFonte: Pessoal P5F (PF)\nModo: Habitual: últimos 3 meses completos\nPeríodo: agosto de 2026 a outubro de 2026\nReceitas elegíveis: R$ 18.400,00\nHoras previstas: 156 h\n\nUma compra de R$ 150,00 equivale a ≈ 1 h 16 min de trabalho.\n\nComo este valor foi calculado?"
+      },
+      "depois": {
+        "state": "referencia",
+        "combo": "desktop-light",
+        "text": "VALOR ESTIMADO DA SUA HORA\n\nR$ 117,95\n\nFonte: Pessoal P5F (PF)\nModo: Habitual: últimos 3 meses completos\nPeríodo: agosto de 2026 a outubro de 2026\nReceitas elegíveis: R$ 18.400,00\nHoras previstas: 156 h\n\nUma compra de R$ 150,00 equivale a ≈ 1 h 16 min de trabalho.\n\nComo este valor foi calculado?"
+      }
+    },
+    "desktop-light-s01": {
+      "antes": {
+        "state": "s01",
+        "combo": "desktop-light",
+        "text": "VALOR ESTIMADO DA SUA HORA\n\nR$ 115,00\n\nFonte: Pessoal P5F (PF)\nModo: Habitual: últimos 3 meses completos\nPeríodo: agosto de 2026 a outubro de 2026\nReceitas elegíveis: R$ 18.400,00\nHoras previstas: 160 h\n\nUma compra de R$ 150,00 equivale a ≈ 1 h 18 min de trabalho.\n\nComo este valor foi calculado?"
+      },
+      "depois": {
+        "state": "s01",
+        "combo": "desktop-light",
+        "text": "VALOR ESTIMADO DA SUA HORA\n\nEstimativa indisponível. Em algum dia do período, o dia anterior tem jornada reduzida num horário que passa da meia-noite, e não dá para confirmar que parte dele foi trabalhada: as horas desse dia não podem ser calculadas com segurança. Ajuste as exceções ou as rotinas em Configurações.\n\nFonte: Pessoal P5F (PF)\nModo: Habitual: últimos 3 meses completos\nComo este valor foi calculado?"
+      }
+    },
+    "mobile-dark-referencia": {
+      "antes": {
+        "state": "referencia",
+        "combo": "mobile-dark",
+        "text": "VALOR ESTIMADO DA SUA HORA\n\nR$ 117,95\n\nFonte: Pessoal P5F (PF)\nModo: Habitual: últimos 3 meses completos\nPeríodo: agosto de 2026 a outubro de 2026\nReceitas elegíveis: R$ 18.400,00\nHoras previstas: 156 h\n\nUma compra de R$ 150,00 equivale a ≈ 1 h 16 min de trabalho.\n\nComo este valor foi calculado?"
+      },
+      "depois": {
+        "state": "referencia",
+        "combo": "mobile-dark",
+        "text": "VALOR ESTIMADO DA SUA HORA\n\nR$ 117,95\n\nFonte: Pessoal P5F (PF)\nModo: Habitual: últimos 3 meses completos\nPeríodo: agosto de 2026 a outubro de 2026\nReceitas elegíveis: R$ 18.400,00\nHoras previstas: 156 h\n\nUma compra de R$ 150,00 equivale a ≈ 1 h 16 min de trabalho.\n\nComo este valor foi calculado?"
+      }
+    },
+    "mobile-dark-s01": {
+      "antes": {
+        "state": "s01",
+        "combo": "mobile-dark",
+        "text": "VALOR ESTIMADO DA SUA HORA\n\nR$ 115,00\n\nFonte: Pessoal P5F (PF)\nModo: Habitual: últimos 3 meses completos\nPeríodo: agosto de 2026 a outubro de 2026\nReceitas elegíveis: R$ 18.400,00\nHoras previstas: 160 h\n\nUma compra de R$ 150,00 equivale a ≈ 1 h 18 min de trabalho.\n\nComo este valor foi calculado?"
+      },
+      "depois": {
+        "state": "s01",
+        "combo": "mobile-dark",
+        "text": "VALOR ESTIMADO DA SUA HORA\n\nEstimativa indisponível. Em algum dia do período, o dia anterior tem jornada reduzida num horário que passa da meia-noite, e não dá para confirmar que parte dele foi trabalhada: as horas desse dia não podem ser calculadas com segurança. Ajuste as exceções ou as rotinas em Configurações.\n\nFonte: Pessoal P5F (PF)\nModo: Habitual: últimos 3 meses completos\nComo este valor foi calculado?"
+      }
+    },
+    "mobile-light-referencia": {
+      "antes": {
+        "state": "referencia",
+        "combo": "mobile-light",
+        "text": "VALOR ESTIMADO DA SUA HORA\n\nR$ 117,95\n\nFonte: Pessoal P5F (PF)\nModo: Habitual: últimos 3 meses completos\nPeríodo: agosto de 2026 a outubro de 2026\nReceitas elegíveis: R$ 18.400,00\nHoras previstas: 156 h\n\nUma compra de R$ 150,00 equivale a ≈ 1 h 16 min de trabalho.\n\nComo este valor foi calculado?"
+      },
+      "depois": {
+        "state": "referencia",
+        "combo": "mobile-light",
+        "text": "VALOR ESTIMADO DA SUA HORA\n\nR$ 117,95\n\nFonte: Pessoal P5F (PF)\nModo: Habitual: últimos 3 meses completos\nPeríodo: agosto de 2026 a outubro de 2026\nReceitas elegíveis: R$ 18.400,00\nHoras previstas: 156 h\n\nUma compra de R$ 150,00 equivale a ≈ 1 h 16 min de trabalho.\n\nComo este valor foi calculado?"
+      }
+    },
+    "mobile-light-s01": {
+      "antes": {
+        "state": "s01",
+        "combo": "mobile-light",
+        "text": "VALOR ESTIMADO DA SUA HORA\n\nR$ 115,00\n\nFonte: Pessoal P5F (PF)\nModo: Habitual: últimos 3 meses completos\nPeríodo: agosto de 2026 a outubro de 2026\nReceitas elegíveis: R$ 18.400,00\nHoras previstas: 160 h\n\nUma compra de R$ 150,00 equivale a ≈ 1 h 18 min de trabalho.\n\nComo este valor foi calculado?"
+      },
+      "depois": {
+        "state": "s01",
+        "combo": "mobile-light",
+        "text": "VALOR ESTIMADO DA SUA HORA\n\nEstimativa indisponível. Em algum dia do período, o dia anterior tem jornada reduzida num horário que passa da meia-noite, e não dá para confirmar que parte dele foi trabalhada: as horas desse dia não podem ser calculadas com segurança. Ajuste as exceções ou as rotinas em Configurações.\n\nFonte: Pessoal P5F (PF)\nModo: Habitual: últimos 3 meses completos\nComo este valor foi calculado?"
+      }
+    }
+  }
+}

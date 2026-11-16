@@ -1,0 +1,50 @@
+#!/usr/bin/env python3
+"""Revisão 5: alinha linha a linha as páginas inteiras "antes" e "depois", por coluna (x0..x1), e lista os blocos
+inseridos, removidos e trocados; nas trocas de mesma altura, conta os pixels diferentes e o delta máximo.
+Uso: alinhar_colunas.py <dir-raw> <nome> <x0> <x1> [<x0> <x1> ...]"""
+import difflib, hashlib, json, sys
+from pathlib import Path
+
+raw = Path(sys.argv[1])
+name = sys.argv[2]
+spans = [(int(sys.argv[i]), int(sys.argv[i + 1])) for i in range(3, len(sys.argv), 2)]
+
+
+def load(side):
+    w, h = map(int, (raw / side / f'{name}.size').read_text().split('x'))
+    data = (raw / side / f'{name}.rgba').read_bytes()
+    assert len(data) == w * h * 4
+    return w, h, data
+
+
+wa, ha, A = load('antes')
+wb, hb, Bd = load('depois')
+assert wa == wb
+out = {'imagem': name, 'antes': f'{wa}x{ha}', 'depois': f'{wb}x{hb}', 'colunas': []}
+for x0, x1 in spans:
+    def rows(data, w, h):
+        return [data[(y * w + x0) * 4:(y * w + x1 + 1) * 4] for y in range(h)]
+    ra, rb = rows(A, wa, ha), rows(Bd, wb, hb)
+    ka = [hashlib.blake2b(r, digest_size=12).digest() for r in ra]
+    kb = [hashlib.blake2b(r, digest_size=12).digest() for r in rb]
+    sm = difflib.SequenceMatcher(a=ka, b=kb, autojunk=False)
+    blocks = []
+    for tag, i1, i2, j1, j2 in sm.get_opcodes():
+        if tag == 'equal':
+            continue
+        entry = {'op': tag, 'antes_y': [i1, i2], 'depois_y': [j1, j2]}
+        if tag == 'replace' and i2 - i1 == j2 - j1:
+            total, dmax, xs = 0, 0, []
+            for k in range(i2 - i1):
+                a_, b_ = ra[i1 + k], rb[j1 + k]
+                for x in range(len(a_) // 4):
+                    pa, pb = a_[x * 4:x * 4 + 4], b_[x * 4:x * 4 + 4]
+                    if pa != pb:
+                        total += 1
+                        dmax = max(dmax, max(abs(pa[i] - pb[i]) for i in range(4)))
+                        xs.append(x + x0)
+            entry.update({'pixels': total, 'delta_max': dmax, 'x': [min(xs), max(xs)] if xs else None})
+        blocks.append(entry)
+    eq = sum(i2 - i1 for tag, i1, i2, j1, j2 in sm.get_opcodes() if tag == 'equal')
+    out['colunas'].append({'x': [x0, x1], 'linhas_iguais': eq, 'blocos': blocks})
+print(json.dumps(out, ensure_ascii=False))

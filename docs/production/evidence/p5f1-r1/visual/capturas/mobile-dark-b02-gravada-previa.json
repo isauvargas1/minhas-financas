@@ -1,0 +1,22 @@
+{
+  "name": "mobile-dark-b02-gravada-previa",
+  "scope": "[data-testid=\"work-time-preview-unavailable\"]",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "scheme": "dark",
+  "background": "rgb(11, 17, 32)",
+  "overflow": 0,
+  "occluded": false,
+  "violations": [],
+  "role": null,
+  "focusAfterAction": null,
+  "tabTrail": [
+    "button: Voltar para Configurações",
+    "button[role=switch]: ",
+    "input: Tempo de trabalho",
+    "input: Semanal"
+  ],
+  "text": "Estimativa indisponível. Em algum dia do período, rotinas se cruzam e há intervalo no trecho em comum: não dá para saber onde cai a pausa, e as horas não podem ser calculadas com segurança. Ajuste as rotinas, os feriados ou as exceções em Configurações."
+}

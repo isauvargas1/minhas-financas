@@ -1,0 +1,11 @@
+--- <scratchpad>/p5f1r1/revisao5/arvore-aff667a5/src/components/workTime/RoutineEditor.tsx	2026-11-06 02:34:08.000000000 +0000
++++ <scratchpad>/p5f1r1/revisao5/mut-tpl/src/components/workTime/RoutineEditor.tsx	2026-11-06 02:53:10.656356814 +0000
+@@ -94,7 +94,7 @@
+ // O que define as rotinas: os dias de cada semana ou a escala. A jornada para aplicar a vários dias só vale
+ // quando é aplicada, então mudá-la sozinha não é uma edição das rotinas.
+ const routinesKey = (models: readonly RoutineModel[]) =>
+-  JSON.stringify(models.map((model) => (model.kind === 'weekly' ? { kind: model.kind, days: model.days } : model)));
++  JSON.stringify(models);
+
+ const DayFields: React.FC<{
+   idPrefix: string;

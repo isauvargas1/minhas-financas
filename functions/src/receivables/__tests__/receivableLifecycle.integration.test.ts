@@ -30,6 +30,7 @@ import {
   CLIENT_UNCHANGED_MESSAGE,
 } from "../clientOperations";
 import {PJ_ONLY_MESSAGE} from "../common";
+import {receivableCashTransactionIdFor, reversalMovementIdFor} from "../model";
 import {
   CANCEL_WITH_RECEIPTS_MESSAGE,
   RECEIPT_ABOVE_BALANCE_MESSAGE,
@@ -365,6 +366,19 @@ test("P3-I — estorno: restaura principal, desconto, juros, multa, saldo e " +
   const mirror = await read(transactionRef(tenant.workspaceId,
     reversed.cashTransactionId as string));
   assert.deepEqual([mirror.type, mirror.valueCents], ["despesa", 46_200]);
+  // P5-F.1-R1 (B01): o espelho do estorno fica no ID que o cliente deriva
+  // do espelho do recebimento, sem consulta (recvcash_<h> → rmv_<h> →
+  // estorno → recvcash_<h'>), e o documento confirma o vínculo: marca de
+  // estorno, `reversalOf` igual ao movimento e a mesma data.
+  assert.equal(paid.cashTransactionId,
+    receivableCashTransactionIdFor(paid.movementId as string));
+  assert.equal(reversed.movementId,
+    reversalMovementIdFor(paid.movementId as string));
+  assert.equal(reversed.cashTransactionId, receivableCashTransactionIdFor(
+    reversalMovementIdFor(paid.movementId as string)));
+  const entry = mirror.receivableEntry as Record<string, unknown>;
+  assert.deepEqual([entry.reversal, entry.reversalOf, mirror.date],
+    [true, paid.movementId, original.date]);
 
   for (const id of [paid.cashTransactionId, reversed.cashTransactionId]) {
     await deliverMirror(tenant.workspaceId, id as string);

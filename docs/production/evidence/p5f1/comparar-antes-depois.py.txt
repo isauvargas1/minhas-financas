@@ -1,0 +1,57 @@
+"""P5-F.1: compara as capturas "antes" (árvore da P5-F) e "depois" (P5-F.1), pixel a pixel, e o axe.
+
+Para cada captura presente nas duas árvores: dimensões, pixels diferentes (ImageMagick
+`compare -metric AE`, sem tolerância) e a caixa que contém as diferenças. Depois, as
+violações de axe (regra e alvos) de cada captura. Saída em texto e JSON.
+Uso: comparar-antes-depois.py <antes> <depois> <saída.json>
+"""
+import json
+import os
+import subprocess
+import sys
+
+ANTES, DEPOIS, OUT = sys.argv[1], sys.argv[2], sys.argv[3]
+
+
+def size(path):
+    return subprocess.run(['identify', '-format', '%wx%h', path], capture_output=True, text=True, check=True).stdout
+
+
+def diff_pixels(a, b):
+    run = subprocess.run(['compare', '-metric', 'AE', a, b, 'null:'], capture_output=True, text=True)
+    return int(float(run.stderr.split()[0]))
+
+
+def bbox(a, b):
+    run = subprocess.run(['convert', a, b, '-compose', 'difference', '-composite', '-colorspace', 'gray',
+                          '-threshold', '0', '-trim', '-format', '%wx%h+%X+%Y', 'info:'], capture_output=True, text=True)
+    return run.stdout.strip()
+
+
+rows = []
+for name in sorted(f for f in os.listdir(ANTES) if f.endswith('.png')):
+    a, b = f'{ANTES}/{name}', f'{DEPOIS}/{name}'
+    if not os.path.exists(b):
+        rows.append({'captura': name, 'erro': 'ausente no depois'})
+        continue
+    sa, sb = size(a), size(b)
+    row = {'captura': name, 'antes': sa, 'depois': sb}
+    if sa == sb:
+        pixels = diff_pixels(a, b)
+        row['pixels_diferentes'] = pixels
+        if pixels:
+            row['caixa'] = bbox(a, b)
+    rows.append(row)
+    print(f"{name:45} {sa:>10} {sb:>10} {row.get('pixels_diferentes', 'tamanho difere')} {row.get('caixa', '')}")
+
+axe_a = {e['name']: e['violations'] for e in json.load(open(f'{ANTES}/axe-antes.json'))}
+axe_b = {e['name']: e['violations'] for e in json.load(open(f'{DEPOIS}/axe-depois.json'))}
+axe_rows = []
+for name in sorted(axe_a):
+    same = sorted(json.dumps(v, sort_keys=True) for v in axe_a[name]) == sorted(json.dumps(v, sort_keys=True) for v in axe_b.get(name, []))
+    axe_rows.append({'captura': name, 'regras_antes': sorted(v['id'] for v in axe_a[name]),
+                     'regras_depois': sorted(v['id'] for v in axe_b.get(name, [])), 'iguais': same})
+    if not same:
+        print('AXE DIFERENTE', name, axe_rows[-1])
+print('axe iguais em', sum(1 for r in axe_rows if r['iguais']), 'de', len(axe_rows))
+json.dump({'capturas': rows, 'axe': axe_rows}, open(OUT, 'w'), ensure_ascii=False, indent=2)

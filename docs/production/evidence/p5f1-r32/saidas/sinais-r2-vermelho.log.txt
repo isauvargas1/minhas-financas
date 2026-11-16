@@ -1,0 +1,12 @@
+base: saída 0, 0 falha(s)
+MORTO      S01 sinal não repassado ao grupo (2 falha(s); ex.: not ok 14 - executor (EST-02): SIGTERM no executor, SIGTERM no grupo de processos dele e Ctrl+C viram um SIGINT só ao gr)
+MORTO      S02 Playwright no mesmo grupo de processos do executor (2 falha(s); ex.: not ok 14 - executor (EST-02): SIGTERM no executor, SIGTERM no grupo de processos dele e Ctrl+C viram um SIGINT só ao gr)
+MORTO      S03 os grupos seguintes rodam depois da interrupção (3 falha(s); ex.: not ok 14 - executor (EST-02): SIGTERM no executor, SIGTERM no grupo de processos dele e Ctrl+C viram um SIGINT só ao gr)
+MORTO      S04 saída 1 em vez de 128 + o sinal (4 falha(s); ex.: not ok 14 - executor (EST-02): SIGTERM no executor, SIGTERM no grupo de processos dele e Ctrl+C viram um SIGINT só ao gr)
+MORTO      S05 SIGTERM sem tratamento (3 falha(s); ex.: not ok 14 - executor (EST-02): SIGTERM no executor, SIGTERM no grupo de processos dele e Ctrl+C viram um SIGINT só ao gr)
+MORTO      S07 SIGHUP sem tratamento (o R01 da estabilidade, rodada 2; EST-11) (1 falha(s); ex.: not ok 15 - executor (EST-11): SIGHUP (o terminal fechado) e SIGQUIT (Ctrl+\\) no executor também viram um SIGINT só ao )
+MORTO      S08 SIGQUIT sem tratamento (EST-12) (1 falha(s); ex.: not ok 15 - executor (EST-11): SIGHUP (o terminal fechado) e SIGQUIT (Ctrl+\\) no executor também viram um SIGINT só ao )
+MORTO      S09 o sinal sem grupo em curso é ignorado (o R03 da estabilidade, rodada 2; EST-11) (2 falha(s); ex.: not ok 16 - executor (EST-11): o sinal durante a espera das portas entre os grupos para a execução: o grupo seguinte não)
+MORTO      S06 interrupção depois do último grupo aprovada (1 falha(s); ex.: not ok 17 - executor (EST-11): o sinal depois do último grupo reprova a execução com 128 + o sinal, mesmo com todos os t)
+MORTO      T01 o SIGINT só ao processo do npx, não ao grupo (ADV-R2-02) (2 falha(s); ex.: not ok 14 - executor (EST-02): SIGTERM no executor, SIGTERM no grupo de processos dele e Ctrl+C viram um SIGINT só ao gr)
+total: 10/10 mortos

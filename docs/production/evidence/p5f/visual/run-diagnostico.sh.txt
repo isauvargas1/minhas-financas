@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# P5-F: roda o diagnóstico temporário no worktree da P5-F (build E2E já gerado), contra o Emulator, e devolve o arquivo.
+set -u
+S=<scratchpad>
+WT=$S/wt-p5f; D=$S/p5f/diag; OUT=$D/out; mkdir -p "$OUT"
+START=$(date +%s)
+export FONTCONFIG_FILE=$S/e2e-fix-01/fonts.conf
+cp "$D/p5f-diag.spec.ts" "$S/p5f/evidence/p4d-evidence-common.ts" "$WT/e2e/"
+cd "$WT" && EVIDENCE_DIR=$OUT timeout 1200 bash $S/with-proxy-safe.sh 38835 npx playwright test e2e/p5f-diag.spec.ts > "$D/diag.log" 2>&1
+echo "exit=$?"
+mkdir -p "$D/.devolvidos"; mv "$WT/e2e/p5f-diag.spec.ts" "$WT/e2e/p4d-evidence-common.ts" "$D/.devolvidos/"
+git -C "$WT" status --short -- e2e | sed 's/^/status e2e: /'
+bash $S/p5e11/stop-own-emulator.sh 8080 "$START" "$D/emulator-cleanup.log" "$WT" >/dev/null 2>&1; echo "limpeza=$? java=$(pgrep -c java || true)"

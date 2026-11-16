@@ -1,0 +1,10 @@
+
+Running 1 test using 1 worker
+
+(node:5449) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN
+(Use `node --trace-warnings ...` to show where the warning was created)
+[valores-b03-g-sem-conexao] {"balance":["tempo|≈ 776 h","reais|R$ 19.400,00"],"hourly":[],"notice":["Valores em tempo de trabalho equivalente: uma estimativa aproximada, não o valor exato.Mostrar em R$","Calculando a estimativa de tempo de trabalho: enquanto isso, os valores ficam em reais.Mostrar em R$","Estimativa de tempo de trabalho indisponível agora: os valores continuam em reais. Veja o motivo em Configurações.Mostrar em R$"]}
+[valores-b03-g] {"balance":["tempo|≈ 776 h","reais|R$ 19.400,00","tempo|≈ 776 h"],"hourly":["R$ 25,00"],"notice":["Valores em tempo de trabalho equivalente: uma estimativa aproximada, não o valor exato.Mostrar em R$","Calculando a estimativa de tempo de trabalho: enquanto isso, os valores ficam em reais.Mostrar em R$","Estimativa de tempo de trabalho indisponível agora: os valores continuam em reais. Veja o motivo em Configurações.Mostrar em R$","Valores em tempo de trabalho equivalente: uma estimativa aproximada, não o valor exato.Mostrar em R$"]}
+  ✓  1 [chromium] › e2e/work-time-b03.spec.ts:729:1 › B03-g (R3.2, RR-R31-05): sem conexão, a conversão sai e a prévia aberta de novo com o cache aquecido não converte; com a conexão de volta, a conversão certa volta (47.8s)
+
+  1 passed (1.5m)

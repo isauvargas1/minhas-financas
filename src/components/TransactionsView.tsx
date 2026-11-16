@@ -19,6 +19,7 @@ import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
 import CatalogVisualChip from './CatalogVisualChip.tsx';
 import { useSettingsCatalog } from '../modules/settings-catalog/hooks.ts';
 import { resolveTransactionVisuals } from '../modules/settings-catalog/display.ts';
+import { useMoneyDisplay } from '../modules/work-time/display';
 import {
     isCreditCardPaymentCashMirror,
     transactionCashImpactCents,
@@ -29,6 +30,14 @@ interface TransactionsViewProps {
     transactions: Transaction[];
     /** Lançamentos fora do contrato excluídos da lista (nunca viram R$ 0,00). */
     invalidCount?: number;
+    /**
+     * Estado da leitura do mês (P5-GATE-FINAL, FIRESTORE-01): enquanto carrega ou depois de uma falha, a tela
+     * não mostra contagem, total nem "nenhuma transação", que seriam afirmações sobre um mês não lido.
+     */
+    loadState?: 'loading' | 'error' | 'ready';
+    /** O mês passou do teto de páginas: a lista e os totais não incluem tudo. */
+    isTruncated?: boolean;
+    onRetry?: () => void;
     onBack: () => void;
     onAddTransaction: () => void;
     onEditTransaction: (transaction: Transaction) => void;
@@ -85,11 +94,15 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({
     viewType,
     transactions,
     invalidCount = 0,
+    loadState = 'ready',
+    isTruncated = false,
+    onRetry,
     onBack,
     onAddTransaction,
     onEditTransaction,
     onDeleteTransaction,
 }) => {
+    const display = useMoneyDisplay();
 
     const catalogQuery = useSettingsCatalog({ includeInactive: true });
     const catalogItems = catalogQuery.data ?? [];
@@ -482,6 +495,22 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({
                         )}
                     </div>
 
+                    {loadState === 'loading' && (
+                        <p role="status" className="mt-4 text-xs text-gray-500 dark:text-gray-400">
+                            Carregando os lançamentos do mês…
+                        </p>
+                    )}
+                    {loadState === 'error' && (
+                        <div role="alert" className="mt-4 flex flex-wrap items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
+                            <span>Não foi possível carregar os lançamentos deste mês.</span>
+                            {onRetry && (
+                                <button type="button" onClick={onRetry} className="font-semibold text-indigo-600 dark:text-indigo-300 underline">
+                                    Tentar novamente
+                                </button>
+                            )}
+                        </div>
+                    )}
+                    {loadState === 'ready' && (
                     <div className="mt-4 flex flex-wrap items-center gap-2">
                         <span className="inline-flex items-center gap-2 rounded-full bg-white dark:bg-dark-100 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 shadow-sm ring-1 ring-gray-200 dark:ring-gray-800">
                             <FilterIcon className="h-4 w-4" />
@@ -489,11 +518,11 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({
                         </span>
 
                         <span className="inline-flex items-center rounded-full bg-white dark:bg-dark-100 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 shadow-sm ring-1 ring-gray-200 dark:ring-gray-800">
-                            Total {formatCurrency(filteredTotal)}
+                            Total {display.cents(filteredTotalCents, () => formatCurrency(filteredTotal))}
                         </span>
 
                         <span className="inline-flex items-center rounded-full bg-white dark:bg-dark-100 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 shadow-sm ring-1 ring-gray-200 dark:ring-gray-800">
-                            Média {formatCurrency(filteredAverage)}
+                            Média {display.reais(filteredAverage, formatCurrency)}
                         </span>
 
                         {viewType !== 'receita' && (
@@ -520,12 +549,19 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({
                             </button>
                         )}
                     </div>
+                    )}
 
-                    {invalidCount > 0 && (
+                    {loadState === 'ready' && isTruncated && (
+                        <p role="status" className="mt-3 text-xs text-gray-500 dark:text-gray-400">
+                            Este mês tem mais lançamentos do que a lista consegue carregar: a lista, o total e a média não incluem todos.
+                        </p>
+                    )}
+
+                    {loadState === 'ready' && invalidCount > 0 && (
                         <p role="status" className="mt-3 text-xs text-gray-500 dark:text-gray-400">
                             {invalidCount === 1
-                                ? '1 lançamento com dados inconsistentes não exibido nos meses carregados.'
-                                : `${invalidCount} lançamentos com dados inconsistentes não exibidos nos meses carregados.`}
+                                ? '1 lançamento com dados inconsistentes não exibido neste mês.'
+                                : `${invalidCount} lançamentos com dados inconsistentes não exibidos neste mês.`}
                         </p>
                     )}
                 </div>
@@ -554,7 +590,7 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({
                             </thead>
 
                             <tbody>
-                                {sortedTransactions.map((transaction) => {
+                                {loadState === 'ready' && sortedTransactions.map((transaction) => {
                                     const visuals = resolveTransactionVisuals({
                                         transaction,
                                         catalogItems,
@@ -609,7 +645,7 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({
                                                         ] || ''
                                                             }`}
                                                     >
-                                                        + {formatCurrency(transactionAmount(transaction))}
+                                                        + {display.cents(transaction.valueCents, () => formatCurrency(transactionAmount(transaction)))}
                                                     </td>
 
                                                     <td className="py-4 px-4 text-center text-gray-600 dark:text-gray-300 whitespace-nowrap">
@@ -721,7 +757,7 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({
                                                         ] || ''
                                                             }`}
                                                     >
-                                                        {transactionCashImpactCents(transaction) > 0 ? '+' : transactionCashImpactCents(transaction) < 0 ? '-' : '•'} {formatCurrency(transactionAmount(transaction))}
+                                                        {transactionCashImpactCents(transaction) > 0 ? '+' : transactionCashImpactCents(transaction) < 0 ? '-' : '•'} {display.cents(transaction.valueCents, () => formatCurrency(transactionAmount(transaction)))}
                                                     </td>
 
                                                     <td className="py-4 px-4 text-center">
@@ -764,7 +800,7 @@ const TransactionsView: React.FC<TransactionsViewProps> = ({
                                     );
                                 })}
 
-                                {sortedTransactions.length === 0 && (
+                                {loadState === 'ready' && sortedTransactions.length === 0 && (
                                     <tr>
                                         <td colSpan={tableColumnCount} className="py-14 px-4">
                                             <div className="flex flex-col items-center justify-center gap-2 text-center text-gray-500 dark:text-gray-400">

@@ -1,0 +1,17 @@
+TAP version 13
+# ADV-7 falhas até o primeiro erro=2; leituras automáticas depois=1; mostrados=[1136000,1136000]; último=done 1136000
+# Subtest: ADV-7: a série relida falha durante a sincronização; com o relatório de volta e SEM clicar em "Tentar de novo", a releitura automática do agendador traz a estimativa nova
+ok 1 - ADV-7: a série relida falha durante a sincronização; com o relatório de volta e SEM clicar em "Tentar de novo", a releitura automática do agendador traz a estimativa nova
+  ---
+  duration_ms: 184.145484
+  type: 'test'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 459.758335

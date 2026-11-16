@@ -1,0 +1,67 @@
+#!/usr/bin/env python3
+"""P5-F.1: monta as tabelas de `mutantes.md` a partir do roteiro e dos logs da rodada final.
+
+Uso: gerar-tabela-mutantes.py <mutantes.py> <log unit> <log rules>
+Imprime Markdown: uma linha por mutante (ID, grupo, arquivo, trecho original → mutação,
+testes e resultado), na ordem do roteiro, conferida contra a ordem do log.
+"""
+import re
+import sys
+
+script, unit_log, rules_log = sys.argv[1], sys.argv[2], sys.argv[3]
+code = open(script, encoding='utf-8').read()
+data = code[:code.index('\ndef digest(')]
+namespace = {'__name__': 'tabela', 'sys': type('S', (), {'argv': ['x', '.', 'unit']})}
+# A linha de importação de `mutantes.py` ganhou `os` na revisão 10 (a rodada dos sobreviventes).
+exec(compile('from pathlib import Path\n' + re.split(r'import hashlib, (?:os, )?subprocess, sys\nfrom pathlib import Path\n', data, maxsplit=1)[1]
+             .replace('WT = Path(sys.argv[1])', 'WT = Path(".")')
+             .replace("MODE = sys.argv[2] if len(sys.argv) > 2 else 'unit'", "MODE = 'unit'"), script, 'exec'), namespace)
+UNIT, RULES = namespace['UNIT'], namespace['RULES']
+
+
+def results(log):
+    # Como `mutantes.py` imprime: f'{result:11} {group:11} {rel}: {first}'. O grupo pode ter espaço ("sem
+    # pedido") e passar das 11 colunas ("fora de passo", desde a revisão 9): ele vai até o caminho do arquivo.
+    # A ordem e o grupo de cada linha são conferidos contra o roteiro em `table`.
+    rows = []
+    for line in open(log, encoding='utf-8'):
+        line = re.sub(r'\x1b\[[0-9;]*[A-Za-z]', '', line).rstrip('\n')
+        result = line[:11].strip()
+        if result not in ('MORTO', 'SOBREVIVEU', 'NÃO COMPILA') or len(line) < 25 or line[11] != ' ':
+            continue
+        path = re.search(r' (src/|tests/|firestore\.rules|functions/)', line[12:])
+        if not path:
+            continue
+        group = line[12:12 + path.start()].strip()
+        rel, separator, first = line[12 + path.start() + 1:].partition(': ')
+        if not separator:
+            continue
+        rows.append((result, group, rel, first))
+    return rows
+
+
+def short(text, limit=70):
+    text = ' '.join(text.strip().split())
+    text = text.replace('|', '\\|')
+    return (text[:limit] + '…') if len(text) > limit else (text or '(remove a linha)')
+
+
+def table(prefix, mutants, log_rows, with_tests):
+    assert len(mutants) == len(log_rows), (prefix, len(mutants), len(log_rows))
+    header = '| ID | Grupo | Arquivo | Trecho original | Mutação | ' + ('Testes | ' if with_tests else '') + 'Resultado |'
+    print(header)
+    print('|' + ' --- |' * (header.count('|') - 1))
+    for index, (mutant, logged) in enumerate(zip(mutants, log_rows), start=1):
+        group, rel, old, new = mutant[0], mutant[1], mutant[2], mutant[3]
+        assert logged[1] == group and logged[2] == rel, (mutant[:2], logged)
+        tests = ', '.join(t.split('/')[-1].replace('.test.ts', '') for t in mutant[4]) if with_tests else None
+        cells = [f'{prefix}{index:02d}', group, f'`{rel}`', f'`{short(old)}`', f'`{short(new)}`' if new.strip() else '(remove)']
+        if with_tests:
+            cells.append(tests)
+        cells.append({'MORTO': 'morto', 'NÃO COMPILA': '**não compila**'}.get(logged[0], '**sobreviveu**'))
+        print('| ' + ' | '.join(cells) + ' |')
+
+
+table('U', UNIT, results(unit_log), True)
+print()
+table('R', RULES, results(rules_log), False)

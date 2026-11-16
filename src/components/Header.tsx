@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { BellIcon, SunIcon, MoonIcon, HamburgerIcon, ChevronLeftIcon, ChevronRightIcon, SearchIcon, CheckIcon, UsersIcon, BuildingIcon, BriefcaseIcon, PlusIcon } from './Icons.tsx';
+import { BellIcon, SunIcon, MoonIcon, HamburgerIcon, ChevronLeftIcon, ChevronRightIcon, SearchIcon, CheckIcon, UsersIcon, BuildingIcon, BriefcaseIcon, PlusIcon, ClockIcon } from './Icons.tsx';
 import NotificationsPanel from './NotificationsPanel.tsx';
 import CreateWorkspaceModal from './CreateWorkspaceModal.tsx';
 import ConfirmationModal from './ConfirmationModal.tsx';
@@ -11,6 +11,9 @@ import {
 import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
 // NOVO IMPORT: Hook que verifica os limites do plano
 import { useBilling } from '../modules/billing/BillingContext';
+import { useWorkTime } from '../modules/work-time/WorkTimeContext';
+import { useIsMoneyForced } from '../modules/work-time/display';
+import { estimateQualifiers } from '../modules/work-time/messages';
 import type { AppNotification, NotificationItem, NotificationType } from '../types.ts';
 import { pressTargetProps, usePointerOriginTracking } from '../lib/pressOrigin.ts';
 
@@ -31,7 +34,33 @@ const Header: React.FC<HeaderProps> = ({
     const { activeWorkspace, workspaces, switchWorkspace, hasMoreWorkspaces, loadMoreWorkspaces } = useWorkspace();
     // Plano da CONTA do usuário: é ele que limita os workspaces próprios.
     const { checkAccountLimit, accountPlan } = useBilling();
-    
+    // P5-F: alternância dinheiro × tempo de trabalho, só com a preferência
+    // privada ativada e válida. A troca grava só o modo de exibição. Numa
+    // prévia forçada em dinheiro (Personalização), não há alternador nem aviso.
+    // P5-F.1: no modo tempo, o aviso diz quando a estimativa automática ainda
+    // carrega ou está indisponível (os valores ficam em reais).
+    const workTime = useWorkTime();
+    const moneyForced = useIsMoneyForced();
+    const isWorkTimeMode = !moneyForced && workTime.displayMode === 'time';
+    const readyEstimate = workTime.estimate.status === 'done' && workTime.estimate.estimate.status === 'ready'
+        ? workTime.estimate.estimate
+        : null;
+    // Ressalvas da estimativa em uso: mês incompleto, poucos meses de renda ou fonte PJ.
+    const workTimeQualifiers = readyEstimate && workTime.estimate.status === 'done'
+        ? estimateQualifiers(readyEstimate, workTime.estimate.refreshFailed)
+        : [];
+    const [workTimeToggleError, setWorkTimeToggleError] = useState<string | null>(null);
+    const toggleWorkTimeMode = async (mode: 'money' | 'time') => {
+        setWorkTimeToggleError(null);
+        try {
+            await workTime.setDisplayMode(mode);
+        } catch (error) {
+            const code = (error as { code?: unknown } | null)?.code;
+            console.error('Falha ao trocar o modo de exibição', typeof code === 'string' ? code : 'desconhecido');
+            setWorkTimeToggleError('Não foi possível trocar a exibição agora. Tente de novo.');
+        }
+    };
+
     const [isPickerOpen, setIsPickerOpen] = useState(false);
     const [pickerYear, setPickerYear] = useState(currentDate.getFullYear());
     const [pickerMonth, setPickerMonth] = useState(currentDate.getMonth());
@@ -164,6 +193,25 @@ const Header: React.FC<HeaderProps> = ({
         if (!isNotificationsOpen) { setIsUserMenuOpen(false); }
         setIsNotificationsOpen(!isNotificationsOpen);
     };
+
+    // P5-GATE-FINAL (PTBR-04): o painel fecha pelo X, por um aviso que abre outra tela e por Escape, e o foco volta
+    // ao sino que o abriu (o clique fora fecha sem mexer no foco). Com o diálogo de exclusão aberto, o Escape é
+    // dele: o diálogo o trata na captura e não o deixa chegar aqui (`ConfirmationModal`), e a guarda abaixo cobre o
+    // mesmo caso.
+    const closeNotificationsToBell = useCallback(() => {
+        setIsNotificationsOpen(false);
+        notificationsBellRef.current?.focus();
+    }, []);
+    useEffect(() => {
+        if (!isNotificationsOpen || activePendingDelete) return undefined;
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (event.key !== 'Escape' || event.defaultPrevented) return;
+            event.preventDefault();
+            closeNotificationsToBell();
+        };
+        document.addEventListener('keydown', onKeyDown);
+        return () => document.removeEventListener('keydown', onKeyDown);
+    }, [isNotificationsOpen, activePendingDelete, closeNotificationsToBell]);
 
     const toggleUserMenu = () => {
         if (!isUserMenuOpen) { setIsNotificationsOpen(false); }
@@ -328,7 +376,7 @@ const normalizedNotifications = useMemo<NotificationItem[]>(() => {
                                     isDeleting={notificationActions.isDeleting}
                                     onLoadMore={notificationFeed.loadMore}
                                     onRetry={notificationFeed.retry}
-                                    onClose={() => setIsNotificationsOpen(false)}
+                                    onClose={closeNotificationsToBell}
                                 onMarkAllRead={() => {
                                         const unreadIds = notificationFeed.visible.filter(n => !n.read).map(n => n.id);
                                         notificationActions.markAsRead(unreadIds);
@@ -345,9 +393,22 @@ const normalizedNotifications = useMemo<NotificationItem[]>(() => {
                     
                     <div className="h-6 w-px bg-border mx-1"></div>
 
-                    <button 
+                    {workTime.isAvailable && !moneyForced && (
+                        <button
+                            type="button"
+                            onClick={() => void toggleWorkTimeMode(isWorkTimeMode ? 'money' : 'time')}
+                            aria-label="Mostrar valores em tempo de trabalho"
+                            aria-pressed={isWorkTimeMode}
+                            title={isWorkTimeMode ? 'Mostrar valores em reais' : 'Mostrar valores em tempo de trabalho (estimativa)'}
+                            className={`${iconButtonBaseClass} ${isWorkTimeMode ? iconButtonActive : iconButtonInactive}`}
+                        >
+                            <ClockIcon className="w-5 h-5" aria-hidden="true" />
+                        </button>
+                    )}
+
+                    <button
                         type="button"
-                        onClick={onToggleDarkMode} 
+                        onClick={onToggleDarkMode}
                         aria-label={isDarkMode ? 'Ativar modo claro' : 'Ativar modo escuro'}
                         className={`${iconButtonBaseClass} ${iconButtonInactive}`}
                     >
@@ -484,7 +545,30 @@ const normalizedNotifications = useMemo<NotificationItem[]>(() => {
                 </div>
             </div>
 
-            <CreateWorkspaceModal 
+            {isWorkTimeMode && (
+                <p className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted" data-testid="work-time-notice">
+                    <ClockIcon className="w-4 h-4 shrink-0" aria-hidden="true" />
+                    <span>
+                        {workTime.config
+                            ? ['Valores em tempo de trabalho equivalente: uma estimativa aproximada, não o valor exato.', ...workTimeQualifiers].join(' ')
+                            : workTime.estimate.status === 'done' || workTime.estimate.status === 'error'
+                                ? 'Estimativa de tempo de trabalho indisponível agora: os valores continuam em reais. Veja o motivo em Configurações.'
+                                : 'Calculando a estimativa de tempo de trabalho: enquanto isso, os valores ficam em reais.'}
+                    </span>
+                    <button
+                        type="button"
+                        onClick={() => void toggleWorkTimeMode('money')}
+                        className="font-medium text-primary dark:text-primary-on-dark hover:underline focus:outline-none focus:ring-2 focus:ring-primary rounded"
+                    >
+                        Mostrar em R$
+                    </button>
+                </p>
+            )}
+            {workTimeToggleError && (
+                <p className="mt-2 text-sm text-red-600 dark:text-red-400" role="alert">{workTimeToggleError}</p>
+            )}
+
+            <CreateWorkspaceModal
                 isOpen={isCreateWorkspaceModalOpen}
                 onClose={() => setIsCreateWorkspaceModalOpen(false)}
             />

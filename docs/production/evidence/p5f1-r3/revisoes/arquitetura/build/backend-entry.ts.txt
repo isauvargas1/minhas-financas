@@ -1,0 +1,5 @@
+export * from "<raiz da árvore>/functions/src/cash/projectionMarks";
+export {
+  applyCashPeriodWriteOnce, markGenerationsFor, readCashProjectionState, projectionGenerationOf,
+  cashWritePlanFor, compareCommitTimes, cashPeriodEventKey, cashPeriodDeltaFor, categoryGenerationsFor,
+} from "<raiz da árvore>/functions/src/cash/periods";

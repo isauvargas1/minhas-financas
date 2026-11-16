@@ -1,0 +1,111 @@
+
+// ================================================================================================
+// P5-F.1-R1 — antes × depois TEMPORÁRIO (não faz parte da suíte). Acrescentado, igual, a uma CÓPIA do
+// e2e/work-time-p5f.spec.ts de cada árvore (P5-F.1 `d9b33cd1` e R1), só durante a execução. Mesmos dados
+// sintéticos, mesmo estado e mesma viewport (1440 × 900, claro); não afirma o comportamento de nenhuma das
+// duas: registra o que aparece (avisos, botão de salvar, prévia, valores convertidos) e captura a página
+// inteira e as regiões tocadas pela R1, para a comparação pixel a pixel.
+// ================================================================================================
+import * as adfs from 'node:fs';
+
+const AD_DIR = process.env.EVIDENCE_DIR ?? 'test-results/p5f1r1-antes-depois';
+const AD_HALVES = ['08:00-12:00/0', '13:00-17:00/0'].map((day) => `W:${Array(7).fill(day).join(',')}`).join(';');
+const AD_REGIONS = {
+  previa: '[data-testid="work-time-preview"]',
+  salvar: '[data-testid="work-time-save"] >> xpath=..',
+  calendario: '[role="group"][aria-label^="Calendário de"]',
+};
+
+const adFacts = async (page: Page) => {
+  const text = async (selector: string) => ((await page.locator(selector).count()) ? (await page.locator(selector).first().innerText()).trim() : null);
+  return {
+    avisoRotinas: await text('[data-testid="routines-ambiguity"]'),
+    avisoCalendario: await text('[data-testid="work-time-calendar-ambiguity"]'),
+    salvarHabilitado: (await saveButton(page).count()) ? await saveButton(page).isEnabled() : null,
+    previaHora: await text('[data-testid="work-time-preview-hourly"]'),
+    previaIndisponivel: await text('[data-testid="work-time-preview-unavailable"]'),
+  };
+};
+
+const adSnap = async (page: Page, name: string, regions: Record<string, string>, facts: Record<string, unknown>) => {
+  adfs.mkdirSync(AD_DIR, { recursive: true });
+  await page.evaluate(() => document.fonts?.ready);
+  await page.waitForTimeout(600);
+  await page.screenshot({ path: `${AD_DIR}/${name}.png`, fullPage: true });
+  for (const [label, selector] of Object.entries(regions)) {
+    const region = page.locator(selector).first();
+    if (await region.count()) await region.screenshot({ path: `${AD_DIR}/${name}-${label}.png` });
+  }
+  adfs.writeFileSync(`${AD_DIR}/${name}.json`, JSON.stringify(facts, null, 2));
+};
+
+test.describe('antes-depois R1', () => {
+  test.use({ viewport: { width: 1440, height: 900 }, colorScheme: 'light' });
+
+  test('antes-depois R1: Configurações com rotinas válidas', async ({ page, request }) => {
+    test.setTimeout(240_000);
+    const tenant = await seedTenant(request);
+    await seedPreference(A.uid, tenant.pf.workspaceId, { displayMode: 'money', routines: AD_HALVES });
+    await startOn(page, A.uid, tenant.pf.workspaceId);
+    await login(page, A.email);
+    await openWorkTimeSettings(page);
+    await expect(previewHourly(page)).toHaveText(brl(2_500), { timeout: 30_000 });
+    await adSnap(page, 's0-configuracoes-validas', { ...AD_REGIONS, rotina1: '[data-testid="routine-0"]' }, await adFacts(page));
+  });
+
+  test('antes-depois R1: rotina que cruza a pausa do almoço, no editor', async ({ page, request }) => {
+    test.setTimeout(240_000);
+    const tenant = await seedTenant(request);
+    await seedPreference(A.uid, tenant.pf.workspaceId, { displayMode: 'money', routines: AD_HALVES });
+    await startOn(page, A.uid, tenant.pf.workspaceId);
+    await login(page, A.email);
+    await openWorkTimeSettings(page);
+    await expect(previewHourly(page)).toHaveText(brl(2_500), { timeout: 30_000 });
+    await page.getByRole('button', { name: 'Adicionar outra rotina' }).click();
+    const third = page.getByTestId('routine-2');
+    const template = third.getByRole('group', { name: 'Jornada para aplicar a vários dias' });
+    await template.getByLabel('Início').fill('11:00');
+    await template.getByLabel('Fim').fill('14:00');
+    await template.getByLabel('Intervalo (min)').fill('60');
+    await third.getByRole('button', { name: 'Aplicar aos dias marcados' }).click();
+    await page.waitForTimeout(3_000);
+    await adSnap(page, 's1-editor-cruzamento', { ...AD_REGIONS, rotina3: '[data-testid="routine-2"]' }, await adFacts(page));
+  });
+
+  test('antes-depois R1: folga que tira a cobertura, em Configurações', async ({ page, request }) => {
+    test.setTimeout(240_000);
+    const tenant = await seedTenant(request);
+    const routines = ['W:20:00-00:00/0,-,-,-,-,-,-', 'W:22:00-02:00/30,-,-,-,-,-,-', 'W:-,00:00-08:00/0,-,-,-,-,-'].join(';');
+    await seedPreference(A.uid, tenant.pf.workspaceId, { displayMode: 'money', routines });
+    await startOn(page, A.uid, tenant.pf.workspaceId);
+    await login(page, A.email);
+    await openWorkTimeSettings(page);
+    await page.waitForTimeout(3_000);
+    const today = saoPauloToday();
+    const date = new Date(`${today}T12:00:00Z`);
+    date.setUTCDate(date.getUTCDate() + (((2 - date.getUTCDay() + 7) % 7) || 7));
+    await page.getByLabel('Tipo de exceção').selectOption({ label: 'Folga' });
+    await page.getByLabel('De', { exact: true }).fill(date.toISOString().slice(0, 10));
+    await page.getByRole('button', { name: 'Incluir exceção' }).click();
+    await page.waitForTimeout(3_000);
+    await adSnap(page, 's2-folga-cobertura', AD_REGIONS, await adFacts(page));
+  });
+
+  test('antes-depois R1: configuração com cruzamento já gravada, em Configurações e no Dashboard', async ({ page, request }) => {
+    test.setTimeout(240_000);
+    const tenant = await seedTenant(request);
+    const ambiguous = `${AD_HALVES};W:${[...Array(5).fill('11:00-14:00/60'), '-', '-'].join(',')}`;
+    await seedPreference(A.uid, tenant.pf.workspaceId, { displayMode: 'time', routines: ambiguous });
+    await startOn(page, A.uid, tenant.pf.workspaceId);
+    await login(page, A.email);
+    await openWorkTimeSettings(page);
+    await page.waitForTimeout(5_000);
+    await adSnap(page, 's3-gravada-configuracoes', AD_REGIONS, await adFacts(page));
+    await openDashboard(page);
+    await page.waitForTimeout(5_000);
+    await adSnap(page, 's4-gravada-dashboard', { aviso: '[data-testid="work-time-notice"]' }, {
+      valoresConvertidos: await converted(page).count(),
+      aviso: (await notice(page).count()) ? (await notice(page).first().innerText()).trim() : null,
+    });
+  });
+});

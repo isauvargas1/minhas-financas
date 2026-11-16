@@ -1,0 +1,229 @@
+{
+  "description": "P5-F.1-R3 (B03): impressão digital canônica de documentos de transactions. Gerada pela implementação do backend (functions/src/cash/projectionMarks.ts) e conferida pelo cliente (src/modules/work-time/projectionProof.ts). Marcadores: __timestamp [segundos, nanossegundos], __geopoint [lat, lng], __number (NaN, Infinity).",
+  "cases": [
+    {
+      "name": "receita de caixa paga",
+      "doc": {
+        "type": "receita",
+        "description": "Salário",
+        "category": "Renda",
+        "categoryId": "cat-renda",
+        "valueCents": 1250000,
+        "date": "2026-10-05",
+        "isPaid": true,
+        "userId": "uid-1",
+        "createdAt": {
+          "__timestamp": [
+            1790000000,
+            123000
+          ]
+        },
+        "updatedAt": {
+          "__timestamp": [
+            1790000100,
+            456000
+          ]
+        },
+        "cashEntry": {
+          "status": "paid",
+          "revision": 3,
+          "confirmedAt": {
+            "__timestamp": [
+              1790000050,
+              0
+            ]
+          },
+          "accountId": "acc-1"
+        }
+      },
+      "fingerprint": "3f302196fa208341d7a4000f9a08af4e35e25c280f58e4b5b4f901cab7e66858"
+    },
+    {
+      "name": "mesmo conteúdo com chaves em outra ordem",
+      "doc": {
+        "updatedAt": {
+          "__timestamp": [
+            1790000100,
+            456000
+          ]
+        },
+        "cashEntry": {
+          "accountId": "acc-1",
+          "confirmedAt": {
+            "__timestamp": [
+              1790000050,
+              0
+            ]
+          },
+          "revision": 3,
+          "status": "paid"
+        },
+        "userId": "uid-1",
+        "isPaid": true,
+        "date": "2026-10-05",
+        "valueCents": 1250000,
+        "categoryId": "cat-renda",
+        "category": "Renda",
+        "description": "Salário",
+        "createdAt": {
+          "__timestamp": [
+            1790000000,
+            123000
+          ]
+        },
+        "type": "receita"
+      },
+      "fingerprint": "3f302196fa208341d7a4000f9a08af4e35e25c280f58e4b5b4f901cab7e66858"
+    },
+    {
+      "name": "um microssegundo a mais no updatedAt",
+      "doc": {
+        "type": "receita",
+        "description": "Salário",
+        "category": "Renda",
+        "categoryId": "cat-renda",
+        "valueCents": 1250000,
+        "date": "2026-10-05",
+        "isPaid": true,
+        "userId": "uid-1",
+        "createdAt": {
+          "__timestamp": [
+            1790000000,
+            123000
+          ]
+        },
+        "updatedAt": {
+          "__timestamp": [
+            1790000100,
+            457000
+          ]
+        },
+        "cashEntry": {
+          "status": "paid",
+          "revision": 3,
+          "confirmedAt": {
+            "__timestamp": [
+              1790000050,
+              0
+            ]
+          },
+          "accountId": "acc-1"
+        }
+      },
+      "fingerprint": "7dae47b0718023e03dafeb934d698cea1c27c2be42bcc945bc75b7f1e685cced"
+    },
+    {
+      "name": "espelho de recebimento de cliente",
+      "doc": {
+        "type": "receita",
+        "valueCents": 50000,
+        "date": "2026-09-20",
+        "description": "Recebimento",
+        "receivableEntry": {
+          "principalCents": 50000,
+          "reversal": false,
+          "receivableMovementId": "rmv_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "clientId": "cli-1"
+        },
+        "updatedAt": {
+          "__timestamp": [
+            1789000000,
+            1000
+          ]
+        }
+      },
+      "fingerprint": "62edd5dc8cccd1ccc19ba3b12ac13483ae2d7629033dc09b7edbdf295617aedb"
+    },
+    {
+      "name": "anulado com nulos e lista",
+      "doc": {
+        "type": "despesa",
+        "valueCents": 0,
+        "date": "2026-01-31",
+        "voidedAt": {
+          "__timestamp": [
+            1789500000,
+            999000
+          ]
+        },
+        "tags": [
+          "a",
+          "b",
+          1,
+          null,
+          true
+        ],
+        "note": null,
+        "nested": {
+          "list": [
+            {
+              "x": 1
+            },
+            {
+              "y": [
+                2,
+                3
+              ]
+            }
+          ]
+        }
+      },
+      "fingerprint": "a71925eac54d8d4c162391c40f3707903b5f2108ebeabf598efd8282799a9bd2"
+    },
+    {
+      "name": "mapa com chave $t não é Timestamp",
+      "doc": {
+        "weird": {
+          "$t": [
+            1,
+            2
+          ]
+        },
+        "valueCents": 1,
+        "type": "receita",
+        "date": "2026-02-01"
+      },
+      "fingerprint": "df1c9756a2f52676190c82199b4162957b9ac3a51ba8dd8daca19dd9f2e4ee04"
+    },
+    {
+      "name": "números especiais",
+      "doc": {
+        "a": 0,
+        "b": {
+          "__number": "NaN"
+        },
+        "c": {
+          "__number": "Infinity"
+        },
+        "d": 0.5,
+        "e": 9007199254740991
+      },
+      "fingerprint": "b80f1784580f7b70b6fbf5b04f480f17a5d100c7aa907fc137a06edf4d6e4193"
+    },
+    {
+      "name": "ponto geográfico",
+      "doc": {
+        "where": {
+          "__geopoint": [
+            -23.5505,
+            -46.6333
+          ]
+        },
+        "valueCents": 10,
+        "type": "despesa",
+        "date": "2026-03-03"
+      },
+      "fingerprint": "81cacff013e919270b4e4b159c86a8610b053a50aace927df8d629b3aeda4c42"
+    },
+    {
+      "name": "texto com acentos e emoji",
+      "doc": {
+        "description": "Pão de queijo ☕ — ação",
+        "valueCents": 1,
+        "type": "despesa",
+        "date": "2026-04-04"
+      },
+      "fingerprint": "c2159860f22778975fc337d76eddaba9208dbbd0cab07f0ed25466dae685f044"
+    }
+  ]
+}

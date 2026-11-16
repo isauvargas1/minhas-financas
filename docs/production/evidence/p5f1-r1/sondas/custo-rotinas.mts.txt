@@ -1,0 +1,20 @@
+// Custo do conferidor de rotinas (P5-F.1-R1) no pior caso de ciclos (período conjunto longo) e no comum.
+const root = process.argv[2];
+const cal = await import(`${root}/src/modules/work-time/calendar.ts`);
+const w = (s: number, e: number, b = 0) => ({ kind: 'window', start: s, end: e, breakMinutes: b });
+const cyc = (work: number, rest: number, spec: any) => ({ kind: 'cyclic', reference: '2026-01-01', workDays: work, restDays: rest, day: spec });
+const weekly = (spec: any) => ({ kind: 'weekly', days: Array(7).fill(spec) });
+const cases: Record<string, any[]> = {
+  comum: [weekly(w(480, 1020, 60))],
+  tres_semanais: [weekly(w(480, 720)), weekly(w(780, 1020)), weekly(w(540, 660, 90))],
+  ciclos_longos: [cyc(12, 11, w(420, 1140, 60)), cyc(10, 9, w(1200, 1260)), cyc(9, 8, w(60, 120))],
+  ciclos_longos_cruzando: [cyc(12, 11, w(420, 1140)), cyc(10, 9, w(480, 1080, 60)), cyc(9, 8, w(1320, 300))],
+};
+for (const [name, routines] of Object.entries(cases)) {
+  const t0 = performance.now();
+  const result = cal.routinesAmbiguity(routines, '2026-11-05');
+  const ms = performance.now() - t0;
+  const t1 = performance.now();
+  for (let i = 0; i < 5; i++) cal.routinesAmbiguity(routines, '2026-11-05');
+  console.log(name, 'resultado', JSON.stringify(result), 'primeira', ms.toFixed(1), 'ms; média de 5', ((performance.now() - t1) / 5).toFixed(1), 'ms');
+}

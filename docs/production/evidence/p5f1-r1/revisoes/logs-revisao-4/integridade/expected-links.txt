@@ -1,0 +1,10 @@
+0b9469caaf8319f6ca7ae1f424f17eb4689cd4fd	.claude/skills/billing-entitlement-integrity
+055d65b33abafda0ba81c6dafe6c0581bc838af6	.claude/skills/financial-domain-integrity
+69039d3c519b6ac136cb3d494f9720a82f7f0d56	.claude/skills/firebase-production-readiness
+f5cb300f4a405703a1ca4bfa47040ed217196fbc	.claude/skills/firestore-scale-cost-review
+93f6687ec9c4e52699f3ebfc8cd72f1ece5952a0	.claude/skills/multi-tenant-security-review
+33a7c15e3358427f7cf415e804a3f65e168cd802	.claude/skills/observability-incident-readiness
+2940b1734d006595d71c61029a5bc83789f25be1	.claude/skills/privacy-lgpd-data-lifecycle
+e3f886698ffb4c1c7a0ff08b8f88273a8173ffcf	.claude/skills/ptbr-product-ui-review
+496061c3f24bf1ed4bd10821b13db086fb998315	.claude/skills/regression-release-gate
+eb8a90dc52a23209d58db010fe1075f11f1d07ad	.claude/skills/saas-commercial-readiness

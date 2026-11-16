@@ -1,0 +1,16 @@
+"""P5-F, captura de logs do navegador: injeta no teste 4 um console.error e um erro não tratado com a renda,
+vindos da própria página, antes da asserção final. Gera e2e/zz-mutante-logs-<rótulo>.spec.ts a partir da spec indicada."""
+import sys
+source, label, mode = sys.argv[1], sys.argv[2], sys.argv[3]
+src = open(source, encoding='utf-8').read()
+anchor = "  expect(localStorageKeysWithPreference(await page.evaluate(() => Object.entries(localStorage)))).toEqual([]);\n"
+assert src.count(anchor) == 1
+if mode == 'console':
+    inject = "  // MUTANTE LOGS: a página registra a renda no console.\n  await page.evaluate(() => console.error('Falha ao salvar', 'renda 4.400,00'));\n"
+else:
+    inject = ("  // MUTANTE LOGS: erro não tratado com a renda em reais.\n"
+              "  await page.evaluate(() => { setTimeout(() => { throw new Error('preferência {\"monthlyIncome\":4400}'); }, 0); });\n"
+              "  await page.waitForTimeout(200);\n")
+out = f'<scratchpad>/wt-p5f/e2e/zz-mutante-logs-{label}.spec.ts'
+open(out, 'w', encoding='utf-8').write(src.replace(anchor, inject + anchor))
+print(out)

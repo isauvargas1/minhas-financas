@@ -1,0 +1,63 @@
+# Contagens da execução oficial gate-verify-all-r32 (por script, dos resumos TAP do node --test)
+## verify:fast (linhas 1-11764)
+functions:test:unit: tests=677 pass=677 fail=0 cancelled=0 skipped=0 todo=0
+test:tools:e2e: tests=23 pass=23 fail=0 cancelled=0 skipped=0 todo=0
+test:tools:integracao: tests=3 pass=3 fail=0 cancelled=0 skipped=0 todo=0
+test:unit:accounts: tests=16 pass=16 fail=0 cancelled=0 skipped=0 todo=0
+test:unit:ai-chat: tests=37 pass=37 fail=0 cancelled=0 skipped=0 todo=0
+test:unit:billing: tests=72 pass=72 fail=0 cancelled=0 skipped=0 todo=0
+test:unit:cards: tests=30 pass=30 fail=0 cancelled=0 skipped=0 todo=0
+test:unit:cash: tests=23 pass=23 fail=0 cancelled=0 skipped=0 todo=0
+test:unit:clients: tests=15 pass=15 fail=0 cancelled=0 skipped=0 todo=0
+test:unit:goals: tests=59 pass=59 fail=0 cancelled=0 skipped=0 todo=0
+test:unit:investments: tests=177 pass=177 fail=0 cancelled=0 skipped=0 todo=0
+test:unit:loans: tests=20 pass=20 fail=0 cancelled=0 skipped=0 todo=0
+test:unit:notifications: tests=99 pass=99 fail=0 cancelled=0 skipped=0 todo=0
+test:unit:p1: tests=131 pass=131 fail=0 cancelled=0 skipped=0 todo=0
+test:unit:recurring: tests=22 pass=22 fail=0 cancelled=0 skipped=0 todo=0
+test:unit:reports: tests=107 pass=107 fail=0 cancelled=0 skipped=0 todo=0
+test:unit:settings-catalog: tests=17 pass=17 fail=0 cancelled=0 skipped=0 todo=0
+test:unit:split: tests=22 pass=22 fail=0 cancelled=0 skipped=0 todo=0
+test:unit:ui: tests=9 pass=9 fail=0 cancelled=0 skipped=0 todo=0
+test:unit:work-time: tests=284 pass=284 fail=0 cancelled=0 skipped=0 todo=0
+TOTAL resumos=20 tests=1843 fail=0 skipped=0 todo=0
+✖ 201 problems (0 errors, 201 warnings)
+## test:integration:emulator (linhas 11765-36770)
+functions:test:integration: tests=985 pass=985 fail=0 cancelled=0 skipped=0 todo=0
+test:rules:accounts: tests=5 pass=5 fail=0 cancelled=0 skipped=0 todo=0
+test:rules:adjacent: tests=5 pass=5 fail=0 cancelled=0 skipped=0 todo=0
+test:rules:billing: tests=10 pass=10 fail=0 cancelled=0 skipped=0 todo=0
+test:rules:cards: tests=5 pass=5 fail=0 cancelled=0 skipped=0 todo=0
+test:rules:goals: tests=21 pass=21 fail=0 cancelled=0 skipped=0 todo=0
+test:rules:investment-domain: tests=19 pass=19 fail=0 cancelled=0 skipped=0 todo=0
+test:rules:investment-m3: tests=7 pass=7 fail=0 cancelled=0 skipped=0 todo=0
+test:rules:investments: tests=7 pass=7 fail=0 cancelled=0 skipped=0 todo=0
+test:rules:m4: tests=41 pass=41 fail=0 cancelled=0 skipped=0 todo=0
+test:rules:notifications: tests=84 pass=84 fail=0 cancelled=0 skipped=0 todo=0
+test:rules:projection-marks: tests=17 pass=17 fail=0 cancelled=0 skipped=0 todo=0
+test:rules:receivables: tests=6 pass=6 fail=0 cancelled=0 skipped=0 todo=0
+test:rules:recurring: tests=5 pass=5 fail=0 cancelled=0 skipped=0 todo=0
+test:rules:reports: tests=12 pass=12 fail=0 cancelled=0 skipped=0 todo=0
+test:rules:settings-catalog: tests=4 pass=4 fail=0 cancelled=0 skipped=0 todo=0
+test:rules:split: tests=7 pass=7 fail=0 cancelled=0 skipped=0 todo=0
+test:rules:transactions-p4d: tests=8 pass=8 fail=0 cancelled=0 skipped=0 todo=0
+test:rules:work-time: tests=14 pass=14 fail=0 cancelled=0 skipped=0 todo=0
+test:rules:workspaces: tests=10 pass=10 fail=0 cancelled=0 skipped=0 todo=0
+test:tools:contas: tests=2 pass=2 fail=0 cancelled=0 skipped=0 todo=0
+test:tools:limpeza: tests=15 pass=15 fail=0 cancelled=0 skipped=0 todo=0
+TOTAL resumos=22 tests=1289 fail=0 skipped=0
+✔  Script exited successfully (code 0)
+[integração] fase completa: todas as suítes rodaram até o fim (execução e2c3bd4f-1500-497b-aae9-0effc1b6c97d).
+## E2E
+36812:[e2e em grupos] 218 testes em 36 arquivos, em 3 grupo(s), cada um com o próprio Emulator.
+36814:[e2e em grupos] grupo 1 de 3
+46853:[e2e em grupos] grupo 1: saída 0, 83/83 passaram, 420 s
+46855:[e2e em grupos] grupo 2 de 3
+52610:[e2e em grupos] grupo 2: saída 0, 64/64 passaram, 315 s
+52612:[e2e em grupos] grupo 3 de 3
+61751:[e2e em grupos] grupo 3: saída 0, 71/71 passaram, 698 s
+61753:[e2e em grupos] resumo
+61754:  grupo 1: saída 0, 83/83 passaram, 420 s
+61755:  grupo 2: saída 0, 64/64 passaram, 315 s
+61756:  grupo 3: saída 0, 71/71 passaram, 698 s
+61757:[e2e em grupos] ok: 218 testes, cada um uma vez, todos passaram

@@ -1,0 +1,211 @@
+{
+  "imagens": [
+    {
+      "imagem": "s0-configuracoes-validas-calendario.png",
+      "antes": "622x305",
+      "depois": "622x305",
+      "pixels_diferentes": 4,
+      "caixa": "180x50++358++123"
+    },
+    {
+      "imagem": "s0-configuracoes-validas-previa.png",
+      "antes": "270x242",
+      "depois": "270x242",
+      "pixels_diferentes": 0,
+      "caixa": null
+    },
+    {
+      "imagem": "s0-configuracoes-validas-rotina1.png",
+      "antes": "672x1379",
+      "depois": "672x1379",
+      "pixels_diferentes": 0,
+      "caixa": null
+    },
+    {
+      "imagem": "s0-configuracoes-validas-salvar.png",
+      "antes": "320x5725",
+      "depois": "320x5757",
+      "pixels_diferentes": null
+    },
+    {
+      "imagem": "s0-configuracoes-validas.png",
+      "antes": "1440x5965",
+      "depois": "1440x5997",
+      "pixels_diferentes": null
+    },
+    {
+      "imagem": "s1-editor-cruzamento-calendario.png",
+      "antes": "622x305",
+      "depois": "622x305",
+      "pixels_diferentes": 2,
+      "caixa": "1x2++537++123"
+    },
+    {
+      "imagem": "s1-editor-cruzamento-previa.png",
+      "antes": "270x242",
+      "depois": "270x242",
+      "pixels_diferentes": 0,
+      "caixa": null
+    },
+    {
+      "imagem": "s1-editor-cruzamento-rotina3.png",
+      "antes": "672x1105",
+      "depois": "672x1105",
+      "pixels_diferentes": 0,
+      "caixa": null
+    },
+    {
+      "imagem": "s1-editor-cruzamento-salvar.png",
+      "antes": "320x6788",
+      "depois": "320x6884",
+      "pixels_diferentes": null
+    },
+    {
+      "imagem": "s1-editor-cruzamento.png",
+      "antes": "1440x7028",
+      "depois": "1440x7124",
+      "pixels_diferentes": null
+    },
+    {
+      "imagem": "s2-folga-cobertura-calendario.png",
+      "antes": "622x305",
+      "depois": "622x305",
+      "pixels_diferentes": 806,
+      "caixa": "618x200++2++93"
+    },
+    {
+      "imagem": "s2-folga-cobertura-previa.png",
+      "antes": "270x242",
+      "depois": "270x242",
+      "pixels_diferentes": 1652,
+      "caixa": "143x178++34++26"
+    },
+    {
+      "imagem": "s2-folga-cobertura-salvar.png",
+      "antes": "320x4596",
+      "depois": "320x4628",
+      "pixels_diferentes": null
+    },
+    {
+      "imagem": "s2-folga-cobertura.png",
+      "antes": "1440x4836",
+      "depois": "1440x4868",
+      "pixels_diferentes": null
+    },
+    {
+      "imagem": "s3-gravada-configuracoes-calendario.png",
+      "antes": "622x305",
+      "depois": "622x305",
+      "pixels_diferentes": 1648,
+      "caixa": "622x201++0++93"
+    },
+    {
+      "imagem": "s3-gravada-configuracoes-previa.png",
+      "antes": "270x242",
+      "depois": "270x262",
+      "pixels_diferentes": null
+    },
+    {
+      "imagem": "s3-gravada-configuracoes-salvar.png",
+      "antes": "320x6788",
+      "depois": "320x6884",
+      "pixels_diferentes": null
+    },
+    {
+      "imagem": "s3-gravada-configuracoes.png",
+      "antes": "1440x7060",
+      "depois": "1440x7156",
+      "pixels_diferentes": null
+    },
+    {
+      "imagem": "s4-gravada-dashboard-aviso.png",
+      "antes": "1120x20",
+      "depois": "1120x20",
+      "pixels_diferentes": 6644,
+      "caixa": "936x15++24++4"
+    },
+    {
+      "imagem": "s4-gravada-dashboard.png",
+      "antes": "1440x1068",
+      "depois": "1440x1068",
+      "pixels_diferentes": 41027,
+      "caixa": "1072x816++312++108"
+    }
+  ],
+  "fatos": {
+    "s0-configuracoes-validas": {
+      "antes": {
+        "avisoRotinas": null,
+        "avisoCalendario": null,
+        "salvarHabilitado": false,
+        "previaHora": "R$ 25,00",
+        "previaIndisponivel": null
+      },
+      "depois": {
+        "avisoRotinas": null,
+        "avisoCalendario": null,
+        "salvarHabilitado": false,
+        "previaHora": "R$ 25,00",
+        "previaIndisponivel": null
+      }
+    },
+    "s1-editor-cruzamento": {
+      "antes": {
+        "avisoRotinas": null,
+        "avisoCalendario": null,
+        "salvarHabilitado": true,
+        "previaHora": "R$ 25,00",
+        "previaIndisponivel": null
+      },
+      "depois": {
+        "avisoRotinas": "A Rotina 1, a Rotina 2 e a Rotina 3 se cruzam em quinta-feira, 05/11/2026, e há intervalo no trecho em comum: não dá para saber onde cai a pausa, então as horas não podem ser calculadas com segurança. Ajuste os horários para que não se cruzem ou deixe sem intervalo as rotinas que se cruzam.",
+        "avisoCalendario": null,
+        "salvarHabilitado": false,
+        "previaHora": "R$ 25,00",
+        "previaIndisponivel": null
+      }
+    },
+    "s2-folga-cobertura": {
+      "antes": {
+        "avisoRotinas": null,
+        "avisoCalendario": null,
+        "salvarHabilitado": true,
+        "previaHora": "R$ 123,08",
+        "previaIndisponivel": null
+      },
+      "depois": {
+        "avisoRotinas": null,
+        "avisoCalendario": "A Rotina 1 e a Rotina 2 se cruzam em segunda-feira, 09/11/2026, e há intervalo no trecho em comum. Com a folga de terça-feira, 10/11/2026, o horário sem intervalo que cobria esse trecho não acontece: não dá para saber onde cai a pausa, então as horas não podem ser calculadas com segurança. Ajuste os horários das rotinas ou essa exceção.",
+        "salvarHabilitado": false,
+        "previaHora": "R$ 117,95",
+        "previaIndisponivel": null
+      }
+    },
+    "s3-gravada-configuracoes": {
+      "antes": {
+        "avisoRotinas": null,
+        "avisoCalendario": null,
+        "salvarHabilitado": false,
+        "previaHora": "R$ 25,00",
+        "previaIndisponivel": null
+      },
+      "depois": {
+        "avisoRotinas": "A Rotina 1, a Rotina 2 e a Rotina 3 se cruzam em quinta-feira, 05/11/2026, e há intervalo no trecho em comum: não dá para saber onde cai a pausa, então as horas não podem ser calculadas com segurança. Ajuste os horários para que não se cruzem ou deixe sem intervalo as rotinas que se cruzam.",
+        "avisoCalendario": null,
+        "salvarHabilitado": false,
+        "previaHora": null,
+        "previaIndisponivel": "Estimativa indisponível. Em algum dia do período, rotinas se cruzam e há intervalo no trecho em comum: não dá para saber onde cai a pausa, e as horas não podem ser calculadas com segurança. Ajuste as rotinas, os feriados ou as exceções em Configurações."
+      }
+    },
+    "s4-gravada-dashboard": {
+      "antes": {
+        "valoresConvertidos": 8,
+        "aviso": "Valores em tempo de trabalho equivalente: uma estimativa aproximada, não o valor exato.\nMostrar em R$"
+      },
+      "depois": {
+        "valoresConvertidos": 0,
+        "aviso": "Estimativa de tempo de trabalho indisponível agora: os valores continuam em reais. Veja o motivo em Configurações.\nMostrar em R$"
+      }
+    }
+  }
+}

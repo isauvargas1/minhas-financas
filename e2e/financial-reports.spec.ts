@@ -223,7 +223,8 @@ const openDashboard = async (page: Page) => {
   await expect(page.getByText('Saldo Atual').first()).toBeVisible();
 };
 
-const periodButton = (page: Page) => page.getByRole('button', { name: 'Selecionar período do relatório' });
+// P5-GATE-FINAL (PTBR-05): o nome acessível do seletor contém o período visível (WCAG 2.5.3).
+const periodButton = (page: Page) => page.getByRole('button', { name: /^Período do relatório: / });
 
 const selectPeriod = async (page: Page, label: string, preset: string) => {
   const requested = page.waitForRequest((request) =>
@@ -231,7 +232,8 @@ const selectPeriod = async (page: Page, label: string, preset: string) => {
     && request.url().endsWith('/getFinancialReport')
     && (request.postData() ?? '').includes(`"preset":"${preset}"`));
   await periodButton(page).click();
-  await page.getByRole('option', { name: label, exact: true }).click();
+  // P5-GATE-FINAL (PTBR-05): os períodos são botões nativos num grupo (padrão de divulgação), não `option`.
+  await page.getByRole('group', { name: 'Períodos do relatório' }).getByRole('button', { name: label, exact: true }).click();
   await requested;
   await expect(periodButton(page)).toContainText(label);
 };

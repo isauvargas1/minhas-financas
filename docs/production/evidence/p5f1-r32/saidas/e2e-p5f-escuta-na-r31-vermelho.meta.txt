@@ -1,0 +1,4 @@
+arvore_dir=<scratchpad>/p5f1r32/copia-r31-e2e arvore=copia inicio=2026-11-11T14:04:17Z args=--trace off e2e/work-time-p5f.spec.ts -g escuta das projeções encerrada
+build=0
+fim=2026-11-11T14:06:35Z exit=1 duracao_s=138 portas_ocupadas_no_fim=[] java_no_fim=0
+limpeza_externa=nenhuma (o Emulator desligou sozinho)

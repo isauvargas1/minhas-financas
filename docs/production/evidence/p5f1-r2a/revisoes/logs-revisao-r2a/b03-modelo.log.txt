@@ -1,0 +1,32 @@
+{
+ "projecao": {
+  "2026-01": 50000,
+  "2026-02": 60000,
+  "2026-03": 40000
+ },
+ "marcaLida": {
+  "appliedVersion": 101,
+  "pending": {},
+  "monthCommits": {
+   "2026-03": 1
+  },
+  "broken": false
+ },
+ "marcaAtual": {
+  "appliedVersion": 101,
+  "pending": {
+   "102": 103
+  },
+  "monthCommits": {
+   "2026-03": 1,
+   "2026-02": 2
+  },
+  "broken": false
+ },
+ "provaComoEscrita": true,
+ "provaComMarcaRelida": true,
+ "provaCorrigida": false,
+ "estimativaCentavos": 140000,
+ "verdadeCentavos": 120000,
+ "erroCentavos": 20000
+}

@@ -1,0 +1,1166 @@
+[
+  {
+    "name": "desktop-light-00-intro",
+    "overflow": 0,
+    "violations": []
+  },
+  {
+    "name": "desktop-light-01-etapa-a",
+    "overflow": 0,
+    "violations": []
+  },
+  {
+    "name": "desktop-light-02-etapa-b-rotina",
+    "overflow": 0,
+    "violations": [],
+    "notes": {
+      "headingFocused": true
+    }
+  },
+  {
+    "name": "desktop-light-03-etapa-c-feriados",
+    "overflow": 0,
+    "violations": []
+  },
+  {
+    "name": "desktop-light-04-etapa-d-excecoes",
+    "overflow": 0,
+    "violations": [],
+    "notes": {
+      "calendarFocus": {
+        "before": "2026-11-01",
+        "after": "2026-11-09"
+      }
+    }
+  },
+  {
+    "name": "desktop-light-05-etapa-e-receitas",
+    "overflow": 0,
+    "violations": []
+  },
+  {
+    "name": "desktop-light-06-resumo",
+    "overflow": 0,
+    "violations": []
+  },
+  {
+    "name": "desktop-light-07-configuracoes",
+    "overflow": 0,
+    "violations": []
+  },
+  {
+    "name": "desktop-light-08-memoria-de-calculo",
+    "overflow": 0,
+    "violations": [],
+    "notes": {
+      "detailsTitleFocused": true,
+      "focusInside": true
+    }
+  },
+  {
+    "name": "desktop-light-09-receitas-consideradas",
+    "overflow": 0,
+    "violations": []
+  },
+  {
+    "name": "desktop-light-10-configuracoes-excecoes",
+    "overflow": 0,
+    "violations": []
+  },
+  {
+    "name": "desktop-light-11-dashboard-modo-tempo",
+    "overflow": 0,
+    "violations": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "nodes": [
+          {
+            "target": [
+              ".mt-2.text-green-600.dark\\:text-green-400 > span"
+            ],
+            "html": "<span>Mensal</span>"
+          },
+          {
+            "target": [
+              ".border-gray-100.dark\\:border-gray-800:nth-child(1) > .text-gray-600.dark\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+            ],
+            "html": "<span>Renda (exemplo)</span>"
+          },
+          {
+            "target": [
+              ".border-gray-100.dark\\:border-gray-800:nth-child(1) > .text-center.text-green-600.dark\\:text-green-400 > .relative[data-work-time=\"\"] > span[aria-hidden=\"true\"]"
+            ],
+            "html": "<span aria-hidden=\"true\">≈&nbsp;248&nbsp;h</span>"
+          },
+          {
+            "target": [
+              ".border-gray-100.dark\\:border-gray-800:nth-child(2) > .text-gray-600.dark\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+            ],
+            "html": "<span>Renda (exemplo)</span>"
+          },
+          {
+            "target": [
+              ".border-gray-100.dark\\:border-gray-800:nth-child(2) > .text-center.text-green-600.dark\\:text-green-400 > .relative[data-work-time=\"\"] > span[aria-hidden=\"true\"]"
+            ],
+            "html": "<span aria-hidden=\"true\">≈&nbsp;240&nbsp;h</span>"
+          },
+          {
+            "target": [
+              ".border-gray-100.dark\\:border-gray-800:nth-child(3) > .text-gray-600.dark\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+            ],
+            "html": "<span>Renda (exemplo)</span>"
+          },
+          {
+            "target": [
+              ".border-gray-100.dark\\:border-gray-800:nth-child(3) > .text-center.text-green-600.dark\\:text-green-400 > .relative[data-work-time=\"\"] > span[aria-hidden=\"true\"]"
+            ],
+            "html": "<span aria-hidden=\"true\">≈&nbsp;248&nbsp;h</span>"
+          }
+        ]
+      },
+      {
+        "id": "label-content-name-mismatch",
+        "impact": "serious",
+        "help": "Elements must have their visible text as part of their accessible name",
+        "nodes": [
+          {
+            "target": [
+              ".min-w-\\[11rem\\]"
+            ],
+            "html": "<button class=\"flex items-center gap-2 text-lg font-semibold text-on-surface min-w-[11rem] justify-center p-2 rounded-lg hover:bg-surface/50 transition-colors w"
+          }
+        ]
+      },
+      {
+        "id": "select-name",
+        "impact": "critical",
+        "help": "Select element must have an accessible name",
+        "nodes": [
+          {
+            "target": [
+              "select"
+            ],
+            "html": "<select class=\"border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-200 text-gray-800 dark:text-gray-200 rounded-lg px-3 py-2 text-sm focus:outline"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "desktop-light-12-dashboard-modo-dinheiro",
+    "overflow": 0,
+    "violations": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "nodes": [
+          {
+            "target": [
+              ".mt-2.text-green-600.dark\\:text-green-400 > span"
+            ],
+            "html": "<span>Mensal</span>"
+          },
+          {
+            "target": [
+              ".border-gray-100.dark\\:border-gray-800:nth-child(1) > .text-gray-600.dark\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+            ],
+            "html": "<span>Renda (exemplo)</span>"
+          },
+          {
+            "target": [
+              ".border-gray-100.dark\\:border-gray-800:nth-child(1) > .text-center.text-green-600.dark\\:text-green-400"
+            ],
+            "html": "<td class=\"py-4 px-4 text-center font-medium text-green-600 dark:text-green-400\">+ R$&nbsp;6.200,00</td>"
+          },
+          {
+            "target": [
+              ".border-gray-100.dark\\:border-gray-800:nth-child(2) > .text-gray-600.dark\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+            ],
+            "html": "<span>Renda (exemplo)</span>"
+          },
+          {
+            "target": [
+              ".border-gray-100.dark\\:border-gray-800:nth-child(2) > .text-center.text-green-600.dark\\:text-green-400"
+            ],
+            "html": "<td class=\"py-4 px-4 text-center font-medium text-green-600 dark:text-green-400\">+ R$&nbsp;6.000,00</td>"
+          },
+          {
+            "target": [
+              ".border-gray-100.dark\\:border-gray-800:nth-child(3) > .text-gray-600.dark\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+            ],
+            "html": "<span>Renda (exemplo)</span>"
+          },
+          {
+            "target": [
+              ".border-gray-100.dark\\:border-gray-800:nth-child(3) > .text-center.text-green-600.dark\\:text-green-400"
+            ],
+            "html": "<td class=\"py-4 px-4 text-center font-medium text-green-600 dark:text-green-400\">+ R$&nbsp;6.200,00</td>"
+          }
+        ]
+      },
+      {
+        "id": "label-content-name-mismatch",
+        "impact": "serious",
+        "help": "Elements must have their visible text as part of their accessible name",
+        "nodes": [
+          {
+            "target": [
+              ".min-w-\\[11rem\\]"
+            ],
+            "html": "<button class=\"flex items-center gap-2 text-lg font-semibold text-on-surface min-w-[11rem] justify-center p-2 rounded-lg hover:bg-surface/50 transition-colors w"
+          }
+        ]
+      },
+      {
+        "id": "select-name",
+        "impact": "critical",
+        "help": "Select element must have an accessible name",
+        "nodes": [
+          {
+            "target": [
+              "select"
+            ],
+            "html": "<select class=\"border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-200 text-gray-800 dark:text-gray-200 rounded-lg px-3 py-2 text-sm focus:outline"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "desktop-dark-00-intro",
+    "overflow": 0,
+    "violations": []
+  },
+  {
+    "name": "desktop-dark-01-etapa-a",
+    "overflow": 0,
+    "violations": []
+  },
+  {
+    "name": "desktop-dark-02-etapa-b-rotina",
+    "overflow": 0,
+    "violations": [],
+    "notes": {
+      "headingFocused": true
+    }
+  },
+  {
+    "name": "desktop-dark-03-etapa-c-feriados",
+    "overflow": 0,
+    "violations": []
+  },
+  {
+    "name": "desktop-dark-04-etapa-d-excecoes",
+    "overflow": 0,
+    "violations": [],
+    "notes": {
+      "calendarFocus": {
+        "before": "2026-11-01",
+        "after": "2026-11-09"
+      }
+    }
+  },
+  {
+    "name": "desktop-dark-05-etapa-e-receitas",
+    "overflow": 0,
+    "violations": []
+  },
+  {
+    "name": "desktop-dark-06-resumo",
+    "overflow": 0,
+    "violations": []
+  },
+  {
+    "name": "desktop-dark-07-configuracoes",
+    "overflow": 0,
+    "violations": []
+  },
+  {
+    "name": "desktop-dark-08-memoria-de-calculo",
+    "overflow": 0,
+    "violations": [],
+    "notes": {
+      "detailsTitleFocused": true,
+      "focusInside": true
+    }
+  },
+  {
+    "name": "desktop-dark-09-receitas-consideradas",
+    "overflow": 0,
+    "violations": []
+  },
+  {
+    "name": "desktop-dark-10-configuracoes-excecoes",
+    "overflow": 0,
+    "violations": []
+  },
+  {
+    "name": "desktop-dark-11-dashboard-modo-tempo",
+    "overflow": 0,
+    "violations": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "nodes": [
+          {
+            "target": [
+              ".border-gray-100.dark\\:border-gray-800:nth-child(1) > .text-gray-600.dark\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+            ],
+            "html": "<span>Renda (exemplo)</span>"
+          },
+          {
+            "target": [
+              ".border-gray-100.dark\\:border-gray-800:nth-child(2) > .text-gray-600.dark\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+            ],
+            "html": "<span>Renda (exemplo)</span>"
+          },
+          {
+            "target": [
+              ".border-gray-100.dark\\:border-gray-800:nth-child(3) > .text-gray-600.dark\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+            ],
+            "html": "<span>Renda (exemplo)</span>"
+          }
+        ]
+      },
+      {
+        "id": "label-content-name-mismatch",
+        "impact": "serious",
+        "help": "Elements must have their visible text as part of their accessible name",
+        "nodes": [
+          {
+            "target": [
+              ".min-w-\\[11rem\\]"
+            ],
+            "html": "<button class=\"flex items-center gap-2 text-lg font-semibold text-on-surface min-w-[11rem] justify-center p-2 rounded-lg hover:bg-surface/50 transition-colors w"
+          }
+        ]
+      },
+      {
+        "id": "select-name",
+        "impact": "critical",
+        "help": "Select element must have an accessible name",
+        "nodes": [
+          {
+            "target": [
+              "select"
+            ],
+            "html": "<select class=\"border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-200 text-gray-800 dark:text-gray-200 rounded-lg px-3 py-2 text-sm focus:outline"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "desktop-dark-12-dashboard-modo-dinheiro",
+    "overflow": 0,
+    "violations": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "nodes": [
+          {
+            "target": [
+              ".border-gray-100.dark\\:border-gray-800:nth-child(1) > .text-gray-600.dark\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+            ],
+            "html": "<span>Renda (exemplo)</span>"
+          },
+          {
+            "target": [
+              ".border-gray-100.dark\\:border-gray-800:nth-child(2) > .text-gray-600.dark\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+            ],
+            "html": "<span>Renda (exemplo)</span>"
+          },
+          {
+            "target": [
+              ".border-gray-100.dark\\:border-gray-800:nth-child(3) > .text-gray-600.dark\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+            ],
+            "html": "<span>Renda (exemplo)</span>"
+          }
+        ]
+      },
+      {
+        "id": "label-content-name-mismatch",
+        "impact": "serious",
+        "help": "Elements must have their visible text as part of their accessible name",
+        "nodes": [
+          {
+            "target": [
+              ".min-w-\\[11rem\\]"
+            ],
+            "html": "<button class=\"flex items-center gap-2 text-lg font-semibold text-on-surface min-w-[11rem] justify-center p-2 rounded-lg hover:bg-surface/50 transition-colors w"
+          }
+        ]
+      },
+      {
+        "id": "select-name",
+        "impact": "critical",
+        "help": "Select element must have an accessible name",
+        "nodes": [
+          {
+            "target": [
+              "select"
+            ],
+            "html": "<select class=\"border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-200 text-gray-800 dark:text-gray-200 rounded-lg px-3 py-2 text-sm focus:outline"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "mobile-light-00-intro",
+    "overflow": 0,
+    "violations": []
+  },
+  {
+    "name": "mobile-light-01-etapa-a",
+    "overflow": 0,
+    "violations": []
+  },
+  {
+    "name": "mobile-light-02-etapa-b-rotina",
+    "overflow": 0,
+    "violations": [],
+    "notes": {
+      "headingFocused": true
+    }
+  },
+  {
+    "name": "mobile-light-03-etapa-c-feriados",
+    "overflow": 0,
+    "violations": []
+  },
+  {
+    "name": "mobile-light-04-etapa-d-excecoes",
+    "overflow": 0,
+    "violations": [],
+    "notes": {
+      "calendarFocus": {
+        "before": "2026-11-01",
+        "after": "2026-11-09"
+      }
+    }
+  },
+  {
+    "name": "mobile-light-05-etapa-e-receitas",
+    "overflow": 0,
+    "violations": []
+  },
+  {
+    "name": "mobile-light-06-resumo",
+    "overflow": 0,
+    "violations": []
+  },
+  {
+    "name": "mobile-light-07-configuracoes",
+    "overflow": 0,
+    "violations": []
+  },
+  {
+    "name": "mobile-light-08-memoria-de-calculo",
+    "overflow": 0,
+    "violations": [],
+    "notes": {
+      "detailsTitleFocused": true,
+      "focusInside": true
+    }
+  },
+  {
+    "name": "mobile-light-09-receitas-consideradas",
+    "overflow": 0,
+    "violations": []
+  },
+  {
+    "name": "mobile-light-10-configuracoes-excecoes",
+    "overflow": 0,
+    "violations": []
+  },
+  {
+    "name": "mobile-light-11-dashboard-modo-tempo",
+    "overflow": 0,
+    "violations": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "nodes": [
+          {
+            "target": [
+              ".mt-2.text-green-600.dark\\:text-green-400 > span"
+            ],
+            "html": "<span>Mensal</span>"
+          },
+          {
+            "target": [
+              ".border-gray-100.dark\\:border-gray-800:nth-child(1) > .text-gray-600.dark\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+            ],
+            "html": "<span>Renda (exemplo)</span>"
+          },
+          {
+            "target": [
+              ".border-gray-100.dark\\:border-gray-800:nth-child(2) > .text-gray-600.dark\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+            ],
+            "html": "<span>Renda (exemplo)</span>"
+          },
+          {
+            "target": [
+              ".border-gray-100.dark\\:border-gray-800:nth-child(3) > .text-gray-600.dark\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+            ],
+            "html": "<span>Renda (exemplo)</span>"
+          }
+        ]
+      },
+      {
+        "id": "label-content-name-mismatch",
+        "impact": "serious",
+        "help": "Elements must have their visible text as part of their accessible name",
+        "nodes": [
+          {
+            "target": [
+              ".min-w-\\[11rem\\]"
+            ],
+            "html": "<button class=\"flex items-center gap-2 text-lg font-semibold text-on-surface min-w-[11rem] justify-center p-2 rounded-lg hover:bg-surface/50 transition-colors w"
+          }
+        ]
+      },
+      {
+        "id": "select-name",
+        "impact": "critical",
+        "help": "Select element must have an accessible name",
+        "nodes": [
+          {
+            "target": [
+              "select"
+            ],
+            "html": "<select class=\"border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-200 text-gray-800 dark:text-gray-200 rounded-lg px-3 py-2 text-sm focus:outline"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "mobile-light-12-dashboard-modo-dinheiro",
+    "overflow": 0,
+    "violations": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "nodes": [
+          {
+            "target": [
+              ".mt-2.text-green-600.dark\\:text-green-400 > span"
+            ],
+            "html": "<span>Mensal</span>"
+          },
+          {
+            "target": [
+              ".border-gray-100.dark\\:border-gray-800:nth-child(1) > .text-gray-600.dark\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+            ],
+            "html": "<span>Renda (exemplo)</span>"
+          },
+          {
+            "target": [
+              ".border-gray-100.dark\\:border-gray-800:nth-child(2) > .text-gray-600.dark\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+            ],
+            "html": "<span>Renda (exemplo)</span>"
+          },
+          {
+            "target": [
+              ".border-gray-100.dark\\:border-gray-800:nth-child(3) > .text-gray-600.dark\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+            ],
+            "html": "<span>Renda (exemplo)</span>"
+          }
+        ]
+      },
+      {
+        "id": "label-content-name-mismatch",
+        "impact": "serious",
+        "help": "Elements must have their visible text as part of their accessible name",
+        "nodes": [
+          {
+            "target": [
+              ".min-w-\\[11rem\\]"
+            ],
+            "html": "<button class=\"flex items-center gap-2 text-lg font-semibold text-on-surface min-w-[11rem] justify-center p-2 rounded-lg hover:bg-surface/50 transition-colors w"
+          }
+        ]
+      },
+      {
+        "id": "select-name",
+        "impact": "critical",
+        "help": "Select element must have an accessible name",
+        "nodes": [
+          {
+            "target": [
+              "select"
+            ],
+            "html": "<select class=\"border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-200 text-gray-800 dark:text-gray-200 rounded-lg px-3 py-2 text-sm focus:outline"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "mobile-dark-00-intro",
+    "overflow": 0,
+    "violations": []
+  },
+  {
+    "name": "mobile-dark-01-etapa-a",
+    "overflow": 0,
+    "violations": []
+  },
+  {
+    "name": "mobile-dark-02-etapa-b-rotina",
+    "overflow": 0,
+    "violations": [],
+    "notes": {
+      "headingFocused": true
+    }
+  },
+  {
+    "name": "mobile-dark-03-etapa-c-feriados",
+    "overflow": 0,
+    "violations": []
+  },
+  {
+    "name": "mobile-dark-04-etapa-d-excecoes",
+    "overflow": 0,
+    "violations": [],
+    "notes": {
+      "calendarFocus": {
+        "before": "2026-11-01",
+        "after": "2026-11-09"
+      }
+    }
+  },
+  {
+    "name": "mobile-dark-05-etapa-e-receitas",
+    "overflow": 0,
+    "violations": []
+  },
+  {
+    "name": "mobile-dark-06-resumo",
+    "overflow": 0,
+    "violations": []
+  },
+  {
+    "name": "mobile-dark-07-configuracoes",
+    "overflow": 0,
+    "violations": []
+  },
+  {
+    "name": "mobile-dark-08-memoria-de-calculo",
+    "overflow": 0,
+    "violations": [],
+    "notes": {
+      "detailsTitleFocused": true,
+      "focusInside": true
+    }
+  },
+  {
+    "name": "mobile-dark-09-receitas-consideradas",
+    "overflow": 0,
+    "violations": []
+  },
+  {
+    "name": "mobile-dark-10-configuracoes-excecoes",
+    "overflow": 0,
+    "violations": []
+  },
+  {
+    "name": "mobile-dark-11-dashboard-modo-tempo",
+    "overflow": 0,
+    "violations": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "nodes": [
+          {
+            "target": [
+              ".border-gray-100.dark\\:border-gray-800:nth-child(1) > .text-gray-600.dark\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+            ],
+            "html": "<span>Renda (exemplo)</span>"
+          },
+          {
+            "target": [
+              ".border-gray-100.dark\\:border-gray-800:nth-child(2) > .text-gray-600.dark\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+            ],
+            "html": "<span>Renda (exemplo)</span>"
+          },
+          {
+            "target": [
+              ".border-gray-100.dark\\:border-gray-800:nth-child(3) > .text-gray-600.dark\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+            ],
+            "html": "<span>Renda (exemplo)</span>"
+          }
+        ]
+      },
+      {
+        "id": "label-content-name-mismatch",
+        "impact": "serious",
+        "help": "Elements must have their visible text as part of their accessible name",
+        "nodes": [
+          {
+            "target": [
+              ".min-w-\\[11rem\\]"
+            ],
+            "html": "<button class=\"flex items-center gap-2 text-lg font-semibold text-on-surface min-w-[11rem] justify-center p-2 rounded-lg hover:bg-surface/50 transition-colors w"
+          }
+        ]
+      },
+      {
+        "id": "select-name",
+        "impact": "critical",
+        "help": "Select element must have an accessible name",
+        "nodes": [
+          {
+            "target": [
+              "select"
+            ],
+            "html": "<select class=\"border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-200 text-gray-800 dark:text-gray-200 rounded-lg px-3 py-2 text-sm focus:outline"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "mobile-dark-12-dashboard-modo-dinheiro",
+    "overflow": 0,
+    "violations": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "nodes": [
+          {
+            "target": [
+              ".border-gray-100.dark\\:border-gray-800:nth-child(1) > .text-gray-600.dark\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+            ],
+            "html": "<span>Renda (exemplo)</span>"
+          },
+          {
+            "target": [
+              ".border-gray-100.dark\\:border-gray-800:nth-child(2) > .text-gray-600.dark\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+            ],
+            "html": "<span>Renda (exemplo)</span>"
+          },
+          {
+            "target": [
+              ".border-gray-100.dark\\:border-gray-800:nth-child(3) > .text-gray-600.dark\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+            ],
+            "html": "<span>Renda (exemplo)</span>"
+          }
+        ]
+      },
+      {
+        "id": "label-content-name-mismatch",
+        "impact": "serious",
+        "help": "Elements must have their visible text as part of their accessible name",
+        "nodes": [
+          {
+            "target": [
+              ".min-w-\\[11rem\\]"
+            ],
+            "html": "<button class=\"flex items-center gap-2 text-lg font-semibold text-on-surface min-w-[11rem] justify-center p-2 rounded-lg hover:bg-surface/50 transition-colors w"
+          }
+        ]
+      },
+      {
+        "id": "select-name",
+        "impact": "critical",
+        "help": "Select element must have an accessible name",
+        "nodes": [
+          {
+            "target": [
+              "select"
+            ],
+            "html": "<select class=\"border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-200 text-gray-800 dark:text-gray-200 rounded-lg px-3 py-2 text-sm focus:outline"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "small-light-00-intro",
+    "overflow": 0,
+    "violations": []
+  },
+  {
+    "name": "small-light-01-etapa-a",
+    "overflow": 0,
+    "violations": []
+  },
+  {
+    "name": "small-light-02-etapa-b-rotina",
+    "overflow": 0,
+    "violations": [],
+    "notes": {
+      "headingFocused": true
+    }
+  },
+  {
+    "name": "small-light-03-etapa-c-feriados",
+    "overflow": 0,
+    "violations": []
+  },
+  {
+    "name": "small-light-04-etapa-d-excecoes",
+    "overflow": 0,
+    "violations": [],
+    "notes": {
+      "calendarFocus": {
+        "before": "2026-11-01",
+        "after": "2026-11-09"
+      }
+    }
+  },
+  {
+    "name": "small-light-05-etapa-e-receitas",
+    "overflow": 0,
+    "violations": []
+  },
+  {
+    "name": "small-light-06-resumo",
+    "overflow": 0,
+    "violations": []
+  },
+  {
+    "name": "small-light-07-configuracoes",
+    "overflow": 0,
+    "violations": []
+  },
+  {
+    "name": "small-light-08-memoria-de-calculo",
+    "overflow": 0,
+    "violations": [],
+    "notes": {
+      "detailsTitleFocused": true,
+      "focusInside": true
+    }
+  },
+  {
+    "name": "small-light-09-receitas-consideradas",
+    "overflow": 0,
+    "violations": []
+  },
+  {
+    "name": "small-light-10-configuracoes-excecoes",
+    "overflow": 0,
+    "violations": []
+  },
+  {
+    "name": "small-light-11-dashboard-modo-tempo",
+    "overflow": 0,
+    "violations": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "nodes": [
+          {
+            "target": [
+              ".mt-2.text-green-600.dark\\:text-green-400 > span"
+            ],
+            "html": "<span>Mensal</span>"
+          },
+          {
+            "target": [
+              ".border-gray-100.dark\\:border-gray-800:nth-child(1) > .text-gray-600.dark\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+            ],
+            "html": "<span>Renda (exemplo)</span>"
+          },
+          {
+            "target": [
+              ".border-gray-100.dark\\:border-gray-800:nth-child(2) > .text-gray-600.dark\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+            ],
+            "html": "<span>Renda (exemplo)</span>"
+          },
+          {
+            "target": [
+              ".border-gray-100.dark\\:border-gray-800:nth-child(3) > .text-gray-600.dark\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+            ],
+            "html": "<span>Renda (exemplo)</span>"
+          }
+        ]
+      },
+      {
+        "id": "label-content-name-mismatch",
+        "impact": "serious",
+        "help": "Elements must have their visible text as part of their accessible name",
+        "nodes": [
+          {
+            "target": [
+              ".min-w-\\[11rem\\]"
+            ],
+            "html": "<button class=\"flex items-center gap-2 text-lg font-semibold text-on-surface min-w-[11rem] justify-center p-2 rounded-lg hover:bg-surface/50 transition-colors w"
+          }
+        ]
+      },
+      {
+        "id": "select-name",
+        "impact": "critical",
+        "help": "Select element must have an accessible name",
+        "nodes": [
+          {
+            "target": [
+              "select"
+            ],
+            "html": "<select class=\"border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-200 text-gray-800 dark:text-gray-200 rounded-lg px-3 py-2 text-sm focus:outline"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "small-light-12-dashboard-modo-dinheiro",
+    "overflow": 0,
+    "violations": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "nodes": [
+          {
+            "target": [
+              ".mt-2.text-green-600.dark\\:text-green-400 > span"
+            ],
+            "html": "<span>Mensal</span>"
+          },
+          {
+            "target": [
+              ".border-gray-100.dark\\:border-gray-800:nth-child(1) > .text-gray-600.dark\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+            ],
+            "html": "<span>Renda (exemplo)</span>"
+          },
+          {
+            "target": [
+              ".border-gray-100.dark\\:border-gray-800:nth-child(2) > .text-gray-600.dark\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+            ],
+            "html": "<span>Renda (exemplo)</span>"
+          },
+          {
+            "target": [
+              ".border-gray-100.dark\\:border-gray-800:nth-child(3) > .text-gray-600.dark\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+            ],
+            "html": "<span>Renda (exemplo)</span>"
+          }
+        ]
+      },
+      {
+        "id": "label-content-name-mismatch",
+        "impact": "serious",
+        "help": "Elements must have their visible text as part of their accessible name",
+        "nodes": [
+          {
+            "target": [
+              ".min-w-\\[11rem\\]"
+            ],
+            "html": "<button class=\"flex items-center gap-2 text-lg font-semibold text-on-surface min-w-[11rem] justify-center p-2 rounded-lg hover:bg-surface/50 transition-colors w"
+          }
+        ]
+      },
+      {
+        "id": "select-name",
+        "impact": "critical",
+        "help": "Select element must have an accessible name",
+        "nodes": [
+          {
+            "target": [
+              "select"
+            ],
+            "html": "<select class=\"border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-200 text-gray-800 dark:text-gray-200 rounded-lg px-3 py-2 text-sm focus:outline"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "small-dark-00-intro",
+    "overflow": 0,
+    "violations": []
+  },
+  {
+    "name": "small-dark-01-etapa-a",
+    "overflow": 0,
+    "violations": []
+  },
+  {
+    "name": "small-dark-02-etapa-b-rotina",
+    "overflow": 0,
+    "violations": [],
+    "notes": {
+      "headingFocused": true
+    }
+  },
+  {
+    "name": "small-dark-03-etapa-c-feriados",
+    "overflow": 0,
+    "violations": []
+  },
+  {
+    "name": "small-dark-04-etapa-d-excecoes",
+    "overflow": 0,
+    "violations": [],
+    "notes": {
+      "calendarFocus": {
+        "before": "2026-11-01",
+        "after": "2026-11-09"
+      }
+    }
+  },
+  {
+    "name": "small-dark-05-etapa-e-receitas",
+    "overflow": 0,
+    "violations": []
+  },
+  {
+    "name": "small-dark-06-resumo",
+    "overflow": 0,
+    "violations": []
+  },
+  {
+    "name": "small-dark-07-configuracoes",
+    "overflow": 0,
+    "violations": []
+  },
+  {
+    "name": "small-dark-08-memoria-de-calculo",
+    "overflow": 0,
+    "violations": [],
+    "notes": {
+      "detailsTitleFocused": true,
+      "focusInside": true
+    }
+  },
+  {
+    "name": "small-dark-09-receitas-consideradas",
+    "overflow": 0,
+    "violations": []
+  },
+  {
+    "name": "small-dark-10-configuracoes-excecoes",
+    "overflow": 0,
+    "violations": []
+  },
+  {
+    "name": "small-dark-11-dashboard-modo-tempo",
+    "overflow": 0,
+    "violations": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "nodes": [
+          {
+            "target": [
+              ".border-gray-100.dark\\:border-gray-800:nth-child(1) > .text-gray-600.dark\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+            ],
+            "html": "<span>Renda (exemplo)</span>"
+          },
+          {
+            "target": [
+              ".border-gray-100.dark\\:border-gray-800:nth-child(2) > .text-gray-600.dark\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+            ],
+            "html": "<span>Renda (exemplo)</span>"
+          },
+          {
+            "target": [
+              ".border-gray-100.dark\\:border-gray-800:nth-child(3) > .text-gray-600.dark\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+            ],
+            "html": "<span>Renda (exemplo)</span>"
+          }
+        ]
+      },
+      {
+        "id": "label-content-name-mismatch",
+        "impact": "serious",
+        "help": "Elements must have their visible text as part of their accessible name",
+        "nodes": [
+          {
+            "target": [
+              ".min-w-\\[11rem\\]"
+            ],
+            "html": "<button class=\"flex items-center gap-2 text-lg font-semibold text-on-surface min-w-[11rem] justify-center p-2 rounded-lg hover:bg-surface/50 transition-colors w"
+          }
+        ]
+      },
+      {
+        "id": "select-name",
+        "impact": "critical",
+        "help": "Select element must have an accessible name",
+        "nodes": [
+          {
+            "target": [
+              "select"
+            ],
+            "html": "<select class=\"border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-200 text-gray-800 dark:text-gray-200 rounded-lg px-3 py-2 text-sm focus:outline"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "small-dark-12-dashboard-modo-dinheiro",
+    "overflow": 0,
+    "violations": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "nodes": [
+          {
+            "target": [
+              ".border-gray-100.dark\\:border-gray-800:nth-child(1) > .text-gray-600.dark\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+            ],
+            "html": "<span>Renda (exemplo)</span>"
+          },
+          {
+            "target": [
+              ".border-gray-100.dark\\:border-gray-800:nth-child(2) > .text-gray-600.dark\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+            ],
+            "html": "<span>Renda (exemplo)</span>"
+          },
+          {
+            "target": [
+              ".border-gray-100.dark\\:border-gray-800:nth-child(3) > .text-gray-600.dark\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\.5.py-1 > span:nth-child(2)"
+            ],
+            "html": "<span>Renda (exemplo)</span>"
+          }
+        ]
+      },
+      {
+        "id": "label-content-name-mismatch",
+        "impact": "serious",
+        "help": "Elements must have their visible text as part of their accessible name",
+        "nodes": [
+          {
+            "target": [
+              ".min-w-\\[11rem\\]"
+            ],
+            "html": "<button class=\"flex items-center gap-2 text-lg font-semibold text-on-surface min-w-[11rem] justify-center p-2 rounded-lg hover:bg-surface/50 transition-colors w"
+          }
+        ]
+      },
+      {
+        "id": "select-name",
+        "impact": "critical",
+        "help": "Select element must have an accessible name",
+        "nodes": [
+          {
+            "target": [
+              "select"
+            ],
+            "html": "<select class=\"border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-200 text-gray-800 dark:text-gray-200 rounded-lg px-3 py-2 text-sm focus:outline"
+          }
+        ]
+      }
+    ]
+  }
+]

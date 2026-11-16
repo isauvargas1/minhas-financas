@@ -1,0 +1,446 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import test, {afterEach} from 'node:test';
+import {createElement, useState} from 'react';
+import TestRenderer, {act, type ReactTestRenderer} from 'react-test-renderer';
+import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
+
+import type {ConfirmedProjection} from '../../src/modules/reports/basisRefresh.ts';
+import {clearBasisRegistry} from '../../src/modules/reports/basisRegistry.ts';
+import type {BasisSyncDeps, PeriodsSnapshot} from '../../src/modules/reports/basisSync.ts';
+import type {FinancialReport} from '../../src/modules/reports/official.ts';
+import {invalidateFinancialReportBases} from '../../src/modules/reports/queryKeys.ts';
+import type {WorkCalendar} from '../../src/modules/work-time/calendar.ts';
+import {
+  inherentWritesOf,
+  observeExcludedRead,
+  pendingWriteKey,
+  proveEstimateConsistency,
+  unappliedWrites,
+  type ConsistencyInput,
+} from '../../src/modules/work-time/consistency.ts';
+import {DEFAULT_WEEKLY_ROUTINE} from '../../src/modules/work-time/draft.ts';
+import type {WorkTimeEstimate} from '../../src/modules/work-time/estimate.ts';
+import {ESTIMATE_EXCLUDED_READ_FAILED, ESTIMATE_UNCONFIRMED_FAILED} from '../../src/modules/work-time/messages.ts';
+import {
+  useIncomeEstimateWith,
+  type IncomeEstimateDeps,
+  type IncomeEstimateParams,
+  type IncomeEstimateState,
+} from '../../src/modules/work-time/useIncomeEstimateWith.ts';
+
+/**
+ * P5-F.1-R1 — prova de consistência da estimativa (B03) e estorno de recebimento desconsiderado
+ * (B01), com a estimativa inteira (`useIncomeEstimateWith`: React Query real, React 18 e
+ * react-test-renderer, sem DOM) sobre um Firestore em memória com hora do servidor: a projeção mensal
+ * muda de versão quando a receita do mês muda, e cada escrita de lançamento tem `createdAt` e
+ * `updatedAt`. Cada teste confere todas as renderizações: uma estimativa pronta só aparece com um valor
+ * de um estado consistente (bases, projeção e leitura por id do mesmo estado).
+ */
+
+(globalThis as {IS_REACT_ACT_ENVIRONMENT?: boolean}).IS_REACT_ACT_ENVIRONMENT = true;
+
+const OFFICE: WorkCalendar = {routines: [DEFAULT_WEEKLY_ROUTINE], worksOnHolidays: false, localHolidays: [], exceptions: []};
+const REFERENCE = '2026-11-04';
+const at = (seconds: number) => ({seconds, nanoseconds: 0});
+
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+/** Espera a condição; no tempo esgotado, a mensagem traz o que as renderizações mostraram (`shown`). */
+let shownSoFar: () => string = () => '';
+const until = async (condition: () => boolean, message: string, timeoutMs = 3_000) => {
+  const started = performance.now();
+  while (!condition()) {
+    if (performance.now() - started > timeoutMs) assert.fail(`tempo esgotado: ${message} (mostrados: ${shownSoFar()})`);
+    await act(async () => { await wait(5); });
+  }
+};
+const settle = async (ms = 100) => { await act(async () => { await wait(ms); }); };
+
+// ------------------------------------------------------------------ prova (funções puras)
+
+const MONTHS = ['2026-08', '2026-09', '2026-10'];
+const INCOME = {'2026-08': 100, '2026-09': 100, '2026-10': 100};
+const projectionOf = (patch: Partial<ConfirmedProjection> = {}): ConfirmedProjection => ({
+  income: INCOME,
+  versions: {'2026-08': at(10), '2026-09': at(10), '2026-10': at(10)},
+  seen: {'2026-08': 1, '2026-09': 1, '2026-10': 1},
+  ...patch,
+});
+const input = (patch: Partial<ConsistencyInput> = {}): ConsistencyInput => ({
+  months: MONTHS, multipleBases: false, hasExclusions: true,
+  basis: {income: INCOME, exact: true},
+  projection: projectionOf(),
+  excludedStartedOrder: 5, excludedMonths: ['2026-10'], pendingWrites: [{id: 'r1', month: '2026-10', at: at(5)}],
+  ...patch,
+});
+const reasonOf = (value: ConsistencyInput) => {
+  const result = proveEstimateConsistency(value);
+  return 'reason' in result ? result.reason : 'provada';
+};
+
+test('prova: cada regra, na ordem, com o motivo da primeira que falha', () => {
+  assert.equal(reasonOf(input()), 'provada');
+  assert.equal(reasonOf(input({basis: null})), 'loading', 'base carregando');
+  // 1. Leitura única: uma base, nenhuma desconsiderada, sem escuta.
+  assert.equal(reasonOf(input({hasExclusions: false, projection: null})), 'provada');
+  // Sem bloco exato, a estimativa fica indisponível: nada a combinar.
+  assert.equal(reasonOf(input({basis: {income: INCOME, exact: false}, projection: null})), 'provada');
+  // 2. Projeção confirmada: obrigatória com desconsiderada ou com duas bases.
+  assert.equal(reasonOf(input({projection: null})), 'projection');
+  assert.equal(reasonOf(input({hasExclusions: false, multipleBases: true, projection: null})), 'projection');
+  // 3. Bases na projeção, mês a mês (mês sem documento vale 0).
+  assert.equal(reasonOf(input({basis: {income: {...INCOME, '2026-09': 101}, exact: true}})), 'bases');
+  assert.equal(reasonOf(input({projection: projectionOf({income: {'2026-08': 100, '2026-10': 100}})})), 'bases');
+  assert.equal(reasonOf(input({basis: {income: {...INCOME, '2026-09': 0}, exact: true},
+    projection: projectionOf({income: {'2026-08': 100, '2026-10': 100}})})), 'provada', 'zero e sem documento são o mesmo');
+  assert.equal(reasonOf(input({hasExclusions: false, multipleBases: true})), 'provada');
+  // 4. Leitura por id depois da versão atual de cada mês com desconsiderada.
+  assert.equal(reasonOf(input({excludedStartedOrder: null})), 'loading');
+  assert.equal(reasonOf(input({projection: projectionOf({seen: {'2026-08': 1, '2026-09': 1, '2026-10': 5}})})), 'exclusions_read', 'mesma ordem');
+  assert.equal(reasonOf(input({projection: projectionOf({seen: {'2026-08': 1, '2026-09': 1, '2026-10': 9}})})), 'exclusions_read');
+  assert.equal(reasonOf(input({projection: projectionOf({seen: {'2026-08': 9, '2026-09': 9, '2026-10': 1}})})), 'provada',
+    'só os meses com desconsiderada');
+  assert.equal(reasonOf(input({excludedMonths: ['2026-07'], projection: projectionOf({seen: {'2026-08': 9, '2026-09': 9, '2026-10': 9}})})), 'provada',
+    'desconsiderada fora da janela');
+  // 5. Nenhuma escrita conhecida depois da versão do mês.
+  assert.equal(reasonOf(input({pendingWrites: [{id: 'r1', month: '2026-10', at: at(10)}]})), 'provada', 'a mesma hora');
+  assert.equal(reasonOf(input({pendingWrites: [{id: 'r1', month: '2026-10', at: at(11)}]})), 'projection_pending');
+  assert.equal(reasonOf(input({pendingWrites: [{id: 'r1', month: '2026-10', at: {seconds: 10, nanoseconds: 1}}]})), 'projection_pending', 'nanossegundos');
+  assert.equal(reasonOf(input({pendingWrites: [{id: 'r1', month: '2026-10', at: null}]})), 'projection_pending', 'escrita sem hora');
+  assert.equal(reasonOf(input({projection: projectionOf({versions: {'2026-08': at(10), '2026-09': at(10), '2026-10': null}})})), 'projection_pending',
+    'mês sem documento');
+  assert.equal(reasonOf(input({pendingWrites: [{id: 'r1', month: '2026-07', at: at(99)}]})), 'provada', 'escrita fora da janela');
+  // Espera limitada (revisão da R1, N03 e N06): a escrita `bounded` segura até a projeção passar dela ou até a
+  // espera terminar; a que sempre muda a renda segura até a projeção, sem espera.
+  const bounded = {id: 'r1', month: '2026-10', at: at(11), bounded: true} as const;
+  assert.equal(reasonOf(input({pendingWrites: [bounded]})), 'projection_pending');
+  assert.equal(reasonOf(input({pendingWrites: [bounded], expired: new Set([pendingWriteKey(bounded)])})), 'provada', 'espera terminada');
+  assert.equal(reasonOf(input({pendingWrites: [{...bounded, bounded: undefined}], expired: new Set([pendingWriteKey(bounded)])})), 'projection_pending',
+    'sem espera para a que sempre muda a renda');
+  assert.equal(reasonOf(input({pendingWrites: [bounded], expired: new Set([pendingWriteKey({...bounded, at: at(12)})])})), 'projection_pending',
+    'a espera é da escrita (lançamento, mês e hora)');
+  assert.equal(pendingWriteKey(bounded), 'r1|2026-10|11.0');
+  assert.deepEqual(unappliedWrites(input({pendingWrites: [bounded, {id: 'r2', month: '2026-10', at: at(9)}, {id: 'r3', month: '2026-07', at: at(99)}]})),
+    [bounded], 'só as da janela que a projeção não passou');
+  assert.deepEqual(unappliedWrites(input({projection: null})), [], 'sem projeção, nada a medir');
+});
+
+const paidIncome = (patch: Record<string, unknown> = {}) => ({
+  id: 'r1', date: '2026-10-15', type: 'receita', valueCents: 5_000, isPaid: true, createdAt: at(3), updatedAt: at(3), ...patch,
+});
+
+test('prova: as escritas que o próprio documento mostra (criação, confirmação, anulação e estorno)', () => {
+  // Toda desconsiderada com mês tem também a última gravação (`updatedAt`), com espera limitada (revisão da R1, N03).
+  const last = (seconds: number) => ({id: 'r1', month: '2026-10', at: at(seconds), bounded: true});
+  assert.deepEqual(inherentWritesOf([paidIncome()], {}), [{id: 'r1', month: '2026-10', at: at(3)}, last(3)]);
+  assert.deepEqual(inherentWritesOf([paidIncome({cashEntry: {status: 'confirmed', confirmedAt: at(7)}, updatedAt: at(7)})], {}),
+    [{id: 'r1', month: '2026-10', at: at(3)}, {id: 'r1', month: '2026-10', at: at(7)}, last(7)], 'criada pendente e confirmada depois');
+  assert.deepEqual(inherentWritesOf([paidIncome({voidedAt: at(8), updatedAt: at(8)})], {}), [{id: 'r1', month: '2026-10', at: at(8)}, last(8)],
+    'anulada: a anulação');
+  assert.deepEqual(inherentWritesOf([paidIncome({isPaid: false, updatedAt: at(6)})], {}), [last(6)],
+    'pendente não soma renda, mas uma edição pode ter tirado a renda que somava');
+  assert.deepEqual(inherentWritesOf([paidIncome({date: undefined})], {}), [], 'sem data, sem mês');
+  assert.deepEqual(inherentWritesOf([{...paidIncome(), type: 'despesa'}], {}), [last(3)], 'despesa: só a última gravação');
+  assert.deepEqual(inherentWritesOf([paidIncome({updatedAt: undefined})], {}), [{id: 'r1', month: '2026-10', at: at(3)}], 'sem updatedAt, sem espera');
+  // O recebimento estornado: a criação dele (soma renda) e a do espelho do estorno lido junto.
+  const [item] = (JSON.parse(readFileSync(new URL('../fixtures/receivable-reversal-ids.json', import.meta.url), 'utf8')) as {
+    cases: Array<{movementId: string; mirrorId: string; reversalMovementId: string; reversalMirrorId: string}>;
+  }).cases;
+  const receipt = {id: item.mirrorId, date: '2026-10-10', type: 'receita', valueCents: 100_000, isPaid: true, createdAt: at(4), updatedAt: at(4),
+    receivableEntry: {receivableMovementId: item.movementId, reversal: false, principalCents: 100_000}};
+  const reversal = {id: item.reversalMirrorId, date: '2026-10-10', type: 'despesa', valueCents: 100_000, isPaid: true, createdAt: at(9),
+    receivableEntry: {receivableMovementId: item.reversalMovementId, reversal: true, reversalOf: item.movementId, principalCents: 100_000}};
+  assert.deepEqual(inherentWritesOf([receipt], {[item.mirrorId]: reversal}), [
+    {id: item.mirrorId, month: '2026-10', at: at(4)}, {id: item.mirrorId, month: '2026-10', at: at(9)},
+    {id: item.mirrorId, month: '2026-10', at: at(4), bounded: true},
+  ]);
+});
+
+test('prova: as mudanças vistas entre duas leituras por id, com a hora do estado novo; uma leitura mais velha não volta o estado', () => {
+  const first = observeExcludedRead([paidIncome()], {}, undefined);
+  assert.deepEqual(first.changes, [], 'a primeira leitura não tem com o que comparar');
+  assert.deepEqual(observeExcludedRead([paidIncome()], {}, first).changes, [], 'o mesmo estado');
+  const edited = observeExcludedRead([paidIncome({valueCents: 7_000, updatedAt: at(9)})], {}, first);
+  assert.deepEqual(edited.changes, [{id: 'r1', month: '2026-10', at: at(9), bounded: true}], 'valor mudado, com espera limitada');
+  const older = observeExcludedRead([paidIncome()], {}, edited);
+  assert.deepEqual([older.changes, older.states.get('r1')?.contributionCents], [edited.changes, 7_000], 'a leitura mais velha não volta o estado');
+  const moved = observeExcludedRead([paidIncome({valueCents: 7_000, date: '2026-09-01', updatedAt: at(12)})], {}, edited);
+  assert.deepEqual(moved.changes.slice(1), [{id: 'r1', month: '2026-10', at: at(12), bounded: true}, {id: 'r1', month: '2026-09', at: at(12), bounded: true}],
+    'outro mês: os dois meses, acumulados');
+  const pending = observeExcludedRead([paidIncome({isPaid: false})], {}, undefined);
+  assert.deepEqual(observeExcludedRead([paidIncome({updatedAt: at(4)})], {}, pending).changes, [{id: 'r1', month: '2026-10', at: at(4), bounded: true}],
+    'pendente que passa a somar');
+  assert.deepEqual(observeExcludedRead([paidIncome({isPaid: false, date: '2026-09-01', updatedAt: at(4)})], {}, pending).changes, [],
+    'sem renda antes e depois, nada a esperar');
+  // Poda (revisão da R1, N10): a mudança que a projeção já passou sai, e a que ela ainda não passou fica.
+  assert.deepEqual(observeExcludedRead([paidIncome({valueCents: 7_000, updatedAt: at(9)})], {}, first, {'2026-10': at(9)}).changes, [],
+    'já incluída na projeção');
+  assert.deepEqual(observeExcludedRead([paidIncome({valueCents: 7_000, updatedAt: at(9)})], {}, first, {'2026-10': at(8)}).changes,
+    [{id: 'r1', month: '2026-10', at: at(9), bounded: true}], 'ainda não incluída');
+  assert.deepEqual(observeExcludedRead([paidIncome()], {}, edited, {'2026-10': at(10)}).changes, [], 'acumulada e depois incluída');
+  // Só ficam os lançamentos desta leitura: os estados e as mudanças dos que saíram da lista.
+  const other = observeExcludedRead([paidIncome({id: 'r2'})], {}, edited);
+  assert.deepEqual([[...other.states.keys()], other.changes], [['r2'], []], 'fora da lista: estado e mudança somem');
+});
+
+// ------------------------------------------------------------------ estimativa inteira com o Firestore em memória
+
+type Done = Extract<IncomeEstimateState, {status: 'done'}>;
+type Failed = Extract<IncomeEstimateState, {status: 'error'}>;
+
+interface Listener {
+  ws: string;
+  first: string;
+  last: string;
+  onNext: (snapshot: PeriodsSnapshot) => void;
+  onError: () => void;
+}
+
+/**
+ * O Firestore e as callables em memória. As leituras das bases e por id leem o estado no começo e respondem
+ * depois da latência; a escuta entrega o retorno inicial do servidor sozinha e, depois, cada `publish` (o
+ * gatilho gravou a projeção).
+ */
+const world = () => {
+  let clock = 100;
+  const tick = () => { clock += 1; return clock; };
+  const versions = new Map<string, {income: number; version: number}>();
+  const listeners = new Set<Listener>();
+  const docs = new Map<string, Record<string, unknown>>();
+  const w = {
+    income: {} as Record<string, Record<string, number>>,
+    delays: {series: 2, month: 2, byIds: 10, listen: 1},
+    autoListen: true,
+    /** A escuta é encerrada por erro logo depois de abrir. */
+    listenRefused: false,
+    /**
+     * `generatedAt` das bases na hora do servidor deste mundo (ISO, como o das Functions). Fora disso, um rótulo
+     * sem hora, e a espera limitada só conta no relógio da estimativa (revisão independente 2, M02).
+     */
+    serverClock: false,
+    /** O tempo do servidor passa (segundos), sem nenhuma escrita. */
+    advance: (seconds: number) => { clock += seconds; },
+    failing: {month: false, byIds: false},
+    calls: {series: 0, month: 0, byIds: 0, opened: 0},
+    log: [] as string[],
+    /** Grava um lançamento: `createdAt` na primeira escrita e `updatedAt` em todas, na hora do servidor. */
+    write: (ws: string, id: string, data: Record<string, unknown>) => {
+      const key = `${ws}:${id}`;
+      const now = at(tick());
+      docs.set(key, {...data, id, createdAt: docs.get(key)?.createdAt ?? now, updatedAt: now});
+    },
+    /** Anula um lançamento (o documento guarda o valor e o estado de antes). */
+    voidDoc: (ws: string, id: string) => {
+      const key = `${ws}:${id}`;
+      const now = at(tick());
+      docs.set(key, {...docs.get(key), voidedAt: now, updatedAt: now});
+    },
+    publish: (ws = 'ws-a') => {
+      for (const listener of [...listeners]) if (listener.ws === ws) deliver(listener);
+    },
+    /** O gatilho já gravou a projeção de cada mês com a receita atual (fixa a versão agora, sem entregar). */
+    stamp: (ws = 'ws-a') => { snapshot(ws, '0000-00', '9999-99'); },
+    failListen: () => act(() => {
+      for (const listener of [...listeners]) {
+        listeners.delete(listener);
+        listener.onError();
+      }
+    }),
+    deps: null as unknown as IncomeEstimateDeps,
+  };
+  const snapshot = (ws: string, first: string, last: string): PeriodsSnapshot => {
+    const documents = Object.entries(w.income[ws] ?? {})
+      .filter(([month]) => month >= first && month <= last)
+      .map(([month, incomeCents]) => {
+        const key = `${ws}:${month}`;
+        const known = versions.get(key);
+        const version = known !== undefined && known.income === incomeCents ? known.version : tick();
+        versions.set(key, {income: incomeCents, version});
+        return {id: month, incomeCents, updatedAt: at(version)};
+      });
+    return {documents, fromCache: false, changes: documents.length};
+  };
+  const deliver = (listener: Listener) => {
+    if (!listeners.has(listener)) return;
+    w.log.push('projeção');
+    act(() => listener.onNext(snapshot(listener.ws, listener.first, listener.last)));
+  };
+  w.deps = {
+    basis: {
+      fetchReport: async (payload) => {
+        const income = {...(w.income[payload.workspaceId] ?? {})};
+        if (payload.range.kind === 'month') {
+          const month = payload.range.month;
+          w.calls.month += 1;
+          w.log.push('mês avulso');
+          await wait(w.delays.month);
+          if (w.failing.month) throw new Error('Não foi possível carregar o relatório. Tente novamente.');
+          return {
+            referenceDate: REFERENCE, workspaceType: 'PF', generatedAt: w.serverClock ? new Date(clock * 1000).toISOString() : `m-${w.calls.month}`, period: {range: payload.range},
+            cash: {status: 'exact', data: {receiptsCents: income[month] ?? 0}},
+          } as unknown as FinancialReport;
+        }
+        w.calls.series += 1;
+        w.log.push('série');
+        await wait(w.delays.series);
+        const points = Object.entries(income).filter(([month]) => month >= '2025-12').sort(([a], [b]) => a.localeCompare(b))
+          .map(([month, receiptsCents]) => ({month, receiptsCents, partial: month === '2026-11'}));
+        return {
+          referenceDate: REFERENCE, workspaceType: 'PF', generatedAt: w.serverClock ? new Date(clock * 1000).toISOString() : `s-${w.calls.series}`, series: {status: 'exact', data: {points}},
+        } as unknown as FinancialReport;
+      },
+      subscribePeriods: (ws, first, last, onNext, onError) => {
+        const listener: Listener = {ws, first, last, onNext, onError};
+        listeners.add(listener);
+        w.calls.opened += 1;
+        if (w.listenRefused) {
+          setTimeout(() => { if (listeners.delete(listener)) act(() => onError()); }, w.delays.listen);
+        } else if (w.autoListen) {
+          setTimeout(() => deliver(listener), w.delays.listen);
+        }
+        return () => { listeners.delete(listener); };
+      },
+      refresh: {options: {coalesceMs: 30, burst: 100, refillMs: 60_000}, mutationOptions: {coalesceMs: 30, burst: 100, refillMs: 60_000}},
+    } satisfies BasisSyncDeps,
+    // A espera limitada (30 s no produto), curta e maior que a latência do gatilho nestes testes.
+    pendingWaitMs: 800,
+    readByIds: async (ws, ids) => {
+      w.calls.byIds += 1;
+      w.log.push('exclusões');
+      const found: object[] = [];
+      const missing: string[] = [];
+      for (const id of ids) {
+        const doc = docs.get(`${ws}:${id}`);
+        if (doc) found.push(structuredClone(doc));
+        else missing.push(id);
+      }
+      await wait(w.delays.byIds);
+      if (w.failing.byIds) throw new Error('falha de rede');
+      return {found, missing};
+    },
+  };
+  return w;
+};
+type World = ReturnType<typeof world>;
+
+/** Agosto e setembro com R$ 3.520,00, outubro com R$ 4.020,00 e, nele, a receita r500 (R$ 500,00). */
+const standard = (w: World) => {
+  w.income['ws-a'] = {'2026-08': 352_000, '2026-09': 352_000, '2026-10': 402_000, '2026-11': 100_000};
+  w.write('ws-a', 'r500', {date: '2026-10-15', type: 'receita', valueCents: 50_000, isPaid: true});
+};
+/** Novembro de 2025 a outubro de 2026 com R$ 3.000,00 por mês (novembro de 2025 vem à parte na janela de 12 meses). */
+const twelve = (w: World) => {
+  const income: Record<string, number> = {};
+  for (let index = 0; index < 12; index += 1) {
+    const date = new Date(Date.UTC(2025, 10 + index, 1));
+    income[`${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`] = 300_000;
+  }
+  income['2026-11'] = 100_000;
+  w.income['ws-a'] = income;
+};
+
+const params = (patch: Partial<IncomeEstimateParams> = {}): IncomeEstimateParams => ({
+  workspaceId: 'ws-a', mode: 'habitual', historyMonths: 3, allowBusinessIncome: false, calendar: OFFICE,
+  excludedIds: ['r500'], enabled: true, ...patch,
+});
+
+let renderer: ReactTestRenderer | null = null;
+afterEach(() => {
+  act(() => renderer?.unmount());
+  renderer = null;
+  clearBasisRegistry();
+});
+
+interface Render {
+  uid: string;
+  params: IncomeEstimateParams;
+  state: IncomeEstimateState;
+}
+
+/** A estimativa montada, com as entradas e a conta trocáveis; cada renderização fica registrada. */
+const mount = (w: World, initial: IncomeEstimateParams) => {
+  const client = new QueryClient({defaultOptions: {queries: {retryDelay: 1, refetchOnWindowFocus: false}}});
+  const renders: Render[] = [];
+  const setters: {params: ((value: IncomeEstimateParams) => void) | null; uid: ((value: string) => void) | null} = {params: null, uid: null};
+  const Estimate = () => {
+    const [estimateParams, setParams] = useState(initial);
+    const [uid, setUid] = useState('u1');
+    setters.params = setParams;
+    setters.uid = setUid;
+    renders.push({uid, params: estimateParams, state: useIncomeEstimateWith(w.deps, uid, estimateParams)});
+    return null;
+  };
+  act(() => { renderer = TestRenderer.create(createElement(QueryClientProvider, {client}, createElement(Estimate))); });
+  shownSoFar = () => renders.map((render) => render.state.status === 'done' ? String(incomeOf(render.state)) : render.state.status)
+    .filter((value, index, all) => index === 0 || all[index - 1] !== value).join(' → ');
+  return {
+    client,
+    renders,
+    latest: () => renders[renders.length - 1]?.state,
+    setParams: (value: IncomeEstimateParams) => act(() => setters.params?.(value)),
+    setUid: (value: string) => act(() => setters.uid?.(value)),
+  };
+};
+
+const readyOf = (state: IncomeEstimateState | undefined) =>
+  state?.status === 'done' && state.estimate.status === 'ready' ? (state.estimate as Extract<WorkTimeEstimate, {status: 'ready'}>) : null;
+const incomeOf = (state: IncomeEstimateState | undefined) => readyOf(state)?.incomeCents ?? null;
+const ignored = (state: IncomeEstimateState | undefined) => readyOf(state)?.notes.some((note) => note.kind === 'exclusions_ignored') === true;
+const monthOf = (state: IncomeEstimateState | undefined, month: string) => readyOf(state)?.months.find((entry) => entry.month === month)?.receiptsCents;
+
+/** Toda estimativa pronta mostrada nas renderizações tem um dos valores dos estados consistentes. */
+const assertOnly = (renders: readonly Render[], allowed: readonly number[], message: string) => {
+  const shown = [...new Set(renders.map((render) => incomeOf(render.state)).filter((cents): cents is number => cents !== null))];
+  assert.deepEqual(shown.filter((cents) => !allowed.includes(cents)), [], `${message} (mostrados: ${shownSoFar()})`);
+};
+/** Fora as estimativas permitidas, só "calculando". */
+const assertLoadingOr = (renders: readonly Render[], allowed: readonly number[], message: string) => {
+  const other = renders.filter((render) => render.state.status !== 'loading' && !allowed.includes(incomeOf(render.state) ?? -1));
+  assert.deepEqual(other.map((render) => render.state.status), [], `${message} (mostrados: ${shownSoFar()})`);
+};
+
+// ------------------------------------------------------------------ sondas da revisão 3 (M02)
+
+/**
+ * N03 no caminho de produção: `generatedAt` em ISO (como o das Functions), a sessão abre 5 s depois da edição de
+ * valor (R$ 500,00 → R$ 800,00) e o gatilho grava outubro depois. Consistente: só R$ 10.560,00. Misto: R$ 10.260,00.
+ */
+test('sonda r3: N03 com a hora do servidor das bases (produção), sessão aberta 5 s depois da edição', async () => {
+  const w = world();
+  w.serverClock = true;
+  w.deps = {...w.deps, pendingWaitMs: 60_000};
+  standard(w);
+  w.stamp();
+  w.write('ws-a', 'r500', {date: '2026-10-15', type: 'receita', valueCents: 80_000, isPaid: true});
+  w.advance(5);
+  const {renders, latest} = mount(w, params());
+  await until(() => w.calls.byIds === 1, 'a leitura por id');
+  await settle(300);
+  assert.ok(renders.every((render) => incomeOf(render.state) === null), `antes do gatilho, nenhuma estimativa (mostrados: ${shownSoFar()})`);
+  w.income['ws-a']['2026-10'] = 432_000;
+  w.publish();
+  await until(() => incomeOf(latest()) === 1_056_000, 'a estimativa provada');
+  await settle(100);
+  assertLoadingOr(renders, [1_056_000], 'só "calculando" e a estimativa provada');
+});
+
+for (const seconds of [59, 60] as const) {
+  test(`sonda r3: limiar da espera pela hora do servidor, base gerada ${seconds} s depois da escrita (espera de 60 s)`, async () => {
+    const w = world();
+    w.serverClock = true;
+    w.deps = {...w.deps, pendingWaitMs: 60_000};
+    standard(w);
+    w.stamp();
+    w.write('ws-a', 'r500', {date: '2026-10-15', type: 'receita', valueCents: 50_000, isPaid: true, description: 'Outra descrição'});
+    w.advance(seconds);
+    const {renders, latest} = mount(w, params());
+    if (seconds === 59) {
+      await until(() => w.calls.byIds === 1, 'a leitura por id');
+      await settle(400);
+      assert.ok(renders.every((render) => incomeOf(render.state) === null), `59 s: a espera ainda vale (mostrados: ${shownSoFar()})`);
+    } else {
+      await until(() => incomeOf(latest()) === 1_056_000, '60 s: a espera terminou pela hora do servidor');
+      assertLoadingOr(renders, [1_056_000], 'só "calculando" e a estimativa');
+    }
+  });
+}

@@ -1,0 +1,23 @@
+// Sonda do revisor (segunda rodada, afirmação do T01): fora o dia 1, o plano de cada dia é o mesmo abrindo o período ou
+// não, e a certeza da véspera (`neighborWindowsOn`) não depende da vista. Uso:
+// node --experimental-strip-types vistas-iguais.mts <raiz instrumentada> <amostras> <semente>
+import { rng, genRoutine, genExceptions } from './lib.mts';
+const [root, samplesArg, seedArg] = process.argv.slice(2);
+const cal = await import(`${root}/src/modules/work-time/calendar.ts`);
+const dates = await import(`${root}/src/modules/work-time/dates.ts`);
+const N = Number(samplesArg ?? 2000); const next = rng(Number(seedArg ?? 1));
+const profiles = ['mix', 'night', 'early', 'shift', 'break'] as const;
+let monthsCompared = 0; let differentLaterDays = 0; let differentFirstDays = 0; let firstDayCutInPeriodOnly = 0;
+for (let s = 0; s < N; s += 1) {
+  const c = { routines: Array.from({ length: 1 + Math.floor(next() * 3) }, () => genRoutine(next, profiles[s % 5])), exceptions: genExceptions(next, dates, '2026-09-20', 75), localHolidays: [], worksOnHolidays: next() < 0.5 };
+  for (const month of ['2026-09', '2026-10', '2026-11', '2026-12']) {
+    const a = cal.monthPlan(c, month, { periodStart: true }); const b = cal.monthPlan(c, month);
+    monthsCompared += 1;
+    for (let i = 1; i < a.days.length; i += 1) if (JSON.stringify(a.days[i]) !== JSON.stringify(b.days[i])) differentLaterDays += 1;
+    if (JSON.stringify(a.days[0]) !== JSON.stringify(b.days[0])) differentFirstDays += 1;
+    // o dia 1 corta no período e não corta fora dele: precisa ser incerto para o dia 2
+    const cutA = a.days[0].applied.includes('reduced'); const cutB = b.days[0].applied.includes('reduced');
+    if (cutA && !cutB && cal._neighborWindowsOn(c, a.days[0].date).certain) firstDayCutInPeriodOnly += 1;
+  }
+}
+console.log(JSON.stringify({ samples: N, monthsCompared, differentLaterDays, differentFirstDays, firstDayCutInPeriodOnlyButCertain: firstDayCutInPeriodOnly }));

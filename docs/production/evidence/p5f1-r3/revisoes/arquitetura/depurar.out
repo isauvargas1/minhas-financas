@@ -1,0 +1,46 @@
+--- contraexemplo (cenário 372): {"month":"2026-11","partOfT":30000,"subtracted":0,"at":1680519}
+    1000000: escrita U {"v":100000,"d":"2026-10-03","pago":true,"anulada":false}
+    1010000: gatilho ev-1 (CREATE U, commit 1000000) -> applied
+    1140571: escrita T {"v":30000,"d":"2026-11-12","pago":true,"anulada":false}
+    1146290: gatilho ev-2 (CREATE T, commit 1140571) -> applied
+    1130435..1170435: checkpoint R3 corte=1130000 posição=b (commit 1170435)
+    1214857: varredura lê a página (1 na base)
+    1268125: commit da página com 1 âncora(s) na posição b
+    1291988: publicação R3 (corte 1130000, 1 marca(s) de entrega depois do corte, posição b)
+--- final content sem exclusão física (cenário 1712)
+    1000000: escrita U {"v":100000,"d":"2026-10-03","pago":true,"anulada":false}
+    1010000: gatilho ev-1 (CREATE U, commit 1000000) -> applied
+    1113789: escrita T {"v":20000,"d":"2026-11-12","pago":true,"anulada":false}
+    1129044: escrita T {"v":70000,"d":"2026-11-12","pago":true,"anulada":false}
+    1144757: gatilho ev-3 (UPDATE T, commit 1129044) -> applied
+    1103413..1145413: checkpoint R4 corte=1103000 posição=b (commit 1145413)
+    1187589: varredura lê a página (1 na base)
+    1211997: gatilho ev-2 (CREATE T, commit 1113789) -> applied
+    1237498: commit da página com 1 âncora(s) na posição b
+    1259133: publicação R4 (corte 1103000, 2 marca(s) de entrega depois do corte, posição b)
+{
+ "cenarios": 6000,
+ "janelaMs": 50,
+ "correcao": "nenhuma",
+ "violacoes": 178,
+ "cenariosComViolacao": 30,
+ "provas": 38145,
+ "publicacoes": 4786,
+ "recomecos": 1695,
+ "motivos": {
+  "provada": 38145,
+  "content": 1511,
+  "mark_pending": 2046,
+  "indisponivel_needsRebuild": 289,
+  "mark_broken": 9
+ },
+ "finalSemProva": {
+  "mark_pending": 165,
+  "indisponivel_needsRebuild": 47,
+  "content": 11
+ },
+ "finalSemProvaSemExclusaoFisica": {
+  "mark_pending": 93,
+  "content": 6
+ }
+}

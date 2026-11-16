@@ -1,0 +1,46 @@
+
+// ------------------------------------------------------------------ sondas da revisão 3 (M02)
+
+/**
+ * N03 no caminho de produção: `generatedAt` em ISO (como o das Functions), a sessão abre 5 s depois da edição de
+ * valor (R$ 500,00 → R$ 800,00) e o gatilho grava outubro depois. Consistente: só R$ 10.560,00. Misto: R$ 10.260,00.
+ */
+test('sonda r3: N03 com a hora do servidor das bases (produção), sessão aberta 5 s depois da edição', async () => {
+  const w = world();
+  w.serverClock = true;
+  w.deps = {...w.deps, pendingWaitMs: 60_000};
+  standard(w);
+  w.stamp();
+  w.write('ws-a', 'r500', {date: '2026-10-15', type: 'receita', valueCents: 80_000, isPaid: true});
+  w.advance(5);
+  const {renders, latest} = mount(w, params());
+  await until(() => w.calls.byIds === 1, 'a leitura por id');
+  await settle(300);
+  assert.ok(renders.every((render) => incomeOf(render.state) === null), `antes do gatilho, nenhuma estimativa (mostrados: ${shownSoFar()})`);
+  w.income['ws-a']['2026-10'] = 432_000;
+  w.publish();
+  await until(() => incomeOf(latest()) === 1_056_000, 'a estimativa provada');
+  await settle(100);
+  assertLoadingOr(renders, [1_056_000], 'só "calculando" e a estimativa provada');
+});
+
+for (const seconds of [59, 60] as const) {
+  test(`sonda r3: limiar da espera pela hora do servidor, base gerada ${seconds} s depois da escrita (espera de 60 s)`, async () => {
+    const w = world();
+    w.serverClock = true;
+    w.deps = {...w.deps, pendingWaitMs: 60_000};
+    standard(w);
+    w.stamp();
+    w.write('ws-a', 'r500', {date: '2026-10-15', type: 'receita', valueCents: 50_000, isPaid: true, description: 'Outra descrição'});
+    w.advance(seconds);
+    const {renders, latest} = mount(w, params());
+    if (seconds === 59) {
+      await until(() => w.calls.byIds === 1, 'a leitura por id');
+      await settle(400);
+      assert.ok(renders.every((render) => incomeOf(render.state) === null), `59 s: a espera ainda vale (mostrados: ${shownSoFar()})`);
+    } else {
+      await until(() => incomeOf(latest()) === 1_056_000, '60 s: a espera terminou pela hora do servidor');
+      assertLoadingOr(renders, [1_056_000], 'só "calculando" e a estimativa');
+    }
+  });
+}

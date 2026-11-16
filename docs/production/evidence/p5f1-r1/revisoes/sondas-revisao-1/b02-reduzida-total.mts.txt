@@ -1,0 +1,25 @@
+// Sonda B02: o total da janela da estimativa cai ao acrescentar uma rotina válida (mês atual, outubro/2026),
+// com jornada reduzida e plantão de 24 h na segunda 05/10 e férias nas outras segundas. Confere também que o
+// rascunho com essas exceções é aceito ao salvar (validateDraft) e a estimativa resultante.
+const root = process.argv[2];
+const cal = await import(`${root}/src/modules/work-time/calendar.ts`);
+const est = await import(`${root}/src/modules/work-time/estimate.ts`);
+const draft = await import(`${root}/src/modules/work-time/draft.ts`);
+const OFF = { kind: 'off' };
+const w = (s: string, e: string, b = 0) => ({ kind: 'window', start: Number(s.slice(0, 2)) * 60 + Number(s.slice(3)), end: Number(e.slice(0, 2)) * 60 + Number(e.slice(3)), breakMinutes: b });
+const mondays = (spec: unknown) => ({ kind: 'weekly', days: [spec, OFF, OFF, OFF, OFF, OFF, OFF] });
+const exceptions = [
+  { kind: 'reduced', start: '2026-10-05', end: '2026-10-05', minutes: 600 },
+  { kind: 'on_call', date: '2026-10-05', minutes: 1440 },
+  { kind: 'vacation', start: '2026-10-12', end: '2026-10-31' },
+];
+const one = [mondays(w('08:00', '17:00'))];
+const two = [mondays(w('08:00', '17:00')), mondays(w('18:00', '20:00'))];
+const calendarOf = (routines: unknown[]) => ({ routines, worksOnHolidays: true, localHolidays: [], exceptions });
+for (const [name, routines] of [['uma rotina', one], ['com 18:00–20:00', two]] as const) {
+  const plan = cal.monthPlan(calendarOf(routines as unknown[]), '2026-10', { periodStart: true });
+  const e = est.computeWorkTimeEstimate({ mode: 'current_month', historyMonths: 3, allowBusinessIncome: false, calendar: calendarOf(routines as unknown[]),
+    referenceDate: '2026-10-25', workspaceType: 'PF', reportExact: true, receipts: [{ month: '2026-10', receiptsCents: 500_000, partial: true }], excluded: [] });
+  const d = { ...draft.initialDraft('ws_abc'), routines, worksOnHolidays: true, exceptions };
+  console.log(`${name}: outubro ${plan.minutes} min; estimativa ${e.status} ${e.status === 'ready' ? `R$ ${(e.hourlyRateCents / 100).toFixed(2)}/h sobre ${e.workMinutes} min` : e.reason}; salvar: ${JSON.stringify(draft.validateDraft.length > 1 ? draft.validateDraft(d, '2026-10-01') : draft.validateDraft(d))}`);
+}

@@ -1,0 +1,30 @@
+
+Running 20 tests using 1 worker
+
+(node:22517) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 [chromium] › e2e/work-time-p5f.spec.ts:265:1 › desativado por padrão; assistente na primeira ativação, cancelar não grava, alternância e persistência entre sessões e dispositivos (20.7s)
+  ✓   2 [chromium] › e2e/work-time-p5f.spec.ts:374:1 › a preferência vale em PF e PJ; outra conta no mesmo navegador não vê configuração, estimativa nem valores convertidos (9.7s)
+  ✓   3 [chromium] › e2e/work-time-p5f.spec.ts:484:1 › outra aba acompanha; desativar mantém os dados e excluir apaga toda a configuração (20.3s)
+  ✓   4 [chromium] › e2e/work-time-p5f.spec.ts:560:1 › a IA não recebe a configuração e o modo tempo não grava nada fora do documento privado (3.8s)
+  ✓   5 [chromium] › e2e/work-time-p5f.spec.ts:650:1 › receitas consideradas: regras automáticas, exclusão só na estimativa, PJ com confirmação, mês atual e memória de cálculo (12.9s)
+  ✓   6 [chromium] › e2e/work-time-p5f.spec.ts:745:1 › Configurações: prévia antes de salvar, falha de gravação preserva a anterior, escala e exceções mudam a estimativa, refazer o assistente (3.8s)
+  ✓   7 [chromium] › e2e/work-time-p5f.spec.ts:848:1 › atualização automática: uma receita nova entra na estimativa do mês atual sem recarregar (7.2s)
+  ✓   8 [chromium] › e2e/work-time-p5f.spec.ts:869:1 › atualização automática: receita retroativa no espaço da renda, com outro espaço ativo, muda a estimativa sem recarregar (13.1s)
+  ✓   9 [chromium] › e2e/work-time-p5f.spec.ts:934:1 › sem espaço PF próprio: nenhuma fonte pré-selecionada; contagem, prévia e painel esperam a escolha (2.2s)
+  ✓  10 [chromium] › e2e/work-time-p5f.spec.ts:966:1 › Configurações: a troca do modo pelo Header durante uma edição entra no rascunho e não é desfeita ao salvar (2.3s)
+  ✓  11 [chromium] › e2e/work-time-p5f.spec.ts:999:1 › falha na leitura das receitas desconsideradas: mensagem fixa em pt-BR, nada do SDK, e "Tentar de novo" (9.6s)
+[previa-releitura-que-falha] [{"at":1794615499593,"hourly":"R$ 25,00","error":false,"stale":false},{"at":1794615499717,"hourly":"","error":false,"stale":false},{"at":1794615505750,"hourly":"","error":true,"stale":false},{"at":1794615505922,"hourly":"","error":false,"stale":false},{"at":1794615505928,"hourly":"R$ 25,68","error":false,"stale":false},{"at":1794615506030,"hourly":"","error":false,"stale":false},{"at":1794615512054,"hourly":"","error":true,"stale":false},{"at":1794615512263,"hourly":"R$ 25,68","error":false,"stale":true},{"at":1794615512418,"hourly":"R$ 25,68","error":false,"stale":false},{"at":1794615512536,"hourly":"","error":false,"stale":false},{"at":1794615517599,"hourly":"R$ 26,09","error":false,"stale":false}]
+  ✓  12 [chromium] › e2e/work-time-p5f.spec.ts:1038:1 › releitura que falha: sem confirmar a receita nova, nada convertido e erro com "Tentar de novo", que a traz com o relatório de volta; com a projeção de volta à última leitura, a estimativa volta com o aviso (19.9s)
+  ✓  13 [chromium] › e2e/work-time-p5f.spec.ts:1152:1 › mutação nesta aba: anular em Receitas a receita desconsiderada não junta o item anulado com o total velho (3.3s)
+  ✓  14 [chromium] › e2e/work-time-p5f.spec.ts:1204:1 › falha na leitura da preferência com a escuta já aberta: aviso fixo em pt-BR, valores em reais e "Tentar de novo" (2.3s)
+  ✓  15 [chromium] › e2e/work-time-p5f.spec.ts:1230:1 › escuta das projeções encerrada: os valores voltam a reais, sem a ressalva de leitura anterior; abrir Configurações a reabre, a conversão volta e a estimativa em uso volta a acompanhar outras sessões (10.1s)
+[estados-adv-01-sem-conexao] {"preview":["indisponivel|Estimativa indisponível. A fonte escolhida é um espaço PJ. Confirme que quer usar a receita empresarial, ou escolha um espaço PF."],"notice":["Valores em tempo de trabalho equivalente: uma estimativa aproximada, não o valor exato.Mostrar em R$","Calculando a estimativa de tempo de trabalho: enquanto isso, os valores ficam em reais.Mostrar em R$","Estimativa de tempo de trabalho indisponível agora: os valores continuam em reais. Veja o motivo em Configurações.Mostrar em R$"]}
+[estados-adv-01] {"preview":["indisponivel|Estimativa indisponível. A fonte escolhida é um espaço PJ. Confirme que quer usar a receita empresarial, ou escolha um espaço PF."],"notice":["Valores em tempo de trabalho equivalente: uma estimativa aproximada, não o valor exato.Mostrar em R$","Calculando a estimativa de tempo de trabalho: enquanto isso, os valores ficam em reais.Mostrar em R$","Estimativa de tempo de trabalho indisponível agora: os valores continuam em reais. Veja o motivo em Configurações.Mostrar em R$","Valores em tempo de trabalho equivalente: uma estimativa aproximada, não o valor exato.Mostrar em R$"]}
+  ✓  16 [chromium] › e2e/work-time-p5f.spec.ts:1311:1 › ADV-01 (R3.2): sem conexão, a estimativa indisponível continua com o motivo real, sem "calculando" nem "em atualização"; a conversão em uso sai e volta com a conexão (37.5s)
+  ✓  17 [chromium] › e2e/work-time-p5f.spec.ts:1415:1 › B01 (P5-F.1-R1): recebimento de cliente desconsiderado e estornado em outra sessão: a exclusão perde o efeito e a prévia nunca desconta duas vezes (13.1s)
+  ✓  18 [chromium] › e2e/work-time-p5f.spec.ts:1480:1 › B02 (P5-F.1-R1): acrescentar uma rotina válida não reduz as horas; rotinas que se cruzam com intervalo são recusadas com aviso acessível (5.0s)
+  ✓  19 [chromium] › e2e/work-time-p5f.spec.ts:1598:1 › B02 (revisão da R1, N07): a folga que deixa as rotinas sem cálculo seguro é recusada em Configurações, com aviso acessível junto do botão de salvar (2.7s)
+  ✓  20 [chromium] › e2e/work-time-p5f.spec.ts:1640:1 › S01 (P5-F.1-R2A): a jornada reduzida que deixa o dia seguinte sem cálculo seguro é recusada em Configurações, e a gravada assim deixa a estimativa indisponível (3.0s)
+
+  20 passed (4.1m)

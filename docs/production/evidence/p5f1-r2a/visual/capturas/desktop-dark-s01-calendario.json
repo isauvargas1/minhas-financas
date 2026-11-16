@@ -1,0 +1,22 @@
+{
+  "name": "desktop-dark-s01-calendario",
+  "scope": "[data-testid=\"settings-exceptions-calendar\"]",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "scheme": "dark",
+  "background": "rgb(11, 17, 32)",
+  "overflow": 0,
+  "occluded": false,
+  "violations": [],
+  "role": "group",
+  "focusAfterAction": "button: Mês anterior",
+  "tabTrail": [
+    "button: Próximo mês",
+    "button: 1 de outubro de 2026, quinta-feira, – sem trabalho previsto",
+    "select: Tipo de exceção",
+    "input: De"
+  ],
+  "text": "SEG\nTER\nQUA\nQUI\nSEX\nSÁB\nDOM\n1\nde outubro de 2026, quinta-feira,\n–\nsem trabalho previsto\n2\nde outubro de 2026, sexta-feira,\n–\nsem trabalho previsto\n3\nde outubro de 2026, sábado,\n–\nsem trabalho previsto\n4\nde outubro de 2026, domingo,\n–\nsem trabalho previsto\n5\nde outubro de 2026, segunda-feira,\n8h\nprevistas, com exceção\n6\nde outubro de 2026, terça-feira,\n?\nhoras sem cálculo seguro: jornada reduzida na véspera\n7\nde outubro de 2026, quarta-feira,\n–\nsem trabalho previsto\n8\nde outubro de 2026, quinta-feira,\n–\nsem trabalho previsto\n9\nde outubro de 2026, sexta-feira,\n–\nsem trabalho previsto\n10\nde outubro de 2026, sábado,\n–\nsem trabalho previsto\n11\nde outubro de 2026, domingo,\n–\nsem trabalho previsto\n12\nde outubro de 2026, segunda-feira,\n10h\nprevistas, feriado: Nossa Senhora Aparecida\n13\nde outubro de 2026, terça-feira,\n2h\nprevistas\n14\nde outubro de 2026, quarta-feira,\n–\nsem trabalho previsto\n15\nde outubro de 2026, quinta-feira,\n–\nsem trabalho previsto\n16\nde outubro de 2026, sexta-feira,\n–\nsem trabalho previsto\n17\nde outubro de 2026, sábado,\n–\nsem trabalho previsto\n18\nde outubro de 2026, domingo,\n–\nsem trabalho previsto\n19\nde outubro de 2026, segunda-feira,\n10h\nprevistas\n20\nde outubro de 2026, terça-feira,\n2h\nprevistas\n21\nde outubro de 2026, quarta-feira,\n–\nsem trabalho previsto\n22\nde outubro de 2026, quinta-feira,\n–\nsem trabalho previsto\n23\nde outubro de 2026, sexta-feira,\n–\nsem trabalho previsto\n24\nde outubro de 2026, sábado,\n–\nsem trabalho previsto\n25\nde outubro de 2026, domingo,\n–\nsem trabalho previsto\n26\nde outubro de 2026, segunda-feira,\n10h\nprevistas\n27\nde outubro de 2026, terça-feira,\n2h\nprevistas\n28\nde outubro de 2026, quarta-feira,\n–\nsem trabalho previsto\n29\nde outubro de 2026, quinta-feira,\n–\nsem trabalho previsto\n30\nde outubro de 2026, sexta-feira,\n–\nsem trabalho previsto\n31\nde outubro de 2026, sábado,\n–\nsem trabalho previsto"
+}

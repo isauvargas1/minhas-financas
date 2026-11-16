@@ -1,0 +1,4 @@
+solidez: arquivos 13
+{"samples": 260000, "accepted": 79226, "refused": 180774, "refusedReducedEve": 15749, "checkedPairs": 236089, "checkedK": 6846581, "ambiguousUnderK": 8914, "violations": 0, "docModelMismatch": 543, "completeness": 0, "causeIssues": 716, "civilBound": 0, "refusedPairs": 134889, "refusedNecessary": 122993, "refusedConservative": 11896, "refusedConservativeByCapOnly": 11778, "docModelMismatchPhysical": 0, "causeRoutinesOnReducedEveDay": 657, "ambiguousUnderKValueVaries": 0, "ambiguousUnderKConstant": 4126}
+fração recusas conservadoras / recusas pela véspera (pares): 0.0882
+monotonia (todas): {"samples": 624000, "pairsSafeWindow": 45089, "pairsAccepted": 34140, "violationsSafeWindow": 0, "violationsAccepted": 0, "withReducedNight": 19304, "withUncertainEve": 14715, "transitions": 7841, "pairs": 660955, "violations": 0, "uncertainPairs": 212354, "monthEdge": 106908}

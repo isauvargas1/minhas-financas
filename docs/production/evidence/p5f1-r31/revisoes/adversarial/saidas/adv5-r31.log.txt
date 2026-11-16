@@ -1,0 +1,18 @@
+TAP version 13
+# ADV-5 depois da volta (escuta sem retorno): []; último=loading
+# ADV-5 sequência completa: ["1086000","1086000"]
+# Subtest: ADV-5: volta ao workspace anterior com a base no cache, COM desconsiderada, antes do primeiro retorno da escuta
+ok 1 - ADV-5: volta ao workspace anterior com a base no cache, COM desconsiderada, antes do primeiro retorno da escuta
+  ---
+  duration_ms: 655.821379
+  type: 'test'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 925.955341

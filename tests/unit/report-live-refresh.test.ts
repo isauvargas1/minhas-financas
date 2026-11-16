@@ -130,3 +130,22 @@ test('P5-C1 — inatividade longa não acumula orçamento além da rajada', () =
   assert.ok(refreshes.length - start <= LIVE_REFRESH_BURST + 2,
     `${refreshes.length - start} releituras em 2 minutos depois de um dia parado`);
 });
+
+test('P5-F.1 — releitura pendente: agrupando ou esperando a reposição, até sair ou ser cancelada (R8-01)', () => {
+  const time = fakeClock();
+  const refreshes: number[] = [];
+  const scheduler = createLiveRefreshScheduler(() => refreshes.push(time.clock.now()), time.clock, { coalesceMs: 50, burst: 1, refillMs: 1_000 });
+  assert.equal(scheduler.scheduled(), false);
+  scheduler.notify();
+  assert.equal(scheduler.scheduled(), true, 'agrupando');
+  time.advance(50);
+  assert.deepEqual([refreshes.length, scheduler.scheduled()], [1, false], 'saiu');
+  scheduler.notify();
+  time.advance(50);
+  assert.deepEqual([refreshes.length, scheduler.scheduled()], [1, true], 'sem orçamento: esperando a reposição');
+  time.advance(1_000);
+  assert.deepEqual([refreshes.length, scheduler.scheduled()], [2, false], 'saiu na reposição');
+  scheduler.notify();
+  scheduler.cancel();
+  assert.equal(scheduler.scheduled(), false, 'cancelada');
+});

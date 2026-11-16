@@ -1,0 +1,10 @@
+build=0
+exit=1  duração=92s
+  ✘  1 [chromium] › e2e/work-time-p5f.spec.ts:1460:1 › S01 (P5-F.1-R2A): a jornada reduzida que deixa o dia seguinte sem cálculo seguro é recusada em Configurações, e a gravada assim deixa a estimativa indisponível (25.4s)
+    Error: expect(locator).toContainText(expected) failed
+    Expected substring: "horas sem cálculo seguro: jornada reduzida na véspera"
+    Received string:    "6 de outubro de 2026, terça-feira, ? horas sem cálculo seguro: rotinas que se cruzam com intervalo"
+        at <scratchpad>/wt-p5f1-r2a/e2e/work-time-p5f.spec.ts:1500:29
+  1 failed
+limpeza=0 java=0
+RESULTADO: MORTO (o teste reprovou com o mutante)

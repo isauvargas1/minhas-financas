@@ -1,0 +1,7 @@
+== modelo-r2 20000 0 51 publicacao: "perdasDePoda":0,"cenarios":20000 "violacoes":0,"cenariosComViolacao":0,"provas":127161,"publicacoes":16049,"recomecos":5330 "finalSemProvaSemExclusaoFisica":{}
+== modelo-r2 20000 8 52 publicacao: "perdasDePoda":0,"cenarios":20000 "violacoes":0,"cenariosComViolacao":0,"provas":127390,"publicacoes":16044,"recomecos":5670 "finalSemProvaSemExclusaoFisica":{}
+== modelo-r2 20000 50 53 publicacao: "perdasDePoda":0,"cenarios":20000 "violacoes":0,"cenariosComViolacao":0,"provas":127771,"publicacoes":16001,"recomecos":6229 "finalSemProvaSemExclusaoFisica":{}
+== modelo-r2-duas 20000 0 51 publicacao: "perdasDePoda":0,"cenarios":20000 "violacoes":0,"cenariosComViolacao":0,"provas":124686,"publicacoes":34708,"recomecos":8028 "finalSemProvaSemExclusaoFisica":{}
+== modelo-r2-duas 20000 8 52 publicacao: "perdasDePoda":0,"cenarios":20000 "violacoes":0,"cenariosComViolacao":0,"provas":125031,"publicacoes":34998,"recomecos":9031 "finalSemProvaSemExclusaoFisica":{}
+== modelo-r2-duas 20000 50 53 publicacao: "perdasDePoda":0,"cenarios":20000 "violacoes":0,"cenariosComViolacao":0,"provas":124802,"publicacoes":35008,"recomecos":9108 "finalSemProvaSemExclusaoFisica":{}
+FIM

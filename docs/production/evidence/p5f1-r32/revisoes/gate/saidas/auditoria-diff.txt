@@ -1,0 +1,67 @@
+## escopo
+HEAD=1730a1df0d3870ff52496933f45cb73a8dacd29b HEAD^{tree}=3995eb7f48fd66aef28b4be1e09b77c82bcb8087 branch=feat/p5-f1-r32-2026-11-11 merge-base(HEAD,main)=37d8780d94451afdaff0e91686307daa824c1ad9
+base R3.1=efcbd2645b8e7b08b5add2812f6b319f4a76369b; código final=5ea7fabee02c3ae4ca79400f416ce9e67e425ec7; árvore final medida=3bf2139781338059aa5a3554cb473799c1e44683
+## diff base -> árvore final, fora de docs/
+M	.github/workflows/quality-gate.yml
+M	README.md
+M	e2e/work-time-b03.spec.ts
+M	e2e/work-time-p5f.spec.ts
+M	package.json
+M	playwright.config.ts
+M	src/modules/reports/basisSync.ts
+M	src/modules/work-time/consistency.ts
+M	src/modules/work-time/useIncomeEstimateWith.ts
+A	tests/tools/e2e-grupos.test.mjs
+A	tests/tools/integracao-marco.test.mjs
+M	tests/unit/work-time-consistency.test.ts
+M	tests/unit/work-time-guard.test.ts
+M	tests/unit/work-time-income-estimate.test.ts
+A	tools/e2e/executar-em-grupos.mjs
+A	tools/e2e/grupos.mjs
+A	tools/e2e/portas.mjs
+A	tools/integracao/marco-da-fase.mjs
+ 18 files changed, 2624 insertions(+), 85 deletions(-)
+## docs/
+ 189 files changed, 50867 insertions(+), 18 deletions(-)
+## código final -> árvore final, fora de docs/ (deve ser vazio)
+## 698f9644 -> código final
+docs/production/DATA_MODEL.md
+tests/tools/e2e-grupos.test.mjs
+## arquivos sensíveis tocados (functions/, Rules, índices, firebase.json, .firebaserc, componentes, estilos)
+nenhum
+## skip/only/fixme/todo (e2e tests functions/src src playwright.config.ts package.json)
+efcbd2645b8e7b08b5add2812f6b319f4a76369b: 0
+5ea7fabee02c3ae4ca79400f416ce9e67e425ec7: 0
+## linhas removidas com expect/assert
++++ b/.github/workflows/quality-gate.yml
++++ b/README.md
++++ b/e2e/work-time-b03.spec.ts
++++ b/e2e/work-time-p5f.spec.ts
+-  await expect(balanceCard(page).locator('[data-work-time]'))
+-  await expect(notice(page)).toContainText(stale, { timeout: 30_000 });
+-  await expect(notice(page)).not.toContainText(stale, { timeout: 30_000 });
++++ b/package.json
++++ b/playwright.config.ts
++++ b/src/modules/reports/basisSync.ts
++++ b/src/modules/work-time/consistency.ts
++++ b/src/modules/work-time/useIncomeEstimateWith.ts
++++ b/tests/tools/e2e-grupos.test.mjs
++++ b/tests/tools/integracao-marco.test.mjs
++++ b/tests/unit/work-time-consistency.test.ts
+-  assert.equal(reasonOf(input({hasExclusions: false, projection: null, exclusionsProof: null})), 'provada');
+-  assert.equal(reasonOf(input({basis: {income: INCOME, exact: false}, projection: null, exclusionsProof: null})), 'provada');
+-  assert.equal(reasonOf(input({hasExclusions: false, multipleBases: true, projection: null})), 'projection');
+-  assert.equal(reasonOf(input({hasExclusions: false, multipleBases: true, exclusionsProof: null})), 'provada');
+-  assert.equal(reasonOf(input({hasExclusions: false, multipleBases: true, exclusionsProof: refused('content')})), 'provada');
+-  assert.equal(reasonOf(input({hasExclusions: false, multipleBases: true, exclusionsProof: null})), 'provada');
++++ b/tests/unit/work-time-guard.test.ts
+-  assert.match(sync, /if \(snapshot\.fromCache\) return;\s*noteServerSnapshot\(syncKey\);\s*reopenFailedListeners\(syncKey\);/);
+-  assert.match(estimateHook, /\): IncomeEstimateState => \(state\.status === 'done' && \(!proven \|\| settling\) \? unproven : state\);/);
++++ b/tests/unit/work-time-income-estimate.test.ts
++++ b/tools/e2e/executar-em-grupos.mjs
++++ b/tools/e2e/grupos.mjs
++++ b/tools/e2e/portas.mjs
++++ b/tools/integracao/marco-da-fase.mjs
+## projeto de produção em linhas adicionadas fora de docs
++  assert.doesNotMatch(config, /sistema-financeiro-pesso-20698/);
++  assert.doesNotMatch(SCRIPT, /sistema-financeiro-pesso-20698/);

@@ -1,0 +1,8 @@
+
+Running 1 test using 1 worker
+
+(node:21795) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [chromium] › e2e/work-time-p5f.spec.ts:1310:1 › ADV-01 (R3.2): sem conexão, a estimativa indisponível continua com o motivo real, sem "calculando" nem "em atualização"; a conversão em uso sai e volta com a conexão (52.0s)
+
+  1 passed (1.6m)

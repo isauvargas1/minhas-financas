@@ -1,0 +1,914 @@
+{
+ "node": "v22.23.4",
+ "probe": {
+  "status": 401,
+  "keepAlive": "timeout=5",
+  "connection": "keep-alive"
+ },
+ "summary": {
+  "ocioso | keep-alive (padrão)": {
+   "pares": 42,
+   "falhas": 0,
+   "erros": []
+  },
+  "ocioso | Connection: close": {
+   "pares": 21,
+   "falhas": 0,
+   "erros": []
+  },
+  "com carga | keep-alive (padrão)": {
+   "pares": 42,
+   "falhas": 0,
+   "erros": []
+  },
+  "com carga | Connection: close": {
+   "pares": 21,
+   "falhas": 0,
+   "erros": []
+  }
+ },
+ "results": [
+  {
+   "label": "ocioso",
+   "close": false,
+   "idle": 4980,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "ocioso",
+   "close": false,
+   "idle": 4982,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "ocioso",
+   "close": false,
+   "idle": 4984,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "ocioso",
+   "close": false,
+   "idle": 4986,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "ocioso",
+   "close": false,
+   "idle": 4988,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "ocioso",
+   "close": false,
+   "idle": 4990,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "ocioso",
+   "close": false,
+   "idle": 4992,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "ocioso",
+   "close": false,
+   "idle": 4994,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "ocioso",
+   "close": false,
+   "idle": 4996,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "ocioso",
+   "close": false,
+   "idle": 4998,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "ocioso",
+   "close": false,
+   "idle": 5000,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "ocioso",
+   "close": false,
+   "idle": 5002,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "ocioso",
+   "close": false,
+   "idle": 5004,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "ocioso",
+   "close": false,
+   "idle": 5006,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "ocioso",
+   "close": false,
+   "idle": 5008,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "ocioso",
+   "close": false,
+   "idle": 5010,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "ocioso",
+   "close": false,
+   "idle": 5012,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "ocioso",
+   "close": false,
+   "idle": 5014,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "ocioso",
+   "close": false,
+   "idle": 5016,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "ocioso",
+   "close": false,
+   "idle": 5018,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "ocioso",
+   "close": false,
+   "idle": 5020,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "ocioso",
+   "close": false,
+   "idle": 4980,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "ocioso",
+   "close": false,
+   "idle": 4982,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "ocioso",
+   "close": false,
+   "idle": 4984,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "ocioso",
+   "close": false,
+   "idle": 4986,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "ocioso",
+   "close": false,
+   "idle": 4988,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "ocioso",
+   "close": false,
+   "idle": 4990,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "ocioso",
+   "close": false,
+   "idle": 4992,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "ocioso",
+   "close": false,
+   "idle": 4994,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "ocioso",
+   "close": false,
+   "idle": 4996,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "ocioso",
+   "close": false,
+   "idle": 4998,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "ocioso",
+   "close": false,
+   "idle": 5000,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "ocioso",
+   "close": false,
+   "idle": 5002,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "ocioso",
+   "close": false,
+   "idle": 5004,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "ocioso",
+   "close": false,
+   "idle": 5006,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "ocioso",
+   "close": false,
+   "idle": 5008,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "ocioso",
+   "close": false,
+   "idle": 5010,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "ocioso",
+   "close": false,
+   "idle": 5012,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "ocioso",
+   "close": false,
+   "idle": 5014,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "ocioso",
+   "close": false,
+   "idle": 5016,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "ocioso",
+   "close": false,
+   "idle": 5018,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "ocioso",
+   "close": false,
+   "idle": 5020,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "ocioso",
+   "close": true,
+   "idle": 4980,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "ocioso",
+   "close": true,
+   "idle": 4982,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "ocioso",
+   "close": true,
+   "idle": 4984,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "ocioso",
+   "close": true,
+   "idle": 4986,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "ocioso",
+   "close": true,
+   "idle": 4988,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "ocioso",
+   "close": true,
+   "idle": 4990,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "ocioso",
+   "close": true,
+   "idle": 4992,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "ocioso",
+   "close": true,
+   "idle": 4994,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "ocioso",
+   "close": true,
+   "idle": 4996,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "ocioso",
+   "close": true,
+   "idle": 4998,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "ocioso",
+   "close": true,
+   "idle": 5000,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "ocioso",
+   "close": true,
+   "idle": 5002,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "ocioso",
+   "close": true,
+   "idle": 5004,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "ocioso",
+   "close": true,
+   "idle": 5006,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "ocioso",
+   "close": true,
+   "idle": 5008,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "ocioso",
+   "close": true,
+   "idle": 5010,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "ocioso",
+   "close": true,
+   "idle": 5012,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "ocioso",
+   "close": true,
+   "idle": 5014,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "ocioso",
+   "close": true,
+   "idle": 5016,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "ocioso",
+   "close": true,
+   "idle": 5018,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "ocioso",
+   "close": true,
+   "idle": 5020,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "com carga",
+   "close": false,
+   "idle": 4980,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "com carga",
+   "close": false,
+   "idle": 4982,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "com carga",
+   "close": false,
+   "idle": 4984,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "com carga",
+   "close": false,
+   "idle": 4986,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "com carga",
+   "close": false,
+   "idle": 4988,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "com carga",
+   "close": false,
+   "idle": 4990,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "com carga",
+   "close": false,
+   "idle": 4992,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "com carga",
+   "close": false,
+   "idle": 4994,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "com carga",
+   "close": false,
+   "idle": 4996,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "com carga",
+   "close": false,
+   "idle": 4998,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "com carga",
+   "close": false,
+   "idle": 5000,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "com carga",
+   "close": false,
+   "idle": 5002,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "com carga",
+   "close": false,
+   "idle": 5004,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "com carga",
+   "close": false,
+   "idle": 5006,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "com carga",
+   "close": false,
+   "idle": 5008,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "com carga",
+   "close": false,
+   "idle": 5010,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "com carga",
+   "close": false,
+   "idle": 5012,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "com carga",
+   "close": false,
+   "idle": 5014,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "com carga",
+   "close": false,
+   "idle": 5016,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "com carga",
+   "close": false,
+   "idle": 5018,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "com carga",
+   "close": false,
+   "idle": 5020,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "com carga",
+   "close": false,
+   "idle": 4980,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "com carga",
+   "close": false,
+   "idle": 4982,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "com carga",
+   "close": false,
+   "idle": 4984,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "com carga",
+   "close": false,
+   "idle": 4986,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "com carga",
+   "close": false,
+   "idle": 4988,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "com carga",
+   "close": false,
+   "idle": 4990,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "com carga",
+   "close": false,
+   "idle": 4992,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "com carga",
+   "close": false,
+   "idle": 4994,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "com carga",
+   "close": false,
+   "idle": 4996,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "com carga",
+   "close": false,
+   "idle": 4998,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "com carga",
+   "close": false,
+   "idle": 5000,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "com carga",
+   "close": false,
+   "idle": 5002,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "com carga",
+   "close": false,
+   "idle": 5004,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "com carga",
+   "close": false,
+   "idle": 5006,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "com carga",
+   "close": false,
+   "idle": 5008,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "com carga",
+   "close": false,
+   "idle": 5010,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "com carga",
+   "close": false,
+   "idle": 5012,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "com carga",
+   "close": false,
+   "idle": 5014,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "com carga",
+   "close": false,
+   "idle": 5016,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "com carga",
+   "close": false,
+   "idle": 5018,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "com carga",
+   "close": false,
+   "idle": 5020,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "com carga",
+   "close": true,
+   "idle": 4980,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "com carga",
+   "close": true,
+   "idle": 4982,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "com carga",
+   "close": true,
+   "idle": 4984,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "com carga",
+   "close": true,
+   "idle": 4986,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "com carga",
+   "close": true,
+   "idle": 4988,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "com carga",
+   "close": true,
+   "idle": 4990,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "com carga",
+   "close": true,
+   "idle": 4992,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "com carga",
+   "close": true,
+   "idle": 4994,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "com carga",
+   "close": true,
+   "idle": 4996,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "com carga",
+   "close": true,
+   "idle": 4998,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "com carga",
+   "close": true,
+   "idle": 5000,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "com carga",
+   "close": true,
+   "idle": 5002,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "com carga",
+   "close": true,
+   "idle": 5004,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "com carga",
+   "close": true,
+   "idle": 5006,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "com carga",
+   "close": true,
+   "idle": 5008,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "com carga",
+   "close": true,
+   "idle": 5010,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "com carga",
+   "close": true,
+   "idle": 5012,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "com carga",
+   "close": true,
+   "idle": 5014,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "com carga",
+   "close": true,
+   "idle": 5016,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "com carga",
+   "close": true,
+   "idle": 5018,
+   "ok": true,
+   "status": 401
+  },
+  {
+   "label": "com carga",
+   "close": true,
+   "idle": 5020,
+   "ok": true,
+   "status": 401
+  }
+ ]
+}

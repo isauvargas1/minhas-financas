@@ -14,6 +14,7 @@ import RecentTransactions from './RecentTransactions.tsx';
 import { PRESET_THEMES } from '../contexts/themePresets.ts';
 import { SoundKey, ThemeColors, Transaction } from '../types.ts';
 import { Howl } from 'howler';
+import { ForceMoneyDisplay } from '../modules/work-time/display';
 
 // Helper to calculate luminance
 const getLuminance = (hex: string) => {
@@ -603,14 +604,16 @@ const PersonalizationView: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                             <div className="flex-1 flex flex-col h-full overflow-hidden">
                                 <div className="w-full px-4 sm:px-6 lg:px-8 py-8 h-full flex flex-col overflow-y-auto custom-scrollbar">
                                     {/* REAL Header Component */}
-                                    <Header
-                                        onToggleSidebar={() => setPreviewSidebarExpanded(!previewSidebarExpanded)}
-                                        isSidebarExpanded={previewSidebarExpanded}
-                                        onToggleDarkMode={() => {}} // No-op, visual change handled by theme
-                                        isDarkMode={theme.mode === 'dark'}
-                                        currentDate={new Date()}
-                                        onCurrentDateChange={() => {}}
-                                    />
+                                    <ForceMoneyDisplay>
+                                        <Header
+                                            onToggleSidebar={() => setPreviewSidebarExpanded(!previewSidebarExpanded)}
+                                            isSidebarExpanded={previewSidebarExpanded}
+                                            onToggleDarkMode={() => {}} // No-op, visual change handled by theme
+                                            isDarkMode={theme.mode === 'dark'}
+                                            currentDate={new Date()}
+                                            onCurrentDateChange={() => {}}
+                                        />
+                                    </ForceMoneyDisplay>
                                     
                                     {/* Dashboard Layout */}
                                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
@@ -644,17 +647,19 @@ const PersonalizationView: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                                         />
                                     </div>
 
+                                    <ForceMoneyDisplay>
                                     <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 mb-8">
                                         <div className="lg:col-span-2">
                                             <DistributionChart items={MOCK_DISTRIBUTION} />
                                         </div>
                                         <div className="lg:col-span-3">
                                             <RecentTransactions 
-                                                transactions={MOCK_TRANSACTIONS} 
+                                                previewTransactions={MOCK_TRANSACTIONS}
                                                 onNewTransaction={() => {}} 
                                             />
                                         </div>
                                     </div>
+                                    </ForceMoneyDisplay>
                                 </div>
                             </div>
                         </div>

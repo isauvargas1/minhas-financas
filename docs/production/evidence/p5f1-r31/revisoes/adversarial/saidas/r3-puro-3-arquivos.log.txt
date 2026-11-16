@@ -1,0 +1,526 @@
+TAP version 13
+# Subtest: prova: cada regra, na ordem, com o motivo da primeira que falha
+ok 1 - prova: cada regra, na ordem, com o motivo da primeira que falha
+  ---
+  duration_ms: 2.027344
+  type: 'test'
+  ...
+# Subtest: prova (regra 5, marcas): prova nula espera, prova recusada é "projection_marks" por qualquer motivo, provada aprova, e as regras 1 a 4 vêm antes
+ok 2 - prova (regra 5, marcas): prova nula espera, prova recusada é "projection_marks" por qualquer motivo, provada aprova, e as regras 1 a 4 vêm antes
+  ---
+  duration_ms: 0.31524
+  type: 'test'
+  ...
+# Subtest: prova (regra 5, marcas): só o resultado da prova das marcas decide; escrita, hora ou prazo não aprovam nem seguram
+ok 3 - prova (regra 5, marcas): só o resultado da prova das marcas decide; escrita, hora ou prazo não aprovam nem seguram
+  ---
+  duration_ms: 2.277379
+  type: 'test'
+  ...
+# Subtest: B03: a primeira estimativa só aparece provada pela projeção, com a leitura por id depois dela (a escuta antes das bases)
+ok 4 - B03: a primeira estimativa só aparece provada pela projeção, com a leitura por id depois dela (a escuta antes das bases)
+  ---
+  duration_ms: 140.715323
+  type: 'test'
+  ...
+# Subtest: B03: a primeira estimativa só aparece provada pela projeção, com a leitura por id depois dela (a escuta depois das bases)
+ok 5 - B03: a primeira estimativa só aparece provada pela projeção, com a leitura por id depois dela (a escuta depois das bases)
+  ---
+  duration_ms: 137.100561
+  type: 'test'
+  ...
+# Subtest: B03: a primeira estimativa só aparece provada pela projeção, com a leitura por id depois dela (a escuta só quando o servidor responde)
+ok 6 - B03: a primeira estimativa só aparece provada pela projeção, com a leitura por id depois dela (a escuta só quando o servidor responde)
+  ---
+  duration_ms: 146.207859
+  type: 'test'
+  ...
+# Subtest: B03: a projeção mais nova que a base lida na montagem: nunca a estimativa da base antiga; a base é relida e a nova aparece provada
+ok 7 - B03: a projeção mais nova que a base lida na montagem: nunca a estimativa da base antiga; a base é relida e a nova aparece provada
+  ---
+  duration_ms: 187.790887
+  type: 'test'
+  ...
+# Subtest: B03: uma base e nenhuma desconsiderada: a leitura única é provada mesmo com a escuta encerrada, com a ressalva
+ok 8 - B03: uma base e nenhuma desconsiderada: a leitura única é provada mesmo com a escuta encerrada, com a ressalva
+  ---
+  duration_ms: 18.107495
+  type: 'test'
+  ...
+# Subtest: B03: janela de 12 meses com a escuta encerrada desde o começo: sem prova, o erro com "Tentar de novo"; com a escuta de volta, a estimativa provada
+ok 9 - B03: janela de 12 meses com a escuta encerrada desde o começo: sem prova, o erro com "Tentar de novo"; com a escuta de volta, a estimativa provada
+  ---
+  duration_ms: 82.459026
+  type: 'test'
+  ...
+# Subtest: B03 (R8-02): a desconsiderada do 12º mês anulada em outra sessão e a troca para 12 meses: o mês avulso novo nunca aparece com a exclusão antiga
+ok 10 - B03 (R8-02): a desconsiderada do 12º mês anulada em outra sessão e a troca para 12 meses: o mês avulso novo nunca aparece com a exclusão antiga
+  ---
+  duration_ms: 231.188881
+  type: 'test'
+  ...
+# Subtest: B03 (R11-01): o mês avulso sai da janela com a leitura em curso e volta desatualizado: a base antiga não aparece, e é relida
+ok 11 - B03 (R11-01): o mês avulso sai da janela com a leitura em curso e volta desatualizado: a base antiga não aparece, e é relida
+  ---
+  duration_ms: 518.599373
+  type: 'test'
+  ...
+# Subtest: B03 (R11-02): 12 meses sem desconsiderada, as bases relidas sem pedido da escuta (a virada do mês) e o mês avulso falhando: nenhuma renderização mostra só a série nova
+ok 12 - B03 (R11-02): 12 meses sem desconsiderada, as bases relidas sem pedido da escuta (a virada do mês) e o mês avulso falhando: nenhuma renderização mostra só a série nova
+  ---
+  duration_ms: 508.201236
+  type: 'test'
+  ...
+# Subtest: B03: o calendário trocado durante a sincronização de uma anulação em outra sessão: nunca a base nova com a leitura por id antiga
+ok 13 - B03: o calendário trocado durante a sincronização de uma anulação em outra sessão: nunca a base nova com a leitura por id antiga
+  ---
+  duration_ms: 498.784062
+  type: 'test'
+  ...
+# Subtest: B03: troca do workspace da renda: a estimativa do anterior nunca aparece; só "calculando" até a do novo estar provada
+ok 14 - B03: troca do workspace da renda: a estimativa do anterior nunca aparece; só "calculando" até a do novo estar provada
+  ---
+  duration_ms: 216.176394
+  type: 'test'
+  ...
+# Subtest: B03: troca de conta: a estimativa da conta anterior não é reaproveitada
+ok 15 - B03: troca de conta: a estimativa da conta anterior não é reaproveitada
+  ---
+  duration_ms: 206.09788
+  type: 'test'
+  ...
+# Subtest: B03: nova receita e anulação da desconsiderada em outra sessão durante a releitura por id: nenhuma renderização desconta duas vezes
+ok 16 - B03: nova receita e anulação da desconsiderada em outra sessão durante a releitura por id: nenhuma renderização desconta duas vezes
+  ---
+  duration_ms: 493.421767
+  type: 'test'
+  ...
+# Subtest: B03: a leitura por id falha antes da primeira estimativa: o erro com "Tentar de novo", nunca o total sem as exclusões
+ok 17 - B03: a leitura por id falha antes da primeira estimativa: o erro com "Tentar de novo", nunca o total sem as exclusões
+  ---
+  duration_ms: 44.703119
+  type: 'test'
+  ...
+# Subtest: revisão pt-BR da R3 (M-01): sem desconsiderada, 12 meses e a escuta sem retorno do servidor: depois do tempo de interface, o texto de "em atualização" sem apontar causa, nunca a conversão; com o retorno, a estimativa provada
+ok 18 - revisão pt-BR da R3 (M-01): sem desconsiderada, 12 meses e a escuta sem retorno do servidor: depois do tempo de interface, o texto de "em atualização" sem apontar causa, nunca a conversão; com o retorno, a estimativa provada
+  ---
+  duration_ms: 126.144851
+  type: 'test'
+  ...
+# Subtest: revisão pt-BR da R3 (L-03): a leitura das marcas falha: o erro fixo em pt-BR com "Tentar de novo", nunca a conversão; o "Tentar de novo" prova
+ok 19 - revisão pt-BR da R3 (L-03): a leitura das marcas falha: o erro fixo em pt-BR com "Tentar de novo", nunca a conversão; o "Tentar de novo" prova
+  ---
+  duration_ms: 48.739055
+  type: 'test'
+  ...
+# Subtest: revisão da R1 (N05): com desconsiderada, a escuta encerrada antes do primeiro retorno do servidor dá o erro com "Tentar de novo", nunca "calculando" para sempre
+ok 20 - revisão da R1 (N05): com desconsiderada, a escuta encerrada antes do primeiro retorno do servidor dá o erro com "Tentar de novo", nunca "calculando" para sempre
+  ---
+  duration_ms: 138.340847
+  type: 'test'
+  ...
+# Subtest: revisão da R1 (N03): a desconsiderada editada em outra sessão antes do gatilho, na primeira leitura: nunca o valor novo com o total velho
+ok 21 - revisão da R1 (N03): a desconsiderada editada em outra sessão antes do gatilho, na primeira leitura: nunca o valor novo com o total velho
+  ---
+  duration_ms: 374.599404
+  type: 'test'
+  ...
+# Subtest: B03 (R3, ex-N03): a desconsiderada editada sem efeito na renda e o gatilho atrasado (marca velha): nenhuma conversão em tempo nenhum, só "estimativa em atualização"; com a marca aplicada, a estimativa certa aparece sem esperar prazo
+ok 22 - B03 (R3, ex-N03): a desconsiderada editada sem efeito na renda e o gatilho atrasado (marca velha): nenhuma conversão em tempo nenhum, só "estimativa em atualização"; com a marca aplicada, a estimativa certa aparece sem esperar prazo
+  ---
+  duration_ms: 877.411609
+  type: 'test'
+  ...
+# Subtest: B03 (R3, ex-M02): a hora do servidor não aprova: uma sessão nova aberta depois de o servidor passar da escrita por mais que qualquer prazo continua sem converter com a marca velha
+ok 23 - B03 (R3, ex-M02): a hora do servidor não aprova: uma sessão nova aberta depois de o servidor passar da escrita por mais que qualquer prazo continua sem converter com a marca velha
+  ---
+  duration_ms: 504.108371
+  type: 'test'
+  ...
+# Subtest: B03 (R3, ex-P01): o N03 com a hora do servidor nas bases: sessão aberta 5 s depois da edição de valor, e mesmo 1 h depois, nunca o valor novo com o total velho; o gatilho aplica (receita e marca) e aparece o certo
+ok 24 - B03 (R3, ex-P01): o N03 com a hora do servidor nas bases: sessão aberta 5 s depois da edição de valor, e mesmo 1 h depois, nunca o valor novo com o total velho; o gatilho aplica (receita e marca) e aparece o certo
+  ---
+  duration_ms: 632.581724
+  type: 'test'
+  ...
+# Subtest: B03 (R3, ex-P01): nenhum intervalo aprova a conversão: com a base gerada 59 s depois da escrita e a marca velha, só "estimativa em atualização"
+ok 25 - B03 (R3, ex-P01): nenhum intervalo aprova a conversão: com a base gerada 59 s depois da escrita e a marca velha, só "estimativa em atualização"
+  ---
+  duration_ms: 246.966644
+  type: 'test'
+  ...
+# Subtest: B03 (R3, ex-P01): nenhum intervalo aprova a conversão: com a base gerada 60 s depois da escrita e a marca velha, só "estimativa em atualização" (o limite que antes encerrava a espera)
+ok 26 - B03 (R3, ex-P01): nenhum intervalo aprova a conversão: com a base gerada 60 s depois da escrita e a marca velha, só "estimativa em atualização" (o limite que antes encerrava a espera)
+  ---
+  duration_ms: 244.749828
+  type: 'test'
+  ...
+# Subtest: B03 (R3, ex-P01): nenhum intervalo aprova a conversão: com a base gerada 3600 s depois da escrita e a marca velha, só "estimativa em atualização"
+ok 27 - B03 (R3, ex-P01): nenhum intervalo aprova a conversão: com a base gerada 3600 s depois da escrita e a marca velha, só "estimativa em atualização"
+  ---
+  duration_ms: 243.608644
+  type: 'test'
+  ...
+# Subtest: B03 (R3, ex-N06): a edição sem efeito na renda depois da mudança vista, aplicada pelo gatilho, não prende a estimativa: outra receita entra sem esperar prazo
+ok 28 - B03 (R3, ex-N06): a edição sem efeito na renda depois da mudança vista, aplicada pelo gatilho, não prende a estimativa: outra receita entra sem esperar prazo
+  ---
+  duration_ms: 303.453252
+  type: 'test'
+  ...
+# Subtest: B03 (R3, a): a desconsiderada editada em outra sessão com o gatilho atrasado: nenhuma renderização converte com o conteúdo novo e o total velho; quando o gatilho aplica (receita e marca juntas), aparece o valor certo
+ok 29 - B03 (R3, a): a desconsiderada editada em outra sessão com o gatilho atrasado: nenhuma renderização converte com o conteúdo novo e o total velho; quando o gatilho aplica (receita e marca juntas), aparece o valor certo
+  ---
+  duration_ms: 660.071962
+  type: 'test'
+  ...
+# Subtest: B03 (R3, b): evento fora de ordem (marca com pendência): sem conversão enquanto a pendência não fecha, mesmo relendo; fechada, a estimativa aparece
+ok 30 - B03 (R3, b): evento fora de ordem (marca com pendência): sem conversão enquanto a pendência não fecha, mesmo relendo; fechada, a estimativa aparece
+  ---
+  duration_ms: 893.917449
+  type: 'test'
+  ...
+# Subtest: B03 (R3, c): marca quebrada: sem conversão e sem releitura automática além da escuta; só a reconstrução, a escuta ou o "Tentar de novo" recuperam
+ok 31 - B03 (R3, c): marca quebrada: sem conversão e sem releitura automática além da escuta; só a reconstrução, a escuta ou o "Tentar de novo" recuperam
+  ---
+  duration_ms: 977.60988
+  type: 'test'
+  ...
+# Subtest: B03 (R3, d): a desconsiderada muda de mês para fora da janela: o mês antigo só deixa de descontar quando a marca e a receita mudam juntas
+ok 32 - B03 (R3, d): a desconsiderada muda de mês para fora da janela: o mês antigo só deixa de descontar quando a marca e a receita mudam juntas
+  ---
+  duration_ms: 652.667718
+  type: 'test'
+  ...
+# Subtest: B03 (R3, e): a releitura por motivo passageiro respeita o orçamento do agendador: no máximo o orçamento, a reposição depois, e nunca um prazo que aprove
+ok 33 - B03 (R3, e): a releitura por motivo passageiro respeita o orçamento do agendador: no máximo o orçamento, a reposição depois, e nunca um prazo que aprove
+  ---
+  duration_ms: 778.247451
+  type: 'test'
+  ...
+# Subtest: revisão da R1 (N06): a última estimativa provada mostrada no lugar da atual por mais que a espera limitada ganha o aviso e o "Tentar de novo"
+ok 34 - revisão da R1 (N06): a última estimativa provada mostrada no lugar da atual por mais que a espera limitada ganha o aviso e o "Tentar de novo"
+  ---
+  duration_ms: 1450.45996
+  type: 'test'
+  ...
+# Subtest: B01: o recebimento desconsiderado é estornado em outra sessão (depois da sincronização): a exclusão perde o efeito, nunca desconta de novo
+ok 35 - B01: o recebimento desconsiderado é estornado em outra sessão (depois da sincronização): a exclusão perde o efeito, nunca desconta de novo
+  ---
+  duration_ms: 304.547908
+  type: 'test'
+  ...
+# Subtest: B01: o recebimento desconsiderado é estornado em outra sessão (durante a releitura por id): a exclusão perde o efeito, nunca desconta de novo
+ok 36 - B01: o recebimento desconsiderado é estornado em outra sessão (durante a releitura por id): a exclusão perde o efeito, nunca desconta de novo
+  ---
+  duration_ms: 488.198796
+  type: 'test'
+  ...
+# Subtest: B01: o estorno lido antes de a projeção incluí-lo nunca aparece com o total antigo (a exclusão sem efeito com A ainda somado)
+ok 37 - B01: o estorno lido antes de a projeção incluí-lo nunca aparece com o total antigo (a exclusão sem efeito com A ainda somado)
+  ---
+  duration_ms: 496.600864
+  type: 'test'
+  ...
+# Subtest: B01: o recebimento desconsiderado sem estorno continua descontado; com dois desconsiderados, só o estornado perde o efeito
+ok 38 - B01: o recebimento desconsiderado sem estorno continua descontado; com dois desconsiderados, só o estornado perde o efeito
+  ---
+  duration_ms: 301.546111
+  type: 'test'
+  ...
+# Subtest: a varredura alcança o repositório real
+not ok 39 - a varredura alcança o repositório real
+  ---
+  duration_ms: 3.291395
+  type: 'test'
+  location: '<scratchpad>/p5f1r31/revisoes/adversarial/r3-puro/tests/unit/work-time-guard.test.ts:78:1'
+  failureType: 'testCodeFailure'
+  error: "ENOENT: no such file or directory, scandir '<scratchpad>/p5f1r31/revisoes/adversarial/r3-puro/functions/src'"
+  code: 'ENOENT'
+  stack: |-
+    readdirSync (node:fs:1590:26)
+    sourceFiles (file://<scratchpad>/p5f1r31/revisoes/adversarial/r3-puro/tests/unit/work-time-guard.test.ts:62:3)
+    TestContext.<anonymous> (file://<scratchpad>/p5f1r31/revisoes/adversarial/r3-puro/tests/unit/work-time-guard.test.ts:82:13)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.start (node:internal/test_runner/test:944:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)
+  ...
+# Subtest: nenhuma Function lê, grava ou menciona a preferência privada
+not ok 40 - nenhuma Function lê, grava ou menciona a preferência privada
+  ---
+  duration_ms: 0.167514
+  type: 'test'
+  location: '<scratchpad>/p5f1r31/revisoes/adversarial/r3-puro/tests/unit/work-time-guard.test.ts:85:1'
+  failureType: 'testCodeFailure'
+  error: "ENOENT: no such file or directory, scandir '<scratchpad>/p5f1r31/revisoes/adversarial/r3-puro/functions/src'"
+  code: 'ENOENT'
+  stack: |-
+    readdirSync (node:fs:1590:26)
+    sourceFiles (file://<scratchpad>/p5f1r31/revisoes/adversarial/r3-puro/tests/unit/work-time-guard.test.ts:62:3)
+    TestContext.<anonymous> (file://<scratchpad>/p5f1r31/revisoes/adversarial/r3-puro/tests/unit/work-time-guard.test.ts:86:22)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: IA, notificações e relatórios autoritativos não recebem a preferência
+ok 41 - IA, notificações e relatórios autoritativos não recebem a preferência
+  ---
+  duration_ms: 11.30548
+  type: 'test'
+  ...
+# Subtest: DTOs, chamadas e adaptadores financeiros não carregam tempo de trabalho
+ok 42 - DTOs, chamadas e adaptadores financeiros não carregam tempo de trabalho
+  ---
+  duration_ms: 10.357709
+  type: 'test'
+  ...
+# Subtest: nenhuma cópia local da preferência e nenhuma leitura do cache do SDK no app
+ok 43 - nenhuma cópia local da preferência e nenhuma leitura do cache do SDK no app
+  ---
+  duration_ms: 71.015397
+  type: 'test'
+  ...
+# Subtest: logs da preferência só levam mensagem fixa e código de erro
+ok 44 - logs da preferência só levam mensagem fixa e código de erro
+  ---
+  duration_ms: 59.447478
+  type: 'test'
+  ...
+# Subtest: sessão: troca de conta e respostas atrasadas não expõem a preferência de outra conta
+ok 45 - sessão: troca de conta e respostas atrasadas não expõem a preferência de outra conta
+  ---
+  duration_ms: 0.489007
+  type: 'test'
+  ...
+# Subtest: a preferência só é lida e gravada no documento privado do próprio usuário
+ok 46 - a preferência só é lida e gravada no documento privado do próprio usuário
+  ---
+  duration_ms: 16.107974
+  type: 'test'
+  ...
+# Subtest: Rules: bloco explícito do titular, campos, gramáticas e limites iguais ao contrato v2 do cliente
+not ok 47 - Rules: bloco explícito do titular, campos, gramáticas e limites iguais ao contrato v2 do cliente
+  ---
+  duration_ms: 0.640808
+  type: 'test'
+  location: '<scratchpad>/p5f1r31/revisoes/adversarial/r3-puro/tests/unit/work-time-guard.test.ts:217:1'
+  failureType: 'testCodeFailure'
+  error: "ENOENT: no such file or directory, open '<scratchpad>/p5f1r31/revisoes/adversarial/r3-puro/firestore.rules'"
+  code: 'ENOENT'
+  stack: |-
+    readFileSync (node:fs:440:20)
+    read (file://<scratchpad>/p5f1r31/revisoes/adversarial/r3-puro/tests/unit/work-time-guard.test.ts:55:32)
+    TestContext.<anonymous> (file://<scratchpad>/p5f1r31/revisoes/adversarial/r3-puro/tests/unit/work-time-guard.test.ts:218:17)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: nada derivado é gravado: só a API do módulo escreve, e só os campos do contrato
+ok 48 - nada derivado é gravado: só a API do módulo escreve, e só os campos do contrato
+  ---
+  duration_ms: 5.278441
+  type: 'test'
+  ...
+# Subtest: leitura das marcas de aplicação (P5-F.1-R3): só uma transação de leitura, só nas coleções da projeção, sem escrita, escuta nem cache
+not ok 49 - leitura das marcas de aplicação (P5-F.1-R3): só uma transação de leitura, só nas coleções da projeção, sem escrita, escuta nem cache
+  ---
+  duration_ms: 2.987265
+  type: 'test'
+  location: '<scratchpad>/p5f1r31/revisoes/adversarial/r3-puro/tests/unit/work-time-guard.test.ts:312:1'
+  failureType: 'testCodeFailure'
+  error: "ENOENT: no such file or directory, open '<scratchpad>/p5f1r31/revisoes/adversarial/r3-puro/firestore.rules'"
+  code: 'ENOENT'
+  stack: |-
+    readFileSync (node:fs:440:20)
+    read (file://<scratchpad>/p5f1r31/revisoes/adversarial/r3-puro/tests/unit/work-time-guard.test.ts:55:32)
+    TestContext.<anonymous> (file://<scratchpad>/p5f1r31/revisoes/adversarial/r3-puro/tests/unit/work-time-guard.test.ts:336:17)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: estimativa: uma por contexto, sem polling nem listener por lançamento
+ok 50 - estimativa: uma por contexto, sem polling nem listener por lançamento
+  ---
+  duration_ms: 95.868406
+  type: 'test'
+  ...
+# Subtest: falhas de leitura: mensagens fixas em pt-BR, com nova tentativa, e só o código do erro no log
+ok 51 - falhas de leitura: mensagens fixas em pt-BR, com nova tentativa, e só o código do erro no log
+  ---
+  duration_ms: 2.566439
+  type: 'test'
+  ...
+# Subtest: janela de receitas: a leitura paginada real usa `readPagedWindow` com um documento a mais
+ok 52 - janela de receitas: a leitura paginada real usa `readPagedWindow` com um documento a mais
+  ---
+  duration_ms: 0.390249
+  type: 'test'
+  ...
+# Subtest: matriz: entradas, confirmações, termos, históricos e preços ficam em BRL
+ok 53 - matriz: entradas, confirmações, termos, históricos e preços ficam em BRL
+  ---
+  duration_ms: 4.822475
+  type: 'test'
+  ...
+# Subtest: matriz: pontos em BRL dentro de arquivos elegíveis continuam em reais, linha a linha
+ok 54 - matriz: pontos em BRL dentro de arquivos elegíveis continuam em reais, linha a linha
+  ---
+  duration_ms: 3.653026
+  type: 'test'
+  ...
+# Subtest: matriz: os pontos elegíveis usam a camada de exibição, e a prévia do tema força reais
+ok 55 - matriz: os pontos elegíveis usam a camada de exibição, e a prévia do tema força reais
+  ---
+  duration_ms: 3.452879
+  type: 'test'
+  ...
+# Subtest: modo dinheiro idêntico: a camada devolve o formatador da tela, sem elemento novo
+ok 56 - modo dinheiro idêntico: a camada devolve o formatador da tela, sem elemento novo
+  ---
+  duration_ms: 0.265476
+  type: 'test'
+  ...
+# Subtest: retenção fail-closed: sem prova, só a estimativa provada da mesma identidade; sem ela, nenhuma estimativa aparece (B03, R10-02)
+ok 57 - retenção fail-closed: sem prova, só a estimativa provada da mesma identidade; sem ela, nenhuma estimativa aparece (B03, R10-02)
+  ---
+  duration_ms: 3.910255
+  type: 'test'
+  ...
+# Subtest: retenção fail-closed: provada durante a sincronização, a anterior da mesma identidade; sem ela, a atual provada (B03)
+ok 58 - retenção fail-closed: provada durante a sincronização, a anterior da mesma identidade; sem ela, a atual provada (B03)
+  ---
+  duration_ms: 0.595739
+  type: 'test'
+  ...
+# Subtest: retenção fail-closed: outra conta, outro período ou qualquer entrada diferente não reaproveita a anterior (B03)
+ok 59 - retenção fail-closed: outra conta, outro período ou qualquer entrada diferente não reaproveita a anterior (B03)
+  ---
+  duration_ms: 0.635688
+  type: 'test'
+  ...
+# Subtest: leitura por id: cada leitura concluída traz um objeto novo, mesmo com os mesmos dados e no mesmo milissegundo
+ok 60 - leitura por id: cada leitura concluída traz um objeto novo, mesmo com os mesmos dados e no mesmo milissegundo
+  ---
+  duration_ms: 31.569863
+  type: 'test'
+  ...
+# Subtest: duas leituras por id concluídas no mesmo milissegundo e com os mesmos dados, a segunda pedida pela base que chegou durante a primeira: a estimativa mostra a base nova (R6-02)
+ok 61 - duas leituras por id concluídas no mesmo milissegundo e com os mesmos dados, a segunda pedida pela base que chegou durante a primeira: a estimativa mostra a base nova (R6-02)
+  ---
+  duration_ms: 551.099856
+  type: 'test'
+  ...
+# Subtest: mutação nesta aba: anular a receita desconsiderada nunca junta o item anulado com o total velho (R4-01)
+ok 62 - mutação nesta aba: anular a receita desconsiderada nunca junta o item anulado com o total velho (R4-01)
+  ---
+  duration_ms: 510.603408
+  type: 'test'
+  ...
+# Subtest: janela de 12 meses: a carga lê a série, o mês avulso e as exclusões uma vez cada, com a escuta adiantada (R4-02)
+ok 63 - janela de 12 meses: a carga lê a série, o mês avulso e as exclusões uma vez cada, com a escuta adiantada (R4-02)
+  ---
+  duration_ms: 356.722359
+  type: 'test'
+  ...
+# Subtest: leitura por id antiga: a prévia montada depois de uma mutação nesta aba não a relê antes da base (R5-01)
+ok 64 - leitura por id antiga: a prévia montada depois de uma mutação nesta aba não a relê antes da base (R5-01)
+  ---
+  duration_ms: 542.30258
+  type: 'test'
+  ...
+# Subtest: reconstrução marcada sem mudar os documentos mensais: a mutação relê a base, e a estimativa fica indisponível (R5-02)
+ok 65 - reconstrução marcada sem mudar os documentos mensais: a mutação relê a base, e a estimativa fica indisponível (R5-02)
+  ---
+  duration_ms: 195.163573
+  type: 'test'
+  ...
+# Subtest: escuta das projeções encerrada por erro: a estimativa avisa que pode estar desatualizada, e "Tentar de novo" a reabre (R5-02)
+ok 66 - escuta das projeções encerrada por erro: a estimativa avisa que pode estar desatualizada, e "Tentar de novo" a reabre (R5-02)
+  ---
+  duration_ms: 91.697007
+  type: 'test'
+  ...
+# Subtest: prévia montada durante uma sincronização: as exclusões só são relidas depois da base (R5-01)
+ok 67 - prévia montada durante uma sincronização: as exclusões só são relidas depois da base (R5-01)
+  ---
+  duration_ms: 523.368797
+  type: 'test'
+  ...
+# Subtest: releitura da mutação com a base nova antes do retorno da escuta (viva): nenhuma renderização junta o total novo com a exclusão antiga (R6-02, B03)
+ok 68 - releitura da mutação com a base nova antes do retorno da escuta (viva): nenhuma renderização junta o total novo com a exclusão antiga (R6-02, B03)
+  ---
+  duration_ms: 488.607924
+  type: 'test'
+  ...
+# Subtest: releitura da mutação com a base nova antes do retorno da escuta (encerrada): nenhuma renderização junta o total novo com a exclusão antiga (R6-02, B03)
+ok 69 - releitura da mutação com a base nova antes do retorno da escuta (encerrada): nenhuma renderização junta o total novo com a exclusão antiga (R6-02, B03)
+  ---
+  duration_ms: 433.790333
+  type: 'test'
+  ...
+# Subtest: escuta do provedor encerrada: a prévia de Configurações a reabre, e a estimativa em uso volta a acompanhar outras sessões (R6-01)
+ok 70 - escuta do provedor encerrada: a prévia de Configurações a reabre, e a estimativa em uso volta a acompanhar outras sessões (R6-01)
+  ---
+  duration_ms: 240.982713
+  type: 'test'
+  ...
+# Subtest: exclusão de um mês fora da janela, anulada nesta aba: a janela maior salva depois mostra a renda certa, sem juntar versões (R7-01)
+ok 71 - exclusão de um mês fora da janela, anulada nesta aba: a janela maior salva depois mostra a renda certa, sem juntar versões (R7-01)
+  ---
+  duration_ms: 478.058348
+  type: 'test'
+  ...
+# Subtest: janela de 12 meses, as duas bases relidas sem pedido e o mês avulso chegando depois: a estimativa segura até as duas chegarem, sem mostrar só uma nova (R8-03)
+ok 72 - janela de 12 meses, as duas bases relidas sem pedido e o mês avulso chegando depois: a estimativa segura até as duas chegarem, sem mostrar só uma nova (R8-03)
+  ---
+  duration_ms: 546.269738
+  type: 'test'
+  ...
+# Subtest: janela de 12 meses, a série nova sem pedido e o mês avulso falhando: a estimativa segura enquanto ele lê e libera depois da falha, com a ressalva (R8-03)
+ok 73 - janela de 12 meses, a série nova sem pedido e o mês avulso falhando: a estimativa segura enquanto ele lê e libera depois da falha, com a ressalva (R8-03)
+  ---
+  duration_ms: 792.605264
+  type: 'test'
+  ...
+# Subtest: janela de 12 meses sem receita desconsiderada, com a escuta encerrada e a releitura da mutação da série adiada pelo orçamento: a estimativa segura a versão anterior até a série chegar (R9-01)
+ok 74 - janela de 12 meses sem receita desconsiderada, com a escuta encerrada e a releitura da mutação da série adiada pelo orçamento: a estimativa segura a versão anterior até a série chegar (R9-01)
+  ---
+  duration_ms: 503.489313
+  type: 'test'
+  ...
+# Subtest: janela de 12 meses com a escuta encerrada: a releitura pendente da série que sai sem rede fica pausada, e outra renderização não mostra o mês avulso novo com a série antiga até a rede voltar (R10-03)
+ok 75 - janela de 12 meses com a escuta encerrada: a releitura pendente da série que sai sem rede fica pausada, e outra renderização não mostra o mês avulso novo com a série antiga até a rede voltar (R10-03)
+  ---
+  duration_ms: 567.425704
+  type: 'test'
+  ...
+# Subtest: janela de 12 meses com a releitura de uma mutação nesta aba pendente: o calendário trocado é guardado logo, e a sincronização seguinte (outro membro anula a desconsiderada) não mostra a receita descontada duas vezes (R10-02)
+ok 76 - janela de 12 meses com a releitura de uma mutação nesta aba pendente: o calendário trocado é guardado logo, e a sincronização seguinte (outro membro anula a desconsiderada) não mostra a receita descontada duas vezes (R10-02)
+  ---
+  duration_ms: 313.75139
+  type: 'test'
+  ...
+# Subtest: anulação nesta aba de uma desconsiderada do 12º mês para trás e a troca para 12 meses logo depois: o estado misto nunca aparece, sem esperar a releitura pendente da série (R9-03, B03)
+ok 77 - anulação nesta aba de uma desconsiderada do 12º mês para trás e a troca para 12 meses logo depois: o estado misto nunca aparece, sem esperar a releitura pendente da série (R9-03, B03)
+  ---
+  duration_ms: 371.120969
+  type: 'test'
+  ...
+1..77
+# tests 77
+# suites 0
+# pass 73
+# fail 4
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 14618.095369

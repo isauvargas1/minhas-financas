@@ -1,0 +1,16 @@
+// Sonda do revisor: o par do contraexemplo do início do período passa em `validateDraft` (o que salvar confere).
+// Uso: node --experimental-strip-types s01-inicio-periodo-draft.mts <raiz>
+const root = process.argv[2];
+const draft = await import(`${root}/src/modules/work-time/draft.ts`);
+const grammar = await import(`${root}/src/modules/work-time/grammar.ts`);
+const t = (s: string) => +s.slice(0, 2) * 60 + +s.slice(3);
+const w = (s: string, e: string, b = 0) => ({ kind: 'window', start: t(s), end: t(e), breakMinutes: b });
+const OFF = { kind: 'off' };
+const days = (wed: any, thu: any, fri: any) => ({ kind: 'weekly', days: [OFF, OFF, wed, thu, fri, OFF, OFF] });
+const exceptions = [{ kind: 'reduced', start: '2026-10-01', end: '2026-10-01', minutes: 850 }, { kind: 'vacation', start: '2026-10-03', end: '2026-10-31' }];
+const base = [days(w('20:00', '10:00'), w('06:00', '20:00'), w('00:00', '04:00'))];
+const plus = [...base, days(OFF, w('22:00', '02:00'), OFF)];
+for (const [label, routines] of [['C', base], ["C'", plus]] as const) {
+  const d = { ...draft.initialDraft('ws_pf_1'), routines, exceptions, worksOnHolidays: true };
+  console.log(JSON.stringify({ label, validateDraft: draft.validateDraft(d, '2026-11-06'), routinesText: grammar.formatRoutines(routines), exceptionsText: grammar.formatExceptions(exceptions) }));
+}

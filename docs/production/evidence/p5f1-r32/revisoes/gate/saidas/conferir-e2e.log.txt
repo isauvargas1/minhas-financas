@@ -1,0 +1,6 @@
+{"total":218,"byGroup":[83,64,71],"naoEsperados":0,"duplicados":0,"faltando":[],"stats":[{"stats":1,"startTime":"2026-11-14T17:32:51.147Z","duration":418577.489,"expected":83,"skipped":0,"unexpected":0,"flaky":0},{"stats":2,"startTime":"2026-11-14T17:39:50.868Z","duration":314221.975,"expected":64,"skipped":0,"unexpected":0,"flaky":0},{"stats":3,"startTime":"2026-11-14T17:45:06.343Z","duration":696748.887,"expected":71,"skipped":0,"unexpected":0,"flaky":0}]}
+arquivos distintos: 36
+comparado com <scratchpad>/p5f1r32/logs/verify-all-r32-9-artefatos : só na gate [] só na outra []
+novo/reescrito: 3 expected ["passed"] work-time-b03.spec.ts › B03-g (R3.2, RR-R31-05): sem conexão, a conversão sai e a prévia aberta de novo com o cache aquecido não converte; com a conexão de volt
+novo/reescrito: 3 expected ["passed"] work-time-p5f.spec.ts › escuta das projeções encerrada: os valores voltam a reais, sem a ressalva de leitura anterior; abrir Configurações a reabre, a conversão
+novo/reescrito: 3 expected ["passed"] work-time-p5f.spec.ts › ADV-01 (R3.2): sem conexão, a estimativa indisponível continua com o motivo real, sem "calculando" nem "em atualização"; a conversão em 

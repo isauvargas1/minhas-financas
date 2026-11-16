@@ -48,6 +48,7 @@ import { buildSimpleGoalCards, collectUnloadedGoalIds, summarizeSimpleInvestment
 import InvestmentAllocationBand from './AllocationPanels';
 import { simpleRowActions, type SimpleWorkspaceRole } from '../permissions';
 import { simpleInvestmentError } from '../../errors';
+import { useMoneyDisplay } from '../../../work-time/display';
 import NewInvestmentModal, { type EditingInvestment } from './NewInvestmentModal';
 import WithdrawInvestmentModal from './WithdrawInvestmentModal';
 import ConfirmMovementModal, {
@@ -132,6 +133,7 @@ const GOAL_CARD_DIMENSIONS: InvestmentAllocationDimension[] = ['goal'];
 const SimpleInvestmentsView: React.FC<SimpleInvestmentsViewProps> = ({
     workspaceId, profileType, goals: loadedGoals, goalPaging, role, onBack,
 }) => {
+    const display = useMoneyDisplay();
     const [filters, setFilters] = useState<SimpleInvestmentFilters>(EMPTY_SIMPLE_FILTERS);
     const [sort, setSort] = useState<SimpleSortConfig>(DEFAULT_SIMPLE_SORT);
     const [feedback, setFeedback] = useState<string>();
@@ -392,7 +394,7 @@ const SimpleInvestmentsView: React.FC<SimpleInvestmentsViewProps> = ({
                             )}
                         </div>
                         <p className="text-2xl font-bold text-gray-800 dark:text-white">
-                            {formatCurrency(card.totalCents)}
+                            {display.cents(card.totalCents, formatCurrency)}
                         </p>
                     </div>
                 ))}
@@ -523,13 +525,13 @@ const SimpleInvestmentsView: React.FC<SimpleInvestmentsViewProps> = ({
                             {filtered.length} de {rows.length} registros
                         </span>
                         <span className="inline-flex items-center rounded-full bg-white dark:bg-dark-100 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 shadow-sm ring-1 ring-gray-200 dark:ring-gray-800">
-                            Aportes {formatCurrency(chips.contributionCents)}
+                            Aportes {display.cents(chips.contributionCents, formatCurrency)}
                         </span>
                         <span className="inline-flex items-center rounded-full bg-white dark:bg-dark-100 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 shadow-sm ring-1 ring-gray-200 dark:ring-gray-800">
-                            Retiradas {formatCurrency(chips.withdrawalCents)}
+                            Retiradas {display.cents(chips.withdrawalCents, formatCurrency)}
                         </span>
                         <span className="inline-flex items-center rounded-full bg-white dark:bg-dark-100 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 shadow-sm ring-1 ring-gray-200 dark:ring-gray-800">
-                            Aporte médio {formatCurrency(chips.averageContributionCents)}
+                            Aporte médio {display.cents(chips.averageContributionCents, formatCurrency)}
                         </span>
                         <span className="inline-flex items-center rounded-full bg-white dark:bg-dark-100 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 shadow-sm ring-1 ring-gray-200 dark:ring-gray-800">
                             Depositados {chips.depositedCount}

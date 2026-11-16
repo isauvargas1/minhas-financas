@@ -1,0 +1,15 @@
+3. ordem certa: entrega aplicada, apagar, reconstruir (R2 nova): nenhuma impressão antiga | prova VERDADEIRA (nó V2, pendências 0)
+4a. ordem errada: entrega da correção depois de apagar: impressão antiga PRESENTE em V1@chains.b.pending.0.b.fp
+4b. ordem errada, depois de R2 publicada: impressão antiga PRESENTE em V1@chains.b.pending.0.b.fp | prova VERDADEIRA (nó V2, pendências 0)
+5a. W_b aplicada antes de W_a (cadeia com pendência): impressão antiga PRESENTE em V1@chains.b.node.fp, V1b@chains.b.pending.0.b.fp
+5b. apagar com pendência, W_a chega depois, R2 publicada: impressão antiga PRESENTE em V1@chains.b.pending.0.b.fp, V1b@chains.b.pending.0.a.fp | prova VERDADEIRA (nó V2, pendências 0)
+5c. W_a aplicada (cadeia sem pendência), antes de apagar: nenhuma impressão antiga | prova VERDADEIRA (nó V2, pendências 0)
+5d. ordem certa: apagar sem pendência e reconstruir (R2 nova): nenhuma impressão antiga | prova VERDADEIRA (nó V2, pendências 0)
+6a. R2 retomada depois de apagar; T já varrido: nenhuma impressão antiga | prova recusada (nó absent, pendências 0)
+6b. commit da página de R2 depois da exclusão, R2 publicada: impressão antiga PRESENTE em V1b@anchors.a.fp | prova recusada (nó V1b, pendências 0)
+6c. próxima regravação pelo gatilho sob R2: impressão antiga PRESENTE em V1b@anchors.a.fp, V1b@chains.a.base, V1b@chains.a.node.fp | prova recusada (nó V1b, pendências 1)
+6d. R3 publicada e regravação seguinte: nenhuma impressão antiga | prova VERDADEIRA (nó V4, pendências 0)
+6e. ordem errada com R2 em preparação: entrega da correção depois de apagar: impressão antiga PRESENTE em V1b@chains.a.base, V1b@chains.b.pending.0.b.fp
+7a. preparação R2 abandonada, depois da correção: impressão antiga PRESENTE em V1b@anchors.a.fp, V1b@chains.a.base | prova VERDADEIRA (nó V2, pendências 0)
+7b. preparação R2 abandonada, regravação seguinte: impressão antiga PRESENTE em V1b@anchors.a.fp, V1b@chains.a.base | prova VERDADEIRA (nó V3, pendências 0)
+7c. nova chamada (R3 preparada) e regravação seguinte: nenhuma impressão antiga | prova VERDADEIRA (nó V4, pendências 0)

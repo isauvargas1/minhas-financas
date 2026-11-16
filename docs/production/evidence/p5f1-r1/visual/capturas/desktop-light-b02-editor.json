@@ -1,0 +1,22 @@
+{
+  "name": "desktop-light-b02-editor",
+  "scope": "[data-testid=\"routines-ambiguity\"]",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "scheme": "light",
+  "background": "rgb(249, 250, 251)",
+  "overflow": 0,
+  "occluded": false,
+  "violations": [],
+  "role": "alert",
+  "focusAfterAction": "button: Aplicar aos dias marcados",
+  "tabTrail": [
+    "select: Como informar",
+    "input: Início",
+    "input: Início",
+    "input: Início"
+  ],
+  "text": "A Rotina 1, a Rotina 2 e a Rotina 3 se cruzam em quinta-feira, 05/11/2026, e há intervalo no trecho em comum: não dá para saber onde cai a pausa, então as horas não podem ser calculadas com segurança. Ajuste os horários para que não se cruzem ou deixe sem intervalo as rotinas que se cruzam."
+}

@@ -1,0 +1,16 @@
+sonda: 401 keep-alive="timeout=5" connection="keep-alive"
+carga: 18845 pedidos, 0 erros
+carga: 43943 pedidos, 0 erros
+carga: 70424 pedidos, 0 erros
+carga: 95513 pedidos, 0 erros
+carga: 120482 pedidos, 0 erros
+carga: 146002 pedidos, 0 erros
+carga: 169907 pedidos, 0 erros
+carga: 189645 pedidos, 0 erros
+carga: 208962 pedidos, 0 erros
+carga: 229469 pedidos, 0 erros
+ocioso | keep-alive (padrão): 0/42 falhas []
+ocioso | Connection: close: 0/21 falhas []
+com carga | keep-alive (padrão): 0/42 falhas []
+com carga | Connection: close: 0/21 falhas []
+e2=0 porta5001_livre=sim

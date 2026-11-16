@@ -1,0 +1,5 @@
+base: saída 0, 0 falha(s)
+MORTO      S01 sinal não repassado ao grupo (3 falha(s); ex.: not ok 14 - executor (EST-02): SIGTERM no executor, SIGTERM no grupo de processos dele e Ctrl+C viram um SIGINT só ao gr)
+MORTO      S05 SIGTERM sem tratamento (5 falha(s); ex.: not ok 14 - executor (EST-02): SIGTERM no executor, SIGTERM no grupo de processos dele e Ctrl+C viram um SIGINT só ao gr)
+MORTO      U01 só o primeiro sinal é repassado (o U01 da revisão adversarial, rodada 3; ADV-R3-03) (1 falha(s); ex.: not ok 18 - executor (ADV-R3-03): cada sinal recebido vira um SIGINT ao grupo em curso; o segundo chega ao Playwright, q)
+total: 3/3 mortos

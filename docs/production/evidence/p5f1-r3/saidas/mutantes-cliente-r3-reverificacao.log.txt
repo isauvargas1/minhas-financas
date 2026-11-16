@@ -1,0 +1,3 @@
+base: saída 0, 0 falha(s)
+MORTO      P11 criação casa com qualquer nó (2 falha(s); ex.: not ok 167 - visão da marca: paridade com a fixture gerada pelo backend, caso a caso)
+MORTO      R01 impressão do normalizado, não do bruto (26 falha(s); ex.: not ok 68 - B03: a primeira estimativa só aparece provada pela projeção, com a leitura por id depois dela (a escuta antes das bases))

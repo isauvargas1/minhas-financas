@@ -1,0 +1,1211 @@
+{
+ "node": "v22.23.4",
+ "phase": "check",
+ "lanes": 10,
+ "pairs": 8,
+ "results": [
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 4440,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 4832,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 4918,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 5191,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 5619,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 5783,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 5786,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 5881,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 5884,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 5949,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 4611,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 4551,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 4115,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 4039,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 4844,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 5280,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 4711,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 5978,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 5256,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 5179,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 4108,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 4245,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 5713,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 4365,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 5547,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 5996,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 5751,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 5426,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 4822,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 4962,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 4102,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 5295,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 4791,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 5773,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 5086,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 5983,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 5623,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 5760,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 5596,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 5803,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 4639,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 4361,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 4847,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 4334,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 5141,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 5011,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 5987,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 5709,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 4581,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 5912,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 4863,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 4572,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 4863,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 5240,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 5390,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 5048,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 5872,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 5895,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 5698,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 4713,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 4408,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 4915,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 4149,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 4300,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 4375,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 4930,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 4869,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 4710,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 4598,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 4474,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 4191,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 4382,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 4005,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 4452,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 4845,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 5687,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 4896,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 5869,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 5675,
+   "ok": true
+  },
+  {
+   "variant": "sem atraso, keep-alive",
+   "idle": 5507,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 4521,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 5061,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 5091,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 5288,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 5509,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 5514,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 5512,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 5655,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 5767,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 5826,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 4367,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 4323,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 4551,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 4548,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 4347,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 5693,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 5086,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 5646,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 5839,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 5855,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 4048,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 4397,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 4923,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 4077,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 5360,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 4151,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 4341,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 5537,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 5694,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 5411,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 5812,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 4765,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 5511,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 4017,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 4700,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 5132,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 5859,
+   "ok": false,
+   "error": "apiRequestContext.post: read ECONNRESET"
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 5737,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 5803,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 5724,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 5514,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 5548,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 5057,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 4962,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 5638,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 5194,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 5303,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 5410,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 5508,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 5907,
+   "ok": false,
+   "error": "apiRequestContext.post: read ECONNRESET"
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 4379,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 5547,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 5585,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 5675,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 5815,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 4715,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 5275,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 5106,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 5928,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 5983,
+   "ok": false,
+   "error": "apiRequestContext.post: read ECONNRESET"
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 4185,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 4050,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 4709,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 4653,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 4403,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 5287,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 5892,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 4830,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 5701,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 5232,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 4440,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 5931,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 4899,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 4511,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 4984,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 4282,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 5566,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 4863,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 4434,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), keep-alive",
+   "idle": 4292,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 4202,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 4300,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 5077,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 5220,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 5244,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 5355,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 5506,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 5647,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 5767,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 5792,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 5111,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 5502,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 4692,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 5018,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 5146,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 5174,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 4871,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 5241,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 5599,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 5450,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 4734,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 4572,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 4421,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 4552,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 4163,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 4957,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 4199,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 4938,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 5486,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 4913,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 4357,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 4010,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 5433,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 4924,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 4553,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 4817,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 5814,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 5110,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 5555,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 5890,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 4658,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 5576,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 5006,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 4805,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 5028,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 5187,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 5380,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 5809,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 5052,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 5482,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 4368,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 4315,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 4284,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 4126,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 5979,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 4929,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 5399,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 4734,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 5349,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 5630,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 4253,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 5082,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 5062,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 4529,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 4036,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 4914,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 5783,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 5034,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 5298,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 4470,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 5584,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 4448,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 5658,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 4563,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 4526,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 5637,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 5814,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 4154,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 5369,
+   "ok": true
+  },
+  {
+   "variant": "atraso 300 ms/1 s (check), Connection: close",
+   "idle": 5912,
+   "ok": true
+  }
+ ]
+}

@@ -1,0 +1,29 @@
+{
+  "description": "P5-F.1-R1 (B01): IDs do recebimento de cliente e do estorno dele, como o backend os grava (functions/src/receivables/model.ts). O teste do backend confere que as funções reais dão estes valores; o do cliente, que a derivação do navegador (src/modules/work-time/receivableReversal.ts) dá os mesmos.",
+  "cases": [
+    {
+      "receivableId": "rcv_d3041c3fbb828bfe8b190a45b137291979cfce37",
+      "intentId": "3140c2d8efe61829e6d590d2309b5a43",
+      "movementId": "rmv_cf85542cf07eee6d9adfaf0f718dfb9b88ebd4a8",
+      "mirrorId": "recvcash_cf85542cf07eee6d9adfaf0f718dfb9b88ebd4a8",
+      "reversalMovementId": "rmv_b05e8f3d93b70ccc508aa916c1b2d865bf3516e3",
+      "reversalMirrorId": "recvcash_b05e8f3d93b70ccc508aa916c1b2d865bf3516e3"
+    },
+    {
+      "receivableId": "rcv_0b6cb6f5904a81ce88ada65f7adce0c817a30a8e",
+      "intentId": "a6b1925703929c6804a78aab4375ba06",
+      "movementId": "rmv_51bc4e6ae676c0a1a58f5c60a736afe3aee737fc",
+      "mirrorId": "recvcash_51bc4e6ae676c0a1a58f5c60a736afe3aee737fc",
+      "reversalMovementId": "rmv_fa2e0f8c86b27ab818a7ac340e1c05919fa9f53c",
+      "reversalMirrorId": "recvcash_fa2e0f8c86b27ab818a7ac340e1c05919fa9f53c"
+    },
+    {
+      "receivableId": "rcv_00737dd389a9f59eaa084aef56a2a1b2a38f5ee7",
+      "intentId": "43d64353616668d4cd79e1539fd195c5",
+      "movementId": "rmv_8535f9da4e3e734760cec9b9a7b1258f4963b993",
+      "mirrorId": "recvcash_8535f9da4e3e734760cec9b9a7b1258f4963b993",
+      "reversalMovementId": "rmv_201cf93421e621b9827bbdd0bb3019b4fb604822",
+      "reversalMirrorId": "recvcash_201cf93421e621b9827bbdd0bb3019b4fb604822"
+    }
+  ]
+}

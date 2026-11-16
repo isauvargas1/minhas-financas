@@ -31,6 +31,9 @@
     ],
   "hosting": {
     "public": "dist",
+    "predeploy": [
+      "node tools/seguranca/varrer-bundle.mjs dist"
+    ],
     "ignore": [
       "firebase.json",
       "**/.*",

@@ -1,0 +1,238 @@
+TAP version 13
+# Subtest: datas civis: dias reais, anos bissextos, intervalo 2000–2099 e dia da semana ISO
+ok 1 - datas civis: dias reais, anos bissextos, intervalo 2000–2099 e dia da semana ISO
+  ---
+  duration_ms: 2.199059
+  type: 'test'
+  ...
+# Subtest: horas do mês são do próprio mês, nunca uma carga fixa de 220 h
+ok 2 - horas do mês são do próprio mês, nunca uma carga fixa de 220 h
+  ---
+  duration_ms: 31.878242
+  type: 'test'
+  ...
+# Subtest: feriados nacionais por lei, com vigência; pontos facultativos e datas religiosas municipais nunca automáticos
+ok 3 - feriados nacionais por lei, com vigência; pontos facultativos e datas religiosas municipais nunca automáticos
+  ---
+  duration_ms: 2.878846
+  type: 'test'
+  ...
+# Subtest: domingos de eleição: só atalho, nunca automáticos; 1º e último domingo de outubro dos anos pares
+ok 4 - domingos de eleição: só atalho, nunca automáticos; 1º e último domingo de outubro dos anos pares
+  ---
+  duration_ms: 0.407592
+  type: 'test'
+  ...
+# Subtest: Páscoa e datas móveis (algoritmo gregoriano)
+ok 5 - Páscoa e datas móveis (algoritmo gregoriano)
+  ---
+  duration_ms: 0.617631
+  type: 'test'
+  ...
+# Subtest: feriados locais (anual e data única), trabalho em feriados e feriado trabalhado
+ok 6 - feriados locais (anual e data única), trabalho em feriados e feriado trabalhado
+  ---
+  duration_ms: 2.095725
+  type: 'test'
+  ...
+# Subtest: escala 12×36 e escalas cíclicas contam a partir da data de referência, também para trás
+ok 7 - escala 12×36 e escalas cíclicas contam a partir da data de referência, também para trás
+  ---
+  duration_ms: 2.761656
+  type: 'test'
+  ...
+# Subtest: turno noturno conta no dia em que começa; janelas que se cruzam contam uma vez; o intervalo sem horário nunca é adivinhado (B02)
+ok 8 - turno noturno conta no dia em que começa; janelas que se cruzam contam uma vez; o intervalo sem horário nunca é adivinhado (B02)
+  ---
+  duration_ms: 6.124876
+  type: 'test'
+  ...
+# Subtest: B02: acrescentar uma rotina contida numa janela já contada não tira horas (08–12 + 13–17 = 8 h; com 09–11 e 90 min de pausa, 8 h)
+ok 9 - B02: acrescentar uma rotina contida numa janela já contada não tira horas (08–12 + 13–17 = 8 h; com 09–11 e 90 min de pausa, 8 h)
+  ---
+  duration_ms: 7.234786
+  type: 'test'
+  ...
+# Subtest: B02: cruzamentos parciais, contenção, repetição, intervalos longos e vários intervalos
+ok 10 - B02: cruzamentos parciais, contenção, repetição, intervalos longos e vários intervalos
+  ---
+  duration_ms: 0.947306
+  type: 'test'
+  ...
+# Subtest: B02: turnos noturnos e cruzamentos entre dias, com escala semanal e cíclica
+ok 11 - B02: turnos noturnos e cruzamentos entre dias, com escala semanal e cíclica
+  ---
+  duration_ms: 0.915474
+  type: 'test'
+  ...
+# Subtest: B02: feriados, plantões, horas extras, exceções e o limite de 24 h com rotinas que se cruzam
+ok 12 - B02: feriados, plantões, horas extras, exceções e o limite de 24 h com rotinas que se cruzam
+  ---
+  duration_ms: 3.736921
+  type: 'test'
+  ...
+# Subtest: B02: o conferidor das rotinas percorre o período inteiro da combinação e é rápido no pior caso
+ok 13 - B02: o conferidor das rotinas percorre o período inteiro da combinação e é rápido no pior caso
+  ---
+  duration_ms: 85.534942
+  type: 'test'
+  ...
+# Subtest: B02 (propriedade): com cálculo seguro, as horas são a união das janelas trabalhadas, em qualquer posição das pausas
+ok 14 - B02 (propriedade): com cálculo seguro, as horas são a união das janelas trabalhadas, em qualquer posição das pausas
+  ---
+  duration_ms: 128.486377
+  type: 'test'
+  ...
+# Subtest: B02 (propriedade): todo dia recusado depende mesmo da posição das pausas
+ok 15 - B02 (propriedade): todo dia recusado depende mesmo da posição das pausas
+  ---
+  duration_ms: 74.216493
+  type: 'test'
+  ...
+# Subtest: B02 (propriedade): acrescentar uma rotina, entre configurações com cálculo seguro, nunca tira horas
+ok 16 - B02 (propriedade): acrescentar uma rotina, entre configurações com cálculo seguro, nunca tira horas
+  ---
+  duration_ms: 493.535186
+  type: 'test'
+  ...
+# Subtest: B02: o turno que começa na véspera do período não leva horas do primeiro dia; os minutos sem horário só ocupam o tempo livre do dia
+ok 17 - B02: o turno que começa na véspera do período não leva horas do primeiro dia; os minutos sem horário só ocupam o tempo livre do dia
+  ---
+  duration_ms: 3.154364
+  type: 'test'
+  ...
+# Subtest: B02 (propriedade): na janela de meses da estimativa, com exceções, durações, turnos de 24 h e feriados, acrescentar uma rotina nunca tira horas
+ok 18 - B02 (propriedade): na janela de meses da estimativa, com exceções, durações, turnos de 24 h e feriados, acrescentar uma rotina nunca tira horas
+  ---
+  duration_ms: 6730.898515
+  type: 'test'
+  ...
+# Subtest: B02 (revisão da R1, N01): num dia de jornada reduzida com plantão, acrescentar uma rotina válida não tira horas
+ok 19 - B02 (revisão da R1, N01): num dia de jornada reduzida com plantão, acrescentar uma rotina válida não tira horas
+  ---
+  duration_ms: 0.777448
+  type: 'test'
+  ...
+# Subtest: B02 (revisão da R1, N02): num dia de jornada reduzida, o dia civil nunca passa de 24 h; o trecho depois da meia-noite cabe além dele
+ok 20 - B02 (revisão da R1, N02): num dia de jornada reduzida, o dia civil nunca passa de 24 h; o trecho depois da meia-noite cabe além dele
+  ---
+  duration_ms: 0.452112
+  type: 'test'
+  ...
+# Subtest: B02 (P5-F.1-R2A, S01): segunda 20:00–06:00 reduzida a 8 h e terça 00:00–08:00 — os 960 min da R1 viram recusa, com a causa na véspera
+ok 21 - B02 (P5-F.1-R2A, S01): segunda 20:00–06:00 reduzida a 8 h e terça 00:00–08:00 — os 960 min da R1 viram recusa, com a causa na véspera
+  ---
+  duration_ms: 1.684264
+  type: 'test'
+  ...
+# Subtest: B02 (P5-F.1-R2A, S01): o dia civil seguinte a uma jornada reduzida não recebe 24 h de plantão por cima do turno dela (contrato anterior, RR-R1-03, substituído)
+ok 22 - B02 (P5-F.1-R2A, S01): o dia civil seguinte a uma jornada reduzida não recebe 24 h de plantão por cima do turno dela (contrato anterior, RR-R1-03, substituído)
+  ---
+  duration_ms: 4.400916
+  type: 'test'
+  ...
+# Subtest: B02 (P5-F.1-R2A, S01): casos comuns de jornada reduzida continuam aceitos, com as mesmas horas
+ok 23 - B02 (P5-F.1-R2A, S01): casos comuns de jornada reduzida continuam aceitos, com as mesmas horas
+  ---
+  duration_ms: 1.609078
+  type: 'test'
+  ...
+# Subtest: B02 (P5-F.1-R2A, S01): o dia seguinte só tem cálculo seguro com os dois extremos seguros, e o plano mostrado é o da véspera sem nada
+ok 24 - B02 (P5-F.1-R2A, S01): o dia seguinte só tem cálculo seguro com os dois extremos seguros, e o plano mostrado é o da véspera sem nada
+  ---
+  duration_ms: 0.327802
+  type: 'test'
+  ...
+# Subtest: B02 (P5-F.1-R2A, S01): a cobertura que vem da véspera reduzida aponta a véspera, com mensagem própria
+ok 25 - B02 (P5-F.1-R2A, S01): a cobertura que vem da véspera reduzida aponta a véspera, com mensagem própria
+  ---
+  duration_ms: 14.772517
+  type: 'test'
+  ...
+# Subtest: B02 (P5-F.1-R2A, Teorema 2): a jornada reduzida que passa a cortar horas ao acrescentar uma rotina não tira horas do período
+ok 26 - B02 (P5-F.1-R2A, Teorema 2): a jornada reduzida que passa a cortar horas ao acrescentar uma rotina não tira horas do período
+  ---
+  duration_ms: 0.755403
+  type: 'test'
+  ...
+# Subtest: B02 (revisão 2 da R1, M03): o intervalo da véspera coberto pelo dia conta na véspera e ocupa o dia civil; o teto do dia o desconta
+ok 27 - B02 (revisão 2 da R1, M03): o intervalo da véspera coberto pelo dia conta na véspera e ocupa o dia civil; o teto do dia o desconta
+  ---
+  duration_ms: 5.491135
+  type: 'test'
+  ...
+# Subtest: B02 (propriedade, revisão da R1): com jornada reduzida, plantão e hora extra até 24 h, acrescentar uma rotina nunca tira horas
+ok 28 - B02 (propriedade, revisão da R1): com jornada reduzida, plantão e hora extra até 24 h, acrescentar uma rotina nunca tira horas
+  ---
+  duration_ms: 2401.073388
+  type: 'test'
+  ...
+# Subtest: B02 (propriedade, revisão da R1): sem janela que passe da meia-noite, nenhum dia passa de 24 h, com qualquer exceção
+ok 29 - B02 (propriedade, revisão da R1): sem janela que passe da meia-noite, nenhum dia passa de 24 h, com qualquer exceção
+  ---
+  duration_ms: 1415.58501
+  type: 'test'
+  ...
+# Subtest: B02 (revisão da R1, N07): o conferidor do calendário inteiro acha o dia sem cálculo seguro por exceção, feriado ou início do período
+ok 30 - B02 (revisão da R1, N07): o conferidor do calendário inteiro acha o dia sem cálculo seguro por exceção, feriado ou início do período
+  ---
+  duration_ms: 102.483041
+  type: 'test'
+  ...
+# Subtest: B02 (propriedade, revisão da R1): o que o conferidor do calendário inteiro aceita nunca tem dia sem cálculo seguro, e o dia que ele aponta é ambíguo
+ok 31 - B02 (propriedade, revisão da R1): o que o conferidor do calendário inteiro aceita nunca tem dia sem cálculo seguro, e o dia que ele aponta é ambíguo
+  ---
+  duration_ms: 4228.31972
+  type: 'test'
+  ...
+# Subtest: B02 (propriedade, P5-F.1-R2A): depois de uma jornada reduzida, o dia aceito vale o mesmo em qualquer parte do turno da véspera que tenha acontecido, e o recusado depende mesmo dela
+ok 32 - B02 (propriedade, P5-F.1-R2A): depois de uma jornada reduzida, o dia aceito vale o mesmo em qualquer parte do turno da véspera que tenha acontecido, e o recusado depende mesmo dela
+  ---
+  duration_ms: 203.687177
+  type: 'test'
+  ...
+# Subtest: B02 (propriedade, P5-F.1-R2A): com jornadas reduzidas em turnos que passam da meia-noite, acrescentar uma rotina nunca tira horas
+ok 33 - B02 (propriedade, P5-F.1-R2A): com jornadas reduzidas em turnos que passam da meia-noite, acrescentar uma rotina nunca tira horas
+  ---
+  duration_ms: 4035.513499
+  type: 'test'
+  ...
+# Subtest: B02 (propriedade, P5-F.1-R2A): sem intervalo nenhum, o conferidor acha o dia seguinte a cada jornada reduzida sem cálculo seguro, e o que ele aceita nunca tem dia ambíguo
+ok 34 - B02 (propriedade, P5-F.1-R2A): sem intervalo nenhum, o conferidor acha o dia seguinte a cada jornada reduzida sem cálculo seguro, e o que ele aceita nunca tem dia ambíguo
+  ---
+  duration_ms: 1025.832912
+  type: 'test'
+  ...
+# Subtest: durações sem horário somam e a possível sobreposição é sinalizada; nenhum dia passa de 24 h
+ok 35 - durações sem horário somam e a possível sobreposição é sinalizada; nenhum dia passa de 24 h
+  ---
+  duration_ms: 0.573836
+  type: 'test'
+  ...
+# Subtest: exceções: férias, folga, ausência, plantão, hora extra, jornada reduzida e alteração de escala
+ok 36 - exceções: férias, folga, ausência, plantão, hora extra, jornada reduzida e alteração de escala
+  ---
+  duration_ms: 3.423163
+  type: 'test'
+  ...
+# Subtest: P5-F.1-R2A: a memória do conferidor vale só durante a chamada e não muda resultado
+ok 37 - P5-F.1-R2A: a memória do conferidor vale só durante a chamada e não muda resultado
+  ---
+  duration_ms: 0.253865
+  type: 'test'
+  ...
+# Subtest: o plano é determinístico e só depende das entradas (função pura)
+ok 38 - o plano é determinístico e só depende das entradas (função pura)
+  ---
+  duration_ms: 0.656652
+  type: 'test'
+  ...
+1..38
+# tests 38
+# suites 0
+# pass 38
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 21362.993934

@@ -1,0 +1,216 @@
+// Sonda do revisor (R2A, itens 1, 3 e 4): solidez do S01, completude do conferidor e frequência da recusa conservadora.
+// Uso: node --experimental-strip-types s01-solidez.mts <raiz instrumentada> <amostras> <semente> <perfil> [grade fina 0|1]
+// A raiz instrumentada é a cópia de calendar.ts com os internos exportados (sem outra mudança).
+import { rng, unite, size, meet, minus, genRoutine, genExceptions, winLen, type Span } from './lib.mts';
+
+const [root, samplesArg, seedArg, profileArg, fineArg] = process.argv.slice(2);
+const cal = await import(`${root}/src/modules/work-time/calendar.ts`);
+const dates = await import(`${root}/src/modules/work-time/dates.ts`);
+const N = Number(samplesArg ?? 2000);
+const next = rng(Number(seedArg ?? 1));
+const profile = (profileArg ?? 'mix') as any;
+const fine = fineArg === '1';
+const TODAY = '2026-11-06';
+const MONTHS: string[] = [];
+for (let m: string | null = '2025-11'; m !== null && m <= '2027-03'; m = dates.shiftMonthKey(m, 1)) MONTHS.push(m);
+
+const stats = { samples: 0, accepted: 0, refused: 0, refusedReducedEve: 0, checkedPairs: 0, checkedK: 0, ambiguousUnderK: 0,
+  violations: 0, docModelMismatch: 0, docModelMismatchPhysical: 0, completeness: 0, causeIssues: 0, causeRoutinesOnReducedEveDay: 0, civilBound: 0, ambiguousUnderKValueVaries: 0, ambiguousUnderKConstant: 0,
+  refusedPairs: 0, refusedNecessary: 0, refusedConservative: 0, refusedConservativeByCapOnly: 0 };
+const examples: Record<string, any[]> = { violations: [], docModelMismatch: [], docModelMismatchPhysical: [], completeness: [], causeIssues: [], civilBound: [], conservative: [], ambiguousUnderK: [], ambiguousUnderKValueVaries: [] };
+const keep = (kind: string, value: any) => { if (examples[kind].length < 6) examples[kind].push(value); };
+
+const occ = (pieces: readonly Span[]) => unite(pieces).map(([start, end]) => ({ start, end, breakMinutes: 0, routine: 99 }));
+
+/** Valor do dia `d` com a véspera tendo trabalhado exatamente `pieces` (sem intervalo), pelo próprio motor (R1, véspera certa). */
+const valueWith = (c: any, d: string, p: string, pieces: readonly Span[] | null) => {
+  const routineDay = cal._routineDayOf(c.routines, dates.dayNumber(d));
+  const flags = cal._flagsOf(c, d);
+  const nextW = cal._certainWindows(cal._neighborWindowsOn(c, dates.addDays(d, 1)));
+  const beforeEve = cal._certainWindows(cal._neighborWindowsOn(c, dates.addDays(p, -1)));
+  const eveWindows = pieces === null ? cal._neighborWindowsOn(c, p).windows : occ(pieces);
+  return cal._planDayWith(c, d, routineDay, flags, eveWindows, nextW, beforeEve);
+};
+
+/** Partes da véspera no dia civil de `d` que podem ter sido trabalhadas (com ou sem contar os intervalos). */
+const physicalCandidates = (eveWindows: any[], dDay: number, R: number, dWindows: Span[]): { phys: Span[][]; doc: Span[][] } => {
+  const civil: Span = [dDay * 1440, (dDay + 1) * 1440];
+  const post = unite(eveWindows.map((w: any): Span => [Math.max(w.start, civil[0]), w.end]).filter(([a, b]) => b > a));
+  const phys: Span[][] = [];
+  const doc: Span[][] = [[], post];
+  // posições de intervalo: cada janela com intervalo põe o intervalo o mais cedo, o mais tarde ou ao acaso
+  const placements = ['early', 'late', 'random', 'random'].map((how) => unite(eveWindows.flatMap((w: any): Span[] => {
+    if (w.breakMinutes === 0) return [[w.start, w.end]];
+    const len = w.end - w.start;
+    const at = how === 'early' ? 0 : how === 'late' ? len - w.breakMinutes : Math.floor(next() * (len - w.breakMinutes + 1));
+    return [[w.start, w.start + at], [w.start + at + w.breakMinutes, w.end]];
+  })));
+  const takeFrom = (spans: Span[], amount: number, fromEnd: boolean): Span[] => {
+    const out: Span[] = []; let left = amount;
+    for (const [a, b] of fromEnd ? [...spans].reverse() : spans) {
+      if (left <= 0) break; const piece = Math.min(left, b - a);
+      out.push(fromEnd ? [b - piece, b] : [a, a + piece]); left -= piece;
+    }
+    return unite(out);
+  };
+  for (const worked of placements) {
+    const avail = meet(worked, [civil]);
+    const amount = Math.min(R, size(avail));
+    const inD = meet(avail, dWindows);
+    const outD = minus(avail, dWindows);
+    phys.push(takeFrom(avail, amount, false), takeFrom(avail, amount, true));
+    phys.push(unite([...takeFrom(inD, amount, false), ...takeFrom(outD, Math.max(0, amount - size(inD)), false)]));
+    phys.push(unite([...takeFrom(outD, amount, false), ...takeFrom(inD, Math.max(0, amount - size(outD)), true)]));
+    for (let i = 0; i < 3; i += 1) {
+      // trechos ao acaso, até `amount`
+      const pieces: Span[] = [];
+      for (const [a, b] of avail) if (next() < 0.7) { const u = a + Math.floor(next() * (b - a)); pieces.push([u, u + Math.floor(next() * (b - u + 1))]); }
+      let k = unite(pieces);
+      if (size(k) > amount) k = takeFrom(k, amount, next() < 0.5);
+      phys.push(k);
+    }
+  }
+  phys.push([]);
+  // modelo literal do documento: qualquer parte das janelas (até com o intervalo)
+  for (let i = 0; i < 3; i += 1) {
+    const pieces: Span[] = [];
+    for (const [a, b] of post) if (next() < 0.7) { const u = a + Math.floor(next() * (b - a)); pieces.push([u, u + Math.floor(next() * (b - u + 1))]); }
+    doc.push(unite(pieces));
+  }
+  return { phys, doc };
+};
+
+
+/** Valor do dia pela união trabalhada (sem o teto), com o intervalo de cada janela de d numa posição escolhida. */
+const unionValue = (c: any, d: string, K: readonly Span[], mode: string): number => {
+  const dDay = dates.dayNumber(d);
+  const own = cal._routineDayOf(c.routines, dDay);
+  const nextW = cal._certainWindows(cal._neighborWindowsOn(c, dates.addDays(d, 1)));
+  const flags = cal._flagsOf(c, d);
+  const z = unite([...own.windows, ...nextW].filter((w: any) => w.breakMinutes === 0).map((w: any): Span => [w.start, w.end]));
+  const pieces: Span[] = [];
+  for (const w of own.windows) {
+    if (w.breakMinutes === 0) { pieces.push([w.start, w.end]); continue; }
+    const len = w.end - w.start; const b = w.breakMinutes;
+    let at = 0;
+    if (mode === 'late') at = len - b;
+    else if (mode === 'mid') at = Math.floor((len - b) / 2);
+    else if (mode === 'inK' || mode === 'outK') {
+      // busca a posição que mais (ou menos) cai dentro de K
+      let best = -1; let bestAt = 0;
+      for (let x = 0; x <= len - b; x += Math.max(1, Math.floor((len - b) / 60))) {
+        const inK = size(meet([[w.start + x, w.start + x + b]], K));
+        const score = mode === 'inK' ? inK : -inK;
+        if (score > best || best === -1) { best = score; bestAt = x; }
+      }
+      at = bestAt;
+    }
+    const B: Span = [w.start + at, w.start + at + b];
+    pieces.push([w.start, w.start + at], [w.start + at + b, w.end], ...meet([B], z));
+  }
+  let r = size(minus(unite(pieces), K)) + own.durations.reduce((s: number, x: number) => s + x, 0);
+  const holidayOff = flags.holiday && !c.worksOnHolidays && !flags.holidayWorked && r > 0;
+  if (holidayOff) r = 0;
+  if (flags.scheduleChange !== null) r = flags.scheduleChange;
+  else if (flags.reduced !== null && r > flags.reduced) r = flags.reduced;
+  if (flags.absence !== null && r > 0) r = 0;
+  return r;
+};
+
+const t0 = Date.now();
+for (let sample = 0; sample < N; sample += 1) {
+  stats.samples += 1;
+  const routines = Array.from({ length: 1 + Math.floor(next() * 3) }, () => genRoutine(next, profile, fine));
+  const exceptions = genExceptions(next, dates, '2026-09-20', 75);
+  const localHolidays = next() < 0.2 ? [{ kind: 'date', date: dates.addDays('2026-09-20', Math.floor(next() * 75)) }] : [];
+  const c = { routines, exceptions, localHolidays, worksOnHolidays: next() < 0.5 };
+  const verdict = cal.calendarAmbiguity(c, TODAY);
+  if (verdict === null) stats.accepted += 1; else { stats.refused += 1; if (verdict.cause.kind === 'reduced_eve') stats.refusedReducedEve += 1; }
+  const ctx = () => JSON.stringify(c);
+
+  // Item 3: com a configuração aceita, nenhum dia ambíguo na janela conferida.
+  if (verdict === null) {
+    for (const month of MONTHS) {
+      for (const periodStart of [false, true]) {
+        const plan = cal.monthPlan(c, month, { periodStart });
+        if (plan.ambiguousDays.length > 0) { stats.completeness += 1; keep('completeness', { month, periodStart, days: plan.ambiguousDays, c: ctx() }); }
+      }
+    }
+  } else if (verdict.cause.kind === 'reduced_eve') {
+    // Causa: o dia apontado é ambíguo pela véspera reduzida; a véspera é a data anterior e tem jornada reduzida.
+    const plan = cal.dayPlan(c, verdict.date);
+    const eve = verdict.cause.date;
+    const reducedOnEve = c.exceptions.some((e: any) => e.kind === 'reduced' && e.start <= eve && e.end >= eve);
+    const eveRoutines = cal._routineDayOf(c.routines, dates.dayNumber(eve)).windows
+      .filter((w: any) => w.end > (dates.dayNumber(eve) + 1) * 1440).map((w: any) => w.routine);
+    const expected = [...new Set(eveRoutines)].sort((a: any, b: any) => a - b);
+    if (!(plan.ambiguous && plan.reducedEve) || eve !== dates.addDays(verdict.date, -1) || !reducedOnEve || JSON.stringify(expected) !== JSON.stringify(verdict.routines)) {
+      stats.causeIssues += 1; keep('causeIssues', { verdict, plan: { ambiguous: plan.ambiguous, reducedEve: plan.reducedEve }, expected, c: ctx() });
+    }
+  } else {
+    // Causa que não é a véspera, num dia cujo plano diz véspera reduzida
+    const plan = cal.dayPlan(c, verdict.date);
+    if (plan.reducedEve && verdict.cause.kind === 'neighbor') { stats.causeIssues += 1; keep('causeIssues', { verdict, note: 'dia reducedEve com causa vizinho', c: ctx() }); }
+    else if (plan.reducedEve) stats.causeRoutinesOnReducedEveDay += 1;
+  }
+
+  // Itens 1 e 4: cada véspera reduzida incerta com janela que passa da meia-noite.
+  const eves = new Set<string>();
+  for (const e of c.exceptions) if (e.kind === 'reduced') for (let d = e.start; d <= e.end; d = dates.addDays(d, 1)) eves.add(d);
+  for (const p of eves) {
+    const pDay = dates.dayNumber(p);
+    const nb = cal._neighborWindowsOn(c, p);
+    if (nb.certain) continue;
+    if (!nb.windows.some((w: any) => w.end > (pDay + 1) * 1440)) continue;
+    const d = dates.addDays(p, 1);
+    const plan = cal.dayPlan(c, d);
+    const R = cal._flagsOf(c, p).reduced;
+    const dWindows = unite(cal._routineDayOf(c.routines, pDay + 1).windows.map((w: any): Span => [w.start, w.end]));
+    const { phys, doc } = physicalCandidates(nb.windows, pDay + 1, R, dWindows);
+    const values = phys.map((k) => ({ k, v: valueWith(c, d, p, k) }));
+    if (!plan.ambiguous) {
+      if (verdict !== null && verdict.date !== d) { /* aceito no dia, mas a configuração foi recusada por outro dia */ }
+      stats.checkedPairs += 1;
+      for (const { k, v } of values) {
+        stats.checkedK += 1;
+        if (v.ambiguous) {
+          stats.ambiguousUnderK += 1;
+          const vals = ['early', 'late', 'mid', 'inK', 'outK'].map((mode) => unionValue(c, d, k, mode));
+          const ref0 = unionValue(c, d, [], 'early');
+          if (new Set(vals).size > 1) { stats.ambiguousUnderKValueVaries += 1; keep('ambiguousUnderKValueVaries', { d, k, vals, engine: plan.minutes, engineRoutine: plan.routineMinutes, capped: plan.capped, accepted: verdict === null, c: ctx() }); }
+          else stats.ambiguousUnderKConstant += 1;
+          keep('ambiguousUnderK', { d, k, vals, ref0, engine: plan.minutes, accepted: verdict === null, c: ctx() });
+          continue;
+        }
+        if (v.minutes !== plan.minutes) { stats.violations += 1; keep('violations', { d, k, engine: plan.minutes, value: v.minutes, accepted: verdict === null, c: ctx() }); }
+        // corolário: o dia civil de d com a parte da véspera nele
+        const postD = size(meet(dWindows, [[(pDay + 2) * 1440, (pDay + 3) * 1440]]));
+        if (plan.minutes - Math.min(plan.minutes, postD) + size(k) > 1440) { stats.civilBound += 1; keep('civilBound', { d, k, minutes: plan.minutes, postD, c: ctx() }); }
+      }
+      for (const k of doc) {
+        const v = valueWith(c, d, p, k);
+        if (!v.ambiguous && v.minutes !== plan.minutes) {
+          stats.docModelMismatch += 1;
+          // fisicamente possível? |K| <= R e cabe nas partes trabalhadas (com algum intervalo fora de K)
+          const R = cal._flagsOf(c, p).reduced;
+          const workedMax = nb.windows.reduce((s: number, w: any) => s + (w.end - w.start - w.breakMinutes), 0);
+          const physical = size(k) <= R && size(k) <= workedMax && nb.windows.every((w: any) => w.breakMinutes === 0 || size(minus([[w.start, w.end]], k)) >= w.breakMinutes || false);
+          if (physical) { stats.docModelMismatchPhysical += 1; keep('docModelMismatchPhysical', { d, k, R, engine: plan.minutes, value: v.minutes, c: ctx() }); }
+          keep('docModelMismatch', { d, k, R, sizeK: size(k), engine: plan.minutes, value: v.minutes, c: ctx() });
+        }
+      }
+    } else if (plan.reducedEve) {
+      stats.refusedPairs += 1;
+      const vs = values.map(({ v }) => (v.ambiguous ? 'amb' : v.minutes));
+      const distinct = new Set(vs);
+      if (distinct.size === 1 && !distinct.has('amb')) {
+        stats.refusedConservative += 1;
+        const plain = cal._routineDayOf(c.routines, pDay + 1).durations.length === 0 && !c.exceptions.some((e: any) => ('date' in e ? e.date === d : e.start <= d && e.end >= d));
+        if (!plain) stats.refusedConservativeByCapOnly += 1;
+        keep('conservative', { d, value: [...distinct][0], R, c: ctx() });
+      } else stats.refusedNecessary += 1;
+    }
+  }
+}
+console.log(JSON.stringify({ profile, fine, seed: Number(seedArg ?? 1), ms: Date.now() - t0, stats }, null, 1));
+for (const [kind, list] of Object.entries(examples)) if (list.length > 0) console.log(`--- ${kind}\n${list.map((x) => JSON.stringify(x)).join('\n')}`);

@@ -1,0 +1,173 @@
+// Revisão 2, B03: gancho real (useIncomeEstimateWith) com React Query real e um Firestore em memória, gatilho da
+// projeção controlado à mão (versão = hora do servidor da última gravação do mês). Espera limitada curta
+// (`pendingWaitMs`), como nos testes da R1. Cada cenário imprime a linha do tempo das renderizações.
+// Uso: node ... b03-gancho2.mts <raiz da árvore> <cenário> [esperaMs]
+const root = process.argv[2];
+const scenario = process.argv[3];
+const WAIT = Number(process.argv[4] ?? 400);
+const nm = `${root}/node_modules`;
+const React = (await import(`${nm}/react/index.js`)).default;
+const TR = (await import(`${nm}/react-test-renderer/index.js`)).default;
+const RQ = await import(`${nm}/@tanstack/react-query/build/modern/index.js`);
+const { useIncomeEstimateWith } = await import(`${root}/src/modules/work-time/useIncomeEstimateWith.ts`);
+const { DEFAULT_WEEKLY_ROUTINE } = await import(`${root}/src/modules/work-time/draft.ts`);
+let clearBasisRegistry: () => void = () => undefined;
+try { clearBasisRegistry = (await import(`${root}/src/modules/reports/basisRegistry.ts`)).clearBasisRegistry; } catch { /* sem registro */ }
+(globalThis as Record<string, unknown>).IS_REACT_ACT_ENVIRONMENT = true;
+const { act } = TR;
+const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const settle = async (ms = 150) => { const end = performance.now() + ms; while (performance.now() < end) await act(async () => { await wait(5); }); };
+const at = (s: number) => ({ seconds: s, nanoseconds: 0 });
+const OFFICE = { routines: [DEFAULT_WEEKLY_ROUTINE], worksOnHolidays: false, localHolidays: [], exceptions: [] };
+const REFERENCE = '2026-11-04';
+let clock = 100;
+const tick = () => ++clock;
+const projection: Record<string, { income: number; version: number }> = {};
+const docs = new Map<string, Record<string, unknown>>();
+const listeners = new Set<{ ws: string; first: string; last: string; onNext: (s: unknown) => void; onError: () => void }>();
+const world = { listenRefused: false, calls: { series: 0, byIds: 0 }, byIdsLog: [] as string[][] };
+const snapshot = (first: string, last: string) => ({
+  documents: Object.entries(projection).filter(([m]) => m >= first && m <= last).map(([m, p]) => ({ id: m, incomeCents: p.income, updatedAt: at(p.version) })),
+  fromCache: false, changes: 1,
+});
+const deliver = (l: { first: string; last: string; onNext: (s: unknown) => void }) => { if (listeners.has(l as never)) act(() => l.onNext(snapshot(l.first, l.last))); };
+/** O gatilho grava o mês (versão nova) com a receita dada e a escuta entrega. */
+const trigger = (month: string, income: number) => { projection[month] = { income, version: tick() }; for (const l of [...listeners]) deliver(l); };
+const write = (id: string, data: Record<string, unknown>) => {
+  const now = at(tick());
+  const prev = docs.get(id);
+  docs.set(id, { ...prev, ...data, id, createdAt: prev?.createdAt ?? now, updatedAt: now });
+};
+const deps = {
+  basis: {
+    fetchReport: async (payload: { range: { kind: string; month?: string } }) => {
+      world.calls.series += 1;
+      const income = Object.fromEntries(Object.entries(projection).map(([m, p]) => [m, p.income]));
+      await wait(3);
+      if (payload.range.kind === 'month') {
+        return { referenceDate: REFERENCE, workspaceType: 'PF', period: { range: payload.range }, cash: { status: 'exact', data: { receiptsCents: income[payload.range.month as string] ?? 0 } } };
+      }
+      const points = Object.entries(income).filter(([m]) => m >= '2025-12').sort(([a], [b]) => a.localeCompare(b)).map(([month, receiptsCents]) => ({ month, receiptsCents, partial: month === '2026-11' }));
+      return { referenceDate: REFERENCE, workspaceType: 'PF', series: { status: 'exact', data: { points } } };
+    },
+    subscribePeriods: (ws: string, first: string, last: string, onNext: (s: unknown) => void, onError: () => void) => {
+      const l = { ws, first, last, onNext, onError };
+      listeners.add(l);
+      if (world.listenRefused) setTimeout(() => { if (listeners.delete(l)) act(() => onError()); }, 1);
+      else setTimeout(() => deliver(l), 1);
+      return () => { listeners.delete(l); };
+    },
+    refresh: { options: { coalesceMs: 30, burst: 100, refillMs: 60_000 }, mutationOptions: { coalesceMs: 30, burst: 100, refillMs: 60_000 } },
+  },
+  pendingWaitMs: WAIT,
+  readByIds: async (_ws: string, ids: readonly string[]) => {
+    world.calls.byIds += 1;
+    world.byIdsLog.push([...ids]);
+    const unique = [...new Set(ids)];
+    const found = unique.filter((id) => docs.has(id)).map((id) => structuredClone(docs.get(id)) as object);
+    await wait(8);
+    return { found, missing: unique.filter((id) => !docs.has(id)) };
+  },
+};
+type Shown = { status: string; message?: string; refreshFailed?: boolean; estimate?: { status: string; incomeCents?: number; reason?: string } };
+const renders: Array<{ t: number; s: Shown }> = [];
+const t0 = performance.now();
+const mount = (params: Record<string, unknown>, client = new RQ.QueryClient({ defaultOptions: { queries: { retryDelay: 1, refetchOnWindowFocus: false } } })) => {
+  const Estimate = () => { renders.push({ t: Math.round(performance.now() - t0), s: useIncomeEstimateWith(deps as never, 'u1', params as never) as Shown }); return null; };
+  let r: { unmount: () => void } | undefined;
+  act(() => { r = TR.create(React.createElement(RQ.QueryClientProvider, { client }, React.createElement(Estimate))); });
+  return { r: r as { unmount: () => void }, client };
+};
+const show = (s: Shown) => (s.status === 'done'
+  ? (s.estimate?.status === 'ready' ? `R$${(s.estimate.incomeCents ?? 0) / 100}${s.refreshFailed ? '(aviso)' : ''}` : `indisponível:${s.estimate?.reason}`)
+  : s.status === 'error' ? `erro:"${(s.message ?? '').slice(0, 40)}…"` : s.status);
+const timeline = (from = 0) => renders.slice(from).map((x) => show(x.s)).filter((v, i, a) => i === 0 || a[i - 1] !== v).join(' → ');
+const firstReadyAt = (from: number) => { const hit = renders.slice(from).find((x) => x.s.status === 'done' && x.s.estimate?.status === 'ready'); return hit ? hit.t - renders[from].t : null; };
+const params = (patch: Record<string, unknown> = {}) => ({ workspaceId: 'ws-a', mode: 'habitual', historyMonths: 3, allowBusinessIncome: false, calendar: OFFICE, excludedIds: ['r500'], enabled: true, ...patch });
+
+// Estado inicial: ago e set R$ 3.520,00; out R$ 4.020,00 com a receita r500 (R$ 500,00) desconsiderada.
+// Consistente: (3.520 + 3.520 + 4.020 − 500) = R$ 10.560,00.
+write('r500', { date: '2026-10-15', type: 'receita', valueCents: 50_000, isPaid: true });
+projection['2026-08'] = { income: 352_000, version: tick() };
+projection['2026-09'] = { income: 352_000, version: tick() };
+projection['2026-10'] = { income: 402_000, version: tick() };
+projection['2026-11'] = { income: 100_000, version: tick() };
+
+if (scenario === 'remonta') {
+  // Outra sessão edita só a descrição de r500 (o gatilho não grava): a última gravação dela fica depois da versão de
+  // outubro para sempre. A espera limitada recomeça a cada montagem da estimativa (sem a última provada).
+  write('r500', { description: 'outra descrição' });
+  const a = mount(params());
+  await settle(WAIT * 2 + 300);
+  console.log('1ª montagem:', timeline(0), `| estimativa depois de ${firstReadyAt(0)} ms`);
+  a.r.unmount();
+  const from = renders.length;
+  const b = mount(params(), a.client); // mesma sessão: bases e leitura por id em cache
+  await settle(WAIT * 2 + 300);
+  console.log('2ª montagem (mesmo cache):', timeline(from), `| estimativa depois de ${firstReadyAt(from)} ms`);
+  b.r.unmount();
+  const from2 = renders.length;
+  const c = mount(params());
+  await settle(WAIT * 2 + 300);
+  console.log('3ª montagem (sessão nova):', timeline(from2), `| estimativa depois de ${firstReadyAt(from2)} ms`, `| espera configurada: ${WAIT} ms`);
+  c.r.unmount();
+} else if (scenario === 'limite-a-direcao') {
+  // Limite (a): a desconsiderada sobe de R$ 500,00 para R$ 800,00 em outra sessão; o gatilho demora mais que a espera.
+  write('r500', { valueCents: 80_000 });
+  const a = mount(params());
+  await settle(WAIT * 2 + 300);
+  console.log('depois da espera, antes do gatilho:', timeline(0));
+  trigger('2026-10', 432_000);
+  await settle(600);
+  console.log('estados:', timeline(0));
+  console.log('consistente: R$10560; misto (valor novo tirado do total velho): R$10260 → SUBESTIMA a renda em R$ 300,00');
+  a.r.unmount();
+} else if (scenario === 'limite-b-direcao') {
+  // Limite (b): estimativa provada; outra sessão sobe r500 para R$ 800,00 (t1) e lança +R$ 100,00 em outubro (t2);
+  // o gatilho da segunda roda antes do da primeira (fora de ordem).
+  const a = mount(params());
+  await settle(300);
+  const from = renders.length;
+  write('r500', { valueCents: 80_000 });
+  write('x100', { date: '2026-10-20', type: 'receita', valueCents: 10_000, isPaid: true });
+  trigger('2026-10', 412_000); // só o +R$ 100,00
+  await settle(600);
+  console.log('gatilho fora de ordem (só +100):', timeline(from));
+  trigger('2026-10', 442_000); // agora o +R$ 300,00 de r500
+  await settle(600);
+  console.log('estados:', timeline(from));
+  console.log('consistentes: R$10560 (antes) e R$10660 (depois); misto: R$10360 (4.120 − 800 + 7.040) → SUBESTIMA');
+  a.r.unmount();
+} else if (scenario === 'n05') {
+  world.listenRefused = true;
+  const a = mount(params());
+  await settle(400);
+  console.log('escuta recusada, com desconsiderada:', timeline(0), '| leituras por id:', world.calls.byIds);
+  a.r.unmount();
+} else if (scenario === 'escuta-cai-durante-espera') {
+  // Escuta encerrada enquanto uma escrita com espera limitada segura a prova: o erro com "Tentar de novo", sem prender.
+  write('r500', { description: 'outra descrição' });
+  const a = mount(params());
+  await settle(Math.round(WAIT / 3));
+  for (const l of [...listeners]) { listeners.delete(l); act(() => l.onError()); }
+  await settle(WAIT * 2);
+  console.log('estados:', timeline(0));
+  a.r.unmount();
+} else if (scenario === 'n06') {
+  // O cenário N06 da revisão 1, com a espera curta: valor mudado (o gatilho grava outubro), depois só a descrição e,
+  // mais tarde, +R$ 100,00 em agosto. Deve chegar a R$ 10.660,00 depois da espera, sem estado misto.
+  const a = mount(params());
+  await settle(300);
+  const from = renders.length;
+  write('r500', { valueCents: 80_000 });
+  trigger('2026-10', 432_000);
+  write('r500', { description: 'outra descrição' });
+  await settle(200);
+  trigger('2026-08', 362_000);
+  await settle(WAIT * 3 + 400);
+  console.log('estados:', timeline(from), '| última:', show(renders[renders.length - 1].s));
+  a.r.unmount();
+} else {
+  console.log('cenário desconhecido');
+}
+clearBasisRegistry();

@@ -792,9 +792,10 @@ const BADGE = 'button[aria-label^="Notificações"] > span';
 /**
  * Débito de contraste anterior à P5-D2, medido pelo axe (a árvore anterior tem
  * os mesmos estilos): no tema claro, os títulos vermelho e amarelo da lista
- * "Condições do período"; no escuro, o texto `text-primary` do painel (chip,
- * "Marcar exibidas como lidas" e rótulos de ação). Cabeçalho e painel do tema
- * claro, e o cabeçalho sem painel do escuro, estão limpos e seguem estritos.
+ * "Condições do período". O texto na cor do espaço do painel no escuro (chip,
+ * "Marcar exibidas como lidas", rótulos de ação, "Carregar mais" e "Tentar
+ * novamente") foi corrigido no P5-GATE-FINAL (PTBR-02 e PTBR-06): o painel e
+ * o cabeçalho do escuro seguem estritos, como os do claro.
  */
 /**
  * WCAG 2.5.3 (Label in Name), regra `label-content-name-mismatch` (ativa por
@@ -818,7 +819,7 @@ const isLabelInNameDebt = async (
 
 const CONTRAST_DEBT: Record<Scheme, string[]> = {
   light: ['lista "Condições do período"'],
-  dark: ['painel de notificações', 'cabeçalho com o painel aberto', 'painel com total indisponível', 'cabeçalho com badge ?'],
+  dark: [],
 };
 
 const combos: Array<{ name: string; viewport: { width: number; height: number }; scheme: Scheme; touch: boolean }> = [

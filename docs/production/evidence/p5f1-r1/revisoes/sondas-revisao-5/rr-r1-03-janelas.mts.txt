@@ -1,0 +1,17 @@
+// Revisão 5: RR-R1-03, "janelas em comum". Segunda 20:00–06:00 (rotina 1) e terça 00:00–08:00 (rotina 2).
+// Com a segunda reduzida a 8 h, os minutos trabalhados ficam dentro de 20:00 (seg) – 08:00 (ter): no máximo 720.
+const root = process.argv[2];
+const cal = await import(`${root}/src/modules/work-time/calendar.ts`);
+const draft = await import(`${root}/src/modules/work-time/draft.ts`);
+const w = (s: number, e: number, b = 0) => ({ kind: 'window', start: s, end: e, breakMinutes: b });
+const OFF = { kind: 'off' };
+const routines = [
+  { kind: 'weekly', days: [w(1200, 360), OFF, OFF, OFF, OFF, OFF, OFF] },
+  { kind: 'weekly', days: [OFF, w(0, 480), OFF, OFF, OFF, OFF, OFF] },
+];
+for (const [name, exceptions] of [['sem redução', []], ['segunda reduzida a 8 h', [{ kind: 'reduced', start: '2026-10-05', end: '2026-10-05', minutes: 480 }]], ['segunda reduzida a 9 h', [{ kind: 'reduced', start: '2026-10-05', end: '2026-10-05', minutes: 540 }]]] as const) {
+  const c = { worksOnHolidays: false, localHolidays: [], exceptions, routines };
+  const mon = cal.dayPlan(c, '2026-10-05'); const tue = cal.dayPlan(c, '2026-10-06');
+  const amb = typeof cal.calendarAmbiguity === 'function' ? cal.calendarAmbiguity(c, '2026-11-06') : 'n/d';
+  console.log(JSON.stringify({ name, segunda: mon.minutes, terca: tue.minutes, soma: mon.minutes + tue.minutes, uniao_max: 720, ambiguidade: amb === null ? null : (amb === 'n/d' ? amb : 'recusada') }));
+}

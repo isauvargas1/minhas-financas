@@ -130,6 +130,11 @@ export interface TransactionWriteEvent {
   after?: admin.firestore.DocumentData;
   /** `createTime` do documento antes da escrita (UPDATE e DELETE). */
   beforeCreateTime?: Timestamp;
+  /**
+   * `updateTime` do documento antes da escrita (UPDATE e DELETE), para a marca
+   * de aplicação da projeção (P5-F.1-R3).
+   */
+  beforeUpdateTime?: Timestamp;
 }
 
 /**
@@ -282,6 +287,7 @@ export const handleTransactionWrite = async (
           action,
           eventTime: event.eventTime,
           beforeCreateTime: event.beforeCreateTime,
+          beforeUpdateTime: event.beforeUpdateTime,
         },
       );
       faults.insideProjection?.();
@@ -296,6 +302,13 @@ export const handleTransactionWrite = async (
     if (outcome.outcome === "ambiguous_delete") {
       log.error("cash_projection.needs_rebuild", null, {
         reason: "ambiguous_delete",
+      });
+    }
+    if (outcome.markBroken !== undefined) {
+      // A projeção foi aplicada; a prova de qual estado do lançamento ela
+      // contém quebrou e fica registrada para reconstrução (P5-F.1-R3).
+      log.error("cash_projection_mark.broken", null, {
+        reason: outcome.markBroken,
       });
     }
   } catch (error) {
@@ -387,6 +400,7 @@ export const onTransactionWrite = onDocumentWritten(
       before: before.exists ? before.data() : undefined,
       after: after.exists ? after.data() : undefined,
       beforeCreateTime: before.exists ? before.createTime : undefined,
+      beforeUpdateTime: before.exists ? before.updateTime : undefined,
     });
   },
 );

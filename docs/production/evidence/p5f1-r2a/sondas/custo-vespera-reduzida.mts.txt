@@ -1,0 +1,36 @@
+// P5-F.1-R2A, S01 — custo do conferidor com a passada nova (dia seguinte a cada jornada reduzida). Uso:
+// node --experimental-strip-types custo-vespera-reduzida.mts <raiz da árvore>
+// Pior caso dentro da gramática: 120 jornadas reduzidas de 366 dias (o máximo de exceções e de intervalo, até 2099), rotinas
+// com turno noturno todo dia (a passada roda em todo dia reduzido) e redução que corta; mais o pior caso da R1 (sonda
+// b02-custo da revisão 2) e configurações comuns.
+const root = process.argv[2];
+const cal = await import(`${root}/src/modules/work-time/calendar.ts`);
+const draft = await import(`${root}/src/modules/work-time/draft.ts`);
+const dates = await import(`${root}/src/modules/work-time/dates.ts`);
+const win = (s: number, e: number, b = 0) => ({ kind: 'window', start: s, end: e, breakMinutes: b });
+const every = (spec: unknown) => ({ kind: 'weekly', days: Array.from({ length: 7 }, () => spec) });
+const ranges = (kind: (i: number) => string, minutes: number) => Array.from({ length: 120 }, (_, i) => {
+  const start = dates.addDays('2026-01-01', i * 220) as string;
+  const end = (dates.addDays(start, 365) ?? '2099-12-31') > '2099-12-31' ? '2099-12-31' : (dates.addDays(start, 365) as string);
+  const k = kind(i);
+  return k === 'reduced' ? { kind: k, start, end, minutes } : { kind: k, start, end };
+});
+const outer = every(win(480, 1080));
+const inner = every(win(540, 720, 60));
+const cyc = { kind: 'cyclic', reference: '2026-01-01', workDays: 27, restDays: 26, day: win(600, 660, 30) };
+const holidays = Array.from({ length: 40 }, (_, i) => ({ kind: 'annual', month: 1 + (i % 12), day: 1 + ((i * 7) % 28) }));
+const variants: Record<string, any> = {
+  'comum (rotina semanal padrão)': { routines: [draft.DEFAULT_WEEKLY_ROUTINE], exceptions: [], localHolidays: [], worksOnHolidays: false },
+  'noturno todo dia, sem exceções': { routines: [every(win(1320, 360))], exceptions: [], localHolidays: [], worksOnHolidays: true },
+  'noturno todo dia, 120 jornadas reduzidas de 366 dias (6 h)': { routines: [every(win(1320, 360))], exceptions: ranges(() => 'reduced', 360), localHolidays: [], worksOnHolidays: true },
+  'noturno + madrugada todo dia, 120 jornadas reduzidas de 366 dias (6 h), 40 feriados': { routines: [every(win(1320, 360)), every(win(120, 480))], exceptions: ranges(() => 'reduced', 360), localHolidays: holidays, worksOnHolidays: false },
+  'pior caso da R1: 3 rotinas cobertas + cíclica 27x26, 120 exceções de 366 dias, 40 feriados anuais': { routines: [outer, inner, cyc], exceptions: ranges((i) => ['vacation', 'day_off', 'absence', 'reduced'][i % 4], 300), localHolidays: holidays, worksOnHolidays: false },
+};
+for (const [name, c] of Object.entries(variants)) {
+  const times: number[] = [];
+  let verdict: any;
+  for (let k = 0; k < 5; k++) { const t = performance.now(); verdict = cal.calendarAmbiguity(c, '2026-11-05'); times.push(performance.now() - t); }
+  const pref = { ...draft.initialDraft('ws_pf_1'), ...c };
+  const t2 = performance.now(); const v = draft.validateDraft(pref, '2026-11-05'); const tv = performance.now() - t2;
+  console.log(JSON.stringify({ name, ms: times.map((x) => Math.round(x)), validateDraftMs: Math.round(tv), validateOk: v.ok, verdict: verdict === null ? null : { date: verdict.date, cause: verdict.cause.kind } }));
+}

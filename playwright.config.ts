@@ -35,6 +35,12 @@ const webServerEnv = {
   VITE_FIREBASE_APP_ID: '1:000000000000:web:e2e',
 };
 
+/*
+ * Relatório JSON de um grupo do E2E oficial (`tools/e2e/executar-em-grupos.mjs`, P5-F.1-R3.2): o executor confere, por ele, que
+ * cada teste da lista rodou exatamente uma vez e passou. Fora do executor, nada muda.
+ */
+const shardReport = process.env.E2E_SHARD_REPORT;
+
 export default defineConfig({
   testDir: './e2e',
   timeout: 45_000,
@@ -43,15 +49,24 @@ export default defineConfig({
   },
   fullyParallel: false,
   workers: 1,
-  retries: process.env.CI ? 2 : 0,
-  reporter: process.env.CI ? [['list'], ['html']] : [['list']],
+  /*
+   * Sem nova tentativa automática, também no CI (P5-F.1-R3.2, RR-R31-07): uma falha intermitente é falha e fica no
+   * histórico; repetir o teste até passar esconderia a causa. `.only` esquecido também é falha: nenhum teste some da
+   * execução oficial.
+   */
+  retries: 0,
+  forbidOnly: true,
+  reporter: [
+    ...(process.env.CI ? [['list'], ['html']] as const : [['list']] as const),
+    ...(shardReport ? [['json', { outputFile: shardReport }]] as const : []),
+  ],
   use: {
     baseURL,
     // Artefatos de depuração ficam no CI. Localmente, gravar vídeo de todas as
     // execuções para descartar no sucesso é justamente o que esgota a memória
     // do container e derruba o renderer, seguindo o mesmo critério já usado
-    // acima para `retries` e `reporter`.
-    trace: process.env.CI ? 'on-first-retry' : 'off',
+    // acima para o `reporter`. Sem nova tentativa, o rastro é guardado na falha.
+    trace: process.env.CI ? 'retain-on-failure' : 'off',
     screenshot: process.env.CI ? 'only-on-failure' : 'off',
     video: process.env.CI ? 'retain-on-failure' : 'off',
     launchOptions: {
@@ -90,6 +105,14 @@ export default defineConfig({
            */
           wait: { stdout: /All emulators ready!/ },
           timeout: 180_000,
+          /*
+           * Desligamento limpo (P5-F.1-R3.2, RR-R31-07). Sem isto, o Playwright encerra o grupo de processos com
+           * SIGKILL, e o firebase-tools, que sobe o emulador do Firestore como processo destacado (`detached`), não
+           * chega a desligá-lo: a JVM ficava órfã na porta 8080 depois de cada execução e o próximo Emulator não
+           * subia. Com SIGTERM, o firebase-tools faz o desligamento limpo de todos os emuladores; o prazo só vale
+           * para o encerramento e, vencido, o Playwright volta ao SIGKILL.
+           */
+          gracefulShutdown: { signal: 'SIGTERM' as const, timeout: 60_000 },
           stdout: 'pipe' as const,
           stderr: 'pipe' as const,
         },

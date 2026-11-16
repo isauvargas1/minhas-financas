@@ -1,0 +1,498 @@
+[WebServer]
+[WebServer] > build
+[WebServer] > npm run clean && tsc
+[WebServer]
+[WebServer]
+[WebServer] > clean
+[WebServer] > node -e "require('node:fs').rmSync('lib', {recursive: true, force: true})"
+[WebServer]
+[WebServer] ⚠  emulators: You are not currently authenticated so some features may not work correctly. Please run firebase login to authenticate the CLI.
+[WebServer] (node:2897) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN
+[WebServer]     at Object.isAvailable (/opt/node22/lib/node_modules/firebase-tools/node_modules/gcp-metadata/build/src/index.js:356:25)
+[WebServer]     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+[WebServer]     at async GoogleAuth._checkIsGCE (/opt/node22/lib/node_modules/firebase-tools/node_modules/google-auth-library/build/src/auth/googleauth.js:300:51)
+[WebServer]     at async GoogleAuth.getApplicationDefaultAsync (/opt/node22/lib/node_modules/firebase-tools/node_modules/google-auth-library/build/src/auth/googleauth.js:283:13)
+[WebServer]     at async GoogleAuth._GoogleAuth_determineClient (/opt/node22/lib/node_modules/firebase-tools/node_modules/google-auth-library/build/src/auth/googleauth.js:834:32)
+[WebServer]     at async GoogleAuth.getClient (/opt/node22/lib/node_modules/firebase-tools/node_modules/google-auth-library/build/src/auth/googleauth.js:698:20)
+[WebServer]     at async GoogleAuth.getAccessToken (/opt/node22/lib/node_modules/firebase-tools/node_modules/google-auth-library/build/src/auth/googleauth.js:722:24)
+[WebServer]     at async autoAuth (/opt/node22/lib/node_modules/firebase-tools/lib/requireAuth.js:38:19)
+[WebServer]     at async requireAuth (/opt/node22/lib/node_modules/firebase-tools/lib/requireAuth.js:100:20)
+[WebServer]     at async Object.beforeEmulatorCommand [as fn] (/opt/node22/lib/node_modules/firebase-tools/lib/emulator/commandUtils.js:115:13)
+[WebServer] ⚠  Unable to fetch the CLI MOTD and remote config. This is not a fatal error, but may indicate an issue with your network connection.
+[WebServer] i  emulators: Starting emulators: auth, functions, firestore
+[WebServer] ⚠  hub: Error when trying to check port 4400 on ::1: Error: listen EAFNOSUPPORT: address family not supported ::1:4400
+[WebServer] ⚠  hub: Port 4400 is available on 127.0.0.1 but not ::1. This may cause issues with some clients.
+[WebServer] ⚠  hub: If you encounter connectivity issues, consider switching to a different port or explicitly specifying "host": "<ip address>" instead of hostname in firebase.json
+[WebServer] ⚠  logging: Error when trying to check port 4500 on ::1: Error: listen EAFNOSUPPORT: address family not supported ::1:4500
+[WebServer] ⚠  logging: Port 4500 is available on 127.0.0.1 but not ::1. This may cause issues with some clients.
+[WebServer] ⚠  logging: If you encounter connectivity issues, consider switching to a different port or explicitly specifying "host": "<ip address>" instead of hostname in firebase.json
+[WebServer] ⚠  eventarc: Error when trying to check port 9299 on ::1: Error: listen EAFNOSUPPORT: address family not supported ::1:9299
+[WebServer] ⚠  eventarc: Port 9299 is available on 127.0.0.1 but not ::1. This may cause issues with some clients.
+[WebServer] ⚠  eventarc: If you encounter connectivity issues, consider switching to a different port or explicitly specifying "host": "<ip address>" instead of hostname in firebase.json
+[WebServer] ⚠  tasks: Error when trying to check port 9499 on ::1: Error: listen EAFNOSUPPORT: address family not supported ::1:9499
+[WebServer] ⚠  tasks: Port 9499 is available on 127.0.0.1 but not ::1. This may cause issues with some clients.
+[WebServer] ⚠  tasks: If you encounter connectivity issues, consider switching to a different port or explicitly specifying "host": "<ip address>" instead of hostname in firebase.json
+[WebServer] ⚠  functions: The following emulators are not running, calls to these services from the Functions emulator will affect production: apphosting, database, hosting, pubsub, storage, dataconnect
+[WebServer] ⚠  functions: Unable to fetch project Admin SDK configuration, Admin SDK behavior in Cloud Functions emulator may be incorrect.
+[WebServer] (node:2897) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN
+[WebServer] MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN
+[WebServer]     at Object.isAvailable (/opt/node22/lib/node_modules/firebase-tools/node_modules/gcp-metadata/build/src/index.js:356:25)
+[WebServer]     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+[WebServer]     at async GoogleAuth._checkIsGCE (/opt/node22/lib/node_modules/firebase-tools/node_modules/google-auth-library/build/src/auth/googleauth.js:300:51)
+[WebServer]     at async GoogleAuth.getApplicationDefaultAsync (/opt/node22/lib/node_modules/firebase-tools/node_modules/google-auth-library/build/src/auth/googleauth.js:283:13)
+[WebServer]     at async hasDefaultCredentials (/opt/node22/lib/node_modules/firebase-tools/lib/defaultCredentials.js:84:9)
+[WebServer]     at async getCredentialsEnvironment (/opt/node22/lib/node_modules/firebase-tools/lib/emulator/env.js:49:9)
+[WebServer]     at async FunctionsEmulator.start (/opt/node22/lib/node_modules/firebase-tools/lib/emulator/functionsEmulator.js:257:31)
+[WebServer]     at async EmulatorRegistry.start (/opt/node22/lib/node_modules/firebase-tools/lib/emulator/registry.js:19:9)
+[WebServer]     at async Object.startAll (/opt/node22/lib/node_modules/firebase-tools/lib/emulator/controller.js:425:9)
+[WebServer]     at async /opt/node22/lib/node_modules/firebase-tools/lib/commands/emulators-start.js:34:43
+[WebServer] i  firestore: Firestore Emulator logging to firestore-debug.log
+[WebServer] ✔  firestore: Firestore Emulator was started in standard edition.
+[WebServer] ✔  firestore: Firestore Emulator UI websocket is running on 9150.
+[WebServer] i  functions: Watching "<scratchpad>/wt-p5f1-r2a/functions" for Cloud Functions...
+[WebServer] ⚠  functions: package.json indicates an outdated version of firebase-functions. Please upgrade using npm install --save firebase-functions@latest in your functions directory.
+[WebServer] ⚠  functions: Your requested "node" version "24" doesn't match your global version "22". Using node@22 from host.
+[WebServer] Serving at port 8752
+[WebServer]
+[WebServer] ✔  functions: Loaded functions definitions from source: onWorkspaceDisplayChange, createBillingPortalSession, createCheckoutSession, getAccountUsage, getBillingCatalog, getWorkspaceEntitlement, getFinancialReport, confirmCashTransaction, createCashTransaction, importCashTransactions, updateCashTransaction, voidCashTransaction, cancelLoan, createLoan, registerLoanPayment, reverseLoanMovement, updateLoanMetadata, processLoanStatusRefresh, archiveClient, cancelReceivable, createClient, createReceivable, receiveReceivable, reverseReceivableReceipt, updateClient, updateReceivable, archiveCashAccount, createCashAccount, createCashTransfer, reactivateCashAccount, reverseCashTransfer, updateCashAccount, archiveSettingsCatalogItem, createSettingsCatalogItem, updateSettingsCatalogItem, archiveCreditCard, cancelCreditCardPurchase, createCreditCard, createCreditCardInvoiceAdjustment, createCreditCardPurchase, reactivateCreditCard, rebuildCardInvoicesForCard, recalculateCardLimit, refundCreditCardPurchase, registerInvoicePayment, reverseInvoicePayment, updateCreditCard, updateCreditCardPurchase, cancelRecurringExpense, confirmRecurringOccurrence, createRecurringExpense, ignoreRecurringOccurrence, pauseRecurringExpense, resumeRecurringExpense, retryRecurringOccurrence, updateRecurringExpense, acceptSplitGroupInvite, addExternalSplitParticipant, addWorkspaceSplitParticipant, approveSplitReimbursement, archiveSplitGroup, cancelSplitReimbursement, createSplitBill, createSplitGroup, createSplitGroupInvite, createSplitReimbursement, deactivateSplitParticipant, forgiveSplitShare, paySplitReimbursement, reactivateSplitGroup, rejectSplitReimbursement, reverseReimbursementPayment, reverseSplitShareSettlement, revokeSplitGroupInvite, settleSplitShare, updateSplitBill, updateSplitGroup, voidSplitBill, processRecurring, processCreditCardInvoiceClosing, getNotificationUnreadCount, onCashAccountWriteNotification, onGoalWriteNotification, onLoanWriteNotification, processReceivableOverdueNotifications, onRecurringOccurrenceCreatedNotification, stripeWebhook, onTransactionWrite, bootstrapAccount, createWorkspace, updateWorkspaceSettings, archiveWorkspace, inviteWorkspaceMember, acceptWorkspaceInvite, revokeWorkspaceInvite, changeWorkspaceMemberRole, removeWorkspaceMember, leaveWorkspace, transferWorkspaceOwnership, createGoal, updateGoal, updateGoalManualProgress, setGoalStatus, archiveGoal, getGoalsOverview, getGoalKpiProgress, createSimpleInvestment, settleInvestmentContribution, withdrawSimpleInvestment, settleSimpleWithdrawal, reverseInvestmentMovement, cancelInvestmentMovement, changeInvestmentGoal, linkInvestmentToGoal, unlinkInvestmentFromGoal, analyzeFinancialQuestion, extractTransactionFromContent, rebuildCashPeriods, processInvestmentDriftScan.
+[WebServer] ✔  functions[southamerica-east1-onWorkspaceDisplayChange]: firestore function initialized.
+[WebServer] ✔  functions[southamerica-east1-createBillingPortalSession]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/createBillingPortalSession).
+[WebServer] ✔  functions[southamerica-east1-createCheckoutSession]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/createCheckoutSession).
+[WebServer] ✔  functions[southamerica-east1-getAccountUsage]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/getAccountUsage).
+[WebServer] ✔  functions[southamerica-east1-getBillingCatalog]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/getBillingCatalog).
+[WebServer] ✔  functions[southamerica-east1-getWorkspaceEntitlement]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/getWorkspaceEntitlement).
+[WebServer] ✔  functions[southamerica-east1-getFinancialReport]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/getFinancialReport).
+[WebServer] ✔  functions[southamerica-east1-confirmCashTransaction]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/confirmCashTransaction).
+[WebServer] ✔  functions[southamerica-east1-createCashTransaction]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/createCashTransaction).
+[WebServer] ✔  functions[southamerica-east1-importCashTransactions]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/importCashTransactions).
+[WebServer] ✔  functions[southamerica-east1-updateCashTransaction]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/updateCashTransaction).
+[WebServer] ✔  functions[southamerica-east1-voidCashTransaction]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/voidCashTransaction).
+[WebServer] ✔  functions[southamerica-east1-cancelLoan]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/cancelLoan).
+[WebServer] ✔  functions[southamerica-east1-createLoan]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/createLoan).
+[WebServer] ✔  functions[southamerica-east1-registerLoanPayment]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/registerLoanPayment).
+[WebServer] ✔  functions[southamerica-east1-reverseLoanMovement]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/reverseLoanMovement).
+[WebServer] ✔  functions[southamerica-east1-updateLoanMetadata]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/updateLoanMetadata).
+[WebServer] i  functions[southamerica-east1-processLoanStatusRefresh]: function ignored because the pubsub emulator does not exist or is not running.
+[WebServer] ✔  functions[southamerica-east1-archiveClient]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/archiveClient).
+[WebServer] ✔  functions[southamerica-east1-cancelReceivable]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/cancelReceivable).
+[WebServer] ✔  functions[southamerica-east1-createClient]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/createClient).
+[WebServer] ✔  functions[southamerica-east1-createReceivable]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/createReceivable).
+[WebServer] ✔  functions[southamerica-east1-receiveReceivable]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/receiveReceivable).
+[WebServer] ✔  functions[southamerica-east1-reverseReceivableReceipt]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/reverseReceivableReceipt).
+[WebServer] ✔  functions[southamerica-east1-updateClient]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/updateClient).
+[WebServer] ✔  functions[southamerica-east1-updateReceivable]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/updateReceivable).
+[WebServer] ✔  functions[southamerica-east1-archiveCashAccount]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/archiveCashAccount).
+[WebServer] ✔  functions[southamerica-east1-createCashAccount]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/createCashAccount).
+[WebServer] ✔  functions[southamerica-east1-createCashTransfer]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/createCashTransfer).
+[WebServer] ✔  functions[southamerica-east1-reactivateCashAccount]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/reactivateCashAccount).
+[WebServer] ✔  functions[southamerica-east1-reverseCashTransfer]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/reverseCashTransfer).
+[WebServer] ✔  functions[southamerica-east1-updateCashAccount]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/updateCashAccount).
+[WebServer] ✔  functions[southamerica-east1-archiveSettingsCatalogItem]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/archiveSettingsCatalogItem).
+[WebServer] ✔  functions[southamerica-east1-createSettingsCatalogItem]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/createSettingsCatalogItem).
+[WebServer] ✔  functions[southamerica-east1-updateSettingsCatalogItem]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/updateSettingsCatalogItem).
+[WebServer] ✔  functions[southamerica-east1-archiveCreditCard]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/archiveCreditCard).
+[WebServer] ✔  functions[southamerica-east1-cancelCreditCardPurchase]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/cancelCreditCardPurchase).
+[WebServer] ✔  functions[southamerica-east1-createCreditCard]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/createCreditCard).
+[WebServer] ✔  functions[southamerica-east1-createCreditCardInvoiceAdjustment]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/createCreditCardInvoiceAdjustment).
+[WebServer] ✔  functions[southamerica-east1-createCreditCardPurchase]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/createCreditCardPurchase).
+[WebServer] ✔  functions[southamerica-east1-reactivateCreditCard]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/reactivateCreditCard).
+[WebServer] ✔  functions[southamerica-east1-rebuildCardInvoicesForCard]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/rebuildCardInvoicesForCard).
+[WebServer] ✔  functions[southamerica-east1-recalculateCardLimit]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/recalculateCardLimit).
+[WebServer] ✔  functions[southamerica-east1-refundCreditCardPurchase]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/refundCreditCardPurchase).
+[WebServer] ✔  functions[southamerica-east1-registerInvoicePayment]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/registerInvoicePayment).
+[WebServer] ✔  functions[southamerica-east1-reverseInvoicePayment]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/reverseInvoicePayment).
+[WebServer] ✔  functions[southamerica-east1-updateCreditCard]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/updateCreditCard).
+[WebServer] ✔  functions[southamerica-east1-updateCreditCardPurchase]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/updateCreditCardPurchase).
+[WebServer] ✔  functions[southamerica-east1-cancelRecurringExpense]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/cancelRecurringExpense).
+[WebServer] ✔  functions[southamerica-east1-confirmRecurringOccurrence]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/confirmRecurringOccurrence).
+[WebServer] ✔  functions[southamerica-east1-createRecurringExpense]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/createRecurringExpense).
+[WebServer] ✔  functions[southamerica-east1-ignoreRecurringOccurrence]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/ignoreRecurringOccurrence).
+[WebServer] ✔  functions[southamerica-east1-pauseRecurringExpense]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/pauseRecurringExpense).
+[WebServer] ✔  functions[southamerica-east1-resumeRecurringExpense]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/resumeRecurringExpense).
+[WebServer] ✔  functions[southamerica-east1-retryRecurringOccurrence]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/retryRecurringOccurrence).
+[WebServer] ✔  functions[southamerica-east1-updateRecurringExpense]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/updateRecurringExpense).
+[WebServer] ✔  functions[southamerica-east1-acceptSplitGroupInvite]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/acceptSplitGroupInvite).
+[WebServer] ✔  functions[southamerica-east1-addExternalSplitParticipant]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/addExternalSplitParticipant).
+[WebServer] ✔  functions[southamerica-east1-addWorkspaceSplitParticipant]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/addWorkspaceSplitParticipant).
+[WebServer] ✔  functions[southamerica-east1-approveSplitReimbursement]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/approveSplitReimbursement).
+[WebServer] ✔  functions[southamerica-east1-archiveSplitGroup]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/archiveSplitGroup).
+[WebServer] ✔  functions[southamerica-east1-cancelSplitReimbursement]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/cancelSplitReimbursement).
+[WebServer] ✔  functions[southamerica-east1-createSplitBill]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/createSplitBill).
+[WebServer] ✔  functions[southamerica-east1-createSplitGroup]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/createSplitGroup).
+[WebServer] ✔  functions[southamerica-east1-createSplitGroupInvite]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/createSplitGroupInvite).
+[WebServer] ✔  functions[southamerica-east1-createSplitReimbursement]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/createSplitReimbursement).
+[WebServer] ✔  functions[southamerica-east1-deactivateSplitParticipant]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/deactivateSplitParticipant).
+[WebServer] ✔  functions[southamerica-east1-forgiveSplitShare]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/forgiveSplitShare).
+[WebServer] ✔  functions[southamerica-east1-paySplitReimbursement]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/paySplitReimbursement).
+[WebServer] ✔  functions[southamerica-east1-reactivateSplitGroup]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/reactivateSplitGroup).
+[WebServer] ✔  functions[southamerica-east1-rejectSplitReimbursement]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/rejectSplitReimbursement).
+[WebServer] ✔  functions[southamerica-east1-reverseReimbursementPayment]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/reverseReimbursementPayment).
+[WebServer] ✔  functions[southamerica-east1-reverseSplitShareSettlement]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/reverseSplitShareSettlement).
+[WebServer] ✔  functions[southamerica-east1-revokeSplitGroupInvite]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/revokeSplitGroupInvite).
+[WebServer] ✔  functions[southamerica-east1-settleSplitShare]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/settleSplitShare).
+[WebServer] ✔  functions[southamerica-east1-updateSplitBill]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/updateSplitBill).
+[WebServer] ✔  functions[southamerica-east1-updateSplitGroup]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/updateSplitGroup).
+[WebServer] ✔  functions[southamerica-east1-voidSplitBill]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/voidSplitBill).
+[WebServer] i  functions[southamerica-east1-processRecurring]: function ignored because the pubsub emulator does not exist or is not running.
+[WebServer] i  functions[southamerica-east1-processCreditCardInvoiceClosing]: function ignored because the pubsub emulator does not exist or is not running.
+[WebServer] ✔  functions[southamerica-east1-getNotificationUnreadCount]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/getNotificationUnreadCount).
+[WebServer] ✔  functions[southamerica-east1-onCashAccountWriteNotification]: firestore function initialized.
+[WebServer] ✔  functions[southamerica-east1-onGoalWriteNotification]: firestore function initialized.
+[WebServer] ✔  functions[southamerica-east1-onLoanWriteNotification]: firestore function initialized.
+[WebServer] i  functions[southamerica-east1-processReceivableOverdueNotifications]: function ignored because the pubsub emulator does not exist or is not running.
+[WebServer] ✔  functions[southamerica-east1-onRecurringOccurrenceCreatedNotification]: firestore function initialized.
+[WebServer] ✔  functions[southamerica-east1-stripeWebhook]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/stripeWebhook).
+[WebServer] ✔  functions[southamerica-east1-onTransactionWrite]: firestore function initialized.
+[WebServer] ✔  functions[southamerica-east1-bootstrapAccount]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/bootstrapAccount).
+[WebServer] ✔  functions[southamerica-east1-createWorkspace]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/createWorkspace).
+[WebServer] ✔  functions[southamerica-east1-updateWorkspaceSettings]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/updateWorkspaceSettings).
+[WebServer] ✔  functions[southamerica-east1-archiveWorkspace]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/archiveWorkspace).
+[WebServer] ✔  functions[southamerica-east1-inviteWorkspaceMember]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/inviteWorkspaceMember).
+[WebServer] ✔  functions[southamerica-east1-acceptWorkspaceInvite]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/acceptWorkspaceInvite).
+[WebServer] ✔  functions[southamerica-east1-revokeWorkspaceInvite]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/revokeWorkspaceInvite).
+[WebServer] ✔  functions[southamerica-east1-changeWorkspaceMemberRole]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/changeWorkspaceMemberRole).
+[WebServer] ✔  functions[southamerica-east1-removeWorkspaceMember]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/removeWorkspaceMember).
+[WebServer] ✔  functions[southamerica-east1-leaveWorkspace]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/leaveWorkspace).
+[WebServer] ✔  functions[southamerica-east1-transferWorkspaceOwnership]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/transferWorkspaceOwnership).
+[WebServer] ✔  functions[southamerica-east1-createGoal]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/createGoal).
+[WebServer] ✔  functions[southamerica-east1-updateGoal]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/updateGoal).
+[WebServer] ✔  functions[southamerica-east1-updateGoalManualProgress]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/updateGoalManualProgress).
+[WebServer] ✔  functions[southamerica-east1-setGoalStatus]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/setGoalStatus).
+[WebServer] ✔  functions[southamerica-east1-archiveGoal]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/archiveGoal).
+[WebServer] ✔  functions[southamerica-east1-getGoalsOverview]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/getGoalsOverview).
+[WebServer] ✔  functions[southamerica-east1-getGoalKpiProgress]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/getGoalKpiProgress).
+[WebServer] ✔  functions[southamerica-east1-createSimpleInvestment]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/createSimpleInvestment).
+[WebServer] ✔  functions[southamerica-east1-settleInvestmentContribution]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/settleInvestmentContribution).
+[WebServer] ✔  functions[southamerica-east1-withdrawSimpleInvestment]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/withdrawSimpleInvestment).
+[WebServer] ✔  functions[southamerica-east1-settleSimpleWithdrawal]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/settleSimpleWithdrawal).
+[WebServer] ✔  functions[southamerica-east1-reverseInvestmentMovement]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/reverseInvestmentMovement).
+[WebServer] ✔  functions[southamerica-east1-cancelInvestmentMovement]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/cancelInvestmentMovement).
+[WebServer] ✔  functions[southamerica-east1-changeInvestmentGoal]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/changeInvestmentGoal).
+[WebServer] ✔  functions[southamerica-east1-linkInvestmentToGoal]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/linkInvestmentToGoal).
+[WebServer] ✔  functions[southamerica-east1-unlinkInvestmentFromGoal]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/unlinkInvestmentFromGoal).
+[WebServer] ✔  functions[southamerica-east1-analyzeFinancialQuestion]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/analyzeFinancialQuestion).
+[WebServer] ✔  functions[southamerica-east1-extractTransactionFromContent]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/extractTransactionFromContent).
+[WebServer] ✔  functions[southamerica-east1-rebuildCashPeriods]: http function initialized (http://127.0.0.1:5001/minhas-financas-local/southamerica-east1/rebuildCashPeriods).
+[WebServer] i  functions[southamerica-east1-processInvestmentDriftScan]: function ignored because the pubsub emulator does not exist or is not running.
+[WebServer]
+[WebServer] ┌─────────────────────────────────────────────────────────────┐
+[WebServer] │ ✔  All emulators ready! It is now safe to connect your app. │
+[WebServer] │ i  View Emulator UI at http://127.0.0.1:4000/               │
+[WebServer] └─────────────────────────────────────────────────────────────┘
+[WebServer]
+[WebServer] ┌────────────────┬────────────────┬─────────────────────────────────┐
+[WebServer] │ Emulator       │ Host:Port      │ View in Emulator UI             │
+[WebServer] ├────────────────┼────────────────┼─────────────────────────────────┤
+[WebServer] │ Authentication │ 127.0.0.1:9099 │ http://127.0.0.1:4000/auth      │
+[WebServer] ├────────────────┼────────────────┼─────────────────────────────────┤
+[WebServer] │ Functions      │ 127.0.0.1:5001 │ http://127.0.0.1:4000/functions │
+[WebServer] ├────────────────┼────────────────┼─────────────────────────────────┤
+[WebServer] │ Firestore      │ 127.0.0.1:8080 │ http://127.0.0.1:4000/firestore │
+[WebServer] └────────────────┴────────────────┴─────────────────────────────────┘
+[WebServer]   Emulator Hub host: 127.0.0.1 port: 4400
+[WebServer]   Other reserved ports: 4500, 9150
+[WebServer]
+[WebServer] Issues? Report them at https://github.com/firebase/firebase-tools/issues and attach the *-debug.log files.
+[WebServer]
+[WebServer]   ➜  Local:   http://127.0.0.1:5173/
+
+Running 2 tests using 1 worker
+
+(node:3043) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN
+(Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] i  functions: Beginning execution of "southamerica-east1-onCashAccountWriteNotification"
+[WebServer] i  functions: Finished "southamerica-east1-onCashAccountWriteNotification" in 14.891136ms
+[WebServer] i  functions: Beginning execution of "southamerica-east1-onCashAccountWriteNotification"
+[WebServer] i  functions: Finished "southamerica-east1-onCashAccountWriteNotification" in 4.284138ms
+[WebServer] i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+[WebServer] >  {"verifications":{"app":"MISSING","auth":"VALID"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+[WebServer] >  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"c0407655-5a8b-452b-b017-6078957170d7","actorId":"e2e-p5f-a","workspaceId":null,"actorRole":null,"appCheck":"absent"}
+[WebServer] i  functions: Beginning execution of "southamerica-east1-onCashAccountWriteNotification"
+[WebServer] >  {"severity":"INFO","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"c0407655-5a8b-452b-b017-6078957170d7","actorId":"e2e-p5f-a","workspaceId":"e2e-p5f-pf-mw51v1hb","actorRole":"owner","outcome":"ok","durationMs":580}
+[WebServer] i  functions: Finished "southamerica-east1-createCashAccount" in 599.508437ms
+[WebServer] i  functions: Finished "southamerica-east1-onCashAccountWriteNotification" in 7.289917ms
+[WebServer] i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+[WebServer] >  {"verifications":{"app":"MISSING","auth":"VALID"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+[WebServer] >  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"f3afb0ed-38f1-450a-b7fb-7498d09b3c08","actorId":"e2e-p5f-a","workspaceId":null,"actorRole":null,"appCheck":"absent"}
+[WebServer] i  functions: Beginning execution of "southamerica-east1-onCashAccountWriteNotification"
+[WebServer] >  {"severity":"INFO","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"f3afb0ed-38f1-450a-b7fb-7498d09b3c08","actorId":"e2e-p5f-a","workspaceId":"e2e-p5f-pj-mw51v1hb","actorRole":"owner","outcome":"ok","durationMs":71}
+[WebServer] i  functions: Finished "southamerica-east1-createCashAccount" in 79.446887ms
+[WebServer] i  functions: Finished "southamerica-east1-onCashAccountWriteNotification" in 7.635602ms
+[WebServer] i  functions: Beginning execution of "southamerica-east1-createCashTransaction"
+[WebServer] >  {"verifications":{"app":"MISSING","auth":"VALID"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+[WebServer] >  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashTransaction","requestId":"dde2b562-a17b-49c3-b922-5af4601bba52","actorId":"e2e-p5f-a","workspaceId":null,"actorRole":null,"appCheck":"absent"}
+[WebServer] i  functions: Beginning execution of "southamerica-east1-onCashAccountWriteNotification"
+[WebServer] >  {"severity":"INFO","message":"callable.end","event":"callable.end","operation":"createCashTransaction","requestId":"dde2b562-a17b-49c3-b922-5af4601bba52","actorId":"e2e-p5f-a","workspaceId":"e2e-p5f-pf-mw51v1hb","actorRole":"owner","outcome":"ok","durationMs":378}
+[WebServer] i  functions: Finished "southamerica-east1-createCashTransaction" in 396.469947ms
+[WebServer] i  functions: Finished "southamerica-east1-onCashAccountWriteNotification" in 7.814295ms
+[WebServer] i  functions: Beginning execution of "southamerica-east1-createCashTransaction"
+[WebServer] >  {"verifications":{"app":"MISSING","auth":"VALID"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+[WebServer] >  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashTransaction","requestId":"fc47578c-3c8c-43da-9a4d-c2ca08981feb","actorId":"e2e-p5f-a","workspaceId":null,"actorRole":null,"appCheck":"absent"}
+[WebServer] >  {"severity":"INFO","message":"callable.end","event":"callable.end","operation":"createCashTransaction","requestId":"fc47578c-3c8c-43da-9a4d-c2ca08981feb","actorId":"e2e-p5f-a","workspaceId":"e2e-p5f-pf-mw51v1hb","actorRole":"owner","outcome":"ok","durationMs":85}
+[WebServer] i  functions: Finished "southamerica-east1-createCashTransaction" in 89.302125ms
+[WebServer] i  functions: Beginning execution of "southamerica-east1-createCashTransaction"
+[WebServer] >  {"verifications":{"app":"MISSING","auth":"VALID"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+[WebServer] >  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashTransaction","requestId":"b4cae692-86bb-4c28-a08e-d5280401bf03","actorId":"e2e-p5f-a","workspaceId":null,"actorRole":null,"appCheck":"absent"}
+[WebServer] >  {"severity":"INFO","message":"callable.end","event":"callable.end","operation":"createCashTransaction","requestId":"b4cae692-86bb-4c28-a08e-d5280401bf03","actorId":"e2e-p5f-a","workspaceId":"e2e-p5f-pf-mw51v1hb","actorRole":"owner","outcome":"ok","durationMs":90}
+[WebServer] i  functions: Finished "southamerica-east1-createCashTransaction" in 97.684183ms
+[WebServer] i  functions: Beginning execution of "southamerica-east1-onTransactionWrite"
+[WebServer] >  {"severity":"INFO","message":"cash_projection.processed","event":"cash_projection.processed","operation":"onTransactionWrite","requestId":"3c277b0eb161e1a9a26e9dc516d1552b1a387037","workspaceId":"e2e-p5f-pf-mw51v1hb","transactionId":"cash_6f781b6b7cecb927c70588946181cbd905e11607","action":"CREATE","outcome":"applied","periodCount":1,"ageSeconds":1}
+[WebServer] i  functions: Finished "southamerica-east1-onTransactionWrite" in 296.266978ms
+[WebServer] i  functions: Beginning execution of "southamerica-east1-onCashAccountWriteNotification"
+[WebServer] i  functions: Finished "southamerica-east1-onCashAccountWriteNotification" in 3.917025ms
+[WebServer] i  functions: Beginning execution of "southamerica-east1-onTransactionWrite"
+[WebServer] >  {"severity":"INFO","message":"cash_projection.processed","event":"cash_projection.processed","operation":"onTransactionWrite","requestId":"ee2597b4a66765ee0c9b5ea3d0042b1cb09ecd73","workspaceId":"e2e-p5f-pf-mw51v1hb","transactionId":"cash_4a551f731508c39f417ee6a355de59078e22d737","action":"CREATE","outcome":"applied","periodCount":1,"ageSeconds":1}
+[WebServer] i  functions: Finished "southamerica-east1-onTransactionWrite" in 33.586106ms
+[WebServer] i  functions: Beginning execution of "southamerica-east1-onCashAccountWriteNotification"
+[WebServer] i  functions: Finished "southamerica-east1-onCashAccountWriteNotification" in 3.292239ms
+[WebServer] i  functions: Beginning execution of "southamerica-east1-onTransactionWrite"
+[WebServer] >  {"severity":"INFO","message":"cash_projection.processed","event":"cash_projection.processed","operation":"onTransactionWrite","requestId":"6abff5eb58fc23774b331a2ef85ea8d177a300c8","workspaceId":"e2e-p5f-pf-mw51v1hb","transactionId":"cash_64dfd60a65fd3f0a6b89d2fca1761a723929fd24","action":"CREATE","outcome":"applied","periodCount":1,"ageSeconds":1}
+[WebServer] i  functions: Finished "southamerica-east1-onTransactionWrite" in 30.782818ms
+[WebServer] i  functions: Beginning execution of "southamerica-east1-bootstrapAccount"
+[WebServer] i  functions: Finished "southamerica-east1-bootstrapAccount" in 3.659281ms
+[WebServer] i  functions: Beginning execution of "southamerica-east1-bootstrapAccount"
+[WebServer] >  {"verifications":{"app":"MISSING","auth":"VALID"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+[WebServer] >  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"bootstrapAccount","requestId":"37dceaba-9468-4ca9-820b-5705407908ae","actorId":"e2e-p5f-a","workspaceId":null,"actorRole":null,"appCheck":"absent"}
+[WebServer] >  {"severity":"INFO","message":"callable.end","event":"callable.end","operation":"bootstrapAccount","requestId":"37dceaba-9468-4ca9-820b-5705407908ae","actorId":"e2e-p5f-a","workspaceId":null,"actorRole":null,"outcome":"ok","durationMs":516}
+[WebServer] i  functions: Finished "southamerica-east1-bootstrapAccount" in 534.323337ms
+[WebServer] i  functions: Beginning execution of "southamerica-east1-getFinancialReport"
+[WebServer] i  functions: Finished "southamerica-east1-getFinancialReport" in 6.491119ms
+[WebServer] i  functions: Beginning execution of "southamerica-east1-getFinancialReport"
+[WebServer] i  functions: Finished "southamerica-east1-getFinancialReport" in 8.254275ms
+[WebServer] i  functions: Beginning execution of "southamerica-east1-getFinancialReport"
+[WebServer] >  {"verifications":{"app":"MISSING","auth":"VALID"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+[WebServer] >  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"getFinancialReport","requestId":"b36a38ed-273d-4511-b0c3-8ceb1489d2e6","actorId":"e2e-p5f-a","workspaceId":null,"actorRole":null,"appCheck":"absent"}
+[WebServer] i  functions: Beginning execution of "southamerica-east1-getBillingCatalog"
+[WebServer] i  functions: Finished "southamerica-east1-getBillingCatalog" in 11.678966ms
+[WebServer] i  functions: Beginning execution of "southamerica-east1-getFinancialReport"
+[WebServer] >  {"verifications":{"app":"MISSING","auth":"VALID"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+[WebServer] >  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"getFinancialReport","requestId":"fec01a96-11a8-463b-990b-447a6aa709ea","actorId":"e2e-p5f-a","workspaceId":null,"actorRole":null,"appCheck":"absent"}
+[WebServer] i  functions: Beginning execution of "southamerica-east1-getAccountUsage"
+[WebServer] i  functions: Finished "southamerica-east1-getAccountUsage" in 10.277246ms
+[WebServer] i  functions: Beginning execution of "southamerica-east1-getBillingCatalog"
+[WebServer] >  {"verifications":{"app":"MISSING","auth":"VALID"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+[WebServer] >  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"getBillingCatalog","requestId":"e5d8a02d-7cd1-4e26-a71e-552270566c04","actorId":"e2e-p5f-a","workspaceId":null,"actorRole":null,"appCheck":"absent"}
+[WebServer] >  {"severity":"INFO","message":"callable.end","event":"callable.end","operation":"getFinancialReport","requestId":"fec01a96-11a8-463b-990b-447a6aa709ea","actorId":"e2e-p5f-a","workspaceId":"e2e-p5f-pf-mw51v1hb","actorRole":"owner","outcome":"ok","durationMs":776}
+[WebServer] i  functions: Finished "southamerica-east1-getFinancialReport" in 808.9616ms
+[WebServer] i  functions: Beginning execution of "southamerica-east1-getAccountUsage"
+[WebServer] i  functions: Beginning execution of "southamerica-east1-getNotificationUnreadCount"
+[WebServer] i  functions: Finished "southamerica-east1-getNotificationUnreadCount" in 5.542645ms
+[WebServer] i  functions: Beginning execution of "southamerica-east1-getNotificationUnreadCount"
+[WebServer] >  {"verifications":{"app":"MISSING","auth":"VALID"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+[WebServer] >  {"verifications":{"app":"MISSING","auth":"VALID"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+[WebServer] >  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"getNotificationUnreadCount","requestId":"fb3ea739-c68e-4974-a983-3eab48810233","actorId":"e2e-p5f-a","workspaceId":null,"actorRole":null,"appCheck":"absent"}
+[WebServer] >  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"getAccountUsage","requestId":"54c519b8-21e0-4f43-bba5-92c41993e7ec","actorId":"e2e-p5f-a","workspaceId":null,"actorRole":null,"appCheck":"absent"}
+[WebServer] >  {"severity":"INFO","message":"callable.end","event":"callable.end","operation":"getFinancialReport","requestId":"b36a38ed-273d-4511-b0c3-8ceb1489d2e6","actorId":"e2e-p5f-a","workspaceId":"e2e-p5f-pf-mw51v1hb","actorRole":"owner","outcome":"ok","durationMs":1193}
+[WebServer] i  functions: Finished "southamerica-east1-getFinancialReport" in 1224.140889ms
+[WebServer] i  functions: Beginning execution of "southamerica-east1-getFinancialReport"
+[WebServer] i  functions: Finished "southamerica-east1-getFinancialReport" in 30.664651ms
+[WebServer] i  functions: Beginning execution of "southamerica-east1-getFinancialReport"
+[WebServer] >  {"verifications":{"app":"MISSING","auth":"VALID"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+[WebServer] >  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"getFinancialReport","requestId":"12acd71a-35d6-4c1b-aadd-acc9485e657e","actorId":"e2e-p5f-a","workspaceId":null,"actorRole":null,"appCheck":"absent"}
+[WebServer] >  {"severity":"INFO","message":"callable.end","event":"callable.end","operation":"getBillingCatalog","requestId":"e5d8a02d-7cd1-4e26-a71e-552270566c04","actorId":"e2e-p5f-a","workspaceId":null,"actorRole":null,"outcome":"ok","durationMs":899}
+[WebServer] i  functions: Finished "southamerica-east1-getBillingCatalog" in 935.670366ms
+[WebServer] >  {"severity":"INFO","message":"callable.end","event":"callable.end","operation":"getFinancialReport","requestId":"12acd71a-35d6-4c1b-aadd-acc9485e657e","actorId":"e2e-p5f-a","workspaceId":"e2e-p5f-pf-mw51v1hb","actorRole":"owner","outcome":"ok","durationMs":170}
+[WebServer] i  functions: Finished "southamerica-east1-getFinancialReport" in 189.042866ms
+[WebServer] >  {"severity":"INFO","message":"notification_unread_count","event":"notification_unread_count","operation":"getNotificationUnreadCount","requestId":"fb3ea739-c68e-4974-a983-3eab48810233","actorId":"e2e-p5f-a","workspaceId":"e2e-p5f-pf-mw51v1hb","actorRole":"owner","events":0,"states":0,"unread":0}
+[WebServer] >  {"severity":"INFO","message":"callable.end","event":"callable.end","operation":"getNotificationUnreadCount","requestId":"fb3ea739-c68e-4974-a983-3eab48810233","actorId":"e2e-p5f-a","workspaceId":"e2e-p5f-pf-mw51v1hb","actorRole":"owner","outcome":"ok","durationMs":735}
+[WebServer] i  functions: Finished "southamerica-east1-getNotificationUnreadCount" in 763.687356ms
+[WebServer] >  {"severity":"INFO","message":"callable.end","event":"callable.end","operation":"getAccountUsage","requestId":"54c519b8-21e0-4f43-bba5-92c41993e7ec","actorId":"e2e-p5f-a","workspaceId":null,"actorRole":null,"outcome":"ok","durationMs":843}
+[WebServer] i  functions: Finished "southamerica-east1-getAccountUsage" in 904.647652ms
+[WebServer] i  functions: Beginning execution of "southamerica-east1-getWorkspaceEntitlement"
+[WebServer] i  functions: Finished "southamerica-east1-getWorkspaceEntitlement" in 3.266814ms
+[WebServer] i  functions: Beginning execution of "southamerica-east1-getWorkspaceEntitlement"
+[WebServer] >  {"verifications":{"app":"MISSING","auth":"VALID"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+[WebServer] >  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"getWorkspaceEntitlement","requestId":"a1deffa2-216f-4f65-af79-7553ed7cab05","actorId":"e2e-p5f-a","workspaceId":null,"actorRole":null,"appCheck":"absent"}
+[WebServer] >  {"severity":"INFO","message":"callable.end","event":"callable.end","operation":"getWorkspaceEntitlement","requestId":"a1deffa2-216f-4f65-af79-7553ed7cab05","actorId":"e2e-p5f-a","workspaceId":"e2e-p5f-pf-mw51v1hb","actorRole":"owner","outcome":"ok","durationMs":435}
+[WebServer] i  functions: Finished "southamerica-east1-getWorkspaceEntitlement" in 450.51109ms
+[WebServer] i  functions: Beginning execution of "southamerica-east1-bootstrapAccount"
+[WebServer] i  functions: Finished "southamerica-east1-bootstrapAccount" in 4.208579ms
+[WebServer] i  functions: Beginning execution of "southamerica-east1-bootstrapAccount"
+[WebServer] >  {"verifications":{"app":"MISSING","auth":"VALID"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+[WebServer] >  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"bootstrapAccount","requestId":"6371fed7-c4f2-493b-9651-0ecfaffeb1ac","actorId":"e2e-p5f-a","workspaceId":null,"actorRole":null,"appCheck":"absent"}
+[WebServer] >  {"severity":"INFO","message":"callable.end","event":"callable.end","operation":"bootstrapAccount","requestId":"6371fed7-c4f2-493b-9651-0ecfaffeb1ac","actorId":"e2e-p5f-a","workspaceId":null,"actorRole":null,"outcome":"ok","durationMs":37}
+[WebServer] i  functions: Finished "southamerica-east1-bootstrapAccount" in 41.642764ms
+[WebServer] i  functions: Beginning execution of "southamerica-east1-getBillingCatalog"
+[WebServer] i  functions: Beginning execution of "southamerica-east1-getAccountUsage"
+[WebServer] >  {"verifications":{"app":"MISSING","auth":"VALID"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+[WebServer] >  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"getBillingCatalog","requestId":"990850df-1c72-4bac-bd46-befae22d3dad","actorId":"e2e-p5f-a","workspaceId":null,"actorRole":null,"appCheck":"absent"}
+[WebServer] >  {"verifications":{"app":"MISSING","auth":"VALID"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+[WebServer] >  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"getAccountUsage","requestId":"02ec6447-1754-42c1-97cb-f947cef4705d","actorId":"e2e-p5f-a","workspaceId":null,"actorRole":null,"appCheck":"absent"}
+[WebServer] >  {"severity":"INFO","message":"callable.end","event":"callable.end","operation":"getBillingCatalog","requestId":"990850df-1c72-4bac-bd46-befae22d3dad","actorId":"e2e-p5f-a","workspaceId":null,"actorRole":null,"outcome":"ok","durationMs":19}
+[WebServer] i  functions: Finished "southamerica-east1-getBillingCatalog" in 25.471744ms
+[WebServer] >  {"severity":"INFO","message":"callable.end","event":"callable.end","operation":"getAccountUsage","requestId":"02ec6447-1754-42c1-97cb-f947cef4705d","actorId":"e2e-p5f-a","workspaceId":null,"actorRole":null,"outcome":"ok","durationMs":31}
+[WebServer] i  functions: Finished "southamerica-east1-getAccountUsage" in 35.64968ms
+[WebServer] i  functions: Beginning execution of "southamerica-east1-getFinancialReport"
+[WebServer] >  {"verifications":{"app":"MISSING","auth":"VALID"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+[WebServer] >  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"getFinancialReport","requestId":"5d5b235a-5bc9-4d2a-b537-f03e3db39825","actorId":"e2e-p5f-a","workspaceId":null,"actorRole":null,"appCheck":"absent"}
+[WebServer] >  {"severity":"INFO","message":"callable.end","event":"callable.end","operation":"getFinancialReport","requestId":"5d5b235a-5bc9-4d2a-b537-f03e3db39825","actorId":"e2e-p5f-a","workspaceId":"e2e-p5f-pf-mw51v1hb","actorRole":"owner","outcome":"ok","durationMs":56}
+[WebServer] i  functions: Finished "southamerica-east1-getFinancialReport" in 61.472763ms
+[WebServer] i  functions: Beginning execution of "southamerica-east1-getNotificationUnreadCount"
+[WebServer] >  {"verifications":{"app":"MISSING","auth":"VALID"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+[WebServer] >  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"getNotificationUnreadCount","requestId":"79b3aa1a-21c3-4e0a-988b-17a9189c67a8","actorId":"e2e-p5f-a","workspaceId":null,"actorRole":null,"appCheck":"absent"}
+[WebServer] i  functions: Beginning execution of "southamerica-east1-getFinancialReport"
+[WebServer] i  functions: Beginning execution of "southamerica-east1-getFinancialReport"
+[WebServer] i  functions: Beginning execution of "southamerica-east1-getWorkspaceEntitlement"
+[WebServer] >  {"verifications":{"app":"MISSING","auth":"VALID"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+[WebServer] >  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"getFinancialReport","requestId":"79e247d2-9dbf-4ca1-9ad2-57ff2c0a4c85","actorId":"e2e-p5f-a","workspaceId":null,"actorRole":null,"appCheck":"absent"}
+[WebServer] >  {"verifications":{"app":"MISSING","auth":"VALID"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+[WebServer] >  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"getFinancialReport","requestId":"81f2fdeb-a2d1-4b75-bcdb-05a4e02bc220","actorId":"e2e-p5f-a","workspaceId":null,"actorRole":null,"appCheck":"absent"}
+[WebServer] >  {"verifications":{"app":"MISSING","auth":"VALID"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+[WebServer] >  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"getWorkspaceEntitlement","requestId":"e1603ace-13b0-4d3b-9562-c58a7c296203","actorId":"e2e-p5f-a","workspaceId":null,"actorRole":null,"appCheck":"absent"}
+[WebServer] >  {"severity":"INFO","message":"callable.end","event":"callable.end","operation":"getWorkspaceEntitlement","requestId":"e1603ace-13b0-4d3b-9562-c58a7c296203","actorId":"e2e-p5f-a","workspaceId":"e2e-p5f-pf-mw51v1hb","actorRole":"owner","outcome":"ok","durationMs":99}
+[WebServer] i  functions: Finished "southamerica-east1-getWorkspaceEntitlement" in 113.177618ms
+[WebServer] >  {"severity":"INFO","message":"notification_unread_count","event":"notification_unread_count","operation":"getNotificationUnreadCount","requestId":"79b3aa1a-21c3-4e0a-988b-17a9189c67a8","actorId":"e2e-p5f-a","workspaceId":"e2e-p5f-pf-mw51v1hb","actorRole":"owner","events":0,"states":0,"unread":0}
+[WebServer] >  {"severity":"INFO","message":"callable.end","event":"callable.end","operation":"getNotificationUnreadCount","requestId":"79b3aa1a-21c3-4e0a-988b-17a9189c67a8","actorId":"e2e-p5f-a","workspaceId":"e2e-p5f-pf-mw51v1hb","actorRole":"owner","outcome":"ok","durationMs":182}
+[WebServer] i  functions: Finished "southamerica-east1-getNotificationUnreadCount" in 188.300948ms
+[WebServer] >  {"severity":"INFO","message":"callable.end","event":"callable.end","operation":"getFinancialReport","requestId":"81f2fdeb-a2d1-4b75-bcdb-05a4e02bc220","actorId":"e2e-p5f-a","workspaceId":"e2e-p5f-pf-mw51v1hb","actorRole":"owner","outcome":"ok","durationMs":197}
+[WebServer] i  functions: Finished "southamerica-east1-getFinancialReport" in 205.343106ms
+[WebServer] >  {"severity":"INFO","message":"callable.end","event":"callable.end","operation":"getFinancialReport","requestId":"79e247d2-9dbf-4ca1-9ad2-57ff2c0a4c85","actorId":"e2e-p5f-a","workspaceId":"e2e-p5f-pf-mw51v1hb","actorRole":"owner","outcome":"ok","durationMs":380}
+[WebServer] i  functions: Finished "southamerica-east1-getFinancialReport" in 387.105258ms
+  ✓  1 [chromium] › e2e/work-time-p5f.spec.ts:1300:1 › B02 (P5-F.1-R1): acrescentar uma rotina válida não reduz as horas; rotinas que se cruzam com intervalo são recusadas com aviso acessível (21.6s)
+[WebServer] i  functions: Beginning execution of "southamerica-east1-onTransactionWrite"
+[WebServer] >  {"severity":"INFO","message":"cash_projection.processed","event":"cash_projection.processed","operation":"onTransactionWrite","requestId":"b3d926bf7127da4433042b4916160bf00fe827ef","workspaceId":"e2e-p5f-pf-mw51v1hb","transactionId":"cash_4a551f731508c39f417ee6a355de59078e22d737","action":"DELETE","outcome":"applied","periodCount":1,"ageSeconds":0}
+[WebServer] i  functions: Finished "southamerica-east1-onTransactionWrite" in 48.572965ms
+[WebServer] i  functions: Beginning execution of "southamerica-east1-onTransactionWrite"
+[WebServer] >  {"severity":"INFO","message":"cash_projection.processed","event":"cash_projection.processed","operation":"onTransactionWrite","requestId":"8fafc37b7fe6e727ab3531ac73534cadadc7ecdb","workspaceId":"e2e-p5f-pf-mw51v1hb","transactionId":"cash_64dfd60a65fd3f0a6b89d2fca1761a723929fd24","action":"DELETE","outcome":"applied","periodCount":1,"ageSeconds":0}
+[WebServer] i  functions: Finished "southamerica-east1-onTransactionWrite" in 36.917673ms
+[WebServer] i  functions: Beginning execution of "southamerica-east1-onTransactionWrite"
+[WebServer] >  {"severity":"INFO","message":"cash_projection.processed","event":"cash_projection.processed","operation":"onTransactionWrite","requestId":"4ed2fcf5b96faf3353bdcd9c4131e24da86fec69","workspaceId":"e2e-p5f-pf-mw51v1hb","transactionId":"cash_6f781b6b7cecb927c70588946181cbd905e11607","action":"DELETE","outcome":"applied","periodCount":1,"ageSeconds":0}
+[WebServer] i  functions: Finished "southamerica-east1-onTransactionWrite" in 32.716489ms
+[WebServer] i  functions: Beginning execution of "southamerica-east1-onCashAccountWriteNotification"
+[WebServer] i  functions: Finished "southamerica-east1-onCashAccountWriteNotification" in 4.486148ms
+[WebServer] i  functions: Beginning execution of "southamerica-east1-onCashAccountWriteNotification"
+[WebServer] i  functions: Finished "southamerica-east1-onCashAccountWriteNotification" in 4.892269ms
+[WebServer] i  functions: Beginning execution of "southamerica-east1-onCashAccountWriteNotification"
+[WebServer] i  functions: Finished "southamerica-east1-onCashAccountWriteNotification" in 7.867718ms
+[WebServer] i  functions: Beginning execution of "southamerica-east1-onCashAccountWriteNotification"
+[WebServer] i  functions: Finished "southamerica-east1-onCashAccountWriteNotification" in 2.703099ms
+[WebServer] i  functions: Beginning execution of "southamerica-east1-onCashAccountWriteNotification"
+[WebServer] i  functions: Finished "southamerica-east1-onCashAccountWriteNotification" in 4.041951ms
+[WebServer] i  functions: Beginning execution of "southamerica-east1-onCashAccountWriteNotification"
+[WebServer] i  functions: Finished "southamerica-east1-onCashAccountWriteNotification" in 4.547695ms
+[WebServer] i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+[WebServer] >  {"verifications":{"app":"MISSING","auth":"VALID"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+[WebServer] >  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"59a5b028-d25e-45af-88b0-1616c1ac7dd7","actorId":"e2e-p5f-a","workspaceId":null,"actorRole":null,"appCheck":"absent"}
+[WebServer] i  functions: Beginning execution of "southamerica-east1-onCashAccountWriteNotification"
+[WebServer] >  {"severity":"INFO","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"59a5b028-d25e-45af-88b0-1616c1ac7dd7","actorId":"e2e-p5f-a","workspaceId":"e2e-p5f-pf-mw51vhfz","actorRole":"owner","outcome":"ok","durationMs":58}
+[WebServer] i  functions: Finished "southamerica-east1-createCashAccount" in 65.287398ms
+[WebServer] i  functions: Finished "southamerica-east1-onCashAccountWriteNotification" in 2.559629ms
+[WebServer] i  functions: Beginning execution of "southamerica-east1-createCashAccount"
+[WebServer] >  {"verifications":{"app":"MISSING","auth":"VALID"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+[WebServer] >  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashAccount","requestId":"787f1918-2f94-489c-b16a-7ed1bf3cbc35","actorId":"e2e-p5f-a","workspaceId":null,"actorRole":null,"appCheck":"absent"}
+[WebServer] i  functions: Beginning execution of "southamerica-east1-onCashAccountWriteNotification"
+[WebServer] >  {"severity":"INFO","message":"callable.end","event":"callable.end","operation":"createCashAccount","requestId":"787f1918-2f94-489c-b16a-7ed1bf3cbc35","actorId":"e2e-p5f-a","workspaceId":"e2e-p5f-pj-mw51vhfz","actorRole":"owner","outcome":"ok","durationMs":47}
+[WebServer] i  functions: Finished "southamerica-east1-createCashAccount" in 53.207229ms
+[WebServer] i  functions: Finished "southamerica-east1-onCashAccountWriteNotification" in 3.528667ms
+[WebServer] i  functions: Beginning execution of "southamerica-east1-createCashTransaction"
+[WebServer] >  {"verifications":{"app":"MISSING","auth":"VALID"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+[WebServer] >  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashTransaction","requestId":"1f5966b5-ad51-4912-927d-593b52936ac2","actorId":"e2e-p5f-a","workspaceId":null,"actorRole":null,"appCheck":"absent"}
+[WebServer] >  {"severity":"INFO","message":"callable.end","event":"callable.end","operation":"createCashTransaction","requestId":"1f5966b5-ad51-4912-927d-593b52936ac2","actorId":"e2e-p5f-a","workspaceId":"e2e-p5f-pf-mw51vhfz","actorRole":"owner","outcome":"ok","durationMs":55}
+[WebServer] i  functions: Finished "southamerica-east1-createCashTransaction" in 59.276129ms
+[WebServer] i  functions: Beginning execution of "southamerica-east1-onCashAccountWriteNotification"
+[WebServer] i  functions: Finished "southamerica-east1-onCashAccountWriteNotification" in 6.23321ms
+[WebServer] i  functions: Beginning execution of "southamerica-east1-createCashTransaction"
+[WebServer] >  {"verifications":{"app":"MISSING","auth":"VALID"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+[WebServer] >  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashTransaction","requestId":"f88649c7-7175-4d96-afc9-41bd01bd7bdb","actorId":"e2e-p5f-a","workspaceId":null,"actorRole":null,"appCheck":"absent"}
+[WebServer] i  functions: Beginning execution of "southamerica-east1-onTransactionWrite"
+[WebServer] >  {"severity":"INFO","message":"cash_projection.processed","event":"cash_projection.processed","operation":"onTransactionWrite","requestId":"4941f6c4431aa26b1e3c793d2b7f85c141a1c631","workspaceId":"e2e-p5f-pf-mw51vhfz","transactionId":"cash_665a4fae50cb0da407224c53bea201a753c3dc11","action":"CREATE","outcome":"applied","periodCount":1,"ageSeconds":0}
+[WebServer] i  functions: Finished "southamerica-east1-onTransactionWrite" in 35.070036ms
+[WebServer] >  {"severity":"INFO","message":"callable.end","event":"callable.end","operation":"createCashTransaction","requestId":"f88649c7-7175-4d96-afc9-41bd01bd7bdb","actorId":"e2e-p5f-a","workspaceId":"e2e-p5f-pf-mw51vhfz","actorRole":"owner","outcome":"ok","durationMs":70}
+[WebServer] i  functions: Beginning execution of "southamerica-east1-onCashAccountWriteNotification"
+[WebServer] i  functions: Finished "southamerica-east1-createCashTransaction" in 75.961766ms
+[WebServer] i  functions: Finished "southamerica-east1-onCashAccountWriteNotification" in 3.637737ms
+[WebServer] i  functions: Beginning execution of "southamerica-east1-createCashTransaction"
+[WebServer] i  functions: Beginning execution of "southamerica-east1-onTransactionWrite"
+[WebServer] >  {"verifications":{"app":"MISSING","auth":"VALID"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+[WebServer] >  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"createCashTransaction","requestId":"98767831-cd0f-4752-9b7e-00ca223fe279","actorId":"e2e-p5f-a","workspaceId":null,"actorRole":null,"appCheck":"absent"}
+[WebServer] >  {"severity":"INFO","message":"cash_projection.processed","event":"cash_projection.processed","operation":"onTransactionWrite","requestId":"43e432980870f3277f74822d6f7b70e7dcdf49e1","workspaceId":"e2e-p5f-pf-mw51vhfz","transactionId":"cash_21d6d8fe7dae5efba45577136f822645e69eb13d","action":"CREATE","outcome":"applied","periodCount":1,"ageSeconds":0}
+[WebServer] i  functions: Finished "southamerica-east1-onTransactionWrite" in 44.393681ms
+[WebServer] i  functions: Beginning execution of "southamerica-east1-onCashAccountWriteNotification"
+[WebServer] >  {"severity":"INFO","message":"callable.end","event":"callable.end","operation":"createCashTransaction","requestId":"98767831-cd0f-4752-9b7e-00ca223fe279","actorId":"e2e-p5f-a","workspaceId":"e2e-p5f-pf-mw51vhfz","actorRole":"owner","outcome":"ok","durationMs":127}
+[WebServer] i  functions: Finished "southamerica-east1-createCashTransaction" in 135.564052ms
+[WebServer] i  functions: Finished "southamerica-east1-onCashAccountWriteNotification" in 8.009266ms
+[WebServer] i  functions: Beginning execution of "southamerica-east1-onTransactionWrite"
+[WebServer] >  {"severity":"INFO","message":"cash_projection.processed","event":"cash_projection.processed","operation":"onTransactionWrite","requestId":"d77c8de6dec4782163796a1d1f0fa161bac2f1b7","workspaceId":"e2e-p5f-pf-mw51vhfz","transactionId":"cash_0a4ee5a266836daeaec2f95ad5e66e5c2b255d10","action":"CREATE","outcome":"applied","periodCount":1,"ageSeconds":0}
+[WebServer] i  functions: Finished "southamerica-east1-onTransactionWrite" in 32.917351ms
+[WebServer] i  functions: Beginning execution of "southamerica-east1-bootstrapAccount"
+[WebServer] i  functions: Finished "southamerica-east1-bootstrapAccount" in 2.605284ms
+[WebServer] i  functions: Beginning execution of "southamerica-east1-bootstrapAccount"
+[WebServer] >  {"verifications":{"app":"MISSING","auth":"VALID"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+[WebServer] >  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"bootstrapAccount","requestId":"d1c9dc0a-2516-461a-bb89-ebef4d7687b1","actorId":"e2e-p5f-a","workspaceId":null,"actorRole":null,"appCheck":"absent"}
+[WebServer] >  {"severity":"INFO","message":"callable.end","event":"callable.end","operation":"bootstrapAccount","requestId":"d1c9dc0a-2516-461a-bb89-ebef4d7687b1","actorId":"e2e-p5f-a","workspaceId":null,"actorRole":null,"outcome":"ok","durationMs":42}
+[WebServer] i  functions: Finished "southamerica-east1-bootstrapAccount" in 45.290896ms
+[WebServer] i  functions: Beginning execution of "southamerica-east1-getBillingCatalog"
+[WebServer] i  functions: Beginning execution of "southamerica-east1-getAccountUsage"
+[WebServer] i  functions: Finished "southamerica-east1-getBillingCatalog" in 3.181258ms
+[WebServer] i  functions: Finished "southamerica-east1-getAccountUsage" in 2.496375ms
+[WebServer] i  functions: Beginning execution of "southamerica-east1-getBillingCatalog"
+[WebServer] i  functions: Beginning execution of "southamerica-east1-getAccountUsage"
+[WebServer] >  {"verifications":{"app":"MISSING","auth":"VALID"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+[WebServer] >  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"getBillingCatalog","requestId":"35937727-ebfe-4fa3-9fd1-6fe949e7dabc","actorId":"e2e-p5f-a","workspaceId":null,"actorRole":null,"appCheck":"absent"}
+[WebServer] >  {"verifications":{"app":"MISSING","auth":"VALID"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+[WebServer] >  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"getAccountUsage","requestId":"85bf0c5e-e2d6-4aca-a4c0-f78df4f6064b","actorId":"e2e-p5f-a","workspaceId":null,"actorRole":null,"appCheck":"absent"}
+[WebServer] >  {"severity":"INFO","message":"callable.end","event":"callable.end","operation":"getBillingCatalog","requestId":"35937727-ebfe-4fa3-9fd1-6fe949e7dabc","actorId":"e2e-p5f-a","workspaceId":null,"actorRole":null,"outcome":"ok","durationMs":23}
+[WebServer] i  functions: Finished "southamerica-east1-getBillingCatalog" in 27.825377ms
+[WebServer] >  {"severity":"INFO","message":"callable.end","event":"callable.end","operation":"getAccountUsage","requestId":"85bf0c5e-e2d6-4aca-a4c0-f78df4f6064b","actorId":"e2e-p5f-a","workspaceId":null,"actorRole":null,"outcome":"ok","durationMs":24}
+[WebServer] i  functions: Finished "southamerica-east1-getAccountUsage" in 30.256838ms
+[WebServer] i  functions: Beginning execution of "southamerica-east1-getFinancialReport"
+[WebServer] i  functions: Finished "southamerica-east1-getFinancialReport" in 4.096875ms
+[WebServer] i  functions: Beginning execution of "southamerica-east1-getFinancialReport"
+[WebServer] >  {"verifications":{"app":"MISSING","auth":"VALID"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+[WebServer] >  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"getFinancialReport","requestId":"ee7e35d6-49cf-4b3e-b51a-455cc02f9ec7","actorId":"e2e-p5f-a","workspaceId":null,"actorRole":null,"appCheck":"absent"}
+[WebServer] i  functions: Beginning execution of "southamerica-east1-getNotificationUnreadCount"
+[WebServer] i  functions: Finished "southamerica-east1-getNotificationUnreadCount" in 5.859238ms
+[WebServer] i  functions: Beginning execution of "southamerica-east1-getFinancialReport"
+[WebServer] i  functions: Beginning execution of "southamerica-east1-getNotificationUnreadCount"
+[WebServer] >  {"severity":"INFO","message":"callable.end","event":"callable.end","operation":"getFinancialReport","requestId":"ee7e35d6-49cf-4b3e-b51a-455cc02f9ec7","actorId":"e2e-p5f-a","workspaceId":"e2e-p5f-pf-mw51vhfz","actorRole":"owner","outcome":"ok","durationMs":69}
+[WebServer] i  functions: Finished "southamerica-east1-getFinancialReport" in 83.894175ms
+[WebServer] i  functions: Beginning execution of "southamerica-east1-getFinancialReport"
+[WebServer] >  {"verifications":{"app":"MISSING","auth":"VALID"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+[WebServer] i  functions: Beginning execution of "southamerica-east1-getWorkspaceEntitlement"
+[WebServer] >  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"getNotificationUnreadCount","requestId":"891e5bf7-0713-4de9-8e3f-f890b0a498bf","actorId":"e2e-p5f-a","workspaceId":null,"actorRole":null,"appCheck":"absent"}
+[WebServer] >  {"verifications":{"app":"MISSING","auth":"VALID"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+[WebServer] >  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"getFinancialReport","requestId":"e4cd4683-9779-476b-b82a-6112b06869bd","actorId":"e2e-p5f-a","workspaceId":null,"actorRole":null,"appCheck":"absent"}
+[WebServer] >  {"verifications":{"app":"MISSING","auth":"VALID"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+[WebServer] >  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"getFinancialReport","requestId":"8b0a514a-36d3-44f7-95b6-9f238ddac793","actorId":"e2e-p5f-a","workspaceId":null,"actorRole":null,"appCheck":"absent"}
+[WebServer] i  functions: Finished "southamerica-east1-getWorkspaceEntitlement" in 13.687195ms
+[WebServer] i  functions: Beginning execution of "southamerica-east1-getWorkspaceEntitlement"
+[WebServer] >  {"verifications":{"app":"MISSING","auth":"VALID"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"}
+[WebServer] >  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"getWorkspaceEntitlement","requestId":"9e1aa342-5666-4940-8d43-bb05d2d33abf","actorId":"e2e-p5f-a","workspaceId":null,"actorRole":null,"appCheck":"absent"}
+[WebServer] >  {"severity":"INFO","message":"notification_unread_count","event":"notification_unread_count","operation":"getNotificationUnreadCount","requestId":"891e5bf7-0713-4de9-8e3f-f890b0a498bf","actorId":"e2e-p5f-a","workspaceId":"e2e-p5f-pf-mw51vhfz","actorRole":"owner","events":0,"states":0,"unread":0}
+[WebServer] >  {"severity":"INFO","message":"callable.end","event":"callable.end","operation":"getNotificationUnreadCount","requestId":"891e5bf7-0713-4de9-8e3f-f890b0a498bf","actorId":"e2e-p5f-a","workspaceId":"e2e-p5f-pf-mw51vhfz","actorRole":"owner","outcome":"ok","durationMs":236}
+[WebServer] i  functions: Finished "southamerica-east1-getNotificationUnreadCount" in 297.624895ms
+[WebServer] >  {"severity":"INFO","message":"callable.end","event":"callable.end","operation":"getWorkspaceEntitlement","requestId":"9e1aa342-5666-4940-8d43-bb05d2d33abf","actorId":"e2e-p5f-a","workspaceId":"e2e-p5f-pf-mw51vhfz","actorRole":"owner","outcome":"ok","durationMs":183}
+[WebServer] i  functions: Finished "southamerica-east1-getWorkspaceEntitlement" in 226.105505ms
+[WebServer] >  {"severity":"INFO","message":"callable.end","event":"callable.end","operation":"getFinancialReport","requestId":"e4cd4683-9779-476b-b82a-6112b06869bd","actorId":"e2e-p5f-a","workspaceId":"e2e-p5f-pf-mw51vhfz","actorRole":"owner","outcome":"ok","durationMs":281}
+[WebServer] i  functions: Finished "southamerica-east1-getFinancialReport" in 295.246023ms
+[WebServer] >  {"severity":"INFO","message":"callable.end","event":"callable.end","operation":"getFinancialReport","requestId":"8b0a514a-36d3-44f7-95b6-9f238ddac793","actorId":"e2e-p5f-a","workspaceId":"e2e-p5f-pf-mw51vhfz","actorRole":"owner","outcome":"ok","durationMs":317}
+[WebServer] i  functions: Finished "southamerica-east1-getFinancialReport" in 343.217876ms
+  ✘  2 [chromium] › e2e/work-time-p5f.spec.ts:1460:1 › S01 (P5-F.1-R2A): a jornada reduzida que deixa o dia seguinte sem cálculo seguro é recusada em Configurações, e a gravada assim deixa a estimativa indisponível (3.5s)
+
+
+  1) [chromium] › e2e/work-time-p5f.spec.ts:1460:1 › S01 (P5-F.1-R2A): a jornada reduzida que deixa o dia seguinte sem cálculo seguro é recusada em Configurações, e a gravada assim deixa a estimativa indisponível
+
+    Error: locator.click: Error: strict mode violation: getByRole('button', { name: 'Mês anterior' }) resolved to 2 elements:
+        1) <button aria-label="Mês anterior" class="p-2 rounded-full bg-surface border border-border text-muted shadow-sm hover:bg-gray-50 dark:hover:bg-dark-200 transition-colors">…</button> aka locator('header').getByRole('button', { name: 'Mês anterior' })
+        2) <button type="button" aria-label="Mês anterior" class="rounded-lg border border-border p-2 text-muted hover:text-on-surface focus:outline-none focus:ring-2 focus:ring-primary">…</button> aka getByTestId('work-time-settings').getByRole('button', { name: 'Mês anterior' })
+
+    Call log:
+      - waiting for getByRole('button', { name: 'Mês anterior' })
+
+
+      1494 |   expect(violations, JSON.stringify(violations, null, 2)).toEqual([]);
+      1495 |   // No calendário de exceções, a terça fica sem horas, com a causa no nome acessível.
+    > 1496 |   await page.getByRole('button', { name: 'Mês anterior' }).click();
+           |                                                            ^
+      1497 |   const tuesdayCell = page.locator(`[data-date="${tuesday}"]`);
+      1498 |   await expect(tuesdayCell).toContainText('horas sem cálculo seguro: jornada reduzida na véspera');
+      1499 |   await expect(tuesdayCell).toContainText('?');
+        at <scratchpad>/wt-p5f1-r2a/e2e/work-time-p5f.spec.ts:1496:60
+
+    Error Context: test-results/work-time-p5f-S01-P5-F-1-R-7b7b4-a-a-estimativa-indisponível-chromium/error-context.md
+
+  1 failed
+    [chromium] › e2e/work-time-p5f.spec.ts:1460:1 › S01 (P5-F.1-R2A): a jornada reduzida que deixa o dia seguinte sem cálculo seguro é recusada em Configurações, e a gravada assim deixa a estimativa indisponível
+  1 passed (1.3m)

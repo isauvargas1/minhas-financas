@@ -1,0 +1,2 @@
+{"root":"r2a2","verdict":{"date":"2026-11-11","cause":"routines"},"eve":[1066,true],"day":[1066,false],"routinesAlone":{"date":"2026-11-11","routines":[1,2]}}
+{"root":"final","verdict":{"date":"2026-11-11","cause":"routines"},"eve":[1066,true],"day":[1066,false],"routinesAlone":{"date":"2026-11-11","routines":[1,2]}}

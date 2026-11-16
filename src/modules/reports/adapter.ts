@@ -170,6 +170,7 @@ const moneyKpi = (
         description: joinText(base.description, view.note),
         value: centsToDisplay(cents),
         formattedValue: formatCents(cents),
+        cents,
     };
 
 const ratioKpi = (

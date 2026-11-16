@@ -28,6 +28,7 @@ import {
 } from '../../modules/accounts/presentation.ts';
 import type { CashAccount, CashTransfer } from '../../modules/accounts/types.ts';
 import { formatCents, formatDayKey } from '../../modules/loans/money.ts';
+import { useMoneyDisplay } from '../../modules/work-time/display.tsx';
 import {
   ArchiveIcon,
   BackIcon,
@@ -64,6 +65,7 @@ type Confirmation =
 
 const CashAccountsView: React.FC<CashAccountsViewProps> = ({ onBack }) => {
   const { user } = useAuth();
+  const display = useMoneyDisplay();
   const { activeWorkspace, activeWorkspaceRole } = useWorkspace();
   const role = activeWorkspaceRole as WorkspaceRole | null | undefined;
   const permissions = accountPermissions(role);
@@ -153,7 +155,7 @@ const CashAccountsView: React.FC<CashAccountsViewProps> = ({ onBack }) => {
         <div className="bg-surface rounded-card border border-border p-6 shadow-sm">
           <p className="text-xs font-bold text-muted uppercase">Saldo geral</p>
           <p className="mt-2 text-2xl font-bold text-on-surface" data-testid="accounts-total">
-            {total.isLoading ? 'Carregando…' : total.isError ? '—' : formatCents(total.data ?? 0)}
+            {total.isLoading ? 'Carregando…' : total.isError ? '—' : display.cents(total.data ?? 0, formatCents)}
           </p>
           {total.isError && (
             <p role="alert" className="text-xs text-error mt-1">Não foi possível calcular o saldo geral.</p>
@@ -207,7 +209,7 @@ const CashAccountsView: React.FC<CashAccountsViewProps> = ({ onBack }) => {
                 </div>
                 <div className="flex flex-wrap items-center gap-2 sm:justify-end">
                   <span className={`font-bold mr-2 ${account.balanceCents < 0 ? 'text-red-600 dark:text-red-400' : 'text-on-surface'}`}>
-                    {formatCents(account.balanceCents)}
+                    {display.cents(account.balanceCents, formatCents)}
                   </span>
                   <button type="button" onClick={() => setStatementAccount(account)}
                     className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-primary dark:text-primary-on-dark hover:bg-primary/10 rounded">

@@ -1,0 +1,6 @@
+{"label":"antes","ambiguous":null,"calendarAmbiguity":null,"segunda":240,"terca":360,"mes":2400,"ambiguousDays":[]}
+{"label":"depois","ambiguous":null,"calendarAmbiguity":null,"segunda":480,"terca":120,"mes":2400,"ambiguousDays":[]}
+{"label":"antes","terca":{"minutes":360,"debug":{"happens":true,"previousOccupancy":0,"afterMidnight":0,"windowPart":0,"limit":1440,"workMinutes":360,"covered":false,"minutesBeforeAdditions":360}}}
+{"label":"depois","terca":{"minutes":120,"debug":{"happens":true,"previousOccupancy":180,"afterMidnight":-60,"windowPart":-60,"limit":1200,"workMinutes":120,"covered":true,"minutesBeforeAdditions":120}}}
+{"delta_terca":180,"w_terca_perde":240,"o_terca":[0,-60]}
+{"com_hora_extra_24h_na_terca":{"antes":{"seg":240,"ter":1440,"mes":3480},"depois":{"seg":480,"ter":1200,"mes":3480}}}

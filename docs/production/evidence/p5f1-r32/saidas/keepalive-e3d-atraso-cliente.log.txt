@@ -1,0 +1,4 @@
+Playwright APIRequestContext, keep-alive: 0/12 falhas []
+Playwright APIRequestContext, Connection: close: 0/12 falhas []
+http.request + Agent({ keepAlive: true }), keep-alive: 0/12 falhas []
+http.request + Agent({ keepAlive: true }), Connection: close: 0/12 falhas []

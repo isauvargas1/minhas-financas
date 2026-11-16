@@ -31,6 +31,16 @@ interface NotificationsPanelProps {
 
 const MotionDiv = motion.div as React.ComponentType<React.HTMLAttributes<HTMLDivElement> & MotionProps & React.RefAttributes<HTMLDivElement>>;
 
+/**
+ * P5-GATE-FINAL (PTBR-02 e o mesmo débito do PTBR-06 neste painel): texto na cor do espaço com contraste AA nos
+ * dois temas. No escuro, o tom mais claro do mesmo matiz (`primary-on-dark`, como no Header); o claro não muda.
+ * O foco pelo teclado ganha o anel visível dos botões de ação do aviso.
+ */
+const LINK_TEXT = 'text-primary dark:text-primary-on-dark';
+const FOCUS_RING = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary dark:focus-visible:ring-primary-on-dark';
+/** Para o que fica dentro de área com corte (título truncado, botão de largura total na lista com rolagem). */
+const FOCUS_RING_INSET = `${FOCUS_RING} focus-visible:ring-inset`;
+
 /** Folga mínima entre o painel e as bordas da tela. */
 const VIEWPORT_MARGIN_PX = 8;
 
@@ -136,7 +146,7 @@ const NotificationsPanel: React.FC<NotificationsPanelProps> = ({
             <div className="flex items-center justify-between p-4 border-b border-border bg-surface z-10 relative">
                 <div className="flex items-center gap-2">
                     <h3 className="font-bold text-on-surface">Notificações</h3>
-                    <span className="bg-primary/10 text-primary text-xs px-2 py-0.5 rounded-full font-bold" title={unreadChipLabel}>
+                    <span className="bg-primary/10 text-primary dark:text-primary-on-dark text-xs px-2 py-0.5 rounded-full font-bold" title={unreadChipLabel}>
                         <span aria-hidden="true">{unreadChip}</span>
                         <span className="sr-only">{unreadChipLabel}</span>
                     </span>
@@ -147,7 +157,7 @@ const NotificationsPanel: React.FC<NotificationsPanelProps> = ({
                         onClick={onMarkAllRead}
                         disabled={isMarking}
                         aria-busy={isMarking}
-                        className="text-xs text-primary hover:underline font-medium disabled:opacity-60 disabled:no-underline"
+                        className={`text-xs ${LINK_TEXT} hover:underline font-medium disabled:opacity-60 disabled:no-underline rounded ${FOCUS_RING}`}
                     >
                         Marcar exibidas como lidas
                     </button>
@@ -175,7 +185,7 @@ const NotificationsPanel: React.FC<NotificationsPanelProps> = ({
                             <WarningIcon className="w-8 h-8 text-red-600" />
                         </div>
                         <p className="text-sm font-medium text-on-surface">{errorMessage || 'Não foi possível carregar as notificações. Tente novamente.'}</p>
-                        <button type="button" onClick={onRetry} className="mt-3 text-xs text-primary hover:underline font-medium">
+                        <button type="button" onClick={onRetry} className={`mt-3 text-xs ${LINK_TEXT} hover:underline font-medium rounded ${FOCUS_RING}`}>
                             Tentar novamente
                         </button>
                     </div>
@@ -211,20 +221,31 @@ const NotificationsPanel: React.FC<NotificationsPanelProps> = ({
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <div className="flex justify-between items-start mb-1">
+                                            {/* P5-GATE-FINAL (PTBR-03): o título é o botão nativo do aviso, alcançável por Tab e
+                                                acionado por Enter ou Espaço; faz o mesmo que o clique no aviso (marca como lido e,
+                                                com destino, abre a tela). O clique em qualquer outro ponto do aviso continua valendo. O
+                                                gesto que começa no título é do dono "item" (P5-E1.1): o clique vai ao mesmo aviso. */}
                                             <h4 className={`text-sm font-semibold truncate pr-4 ${notif.status === 'unread' ? 'text-on-surface' : 'text-muted'}`}>
-                                                {notif.title}
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => { e.stopPropagation(); handleItemClick(notif); }}
+                                                    aria-describedby={`notification-message-${notif.id}`}
+                                                    className={`block w-full truncate text-left font-semibold rounded ${FOCUS_RING_INSET}`}
+                                                >
+                                                    {notif.title}
+                                                </button>
                                             </h4>
                                             <span className="text-[10px] text-muted whitespace-nowrap">
                                                 {formatDate(notif.createdAt)}
                                             </span>
                                         </div>
-                                        <p className={`text-xs leading-relaxed ${notif.status === 'unread' ? 'text-on-surface opacity-90' : 'text-muted'}`}>
+                                        <p id={`notification-message-${notif.id}`} className={`text-xs leading-relaxed ${notif.status === 'unread' ? 'text-on-surface opacity-90' : 'text-muted'}`}>
                                             {notif.message}
                                         </p>
                                         
                                         {notif.actionLabel && (
                                             <div className="mt-2">
-                                                <span className="text-[10px] font-bold text-primary hover:underline uppercase tracking-wide">
+                                                <span className={`text-[10px] font-bold ${LINK_TEXT} hover:underline uppercase tracking-wide`}>
                                                     {notif.actionLabel} →
                                                 </span>
                                             </div>
@@ -240,7 +261,7 @@ const NotificationsPanel: React.FC<NotificationsPanelProps> = ({
                                             {...pressTargetProps}
                                             onClick={(e) => { e.stopPropagation(); onDeleteForMe(notif.id); }}
                                             disabled={isDeleting}
-                                            className="p-1.5 [@media(hover:none)]:p-2 text-muted hover:text-error focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary bg-surface rounded-full shadow-sm border border-border disabled:opacity-60"
+                                            className={`p-1.5 [@media(hover:none)]:p-2 text-muted hover:text-error ${FOCUS_RING} bg-surface rounded-full shadow-sm border border-border disabled:opacity-60`}
                                             title="Excluir para mim"
                                             aria-label={`Excluir para mim: ${notif.title}`}
                                         >
@@ -251,7 +272,7 @@ const NotificationsPanel: React.FC<NotificationsPanelProps> = ({
                                         type="button"
                                         {...pressTargetProps}
                                         onClick={(e) => { e.stopPropagation(); onArchive(notif.id); }}
-                                        className="p-1.5 [@media(hover:none)]:p-2 text-muted hover:text-error focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary bg-surface rounded-full shadow-sm border border-border"
+                                        className={`p-1.5 [@media(hover:none)]:p-2 text-muted hover:text-error ${FOCUS_RING} bg-surface rounded-full shadow-sm border border-border`}
                                         title="Arquivar para mim"
                                         aria-label={`Arquivar para mim: ${notif.title}`}
                                     >
@@ -271,7 +292,7 @@ const NotificationsPanel: React.FC<NotificationsPanelProps> = ({
                         type="button"
                         onClick={onLoadMore}
                         disabled={isLoadingMore}
-                        className="w-full p-3 text-xs text-primary hover:underline font-medium disabled:opacity-60 disabled:no-underline"
+                        className={`w-full p-3 text-xs ${LINK_TEXT} hover:underline font-medium disabled:opacity-60 disabled:no-underline ${FOCUS_RING_INSET}`}
                     >
                         {isLoadingMore ? 'Carregando…' : 'Carregar mais'}
                     </button>

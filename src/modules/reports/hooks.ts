@@ -1,14 +1,22 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { hashKey, useQuery, useQueryClient } from '@tanstack/react-query';
+import { collection, doc, documentId, limit, onSnapshot, query, where } from 'firebase/firestore';
 import * as api from './api';
 import { toReportSnapshot, type ReportAdapterResult } from './adapter';
 import { fetchFinancialReport } from './officialApi';
 import type { FinancialReport, ReportRange, ReportSection } from './official';
-import { financialReportKey, invalidateFinancialReports } from './queryKeys';
+import {
+    financialReportKey,
+    invalidateFinancialReportBases,
+    invalidateFinancialReports,
+    nextFinancialReportOrder,
+    noteFinancialReportFetchStart,
+    refreshFinancialReportsAfterChange,
+} from './queryKeys';
 import { presetRange, rangeKey, sectionsKey } from './range';
 import { saoPauloMonthKey } from './dateWindow';
 import { createLiveRefreshScheduler } from './liveRefresh';
+import { BASIS_PERIODS_MAX, type BasisSyncDeps } from './basisSync';
 import { FinancialReportSnapshot, ReportTimeRange } from './types';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -45,15 +53,49 @@ export const useFinancialReport = (
             rangeKey(range),
             sectionsKey(sections),
         ),
-        queryFn: () => fetchFinancialReport({
-            workspaceId,
-            range,
-            ...(sections ? { sections: [...sections] } : {}),
-        }),
+        queryFn: ({ queryKey }) => {
+            // Ordem do começo da leitura, para a releitura pela escuta (`refreshFinancialReportsAfterChange`).
+            noteFinancialReportFetchStart(hashKey(queryKey));
+            return fetchFinancialReport({
+                workspaceId,
+                range,
+                ...(sections ? { sections: [...sections] } : {}),
+            });
+        },
         enabled: ready && (options.enabled ?? true),
         staleTime: 30_000,
         retry: 1,
     });
+};
+
+/**
+ * Dependências reais das bases de longa duração (P5-F.1): a callable do
+ * relatório oficial e a escuta das projeções mensais de caixa, com os
+ * metadados de cache (o retorno só do cache local não conta). A lógica fica
+ * em `./basisSync.ts`, testada com uma API em memória; quem usa as bases é a
+ * estimativa de tempo de trabalho (`work-time/useIncomeEstimate.ts`).
+ */
+export const firebaseBasisDeps: BasisSyncDeps = {
+    fetchReport: (payload) => fetchFinancialReport(payload),
+    subscribePeriods: (workspaceId, firstMonth, lastMonth, onNext, onError) => onSnapshot(
+        query(
+            collection(db, 'workspaces', workspaceId, 'cash_report_periods'),
+            where(documentId(), '>=', firstMonth),
+            where(documentId(), '<=', lastMonth),
+            limit(BASIS_PERIODS_MAX),
+        ),
+        { includeMetadataChanges: true },
+        (snapshot) => onNext({
+            documents: snapshot.docs.map((entry) => ({
+                id: entry.id,
+                incomeCents: entry.data().incomeCents,
+                updatedAt: entry.data().updatedAt,
+            })),
+            fromCache: snapshot.metadata.fromCache,
+            changes: snapshot.docChanges().length,
+        }),
+        () => onError(),
+    ),
 };
 
 /** Relatório da faixa escolhida nos Relatórios, já adaptado para as telas. */
@@ -75,12 +117,15 @@ export const useFinancialReportView = (
  * O caixa é projetado por gatilho assíncrono depois da mutação: o relatório
  * relido logo após o sucesso pode ainda não incluí-la. Escuta o documento da
  * projeção do mês corrente e, quando diferente, o do mês escolhido no Header
- * (no máximo dois documentos) e, a cada mudança depois do primeiro retorno,
- * relê os relatórios. Mudanças em rajada (vários lançamentos, outros membros)
+ * (no máximo dois documentos) e, a cada retorno (inclusive o primeiro: uma
+ * gravação entre a leitura do relatório e ele só aparece ali), relê os
+ * relatórios que ainda não estão lendo o estado dele (RR-R2A-04). Mudanças em rajada (vários lançamentos, outros membros)
  * são agrupadas numa só releitura, com orçamento por hora abaixo do limite de
  * frequência da callable (`./liveRefresh.ts`). Falha do listener não quebra a
  * tela. Na virada do mês em São Paulo (aba aberta), troca para o documento do
- * mês novo e relê os relatórios, cujo "hoje" também mudou.
+ * mês novo e relê os relatórios e as bases de longa duração, cujo "hoje"
+ * também mudou. As bases não acompanham este listener: elas têm a escuta
+ * própria das projeções da janela (`./basisSync.ts`).
  */
 const MONTH_CHECK_INTERVAL_MS = 60_000;
 
@@ -93,9 +138,11 @@ export const useFinancialReportLiveRefresh = (
     // Um agendador (e um orçamento) por montagem, mantido nas trocas de mês e
     // de workspace.
     const scheduler = useRef<ReturnType<typeof createLiveRefreshScheduler> | null>(null);
+    /** A última mudança vista pela escuta, na ordem de registro (RR-R2A-04). */
+    const lastChange = useRef(0);
     if (scheduler.current === null) {
         scheduler.current = createLiveRefreshScheduler(() => {
-            void invalidateFinancialReports(queryClient);
+            void refreshFinancialReportsAfterChange(queryClient, lastChange.current);
         });
     }
     useEffect(() => {
@@ -104,6 +151,8 @@ export const useFinancialReportLiveRefresh = (
             if (current === monthKey) return;
             setMonthKey(current);
             void invalidateFinancialReports(queryClient);
+            // O "hoje" e a janela das bases de longa duração também mudaram.
+            void invalidateFinancialReportBases(queryClient);
         }, MONTH_CHECK_INTERVAL_MS);
         return () => clearInterval(timer);
     }, [monthKey, queryClient]);
@@ -111,20 +160,18 @@ export const useFinancialReportLiveRefresh = (
     useEffect(() => {
         if (!workspaceId || workspaceId === 'loading') return undefined;
         const refresh = scheduler.current;
-        const unsubscribes = [monthKey, ...(extraMonth ? [extraMonth] : [])].map((month) => {
-            let first = true;
-            return onSnapshot(
+        const unsubscribes = [monthKey, ...(extraMonth ? [extraMonth] : [])].map((month) =>
+            onSnapshot(
                 doc(db, 'workspaces', workspaceId, 'cash_report_periods', month),
                 () => {
-                    if (first) {
-                        first = false;
-                        return;
-                    }
+                    // Todo retorno conta, inclusive o primeiro (RR-R2A-04): uma gravação entre a leitura do
+                    // relatório e o primeiro retorno da escuta só aparece nele. A releitura agrupada pula a
+                    // consulta cuja leitura em curso já começou depois deste retorno.
+                    lastChange.current = nextFinancialReportOrder();
                     refresh?.notify();
                 },
                 () => { /* sem projeção legível: o relatório segue pelo staleTime */ },
-            );
-        });
+            ));
         return () => {
             refresh?.cancel();
             unsubscribes.forEach((unsubscribe) => unsubscribe());

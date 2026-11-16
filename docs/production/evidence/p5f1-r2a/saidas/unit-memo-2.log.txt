@@ -1,0 +1,22 @@
+TAP version 13
+# Subtest: P5-F.1-R2A: a memória do conferidor vale só durante a chamada e não muda resultado
+ok 1 - P5-F.1-R2A: a memória do conferidor vale só durante a chamada e não muda resultado
+  ---
+  duration_ms: 4.905138
+  type: 'test'
+  ...
+# Subtest: P5-F.1-R2A: a memória do conferidor é de um calendário só: outro calendário lido no meio da chamada não a usa nem a suja
+ok 2 - P5-F.1-R2A: a memória do conferidor é de um calendário só: outro calendário lido no meio da chamada não a usa nem a suja
+  ---
+  duration_ms: 2.092239
+  type: 'test'
+  ...
+1..2
+# tests 2
+# suites 0
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 180.528526

@@ -1,0 +1,39 @@
+// Sonda do revisor (R2A, itens 1 e 3): o primeiro dia do período da estimativa com jornada reduzida.
+// No período, o primeiro dia não desconta a véspera (fora do período) e a redução pode cortar; mas a certeza da véspera
+// para o segundo dia (`neighborWindowsOn`) é calculada descontando essa véspera de fora.
+// Uso: node --experimental-strip-types s01-inicio-periodo.mts <raiz instrumentada> <raiz da estimativa>
+const [root, estRoot] = process.argv.slice(2);
+const cal = await import(`${root}/src/modules/work-time/calendar.ts`);
+const est = await import(`${estRoot}/src/modules/work-time/estimate.ts`);
+const t = (s: string) => +s.slice(0, 2) * 60 + +s.slice(3);
+const w = (s: string, e: string, b = 0) => ({ kind: 'window', start: t(s), end: t(e), breakMinutes: b });
+const OFF = { kind: 'off' };
+// 30/09/2026 é quarta (índice 2), 01/10 quinta (3), 02/10 sexta (4)
+const days = (wed: any, thu: any, fri: any) => ({ kind: 'weekly', days: [OFF, OFF, wed, thu, fri, OFF, OFF] });
+const routines = [days(w('20:00', '10:00'), w('06:00', '02:00'), w('00:00', '04:00'))];
+const c = { routines, worksOnHolidays: true, localHolidays: [], exceptions: [{ kind: 'reduced', start: '2026-10-01', end: '2026-10-01', minutes: 1000 }] };
+const period = cal.monthPlan(c, '2026-10', { periodStart: true });
+const single = cal.monthPlan(c, '2026-10');
+const pick = (plan: any, date: string) => { const d = plan.days.find((x: any) => x.date === date); return [d.minutes, d.ambiguous, d.applied]; };
+console.log(JSON.stringify({
+  verdict: cal.calendarAmbiguity(c, '2026-11-06'),
+  eveCertainGlobal: cal._neighborWindowsOn(c, '2026-10-01').certain,
+  periodView: { oct1: pick(period, '2026-10-01'), oct2: pick(period, '2026-10-02'), total: period.minutes, ambiguousDays: period.ambiguousDays },
+  monthView: { oct1: pick(single, '2026-10-01'), oct2: pick(single, '2026-10-02'), total: single.minutes },
+}));
+// Os dois extremos do segundo dia no período: sem nada do primeiro dia e com ele inteiro.
+const d = '2026-10-02'; const p = '2026-10-01';
+const dates = await import(`${root}/src/modules/work-time/dates.ts`);
+const plan = (eveWindows: any[]) => cal._planDayWith(c, d, cal._routineDayOf(c.routines, dates.dayNumber(d)), cal._flagsOf(c, d), eveWindows,
+  cal._certainWindows(cal._neighborWindowsOn(c, dates.addDays(d, 1))), []);
+const eveWindows = cal._routineDayOf(c.routines, dates.dayNumber(p)).windows;
+console.log(JSON.stringify({ secondDayNone: plan([]).minutes, secondDayAll: plan(eveWindows).minutes,
+  note: 'no período, o dia 1 conta 1000 de 1200 min de janela (a redução corta); a parte trabalhada não é conhecida' }));
+// A estimativa com essa janela (mês corrente = novembro, janela de 1 mês = outubro, que abre o período)
+const receipts = [{ month: '2026-10', receiptsCents: 1_000_000, partial: false }];
+const e = est.computeWorkTimeEstimate({ mode: 'habitual', historyMonths: 1, allowBusinessIncome: false, calendar: c, referenceDate: '2026-11-06',
+  workspaceType: 'PF', reportExact: true, receipts, excluded: [] });
+console.log(JSON.stringify({ estimate: e.status, workMinutes: e.workMinutes, hourlyRateCents: e.status === 'ready' ? e.hourlyRateCents : null }));
+// Variante: sem a quarta (a véspera de fora do período), o dia 1 é incerto e a sexta é recusada.
+const c2 = { ...c, routines: [days(OFF, w('06:00', '02:00'), w('00:00', '04:00'))] };
+console.log(JSON.stringify({ semQuarta: cal.calendarAmbiguity(c2, '2026-11-06'), oct2: pick(cal.monthPlan(c2, '2026-10', { periodStart: true }), '2026-10-02') }));

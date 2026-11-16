@@ -1,0 +1,8 @@
+base: saída 0, 0 falha(s), ['# pass 11']
+MORTO (compilação) B01 marca não gravada no gatilho
+MORTO B02 só a geração publicada recebe o evento: 2 falha(s): not ok 7 - reconstrução com eventos posteriores ao corte, atrasados de antes do corte, reentrega e posterior f | not ok 10 - recriação com o mesmo id depois do corte, com a varredura já tendo lido o antigo: conflito vira br
+MORTO B03 quebra não registra a recuperação: 1 falha(s): not ok 6 - marca broken por limite de pendências: registrada sem needsRebuild, cada delta entregue aplicado, e
+VIVO B04 meses do gatilho sem a etiqueta da geração ['# pass 11']
+VIVO B05 sem a hora do estado anterior (raiz por evento) ['# pass 11']
+VIVO B06 gatilho não repassa a hora do estado anterior ['# pass 11']
+MORTO B07 varredura sem âncoras: 6 falha(s): not ok 5 - janela de retry esgotada: o delta perdido deixa a cadeia sem prova; a reconstrução recupera | not ok 6 - marca broken por limite de pendências: registrada sem needsRebuild, cada delta entregue aplicado, e | not ok 7 - reconstrução com eventos posteriores ao corte, atrasados de antes do corte, reentrega e posterior f

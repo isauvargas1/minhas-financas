@@ -1,0 +1,99 @@
+
+Running 78 tests using 1 worker
+
+(node:21829) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 [chromium] › e2e/notifications-p5d2.spec.ts:343:1 › A — dois usuários: o mesmo evento, contagem exata por pessoa (acima de 25) e exclusão só para quem excluiu (16.3s)
+  ✓   2 [chromium] › e2e/notifications-p5d2.spec.ts:435:1 › B — viewer: vê, arquiva (contagem cai) e não exclui; eventos reais sem valor nem nome (7.7s)
+  ✓   3 [chromium] › e2e/notifications-p5d2.spec.ts:509:1 › C — meta concluída pela interface gera exatamente uma notificação; painel e contagem refletem sem recarregar (5.9s)
+  ✓   4 [chromium] › e2e/notifications-p5d2.spec.ts:594:1 › D — Relatórios: condição do período sem botão de leitura; o aviso persistente grava o estado privado oficial (2.3s)
+  ✓   5 [chromium] › e2e/notifications-p5d2.spec.ts:667:1 › E — escopo: outro workspace e outra conta nunca herdam contagem nem lista (4.0s)
+  ✓   6 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — desktop 1440×900, tema claro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (8.1s)
+  ✓   7 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — desktop 1440×900, tema escuro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (7.5s)
+  ✓   8 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema claro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (5.8s)
+  ✓   9 [chromium] › e2e/notifications-p5d2.spec.ts:832:3 › F — celular 390×844 (toque), tema escuro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal (6.0s)
+  ✓  10 [chromium] › e2e/notifications-private-state.spec.ts:135:1 › estado privado por usuário, arquivar só para mim, paginação acima de 50 e contagem honesta (7.3s)
+  ✓  11 [chromium] › e2e/notifications-private-state.spec.ts:235:1 › troca de workspace com marcação em curso e nenhuma releitura automática (4.2s)
+  ✓  12 [chromium] › e2e/notifications-private-state.spec.ts:322:1 › painel operado só pelo teclado: abrir, arquivar, carregar mais e marcar exibidas (3.3s)
+  ✓  13 [chromium] › e2e/notifications-retention-d18.spec.ts:329:1 › A — excluir para mim é individual: some para quem excluiu, fica para os demais e o evento não muda (7.3s)
+  ✓  14 [chromium] › e2e/notifications-retention-d18.spec.ts:423:1 › B — viewer não vê "Excluir para mim", arquiva e marca como lida; o servidor nega `deleted` (21.5s)
+  ✓  15 [chromium] › e2e/notifications-retention-d18.spec.ts:504:1 › C — expiração e cursores: Carregar mais percorre tudo sem pular nem repetir, e só mostra o que vale (1.5s)
+  ✓  16 [chromium] › e2e/notifications-retention-d18.spec.ts:591:1 › C — página inteira sem nada visível: o painel avisa e "Carregar mais" procura as anteriores (1.4s)
+  ✓  17 [chromium] › e2e/notifications-retention-d18.spec.ts:631:1 › C — o item expira sozinho com o painel aberto: sem reload e sem nova leitura do Firestore (25.6s)
+  ✓  18 [chromium] › e2e/notifications-retention-d18.spec.ts:694:1 › C — excluir um evento que expirou ou não existe mais: o diálogo avisa em pt-BR, nada é gravado (24.1s)
+  ✓  19 [chromium] › e2e/notifications-retention-d18.spec.ts:749:1 › D — troca de workspace no meio da exclusão: a gravação fica no workspace da ação (2.6s)
+  ✓  20 [chromium] › e2e/notifications-retention-d18.spec.ts:839:1 › D — com a gravação em curso o diálogo não fecha; depois da resposta ele fecha e o foco volta ao sino (2.4s)
+  ✓  21 [chromium] › e2e/notifications-retention-d18.spec.ts:928:1 › E — desktop e celular, claro e escuro: sem rolagem horizontal, ações certas por dispositivo e diálogo dentro da tela (6.6s)
+  ✓  22 [chromium] › e2e/notifications-retention-d18.spec.ts:1008:1 › E — teclado e isolamento do clique (desktop): Tab, Enter, foco preso, Escape e foco de volta (4.3s)
+  ✓  23 [chromium] › e2e/notifications-retention-d18.spec.ts:1104:1 › E — falha do servidor em pt-BR sem falso sucesso, e duplo clique em confirmar sem gravação dupla (desktop escuro) (16.0s)
+  ✓  24 [chromium] › e2e/notifications-retention-d18.spec.ts:1205:1 › E — celular (toque): excluir pelo painel, tocar no diálogo e conferir o resultado (4.1s)
+  ✓  25 [chromium] › e2e/notifications-retention-d18.spec.ts:1235:1 › E — celular: o painel e as ações cabem na tela, sem corte nas bordas (4.1s)
+  ✓  26 [chromium] › e2e/recurring-flow.spec.ts:99:3 › PF › criar e editar pela tela em centavos, modo explícito; envio duplo cria um só (5.7s)
+  ✓  27 [chromium] › e2e/recurring-flow.spec.ts:161:3 › PF › semanal e quinzenal: dia de cobrança só nas mensais; projeção pela agenda (3.3s)
+{"severity":"INFO","message":"recurring_generation_completed","event":"recurring_generation_completed","operation":"processRecurring","requestId":"e2e-rec-generation-mwbdo62x-5","today":"2026-11-10","scanned":0,"processed":0,"generated":0,"awaitingConfirmation":0,"attentionRequired":0,"ended":0,"skipped":0,"failed":0,"backlog":0,"truncated":false}
+{"severity":"INFO","message":"recurring_generation_completed","event":"recurring_generation_completed","operation":"processRecurring","requestId":"e2e-rec-generation-mwbdo8sh-6","today":"2026-11-10","scanned":0,"processed":0,"generated":0,"awaitingConfirmation":0,"attentionRequired":0,"ended":0,"skipped":0,"failed":0,"backlog":0,"truncated":false}
+  ✓  28 [chromium] › e2e/recurring-flow.spec.ts:192:3 › PF › pausar, retomar e cancelar pela tela; cancelada não gera mais (6.8s)
+{"severity":"INFO","message":"recurring_generation_completed","event":"recurring_generation_completed","operation":"processRecurring","requestId":"e2e-rec-generation-mwbdo902-11","today":"2026-11-10","scanned":2,"processed":2,"generated":1,"awaitingConfirmation":1,"attentionRequired":0,"ended":0,"skipped":0,"failed":0,"backlog":0,"truncated":false}
+  ✓  29 [chromium] › e2e/recurring-flow.spec.ts:220:3 › PF › automático no Caixa: despesa pendente sem mover conta; pagar pela ocorrência (5.2s)
+{"severity":"INFO","message":"recurring_generation_completed","event":"recurring_generation_completed","operation":"processRecurring","requestId":"e2e-rec-generation-mwbdod5l-16","today":"2026-11-10","scanned":2,"processed":2,"generated":1,"awaitingConfirmation":1,"attentionRequired":0,"ended":0,"skipped":0,"failed":0,"backlog":0,"truncated":false}
+  ✓  30 [chromium] › e2e/recurring-flow.spec.ts:263:3 › PF › cartão: automático gera compra `recurring`; confirmar antes usa o valor real (2.7s)
+{"severity":"WARNING","message":"recurring_generation_attention","event":"recurring_generation_attention","operation":"processRecurring","requestId":"e2e-rec-generation-mwbdog7i-21","today":"2026-11-10","scanned":2,"processed":2,"generated":0,"awaitingConfirmation":1,"attentionRequired":1,"ended":0,"skipped":0,"failed":0,"backlog":0,"truncated":false,"attention_card_archived":1}
+{"severity":"INFO","message":"recurring_generation_completed","event":"recurring_generation_completed","operation":"processRecurring","requestId":"e2e-rec-generation-mwbdog7i-21","today":"2026-11-10","scanned":2,"processed":2,"generated":0,"awaitingConfirmation":1,"attentionRequired":1,"ended":0,"skipped":0,"failed":0,"backlog":0,"truncated":false,"attention_card_archived":1}
+  ✓  31 [chromium] › e2e/recurring-flow.spec.ts:294:3 › PF › atenção: cartão arquivado, nova tentativa depois de reativar; ignorar (9.4s)
+  ✓  32 [chromium] › e2e/recurring-flow.spec.ts:344:3 › PF › member administra só as próprias; viewer só lê; perda de permissão recusada (4.4s)
+  ✓  33 [chromium] › e2e/recurring-flow.spec.ts:385:3 › PF › troca de workspace: cada espaço mostra só as próprias recorrências (1.5s)
+  ✓  34 [chromium] › e2e/regression-smoke.spec.ts:346:3 › smoke PF (3.9s)
+  ✓  35 [chromium] › e2e/regression-smoke.spec.ts:346:3 › smoke PJ (4.1s)
+  ✓  36 [chromium] › e2e/regression-smoke.spec.ts:353:1 › troca de workspace mantém o produto funcional (1.5s)
+  ✓  37 [chromium] › e2e/settings-catalog.spec.ts:85:3 › PJ › owner: cria, recusa nome repetido, renomeia, inativa e reativa só pelas callables; aba Parcelado usa despesa (11.9s)
+  ✓  38 [chromium] › e2e/settings-catalog.spec.ts:207:3 › PF › admin administra; member e viewer só leem; perda de papel com o diálogo aberto; backend recusa member e outro tenant (4.8s)
+  ✓  39 [chromium] › e2e/split-flow.spec.ts:87:3 › PF › criar grupo, incluir externo e membro; despesa igual exata no Caixa; envio duplo cria um só (8.5s)
+  ✓  40 [chromium] › e2e/split-flow.spec.ts:172:3 › PF › Registrar recebimento: pagador registra, devedor não; não move o Caixa; estorno (6.8s)
+  ✓  41 [chromium] › e2e/split-flow.spec.ts:220:3 › PF › anular despesa lançada no Caixa: compensação na mesma conta; histórico preservado (3.6s)
+  ✓  42 [chromium] › e2e/split-flow.spec.ts:264:3 › PF › viewer do espaço só lê: não cria grupo, não lança, não administra (2.2s)
+  ✓  43 [chromium] › e2e/split-flow.spec.ts:295:3 › PJ › reembolso: membro solicita; owner aprova, paga pelo Caixa e estorna (10.5s)
+  ✓  44 [chromium] › e2e/ux-navigation-a11y.spec.ts:101:3 › V-01 — ícones pintados nos três pacotes › Lucide (padrão): menu, Header e controles principais (1.0s)
+  ✓  45 [chromium] › e2e/ux-navigation-a11y.spec.ts:117:3 › V-01 — ícones pintados nos três pacotes › Tabler escolhido no tema: ícones com traço visível (947ms)
+  ✓  46 [chromium] › e2e/ux-navigation-a11y.spec.ts:129:3 › V-01 — ícones pintados nos três pacotes › Phosphor escolhido no tema: ícones preenchidos visíveis (1.2s)
+  ✓  47 [chromium] › e2e/ux-navigation-a11y.spec.ts:146:3 › V-02/V-03 — navegação no mobile › menu abre acima do Header, Dashboard recebe o clique real e o menu fecha ao navegar (2.4s)
+  ✓  48 [chromium] › e2e/ux-navigation-a11y.spec.ts:190:3 › V-02/V-03 — navegação no mobile › tocar fora e Esc fecham o menu sem trocar a tela atual (1.1s)
+  ✓  49 [chromium] › e2e/ux-navigation-a11y.spec.ts:220:3 › menu no desktop › compacto por padrão, expande no hover e não fecha ao navegar (1.6s)
+  ✓  50 [chromium] › e2e/ux-navigation-a11y.spec.ts:244:3 › V-05 — controles do Header com nome acessível › notificações, tema e menu da conta, com estado; sem o botão de Mensagens (D-09) (1.1s)
+[valores-b03-a] {"balance":["tempo|≈ 796 h","reais|R$ 19.900,00","reais|R$ 23.900,00","tempo|≈ 956 h"],"hourly":[],"notice":["Valores em tempo de trabalho equivalente: uma estimativa aproximada, não o valor exato.Mostrar em R$","Calculando a estimativa de tempo de trabalho: enquanto isso, os valores ficam em reais.Mostrar em R$","Valores em tempo de trabalho equivalente: uma estimativa aproximada, não o valor exato.Mostrar em R$"]}
+  ✓  51 [chromium] › e2e/work-time-b03.spec.ts:325:1 › B03-a: receita desconsiderada editada por outro usuário: o saldo nunca converte o valor novo com o total velho e volta a converter certo (9.3s)
+[valores-b03-b] {"balance":["reais|R$ 19.900,00"],"hourly":[],"notice":["Calculando a estimativa de tempo de trabalho: enquanto isso, os valores ficam em reais.Mostrar em R$","Estimativa de tempo de trabalho indisponível agora: os valores continuam em reais. Veja o motivo em Configurações.Mostrar em R$"]}
+  ✓  52 [chromium] › e2e/work-time-b03.spec.ts:418:1 › B03-b: marca quebrada: não converte, mostra reais e, depois do tempo de interface, "estimativa em atualização" acessível e legível no celular (35.9s)
+[valores-b03-c] {"balance":["reais|R$ 19.900,00","tempo|≈ 796 h"],"hourly":["R$ 25,00"],"notice":["Calculando a estimativa de tempo de trabalho: enquanto isso, os valores ficam em reais.Mostrar em R$","Estimativa de tempo de trabalho indisponível agora: os valores continuam em reais. Veja o motivo em Configurações.Mostrar em R$","Valores em tempo de trabalho equivalente: uma estimativa aproximada, não o valor exato.Mostrar em R$"]}
+  ✓  53 [chromium] › e2e/work-time-b03.spec.ts:476:1 › B03-c: depois da marca quebrada, a reconstrução do owner recupera a prova e a estimativa volta a converter com o valor certo (35.8s)
+[valores-b03-d] {"balance":["tempo|≈ 774 h 57 min","tempo|≈ 796 h","tempo|≈ 774 h 57 min"],"hourly":["R$ 25,68","R$ 25,00","R$ 25,68"],"notice":["Valores em tempo de trabalho equivalente: uma estimativa aproximada, não o valor exato.Mostrar em R$"]}
+  ✓  54 [chromium] › e2e/work-time-b03.spec.ts:523:1 › B03-d: incluir e tirar uma receita da lista de exclusões pessoais refaz a prova e mantém o valor certo nas duas direções (4.1s)
+[valores-b03-e] {"balance":["tempo|≈ 896 h","reais|R$ 22.400,00","tempo|≈ 896 h"],"hourly":["R$ 25,00"],"notice":["Valores em tempo de trabalho equivalente: uma estimativa aproximada, não o valor exato.Mostrar em R$","Calculando a estimativa de tempo de trabalho: enquanto isso, os valores ficam em reais.Mostrar em R$","Valores em tempo de trabalho equivalente: uma estimativa aproximada, não o valor exato.Mostrar em R$","Calculando a estimativa de tempo de trabalho: enquanto isso, os valores ficam em reais.Mostrar em R$","Valores em tempo de trabalho equivalente: uma estimativa aproximada, não o valor exato.Mostrar em R$"]}
+  ✓  55 [chromium] › e2e/work-time-b03.spec.ts:577:1 › B03-e: a receita desconsiderada sai da janela da estimativa e volta: o mês antigo só deixa de descontar quando projeção e marca mudam juntas (15.5s)
+[valores-b03-f-sem-prova] {"balance":["tempo|≈ 796 h","reais|R$ 19.900,00","reais|R$ 20.200,00"],"hourly":[],"notice":["Valores em tempo de trabalho equivalente: uma estimativa aproximada, não o valor exato.Mostrar em R$","Calculando a estimativa de tempo de trabalho: enquanto isso, os valores ficam em reais.Mostrar em R$"]}
+[valores-b03-f] {"balance":["tempo|≈ 796 h","reais|R$ 19.900,00","reais|R$ 20.200,00","tempo|≈ 795 h 2 min"],"hourly":["R$ 25,41"],"notice":["Valores em tempo de trabalho equivalente: uma estimativa aproximada, não o valor exato.Mostrar em R$","Calculando a estimativa de tempo de trabalho: enquanto isso, os valores ficam em reais.Mostrar em R$","Estimativa de tempo de trabalho indisponível agora: os valores continuam em reais. Veja o motivo em Configurações.Mostrar em R$","Valores em tempo de trabalho equivalente: uma estimativa aproximada, não o valor exato.Mostrar em R$"]}
+  ✓  56 [chromium] › e2e/work-time-b03.spec.ts:632:1 › B03-f (R3.1): leitura nova sem prova: o saldo novo fica em reais e nunca é convertido pela estimativa anterior; a reconstrução traz a conversão certa (38.7s)
+  ✓  57 [chromium] › e2e/work-time-p5f.spec.ts:265:1 › desativado por padrão; assistente na primeira ativação, cancelar não grava, alternância e persistência entre sessões e dispositivos (11.6s)
+  ✓  58 [chromium] › e2e/work-time-p5f.spec.ts:374:1 › a preferência vale em PF e PJ; outra conta no mesmo navegador não vê configuração, estimativa nem valores convertidos (10.0s)
+  ✓  59 [chromium] › e2e/work-time-p5f.spec.ts:484:1 › outra aba acompanha; desativar mantém os dados e excluir apaga toda a configuração (9.2s)
+  ✓  60 [chromium] › e2e/work-time-p5f.spec.ts:560:1 › a IA não recebe a configuração e o modo tempo não grava nada fora do documento privado (3.5s)
+  ✓  61 [chromium] › e2e/work-time-p5f.spec.ts:650:1 › receitas consideradas: regras automáticas, exclusão só na estimativa, PJ com confirmação, mês atual e memória de cálculo (12.9s)
+  ✓  62 [chromium] › e2e/work-time-p5f.spec.ts:745:1 › Configurações: prévia antes de salvar, falha de gravação preserva a anterior, escala e exceções mudam a estimativa, refazer o assistente (3.5s)
+  ✓  63 [chromium] › e2e/work-time-p5f.spec.ts:848:1 › atualização automática: uma receita nova entra na estimativa do mês atual sem recarregar (7.4s)
+  ✓  64 [chromium] › e2e/work-time-p5f.spec.ts:869:1 › atualização automática: receita retroativa no espaço da renda, com outro espaço ativo, muda a estimativa sem recarregar (12.9s)
+  ✓  65 [chromium] › e2e/work-time-p5f.spec.ts:934:1 › sem espaço PF próprio: nenhuma fonte pré-selecionada; contagem, prévia e painel esperam a escolha (3.0s)
+  ✓  66 [chromium] › e2e/work-time-p5f.spec.ts:966:1 › Configurações: a troca do modo pelo Header durante uma edição entra no rascunho e não é desfeita ao salvar (2.4s)
+  ✓  67 [chromium] › e2e/work-time-p5f.spec.ts:999:1 › falha na leitura das receitas desconsideradas: mensagem fixa em pt-BR, nada do SDK, e "Tentar de novo" (9.8s)
+[previa-releitura-que-falha] [{"at":1794357056919,"hourly":"R$ 25,00","error":false,"stale":false},{"at":1794357057002,"hourly":"","error":false,"stale":false},{"at":1794357063033,"hourly":"","error":true,"stale":false},{"at":1794357063274,"hourly":"","error":false,"stale":false},{"at":1794357063283,"hourly":"R$ 25,68","error":false,"stale":false},{"at":1794357063375,"hourly":"","error":false,"stale":false},{"at":1794357069400,"hourly":"","error":true,"stale":false},{"at":1794357069625,"hourly":"R$ 25,68","error":false,"stale":true},{"at":1794357069781,"hourly":"R$ 25,68","error":false,"stale":false},{"at":1794357069895,"hourly":"","error":false,"stale":false},{"at":1794357074941,"hourly":"R$ 26,09","error":false,"stale":false}]
+  ✓  68 [chromium] › e2e/work-time-p5f.spec.ts:1038:1 › releitura que falha: sem confirmar a receita nova, nada convertido e erro com "Tentar de novo", que a traz com o relatório de volta; com a projeção de volta à última leitura, a estimativa volta com o aviso (19.8s)
+  ✓  69 [chromium] › e2e/work-time-p5f.spec.ts:1152:1 › mutação nesta aba: anular em Receitas a receita desconsiderada não junta o item anulado com o total velho (3.3s)
+  ✓  70 [chromium] › e2e/work-time-p5f.spec.ts:1204:1 › falha na leitura da preferência com a escuta já aberta: aviso fixo em pt-BR, valores em reais e "Tentar de novo" (2.4s)
+  ✓  71 [chromium] › e2e/work-time-p5f.spec.ts:1230:1 › escuta das projeções encerrada: abrir Configurações a reabre, a ressalva do topo some e a estimativa em uso volta a acompanhar outras sessões (7.8s)
+  ✓  72 [chromium] › e2e/work-time-p5f.spec.ts:1324:1 › B01 (P5-F.1-R1): recebimento de cliente desconsiderado e estornado em outra sessão: a exclusão perde o efeito e a prévia nunca desconta duas vezes (13.2s)
+  ✓  73 [chromium] › e2e/work-time-p5f.spec.ts:1389:1 › B02 (P5-F.1-R1): acrescentar uma rotina válida não reduz as horas; rotinas que se cruzam com intervalo são recusadas com aviso acessível (5.2s)
+  ✓  74 [chromium] › e2e/work-time-p5f.spec.ts:1507:1 › B02 (revisão da R1, N07): a folga que deixa as rotinas sem cálculo seguro é recusada em Configurações, com aviso acessível junto do botão de salvar (2.6s)
+  ✓  75 [chromium] › e2e/work-time-p5f.spec.ts:1549:1 › S01 (P5-F.1-R2A): a jornada reduzida que deixa o dia seguinte sem cálculo seguro é recusada em Configurações, e a gravada assim deixa a estimativa indisponível (2.5s)
+  ✓  76 [chromium] › e2e/workspace-membership.spec.ts:54:1 › primeiro login prepara a conta no backend e o logout não vaza dados para a próxima conta (1.3s)
+  ✓  77 [chromium] › e2e/workspace-membership.spec.ts:169:1 › convite, aceite, troca de papel, remoção e perda de acesso entre duas contas (13.6s)
+  ✓  78 [chromium] › e2e/workspace-pagination.spec.ts:63:1 › seletor e membros oferecem a próxima página e não escondem ninguém (2.3s)
+
+  78 passed (10.7m)

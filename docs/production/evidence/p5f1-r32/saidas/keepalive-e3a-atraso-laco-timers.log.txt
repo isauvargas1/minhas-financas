@@ -1,0 +1,3 @@
+sem atraso, keep-alive: 0/80 falhas [] ociosidade das falhas []
+atraso 300 ms/1 s, keep-alive: 0/80 falhas [] ociosidade das falhas []
+atraso 300 ms/1 s, Connection: close: 0/80 falhas [] ociosidade das falhas []

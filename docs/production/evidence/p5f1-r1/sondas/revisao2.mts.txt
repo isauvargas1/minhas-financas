@@ -1,0 +1,8 @@
+// P5-F.1-R1: o exemplo da revisão 2 (00:00–10:00 sem intervalo e 22:00–10:00 com 10 h), em outubro/2026.
+const root = process.argv[2];
+const cal = await import(`${root}/src/modules/work-time/calendar.ts`);
+const w = (s: string, e: string, b = 0) => ({ kind: 'window', start: Number(s.slice(0,2))*60+Number(s.slice(3)), end: Number(e.slice(0,2))*60+Number(e.slice(3)), breakMinutes: b });
+const every = (spec: any) => ({ kind: 'weekly', days: Array(7).fill(spec) });
+const plan = cal.monthPlan({ routines: [every(w('00:00','10:00')), every(w('22:00','10:00',600))], worksOnHolidays: true, localHolidays: [], exceptions: [] }, '2026-10');
+const day = plan.days.find((d: any) => d.date === '2026-10-14');
+console.log(`dia 14/10: ${day.minutes} min${day.ambiguous ? ' (sem cálculo seguro)' : ''}; dias ambíguos no mês: ${plan.ambiguousDays?.length ?? '-'}`);

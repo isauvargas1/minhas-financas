@@ -1,0 +1,47 @@
+#!/usr/bin/env python3
+"""P5-F.1, revisão 5: atualiza mutantes.py (os trechos que mudaram e os mutantes novos). Cada troca
+exige exatamente uma ocorrência do trecho antigo."""
+import sys
+from pathlib import Path
+
+P = Path(sys.argv[1])
+s = P.read_text(encoding='utf-8')
+
+
+def rep(old, new):
+    global s
+    count = s.count(old)
+    assert count == 1, (count, old[:100])
+    s = s.replace(old, new)
+
+
+# alvos que mudaram com a revisão 5 (mesma intenção)
+rep('''  ('guarda', 'src/modules/work-time/useIncomeEstimateWith.ts', 'const refreshFailed = series.isError || (needsExtra && extra.isError) || (needsExcluded && excluded.isError);', 'const refreshFailed = false;', T('work-time-guard')),''',
+    '''  ('guarda', 'src/modules/work-time/useIncomeEstimateWith.ts', 'const refreshFailed = series.isError || (needsExtra && extra.isError) || (needsExcluded && excluded.isError) || listenFailed;', 'const refreshFailed = false;', T('work-time-guard', 'work-time-income-estimate')),''')
+rep('''  ('base', 'src/modules/reports/basisSync.ts', '  return { syncing, holding: syncing || readsBehind };', '  return { syncing, holding: syncing };', T('report-basis-sync', 'work-time-income-estimate')),''',
+    '''  ('base', 'src/modules/reports/basisSync.ts', '    holding: syncing || readsBehind,', '    holding: syncing,', T('report-basis-sync', 'work-time-income-estimate')),''')
+rep('''  ('base', 'src/modules/reports/basisRegistry.ts', '    if (!key.startsWith(prefix) || !entry.loaded()) continue;', '    if (!key.startsWith(prefix)) continue;', T('report-basis-sync')),''',
+    '''  ('base', 'src/modules/reports/basisRegistry.ts', '    if ((keys && !keys.includes(key)) || !entry.loaded()) continue;', '    if (keys && !keys.includes(key)) continue;', T('report-basis-sync')),''')
+# novos: revisão 5
+rep('''  ('retenção', 'src/modules/work-time/useIncomeEstimateWith.ts', '  const decision = holdEstimate(holding, last.current, params, state);', '  const decision = holdEstimate(false, last.current, params, state);', T('work-time-income-estimate', 'work-time-guard')),
+]''', '''  ('retenção', 'src/modules/work-time/useIncomeEstimateWith.ts', '  const decision = holdEstimate(holding, last.current, params, state);', '  const decision = holdEstimate(false, last.current, params, state);', T('work-time-income-estimate', 'work-time-guard')),
+  # revisão 5: leitura por id só pela sincronização (R5-01), base relida pela mutação e escuta com erro
+  # (R5-02), escopo e liberações testados (R5-03) e releitura só das bases da estimativa (R5-04)
+  ('leituras', 'src/modules/transactions/incomeReads.ts', '    staleTime: Infinity,\\n    refetchOnReconnect: false,', '    staleTime: 1000 * 60 * 5,\\n    refetchOnReconnect: false,', T('work-time-income-estimate')),
+  ('leituras', 'src/modules/transactions/incomeReads.ts', '    refetchOnReconnect: false,\\n  });', '  });', T('work-time-guard')),
+  ('base', 'src/modules/reports/basisSync.ts', '    refreshRegisteredBases(current.keys);\\n', "    refreshRegisteredBases(current.keys);\\n    void queryClient.invalidateQueries({ queryKey: ['transactions', workspaceId as string, 'by-ids'], refetchType: 'none' });\\n", T('work-time-income-estimate', 'work-time-guard')),
+  ('base', 'src/modules/reports/basisSync.ts', '    refetchOnMount: false,\\n', '', T('work-time-income-estimate', 'work-time-guard')),
+  ('base', 'src/modules/reports/basisSync.ts', '    refreshRegisteredBases(current.keys);', '    refreshRegisteredBases();', T('work-time-guard')),
+  ('mutação', 'src/modules/transactions/incomeReads.ts', '  rereadWorkspaceBases(workspaceId);\\n', '', T('work-time-income-estimate', 'report-basis-sync', 'work-time-guard')),
+  ('base', 'src/modules/reports/basisRegistry.ts', ' || entry.failure.failures >= entry.maxFailures) continue;', ') continue;', T('report-basis-sync')),
+  ('base', 'src/modules/reports/basisRegistry.ts', '    if (entry.workspaceId !== workspaceId || !entry.loaded()', '    if (!entry.loaded()', T('report-basis-sync')),
+  ('escuta', 'src/modules/reports/basisSync.ts', '      setListenFailedKey(syncKey);\\n', '', T('report-basis-sync', 'work-time-income-estimate')),
+  ('escuta', 'src/modules/work-time/useIncomeEstimateWith.ts', '    retryListen();\\n', '', T('work-time-income-estimate')),
+  ('escuta', 'src/modules/reports/basisSync.ts', 'monthsKey, deps, listenAttempt]);', 'monthsKey, deps]);', T('report-basis-sync', 'work-time-income-estimate')),
+  ('base', 'src/modules/reports/basisSync.ts', '    if (pending.current && pending.current.key !== syncKey) pending.current = null;\\n', '', T('report-basis-sync')),
+  ('base', 'src/modules/reports/basisSync.ts', '    setWaitingKey((current) => (current === syncKey ? current : null));\\n', '', T('report-basis-sync')),
+  ('base', 'src/modules/reports/basisSync.ts', '    if (pending.current && arrived()) release.current();\\n  };', '  };', T('report-basis-sync')),
+  ('base', 'src/modules/reports/basisSync.ts', '      if (pending.current && arrived()) release.current();\\n      return;', '      if (pending.current) release.current();\\n      return;', T('report-basis-sync')),
+]''')
+P.write_text(s, encoding='utf-8')
+print('ok')

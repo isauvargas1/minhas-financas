@@ -1,0 +1,43 @@
+#!/usr/bin/env python3
+"""P5-F.1, revisão 7: atualiza mutantes.py (os trechos que mudaram e os mutantes novos). Cada troca
+exige exatamente uma ocorrência do trecho antigo; os novos entram depois do último (U143), sem
+renumerar ninguém."""
+import sys
+from pathlib import Path
+
+P = Path(sys.argv[1])
+s = P.read_text(encoding='utf-8')
+
+
+def rep(old, new):
+    global s
+    count = s.count(old)
+    assert count == 1, (count, old[:100])
+    s = s.replace(old, new)
+
+
+# alvos que mudaram com a revisão 7 (mesma intenção): a comparação passou a ser em todos os meses da
+# base, a liberação espera as bases fora de leitura, e a leitura que cruzou um retorno do servidor pode pedir
+rep('''  ('sem pedido', 'src/modules/reports/basisSync.ts', '  const ahead = basis !== null && basis.exact && pairedIncome !== null && incomeDiverges(pairedIncome, basis.income, months);', '  const ahead = false;', T('report-basis-sync', 'work-time-income-estimate')),''',
+    '''  ('sem pedido', 'src/modules/reports/basisSync.ts', '  const ahead = basis !== null && basis.exact && pairedIncome !== null && !sameIncome(basis.income, pairedIncome);', '  const ahead = false;', T('report-basis-sync', 'work-time-income-estimate')),''')
+rep('''  ('sem pedido', 'src/modules/reports/basisSync.ts', '    if (current.exact && incomeDiverges(pair.income, current.income, months)) release.current();\\n', '', T('report-basis-sync', 'work-time-income-estimate')),''',
+    '''  ('sem pedido', 'src/modules/reports/basisSync.ts', '    if (current.exact && !current.fetching && !sameIncome(current.income, pair.income)) release.current();\\n', '', T('report-basis-sync', 'work-time-income-estimate')),''')
+rep('''  ('sem pedido', 'src/modules/reports/basisSync.ts', '    evaluate.current(loading || pending.current !== null);', '    evaluate.current(true);', T('report-basis-sync', 'work-time-income-estimate')),''',
+    '''  ('sem pedido', 'src/modules/reports/basisSync.ts', '    evaluate.current(loading || pending.current !== null || overlapped);', '    evaluate.current(true);', T('report-basis-sync', 'work-time-income-estimate')),''')
+# novos: revisão 7, depois do U143 (o último da lista)
+rep('''  ('escuta', 'src/modules/reports/basisSync.ts', '    return () => {\\n      unregister?.();\\n      unsubscribe();\\n    };', '    return unsubscribe;', T('work-time-guard')),
+]''',
+    '''  ('escuta', 'src/modules/reports/basisSync.ts', '    return () => {\\n      unregister?.();\\n      unsubscribe();\\n    };', '    return unsubscribe;', T('work-time-guard')),
+  # revisão 7: a leitura que começou antes do último retorno do servidor compara e pode pedir (R7-02); a base
+  # nova sem pedido compara todos os meses da base e só libera com as bases fora de leitura (R7-01)
+  ('cruzada', 'src/modules/reports/basisSync.ts', '    evaluate.current(loading || pending.current !== null || overlapped);', '    evaluate.current(loading || pending.current !== null);', T('report-basis-sync')),
+  ('cruzada', 'src/modules/reports/basisSync.ts', '      noteServerSnapshot(syncKey);\\n', '', T('report-basis-sync')),
+  ('cruzada', 'src/modules/reports/basisSync.ts', '      basisFetchStarts.set(refreshKey, serverSnapshotCount(syncKeyOf(uid as string, workspaceId as string)));\\n', '', T('report-basis-sync')),
+  ('sem pedido', 'src/modules/reports/basisSync.ts', '    if (current.exact && !current.fetching && !sameIncome(current.income, pair.income)) release.current();', '    if (current.exact && !sameIncome(current.income, pair.income)) release.current();', T('report-basis-sync')),
+  ('sem pedido', 'src/modules/reports/basisSync.ts', '    if (current.exact && !current.fetching && !sameIncome(current.income, pair.income)) release.current();', '    if (current.exact && !current.fetching && !months.every((month) => (current.income[month] ?? 0) === (pair.income[month] ?? 0))) release.current();', T('report-basis-sync', 'work-time-income-estimate')),
+  ('sem pedido', 'src/modules/reports/basisSync.ts', '  const ahead = basis !== null && basis.exact && pairedIncome !== null && !sameIncome(basis.income, pairedIncome);', '  const ahead = basis !== null && basis.exact && pairedIncome !== null && !months.every((month) => (basis.income[month] ?? 0) === (pairedIncome?.[month] ?? 0));', T('report-basis-sync')),
+  ('basis', 'src/modules/reports/basisRefresh.ts', '  return months.length === Object.keys(b).length && months.every((month) => Object.hasOwn(b, month) && a[month] === b[month]);', '  return months.every((month) => a[month] === b[month]);', T('report-basis-refresh')),
+  ('estimativa', 'src/modules/work-time/useIncomeEstimateWith.ts', '      fetching: series.isFetching || (needsExtra && extra.isFetching),', '      fetching: false,', T('work-time-guard', 'work-time-income-estimate')),
+]''')
+P.write_text(s, encoding='utf-8')
+print('ok')

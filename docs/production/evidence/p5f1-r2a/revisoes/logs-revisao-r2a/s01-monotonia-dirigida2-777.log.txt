@@ -1,0 +1,1 @@
+{"seed":777,"stats":{"samples":20000,"pairs":21784,"violations":0,"uncertainPairs":6785,"monthEdge":2701,"firstDayPairs":5758,"violationsFirstDay":0}}

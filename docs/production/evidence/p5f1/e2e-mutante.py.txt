@@ -1,0 +1,26 @@
+#!/usr/bin/env python3
+"""P5-F.1 — mutante E2E: aplica uma mutação (trecho exato, uma ocorrência), gera o build E2E, roda o teste
+indicado e restaura o arquivo byte a byte (confere o SHA-256). O teste precisa FALHAR com o mutante.
+Uso: e2e-mutante.py <rótulo> <arquivo relativo> <trecho> <substituto> <filtro -g do Playwright>"""
+import hashlib, subprocess, sys
+from pathlib import Path
+S = Path('<scratchpad>')
+WT = S / 'wt-p5f1'
+label, rel, old, new, grep = sys.argv[1:6]
+path = WT / rel
+original = path.read_bytes()
+digest = hashlib.sha256(original).hexdigest()
+text = original.decode('utf-8')
+assert text.count(old) == 1, 'trecho ausente ou repetido'
+path.write_text(text.replace(old, new, 1), encoding='utf-8')
+try:
+  out = subprocess.run(['bash', str(S / 'p5f1/run-pw.sh'), label, 'dejavu', 'e2e/work-time-p5f.spec.ts', '-g', grep, '--reporter=list'],
+                       capture_output=True, text=True)
+finally:
+  path.write_bytes(original)
+assert hashlib.sha256(path.read_bytes()).hexdigest() == digest, 'arquivo não voltou ao original'
+lines = [line for line in out.stdout.splitlines() if 'MetadataLookup' not in line and '[WebServer]' not in line]
+print('\n'.join(lines[-12:]))
+failed = any(' failed' in line for line in lines)
+print('RESULTADO:', 'MORTO (o teste reprovou com o mutante)' if failed else 'SOBREVIVEU')
+sys.exit(0 if failed else 1)

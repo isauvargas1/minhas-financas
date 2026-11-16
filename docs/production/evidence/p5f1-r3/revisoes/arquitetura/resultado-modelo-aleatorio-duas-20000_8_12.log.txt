@@ -1,0 +1,34 @@
+--- contraexemplo (cenário 17969): {"month":"2026-10","partOfT":40000,"subtracted":0,"at":1540403}
+    1000000: escrita U {"v":100000,"d":"2026-10-03","pago":true,"anulada":false}
+    1010000: gatilho ev-1 (CREATE U, commit 1000000) -> applied
+    1137230: escrita T {"v":40000,"d":"2026-10-10","pago":true,"anulada":false}
+    1138931: gatilho ev-2 (CREATE T, commit 1137230) -> applied
+    1132606..1139606: checkpoint R3 corte=1132000 posição=b (commit 1139606)
+    1170539: gatilho ev-2 (CREATE T, commit 1137230) -> duplicate
+    1176226: varredura lê a página (1 na base)
+    1219483: commit da página com 1 âncora(s) na posição b
+    1297271: publicação R3 (corte 1132000, 1 marca(s) de entrega depois do corte, posição b)
+{
+ "cenarios": 20000,
+ "janelaMs": 8,
+ "correcao": "nenhuma",
+ "violacoes": 6,
+ "cenariosComViolacao": 1,
+ "provas": 127179,
+ "publicacoes": 34603,
+ "recomecos": 8815,
+ "motivos": {
+  "provada": 127179,
+  "mark_pending": 5950,
+  "content": 5883,
+  "mark_broken": 68,
+  "indisponivel_needsRebuild": 920
+ },
+ "finalSemProva": {
+  "mark_pending": 125,
+  "indisponivel_needsRebuild": 110
+ },
+ "finalSemProvaSemExclusaoFisica": {
+  "mark_pending": 2
+ }
+}

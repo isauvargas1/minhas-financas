@@ -357,6 +357,8 @@ test("gerações de categoria alimentadas pelo evento (vigente e preparada)",
       categoryGeneration: "g0",
       categoryStaging: {generation: "r1", cutoff: at("2026-08-10T12:00:00Z")},
       categoryGarbage: [],
+      markSlot: "a", markRecoveryNeeded: false, markIssueCount: 0,
+      markIssueMaxEventTime: null,
     };
     assert.deepEqual(categoryGenerationsFor(state,
       at("2026-08-10T11:59:59Z")), ["g0"], "antes do corte: base cobre");

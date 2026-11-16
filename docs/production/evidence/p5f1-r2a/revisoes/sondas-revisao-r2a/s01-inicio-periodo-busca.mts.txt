@@ -1,0 +1,48 @@
+// Sonda do revisor: busca dirigida da família do contraexemplo do início do período (monotonia e dependência da parte
+// trabalhada). p = 01/10/2026 abre o período; a véspera (30/09, fora do período) tem janela que cruza a de p;
+// o limite da redução fica entre o máximo descontando a véspera e o bruto do dia 1.
+// Uso: node --experimental-strip-types s01-inicio-periodo-busca.mts <raiz instrumentada> <amostras> <semente>
+import { rng } from './lib.mts';
+const [root, samplesArg, seedArg] = process.argv.slice(2);
+const cal = await import(`${root}/src/modules/work-time/calendar.ts`);
+const dates = await import(`${root}/src/modules/work-time/dates.ts`);
+const N = Number(samplesArg ?? 20000); const next = rng(Number(seedArg ?? 1));
+const g = (max: number) => Math.floor(next() * (Math.floor(max / 15) + 1)) * 15;
+const OFF = { kind: 'off' };
+const win = (start: number, len: number, b = 0) => ({ kind: 'window', start: start % 1440, end: (start + len) % 1440, breakMinutes: b });
+const wk = (wed: any, thu: any, fri: any) => ({ kind: 'weekly', days: [OFF, OFF, wed, thu, fri, OFF, OFF] });
+const stats = { samples: 0, pairs: 0, violations: 0, dependsOnPart: 0, acceptedPeriodDay2: 0 };
+const examples: any[] = [];
+for (let s = 0; s < N; s += 1) {
+  stats.samples += 1;
+  // dia 1: janela que começa cedo; véspera: turno que passa da meia-noite e cobre o começo da janela do dia 1
+  const d1Start = g(600); const d1Len = 60 + g(1380);
+  const eveStart = 900 + g(539); const eveLen = (1440 - eveStart) + d1Start + 15 + g(600);
+  const d2Start = g(480); const d2Len = 30 + g(900);
+  const base = [wk(win(eveStart, Math.min(1440, eveLen)), win(d1Start, d1Len), win(d2Start, d2Len))];
+  const extraSpec = next() < 0.7 ? win(900 + g(539), 60 + g(900)) : win(g(1425), 15 + g(1425));
+  const added = wk(OFF, extraSpec, OFF);
+  const R = 1 + Math.floor(next() * 1440);
+  const ex: any[] = [{ kind: 'reduced', start: '2026-10-01', end: '2026-10-01', minutes: R }, { kind: 'vacation', start: '2026-10-03', end: '2026-10-31' }];
+  if (next() < 0.3) ex.push({ kind: 'overtime', date: '2026-10-02', minutes: 15 + g(1425) });
+  const C1 = { routines: base, exceptions: ex, localHolidays: [], worksOnHolidays: true };
+  const C2 = { ...C1, routines: [...base, added] };
+  const period = (c: any) => cal.monthPlan(c, '2026-10', { periodStart: true });
+  const p1 = period(C1); const p2 = period(C2);
+  if (p1.ambiguousDays.length || p2.ambiguousDays.length) continue;
+  stats.pairs += 1;
+  if (p2.minutes < p1.minutes) { stats.violations += 1; if (examples.length < 4) examples.push({ kind: 'monotonia', h1: p1.minutes, h2: p2.minutes, C1: JSON.stringify(C1), added: JSON.stringify(added) }); }
+  // dependência da parte trabalhada no período: o dia 2 com o dia 1 inteiro (o que o motor faz) e sem nada dele
+  for (const c of [C1, C2]) {
+    const d1 = p1 === null ? null : period(c).days[0];
+    if (!d1.applied.includes('reduced')) continue; // a redução corta no período
+    stats.acceptedPeriodDay2 += 1;
+    const d = '2026-10-02';
+    const mk = (eveWindows: any[]) => cal._planDayWith(c, d, cal._routineDayOf(c.routines, dates.dayNumber(d)), cal._flagsOf(c, d), eveWindows,
+      cal._certainWindows(cal._neighborWindowsOn(c, '2026-10-03')), []);
+    const all = mk(cal._routineDayOf(c.routines, dates.dayNumber('2026-10-01')).windows); const none = mk([]);
+    if (!all.ambiguous && !none.ambiguous && all.minutes !== none.minutes) { stats.dependsOnPart += 1; if (examples.length < 8) examples.push({ kind: 'parte', none: none.minutes, all: all.minutes, engine: period(c).days[1].minutes, verdict: cal.calendarAmbiguity(c, '2026-11-06'), c: JSON.stringify(c) }); }
+  }
+}
+console.log(JSON.stringify({ seed: Number(seedArg ?? 1), stats }));
+for (const e of examples) console.log(JSON.stringify(e).slice(0, 1500));

@@ -1,0 +1,1 @@
+{"root":"arvore-6c459430","MODE":"mix","SAMPLES":50000,"conferidor":false,"seconds":94,"pairs":17805,"tried":50000,"mono":0,"civil":0,"cut":0,"oracle":0,"dneg":0,"dnonfollow":0,"dpos":34357,"civilChecked":2099744,"reducedNext":42058,"confRejected":0,"maxCivil":1440,"steps":{"days":1070901,"s1":0,"s2":0,"s2id":0,"s3":0,"s4":0,"s5":0,"deltaPos":91999,"dTpos":102960},"examples":[]}

@@ -1,0 +1,16 @@
+desktop-dark-referencia-previa.png {'antes': '270x242', 'depois': '270x242', 'pixels_diferentes': 0, 'caixa': None}
+desktop-dark-referencia.png {'antes': '1440x3917', 'depois': '1440x3917', 'pixels_diferentes': 0, 'caixa': None}
+desktop-dark-s01-previa.png {'antes': '270x242', 'depois': '270x282', 'pixels_diferentes': None}
+desktop-dark-s01.png {'antes': '1440x3917', 'depois': '1440x3917', 'pixels_diferentes': 71745, 'caixa': '328x643++940++321'}
+desktop-light-referencia-previa.png {'antes': '270x242', 'depois': '270x242', 'pixels_diferentes': 0, 'caixa': None}
+desktop-light-referencia.png {'antes': '1440x3917', 'depois': '1440x3917', 'pixels_diferentes': 0, 'caixa': None}
+desktop-light-s01-previa.png {'antes': '270x242', 'depois': '270x282', 'pixels_diferentes': None}
+desktop-light-s01.png {'antes': '1440x3917', 'depois': '1440x3917', 'pixels_diferentes': 71868, 'caixa': '328x643++940++321'}
+mobile-dark-referencia-previa.png {'antes': '324x243', 'depois': '324x243', 'pixels_diferentes': 0, 'caixa': None}
+mobile-dark-referencia.png {'antes': '390x5743', 'depois': '390x5743', 'pixels_diferentes': 0, 'caixa': None}
+mobile-dark-s01-previa.png {'antes': '324x243', 'depois': '324x243', 'pixels_diferentes': 18147, 'caixa': '315x184++0++25'}
+mobile-dark-s01.png {'antes': '390x5763', 'depois': '390x5875', 'pixels_diferentes': None}
+mobile-light-referencia-previa.png {'antes': '324x243', 'depois': '324x243', 'pixels_diferentes': 0, 'caixa': None}
+mobile-light-referencia.png {'antes': '390x5743', 'depois': '390x5743', 'pixels_diferentes': 0, 'caixa': None}
+mobile-light-s01-previa.png {'antes': '324x243', 'depois': '324x243', 'pixels_diferentes': 18203, 'caixa': '315x184++0++25'}
+mobile-light-s01.png {'antes': '390x5763', 'depois': '390x5875', 'pixels_diferentes': None}

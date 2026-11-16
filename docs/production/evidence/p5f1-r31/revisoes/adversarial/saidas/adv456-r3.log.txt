@@ -1,0 +1,42 @@
+TAP version 13
+# Subtest: ADV-4: a série relida falha durante a sincronização (uma base, sem desconsiderada): erro com "Tentar de novo", sem conversão; com o relatório de volta, o "Tentar de novo" do erro traz a estimativa nova
+not ok 1 - ADV-4: a série relida falha durante a sincronização (uma base, sem desconsiderada): erro com "Tentar de novo", sem conversão; com o relatório de volta, o "Tentar de novo" do erro traz a estimativa nova
+  ---
+  duration_ms: 3115.024167
+  type: 'test'
+  location: '<scratchpad>/p5f1r31/revisoes/adversarial/r3-com-testes-r31/tests/unit/adv-consistency.test.ts:1520:1'
+  failureType: 'testCodeFailure'
+  error: 'tempo esgotado: o erro da releitura (mostrados: loading → 1106000)'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  operator: 'fail'
+  stack: |-
+    until (file://<scratchpad>/p5f1r31/revisoes/adversarial/r3-com-testes-r31/tests/unit/adv-consistency.test.ts:55:57)
+    async TestContext.<anonymous> (file://<scratchpad>/p5f1r31/revisoes/adversarial/r3-com-testes-r31/tests/unit/adv-consistency.test.ts:1540:3)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# ADV-5 depois da volta (escuta sem retorno): []; último=loading
+# ADV-5 sequência completa: ["1086000","1086000"]
+# Subtest: ADV-5: volta ao workspace anterior com a base no cache, COM desconsiderada, antes do primeiro retorno da escuta
+ok 2 - ADV-5: volta ao workspace anterior com a base no cache, COM desconsiderada, antes do primeiro retorno da escuta
+  ---
+  duration_ms: 625.034638
+  type: 'test'
+  ...
+# ADV-6 releituras=2; mostrados=["1106000","1106000","1106000","1106000","1106000","1106000","1106000","1106000"]; último=done 1106000 refreshFailed=false
+# Subtest: ADV-6: uma base, sem desconsiderada, a escuta mostra uma projeção que a base relida não alcança: depois das releituras, a base divergente aparece provada e sem aviso
+ok 3 - ADV-6: uma base, sem desconsiderada, a escuta mostra uma projeção que a base relida não alcança: depois das releituras, a base divergente aparece provada e sem aviso
+  ---
+  duration_ms: 564.132577
+  type: 'test'
+  ...
+1..3
+# tests 3
+# suites 0
+# pass 2
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 4643.422936

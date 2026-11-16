@@ -1,0 +1,38 @@
+{
+ "rows": [
+  {
+   "cenario": "durante a preparação (vigente + preparada)",
+   "componentes": 3,
+   "bytesDocumento": 726
+  },
+  {
+   "cenario": "publicada, antes da próxima regravação",
+   "componentes": 3,
+   "bytesDocumento": 726
+  },
+  {
+   "cenario": "publicada, depois da regravação com poda",
+   "componentes": 2,
+   "bytesDocumento": 599
+  }
+ ],
+ "camposGravados": [
+  "anchors",
+  "chains",
+  "schemaVersion",
+  "transactionId",
+  "updatedAt",
+  "workspaceId"
+ ],
+ "isentos": [
+  "anchors",
+  "chains",
+  "schemaVersion",
+  "transactionId",
+  "updatedAt",
+  "workspaceId"
+ ],
+ "naoIsentos": [],
+ "compostos": 0,
+ "entradasAutomaticasPorMarca": 0
+}

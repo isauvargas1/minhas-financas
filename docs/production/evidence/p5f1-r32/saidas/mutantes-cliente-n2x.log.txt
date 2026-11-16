@@ -1,0 +1,9 @@
+testes: tests/unit/work-time-consistency.test.ts, tests/unit/work-time-income-estimate.test.ts, tests/unit/work-time-estimate.test.ts, tests/unit/work-time-guard.test.ts, tests/unit/report-basis-sync.test.ts, tests/unit/report-basis-refresh.test.ts
+base: saída 0, 0 falha(s)
+MORTO      N17 toda indisponível volta a esperar a prova (como antes do ADV-01) (17 falha(s); ex.: not ok 108 - R3.2: o estado legitimamente indisponível (série sem bloco exato, como na reconstrução pendente) aparece co)
+MORTO      N18 a estimativa que converte passa sem prova (o portão invertido) (108 falha(s); ex.: not ok 62 - B03: a projeção mais nova que a base lida na montagem: nunca a estimativa da base antiga; a base é relida e )
+MORTO      N23 o tempo de interface troca também a falha por "em atualização" (o B08 da revisão adversarial, rodada 2; ADV-R2-07) (6 falha(s); ex.: not ok 122 - R3.2 (F-08): indisponível com números (rotina sem horas; uma base, nenhuma desconsiderada), com a escuta en)
+MORTO      N24 a indisponível sem números vira "em atualização" passado o tempo de interface (o B09 da revisão adversarial, rodada 2) (17 falha(s); ex.: not ok 109 - R3.2 (ADV-01): indisponível sem números (renda PJ sem confirmação; uma base, nenhuma desconsiderada), sem r)
+MORTO      N21 a indisponível com números passa sem prova (como na rodada 1 da R3.2: só a pronta espera; F-08) (16 falha(s); ex.: not ok 121 - R3.2 (F-08): indisponível com números (rotina sem horas; uma base, nenhuma desconsiderada), sem retorno do )
+MORTO      N22 a pronta sem meses passaria sem prova (o termo da pronta removido) (5 falha(s); ex.: not ok 192 - estimativa: uma por contexto, sem polling nem listener por lançamento)
+total: 6/6 mortos

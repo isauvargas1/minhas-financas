@@ -1,0 +1,34 @@
+#!/usr/bin/env python3
+"""P5-F.1, revisão 9 (falha intermitente de R6-02 nas repetições): atualiza mutantes.py. A leitura dependente passou a
+ir pelo objeto do resultado, sem compartilhamento de estrutura. Cada troca exige exatamente uma ocorrência do trecho
+antigo; os novos entram depois do último (U172), sem renumerar ninguém."""
+import sys
+from pathlib import Path
+
+P = Path(sys.argv[1])
+s = P.read_text(encoding='utf-8')
+
+
+def rep(old, new):
+    global s
+    count = s.count(old)
+    assert count == 1, (count, old[:100])
+    s = s.replace(old, new)
+
+
+# alvos que mudaram (mesma intenção): a chamada da sincronização passa o objeto da leitura por id; a leitura por id
+# ganhou `structuralSharing: false` depois de `refetchOnReconnect: false`
+rep("""  ('guarda', 'src/modules/work-time/useIncomeEstimateWith.ts', 'deps.basis, uid, workspaceId, windowMonths, basis, needsExcluded ? excluded.dataUpdatedAt : null, { enabled },', 'deps.basis, uid, workspaceId, windowMonths, basis, needsExcluded ? excluded.dataUpdatedAt : null, { enabled: false },', T('work-time-guard', 'work-time-income-estimate')),""",
+    """  ('guarda', 'src/modules/work-time/useIncomeEstimateWith.ts', 'deps.basis, uid, workspaceId, windowMonths, basis, needsExcluded ? excluded.data : null, { enabled },', 'deps.basis, uid, workspaceId, windowMonths, basis, needsExcluded ? excluded.data : null, { enabled: false },', T('work-time-guard', 'work-time-income-estimate')),""")
+rep("""  ('leituras', 'src/modules/transactions/incomeReads.ts', '    refetchOnReconnect: false,\\n  });', '  });', T('work-time-guard')),""",
+    """  ('leituras', 'src/modules/transactions/incomeReads.ts', '    refetchOnReconnect: false,\\n    structuralSharing: false,\\n  });', '    structuralSharing: false,\\n  });', T('work-time-guard')),""")
+# novos, depois do U172 (o último da lista)
+rep("""  ('sem pedido', 'src/modules/reports/basisSync.ts', '    if (current.exact && !current.fetching && !sameIncome(current.income, pair.income)) release.current();', '    if (current.keys.length > 1 && current.keys.some(basisRereadScheduled)) return;\\n    if (current.exact && !current.fetching && !sameIncome(current.income, pair.income)) release.current();', T('work-time-income-estimate')),
+]""",
+    """  ('sem pedido', 'src/modules/reports/basisSync.ts', '    if (current.exact && !current.fetching && !sameIncome(current.income, pair.income)) release.current();', '    if (current.keys.length > 1 && current.keys.some(basisRereadScheduled)) return;\\n    if (current.exact && !current.fetching && !sameIncome(current.income, pair.income)) release.current();', T('work-time-income-estimate')),
+  # revisão 9 (repetições): a leitura dependente vai pelo objeto do resultado, um novo a cada leitura concluída
+  ('mesmo milissegundo', 'src/modules/transactions/incomeReads.ts', '    structuralSharing: false,\\n', '', T('work-time-income-estimate')),
+  ('mesmo milissegundo', 'src/modules/work-time/useIncomeEstimateWith.ts', 'needsExcluded ? excluded.data : null', 'needsExcluded ? excluded.dataUpdatedAt : null', T('work-time-income-estimate')),
+]""")
+P.write_text(s, encoding='utf-8')
+print('ok')

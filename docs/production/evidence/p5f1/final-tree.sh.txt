@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# P5-F.1: árvore Git do working tree atual (tracked + untracked não ignorados) com um índice
+# temporário; o índice real do worktree não é tocado. Imprime o id da árvore.
+set -eu
+S=<scratchpad>
+WT=$S/wt-p5f1
+IDX=$S/p5f1/final.index
+rm -f "$IDX"
+cd "$WT"
+GIT_INDEX_FILE="$IDX" git read-tree HEAD
+GIT_INDEX_FILE="$IDX" git add -A
+GIT_INDEX_FILE="$IDX" git write-tree

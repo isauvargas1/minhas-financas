@@ -1,0 +1,14 @@
+S01: seg 20:00–06:00 reduzida a 8 h, ter 00:00–08:00: 05/10 480 + 06/10 480 · aceita
+S01 com redução de 10 h (não corta): 05/10 600 + 06/10 480 · aceita
+seg 20:00–06:00 reduzida a 8 h, ter 24 h de plantão: 05/10 480 + 06/10 1440 · aceita
+o mesmo com 4 h de plantão: 05/10 480 + 06/10 240 · aceita
+noturno seg–sex 22:00–06:00, quarta reduzida a 6 h: 07/10 360 + 08/10 480 · aceita
+24 × 48 reduzida a 12 h, 4 h de hora extra no dia seguinte: 05/10 720 + 06/10 240 · aceita
+seg 22:00–08:00 cobre ter 05:00–09:00/30 (+ ter 08:00–12:00), seg reduzida a 5 h: 05/10 300 + 06/10 420 (sem cálculo seguro) · recusa 2026-10-06 {"kind":"neighbor","date":"2026-10-05","reason":"reduced","holiday":null}
+dom 22:00–06:00, seg 01:00–01:00 reduzida a 20 h, ter 00:00–02:00: 05/10 1140 + 06/10 120 · aceita
+seg 20:00–06:00 + 2 h sem horário reduzida a 650, ter 00:00–08:00: 05/10 650 + 06/10 480 · aceita
+outubro/2026 noturno inteiro reduzido a 6 h: 7920 min, dias sem cálculo seguro: 0
+abrindo o período: qua 20:00–10:00, qui 06:00–20:00 reduzida a 850, sex 00:00–04:00, férias de 03 a 31/10 (C): 01/10 840 + 02/10 240 · outubro abrindo o período 1080 · aceita
+o mesmo com qui 22:00–02:00 acrescentada (C′): 01/10 850 + 02/10 240 · outubro abrindo o período 1090 · aceita
+abrindo o período: qua 20:00–10:00, qui 06:00–02:00 reduzida a 1.000, sex 00:00–04:00: 01/10 1000 + 02/10 240 · outubro abrindo o período 8920 · aceita
+dom 31/05 22:00–06:00, seg 01/06 01:00–01:00 reduzida a 20 h, ter 00:00–02:00: 01/06 1140 + 02/06 120 · aceita

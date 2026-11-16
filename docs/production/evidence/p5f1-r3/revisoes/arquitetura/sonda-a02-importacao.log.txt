@@ -1,0 +1,1 @@
+{"receitaDoMesImportado":130000,"parteDeTNoMes":30000,"itemTirado":70000,"prova":"VERDADEIRA","receitaElegivel":60000,"correto":100000,"PROVA_VERDADEIRA_COM_VALOR_ERRADO":true}

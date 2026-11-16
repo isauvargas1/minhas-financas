@@ -1,0 +1,8 @@
+== R1
+{"limit":null,"mon":600,"tue":120,"tueAmbiguous":false,"verdict":null}
+{"limit":480,"mon":480,"tue":480,"tueAmbiguous":false,"verdict":null}
+{"limit":600,"mon":600,"tue":480,"tueAmbiguous":false,"verdict":null}
+== R2A
+{"limit":null,"mon":600,"tue":120,"tueAmbiguous":false,"tueReducedEve":false,"verdict":null}
+{"limit":480,"mon":480,"tue":480,"tueAmbiguous":true,"tueReducedEve":true,"verdict":{"date":"2026-10-06","routines":[0],"cause":{"kind":"reduced_eve","date":"2026-10-05"}}}
+{"limit":600,"mon":600,"tue":120,"tueAmbiguous":false,"tueReducedEve":false,"verdict":null}

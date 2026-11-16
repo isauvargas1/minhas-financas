@@ -1,0 +1,257 @@
+import { writeFileSync } from 'node:fs';
+
+import { expect, test, type Page } from '@playwright/test';
+
+import { createAccountByApi } from './support/accounts';
+import { callCallable } from './support/callables';
+import { db, PASSWORD, resetEmulatorData, tokenOf } from './support/loans';
+import { adminSdk, seedOwnedWorkspace, seedPaidPlan } from './support/workspaceSeed';
+import { audit, horizontalOverflow, loginAs, navigate, shot, VIEWPORTS, type Scheme, type ViewportName } from './p4d-evidence-common';
+
+/*
+ * P5-F — roteiro TEMPORÁRIO de evidência visual (não faz parte da suíte).
+ *
+ * EVIDENCE_TREE=antes (base 1730a1df) ou depois (árvore da P5-F). Nas duas:
+ * Dashboard, Relatórios e Configurações no modo dinheiro (padrão), para
+ * provar que o padrão não muda. Só no "depois": a seção "Tempo de trabalho equivalente"
+ * (vazia, preenchida e com erro) e o modo tempo no Dashboard, Relatórios,
+ * Contas e na transferência (que fica em reais). 360, 390 e 1440 px, claro
+ * e escuro; axe (WCAG 2.0/2.1 A e AA), transbordamento horizontal e ordem
+ * do Tab. Dados sintéticos; renda fictícia de R$ 4.400,00 por 176 h.
+ */
+
+const TREE = process.env.EVIDENCE_TREE === 'depois' ? 'depois' : 'antes';
+const DIR = process.env.EVIDENCE_DIR ?? 'test-results/p5f-evidence';
+const A = { uid: 'e2e-p5f-ev', email: 'e2e-p5f-ev@minhas-financas.local' };
+const WORKSPACE = 'e2e-p5f-ev-ws';
+const PREFERENCE = `users/${A.uid}/private_preferences/work_time_equivalent`;
+const today = () => new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit',
+}).format(new Date());
+const normalize = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().replace(/\s+/g, ' ').toLowerCase();
+
+/** Catálogo mínimo para os dois lançamentos sintéticos (mesmo formato dos E2E de caixa). */
+const seedCatalog = async () => {
+  const now = new Date();
+  const items: Array<[string, string, string, string?]> = [
+    ['p5f-income-type', 'income_type', 'Salário P5F'],
+    ['p5f-income-category', 'category', 'Renda P5F', 'receita'],
+    ['p5f-expense-type', 'expense_type', 'Variável P5F'],
+    ['p5f-expense-category', 'category', 'Mercado P5F', 'despesa'],
+    ['p5f-payment', 'payment_method', 'Pix P5F'],
+  ];
+  await Promise.all(items.map(([id, group, name, transactionSubtype]) => db().doc(`workspaces/${WORKSPACE}/settings_catalog/${id}`).set({
+    id, schemaVersion: 1, workspaceId: WORKSPACE, group, name, normalizedName: normalize(name),
+    ...(transactionSubtype ? { transactionSubtype } : {}),
+    dedupeKey: `${group}::${transactionSubtype ?? 'all'}::both::${normalize(name)}`,
+    workspaceScope: 'both', sortOrder: 1, status: 'active',
+    createdBy: A.uid, updatedBy: A.uid, createdAt: now, updatedAt: now,
+  })));
+};
+
+type Entry = { name: string; overflow: number; violations: unknown[]; notes?: Record<string, unknown> };
+const results: Entry[] = [];
+
+/** Elementos que levam a página além da largura da janela (ignora o que está recortado por um contêiner com rolagem). */
+const overflowOffenders = (page: Page) => page.evaluate(() => {
+  const limit = document.documentElement.clientWidth;
+  const clipped = (el: Element) => {
+    for (let node = el.parentElement; node && node !== document.body; node = node.parentElement) {
+      const style = getComputedStyle(node);
+      if (['auto', 'scroll', 'hidden', 'clip'].includes(style.overflowX) && node.getBoundingClientRect().right <= limit + 1) return true;
+    }
+    return false;
+  };
+  const over = Array.from(document.querySelectorAll('body *')).filter((el) => {
+    const box = el.getBoundingClientRect();
+    return box.width > 0 && box.right > limit + 1 && !clipped(el);
+  });
+  const leaves = over.filter((el) => !over.some((other) => other !== el && el.contains(other)));
+  return leaves.slice(0, 10).map((el) => ({
+    tag: el.tagName.toLowerCase(),
+    classes: String((el as HTMLElement).className ?? '').slice(0, 140),
+    right: Math.round(el.getBoundingClientRect().right),
+    text: (el.textContent ?? '').replace(/\s+/g, ' ').trim().slice(0, 80),
+  }));
+});
+
+const record = async (page: Page, name: string, scope: string, notes?: Record<string, unknown>) => {
+  // As animações do recharts rodam em JS (fora de `document.getAnimations()`): espera o fim delas.
+  if (/dashboard|graficos/.test(name)) await page.waitForTimeout(2000);
+  await shot(page, DIR, name);
+  const overflow = await horizontalOverflow(page);
+  const extra = overflow > 0 ? { ...notes, overflowOffenders: await overflowOffenders(page) } : notes;
+  results.push({ name, overflow, violations: await audit(page, scope), notes: extra });
+};
+
+const seedPreference = async (displayMode: 'money' | 'time') => {
+  await db().doc(PREFERENCE).set({
+    schemaVersion: 1, enabled: true, displayMode,
+    monthlyIncomeCents: 440_000, monthlyWorkMinutes: 176 * 60,
+    updatedAt: adminSdk().firestore.FieldValue.serverTimestamp(),
+  });
+};
+
+/** Dashboard com o relatório carregado (saldo das duas contas e nenhum "Carregando…"), para não comparar a carga. */
+const waitDashboardLoaded = async (page: Page) => {
+  await expect(page.getByText('R$ 3.869,65').first()).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText('Carregando…')).toHaveCount(0, { timeout: 30_000 });
+};
+
+/** Relatórios carregados: KPI de receita visível, tabela de fluxo mensal presente e nenhum "Carregando…". */
+const waitReportsLoaded = async (page: Page) => {
+  await expect(page.getByText(/^Receita total$/i).first()).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole('columnheader', { name: 'Resultado' }).first()).toBeAttached({ timeout: 30_000 });
+  await expect(page.getByText('Carregando…')).toHaveCount(0, { timeout: 30_000 });
+};
+
+const openSettings = async (page: Page, viewport: ViewportName) => {
+  await navigate(page, viewport, 'Configurações');
+  await expect(page.getByRole('heading', { name: 'Configurações', level: 2 })).toBeVisible({ timeout: 20_000 });
+};
+
+const openWorkTime = async (page: Page, viewport: ViewportName) => {
+  await openSettings(page, viewport);
+  await page.getByRole('button', { name: /Tempo de trabalho equivalente/ }).click();
+  await expect(page.getByRole('switch', { name: 'Ativar tempo de trabalho equivalente' })).toBeVisible({ timeout: 20_000 });
+};
+
+test.beforeAll(async ({ request }) => {
+  await resetEmulatorData();
+  await adminSdk().auth().createUser({ ...A, password: PASSWORD, emailVerified: true });
+  await seedOwnedWorkspace({ ...A, workspaceId: WORKSPACE, name: 'Pessoal P5F', type: 'PF' });
+  await seedPaidPlan(A.uid, 'business');
+  const token = await tokenOf(request, A.email);
+  const main = await createAccountByApi(request, token, WORKSPACE, 'Conta P5F', { openingBalanceCents: 100_000 });
+  await createAccountByApi(request, token, WORKSPACE, 'Reserva P5F', { openingBalanceCents: 35_200 });
+  // Dois lançamentos sintéticos pelo backend real: receita de R$ 3.000,00 e despesa de R$ 482,35.
+  await seedCatalog();
+  const entries = [
+    { type: 'receita', description: 'Salário P5F', categoryId: 'p5f-income-category', incomeType: 'Salário P5F', amountCents: 300_000 },
+    { type: 'despesa', description: 'Mercado P5F', categoryId: 'p5f-expense-category', expenseType: 'Variável P5F', paymentMethod: 'Pix P5F', amountCents: 48_235 },
+  ];
+  for (const entry of entries) {
+    const outcome = await callCallable(request, token, 'createCashTransaction', {
+      workspaceId: WORKSPACE, idempotencyKey: `e2e-p5f-ev-${entry.type}`, cashAccountId: main, date: today(), ...entry,
+    });
+    expect(outcome.status, JSON.stringify(outcome)).toBe(200);
+  }
+});
+
+test.afterAll(() => {
+  writeFileSync(`${DIR}/resultado-${TREE}.json`, `${JSON.stringify(results, null, 2)}\n`);
+});
+
+for (const viewport of Object.keys(VIEWPORTS) as ViewportName[]) {
+  for (const scheme of ['light', 'dark'] as Scheme[]) {
+    test(`P5-F evidência ${TREE} ${viewport} ${scheme}`, async ({ browser }) => {
+      test.setTimeout(180_000);
+      const suffix = `${viewport}-${scheme}`;
+      if (TREE === 'depois') await db().doc(PREFERENCE).delete();
+      const page = await loginAs(browser, A.email, viewport, scheme);
+
+      // Padrão (modo dinheiro), nas duas árvores.
+      await waitDashboardLoaded(page);
+      await record(page, `dinheiro-dashboard-${suffix}`, 'main');
+      await navigate(page, viewport, /^Relatórios( Empresariais)?$/);
+      await expect(page.getByRole('tab', { name: 'Visão Geral' })).toBeVisible({ timeout: 30_000 });
+      await waitReportsLoaded(page);
+      await record(page, `dinheiro-relatorios-${suffix}`, 'main');
+      await page.getByRole('tab', { name: 'Gráficos' }).click();
+      await expect(page.locator('.recharts-yAxis .recharts-cartesian-axis-tick-value').first()).toBeVisible({ timeout: 30_000 });
+      await record(page, `dinheiro-graficos-${suffix}`, 'main', { yTicks: await page.locator('.recharts-yAxis .recharts-cartesian-axis-tick-value').allTextContents() });
+      await openSettings(page, viewport);
+      await record(page, `dinheiro-configuracoes-${suffix}`, 'main');
+      if (TREE === 'antes') {
+        await page.context().close();
+        return;
+      }
+
+      // Seção de Configurações: vazia, com erro de formato ambíguo e preenchida.
+      await page.getByRole('button', { name: /Tempo de trabalho equivalente/ }).click();
+      await expect(page.getByRole('switch', { name: 'Ativar tempo de trabalho equivalente' })).toBeVisible({ timeout: 20_000 });
+      await record(page, `tempo-configuracoes-vazia-${suffix}`, '[data-testid="work-time-settings"]');
+      await page.getByLabel('Renda mensal de referência (R$)').fill('4400.00');
+      await page.getByRole('button', { name: 'Salvar', exact: true }).click();
+      await expect(page.getByText(/Use o formato 3\.500,00/)).toBeVisible();
+      await record(page, `tempo-configuracoes-erro-${suffix}`, '[data-testid="work-time-settings"]');
+      await page.getByLabel('Renda mensal de referência (R$)').fill('4.400,00');
+      await page.getByLabel('Horas', { exact: true }).fill('176');
+      await page.getByRole('switch', { name: 'Ativar tempo de trabalho equivalente' }).click();
+      await page.getByRole('radio', { name: 'Tempo de trabalho' }).check();
+      await expect(page.getByTestId('work-time-preview')).toContainText('≈');
+      await record(page, `tempo-configuracoes-preenchida-${suffix}`, '[data-testid="work-time-settings"]');
+
+      // Teclado na seção (só no desktop claro, para não repetir).
+      let settingsTabOrder: string[] = [];
+      if (viewport === 'desktop' && scheme === 'light') {
+        await page.getByRole('switch', { name: 'Ativar tempo de trabalho equivalente' }).focus();
+        for (let index = 0; index < 7; index += 1) {
+          settingsTabOrder.push(await page.evaluate(() => {
+            const el = document.activeElement as HTMLElement | null;
+            if (!el || el === document.body) return 'body (fim da sequência)';
+            const labelledBy = el.getAttribute('aria-labelledby')?.split(/\s+/)
+              .map((id) => document.getElementById(id)?.textContent ?? '').join(' ').trim();
+            const label = el.getAttribute('aria-label') || labelledBy
+              || (el.id ? document.querySelector(`label[for="${el.id}"]`)?.textContent : null)
+              || el.closest('label')?.textContent || el.textContent || el.tagName;
+            return `${el.tagName.toLowerCase()}${el.getAttribute('role') ? `[${el.getAttribute('role')}]` : ''}: ${label.replace(/\s+/g, ' ').trim()}`;
+          }));
+          await page.keyboard.press('Tab');
+        }
+      }
+
+      // Modo tempo: Dashboard com alternador e aviso, Relatórios, Contas e transferência.
+      await seedPreference('time');
+      await navigate(page, viewport, 'Dashboard');
+      await expect(page.locator('[data-work-time]').first()).toBeVisible({ timeout: 20_000 });
+      await expect(page.getByTestId('work-time-notice')).toBeVisible();
+      await record(page, `tempo-dashboard-${suffix}`, 'main', { settingsTabOrder });
+
+      let headerTabOrder: string[] = [];
+      if (viewport === 'desktop' && scheme === 'light') {
+        await page.getByRole('button', { name: /notificaç/i }).first().focus();
+        for (let index = 0; index < 4; index += 1) {
+          headerTabOrder.push(await page.evaluate(() => {
+            const el = document.activeElement as HTMLElement | null;
+            return el ? `${el.getAttribute('aria-label') ?? el.textContent?.trim() ?? el.tagName}${el.getAttribute('aria-pressed') ? ` (aria-pressed=${el.getAttribute('aria-pressed')})` : ''}` : '';
+          }));
+          await page.keyboard.press('Tab');
+        }
+        await page.getByRole('button', { name: 'Mostrar valores em tempo de trabalho' }).focus();
+        await record(page, `tempo-header-foco-${suffix}`, 'header', { headerTabOrder });
+      }
+
+      await navigate(page, viewport, /^Relatórios( Empresariais)?$/);
+      await expect(page.locator('[data-work-time]').first()).toBeVisible({ timeout: 30_000 });
+      await waitReportsLoaded(page);
+      await expect(page.locator('table [data-work-time]').first()).toBeAttached({ timeout: 30_000 });
+      await record(page, `tempo-relatorios-${suffix}`, 'main');
+      // Gráficos: eixo com o rótulo compacto; tooltip com tempo e reais.
+      await page.getByRole('tab', { name: 'Gráficos' }).click();
+      await expect(page.locator('.recharts-yAxis .recharts-cartesian-axis-tick-value').first()).toBeVisible({ timeout: 30_000 });
+      await record(page, `tempo-graficos-${suffix}`, 'main', { yTicks: await page.locator('.recharts-yAxis .recharts-cartesian-axis-tick-value').allTextContents() });
+
+      // Anulação a partir da lista em tempo: a confirmação traz o valor exato em reais.
+      await navigate(page, viewport, 'Dashboard');
+      await page.getByRole('button', { name: /^Despesas/ }).first().click();
+      await page.locator('tr').filter({ hasText: 'Mercado P5F' }).getByRole('button', { name: 'Deletar' }).click();
+      const voidDialog = page.getByRole('dialog', { name: 'Anular lançamento' });
+      await expect(voidDialog).toContainText(/O lançamento de R\$\s482,35 sai do caixa/);
+      await record(page, `tempo-anulacao-em-reais-${suffix}`, '[role="dialog"]');
+      await voidDialog.getByRole('button', { name: 'Cancelar' }).click();
+      await expect(voidDialog).toBeHidden();
+
+      await openSettings(page, viewport);
+      await page.getByText('Contas e carteiras', { exact: true }).click();
+      await expect(page.getByTestId('accounts-total').locator('[data-work-time]')).toBeVisible({ timeout: 20_000 });
+      await record(page, `tempo-contas-${suffix}`, 'main');
+      await page.getByRole('button', { name: /Nova transferência/ }).click();
+      const transfer = page.getByRole('dialog', { name: 'Nova transferência' });
+      await expect(transfer).toBeVisible();
+      await expect(transfer.locator('[data-work-time]')).toHaveCount(0);
+      await record(page, `tempo-transferencia-em-reais-${suffix}`, '[role="dialog"]');
+      await page.context().close();
+    });
+  }
+}

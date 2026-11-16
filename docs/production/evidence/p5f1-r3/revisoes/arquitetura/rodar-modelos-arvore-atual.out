@@ -1,0 +1,4 @@
+== modelo-aleatorio 20000 0 21: "violacoes": 0 "cenariosComViolacao": 0 "provas": 129387
+== modelo-aleatorio 20000 50 23 publicacao: "violacoes": 0 "cenariosComViolacao": 0 "provas": 130057
+== modelo-aleatorio-duas 20000 0 21: "violacoes": 0 "cenariosComViolacao": 0 "provas": 127053
+== modelo-aleatorio-duas 20000 50 23 publicacao: "violacoes": 0 "cenariosComViolacao": 0 "provas": 127295

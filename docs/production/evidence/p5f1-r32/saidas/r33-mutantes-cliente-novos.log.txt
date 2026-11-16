@@ -1,0 +1,9 @@
+testes: tests/unit/work-time-consistency.test.ts, tests/unit/work-time-income-estimate.test.ts, tests/unit/work-time-estimate.test.ts, tests/unit/work-time-guard.test.ts, tests/unit/report-basis-sync.test.ts, tests/unit/report-basis-refresh.test.ts
+base: saída 0, 0 falha(s)
+MORTO      N17 toda indisponível volta a esperar a prova (como antes do ADV-01) (17 falha(s); ex.: not ok 108 - R3.2: o estado legitimamente indisponível (série sem bloco exato, como na reconstrução pendente) aparece co)
+MORTO      N18 a estimativa que converte passa sem prova (o portão invertido) (114 falha(s); ex.: not ok 62 - B03: a projeção mais nova que a base lida na montagem: nunca a estimativa da base antiga; a base é relida e )
+MORTO      N21 a indisponível que depende das receitas passa sem prova (rodada 1 da R3.2: só a pronta espera; F-08) (22 falha(s); ex.: not ok 121 - R3.2 (F-08, ADV-R3-01): indisponível que depende das receitas (rotina sem horas; uma base, nenhuma desconsi)
+MORTO      N22 a regra estrutural da rodada 2 (só a pronta ou com meses espera): a de rotina ambígua passa sem prova (ADV-R3-01) (8 falha(s); ex.: not ok 127 - R3.2 (F-08, ADV-R3-01): indisponível que depende das receitas (véspera reduzida ambígua, sem números; uma b)
+MORTO      N25 a véspera reduzida ambígua na lista dos decididos antes das receitas (ADV-R3-01) (8 falha(s); ex.: not ok 127 - R3.2 (F-08, ADV-R3-01): indisponível que depende das receitas (véspera reduzida ambígua, sem números; uma b)
+MORTO      N26 a desconsiderada sem confirmação fora da lista (passa a esperar a prova: o estado legítimo some; ADV-01) (2 falha(s); ex.: not ok 198 - estimativa: uma por contexto, sem polling nem listener por lançamento)
+total: 6/6 mortos

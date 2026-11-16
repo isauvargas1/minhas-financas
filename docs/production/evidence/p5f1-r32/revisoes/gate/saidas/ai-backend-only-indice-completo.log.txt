@@ -1,0 +1,40 @@
+TAP version 13
+# Subtest: nenhum arquivo do cliente importa SDK de IA
+ok 1 - nenhum arquivo do cliente importa SDK de IA
+  ---
+  duration_ms: 13.875613
+  type: 'test'
+  ...
+# Subtest: nenhum arquivo do cliente lê chave de IA do ambiente
+ok 2 - nenhum arquivo do cliente lê chave de IA do ambiente
+  ---
+  duration_ms: 12.818775
+  type: 'test'
+  ...
+# Subtest: vite não injeta a chave do Gemini no bundle
+ok 3 - vite não injeta a chave do Gemini no bundle
+  ---
+  duration_ms: 0.408405
+  type: 'test'
+  ...
+# Subtest: o backend recusa operar sem chave, em vez de cair num default
+ok 4 - o backend recusa operar sem chave, em vez de cair num default
+  ---
+  duration_ms: 0.263308
+  type: 'test'
+  ...
+# Subtest: nenhum segredo real aparece em teste, fixture ou ambiente versionado
+ok 5 - nenhum segredo real aparece em teste, fixture ou ambiente versionado
+  ---
+  duration_ms: 41.889752
+  type: 'test'
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 212.392845

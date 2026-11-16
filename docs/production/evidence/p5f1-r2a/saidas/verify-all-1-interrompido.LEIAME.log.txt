@@ -1,0 +1,1 @@
+interrompido de propósito às 15:22 UTC (SIGINT no firebase emulators:exec e SIGTERM na cadeia do test:e2e), para corrigir o achado da revisão independente no início do período (S01); as 84 falhas da integração são dos testes cortados pela interrupção; nada desta execução conta como resultado

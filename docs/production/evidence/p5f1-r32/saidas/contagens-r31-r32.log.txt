@@ -1,0 +1,83 @@
+work-time-consistency.test.ts: R3.1 46, R3.2 107, mesmo nome 44, só na R3.1 2, só na R3.2 63
+work-time-guard.test.ts: R3.1 18, R3.2 19, mesmo nome 18, só na R3.1 0, só na R3.2 1
+work-time-income-estimate.test.ts: R3.1 21, R3.2 22, mesmo nome 21, só na R3.1 0, só na R3.2 1
+e2e/work-time-b03.spec.ts: R3.1 6, R3.2 7
+e2e/work-time-p5f.spec.ts: R3.1 19, R3.2 20
+
+Nomes por arquivo (node --test, relator TAP), R3.1 = cópia da árvore efcbd264, R3.2 = árvore de código final 5ea7fabe.
+
+== work-time-consistency.test.ts: só na R3.1
+B03: uma base e nenhuma desconsiderada: a leitura única é provada mesmo com a escuta encerrada, com a ressalva
+R3.1: provada, mas com a sincronização em curso (uma base e nenhuma desconsiderada: a prova não pede nada): nenhuma conversão até a base relida chegar, "calculando" e, passado o tempo de interface, "em atualização"; chegando, a nova, sem prazo
+== work-time-consistency.test.ts: só na R3.2
+B03 (R3.2): uma base e nenhuma desconsiderada com a escuta encerrada desde o começo: nenhuma conversão, o erro com "Tentar de novo"; com a escuta de volta, a estimativa provada
+R3.1: com a sincronização em curso (uma base e nenhuma desconsiderada; a base em releitura ainda diverge da projeção): nenhuma conversão até a base relida chegar, "calculando" e, passado o tempo de interface, "em atualização"; chegando, a nova, sem prazo
+R3.2 (ADV-01): da renda PJ sem confirmação (indisponível sem números, mostrado sem a confirmação) para a renda confirmada, com a escuta encerrada: a estimativa que converte não aparece sem a confirmação; com a escuta de volta, a provada
+R3.2 (ADV-01): indisponível sem números (relatório sem bloco exato; uma base, nenhuma desconsiderada), com a divergência persistente: aparece como está, com o motivo, sem conversão, nem passado o tempo de interface; a ressalva de leitura anterior só com a escuta encerrada
+R3.2 (ADV-01): indisponível sem números (relatório sem bloco exato; uma base, nenhuma desconsiderada), com a escuta encerrada desde o começo: aparece como está, com o motivo, sem conversão, nem passado o tempo de interface; a ressalva de leitura anterior só com a escuta encerrada
+R3.2 (ADV-01): indisponível sem números (relatório sem bloco exato; uma base, nenhuma desconsiderada), sem retorno do servidor: aparece como está, com o motivo, sem conversão, nem passado o tempo de interface; a ressalva de leitura anterior só com a escuta encerrada
+R3.2 (ADV-01): indisponível sem números (renda PJ sem confirmação; uma base, nenhuma desconsiderada), com a divergência persistente: aparece como está, com o motivo, sem conversão, nem passado o tempo de interface; a ressalva de leitura anterior só com a escuta encerrada
+R3.2 (ADV-01): indisponível sem números (renda PJ sem confirmação; uma base, nenhuma desconsiderada), com a escuta encerrada desde o começo: aparece como está, com o motivo, sem conversão, nem passado o tempo de interface; a ressalva de leitura anterior só com a escuta encerrada
+R3.2 (ADV-01): indisponível sem números (renda PJ sem confirmação; uma base, nenhuma desconsiderada), sem retorno do servidor: aparece como está, com o motivo, sem conversão, nem passado o tempo de interface; a ressalva de leitura anterior só com a escuta encerrada
+R3.2 (ADV-01): renda PJ sem confirmação, 12 meses, com desconsiderada, com a divergência persistente depois do primeiro retorno do servidor: o indisponível sem números continua como está, com o motivo, sem conversão; a ressalva só com a escuta encerrada
+R3.2 (ADV-01): renda PJ sem confirmação, 12 meses, com desconsiderada, com a escuta encerrada depois do primeiro retorno do servidor: o indisponível sem números continua como está, com o motivo, sem conversão; a ressalva só com a escuta encerrada
+R3.2 (ADV-01): renda PJ sem confirmação, 12 meses, com desconsiderada, sem conexão depois do primeiro retorno do servidor: o indisponível sem números continua como está, com o motivo, sem conversão; a ressalva só com a escuta encerrada
+R3.2 (ADV-01): renda PJ sem confirmação, 3 meses, sem desconsiderada, com a divergência persistente depois do primeiro retorno do servidor: o indisponível sem números continua como está, com o motivo, sem conversão; a ressalva só com a escuta encerrada
+R3.2 (ADV-01): renda PJ sem confirmação, 3 meses, sem desconsiderada, com a escuta encerrada depois do primeiro retorno do servidor: o indisponível sem números continua como está, com o motivo, sem conversão; a ressalva só com a escuta encerrada
+R3.2 (ADV-01): renda PJ sem confirmação, 3 meses, sem desconsiderada, sem conexão depois do primeiro retorno do servidor: o indisponível sem números continua como está, com o motivo, sem conversão; a ressalva só com a escuta encerrada
+R3.2 (ADV-03): 12 meses, com desconsiderada: a conexão cai com a estimativa provada na tela: nenhuma conversão sem conexão, nem passado o tempo de interface; com a conexão de volta, sem documento mudado, a mesma conversão volta sem leitura a mais
+R3.2 (ADV-03): 12 meses, sem desconsiderada: a conexão cai com a estimativa provada na tela: nenhuma conversão sem conexão, nem passado o tempo de interface; com a conexão de volta, sem documento mudado, a mesma conversão volta sem leitura a mais
+R3.2 (ADV-03): 3 meses, com desconsiderada: a conexão cai com a estimativa provada na tela: nenhuma conversão sem conexão, nem passado o tempo de interface; com a conexão de volta, sem documento mudado, a mesma conversão volta sem leitura a mais
+R3.2 (ADV-R2-07): a escuta encerrada com a estimativa provada na tela e o tempo de interface passado: fica o erro "Não foi possível confirmar…", com "Tentar de novo", e nunca vira "em atualização"
+R3.2 (ADV-R3-01, sonda R3-P1): a desconsiderada de agosto editada em outra sessão antes do gatilho, com a rotina ambígua só em agosto: o motivo de rotina ambígua do estado misto nunca aparece; depois do gatilho, a estimativa provada sem agosto
+R3.2 (ADV-R3-01, sonda R3-P2): o cache aquecido sem conexão (a única receita de agosto anulada em outra sessão com a tela fora), com a rotina ambígua só em agosto: o motivo antigo não aparece sem a prova; com a conexão de volta, a estimativa provada sem agosto
+R3.2 (ADV-R3-01, sonda R3-P3): divergência persistente (a série traz R$ 300,00 em agosto, a projeção confirmada traz zero), com a rotina ambígua só em agosto: depois das releituras, "em atualização", nunca o motivo de rotina ambígua da base divergente
+R3.2 (F-04): a base abaixo da projeção depois das releituras (anomalia no servidor; uma base, nenhuma desconsiderada): nenhuma conversão, nem passadas as releituras e o tempo de interface; sem a anomalia, o "Tentar de novo" traz a estimativa provada
+R3.2 (F-04): a janela ampliada e reduzida na mesma montagem: a confirmação da janela anterior não vale para a nova; nenhuma conversão até o retorno do servidor à escuta dos meses novos; confirmada, a da janela nova
+R3.2 (F-04, ADV-08): janela do mês corrente com a desconsiderada no próprio mês: o cache aquecido não converte antes do retorno do servidor; confirmado, o mesmo valor da primeira montagem, com a desconsiderada fora
+R3.2 (F-08): rotina sem horas, 12 meses, com desconsiderada, com a divergência persistente depois do indisponível provado: o motivo e a memória de cálculo saem como a conversão sai; com a prova de volta, o indisponível provado volta
+R3.2 (F-08): rotina sem horas, 12 meses, com desconsiderada, com a escuta encerrada depois do indisponível provado: o motivo e a memória de cálculo saem como a conversão sai; com a prova de volta, o indisponível provado volta
+R3.2 (F-08): rotina sem horas, 12 meses, com desconsiderada, sem conexão depois do indisponível provado: o motivo e a memória de cálculo saem como a conversão sai; com a prova de volta, o indisponível provado volta
+R3.2 (F-08): rotina sem horas, 3 meses, sem desconsiderada, com a divergência persistente depois do indisponível provado: o motivo e a memória de cálculo saem como a conversão sai; com a prova de volta, o indisponível provado volta
+R3.2 (F-08): rotina sem horas, 3 meses, sem desconsiderada, com a escuta encerrada depois do indisponível provado: o motivo e a memória de cálculo saem como a conversão sai; com a prova de volta, o indisponível provado volta
+R3.2 (F-08): rotina sem horas, 3 meses, sem desconsiderada, sem conexão depois do indisponível provado: o motivo e a memória de cálculo saem como a conversão sai; com a prova de volta, o indisponível provado volta
+R3.2 (F-08, ADV-R3-01): indisponível que depende das receitas (nenhuma renda na janela; uma base, nenhuma desconsiderada), com a divergência persistente: nem o motivo nem a memória de cálculo sem a prova, como a estimativa que converte; com a prova, o indisponível com o motivo
+R3.2 (F-08, ADV-R3-01): indisponível que depende das receitas (nenhuma renda na janela; uma base, nenhuma desconsiderada), com a escuta encerrada desde o começo: nem o motivo nem a memória de cálculo sem a prova, como a estimativa que converte; com a prova, o indisponível com o motivo
+R3.2 (F-08, ADV-R3-01): indisponível que depende das receitas (nenhuma renda na janela; uma base, nenhuma desconsiderada), sem retorno do servidor: nem o motivo nem a memória de cálculo sem a prova, como a estimativa que converte; com a prova, o indisponível com o motivo
+R3.2 (F-08, ADV-R3-01): indisponível que depende das receitas (rotina sem horas; uma base, nenhuma desconsiderada), com a divergência persistente: nem o motivo nem a memória de cálculo sem a prova, como a estimativa que converte; com a prova, o indisponível com o motivo
+R3.2 (F-08, ADV-R3-01): indisponível que depende das receitas (rotina sem horas; uma base, nenhuma desconsiderada), com a escuta encerrada desde o começo: nem o motivo nem a memória de cálculo sem a prova, como a estimativa que converte; com a prova, o indisponível com o motivo
+R3.2 (F-08, ADV-R3-01): indisponível que depende das receitas (rotina sem horas; uma base, nenhuma desconsiderada), sem retorno do servidor: nem o motivo nem a memória de cálculo sem a prova, como a estimativa que converte; com a prova, o indisponível com o motivo
+R3.2 (F-08, ADV-R3-01): indisponível que depende das receitas (véspera reduzida ambígua, sem números; uma base, nenhuma desconsiderada), com a divergência persistente: nem o motivo nem a memória de cálculo sem a prova, como a estimativa que converte; com a prova, o indisponível com o motivo
+R3.2 (F-08, ADV-R3-01): indisponível que depende das receitas (véspera reduzida ambígua, sem números; uma base, nenhuma desconsiderada), com a escuta encerrada desde o começo: nem o motivo nem a memória de cálculo sem a prova, como a estimativa que converte; com a prova, o indisponível com o motivo
+R3.2 (F-08, ADV-R3-01): indisponível que depende das receitas (véspera reduzida ambígua, sem números; uma base, nenhuma desconsiderada), sem retorno do servidor: nem o motivo nem a memória de cálculo sem a prova, como a estimativa que converte; com a prova, o indisponível com o motivo
+R3.2 (F-08, sonda R2-01): rotina sem horas e a desconsiderada editada em outra sessão antes do gatilho: o indisponível nunca traz os números de um estado misto (R$ 800,00 tirados do total que ainda tem R$ 500,00); depois do gatilho, os números consistentes
+R3.2 (F-08, sonda R2-02): rotina sem horas, 12 meses, divergência persistente (a base de setembro R$ 300,00 acima da projeção): o indisponível nunca traz como receita oficial o valor da base divergente
+R3.2 (F-08, sonda R2-03): rotina com horas, um mês, a desconsiderada editada antes do gatilho até igualar o total do mês: nunca "nenhuma renda" de um estado misto; os estados consistentes estão prontos
+R3.2 (RR-R31-05): a base do cache aquecido antes do primeiro retorno do servidor (uma base, nenhuma desconsiderada): nenhuma conversão, nem passado o tempo de interface; o retorno do servidor traz a conversão
+R3.2 (RR-R31-05): a base do cache aquecido antes do primeiro retorno do servidor (uma base, nenhuma desconsiderada, receita nova de outra sessão com a tela fora): nenhuma conversão, nem passado o tempo de interface; o retorno do servidor traz a conversão da base relida, nunca a do cache
+R3.2 (RR-R31-05): a base que não alcança a projeção depois das releituras (anomalia no servidor; uma base, nenhuma desconsiderada): nenhuma conversão, nem passadas as releituras e o tempo de interface; sem a anomalia, o "Tentar de novo" traz a estimativa provada
+R3.2 (RR-R31-05): a conexão cai com a estimativa provada na tela: o retorno do cache local tira a conversão ("calculando", depois "em atualização"); com a conexão de volta, ela volta sem leitura a mais
+R3.2 (RR-R31-05): a escuta encerrada por erro com a estimativa provada (uma base, nenhuma desconsiderada): a conversão sai e fica o erro com "Tentar de novo"; o "Tentar de novo" reabre a escuta e o retorno do servidor traz a conversão
+R3.2 (RR-R31-05): a estimativa desligada e religada com o cache aquecido: nenhuma conversão até o retorno do servidor à escuta reaberta
+R3.2 (RR-R31-05): a prévia montada ao lado da estimativa provada, com o mesmo cache, não converte antes do retorno do servidor à escuta dela; o retorno traz a mesma estimativa
+R3.2 (RR-R31-05): janela de 1 mês, com desconsiderada: o cache aquecido não converte antes do retorno do servidor; confirmado, o mesmo valor da primeira montagem
+R3.2 (RR-R31-05): janela de 1 mês, sem desconsiderada: o cache aquecido não converte antes do retorno do servidor; confirmado, o mesmo valor da primeira montagem
+R3.2 (RR-R31-05): janela de 12 meses, com desconsiderada: o cache aquecido não converte antes do retorno do servidor; confirmado, o mesmo valor da primeira montagem
+R3.2 (RR-R31-05): janela de 12 meses, sem desconsiderada: o cache aquecido não converte antes do retorno do servidor; confirmado, o mesmo valor da primeira montagem
+R3.2 (RR-R31-05): janela de 3 meses, com desconsiderada: o cache aquecido não converte antes do retorno do servidor; confirmado, o mesmo valor da primeira montagem
+R3.2 (RR-R31-05): janela de 3 meses, sem desconsiderada: o cache aquecido não converte antes do retorno do servidor; confirmado, o mesmo valor da primeira montagem
+R3.2 (RR-R31-05): janela de 6 meses, com desconsiderada: o cache aquecido não converte antes do retorno do servidor; confirmado, o mesmo valor da primeira montagem
+R3.2 (RR-R31-05): janela de 6 meses, sem desconsiderada: o cache aquecido não converte antes do retorno do servidor; confirmado, o mesmo valor da primeira montagem
+R3.2 (RR-R31-05): janela de mês corrente, sem desconsiderada: o cache aquecido não converte antes do retorno do servidor; confirmado, o mesmo valor da primeira montagem
+R3.2 (RR-R31-05): mês corrente com o cache de antes de uma receita de hoje: a base do cache diverge da projeção do mês e é relida; nenhuma conversão antes, e a confirmada depois
+R3.2 (RR-R31-05): sem conexão, a tela que volta com o cache aquecido não converte (a escuta só tem o retorno do cache local); com a conexão de volta, a conversão confirmada
+R3.2 (RR-R31-05): troca do workspace da renda e volta ao anterior com o cache aquecido: nenhuma conversão do anterior antes do retorno do servidor à escuta dele, nem estado do outro
+R3.2: o estado legitimamente indisponível (série sem bloco exato, como na reconstrução pendente) aparece como está, sem conversão, mesmo sem retorno do servidor
+
+== work-time-guard.test.ts: só na R3.1
+== work-time-guard.test.ts: só na R3.2
+prova (P5-F.1-R3.2, RR-R31-05): nada é provado sem bloco exato, sem a projeção confirmada e sem a base igual a ela; sem exceção por base única ou falta de desconsiderada
+
+== work-time-income-estimate.test.ts: só na R3.1
+== work-time-income-estimate.test.ts: só na R3.2
+apresentação (R3.2, ADV-01, F-08 e ADV-R3-01): a indisponível por um motivo decidido antes das receitas aparece como está, com ou sem prova e sincronizando ou não; a que depende das receitas (com números, rotinas ambíguas, motivo novo) e a que converte, só provadas e sincronizadas

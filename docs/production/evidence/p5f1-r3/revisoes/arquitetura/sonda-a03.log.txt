@@ -1,0 +1,4 @@
+{"lancamento":"T1","visaoAntes":"anchor_after_absent","resultado":"applied","markBroken":null,"cadeiaGravada":"anchor_after_absent","markRecoveryNeeded":false,"markIssueCount":0}
+{"lancamento":"T2","visaoAntes":"anchor_mismatch","resultado":"applied","markBroken":null,"cadeiaGravada":"anchor_mismatch","markRecoveryNeeded":false,"markIssueCount":0}
+{"lancamento":"T3","visaoAntes":"base_without_anchor","resultado":"applied","markBroken":null,"cadeiaGravada":"base_without_anchor","markRecoveryNeeded":false,"markIssueCount":0}
+{"lancamento":"T9","controle":"pending_overflow","markBroken":"pending_overflow","markRecoveryNeeded":true}

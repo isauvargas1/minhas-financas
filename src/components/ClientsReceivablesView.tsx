@@ -16,6 +16,7 @@ import {
   useReverseReceivableReceipt,
 } from '../modules/clients/hooks.ts';
 import { formatCents, formatDayKey, saoPauloToday } from '../modules/loans/money.ts';
+import { useMoneyDisplay } from '../modules/work-time/display.tsx';
 import {
   toArchiveClientPayload,
   toCancelReceivablePayload,
@@ -77,6 +78,7 @@ type DialogState =
 const ACTION_ROW = 'flex justify-end gap-2 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity';
 
 const ClientsReceivablesView: React.FC = () => {
+  const moneyDisplay = useMoneyDisplay();
   const { activeWorkspace, activeWorkspaceRole } = useWorkspace();
   const { user } = useAuth();
   const { playSound } = useTheme();
@@ -146,7 +148,7 @@ const ClientsReceivablesView: React.FC = () => {
 
   const clientName = (id: string) => clientsById.get(id)?.name ?? 'Cliente';
   const summaryValue = (cents: number | undefined) =>
-    totals.data && cents !== undefined ? formatCents(cents) : '—';
+    totals.data && cents !== undefined ? moneyDisplay.cents(cents, formatCents) : '—';
 
   // -- Operações com confirmação --
   const archive = async (): Promise<string | null> => {
@@ -324,7 +326,7 @@ const ClientsReceivablesView: React.FC = () => {
                         </td>
                         <td className="px-6 py-3 text-right font-bold text-on-surface">{formatCents(receivable.amountCents)}</td>
                         <td className="px-6 py-3 text-right text-on-surface">
-                          {receivable.status === 'cancelled' ? '—' : formatCents(receivable.balanceCents)}
+                          {receivable.status === 'cancelled' ? '—' : moneyDisplay.cents(receivable.balanceCents, formatCents)}
                         </td>
                         <td className="px-6 py-3 text-center">
                           <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${RECEIVABLE_STATUS_BADGE[display]}`}>

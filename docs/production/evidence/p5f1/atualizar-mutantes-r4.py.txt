@@ -1,0 +1,107 @@
+#!/usr/bin/env python3
+"""P5-F.1, revisão 4: atualiza mutantes.py (alvos que mudaram, mutantes novos e a classificação
+"não compila"). Cada troca exige exatamente uma ocorrência do trecho antigo."""
+import sys
+from pathlib import Path
+
+P = Path(sys.argv[1])
+s = P.read_text(encoding='utf-8')
+
+
+def rep(old, new):
+    global s
+    count = s.count(old)
+    assert count == 1, (count, old[:100])
+    s = s.replace(old, new)
+
+
+# U14 compilável (R4-06)
+rep('''"    if (minutes > 0) finalHolidayEffect = 'worked';\\n", '', T('work-time-calendar')),''',
+    '''"    if (minutes > 0) finalHolidayEffect = 'worked';\\n", "    if (false) finalHolidayEffect = 'worked';\\n", T('work-time-calendar')),''')
+# alvos que mudaram com a revisão 4 (mesma intenção)
+rep('''  ('guarda', 'src/modules/work-time/useIncomeEstimate.ts', 'useFinancialReportBasisLiveRefresh(workspaceId, windowMonths, basisIncome, { enabled, basisExact });', 'useFinancialReportBasisLiveRefresh(workspaceId, windowMonths, basisIncome, { enabled: false, basisExact });', T('work-time-guard')),''',
+    '''  ('guarda', 'src/modules/work-time/useIncomeEstimateWith.ts', 'deps.basis, uid, workspaceId, windowMonths, basis, needsExcluded ? excluded.dataUpdatedAt : null, { enabled },', 'deps.basis, uid, workspaceId, windowMonths, basis, needsExcluded ? excluded.dataUpdatedAt : null, { enabled: false },', T('work-time-guard', 'work-time-income-estimate')),''')
+rep(''''queryClient.invalidateQueries({ queryKey: [FINANCIAL_REPORT_BASIS_KEY] })', T('work-time-guard')),''',
+    ''''queryClient.invalidateQueries({ queryKey: [FINANCIAL_REPORT_BASIS_KEY] })', T('work-time-guard', 'report-range')),''')
+rep('''  ('base', 'src/modules/reports/basisSync.ts', '      void refreshIncomeReads(queryClient, workspaceId);\\n', '', T('report-basis-sync')),''',
+    '''  ('base', 'src/modules/reports/basisSync.ts', '    if (key !== null) void refreshIncomeReads(queryClient, workspaceId as string);\\n', '', T('report-basis-sync')),''')
+rep('''"const KINDS: readonly IncomeReadKind[] = ['income-window'];", T('report-basis-sync')),''',
+    '''"const KINDS: readonly IncomeReadKind[] = ['income-window'];", T('report-basis-sync', 'work-time-income-estimate')),''')
+rep('''  ('receitas', 'src/modules/work-time/incomeBasis.ts', "  if (months.includes(item.month) && !months.includes(item.reversedOn.slice(0, 7))) return 'outside';", "  if (!months.includes(item.reversedOn.slice(0, 7))) return 'outside';", T('work-time-estimate')),''',
+    '''  ('receitas', 'src/modules/work-time/incomeBasis.ts', '        reversed: movementId !== null && reversals.has(movementId),', '        reversed: reversals.size > 0,', T('work-time-estimate')),''')
+rep('''  ('guarda', 'src/modules/work-time/useIncomeEstimate.ts', "message: estimateFailureMessage('excluded', excluded.error), retry };",''',
+    '''  ('guarda', 'src/modules/work-time/useIncomeEstimateWith.ts', "message: estimateFailureMessage('excluded', excluded.error), retry };",''')
+rep('''  ('base', 'src/modules/reports/basisSync.ts', '    if (decision.converged) attempts.current.clear();\\n', '', T('report-basis-sync')),''',
+    '''  ('base', 'src/modules/reports/basisSync.ts', '      if (decision.converged) {\\n        attempts.current.clear();\\n', '      if (decision.converged) {\\n', T('report-basis-sync')),''')
+rep('''  ('base', 'src/modules/reports/basisSync.ts', '        if (first || snapshot.changes > 0) request.current();', '        if (first) request.current();', T('report-basis-sync')),''',
+    '''  ('base', 'src/modules/reports/basisSync.ts', '      if (!synced || snapshot.changes > 0) changed.current = true;', '      if (!synced) changed.current = true;', T('report-basis-sync')),''')
+rep('''  ('base', 'src/modules/reports/basisSync.ts', '    if (!enabled || !exactRef.current) return;', '    if (!enabled) return;', T('report-basis-sync')),''',
+    '''  ('base', 'src/modules/reports/basisSync.ts', '    if (current.exact) {\\n      changed.current = false;', '    if (true) {\\n      changed.current = false;', T('report-basis-sync')),''')
+rep('''  ('guarda', 'src/modules/work-time/useIncomeEstimate.ts', 'const refreshFailed = series.isError''',
+    '''  ('guarda', 'src/modules/work-time/useIncomeEstimateWith.ts', 'const refreshFailed = series.isError''')
+rep('''"  return { status, reversalNote, canToggle: item.excludable && (situation !== 'offset' || item.excludedByUser) };"''',
+    '''"  return { status, reversalNote, canToggle: item.excludable && (!item.reversed || item.excludedByUser) };"''')
+rep('''  ('base', 'src/modules/reports/basisSync.ts', '      setSync({ waiting: false, readsAfter: Date.now() });', '      setSync({ waiting: false, readsAfter: null });', T('report-basis-sync')),''',
+    '''  ('base', 'src/modules/reports/basisSync.ts', '    readsMark.current = key !== null && readsRef.current !== null ? { key, value: readsRef.current } : null;', '    readsMark.current = null;', T('report-basis-sync', 'work-time-income-estimate')),''')
+rep('''  ('guarda', 'src/modules/work-time/useIncomeEstimate.ts', 'const held = (syncing || readsBehind) && lastDone.current', 'const held = syncing && lastDone.current', T('work-time-guard')),''',
+    '''  ('base', 'src/modules/reports/basisSync.ts', '  return { syncing, holding: syncing || readsBehind };', '  return { syncing, holding: syncing };', T('report-basis-sync', 'work-time-income-estimate')),''')
+# novos: revisão 4
+rep('''{ cancelRefetch: false })', '{ queryKey: incomeReadsKey(workspaceId, kind) })', T('report-basis-sync')),
+]''', '''{ cancelRefetch: false })', '{ queryKey: incomeReadsKey(workspaceId, kind) })', T('report-basis-sync')),
+  # revisão 4: mutação nesta aba (R4-01), janela de 12 meses (R4-02), teto e base sem dado (R4-03),
+  # estorno na data do recebimento (R4-04), marco sem relógio (R4-05) e retenção testada (R4-06)
+  ('mutação', 'src/modules/transactions/incomeReads.ts', '    predicate: (query) => !isIncomeReadKey(query.queryKey),\\n', '', T('work-time-income-estimate', 'work-time-guard')),
+  ('mutação', 'src/modules/transactions/hooks.ts', '    invalidateTransactionReads(queryClient, workspaceId),', '    queryClient.invalidateQueries({ queryKey: transactionKey(workspaceId) }),', T('work-time-guard')),
+  ('mutação', 'src/modules/investments/simple/api.ts', '        invalidateTransactionReads(queryClient, workspaceId),', "        queryClient.invalidateQueries({ queryKey: ['transactions', workspaceId] }),", T('work-time-guard')),
+  ('base', 'src/modules/reports/basisSync.ts', '    if (!enabled || current === null || projected.current === null) return;\\n    if (current.exact) {', '    if (!enabled || projected.current === null) return;\\n    if (current === null) { request.current(null); return; }\\n    if (current.exact) {', T('report-basis-sync', 'work-time-income-estimate')),
+  ('base', 'src/modules/reports/basisSync.ts', '      current.versions.every((version, index) => version !== 0 && version !== request.versions[index]);', '      current.versions.some((version, index) => version !== 0 && version !== request.versions[index]);', T('report-basis-sync')),
+  ('base', 'src/modules/reports/basisSync.ts', '      if (pending.current && !arrived() && pending.current.signature === decision.signature) return;\\n', '', T('report-basis-sync')),
+  ('estimativa', 'src/modules/work-time/useIncomeEstimateWith.ts', '    if (!series.data || (needsExtra && !extra.data)) return null;', '    if (!series.data) return null;', T('work-time-income-estimate')),
+  ('base', 'src/modules/reports/queryKeys.ts', '    await queryClient.invalidateQueries({ queryKey: [FINANCIAL_REPORT_KEY] });', '    refreshRegisteredBases();\\n    await queryClient.invalidateQueries({ queryKey: [FINANCIAL_REPORT_KEY] });', T('report-basis-sync', 'report-range')),
+  ('base', 'src/modules/reports/basisRegistry.ts', '    if (!key.startsWith(prefix) || !entry.loaded()) continue;', '    if (!key.startsWith(prefix)) continue;', T('report-basis-sync')),
+  ('guarda', 'src/modules/reports/hooks.ts', '            void invalidateFinancialReportBases(queryClient);\\n', '', T('work-time-guard')),
+  ('base', 'src/modules/reports/basisSync.ts', '    reads !== null && reads === readsMark.current.value;', '    reads !== null && reads <= readsMark.current.value;', T('report-basis-sync')),
+  ('mensagens', 'src/modules/work-time/messages.ts', '    const where = inside\\n', '    const where = true\\n', T('work-time-estimate')),
+  ('retenção', 'src/modules/work-time/useIncomeEstimateWith.ts', '  a.calendar === b.calendar &&\\n', '', T('work-time-income-estimate')),
+  ('retenção', 'src/modules/work-time/useIncomeEstimateWith.ts', "  a.excludedIds.join(',') === b.excludedIds.join(',');", '  true;', T('work-time-income-estimate')),
+  ('retenção', 'src/modules/work-time/useIncomeEstimateWith.ts', '      ? { ...last.state, refreshFailed: state.refreshFailed, retry: state.retry }', '      ? last.state', T('work-time-income-estimate')),
+  ('retenção', 'src/modules/work-time/useIncomeEstimateWith.ts', "  return { shown: state, last: state.status === 'done' ? { params, state } : last };", "  return { shown: state, last: state.status === 'done' ? { params, state } : null };", T('work-time-income-estimate')),
+  ('retenção', 'src/modules/work-time/useIncomeEstimateWith.ts', '  const decision = holdEstimate(holding, last.current, params, state);', '  const decision = holdEstimate(false, last.current, params, state);', T('work-time-income-estimate', 'work-time-guard')),
+]''')
+# classificação: não compila × morto × sobreviveu (R4-06)
+rep('''def run(cmd):
+  return subprocess.run(cmd, cwd=WT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode
+''', '''def run(cmd):
+  return subprocess.run(cmd, cwd=WT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode
+
+LOADERS = {'.ts': 'ts', '.tsx': 'tsx', '.mjs': 'js', '.js': 'js'}
+CHECK = ("const e=require(process.argv[1]);let s='';process.stdin.on('data',d=>s+=d)"
+         ".on('end',()=>{try{e.transformSync(s,{loader:process.argv[2]});process.exit(0)}catch(_){process.exit(1)}})")
+
+def compiles(path, text):
+  """Sintaxe do arquivo mutado (esbuild, o mesmo da build): mutante que não compila não conta como morto."""
+  loader = LOADERS.get(path.suffix)
+  if loader is None:
+    return True  # firestore.rules: a guarda lê o texto; as Rules mutadas passam pelo carregamento no Emulator
+  check = subprocess.run(['node', '-e', CHECK, str(WT / 'node_modules/esbuild'), loader], input=text.encode('utf-8'),
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+  return check.returncode == 0
+''')
+rep('''  path.write_text(text.replace(old, new, 1), encoding='utf-8')
+  try:''', '''  mutated = text.replace(old, new, 1)
+  if not compiles(path, mutated):
+    return group, rel, old, 'NÃO COMPILA'
+  path.write_text(mutated, encoding='utf-8')
+  try:''')
+rep('''  dead = sum(1 for row in rows if row[3] == 'MORTO')
+  for group, rel, old, result in rows:
+    first = old.strip().splitlines()[0][:90]
+    print(f'{result:10} {group:11} {rel}: {first}')
+  print(f'TOTAL {MODE}: {dead}/{len(rows)} mortos')''', '''  dead = sum(1 for row in rows if row[3] == 'MORTO')
+  broken = sum(1 for row in rows if row[3] == 'NÃO COMPILA')
+  for group, rel, old, result in rows:
+    first = old.strip().splitlines()[0][:90]
+    print(f'{result:11} {group:11} {rel}: {first}')
+  print(f'TOTAL {MODE}: {dead}/{len(rows)} mortos; {broken} não compilam')''')
+P.write_text(s, encoding='utf-8')
+print('ok')

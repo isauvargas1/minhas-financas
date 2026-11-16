@@ -1,0 +1,13 @@
+// Sonda do revisor (R2A): reproduz o caso do parecer (§3) na árvore indicada.
+// Uso: node --experimental-strip-types s01-parecer.mts <raiz da árvore>
+const root = process.argv[2];
+const cal = await import(`${root}/src/modules/work-time/calendar.ts`);
+const w = (s: string, e: string, b = 0) => ({ kind: 'window', start: +s.slice(0, 2) * 60 + +s.slice(3), end: +e.slice(0, 2) * 60 + +e.slice(3), breakMinutes: b });
+const OFF = { kind: 'off' };
+const routines = [{ kind: 'weekly', days: [w('20:00', '06:00'), w('00:00', '08:00'), OFF, OFF, OFF, OFF, OFF] }];
+for (const limit of [null, 480, 600]) {
+  const c = { routines, worksOnHolidays: true, localHolidays: [], exceptions: limit === null ? [] : [{ kind: 'reduced', start: '2026-10-05', end: '2026-10-05', minutes: limit }] };
+  const mon = cal.dayPlan(c, '2026-10-05');
+  const tue = cal.dayPlan(c, '2026-10-06');
+  console.log(JSON.stringify({ limit, mon: mon.minutes, tue: tue.minutes, tueAmbiguous: tue.ambiguous, tueReducedEve: tue.reducedEve, verdict: cal.calendarAmbiguity(c, '2026-11-06') }));
+}

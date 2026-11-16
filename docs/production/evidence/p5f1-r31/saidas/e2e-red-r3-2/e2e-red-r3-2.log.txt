@@ -1,0 +1,64 @@
+
+Running 2 tests using 1 worker
+
+(node:1942) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 [chromium] › e2e/work-time-b03.spec.ts:632:1 › B03-f (R3.1): leitura nova sem prova: o saldo novo fica em reais e nunca é convertido pela estimativa anterior; a reconstrução traz a conversão certa (1.3m)
+(node:2155) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  2 [chromium] › e2e/work-time-p5f.spec.ts:1038:1 › releitura que falha: sem confirmar a receita nova, nada convertido e erro com "Tentar de novo", que a traz com o relatório de volta; com a projeção de volta à última leitura, a estimativa volta com o aviso (48.4s)
+
+
+  1) [chromium] › e2e/work-time-b03.spec.ts:632:1 › B03-f (R3.1): leitura nova sem prova: o saldo novo fica em reais e nunca é convertido pela estimativa anterior; a reconstrução traz a conversão certa 
+
+    Error: o saldo novo, em reais
+
+    o saldo novo, em reais
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "reais|R$ 20.200,00"
+    Received: "tempo|≈ 808 h"
+
+    Call Log:
+    - Timeout 60000ms exceeded while waiting on the predicate
+
+      669 |   await expect(balanceCard(page)).toContainText(brl(after), { timeout: 60_000 });
+      670 |   await expect.poll(async () => normalized(await recorded(page)).at(-1), { timeout: 60_000, message: 'o saldo novo, em reais' })
+    > 671 |     .toBe(`reais|${norm(brlText(after))}`);
+          |      ^
+      672 |   await expect(page.locator('[data-work-time]')).toHaveCount(0);
+      673 |   await expect(notice(page)).toContainText(
+      674 |     /Calculando a estimativa de tempo de trabalho: enquanto isso, os valores ficam em reais\.|Estimativa de tempo de trabalho indisponível agora: os valores continuam em reais\./,
+        at <scratchpad>/p5f1r31/copia-r3-e2e/e2e/work-time-b03.spec.ts:671:6
+
+    Error Context: test-results/work-time-b03-B03-f-R3-1-l-5f16a-ução-traz-a-conversão-certa-chromium/error-context.md
+
+  2) [chromium] › e2e/work-time-p5f.spec.ts:1038:1 › releitura que falha: sem confirmar a receita nova, nada convertido e erro com "Tentar de novo", que a traz com o relatório de volta; com a projeção de volta à última leitura, a estimativa volta com o aviso 
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: getByTestId('work-time-preview-error')
+    Expected substring: "Não foi possível carregar o relatório. Tente novamente."
+    Timeout: 45000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toContainText" with timeout 45000ms
+      - waiting for getByTestId('work-time-preview-error')
+
+
+      1079 |   const failure = page.getByTestId('work-time-preview-error');
+      1080 |   const stale = page.getByTestId('work-time-preview-refresh-failed');
+    > 1081 |   await expect(failure).toContainText('Não foi possível carregar o relatório. Tente novamente.', { timeout: 45_000 });
+           |                         ^
+      1082 |   await expect(failure).not.toContainText(/internal|INTERNAL/);
+      1083 |   await expect(failure.getByRole('button', { name: 'Tentar de novo' })).toBeVisible();
+      1084 |   await expect(previewHourly(page)).toHaveCount(0);
+        at <scratchpad>/p5f1r31/copia-r3-e2e/e2e/work-time-p5f.spec.ts:1081:25
+
+    Error Context: test-results/work-time-p5f-releitura-qu-6addd-stimativa-volta-com-o-aviso-chromium/error-context.md
+
+  2 failed
+    [chromium] › e2e/work-time-b03.spec.ts:632:1 › B03-f (R3.1): leitura nova sem prova: o saldo novo fica em reais e nunca é convertido pela estimativa anterior; a reconstrução traz a conversão certa 
+    [chromium] › e2e/work-time-p5f.spec.ts:1038:1 › releitura que falha: sem confirmar a receita nova, nada convertido e erro com "Tentar de novo", que a traz com o relatório de volta; com a projeção de volta à última leitura, a estimativa volta com o aviso 

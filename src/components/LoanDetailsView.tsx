@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 
 import { useLoan, useLoanMovements } from '../modules/loans/hooks.ts';
 import { formatCents, formatDayKey, saoPauloToday } from '../modules/loans/money.ts';
+import { useMoneyDisplay } from '../modules/work-time/display.tsx';
 import {
   LOAN_STATUS_LABELS,
   LOAN_TYPE_LABELS,
@@ -28,6 +29,7 @@ interface LoanDetailsViewProps {
 }
 
 const LoanDetailsView: React.FC<LoanDetailsViewProps> = ({ loanId, onBack }) => {
+    const display = useMoneyDisplay();
   const { data: loan, isLoading } = useLoan(loanId);
   const {
     data: movements,
@@ -105,14 +107,14 @@ const LoanDetailsView: React.FC<LoanDetailsViewProps> = ({ loanId, onBack }) => 
             <div>
               <span className="text-sm font-bold text-muted uppercase tracking-widest">Saldo Pendente</span>
               <div data-testid="loan-balance" className="text-4xl font-black text-on-surface mt-1">
-                {cancelled ? 'Cancelado' : formatCents(openBalanceCents(loan))}
+                {cancelled ? 'Cancelado' : display.cents(openBalanceCents(loan), formatCents)}
               </div>
               <div className="h-3 bg-background rounded-full overflow-hidden relative mt-4 border border-border/50" role="progressbar" aria-label="Principal liquidado" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100}>
                 <MotionDiv className="h-full bg-primary" initial={{ width: 0 }} animate={{ width: `${progress}%` }} transition={{ duration: 1 }} />
               </div>
               <div className="flex justify-between mt-2 text-[10px] font-bold text-muted uppercase">
                 <span>Principal liquidado: {progress}%</span>
-                <span>{formatCents(loan.totalPrincipalSettledCents)} {isBorrow ? 'pagos' : 'recebidos'}</span>
+                <span>{display.cents(loan.totalPrincipalSettledCents, formatCents)} {isBorrow ? 'pagos' : 'recebidos'}</span>
               </div>
             </div>
 
@@ -131,7 +133,7 @@ const LoanDetailsView: React.FC<LoanDetailsViewProps> = ({ loanId, onBack }) => 
               </div>
               <div className="flex justify-between text-sm">
                 <dt className="text-muted font-medium">Juros {isBorrow ? 'pagos' : 'recebidos'}:</dt>
-                <dd data-testid="loan-interest-settled" className="font-bold text-on-surface">{formatCents(loan.totalInterestSettledCents)}</dd>
+                <dd data-testid="loan-interest-settled" className="font-bold text-on-surface">{display.cents(loan.totalInterestSettledCents, formatCents)}</dd>
               </div>
               <div className="flex justify-between text-sm pt-2 border-t border-border">
                 <dt className="text-muted font-medium">Modo:</dt>

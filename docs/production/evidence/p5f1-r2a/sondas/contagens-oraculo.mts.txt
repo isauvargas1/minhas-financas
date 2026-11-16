@@ -1,0 +1,183 @@
+// P5-F.1-R2A — contagens da propriedade do oráculo (a mesma geração do teste, seed 20261113), mais as recusas
+// conservadoras: recusadas pelo motor em que as duas partes possíveis de tamanho R (a mais tarde e a mais cedo) dão o
+// mesmo número. Uso: node --experimental-strip-types contagens-oraculo.mts <raiz da árvore>
+import assert from 'node:assert/strict';
+const root = process.argv[2];
+const { dayPlan } = await import(`${root}/src/modules/work-time/calendar.ts`);
+const OFF = { kind: 'off' } as const;
+const weekly = (...days: any[]) => ({ kind: 'weekly', days });
+const duration = (minutes: number) => ({ kind: 'duration', minutes });
+const mondayOnly = (spec: any) => weekly(spec, OFF, OFF, OFF, OFF, OFF, OFF);
+const tuesdayOnly = (spec: any) => weekly(OFF, spec, OFF, OFF, OFF, OFF, OFF);
+const REDUCED_MONDAY = (minutes: number) => ({ kind: 'reduced', start: '2026-10-05', end: '2026-10-05', minutes });
+const calendar = (patch: any = {}) => ({ routines: [], worksOnHolidays: false, localHolidays: [], exceptions: [], ...patch });
+type DaySpec = any; type WorkException = any;
+const random = (seed: number) => () => {
+  seed = (seed + 0x6d2b79f5) | 0;
+  let value = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+  value = (value + Math.imul(value ^ (value >>> 7), 61 | value)) ^ value;
+  return ((value ^ (value >>> 14)) >>> 0) / 4_294_967_296;
+};
+const pick = <T,>(next: () => number, items: readonly T[]): T => items[Math.floor(next() * items.length)];
+type Span = readonly [number, number];
+const unite = (spans: readonly Span[]): Span[] => {
+  const merged: Array<[number, number]> = [];
+  for (const [a, b] of spans.filter(([x, y]) => y > x).map(([x, y]): [number, number] => [x, y]).sort((p, q) => p[0] - q[0])) {
+    const last = merged[merged.length - 1];
+    if (last && a <= last[1]) last[1] = Math.max(last[1], b);
+    else merged.push([a, b]);
+  }
+  return merged;
+};
+const size = (spans: readonly Span[]) => spans.reduce((sum, [a, b]) => sum + b - a, 0);
+const meet = (a: readonly Span[], b: readonly Span[]): Span[] =>
+  unite(a.flatMap(([a0, a1]) => b.map(([b0, b1]): Span => [Math.max(a0, b0), Math.min(a1, b1)])));
+const minus = (a: readonly Span[], b: readonly Span[]): Span[] => {
+  let rest: Span[] = unite(a);
+  for (const [b0, b1] of unite(b)) {
+    rest = rest.flatMap(([a0, a1]): Span[] => [[a0, Math.min(a1, b0)], [Math.max(a0, b1), a1]]).filter(([x, y]) => y > x);
+  }
+  return rest;
+};
+/** Os primeiros `amount` minutos das regiões, na ordem dada (em cada região, do começo ou do fim). */
+const take = (regions: ReadonlyArray<{ spans: readonly Span[]; fromEnd: boolean }>, amount: number): Span[] => {
+  const out: Span[] = [];
+  let left = amount;
+  for (const region of regions) {
+    const spans = region.fromEnd ? [...unite(region.spans)].reverse() : unite(region.spans);
+    for (const [a, b] of spans) {
+      if (left <= 0) break;
+      const piece = Math.min(left, b - a);
+      out.push(region.fromEnd ? [b - piece, b] : [a, a + piece]);
+      left -= piece;
+    }
+  }
+  return unite(out);
+};
+const MONDAY_CIVIL: Span = [0, 1440];
+const TUESDAY_CIVIL: Span = [1440, 2880];
+
+/** O dia seguinte (terça) como a pessoa o informou: janelas sem intervalo, durações, acréscimos e exceções. */
+interface NextDay { windows: Span[]; durations: number; additions: number; reduced: number | null; scheduleChange: number | null; absent: boolean }
+
+/**
+ * Especificação executável do dia seguinte (rotinas-matematica.md §3), com a véspera tendo trabalhado exatamente
+ * o trecho `worked` das janelas dela: o trecho em comum conta na véspera, e os minutos sem horário só ocupam o que
+ * sobra do dia civil. Independente do código do motor: só aritmética de trechos e a fórmula do teto.
+ */
+const nextDaySpec = (day: NextDay, worked: readonly Span[]) => {
+  const windows = unite(day.windows);
+  const w = size(minus(windows, worked));
+  const after = size(meet(windows, [[2880, 2880 + 1440]]));
+  const occupied = size(meet(worked, [TUESDAY_CIVIL]));
+  let r = w + day.durations;
+  if (day.scheduleChange !== null) r = day.scheduleChange;
+  else if (day.reduced !== null && r > day.reduced) r = day.reduced;
+  if (day.absent && r > 0) r = 0;
+  const happens = day.scheduleChange === null && !day.absent;
+  const windowPart = happens ? Math.min(r, after) : 0;
+  return { minutes: Math.min(r + day.additions, windowPart + Math.max(0, 1440 - occupied)), windowPart, occupied };
+};
+
+const grid15 = (next: () => number, max: number) => Math.floor(next() * (Math.floor(max / 15) + 1)) * 15;
+const spanSpec = (start: number, length: number): DaySpec => ({ kind: 'window', start: start % 1440, end: (start + length) % 1440, breakMinutes: 0 });
+
+
+  const next = random(20261113);
+  let accepted = 0;
+  let refused = 0;
+  let necessary = 0;
+  let notBiting = 0;
+  let conservative = 0;
+  const conservativeBy: Record<string, number> = {};
+  for (let sample = 0; sample < 4_000; sample += 1) {
+    // Segunda: um turno que passa da meia-noite e, às vezes, outra janela qualquer (sem intervalo).
+    const nightStart = 1020 + grid15(next, 405);
+    const minLength = 1440 - nightStart + 15;
+    const mondaySpans: Span[] = [[nightStart, nightStart + minLength + grid15(next, 1440 - minLength)]];
+    if (next() < 0.3) { const start = grid15(next, 1425); mondaySpans.push([start, start + 15 + grid15(next, 1425)]); }
+    // Terça: até duas janelas (metade começa entre 00:00 e 08:00, no trecho do turno), durações, acréscimos e exceções.
+    const tuesdaySpans: Span[] = Array.from({ length: Math.floor(next() * 3) }, (): Span => {
+      const start = next() < 0.5 ? grid15(next, 480) : grid15(next, 1425);
+      return [1440 + start, 1440 + start + 15 + grid15(next, 945)];
+    });
+    const day: NextDay = { windows: tuesdaySpans, durations: next() < 0.25 ? 60 + grid15(next, 1380) : 0, additions: 0, reduced: null, scheduleChange: null, absent: false };
+    const tuesdayExceptions: WorkException[] = [];
+    const roll = next();
+    if (roll >= 0.45) {
+      if (roll < 0.7 || (roll >= 0.7 && roll < 0.8 && next() < 0.5)) {
+        const minutes = 60 + grid15(next, 1380);
+        tuesdayExceptions.push({ kind: next() < 0.5 ? 'on_call' : 'overtime', date: '2026-10-06', minutes });
+        day.additions = minutes;
+      }
+      if (roll >= 0.7 && roll < 0.8) { day.reduced = 60 + grid15(next, 660); tuesdayExceptions.push({ kind: 'reduced', start: '2026-10-06', end: '2026-10-06', minutes: day.reduced }); }
+      else if (roll >= 0.8 && roll < 0.9) { day.scheduleChange = grid15(next, 1440); tuesdayExceptions.push({ kind: 'schedule_change', date: '2026-10-06', minutes: day.scheduleChange }); }
+      else if (roll >= 0.9) { day.absent = true; tuesdayExceptions.push({ kind: 'day_off', start: '2026-10-06', end: '2026-10-06' }); }
+    }
+    const limit = 15 + grid15(next, 1425);
+    const input = calendar({
+      worksOnHolidays: true,
+      routines: [
+        ...mondaySpans.map(([a, b]) => mondayOnly(spanSpec(a, b - a))),
+        ...tuesdaySpans.map(([a, b]) => tuesdayOnly(spanSpec(a - 1440, b - a))),
+        ...(day.durations > 0 ? [tuesdayOnly(duration(day.durations))] : []),
+      ],
+      exceptions: [
+        { kind: 'day_off', start: '2026-10-04', end: '2026-10-04' },
+        { kind: 'day_off', start: '2026-10-07', end: '2026-10-07' },
+        REDUCED_MONDAY(limit),
+        ...tuesdayExceptions,
+      ],
+    });
+    const engine = dayPlan(input, '2026-10-06');
+    const monday = unite(mondaySpans);
+    const context = `amostra ${sample}: ${JSON.stringify({ mondaySpans, limit, day })}`;
+    const full = nextDaySpec(day, monday).minutes;
+    const none = nextDaySpec(day, []).minutes;
+    if (limit >= size(monday)) {
+      // A redução não corta nada: a segunda é a rotina, e a terça desconta o turno inteiro.
+      notBiting += 1;
+      assert.deepEqual([engine.ambiguous, engine.minutes], [false, full], context);
+      continue;
+    }
+    // O motor recusa exatamente quando os dois extremos (nada do turno, o turno inteiro) diferem.
+    assert.equal(engine.ambiguous, full !== none, context);
+    // As partes possíveis com o total da redução: a mais tarde (sobre a terça e as janelas dela) e a mais cedo.
+    const shared = meet(monday, unite(tuesdaySpans));
+    const tuesdayRest = minus(meet(monday, [TUESDAY_CIVIL]), shared);
+    const mondayPart = meet(monday, [MONDAY_CIVIL]);
+    const late = take([{ spans: shared, fromEnd: false }, { spans: tuesdayRest, fromEnd: false }, { spans: mondayPart, fromEnd: true }], limit);
+    const early = take([{ spans: mondayPart, fromEnd: false }, { spans: tuesdayRest, fromEnd: false }, { spans: shared, fromEnd: false }], limit);
+    assert.deepEqual([size(late), size(early)], [limit, limit], context);
+    if (engine.ambiguous) {
+      refused += 1;
+      assert.equal(engine.reducedEve, true, context);
+      // Sem minutos sem horário nem exceções na terça, duas partes possíveis da segunda dão terças diferentes.
+      const plain = day.durations === 0 && day.additions === 0 && day.reduced === null && day.scheduleChange === null && !day.absent;
+      if (nextDaySpec(day, late).minutes === nextDaySpec(day, early).minutes) {
+        conservative += 1;
+        const untimed = day.durations + day.additions + (day.scheduleChange ?? 0);
+        const overlapsTuesday = size(shared) > 0;
+        const key = `${overlapsTuesday ? 'turno cruza janela de terça' : 'turno não cruza janela de terça'}; sem horário + acréscimos ${untimed <= 720 ? '<= 12 h' : '> 12 h'}`;
+        conservativeBy[key] = (conservativeBy[key] ?? 0) + 1;
+      }
+      if (plain) {
+        necessary += 1;
+        assert.notEqual(nextDaySpec(day, late).minutes, nextDaySpec(day, early).minutes, context);
+      }
+      continue;
+    }
+    accepted += 1;
+    const randomParts = Array.from({ length: 4 }, () => unite(monday.flatMap(([a, b]): Span[] => {
+      if (next() < 0.4) return [];
+      const u = a + Math.floor(next() * (b - a));
+      return [[u, u + Math.floor(next() * (b - u + 1))]];
+    })));
+    for (const worked of [[], monday, late, early, ...randomParts]) {
+      const spec = nextDaySpec(day, worked);
+      assert.equal(spec.minutes, engine.minutes, `${context} parte ${JSON.stringify(worked)}`);
+      // Nenhum dia civil passa de 24 h: o que a terça conta no dia civil dela mais o que a segunda ocupa nele.
+      assert.ok(engine.minutes - Math.min(engine.minutes, spec.windowPart) + spec.occupied <= 1440, `${context} dia civil`);
+    }
+  }
+  console.log(JSON.stringify({ amostras: 4000, aceitas: accepted, recusadas: refused, recusadasSemMinutosSemHorario: necessary, reducoesQueNaoCortam: notBiting, recusadasConservadoras: conservative, recusadasComPartesDiferentes: refused - conservative, conservadorasPorTipo: conservativeBy }));

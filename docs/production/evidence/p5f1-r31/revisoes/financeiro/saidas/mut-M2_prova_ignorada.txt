@@ -1,0 +1,1053 @@
+TAP version 13
+# Subtest: prova: cada regra, na ordem, com o motivo da primeira que falha
+ok 1 - prova: cada regra, na ordem, com o motivo da primeira que falha
+  ---
+  duration_ms: 2.048319
+  type: 'test'
+  ...
+# Subtest: prova (regra 5, marcas): prova nula espera, prova recusada é "projection_marks" por qualquer motivo, provada aprova, e as regras 1 a 4 vêm antes
+ok 2 - prova (regra 5, marcas): prova nula espera, prova recusada é "projection_marks" por qualquer motivo, provada aprova, e as regras 1 a 4 vêm antes
+  ---
+  duration_ms: 0.321632
+  type: 'test'
+  ...
+# Subtest: prova (regra 5, marcas): só o resultado da prova das marcas decide; escrita, hora ou prazo não aprovam nem seguram
+ok 3 - prova (regra 5, marcas): só o resultado da prova das marcas decide; escrita, hora ou prazo não aprovam nem seguram
+  ---
+  duration_ms: 2.203991
+  type: 'test'
+  ...
+# Subtest: B03: a primeira estimativa só aparece provada pela projeção, com a leitura por id depois dela (a escuta antes das bases)
+ok 4 - B03: a primeira estimativa só aparece provada pela projeção, com a leitura por id depois dela (a escuta antes das bases)
+  ---
+  duration_ms: 135.181666
+  type: 'test'
+  ...
+# Subtest: B03: a primeira estimativa só aparece provada pela projeção, com a leitura por id depois dela (a escuta depois das bases)
+ok 5 - B03: a primeira estimativa só aparece provada pela projeção, com a leitura por id depois dela (a escuta depois das bases)
+  ---
+  duration_ms: 130.980569
+  type: 'test'
+  ...
+# Subtest: B03: a primeira estimativa só aparece provada pela projeção, com a leitura por id depois dela (a escuta só quando o servidor responde)
+ok 6 - B03: a primeira estimativa só aparece provada pela projeção, com a leitura por id depois dela (a escuta só quando o servidor responde)
+  ---
+  duration_ms: 149.00059
+  type: 'test'
+  ...
+# Subtest: B03: a projeção mais nova que a base lida na montagem: nunca a estimativa da base antiga; a base é relida e a nova aparece provada
+ok 7 - B03: a projeção mais nova que a base lida na montagem: nunca a estimativa da base antiga; a base é relida e a nova aparece provada
+  ---
+  duration_ms: 196.941387
+  type: 'test'
+  ...
+# Subtest: B03: uma base e nenhuma desconsiderada: a leitura única é provada mesmo com a escuta encerrada, com a ressalva
+ok 8 - B03: uma base e nenhuma desconsiderada: a leitura única é provada mesmo com a escuta encerrada, com a ressalva
+  ---
+  duration_ms: 18.604222
+  type: 'test'
+  ...
+# Subtest: B03: janela de 12 meses com a escuta encerrada desde o começo: sem prova, o erro com "Tentar de novo"; com a escuta de volta, a estimativa provada
+not ok 9 - B03: janela de 12 meses com a escuta encerrada desde o começo: sem prova, o erro com "Tentar de novo"; com a escuta de volta, a estimativa provada
+  ---
+  duration_ms: 3006.798554
+  type: 'test'
+  location: '<scratchpad>/fdi-mut/tests/unit/work-time-consistency.test.ts:481:1'
+  failureType: 'testCodeFailure'
+  error: 'tempo esgotado: erro (mostrados: loading → 3600000)'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  operator: 'fail'
+  stack: |-
+    until (file://<scratchpad>/fdi-mut/tests/unit/work-time-consistency.test.ts:55:57)
+    async TestContext.<anonymous> (file://<scratchpad>/fdi-mut/tests/unit/work-time-consistency.test.ts:486:3)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: B03 (R8-02): a desconsiderada do 12º mês anulada em outra sessão e a troca para 12 meses: o mês avulso novo nunca aparece com a exclusão antiga
+ok 10 - B03 (R8-02): a desconsiderada do 12º mês anulada em outra sessão e a troca para 12 meses: o mês avulso novo nunca aparece com a exclusão antiga
+  ---
+  duration_ms: 197.500686
+  type: 'test'
+  ...
+# Subtest: B03 (R11-01): o mês avulso sai da janela com a leitura em curso e volta desatualizado: a base antiga não aparece, e é relida
+not ok 11 - B03 (R11-01): o mês avulso sai da janela com a leitura em curso e volta desatualizado: a base antiga não aparece, e é relida
+  ---
+  duration_ms: 532.225217
+  type: 'test'
+  location: '<scratchpad>/fdi-mut/tests/unit/work-time-consistency.test.ts:516:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    nunca R$ 35.300,00 (o mês avulso desatualizado) (mostrados: loading → 3550000 → loading → 1750000 → 3530000 → loading → 3510000)
+    + actual - expected
+    
+    + [
+    +   'done',
+    +   'done'
+    + ]
+    - []
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual:
+    0: 'done'
+    1: 'done'
+  operator: 'deepStrictEqual'
+  stack: |-
+    assertLoadingOr (file://<scratchpad>/fdi-mut/tests/unit/work-time-consistency.test.ts:432:10)
+    TestContext.<anonymous> (file://<scratchpad>/fdi-mut/tests/unit/work-time-consistency.test.ts:543:3)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: B03 (R11-02): 12 meses sem desconsiderada, as bases relidas sem pedido da escuta (a virada do mês) e o mês avulso falhando: nenhuma renderização mostra só a série nova
+not ok 12 - B03 (R11-02): 12 meses sem desconsiderada, as bases relidas sem pedido da escuta (a virada do mês) e o mês avulso falhando: nenhuma renderização mostra só a série nova
+  ---
+  duration_ms: 386.842801
+  type: 'test'
+  location: '<scratchpad>/fdi-mut/tests/unit/work-time-consistency.test.ts:546:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    o erro da leitura, com "Tentar de novo"
+    + actual - expected
+    
+    + undefined
+    - 'Não foi possível carregar o relatório. Tente novamente.'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'Não foi possível carregar o relatório. Tente novamente.'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file://<scratchpad>/fdi-mut/tests/unit/work-time-consistency.test.ts:565:10)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: B03: o calendário trocado durante a sincronização de uma anulação em outra sessão: nunca a base nova com a leitura por id antiga
+ok 13 - B03: o calendário trocado durante a sincronização de uma anulação em outra sessão: nunca a base nova com a leitura por id antiga
+  ---
+  duration_ms: 495.131746
+  type: 'test'
+  ...
+# Subtest: B03: troca do workspace da renda: a estimativa do anterior nunca aparece; só "calculando" até a do novo estar provada
+ok 14 - B03: troca do workspace da renda: a estimativa do anterior nunca aparece; só "calculando" até a do novo estar provada
+  ---
+  duration_ms: 213.05611
+  type: 'test'
+  ...
+# Subtest: B03: troca de conta: a estimativa da conta anterior não é reaproveitada
+ok 15 - B03: troca de conta: a estimativa da conta anterior não é reaproveitada
+  ---
+  duration_ms: 160.679339
+  type: 'test'
+  ...
+# Subtest: B03: nova receita e anulação da desconsiderada em outra sessão durante a releitura por id: nenhuma renderização desconta duas vezes
+not ok 16 - B03: nova receita e anulação da desconsiderada em outra sessão durante a releitura por id: nenhuma renderização desconta duas vezes
+  ---
+  duration_ms: 488.160134
+  type: 'test'
+  location: '<scratchpad>/fdi-mut/tests/unit/work-time-consistency.test.ts:637:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    só estados consistentes (mostrados: loading → 1056000 → loading → 1036000 → 1086000)
+    + actual - expected
+    
+    + [
+    +   1036000
+    + ]
+    - []
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual:
+    0: 1036000
+  operator: 'deepStrictEqual'
+  stack: |-
+    assertOnly (file://<scratchpad>/fdi-mut/tests/unit/work-time-consistency.test.ts:427:10)
+    TestContext.<anonymous> (file://<scratchpad>/fdi-mut/tests/unit/work-time-consistency.test.ts:659:3)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: B03: a leitura por id falha antes da primeira estimativa: o erro com "Tentar de novo", nunca o total sem as exclusões
+ok 17 - B03: a leitura por id falha antes da primeira estimativa: o erro com "Tentar de novo", nunca o total sem as exclusões
+  ---
+  duration_ms: 42.457402
+  type: 'test'
+  ...
+# Subtest: revisão pt-BR da R3 (M-01): sem desconsiderada, 12 meses e a escuta sem retorno do servidor: depois do tempo de interface, o texto de "em atualização" sem apontar causa, nunca a conversão; com o retorno, a estimativa provada
+not ok 18 - revisão pt-BR da R3 (M-01): sem desconsiderada, 12 meses e a escuta sem retorno do servidor: depois do tempo de interface, o texto de "em atualização" sem apontar causa, nunca a conversão; com o retorno, a estimativa provada
+  ---
+  duration_ms: 56.836101
+  type: 'test'
+  location: '<scratchpad>/fdi-mut/tests/unit/work-time-consistency.test.ts:679:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    antes do tempo de interface: "calculando"
+    
+    'done' !== 'loading'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'loading'
+  actual: 'done'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file://<scratchpad>/fdi-mut/tests/unit/work-time-consistency.test.ts:687:10)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: revisão pt-BR da R3 (L-03): a leitura das marcas falha: o erro fixo em pt-BR com "Tentar de novo", nunca a conversão; o "Tentar de novo" prova
+ok 19 - revisão pt-BR da R3 (L-03): a leitura das marcas falha: o erro fixo em pt-BR com "Tentar de novo", nunca a conversão; o "Tentar de novo" prova
+  ---
+  duration_ms: 48.295238
+  type: 'test'
+  ...
+# Subtest: revisão da R1 (N05): com desconsiderada, a escuta encerrada antes do primeiro retorno do servidor dá o erro com "Tentar de novo", nunca "calculando" para sempre
+ok 20 - revisão da R1 (N05): com desconsiderada, a escuta encerrada antes do primeiro retorno do servidor dá o erro com "Tentar de novo", nunca "calculando" para sempre
+  ---
+  duration_ms: 133.141913
+  type: 'test'
+  ...
+# Subtest: revisão da R1 (N03): a desconsiderada editada em outra sessão antes do gatilho, na primeira leitura: nunca o valor novo com o total velho
+not ok 21 - revisão da R1 (N03): a desconsiderada editada em outra sessão antes do gatilho, na primeira leitura: nunca o valor novo com o total velho
+  ---
+  duration_ms: 212.490711
+  type: 'test'
+  location: '<scratchpad>/fdi-mut/tests/unit/work-time-consistency.test.ts:735:1'
+  failureType: 'testCodeFailure'
+  error: 'antes do gatilho, nenhuma estimativa (mostrados: loading → 1026000)'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (file://<scratchpad>/fdi-mut/tests/unit/work-time-consistency.test.ts:744:10)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: B03 (R3, ex-N03): a desconsiderada editada sem efeito na renda e o gatilho atrasado (marca velha): nenhuma conversão em tempo nenhum, só "estimativa em atualização"; com a marca aplicada, a estimativa certa aparece sem esperar prazo
+not ok 22 - B03 (R3, ex-N03): a desconsiderada editada sem efeito na renda e o gatilho atrasado (marca velha): nenhuma conversão em tempo nenhum, só "estimativa em atualização"; com a marca aplicada, a estimativa certa aparece sem esperar prazo
+  ---
+  duration_ms: 125.167501
+  type: 'test'
+  location: '<scratchpad>/fdi-mut/tests/unit/work-time-consistency.test.ts:817:1'
+  failureType: 'testCodeFailure'
+  error: 'marca velha: nenhuma estimativa (mostrados: loading → 1056000)'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (file://<scratchpad>/fdi-mut/tests/unit/work-time-consistency.test.ts:826:10)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: B03 (R3, ex-M02): a hora do servidor não aprova: uma sessão nova aberta depois de o servidor passar da escrita por mais que qualquer prazo continua sem converter com a marca velha
+not ok 23 - B03 (R3, ex-M02): a hora do servidor não aprova: uma sessão nova aberta depois de o servidor passar da escrita por mais que qualquer prazo continua sem converter com a marca velha
+  ---
+  duration_ms: 323.427666
+  type: 'test'
+  location: '<scratchpad>/fdi-mut/tests/unit/work-time-consistency.test.ts:848:1'
+  failureType: 'testCodeFailure'
+  error: 'a primeira sessão, sem estimativa (mostrados: loading → 1056000)'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (file://<scratchpad>/fdi-mut/tests/unit/work-time-consistency.test.ts:858:10)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: B03 (R3, ex-P01): o N03 com a hora do servidor nas bases: sessão aberta 5 s depois da edição de valor, e mesmo 1 h depois, nunca o valor novo com o total velho; o gatilho aplica (receita e marca) e aparece o certo
+not ok 24 - B03 (R3, ex-P01): o N03 com a hora do servidor nas bases: sessão aberta 5 s depois da edição de valor, e mesmo 1 h depois, nunca o valor novo com o total velho; o gatilho aplica (receita e marca) e aparece o certo
+  ---
+  duration_ms: 324.3695
+  type: 'test'
+  location: '<scratchpad>/fdi-mut/tests/unit/work-time-consistency.test.ts:875:1'
+  failureType: 'testCodeFailure'
+  error: 'antes do gatilho, nenhuma estimativa (mostrados: loading → 1026000)'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (file://<scratchpad>/fdi-mut/tests/unit/work-time-consistency.test.ts:888:10)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: B03 (R3, ex-P01): nenhum intervalo aprova a conversão: com a base gerada 59 s depois da escrita e a marca velha, só "estimativa em atualização"
+not ok 25 - B03 (R3, ex-P01): nenhum intervalo aprova a conversão: com a base gerada 59 s depois da escrita e a marca velha, só "estimativa em atualização"
+  ---
+  duration_ms: 123.16957
+  type: 'test'
+  location: '<scratchpad>/fdi-mut/tests/unit/work-time-consistency.test.ts:901:3'
+  failureType: 'testCodeFailure'
+  error: '59 s: nenhuma estimativa (mostrados: loading → 1056000)'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (file://<scratchpad>/fdi-mut/tests/unit/work-time-consistency.test.ts:913:12)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: B03 (R3, ex-P01): nenhum intervalo aprova a conversão: com a base gerada 60 s depois da escrita e a marca velha, só "estimativa em atualização" (o limite que antes encerrava a espera)
+not ok 26 - B03 (R3, ex-P01): nenhum intervalo aprova a conversão: com a base gerada 60 s depois da escrita e a marca velha, só "estimativa em atualização" (o limite que antes encerrava a espera)
+  ---
+  duration_ms: 123.608131
+  type: 'test'
+  location: '<scratchpad>/fdi-mut/tests/unit/work-time-consistency.test.ts:901:3'
+  failureType: 'testCodeFailure'
+  error: '60 s: nenhuma estimativa (mostrados: loading → 1056000)'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (file://<scratchpad>/fdi-mut/tests/unit/work-time-consistency.test.ts:913:12)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: B03 (R3, ex-P01): nenhum intervalo aprova a conversão: com a base gerada 3600 s depois da escrita e a marca velha, só "estimativa em atualização"
+not ok 27 - B03 (R3, ex-P01): nenhum intervalo aprova a conversão: com a base gerada 3600 s depois da escrita e a marca velha, só "estimativa em atualização"
+  ---
+  duration_ms: 121.686274
+  type: 'test'
+  location: '<scratchpad>/fdi-mut/tests/unit/work-time-consistency.test.ts:901:3'
+  failureType: 'testCodeFailure'
+  error: '3600 s: nenhuma estimativa (mostrados: loading → 1056000)'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (file://<scratchpad>/fdi-mut/tests/unit/work-time-consistency.test.ts:913:12)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: B03 (R3, ex-N06): a edição sem efeito na renda depois da mudança vista, aplicada pelo gatilho, não prende a estimativa: outra receita entra sem esperar prazo
+ok 28 - B03 (R3, ex-N06): a edição sem efeito na renda depois da mudança vista, aplicada pelo gatilho, não prende a estimativa: outra receita entra sem esperar prazo
+  ---
+  duration_ms: 306.556592
+  type: 'test'
+  ...
+# Subtest: B03 (R3, a): a desconsiderada editada em outra sessão com o gatilho atrasado: nenhuma renderização converte com o conteúdo novo e o total velho; quando o gatilho aplica (receita e marca juntas), aparece o valor certo
+not ok 29 - B03 (R3, a): a desconsiderada editada em outra sessão com o gatilho atrasado: nenhuma renderização converte com o conteúdo novo e o total velho; quando o gatilho aplica (receita e marca juntas), aparece o valor certo
+  ---
+  duration_ms: 448.918361
+  type: 'test'
+  location: '<scratchpad>/fdi-mut/tests/unit/work-time-consistency.test.ts:948:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    sem conversão enquanto o gatilho não aplicou (mostrados: loading → 1056000 → loading → 1046000)
+    + actual - expected
+    
+    + [
+    +   '1046000 sem aviso',
+    +   '1046000 sem aviso'
+    + ]
+    - []
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual:
+    0: '1046000 sem aviso'
+    1: '1046000 sem aviso'
+  operator: 'deepStrictEqual'
+  stack: |-
+    assertNoConversion (file://<scratchpad>/fdi-mut/tests/unit/work-time-consistency.test.ts:1132:10)
+    TestContext.<anonymous> (file://<scratchpad>/fdi-mut/tests/unit/work-time-consistency.test.ts:966:3)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: B03 (R3, b): evento fora de ordem (marca com pendência): sem conversão enquanto a pendência não fecha, mesmo relendo; fechada, a estimativa aparece
+not ok 30 - B03 (R3, b): evento fora de ordem (marca com pendência): sem conversão enquanto a pendência não fecha, mesmo relendo; fechada, a estimativa aparece
+  ---
+  duration_ms: 144.183378
+  type: 'test'
+  location: '<scratchpad>/fdi-mut/tests/unit/work-time-consistency.test.ts:980:1'
+  failureType: 'testCodeFailure'
+  error: 'sem conversão com a pendência (mostrados: loading → 1056000)'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (file://<scratchpad>/fdi-mut/tests/unit/work-time-consistency.test.ts:989:10)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: B03 (R3, c): marca quebrada: sem conversão e sem releitura automática além da escuta; só a reconstrução, a escuta ou o "Tentar de novo" recuperam
+not ok 31 - B03 (R3, c): marca quebrada: sem conversão e sem releitura automática além da escuta; só a reconstrução, a escuta ou o "Tentar de novo" recuperam
+  ---
+  duration_ms: 728.36469
+  type: 'test'
+  location: '<scratchpad>/fdi-mut/tests/unit/work-time-consistency.test.ts:1000:1'
+  failureType: 'testCodeFailure'
+  error: 'sem conversão (mostrados: loading → 1056000)'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (file://<scratchpad>/fdi-mut/tests/unit/work-time-consistency.test.ts:1010:10)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: B03 (R3, d): a desconsiderada muda de mês para fora da janela: o mês antigo só deixa de descontar quando a marca e a receita mudam juntas
+not ok 32 - B03 (R3, d): a desconsiderada muda de mês para fora da janela: o mês antigo só deixa de descontar quando a marca e a receita mudam juntas
+  ---
+  duration_ms: 444.884343
+  type: 'test'
+  location: '<scratchpad>/fdi-mut/tests/unit/work-time-consistency.test.ts:1026:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    sem conversão enquanto o gatilho não aplicou (mostrados: loading → 1056000 → loading → 1136000)
+    + actual - expected
+    
+    + [
+    +   '1136000 sem aviso',
+    +   '1136000 sem aviso'
+    + ]
+    - []
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual:
+    0: '1136000 sem aviso'
+    1: '1136000 sem aviso'
+  operator: 'deepStrictEqual'
+  stack: |-
+    assertNoConversion (file://<scratchpad>/fdi-mut/tests/unit/work-time-consistency.test.ts:1132:10)
+    TestContext.<anonymous> (file://<scratchpad>/fdi-mut/tests/unit/work-time-consistency.test.ts:1042:3)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: B03 (R3, e): a releitura por motivo passageiro respeita o orçamento do agendador: no máximo o orçamento, a reposição depois, e nunca um prazo que aprove
+not ok 33 - B03 (R3, e): a releitura por motivo passageiro respeita o orçamento do agendador: no máximo o orçamento, a reposição depois, e nunca um prazo que aprove
+  ---
+  duration_ms: 774.30501
+  type: 'test'
+  location: '<scratchpad>/fdi-mut/tests/unit/work-time-consistency.test.ts:1053:1'
+  failureType: 'testCodeFailure'
+  error: 'nenhuma conversão, nem depois de gastar o orçamento (mostrados: loading → 1056000)'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (file://<scratchpad>/fdi-mut/tests/unit/work-time-consistency.test.ts:1081:10)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: revisão da R1 (N06), contrato da R3.1: a base relida devagar por mais que o tempo de interface: nunca a última provada; "calculando", depois "estimativa em atualização" com "Tentar de novo", e a nova provada, sem aviso
+ok 34 - revisão da R1 (N06), contrato da R3.1: a base relida devagar por mais que o tempo de interface: nunca a última provada; "calculando", depois "estimativa em atualização" com "Tentar de novo", e a nova provada, sem aviso
+  ---
+  duration_ms: 1444.504199
+  type: 'test'
+  ...
+# Subtest: R3.1 (R3-AUD-01): a última estimativa provada nunca aparece como a atual: leitura nova divergente, prova falsa, a mesma identidade e nenhuma falha de leitura dão só "calculando"; com a prova de volta, a estimativa nova
+not ok 35 - R3.1 (R3-AUD-01): a última estimativa provada nunca aparece como a atual: leitura nova divergente, prova falsa, a mesma identidade e nenhuma falha de leitura dão só "calculando"; com a prova de volta, a estimativa nova
+  ---
+  duration_ms: 312.862174
+  type: 'test'
+  location: '<scratchpad>/fdi-mut/tests/unit/work-time-consistency.test.ts:1171:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    nenhuma conversão depois da divergência, sem prova (mostrados: loading → 1056000 → loading → 1046000)
+    + actual - expected
+    
+    + [
+    +   '1046000 sem aviso',
+    +   '1046000 sem aviso'
+    + ]
+    - []
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual:
+    0: '1046000 sem aviso'
+    1: '1046000 sem aviso'
+  operator: 'deepStrictEqual'
+  stack: |-
+    assertNoConversion (file://<scratchpad>/fdi-mut/tests/unit/work-time-consistency.test.ts:1132:10)
+    TestContext.<anonymous> (file://<scratchpad>/fdi-mut/tests/unit/work-time-consistency.test.ts:1190:3)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R3.1: antes e depois do tempo de interface (30 s no produto, 800 ms aqui): "calculando" e depois "estimativa em atualização" com "Tentar de novo"; em nenhum dos dois a última provada, e só a prova reabilita a conversão
+not ok 36 - R3.1: antes e depois do tempo de interface (30 s no produto, 800 ms aqui): "calculando" e depois "estimativa em atualização" com "Tentar de novo"; em nenhum dos dois a última provada, e só a prova reabilita a conversão
+  ---
+  duration_ms: 274.746105
+  type: 'test'
+  location: '<scratchpad>/fdi-mut/tests/unit/work-time-consistency.test.ts:1199:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    antes do tempo de interface (mostrados: loading → 1056000 → loading → 1046000)
+    + actual - expected
+    
+    + [
+    +   '1046000 sem aviso',
+    +   '1046000 sem aviso'
+    + ]
+    - []
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual:
+    0: '1046000 sem aviso'
+    1: '1046000 sem aviso'
+  operator: 'deepStrictEqual'
+  stack: |-
+    assertNoConversion (file://<scratchpad>/fdi-mut/tests/unit/work-time-consistency.test.ts:1132:10)
+    TestContext.<anonymous> (file://<scratchpad>/fdi-mut/tests/unit/work-time-consistency.test.ts:1209:3)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R3.1: a releitura falha depois da divergência (lançamentos por id): o erro fixo em pt-BR com "Tentar de novo", nunca a última provada com ou sem aviso; o "Tentar de novo" sem a marca aplicada continua sem conversão, e a prova reabilita
+not ok 37 - R3.1: a releitura falha depois da divergência (lançamentos por id): o erro fixo em pt-BR com "Tentar de novo", nunca a última provada com ou sem aviso; o "Tentar de novo" sem a marca aplicada continua sem conversão, e a prova reabilita
+  ---
+  duration_ms: 328.305218
+  type: 'test'
+  location: '<scratchpad>/fdi-mut/tests/unit/work-time-consistency.test.ts:1237:3'
+  failureType: 'testCodeFailure'
+  error: |-
+    o "Tentar de novo" sem a marca aplicada (mostrados: loading → 1056000 → loading → error → 1046000)
+    + actual - expected
+    
+    + [
+    +   '1046000 sem aviso',
+    +   '1046000 sem aviso',
+    +   '1046000 sem aviso',
+    +   '1046000 sem aviso',
+    +   '1046000 sem aviso'
+    + ]
+    - []
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual:
+    0: '1046000 sem aviso'
+    1: '1046000 sem aviso'
+    2: '1046000 sem aviso'
+    3: '1046000 sem aviso'
+    4: '1046000 sem aviso'
+  operator: 'deepStrictEqual'
+  stack: |-
+    assertNoConversion (file://<scratchpad>/fdi-mut/tests/unit/work-time-consistency.test.ts:1132:10)
+    TestContext.<anonymous> (file://<scratchpad>/fdi-mut/tests/unit/work-time-consistency.test.ts:1255:5)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R3.1: a releitura falha depois da divergência (meses e marcas): o erro fixo em pt-BR com "Tentar de novo", nunca a última provada com ou sem aviso; o "Tentar de novo" sem a marca aplicada continua sem conversão, e a prova reabilita
+not ok 38 - R3.1: a releitura falha depois da divergência (meses e marcas): o erro fixo em pt-BR com "Tentar de novo", nunca a última provada com ou sem aviso; o "Tentar de novo" sem a marca aplicada continua sem conversão, e a prova reabilita
+  ---
+  duration_ms: 331.1133
+  type: 'test'
+  location: '<scratchpad>/fdi-mut/tests/unit/work-time-consistency.test.ts:1237:3'
+  failureType: 'testCodeFailure'
+  error: |-
+    o "Tentar de novo" sem a marca aplicada (mostrados: loading → 1056000 → loading → error → 1046000)
+    + actual - expected
+    
+    + [
+    +   '1046000 sem aviso',
+    +   '1046000 sem aviso',
+    +   '1046000 sem aviso',
+    +   '1046000 sem aviso',
+    +   '1046000 sem aviso'
+    + ]
+    - []
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual:
+    0: '1046000 sem aviso'
+    1: '1046000 sem aviso'
+    2: '1046000 sem aviso'
+    3: '1046000 sem aviso'
+    4: '1046000 sem aviso'
+  operator: 'deepStrictEqual'
+  stack: |-
+    assertNoConversion (file://<scratchpad>/fdi-mut/tests/unit/work-time-consistency.test.ts:1132:10)
+    TestContext.<anonymous> (file://<scratchpad>/fdi-mut/tests/unit/work-time-consistency.test.ts:1255:5)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R3.1: com a releitura por id em andamento depois da divergência, "calculando", nunca a última provada; terminada sem prova, ainda sem conversão
+not ok 39 - R3.1: com a releitura por id em andamento depois da divergência, "calculando", nunca a última provada; terminada sem prova, ainda sem conversão
+  ---
+  duration_ms: 635.081653
+  type: 'test'
+  location: '<scratchpad>/fdi-mut/tests/unit/work-time-consistency.test.ts:1264:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    terminada sem prova, ainda sem conversão (mostrados: loading → 1056000 → loading → 1046000)
+    + actual - expected
+    
+    + [
+    +   '1046000 sem aviso',
+    +   '1046000 sem aviso'
+    + ]
+    - []
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual:
+    0: '1046000 sem aviso'
+    1: '1046000 sem aviso'
+  operator: 'deepStrictEqual'
+  stack: |-
+    assertNoConversion (file://<scratchpad>/fdi-mut/tests/unit/work-time-consistency.test.ts:1132:10)
+    TestContext.<anonymous> (file://<scratchpad>/fdi-mut/tests/unit/work-time-consistency.test.ts:1279:3)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R3.1: troca do workspace da renda com a prova pendente: nem a última provada do anterior nem estado nenhum dele; só "calculando" até a estimativa do novo estar provada
+not ok 40 - R3.1: troca do workspace da renda com a prova pendente: nem a última provada do anterior nem estado nenhum dele; só "calculando" até a estimativa do novo estar provada
+  ---
+  duration_ms: 246.423958
+  type: 'test'
+  location: '<scratchpad>/fdi-mut/tests/unit/work-time-consistency.test.ts:1287:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    ws-a sem prova: nenhuma conversão (mostrados: loading → 1056000 → loading → 1046000)
+    + actual - expected
+    
+    + [
+    +   '1046000 sem aviso',
+    +   '1046000 sem aviso'
+    + ]
+    - []
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual:
+    0: '1046000 sem aviso'
+    1: '1046000 sem aviso'
+  operator: 'deepStrictEqual'
+  stack: |-
+    assertNoConversion (file://<scratchpad>/fdi-mut/tests/unit/work-time-consistency.test.ts:1132:10)
+    TestContext.<anonymous> (file://<scratchpad>/fdi-mut/tests/unit/work-time-consistency.test.ts:1299:3)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R3.1: mudança da preferência com a prova pendente (a receita deixa de ser desconsiderada): a estimativa das entradas novas só aparece provada; a última provada das entradas antigas nunca
+not ok 41 - R3.1: mudança da preferência com a prova pendente (a receita deixa de ser desconsiderada): a estimativa das entradas novas só aparece provada; a última provada das entradas antigas nunca
+  ---
+  duration_ms: 250.430187
+  type: 'test'
+  location: '<scratchpad>/fdi-mut/tests/unit/work-time-consistency.test.ts:1308:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    sem prova: nenhuma conversão (mostrados: loading → 1056000 → loading → 1046000)
+    + actual - expected
+    
+    + [
+    +   '1046000 sem aviso',
+    +   '1046000 sem aviso'
+    + ]
+    - []
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual:
+    0: '1046000 sem aviso'
+    1: '1046000 sem aviso'
+  operator: 'deepStrictEqual'
+  stack: |-
+    assertNoConversion (file://<scratchpad>/fdi-mut/tests/unit/work-time-consistency.test.ts:1132:10)
+    TestContext.<anonymous> (file://<scratchpad>/fdi-mut/tests/unit/work-time-consistency.test.ts:1317:3)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R3.1: provada, mas com a sincronização em curso (uma base e nenhuma desconsiderada: a prova não pede nada): nenhuma conversão até a base relida chegar, "calculando" e, passado o tempo de interface, "em atualização"; chegando, a nova, sem prazo
+ok 42 - R3.1: provada, mas com a sincronização em curso (uma base e nenhuma desconsiderada: a prova não pede nada): nenhuma conversão até a base relida chegar, "calculando" e, passado o tempo de interface, "em atualização"; chegando, a nova, sem prazo
+  ---
+  duration_ms: 1467.470274
+  type: 'test'
+  ...
+# Subtest: B01: o recebimento desconsiderado é estornado em outra sessão (depois da sincronização): a exclusão perde o efeito, nunca desconta de novo
+ok 43 - B01: o recebimento desconsiderado é estornado em outra sessão (depois da sincronização): a exclusão perde o efeito, nunca desconta de novo
+  ---
+  duration_ms: 300.231889
+  type: 'test'
+  ...
+# Subtest: B01: o recebimento desconsiderado é estornado em outra sessão (durante a releitura por id): a exclusão perde o efeito, nunca desconta de novo
+not ok 44 - B01: o recebimento desconsiderado é estornado em outra sessão (durante a releitura por id): a exclusão perde o efeito, nunca desconta de novo
+  ---
+  duration_ms: 489.240537
+  type: 'test'
+  location: '<scratchpad>/fdi-mut/tests/unit/work-time-consistency.test.ts:1375:3'
+  failureType: 'testCodeFailure'
+  error: |-
+    sem desconto duplo (mostrados: loading → 1006000 → loading → 936000 → 1036000)
+    + actual - expected
+    
+    + [
+    +   936000
+    + ]
+    - []
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual:
+    0: 936000
+  operator: 'deepStrictEqual'
+  stack: |-
+    assertOnly (file://<scratchpad>/fdi-mut/tests/unit/work-time-consistency.test.ts:427:10)
+    TestContext.<anonymous> (file://<scratchpad>/fdi-mut/tests/unit/work-time-consistency.test.ts:1405:5)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: B01: o estorno lido antes de a projeção incluí-lo nunca aparece com o total antigo (a exclusão sem efeito com A ainda somado)
+not ok 45 - B01: o estorno lido antes de a projeção incluí-lo nunca aparece com o total antigo (a exclusão sem efeito com A ainda somado)
+  ---
+  duration_ms: 493.991821
+  type: 'test'
+  location: '<scratchpad>/fdi-mut/tests/unit/work-time-consistency.test.ts:1409:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    sem o estorno adiante da projeção (mostrados: loading → 1006000 → loading → 1136000 → loading → 1036000)
+    + actual - expected
+    
+    + [
+    +   1136000
+    + ]
+    - []
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual:
+    0: 1136000
+  operator: 'deepStrictEqual'
+  stack: |-
+    assertOnly (file://<scratchpad>/fdi-mut/tests/unit/work-time-consistency.test.ts:427:10)
+    TestContext.<anonymous> (file://<scratchpad>/fdi-mut/tests/unit/work-time-consistency.test.ts:1431:3)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: B01: o recebimento desconsiderado sem estorno continua descontado; com dois desconsiderados, só o estornado perde o efeito
+ok 46 - B01: o recebimento desconsiderado sem estorno continua descontado; com dois desconsiderados, só o estornado perde o efeito
+  ---
+  duration_ms: 302.343859
+  type: 'test'
+  ...
+# Subtest: apresentação fail-closed (R3.1, R3-AUD-01): a estimativa pronta só aparece provada e com a sincronização concluída, e é a própria atual; sem prova ou sincronizando, o estado sem conversão ("calculando" ou a falha com "Tentar de novo")
+not ok 47 - apresentação fail-closed (R3.1, R3-AUD-01): a estimativa pronta só aparece provada e com a sincronização concluída, e é a própria atual; sem prova ou sincronizando, o estado sem conversão ("calculando" ou a falha com "Tentar de novo")
+  ---
+  duration_ms: 3.067656
+  type: 'test'
+  location: '<scratchpad>/fdi-mut/tests/unit/work-time-income-estimate.test.ts:76:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    pronta sem aviso, sem prova, sincronizada, loading: nenhuma estimativa pronta
+    + actual - expected
+    
+      {
+    +   estimate: {
+    +     incomeCents: 100,
+    +     status: 'ready'
+    +   },
+    +   refreshFailed: false,
+    +   retry: [Function: retry],
+    +   status: 'done',
+    +   updatedAt: 100
+    -   status: 'loading'
+      }
+    
+  code: 'ERR_TEST_FAILURE'
+  ...
+# Subtest: apresentação fail-closed (R3.1): provada, mas com a sincronização em curso, nenhuma conversão, nem a anterior nem a atual; concluída a sincronização, a atual provada, com o aviso dela quando houver
+ok 48 - apresentação fail-closed (R3.1): provada, mas com a sincronização em curso, nenhuma conversão, nem a anterior nem a atual; concluída a sincronização, a atual provada, com o aviso dela quando houver
+  ---
+  duration_ms: 0.278812
+  type: 'test'
+  ...
+# Subtest: apresentação fail-closed (R3.1), propriedade: em qualquer sequência de renderizações (troca de conta, período, workspace, modo, meses, PJ, calendário ou exclusões), o mostrado é a atual provada e sincronizada ou um estado sem conversão; nunca um estado pronto de outra renderização
+not ok 49 - apresentação fail-closed (R3.1), propriedade: em qualquer sequência de renderizações (troca de conta, período, workspace, modo, meses, PJ, calendário ou exclusões), o mostrado é a atual provada e sincronizada ou um estado sem conversão; nunca um estado pronto de outra renderização
+  ---
+  duration_ms: 0.487387
+  type: 'test'
+  location: '<scratchpad>/fdi-mut/tests/unit/work-time-income-estimate.test.ts:117:1'
+  failureType: 'testCodeFailure'
+  error: 'passo 9 (modo): pronta só provada e sincronizada'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (file://<scratchpad>/fdi-mut/tests/unit/work-time-income-estimate.test.ts:137:14)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: leitura por id: cada leitura concluída traz um objeto novo, mesmo com os mesmos dados e no mesmo milissegundo
+ok 50 - leitura por id: cada leitura concluída traz um objeto novo, mesmo com os mesmos dados e no mesmo milissegundo
+  ---
+  duration_ms: 33.045428
+  type: 'test'
+  ...
+# Subtest: duas leituras por id concluídas no mesmo milissegundo e com os mesmos dados, a segunda pedida pela base que chegou durante a primeira: a estimativa mostra a base nova (R6-02)
+not ok 51 - duas leituras por id concluídas no mesmo milissegundo e com os mesmos dados, a segunda pedida pela base que chegou durante a primeira: a estimativa mostra a base nova (R6-02)
+  ---
+  duration_ms: 386.224146
+  type: 'test'
+  location: '<scratchpad>/fdi-mut/tests/unit/work-time-income-estimate.test.ts:464:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    a segunda e a terceira leitura com o mesmo `dataUpdatedAt`
+    + actual - expected
+    
+      [
+    +   2,
+    -   3,
+        1794344557616
+      ]
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    0: 3
+    1: 1794344557616
+  actual:
+    0: 2
+    1: 1794344557616
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (file://<scratchpad>/fdi-mut/tests/unit/work-time-income-estimate.test.ts:504:10)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: mutação nesta aba: anular a receita desconsiderada nunca junta o item anulado com o total velho (R4-01)
+ok 52 - mutação nesta aba: anular a receita desconsiderada nunca junta o item anulado com o total velho (R4-01)
+  ---
+  duration_ms: 495.428766
+  type: 'test'
+  ...
+# Subtest: janela de 12 meses: a carga lê a série, o mês avulso e as exclusões uma vez cada, com a escuta adiantada (R4-02)
+ok 53 - janela de 12 meses: a carga lê a série, o mês avulso e as exclusões uma vez cada, com a escuta adiantada (R4-02)
+  ---
+  duration_ms: 347.295631
+  type: 'test'
+  ...
+# Subtest: leitura por id antiga: a prévia montada depois de uma mutação nesta aba não a relê antes da base (R5-01)
+ok 54 - leitura por id antiga: a prévia montada depois de uma mutação nesta aba não a relê antes da base (R5-01)
+  ---
+  duration_ms: 535.664651
+  type: 'test'
+  ...
+# Subtest: reconstrução marcada sem mudar os documentos mensais: a mutação relê a base, e a estimativa fica indisponível (R5-02)
+ok 55 - reconstrução marcada sem mudar os documentos mensais: a mutação relê a base, e a estimativa fica indisponível (R5-02)
+  ---
+  duration_ms: 192.591796
+  type: 'test'
+  ...
+# Subtest: escuta das projeções encerrada por erro, com desconsiderada: sem prova, o erro fixo com "Tentar de novo" e nenhuma conversão, nem a última leitura; "Tentar de novo" a reabre e a estimativa volta provada (R5-02, R3.1)
+not ok 56 - escuta das projeções encerrada por erro, com desconsiderada: sem prova, o erro fixo com "Tentar de novo" e nenhuma conversão, nem a última leitura; "Tentar de novo" a reabre e a estimativa volta provada (R5-02, R3.1)
+  ---
+  duration_ms: 3089.864401
+  type: 'test'
+  location: '<scratchpad>/fdi-mut/tests/unit/work-time-income-estimate.test.ts:636:1'
+  failureType: 'testCodeFailure'
+  error: 'tempo esgotado: o erro da escuta encerrada'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  operator: 'fail'
+  stack: |-
+    until (file://<scratchpad>/fdi-mut/tests/unit/work-time-income-estimate.test.ts:45:57)
+    async TestContext.<anonymous> (file://<scratchpad>/fdi-mut/tests/unit/work-time-income-estimate.test.ts:647:3)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: prévia montada durante uma sincronização: as exclusões só são relidas depois da base (R5-01)
+ok 57 - prévia montada durante uma sincronização: as exclusões só são relidas depois da base (R5-01)
+  ---
+  duration_ms: 531.170527
+  type: 'test'
+  ...
+# Subtest: releitura da mutação com a base nova antes do retorno da escuta (viva): nenhuma renderização junta o total novo com a exclusão antiga (R6-02, B03)
+not ok 58 - releitura da mutação com a base nova antes do retorno da escuta (viva): nenhuma renderização junta o total novo com a exclusão antiga (R6-02, B03)
+  ---
+  duration_ms: 254.895552
+  type: 'test'
+  location: '<scratchpad>/fdi-mut/tests/unit/work-time-income-estimate.test.ts:677:3'
+  failureType: 'testCodeFailure'
+  error: |-
+    a base nova não aparece sem a projeção, nem a anterior
+    + actual - expected
+    
+    + [
+    +   1056000
+    + ]
+    - []
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual:
+    0: 1056000
+  operator: 'deepStrictEqual'
+  stack: |-
+    assertNoConversion (file://<scratchpad>/fdi-mut/tests/unit/work-time-income-estimate.test.ts:430:10)
+    TestContext.<anonymous> (file://<scratchpad>/fdi-mut/tests/unit/work-time-income-estimate.test.ts:704:5)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: releitura da mutação com a base nova antes do retorno da escuta (encerrada): nenhuma renderização junta o total novo com a exclusão antiga (R6-02, B03)
+not ok 59 - releitura da mutação com a base nova antes do retorno da escuta (encerrada): nenhuma renderização junta o total novo com a exclusão antiga (R6-02, B03)
+  ---
+  duration_ms: 3142.164415
+  type: 'test'
+  location: '<scratchpad>/fdi-mut/tests/unit/work-time-income-estimate.test.ts:677:3'
+  failureType: 'testCodeFailure'
+  error: 'tempo esgotado: escuta encerrada'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  operator: 'fail'
+  stack: |-
+    until (file://<scratchpad>/fdi-mut/tests/unit/work-time-income-estimate.test.ts:45:57)
+    async TestContext.<anonymous> (file://<scratchpad>/fdi-mut/tests/unit/work-time-income-estimate.test.ts:687:7)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: escuta do provedor encerrada, com desconsiderada: o erro com "Tentar de novo" no provedor, sem conversão; a prévia de Configurações a reabre, e a estimativa em uso volta a acompanhar outras sessões (R6-01; R3.1)
+not ok 60 - escuta do provedor encerrada, com desconsiderada: o erro com "Tentar de novo" no provedor, sem conversão; a prévia de Configurações a reabre, e a estimativa em uso volta a acompanhar outras sessões (R6-01; R3.1)
+  ---
+  duration_ms: 3143.086877
+  type: 'test'
+  location: '<scratchpad>/fdi-mut/tests/unit/work-time-income-estimate.test.ts:731:1'
+  failureType: 'testCodeFailure'
+  error: 'tempo esgotado: o erro no provedor'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  operator: 'fail'
+  stack: |-
+    until (file://<scratchpad>/fdi-mut/tests/unit/work-time-income-estimate.test.ts:45:57)
+    async TestContext.<anonymous> (file://<scratchpad>/fdi-mut/tests/unit/work-time-income-estimate.test.ts:742:3)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: exclusão de um mês fora da janela, anulada nesta aba: a janela maior salva depois mostra a renda certa, sem juntar versões (R7-01)
+ok 61 - exclusão de um mês fora da janela, anulada nesta aba: a janela maior salva depois mostra a renda certa, sem juntar versões (R7-01)
+  ---
+  duration_ms: 479.6014
+  type: 'test'
+  ...
+# Subtest: janela de 12 meses, as duas bases relidas sem pedido e o mês avulso chegando depois: a estimativa segura até as duas chegarem, sem mostrar só uma nova (R8-03)
+ok 62 - janela de 12 meses, as duas bases relidas sem pedido e o mês avulso chegando depois: a estimativa segura até as duas chegarem, sem mostrar só uma nova (R8-03)
+  ---
+  duration_ms: 549.363451
+  type: 'test'
+  ...
+# Subtest: janela de 12 meses, a série nova sem pedido e o mês avulso falhando: sem conversão enquanto ele lê e sem prova; com a projeção que prova a série nova, a atual com a ressalva da falha (R8-03; R3.1)
+not ok 63 - janela de 12 meses, a série nova sem pedido e o mês avulso falhando: sem conversão enquanto ele lê e sem prova; com a projeção que prova a série nova, a atual com a ressalva da falha (R8-03; R3.1)
+  ---
+  duration_ms: 506.234456
+  type: 'test'
+  location: '<scratchpad>/fdi-mut/tests/unit/work-time-income-estimate.test.ts:849:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    sem a projeção nova, nenhuma conversão
+    + actual - expected
+    
+    + [
+    +   3600000
+    + ]
+    - []
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual:
+    0: 3600000
+  operator: 'deepStrictEqual'
+  stack: |-
+    assertNoConversion (file://<scratchpad>/fdi-mut/tests/unit/work-time-income-estimate.test.ts:430:10)
+    TestContext.<anonymous> (file://<scratchpad>/fdi-mut/tests/unit/work-time-income-estimate.test.ts:873:3)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: janela de 12 meses sem receita desconsiderada, com a escuta encerrada e a releitura da mutação da série adiada pelo orçamento: sem prova, o erro com "Tentar de novo" e nenhuma conversão, nem a versão anterior; reaberta a escuta, as bases novas provadas (R9-01; R3.1)
+not ok 64 - janela de 12 meses sem receita desconsiderada, com a escuta encerrada e a releitura da mutação da série adiada pelo orçamento: sem prova, o erro com "Tentar de novo" e nenhuma conversão, nem a versão anterior; reaberta a escuta, as bases novas provadas (R9-01; R3.1)
+  ---
+  duration_ms: 3079.215312
+  type: 'test'
+  location: '<scratchpad>/fdi-mut/tests/unit/work-time-income-estimate.test.ts:890:1'
+  failureType: 'testCodeFailure'
+  error: 'tempo esgotado: o erro da escuta encerrada'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  operator: 'fail'
+  stack: |-
+    until (file://<scratchpad>/fdi-mut/tests/unit/work-time-income-estimate.test.ts:45:57)
+    async TestContext.<anonymous> (file://<scratchpad>/fdi-mut/tests/unit/work-time-income-estimate.test.ts:910:3)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: janela de 12 meses com a escuta encerrada: a releitura pendente da série que sai sem rede fica pausada, e nenhuma renderização converte (nem a versão anterior nem o mês avulso novo com a série antiga) até a rede voltar e a prova (R10-03; R3.1)
+not ok 65 - janela de 12 meses com a escuta encerrada: a releitura pendente da série que sai sem rede fica pausada, e nenhuma renderização converte (nem a versão anterior nem o mês avulso novo com a série antiga) até a rede voltar e a prova (R10-03; R3.1)
+  ---
+  duration_ms: 3083.096297
+  type: 'test'
+  location: '<scratchpad>/fdi-mut/tests/unit/work-time-income-estimate.test.ts:948:1'
+  failureType: 'testCodeFailure'
+  error: 'tempo esgotado: o erro da escuta encerrada'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  operator: 'fail'
+  stack: |-
+    until (file://<scratchpad>/fdi-mut/tests/unit/work-time-income-estimate.test.ts:45:57)
+    async TestContext.<anonymous> (file://<scratchpad>/fdi-mut/tests/unit/work-time-income-estimate.test.ts:965:3)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: janela de 12 meses com a releitura de uma mutação nesta aba pendente: o calendário trocado é guardado logo, e a sincronização seguinte (outro membro anula a desconsiderada) não mostra a receita descontada duas vezes (R10-02)
+ok 66 - janela de 12 meses com a releitura de uma mutação nesta aba pendente: o calendário trocado é guardado logo, e a sincronização seguinte (outro membro anula a desconsiderada) não mostra a receita descontada duas vezes (R10-02)
+  ---
+  duration_ms: 302.926578
+  type: 'test'
+  ...
+# Subtest: anulação nesta aba de uma desconsiderada do 12º mês para trás e a troca para 12 meses logo depois: o estado misto nunca aparece, e a estimativa de 12 meses só aparece com a sincronização concluída (R9-03, B03; R3.1)
+ok 67 - anulação nesta aba de uma desconsiderada do 12º mês para trás e a troca para 12 meses logo depois: o estado misto nunca aparece, e a estimativa de 12 meses só aparece com a sincronização concluída (R9-03, B03; R3.1)
+  ---
+  duration_ms: 358.80183
+  type: 'test'
+  ...
+1..67
+# tests 67
+# suites 0
+# pass 31
+# fail 36
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 20968.931479

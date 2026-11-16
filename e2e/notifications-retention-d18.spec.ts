@@ -1021,6 +1021,9 @@ test('E — teclado e isolamento do clique (desktop): Tab, Enter, foco preso, Es
   await expect(page.getByRole('button', { name: 'Marcar exibidas como lidas' })).toBeFocused();
   await page.keyboard.press('Tab');
   await expect(page.getByRole('button', { name: 'Fechar notificações' })).toBeFocused();
+  // P5-GATE-FINAL (PTBR-03): o próprio aviso (o título, botão nativo) vem antes das ações dele.
+  await page.keyboard.press('Tab');
+  await expect(page.getByRole('button', { name: 'Aviso UX 00', exact: true })).toBeFocused();
   await page.keyboard.press('Tab');
   const firstDelete = deleteButton(page, 'Aviso UX 00');
   await expect(firstDelete).toBeFocused();

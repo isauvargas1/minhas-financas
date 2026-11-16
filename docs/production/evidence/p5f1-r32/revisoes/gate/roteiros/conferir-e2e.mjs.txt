@@ -1,0 +1,31 @@
+// Gate P5-F.1-R3.2: confere os relatórios JSON por grupo de uma execução oficial e compara as chaves com outra.
+import { readFileSync, existsSync } from 'node:fs';
+const [dirA, dirB] = process.argv.slice(2);
+const keysOf = (dir) => {
+  const out = [];
+  for (let i = 1; i <= 3; i += 1) {
+    const p = `${dir}/e2e-grupos/grupo-${i}.json`;
+    if (!existsSync(p)) { out.push({ missing: p }); continue; }
+    const r = JSON.parse(readFileSync(p, 'utf8'));
+    const walk = (s, titles) => {
+      for (const spec of s.specs ?? []) for (const t of spec.tests ?? []) out.push({ grupo: i, key: `${spec.file} › ${[...titles, spec.title].join(' › ')}`, line: spec.line, status: t.status, attempts: (t.results ?? []).map((x) => x.status), retries: (t.results ?? []).map((x) => x.retry) });
+      for (const c of s.suites ?? []) walk(c, [...titles, c.title]);
+    };
+    for (const s of r.suites ?? []) { for (const spec of s.specs ?? []) walk({ specs: [spec] }, []); for (const c of s.suites ?? []) walk(c, [c.title]); }
+    out.push({ stats: i, ...r.stats });
+  }
+  return out;
+};
+const a = keysOf(dirA);
+const tests = a.filter((x) => x.key);
+const byGroup = [1, 2, 3].map((g) => tests.filter((t) => t.grupo === g).length);
+const bad = tests.filter((t) => t.status !== 'expected' || t.attempts.length !== 1 || t.attempts[0] !== 'passed');
+const dup = tests.length - new Set(tests.map((t) => t.key + ':' + t.line)).size;
+console.log(JSON.stringify({ total: tests.length, byGroup, naoEsperados: bad.length, duplicados: dup, faltando: a.filter((x) => x.missing), stats: a.filter((x) => x.stats) }));
+console.log('arquivos distintos:', new Set(tests.map((t) => t.key.split(' › ')[0])).size);
+if (dirB) {
+  const b = keysOf(dirB).filter((x) => x.key);
+  const ka = new Set(tests.map((t) => `${t.key}:${t.line}`)); const kb = new Set(b.map((t) => `${t.key}:${t.line}`));
+  console.log('comparado com', dirB, ': só na gate', [...ka].filter((k) => !kb.has(k)), 'só na outra', [...kb].filter((k) => !ka.has(k)));
+}
+for (const t of tests.filter((t) => /B03-g|ADV-01 \(R3\.2\)|escuta das projeções encerrada: os valores/.test(t.key))) console.log('novo/reescrito:', t.grupo, t.status, JSON.stringify(t.attempts), t.key.slice(0, 160));

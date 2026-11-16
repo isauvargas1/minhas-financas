@@ -1,0 +1,22 @@
+{
+  "name": "desktop-light-n07-configuracoes",
+  "scope": "[data-testid=\"work-time-calendar-ambiguity\"]",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "scheme": "light",
+  "background": "rgb(249, 250, 251)",
+  "overflow": 0,
+  "occluded": false,
+  "violations": [],
+  "role": "alert",
+  "focusAfterAction": "button: Incluir exceção",
+  "tabTrail": [
+    "button: Remover: Folga em 10/11/2026",
+    "select: De qual espaço vem a sua renda?",
+    "input: Habitual (recomendado): últimos meses completos. Mais estáve",
+    "select: Meses completos considerados"
+  ],
+  "text": "A Rotina 1 e a Rotina 2 se cruzam em segunda-feira, 09/11/2026, e há intervalo no trecho em comum. Com a folga de terça-feira, 10/11/2026, o horário sem intervalo que cobria esse trecho não acontece: não dá para saber onde cai a pausa, então as horas não podem ser calculadas com segurança. Ajuste os horários das rotinas ou essa exceção."
+}

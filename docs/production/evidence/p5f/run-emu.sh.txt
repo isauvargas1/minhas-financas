@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# P5-F. Uso: run-emu.sh <rótulo> "<comando dentro do emulators:exec>"
+# Sobe Auth + Firestore no Emulator (projeto minhas-financas-local) no worktree da P5-F, com o loopback-proxy
+# seguro, roda o comando e encerra só a JVM órfã desta execução (identidade e cwd), com SIGTERM.
+set -u
+S=<scratchpad>
+WT=$S/wt-p5f; L=$S/p5f/logs; mkdir -p "$L"
+LABEL=$1; CMD=$2
+START=$(date +%s)
+cd "$WT" && timeout 3600 bash $S/with-proxy-safe.sh 38830 firebase emulators:exec --only auth,firestore --project minhas-financas-local "$CMD" > "$L/$LABEL.log" 2>&1
+CODE=$?
+echo "exit=$CODE  duração=$(( $(date +%s) - START ))s"
+sed -E 's/\x1b\[[0-9;]*[A-Za-z]//g' "$L/$LABEL.log" | grep -E "^# (tests|pass|fail|skipped|todo|cancelled) |^not ok|AssertionError|Error:|expected|actual" | head -40
+bash $S/p5e11/stop-own-emulator.sh 8080 "$START" "$L/emulator-cleanup.log" "$WT" >/dev/null 2>&1; echo "limpeza=$? java=$(pgrep -c java || true)"
+exit $CODE

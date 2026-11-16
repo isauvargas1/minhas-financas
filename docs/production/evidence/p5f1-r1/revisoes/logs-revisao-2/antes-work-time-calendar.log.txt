@@ -1,0 +1,282 @@
+TAP version 13
+# Subtest: datas civis: dias reais, anos bissextos, intervalo 2000–2099 e dia da semana ISO
+ok 1 - datas civis: dias reais, anos bissextos, intervalo 2000–2099 e dia da semana ISO
+  ---
+  duration_ms: 2.06196
+  type: 'test'
+  ...
+# Subtest: horas do mês são do próprio mês, nunca uma carga fixa de 220 h
+ok 2 - horas do mês são do próprio mês, nunca uma carga fixa de 220 h
+  ---
+  duration_ms: 15.697521
+  type: 'test'
+  ...
+# Subtest: feriados nacionais por lei, com vigência; pontos facultativos e datas religiosas municipais nunca automáticos
+ok 3 - feriados nacionais por lei, com vigência; pontos facultativos e datas religiosas municipais nunca automáticos
+  ---
+  duration_ms: 2.566512
+  type: 'test'
+  ...
+# Subtest: domingos de eleição: só atalho, nunca automáticos; 1º e último domingo de outubro dos anos pares
+ok 4 - domingos de eleição: só atalho, nunca automáticos; 1º e último domingo de outubro dos anos pares
+  ---
+  duration_ms: 0.473246
+  type: 'test'
+  ...
+# Subtest: Páscoa e datas móveis (algoritmo gregoriano)
+ok 5 - Páscoa e datas móveis (algoritmo gregoriano)
+  ---
+  duration_ms: 0.44531
+  type: 'test'
+  ...
+# Subtest: feriados locais (anual e data única), trabalho em feriados e feriado trabalhado
+ok 6 - feriados locais (anual e data única), trabalho em feriados e feriado trabalhado
+  ---
+  duration_ms: 2.366845
+  type: 'test'
+  ...
+# Subtest: escala 12×36 e escalas cíclicas contam a partir da data de referência, também para trás
+ok 7 - escala 12×36 e escalas cíclicas contam a partir da data de referência, também para trás
+  ---
+  duration_ms: 2.724718
+  type: 'test'
+  ...
+# Subtest: turno noturno conta no dia em que começa; janelas que se cruzam contam uma vez; o intervalo sem horário nunca é adivinhado (B02)
+ok 8 - turno noturno conta no dia em que começa; janelas que se cruzam contam uma vez; o intervalo sem horário nunca é adivinhado (B02)
+  ---
+  duration_ms: 6.266979
+  type: 'test'
+  ...
+# Subtest: B02: acrescentar uma rotina contida numa janela já contada não tira horas (08–12 + 13–17 = 8 h; com 09–11 e 90 min de pausa, 8 h)
+ok 9 - B02: acrescentar uma rotina contida numa janela já contada não tira horas (08–12 + 13–17 = 8 h; com 09–11 e 90 min de pausa, 8 h)
+  ---
+  duration_ms: 3.67145
+  type: 'test'
+  ...
+# Subtest: B02: cruzamentos parciais, contenção, repetição, intervalos longos e vários intervalos
+ok 10 - B02: cruzamentos parciais, contenção, repetição, intervalos longos e vários intervalos
+  ---
+  duration_ms: 1.081002
+  type: 'test'
+  ...
+# Subtest: B02: turnos noturnos e cruzamentos entre dias, com escala semanal e cíclica
+ok 11 - B02: turnos noturnos e cruzamentos entre dias, com escala semanal e cíclica
+  ---
+  duration_ms: 0.827625
+  type: 'test'
+  ...
+# Subtest: B02: feriados, plantões, horas extras, exceções e o limite de 24 h com rotinas que se cruzam
+ok 12 - B02: feriados, plantões, horas extras, exceções e o limite de 24 h com rotinas que se cruzam
+  ---
+  duration_ms: 2.849992
+  type: 'test'
+  ...
+# Subtest: B02: o conferidor das rotinas percorre o período inteiro da combinação e é rápido no pior caso
+ok 13 - B02: o conferidor das rotinas percorre o período inteiro da combinação e é rápido no pior caso
+  ---
+  duration_ms: 66.162394
+  type: 'test'
+  ...
+# Subtest: B02 (propriedade): com cálculo seguro, as horas são a união das janelas trabalhadas, em qualquer posição das pausas
+ok 14 - B02 (propriedade): com cálculo seguro, as horas são a união das janelas trabalhadas, em qualquer posição das pausas
+  ---
+  duration_ms: 114.181699
+  type: 'test'
+  ...
+# Subtest: B02 (propriedade): todo dia recusado depende mesmo da posição das pausas
+ok 15 - B02 (propriedade): todo dia recusado depende mesmo da posição das pausas
+  ---
+  duration_ms: 96.274333
+  type: 'test'
+  ...
+# Subtest: B02 (propriedade): acrescentar uma rotina, entre configurações com cálculo seguro, nunca tira horas
+ok 16 - B02 (propriedade): acrescentar uma rotina, entre configurações com cálculo seguro, nunca tira horas
+  ---
+  duration_ms: 742.775876
+  type: 'test'
+  ...
+# Subtest: B02: o turno que começa na véspera do período não leva horas do primeiro dia; os minutos sem horário só ocupam o tempo livre do dia
+ok 17 - B02: o turno que começa na véspera do período não leva horas do primeiro dia; os minutos sem horário só ocupam o tempo livre do dia
+  ---
+  duration_ms: 3.269391
+  type: 'test'
+  ...
+# Subtest: B02 (propriedade): na janela de meses da estimativa, com exceções, durações, turnos de 24 h e feriados, acrescentar uma rotina nunca tira horas
+ok 18 - B02 (propriedade): na janela de meses da estimativa, com exceções, durações, turnos de 24 h e feriados, acrescentar uma rotina nunca tira horas
+  ---
+  duration_ms: 8437.283428
+  type: 'test'
+  ...
+# Subtest: B02 (revisão da R1, N01): num dia de jornada reduzida com plantão, acrescentar uma rotina válida não tira horas
+not ok 19 - B02 (revisão da R1, N01): num dia de jornada reduzida com plantão, acrescentar uma rotina válida não tira horas
+  ---
+  duration_ms: 1.493944
+  type: 'test'
+  location: '<scratchpad>/p5f1r1/revisao2/b97806c4-com-testes-d7dabb10/tests/unit/work-time-calendar.test.ts:606:1'
+  failureType: 'testCodeFailure'
+  error: '1980 → 1440'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (file://<scratchpad>/p5f1r1/revisao2/b97806c4-com-testes-d7dabb10/tests/unit/work-time-calendar.test.ts:617:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: B02 (revisão da R1, N02): num dia de jornada reduzida, o dia civil nunca passa de 24 h; o trecho depois da meia-noite cabe além dele
+not ok 20 - B02 (revisão da R1, N02): num dia de jornada reduzida, o dia civil nunca passa de 24 h; o trecho depois da meia-noite cabe além dele
+  ---
+  duration_ms: 1.243915
+  type: 'test'
+  location: '<scratchpad>/p5f1r1/revisao2/b97806c4-com-testes-d7dabb10/tests/unit/work-time-calendar.test.ts:626:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+
+      [
+    +   1540,
+    +   false
+    -   1440,
+    -   true
+      ]
+
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    0: 1440
+    1: true
+  actual:
+    0: 1540
+    1: false
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (file://<scratchpad>/p5f1r1/revisao2/b97806c4-com-testes-d7dabb10/tests/unit/work-time-calendar.test.ts:633:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: B02 (limite registrado): o dia seguinte a uma jornada reduzida não desconta o trecho dela depois da meia-noite, e acrescentar uma rotina na véspera reduzida não tira horas dele
+ok 21 - B02 (limite registrado): o dia seguinte a uma jornada reduzida não desconta o trecho dela depois da meia-noite, e acrescentar uma rotina na véspera reduzida não tira horas dele
+  ---
+  duration_ms: 0.887359
+  type: 'test'
+  ...
+# Subtest: B02 (propriedade, revisão da R1): com jornada reduzida, plantão e hora extra até 24 h, acrescentar uma rotina nunca tira horas
+not ok 22 - B02 (propriedade, revisão da R1): com jornada reduzida, plantão e hora extra até 24 h, acrescentar uma rotina nunca tira horas
+  ---
+  duration_ms: 35.865336
+  type: 'test'
+  location: '<scratchpad>/p5f1r1/revisao2/b97806c4-com-testes-d7dabb10/tests/unit/work-time-calendar.test.ts:717:1'
+  failureType: 'testCodeFailure'
+  error: 'amostra 14: 25860 → 25800 {"base":{"kind":"weekly","days":[{"kind":"off"},{"kind":"window","start":720,"end":1020,"breakMinutes":0},{"kind":"window","start":660,"end":780,"breakMinutes":0},{"kind":"window","start":780,"end":1320,"breakMinutes":0},{"kind":"window","start":540,"end":780,"breakMinutes":0},{"kind":"window","start":900,"end":1320,"breakMinutes":0},{"kind":"off"}]},"added":{"kind":"weekly","days":[{"kind":"off"},{"kind":"off"},{"kind":"off"},{"kind":"off"},{"kind":"off"},{"kind":"window","start":420,"end":780,"breakMinutes":0},{"kind":"off"}]},"extra":{"exceptions":[{"kind":"reduced","start":"2026-08-01","end":"2026-08-01","minutes":960},{"kind":"on_call","date":"2026-08-01","minutes":1440},{"kind":"reduced","start":"2026-08-08","end":"2026-08-08","minutes":480},{"kind":"on_call","date":"2026-08-08","minutes":1140},{"kind":"overtime","date":"2026-08-08","minutes":480},{"kind":"vacation","start":"2026-08-15","end":"2026-08-15"},{"kind":"vacation","start":"2026-08-22","end":"2026-08-22"},{"kind":"reduced","start":"2026-08-29","end":"2026-08-29","minutes":480},{"kind":"on_call","date":"2026-08-29","minutes":420},{"kind":"overtime","date":"2026-08-29","minutes":960},{"kind":"reduced","start":"2026-09-05","end":"2026-09-05","minutes":840},{"kind":"on_call","date":"2026-09-05","minutes":1440},{"kind":"vacation","start":"2026-09-12","end":"2026-09-12"},{"kind":"vacation","start":"2026-09-19","end":"2026-09-19"},{"kind":"vacation","start":"2026-09-26","end":"2026-09-26"},{"kind":"vacation","start":"2026-10-03","end":"2026-10-03"},{"kind":"reduced","start":"2026-10-10","end":"2026-10-10","minutes":360},{"kind":"on_call","date":"2026-10-10","minutes":960},{"kind":"overtime","date":"2026-10-10","minutes":660},{"kind":"vacation","start":"2026-10-17","end":"2026-10-17"},{"kind":"reduced","start":"2026-10-24","end":"2026-10-24","minutes":300},{"kind":"on_call","date":"2026-10-24","minutes":1440},{"kind":"vacation","start":"2026-10-31","end":"2026-10-31"}],"worksOnHolidays":true,"localHolidays":[]}}'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (file://<scratchpad>/p5f1r1/revisao2/b97806c4-com-testes-d7dabb10/tests/unit/work-time-calendar.test.ts:759:12)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: B02 (propriedade, revisão da R1): sem janela que passe da meia-noite, nenhum dia passa de 24 h, com qualquer exceção
+not ok 23 - B02 (propriedade, revisão da R1): sem janela que passe da meia-noite, nenhum dia passa de 24 h, com qualquer exceção
+  ---
+  duration_ms: 14.447145
+  type: 'test'
+  location: '<scratchpad>/p5f1r1/revisao2/b97806c4-com-testes-d7dabb10/tests/unit/work-time-calendar.test.ts:765:1'
+  failureType: 'testCodeFailure'
+  error: 'amostra 8, 2026-10-16: 2040 min {"routines":[{"kind":"weekly","days":[{"kind":"window","start":0,"end":840,"breakMinutes":0},{"kind":"off"},{"kind":"off"},{"kind":"window","start":480,"end":1260,"breakMinutes":0},{"kind":"window","start":900,"end":1320,"breakMinutes":60},{"kind":"window","start":600,"end":960,"breakMinutes":60},{"kind":"off"}]},{"kind":"weekly","days":[{"kind":"off"},{"kind":"window","start":240,"end":780,"breakMinutes":60},{"kind":"window","start":540,"end":780,"breakMinutes":60},{"kind":"off"},{"kind":"window","start":600,"end":900,"breakMinutes":60},{"kind":"duration","minutes":720},{"kind":"window","start":480,"end":720,"breakMinutes":60}]}],"worksOnHolidays":false,"localHolidays":[],"exceptions":[{"kind":"reduced","start":"2026-09-16","end":"2026-09-16","minutes":240},{"kind":"overtime","date":"2026-09-16","minutes":1020},{"kind":"overtime","date":"2026-10-31","minutes":1320},{"kind":"reduced","start":"2026-10-16","end":"2026-10-17","minutes":900},{"kind":"on_call","date":"2026-10-16","minutes":1380},{"kind":"overtime","date":"2026-10-16","minutes":1440}]}'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (file://<scratchpad>/p5f1r1/revisao2/b97806c4-com-testes-d7dabb10/tests/unit/work-time-calendar.test.ts:783:16)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: B02 (revisão da R1, N07): o conferidor do calendário inteiro acha o dia sem cálculo seguro por exceção, feriado ou início do período
+not ok 24 - B02 (revisão da R1, N07): o conferidor do calendário inteiro acha o dia sem cálculo seguro por exceção, feriado ou início do período
+  ---
+  duration_ms: 0.599102
+  type: 'test'
+  location: '<scratchpad>/p5f1r1/revisao2/b97806c4-com-testes-d7dabb10/tests/unit/work-time-calendar.test.ts:798:1'
+  failureType: 'testCodeFailure'
+  error: 'calendarAmbiguity ausente na árvore b97806c4'
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    calendarAmbiguity (file://<scratchpad>/p5f1r1/revisao2/b97806c4-com-testes-d7dabb10/tests/unit/work-time-calendar.test.ts:5:61)
+    TestContext.<anonymous> (file://<scratchpad>/p5f1r1/revisao2/b97806c4-com-testes-d7dabb10/tests/unit/work-time-calendar.test.ts:801:16)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: B02 (propriedade, revisão da R1): o que o conferidor do calendário inteiro aceita nunca tem dia sem cálculo seguro, e o dia que ele aponta é ambíguo
+not ok 25 - B02 (propriedade, revisão da R1): o que o conferidor do calendário inteiro aceita nunca tem dia sem cálculo seguro, e o dia que ele aponta é ambíguo
+  ---
+  duration_ms: 0.56723
+  type: 'test'
+  location: '<scratchpad>/p5f1r1/revisao2/b97806c4-com-testes-d7dabb10/tests/unit/work-time-calendar.test.ts:855:1'
+  failureType: 'testCodeFailure'
+  error: 'calendarAmbiguity ausente na árvore b97806c4'
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    calendarAmbiguity (file://<scratchpad>/p5f1r1/revisao2/b97806c4-com-testes-d7dabb10/tests/unit/work-time-calendar.test.ts:5:61)
+    TestContext.<anonymous> (file://<scratchpad>/p5f1r1/revisao2/b97806c4-com-testes-d7dabb10/tests/unit/work-time-calendar.test.ts:910:21)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: durações sem horário somam e a possível sobreposição é sinalizada; nenhum dia passa de 24 h
+ok 26 - durações sem horário somam e a possível sobreposição é sinalizada; nenhum dia passa de 24 h
+  ---
+  duration_ms: 0.450907
+  type: 'test'
+  ...
+# Subtest: exceções: férias, folga, ausência, plantão, hora extra, jornada reduzida e alteração de escala
+ok 27 - exceções: férias, folga, ausência, plantão, hora extra, jornada reduzida e alteração de escala
+  ---
+  duration_ms: 4.361332
+  type: 'test'
+  ...
+# Subtest: o plano é determinístico e só depende das entradas (função pura)
+ok 28 - o plano é determinístico e só depende das entradas (função pura)
+  ---
+  duration_ms: 0.835608
+  type: 'test'
+  ...
+1..28
+# tests 28
+# suites 0
+# pass 22
+# fail 6
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 9791.47844

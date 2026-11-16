@@ -16,6 +16,7 @@ import {
 } from './Icons.tsx';
 import ReportsAlertsPanel from './ReportsAlertsPanel.tsx';
 import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
+import { useMoneyDisplay } from '../modules/work-time/display';
 const MotionDiv = motion.div as any;
 interface ReportsOverviewProps {
     snapshot?: FinancialReportSnapshot;
@@ -35,7 +36,7 @@ const KPISkeleton = () => (
 
 const KPICard: React.FC<{
     label: string;
-    value: string;
+    value: React.ReactNode;
     trend?: 'up' | 'down' | 'stable';
     trendBasis?: 'sign' | 'period';
     trendPercentage?: number;
@@ -97,6 +98,7 @@ const KPICard: React.FC<{
 const ReportsOverview: React.FC<ReportsOverviewProps> = ({ snapshot, view, isLoading }) => {
     const { activeWorkspace } = useWorkspace();
     const isPJ = activeWorkspace.type === 'PJ';
+    const display = useMoneyDisplay();
     
 
     const kpiData = useMemo(() => {
@@ -202,7 +204,7 @@ const ReportsOverview: React.FC<ReportsOverviewProps> = ({ snapshot, view, isLoa
                     <KPICard
                         key={index}
                         label={kpi.label}
-                        value={kpi.data?.formattedValue ?? REPORT_MESSAGES.noValue}
+                        value={kpi.data?.cents !== undefined ? display.cents(kpi.data.cents, () => kpi.data.formattedValue) : (kpi.data?.formattedValue ?? REPORT_MESSAGES.noValue)}
                         trend={kpi.data?.trend}
                         trendBasis={kpi.data?.trendBasis}
                         trendPercentage={kpi.data?.trendPercentage}
@@ -258,7 +260,7 @@ const ReportsOverview: React.FC<ReportsOverviewProps> = ({ snapshot, view, isLoa
                                 ] as [string, number | null, boolean][]).filter(([, , visible]) => visible).map(([label, value]) => (
                                     <article key={label} className="rounded-xl border border-border bg-background p-3">
                                         <p className="text-xs text-muted">{label}</p>
-                                        <p className="mt-1 font-bold text-on-surface">{value === null ? REPORT_MESSAGES.noValue : formatCurrency(value)}</p>
+                                        <p className="mt-1 font-bold text-on-surface">{value === null ? REPORT_MESSAGES.noValue : display.reais(value, formatCurrency)}</p>
                                     </article>
                                 ))}
                             </div>
@@ -311,18 +313,18 @@ const ReportsOverview: React.FC<ReportsOverviewProps> = ({ snapshot, view, isLoa
                         <div className="bg-background rounded-xl border border-border p-4">
                             <p className="text-xs font-bold text-muted uppercase">Próximas faturas a pagar</p>
                             <p className="text-xl font-black text-on-surface mt-1">
-                                {formatCurrency(snapshot.debtProfile.creditCardOpenInvoiceBalance)}
+                                {display.reais(snapshot.debtProfile.creditCardOpenInvoiceBalance, formatCurrency)}
                             </p>
                         </div>
 
                         <div className="bg-background rounded-xl border border-border p-4">
                             <p className="text-xs font-bold text-muted uppercase">Futuro comprometido</p>
                             <p className="text-xl font-black text-on-surface mt-1">
-                                {formatCurrency(snapshot.debtProfile.creditCardFutureCommittedBalance)}
+                                {display.reais(snapshot.debtProfile.creditCardFutureCommittedBalance, formatCurrency)}
                             </p>
                             {snapshot.debtProfile.creditCardOpenCreditAmount > 0 && (
                                 <p className="text-[11px] text-muted mt-1">
-                                    Crédito a compensar no fechamento: {formatCurrency(snapshot.debtProfile.creditCardOpenCreditAmount)} (não abate o futuro).
+                                    Crédito a compensar no fechamento: {display.reais(snapshot.debtProfile.creditCardOpenCreditAmount, formatCurrency)} (não abate o futuro).
                                 </p>
                             )}
                         </div>
@@ -330,7 +332,7 @@ const ReportsOverview: React.FC<ReportsOverviewProps> = ({ snapshot, view, isLoa
                         <div className="bg-background rounded-xl border border-border p-4">
                             <p className="text-xs font-bold text-muted uppercase">A vencer em 30 dias</p>
                             <p className="text-xl font-black text-on-surface mt-1">
-                                {formatCurrency(snapshot.debtProfile.creditCardDueNext30Days)}
+                                {display.reais(snapshot.debtProfile.creditCardDueNext30Days, formatCurrency)}
                             </p>
                         </div>
 
@@ -340,7 +342,7 @@ const ReportsOverview: React.FC<ReportsOverviewProps> = ({ snapshot, view, isLoa
                                 ? 'text-red-600'
                                 : 'text-green-600'
                                 }`}>
-                                {formatCurrency(snapshot.debtProfile.creditCardOverdueAmount)}
+                                {display.reais(snapshot.debtProfile.creditCardOverdueAmount, formatCurrency)}
                             </p>
                         </div>
                     </div>
@@ -385,16 +387,16 @@ const ReportsOverview: React.FC<ReportsOverviewProps> = ({ snapshot, view, isLoa
                                         </td>
 
                                         <td className="px-5 py-4 text-right font-medium text-on-surface">
-                                            {card.openInvoiceBalance === null ? REPORT_MESSAGES.noValue : formatCurrency(card.openInvoiceBalance)}
+                                            {card.openInvoiceBalance === null ? REPORT_MESSAGES.noValue : display.reais(card.openInvoiceBalance, formatCurrency)}
                                         </td>
 
                                         <td className="px-5 py-4 text-right font-medium text-on-surface">
-                                            {formatCurrency(card.futureCommittedBalance)}
+                                            {display.reais(card.futureCommittedBalance, formatCurrency)}
                                         </td>
 
                                         <td className={`px-5 py-4 text-right font-bold ${card.overdueAmount > 0 ? 'text-red-600' : 'text-green-600'
                                             }`}>
-                                            {formatCurrency(card.overdueAmount)}
+                                            {display.reais(card.overdueAmount, formatCurrency)}
                                         </td>
                                     </tr>
                                 ))}
@@ -443,13 +445,13 @@ const ReportsOverview: React.FC<ReportsOverviewProps> = ({ snapshot, view, isLoa
                                                 {formatDateMonth(month.month)}{month.partial ? ' (parcial)' : ''}
                                             </td>
                                             <td className="px-6 py-4 text-right text-green-600 font-medium">
-                                                {formatCurrency(month.totalIncome)}
+                                                {display.reais(month.totalIncome, formatCurrency)}
                                             </td>
                                             <td className="px-6 py-4 text-right text-red-600 font-medium">
-                                                {formatCurrency(month.totalExpenses)}
+                                                {display.reais(month.totalExpenses, formatCurrency)}
                                             </td>
                                             <td className={`px-6 py-4 text-right font-black ${month.operationalResult >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                                {formatCurrency(month.operationalResult)}
+                                                {display.reais(month.operationalResult, formatCurrency)}
                                             </td>
                                         </tr>
                                     ))}
@@ -522,7 +524,7 @@ const ReportsOverview: React.FC<ReportsOverviewProps> = ({ snapshot, view, isLoa
                                     <div className="flex justify-between text-xs">
                                         <span className="font-medium text-on-surface">{cat.categoryName}</span>
                                         <span className="font-bold text-muted">
-                                            {cat.percentageOfTotal === null ? formatCurrency(cat.totalAmount) : `${cat.percentageOfTotal.toFixed(0)}%`}
+                                            {cat.percentageOfTotal === null ? display.reais(cat.totalAmount, formatCurrency) : `${cat.percentageOfTotal.toFixed(0)}%`}
                                         </span>
                                     </div>
                                     <div className="h-1.5 w-full bg-background rounded-full overflow-hidden">

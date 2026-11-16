@@ -1,0 +1,23 @@
+TAP version 13
+# { compared: 1929, cutting: 1228, gap: 518, pairs: 807 }
+# Subtest: B02 (P5-F.1-R2A, R2A-01): a jornada reduzida no dia que abre o período segue a mesma regra, e acrescentar uma rotina não tira horas do período
+ok 1 - B02 (P5-F.1-R2A, R2A-01): a jornada reduzida no dia que abre o período segue a mesma regra, e acrescentar uma rotina não tira horas do período
+  ---
+  duration_ms: 8.418473
+  type: 'test'
+  ...
+# Subtest: B02 (propriedade, P5-F.1-R2A, R2A-01): com a jornada reduzida no dia que abre o período, o segundo dia aceito não depende da parte trabalhada, e acrescentar uma rotina nunca tira horas
+ok 2 - B02 (propriedade, P5-F.1-R2A, R2A-01): com a jornada reduzida no dia que abre o período, o segundo dia aceito não depende da parte trabalhada, e acrescentar uma rotina nunca tira horas
+  ---
+  duration_ms: 3139.683415
+  type: 'test'
+  ...
+1..2
+# tests 2
+# suites 0
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 3329.270865

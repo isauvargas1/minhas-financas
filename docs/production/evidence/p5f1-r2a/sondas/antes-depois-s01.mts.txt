@@ -1,0 +1,54 @@
+// P5-F.1-R2A, S01 — antes × depois. Uso: node --experimental-strip-types antes-depois-s01.mts <raiz da árvore>
+// Calcula, com o motor da árvore dada, as linhas da tabela de `s01-vespera-reduzida.md` §8.
+const root = process.argv[2];
+const cal = await import(`${root}/src/modules/work-time/calendar.ts`);
+const hm = (text: string) => Number(text.slice(0, 2)) * 60 + Number(text.slice(3, 5));
+const win = (start: string, end: string, breakMinutes = 0) => ({ kind: 'window', start: hm(start), end: hm(end), breakMinutes });
+const OFF = { kind: 'off' };
+const dur = (minutes: number) => ({ kind: 'duration', minutes });
+const weekly = (...days: unknown[]) => ({ kind: 'weekly', days });
+const onMonday = (spec: unknown) => weekly(spec, OFF, OFF, OFF, OFF, OFF, OFF);
+const onTuesday = (spec: unknown) => weekly(OFF, spec, OFF, OFF, OFF, OFF, OFF);
+const cal0 = (routines: unknown[], exceptions: unknown[] = []) => ({ routines, worksOnHolidays: true, localHolidays: [], exceptions });
+const reduced = (date: string, minutes: number) => ({ kind: 'reduced', start: date, end: date, minutes });
+const day = (c: unknown, date: string) => {
+  const plan = cal.dayPlan(c, date);
+  return `${plan.minutes}${plan.ambiguous ? ' (sem cálculo seguro)' : ''}`;
+};
+const verdict = (c: unknown) => {
+  const found = cal.calendarAmbiguity(c, '2026-10-01');
+  return found === null ? 'aceita' : `recusa ${found.date} ${JSON.stringify(found.cause)}`;
+};
+const rows: Array<[string, unknown, string[]]> = [
+  ['S01: seg 20:00–06:00 reduzida a 8 h, ter 00:00–08:00', cal0([weekly(win('20:00', '06:00'), win('00:00', '08:00'), OFF, OFF, OFF, OFF, OFF)], [reduced('2026-10-05', 480)]), ['2026-10-05', '2026-10-06']],
+  ['S01 com redução de 10 h (não corta)', cal0([weekly(win('20:00', '06:00'), win('00:00', '08:00'), OFF, OFF, OFF, OFF, OFF)], [reduced('2026-10-05', 600)]), ['2026-10-05', '2026-10-06']],
+  ['seg 20:00–06:00 reduzida a 8 h, ter 24 h de plantão', cal0([onMonday(win('20:00', '06:00'))], [reduced('2026-10-05', 480), { kind: 'on_call', date: '2026-10-06', minutes: 1440 }]), ['2026-10-05', '2026-10-06']],
+  ['o mesmo com 4 h de plantão', cal0([onMonday(win('20:00', '06:00'))], [reduced('2026-10-05', 480), { kind: 'on_call', date: '2026-10-06', minutes: 240 }]), ['2026-10-05', '2026-10-06']],
+  ['noturno seg–sex 22:00–06:00, quarta reduzida a 6 h', cal0([weekly(win('22:00', '06:00'), win('22:00', '06:00'), win('22:00', '06:00'), win('22:00', '06:00'), win('22:00', '06:00'), OFF, OFF)], [reduced('2026-10-07', 360)]), ['2026-10-07', '2026-10-08']],
+  ['24 × 48 reduzida a 12 h, 4 h de hora extra no dia seguinte', cal0([{ kind: 'cyclic', reference: '2026-10-05', workDays: 1, restDays: 2, day: win('07:00', '07:00') }], [reduced('2026-10-05', 720), { kind: 'overtime', date: '2026-10-06', minutes: 240 }]), ['2026-10-05', '2026-10-06']],
+  ['seg 22:00–08:00 cobre ter 05:00–09:00/30 (+ ter 08:00–12:00), seg reduzida a 5 h', cal0([onMonday(win('22:00', '08:00')), onTuesday(win('05:00', '09:00', 30)), onTuesday(win('08:00', '12:00'))], [reduced('2026-10-05', 300)]), ['2026-10-05', '2026-10-06']],
+  ['dom 22:00–06:00, seg 01:00–01:00 reduzida a 20 h, ter 00:00–02:00', cal0([weekly(win('01:00', '01:00'), win('00:00', '02:00'), OFF, OFF, OFF, OFF, win('22:00', '06:00'))], [reduced('2026-10-05', 1200)]), ['2026-10-05', '2026-10-06']],
+  ['seg 20:00–06:00 + 2 h sem horário reduzida a 650, ter 00:00–08:00', cal0([weekly(win('20:00', '06:00'), win('00:00', '08:00'), OFF, OFF, OFF, OFF, OFF), onMonday(dur(120))], [reduced('2026-10-05', 650)]), ['2026-10-05', '2026-10-06']],
+];
+for (const [label, c, dates] of rows) {
+  console.log(`${label}: ${dates.map((date) => `${date.slice(8, 10)}/${date.slice(5, 7)} ${day(c, date)}`).join(' + ')} · ${verdict(c)}`);
+}
+const october = cal.monthPlan(cal0([weekly(win('22:00', '06:00'), win('22:00', '06:00'), win('22:00', '06:00'), win('22:00', '06:00'), win('22:00', '06:00'), OFF, OFF)], [{ kind: 'reduced', start: '2026-10-01', end: '2026-10-31', minutes: 360 }]), '2026-10', { periodStart: true });
+console.log(`outubro/2026 noturno inteiro reduzido a 6 h: ${october.minutes} min, dias sem cálculo seguro: ${october.ambiguousDays.length}`);
+// Revisão independente da R2A, T01: a jornada reduzida no dia que abre o período (outubro de 2026 abrindo o período).
+// 30/09 quarta, 01/10 quinta, 02/10 sexta. Os dias são os do período (`monthPlan` com `periodStart`); o veredito, o do
+// conferidor a partir de 01/10/2026.
+const wedThuFri = (wed: unknown, thu: unknown, fri: unknown) => weekly(OFF, OFF, wed, thu, fri, OFF, OFF);
+const opening: Array<[string, unknown]> = [
+  ['abrindo o período: qua 20:00–10:00, qui 06:00–20:00 reduzida a 850, sex 00:00–04:00, férias de 03 a 31/10 (C)', cal0([wedThuFri(win('20:00', '10:00'), win('06:00', '20:00'), win('00:00', '04:00'))], [reduced('2026-10-01', 850), { kind: 'vacation', start: '2026-10-03', end: '2026-10-31' }])],
+  ['o mesmo com qui 22:00–02:00 acrescentada (C′)', cal0([wedThuFri(win('20:00', '10:00'), win('06:00', '20:00'), win('00:00', '04:00')), wedThuFri(OFF, win('22:00', '02:00'), OFF)], [reduced('2026-10-01', 850), { kind: 'vacation', start: '2026-10-03', end: '2026-10-31' }])],
+  ['abrindo o período: qua 20:00–10:00, qui 06:00–02:00 reduzida a 1.000, sex 00:00–04:00', cal0([wedThuFri(win('20:00', '10:00'), win('06:00', '02:00'), win('00:00', '04:00'))], [reduced('2026-10-01', 1000)])],
+];
+for (const [label, c] of opening) {
+  const plan = cal.monthPlan(c, '2026-10', { periodStart: true });
+  const at = (date: string) => { const d = plan.days.find((x: { date: string }) => x.date === date); return `${d.minutes}${d.ambiguous ? ' (sem cálculo seguro)' : ''}`; };
+  console.log(`${label}: 01/10 ${at('2026-10-01')} + 02/10 ${at('2026-10-02')} · outubro abrindo o período ${plan.minutes} · ${verdict(c)}`);
+}
+// Revisão independente da R2A, T13: a mesma segunda de 24 h num dia 1 (01/06/2026, segunda), que pode abrir o período.
+const juneFirst = cal0([weekly(win('01:00', '01:00'), win('00:00', '02:00'), OFF, OFF, OFF, OFF, win('22:00', '06:00'))], [reduced('2026-06-01', 1200)]);
+console.log(`dom 31/05 22:00–06:00, seg 01/06 01:00–01:00 reduzida a 20 h, ter 00:00–02:00: ${['2026-06-01', '2026-06-02'].map((date) => `${date.slice(8, 10)}/${date.slice(5, 7)} ${day(juneFirst, date)}`).join(' + ')} · ${(() => { const found = cal.calendarAmbiguity(juneFirst, '2026-06-01'); return found === null ? 'aceita' : `recusa ${found.date} ${JSON.stringify(found.cause)}`; })()}`);

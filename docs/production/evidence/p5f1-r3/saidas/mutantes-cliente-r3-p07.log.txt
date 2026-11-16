@@ -1,0 +1,2 @@
+base: saída 0, 0 falha(s)
+MORTO      P07 estorno sem recebimento aceito (1 falha(s); ex.: not ok 189 - prova de estorno: estorno vivo com recebimento ausente na projeção recusa com content)

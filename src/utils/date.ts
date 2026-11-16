@@ -61,19 +61,6 @@ export const formatDateBR = (value: unknown): string => {
   return parsed.toLocaleDateString('pt-BR');
 };
 
-export const isSameMonthYear = (value: unknown, referenceDate: Date): boolean => {
-  const parsed = parseDateInputAsLocalDate(value);
-
-  if (Number.isNaN(parsed.getTime())) {
-    return false;
-  }
-
-  return (
-    parsed.getMonth() === referenceDate.getMonth() &&
-    parsed.getFullYear() === referenceDate.getFullYear()
-  );
-};
-
 export const toFirestoreDateTimestamp = (value: unknown): Timestamp | undefined => {
   const dateOnly = toDateOnlyString(value);
 

@@ -1,0 +1,39 @@
+
+Running 25 tests using 1 worker
+
+(node:5863) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN
+(Use `node --trace-warnings ...` to show where the warning was created)
+[valores-b03-a] {"balance":["tempo|≈ 796 h","reais|R$ 19.900,00","reais|R$ 23.900,00","tempo|≈ 956 h"],"hourly":[],"notice":["Valores em tempo de trabalho equivalente: uma estimativa aproximada, não o valor exato.Mostrar em R$","Calculando a estimativa de tempo de trabalho: enquanto isso, os valores ficam em reais.Mostrar em R$","Valores em tempo de trabalho equivalente: uma estimativa aproximada, não o valor exato.Mostrar em R$"]}
+  ✓   1 [chromium] › e2e/work-time-b03.spec.ts:325:1 › B03-a: receita desconsiderada editada por outro usuário: o saldo nunca converte o valor novo com o total velho e volta a converter certo (21.3s)
+[valores-b03-b] {"balance":["reais|R$ 19.900,00"],"hourly":[],"notice":["Calculando a estimativa de tempo de trabalho: enquanto isso, os valores ficam em reais.Mostrar em R$","Estimativa de tempo de trabalho indisponível agora: os valores continuam em reais. Veja o motivo em Configurações.Mostrar em R$"]}
+  ✓   2 [chromium] › e2e/work-time-b03.spec.ts:418:1 › B03-b: marca quebrada: não converte, mostra reais e, depois do tempo de interface, "estimativa em atualização" acessível e legível no celular (40.3s)
+[valores-b03-c] {"balance":["reais|R$ 19.900,00","tempo|≈ 796 h"],"hourly":["R$ 25,00"],"notice":["Calculando a estimativa de tempo de trabalho: enquanto isso, os valores ficam em reais.Mostrar em R$","Estimativa de tempo de trabalho indisponível agora: os valores continuam em reais. Veja o motivo em Configurações.Mostrar em R$","Valores em tempo de trabalho equivalente: uma estimativa aproximada, não o valor exato.Mostrar em R$"]}
+  ✓   3 [chromium] › e2e/work-time-b03.spec.ts:476:1 › B03-c: depois da marca quebrada, a reconstrução do owner recupera a prova e a estimativa volta a converter com o valor certo (37.7s)
+[valores-b03-d] {"balance":["tempo|≈ 774 h 57 min","tempo|≈ 796 h","tempo|≈ 774 h 57 min"],"hourly":["R$ 25,68","R$ 25,00","R$ 25,68"],"notice":["Valores em tempo de trabalho equivalente: uma estimativa aproximada, não o valor exato.Mostrar em R$"]}
+  ✓   4 [chromium] › e2e/work-time-b03.spec.ts:523:1 › B03-d: incluir e tirar uma receita da lista de exclusões pessoais refaz a prova e mantém o valor certo nas duas direções (6.6s)
+[valores-b03-e] {"balance":["tempo|≈ 896 h","reais|R$ 22.400,00","tempo|≈ 896 h"],"hourly":["R$ 25,00"],"notice":["Valores em tempo de trabalho equivalente: uma estimativa aproximada, não o valor exato.Mostrar em R$","Calculando a estimativa de tempo de trabalho: enquanto isso, os valores ficam em reais.Mostrar em R$","Valores em tempo de trabalho equivalente: uma estimativa aproximada, não o valor exato.Mostrar em R$","Calculando a estimativa de tempo de trabalho: enquanto isso, os valores ficam em reais.Mostrar em R$","Valores em tempo de trabalho equivalente: uma estimativa aproximada, não o valor exato.Mostrar em R$"]}
+  ✓   5 [chromium] › e2e/work-time-b03.spec.ts:577:1 › B03-e: a receita desconsiderada sai da janela da estimativa e volta: o mês antigo só deixa de descontar quando projeção e marca mudam juntas (15.7s)
+[valores-b03-f-sem-prova] {"balance":["tempo|≈ 796 h","reais|R$ 19.900,00","reais|R$ 20.200,00"],"hourly":[],"notice":["Valores em tempo de trabalho equivalente: uma estimativa aproximada, não o valor exato.Mostrar em R$","Calculando a estimativa de tempo de trabalho: enquanto isso, os valores ficam em reais.Mostrar em R$"]}
+[valores-b03-f] {"balance":["tempo|≈ 796 h","reais|R$ 19.900,00","reais|R$ 20.200,00","tempo|≈ 795 h 2 min"],"hourly":["R$ 25,41"],"notice":["Valores em tempo de trabalho equivalente: uma estimativa aproximada, não o valor exato.Mostrar em R$","Calculando a estimativa de tempo de trabalho: enquanto isso, os valores ficam em reais.Mostrar em R$","Estimativa de tempo de trabalho indisponível agora: os valores continuam em reais. Veja o motivo em Configurações.Mostrar em R$","Valores em tempo de trabalho equivalente: uma estimativa aproximada, não o valor exato.Mostrar em R$"]}
+  ✓   6 [chromium] › e2e/work-time-b03.spec.ts:632:1 › B03-f (R3.1): leitura nova sem prova: o saldo novo fica em reais e nunca é convertido pela estimativa anterior; a reconstrução traz a conversão certa (43.0s)
+  ✓   7 [chromium] › e2e/work-time-p5f.spec.ts:265:1 › desativado por padrão; assistente na primeira ativação, cancelar não grava, alternância e persistência entre sessões e dispositivos (11.4s)
+  ✓   8 [chromium] › e2e/work-time-p5f.spec.ts:374:1 › a preferência vale em PF e PJ; outra conta no mesmo navegador não vê configuração, estimativa nem valores convertidos (12.8s)
+  ✓   9 [chromium] › e2e/work-time-p5f.spec.ts:484:1 › outra aba acompanha; desativar mantém os dados e excluir apaga toda a configuração (9.4s)
+  ✓  10 [chromium] › e2e/work-time-p5f.spec.ts:560:1 › a IA não recebe a configuração e o modo tempo não grava nada fora do documento privado (3.9s)
+  ✓  11 [chromium] › e2e/work-time-p5f.spec.ts:650:1 › receitas consideradas: regras automáticas, exclusão só na estimativa, PJ com confirmação, mês atual e memória de cálculo (15.6s)
+  ✓  12 [chromium] › e2e/work-time-p5f.spec.ts:745:1 › Configurações: prévia antes de salvar, falha de gravação preserva a anterior, escala e exceções mudam a estimativa, refazer o assistente (3.7s)
+  ✓  13 [chromium] › e2e/work-time-p5f.spec.ts:848:1 › atualização automática: uma receita nova entra na estimativa do mês atual sem recarregar (7.0s)
+  ✓  14 [chromium] › e2e/work-time-p5f.spec.ts:869:1 › atualização automática: receita retroativa no espaço da renda, com outro espaço ativo, muda a estimativa sem recarregar (13.3s)
+  ✓  15 [chromium] › e2e/work-time-p5f.spec.ts:934:1 › sem espaço PF próprio: nenhuma fonte pré-selecionada; contagem, prévia e painel esperam a escolha (3.1s)
+  ✓  16 [chromium] › e2e/work-time-p5f.spec.ts:966:1 › Configurações: a troca do modo pelo Header durante uma edição entra no rascunho e não é desfeita ao salvar (2.7s)
+  ✓  17 [chromium] › e2e/work-time-p5f.spec.ts:999:1 › falha na leitura das receitas desconsideradas: mensagem fixa em pt-BR, nada do SDK, e "Tentar de novo" (10.5s)
+  ✓  18 [chromium] › e2e/work-time-p5f.spec.ts:1038:1 › releitura que falha: sem confirmar a receita nova, nada convertido e erro com "Tentar de novo"; com a projeção de volta à última leitura, a estimativa volta com o aviso (13.8s)
+  ✓  19 [chromium] › e2e/work-time-p5f.spec.ts:1125:1 › mutação nesta aba: anular em Receitas a receita desconsiderada não junta o item anulado com o total velho (3.4s)
+  ✓  20 [chromium] › e2e/work-time-p5f.spec.ts:1177:1 › falha na leitura da preferência com a escuta já aberta: aviso fixo em pt-BR, valores em reais e "Tentar de novo" (3.5s)
+  ✓  21 [chromium] › e2e/work-time-p5f.spec.ts:1203:1 › escuta das projeções encerrada: abrir Configurações a reabre, a ressalva do topo some e a estimativa em uso volta a acompanhar outras sessões (7.8s)
+  ✓  22 [chromium] › e2e/work-time-p5f.spec.ts:1297:1 › B01 (P5-F.1-R1): recebimento de cliente desconsiderado e estornado em outra sessão: a exclusão perde o efeito e a prévia nunca desconta duas vezes (14.0s)
+  ✓  23 [chromium] › e2e/work-time-p5f.spec.ts:1362:1 › B02 (P5-F.1-R1): acrescentar uma rotina válida não reduz as horas; rotinas que se cruzam com intervalo são recusadas com aviso acessível (5.3s)
+  ✓  24 [chromium] › e2e/work-time-p5f.spec.ts:1480:1 › B02 (revisão da R1, N07): a folga que deixa as rotinas sem cálculo seguro é recusada em Configurações, com aviso acessível junto do botão de salvar (3.5s)
+  ✓  25 [chromium] › e2e/work-time-p5f.spec.ts:1522:1 › S01 (P5-F.1-R2A): a jornada reduzida que deixa o dia seguinte sem cálculo seguro é recusada em Configurações, e a gravada assim deixa a estimativa indisponível (3.5s)
+
+  25 passed (5.9m)

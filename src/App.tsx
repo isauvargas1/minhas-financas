@@ -42,6 +42,9 @@ import { AdminDashboard } from './components/AdminDashboard';
 import { PricingTable } from './modules/billing/components/PricingTable';
 import { BillingSuccessModal } from './modules/billing/components/BillingSuccessModal';
 import { BillingProvider } from './modules/billing/BillingContext';
+import { WorkTimeProvider } from './modules/work-time/WorkTimeContext';
+import { useMoneyDisplay, type MoneyDisplay } from './modules/work-time/display';
+import { formatCentsBRL } from './lib/money';
 
 // Paleta de cores dos gráficos de categoria (apresentação). Os cadastros
 // do workspace vêm só do catálogo autoritativo (D-23), lido pelos módulos.
@@ -55,7 +58,6 @@ import type {
 } from "./types";
 
 import { WalletIcon, ArrowUpIcon, ArrowDownIcon, ChartBarIcon } from "./components/Icons";
-import { isSameMonthYear } from "./utils/date";
 import { useFinancialReport, useFinancialReportLiveRefresh } from "./modules/reports/hooks";
 import { toDashboardSummary, type DashboardFigure } from "./modules/reports/adapter";
 import { centsToDisplay } from "./modules/reports/format";
@@ -67,7 +69,7 @@ import { LoginView } from "./components/auth/LoginView";
 
 // --- HOOKS MIGRADOS ---
 import {
-    useTransactions,
+    useMonthTransactions,
     useCreateCashTransaction,
     useUpdateCashTransaction,
     useConfirmCashTransaction,
@@ -123,11 +125,18 @@ const queryClient = new QueryClient({
 const DASHBOARD_REPORT_SECTIONS = ['accounts', 'cash', 'investments', 'kpis'] as const;
 
 /** Número do card, ou "—" com o estado do relatório no lugar da legenda. */
-const summaryFigure = (figure: DashboardFigure, trend: string) => figure.cents === null
+const officialSummaryFigure = (figure: DashboardFigure, trend: string) => figure.cents === null
     ? { value: 0, displayValue: '—', trend: figure.message ?? trend }
     : { value: centsToDisplay(figure.cents), trend };
 
+/** P5-F: no modo tempo, o card mostra o equivalente; no modo dinheiro, o mesmo objeto de antes. */
+const withWorkTime = (figure: DashboardFigure, card: ReturnType<typeof officialSummaryFigure>, display: MoneyDisplay) =>
+    display.isTime && figure.cents !== null ? { ...card, displayValue: display.cents(figure.cents) } : card;
+
 const AppContent: React.FC = () => {
+    const display = useMoneyDisplay();
+    const summaryFigure = (figure: DashboardFigure, trend: string) =>
+        withWorkTime(figure, officialSummaryFigure(figure, trend), display);
     const { theme, toggleMode, playSound } = useTheme();
     const { activeWorkspace, isLoading, loadError, activeWorkspaceRole } = useWorkspace();
     const workspaceId = activeWorkspace?.id ?? "";
@@ -192,8 +201,16 @@ const AppContent: React.FC = () => {
 
     // --- INTEGRACAO COM FIRESTORE (HOOKS) ---
 
-    // 1. Transações
-    const { data: transactionsData, invalidCount: invalidTransactionsCount } = useTransactions(workspaceId);
+    // 1. Transações (P5-GATE-FINAL, FIRESTORE-01): nenhuma carga de lançamentos na abertura do aplicativo.
+    // A lista de Receitas ou de Despesas lê só o mês do Header e o tipo da tela, com a tela aberta;
+    // "Transações Recentes" lê as suas 9 (`RecentTransactions`).
+    const monthKey = useMemo(
+        () => `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`,
+        [currentDate],
+    );
+    const monthTransactions = useMonthTransactions(
+        workspaceId, monthKey, view === 'receita' || view === 'despesa' ? view : null,
+    );
     // P3-E: lançamento manual confirmado pelas callables autoritativas.
     const createCashMutation = useCreateCashTransaction(workspaceId);
     const updateCashMutation = useUpdateCashTransaction(workspaceId);
@@ -201,7 +218,6 @@ const AppContent: React.FC = () => {
     const confirmCashMutation = useConfirmCashTransaction(workspaceId);
     const voidCashMutation = useVoidCashTransaction(workspaceId);
     const createCardPurchaseMutation = useCreateCardPurchase();
-    const transactions = useMemo(() => transactionsData || [], [transactionsData]);
 
     // 2. Cartões de crédito (P4-A): leitura do domínio autoritativo.
     const { data: creditCardsData } = useCreditCards();
@@ -486,11 +502,6 @@ const AppContent: React.FC = () => {
         }
     };
 
-    const currentMonthTransactions = useMemo(
-        () => transactions.filter((transaction) => isSameMonthYear(transaction.date, currentDate)),
-        [transactions, currentDate]
-    );
-
     if (isLoading) return <div className="flex h-screen items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div></div>;
     // P1 (AUTH-10): sem workspace válido o app não é renderizado sobre um
     // pseudo-workspace; a falha aparece em pt-BR, com saída da conta.
@@ -523,7 +534,7 @@ const AppContent: React.FC = () => {
                                     <ReportsWidget onNavigate={() => handleNavigate('reports')} />
                                 </div>
                             </div>
-                            <RecentTransactions transactions={transactions} onNewTransaction={openFullTransactionModal} />
+                            <RecentTransactions onNewTransaction={openFullTransactionModal} />
                         </div>
                     </div>
                 )}
@@ -559,12 +570,13 @@ const AppContent: React.FC = () => {
                 )}
                 {(view === 'receita' || view === 'despesa') && <TransactionsView
                     viewType={view}
-                    invalidCount={invalidTransactionsCount}
-                    transactions={
-                        view === 'despesa'
-                            ? currentMonthTransactions.filter(t => t.type === 'despesa')
-                            : currentMonthTransactions.filter(t => t.type === view)
-                    }
+                    invalidCount={monthTransactions.invalidCount}
+                    transactions={monthTransactions.data ?? []}
+                    loadState={monthTransactions.isError
+                        ? 'error'
+                        : monthTransactions.data === undefined ? 'loading' : 'ready'}
+                    isTruncated={monthTransactions.isTruncated}
+                    onRetry={() => void monthTransactions.refetch()}
                     onBack={() => setView('dashboard')}
                     onAddTransaction={() => openScopedTransactionModal(view)}
                     onEditTransaction={openEditTransactionModal}
@@ -621,7 +633,10 @@ const AppContent: React.FC = () => {
                 onClose={closeVoidConfirmation}
                 onConfirm={handleVoidTransaction}
                 title="Anular lançamento"
-                message="O lançamento sai do caixa e continua no histórico, com o motivo informado."
+                // P5-F: no modo tempo a linha mostra horas; a confirmação traz o valor exato em reais.
+                message={display.isTime && transactionToVoid
+                    ? `O lançamento de ${formatCentsBRL(transactionToVoid.valueCents)} sai do caixa e continua no histórico, com o motivo informado.`
+                    : 'O lançamento sai do caixa e continua no histórico, com o motivo informado.'}
                 confirmLabel="Confirmar anulação"
                 reason={{
                     label: 'Motivo da anulação',
@@ -652,10 +667,13 @@ const App: React.FC = () => (
                 <WorkspaceProvider>
                     {/* Billing depois do bootstrap da conta (WorkspaceProvider). */}
                     <BillingProvider>
-                        <BillingSuccessModal />
-                        <AuthGuard>
-                            <AppContent />
-                        </AuthGuard>
+                        {/* P5-F: preferência privada do usuário, também depois do bootstrap. */}
+                        <WorkTimeProvider>
+                            <BillingSuccessModal />
+                            <AuthGuard>
+                                <AppContent />
+                            </AuthGuard>
+                        </WorkTimeProvider>
                     </BillingProvider>
                 </WorkspaceProvider>
             </ThemeProvider>

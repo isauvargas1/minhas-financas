@@ -1,0 +1,19 @@
+// Revisão 2, B01/N08: `pairedReadIds` com o espelho do estorno de B listado ANTES de B (só possível com uma lista de
+// desconsideradas montada fora da interface: o estorno não soma renda e não é oferecido para desconsiderar).
+// O par (B, estorno de B) é pulado porque o estorno já entrou como primeiro elemento do próprio par; B vai para o fim
+// e pode cair noutra consulta `in` (lotes de 30). Imutáveis os dois espelhos, não há efeito no valor; só a afirmação
+// "cada par vem da mesma consulta" deixa de valer nesse canto.
+const root = process.argv[2];
+const rr = await import(`${root}/src/modules/work-time/receivableReversal.ts`);
+const hex = (n: number) => n.toString(16).padStart(40, '0');
+const B = `recvcash_${hex(1)}`;
+const revB = await rr.reversalMirrorIdOf(B);
+const others = Array.from({ length: 30 }, (_, i) => `recvcash_${hex(100 + i)}`);
+const ids = [revB, ...others, B];
+const unique = [...new Set(ids)];
+const pairs = (await Promise.all(unique.map(async (id) => [id, await rr.reversalMirrorIdOf(id)] as const))).filter((p) => p[1] !== null);
+const list = rr.pairedReadIds(pairs, unique);
+const chunkOf = (id: string) => Math.floor(list.indexOf(id) / 30);
+let read: string[][] = [];
+await rr.readExcludedIncome(async (_ws: string, l: readonly string[]) => { for (let i = 0; i < l.length; i += 30) read.push(l.slice(i, i + 30)); return { found: [], missing: [...l] }; }, 'ws', ids);
+console.log(JSON.stringify({ total: list.length, repetidos: list.length - new Set(list).size, loteDeB: chunkOf(B), loteDoEstornoDeB: chunkOf(revB), consultas: read.length }));

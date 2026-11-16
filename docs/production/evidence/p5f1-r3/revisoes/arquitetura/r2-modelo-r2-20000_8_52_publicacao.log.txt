@@ -1,0 +1,23 @@
+{
+ "perdasDePoda": 0,
+ "cenarios": 20000,
+ "janelaMs": 8,
+ "correcao": "publicacao",
+ "violacoes": 0,
+ "cenariosComViolacao": 0,
+ "provas": 127390,
+ "publicacoes": 16044,
+ "recomecos": 5670,
+ "motivos": {
+  "provada": 127390,
+  "content": 7224,
+  "mark_pending": 4140,
+  "indisponivel_needsRebuild": 1153,
+  "mark_broken": 93
+ },
+ "finalSemProva": {
+  "mark_pending": 118,
+  "indisponivel_needsRebuild": 193
+ },
+ "finalSemProvaSemExclusaoFisica": {}
+}

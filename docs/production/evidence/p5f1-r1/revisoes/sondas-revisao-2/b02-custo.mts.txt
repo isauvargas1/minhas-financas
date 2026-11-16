@@ -1,0 +1,39 @@
+// Revisão 2, B02 (N09): custo do conferidor do calendário inteiro no pior caso dentro dos limites da gramática:
+// 3 rotinas (uma janela com intervalo coberta todos os dias, escalas cíclicas longas e primas entre si), 120 exceções
+// de intervalo longo (até 366 dias) espalhadas até 2099, 40 feriados locais anuais, sem trabalhar em feriados.
+const root = process.argv[2];
+const cal = await import(`${root}/src/modules/work-time/calendar.ts`);
+const draft = await import(`${root}/src/modules/work-time/draft.ts`);
+const contract = await import(`${root}/src/modules/work-time/contract.ts`);
+const dates = await import(`${root}/src/modules/work-time/dates.ts`);
+const win = (s: number, e: number, b = 0) => ({ kind: 'window', start: s, end: e, breakMinutes: b });
+const outer = { kind: 'weekly', days: Array.from({ length: 7 }, () => win(480, 1080)) };
+const inner = { kind: 'weekly', days: Array.from({ length: 7 }, () => win(540, 720, 60)) };
+const cyc = { kind: 'cyclic', reference: '2026-01-01', workDays: 27, restDays: 26, day: win(600, 660, 30) };
+const variants: Record<string, any> = {
+  'comum (rotina semanal padrão)': { routines: [draft.DEFAULT_WEEKLY_ROUTINE], exceptions: [], localHolidays: [], worksOnHolidays: false },
+  'coberta, sem exceções': { routines: [outer, inner], exceptions: [], localHolidays: [], worksOnHolidays: false },
+};
+const longRanges: any[] = [];
+for (let i = 0; i < 120; i++) {
+  const start = dates.addDays('2026-01-01', i * 220);
+  longRanges.push({ kind: pick(i), start, end: (dates.addDays(start, 365) ?? '2099-12-31') > '2099-12-31' ? '2099-12-31' : (dates.addDays(start, 365) ?? '2099-12-31') });
+}
+function pick(i: number) { return ['vacation', 'day_off', 'absence', 'reduced'][i % 4]; }
+const withMinutes = longRanges.map((e) => (e.kind === 'reduced' ? { ...e, minutes: 300 } : e));
+const holidays = Array.from({ length: 40 }, (_, i) => ({ kind: 'annual', month: 1 + (i % 12), day: 1 + ((i * 7) % 28) }));
+variants['pior caso: 3 rotinas cobertas + cíclica 27x26, 120 exceções de 366 dias, 40 feriados anuais'] = { routines: [outer, inner, cyc], exceptions: withMinutes, localHolidays: holidays, worksOnHolidays: false };
+for (const [name, c] of Object.entries(variants)) {
+  const times: number[] = [];
+  let verdict: any = undefined;
+  for (let k = 0; k < 5; k++) { const t = performance.now(); verdict = cal.calendarAmbiguity(c, '2026-11-05'); times.push(performance.now() - t); }
+  const pref = { ...draft.initialDraft('ws_pf_1'), ...c };
+  const t2 = performance.now(); const v = draft.validateDraft(pref, '2026-11-05'); const tv = performance.now() - t2;
+  console.log(JSON.stringify({ name, ms: times.map((x) => Math.round(x)), validateDraftMs: Math.round(tv), validateOk: v.ok, verdict: verdict === null ? null : { date: verdict.date, cause: verdict.cause.kind } }));
+}
+// Robustez: uma exceção com data fora do formato (só alcançável por um rascunho montado fora do editor) faz o
+// conferidor lançar em vez de `validateDraft` devolver a mensagem de formato (que vem depois dele).
+try {
+  const bad = { ...draft.initialDraft('ws_pf_1'), routines: [outer, inner], exceptions: [{ kind: 'vacation', start: '2026-02-30', end: '2026-03-02' }] };
+  console.log('rascunho com data inválida:', JSON.stringify(draft.validateDraft(bad, '2026-11-05')));
+} catch (error) { console.log('rascunho com data inválida: validateDraft lançou', String(error)); }

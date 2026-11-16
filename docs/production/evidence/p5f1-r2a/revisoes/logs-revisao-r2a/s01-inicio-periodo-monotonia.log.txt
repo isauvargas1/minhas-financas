@@ -1,0 +1,64 @@
+== final cf9cb2a9
+{
+ "C": {
+  "verdict": null,
+  "oct1": "840",
+  "oct2": "240",
+  "periodOct": 1080,
+  "ambiguousDays": 0,
+  "monthOct": 840,
+  "sepOct": 8400,
+  "estimate": {
+   "status": "ready",
+   "workMinutes": 1080,
+   "hourlyRateCents": 55556
+  }
+ },
+ "Cmais": {
+  "verdict": null,
+  "oct1": "850[reduced]",
+  "oct2": "120",
+  "periodOct": 970,
+  "ambiguousDays": 0,
+  "monthOct": 960,
+  "sepOct": 9000,
+  "estimate": {
+   "status": "ready",
+   "workMinutes": 970,
+   "hourlyRateCents": 61856
+  }
+ },
+ "perdaNoPeriodo": 110
+}
+== R1 08d8c5a2
+{
+ "C": {
+  "verdict": null,
+  "oct1": "840",
+  "oct2": "240",
+  "periodOct": 1080,
+  "ambiguousDays": 0,
+  "monthOct": 840,
+  "sepOct": 8400,
+  "estimate": {
+   "status": "ready",
+   "workMinutes": 1080,
+   "hourlyRateCents": 55556
+  }
+ },
+ "Cmais": {
+  "verdict": null,
+  "oct1": "850[reduced]",
+  "oct2": "240",
+  "periodOct": 1090,
+  "ambiguousDays": 0,
+  "monthOct": 1080,
+  "sepOct": 9120,
+  "estimate": {
+   "status": "ready",
+   "workMinutes": 1090,
+   "hourlyRateCents": 55046
+  }
+ },
+ "perdaNoPeriodo": -10
+}

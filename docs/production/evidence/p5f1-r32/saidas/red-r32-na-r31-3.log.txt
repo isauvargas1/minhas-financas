@@ -1,0 +1,1 @@
+# total: 148 testes da R3.2 nos três arquivos; 48 falham sobre o código da R3.1; 0 falham na final

@@ -1,0 +1,1 @@
+{"samples":3000,"oldRefused":572,"newRefused":578,"onlyNew":6,"onlyNewMonthStart":0,"onlyOld":0}

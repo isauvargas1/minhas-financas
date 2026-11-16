@@ -4,6 +4,7 @@ import { CloseIcon } from '../Icons.tsx';
 import ClientsConfirmModal from '../clients/ClientsConfirmModal.tsx';
 import { useCashAccounts } from '../../modules/accounts/hooks.ts';
 import { formatCents, formatDayKey, saoPauloToday } from '../../modules/loans/money.ts';
+import { useMoneyDisplay } from '../../modules/work-time/display.tsx';
 import { firstOpenCompetence, formatCompetence } from '../../modules/cards/cycle.ts';
 import {
   toPurchaseMutationPayload,
@@ -54,6 +55,7 @@ type PurchaseAction = { purchase: CardPurchase; kind: 'cancel' | 'refund' };
 const CardInvoiceDetailsDrawer: React.FC<CardInvoiceDetailsDrawerProps> = ({
   invoice, card, workspaceId, canManage, onClose, onOpenPayment, onNotify,
 }) => {
+  const display = useMoneyDisplay();
   const today = saoPauloToday();
   const entries = useInvoiceEntries(invoice.id);
   const payments = useInvoicePayments(invoice.id);
@@ -196,15 +198,15 @@ const CardInvoiceDetailsDrawer: React.FC<CardInvoiceDetailsDrawerProps> = ({
           <div className="grid grid-cols-3 gap-3">
             <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-xl p-4 border border-indigo-100 dark:border-indigo-800">
               <p className="text-xs text-indigo-700 dark:text-indigo-300">Total</p>
-              <p className="font-bold text-gray-800 dark:text-white" data-testid="card-invoice-total">{formatCents(invoice.totalCents)}</p>
+              <p className="font-bold text-gray-800 dark:text-white" data-testid="card-invoice-total">{display.cents(invoice.totalCents, formatCents)}</p>
             </div>
             <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-4 border border-green-100 dark:border-green-800">
               <p className="text-xs text-green-700 dark:text-green-300">Pago</p>
-              <p className="font-bold text-gray-800 dark:text-white" data-testid="card-invoice-paid">{formatCents(invoice.paidCents)}</p>
+              <p className="font-bold text-gray-800 dark:text-white" data-testid="card-invoice-paid">{display.cents(invoice.paidCents, formatCents)}</p>
             </div>
             <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-4 border border-amber-100 dark:border-amber-800">
               <p className="text-xs text-amber-700 dark:text-amber-300">Saldo</p>
-              <p className="font-bold text-gray-800 dark:text-white" data-testid="card-invoice-remaining">{formatCents(payableCents(invoice))}</p>
+              <p className="font-bold text-gray-800 dark:text-white" data-testid="card-invoice-remaining">{display.cents(payableCents(invoice), formatCents)}</p>
             </div>
           </div>
           {creditNote && (
@@ -258,7 +260,7 @@ const CardInvoiceDetailsDrawer: React.FC<CardInvoiceDetailsDrawerProps> = ({
 
                       <div className="flex flex-col items-end gap-2">
                         <p className={`font-bold ${entry.amountCents < 0 ? 'text-green-600 dark:text-green-300' : 'text-gray-800 dark:text-white'}`}>
-                          {formatCents(entry.amountCents)}
+                          {display.cents(entry.amountCents, formatCents)}
                         </p>
                         {canAct && purchase && (
                           <button

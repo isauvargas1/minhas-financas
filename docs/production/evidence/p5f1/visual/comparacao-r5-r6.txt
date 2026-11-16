@@ -1,0 +1,79 @@
+# capturas da 5ª rodada (evidence-r5) × rodada final (evidence-r6): arquivo, tamanho r5, tamanho r6, pixels diferentes (ImageMagick compare -metric AE, sem tolerância) e a caixa das diferenças
+desktop-dark-00-intro.png 1440x900 1440x900 0
+desktop-dark-01-etapa-a.png 1440x900 1440x900 8 102x3++1151++52
+desktop-dark-02-etapa-b-rotina.png 1440x1975 1440x1975 0
+desktop-dark-03-etapa-c-feriados.png 1440x1162 1440x1162 0
+desktop-dark-04-etapa-d-excecoes.png 1440x1233 1440x1233 0
+desktop-dark-05-etapa-e-receitas.png 1440x1142 1440x1142 0
+desktop-dark-06-resumo.png 1440x1006 1440x1006 0
+desktop-dark-07-configuracoes.png 1440x4602 1440x4602 0
+desktop-dark-08-memoria-de-calculo.png 1440x900 1440x900 11427 613x351++406++380
+desktop-dark-09-receitas-consideradas.png 1440x900 1440x900 0
+desktop-dark-10-configuracoes-excecoes.png 1440x4602 1440x4602 0
+desktop-dark-11-dashboard-modo-tempo.png 1440x1068 1440x1068 0
+desktop-dark-12-dashboard-modo-dinheiro.png 1440x1036 1440x1036 0
+desktop-light-00-intro.png 1440x900 1440x900 0
+desktop-light-01-etapa-a.png 1440x900 1440x900 0
+desktop-light-02-etapa-b-rotina.png 1440x1975 1440x1975 0
+desktop-light-03-etapa-c-feriados.png 1440x1162 1440x1162 0
+desktop-light-04-etapa-d-excecoes.png 1440x1233 1440x1233 0
+desktop-light-05-etapa-e-receitas.png 1440x1142 1440x1142 0
+desktop-light-06-resumo.png 1440x1006 1440x1006 0
+desktop-light-07-configuracoes.png 1440x4602 1440x4602 0
+desktop-light-08-memoria-de-calculo.png 1440x900 1440x900 11424 613x351++406++380
+desktop-light-09-receitas-consideradas.png 1440x900 1440x900 0
+desktop-light-10-configuracoes-excecoes.png 1440x4602 1440x4602 0
+desktop-light-11-dashboard-modo-tempo.png 1440x1068 1440x1068 0
+desktop-light-12-dashboard-modo-dinheiro.png 1440x1036 1440x1036 0
+mobile-dark-00-intro.png 390x880 390x880 0
+mobile-dark-01-etapa-a.png 390x970 390x970 0
+mobile-dark-02-etapa-b-rotina.png 390x3309 390x3309 0
+mobile-dark-03-etapa-c-feriados.png 390x1700 390x1700 0
+mobile-dark-04-etapa-d-excecoes.png 390x1531 390x1531 0
+mobile-dark-05-etapa-e-receitas.png 390x1434 390x1434 0
+mobile-dark-06-resumo.png 390x1238 390x1238 0
+mobile-dark-07-configuracoes.png 390x7182 390x7182 0
+mobile-dark-08-memoria-de-calculo.png 390x844 390x844 754 161x478++221++45
+mobile-dark-09-receitas-consideradas.png 390x844 390x844 0
+mobile-dark-10-configuracoes-excecoes.png 390x7182 390x7182 0
+mobile-dark-11-dashboard-modo-tempo.png 390x2276 390x2276 0
+mobile-dark-12-dashboard-modo-dinheiro.png 390x2180 390x2180 0
+mobile-light-00-intro.png 390x880 390x880 0
+mobile-light-01-etapa-a.png 390x970 390x970 0
+mobile-light-02-etapa-b-rotina.png 390x3309 390x3309 0
+mobile-light-03-etapa-c-feriados.png 390x1700 390x1700 0
+mobile-light-04-etapa-d-excecoes.png 390x1531 390x1531 0
+mobile-light-05-etapa-e-receitas.png 390x1434 390x1434 0
+mobile-light-06-resumo.png 390x1238 390x1238 0
+mobile-light-07-configuracoes.png 390x7182 390x7182 0
+mobile-light-08-memoria-de-calculo.png 390x844 390x844 749 161x478++221++45
+mobile-light-09-receitas-consideradas.png 390x844 390x844 0
+mobile-light-10-configuracoes-excecoes.png 390x7182 390x7182 0
+mobile-light-11-dashboard-modo-tempo.png 390x2276 390x2276 0
+mobile-light-12-dashboard-modo-dinheiro.png 390x2180 390x2180 0
+small-dark-00-intro.png 360x920 360x920 0
+small-dark-01-etapa-a.png 360x1010 360x1010 0
+small-dark-02-etapa-b-rotina.png 360x3381 360x3381 0
+small-dark-03-etapa-c-feriados.png 360x1868 360x1868 0
+small-dark-04-etapa-d-excecoes.png 360x1551 360x1551 0
+small-dark-05-etapa-e-receitas.png 360x1454 360x1454 0
+small-dark-06-resumo.png 360x1258 360x1258 0
+small-dark-07-configuracoes.png 360x7474 360x7474 0
+small-dark-08-memoria-de-calculo.png 360x800 360x800 581 94x16++221++478
+small-dark-09-receitas-consideradas.png 360x800 360x800 0
+small-dark-10-configuracoes-excecoes.png 360x7474 360x7474 0
+small-dark-11-dashboard-modo-tempo.png 360x2344 360x2344 0
+small-dark-12-dashboard-modo-dinheiro.png 360x2228 360x2228 0
+small-light-00-intro.png 360x920 360x920 0
+small-light-01-etapa-a.png 360x1010 360x1010 0
+small-light-02-etapa-b-rotina.png 360x3381 360x3381 0
+small-light-03-etapa-c-feriados.png 360x1868 360x1868 0
+small-light-04-etapa-d-excecoes.png 360x1551 360x1551 0
+small-light-05-etapa-e-receitas.png 360x1454 360x1454 0
+small-light-06-resumo.png 360x1258 360x1258 0
+small-light-07-configuracoes.png 360x7474 360x7474 0
+small-light-08-memoria-de-calculo.png 360x800 360x800 300 94x12++221++480
+small-light-09-receitas-consideradas.png 360x800 360x800 0
+small-light-10-configuracoes-excecoes.png 360x7474 360x7474 0
+small-light-11-dashboard-modo-tempo.png 360x2344 360x2344 0
+small-light-12-dashboard-modo-dinheiro.png 360x2228 360x2228 0

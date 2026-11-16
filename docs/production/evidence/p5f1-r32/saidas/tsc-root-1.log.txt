@@ -1,0 +1,5 @@
+tests/unit/work-time-consistency.test.ts(74,19): error TS2353: Object literal may only specify known properties, and 'multipleBases' does not exist in type 'ConsistencyInput'.
+tests/unit/work-time-consistency.test.ts(94,54): error TS2353: Object literal may only specify known properties, and 'multipleBases' does not exist in type 'Partial<ConsistencyInput>'.
+tests/unit/work-time-consistency.test.ts(100,54): error TS2353: Object literal may only specify known properties, and 'multipleBases' does not exist in type 'Partial<ConsistencyInput>'.
+tests/unit/work-time-consistency.test.ts(120,54): error TS2353: Object literal may only specify known properties, and 'multipleBases' does not exist in type 'Partial<ConsistencyInput>'.
+tests/unit/work-time-consistency.test.ts(121,54): error TS2353: Object literal may only specify known properties, and 'multipleBases' does not exist in type 'Partial<ConsistencyInput>'.

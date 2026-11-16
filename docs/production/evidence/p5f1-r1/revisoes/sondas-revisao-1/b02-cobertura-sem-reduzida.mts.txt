@@ -1,0 +1,59 @@
+// Sonda B02: gerador dirigido a coberturas (janelas com intervalo dentro de janelas sem intervalo, também
+// entre dias), granularidade de 15 min, exceções e feriados; confere a monotonia na janela com periodStart.
+const root = process.argv[2];
+const SAMPLES = Number(process.argv[3] ?? 20000);
+let seed = Number(process.argv[4] ?? 99);
+const cal = await import(`${root}/src/modules/work-time/calendar.ts`);
+const dates = await import(`${root}/src/modules/work-time/dates.ts`);
+const rnd = () => { seed = (seed + 0x6d2b79f5) | 0; let v = Math.imul(seed ^ (seed >>> 15), 1 | seed); v = (v + Math.imul(v ^ (v >>> 7), 61 | v)) ^ v; return ((v ^ (v >>> 14)) >>> 0) / 4294967296; };
+const pick = <T,>(a: readonly T[]) => a[Math.floor(rnd() * a.length)];
+const OFF = { kind: 'off' };
+const q = (n: number) => Math.floor(n / 15) * 15;
+// Uma "base" sem intervalo e janelas com intervalo dentro dela (ou cruzando a meia-noite para a base do dia seguinte).
+const baseWin = () => { const s = q(rnd() * 1440); const len = 15 * (8 + Math.floor(rnd() * 88)); return { kind: 'window', start: s, end: (s + len) % 1440, breakMinutes: 0, len }; };
+const inside = (b: any) => { const off = q(rnd() * Math.max(15, b.len - 30)); const len = Math.max(30, q(rnd() * (b.len - off))); const s = (b.start + off) % 1440; const br = q(rnd() * (len - 15)); return { kind: 'window', start: s, end: (s + len) % 1440, breakMinutes: Math.max(0, br) }; };
+const anyWin = () => { const s = q(rnd() * 1440); const len = 15 * (1 + Math.floor(rnd() * 96)); const L = len; const b = rnd() < 0.5 ? 0 : q(rnd() * (L - 15)); return { kind: 'window', start: s, end: (s + L) % 1440, breakMinutes: b }; };
+const strip = (w: any) => ({ kind: 'window', start: w.start, end: w.end, breakMinutes: w.breakMinutes });
+const weeklyOf = (specs: Record<number, any>) => ({ kind: 'weekly', days: Array.from({ length: 7 }, (_, d) => specs[d] ?? OFF) });
+const genConfig = () => {
+  const routines: any[] = [];
+  const bases: Record<number, any> = {}; const ins: Record<number, any> = {};
+  for (let d = 0; d < 7; d++) if (rnd() < 0.6) { const b = baseWin(); bases[d] = strip(b); if (rnd() < 0.7) ins[d] = inside(b); }
+  routines.push(weeklyOf(bases));
+  if (Object.keys(ins).length) routines.push(weeklyOf(ins));
+  if (rnd() < 0.5) routines.push(rnd() < 0.5 ? weeklyOf(Object.fromEntries(Array.from({ length: 7 }, (_, d) => [d, rnd() < 0.5 ? anyWin() : OFF]))) : { kind: 'cyclic', reference: dates.addDays('2026-01-01', Math.floor(rnd() * 20)), workDays: 1 + Math.floor(rnd() * 3), restDays: Math.floor(rnd() * 3), day: rnd() < 0.2 ? { kind: 'duration', minutes: 15 * (1 + Math.floor(rnd() * 96)) } : anyWin() });
+  return routines;
+};
+const randDate = () => dates.addDays('2026-07-28', Math.floor(rnd() * 100));
+const randExceptions = () => Array.from({ length: Math.floor(rnd() * 12) }, () => {
+  const start = randDate(); const end = dates.addDays(start, Math.floor(rnd() * 3)); const minutes = 15 * (1 + Math.floor(rnd() * 96));
+  switch (pick(['vacation', 'day_off', 'absence', 'holiday_worked', 'on_call', 'overtime', 'schedule_change'] as const)) {
+    case 'vacation': return { kind: 'vacation', start, end };
+    case 'day_off': return { kind: 'day_off', start, end };
+    case 'absence': return { kind: 'absence', start, end };
+    case 'holiday_worked': return { kind: 'holiday_worked', date: pick(['2026-09-07', '2026-10-12', start]) };
+    case 'on_call': return { kind: 'on_call', date: start, minutes };
+    case 'overtime': return { kind: 'overtime', date: start, minutes };
+    case 'reduced': return { kind: 'reduced', start, end, minutes };
+    default: return { kind: 'schedule_change', date: start, minutes: Math.min(1440, minutes) };
+  }
+});
+const WINDOWS = [['2026-08', '2026-09', '2026-10'], ['2026-10'], ['2026-09', '2026-10']];
+const total = (c: any, months: string[]) => { let t = 0; let amb = false; months.forEach((m, i) => { const p = cal.monthPlan(c, m, { periodStart: i === 0 }); t += p.minutes; if ((p.ambiguousDays ?? []).length) amb = true; }); return { t, amb }; };
+let checked = 0, viol = 0, amb = 0; const ex: any[] = [];
+for (let s = 0; s < SAMPLES; s++) {
+  const all = genConfig();
+  // Remove uma rotina e confere que voltar a acrescentá-la não tira horas (e vice-versa: acrescentar uma janela qualquer).
+  const k = Math.floor(rnd() * all.length);
+  const without = all.filter((_, i) => i !== k);
+  if (without.length === 0) continue;
+  const extra = { exceptions: randExceptions(), worksOnHolidays: rnd() < 0.4, localHolidays: rnd() < 0.4 ? [{ kind: 'date', date: randDate() }] : [] };
+  const months = pick(WINDOWS);
+  const b = total({ ...extra, routines: without }, months);
+  const a = total({ ...extra, routines: all }, months);
+  if (a.amb || b.amb) { amb++; continue; }
+  checked++;
+  if (a.t < b.t) { viol++; if (ex.length < 3) ex.push({ before: b.t, after: a.t, without, all, extra, months }); }
+}
+console.log(JSON.stringify({ samples: SAMPLES, checked, ambiguous: amb, violations: viol }));
+for (const e of ex) console.log(JSON.stringify(e));

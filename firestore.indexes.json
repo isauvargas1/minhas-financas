@@ -1299,6 +1299,42 @@
           "order": "ASCENDING"
         }
       ]
+    },
+    {
+      "collectionGroup": "transactions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "type",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "date",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "transactions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "receivableEntry.reversal",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "date",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "DESCENDING"
+        }
+      ]
     }
   ],
   "fieldOverrides": [
@@ -1399,6 +1435,36 @@
       "collectionGroup": "cash_rebuild_shards",
       "fieldPath": "expiresAt",
       "ttl": true,
+      "indexes": []
+    },
+    {
+      "collectionGroup": "cash_projection_marks",
+      "fieldPath": "schemaVersion",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "cash_projection_marks",
+      "fieldPath": "workspaceId",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "cash_projection_marks",
+      "fieldPath": "transactionId",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "cash_projection_marks",
+      "fieldPath": "anchors",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "cash_projection_marks",
+      "fieldPath": "chains",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "cash_projection_marks",
+      "fieldPath": "updatedAt",
       "indexes": []
     },
     {

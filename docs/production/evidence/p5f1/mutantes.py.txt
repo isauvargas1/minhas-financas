@@ -1,0 +1,326 @@
+#!/usr/bin/env python3
+"""P5-F.1 — mutantes: cada um altera uma regra e o teste correspondente precisa FALHAR.
+
+Uso: mutantes.py <worktree> [unit|rules]
+- unit: módulos puros, guarda e contrato (runner do Node, sem Emulator);
+- rules: Rules no Emulator (chamado de dentro do `firebase emulators:exec`).
+Cada mutante é aplicado, testado e revertido (o arquivo volta byte a byte; o script confere).
+"""
+import hashlib, os, subprocess, sys
+from pathlib import Path
+import signal
+
+# SIGTERM (por exemplo, a rodada interrompida de propósito) vira SystemExit: o `finally` de `apply_and_test`
+# restaura o arquivo em teste antes de sair. Um SIGKILL não pode ser tratado; o roteiro confere o SHA-256.
+def _stop(signum, frame):
+  raise SystemExit(f'interrompido pelo sinal {signum}; o arquivo em teste foi restaurado')
+signal.signal(signal.SIGTERM, _stop)
+
+WT = Path(sys.argv[1])
+MODE = sys.argv[2] if len(sys.argv) > 2 else 'unit'
+NODE = ['node', '--experimental-strip-types', '--disable-warning=MODULE_TYPELESS_PACKAGE_JSON', '--test']
+T = lambda *names: [f'tests/unit/{name}.test.ts' for name in names]
+
+UNIT = [
+  # calendário
+  ('calendar', 'src/modules/work-time/calendar.ts', "  if (holidayEffect === 'removed_work') minutes = 0;\n", '', T('work-time-calendar')),
+  ('calendar', 'src/modules/work-time/calendar.ts', 'const overlap = intersectionLength(merged, spill);', 'const overlap = 0;', T('work-time-calendar')),
+  ('calendar', 'src/modules/work-time/calendar.ts', 'totalLength(merged) - overlap - routineDay.breaks', 'totalLength(merged) - overlap', T('work-time-calendar')),
+  ('calendar', 'src/modules/work-time/calendar.ts', 'const merged = mergeIntervals(routineDay.windows);', 'const merged = routineDay.windows;', T('work-time-calendar')),
+  ('calendar', 'src/modules/work-time/calendar.ts', 'const capped = minutes > DAY_MINUTES;', 'const capped = false;', T('work-time-calendar')),
+  ('calendar', 'src/modules/work-time/calendar.ts', '} else if (flags.reduced !== null && minutes > flags.reduced) {', '} else if (flags.reduced !== null) {', T('work-time-calendar')),
+  ('calendar', 'src/modules/work-time/calendar.ts', 'if (flags.absence !== null && minutes > 0) {', 'if (false) {', T('work-time-calendar')),
+  ('calendar', 'src/modules/work-time/calendar.ts', 'const position = ((diff % length) + length) % length;', 'const position = Math.abs(diff % length);', T('work-time-calendar')),
+  ('calendar', 'src/modules/work-time/calendar.ts', '  end > start ? end - start : DAY_MINUTES - start + end;', '  end >= start ? end - start : DAY_MINUTES - start + end;', T('work-time-calendar')),
+  ('calendar', 'src/modules/work-time/calendar.ts', "  if (calendar.worksOnHolidays || flags.holidayWorked) return 'worked';", "  if (flags.holidayWorked) return 'worked';", T('work-time-calendar')),
+  ('calendar', 'src/modules/work-time/calendar.ts', 'flags.holidayWorked = true;', 'flags.holidayWorked = false;', T('work-time-calendar')),
+  ('calendar', 'src/modules/work-time/calendar.ts', '        if (entry.date === date) flags.additions.push({ kind: entry.kind, minutes: entry.minutes });', '', T('work-time-calendar')),
+  # revisão 1: intervalo nunca em dobro (R1-05) e feriado com alteração de escala (R1-13)
+  ('calendar', 'src/modules/work-time/calendar.ts', 'totalLength(merged) - overlap - routineDay.breaks, largestWindow);', 'totalLength(merged) - overlap - routineDay.breaks);', T('work-time-calendar')),
+  ('calendar', 'src/modules/work-time/calendar.ts', "    if (minutes > 0) finalHolidayEffect = 'worked';\n", "    if (false) finalHolidayEffect = 'worked';\n", T('work-time-calendar')),
+  # feriados
+  ('feriados', 'src/modules/work-time/holidays.ts', "law: 'Lei nº 14.759/2023', fromYear: 2024 }", "law: 'Lei nº 14.759/2023', fromYear: 2023 }", T('work-time-calendar')),
+  ('feriados', 'src/modules/work-time/holidays.ts', "  { month: 11, day: 2, name: 'Finados', law: LEI_662, fromYear: 2003 },\n", '', T('work-time-calendar')),
+  ('feriados', 'src/modules/work-time/holidays.ts', '  const day = ((h + l - 7 * m + 114) % 31) + 1;', '  const day = ((h + l - 7 * m + 114) % 31) + 2;', T('work-time-calendar')),
+  ('feriados', 'src/modules/work-time/holidays.ts', "offsetFromEaster: 60 }", "offsetFromEaster: 61 }", T('work-time-calendar')),
+  ('feriados', 'src/modules/work-time/holidays.ts', 'return addDays(first, (6 - weekdayIndex(first) + 7) % 7);', 'return addDays(first, (7 - weekdayIndex(first)) % 7);', T('work-time-calendar')),
+  ('feriados', 'src/modules/work-time/holidays.ts', 'year % 2 !== 0) return null;', 'false) return null;', T('work-time-calendar')),
+  # gramáticas
+  ('gramática', 'src/modules/work-time/grammar.ts', '02-(?:0[1-9]|1[0-9]|2[0-8]))|20(?:[02468][048]|[13579][26])-02-29)', '02-(?:0[1-9]|1[0-9]|2[0-9]))|20(?:[02468][048]|[13579][26])-02-29)', T('work-time-grammar', 'work-time-guard')),
+  ('gramática', 'src/modules/work-time/grammar.ts', "export const MINUTES_1_PATTERN = '(?:[1-9][0-9]{0,2}|", "export const MINUTES_1_PATTERN = '(?:[0-9][0-9]{0,2}|", T('work-time-grammar')),
+  ('gramática', 'src/modules/work-time/grammar.ts', "    if (spans.some((other) => span.start <= other.end && other.start <= span.end)) return 'overlap';\n", '', T('work-time-grammar', 'work-time-preference')),
+  ('gramática', 'src/modules/work-time/grammar.ts', '  return formatExceptions(entries) === text ? entries : null;', '  return entries;', T('work-time-grammar')),
+  ('gramática', 'src/modules/work-time/grammar.ts', 'export const MAX_EXCEPTIONS = 120;', 'export const MAX_EXCEPTIONS = 121;', T('work-time-grammar')),
+  ('gramática', 'src/modules/work-time/grammar.ts', "  return spec.breakMinutes >= 0 && spec.breakMinutes < windowLengthOf(spec.start, spec.end);", "  return spec.breakMinutes >= 0;", T('work-time-grammar', 'work-time-preference')),
+  ('gramática', 'src/modules/work-time/grammar.ts', "  if (!routines.every(isValidRoutine) || !routines.some(routineHasWork)) return null;", "  if (!routines.every(isValidRoutine)) return null;", T('work-time-grammar', 'work-time-preference')),
+  ('gramática', 'src/modules/work-time/grammar.ts', 'export const ROUTINES_LIST_PATTERN = `(?:${ROUTINE_PATTERN};){1,3}`;', 'export const ROUTINES_LIST_PATTERN = `(?:${ROUTINE_PATTERN};){1,4}`;', T('work-time-grammar', 'work-time-guard')),
+  # contrato
+  # equivalentes, no contrato v2, dos K4 e K8 da P5-F (o trecho original foi substituído)
+  ('contrato', 'src/modules/work-time/contract.ts', "  isWorkTimeEnabled(preference) && preference.displayMode === 'time' ? 'time' : 'money';", "  preference !== null && preference.displayMode === 'time' ? 'time' : 'money';", T('work-time-preference')),
+  ('contrato', 'src/modules/work-time/contract.ts', '  if (!excludedIncomeIds || !routines || !localHolidays || !exceptions) return null;', '  if (!excludedIncomeIds || !localHolidays || !exceptions) return null;', T('work-time-preference')),
+  ('contrato', 'src/modules/work-time/contract.ts', '  if (keys.length !== WORK_TIME_PREFERENCE_FIELDS.length) return null;\n', '', T('work-time-preference')),
+  ('contrato', 'src/modules/work-time/contract.ts', '  if (data.schemaVersion !== WORK_TIME_SCHEMA_VERSION) return null;\n', '', T('work-time-preference')),
+  ('contrato', 'src/modules/work-time/contract.ts', '  if (!isMunicipality(data.municipality)) return null;\n', '', T('work-time-preference')),
+  ('contrato', 'src/modules/work-time/contract.ts', "  'exceptions',\n  'updatedAt',\n] as const;", "  'exceptions',\n  'updatedAt',\n  'incomeCents',\n] as const;", T('work-time-preference', 'work-time-guard')),
+  ('contrato', 'src/modules/work-time/contract.ts', '  if (!roundTrip) throw new Error', '  if (false) throw new Error', T('work-time-preference')),
+  # estimativa
+  ('estimativa', 'src/modules/work-time/estimate.ts', "const used = input.mode === 'habitual' && firstWithIncome > 0 ? basis.slice(firstWithIncome) : basis;", 'const used = basis;', T('work-time-estimate')),
+  ('estimativa', 'src/modules/work-time/estimate.ts', "    if (!input.allowBusinessIncome) return unavailable(emptyBase, 'business_not_confirmed');\n", '', T('work-time-estimate')),
+  ('estimativa', 'src/modules/work-time/estimate.ts', '  if (!input.reportExact || window.length === 0', '  if (window.length === 0', T('work-time-estimate')),
+  ('estimativa', 'src/modules/work-time/estimate.ts', '  } else if (months.length < input.historyMonths) {', '  } else if (false) {', T('work-time-estimate')),
+  ('estimativa', 'src/modules/work-time/estimate.ts', "  if (input.mode === 'current_month') {\n    provisional = true;", "  if (input.mode === 'current_month') {\n    provisional = false;", T('work-time-estimate')),
+  ('estimativa', 'src/modules/work-time/estimate.ts', '  for (let offset = historyMonths; offset >= 1; offset -= 1) {', '  for (let offset = historyMonths; offset >= 0; offset -= 1) {', T('work-time-estimate')),
+  ('estimativa', 'src/modules/work-time/estimate.ts', "(mode === 'habitual' && historyMonths === 12 ? shiftMonthKey(currentMonth, -12) : null)", "(mode === 'habitual' && historyMonths === 12 ? shiftMonthKey(currentMonth, -11) : null)", T('work-time-estimate')),
+  # renda elegível
+  ('receitas', 'src/modules/work-time/incomeBasis.ts', "  const pending = data.isPaid === false || (isRecord(cashEntry) && cashEntry.status === 'pending');", '  const pending = data.isPaid === false;', T('work-time-estimate')),
+  ('receitas', 'src/modules/work-time/incomeBasis.ts', "contributionCents: entry.principalCents === 0 ? 0 : -entry.principalCents };", "contributionCents: entry.principalCents };", T('work-time-estimate')),
+  ('receitas', 'src/modules/work-time/incomeBasis.ts', "  if (data.loanEntry !== undefined) return ZERO('loan');\n", '', T('work-time-estimate')),
+  ('receitas', 'src/modules/work-time/incomeBasis.ts', "  if (data.voidedAt !== undefined && data.voidedAt !== null) return ZERO('voided');\n", '', T('work-time-estimate')),
+  ('receitas', 'src/modules/work-time/incomeBasis.ts', '      if (eligible < 0) {', '      if (false) {', T('work-time-estimate')),
+  ('receitas', 'src/modules/work-time/incomeBasis.ts', "  (classification.kind === 'income' || classification.kind === 'receivable') && classification.contributionCents > 0;", '  classification.contributionCents !== 0;', T('work-time-estimate')),
+  ('receitas', 'src/modules/work-time/incomeBasis.ts', '    possibleDuplicate: excludable && (counts.get(duplicateKey(document)) ?? 0) > 1,', '    possibleDuplicate: false,', T('work-time-estimate')),
+  # cálculo
+  ('cálculo', 'src/modules/work-time/calculation.ts', 'export const WORK_TIME_MAX_WORK_MINUTES = 744 * 60 * WORK_TIME_MAX_WINDOW_MONTHS;', 'export const WORK_TIME_MAX_WORK_MINUTES = 744 * 60 * 13;', T('work-time-calculation')),
+  ('cálculo', 'src/modules/work-time/calculation.ts', '  if (income * 60 < minutes) return', '  if (income * 59 < minutes) return', T('work-time-calculation')),
+  # rascunho
+  ('rascunho', 'src/modules/work-time/draft.ts', "text.normalize('NFC').replace(", 'text.replace(', T('work-time-preference')),
+  ('guarda', 'src/modules/reports/hooks.ts', '            limit(BASIS_PERIODS_MAX),', '            limit(600),', T('work-time-guard')),
+  ('base', 'src/modules/reports/basisSync.ts', '    if (decision.notify) scheduleBasisReread(refreshKey, entry.scheduler);', '    scheduleBasisReread(refreshKey, entry.scheduler);', T('report-basis-sync', 'work-time-guard')),
+  ('guarda', 'src/modules/work-time/useIncomeEstimateWith.ts', 'deps.basis, uid, workspaceId, windowMonths, basis, needsExcluded ? excluded.data : null, { enabled },', 'deps.basis, uid, workspaceId, windowMonths, basis, needsExcluded ? excluded.data : null, { enabled: false },', T('work-time-guard', 'work-time-income-estimate')),
+  ('rascunho', 'src/modules/work-time/draft.ts', "  if (end < input.start) return { ok: false, field: 'end'", "  if (false) return { ok: false, field: 'end'", T('work-time-preference')),
+  ('rascunho', 'src/modules/work-time/draft.ts', '  if (clash) return { ok: false', '  if (false) return { ok: false', T('work-time-preference')),
+  ('rascunho', 'src/modules/work-time/draft.ts', "  if (!isValidDaySpec(spec)) return { ok: false, message: 'O intervalo precisa ser menor", "  if (false) return { ok: false, message: 'O intervalo precisa ser menor", T('work-time-preference')),
+  # guarda (código-fonte)
+  ('guarda', 'src/modules/work-time/WorkTimeContext.tsx', '  }, [uid, retryNonce]);', '  }, [retryNonce]);', T('work-time-guard')),
+  ('guarda', 'src/modules/reports/queryKeys.ts', "queryClient.invalidateQueries({ queryKey: [FINANCIAL_REPORT_BASIS_KEY], refetchType: 'none' })", 'queryClient.invalidateQueries({ queryKey: [FINANCIAL_REPORT_BASIS_KEY] })', T('work-time-guard', 'report-range')),
+  ('guarda', 'src/modules/work-time/display.tsx', "const config = !forcedMoney && workTime?.displayMode === 'time' ? workTime.config : null;", "const config = workTime?.config ?? null;", T('work-time-guard')),
+  ('guarda', 'firestore.rules', "        data.exceptions.split(';').size() <= 120 &&\n", '', T('work-time-guard')),
+  ('guarda', 'firestore.rules', "      return '(?:[1-9][0-9]{0,2}|1[0-3][0-9][0-9]|14[0-3][0-9]|1440)';", "      return '(?:[0-9][0-9]{0,2}|1[0-3][0-9][0-9]|14[0-3][0-9]|1440)';", T('work-time-guard')),
+  ('guarda', 'src/modules/work-time/api.ts', '  setDoc(preferenceRef(uid), { ...workTimePreferenceFields(preference), updatedAt: serverTimestamp() });', '  setDoc(preferenceRef(uid), { ...workTimePreferenceFields(preference), hourlyRateCents: 0, updatedAt: serverTimestamp() });', T('work-time-guard')),
+  # revisão 2: atualização pela divergência (pura), releituras dependentes, falhas, paginação, estornos, eleições
+  ('basis', 'src/modules/reports/basisRefresh.ts', '  if (used >= BASIS_DIVERGENCE_RETRIES) return { refresh: false, signature, attempts: used, converged: false };\n', '', T('report-basis-refresh')),
+  ('basis', 'src/modules/reports/basisRefresh.ts', '): boolean => months.some((month) =>', '): boolean => months.every((month) =>', T('report-basis-refresh')),
+  ('basis', 'src/modules/reports/basisRefresh.ts', '  return { notify: next.failures < limit, state: next };', '  return { notify: true, state: next };', T('report-basis-refresh')),
+  ('basis', 'src/modules/reports/basisRefresh.ts', ' && query.errorUpdatedAt !== next.errorUpdatedAt) {', ') {', T('report-basis-refresh')),
+  ('basis', 'src/modules/reports/basisRefresh.ts', '    if (Number.isSafeInteger(document.incomeCents)) income[document.id]', "    if (document.incomeCents !== undefined) income[document.id]", T('report-basis-refresh')),
+  ('base', 'src/modules/reports/basisRegistry.ts', '    entry.failure = { ...entry.failure, failures: 0 };\n', '', T('report-basis-sync')),
+  ('base', 'src/modules/reports/basisSync.ts', '    if (key !== null) void refreshIncomeReads(queryClient, workspaceId as string);\n', '', T('report-basis-sync')),
+  ('base', 'src/modules/transactions/incomeReads.ts', "const KINDS: readonly IncomeReadKind[] = ['by-ids', 'income-window'];", "const KINDS: readonly IncomeReadKind[] = ['income-window'];", T('report-basis-sync', 'work-time-income-estimate')),
+  ('paginação', 'src/modules/transactions/paging.ts', '    const read = await readPage(cursor, pageSize + 1);', '    const read = await readPage(cursor, pageSize);', T('transactions-paging')),
+  ('paginação', 'src/modules/transactions/paging.ts', '    if (read.length <= pageSize) return { docs, truncated: false };', '    if (read.length < pageSize) return { docs, truncated: false };', T('transactions-paging')),
+  ('receitas', 'src/modules/work-time/incomeBasis.ts', '        reversed: movementId !== null && reversals.has(movementId),', '        reversed: reversals.size > 0,', T('work-time-estimate')),
+  ('mensagens', 'src/modules/work-time/messages.ts', "  if (source === 'excluded') return ESTIMATE_EXCLUDED_READ_FAILED;\n", '', T('work-time-estimate')),
+  ('feriados', 'src/modules/work-time/holidays.ts', '  if (ELECTIONS_POSTPONED_YEARS.includes(year)) return null;\n', '', T('work-time-calendar')),
+  ('feriados', 'src/modules/work-time/holidays.ts', 'return addDays(last, -((weekdayIndex(last) + 1) % 7));', 'return addDays(last, -(weekdayIndex(last) % 7));', T('work-time-calendar')),
+  # revisão 2 e 3: classificação do feriado pelos minutos finais do dia (escala, plantão, hora extra, ausência)
+  ('calendar', 'src/modules/work-time/calendar.ts', "    else if (holidayEffect === 'removed_work' && flags.scheduleChange === null) finalHolidayEffect = 'removed_work';", "    else if (holidayEffect === 'removed_work') finalHolidayEffect = 'removed_work';", T('work-time-calendar')),
+  ('calendar', 'src/modules/work-time/calendar.ts', "    else finalHolidayEffect = 'rest_day';\n", '', T('work-time-calendar')),
+  ('calendar', 'src/modules/work-time/calendar.ts', "  if (markedWorked && minutes > 0) applied.push('holiday_worked');", "  if (markedWorked) applied.push('holiday_worked');", T('work-time-calendar')),
+  # revisão 2: ressalvas do aviso do topo (R1-19) e fiação das falhas de leitura (R1-03, R2-09)
+  ('mensagens', 'src/modules/work-time/messages.ts', "  estimate.workspaceType === 'PJ' ? ESTIMATE_QUALIFIER_BUSINESS : null,", '  null,', T('work-time-estimate')),
+  ('mensagens', 'src/modules/work-time/messages.ts', '    : estimate.provisional ? ESTIMATE_QUALIFIER_PROVISIONAL : null,', '    : null,', T('work-time-estimate')),
+  ('guarda', 'src/modules/work-time/useIncomeEstimateWith.ts', "message: estimateFailureMessage('excluded', excluded.error), retry };", "message: String(excluded.error), retry };", T('work-time-guard')),
+  # revisão 3: escuta (cache, convergência, base sem bloco exato), invalidação, estimativa e painel
+  ('base', 'src/modules/reports/basisSync.ts', '      if (snapshot.fromCache) return;\n', '', T('report-basis-sync')),
+  ('base', 'src/modules/reports/basisSync.ts', '      if (decision.converged) {\n        attempts.current.clear();\n', '      if (decision.converged) {\n', T('report-basis-sync')),
+  ('base', 'src/modules/reports/basisSync.ts', '      if (!synced || snapshot.changes > 0) changed.current = true;', '      if (!synced) changed.current = true;', T('report-basis-sync')),
+  ('base', 'src/modules/reports/basisSync.ts', '    if (current.exact) {\n      changed.current = false;', '    if (true) {\n      changed.current = false;', T('report-basis-sync')),
+  ('base', 'src/modules/reports/queryKeys.ts', '    refreshRegisteredBases();\n', '', T('report-basis-sync', 'work-time-guard')),
+  ('guarda', 'src/modules/work-time/useIncomeEstimateWith.ts', 'const refreshFailed = series.isError || (needsExtra && extra.isError) || (needsExcluded && excluded.isError) || listenFailed;', 'const refreshFailed = false;', T('work-time-guard', 'work-time-income-estimate')),
+  ('guarda', 'src/components/Header.tsx', 'estimateQualifiers(readyEstimate, workTime.estimate.refreshFailed)', 'estimateQualifiers(readyEstimate)', T('work-time-guard')),
+  ('mensagens', 'src/modules/work-time/messages.ts', '  refreshFailed ? ESTIMATE_QUALIFIER_STALE : null,', '  null,', T('work-time-estimate')),
+  ('mensagens', 'src/modules/work-time/messages.ts', "  return { status, reversalNote, canToggle: item.excludable && (!item.reversed || item.excludedByUser) };", "  return { status, reversalNote, canToggle: item.excludable };", T('work-time-estimate')),
+  ('mensagens', 'src/modules/work-time/messages.ts', "      : inside ? 'Considerada na estimativa.' : 'Depois do período desta estimativa: ainda não entra na conta.';", "      : 'Considerada na estimativa.';", T('work-time-estimate')),
+  ('guarda', 'src/modules/transactions/api.ts', '      limit(limitCount),', '      limit(TRANSACTION_PAGE_SIZE),', T('work-time-guard')),
+  ('base', 'src/modules/reports/basisSync.ts', '    readsMark.current = key !== null && readsRef.current !== null ? { key, value: readsRef.current } : null;', '    readsMark.current = null;', T('report-basis-sync', 'work-time-income-estimate')),
+  ('base', 'src/modules/reports/basisSync.ts', '    holding: syncing || readsBehind || ahead || outOfStep,', '    holding: syncing || ahead || outOfStep,', T('report-basis-sync', 'work-time-income-estimate')),
+  ('base', 'src/modules/transactions/incomeReads.ts', '{ queryKey: incomeReadsKey(workspaceId, kind) }, { cancelRefetch: false })', '{ queryKey: incomeReadsKey(workspaceId, kind) })', T('report-basis-sync')),
+  # revisão 4: mutação nesta aba (R4-01), janela de 12 meses (R4-02), teto e base sem dado (R4-03),
+  # estorno na data do recebimento (R4-04), marco sem relógio (R4-05) e retenção testada (R4-06)
+  ('mutação', 'src/modules/transactions/incomeReads.ts', '    predicate: (query) => !isIncomeReadKey(query.queryKey),\n', '', T('work-time-income-estimate', 'work-time-guard')),
+  ('mutação', 'src/modules/transactions/hooks.ts', '    invalidateTransactionReads(queryClient, workspaceId),', '    queryClient.invalidateQueries({ queryKey: transactionKey(workspaceId) }),', T('work-time-guard')),
+  ('mutação', 'src/modules/investments/simple/api.ts', '        invalidateTransactionReads(queryClient, workspaceId),', "        queryClient.invalidateQueries({ queryKey: ['transactions', workspaceId] }),", T('work-time-guard')),
+  ('base', 'src/modules/reports/basisSync.ts', '      if (pending.current && arrived()) release.current();\n      return;\n    }\n    if (current.exact) {', '      return;\n    }\n    if (current.exact) {', T('report-basis-sync')),
+  ('base', 'src/modules/reports/basisSync.ts', '      current.versions.every((version, index) => version !== 0 && version !== request.versions[index]);', '      current.versions.some((version, index) => version !== 0 && version !== request.versions[index]);', T('report-basis-sync')),
+  ('base', 'src/modules/reports/basisSync.ts', '      if (pending.current && !arrived() && pending.current.signature === decision.signature) return;\n', '', T('report-basis-sync')),
+  ('estimativa', 'src/modules/work-time/useIncomeEstimateWith.ts', '    if (!series.data || (needsExtra && !extra.data)) return null;', '    if (!series.data) return null;', T('work-time-income-estimate')),
+  ('base', 'src/modules/reports/queryKeys.ts', '    await queryClient.invalidateQueries({ queryKey: [FINANCIAL_REPORT_KEY] });', '    refreshRegisteredBases();\n    await queryClient.invalidateQueries({ queryKey: [FINANCIAL_REPORT_KEY] });', T('report-basis-sync', 'report-range')),
+  ('base', 'src/modules/reports/basisRegistry.ts', '    if ((keys && !keys.includes(key)) || !entry.loaded()) continue;', '    if (keys && !keys.includes(key)) continue;', T('report-basis-sync')),
+  ('guarda', 'src/modules/reports/hooks.ts', '            void invalidateFinancialReportBases(queryClient);\n', '', T('work-time-guard')),
+  ('base', 'src/modules/reports/basisSync.ts', ' && reads !== null && reads === mark.value;', ' && reads !== null && reads <= mark.value;', T('report-basis-sync')),
+  ('mensagens', 'src/modules/work-time/messages.ts', '    const where = inside\n', '    const where = true\n', T('work-time-estimate')),
+  ('retenção', 'src/modules/work-time/useIncomeEstimateWith.ts', '  a.calendar === b.calendar &&\n', '', T('work-time-income-estimate')),
+  ('retenção', 'src/modules/work-time/useIncomeEstimateWith.ts', "  a.excludedIds.join(',') === b.excludedIds.join(',');", '  true;', T('work-time-income-estimate')),
+  ('retenção', 'src/modules/work-time/useIncomeEstimateWith.ts', '      ? { ...last.state, refreshFailed: state.refreshFailed, retry: state.retry }', '      ? last.state', T('work-time-income-estimate')),
+  ('retenção', 'src/modules/work-time/useIncomeEstimateWith.ts', "  return { shown: state, last: !holding && state.status === 'done' ? { params, state } : last };", "  return { shown: state, last: !holding && state.status === 'done' ? { params, state } : null };", T('work-time-income-estimate')),
+  ('retenção', 'src/modules/work-time/useIncomeEstimateWith.ts', '  const decision = holdEstimate(holding, last.current, params, state);', '  const decision = holdEstimate(false, last.current, params, state);', T('work-time-income-estimate', 'work-time-guard')),
+  # revisão 5: leitura por id só pela sincronização (R5-01), base relida pela mutação e escuta com erro
+  # (R5-02), escopo e liberações testados (R5-03) e releitura só das bases da estimativa (R5-04)
+  ('leituras', 'src/modules/transactions/incomeReads.ts', '    staleTime: Infinity,\n    refetchOnReconnect: false,', '    staleTime: 1000 * 60 * 5,\n    refetchOnReconnect: false,', T('work-time-income-estimate')),
+  ('leituras', 'src/modules/transactions/incomeReads.ts', '    refetchOnReconnect: false,\n    structuralSharing: false,\n  });', '    structuralSharing: false,\n  });', T('work-time-guard')),
+  ('base', 'src/modules/reports/basisSync.ts', '    refreshRegisteredBases(current.keys);\n', "    refreshRegisteredBases(current.keys);\n    void queryClient.invalidateQueries({ queryKey: ['transactions', workspaceId as string, 'by-ids'], refetchType: 'none' });\n", T('work-time-income-estimate', 'work-time-guard')),
+  ('base', 'src/modules/reports/basisSync.ts', '    refetchOnMount: false,\n', '', T('work-time-income-estimate', 'work-time-guard')),
+  ('base', 'src/modules/reports/basisSync.ts', '    refreshRegisteredBases(current.keys);', '    refreshRegisteredBases();', T('work-time-guard')),
+  ('mutação', 'src/modules/transactions/incomeReads.ts', '  rereadWorkspaceBases(workspaceId);\n', '', T('work-time-income-estimate', 'report-basis-sync', 'work-time-guard')),
+  ('base', 'src/modules/reports/basisRegistry.ts', ' || entry.failure.failures >= entry.maxFailures) continue;', ') continue;', T('report-basis-sync')),
+  ('base', 'src/modules/reports/basisRegistry.ts', '    if (entry.workspaceId !== workspaceId || !entry.loaded()', '    if (!entry.loaded()', T('report-basis-sync')),
+  ('escuta', 'src/modules/reports/basisSync.ts', '      setListenFailedKey(syncKey);\n', '', T('report-basis-sync', 'work-time-income-estimate')),
+  ('escuta', 'src/modules/work-time/useIncomeEstimateWith.ts', '    retryListen();\n', '', T('work-time-income-estimate')),
+  ('escuta', 'src/modules/reports/basisSync.ts', 'monthsKey, deps, listenAttempt]);', 'monthsKey, deps]);', T('report-basis-sync', 'work-time-income-estimate')),
+  ('base', 'src/modules/reports/basisSync.ts', '    if (pending.current && pending.current.key !== syncKey) pending.current = null;\n', '', T('report-basis-sync')),
+  ('base', 'src/modules/reports/basisSync.ts', '    setWaitingKey((current) => (current === syncKey ? current : null));\n', '', T('report-basis-sync')),
+  ('base', 'src/modules/reports/basisSync.ts', '    if (pending.current && arrived()) release.current();\n  };', '  };', T('report-basis-sync')),
+  ('base', 'src/modules/reports/basisSync.ts', '      // O mesmo estado, sem mais releituras: libera com o que chegou.\n      if (pending.current && arrived()) release.current();\n      return;', '      // O mesmo estado, sem mais releituras: libera com o que chegou.\n      if (pending.current) release.current();\n      return;', T('report-basis-sync')),
+  # revisão 6: base nova sem pedido segurada na renderização e leituras relidas depois dela (R6-02),
+  # escuta encerrada sem projeção que valha e reaberta entre estimativas (R6-01, R6-02) e a releitura da
+  # mutação com agendador e orçamento próprios (R6-03)
+  ('sem pedido', 'src/modules/reports/basisSync.ts', '  const ahead = basis !== null && basis.exact && pairedIncome !== null && !sameIncome(basis.income, pairedIncome);', '  const ahead = false;', T('report-basis-sync', 'work-time-income-estimate')),
+  ('sem pedido', 'src/modules/reports/basisSync.ts', '    if (current.exact && !current.fetching && !sameIncome(current.income, pair.income)) release.current();\n', '', T('report-basis-sync', 'work-time-income-estimate')),
+  ('sem pedido', 'src/modules/reports/basisSync.ts', '    evaluate.current(loading || pending.current !== null || overlapped);', '    evaluate.current(true);', T('report-basis-sync', 'work-time-income-estimate')),
+  ('escuta', 'src/modules/reports/basisSync.ts', '      projected.current = null;\n      changed.current = false;\n      attempts.current = new Map();\n      setListenFailedKey(syncKey);', '      setListenFailedKey(syncKey);', T('report-basis-sync')),
+  ('escuta', 'src/modules/reports/basisSync.ts', '      reopenFailedListeners(syncKey);\n', '', T('report-basis-sync', 'work-time-income-estimate')),
+  ('escuta', 'src/modules/reports/basisSync.ts', '    if (key !== null) reopenFailedListeners(key);', '    if (key !== null) setListenAttempt((attempt) => attempt + 1);', T('report-basis-sync')),
+  ('escuta', 'src/modules/reports/basisSync.ts', '      unregister = registerFailedListener(syncKey, () => setListenAttempt((attempt) => attempt + 1));\n', '', T('report-basis-sync', 'work-time-income-estimate')),
+  ('mutação', 'src/modules/reports/basisRegistry.ts', '    scheduleBasisReread(key, entry.mutationScheduler);', '    scheduleBasisReread(key, entry.scheduler);', T('report-basis-sync', 'work-time-guard')),
+  ('sem pedido', 'src/modules/reports/basisSync.ts', '      paired.current = { key, income: base && base.key === key ? base.income : current.income, reads: value };', '      paired.current = { key, income: current.income, reads: value };', T('report-basis-sync')),
+  ('sem pedido', 'src/modules/reports/basisSync.ts', '      if (reads !== mark.value && released.current?.key === syncKey) pairedIncome = released.current.income;\n', '', T('report-basis-sync')),
+  ('mutação', 'src/modules/reports/queryKeys.ts', '    coalesceMs: 30_000,\n    burst: 2,\n    refillMs: 600_000,', '    coalesceMs: 5_000,\n    burst: 5,\n    refillMs: 120_000,', T('work-time-guard')),
+  ('mutação', 'src/modules/reports/basisSync.ts', '        current.mutationScheduler.cancel();\n', '', T('work-time-guard')),
+  ('escuta', 'src/modules/reports/basisSync.ts', '    return () => {\n      unregister?.();\n      unsubscribe();\n    };', '    return unsubscribe;', T('work-time-guard')),
+  # revisão 7: a leitura que começou antes do último retorno do servidor compara e pode pedir (R7-02); a base
+  # nova sem pedido compara todos os meses da base e só libera com as bases fora de leitura (R7-01)
+  ('cruzada', 'src/modules/reports/basisSync.ts', '    evaluate.current(loading || pending.current !== null || overlapped);', '    evaluate.current(loading || pending.current !== null);', T('report-basis-sync')),
+  ('cruzada', 'src/modules/reports/basisSync.ts', '      noteServerSnapshot(syncKey);\n', '', T('report-basis-sync')),
+  ('cruzada', 'src/modules/reports/basisSync.ts', '      basisFetchStarts.set(refreshKey, serverSnapshotCount(syncKeyOf(uid as string, workspaceId as string)));\n', '', T('report-basis-sync')),
+  ('sem pedido', 'src/modules/reports/basisSync.ts', '    if (current.exact && !current.fetching && !sameIncome(current.income, pair.income)) release.current();', '    if (current.exact && !sameIncome(current.income, pair.income)) release.current();', T('report-basis-sync')),
+  ('sem pedido', 'src/modules/reports/basisSync.ts', '    if (current.exact && !current.fetching && !sameIncome(current.income, pair.income)) release.current();', '    if (current.exact && !current.fetching && !months.every((month) => (current.income[month] ?? 0) === (pair.income[month] ?? 0))) release.current();', T('report-basis-sync', 'work-time-income-estimate')),
+  ('sem pedido', 'src/modules/reports/basisSync.ts', '  const ahead = basis !== null && basis.exact && pairedIncome !== null && !sameIncome(basis.income, pairedIncome);', '  const ahead = basis !== null && basis.exact && pairedIncome !== null && !months.every((month) => (basis.income[month] ?? 0) === (pairedIncome?.[month] ?? 0));', T('report-basis-sync')),
+  ('basis', 'src/modules/reports/basisRefresh.ts', '  return months.length === Object.keys(b).length && months.every((month) => Object.hasOwn(b, month) && a[month] === b[month]);', '  return months.every((month) => a[month] === b[month]);', T('report-basis-refresh')),
+  ('estimativa', 'src/modules/work-time/useIncomeEstimateWith.ts', "      fetching: series.fetchStatus !== 'idle' || (needsExtra && extra.fetchStatus !== 'idle'),", '      fetching: false,', T('work-time-guard', 'work-time-income-estimate')),
+  # revisão 8: com mais de uma base, a base nova sem pedido espera a releitura pendente de qualquer uma, nos
+  # dois agendadores, pedida depois do começo da última leitura dela; a leitura com dados zera as falhas
+  # também sem a base desatualizada, e a falha da releitura da mutação não conta (R8-01); a fiação de
+  # `fetching` e a leitura cruzada provadas por comportamento, sem a guarda (R8-03)
+  ('agendada', 'src/modules/reports/basisSync.ts', '    (basis.fetching || basesOutOfStep(basis.keys));', '    basis.fetching;', T('report-basis-sync')),
+  ('agendada', 'src/modules/reports/basisSync.ts', '  const outOfStep = syncKey !== null && basis !== null && basis.keys.length > 1 &&', '  const outOfStep = syncKey !== null && basis !== null && basis.keys.length > 0 &&', T('report-basis-sync')),
+  ('agendada', 'src/modules/reports/basisRegistry.ts', '  return entry !== undefined && (entry.scheduler.scheduled() || entry.mutationScheduler.scheduled());', '  return entry !== undefined && entry.scheduler.scheduled();', T('report-basis-sync')),
+  ('agendada', 'src/modules/reports/basisRegistry.ts', '  return entry !== undefined && (entry.scheduler.scheduled() || entry.mutationScheduler.scheduled());', '  return entry !== undefined && entry.mutationScheduler.scheduled();', T('report-basis-sync')),
+  ('agendada', 'src/modules/reports/liveRefresh.ts', '        scheduled: () => pending !== null,', '        scheduled: () => false,', T('report-live-refresh', 'report-basis-sync')),
+  ('teto', 'src/modules/reports/basisSync.ts', '      entry.failure = { dataUpdatedAt, errorUpdatedAt, failures: dataUpdatedAt !== entry.failure.dataUpdatedAt ? 0 : entry.failure.failures };', '      entry.failure = { dataUpdatedAt, errorUpdatedAt, failures: entry.failure.failures };', T('report-basis-sync')),
+  ('teto', 'src/modules/reports/basisSync.ts', '    if (!isStale) {', '    if (false) {', T('report-basis-sync', 'work-time-income-estimate')),
+  ('teto', 'src/modules/reports/basisSync.ts', '      entry.failure = { dataUpdatedAt, errorUpdatedAt, failures: dataUpdatedAt !== entry.failure.dataUpdatedAt ? 0 : entry.failure.failures };', '      entry.failure = basisRefreshAfter(entry.failure, { dataUpdatedAt, errorUpdatedAt }, BASIS_RETRIES_AFTER_ERROR).state;', T('report-basis-sync')),
+  ('estimativa', 'src/modules/work-time/useIncomeEstimateWith.ts', '  }, [series.data, series.dataUpdatedAt, series.fetchStatus, extra.data, extra.dataUpdatedAt, extra.fetchStatus, needsExtra, extraMonth, extraRange, uid, workspaceId]);', '  }, [series.data, series.dataUpdatedAt, extra.data, extra.dataUpdatedAt, needsExtra, extraMonth, extraRange, uid, workspaceId]);', T('work-time-income-estimate')),
+  ('estimativa', 'src/modules/work-time/useIncomeEstimateWith.ts', "      fetching: series.fetchStatus !== 'idle' || (needsExtra && extra.fetchStatus !== 'idle'),", "      fetching: series.fetchStatus !== 'idle',", T('work-time-income-estimate')),
+  ('estimativa', 'src/modules/work-time/useIncomeEstimateWith.ts', "      fetching: series.fetchStatus !== 'idle' || (needsExtra && extra.fetchStatus !== 'idle'),", '      fetching: false,', T('work-time-income-estimate')),
+  ('cruzada', 'src/modules/reports/basisSync.ts', '      current.versions[index] !== before.versions[index] && (basisFetchStarts.get(basisKey) ?? -1) < serverSnapshotCount(key));', '      (basisFetchStarts.get(basisKey) ?? -1) < serverSnapshotCount(key));', T('report-basis-sync')),
+  ('agendada', 'src/modules/reports/basisRegistry.ts', '  return open !== undefined && open[open.length - 1] > (readStartedAt.get(key) ?? 0);', '  return true;', T('report-basis-sync')),
+  ('agendada', 'src/modules/reports/basisSync.ts', '      const started = noteBasisReadStart(refreshKey);', '      const started = 0;', T('report-basis-sync')),
+  ('agendada', 'src/modules/reports/basisRegistry.ts', '  open.push(basisOrder);\n', '', T('report-basis-sync')),
+  # revisão 9: as bases fora de passo seguram na renderização, com ou sem leitura dependente; a base que sai de uso
+  # com releitura pendente fica desatualizada; o estado mostrado durante a retenção não é guardado; a falha sem a
+  # base desatualizada fica registrada; a liberação das leituras dependentes não espera a releitura pendente
+  ('fora de passo', 'src/modules/reports/basisSync.ts', '    holding: syncing || readsBehind || ahead || outOfStep,', '    holding: syncing || readsBehind || ahead,', T('report-basis-sync', 'work-time-income-estimate')),
+  ('fora de passo', 'src/modules/reports/basisSync.ts', '    (basis.fetching || basesOutOfStep(basis.keys));', '    basesOutOfStep(basis.keys);', T('report-basis-sync')),
+  ('fora de passo', 'src/modules/reports/basisSync.ts', "        if (basisRereadScheduled(refreshKey)) {\n          void queryClient.invalidateQueries({ queryKey: JSON.parse(refreshKey) as unknown[], exact: true, refetchType: 'none' });\n          markRereadOnReturn(refreshKey);\n        }\n", '', T('report-basis-sync')),
+  ('estimativa', 'src/modules/work-time/useIncomeEstimateWith.ts', "  return { shown: state, last: !holding && state.status === 'done' ? { params, state } : last };", "  return { shown: state, last: state.status === 'done' ? { params, state } : last };", T('work-time-income-estimate')),
+  ('teto', 'src/modules/reports/basisSync.ts', '      entry.failure = { dataUpdatedAt, errorUpdatedAt, failures: dataUpdatedAt !== entry.failure.dataUpdatedAt ? 0 : entry.failure.failures };', '      entry.failure = { ...entry.failure, dataUpdatedAt, failures: dataUpdatedAt !== entry.failure.dataUpdatedAt ? 0 : entry.failure.failures };', T('report-basis-sync')),
+  ('sem pedido', 'src/modules/reports/basisSync.ts', '    if (current.exact && !current.fetching && !sameIncome(current.income, pair.income)) release.current();', '    if (current.keys.length > 1 && current.keys.some(basisRereadScheduled)) return;\n    if (current.exact && !current.fetching && !sameIncome(current.income, pair.income)) release.current();', T('work-time-income-estimate')),
+  # revisão 9 (repetições): a leitura dependente vai pelo objeto do resultado, um novo a cada leitura concluída
+  ('mesmo milissegundo', 'src/modules/transactions/incomeReads.ts', '    structuralSharing: false,\n', '', T('work-time-income-estimate')),
+  ('mesmo milissegundo', 'src/modules/work-time/useIncomeEstimateWith.ts', 'needsExcluded ? excluded.data : null', 'needsExcluded ? excluded.dataUpdatedAt : null', T('work-time-income-estimate')),
+  # revisão 10: as bases fora de passo pela regra "à frente"; a busca pausada; a base relida na volta
+  ('em passo', 'src/modules/reports/basisRegistry.ts', '    if (firstOpen === undefined || !rereadPending(behind)) return false;', '    if (firstOpen === undefined) return false;', T('report-basis-sync')),
+  ('em passo', 'src/modules/reports/basisRegistry.ts', '(servedReadStartedAt.get(other) ?? 0) > firstOpen', '(readStartedAt.get(other) ?? 0) > firstOpen', T('report-basis-sync')),
+  ('em passo', 'src/modules/reports/basisRegistry.ts', '  if (readStartedAt.get(key) !== started) return;\n', '', T('report-basis-sync')),
+  ('em passo', 'src/modules/reports/basisRegistry.ts', '  const open = (openRequests.get(key) ?? []).filter((request) => request > started);', '  const open = openRequests.get(key) ?? [];', T('report-basis-sync')),
+  ('em passo', 'src/modules/reports/basisSync.ts', '      noteBasisReadServed(refreshKey, started);\n', '', T('report-basis-sync')),
+  ('em passo', 'src/modules/reports/basisRegistry.ts', '  return open !== undefined && open[open.length - 1] > (readStartedAt.get(key) ?? 0);', '  return open !== undefined && open[0] > (readStartedAt.get(key) ?? 0);', T('report-basis-sync')),
+  ('na volta', 'src/modules/reports/basisSync.ts', '          markRereadOnReturn(refreshKey);\n', '', T('report-basis-sync')),
+  ('na volta', 'src/modules/reports/basisSync.ts', "      if (takeRereadOnReturn(refreshKey) && entry.loaded() && (queryClient.getQueryState(exactKey)?.fetchStatus ?? 'idle') === 'idle') {\n        void queryClient.invalidateQueries({ queryKey: exactKey, exact: true, refetchType: 'none' });\n        scheduleBasisReread(refreshKey, entry.scheduler);\n      }\n", '', T('report-basis-sync')),
+  ('na volta', 'src/modules/reports/basisSync.ts', " && (queryClient.getQueryState(exactKey)?.fetchStatus ?? 'idle') === 'idle'", '', T('report-basis-sync')),
+  ('pausada', 'src/modules/work-time/useIncomeEstimateWith.ts', "      fetching: series.fetchStatus !== 'idle' || (needsExtra && extra.fetchStatus !== 'idle'),", '      fetching: series.isFetching || (needsExtra && extra.isFetching),', T('work-time-income-estimate')),
+]
+
+RULES = [
+  ('rules', 'firestore.rules', "        data.exceptions.split(';').size() <= 120 &&\n", ''),
+  ('rules', 'firestore.rules', '        data.schemaVersion == 2 &&', '        data.schemaVersion >= 1 &&'),
+  ('rules', 'firestore.rules', "      return text == '' || (text + separator).matches('(?:' + item + separator + ')+');", "      return true;"),
+  ('rules', 'firestore.rules', "          'municipality', 'localHolidays', 'exceptions', 'updatedAt',\n        ]) &&\n        data.keys().hasAll", "          'municipality', 'localHolidays', 'exceptions', 'updatedAt', 'incomeCents',\n        ]) &&\n        data.keys().hasAll"),
+  ('rules', 'firestore.rules', "      return '(?:[1-9][0-9]{0,2}|1[0-3][0-9][0-9]|14[0-3][0-9]|1440)';", "      return '(?:[0-9][0-9]{0,2}|1[0-3][0-9][0-9]|14[0-3][0-9]|1440)';"),
+  ('rules', 'firestore.rules', "        allow list: if false;\n      }\n\n      // Índice de participação", "        allow list: if isOwnWorkTimePreference(userId, preferenceId);\n      }\n\n      // Índice de participação"),
+  ('rules', 'firestore.rules', "        allow list: if false;\n      }\n\n      // Índice de participação", "        allow list: if hasActiveAccount() && request.auth.uid == userId;\n      }\n\n      // Índice de participação"),
+  ('rules', 'firestore.rules', '      return hasActiveAccount() &&\n        request.auth.uid == userId &&\n        preferenceId == \'work_time_equivalent\';', "      return hasActiveAccount() &&\n        preferenceId == 'work_time_equivalent';"),
+  ('rules', 'firestore.rules', "        data.uf in ['', 'AC',", "        data.uf in ['', 'XX', 'AC',"),
+  # revisão 2: a escuta das projeções da janela (cash_report_periods) só para membros e com limite
+  ('rules', 'firestore.rules', "        allow list: if canReadWorkspaceScopedData(workspaceId) &&\n          request.query.limit != null &&\n          request.query.limit > 0 &&\n          request.query.limit <= 600;", "        allow list: if canReadWorkspaceScopedData(workspaceId);"),
+  ('rules', 'firestore.rules', "      match /cash_report_periods/{docId} {\n        allow get: if canReadWorkspaceScopedData(workspaceId);\n        allow list: if canReadWorkspaceScopedData(workspaceId) &&", "      match /cash_report_periods/{docId} {\n        allow get: if canReadWorkspaceScopedData(workspaceId);\n        allow list: if request.auth != null &&"),
+]
+
+def digest(path):
+  return hashlib.sha256(path.read_bytes()).hexdigest()
+
+def run(cmd):
+  return subprocess.run(cmd, cwd=WT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode
+
+LOADERS = {'.ts': 'ts', '.tsx': 'tsx', '.mjs': 'js', '.js': 'js'}
+CHECK = ("const e=require(process.argv[1]);let s='';process.stdin.on('data',d=>s+=d)"
+         ".on('end',()=>{try{e.transformSync(s,{loader:process.argv[2]});process.exit(0)}catch(_){process.exit(1)}})")
+
+def compiles(path, text):
+  """Sintaxe do arquivo mutado (esbuild, o mesmo da build): mutante que não compila não conta como morto."""
+  loader = LOADERS.get(path.suffix)
+  if loader is None:
+    return True  # firestore.rules: a guarda lê o texto; as Rules mutadas passam pelo carregamento no Emulator
+  check = subprocess.run(['node', '-e', CHECK, str(WT / 'node_modules/esbuild'), loader], input=text.encode('utf-8'),
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+  return check.returncode == 0
+
+def apply_and_test(group, rel, old, new, cmd):
+  path = WT / rel
+  original = path.read_bytes()
+  before = digest(path)
+  text = original.decode('utf-8')
+  if text.count(old) != 1:
+    return group, rel, old, 'INVÁLIDO (trecho ausente ou repetido)'
+  mutated = text.replace(old, new, 1)
+  if not compiles(path, mutated):
+    return group, rel, old, 'NÃO COMPILA'
+  path.write_text(mutated, encoding='utf-8')
+  try:
+    code = run(cmd)
+  finally:
+    path.write_bytes(original)
+  assert digest(path) == before, f'{rel} não voltou ao original'
+  return group, rel, old, 'MORTO' if code != 0 else 'SOBREVIVEU'
+
+# MUTANTES_SO=153,176: só os mutantes de unidade com esses números (1 = o primeiro da lista), para a rodada dos
+# sobreviventes depois de testes novos; a saída marca cada um com o número.
+ONLY = {int(item) for item in os.environ.get('MUTANTES_SO', '').split(',') if item.strip()}
+
+
+def main():
+  rows = []
+  if MODE == 'unit':
+    chosen = [(index, mutant) for index, mutant in enumerate(UNIT, 1) if not ONLY or index in ONLY]
+    assert not ONLY or len(chosen) == len(ONLY), ('número de mutante inexistente', sorted(ONLY))
+    baseline = run(NODE + sorted({f for _, m in chosen for f in m[4]}))
+    if baseline != 0:
+      print('linha de base falhou: os testes precisam passar antes dos mutantes'); sys.exit(2)
+    for index, (group, rel, old, new, files) in chosen:
+      row = apply_and_test(group, rel, old, new, NODE + files)
+      rows.append((f'U{index} {row[0]}', *row[1:]) if ONLY else row)
+  else:
+    rules_cmd = ['node', '--test', 'tests/firestore/work-time-p5f.rules.integration.test.mjs']
+    if run(rules_cmd) != 0:
+      print('linha de base das Rules falhou'); sys.exit(2)
+    for group, rel, old, new in RULES:
+      rows.append(apply_and_test(group, rel, old, new, rules_cmd))
+  dead = sum(1 for row in rows if row[3] == 'MORTO')
+  broken = sum(1 for row in rows if row[3] == 'NÃO COMPILA')
+  for group, rel, old, result in rows:
+    first = old.strip().splitlines()[0][:90]
+    print(f'{result:11} {group:11} {rel}: {first}')
+  print(f'TOTAL {MODE}: {dead}/{len(rows)} mortos; {broken} não compilam')
+  sys.exit(0 if dead == len(rows) else 1)
+
+main()

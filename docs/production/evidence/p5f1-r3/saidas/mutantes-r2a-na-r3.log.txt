@@ -1,0 +1,41 @@
+árvore=copia-mutantes-cliente (= worktree R3) roteiro=p5f1r2a/mutantes-r2a.py sha256-roteiro=7cb70f11d38bd4a4f0875e9163bc96ad46d3fe56d67ab773fb8dd0c4f2fac08d
+MORTO       S01         src/modules/work-time/calendar.ts: if (eve.certain) return plan(eve.windows);
+MORTO       S01         src/modules/work-time/calendar.ts: if (eve.certain) return plan(eve.windows);
+MORTO       S01         src/modules/work-time/calendar.ts: if (!none.ambiguous && !all.ambiguous && none.minutes === all.minutes) return none;
+MORTO       S01         src/modules/work-time/calendar.ts: if (!none.ambiguous && !all.ambiguous && none.minutes === all.minutes) return none;
+MORTO       S01         src/modules/work-time/calendar.ts: if (!none.ambiguous && !all.ambiguous && none.minutes === all.minutes) return none;
+MORTO       S01         src/modules/work-time/calendar.ts: return { ...none, ambiguous: true, reducedEve: !(none.ambiguous && all.ambiguous) };
+MORTO       S01         src/modules/work-time/calendar.ts: return { windows: routineDay.windows, certain: !most.ambiguous && most.minutes + durations
+MORTO       S01         src/modules/work-time/calendar.ts: return { windows: routineDay.windows, certain: !most.ambiguous && most.minutes + durations
+MORTO       S01         src/modules/work-time/calendar.ts: return { windows: routineDay.windows, certain: !most.ambiguous && most.minutes + durations
+MORTO       S01         src/modules/work-time/calendar.ts: return { windows: routineDay.windows, certain: !most.ambiguous && most.minutes + durations
+MORTO       S01         src/modules/work-time/calendar.ts: const eveWindows = opensMonth(date) ? [] : followedWindowsOn(calendar, addDays(date, -1));
+MORTO       S01         src/modules/work-time/calendar.ts: if (flags.reduced === null || routineDay.windows.length === 0) return { windows: routineDa
+MORTO       S01         src/modules/work-time/calendar.ts: const eve = neighborWindowsOn(calendar, previous);
+MORTO       S01         src/modules/work-time/calendar.ts: const nextWindows = certainWindows(neighborWindowsOn(calendar, addDays(date, 1)));
+MORTO       S01         src/modules/work-time/calendar.ts: if (day.ambiguous && day.reducedEve) plan.reducedEveDays.push(day.date);
+MORTO       S01         src/modules/work-time/calendar.ts: const reducedEves = calendar.exceptions.some((entry) => entry.kind === 'reduced') && routi
+MORTO       S01         src/modules/work-time/calendar.ts: if (!scan.covered && !reducedEves) return null;
+MORTO       S01         src/modules/work-time/calendar.ts: if (neighborWindowsOn(calendar, eve).certain) continue;
+MORTO       S01         src/modules/work-time/calendar.ts: if (passingMidnight(routineDayOf(calendar.routines, eveDay).windows, eveDay).length === 0)
+MORTO       S01         src/modules/work-time/calendar.ts: if (plan.ambiguous && plan.reducedEve) consider(eveDay + 1, () => reducedEveAt(date));
+MORTO       S01         src/modules/work-time/calendar.ts: for (let day = Math.max(dayNumber(entry.start), first - 1); day <= Math.min(dayNumber(entr
+MORTO       S01         src/modules/work-time/calendar.ts: if (plan.reducedEve) return reducedEveAt(date);
+MORTO       S01         src/modules/work-time/calendar.ts: windows.filter((occurrence) => occurrence.end > (day + 1) * DAY_MINUTES);
+MORTO       S01         src/modules/work-time/draft.ts: if (cause.kind === 'reduced_eve') return 'exceptions';
+MORTO       S01         src/modules/work-time/draft.ts: Com a jornada reduzida de ${dayOfWeekAndDate(cause.date)}, não dá para confirmar
+MORTO       S01         src/modules/work-time/draft.ts: return names.length <= 1 ? (names[0] ?? '') : `${names.slice(0, -1).join(', ')} e ${names[
+MORTO       S01         src/modules/work-time/estimate.ts: return unavailable(emptyBase, byBreaks ? 'ambiguous_routines' : 'ambiguous_reduced_eve');
+MORTO       S01         src/modules/work-time/estimate.ts: const byBreaks = months.some((month) => month.plan.ambiguousDays.length > month.plan.reduc
+MORTO       S01         src/modules/work-time/calendar.ts: callMemo = outer;
+MORTO       S01         src/modules/work-time/calendar.ts: const memo = callMemo !== null && callMemo.calendar === calendar ? callMemo.flags : null;
+MORTO       S01         src/modules/work-time/calendar.ts: const memo = callMemo !== null && callMemo.calendar === calendar ? callMemo.neighbors : nu
+MORTO       S03         src/modules/work-time/routineModels.ts: JSON.stringify(models.map((model) => (model.kind === 'weekly' ? { kind: model.kind, days: 
+MORTO       S03         src/modules/work-time/routineModels.ts: if (failure) return { result: { ok: false, message: failure.message, edited }, ambiguity: 
+MORTO       S03         src/modules/work-time/routineModels.ts: result: ambiguity !== null ? { ok: false, message: ambiguity, edited } : { ok: true, routi
+MORTO       S03         src/modules/work-time/routineModels.ts: const edited = routinesKey(models) !== initialKey;
+MORTO       S03         src/modules/work-time/routineModels.ts: days: model.days.map((input) => (input.mode === 'off' ? input : { ...model.template })),
+MORTO       S03         src/components/workTime/RoutineEditor.tsx: onClick={() => update(index, applyTemplate(model))}
+MORTO       S01         src/modules/work-time/calendar.ts: const eveWindows = opensMonth(date) ? [] : followedWindowsOn(calendar, addDays(date, -1));
+TOTAL unit: 38/38 mortos; 0 não compilam
+saída 0; 593 s

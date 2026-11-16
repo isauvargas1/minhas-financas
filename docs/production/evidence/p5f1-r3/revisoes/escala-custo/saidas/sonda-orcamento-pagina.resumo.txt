@@ -1,0 +1,10 @@
+concentrado (12 meses, 10 categorias) | page=300 | R2A chamadas=67 leit/doc=1 maiorCommit=23 | R3 chamadas=67 leit/doc=1 maiorCommit=323 ancoras=20000 | chamadas x1
+concentrado (12 meses, 10 categorias) | page=500 | R2A chamadas=40 leit/doc=1 maiorCommit=23 | R3 chamadas=42 leit/doc=1.05 maiorCommit=500 ancoras=20000 | chamadas x1.05
+típico (36 meses, 20 categorias) | page=300 | R2A chamadas=67 leit/doc=1 maiorCommit=97 | R3 chamadas=67 leit/doc=1 maiorCommit=397 ancoras=20000 | chamadas x1
+típico (36 meses, 20 categorias) | page=500 | R2A chamadas=40 leit/doc=1 maiorCommit=97 | R3 chamadas=50 leit/doc=1.24 maiorCommit=500 ancoras=20000 | chamadas x1.25
+diverso (120 meses, 60 categorias) | page=300 | R2A chamadas=67 leit/doc=1 maiorCommit=362 | R3 chamadas=93 leit/doc=1.39 maiorCommit=500 ancoras=20000 | chamadas x1.39
+diverso (120 meses, 60 categorias) | page=500 | R2A chamadas=52 leit/doc=1.29 maiorCommit=401 | R3 chamadas=93 leit/doc=2.3 maiorCommit=500 ancoras=20000 | chamadas x1.79
+extremo (240 meses, 150 categorias) | page=300 | R2A chamadas=79 leit/doc=1.18 maiorCommit=401 | R3 chamadas=107 leit/doc=1.6 maiorCommit=500 ancoras=20000 | chamadas x1.35
+extremo (240 meses, 150 categorias) | page=500 | R2A chamadas=79 leit/doc=1.96 maiorCommit=401 | R3 chamadas=107 leit/doc=2.65 maiorCommit=500 ancoras=20000 | chamadas x1.35
+adversário (600 meses, 500 categorias) | page=300 | R2A chamadas=93 leit/doc=1.38 maiorCommit=401 | R3 chamadas=116 leit/doc=1.72 maiorCommit=500 ancoras=20000 | chamadas x1.25
+adversário (600 meses, 500 categorias) | page=500 | R2A chamadas=93 leit/doc=2.29 maiorCommit=401 | R3 chamadas=116 leit/doc=2.85 maiorCommit=500 ancoras=20000 | chamadas x1.25

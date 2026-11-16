@@ -757,9 +757,10 @@ test("P3-B — limite real: 500 escritas sim, 501 não", async () => {
 test("P3-B — checkpoint suporta 500 meses e recusa passar de 600", async () => {
   const target = book();
   await seedMonths(target, 601);
-  // Páginas de 250 cabem no orçamento do commit: 250 e 500 meses no
-  // checkpoint; a terceira página passaria de 600 e é recusada.
-  const outcome = await rebuildUntilSettled(target, {pageSize: 250});
+  // Páginas de 125 cabem no orçamento do commit, que inclui uma âncora de
+  // marca por lançamento da base (P5-F.1-R3): 125, 250, 375 e 500 meses no
+  // checkpoint; a quinta página passaria de 600 e é recusada.
+  const outcome = await rebuildUntilSettled(target, {pageSize: 125});
   assert.equal(outcome.maxStoredPeriods, 500,
     `checkpoint chegou a ${outcome.maxStoredPeriods} meses`);
   assert.ok(

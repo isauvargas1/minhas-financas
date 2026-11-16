@@ -1,0 +1,742 @@
+{
+ "routines": [
+  {
+   "label": "semanal 08–17 com 1 h de intervalo",
+   "value": "W:08:00-17:00/60,08:00-17:00/60,08:00-17:00/60,08:00-17:00/60,08:00-17:00/60,-,-",
+   "rules": true,
+   "client": true
+  },
+  {
+   "label": "semanal por duração",
+   "value": "W:D480,D480,D480,D480,D480,-,-",
+   "rules": true,
+   "client": true
+  },
+  {
+   "label": "12×36",
+   "value": "C:2026-01-01:1x1:07:00-19:00/60",
+   "rules": true,
+   "client": true
+  },
+  {
+   "label": "24×48 com referência em 29/02 bissexto",
+   "value": "C:2024-02-29:1x2:07:00-07:00/0",
+   "rules": true,
+   "client": true
+  },
+  {
+   "label": "noturno e manhã",
+   "value": "W:22:00-06:00/60,22:00-06:00/60,22:00-06:00/60,22:00-06:00/60,22:00-06:00/60,-,-;W:05:00-09:00/0,-,-,-,-,-,-",
+   "rules": true,
+   "client": true
+  },
+  {
+   "label": "três rotinas (máximo)",
+   "value": "W:08:00-17:00/60,08:00-17:00/60,08:00-17:00/60,08:00-17:00/60,08:00-17:00/60,-,-;C:2026-01-01:1x1:07:00-19:00/60;W:22:00-06:00/60,22:00-06:00/60,22:00-06:00/60,22:00-06:00/60,22:00-06:00/60,-,-",
+   "rules": true,
+   "client": true
+  },
+  {
+   "label": "escala 28×28 de 24 h",
+   "value": "C:2026-03-01:28x28:D1440",
+   "rules": true,
+   "client": true
+  },
+  {
+   "label": "sem rotina",
+   "value": "",
+   "rules": false,
+   "client": false
+  },
+  {
+   "label": "quatro rotinas",
+   "value": "W:08:00-17:00/60,08:00-17:00/60,08:00-17:00/60,08:00-17:00/60,08:00-17:00/60,-,-;W:08:00-17:00/60,08:00-17:00/60,08:00-17:00/60,08:00-17:00/60,08:00-17:00/60,-,-;W:08:00-17:00/60,08:00-17:00/60,08:00-17:00/60,08:00-17:00/60,08:00-17:00/60,-,-;W:08:00-17:00/60,08:00-17:00/60,08:00-17:00/60,08:00-17:00/60,08:00-17:00/60,-,-",
+   "rules": false,
+   "client": false
+  },
+  {
+   "label": "seis dias",
+   "value": "W:-,-,-,-,-,-",
+   "rules": false,
+   "client": false
+  },
+  {
+   "label": "duração zero",
+   "value": "W:D0,D480,D480,D480,D480,-,-",
+   "rules": false,
+   "client": false
+  },
+  {
+   "label": "duração acima de 24 h",
+   "value": "W:D1441,D480,D480,D480,D480,-,-",
+   "rules": false,
+   "client": false
+  },
+  {
+   "label": "zero à esquerda",
+   "value": "W:D0480,D480,D480,D480,D480,-,-",
+   "rules": false,
+   "client": false
+  },
+  {
+   "label": "hora 24",
+   "value": "W:24:00-08:00/0,D480,D480,D480,D480,-,-",
+   "rules": false,
+   "client": false
+  },
+  {
+   "label": "minuto 60",
+   "value": "W:08:60-17:00/0,D480,D480,D480,D480,-,-",
+   "rules": false,
+   "client": false
+  },
+  {
+   "label": "intervalo com zero à esquerda",
+   "value": "W:08:00-17:00/060,D480,D480,D480,D480,-,-",
+   "rules": false,
+   "client": false
+  },
+  {
+   "label": "intervalo acima de 1.440",
+   "value": "W:08:00-17:00/1441,D480,D480,D480,D480,-,-",
+   "rules": false,
+   "client": false
+  },
+  {
+   "label": "referência inexistente",
+   "value": "C:2026-02-30:1x1:D480",
+   "rules": false,
+   "client": false
+  },
+  {
+   "label": "referência fora de 2000–2099",
+   "value": "C:2100-01-01:1x1:D480",
+   "rules": false,
+   "client": false
+  },
+  {
+   "label": "zero dia de trabalho",
+   "value": "C:2026-01-01:0x1:D480",
+   "rules": false,
+   "client": false
+  },
+  {
+   "label": "29 dias de folga",
+   "value": "C:2026-01-01:1x29:D480",
+   "rules": false,
+   "client": false
+  },
+  {
+   "label": "escala sem trabalho",
+   "value": "C:2026-01-01:1x1:-",
+   "rules": false,
+   "client": false
+  },
+  {
+   "label": "data sem zero",
+   "value": "C:2026-1-01:1x1:D480",
+   "rules": false,
+   "client": false
+  },
+  {
+   "label": "minúscula",
+   "value": "w:D480,D480,D480,D480,D480,-,-",
+   "rules": false,
+   "client": false
+  },
+  {
+   "label": "espaço",
+   "value": "W:D480, D480,D480,D480,D480,-,-",
+   "rules": false,
+   "client": false
+  },
+  {
+   "label": "semana sem trabalho (semântica)",
+   "value": "W:-,-,-,-,-,-,-",
+   "rules": true,
+   "client": false
+  },
+  {
+   "label": "intervalo igual à janela (semântica)",
+   "value": "W:08:00-09:00/60,-,-,-,-,-,-",
+   "rules": true,
+   "client": false
+  },
+  {
+   "label": "intervalo maior que a janela (semântica)",
+   "value": "W:08:00-09:00/61,-,-,-,-,-,-",
+   "rules": true,
+   "client": false
+  }
+ ],
+ "exceptions": [
+  {
+   "label": "sem exceções",
+   "value": "",
+   "rules": true,
+   "client": true
+  },
+  {
+   "label": "férias",
+   "value": "F2026-07-06/2026-07-17",
+   "rules": true,
+   "client": true
+  },
+  {
+   "label": "folga",
+   "value": "O2026-08-03",
+   "rules": true,
+   "client": true
+  },
+  {
+   "label": "ausência",
+   "value": "A2026-08-04/2026-08-05",
+   "rules": true,
+   "client": true
+  },
+  {
+   "label": "feriado trabalhado",
+   "value": "H2026-11-20",
+   "rules": true,
+   "client": true
+  },
+  {
+   "label": "plantão",
+   "value": "P2026-08-03+240",
+   "rules": true,
+   "client": true
+  },
+  {
+   "label": "hora extra",
+   "value": "E2026-07-20+120",
+   "rules": true,
+   "client": true
+  },
+  {
+   "label": "jornada reduzida",
+   "value": "R2026-07-21/2026-07-31=360",
+   "rules": true,
+   "client": true
+  },
+  {
+   "label": "alteração de escala",
+   "value": "S2026-07-25=300",
+   "rules": true,
+   "client": true
+  },
+  {
+   "label": "alteração de escala para zero",
+   "value": "S2026-07-26=0",
+   "rules": true,
+   "client": true
+  },
+  {
+   "label": "combinação canônica",
+   "value": "F2026-07-06/2026-07-17;E2026-07-20+120;R2026-07-21/2026-07-31=360;S2026-07-25=300",
+   "rules": true,
+   "client": true
+  },
+  {
+   "label": "29/02 bissexto",
+   "value": "F2024-02-29",
+   "rules": true,
+   "client": true
+  },
+  {
+   "label": "120 exceções (máximo)",
+   "value": "O2026-01-01;O2026-01-02;O2026-01-03;O2026-01-04;O2026-01-05;O2026-01-06;O2026-01-07;O2026-01-08;O2026-01-09;O2026-01-10;O2026-01-11;O2026-01-12;O2026-01-13;O2026-01-14;O2026-01-15;O2026-01-16;O2026-01-17;O2026-01-18;O2026-01-19;O2026-01-20;O2026-01-21;O2026-01-22;O2026-01-23;O2026-01-24;O2026-01-25;O2026-01-26;O2026-01-27;O2026-01-28;O2026-01-29;O2026-01-30;O2026-01-31;O2026-02-01;O2026-02-02;O2026-02-03;O2026-02-04;O2026-02-05;O2026-02-06;O2026-02-07;O2026-02-08;O2026-02-09;O2026-02-10;O2026-02-11;O2026-02-12;O2026-02-13;O2026-02-14;O2026-02-15;O2026-02-16;O2026-02-17;O2026-02-18;O2026-02-19;O2026-02-20;O2026-02-21;O2026-02-22;O2026-02-23;O2026-02-24;O2026-02-25;O2026-02-26;O2026-02-27;O2026-02-28;O2026-03-01;O2026-03-02;O2026-03-03;O2026-03-04;O2026-03-05;O2026-03-06;O2026-03-07;O2026-03-08;O2026-03-09;O2026-03-10;O2026-03-11;O2026-03-12;O2026-03-13;O2026-03-14;O2026-03-15;O2026-03-16;O2026-03-17;O2026-03-18;O2026-03-19;O2026-03-20;O2026-03-21;O2026-03-22;O2026-03-23;O2026-03-24;O2026-03-25;O2026-03-26;O2026-03-27;O2026-03-28;O2026-03-29;O2026-03-30;O2026-03-31;O2026-04-01;O2026-04-02;O2026-04-03;O2026-04-04;O2026-04-05;O2026-04-06;O2026-04-07;O2026-04-08;O2026-04-09;O2026-04-10;O2026-04-11;O2026-04-12;O2026-04-13;O2026-04-14;O2026-04-15;O2026-04-16;O2026-04-17;O2026-04-18;O2026-04-19;O2026-04-20;O2026-04-21;O2026-04-22;O2026-04-23;O2026-04-24;O2026-04-25;O2026-04-26;O2026-04-27;O2026-04-28;O2026-04-29;O2026-04-30",
+   "rules": true,
+   "client": true
+  },
+  {
+   "label": "maior texto: 3359 caracteres",
+   "value": "R2026-01-01/2026-01-02=1440;R2026-01-03/2026-01-04=1440;R2026-01-05/2026-01-06=1440;R2026-01-07/2026-01-08=1440;R2026-01-09/2026-01-10=1440;R2026-01-11/2026-01-12=1440;R2026-01-13/2026-01-14=1440;R2026-01-15/2026-01-16=1440;R2026-01-17/2026-01-18=1440;R2026-01-19/2026-01-20=1440;R2026-01-21/2026-01-22=1440;R2026-01-23/2026-01-24=1440;R2026-01-25/2026-01-26=1440;R2026-01-27/2026-01-28=1440;R2026-01-29/2026-01-30=1440;R2026-01-31/2026-02-01=1440;R2026-02-02/2026-02-03=1440;R2026-02-04/2026-02-05=1440;R2026-02-06/2026-02-07=1440;R2026-02-08/2026-02-09=1440;R2026-02-10/2026-02-11=1440;R2026-02-12/2026-02-13=1440;R2026-02-14/2026-02-15=1440;R2026-02-16/2026-02-17=1440;R2026-02-18/2026-02-19=1440;R2026-02-20/2026-02-21=1440;R2026-02-22/2026-02-23=1440;R2026-02-24/2026-02-25=1440;R2026-02-26/2026-02-27=1440;R2026-02-28/2026-03-01=1440;R2026-03-02/2026-03-03=1440;R2026-03-04/2026-03-05=1440;R2026-03-06/2026-03-07=1440;R2026-03-08/2026-03-09=1440;R2026-03-10/2026-03-11=1440;R2026-03-12/2026-03-13=1440;R2026-03-14/2026-03-15=1440;R2026-03-16/2026-03-17=1440;R2026-03-18/2026-03-19=1440;R2026-03-20/2026-03-21=1440;R2026-03-22/2026-03-23=1440;R2026-03-24/2026-03-25=1440;R2026-03-26/2026-03-27=1440;R2026-03-28/2026-03-29=1440;R2026-03-30/2026-03-31=1440;R2026-04-01/2026-04-02=1440;R2026-04-03/2026-04-04=1440;R2026-04-05/2026-04-06=1440;R2026-04-07/2026-04-08=1440;R2026-04-09/2026-04-10=1440;R2026-04-11/2026-04-12=1440;R2026-04-13/2026-04-14=1440;R2026-04-15/2026-04-16=1440;R2026-04-17/2026-04-18=1440;R2026-04-19/2026-04-20=1440;R2026-04-21/2026-04-22=1440;R2026-04-23/2026-04-24=1440;R2026-04-25/2026-04-26=1440;R2026-04-27/2026-04-28=1440;R2026-04-29/2026-04-30=1440;R2026-05-01/2026-05-02=1440;R2026-05-03/2026-05-04=1440;R2026-05-05/2026-05-06=1440;R2026-05-07/2026-05-08=1440;R2026-05-09/2026-05-10=1440;R2026-05-11/2026-05-12=1440;R2026-05-13/2026-05-14=1440;R2026-05-15/2026-05-16=1440;R2026-05-17/2026-05-18=1440;R2026-05-19/2026-05-20=1440;R2026-05-21/2026-05-22=1440;R2026-05-23/2026-05-24=1440;R2026-05-25/2026-05-26=1440;R2026-05-27/2026-05-28=1440;R2026-05-29/2026-05-30=1440;R2026-05-31/2026-06-01=1440;R2026-06-02/2026-06-03=1440;R2026-06-04/2026-06-05=1440;R2026-06-06/2026-06-07=1440;R2026-06-08/2026-06-09=1440;R2026-06-10/2026-06-11=1440;R2026-06-12/2026-06-13=1440;R2026-06-14/2026-06-15=1440;R2026-06-16/2026-06-17=1440;R2026-06-18/2026-06-19=1440;R2026-06-20/2026-06-21=1440;R2026-06-22/2026-06-23=1440;R2026-06-24/2026-06-25=1440;R2026-06-26/2026-06-27=1440;R2026-06-28/2026-06-29=1440;R2026-06-30/2026-07-01=1440;R2026-07-02/2026-07-03=1440;R2026-07-04/2026-07-05=1440;R2026-07-06/2026-07-07=1440;R2026-07-08/2026-07-09=1440;R2026-07-10/2026-07-11=1440;R2026-07-12/2026-07-13=1440;R2026-07-14/2026-07-15=1440;R2026-07-16/2026-07-17=1440;R2026-07-18/2026-07-19=1440;R2026-07-20/2026-07-21=1440;R2026-07-22/2026-07-23=1440;R2026-07-24/2026-07-25=1440;R2026-07-26/2026-07-27=1440;R2026-07-28/2026-07-29=1440;R2026-07-30/2026-07-31=1440;R2026-08-01/2026-08-02=1440;R2026-08-03/2026-08-04=1440;R2026-08-05/2026-08-06=1440;R2026-08-07/2026-08-08=1440;R2026-08-09/2026-08-10=1440;R2026-08-11/2026-08-12=1440;R2026-08-13/2026-08-14=1440;R2026-08-15/2026-08-16=1440;R2026-08-17/2026-08-18=1440;R2026-08-19/2026-08-20=1440;R2026-08-21/2026-08-22=1440;R2026-08-23/2026-08-24=1440;R2026-08-25/2026-08-26=1440;R2026-08-27/2026-08-28=1440",
+   "rules": true,
+   "client": true
+  },
+  {
+   "label": "121 exceções",
+   "value": "O2026-01-01;O2026-01-02;O2026-01-03;O2026-01-04;O2026-01-05;O2026-01-06;O2026-01-07;O2026-01-08;O2026-01-09;O2026-01-10;O2026-01-11;O2026-01-12;O2026-01-13;O2026-01-14;O2026-01-15;O2026-01-16;O2026-01-17;O2026-01-18;O2026-01-19;O2026-01-20;O2026-01-21;O2026-01-22;O2026-01-23;O2026-01-24;O2026-01-25;O2026-01-26;O2026-01-27;O2026-01-28;O2026-01-29;O2026-01-30;O2026-01-31;O2026-02-01;O2026-02-02;O2026-02-03;O2026-02-04;O2026-02-05;O2026-02-06;O2026-02-07;O2026-02-08;O2026-02-09;O2026-02-10;O2026-02-11;O2026-02-12;O2026-02-13;O2026-02-14;O2026-02-15;O2026-02-16;O2026-02-17;O2026-02-18;O2026-02-19;O2026-02-20;O2026-02-21;O2026-02-22;O2026-02-23;O2026-02-24;O2026-02-25;O2026-02-26;O2026-02-27;O2026-02-28;O2026-03-01;O2026-03-02;O2026-03-03;O2026-03-04;O2026-03-05;O2026-03-06;O2026-03-07;O2026-03-08;O2026-03-09;O2026-03-10;O2026-03-11;O2026-03-12;O2026-03-13;O2026-03-14;O2026-03-15;O2026-03-16;O2026-03-17;O2026-03-18;O2026-03-19;O2026-03-20;O2026-03-21;O2026-03-22;O2026-03-23;O2026-03-24;O2026-03-25;O2026-03-26;O2026-03-27;O2026-03-28;O2026-03-29;O2026-03-30;O2026-03-31;O2026-04-01;O2026-04-02;O2026-04-03;O2026-04-04;O2026-04-05;O2026-04-06;O2026-04-07;O2026-04-08;O2026-04-09;O2026-04-10;O2026-04-11;O2026-04-12;O2026-04-13;O2026-04-14;O2026-04-15;O2026-04-16;O2026-04-17;O2026-04-18;O2026-04-19;O2026-04-20;O2026-04-21;O2026-04-22;O2026-04-23;O2026-04-24;O2026-04-25;O2026-04-26;O2026-04-27;O2026-04-28;O2026-04-29;O2026-04-30;O2026-05-01",
+   "rules": false,
+   "client": false
+  },
+  {
+   "label": "tipo desconhecido",
+   "value": "X2026-01-01",
+   "rules": false,
+   "client": false
+  },
+  {
+   "label": "data inexistente",
+   "value": "F2026-02-30",
+   "rules": false,
+   "client": false
+  },
+  {
+   "label": "29/02 não bissexto",
+   "value": "F2025-02-29",
+   "rules": false,
+   "client": false
+  },
+  {
+   "label": "plantão de zero minuto",
+   "value": "P2026-08-03+0",
+   "rules": false,
+   "client": false
+  },
+  {
+   "label": "hora extra acima de 24 h",
+   "value": "E2026-08-03+1441",
+   "rules": false,
+   "client": false
+  },
+  {
+   "label": "jornada reduzida a zero",
+   "value": "R2026-07-21=0",
+   "rules": false,
+   "client": false
+  },
+  {
+   "label": "alteração acima de 24 h",
+   "value": "S2026-07-25=1441",
+   "rules": false,
+   "client": false
+  },
+  {
+   "label": "intervalo sem fim",
+   "value": "F2026-07-06/",
+   "rules": false,
+   "client": false
+  },
+  {
+   "label": "separador sobrando",
+   "value": "F2026-07-06;",
+   "rules": false,
+   "client": false
+  },
+  {
+   "label": "sinal errado",
+   "value": "P2026-08-03-240",
+   "rules": false,
+   "client": false
+  },
+  {
+   "label": "espaço",
+   "value": "F2026-07-06 ",
+   "rules": false,
+   "client": false
+  },
+  {
+   "label": "fim antes do início (semântica)",
+   "value": "F2026-07-17/2026-07-06",
+   "rules": true,
+   "client": false
+  },
+  {
+   "label": "intervalo acima de 366 dias (semântica)",
+   "value": "F2026-01-01/2027-01-02",
+   "rules": true,
+   "client": false
+  },
+  {
+   "label": "repetida (semântica)",
+   "value": "O2026-08-03;O2026-08-03",
+   "rules": true,
+   "client": false
+  },
+  {
+   "label": "mesmo tipo sobreposto (semântica)",
+   "value": "F2026-07-06/2026-07-07;F2026-07-07/2026-07-10",
+   "rules": true,
+   "client": false
+  },
+  {
+   "label": "fora da ordem canônica (semântica)",
+   "value": "O2026-08-04;O2026-08-03",
+   "rules": true,
+   "client": false
+  },
+  {
+   "label": "intervalo de um dia fora da forma canônica (semântica)",
+   "value": "F2026-07-06/2026-07-06",
+   "rules": true,
+   "client": false
+  }
+ ],
+ "localHolidays": [
+  {
+   "label": "sem feriados locais",
+   "value": "",
+   "rules": true,
+   "client": true
+  },
+  {
+   "label": "anual",
+   "value": "01-25",
+   "rules": true,
+   "client": true
+  },
+  {
+   "label": "anual e data",
+   "value": "07-09;2026-06-04",
+   "rules": true,
+   "client": true
+  },
+  {
+   "label": "28/02 anual",
+   "value": "02-28",
+   "rules": true,
+   "client": true
+  },
+  {
+   "label": "29/02 de ano bissexto",
+   "value": "2024-02-29",
+   "rules": true,
+   "client": true
+  },
+  {
+   "label": "40 feriados (máximo)",
+   "value": "01-01;01-02;01-03;01-04;01-05;01-06;01-07;01-08;01-09;01-10;01-11;01-12;01-13;01-14;01-15;01-16;01-17;01-18;01-19;01-20;01-21;01-22;01-23;01-24;01-25;01-26;01-27;01-28;02-01;02-02;02-03;02-04;02-05;02-06;02-07;02-08;02-09;02-10;02-11;02-12",
+   "rules": true,
+   "client": true
+  },
+  {
+   "label": "41 feriados",
+   "value": "01-01;01-02;01-03;01-04;01-05;01-06;01-07;01-08;01-09;01-10;01-11;01-12;01-13;01-14;01-15;01-16;01-17;01-18;01-19;01-20;01-21;01-22;01-23;01-24;01-25;01-26;01-27;01-28;02-01;02-02;02-03;02-04;02-05;02-06;02-07;02-08;02-09;02-10;02-11;02-12;03-01",
+   "rules": false,
+   "client": false
+  },
+  {
+   "label": "29/02 anual",
+   "value": "02-29",
+   "rules": false,
+   "client": false
+  },
+  {
+   "label": "29/02 não bissexto",
+   "value": "2026-02-29",
+   "rules": false,
+   "client": false
+  },
+  {
+   "label": "mês 13",
+   "value": "13-01",
+   "rules": false,
+   "client": false
+  },
+  {
+   "label": "mês sem zero",
+   "value": "1-25",
+   "rules": false,
+   "client": false
+  },
+  {
+   "label": "31/04",
+   "value": "04-31",
+   "rules": false,
+   "client": false
+  },
+  {
+   "label": "separador sobrando",
+   "value": "01-25;",
+   "rules": false,
+   "client": false
+  },
+  {
+   "label": "fora da ordem canônica (semântica)",
+   "value": "2026-06-04;07-09",
+   "rules": true,
+   "client": false
+  },
+  {
+   "label": "repetido (semântica)",
+   "value": "07-09;07-09",
+   "rules": true,
+   "client": false
+  }
+ ],
+ "excludedIncomeIds": [
+  {
+   "label": "sem exclusões",
+   "value": "",
+   "rules": true,
+   "client": true
+  },
+  {
+   "label": "id de lançamento do backend",
+   "value": "cash_0123456789abcdef0123456789abcdef01234567",
+   "rules": true,
+   "client": true
+  },
+  {
+   "label": "dois ids",
+   "value": "a,b",
+   "rules": true,
+   "client": true
+  },
+  {
+   "label": "50 ids (máximo)",
+   "value": "id00,id01,id02,id03,id04,id05,id06,id07,id08,id09,id10,id11,id12,id13,id14,id15,id16,id17,id18,id19,id20,id21,id22,id23,id24,id25,id26,id27,id28,id29,id30,id31,id32,id33,id34,id35,id36,id37,id38,id39,id40,id41,id42,id43,id44,id45,id46,id47,id48,id49",
+   "rules": true,
+   "client": true
+  },
+  {
+   "label": "maior texto: 6449 caracteres",
+   "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa00,aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa01,aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa02,aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa03,aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa04,aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa05,aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa06,aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa07,aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa08,aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa09,aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa10,aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa11,aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa12,aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa13,aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa14,aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa15,aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa16,aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa17,aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa18,aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa19,aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa20,aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa21,aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa22,aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa23,aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa24,aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa25,aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa26,aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa27,aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa28,aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa29,aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa30,aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa31,aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa32,aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa33,aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa34,aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa35,aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa36,aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa37,aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa38,aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa39,aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa40,aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa41,aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa42,aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa43,aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa44,aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa45,aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa46,aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa47,aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa48,aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa49",
+   "rules": true,
+   "client": true
+  },
+  {
+   "label": "51 ids",
+   "value": "id00,id01,id02,id03,id04,id05,id06,id07,id08,id09,id10,id11,id12,id13,id14,id15,id16,id17,id18,id19,id20,id21,id22,id23,id24,id25,id26,id27,id28,id29,id30,id31,id32,id33,id34,id35,id36,id37,id38,id39,id40,id41,id42,id43,id44,id45,id46,id47,id48,id49,id50",
+   "rules": false,
+   "client": false
+  },
+  {
+   "label": "id de 129 caracteres",
+   "value": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+   "rules": false,
+   "client": false
+  },
+  {
+   "label": "espaço",
+   "value": "a b",
+   "rules": false,
+   "client": false
+  },
+  {
+   "label": "barra",
+   "value": "a/b",
+   "rules": false,
+   "client": false
+  },
+  {
+   "label": "id vazio",
+   "value": "a,,b",
+   "rules": false,
+   "client": false
+  },
+  {
+   "label": "separador no início",
+   "value": ",a",
+   "rules": false,
+   "client": false
+  },
+  {
+   "label": "ponto",
+   "value": "a.b",
+   "rules": false,
+   "client": false
+  },
+  {
+   "label": "fora da ordem (semântica)",
+   "value": "b,a",
+   "rules": true,
+   "client": false
+  },
+  {
+   "label": "repetido (semântica)",
+   "value": "a,a",
+   "rules": true,
+   "client": false
+  }
+ ],
+ "municipality": [
+  {
+   "label": "vazio",
+   "value": "",
+   "rules": true,
+   "client": true
+  },
+  {
+   "label": "acento",
+   "value": "São Paulo",
+   "rules": true,
+   "client": true
+  },
+  {
+   "label": "hífen e apóstrofo",
+   "value": "Pau-d'Arco",
+   "rules": true,
+   "client": true
+  },
+  {
+   "label": "apóstrofo e espaços",
+   "value": "Sant'Ana do Livramento",
+   "rules": true,
+   "client": true
+  },
+  {
+   "label": "espaços",
+   "value": "Mogi das Cruzes",
+   "rules": true,
+   "client": true
+  },
+  {
+   "label": "acento agudo",
+   "value": "Brasília",
+   "rules": true,
+   "client": true
+  },
+  {
+   "label": "60 caracteres",
+   "value": "Aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+   "rules": true,
+   "client": true
+  },
+  {
+   "label": "61 caracteres",
+   "value": "Aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+   "rules": false,
+   "client": false
+  },
+  {
+   "label": "espaço no início",
+   "value": " São Paulo",
+   "rules": false,
+   "client": false
+  },
+  {
+   "label": "dígito",
+   "value": "São Paulo1",
+   "rules": false,
+   "client": false
+  },
+  {
+   "label": "marcação",
+   "value": "<script>",
+   "rules": false,
+   "client": false
+  },
+  {
+   "label": "começa com hífen",
+   "value": "-Franca",
+   "rules": false,
+   "client": false
+  },
+  {
+   "label": "acentos no limite (60)",
+   "value": "ÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁ",
+   "rules": true,
+   "client": true
+  },
+  {
+   "label": "acentos acima do limite (61)",
+   "value": "ÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁ",
+   "rules": false,
+   "client": false
+  },
+  {
+   "label": "acento decomposto (NFD)",
+   "value": "São Paulo",
+   "rules": false,
+   "client": false
+  },
+  {
+   "label": "apóstrofo tipográfico",
+   "value": "Santa Bárbara d’Oeste",
+   "rules": false,
+   "client": false
+  }
+ ],
+ "incomeWorkspaceId": [
+  {
+   "label": "id com sublinhado",
+   "value": "ws_abc123",
+   "rules": true,
+   "client": true
+  },
+  {
+   "label": "maiúsculas, hífen e dígitos",
+   "value": "AbC-09_x",
+   "rules": true,
+   "client": true
+  },
+  {
+   "label": "128 caracteres",
+   "value": "qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq",
+   "rules": true,
+   "client": true
+  },
+  {
+   "label": "vazio",
+   "value": "",
+   "rules": false,
+   "client": false
+  },
+  {
+   "label": "129 caracteres",
+   "value": "qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq",
+   "rules": false,
+   "client": false
+  },
+  {
+   "label": "barra",
+   "value": "a/b",
+   "rules": false,
+   "client": false
+  },
+  {
+   "label": "ponto",
+   "value": ".",
+   "rules": false,
+   "client": false
+  },
+  {
+   "label": "dois pontos",
+   "value": "..",
+   "rules": false,
+   "client": false
+  },
+  {
+   "label": "espaço",
+   "value": "a b",
+   "rules": false,
+   "client": false
+  }
+ ],
+ "uf": [
+  {
+   "label": "UF vazia",
+   "value": "",
+   "rules": true,
+   "client": true
+  },
+  {
+   "label": "UF SP",
+   "value": "SP",
+   "rules": true,
+   "client": true
+  },
+  {
+   "label": "UF DF",
+   "value": "DF",
+   "rules": true,
+   "client": true
+  },
+  {
+   "label": "UF TO",
+   "value": "TO",
+   "rules": true,
+   "client": true
+  },
+  {
+   "label": "minúscula",
+   "value": "sp",
+   "rules": false,
+   "client": false
+  },
+  {
+   "label": "inexistente",
+   "value": "XX",
+   "rules": false,
+   "client": false
+  },
+  {
+   "label": "três letras",
+   "value": "SPP",
+   "rules": false,
+   "client": false
+  }
+ ]
+}

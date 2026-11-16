@@ -1,0 +1,18 @@
+TAP version 13
+# ADV-4 com a série falhando: mostrados=[]; último=error "Não foi possível carregar o relatório. Tente novamente."
+# ADV-4 depois do "Tentar de novo": leituras=1; mostrados=["1136000","1136000"]; refreshFailed=false
+# Subtest: ADV-4: a série relida falha durante a sincronização (uma base, sem desconsiderada): erro com "Tentar de novo", sem conversão; com o relatório de volta, o "Tentar de novo" do erro traz a estimativa nova
+ok 1 - ADV-4: a série relida falha durante a sincronização (uma base, sem desconsiderada): erro com "Tentar de novo", sem conversão; com o relatório de volta, o "Tentar de novo" do erro traz a estimativa nova
+  ---
+  duration_ms: 566.180742
+  type: 'test'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 885.497121

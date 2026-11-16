@@ -1,0 +1,626 @@
+[
+  {
+    "name": "dinheiro-dashboard-desktop-light",
+    "violations": [
+      {
+        "id": "color-contrast",
+        "targets": [
+          "[\".mt-2.text-green-600.dark\\\\:text-green-400 > span\"]",
+          "[\".border-gray-100.dark\\\\:border-gray-800:nth-child(1) > .text-gray-600.dark\\\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\\\.5.py-1 > span:nth-child(2)\"]",
+          "[\".border-gray-100.dark\\\\:border-gray-800:nth-child(1) > .text-center.text-green-600.dark\\\\:text-green-400\"]",
+          "[\".border-gray-100.dark\\\\:border-gray-800:nth-child(2) > .text-gray-600.dark\\\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\\\.5.py-1 > span:nth-child(2)\"]",
+          "[\".border-gray-100.dark\\\\:border-gray-800:nth-child(2) > .text-center.text-green-600.dark\\\\:text-green-400\"]",
+          "[\".border-gray-100.dark\\\\:border-gray-800:nth-child(3) > .text-gray-600.dark\\\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\\\.5.py-1 > span:nth-child(2)\"]",
+          "[\".border-gray-100.dark\\\\:border-gray-800:nth-child(3) > .text-center.text-green-600.dark\\\\:text-green-400\"]"
+        ]
+      },
+      {
+        "id": "label-content-name-mismatch",
+        "targets": [
+          "[\".min-w-\\\\[11rem\\\\]\"]"
+        ]
+      },
+      {
+        "id": "select-name",
+        "targets": [
+          "[\"select\"]"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "dinheiro-relatorios-desktop-light",
+    "violations": [
+      {
+        "id": "color-contrast",
+        "targets": [
+          "[\".hover\\\\:bg-background\\\\/40:nth-child(1) > .text-green-600:nth-child(2)\"]",
+          "[\".hover\\\\:bg-background\\\\/40:nth-child(1) > .text-green-600:nth-child(4)\"]",
+          "[\".hover\\\\:bg-background\\\\/40:nth-child(2) > .text-green-600:nth-child(2)\"]",
+          "[\".hover\\\\:bg-background\\\\/40:nth-child(2) > .text-green-600:nth-child(4)\"]"
+        ]
+      },
+      {
+        "id": "label-content-name-mismatch",
+        "targets": [
+          "[\".min-w-\\\\[11rem\\\\]\"]",
+          "[\".h-10\"]"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "tempo-relatorios-desktop-light",
+    "violations": [
+      {
+        "id": "color-contrast",
+        "targets": [
+          "[\".hover\\\\:bg-background\\\\/40:nth-child(1) > .text-green-600:nth-child(2) > .relative[data-work-time=\\\"\\\"] > span[aria-hidden=\\\"true\\\"]\"]",
+          "[\".hover\\\\:bg-background\\\\/40:nth-child(1) > .text-green-600:nth-child(4) > .relative[data-work-time=\\\"\\\"] > span[aria-hidden=\\\"true\\\"]\"]",
+          "[\".hover\\\\:bg-background\\\\/40:nth-child(2) > .text-green-600:nth-child(2) > .relative[data-work-time=\\\"\\\"] > span[aria-hidden=\\\"true\\\"]\"]",
+          "[\".hover\\\\:bg-background\\\\/40:nth-child(2) > .text-green-600:nth-child(4) > .relative[data-work-time=\\\"\\\"] > span[aria-hidden=\\\"true\\\"]\"]"
+        ]
+      },
+      {
+        "id": "label-content-name-mismatch",
+        "targets": [
+          "[\".min-w-\\\\[11rem\\\\]\"]",
+          "[\".h-10\"]"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "tempo-dashboard-desktop-light",
+    "violations": [
+      {
+        "id": "color-contrast",
+        "targets": [
+          "[\".mt-2.text-green-600.dark\\\\:text-green-400 > span\"]",
+          "[\".border-gray-100.dark\\\\:border-gray-800:nth-child(1) > .text-gray-600.dark\\\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\\\.5.py-1 > span:nth-child(2)\"]",
+          "[\".border-gray-100.dark\\\\:border-gray-800:nth-child(1) > .text-center.text-green-600.dark\\\\:text-green-400 > .relative[data-work-time=\\\"\\\"] > span[aria-hidden=\\\"true\\\"]\"]",
+          "[\".border-gray-100.dark\\\\:border-gray-800:nth-child(2) > .text-gray-600.dark\\\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\\\.5.py-1 > span:nth-child(2)\"]",
+          "[\".border-gray-100.dark\\\\:border-gray-800:nth-child(2) > .text-center.text-green-600.dark\\\\:text-green-400 > .relative[data-work-time=\\\"\\\"] > span[aria-hidden=\\\"true\\\"]\"]",
+          "[\".border-gray-100.dark\\\\:border-gray-800:nth-child(3) > .text-gray-600.dark\\\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\\\.5.py-1 > span:nth-child(2)\"]",
+          "[\".border-gray-100.dark\\\\:border-gray-800:nth-child(3) > .text-center.text-green-600.dark\\\\:text-green-400 > .relative[data-work-time=\\\"\\\"] > span[aria-hidden=\\\"true\\\"]\"]"
+        ]
+      },
+      {
+        "id": "label-content-name-mismatch",
+        "targets": [
+          "[\".min-w-\\\\[11rem\\\\]\"]"
+        ]
+      },
+      {
+        "id": "select-name",
+        "targets": [
+          "[\"select\"]"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "dinheiro-dashboard-desktop-dark",
+    "violations": [
+      {
+        "id": "color-contrast",
+        "targets": [
+          "[\".border-gray-100.dark\\\\:border-gray-800:nth-child(1) > .text-gray-600.dark\\\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\\\.5.py-1 > span:nth-child(2)\"]",
+          "[\".border-gray-100.dark\\\\:border-gray-800:nth-child(2) > .text-gray-600.dark\\\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\\\.5.py-1 > span:nth-child(2)\"]",
+          "[\".border-gray-100.dark\\\\:border-gray-800:nth-child(3) > .text-gray-600.dark\\\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\\\.5.py-1 > span:nth-child(2)\"]"
+        ]
+      },
+      {
+        "id": "label-content-name-mismatch",
+        "targets": [
+          "[\".min-w-\\\\[11rem\\\\]\"]"
+        ]
+      },
+      {
+        "id": "select-name",
+        "targets": [
+          "[\"select\"]"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "dinheiro-relatorios-desktop-dark",
+    "violations": [
+      {
+        "id": "color-contrast",
+        "targets": [
+          "[\"#reports-tab-overview\"]",
+          "[\".bg-green-100 > .uppercase\"]",
+          "[\".hover\\\\:bg-background\\\\/40:nth-child(1) > .text-green-600:nth-child(2)\"]",
+          "[\".hover\\\\:bg-background\\\\/40:nth-child(1) > .text-red-600\"]",
+          "[\".hover\\\\:bg-background\\\\/40:nth-child(1) > .text-green-600:nth-child(4)\"]",
+          "[\".hover\\\\:bg-background\\\\/40:nth-child(2) > .text-green-600:nth-child(2)\"]",
+          "[\".hover\\\\:bg-background\\\\/40:nth-child(2) > .text-red-600\"]",
+          "[\".hover\\\\:bg-background\\\\/40:nth-child(2) > .text-green-600:nth-child(4)\"]"
+        ]
+      },
+      {
+        "id": "label-content-name-mismatch",
+        "targets": [
+          "[\".min-w-\\\\[11rem\\\\]\"]",
+          "[\".h-10\"]"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "tempo-relatorios-desktop-dark",
+    "violations": [
+      {
+        "id": "color-contrast",
+        "targets": [
+          "[\"#reports-tab-overview\"]",
+          "[\".bg-green-100 > .uppercase\"]",
+          "[\".hover\\\\:bg-background\\\\/40:nth-child(1) > .text-green-600:nth-child(2) > .relative[data-work-time=\\\"\\\"] > span[aria-hidden=\\\"true\\\"]\"]",
+          "[\".hover\\\\:bg-background\\\\/40:nth-child(1) > .text-red-600 > .relative[data-work-time=\\\"\\\"] > span[aria-hidden=\\\"true\\\"]\"]",
+          "[\".hover\\\\:bg-background\\\\/40:nth-child(1) > .text-green-600:nth-child(4) > .relative[data-work-time=\\\"\\\"] > span[aria-hidden=\\\"true\\\"]\"]",
+          "[\".hover\\\\:bg-background\\\\/40:nth-child(2) > .text-green-600:nth-child(2) > .relative[data-work-time=\\\"\\\"] > span[aria-hidden=\\\"true\\\"]\"]",
+          "[\".hover\\\\:bg-background\\\\/40:nth-child(2) > .text-red-600 > .relative[data-work-time=\\\"\\\"] > span[aria-hidden=\\\"true\\\"]\"]",
+          "[\".hover\\\\:bg-background\\\\/40:nth-child(2) > .text-green-600:nth-child(4) > .relative[data-work-time=\\\"\\\"] > span[aria-hidden=\\\"true\\\"]\"]"
+        ]
+      },
+      {
+        "id": "label-content-name-mismatch",
+        "targets": [
+          "[\".min-w-\\\\[11rem\\\\]\"]",
+          "[\".h-10\"]"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "tempo-dashboard-desktop-dark",
+    "violations": [
+      {
+        "id": "color-contrast",
+        "targets": [
+          "[\".border-gray-100.dark\\\\:border-gray-800:nth-child(1) > .text-gray-600.dark\\\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\\\.5.py-1 > span:nth-child(2)\"]",
+          "[\".border-gray-100.dark\\\\:border-gray-800:nth-child(2) > .text-gray-600.dark\\\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\\\.5.py-1 > span:nth-child(2)\"]",
+          "[\".border-gray-100.dark\\\\:border-gray-800:nth-child(3) > .text-gray-600.dark\\\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\\\.5.py-1 > span:nth-child(2)\"]"
+        ]
+      },
+      {
+        "id": "label-content-name-mismatch",
+        "targets": [
+          "[\".min-w-\\\\[11rem\\\\]\"]"
+        ]
+      },
+      {
+        "id": "select-name",
+        "targets": [
+          "[\"select\"]"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "dinheiro-dashboard-mobile-light",
+    "violations": [
+      {
+        "id": "color-contrast",
+        "targets": [
+          "[\".mt-2.text-green-600.dark\\\\:text-green-400 > span\"]",
+          "[\".border-gray-100.dark\\\\:border-gray-800:nth-child(1) > .text-gray-600.dark\\\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\\\.5.py-1 > span:nth-child(2)\"]",
+          "[\".border-gray-100.dark\\\\:border-gray-800:nth-child(2) > .text-gray-600.dark\\\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\\\.5.py-1 > span:nth-child(2)\"]",
+          "[\".border-gray-100.dark\\\\:border-gray-800:nth-child(3) > .text-gray-600.dark\\\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\\\.5.py-1 > span:nth-child(2)\"]"
+        ]
+      },
+      {
+        "id": "label-content-name-mismatch",
+        "targets": [
+          "[\".min-w-\\\\[11rem\\\\]\"]"
+        ]
+      },
+      {
+        "id": "select-name",
+        "targets": [
+          "[\"select\"]"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "dinheiro-relatorios-mobile-light",
+    "violations": [
+      {
+        "id": "color-contrast",
+        "targets": [
+          "[\".hover\\\\:bg-background\\\\/40:nth-child(1) > .text-green-600:nth-child(2)\"]",
+          "[\".hover\\\\:bg-background\\\\/40:nth-child(2) > .text-green-600:nth-child(2)\"]"
+        ]
+      },
+      {
+        "id": "label-content-name-mismatch",
+        "targets": [
+          "[\".min-w-\\\\[11rem\\\\]\"]",
+          "[\".h-10\"]"
+        ]
+      },
+      {
+        "id": "scrollable-region-focusable",
+        "targets": [
+          "[\".overflow-hidden.rounded-card.shadow-sm > .overflow-x-auto\"]"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "tempo-relatorios-mobile-light",
+    "violations": [
+      {
+        "id": "color-contrast",
+        "targets": [
+          "[\".hover\\\\:bg-background\\\\/40:nth-child(1) > .text-green-600:nth-child(2) > .relative[data-work-time=\\\"\\\"] > span[aria-hidden=\\\"true\\\"]\"]",
+          "[\".hover\\\\:bg-background\\\\/40:nth-child(2) > .text-green-600:nth-child(2) > .relative[data-work-time=\\\"\\\"] > span[aria-hidden=\\\"true\\\"]\"]"
+        ]
+      },
+      {
+        "id": "label-content-name-mismatch",
+        "targets": [
+          "[\".min-w-\\\\[11rem\\\\]\"]",
+          "[\".h-10\"]"
+        ]
+      },
+      {
+        "id": "scrollable-region-focusable",
+        "targets": [
+          "[\".overflow-hidden.rounded-card.shadow-sm > .overflow-x-auto\"]"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "tempo-dashboard-mobile-light",
+    "violations": [
+      {
+        "id": "color-contrast",
+        "targets": [
+          "[\".mt-2.text-green-600.dark\\\\:text-green-400 > span\"]",
+          "[\".border-gray-100.dark\\\\:border-gray-800:nth-child(1) > .text-gray-600.dark\\\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\\\.5.py-1 > span:nth-child(2)\"]",
+          "[\".border-gray-100.dark\\\\:border-gray-800:nth-child(2) > .text-gray-600.dark\\\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\\\.5.py-1 > span:nth-child(2)\"]",
+          "[\".border-gray-100.dark\\\\:border-gray-800:nth-child(3) > .text-gray-600.dark\\\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\\\.5.py-1 > span:nth-child(2)\"]"
+        ]
+      },
+      {
+        "id": "label-content-name-mismatch",
+        "targets": [
+          "[\".min-w-\\\\[11rem\\\\]\"]"
+        ]
+      },
+      {
+        "id": "select-name",
+        "targets": [
+          "[\"select\"]"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "dinheiro-dashboard-mobile-dark",
+    "violations": [
+      {
+        "id": "color-contrast",
+        "targets": [
+          "[\".border-gray-100.dark\\\\:border-gray-800:nth-child(1) > .text-gray-600.dark\\\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\\\.5.py-1 > span:nth-child(2)\"]",
+          "[\".border-gray-100.dark\\\\:border-gray-800:nth-child(2) > .text-gray-600.dark\\\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\\\.5.py-1 > span:nth-child(2)\"]",
+          "[\".border-gray-100.dark\\\\:border-gray-800:nth-child(3) > .text-gray-600.dark\\\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\\\.5.py-1 > span:nth-child(2)\"]"
+        ]
+      },
+      {
+        "id": "label-content-name-mismatch",
+        "targets": [
+          "[\".min-w-\\\\[11rem\\\\]\"]"
+        ]
+      },
+      {
+        "id": "select-name",
+        "targets": [
+          "[\"select\"]"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "dinheiro-relatorios-mobile-dark",
+    "violations": [
+      {
+        "id": "color-contrast",
+        "targets": [
+          "[\"#reports-tab-overview\"]",
+          "[\".bg-green-100 > .uppercase\"]",
+          "[\".hover\\\\:bg-background\\\\/40:nth-child(1) > .text-green-600:nth-child(2)\"]",
+          "[\".hover\\\\:bg-background\\\\/40:nth-child(1) > .text-red-600\"]",
+          "[\".hover\\\\:bg-background\\\\/40:nth-child(2) > .text-green-600:nth-child(2)\"]",
+          "[\".hover\\\\:bg-background\\\\/40:nth-child(2) > .text-red-600\"]",
+          "[\".z-10.relative > .mb-4.tracking-widest\"]"
+        ]
+      },
+      {
+        "id": "label-content-name-mismatch",
+        "targets": [
+          "[\".min-w-\\\\[11rem\\\\]\"]",
+          "[\".h-10\"]"
+        ]
+      },
+      {
+        "id": "scrollable-region-focusable",
+        "targets": [
+          "[\".overflow-hidden.rounded-card.shadow-sm > .overflow-x-auto\"]"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "tempo-relatorios-mobile-dark",
+    "violations": [
+      {
+        "id": "color-contrast",
+        "targets": [
+          "[\"#reports-tab-overview\"]",
+          "[\".bg-green-100 > .uppercase\"]",
+          "[\".hover\\\\:bg-background\\\\/40:nth-child(1) > .text-green-600:nth-child(2) > .relative[data-work-time=\\\"\\\"] > span[aria-hidden=\\\"true\\\"]\"]",
+          "[\".hover\\\\:bg-background\\\\/40:nth-child(1) > .text-red-600 > .relative[data-work-time=\\\"\\\"] > span[aria-hidden=\\\"true\\\"]\"]",
+          "[\".hover\\\\:bg-background\\\\/40:nth-child(2) > .text-green-600:nth-child(2) > .relative[data-work-time=\\\"\\\"] > span[aria-hidden=\\\"true\\\"]\"]",
+          "[\".hover\\\\:bg-background\\\\/40:nth-child(2) > .text-red-600 > .relative[data-work-time=\\\"\\\"] > span[aria-hidden=\\\"true\\\"]\"]",
+          "[\".z-10.relative > .mb-4.tracking-widest\"]"
+        ]
+      },
+      {
+        "id": "label-content-name-mismatch",
+        "targets": [
+          "[\".min-w-\\\\[11rem\\\\]\"]",
+          "[\".h-10\"]"
+        ]
+      },
+      {
+        "id": "scrollable-region-focusable",
+        "targets": [
+          "[\".overflow-hidden.rounded-card.shadow-sm > .overflow-x-auto\"]"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "tempo-dashboard-mobile-dark",
+    "violations": [
+      {
+        "id": "color-contrast",
+        "targets": [
+          "[\".border-gray-100.dark\\\\:border-gray-800:nth-child(1) > .text-gray-600.dark\\\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\\\.5.py-1 > span:nth-child(2)\"]",
+          "[\".border-gray-100.dark\\\\:border-gray-800:nth-child(2) > .text-gray-600.dark\\\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\\\.5.py-1 > span:nth-child(2)\"]",
+          "[\".border-gray-100.dark\\\\:border-gray-800:nth-child(3) > .text-gray-600.dark\\\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\\\.5.py-1 > span:nth-child(2)\"]"
+        ]
+      },
+      {
+        "id": "label-content-name-mismatch",
+        "targets": [
+          "[\".min-w-\\\\[11rem\\\\]\"]"
+        ]
+      },
+      {
+        "id": "select-name",
+        "targets": [
+          "[\"select\"]"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "dinheiro-dashboard-small-light",
+    "violations": [
+      {
+        "id": "color-contrast",
+        "targets": [
+          "[\".mt-2.text-green-600.dark\\\\:text-green-400 > span\"]",
+          "[\".border-gray-100.dark\\\\:border-gray-800:nth-child(1) > .text-gray-600.dark\\\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\\\.5.py-1 > span:nth-child(2)\"]",
+          "[\".border-gray-100.dark\\\\:border-gray-800:nth-child(2) > .text-gray-600.dark\\\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\\\.5.py-1 > span:nth-child(2)\"]",
+          "[\".border-gray-100.dark\\\\:border-gray-800:nth-child(3) > .text-gray-600.dark\\\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\\\.5.py-1 > span:nth-child(2)\"]"
+        ]
+      },
+      {
+        "id": "label-content-name-mismatch",
+        "targets": [
+          "[\".min-w-\\\\[11rem\\\\]\"]"
+        ]
+      },
+      {
+        "id": "select-name",
+        "targets": [
+          "[\"select\"]"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "dinheiro-relatorios-small-light",
+    "violations": [
+      {
+        "id": "color-contrast",
+        "targets": [
+          "[\".hover\\\\:bg-background\\\\/40:nth-child(1) > .text-green-600:nth-child(2)\"]",
+          "[\".hover\\\\:bg-background\\\\/40:nth-child(2) > .text-green-600:nth-child(2)\"]"
+        ]
+      },
+      {
+        "id": "label-content-name-mismatch",
+        "targets": [
+          "[\".min-w-\\\\[11rem\\\\]\"]",
+          "[\".h-10\"]"
+        ]
+      },
+      {
+        "id": "scrollable-region-focusable",
+        "targets": [
+          "[\".overflow-hidden.rounded-card.shadow-sm > .overflow-x-auto\"]"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "tempo-relatorios-small-light",
+    "violations": [
+      {
+        "id": "color-contrast",
+        "targets": [
+          "[\".hover\\\\:bg-background\\\\/40:nth-child(1) > .text-green-600:nth-child(2) > .relative[data-work-time=\\\"\\\"] > span[aria-hidden=\\\"true\\\"]\"]",
+          "[\".hover\\\\:bg-background\\\\/40:nth-child(2) > .text-green-600:nth-child(2) > .relative[data-work-time=\\\"\\\"] > span[aria-hidden=\\\"true\\\"]\"]"
+        ]
+      },
+      {
+        "id": "label-content-name-mismatch",
+        "targets": [
+          "[\".min-w-\\\\[11rem\\\\]\"]",
+          "[\".h-10\"]"
+        ]
+      },
+      {
+        "id": "scrollable-region-focusable",
+        "targets": [
+          "[\".overflow-hidden.rounded-card.shadow-sm > .overflow-x-auto\"]"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "tempo-dashboard-small-light",
+    "violations": [
+      {
+        "id": "color-contrast",
+        "targets": [
+          "[\".mt-2.text-green-600.dark\\\\:text-green-400 > span\"]",
+          "[\".border-gray-100.dark\\\\:border-gray-800:nth-child(1) > .text-gray-600.dark\\\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\\\.5.py-1 > span:nth-child(2)\"]",
+          "[\".border-gray-100.dark\\\\:border-gray-800:nth-child(2) > .text-gray-600.dark\\\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\\\.5.py-1 > span:nth-child(2)\"]",
+          "[\".border-gray-100.dark\\\\:border-gray-800:nth-child(3) > .text-gray-600.dark\\\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\\\.5.py-1 > span:nth-child(2)\"]"
+        ]
+      },
+      {
+        "id": "label-content-name-mismatch",
+        "targets": [
+          "[\".min-w-\\\\[11rem\\\\]\"]"
+        ]
+      },
+      {
+        "id": "select-name",
+        "targets": [
+          "[\"select\"]"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "dinheiro-dashboard-small-dark",
+    "violations": [
+      {
+        "id": "color-contrast",
+        "targets": [
+          "[\".border-gray-100.dark\\\\:border-gray-800:nth-child(1) > .text-gray-600.dark\\\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\\\.5.py-1 > span:nth-child(2)\"]",
+          "[\".border-gray-100.dark\\\\:border-gray-800:nth-child(2) > .text-gray-600.dark\\\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\\\.5.py-1 > span:nth-child(2)\"]",
+          "[\".border-gray-100.dark\\\\:border-gray-800:nth-child(3) > .text-gray-600.dark\\\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\\\.5.py-1 > span:nth-child(2)\"]"
+        ]
+      },
+      {
+        "id": "label-content-name-mismatch",
+        "targets": [
+          "[\".min-w-\\\\[11rem\\\\]\"]"
+        ]
+      },
+      {
+        "id": "select-name",
+        "targets": [
+          "[\"select\"]"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "dinheiro-relatorios-small-dark",
+    "violations": [
+      {
+        "id": "color-contrast",
+        "targets": [
+          "[\"#reports-tab-overview\"]",
+          "[\".bg-green-100 > .uppercase\"]",
+          "[\".hover\\\\:bg-background\\\\/40:nth-child(1) > .text-green-600:nth-child(2)\"]",
+          "[\".hover\\\\:bg-background\\\\/40:nth-child(1) > .text-red-600\"]",
+          "[\".hover\\\\:bg-background\\\\/40:nth-child(2) > .text-green-600:nth-child(2)\"]",
+          "[\".hover\\\\:bg-background\\\\/40:nth-child(2) > .text-red-600\"]",
+          "[\".z-10.relative > .mb-4.tracking-widest\"]"
+        ]
+      },
+      {
+        "id": "label-content-name-mismatch",
+        "targets": [
+          "[\".min-w-\\\\[11rem\\\\]\"]",
+          "[\".h-10\"]"
+        ]
+      },
+      {
+        "id": "scrollable-region-focusable",
+        "targets": [
+          "[\".overflow-hidden.rounded-card.shadow-sm > .overflow-x-auto\"]"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "tempo-relatorios-small-dark",
+    "violations": [
+      {
+        "id": "color-contrast",
+        "targets": [
+          "[\"#reports-tab-overview\"]",
+          "[\".bg-green-100 > .uppercase\"]",
+          "[\".hover\\\\:bg-background\\\\/40:nth-child(1) > .text-green-600:nth-child(2) > .relative[data-work-time=\\\"\\\"] > span[aria-hidden=\\\"true\\\"]\"]",
+          "[\".hover\\\\:bg-background\\\\/40:nth-child(1) > .text-red-600 > .relative[data-work-time=\\\"\\\"] > span[aria-hidden=\\\"true\\\"]\"]",
+          "[\".hover\\\\:bg-background\\\\/40:nth-child(2) > .text-green-600:nth-child(2) > .relative[data-work-time=\\\"\\\"] > span[aria-hidden=\\\"true\\\"]\"]",
+          "[\".hover\\\\:bg-background\\\\/40:nth-child(2) > .text-red-600 > .relative[data-work-time=\\\"\\\"] > span[aria-hidden=\\\"true\\\"]\"]",
+          "[\".z-10.relative > .mb-4.tracking-widest\"]"
+        ]
+      },
+      {
+        "id": "label-content-name-mismatch",
+        "targets": [
+          "[\".min-w-\\\\[11rem\\\\]\"]",
+          "[\".h-10\"]"
+        ]
+      },
+      {
+        "id": "scrollable-region-focusable",
+        "targets": [
+          "[\".overflow-hidden.rounded-card.shadow-sm > .overflow-x-auto\"]"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "tempo-dashboard-small-dark",
+    "violations": [
+      {
+        "id": "color-contrast",
+        "targets": [
+          "[\".border-gray-100.dark\\\\:border-gray-800:nth-child(1) > .text-gray-600.dark\\\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\\\.5.py-1 > span:nth-child(2)\"]",
+          "[\".border-gray-100.dark\\\\:border-gray-800:nth-child(2) > .text-gray-600.dark\\\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\\\.5.py-1 > span:nth-child(2)\"]",
+          "[\".border-gray-100.dark\\\\:border-gray-800:nth-child(3) > .text-gray-600.dark\\\\:text-gray-300:nth-child(2) > .inline-flex.px-2\\\\.5.py-1 > span:nth-child(2)\"]"
+        ]
+      },
+      {
+        "id": "label-content-name-mismatch",
+        "targets": [
+          "[\".min-w-\\\\[11rem\\\\]\"]"
+        ]
+      },
+      {
+        "id": "select-name",
+        "targets": [
+          "[\"select\"]"
+        ]
+      }
+    ]
+  }
+]

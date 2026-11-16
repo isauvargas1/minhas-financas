@@ -1,9 +1,10 @@
 import path from 'path';
-import { defineConfig, loadEnv } from 'vite';
+import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
-export default defineConfig(({ mode }) => {
-    const env = loadEnv(mode, '.', '');
+// P5-GATE-FINAL (PLAT-10): sem `loadEnv`. A configuração não lê o ambiente; o cliente recebe só as `VITE_*` que lê
+// por nome (`src/lib/firebase.ts`), e a guarda `tests/unit/ai-backend-only.test.ts` confere o `define` efetivo.
+export default defineConfig(() => {
     return {
       server: {
         port: 3000,

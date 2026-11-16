@@ -20,7 +20,7 @@ Todos foram conferidos em `package.json`, `functions/package.json`, `playwright.
 
 | Campo | Conteúdo |
 | --- | --- |
-| Pré-condições | Node 24 (`.nvmrc`, `.node-version`; `functions/package.json:15-17`). O CI também valida o Node 22 (`.github/workflows/quality-gate.yml:37`). Java 17 para os emuladores (`.github/workflows/quality-gate.yml:89-92`). Firebase CLI instalada; o CI usa `firebase-tools@latest`, sem versão fixa (`.github/workflows/quality-gate.yml:100-101`; FIRE-13). |
+| Pré-condições | Node 24 (`.nvmrc`, `.node-version`; `functions/package.json:15-17`). O CI também valida o Node 22 (`.github/workflows/quality-gate.yml:37`). Java 21 para os emuladores (`.github/workflows/quality-gate.yml:137-140,177-180`). Firebase CLI 15.32.1, a versão validada no gate; o CI a fixa desde a P5-F.1-R3.2 (`.github/workflows/quality-gate.yml:148-151,188-191`). |
 | Comandos | `npm ci` · `npm ci --prefix functions` (`.github/workflows/quality-gate.yml:49-53`) · `npx playwright install --with-deps chromium` (`.github/workflows/quality-gate.yml:147-148`) |
 | Sucesso | Os três comandos terminam com código 0; `node --version` informa v24. |
 | Observações | Os gates não precisam de `.env.local`: `build:e2e` e o Playwright injetam a configuração do Emulator (`package.json:27`; `playwright.config.ts:26-36`). |
@@ -39,25 +39,25 @@ Todos foram conferidos em `package.json`, `functions/package.json`, `playwright.
 | Campo | Conteúdo |
 | --- | --- |
 | Pré-condições | RB-01; portas 8080 e 9099 livres (RB-09). |
-| Comando | `npm run test:integration:emulator` (`package.json:36`). Sobe Auth e Firestore com `--project minhas-financas-local` e executa a integração das Functions com `FIRESTORE_EMULATOR_HOST` e `GCLOUD_PROJECT` locais (`package.json:16`), a guarda da ferramenta de limpeza (`package.json:32`) e as 6 suítes de Rules (`package.json:33-35,39-41`). |
-| Sucesso | Código 0 **e** nenhum teste pulado no resumo do `node --test`. Um `skip` indica execução sem Emulator (FIRE-13, INV-16, REL-09). Equivale ao job "Integração e Firestore Rules" (`.github/workflows/quality-gate.yml:74-110`). |
+| Comando | `npm run test:integration:emulator` (`package.json:54`). Sobe Auth e Firestore com `--project minhas-financas-local` e executa, em cadeia (`&&`), a integração das Functions com `FIRESTORE_EMULATOR_HOST` e `GCLOUD_PROJECT` locais (`package.json:32`), as guardas das ferramentas de limpeza e de contas e as 20 suítes de Rules (`test:rules:*`; a 20ª, `test:rules:transactions-reads`, desde o P5-GATE-FINAL). A cadeia fica entre os passos do marco de fase completa (`tools/integracao/marco-da-fase.mjs`: `iniciar` antes do `emulators:exec`, `concluir` como último passo da cadeia e `conferir` depois dele; P5-F.1-R3.2, EST-10). |
+| Sucesso | Código 0, a linha `[integração] fase completa: todas as suítes rodaram até o fim` **e** nenhum teste pulado no resumo do `node --test`. Um `skip` indica execução sem Emulator (FIRE-13, INV-16, REL-09). O `firebase emulators:exec` trata SIGINT, SIGTERM, SIGHUP e SIGQUIT como desligamento e sai com 0 mesmo com a cadeia interrompida; sem o marco fechado, o `conferir` reprova a fase (saída 1). Equivale ao job "Integração e Firestore Rules" (`.github/workflows/quality-gate.yml:122-160`). |
 
 ### RB-04 — E2E
 
 | Campo | Conteúdo |
 | --- | --- |
-| Pré-condições | RB-01 (incluindo o Chromium); portas 4000, 5001, 5173, 8080 e 9099 livres (RB-09). |
-| Comando | `npm run test:e2e` (`package.json:28`): `build:e2e` (`package.json:27`) e depois `playwright test`. O Playwright compila as Functions, sobe Auth, Firestore e Functions com `--project minhas-financas-local` (`playwright.config.ts:66-89`) e serve o build por `vite preview` em `127.0.0.1:5173` (`playwright.config.ts:90-105`). |
-| Sucesso | Código 0 com todas as specs aprovadas. Localmente `retries` é 0 (`playwright.config.ts:46`), então qualquer falha é real. Equivale ao job "E2E" (`.github/workflows/quality-gate.yml:112-155`). |
-| Observações | `build:e2e` grava no mesmo `dist/` do build de produção (`package.json:9,27`). Esse `dist/` nunca pode ser publicado (PR-AUTH-04). `E2E_START_EMULATORS=false` reaproveita emuladores já de pé (`playwright.config.ts:6`); eles precisam estar no projeto `minhas-financas-local`, que as specs forçam (`e2e/regression-smoke.spec.ts:20,45-48`). |
+| Pré-condições | RB-01 (incluindo o Chromium); portas 4000, 4400, 4500, 5001, 8080, 9099, 9150, 9299, 9499 e 5173 livres (RB-09). |
+| Comando | `npm run test:e2e` (`package.json`): `build:e2e` e depois `node tools/e2e/executar-em-grupos.mjs`, o E2E oficial em grupos (P5-F.1-R3.2). O executor compila as Functions, lista a suíte (`playwright test --list`) e a roda em grupos de arquivos (`--shard=i/N`; N = `E2E_SHARDS`, padrão 3, de 1 a 12), um depois do outro. Em cada grupo, o Playwright sobe Auth, Firestore e Functions com `--project minhas-financas-local`, serve o build por `vite preview` em `127.0.0.1:5173` e, no fim, desliga o Emulator com SIGTERM (`gracefulShutdown`, `playwright.config.ts`). Entre os grupos, o executor espera as portas livres por até 60 s, sem encerrar processo nenhum (`E2E_PORT_WAIT_MS` só encurta esse prazo, para os testes do executor). Argumentos depois de `--` vão para cada grupo (por exemplo, `npm run test:e2e -- e2e/<spec>.spec.ts`). Só são aceitos os que escolhem o que roda e o rastro: arquivos e linhas, `-g`/`--grep`, `--grep-invert`, `--project`, `--trace`, `-x` e `--max-failures`; qualquer outro é recusado, como `--shard`, `--last-failed`, `--list`, `--retries`, `--repeat-each`, `--timeout`, `--workers`, `--config`, `--update-snapshots`, `--debug` e as formas curtas, também combinadas (`-xj2`). |
+| Sucesso | Código 0 e, no fim, `[e2e em grupos] ok: N testes, cada um uma vez, todos passaram`: cada teste da lista completa rodou exatamente uma vez, numa tentativa só, e passou. Teste que não rodou, repetido, instável, ignorado, grupo com saída diferente de 0 ou porta que não liberou reprovam a execução. `retries` é 0 também no CI e `forbidOnly` vale sempre (`playwright.config.ts`), então qualquer falha é real. Equivale ao job "E2E" (`.github/workflows/quality-gate.yml`). |
+| Observações | Por que em grupos: numa sessão só, o emulador de Functions mantinha um processo por função chamada e a suíte inteira passava de 14 GB, com processo a frio e navegador morto por falta de memória (RR-R31-07). Por grupo ficam o relatório JSON (`test-results/e2e-grupos/grupo-<n>.json`), a saída e os logs do Emulator (`test-results/grupo-<n>/`, com `firebase-debug.log` e `firestore-debug.log`) e, no CI, o HTML (`playwright-report/grupo-<n>/`). `build:e2e` grava no mesmo `dist/` do build de produção (`package.json`): esse `dist/` nunca pode ser publicado (PR-AUTH-04), e um `npm run build` depois dele o substitui, então rode o E2E sempre pelo `npm run test:e2e`, que refaz o build. `E2E_START_EMULATORS=false` reaproveita emuladores já de pé (`playwright.config.ts`), e os grupos passam a dividir esse Emulator, sem o isolamento; eles precisam estar no projeto `minhas-financas-local`, que as specs forçam (`e2e/regression-smoke.spec.ts`). Interrupção: o Playwright de cada grupo roda num grupo de processos próprio; Ctrl+C, SIGTERM, SIGHUP ou SIGQUIT (Ctrl+\) enviados ao executor viram um SIGINT ao Playwright do grupo em curso, que desliga o Emulator pelo caminho limpo; o sinal recebido entre os grupos ou depois do último também conta; os grupos seguintes não rodam e a saída é 128 + o sinal (130, 143, 129 ou 131), nunca "ok" (EST-02, EST-11). Cada sinal recebido vira um SIGINT: o segundo, depois de 1 s, força a saída do Playwright e pode deixar o Emulator de pé (RR-R32-04). Para interromper, use Ctrl+C ou mande o sinal ao grupo de processos (`kill -TERM -- -<pgid>`) ou ao próprio executor (`node tools/e2e/executar-em-grupos.mjs`); um SIGTERM só ao `npm` de cima encerra o `npm` e o `sh`, mas deixa o executor rodando, órfão. Com o sinal ao grupo inteiro, o `npm` e o `sh` saem na hora, e o executor termina o desligamento sozinho (até os 60 s do `gracefulShutdown`): espere a linha final do executor (`[e2e em grupos] FALHOU`) ou as portas livres. Depois de qualquer interrupção, confira as portas (RB-09) antes da próxima execução: o executor só começa com elas livres. |
 
 ### RB-05 — Gate completo
 
 | Campo | Conteúdo |
 | --- | --- |
 | Pré-condições | RB-01; portas livres. |
-| Comando | `npm run verify:all` (`package.json:38`) = RB-02 + RB-03 + RB-04. |
-| Sucesso | Código 0. A saída (comandos e resultados) é a evidência exigida por `regression-release-gate` no fechamento de milestone. |
+| Comando | `npm run verify:all` (`package.json`) = RB-02 + RB-03 + RB-04, com o E2E oficial em grupos. |
+| Sucesso | Código 0, com a evidência de cada fase até o fim: os resumos do `node --test` de cada suíte de unidade, `[integração] fase completa: todas as suítes rodaram até o fim` (RB-03) e `[e2e em grupos] ok: N testes, cada um uma vez, todos passaram` (RB-04). A saída (comandos, contagens e resultados) é a evidência exigida por `regression-release-gate` no fechamento de milestone. |
 
 ### RB-06 — Emuladores para desenvolvimento
 
@@ -65,7 +65,7 @@ Todos foram conferidos em `package.json`, `functions/package.json`, `playwright.
 | --- | --- |
 | Pré-condições | RB-01. Nunca iniciar emulador sem `--project minhas-financas-local`. |
 | Comandos | `npm run emulators` (Firestore + Functions, compila antes; `package.json:19`) · `npm run emulators:firestore` (só Firestore; `package.json:17`) · com Auth, igual ao E2E: `npm --prefix functions run build && firebase emulators:start --only auth,firestore,functions --project minhas-financas-local` (`playwright.config.ts:71`). |
-| Sucesso | A Emulator UI responde em `http://127.0.0.1:4000` com os serviços pedidos. As portas vêm de `firebase.json:59-78`, com `singleProjectMode: true`. |
+| Sucesso | A Emulator UI responde em `http://127.0.0.1:4000` com os serviços pedidos. As portas vêm de `firebase.json:69-87`, com `singleProjectMode: true`. |
 | Frontend contra o Emulator | Única forma verificada: `npm run test:e2e:ui` (`package.json:29`), opcionalmente com `E2E_SERVER=dev` para servidor com HMR (`playwright.config.ts:21-24,96-98`). As duas injetam as variáveis do Emulator. Não usar `npm run dev` com a configuração local (§2). |
 | Observações | `npm run emulators:functions` (`package.json:18`) sobe só as Functions: sem o emulador do Firestore, o Admin SDK das funções emuladas sai para o Firestore real do projeto `minhas-financas-local`. Não usar; use `npm run emulators`. Para encerrar, use Ctrl+C; se sobrar processo, RB-09. |
 
@@ -82,9 +82,9 @@ Todos foram conferidos em `package.json`, `functions/package.json`, `playwright.
 
 | Campo | Conteúdo |
 | --- | --- |
-| No CI | Baixar o artefato `playwright-report` (pastas `playwright-report/` e `test-results/`, retido por 7 dias; `.github/workflows/quality-gate.yml:157-165`), por exemplo com `gh run download <RUN_ID> -n playwright-report`. No CI há relatório HTML, trace na primeira nova tentativa, screenshot na falha e vídeo retido na falha (`playwright.config.ts:46-56`). Abrir com `npx playwright show-report playwright-report` e `npx playwright show-trace <arquivo trace.zip em test-results/>`. |
-| Local | Trace, screenshot e vídeo ficam desligados fora do CI (`playwright.config.ts:54-56`). Reproduzir uma spec: `npm run build:e2e && npx playwright test e2e/<spec>.spec.ts`. Depuração interativa: `npm run test:e2e:ui` (`package.json:29`). |
-| Sinais conhecidos | "Page crashed" ou "Target crashed" costumam indicar falta de memória (`playwright.config.ts:57-64,72-81`). Um teste que passou só na segunda tentativa do CI (`retries: 2`) é instável e precisa ser tratado (REL-10). |
+| No CI | Baixar o artefato `playwright-report` (pastas `playwright-report/` e `test-results/`, com o relatório, a saída e os logs do Emulator de cada grupo; retido por 7 dias; `.github/workflows/quality-gate.yml`), por exemplo com `gh run download <RUN_ID> -n playwright-report`. No CI há relatório HTML por grupo, rastro e vídeo retidos na falha e screenshot na falha (`playwright.config.ts`). Abrir com `npx playwright show-report playwright-report/grupo-<n>` e `npx playwright show-trace <arquivo trace.zip em test-results/grupo-<n>/>`. O resumo do executor, no fim do log do job, diz qual grupo e qual teste falharam. |
+| Local | Trace, screenshot e vídeo ficam desligados fora do CI (`playwright.config.ts`). Reproduzir uma spec pelo procedimento oficial: `npm run test:e2e -- e2e/<spec>.spec.ts`. Depuração interativa: `npm run test:e2e:ui` (`package.json`). Para o instante de uma falha no Emulator, ver `test-results/grupo-<n>/firebase-debug.log`. |
+| Sinais conhecidos | "Page crashed" ou "Target crashed" costumam indicar falta de memória (`playwright.config.ts`). Não há nova tentativa automática, nem no CI: um teste instável aparece como falha e precisa ser tratado (REL-10). "portas ainda em uso depois do grupo" quer dizer que o Emulator do grupo não desligou: ver o log do grupo e RB-09. |
 | Sucesso | Causa-raiz identificada e corrigida no código ou no teste, sem aumentar timeout, sem `skip` e sem afrouxar asserção. |
 
 ### RB-09 — Liberar portas locais
@@ -92,7 +92,7 @@ Todos foram conferidos em `package.json`, `functions/package.json`, `playwright.
 | Campo | Conteúdo |
 | --- | --- |
 | Pré-condições | Confirmar que nenhum processo que precise continuar usa as portas: o comando mata qualquer ouvinte com `kill -9`. |
-| Comando | `npm run e2e:kill-ports` (portas 4000, 4400, 4500, 5001, 8080, 9099, 9150 e 5173; `package.json:30`). Variante: `npm run test:e2e:clean` (`package.json:31`). |
+| Comando | `npm run e2e:kill-ports` (portas 4000, 4400, 4500, 5001, 8080, 9099, 9150, 9299, 9499 e 5173, as mesmas que o E2E em grupos confere entre os grupos; `package.json:46`). Variante: `npm run test:e2e:clean` (`package.json:47`). |
 | Sucesso | `lsof -iTCP:<porta> -sTCP:LISTEN` não retorna nada para as portas acima. |
 
 ### RB-10 — Reconciliar saldos de contas no Emulator (P3-J)
@@ -114,8 +114,8 @@ Não executar. Onde houver substituto, ele está indicado.
 | --- | --- | --- | --- | --- |
 | `npm run deploy:firestore`, `deploy:functions`, `deploy:safe`, `deploy:hosting`, `deploy:webhook` | `package.json:22-26` | Alvo fixo `sistema-financeiro-pesso-20698`, que é também o ambiente de desenvolvimento. Os gates são parciais: `deploy:functions` só roda `verify:fast`; `deploy:hosting` e `deploy:webhook` só fazem build. Negados no harness | PR-PLAT-01, PR-REL-01; D-ORD-04 | RB-T01 (P6) |
 | `firebase deploy` em qualquer forma; `npm --prefix functions run deploy` | `functions/package.json:12` | Sem gate; sem `--project`, cai no `default`, que é produção (`.firebaserc:3`) | ENTRY-19, REL-04 | RB-T01 |
-| `npm --prefix functions run logs`; `firebase functions:log` | `functions/package.json:13` | Lê logs do projeto de produção, o que CLAUDE.md proíbe | PR-PLAT-01 | Logs de DEV/STAGING autorizado (P6/P7) |
-| `npm --prefix functions run serve`, `shell`, `start` | `functions/package.json:9-11` | Sem `--project`, usam o `default` (produção). `serve` sobe só o emulador de Functions e `shell` executa funções localmente; chamadas do Admin SDK a serviços não emulados podem atingir o projeto real | ENTRY-19 | RB-06 |
+| `npm --prefix functions run logs`; `firebase functions:log` | `functions/package.json:15` | Lê logs do projeto de produção, o que CLAUDE.md proíbe | PR-PLAT-01 | Logs de DEV/STAGING autorizado (P6/P7) |
+| `npm --prefix functions run serve`, `shell`, `start` | `functions/package.json:11-13` | Sem `--project`, usam o `default` (produção). `serve` sobe só o emulador de Functions e `shell` executa funções localmente; chamadas do Admin SDK a serviços não emulados podem atingir o projeto real | ENTRY-19 | RB-06 |
 | `npm run functions:test:integration` (sem Emulator) | `package.json:15` | Testes com `skip` condicional passam sem executar (`functions/src/crons/__tests__/investmentDrift.integration.test.ts:105`). `goalProgressRebuild.integration.test.ts` não tem guarda e faz `recursiveDelete` no projeto de `GCLOUD_PROJECT` (`functions/src/investments/__tests__/goalProgressRebuild.integration.test.ts:28,35-38,53`) | REL-09, FIRE-13 | RB-03, RB-07 |
 | `npm run dev` com a configuração local | `package.json:7`; `src/lib/firebase.ts:7-14,47-62` | Sem `VITE_USE_FIREBASE_EMULATORS=true`, o app se conecta ao projeto configurado no arquivo local, hoje o único projeto, que é produção | PR-PLAT-01 | RB-06 (`test:e2e:ui`, `E2E_SERVER=dev`) |
 | `docs/investments/PRODUCTION_DEPLOYMENT_CHECKLIST.md` | — | OUTDATED. `npm run deploy:* --project <PROJETO>` não troca o alvo, porque o npm consome a flag (linhas 103 e 125; REL-03). Fala em "53 funções" contra 47 no HEAD (122, 129). Usa como evidência `firebase functions:secrets:access`, que **imprime o segredo** (61). A ordem canônica não tem backup e prevê um rollout de flag inexistente (20-25) | REL-03, FIRE-14, PR-DOCS-01 | RB-T01, RB-T02, [BACKUP_RESTORE_DR.md](BACKUP_RESTORE_DR.md) |
@@ -136,7 +136,7 @@ Nenhum destes procedimentos existe no HEAD. Cada um é criado e exercitado no mi
 | ID | Runbook | Milestone | Dono (papel) | Pré-requisitos | IDs |
 | --- | --- | --- | --- | --- | --- |
 | RB-T01 | Deploy por CD e rollback | P6 | Responsável de plataforma | E-01, E-04, E-12; D-19 | PR-REL-01, PR-PLAT-01, PR-AUTH-04 |
-| RB-T02 | Rotação de segredo (inclui a chave Gemini) | E-00 imediato; procedimento geral em P6 (Stripe sem fallback desde P2A) | Responsável de plataforma | E-05 | PR-AI-02, PR-BILL-05 |
+| RB-T02 | Rotação de segredo (inclui a chave Gemini) | E-00 parte A (contenção e revogação) imediata; chave nova e procedimento geral em P6 (E-05; Stripe sem fallback desde P2A) | Responsável de plataforma | E-05 | PR-AI-02, PR-BILL-05 |
 | RB-T03 | Replay de webhook Stripe | P2A (idempotência e registro, entregues), P7 (fila de falhas, alerta, replay, reconciliação periódica) | Responsável de billing | E-06, E-08 | PR-BILL-06, PR-BILL-01, PR-OBS-01 |
 | RB-T04 | Reconciliação e rebuild financeiro por domínio | P3–P5 (rebuild por domínio), P7 (jobs com alerta) | Responsável do domínio financeiro | RB-T09 | PR-TX-04, INV-05, PR-OBS-01 (PR-CC-04 resolvido na P4-A) |
 | RB-T05 | Restore do Firestore | P7 | Responsável de plataforma | E-07, D-27 | PR-BKP-01 |
@@ -161,14 +161,18 @@ Nenhum destes procedimentos existe no HEAD. Cada um é criado e exercitado no mi
 
 ### RB-T02 — Rotação de segredo
 
-- **CURRENT:** os segredos são declarados por função (ver [FIREBASE_PRODUCTION.md](FIREBASE_PRODUCTION.md#8-secret-manager-e-parâmetros)). A chave Gemini esteve embutida no bundle público no passado, sem rotação comprovada (PR-AI-02). Não há procedimento nem dono de rotação.
-- **Ação imediata E-00** (D-ORD-06; fora do repositório, feita pelo titular da conta Google Cloud):
-  1. Listar toda chave de IA que já esteve em arquivo local ou em bundle publicado.
-  2. Criar uma chave nova por ambiente, restrita à Generative Language API e com quota.
-  3. Gravar a chave como nova versão de `GOOGLE_AI_API_KEY` sem exibir o valor (por exemplo, `gcloud secrets versions add GOOGLE_AI_API_KEY --data-file=- --project=<PROJECT_ID>`).
-  4. Revogar a chave antiga no provedor. É esse passo que elimina o risco. Até as funções montarem a nova versão, a chave revogada continua montada e as callables de IA falham na chamada ao provedor; `readApiKey` só recusa chave ausente ou curta (`functions/src/ai/callables.ts:131-141`).
-  5. A versão do segredo é fixada no deploy da função. O redeploy das duas callables de IA é decisão e execução humanas; agentes não fazem deploy (CLAUDE.md).
-  6. Registrar a evidência (data, identificador da chave revogada, restrições da nova, responsável) em [SECURITY_MODEL.md](SECURITY_MODEL.md).
+- **CURRENT:** os segredos são declarados por função (ver [FIREBASE_PRODUCTION.md](FIREBASE_PRODUCTION.md#8-secret-manager-e-parâmetros)). A chave Gemini esteve embutida no bundle público no passado, sem contenção nem revogação comprovadas (PR-AI-02; E-00, parte A, abaixo). Não há procedimento geral nem dono da rotação de segredos (E-05, P6).
+- **Ação imediata E-00, parte A: contenção e revogação** (D-ORD-06; fora do repositório, feita pelo titular da conta Google Cloud; passo a passo em [`evidence/p5-gate-final/E-00-CHAVE-GEMINI.md`](evidence/p5-gate-final/E-00-CHAVE-GEMINI.md) §2):
+  1. Listar toda chave com acesso à Generative Language API criada até 2026-08-24, inclusive (na dúvida, todas) e toda chave cujo valor esteve numa `VITE_*` de um build publicado, em qualquer data. A chave web do Firebase não é excluída: segue o passo 4.
+  2. Revisar o uso por credencial desde 2026-01-22.
+  3. Excluir as chaves do passo 1 e conferir `API_KEY_INVALID` (400; um 403 não prova a exclusão) pelo menos 30 minutos depois; guardar o registro de exclusão e confirmar que não houve restauração (`UndeleteKey`), porque a exclusão é reversível por 30 dias. O teste vale para todo valor achado, inclusive no Secret Manager; só sem o valor em lugar nenhum vale a prova alternativa do D-ORD-08 (E-00 §3, linha 2). É esse passo que elimina o risco, e ele não espera a chave nova: sem usuários reais em produção (plano §1), as callables de IA podem ficar indisponíveis até a parte B. Com a chave revogada montada, elas falham na chamada ao provedor; `readApiKey` só recusa chave ausente ou curta (`functions/src/ai/callables.ts:133-142`).
+  4. Desativar as APIs de IA no projeto do Firebase logo depois da exclusão; restringir as chaves que continuam válidas, inclusive a chave web do Firebase (sem nenhuma API de IA ou de ML na lista, como a Firebase AI Logic API e a ML Kit API, com o teste da chave web dando 403 e o app funcionando; o referenciador HTTP é do E-03, na P6, pelo D-ORD-07; se não puder ser restrita ou se houver abuso, substituída por build verificado (E-00 passo 5, item 7) e a antiga excluída, com publicação decidida por humano); inventariar as `VITE_*` não públicas publicadas e revogá-las, ou girá-las com a credencial anterior invalidada na hora; limpar as estações; avaliar o impacto aos titulares com base no uso e nas `VITE_*`, com a conclusão sobre risco relevante ([INCIDENT_RESPONSE.md](INCIDENT_RESPONSE.md) §6.6).
+  5. Registrar a evidência linha a linha em [SECURITY_MODEL.md](SECURITY_MODEL.md) §9.4 (linhas 1, 2 e 5 a 9) e na matriz do §4 do E-00. O roteiro detalhado, com console, evidência, risco e condição para prosseguir em cada passo, é o §2 do E-00.
+- **Parte B, credenciais novas (E-05, P6; antes de a IA rodar em qualquer ambiente remoto):**
+  1. Criar uma chave nova por ambiente, restrita à Generative Language API e com quota.
+  2. Gravá-la como nova versão de `GOOGLE_AI_API_KEY` sem exibir o valor (por exemplo, `gcloud secrets versions add GOOGLE_AI_API_KEY --data-file=- --project=<PROJECT_ID>`) e desativar as versões antigas.
+  3. A versão do segredo é fixada no deploy da função. O redeploy das callables de IA é decisão e execução humanas; agentes não fazem deploy (CLAUDE.md).
+  4. Registrar nas linhas 3 e 4 da §9.4 e no E-05 de [FIREBASE_PRODUCTION.md](FIREBASE_PRODUCTION.md).
 - **TARGET — procedimento geral** (P6; os segredos Stripe não têm fallback desde P2A): gerar a credencial nova no provedor, com test/live separados → adicionar a versão no Secret Manager do ambiente → deploy pelo CD → verificar em STAGING (checkout e entrega de webhook com código 200) → promover → desativar e destruir a versão antiga → revogar a credencial antiga no provedor.
 - **Verificação:** só por metadados (`gcloud secrets versions list <NOME> --project=<PROJECT_ID>`); nunca `functions:secrets:access`.
 - **Sucesso:** nenhuma versão antiga ativa, credencial antiga revogada, zero erro de autenticação com o provedor e registro atualizado (E-05).
@@ -192,7 +196,7 @@ Nenhum destes procedimentos existe no HEAD. Cada um é criado e exercitado no mi
 | Investimentos | Nenhuma callable pública de rebuild, recálculo ou backfill desde a P4-D (D-15, plano §19.4); `processInvestmentDriftScan` diário, que compara só projeções (`functions/src/crons/investmentDrift.ts`) | Cron agendado, sem superfície | Deriva do ledger contra as posições em todos os tenants, com alerta; reparo operacional pela ferramenta auditada (RB-T09) | P6/P7 |
 | Caixa | `rebuildCashPeriods`, com simulação e saída de reconciliação, papel owner/admin e 100 chamadas/h; desde P3-B com cerca de corte, recomeço controlado (`restarted` com o motivo) e publicação numa única transação (`functions/src/cash/rebuild.ts:410-766`). Repetir a chamada até `completed: true`; `needsRebuild` em `cash_period_events/projection_state` indica que o gatilho percebeu divergência | Mesmo painel sem montagem | Retry com cerca entregue (D-38, P3-B); falta o job de deriva de caixa com alerta | P3 (PR-TX-04), P7 |
 | Cartões | `rebuildCardInvoicesForCard`, `recalculateCardLimit` (`functions/src/cards/callables.ts`; owner/admin; perfil pesado) | Callables (P4-A); a superfície na tela de cartões não consta da folha de fatos | Rotina de fechamento com releitura transacional e páginas de 200 (`processCreditCardInvoiceClosing`, P4-A, PR-CC-04 resolvido); reconciliação compras × faturas × limite com alerta | P7 (alerta) |
-| Metas | Nenhuma (`recalculateGoalInvestmentProgress` removida na P4-D) | — | Job de deriva da projeção única de progresso; reparo futuro (P6/P7) | P5, P7 |
+| Metas | Nenhuma (`recalculateGoalInvestmentProgress` removida na P4-D) | — | Job de deriva da projeção única de progresso; reparo futuro (P6/P7) | P7 (plano §8) |
 | Contas/carteiras (P3-J) | `tools/accounts/reconciliar-contas.mjs` (RB-10): saldo × soma dos movimentos, só no Emulator, dry-run por padrão e `--reparar` | Linha de comando local | Reconciliação agendada com alerta | P7 |
 | Recebíveis, divisão (recorrentes: trilha `recurring_events` desde a P4-B; empréstimos: escrita só pelo backend desde a P3-H, com `loan_events` append-only) | Nenhuma: os dados são gravados pelo cliente (PR-RULES-01) | — | Ledger ou eventos no backend, com rebuild idempotente | P3, P4, P7 |
 
@@ -272,7 +276,7 @@ Registro canônico de E-12 (resumido em [FIREBASE_PRODUCTION.md](FIREBASE_PRODUC
 | ID | Item | Valor esperado | Estado | Verificação (somente leitura) | Data | Responsável |
 | --- | --- | --- | --- | --- | --- | --- |
 | E-12 | Proteção de `main` | PR obrigatório com revisão; sem push direto nem force-push | NÃO VERIFICADO | `gh api repos/{owner}/{repo}/branches/main/protection` | — | a designar |
-| E-12 | Checks obrigatórios | "Build e testes unitários (Node 22)", "Build e testes unitários (Node 24)", "Integração e Firestore Rules", "E2E" (`.github/workflows/quality-gate.yml:28,75,113`) | NÃO VERIFICADO | idem (`required_status_checks`) | — | a designar |
+| E-12 | Checks obrigatórios | "Build e testes unitários (Node 22)", "Build e testes unitários (Node 24)", "Integração e Firestore Rules", "E2E" (`.github/workflows/quality-gate.yml:28,132,172`) | NÃO VERIFICADO | idem (`required_status_checks`) | — | a designar |
 | E-12 | Revisão por CODEOWNERS | `CODEOWNERS` versionado para `firestore.rules`, `firestore.indexes.json`, `firebase.json`, `functions/src`, `package.json`, com revisão obrigatória | NÃO VERIFICADO | idem (`require_code_owner_reviews`) e leitura do arquivo | — | a designar |
 | E-12 | Environments de deploy | `staging` e `production` com revisores obrigatórios e restrição de branch/tag | NÃO VERIFICADO | `gh api repos/{owner}/{repo}/environments` | — | a designar |
 | E-12 | Segredos do repositório | nenhuma credencial de PROD; deploy por Workload Identity Federation | NÃO VERIFICADO | `gh secret list`; `gh secret list --env production` (só nomes) | — | a designar |

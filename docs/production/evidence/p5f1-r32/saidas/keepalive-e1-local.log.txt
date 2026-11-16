@@ -1,0 +1,3 @@
+servidor: 1000 portas, keepAliveTimeout=5000
+keep-alive: 0/168 falhas; Connection: close: 0/168 falhas
+exit=0

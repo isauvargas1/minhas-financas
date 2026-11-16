@@ -3,6 +3,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { ResponsiveContainer, PieChart, Pie, BarChart, Bar, LineChart, Line, Cell, XAxis, YAxis, Tooltip, Legend } from 'recharts';
 import { PieChartIcon, BarChartIcon, LineChartIcon, DoughnutChartIcon } from './Icons.tsx';
 import { useTheme } from '../contexts/ThemeContext.tsx';
+import { useMoneyDisplay } from '../modules/work-time/display';
 
 /** Natureza do total: define a cor da fatia no tema. */
 export type DistributionKind = 'income' | 'expense' | 'investment' | 'installment' | 'cardPayment';
@@ -30,6 +31,7 @@ type ChartType = 'pie' | 'bar' | 'line' | 'doughnut';
 const DistributionChart: React.FC<DistributionChartProps> = ({ items, message }) => {
     const [chartType, setChartType] = useState<ChartType>('pie');
     const { theme } = useTheme();
+    const display = useMoneyDisplay();
     const [isDarkMode, setIsDarkMode] = useState(false);
 
     useEffect(() => {
@@ -59,7 +61,7 @@ const DistributionChart: React.FC<DistributionChartProps> = ({ items, message })
                     <BarChart data={data}>
                         <XAxis dataKey="name" tick={{ fill: theme.colors.textSecondary, fontSize: 12 }} />
                         <YAxis tick={{ fill: theme.colors.textSecondary, fontSize: 12 }} />
-                        <Tooltip contentStyle={{ backgroundColor: theme.colors.surface, border: `1px solid ${theme.colors.border}`, color: theme.colors.text }} itemStyle={{ color: theme.colors.text }} />
+                        <Tooltip contentStyle={{ backgroundColor: theme.colors.surface, border: `1px solid ${theme.colors.border}`, color: theme.colors.text }} itemStyle={{ color: theme.colors.text }} formatter={display.isTime ? (value) => display.reaisTooltip(Number(value), (v) => String(v)) : undefined} />
                         <Bar dataKey="value" />
                     </BarChart>
                 );
@@ -68,7 +70,7 @@ const DistributionChart: React.FC<DistributionChartProps> = ({ items, message })
                     <LineChart data={data}>
                         <XAxis dataKey="name" tick={{ fill: theme.colors.textSecondary, fontSize: 12 }} />
                         <YAxis tick={{ fill: theme.colors.textSecondary, fontSize: 12 }}/>
-                        <Tooltip contentStyle={{ backgroundColor: theme.colors.surface, border: `1px solid ${theme.colors.border}`, color: theme.colors.text }} itemStyle={{ color: theme.colors.text }} />
+                        <Tooltip contentStyle={{ backgroundColor: theme.colors.surface, border: `1px solid ${theme.colors.border}`, color: theme.colors.text }} itemStyle={{ color: theme.colors.text }} formatter={display.isTime ? (value) => display.reaisTooltip(Number(value), (v) => String(v)) : undefined} />
                         <Line type="monotone" dataKey="value" stroke={theme.colors.primary} />
                     </LineChart>
                 );
@@ -88,7 +90,7 @@ const DistributionChart: React.FC<DistributionChartProps> = ({ items, message })
                         }}>
                            {data.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.fill} />)}
                         </Pie>
-                        <Tooltip contentStyle={{ backgroundColor: theme.colors.surface, border: `1px solid ${theme.colors.border}`, color: theme.colors.text }} itemStyle={{ color: theme.colors.text }}/>
+                        <Tooltip contentStyle={{ backgroundColor: theme.colors.surface, border: `1px solid ${theme.colors.border}`, color: theme.colors.text }} itemStyle={{ color: theme.colors.text }} formatter={display.isTime ? (value) => display.reaisTooltip(Number(value), (v) => String(v)) : undefined} />
                     </PieChart>
                 );
             default:

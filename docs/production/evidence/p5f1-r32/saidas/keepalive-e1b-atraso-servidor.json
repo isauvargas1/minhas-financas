@@ -1,0 +1,648 @@
+{
+ "node": "v22.23.4",
+ "playwright": "1.60.0",
+ "summary": {
+  "keep-alive (padrão) | ocupação 200 ms": {
+   "pares": 22,
+   "falhas": 0,
+   "ociosos_com_falha": [],
+   "erros": []
+  },
+  "keep-alive (padrão) | ocupação 1000 ms": {
+   "pares": 22,
+   "falhas": 0,
+   "ociosos_com_falha": [],
+   "erros": []
+  },
+  "Connection: close | ocupação 200 ms": {
+   "pares": 22,
+   "falhas": 0,
+   "ociosos_com_falha": [],
+   "erros": []
+  },
+  "Connection: close | ocupação 1000 ms": {
+   "pares": 22,
+   "falhas": 0,
+   "ociosos_com_falha": [],
+   "erros": []
+  }
+ },
+ "results": [
+  {
+   "close": false,
+   "lag": 200,
+   "idle": 4800,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": false,
+   "lag": 200,
+   "idle": 4824,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": false,
+   "lag": 200,
+   "idle": 4848,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": false,
+   "lag": 200,
+   "idle": 4872,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": false,
+   "lag": 200,
+   "idle": 4896,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": false,
+   "lag": 200,
+   "idle": 4920,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": false,
+   "lag": 200,
+   "idle": 4944,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": false,
+   "lag": 200,
+   "idle": 4968,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": false,
+   "lag": 200,
+   "idle": 4992,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": false,
+   "lag": 200,
+   "idle": 5016,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": false,
+   "lag": 200,
+   "idle": 5040,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": false,
+   "lag": 200,
+   "idle": 4800,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": false,
+   "lag": 200,
+   "idle": 4824,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": false,
+   "lag": 200,
+   "idle": 4848,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": false,
+   "lag": 200,
+   "idle": 4872,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": false,
+   "lag": 200,
+   "idle": 4896,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": false,
+   "lag": 200,
+   "idle": 4920,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": false,
+   "lag": 200,
+   "idle": 4944,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": false,
+   "lag": 200,
+   "idle": 4968,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": false,
+   "lag": 200,
+   "idle": 4992,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": false,
+   "lag": 200,
+   "idle": 5016,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": false,
+   "lag": 200,
+   "idle": 5040,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": false,
+   "lag": 1000,
+   "idle": 4000,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": false,
+   "lag": 1000,
+   "idle": 4120,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": false,
+   "lag": 1000,
+   "idle": 4240,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": false,
+   "lag": 1000,
+   "idle": 4360,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": false,
+   "lag": 1000,
+   "idle": 4480,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": false,
+   "lag": 1000,
+   "idle": 4600,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": false,
+   "lag": 1000,
+   "idle": 4720,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": false,
+   "lag": 1000,
+   "idle": 4840,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": false,
+   "lag": 1000,
+   "idle": 4960,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": false,
+   "lag": 1000,
+   "idle": 5080,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": false,
+   "lag": 1000,
+   "idle": 5200,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": false,
+   "lag": 1000,
+   "idle": 4000,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": false,
+   "lag": 1000,
+   "idle": 4120,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": false,
+   "lag": 1000,
+   "idle": 4240,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": false,
+   "lag": 1000,
+   "idle": 4360,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": false,
+   "lag": 1000,
+   "idle": 4480,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": false,
+   "lag": 1000,
+   "idle": 4600,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": false,
+   "lag": 1000,
+   "idle": 4720,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": false,
+   "lag": 1000,
+   "idle": 4840,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": false,
+   "lag": 1000,
+   "idle": 4960,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": false,
+   "lag": 1000,
+   "idle": 5080,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": false,
+   "lag": 1000,
+   "idle": 5200,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": true,
+   "lag": 200,
+   "idle": 4800,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": true,
+   "lag": 200,
+   "idle": 4824,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": true,
+   "lag": 200,
+   "idle": 4848,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": true,
+   "lag": 200,
+   "idle": 4872,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": true,
+   "lag": 200,
+   "idle": 4896,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": true,
+   "lag": 200,
+   "idle": 4920,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": true,
+   "lag": 200,
+   "idle": 4944,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": true,
+   "lag": 200,
+   "idle": 4968,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": true,
+   "lag": 200,
+   "idle": 4992,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": true,
+   "lag": 200,
+   "idle": 5016,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": true,
+   "lag": 200,
+   "idle": 5040,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": true,
+   "lag": 200,
+   "idle": 4800,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": true,
+   "lag": 200,
+   "idle": 4824,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": true,
+   "lag": 200,
+   "idle": 4848,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": true,
+   "lag": 200,
+   "idle": 4872,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": true,
+   "lag": 200,
+   "idle": 4896,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": true,
+   "lag": 200,
+   "idle": 4920,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": true,
+   "lag": 200,
+   "idle": 4944,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": true,
+   "lag": 200,
+   "idle": 4968,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": true,
+   "lag": 200,
+   "idle": 4992,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": true,
+   "lag": 200,
+   "idle": 5016,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": true,
+   "lag": 200,
+   "idle": 5040,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": true,
+   "lag": 1000,
+   "idle": 4000,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": true,
+   "lag": 1000,
+   "idle": 4120,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": true,
+   "lag": 1000,
+   "idle": 4240,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": true,
+   "lag": 1000,
+   "idle": 4360,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": true,
+   "lag": 1000,
+   "idle": 4480,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": true,
+   "lag": 1000,
+   "idle": 4600,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": true,
+   "lag": 1000,
+   "idle": 4720,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": true,
+   "lag": 1000,
+   "idle": 4840,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": true,
+   "lag": 1000,
+   "idle": 4960,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": true,
+   "lag": 1000,
+   "idle": 5080,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": true,
+   "lag": 1000,
+   "idle": 5200,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": true,
+   "lag": 1000,
+   "idle": 4000,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": true,
+   "lag": 1000,
+   "idle": 4120,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": true,
+   "lag": 1000,
+   "idle": 4240,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": true,
+   "lag": 1000,
+   "idle": 4360,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": true,
+   "lag": 1000,
+   "idle": 4480,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": true,
+   "lag": 1000,
+   "idle": 4600,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": true,
+   "lag": 1000,
+   "idle": 4720,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": true,
+   "lag": 1000,
+   "idle": 4840,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": true,
+   "lag": 1000,
+   "idle": 4960,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": true,
+   "lag": 1000,
+   "idle": 5080,
+   "ok": true,
+   "status": 200
+  },
+  {
+   "close": true,
+   "lag": 1000,
+   "idle": 5200,
+   "ok": true,
+   "status": 200
+  }
+ ]
+}

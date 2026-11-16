@@ -1,0 +1,22 @@
+// R1: o dia seguinte a uma jornada reduzida cuja janela passa da meia-noite (limite registrado, rotinas §6).
+// Segunda 20:00–06:00 reduzida a 8 h; terça sem rotina, com plantão de 24 h. E a monotonia ao acrescentar
+// segunda 23:00–08:00 (mais minutos depois da meia-noite na véspera reduzida).
+const root = process.argv[2];
+const cal = await import(`${root}/src/modules/work-time/calendar.ts`);
+const w = (s: number, e: number, b = 0) => ({ kind: 'window', start: s, end: e, breakMinutes: b });
+const OFF = { kind: 'off' };
+const mon = (spec: any) => ({ kind: 'weekly', days: [spec, OFF, OFF, OFF, OFF, OFF, OFF] });
+const exceptions = [
+  { kind: 'reduced', start: '2026-10-05', end: '2026-10-05', minutes: 480 },
+  { kind: 'on_call', date: '2026-10-06', minutes: 1440 },
+];
+const base = { worksOnHolidays: false, localHolidays: [], exceptions };
+for (const [name, routines] of [['só 20:00–06:00', [mon(w(1200, 360))]], ['com 23:00–08:00', [mon(w(1200, 360)), mon(w(1380, 480))]]] as const) {
+  const c = { ...base, routines };
+  const monday = cal.dayPlan(c, '2026-10-05'); const tuesday = cal.dayPlan(c, '2026-10-06');
+  const month = cal.monthPlan(c, '2026-10', { periodStart: true });
+  console.log(JSON.stringify({ name, segunda: [monday.minutes, monday.capped], terca: [tuesday.minutes, tuesday.capped], mes: month.minutes }));
+}
+// O mesmo com a véspera seguindo a rotina (sem a redução): a terça desconta o trecho da segunda.
+const following = { ...base, exceptions: [{ kind: 'on_call', date: '2026-10-06', minutes: 1440 }], routines: [mon(w(1200, 360))] };
+console.log(JSON.stringify({ name: 'véspera sem redução', segunda: cal.dayPlan(following, '2026-10-05').minutes, terca: [cal.dayPlan(following, '2026-10-06').minutes, cal.dayPlan(following, '2026-10-06').capped] }));

@@ -1,0 +1,121 @@
+#!/usr/bin/env python3
+"""P5-F.1 — os mutantes de unidade e guarda da P5-F contra as suítes da P5-F.1.
+
+Prova de que a P5-F.1 não enfraqueceu as suítes da P5-F: cada mutante do roteiro
+da P5-F (`docs/production/evidence/p5f/mutantes.py.txt`) cujo trecho ainda existe
+na árvore atual é aplicado numa cópia fora do worktree (src, functions/src,
+firestore.rules, package.json, tests/unit e tests/fixtures; node_modules por link)
+e roda todos os testes de `test:unit:work-time`. Mutante cujo trecho não existe
+mais (código substituído pela P5-F.1: contrato v1, formulário, renda digitada) é
+listado como "não se aplica", com o trecho ausente. Nada no worktree é alterado.
+
+Uso: mutantes-p5f-na-p5f1.py <worktree> <saída>
+"""
+import json
+import os
+import shutil
+import subprocess
+import sys
+
+WT = sys.argv[1]
+OUT = sys.argv[2]
+SOURCE = f'{WT}/docs/production/evidence/p5f/mutantes.py.txt'
+TESTS = [
+    'tests/unit/work-time-calculation.test.ts',
+    'tests/unit/work-time-preference.test.ts',
+    'tests/unit/work-time-guard.test.ts',
+    'tests/unit/work-time-calendar.test.ts',
+    'tests/unit/work-time-grammar.test.ts',
+    'tests/unit/work-time-estimate.test.ts',
+]
+
+# Só a parte de dados do roteiro da P5-F (constantes e a lista MUTANTS).
+code = open(SOURCE, encoding='utf-8').read()
+data_part = code[:code.index('\ndef prepare(')]
+namespace: dict = {}
+exec(compile(data_part, SOURCE, 'exec'), namespace)
+MUTANTS = namespace['MUTANTS']
+APPEND = namespace['APPEND']
+
+
+def prepare(name: str) -> str:
+    target = f'{OUT}/{name}'
+    shutil.rmtree(target, ignore_errors=True)
+    os.makedirs(f'{target}/functions')
+    os.makedirs(f'{target}/tests')
+    shutil.copytree(f'{WT}/src', f'{target}/src')
+    shutil.copytree(f'{WT}/functions/src', f'{target}/functions/src')
+    shutil.copytree(f'{WT}/tests/unit', f'{target}/tests/unit')
+    shutil.copytree(f'{WT}/tests/fixtures', f'{target}/tests/fixtures')
+    for path in ('firestore.rules', 'package.json'):
+        shutil.copy2(f'{WT}/{path}', f'{target}/{path}')
+    os.symlink(f'{WT}/node_modules', f'{target}/node_modules')
+    return target
+
+
+def missing_snippet(edits):
+    for path, old, _new in edits:
+        file = f'{WT}/{path}'
+        if not os.path.exists(file):
+            return f'{path} não existe mais'
+        if old is APPEND or old is None:
+            continue
+        count = open(file, encoding='utf-8').read().count(old)
+        if count != 1:
+            return f'{path}: trecho presente {count} vez(es): {old.strip().splitlines()[0][:70]!r}'
+    return None
+
+
+def apply(target: str, path: str, old, new: str) -> None:
+    file = f'{target}/{path}'
+    source = open(file, encoding='utf-8').read()
+    if old is APPEND:
+        source = source + ('' if source.endswith('\n') else '\n') + new
+    elif old is None:
+        source = new + source
+    else:
+        assert source.count(old) == 1
+        source = source.replace(old, new)
+    open(file, 'w', encoding='utf-8').write(source)
+
+
+def run(target: str) -> tuple[int, list[str]]:
+    result = subprocess.run(
+        ['node', '--experimental-strip-types', '--disable-warning=MODULE_TYPELESS_PACKAGE_JSON', '--test', *TESTS],
+        cwd=target, capture_output=True, text=True, timeout=600)
+    failed = [line.strip()[len('not ok '):] for line in result.stdout.splitlines() if line.strip().startswith('not ok ')]
+    return result.returncode, failed
+
+
+def main() -> None:
+    os.makedirs(OUT, exist_ok=True)
+    pristine = prepare('original')
+    code_, failed = run(pristine)
+    print(f'ORIGINAL: saída {code_}, falhas {failed}')
+    if code_ != 0:
+        sys.exit('a cópia original precisa passar')
+    shutil.rmtree(pristine)
+    rows = []
+    for mutant_id, description, _test_file, edits in MUTANTS:
+        reason = missing_snippet(edits)
+        if reason:
+            rows.append({'id': mutant_id, 'mutante': description, 'resultado': 'não se aplica', 'motivo': reason})
+            print(f'{mutant_id:<4} N/A    {description} -> {reason}')
+            continue
+        target = prepare(mutant_id)
+        for path, old, new in edits:
+            apply(target, path, old, new)
+        code_, failed = run(target)
+        killed = code_ != 0
+        rows.append({'id': mutant_id, 'mutante': description, 'resultado': 'morto' if killed else 'VIVO', 'falhas': failed[:3]})
+        print(f"{mutant_id:<4} {'MORTO ' if killed else 'VIVO  '} {description} -> {failed[:1]}")
+        shutil.rmtree(target)
+    json.dump(rows, open(f'{OUT}/resultado.json', 'w', encoding='utf-8'), ensure_ascii=False, indent=2)
+    applicable = [row for row in rows if row['resultado'] != 'não se aplica']
+    dead = sum(1 for row in applicable if row['resultado'] == 'morto')
+    print(f'aplicáveis {len(applicable)}/{len(rows)}; mortos {dead}/{len(applicable)}')
+    sys.exit(0 if dead == len(applicable) else 1)
+
+
+if __name__ == '__main__':
+    main()

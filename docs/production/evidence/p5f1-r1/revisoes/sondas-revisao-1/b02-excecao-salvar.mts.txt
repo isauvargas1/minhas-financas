@@ -1,0 +1,9 @@
+// Sonda B02: validateDraft aceita a configuração cujo mês fica ambíguo por causa da exceção.
+const root = process.argv[2];
+const draft = await import(`${root}/src/modules/work-time/draft.ts`);
+const OFF = { kind: 'off' };
+const w = (s: number, e: number, b = 0) => ({ kind: 'window', start: s, end: e, breakMinutes: b });
+const onDay = (i: number, spec: any) => ({ kind: 'weekly', days: Array.from({ length: 7 }, (_, d) => (d === i ? spec : OFF)) });
+const routines = [onDay(0, w(1200, 0)), onDay(0, w(1320, 120, 30)), onDay(1, w(0, 480))];
+const d = { ...draft.initialDraft('ws_abc'), routines, worksOnHolidays: true, exceptions: [{ kind: 'day_off', start: '2026-10-20', end: '2026-10-20' }] };
+console.log('validateDraft:', JSON.stringify(draft.validateDraft(d, '2026-10-01')));

@@ -1,0 +1,1022 @@
+TAP version 13
+# Subtest: prova: cada regra, na ordem, com o motivo da primeira que falha
+ok 1 - prova: cada regra, na ordem, com o motivo da primeira que falha
+  ---
+  duration_ms: 2.098196
+  type: 'test'
+  ...
+# Subtest: prova (regra 5, marcas): prova nula espera, prova recusada é "projection_marks" por qualquer motivo, provada aprova, e as regras 1 a 4 vêm antes
+ok 2 - prova (regra 5, marcas): prova nula espera, prova recusada é "projection_marks" por qualquer motivo, provada aprova, e as regras 1 a 4 vêm antes
+  ---
+  duration_ms: 0.318111
+  type: 'test'
+  ...
+# Subtest: prova (regra 5, marcas): só o resultado da prova das marcas decide; escrita, hora ou prazo não aprovam nem seguram
+ok 3 - prova (regra 5, marcas): só o resultado da prova das marcas decide; escrita, hora ou prazo não aprovam nem seguram
+  ---
+  duration_ms: 2.03342
+  type: 'test'
+  ...
+# Subtest: B03: a primeira estimativa só aparece provada pela projeção, com a leitura por id depois dela (a escuta antes das bases)
+ok 4 - B03: a primeira estimativa só aparece provada pela projeção, com a leitura por id depois dela (a escuta antes das bases)
+  ---
+  duration_ms: 126.639493
+  type: 'test'
+  ...
+# Subtest: B03: a primeira estimativa só aparece provada pela projeção, com a leitura por id depois dela (a escuta depois das bases)
+ok 5 - B03: a primeira estimativa só aparece provada pela projeção, com a leitura por id depois dela (a escuta depois das bases)
+  ---
+  duration_ms: 136.437514
+  type: 'test'
+  ...
+# Subtest: B03: a primeira estimativa só aparece provada pela projeção, com a leitura por id depois dela (a escuta só quando o servidor responde)
+ok 6 - B03: a primeira estimativa só aparece provada pela projeção, com a leitura por id depois dela (a escuta só quando o servidor responde)
+  ---
+  duration_ms: 146.027481
+  type: 'test'
+  ...
+# Subtest: B03: a projeção mais nova que a base lida na montagem: nunca a estimativa da base antiga; a base é relida e a nova aparece provada
+ok 7 - B03: a projeção mais nova que a base lida na montagem: nunca a estimativa da base antiga; a base é relida e a nova aparece provada
+  ---
+  duration_ms: 211.394857
+  type: 'test'
+  ...
+# Subtest: B03: uma base e nenhuma desconsiderada: a leitura única é provada mesmo com a escuta encerrada, com a ressalva
+ok 8 - B03: uma base e nenhuma desconsiderada: a leitura única é provada mesmo com a escuta encerrada, com a ressalva
+  ---
+  duration_ms: 17.184019
+  type: 'test'
+  ...
+# Subtest: B03: janela de 12 meses com a escuta encerrada desde o começo: sem prova, o erro com "Tentar de novo"; com a escuta de volta, a estimativa provada
+ok 9 - B03: janela de 12 meses com a escuta encerrada desde o começo: sem prova, o erro com "Tentar de novo"; com a escuta de volta, a estimativa provada
+  ---
+  duration_ms: 80.610079
+  type: 'test'
+  ...
+# Subtest: B03 (R8-02): a desconsiderada do 12º mês anulada em outra sessão e a troca para 12 meses: o mês avulso novo nunca aparece com a exclusão antiga
+ok 10 - B03 (R8-02): a desconsiderada do 12º mês anulada em outra sessão e a troca para 12 meses: o mês avulso novo nunca aparece com a exclusão antiga
+  ---
+  duration_ms: 199.01741
+  type: 'test'
+  ...
+# Subtest: B03 (R11-01): o mês avulso sai da janela com a leitura em curso e volta desatualizado: a base antiga não aparece, e é relida
+ok 11 - B03 (R11-01): o mês avulso sai da janela com a leitura em curso e volta desatualizado: a base antiga não aparece, e é relida
+  ---
+  duration_ms: 542.898984
+  type: 'test'
+  ...
+# Subtest: B03 (R11-02): 12 meses sem desconsiderada, as bases relidas sem pedido da escuta (a virada do mês) e o mês avulso falhando: nenhuma renderização mostra só a série nova
+not ok 12 - B03 (R11-02): 12 meses sem desconsiderada, as bases relidas sem pedido da escuta (a virada do mês) e o mês avulso falhando: nenhuma renderização mostra só a série nova
+  ---
+  duration_ms: 3084.948282
+  type: 'test'
+  location: '<scratchpad>/fdi-rev/tests/unit/work-time-consistency.test.ts:545:1'
+  failureType: 'testCodeFailure'
+  error: 'tempo esgotado: a série nova e a falha do mês avulso, com a ressalva (mostrados: loading → 3600000 → loading → error)'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  operator: 'fail'
+  stack: |-
+    until (file://<scratchpad>/fdi-rev/tests/unit/work-time-consistency.test.ts:54:57)
+    async TestContext.<anonymous> (file://<scratchpad>/fdi-rev/tests/unit/work-time-consistency.test.ts:558:3)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: B03: o calendário trocado durante a sincronização de uma anulação em outra sessão: nunca a base nova com a leitura por id antiga
+ok 13 - B03: o calendário trocado durante a sincronização de uma anulação em outra sessão: nunca a base nova com a leitura por id antiga
+  ---
+  duration_ms: 492.203026
+  type: 'test'
+  ...
+# Subtest: B03: troca do workspace da renda: a estimativa do anterior nunca aparece; só "calculando" até a do novo estar provada
+ok 14 - B03: troca do workspace da renda: a estimativa do anterior nunca aparece; só "calculando" até a do novo estar provada
+  ---
+  duration_ms: 214.722746
+  type: 'test'
+  ...
+# Subtest: B03: troca de conta: a estimativa da conta anterior não é reaproveitada
+ok 15 - B03: troca de conta: a estimativa da conta anterior não é reaproveitada
+  ---
+  duration_ms: 206.417241
+  type: 'test'
+  ...
+# Subtest: B03: nova receita e anulação da desconsiderada em outra sessão durante a releitura por id: nenhuma renderização desconta duas vezes
+ok 16 - B03: nova receita e anulação da desconsiderada em outra sessão durante a releitura por id: nenhuma renderização desconta duas vezes
+  ---
+  duration_ms: 490.893543
+  type: 'test'
+  ...
+# Subtest: B03: a leitura por id falha antes da primeira estimativa: o erro com "Tentar de novo", nunca o total sem as exclusões
+ok 17 - B03: a leitura por id falha antes da primeira estimativa: o erro com "Tentar de novo", nunca o total sem as exclusões
+  ---
+  duration_ms: 44.179614
+  type: 'test'
+  ...
+# Subtest: revisão pt-BR da R3 (M-01): sem desconsiderada, 12 meses e a escuta sem retorno do servidor: depois do tempo de interface, o texto de "em atualização" sem apontar causa, nunca a conversão; com o retorno, a estimativa provada
+ok 18 - revisão pt-BR da R3 (M-01): sem desconsiderada, 12 meses e a escuta sem retorno do servidor: depois do tempo de interface, o texto de "em atualização" sem apontar causa, nunca a conversão; com o retorno, a estimativa provada
+  ---
+  duration_ms: 123.612508
+  type: 'test'
+  ...
+# Subtest: revisão pt-BR da R3 (L-03): a leitura das marcas falha: o erro fixo em pt-BR com "Tentar de novo", nunca a conversão; o "Tentar de novo" prova
+ok 19 - revisão pt-BR da R3 (L-03): a leitura das marcas falha: o erro fixo em pt-BR com "Tentar de novo", nunca a conversão; o "Tentar de novo" prova
+  ---
+  duration_ms: 48.542255
+  type: 'test'
+  ...
+# Subtest: revisão da R1 (N05): com desconsiderada, a escuta encerrada antes do primeiro retorno do servidor dá o erro com "Tentar de novo", nunca "calculando" para sempre
+ok 20 - revisão da R1 (N05): com desconsiderada, a escuta encerrada antes do primeiro retorno do servidor dá o erro com "Tentar de novo", nunca "calculando" para sempre
+  ---
+  duration_ms: 133.889505
+  type: 'test'
+  ...
+# Subtest: revisão da R1 (N03): a desconsiderada editada em outra sessão antes do gatilho, na primeira leitura: nunca o valor novo com o total velho
+ok 21 - revisão da R1 (N03): a desconsiderada editada em outra sessão antes do gatilho, na primeira leitura: nunca o valor novo com o total velho
+  ---
+  duration_ms: 377.879996
+  type: 'test'
+  ...
+# Subtest: B03 (R3, ex-N03): a desconsiderada editada sem efeito na renda e o gatilho atrasado (marca velha): nenhuma conversão em tempo nenhum, só "estimativa em atualização"; com a marca aplicada, a estimativa certa aparece sem esperar prazo
+ok 22 - B03 (R3, ex-N03): a desconsiderada editada sem efeito na renda e o gatilho atrasado (marca velha): nenhuma conversão em tempo nenhum, só "estimativa em atualização"; com a marca aplicada, a estimativa certa aparece sem esperar prazo
+  ---
+  duration_ms: 873.568183
+  type: 'test'
+  ...
+# Subtest: B03 (R3, ex-M02): a hora do servidor não aprova: uma sessão nova aberta depois de o servidor passar da escrita por mais que qualquer prazo continua sem converter com a marca velha
+ok 23 - B03 (R3, ex-M02): a hora do servidor não aprova: uma sessão nova aberta depois de o servidor passar da escrita por mais que qualquer prazo continua sem converter com a marca velha
+  ---
+  duration_ms: 511.581705
+  type: 'test'
+  ...
+# Subtest: B03 (R3, ex-P01): o N03 com a hora do servidor nas bases: sessão aberta 5 s depois da edição de valor, e mesmo 1 h depois, nunca o valor novo com o total velho; o gatilho aplica (receita e marca) e aparece o certo
+ok 24 - B03 (R3, ex-P01): o N03 com a hora do servidor nas bases: sessão aberta 5 s depois da edição de valor, e mesmo 1 h depois, nunca o valor novo com o total velho; o gatilho aplica (receita e marca) e aparece o certo
+  ---
+  duration_ms: 633.772349
+  type: 'test'
+  ...
+# Subtest: B03 (R3, ex-P01): nenhum intervalo aprova a conversão: com a base gerada 59 s depois da escrita e a marca velha, só "estimativa em atualização"
+ok 25 - B03 (R3, ex-P01): nenhum intervalo aprova a conversão: com a base gerada 59 s depois da escrita e a marca velha, só "estimativa em atualização"
+  ---
+  duration_ms: 248.517232
+  type: 'test'
+  ...
+# Subtest: B03 (R3, ex-P01): nenhum intervalo aprova a conversão: com a base gerada 60 s depois da escrita e a marca velha, só "estimativa em atualização" (o limite que antes encerrava a espera)
+ok 26 - B03 (R3, ex-P01): nenhum intervalo aprova a conversão: com a base gerada 60 s depois da escrita e a marca velha, só "estimativa em atualização" (o limite que antes encerrava a espera)
+  ---
+  duration_ms: 245.503656
+  type: 'test'
+  ...
+# Subtest: B03 (R3, ex-P01): nenhum intervalo aprova a conversão: com a base gerada 3600 s depois da escrita e a marca velha, só "estimativa em atualização"
+ok 27 - B03 (R3, ex-P01): nenhum intervalo aprova a conversão: com a base gerada 3600 s depois da escrita e a marca velha, só "estimativa em atualização"
+  ---
+  duration_ms: 244.355779
+  type: 'test'
+  ...
+# Subtest: B03 (R3, ex-N06): a edição sem efeito na renda depois da mudança vista, aplicada pelo gatilho, não prende a estimativa: outra receita entra sem esperar prazo
+ok 28 - B03 (R3, ex-N06): a edição sem efeito na renda depois da mudança vista, aplicada pelo gatilho, não prende a estimativa: outra receita entra sem esperar prazo
+  ---
+  duration_ms: 301.801161
+  type: 'test'
+  ...
+# Subtest: B03 (R3, a): a desconsiderada editada em outra sessão com o gatilho atrasado: nenhuma renderização converte com o conteúdo novo e o total velho; quando o gatilho aplica (receita e marca juntas), aparece o valor certo
+ok 29 - B03 (R3, a): a desconsiderada editada em outra sessão com o gatilho atrasado: nenhuma renderização converte com o conteúdo novo e o total velho; quando o gatilho aplica (receita e marca juntas), aparece o valor certo
+  ---
+  duration_ms: 658.675265
+  type: 'test'
+  ...
+# Subtest: B03 (R3, b): evento fora de ordem (marca com pendência): sem conversão enquanto a pendência não fecha, mesmo relendo; fechada, a estimativa aparece
+ok 30 - B03 (R3, b): evento fora de ordem (marca com pendência): sem conversão enquanto a pendência não fecha, mesmo relendo; fechada, a estimativa aparece
+  ---
+  duration_ms: 892.646163
+  type: 'test'
+  ...
+# Subtest: B03 (R3, c): marca quebrada: sem conversão e sem releitura automática além da escuta; só a reconstrução, a escuta ou o "Tentar de novo" recuperam
+ok 31 - B03 (R3, c): marca quebrada: sem conversão e sem releitura automática além da escuta; só a reconstrução, a escuta ou o "Tentar de novo" recuperam
+  ---
+  duration_ms: 981.309215
+  type: 'test'
+  ...
+# Subtest: B03 (R3, d): a desconsiderada muda de mês para fora da janela: o mês antigo só deixa de descontar quando a marca e a receita mudam juntas
+ok 32 - B03 (R3, d): a desconsiderada muda de mês para fora da janela: o mês antigo só deixa de descontar quando a marca e a receita mudam juntas
+  ---
+  duration_ms: 660.309297
+  type: 'test'
+  ...
+# Subtest: B03 (R3, e): a releitura por motivo passageiro respeita o orçamento do agendador: no máximo o orçamento, a reposição depois, e nunca um prazo que aprove
+ok 33 - B03 (R3, e): a releitura por motivo passageiro respeita o orçamento do agendador: no máximo o orçamento, a reposição depois, e nunca um prazo que aprove
+  ---
+  duration_ms: 783.053845
+  type: 'test'
+  ...
+# Subtest: revisão da R1 (N06): a última estimativa provada mostrada no lugar da atual por mais que a espera limitada ganha o aviso e o "Tentar de novo"
+not ok 34 - revisão da R1 (N06): a última estimativa provada mostrada no lugar da atual por mais que a espera limitada ganha o aviso e o "Tentar de novo"
+  ---
+  duration_ms: 2595.388923
+  type: 'test'
+  location: '<scratchpad>/fdi-rev/tests/unit/work-time-consistency.test.ts:1076:1'
+  failureType: 'testCodeFailure'
+  error: 'tempo esgotado: o aviso na anterior (mostrados: loading → 1056000 → loading → error → 1086000)'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  operator: 'fail'
+  stack: |-
+    until (file://<scratchpad>/fdi-rev/tests/unit/work-time-consistency.test.ts:54:57)
+    async TestContext.<anonymous> (file://<scratchpad>/fdi-rev/tests/unit/work-time-consistency.test.ts:1087:3)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: B01: o recebimento desconsiderado é estornado em outra sessão (depois da sincronização): a exclusão perde o efeito, nunca desconta de novo
+ok 35 - B01: o recebimento desconsiderado é estornado em outra sessão (depois da sincronização): a exclusão perde o efeito, nunca desconta de novo
+  ---
+  duration_ms: 297.370032
+  type: 'test'
+  ...
+# Subtest: B01: o recebimento desconsiderado é estornado em outra sessão (durante a releitura por id): a exclusão perde o efeito, nunca desconta de novo
+ok 36 - B01: o recebimento desconsiderado é estornado em outra sessão (durante a releitura por id): a exclusão perde o efeito, nunca desconta de novo
+  ---
+  duration_ms: 493.706005
+  type: 'test'
+  ...
+# Subtest: B01: o estorno lido antes de a projeção incluí-lo nunca aparece com o total antigo (a exclusão sem efeito com A ainda somado)
+ok 37 - B01: o estorno lido antes de a projeção incluí-lo nunca aparece com o total antigo (a exclusão sem efeito com A ainda somado)
+  ---
+  duration_ms: 494.623186
+  type: 'test'
+  ...
+# Subtest: B01: o recebimento desconsiderado sem estorno continua descontado; com dois desconsiderados, só o estornado perde o efeito
+ok 38 - B01: o recebimento desconsiderado sem estorno continua descontado; com dois desconsiderados, só o estornado perde o efeito
+  ---
+  duration_ms: 299.920069
+  type: 'test'
+  ...
+# Subtest: a varredura alcança o repositório real
+not ok 39 - a varredura alcança o repositório real
+  ---
+  duration_ms: 8.07588
+  type: 'test'
+  location: '<scratchpad>/fdi-rev/tests/unit/work-time-guard.test.ts:78:1'
+  failureType: 'testCodeFailure'
+  error: "ENOENT: no such file or directory, scandir '<scratchpad>/fdi-rev/functions/src'"
+  code: 'ENOENT'
+  stack: |-
+    readdirSync (node:fs:1590:26)
+    sourceFiles (file://<scratchpad>/fdi-rev/tests/unit/work-time-guard.test.ts:62:3)
+    TestContext.<anonymous> (file://<scratchpad>/fdi-rev/tests/unit/work-time-guard.test.ts:82:13)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.start (node:internal/test_runner/test:944:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)
+  ...
+# Subtest: nenhuma Function lê, grava ou menciona a preferência privada
+not ok 40 - nenhuma Function lê, grava ou menciona a preferência privada
+  ---
+  duration_ms: 0.271659
+  type: 'test'
+  location: '<scratchpad>/fdi-rev/tests/unit/work-time-guard.test.ts:85:1'
+  failureType: 'testCodeFailure'
+  error: "ENOENT: no such file or directory, scandir '<scratchpad>/fdi-rev/functions/src'"
+  code: 'ENOENT'
+  stack: |-
+    readdirSync (node:fs:1590:26)
+    sourceFiles (file://<scratchpad>/fdi-rev/tests/unit/work-time-guard.test.ts:62:3)
+    TestContext.<anonymous> (file://<scratchpad>/fdi-rev/tests/unit/work-time-guard.test.ts:86:22)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: IA, notificações e relatórios autoritativos não recebem a preferência
+ok 41 - IA, notificações e relatórios autoritativos não recebem a preferência
+  ---
+  duration_ms: 5.227912
+  type: 'test'
+  ...
+# Subtest: DTOs, chamadas e adaptadores financeiros não carregam tempo de trabalho
+ok 42 - DTOs, chamadas e adaptadores financeiros não carregam tempo de trabalho
+  ---
+  duration_ms: 8.398086
+  type: 'test'
+  ...
+# Subtest: nenhuma cópia local da preferência e nenhuma leitura do cache do SDK no app
+ok 43 - nenhuma cópia local da preferência e nenhuma leitura do cache do SDK no app
+  ---
+  duration_ms: 40.047697
+  type: 'test'
+  ...
+# Subtest: logs da preferência só levam mensagem fixa e código de erro
+ok 44 - logs da preferência só levam mensagem fixa e código de erro
+  ---
+  duration_ms: 4.401718
+  type: 'test'
+  ...
+# Subtest: sessão: troca de conta e respostas atrasadas não expõem a preferência de outra conta
+ok 45 - sessão: troca de conta e respostas atrasadas não expõem a preferência de outra conta
+  ---
+  duration_ms: 0.608265
+  type: 'test'
+  ...
+# Subtest: a preferência só é lida e gravada no documento privado do próprio usuário
+ok 46 - a preferência só é lida e gravada no documento privado do próprio usuário
+  ---
+  duration_ms: 2.053409
+  type: 'test'
+  ...
+# Subtest: Rules: bloco explícito do titular, campos, gramáticas e limites iguais ao contrato v2 do cliente
+not ok 47 - Rules: bloco explícito do titular, campos, gramáticas e limites iguais ao contrato v2 do cliente
+  ---
+  duration_ms: 0.829189
+  type: 'test'
+  location: '<scratchpad>/fdi-rev/tests/unit/work-time-guard.test.ts:217:1'
+  failureType: 'testCodeFailure'
+  error: "ENOENT: no such file or directory, open '<scratchpad>/fdi-rev/firestore.rules'"
+  code: 'ENOENT'
+  stack: |-
+    readFileSync (node:fs:440:20)
+    read (file://<scratchpad>/fdi-rev/tests/unit/work-time-guard.test.ts:55:32)
+    TestContext.<anonymous> (file://<scratchpad>/fdi-rev/tests/unit/work-time-guard.test.ts:218:17)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: nada derivado é gravado: só a API do módulo escreve, e só os campos do contrato
+ok 48 - nada derivado é gravado: só a API do módulo escreve, e só os campos do contrato
+  ---
+  duration_ms: 4.310395
+  type: 'test'
+  ...
+# Subtest: leitura das marcas de aplicação (P5-F.1-R3): só uma transação de leitura, só nas coleções da projeção, sem escrita, escuta nem cache
+not ok 49 - leitura das marcas de aplicação (P5-F.1-R3): só uma transação de leitura, só nas coleções da projeção, sem escrita, escuta nem cache
+  ---
+  duration_ms: 2.741908
+  type: 'test'
+  location: '<scratchpad>/fdi-rev/tests/unit/work-time-guard.test.ts:312:1'
+  failureType: 'testCodeFailure'
+  error: "ENOENT: no such file or directory, open '<scratchpad>/fdi-rev/firestore.rules'"
+  code: 'ENOENT'
+  stack: |-
+    readFileSync (node:fs:440:20)
+    read (file://<scratchpad>/fdi-rev/tests/unit/work-time-guard.test.ts:55:32)
+    TestContext.<anonymous> (file://<scratchpad>/fdi-rev/tests/unit/work-time-guard.test.ts:336:17)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: estimativa: uma por contexto, sem polling nem listener por lançamento
+not ok 50 - estimativa: uma por contexto, sem polling nem listener por lançamento
+  ---
+  duration_ms: 78.862281
+  type: 'test'
+  location: '<scratchpad>/fdi-rev/tests/unit/work-time-guard.test.ts:345:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    The input did not match the regular expression /const decision = holdEstimate\(proof\.proven, holding, last\.current, identity, current, unproven\);\s*last\.current = decision\.last;/. Input:
+    
+    "import { useCallback, useEffect, useMemo, useRef, useState } from 'react';\n" +
+      '\n' +
+      "import { basisIncomeOf } from '../reports/basisRefresh.ts';\n" +
+      "import { noteDependentReadStart, syncKeyOf } from '../reports/basisRegistry.ts';\n" +
+      'import {\n' +
+      '  basisKeyOf,\n' +
+      '  useFinancialReportBasisLiveRefreshWith,\n' +
+      '  useFinancialReportBasisWith,\n' +
+      '  type BasisSyncDeps,\n' +
+      '  type BasisView,\n' +
+      "} from '../reports/basisSync.ts';\n" +
+      "import { SYSTEM_LIVE_REFRESH_CLOCK, createLiveRefreshScheduler } from '../reports/liveRefresh.ts';\n" +
+      "import type { ReportRange, ReportSection } from '../reports/official.ts';\n" +
+      "import { FINANCIAL_REPORT_BASIS_REFRESH } from '../reports/queryKeys.ts';\n" +
+      "import { useTransactionsByIdsWith } from '../transactions/incomeReads.ts';\n" +
+      "import type { WorkCalendar } from './calendar.ts';\n" +
+      "import { proveEstimateConsistency, type ConsistencyInput } from './consistency.ts';\n" +
+      "import type { WorkTimeEstimateMode, WorkTimeHistoryMonths } from './contract.ts';\n" +
+      "import { monthKeyOf } from './dates.ts';\n" +
+      "import { computeWorkTimeEstimate, estimateWindowMonths, extraMonthNeeded, type WorkTimeEstimate } from './estimate.ts';\n" +
+      "import { excludedItemOf, type ExcludedIncomeItem, type MonthReceipts } from './incomeBasis.ts';\n" +
+      "import { proveProjectionExclusions, type ProjectionMarksRead, type ProjectionProof, type ReadDocument } from './projectionProof.ts';\n" +
+      "import { readExcludedIncome, type ExcludedRead, type ReadByIds } from './receivableReversal.ts';\n" +
+      "import { ESTIMATE_UNCONFIRMED_FAILED, ESTIMATE_UPDATING, estimateFailureMessage } from './messages.ts';\n" +
+      '\n' +
+      '\n' +
+      '\n' +
+      '\n' +
+      'export const ESTIMATE_PENDING_WAIT_MS = 30_000;\n' +
+      '\n' +
+      "const PRESET_12M: ReportRange = { kind: 'preset', preset: '12m' };\n" +
+      "const SERIES_SECTIONS: readonly ReportSection[] = ['series'];\n" +
+      "const CASH_SECTIONS: readonly ReportSection[] = ['cash'];\n" +
+      "const EXACT = new Set(['exact', 'zero']);\n" +
+      '\n' +
+      'export interface IncomeEstimateParams {\n' +
+      '  workspaceId: string | null;\n' +
+      '  mode: WorkTimeEstimateMode;\n' +
+      '  historyMonths: WorkTimeHistoryMonths;\n' +
+      '  allowBusinessIncome: boolean;\n' +
+      '  calendar: WorkCalendar;\n' +
+      '  excludedIds: readonly string[];\n' +
+      '  enabled: boolean;\n' +
+      '}\n' +
+      '\n' +
+      'export type IncomeEstimateState =\n' +
+      "  | { status: 'idle' }\n" +
+      "  | { status: 'loading' }\n" +
+      "  | { status: 'error'; message: string; retry: () => void }\n" +
+      '  | {\n' +
+      "    status: 'done';\n" +
+      '    estimate: WorkTimeEstimate;\n' +
+      '    updatedAt: number;\n' +
+      '    \n' +
+      '    refreshFailed: boolean;\n' +
+      '    retry: () => void;\n' +
+      '  };\n' +
+      '\n' +
+      'export interface IncomeEstimateDeps {\n' +
+      '  basis: BasisSyncDeps;\n' +
+      '  \n' +
+      '  readByIds: ReadByIds;\n' +
+      '  \n' +
+      '  readProjectionMarks: (workspaceId: string, months: readonly string[], ids: readonly string[]) => Promise<ProjectionMarksRead>;\n' +
+      '  \n' +
+      '  pendingWaitMs?: number;\n' +
+      '}\n' +
+      '\n' +
+      '\n' +
+      'export const holdEstimate = (\n' +
+      '  proven: boolean,\n' +
+      '  settling: boolean,\n' +
+      '  state: IncomeEstimateState,\n' +
+      "  unproven: Exclude<IncomeEstimateState, { status: 'done' }>,\n" +
+      "): IncomeEstimateState => (state.status === 'done' && (!proven || settling) ? unproven : state);\n" +
+      '\n' +
+      '\n' +
+      'type ExcludedReadResult = ExcludedRead & { startedOrder: number; snapshot: ProjectionMarksRead; window: string };\n' +
+      '\n' +
+      'export const useIncomeEstimateWith = (\n' +
+      '  deps: IncomeEstimateDeps,\n' +
+      '  uid: string | null,\n' +
+      '  params: IncomeEstimateParams,\n' +
+      '): IncomeEstimateState => {\n' +
+      '  const { workspaceId, mode, historyMonths, allowBusinessIncome, calendar, excludedIds, enabled } = params;\n' +
+      '  const series = useFinancialReportBasisWith(deps.basis, uid, workspaceId, PRESET_12M, SERIES_SECTIONS, { enabled });\n' +
+      '  const referenceDate = series.data?.referenceDate ?? null;\n' +
+      '  const extraMonth = referenceDate ? extraMonthNeeded(mode, historyMonths, monthKeyOf(referenceDate)) : null;\n' +
+      '  const extraRange = useMemo<ReportRange>(\n' +
+      "    () => (extraMonth ? { kind: 'month', month: extraMonth } : PRESET_12M),\n" +
+      '    [extraMonth],\n' +
+      '  );\n' +
+      '  const extra = useFinancialReportBasisWith(deps.basis, uid, workspaceId, extraRange, CASH_SECTIONS, { enabled: enabled && extraMonth !== null });\n' +
+      '  \n' +
+      '  \n' +
+      '  \n' +
+      '  const windowMonths = useMemo(\n' +
+      '    () => (referenceDate ? estimateWindowMonths(mode, historyMonths, referenceDate) : []),\n' +
+      '    [referenceDate, mode, historyMonths],\n' +
+      '  );\n' +
+      '  const needsExtra = extraMonth !== null;\n' +
+      '  const needsExcluded = excludedIds.length > 0;\n' +
+      '  \n' +
+      '  \n' +
+      '  \n' +
+      '  const basis = useMemo<BasisView | null>(() => {\n' +
+      '    if (!series.data || (needsExtra && !extra.data)) return null;\n' +
+      '    return {\n' +
+      '      income: basisIncomeOf(\n' +
+      '        series.data.series.data?.points ?? [],\n' +
+      '        needsExtra && extra.data ? { month: extraMonth as string, receiptsCents: extra.data.cash.data?.receiptsCents ?? 0 } : null,\n' +
+      '      ),\n' +
+      '      exact: EXACT.has(series.data.series.status) && (!needsExtra || (!!extra.data && EXACT.has(extra.data.cash.status))),\n' +
+      '      versions: needsExtra ? [series.dataUpdatedAt, extra.dataUpdatedAt] : [series.dataUpdatedAt],\n' +
+      '      keys: needsExtra\n' +
+      '        ? [basisKeyOf(uid, workspaceId, PRESET_12M, SERIES_SECTIONS), basisKeyOf(uid, workspaceId, extraRange, CASH_SECTIONS)]\n' +
+      '        : [basisKeyOf(uid, workspaceId, PRESET_12M, SERIES_SECTIONS)],\n' +
+      "      fetching: series.fetchStatus !== 'idle' || (needsExtra && extra.fetchStatus !== 'idle'),\n" +
+      '    };\n' +
+      '  }, [series.data, series.dataUpdatedAt, series.fetchStatus, extra.data, extra.dataUpdatedAt, extra.fetchStatus, needsExtra, extraMonth, extraRange, uid, workspaceId]);\n' +
+      "  const syncKey = enabled && uid !== null && !!workspaceId && workspaceId !== 'loading' ? syncKeyOf(uid, workspaceId) : null;\n" +
+      "  const windowKey = `${syncKey ?? ''}\\n${windowMonths.join(',')}`;\n" +
+      '  \n' +
+      '  \n' +
+      '  const [projectionReady, setProjectionReady] = useState<string | null>(null);\n' +
+      '  \n' +
+      '  \n' +
+      '  const { readByIds, readProjectionMarks } = deps;\n' +
+      "  const windowList = windowMonths.join(',');\n" +
+      '  const readExcluded = useCallback(\n' +
+      '    async (sourceId: string, ids: readonly string[]): Promise<ExcludedReadResult> => {\n' +
+      '      const startedOrder = noteDependentReadStart();\n' +
+      '      const read = await readExcludedIncome(readByIds, sourceId, ids);\n' +
+      "      const months = windowList === '' ? [] : windowList.split(',');\n" +
+      '      const snapshot = await readProjectionMarks(sourceId, months, [...new Set([...ids, ...Object.values(read.reversalIds)])]);\n' +
+      '      return { ...read, startedOrder, snapshot, window: windowList };\n' +
+      '    },\n' +
+      '    [readByIds, readProjectionMarks, windowList],\n' +
+      '  );\n' +
+      '  const excluded = useTransactionsByIdsWith(readExcluded, workspaceId, excludedIds, {\n' +
+      '    enabled: enabled && needsExcluded && projectionReady === windowKey,\n' +
+      '    scope: windowList,\n' +
+      '  });\n' +
+      '  const { holding, listenFailed, retryListen, confirmed } = useFinancialReportBasisLiveRefreshWith(\n' +
+      '    deps.basis, uid, workspaceId, windowMonths, basis, needsExcluded ? excluded.data : null, { enabled },\n' +
+      '  );\n' +
+      '  const confirmedReady = confirmed !== null;\n' +
+      '  useEffect(() => {\n' +
+      '    setProjectionReady(confirmedReady ? windowKey : null);\n' +
+      '  }, [confirmedReady, windowKey]);\n' +
+      '\n' +
+      '  const { refetch: refetchSeries } = series;\n' +
+      '  const { refetch: refetchExtra } = extra;\n' +
+      '  const { refetch: refetchExcluded } = excluded;\n' +
+      '  \n' +
+      '  \n' +
+      '  const retry = useCallback(() => {\n' +
+      '    void refetchSeries();\n' +
+      '    if (extraMonth) void refetchExtra();\n' +
+      '    if (excludedIds.length > 0 && !listenFailed) void refetchExcluded();\n' +
+      '    retryListen();\n' +
+      '  }, [refetchSeries, refetchExtra, refetchExcluded, extraMonth, excludedIds.length, listenFailed, retryListen]);\n' +
+      '\n' +
+      '  \n' +
+      '  \n' +
+      '  const exclusionsProof = useMemo<ProjectionProof | null>(() => {\n' +
+      '    const read = needsExcluded ? excluded.data : undefined;\n' +
+      "    if (read === undefined || basis === null || read.window !== windowMonths.join(',')) return null;\n" +
+      '    const documents: Record<string, ReadDocument> = {};\n' +
+      '    const idOf = (document: object) => String((document as { id?: unknown }).id);\n' +
+      '    for (const document of [...read.found, ...Object.values(read.reversals)]) {\n' +
+      '      documents[idOf(document)] = { document: document as Record<string, unknown>, fingerprint: read.fingerprints[idOf(document)] ?? null };\n' +
+      '    }\n' +
+      '    return proveProjectionExclusions({\n' +
+      '      months: windowMonths,\n' +
+      '      snapshot: read.snapshot,\n' +
+      '      basisIncome: basis.income,\n' +
+      '      excludedIds: [...new Set(excludedIds)],\n' +
+      '      read: documents,\n' +
+      '      reversalIds: read.reversalIds,\n' +
+      '    });\n' +
+      '  }, [needsExcluded, excluded.data, basis, windowMonths, excludedIds]);\n' +
+      '  const state = useMemo<IncomeEstimateState>(() => {\n' +
+      "    if (!enabled || !workspaceId) return { status: 'idle' };\n" +
+      '    const failedReport = [series, ...(needsExtra ? [extra] : [])].find((query) => query.isError && query.data === undefined);\n' +
+      "    if (failedReport) return { status: 'error', message: estimateFailureMessage('report', failedReport.error), retry };\n" +
+      '    if (needsExcluded && excluded.isError && excluded.data === undefined) {\n' +
+      "      return { status: 'error', message: estimateFailureMessage('excluded', excluded.error), retry };\n" +
+      '    }\n' +
+      "    if (!series.data || (needsExtra && !extra.data) || (needsExcluded && !excluded.data)) return { status: 'loading' };\n" +
+      '\n' +
+      '    const report = series.data;\n' +
+      '    const points = report.series.data?.points ?? [];\n' +
+      '    const receipts: MonthReceipts[] = points.map((point) => ({\n' +
+      '      month: point.month,\n' +
+      '      receiptsCents: point.receiptsCents,\n' +
+      '      partial: point.partial,\n' +
+      '    }));\n' +
+      '    let reportExact = EXACT.has(report.series.status);\n' +
+      '    if (needsExtra && extra.data && extraMonth) {\n' +
+      '      const cash = extra.data.cash;\n' +
+      "      reportExact = reportExact && EXACT.has(cash.status) && extra.data.period.range.kind === 'month';\n" +
+      '      receipts.push({ month: extraMonth, receiptsCents: cash.data?.receiptsCents ?? 0, partial: false });\n' +
+      '    }\n' +
+      '    \n' +
+      '    \n' +
+      '    const excludedItems: ExcludedIncomeItem[] = [];\n' +
+      '    if (needsExcluded && excluded.data && exclusionsProof?.proven) {\n' +
+      '      for (const [id, applied] of Object.entries(exclusionsProof.applied)) {\n' +
+      '        excludedItems.push(applied.document === null\n' +
+      '          ? { id, month: null, classification: null }\n' +
+      '          : excludedItemOf(applied.document, applied.reversal));\n' +
+      '      }\n' +
+      '    } else if (needsExcluded && excluded.data) {\n' +
+      '      for (const found of excluded.data.found) {\n' +
+      '        const transaction = found as Record<string, unknown>;\n' +
+      '        const reversal = excluded.data.reversals[String(transaction.id)] as Record<string, unknown> | undefined;\n' +
+      '        excludedItems.push(excludedItem'... 5292 more characters
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual: |-
+    import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+    
+    import { basisIncomeOf } from '../reports/basisRefresh.ts';
+    import { noteDependentReadStart, syncKeyOf } from '../reports/basisRegistry.ts';
+    import {
+      basisKeyOf,
+      useFinancialReportBasisLiveRefreshWith,
+      useFinancialReportBasisWith,
+      type BasisSyncDeps,
+      type BasisView,
+    } from '../reports/basisSync.ts';
+    import { SYSTEM_LIVE_REFRESH_CLOCK, createLiveRefreshScheduler } from '../reports/liveRefresh.ts';
+    import type { ReportRange, ReportSection } from '../reports/official.ts';
+    import { FINANCIAL_REPORT_BASIS_REFRESH } from '../reports/queryKeys.ts';
+    import { useTransactionsByIdsWith } from '../transactions/incomeReads.ts';
+    import type { WorkCalendar } from './calendar.ts';
+    import { proveEstimateConsistency, type ConsistencyInput } from './consistency.ts';
+    import type { WorkTimeEstimateMode, WorkTimeHistoryMonths } from './contract.ts';
+    import { monthKeyOf } from './dates.ts';
+    import { computeWorkTimeEstimate, estimateWindowMonths, extraMonthNeeded, type WorkTimeEstimate } from './estimate.ts';
+    import { excludedItemOf, type ExcludedIncomeItem, type MonthReceipts } from './incomeBasis.ts';
+    import { proveProjectionExclusions, type ProjectionMarksRead, type ProjectionProof, type ReadDocument } from './projectionProof.ts';
+    import { readExcludedIncome, type ExcludedRead, type ReadByIds } from './receivableReversal.ts';
+    import { ESTIMATE_UNCONFIRMED_FAILED, ESTIMATE_UPDATING, estimateFailureMessage } from './messages.ts';
+    
+    
+    
+    
+    export const ESTIMATE_PENDING_WAIT_MS = 30_000;
+    
+    const PRESET_12M: ReportRange = { kind: 'preset', preset: '12m' };
+    const SERIES_SECTIONS: readonly ReportSection[] = ['series'];
+    const CASH_SECTIONS: readonly ReportSection[] = ['cash'];
+    const EXACT = new Set(['exact', 'zero']);
+    
+    export interface IncomeEstimateParams {
+      workspaceId: string | null;
+      mode: WorkTimeEstimateMode;
+      historyMonths: WorkTimeHistoryMonths;
+      allowBusinessIncome: boolean;
+      calendar: WorkCalendar;
+      excludedIds: readonly string[];
+      enabled: boolean;
+    }
+    
+    export type IncomeEstimateState =
+      | { status: 'idle' }
+      | { status: 'loading' }
+      | { status: 'error'; message: string; retry: () => void }
+      | {
+        status: 'done';
+        estimate: WorkTimeEstimate;
+        updatedAt: number;
+        
+        refreshFailed: boolean;
+        retry: () => void;
+      };
+    
+    export interface IncomeEstimateDeps {
+      basis: BasisSyncDeps;
+      
+      readByIds: ReadByIds;
+      
+      readProjectionMarks: (workspaceId: string, months: readonly string[], ids: readonly string[]) => Promise<ProjectionMarksRead>;
+      
+      pendingWaitMs?: number;
+    }
+    
+    
+    export const holdEstimate = (
+      proven: boolean,
+      settling: boolean,
+      state: IncomeEstimateState,
+      unproven: Exclude<IncomeEstimateState, { status: 'done' }>,
+    ): IncomeEstimateState => (state.status === 'done' && (!proven || settling) ? unproven : state);
+    
+    
+    type ExcludedReadResult = ExcludedRead & { startedOrder: number; snapshot: ProjectionMarksRead; window: string };
+    
+    export const useIncomeEstimateWith = (
+      deps: IncomeEstimateDeps,
+      uid: string | null,
+      params: IncomeEstimateParams,
+    ): IncomeEstimateState => {
+      const { workspaceId, mode, historyMonths, allowBusinessIncome, calendar, excludedIds, enabled } = params;
+      const series = useFinancialReportBasisWith(deps.basis, uid, workspaceId, PRESET_12M, SERIES_SECTIONS, { enabled });
+      const referenceDate = series.data?.referenceDate ?? null;
+      const extraMonth = referenceDate ? extraMonthNeeded(mode, historyMonths, monthKeyOf(referenceDate)) : null;
+      const extraRange = useMemo<ReportRange>(
+        () => (extraMonth ? { kind: 'month', month: extraMonth } : PRESET_12M),
+        [extraMonth],
+      );
+      const extra = useFinancialReportBasisWith(deps.basis, uid, workspaceId, extraRange, CASH_SECTIONS, { enabled: enabled && extraMonth !== null });
+      
+      
+      
+      const windowMonths = useMemo(
+        () => (referenceDate ? estimateWindowMonths(mode, historyMonths, referenceDate) : []),
+        [referenceDate, mode, historyMonths],
+      );
+      const needsExtra = extraMonth !== null;
+      const needsExcluded = excludedIds.length > 0;
+      
+      
+      
+      const basis = useMemo<BasisView | null>(() => {
+        if (!series.data || (needsExtra && !extra.data)) return null;
+        return {
+          income: basisIncomeOf(
+            series.data.series.data?.points ?? [],
+            needsExtra && extra.data ? { month: extraMonth as string, receiptsCents: extra.data.cash.data?.receiptsCents ?? 0 } : null,
+          ),
+          exact: EXACT.has(series.data.series.status) && (!needsExtra || (!!extra.data && EXACT.has(extra.data.cash.status))),
+          versions: needsExtra ? [series.dataUpdatedAt, extra.dataUpdatedAt] : [series.dataUpdatedAt],
+          keys: needsExtra
+            ? [basisKeyOf(uid, workspaceId, PRESET_12M, SERIES_SECTIONS), basisKeyOf(uid, workspaceId, extraRange, CASH_SECTIONS)]
+            : [basisKeyOf(uid, workspaceId, PRESET_12M, SERIES_SECTIONS)],
+          fetching: series.fetchStatus !== 'idle' || (needsExtra && extra.fetchStatus !== 'idle'),
+        };
+      }, [series.data, series.dataUpdatedAt, series.fetchStatus, extra.data, extra.dataUpdatedAt, extra.fetchStatus, needsExtra, extraMonth, extraRange, uid, workspaceId]);
+      const syncKey = enabled && uid !== null && !!workspaceId && workspaceId !== 'loading' ? syncKeyOf(uid, workspaceId) : null;
+      const windowKey = `${syncKey ?? ''}\n${windowMonths.join(',')}`;
+      
+      
+      const [projectionReady, setProjectionReady] = useState<string | null>(null);
+      
+      
+      const { readByIds, readProjectionMarks } = deps;
+      const windowList = windowMonths.join(',');
+      const readExcluded = useCallback(
+        async (sourceId: string, ids: readonly string[]): Promise<ExcludedReadResult> => {
+          const startedOrder = noteDependentReadStart();
+          const read = await readExcludedIncome(readByIds, sourceId, ids);
+          const months = windowList === '' ? [] : windowList.split(',');
+          const snapshot = await readProjectionMarks(sourceId, months, [...new Set([...ids, ...Object.values(read.reversalIds)])]);
+          return { ...read, startedOrder, snapshot, window: windowList };
+        },
+        [readByIds, readProjectionMarks, windowList],
+      );
+      const excluded = useTransactionsByIdsWith(readExcluded, workspaceId, excludedIds, {
+        enabled: enabled && needsExcluded && projectionReady === windowKey,
+        scope: windowList,
+      });
+      const { holding, listenFailed, retryListen, confirmed } = useFinancialReportBasisLiveRefreshWith(
+        deps.basis, uid, workspaceId, windowMonths, basis, needsExcluded ? excluded.data : null, { enabled },
+      );
+      const confirmedReady = confirmed !== null;
+      useEffect(() => {
+        setProjectionReady(confirmedReady ? windowKey : null);
+      }, [confirmedReady, windowKey]);
+    
+      const { refetch: refetchSeries } = series;
+      const { refetch: refetchExtra } = extra;
+      const { refetch: refetchExcluded } = excluded;
+      
+      
+      const retry = useCallback(() => {
+        void refetchSeries();
+        if (extraMonth) void refetchExtra();
+        if (excludedIds.length > 0 && !listenFailed) void refetchExcluded();
+        retryListen();
+      }, [refetchSeries, refetchExtra, refetchExcluded, extraMonth, excludedIds.length, listenFailed, retryListen]);
+    
+      
+      
+      const exclusionsProof = useMemo<ProjectionProof | null>(() => {
+        const read = needsExcluded ? excluded.data : undefined;
+        if (read === undefined || basis === null || read.window !== windowMonths.join(',')) return null;
+        const documents: Record<string, ReadDocument> = {};
+        const idOf = (document: object) => String((document as { id?: unknown }).id);
+        for (const document of [...read.found, ...Object.values(read.reversals)]) {
+          documents[idOf(document)] = { document: document as Record<string, unknown>, fingerprint: read.fingerprints[idOf(document)] ?? null };
+        }
+        return proveProjectionExclusions({
+          months: windowMonths,
+          snapshot: read.snapshot,
+          basisIncome: basis.income,
+          excludedIds: [...new Set(excludedIds)],
+          read: documents,
+          reversalIds: read.reversalIds,
+        });
+      }, [needsExcluded, excluded.data, basis, windowMonths, excludedIds]);
+      const state = useMemo<IncomeEstimateState>(() => {
+        if (!enabled || !workspaceId) return { status: 'idle' };
+        const failedReport = [series, ...(needsExtra ? [extra] : [])].find((query) => query.isError && query.data === undefined);
+        if (failedReport) return { status: 'error', message: estimateFailureMessage('report', failedReport.error), retry };
+        if (needsExcluded && excluded.isError && excluded.data === undefined) {
+          return { status: 'error', message: estimateFailureMessage('excluded', excluded.error), retry };
+        }
+        if (!series.data || (needsExtra && !extra.data) || (needsExcluded && !excluded.data)) return { status: 'loading' };
+    
+        const report = series.data;
+        const points = report.series.data?.points ?? [];
+        const receipts: MonthReceipts[] = points.map((point) => ({
+          month: point.month,
+          receiptsCents: point.receiptsCents,
+          partial: point.partial,
+        }));
+        let reportExact = EXACT.has(report.series.status);
+        if (needsExtra && extra.data && extraMonth) {
+          const cash = extra.data.cash;
+          reportExact = reportExact && EXACT.has(cash.status) && extra.data.period.range.kind === 'month';
+          receipts.push({ month: extraMonth, receiptsCents: cash.data?.receiptsCents ?? 0, partial: false });
+        }
+        
+        
+        const excludedItems: ExcludedIncomeItem[] = [];
+        if (needsExcluded && excluded.data && exclusionsProof?.proven) {
+          for (const [id, applied] of Object.entries(exclusionsProof.applied)) {
+            excludedItems.push(applied.document === null
+              ? { id, month: null, classification: null }
+              : excludedItemOf(applied.document, applied.reversal));
+          }
+        } else if (needsExcluded && excluded.data) {
+          for (const found of excluded.data.found) {
+            const transaction = found as Record<string, unknown>;
+            const reversal = excluded.data.reversals[String(transaction.id)] as Record<string, unknown> | undefined;
+            excludedItems.push(excludedItemOf(transaction, reversal ?? null));
+          }
+          for (const id of excluded.data.missing) excludedItems.push({ id, month: null, classification: null });
+        }
+        const estimate = computeWorkTimeEstimate({
+          mode,
+          historyMonths,
+          allowBusinessIncome,
+          calendar,
+          referenceDate: report.referenceDate,
+          workspaceType: report.workspaceType,
+          reportExact,
+          receipts,
+          excluded: excludedItems,
+        });
+        const updatedAt = Math.max(series.dataUpdatedAt, needsExtra ? extra.dataUpdatedAt : 0, needsExcluded ? excluded.dataUpdatedAt : 0);
+        
+        const refreshFailed = series.isError || (needsExtra && extra.isError) || (needsExcluded && excluded.isError) || listenFailed;
+        return { status: 'done', estimate, updatedAt, refreshFailed, retry };
+      }, [enabled, workspaceId, series, extra, excluded, needsExtra, needsExcluded, extraMonth, mode, historyMonths, allowBusinessIncome, calendar, retry, listenFailed, exclusionsProof]);
+      const proofInput = useMemo<ConsistencyInput>(() => {
+        const read = needsExcluded ? excluded.data : undefined;
+        const excludedMonths: string[] = [];
+        for (const found of read?.found ?? []) {
+          const document = found as Record<string, unknown>;
+          const reversal = (read?.reversals[String(document.id)] as Record<string, unknown> | undefined) ?? null;
+          const month = excludedItemOf(document, reversal).month;
+          if (month !== null) excludedMonths.push(month);
+        }
+        return {
+          months: windowMonths,
+          multipleBases: needsExtra,
+          hasExclusions: needsExcluded,
+          basis: basis === null ? null : { income: basis.income, exact: basis.exact },
+          projection: confirmed,
+          excludedStartedOrder: read?.startedOrder ?? null,
+          excludedMonths,
+          exclusionsProof,
+        };
+      }, [needsExcluded, excluded.data, windowMonths, needsExtra, basis, confirmed, exclusionsProof]);
+      const clock = deps.basis.refresh?.clock ?? SYSTEM_LIVE_REFRESH_CLOCK;
+      const waitMs = deps.pendingWaitMs ?? ESTIMATE_PENDING_WAIT_MS;
+      const proof = useMemo(() => proveEstimateConsistency(proofInput), [proofInput]);
+      
+      
+      
+      
+      
+      
+      
+      
+      const refetchExcludedRef = useRef(refetchExcluded);
+      refetchExcludedRef.current = refetchExcluded;
+      const excludedScheduler = useRef<ReturnType<typeof createLiveRefreshScheduler> | null>(null);
+      useEffect(() => {
+        const scheduler = createLiveRefreshScheduler(
+          () => {
+            void refetchExcludedRef.current({ cancelRefetch: false });
+          },
+          deps.basis.refresh?.clock,
+          deps.basis.refresh?.options ?? { ...FINANCIAL_REPORT_BASIS_REFRESH },
+        );
+        excludedScheduler.current = scheduler;
+        return () => {
+          scheduler.cancel();
+          excludedScheduler.current = null;
+        };
+      }, [deps]);
+      const unprovenReason = 'reason' in proof ? proof.reason : null;
+      const marksReason = exclusionsProof !== null && exclusionsProof.proven === false ? exclusionsProof.reason : null;
+      const marksTransient = unprovenReason === 'projection_marks' &&
+        (marksReason === 'content' || marksReason === 'mark_pending' || marksReason === 'bases');
+      const staleExcluded = (unprovenReason === 'exclusions_read' || marksTransient) && !holding && excluded.fetchStatus === 'idle'
+        ? excluded.data
+        : undefined;
+      useEffect(() => {
+        const scheduler = excludedScheduler.current;
+        if (scheduler === null) return;
+        if (staleExcluded !== undefined) scheduler.notify();
+        else scheduler.cancel();
+      }, [staleExcluded]);
+    
+      
+      
+      let failure: string | null = null;
+      if (listenFailed) failure = ESTIMATE_UNCONFIRMED_FAILED;
+      else if (series.isError) failure = estimateFailureMessage('report', series.error);
+      else if (needsExtra && extra.isError) failure = estimateFailureMessage('report', extra.error);
+      else if (needsExcluded && excluded.isError) failure = estimateFailureMessage('excluded', excluded.error);
+      
+      
+      
+      const blockedByListen = listenFailed && needsExcluded && excluded.data === undefined && projectionReady !== windowKey;
+      const current: IncomeEstimateState = state.status === 'loading' && blockedByListen
+        ? { status: 'error', message: ESTIMATE_UNCONFIRMED_FAILED, retry }
+        : state;
+      const unproven: Exclude<IncomeEstimateState, { status: 'done' }> = current.status !== 'done'
+        ? current
+        : failure !== null ? { status: 'error', message: failure, retry } : { status: 'loading' };
+      const shown = holdEstimate(proof.proven, holding, current, unproven);
+      
+      
+      
+      const waitingProof = current.status === 'done' && shown.status === 'loading';
+      const waitingSince = useRef<number | null>(null);
+      const [waitedTooLong, setWaitedTooLong] = useState(false);
+      useEffect(() => {
+        if (!waitingProof) {
+          waitingSince.current = null;
+          setWaitedTooLong(false);
+          return undefined;
+        }
+        if (waitingSince.current === null) waitingSince.current = clock.now();
+        const remaining = waitingSince.current + waitMs - clock.now();
+        if (remaining <= 0) {
+          setWaitedTooLong(true);
+          return undefined;
+        }
+        const handle = clock.setTimer(() => setWaitedTooLong(true), remaining);
+        return () => clock.clearTimer(handle);
+      }, [waitingProof, clock, waitMs]);
+      if (waitingProof && waitedTooLong) return { status: 'error', message: ESTIMATE_UPDATING, retry };
+      return shown;
+    };
+    
+  operator: 'match'
+  stack: |-
+    TestContext.<anonymous> (file://<scratchpad>/fdi-rev/tests/unit/work-time-guard.test.ts:463:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: falhas de leitura: mensagens fixas em pt-BR, com nova tentativa, e só o código do erro no log
+ok 51 - falhas de leitura: mensagens fixas em pt-BR, com nova tentativa, e só o código do erro no log
+  ---
+  duration_ms: 1.382449
+  type: 'test'
+  ...
+# Subtest: janela de receitas: a leitura paginada real usa `readPagedWindow` com um documento a mais
+ok 52 - janela de receitas: a leitura paginada real usa `readPagedWindow` com um documento a mais
+  ---
+  duration_ms: 0.396662
+  type: 'test'
+  ...
+# Subtest: matriz: entradas, confirmações, termos, históricos e preços ficam em BRL
+ok 53 - matriz: entradas, confirmações, termos, históricos e preços ficam em BRL
+  ---
+  duration_ms: 2.367775
+  type: 'test'
+  ...
+# Subtest: matriz: pontos em BRL dentro de arquivos elegíveis continuam em reais, linha a linha
+ok 54 - matriz: pontos em BRL dentro de arquivos elegíveis continuam em reais, linha a linha
+  ---
+  duration_ms: 2.386937
+  type: 'test'
+  ...
+# Subtest: matriz: os pontos elegíveis usam a camada de exibição, e a prévia do tema força reais
+ok 55 - matriz: os pontos elegíveis usam a camada de exibição, e a prévia do tema força reais
+  ---
+  duration_ms: 9.030501
+  type: 'test'
+  ...
+# Subtest: modo dinheiro idêntico: a camada devolve o formatador da tela, sem elemento novo
+ok 56 - modo dinheiro idêntico: a camada devolve o formatador da tela, sem elemento novo
+  ---
+  duration_ms: 0.221728
+  type: 'test'
+  ...
+# file://<scratchpad>/fdi-rev/tests/unit/work-time-income-estimate.test.ts:19
+#   sameEstimateIdentity,
+#   ^^^^^^^^^^^^^^^^^^^^
+# SyntaxError: The requested module '../../src/modules/work-time/useIncomeEstimateWith.ts' does not provide an export named 'sameEstimateIdentity'
+#     at ModuleJob._instantiate (node:internal/modules/esm/module_job:226:21)
+#     at async ModuleJob.run (node:internal/modules/esm/module_job:335:5)
+#     at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:681:26)
+#     at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+# Node.js v22.23.4
+# Subtest: tests/unit/work-time-income-estimate.test.ts
+not ok 3 - tests/unit/work-time-income-estimate.test.ts
+  ---
+  duration_ms: 504.200412
+  type: 'test'
+  location: '<scratchpad>/fdi-rev/tests/unit/work-time-income-estimate.test.ts:1:1'
+  failureType: 'testCodeFailure'
+  exitCode: 1
+  signal: ~
+  error: 'test failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..57
+# tests 57
+# suites 0
+# pass 49
+# fail 8
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 18504.877095

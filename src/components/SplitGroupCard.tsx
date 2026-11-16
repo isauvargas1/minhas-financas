@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import type { SplitGroup, SplitParticipant } from '../modules/split-bills/types.ts';
 import { formatSplitCents } from '../modules/split-bills/presentation.ts';
+import { useMoneyDisplay } from '../modules/work-time/display.tsx';
 import { DynamicIcon, UsersIcon, EditIcon, DeleteIcon, RefreshIcon } from './Icons.tsx';
 import { useTheme } from '../contexts/ThemeContext.tsx';
 
@@ -22,6 +23,7 @@ interface SplitGroupCardProps {
  */
 const SplitGroupCard: React.FC<SplitGroupCardProps> = ({ group, myParticipant, onClick, onEdit, onArchive, onReactivate }) => {
     const { playSound } = useTheme();
+    const display = useMoneyDisplay();
     const MotionDiv = motion.div as any;
     const isActive = group.status === 'active';
     const myDebt = myParticipant?.balances.owesOpenCents ?? 0;
@@ -117,20 +119,20 @@ const SplitGroupCard: React.FC<SplitGroupCardProps> = ({ group, myParticipant, o
                 <div className="mt-auto space-y-3">
                     <div className="flex justify-between items-center text-sm border-t border-gray-100 dark:border-gray-800 pt-3">
                         <span className="text-gray-500 dark:text-gray-400">Total acumulado</span>
-                        <span className="font-bold text-gray-800 dark:text-white">{formatSplitCents(group.businessMode === 'reimbursement' ? group.totals.reimbursementTotalCents : group.totals.billedCents)}</span>
+                        <span className="font-bold text-gray-800 dark:text-white">{display.cents(group.businessMode === 'reimbursement' ? group.totals.reimbursementTotalCents : group.totals.billedCents, formatSplitCents)}</span>
                     </div>
 
                     <div className="flex gap-2">
                         <div className="flex-1 bg-red-50 dark:bg-red-900/10 rounded-lg p-2 text-center">
                             <span className="text-[10px] text-red-500 uppercase font-bold block mb-0.5">Devo</span>
                             <span className="font-bold text-red-700 dark:text-red-300 text-sm">
-                                {formatSplitCents(myDebt)}
+                                {display.cents(myDebt, formatSplitCents)}
                             </span>
                         </div>
                         <div className="flex-1 bg-green-50 dark:bg-green-900/10 rounded-lg p-2 text-center">
                             <span className="text-[10px] text-green-500 uppercase font-bold block mb-0.5">A Receber</span>
                             <span className="font-bold text-green-700 dark:text-green-300 text-sm">
-                                {formatSplitCents(myCredit)}
+                                {display.cents(myCredit, formatSplitCents)}
                             </span>
                         </div>
                     </div>

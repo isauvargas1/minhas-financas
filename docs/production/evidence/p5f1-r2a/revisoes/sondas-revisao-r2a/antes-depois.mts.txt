@@ -1,0 +1,28 @@
+// Sonda do revisor: confere a tabela "antes × depois" (s01-vespera-reduzida.md §8 e matriz-antes-depois.md) numa árvore.
+// Uso: node --experimental-strip-types antes-depois.mts <raiz da árvore>
+const root = process.argv[2];
+const cal = await import(`${root}/src/modules/work-time/calendar.ts`);
+const t = (s: string) => +s.slice(0, 2) * 60 + +s.slice(3);
+const w = (s: string, e: string, b = 0) => ({ kind: 'window', start: t(s), end: t(e), breakMinutes: b });
+const D = (m: number) => ({ kind: 'duration', minutes: m });
+const OFF = { kind: 'off' };
+const wk = (...days: any[]) => ({ kind: 'weekly', days: [...days, ...Array(7 - days.length).fill(OFF)] });
+const red = (s: string, e: string, m: number) => ({ kind: 'reduced', start: s, end: e, minutes: m });
+const C = (routines: any[], exceptions: any[] = []) => ({ routines, exceptions, localHolidays: [], worksOnHolidays: true });
+const row = (label: string, c: any, days: string[], today = '2026-11-06', month?: string) => {
+  const v = cal.calendarAmbiguity(c, today);
+  const out: any = { label, days: days.map((d) => { const p = cal.dayPlan(c, d); return `${d}:${p.minutes}${p.ambiguous ? '?' : ''}`; }), verdict: v && `${v.date}/${v.cause.kind}` };
+  if (month) out.month = cal.monthPlan(c, month, { periodStart: true }).minutes;
+  console.log(JSON.stringify(out));
+};
+const MT = ['2026-10-05', '2026-10-06'];
+row('1 parecer: seg 20-06 red 8h, ter 00-08', C([wk(w('20:00', '06:00'), w('00:00', '08:00'))], [red('2026-10-05', '2026-10-05', 480)]), MT);
+row('2 idem red 10h', C([wk(w('20:00', '06:00'), w('00:00', '08:00'))], [red('2026-10-05', '2026-10-05', 600)]), MT);
+row('3 seg 20-06 red 8h, ter plantão 24h', C([wk(w('20:00', '06:00'))], [red('2026-10-05', '2026-10-05', 480), { kind: 'on_call', date: '2026-10-06', minutes: 1440 }]), MT);
+row('4 idem plantão 4h', C([wk(w('20:00', '06:00'))], [red('2026-10-05', '2026-10-05', 480), { kind: 'on_call', date: '2026-10-06', minutes: 240 }]), MT);
+row('5 noturno 22-06 seg-sex, qua red 6h', C([wk(w('22:00', '06:00'), w('22:00', '06:00'), w('22:00', '06:00'), w('22:00', '06:00'), w('22:00', '06:00'))], [red('2026-10-07', '2026-10-07', 360)]), ['2026-10-07', '2026-10-08']);
+row('6 outubro inteiro red 6h noturno', C([wk(w('22:00', '06:00'), w('22:00', '06:00'), w('22:00', '06:00'), w('22:00', '06:00'), w('22:00', '06:00'))], [red('2026-10-01', '2026-10-31', 360)]), [], '2026-11-06', '2026-10');
+row('7 24x48 red 12h + 4h extra', C([{ kind: 'cyclic', reference: '2026-10-05', workDays: 1, restDays: 2, day: w('07:00', '07:00') }], [red('2026-10-05', '2026-10-05', 720), { kind: 'overtime', date: '2026-10-06', minutes: 240 }]), MT);
+row('8 seg 22-08 cobre ter 05-09/30 (+ter 08-12), seg red 5h', C([wk(w('22:00', '08:00')), wk(OFF, w('05:00', '09:00', 30)), wk(OFF, w('08:00', '12:00'))], [red('2026-10-05', '2026-10-05', 300)]), MT, '2026-10-01');
+row('9 dom 22-06, seg 01-01 red 20h, ter 00-02', C([wk(w('01:00', '01:00'), w('00:00', '02:00'), OFF, OFF, OFF, OFF, w('22:00', '06:00'))], [red('2026-10-05', '2026-10-05', 1200)]), MT);
+row('10 seg 20-06 + 2h sem horário red 650, ter 00-08', C([wk(w('20:00', '06:00'), w('00:00', '08:00')), wk(D(120))], [red('2026-10-05', '2026-10-05', 650)]), MT);

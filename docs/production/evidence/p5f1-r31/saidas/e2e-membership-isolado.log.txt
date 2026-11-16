@@ -1,0 +1,17 @@
+
+Running 6 tests using 1 worker
+
+(node:10872) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [chromium] › e2e/workspace-membership.spec.ts:54:1 › primeiro login prepara a conta no backend e o logout não vaza dados para a próxima conta (7.7s)
+  ✓  2 [chromium] › e2e/workspace-membership.spec.ts:169:1 › convite, aceite, troca de papel, remoção e perda de acesso entre duas contas (13.3s)
+(node:11208) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  3 [chromium] › e2e/workspace-membership.spec.ts:54:1 › primeiro login prepara a conta no backend e o logout não vaza dados para a próxima conta (2.8s)
+  ✓  4 [chromium] › e2e/workspace-membership.spec.ts:169:1 › convite, aceite, troca de papel, remoção e perda de acesso entre duas contas (3.8s)
+(node:11397) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  5 [chromium] › e2e/workspace-membership.spec.ts:54:1 › primeiro login prepara a conta no backend e o logout não vaza dados para a próxima conta (3.3s)
+  ✓  6 [chromium] › e2e/workspace-membership.spec.ts:169:1 › convite, aceite, troca de papel, remoção e perda de acesso entre duas contas (3.8s)
+
+  6 passed (1.2m)

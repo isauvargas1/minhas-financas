@@ -1,0 +1,45 @@
+== capturas da R2A
+build=0
+exit=0  duração=151s
+[WebServer] ⚠  hub: Error when trying to check port 4400 on ::1: Error: listen EAFNOSUPPORT: address family not supported ::1:4400
+[WebServer] ⚠  logging: Error when trying to check port 4500 on ::1: Error: listen EAFNOSUPPORT: address family not supported ::1:4500
+[WebServer] ⚠  eventarc: Error when trying to check port 9299 on ::1: Error: listen EAFNOSUPPORT: address family not supported ::1:9299
+[WebServer] ⚠  tasks: Error when trying to check port 9499 on ::1: Error: listen EAFNOSUPPORT: address family not supported ::1:9499
+  8 passed (1.9m)
+limpeza=0 java=0
+== depois (R2A)
+exit=0  duração=95s
+[WebServer] ⚠  hub: Error when trying to check port 4400 on ::1: Error: listen EAFNOSUPPORT: address family not supported ::1:4400
+[WebServer] ⚠  logging: Error when trying to check port 4500 on ::1: Error: listen EAFNOSUPPORT: address family not supported ::1:4500
+[WebServer] ⚠  eventarc: Error when trying to check port 9299 on ::1: Error: listen EAFNOSUPPORT: address family not supported ::1:9299
+[WebServer] ⚠  tasks: Error when trying to check port 9499 on ::1: Error: listen EAFNOSUPPORT: address family not supported ::1:9499
+  8 passed (1.6m)
+limpeza=0 java=0
+== antes (R1, 08d8c5a2)
+build=0
+exit=0  duração=117s
+[WebServer] ⚠  hub: Error when trying to check port 4400 on ::1: Error: listen EAFNOSUPPORT: address family not supported ::1:4400
+[WebServer] ⚠  logging: Error when trying to check port 4500 on ::1: Error: listen EAFNOSUPPORT: address family not supported ::1:4500
+[WebServer] ⚠  eventarc: Error when trying to check port 9299 on ::1: Error: listen EAFNOSUPPORT: address family not supported ::1:9299
+[WebServer] ⚠  tasks: Error when trying to check port 9499 on ::1: Error: listen EAFNOSUPPORT: address family not supported ::1:9499
+  8 passed (1.4m)
+limpeza=0 java=0
+sha: iguais
+status: igual
+comparação: saída 0
+desktop-dark-referencia-previa.png {'antes': '270x242', 'depois': '270x242', 'pixels_diferentes': 0, 'caixa': None}
+desktop-dark-referencia.png {'antes': '1440x3917', 'depois': '1440x3917', 'pixels_diferentes': 0, 'caixa': None}
+desktop-dark-s01-previa.png {'antes': '270x242', 'depois': '270x282', 'pixels_diferentes': None}
+desktop-dark-s01.png {'antes': '1440x3917', 'depois': '1440x3917', 'pixels_diferentes': 71745, 'caixa': '328x643++940++321'}
+desktop-light-referencia-previa.png {'antes': '270x242', 'depois': '270x242', 'pixels_diferentes': 0, 'caixa': None}
+desktop-light-referencia.png {'antes': '1440x3917', 'depois': '1440x3917', 'pixels_diferentes': 0, 'caixa': None}
+desktop-light-s01-previa.png {'antes': '270x242', 'depois': '270x282', 'pixels_diferentes': None}
+desktop-light-s01.png {'antes': '1440x3917', 'depois': '1440x3917', 'pixels_diferentes': 71868, 'caixa': '328x643++940++321'}
+mobile-dark-referencia-previa.png {'antes': '324x243', 'depois': '324x243', 'pixels_diferentes': 0, 'caixa': None}
+mobile-dark-referencia.png {'antes': '390x5743', 'depois': '390x5743', 'pixels_diferentes': 0, 'caixa': None}
+mobile-dark-s01-previa.png {'antes': '324x243', 'depois': '324x243', 'pixels_diferentes': 18147, 'caixa': '315x184++0++25'}
+mobile-dark-s01.png {'antes': '390x5763', 'depois': '390x5875', 'pixels_diferentes': None}
+mobile-light-referencia-previa.png {'antes': '324x243', 'depois': '324x243', 'pixels_diferentes': 0, 'caixa': None}
+mobile-light-referencia.png {'antes': '390x5743', 'depois': '390x5743', 'pixels_diferentes': 0, 'caixa': None}
+mobile-light-s01-previa.png {'antes': '324x243', 'depois': '324x243', 'pixels_diferentes': 18203, 'caixa': '315x184++0++25'}
+mobile-light-s01.png {'antes': '390x5763', 'depois': '390x5875', 'pixels_diferentes': None}

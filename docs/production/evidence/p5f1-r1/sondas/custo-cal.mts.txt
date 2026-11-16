@@ -1,0 +1,18 @@
+// Custo de calendarAmbiguity (protótipo): caso comum, com feriados locais anuais, e o pior caso de exceções.
+const root = process.argv[2];
+const cal = await import(`${root}/src/modules/work-time/calendar.ts`);
+const dates = await import(`${root}/src/modules/work-time/dates.ts`);
+const w = (s: number, e: number, b = 0) => ({ kind: 'window', start: s, end: e, breakMinutes: b });
+const weekly = (spec: any) => ({ kind: 'weekly', days: [spec, spec, spec, spec, spec, { kind: 'off' }, { kind: 'off' }] });
+const base = { routines: [weekly(w(480, 1020, 60)), weekly(w(1200, 1260))], worksOnHolidays: false, localHolidays: [] as any[], exceptions: [] as any[] };
+const time = (name: string, calendar: any) => {
+  const t0 = performance.now(); const r = cal.calendarAmbiguity(calendar, '2026-11-05'); const ms = performance.now() - t0;
+  const t1 = performance.now(); for (let i = 0; i < 3; i++) cal.calendarAmbiguity(calendar, '2026-11-05');
+  console.log(name, JSON.stringify(r)?.slice(0, 120), 'primeira', ms.toFixed(1), 'ms; média', ((performance.now() - t1) / 3).toFixed(1), 'ms');
+};
+time('comum', base);
+time('40 feriados locais anuais', { ...base, localHolidays: Array.from({ length: 40 }, (_, i) => ({ kind: 'annual', month: 1 + (i % 12), day: 1 + Math.floor(i / 12) * 7 })) });
+const reduced = Array.from({ length: 120 }, (_, i) => { const start = dates.addDays('2026-01-01', i * 400); const end = start ? dates.addDays(start, 365) : null; return start && end ? { kind: 'reduced', start, end, minutes: 300 } : null; }).filter((e: any) => e && e.end <= '2099-12-31');
+time(`${reduced.length} jornadas reduzidas de 366 dias`, { ...base, exceptions: reduced });
+const vac = Array.from({ length: 120 }, (_, i) => { const start = dates.addDays('2026-01-01', i * 200); const end = start ? dates.addDays(start, 30) : null; return start && end ? { kind: 'vacation', start, end } : null; }).filter((e: any) => e && e.end <= '2099-12-31');
+time(`${vac.length} férias de 31 dias`, { ...base, exceptions: vac });

@@ -1,0 +1,9 @@
+work-time-calculation: # pass 15 # fail 0 # skipped 0 # todo 0
+work-time-preference: # pass 13 # fail 0 # skipped 0 # todo 0
+work-time-guard: # pass 17 # fail 0 # skipped 0 # todo 0
+work-time-calendar: # pass 29 # fail 0 # skipped 0 # todo 0
+work-time-grammar: # pass 5 # fail 0 # skipped 0 # todo 0
+work-time-estimate: # pass 23 # fail 0 # skipped 0 # todo 0
+work-time-income-estimate: # pass 21 # fail 0 # skipped 0 # todo 0
+work-time-consistency: # pass 30 # fail 0 # skipped 0 # todo 0
+transactions-paging: # pass 5 # fail 0 # skipped 0 # todo 0

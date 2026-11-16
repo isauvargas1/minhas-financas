@@ -1,0 +1,20 @@
+BASE: exit=0 {'tests': 85, 'pass': 85, 'fail': 0, 'skipped': 0, 'todo': 0}
+G1 (o prazo aprova a conversão: depois do tempo de interface, mostra a estimativa atual sem prova): exit=1 {'tests': 85, 'pass': 71, 'fail': 14, 'skipped': 0, 'todo': 0}
+   falha: 18 - revisão pt-BR da R3 (M-01): sem desconsiderada, 12 meses e a escuta sem retorno do servidor: depois do tempo de interface, o texto de "em atualiz
+   falha: 22 - B03 (R3, ex-N03): a desconsiderada editada sem efeito na renda e o gatilho atrasado (marca velha): nenhuma conversão em tempo nenhum, só "estimat
+   falha: 23 - B03 (R3, ex-M02): a hora do servidor não aprova: uma sessão nova aberta depois de o servidor passar da escrita por mais que qualquer prazo contin
+   falha: 24 - B03 (R3, ex-P01): o N03 com a hora do servidor nas bases: sessão aberta 5 s depois da edição de valor, e mesmo 1 h depois, nunca o valor novo com
+   -> MORTO
+G2 (retenção por variável de módulo (fora de hooks): a última pronta volta enquanto a atual não converte): exit=1 {'tests': 85, 'pass': 50, 'fail': 35, 'skipped': 0, 'todo': 0}
+   falha: 7 - B03: a projeção mais nova que a base lida na montagem: nunca a estimativa da base antiga; a base é relida e a nova aparece provada
+   falha: 9 - B03: janela de 12 meses com a escuta encerrada desde o começo: sem prova, o erro com "Tentar de novo"; com a escuta de volta, a estimativa provada
+   falha: 11 - B03 (R11-01): o mês avulso sai da janela com a leitura em curso e volta desatualizado: a base antiga não aparece, e é relida
+   falha: 12 - B03 (R11-02): 12 meses sem desconsiderada, as bases relidas sem pedido da escuta (a virada do mês) e o mês avulso falhando: nenhuma renderização 
+   -> MORTO
+G3 (retenção só no 'em atualização': depois do prazo, a última pronta da sessão no lugar do texto): exit=1 {'tests': 85, 'pass': 71, 'fail': 14, 'skipped': 0, 'todo': 0}
+   falha: 18 - revisão pt-BR da R3 (M-01): sem desconsiderada, 12 meses e a escuta sem retorno do servidor: depois do tempo de interface, o texto de "em atualiz
+   falha: 22 - B03 (R3, ex-N03): a desconsiderada editada sem efeito na renda e o gatilho atrasado (marca velha): nenhuma conversão em tempo nenhum, só "estimat
+   falha: 23 - B03 (R3, ex-M02): a hora do servidor não aprova: uma sessão nova aberta depois de o servidor passar da escrita por mais que qualquer prazo contin
+   falha: 24 - B03 (R3, ex-P01): o N03 com a hora do servidor nas bases: sessão aberta 5 s depois da edição de valor, e mesmo 1 h depois, nunca o valor novo com
+   -> MORTO
+restaurado e conferido: 731c2778f8ae4dff

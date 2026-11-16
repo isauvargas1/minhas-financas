@@ -1,0 +1,5 @@
+{"label":"noturno x3, 120 reduções de 366 dias (de 2025-10)","ms":[654,544,563],"verdict":null}
+{"label":"noturno x3, 120 reduções de 3 dias","ms":[8,8,8],"verdict":null}
+{"label":"coberta + 120 reduções de 366 dias + 40 feriados, sem trabalho em feriado","ms":[1127,1201,1144],"verdict":null}
+{"label":"coberta + 120 reduções de 366 dias + 40 feriados, trabalha em feriado","ms":[1161,1131,1268],"verdict":null}
+{"label":"cíclica 27x26 24 h + coberta + 120 reduções de 366 dias","ms":[1174,1155,1176],"verdict":{"date":"2099-11-26","cause":"reduced_eve"}}

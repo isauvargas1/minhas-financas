@@ -1,0 +1,14 @@
+"""P5-F, revisão 3: injeta no teste 4 uma cópia da renda em reais (número 4400, texto '4400.00' e texto puro '4400') fora do
+documento privado. Gera a cópia em e2e/zz-mutante-r3-<rótulo>.spec.ts a partir da spec indicada."""
+import sys
+source, label = sys.argv[1], sys.argv[2]
+src = open(source, encoding='utf-8').read()
+anchor = '  const aiPayloads: string[] = [];\n'
+assert src.count(anchor) == 1
+inject = ("  // MUTANTE R3: cópia da renda em reais fora do documento privado.\n"
+          "  await db().doc(`workspaces/${tenant.pf}/mutante_r3/numero`).set({ referencia: 4400 });\n"
+          "  await db().doc(`workspaces/${tenant.pf}/mutante_r3/texto`).set({ nota: 'renda 4400.00' });\n"
+          "  await db().doc(`workspaces/${tenant.pf}/mutante_r3/texto_puro`).set({ referencia: '4400' });\n")
+out = f'<scratchpad>/wt-p5f/e2e/zz-mutante-r3-{label}.spec.ts'
+open(out, 'w', encoding='utf-8').write(src.replace(anchor, inject + anchor))
+print(out)

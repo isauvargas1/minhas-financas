@@ -1,0 +1,50 @@
+#!/usr/bin/env python3
+"""P5-F.1, revisão 6: atualiza mutantes.py (os trechos que mudaram, o U102 trocado e os mutantes novos).
+Cada troca exige exatamente uma ocorrência do trecho antigo."""
+import sys
+from pathlib import Path
+
+P = Path(sys.argv[1])
+s = P.read_text(encoding='utf-8')
+
+
+def rep(old, new):
+    global s
+    count = s.count(old)
+    assert count == 1, (count, old[:100])
+    s = s.replace(old, new)
+
+
+# alvos que mudaram com a revisão 6 (mesma intenção)
+rep('''  ('base', 'src/modules/reports/basisSync.ts', '    holding: syncing || readsBehind,', '    holding: syncing,', T('report-basis-sync', 'work-time-income-estimate')),''',
+    '''  ('base', 'src/modules/reports/basisSync.ts', '    holding: syncing || readsBehind || ahead,', '    holding: syncing || ahead,', T('report-basis-sync', 'work-time-income-estimate')),''')
+rep('''  ('base', 'src/modules/reports/basisSync.ts', '    reads !== null && reads === readsMark.current.value;', '    reads !== null && reads <= readsMark.current.value;', T('report-basis-sync')),''',
+    '''  ('base', 'src/modules/reports/basisSync.ts', ' && reads !== null && reads === mark.value;', ' && reads !== null && reads <= mark.value;', T('report-basis-sync')),''')
+rep('''  ('base', 'src/modules/reports/basisSync.ts', '      if (pending.current && arrived()) release.current();\\n      return;', '      if (pending.current) release.current();\\n      return;', T('report-basis-sync')),
+]''',
+    '''  ('base', 'src/modules/reports/basisSync.ts', '      // O mesmo estado, sem mais releituras: libera com o que chegou.\\n      if (pending.current && arrived()) release.current();\\n      return;', '      // O mesmo estado, sem mais releituras: libera com o que chegou.\\n      if (pending.current) release.current();\\n      return;', T('report-basis-sync')),
+  # revisão 6: base nova sem pedido segurada na renderização e leituras relidas depois dela (R6-02),
+  # escuta encerrada sem projeção que valha e reaberta entre estimativas (R6-01, R6-02) e a releitura da
+  # mutação com agendador e orçamento próprios (R6-03)
+  ('sem pedido', 'src/modules/reports/basisSync.ts', '  const ahead = basis !== null && basis.exact && pairedIncome !== null && incomeDiverges(pairedIncome, basis.income, months);', '  const ahead = false;', T('report-basis-sync', 'work-time-income-estimate')),
+  ('sem pedido', 'src/modules/reports/basisSync.ts', '    if (current.exact && incomeDiverges(pair.income, current.income, months)) release.current();\\n', '', T('report-basis-sync', 'work-time-income-estimate')),
+  ('sem pedido', 'src/modules/reports/basisSync.ts', '    evaluate.current(loading || pending.current !== null);', '    evaluate.current(true);', T('report-basis-sync', 'work-time-income-estimate')),
+  ('escuta', 'src/modules/reports/basisSync.ts', '      projected.current = null;\\n      changed.current = false;\\n      attempts.current = new Map();\\n      setListenFailedKey(syncKey);', '      setListenFailedKey(syncKey);', T('report-basis-sync')),
+  ('escuta', 'src/modules/reports/basisSync.ts', '      reopenFailedListeners(syncKey);\\n', '', T('report-basis-sync', 'work-time-income-estimate')),
+  ('escuta', 'src/modules/reports/basisSync.ts', '    if (key !== null) reopenFailedListeners(key);', '    if (key !== null) setListenAttempt((attempt) => attempt + 1);', T('report-basis-sync')),
+  ('escuta', 'src/modules/reports/basisSync.ts', '      unregister = registerFailedListener(syncKey, () => setListenAttempt((attempt) => attempt + 1));\\n', '', T('report-basis-sync', 'work-time-income-estimate')),
+  ('mutação', 'src/modules/reports/basisRegistry.ts', '    entry.mutationScheduler.notify();', '    entry.scheduler.notify();', T('report-basis-sync', 'work-time-guard')),
+  ('sem pedido', 'src/modules/reports/basisSync.ts', '      paired.current = { key, income: base && base.key === key ? base.income : current.income, reads: value };', '      paired.current = { key, income: current.income, reads: value };', T('report-basis-sync')),
+  ('sem pedido', 'src/modules/reports/basisSync.ts', '      if (reads !== mark.value && released.current?.key === syncKey) pairedIncome = released.current.income;\\n', '', T('report-basis-sync')),
+  ('mutação', 'src/modules/reports/queryKeys.ts', '    coalesceMs: 30_000,\\n    burst: 2,\\n    refillMs: 600_000,', '    coalesceMs: 5_000,\\n    burst: 5,\\n    refillMs: 120_000,', T('work-time-guard')),
+  ('mutação', 'src/modules/reports/basisSync.ts', '        current.mutationScheduler.cancel();\\n', '', T('work-time-guard')),
+  ('escuta', 'src/modules/reports/basisSync.ts', '    return () => {\\n      unregister?.();\\n      unsubscribe();\\n    };', '    return unsubscribe;', T('work-time-guard')),
+]''')
+
+# U102 ficou equivalente na revisão 5 (`request` já retorna sem base) e só morria pelo teste intermitente
+# (R6-04); o mesmo comportamento (base que carrega não pede nada) é o U105. No lugar dele, o pedido em
+# curso sem projeção para comparar (escuta encerrada), que termina quando as bases chegam.
+rep('''  ('base', 'src/modules/reports/basisSync.ts', '    if (!enabled || current === null || projected.current === null) return;\\n    if (current.exact) {', '    if (!enabled || projected.current === null) return;\\n    if (current === null) { request.current(null); return; }\\n    if (current.exact) {', T('report-basis-sync', 'work-time-income-estimate')),''',
+    '''  ('base', 'src/modules/reports/basisSync.ts', '      if (pending.current && arrived()) release.current();\\n      return;\\n    }\\n    if (current.exact) {', '      return;\\n    }\\n    if (current.exact) {', T('report-basis-sync')),''')
+P.write_text(s, encoding='utf-8')
+print('ok')

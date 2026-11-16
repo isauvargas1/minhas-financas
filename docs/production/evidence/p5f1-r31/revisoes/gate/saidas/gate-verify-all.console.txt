@@ -1,0 +1,3 @@
+exit=1
+limpeza=0 (0 = nada órfão ou encerrado com SIGTERM)
+# fim=2026-11-11T01:21:32Z pico_mib=14441 pico_em=2026-11-11T01:21:12Z

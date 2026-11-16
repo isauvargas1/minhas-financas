@@ -5,6 +5,7 @@ import { useRecurringExpenses, useActiveRecurringExpenses } from '../modules/rec
 import { monthlyEstimateCents } from '../modules/recurring/payloads.ts';
 import { recurringPermissions } from '../modules/recurring/presentation.ts';
 import { formatCents } from '../modules/loans/money.ts';
+import { useMoneyDisplay } from '../modules/work-time/display.tsx';
 import { RepeatIcon, PlusIcon, SearchIcon, FilterIcon, LayoutGridIcon, ListIcon, CreditCardIcon, DynamicIcon, FileInvoiceIcon } from './Icons.tsx';
 import { useTheme } from '../contexts/ThemeContext.tsx';
 import RecurringExpenseCard from './RecurringExpenseCard.tsx';
@@ -53,6 +54,7 @@ const RecurringExpensesView: React.FC<RecurringExpensesViewProps> = ({ onSelectE
     const { activeWorkspace, activeWorkspaceRole } = useWorkspace();
     const { user } = useAuth();
     const isPJ = activeWorkspace.type === 'PJ';
+    const display = useMoneyDisplay();
     const { canCreate } = recurringPermissions(activeWorkspaceRole, user?.uid);
 
     const [viewMode, setViewMode] = useState<'card' | 'list'>('card');
@@ -219,7 +221,7 @@ const RecurringExpensesView: React.FC<RecurringExpensesViewProps> = ({ onSelectE
                 >
                     <div className="relative z-10">
                         <p className="text-white/80 text-sm font-medium mb-1">Custo Mensal Estimado</p>
-                        <h3 className="text-2xl font-bold">{formatCurrency(summary.totalMonthly)}</h3>
+                        <h3 className="text-2xl font-bold">{display.cents(summary.totalMonthly, formatCurrency)}</h3>
                         <p className="text-xs text-white/70 mt-2">{summary.activeCount} {isPJ ? 'contratos' : 'serviços'} ativos</p>
                     </div>
                     {isPJ ? (
@@ -241,7 +243,7 @@ const RecurringExpensesView: React.FC<RecurringExpensesViewProps> = ({ onSelectE
                     <div>
                         <p className="text-sm text-muted font-medium">Cartão de Crédito</p>
                         <p className="text-lg font-bold text-on-surface">
-                            {formatCurrency(summary.byMethod['credit_card'] || 0)}
+                            {display.cents(summary.byMethod['credit_card'] || 0, formatCurrency)}
                         </p>
                     </div>
                 </MotionDiv>
@@ -258,7 +260,7 @@ const RecurringExpensesView: React.FC<RecurringExpensesViewProps> = ({ onSelectE
                     <div>
                         <p className="text-sm text-muted font-medium">Pix / Débito</p>
                         <p className="text-lg font-bold text-on-surface">
-                            {formatCurrency((summary.byMethod['pix'] || 0) + (summary.byMethod['debit'] || 0))}
+                            {display.cents((summary.byMethod['pix'] || 0) + (summary.byMethod['debit'] || 0), formatCurrency)}
                         </p>
                     </div>
                 </MotionDiv>
@@ -275,7 +277,7 @@ const RecurringExpensesView: React.FC<RecurringExpensesViewProps> = ({ onSelectE
                     <div>
                         <p className="text-sm text-muted font-medium">Boleto / Outros</p>
                         <p className="text-lg font-bold text-on-surface">
-                            {formatCurrency((summary.byMethod['boleto'] || 0) + (summary.byMethod['cash'] || 0) + (summary.byMethod['other'] || 0))}
+                            {display.cents((summary.byMethod['boleto'] || 0) + (summary.byMethod['cash'] || 0) + (summary.byMethod['other'] || 0), formatCurrency)}
                         </p>
                     </div>
                 </MotionDiv>

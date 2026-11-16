@@ -1,0 +1,68 @@
+// Sonda do revisor (Frente B): modelo executável da alternativa A da PROPOSTA-ARQUITETURAL-B03(-v2).md — marca por
+// lançamento (appliedVersion, pending, monthCommits), gatilho fora de ordem e a prova do cliente como está escrita
+// (regra 4 atual + nova regra 5, condição 2). Não toca Firestore: só a lógica descrita no documento.
+// Uso: node --experimental-strip-types b03-modelo.mts
+type Version = number; // instante de commit (updateTime), em "ticks"
+interface TState { month: string; incomeCents: number }
+interface Event { id: string; before: { v: Version; s: TState } | null; after: { v: Version; s: TState } }
+
+let clock = 0;
+const tick = () => (clock += 1);
+// Projeção: receita por mês e versão (updatedAt) por mês
+const P: Record<string, number> = { '2026-01': 500_00, '2026-02': 400_00, '2026-03': 300_00 };
+const monthVersion: Record<string, number> = { '2026-01': 0, '2026-02': 0, '2026-03': 0 };
+// Marca de aplicação de T (proposta, §5.A)
+const mark = { appliedVersion: null as Version | null, pending: {} as Record<number, Version>, monthCommits: {} as Record<string, number>, broken: false };
+
+const applyEvent = (e: Event) => {
+  const commit = tick();
+  const delta: Record<string, number> = {};
+  if (e.before) delta[e.before.s.month] = (delta[e.before.s.month] ?? 0) - e.before.s.incomeCents;
+  delta[e.after.s.month] = (delta[e.after.s.month] ?? 0) + e.after.s.incomeCents;
+  for (const [m, x] of Object.entries(delta)) if (x !== 0) { P[m] = (P[m] ?? 0) + x; monthVersion[m] = commit; mark.monthCommits[m] = commit; }
+  // encadeamento: bv == appliedVersion (ou criação) avança; senão fica pendente
+  const bv = e.before ? e.before.v : null;
+  if (bv === mark.appliedVersion) {
+    mark.appliedVersion = e.after.v;
+    while (mark.pending[mark.appliedVersion as number] !== undefined) { const nv = mark.pending[mark.appliedVersion as number]; delete mark.pending[mark.appliedVersion as number]; mark.appliedVersion = nv; }
+  } else mark.pending[bv as number] = e.after.v;
+};
+
+// T, desconsiderada: v1 = março R$ 100; v2 = fevereiro R$ 100 (mudança de data); v3 = fevereiro R$ 300 (valor)
+const v1 = { v: 101, s: { month: '2026-03', incomeCents: 100_00 } };
+const v2 = { v: 102, s: { month: '2026-02', incomeCents: 100_00 } };
+const v3 = { v: 103, s: { month: '2026-02', incomeCents: 300_00 } };
+const e1: Event = { id: 'e1', before: null, after: v1 };
+const e2: Event = { id: 'e2', before: v1, after: v2 };
+const e3: Event = { id: 'e3', before: v2, after: v3 };
+
+applyEvent(e1);
+// O cliente lê T (v1) e a marca, depois da escuta (regra 4 satisfeita)
+const listenAtRead = { ...monthVersion };
+const readT = { ...v1 };
+const readMark = JSON.parse(JSON.stringify(mark));
+// Outra sessão edita T duas vezes; o gatilho entrega e3 antes de e2 (fora de ordem); e2 segue em retentativa
+applyEvent(e3);
+const listenNow = { ...monthVersion }; // a escuta recebe fevereiro novo; março não mudou
+
+const windowMonths = ['2026-01', '2026-02', '2026-03'];
+const prove = (t: typeof readT, m: typeof readMark, listen: Record<string, number>, strict: boolean) => {
+  // regra 4 (mantida): a leitura por id começou depois de a versão atual de cada mês COM desconsiderada chegar à escuta
+  const rule4 = listen[t.s.month] === listenAtRead[t.s.month];
+  // nova regra 5, condição 2 (como escrita): não broken; prefixo resolvido == v; escuta >= monthCommits na janela
+  let prefix = m.appliedVersion;
+  while (m.pending[prefix] !== undefined) prefix = m.pending[prefix];
+  const cond2 = !m.broken && prefix === t.v && Object.entries(m.monthCommits).every(([mm, c]) => !windowMonths.includes(mm) || listen[mm] >= (c as number));
+  // correção sugerida: sem pendências e leitura da marca/T posterior à escuta de TODOS os meses da janela
+  const fresh = windowMonths.every((mm) => listen[mm] === listenAtRead[mm]);
+  return strict ? rule4 && cond2 && Object.keys(m.pending).length === 0 && fresh : rule4 && cond2;
+};
+const estimate = windowMonths.reduce((s, m) => s + P[m], 0) - readT.s.incomeCents;
+const truth = 500_00 + 400_00 + 300_00; // a renda sem T (T é desconsiderada)
+console.log(JSON.stringify({
+  projecao: P, marcaLida: readMark, marcaAtual: mark,
+  provaComoEscrita: prove(readT, readMark, listenNow, false),
+  provaComMarcaRelida: prove(readT, JSON.parse(JSON.stringify(mark)), listenNow, false),
+  provaCorrigida: prove(readT, JSON.parse(JSON.stringify(mark)), listenNow, true),
+  estimativaCentavos: estimate, verdadeCentavos: truth, erroCentavos: estimate - truth,
+}, null, 1));

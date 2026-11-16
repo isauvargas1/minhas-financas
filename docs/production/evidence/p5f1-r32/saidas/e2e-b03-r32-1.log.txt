@@ -1,0 +1,50 @@
+
+Running 7 tests using 1 worker
+
+(node:3621) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN
+(Use `node --trace-warnings ...` to show where the warning was created)
+[valores-b03-a] {"balance":["tempo|≈ 796 h","reais|R$ 19.900,00","reais|R$ 23.900,00","tempo|≈ 956 h"],"hourly":[],"notice":["Valores em tempo de trabalho equivalente: uma estimativa aproximada, não o valor exato.Mostrar em R$","Calculando a estimativa de tempo de trabalho: enquanto isso, os valores ficam em reais.Mostrar em R$","Valores em tempo de trabalho equivalente: uma estimativa aproximada, não o valor exato.Mostrar em R$"]}
+  ✓  1 [chromium] › e2e/work-time-b03.spec.ts:328:1 › B03-a: receita desconsiderada editada por outro usuário: o saldo nunca converte o valor novo com o total velho e volta a converter certo (25.5s)
+[valores-b03-b] {"balance":["reais|R$ 19.900,00"],"hourly":[],"notice":["Calculando a estimativa de tempo de trabalho: enquanto isso, os valores ficam em reais.Mostrar em R$","Estimativa de tempo de trabalho indisponível agora: os valores continuam em reais. Veja o motivo em Configurações.Mostrar em R$"]}
+  ✓  2 [chromium] › e2e/work-time-b03.spec.ts:421:1 › B03-b: marca quebrada: não converte, mostra reais e, depois do tempo de interface, "estimativa em atualização" acessível e legível no celular (39.3s)
+[valores-b03-c] {"balance":["reais|R$ 19.900,00","tempo|≈ 796 h"],"hourly":["R$ 25,00"],"notice":["Calculando a estimativa de tempo de trabalho: enquanto isso, os valores ficam em reais.Mostrar em R$","Estimativa de tempo de trabalho indisponível agora: os valores continuam em reais. Veja o motivo em Configurações.Mostrar em R$","Valores em tempo de trabalho equivalente: uma estimativa aproximada, não o valor exato.Mostrar em R$"]}
+  ✓  3 [chromium] › e2e/work-time-b03.spec.ts:479:1 › B03-c: depois da marca quebrada, a reconstrução do owner recupera a prova e a estimativa volta a converter com o valor certo (37.3s)
+[valores-b03-d] {"balance":["tempo|≈ 774 h 57 min","tempo|≈ 796 h","tempo|≈ 774 h 57 min"],"hourly":["R$ 25,68","R$ 25,00","R$ 25,68"],"notice":["Valores em tempo de trabalho equivalente: uma estimativa aproximada, não o valor exato.Mostrar em R$"]}
+  ✓  4 [chromium] › e2e/work-time-b03.spec.ts:526:1 › B03-d: incluir e tirar uma receita da lista de exclusões pessoais refaz a prova e mantém o valor certo nas duas direções (9.0s)
+[valores-b03-e] {"balance":["tempo|≈ 896 h","reais|R$ 22.400,00","tempo|≈ 896 h"],"hourly":["R$ 25,00"],"notice":["Valores em tempo de trabalho equivalente: uma estimativa aproximada, não o valor exato.Mostrar em R$","Calculando a estimativa de tempo de trabalho: enquanto isso, os valores ficam em reais.Mostrar em R$","Valores em tempo de trabalho equivalente: uma estimativa aproximada, não o valor exato.Mostrar em R$","Calculando a estimativa de tempo de trabalho: enquanto isso, os valores ficam em reais.Mostrar em R$","Valores em tempo de trabalho equivalente: uma estimativa aproximada, não o valor exato.Mostrar em R$"]}
+  ✓  5 [chromium] › e2e/work-time-b03.spec.ts:580:1 › B03-e: a receita desconsiderada sai da janela da estimativa e volta: o mês antigo só deixa de descontar quando projeção e marca mudam juntas (14.5s)
+[valores-b03-f-sem-prova] {"balance":["tempo|≈ 796 h","reais|R$ 19.900,00","reais|R$ 20.200,00"],"hourly":[],"notice":["Valores em tempo de trabalho equivalente: uma estimativa aproximada, não o valor exato.Mostrar em R$","Calculando a estimativa de tempo de trabalho: enquanto isso, os valores ficam em reais.Mostrar em R$"]}
+[valores-b03-f] {"balance":["tempo|≈ 796 h","reais|R$ 19.900,00","reais|R$ 20.200,00","tempo|≈ 795 h 2 min"],"hourly":["R$ 25,41"],"notice":["Valores em tempo de trabalho equivalente: uma estimativa aproximada, não o valor exato.Mostrar em R$","Calculando a estimativa de tempo de trabalho: enquanto isso, os valores ficam em reais.Mostrar em R$","Estimativa de tempo de trabalho indisponível agora: os valores continuam em reais. Veja o motivo em Configurações.Mostrar em R$","Valores em tempo de trabalho equivalente: uma estimativa aproximada, não o valor exato.Mostrar em R$"]}
+  ✓  6 [chromium] › e2e/work-time-b03.spec.ts:635:1 › B03-f (R3.1): leitura nova sem prova: o saldo novo fica em reais e nunca é convertido pela estimativa anterior; a reconstrução traz a conversão certa (40.8s)
+[valores-b03-g-sem-conexao] {"balance":["tempo|≈ 776 h","reais|R$ 19.400,00"],"hourly":[],"notice":["Valores em tempo de trabalho equivalente: uma estimativa aproximada, não o valor exato.Mostrar em R$","Calculando a estimativa de tempo de trabalho: enquanto isso, os valores ficam em reais.Mostrar em R$","Estimativa de tempo de trabalho indisponível agora: os valores continuam em reais. Veja o motivo em Configurações.Mostrar em R$"]}
+  ✘  7 [chromium] › e2e/work-time-b03.spec.ts:729:1 › B03-g (R3.2, RR-R31-05): sem conexão, a conversão sai e a prévia aberta de novo com o cache aquecido não converte; com a conexão de volta, a conversão certa volta (35.6s)
+
+
+  1) [chromium] › e2e/work-time-b03.spec.ts:729:1 › B03-g (R3.2, RR-R31-05): sem conexão, a conversão sai e a prévia aberta de novo com o cache aquecido não converte; com a conexão de volta, a conversão certa volta 
+
+    Error: nenhum saldo convertido depois da queda
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 3
+
+    - Array []
+    + Array [
+    +   "tempo|≈ 776 h",
+    + ]
+
+      766 |   await attachRecorded('b03-g-sem-conexao', offline);
+      767 |   expect(offline.hourly, 'nenhuma hora estimada sem a confirmação do servidor').toEqual([]);
+    > 768 |   expect(offline.balance.filter((entry) => entry.startsWith('tempo|')), 'nenhum saldo convertido depois da queda').toEqual([]);
+          |                                                                                                                    ^
+      769 |
+      770 |   // A conexão volta: o retorno do servidor confirma a base e a conversão volta sozinha.
+      771 |   await context.setOffline(false);
+        at <scratchpad>/wt-p5f1-r32/e2e/work-time-b03.spec.ts:768:116
+
+    Error Context: test-results/work-time-b03-B03-g-R3-2-R-02757-lta-a-conversão-certa-volta-chromium/error-context.md
+
+  1 failed
+    [chromium] › e2e/work-time-b03.spec.ts:729:1 › B03-g (R3.2, RR-R31-05): sem conexão, a conversão sai e a prévia aberta de novo com o cache aquecido não converte; com a conexão de volta, a conversão certa volta 
+  6 passed (4.2m)

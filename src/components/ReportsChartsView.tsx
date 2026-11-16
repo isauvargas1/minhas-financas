@@ -10,6 +10,13 @@ import { formatPercent } from '../modules/reports/format.ts';
 import { EntityItem } from '../types.ts';
 import { useTheme } from '../contexts/ThemeContext.tsx';
 import { useWorkspace } from '../contexts/WorkspaceContext.tsx';
+import { useMoneyDisplay } from '../modules/work-time/display';
+
+/**
+ * P5-F: no modo tempo o eixo Y ganha largura e os gráficos de margem esquerda
+ * negativa passam a 0, para o rótulo compacto (`-≈ 1.234 h`) não ser cortado.
+ */
+const AXIS_WIDTH_IN_TIME_MODE = 80;
 
 interface ReportsChartsViewProps {
     snapshot?: FinancialReportSnapshot;
@@ -32,6 +39,7 @@ const ReportsChartsView: React.FC<ReportsChartsViewProps> = ({ snapshot, view, i
     const { theme } = useTheme();
     const { activeWorkspace } = useWorkspace();
     const isPJ = activeWorkspace.type === 'PJ';
+    const display = useMoneyDisplay();
 
     const [creditCardExpenseView, setCreditCardExpenseView] = useState<
         'purchaseCompetence' | 'invoicePaymentDate' | 'cardAnalytics'
@@ -190,11 +198,11 @@ const ReportsChartsView: React.FC<ReportsChartsViewProps> = ({ snapshot, view, i
                     <p className="mb-6 text-xs text-muted">Valor de fechamento de cada mês, lido da projeção mensal oficial, sem varrer movimentações no navegador.</p>
                     <div className="h-72 w-full">
                         <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={investmentEvolutionData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                            <AreaChart data={investmentEvolutionData} margin={{ top: 10, right: 10, left: display.isTime ? 0 : -10, bottom: 0 }}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme.colors.border} />
                                 <XAxis dataKey="name" tick={{ fill: theme.colors.textSecondary, fontSize: 12 }} />
-                                <YAxis tick={{ fill: theme.colors.textSecondary, fontSize: 12 }} tickFormatter={(value) => new Intl.NumberFormat('pt-BR', { notation: 'compact', style: 'currency', currency: 'BRL' }).format(value)} />
-                                <Tooltip formatter={(value: number) => formatCurrency(value)} contentStyle={{ backgroundColor: theme.colors.surface, borderColor: theme.colors.border, color: theme.colors.text, borderRadius: '8px' }} />
+                                <YAxis tick={{ fill: theme.colors.textSecondary, fontSize: 12 }} width={display.isTime ? AXIS_WIDTH_IN_TIME_MODE : undefined} tickFormatter={display.isTime ? (v) => display.reaisAxis(Number(v), (n) => new Intl.NumberFormat('pt-BR', { notation: 'compact', style: 'currency', currency: 'BRL' }).format(n)) : (value) => new Intl.NumberFormat('pt-BR', { notation: 'compact', style: 'currency', currency: 'BRL' }).format(value)} />
+                                <Tooltip formatter={(value: number) => display.reaisTooltip(Number(value), formatCurrency)} contentStyle={{ backgroundColor: theme.colors.surface, borderColor: theme.colors.border, color: theme.colors.text, borderRadius: '8px' }} />
                                 <Area type="monotone" dataKey="Patrimônio" stroke={theme.colors.primary} fill={theme.colors.primary} fillOpacity={0.15} strokeWidth={3} />
                             </AreaChart>
                         </ResponsiveContainer>
@@ -214,7 +222,7 @@ const ReportsChartsView: React.FC<ReportsChartsViewProps> = ({ snapshot, view, i
                         </div>
                     ) : (
                     <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={cashFlowData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                        <AreaChart data={cashFlowData} margin={{ top: 10, right: 10, left: display.isTime ? 0 : -20, bottom: 0 }}>
                             <defs>
                                 <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
                                     <stop offset="5%" stopColor={theme.colors.chartIncome} stopOpacity={0.2} />
@@ -237,10 +245,11 @@ const ReportsChartsView: React.FC<ReportsChartsViewProps> = ({ snapshot, view, i
                                 tick={{ fill: theme.colors.textSecondary, fontSize: 12 }}
                                 axisLine={false}
                                 tickLine={false}
-                                tickFormatter={(val) => `R$${val / 1000}k`}
+                                width={display.isTime ? AXIS_WIDTH_IN_TIME_MODE : undefined}
+                                tickFormatter={display.isTime ? (v) => display.reaisAxis(Number(v), (n) => `R$${n / 1000}k`) : (val) => `R$${val / 1000}k`}
                             />
                             <Tooltip
-                                formatter={(value: number) => formatCurrency(value)}
+                                formatter={(value: number) => display.reaisTooltip(Number(value), formatCurrency)}
                                 contentStyle={{
                                     backgroundColor: theme.colors.surface,
                                     borderColor: theme.colors.border,
@@ -305,7 +314,7 @@ const ReportsChartsView: React.FC<ReportsChartsViewProps> = ({ snapshot, view, i
                                         ))}
                                     </Pie>
                                     <Tooltip
-                                        formatter={(value: number) => formatCurrency(value)}
+                                        formatter={(value: number) => display.reaisTooltip(Number(value), formatCurrency)}
                                         contentStyle={{ backgroundColor: theme.colors.surface, borderColor: theme.colors.border, color: theme.colors.text, borderRadius: '8px' }}
                                     />
                                     <Legend
@@ -344,7 +353,7 @@ const ReportsChartsView: React.FC<ReportsChartsViewProps> = ({ snapshot, view, i
                                         />
                                         <Tooltip
                                             cursor={{ fill: 'transparent' }}
-                                            formatter={(value: number) => formatCurrency(value)}
+                                            formatter={(value: number) => display.reaisTooltip(Number(value), formatCurrency)}
                                             contentStyle={{ backgroundColor: theme.colors.surface, borderColor: theme.colors.border, color: theme.colors.text, borderRadius: '8px' }}
                                         />
                                         <Bar
@@ -380,7 +389,7 @@ const ReportsChartsView: React.FC<ReportsChartsViewProps> = ({ snapshot, view, i
                                         />
                                         <Tooltip
                                             cursor={{ fill: 'transparent' }}
-                                            formatter={(value: number) => formatCurrency(value)}
+                                            formatter={(value: number) => display.reaisTooltip(Number(value), formatCurrency)}
                                             contentStyle={{ backgroundColor: theme.colors.surface, borderColor: theme.colors.border, color: theme.colors.text, borderRadius: '8px' }}
                                         />
                                         <Bar
@@ -475,10 +484,11 @@ const ReportsChartsView: React.FC<ReportsChartsViewProps> = ({ snapshot, view, i
                                                 tick={{ fill: theme.colors.textSecondary, fontSize: 12 }}
                                                 axisLine={false}
                                                 tickLine={false}
-                                                tickFormatter={(value) => `R$${value / 1000}k`}
+                                                width={display.isTime ? AXIS_WIDTH_IN_TIME_MODE : undefined}
+                                                tickFormatter={display.isTime ? (v) => display.reaisAxis(Number(v), (n) => `R$${n / 1000}k`) : (value) => `R$${value / 1000}k`}
                                             />
                                             <Tooltip
-                                                formatter={(value: number) => formatCurrency(value)}
+                                                formatter={(value: number) => display.reaisTooltip(Number(value), formatCurrency)}
                                                 contentStyle={{
                                                     backgroundColor: theme.colors.surface,
                                                     borderColor: theme.colors.border,
@@ -519,7 +529,7 @@ const ReportsChartsView: React.FC<ReportsChartsViewProps> = ({ snapshot, view, i
                                                 <td className="px-4 py-3 font-bold text-on-surface">{item.label}</td>
                                                 <td className="px-4 py-3 text-right text-muted">{item.count ?? REPORT_MESSAGES.noValue}</td>
                                                 <td className="px-4 py-3 text-right font-bold text-on-surface">
-                                                    {formatCurrency(item.amount)}
+                                                    {display.reais(item.amount, formatCurrency)}
                                                 </td>
                                             </tr>
                                         ))}
@@ -556,19 +566,19 @@ const ReportsChartsView: React.FC<ReportsChartsViewProps> = ({ snapshot, view, i
                                                 <p className="text-xs text-muted">{card.purchaseCount} compra(s) no período</p>
                                             </td>
                                             <td className="px-4 py-3 text-right font-bold text-on-surface">
-                                                {formatCurrency(card.purchaseAmount)}
+                                                {display.reais(card.purchaseAmount, formatCurrency)}
                                             </td>
                                             <td className="px-4 py-3 text-right font-bold text-on-surface">
-                                                {formatCurrency(card.paidAmount)}
+                                                {display.reais(card.paidAmount, formatCurrency)}
                                             </td>
                                             <td className="px-4 py-3 text-right font-bold text-on-surface">
-                                                {card.openInvoiceBalance === null ? REPORT_MESSAGES.noValue : formatCurrency(card.openInvoiceBalance)}
+                                                {card.openInvoiceBalance === null ? REPORT_MESSAGES.noValue : display.reais(card.openInvoiceBalance, formatCurrency)}
                                             </td>
                                             <td className="px-4 py-3 text-right font-bold text-on-surface">
-                                                {formatCurrency(card.futureCommittedBalance)}
+                                                {display.reais(card.futureCommittedBalance, formatCurrency)}
                                             </td>
                                             <td className={`px-4 py-3 text-right font-bold ${card.overdueAmount > 0 ? 'text-red-600' : 'text-on-surface'}`}>
-                                                {formatCurrency(card.overdueAmount)}
+                                                {display.reais(card.overdueAmount, formatCurrency)}
                                             </td>
                                             <td className="px-4 py-3 text-right font-black text-on-surface">
                                                 {card.utilizationRate === null ? REPORT_MESSAGES.noValue : formatPercent(card.utilizationRate)}
@@ -583,7 +593,7 @@ const ReportsChartsView: React.FC<ReportsChartsViewProps> = ({ snapshot, view, i
                         && view.blocks.cards.hasNumbers
                         && snapshot.debtProfile.creditCardArchivedOverdueAmount > 0 && (
                         <p className="text-xs text-muted">
-                            Não inclui {formatCurrency(snapshot.debtProfile.creditCardArchivedOverdueAmount)} em atraso de cartões arquivados, exibidos na Visão Geral.
+                            Não inclui {display.reais(snapshot.debtProfile.creditCardArchivedOverdueAmount, formatCurrency)} em atraso de cartões arquivados, exibidos na Visão Geral.
                         </p>
                     )}
                     <p className="text-xs text-muted">{view.cardsNote}</p>
@@ -663,10 +673,11 @@ const ReportsChartsView: React.FC<ReportsChartsViewProps> = ({ snapshot, view, i
                                             tick={{ fill: theme.colors.textSecondary, fontSize: 12 }}
                                             axisLine={false}
                                             tickLine={false}
-                                            tickFormatter={(value) => `R$${value / 1000}k`}
+                                            width={display.isTime ? AXIS_WIDTH_IN_TIME_MODE : undefined}
+                                            tickFormatter={display.isTime ? (v) => display.reaisAxis(Number(v), (n) => `R$${n / 1000}k`) : (value) => `R$${value / 1000}k`}
                                         />
                                         <Tooltip
-                                            formatter={(value: number) => formatCurrency(value)}
+                                            formatter={(value: number) => display.reaisTooltip(Number(value), formatCurrency)}
                                             contentStyle={{
                                                 backgroundColor: theme.colors.surface,
                                                 borderColor: theme.colors.border,
@@ -709,11 +720,12 @@ const ReportsChartsView: React.FC<ReportsChartsViewProps> = ({ snapshot, view, i
                                         tick={{ fill: theme.colors.textSecondary, fontSize: 12 }}
                                         axisLine={false}
                                         tickLine={false}
-                                        tickFormatter={(val) => `R$${val / 1000}k`}
+                                        width={display.isTime ? AXIS_WIDTH_IN_TIME_MODE : undefined}
+                                        tickFormatter={display.isTime ? (v) => display.reaisAxis(Number(v), (n) => `R$${n / 1000}k`) : (val) => `R$${val / 1000}k`}
                                     />
                                     <Tooltip
                                         cursor={{ fill: 'transparent' }}
-                                        formatter={(value: number) => formatCurrency(value)}
+                                        formatter={(value: number) => display.reaisTooltip(Number(value), formatCurrency)}
                                         contentStyle={{ backgroundColor: theme.colors.surface, borderColor: theme.colors.border, color: theme.colors.text, borderRadius: '8px' }}
                                     />
                                     <Bar dataKey="value" radius={[4, 4, 0, 0]} barSize={40}>

@@ -1,0 +1,4 @@
+MORTO       U4 S01      src/modules/work-time/calendar.ts: if (!none.ambiguous && !all.ambiguous && none.minutes === all.minutes) return none;
+MORTO       U5 S01      src/modules/work-time/calendar.ts: if (!none.ambiguous && !all.ambiguous && none.minutes === all.minutes) return none;
+TOTAL unit: 2/2 mortos; 0 não compilam
+saída 0; 58 s

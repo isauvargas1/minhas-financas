@@ -43,6 +43,7 @@ import {
 } from '../modules/cards/payloads.ts';
 import { formatCompetence } from '../modules/cards/cycle.ts';
 import { formatCents, formatDayKey, saoPauloToday } from '../modules/loans/money.ts';
+import { useMoneyDisplay } from '../modules/work-time/display.tsx';
 import type { CardInvoice, CreditCard } from '../modules/cards/types.ts';
 
 /**
@@ -69,6 +70,7 @@ const InvoiceSummaryCard: React.FC<{
     const status = invoiceDisplayStatus(invoice, today);
     const canPay = canManage && canPayInvoice(invoice, today);
     const competence = formatCompetence(invoice.competenceMonth);
+    const display = useMoneyDisplay();
     const creditNote = openInvoiceCreditNote(invoice);
     return (
         <div
@@ -90,15 +92,15 @@ const InvoiceSummaryCard: React.FC<{
             <div className="grid grid-cols-3 gap-2 text-xs">
                 <div>
                     <p className="text-gray-500 dark:text-gray-400">Total</p>
-                    <p className="font-bold">{formatCents(invoice.totalCents)}</p>
+                    <p className="font-bold">{display.cents(invoice.totalCents, formatCents)}</p>
                 </div>
                 <div>
                     <p className="text-gray-500 dark:text-gray-400">Pago</p>
-                    <p className="font-bold">{formatCents(invoice.paidCents)}</p>
+                    <p className="font-bold">{display.cents(invoice.paidCents, formatCents)}</p>
                 </div>
                 <div>
                     <p className="text-gray-500 dark:text-gray-400">Restante</p>
-                    <p className="font-bold">{formatCents(payableCents(invoice))}</p>
+                    <p className="font-bold">{display.cents(payableCents(invoice), formatCents)}</p>
                 </div>
             </div>
 
@@ -134,6 +136,7 @@ const InvoiceSummaryCard: React.FC<{
 };
 
 const CreditCardsView: React.FC = () => {
+    const display = useMoneyDisplay();
     const { data: cardsData, isLoading } = useCreditCards();
     const cards = useMemo(() => cardsData ?? [], [cardsData]);
     const { activeWorkspace, activeWorkspaceRole } = useWorkspace();
@@ -597,7 +600,7 @@ const CreditCardsView: React.FC = () => {
                                                     </div>
 
                                                     <p className="font-bold text-gray-800 dark:text-white">
-                                                        {formatCents(purchase.totalCents)}
+                                                        {display.cents(purchase.totalCents, formatCents)}
                                                     </p>
                                                 </div>
                                             ))}

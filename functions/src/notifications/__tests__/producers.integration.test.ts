@@ -129,7 +129,12 @@ import {
   idempotencyKey,
   uniqueId,
 } from "../../workspaces/testSupport/p1TestSupport";
-import type {NotificationEventType} from "../contract";
+import {buildNotificationDocument} from "../builder";
+import {
+  NOTIFICATION_ENTITY_FIELDS,
+  type NotificationDomain,
+  type NotificationEventType,
+} from "../contract";
 import {notificationIdFor} from "../ids";
 import {
   LOAN_NOTIFICATION_OPERATION,
@@ -243,18 +248,115 @@ const expectNotice = (item: Doc, spec: NoticeSpec) => {
   }
 };
 
+// Campos do aviso que levam conteúdo: o texto que a pessoa lê e a
+// classificação do fato. Instantes entram como texto ISO, porque os segundos
+// e nanossegundos de um Timestamp não são dado do aviso e podem conter
+// qualquer sequência de dígitos (ex.: 510000000 ns contém "1000000").
+const NOTICE_CONTENT_FIELDS = ["title", "message", "type", "link",
+  "actionLabel", "source", "domain", "domainEventType", "createdAt",
+  "expiresAt"] as const;
+// Forma dos identificadores do contrato: sem espaço, pontuação, "@", "R$" nem
+// texto livre (um nome, um e-mail, uma descrição ou um valor formatado nunca
+// cabem nela).
+const OPAQUE_ID = /^[A-Za-z0-9_-]{1,256}$/;
+
+/**
+ * Nenhum dado do domínio no aviso (P5-GATE-FINAL, RR-R32-12). O aviso tem
+ * exatamente os campos do contrato, e cada campo é conteúdo ou identificador.
+ * As palavras proibidas são procuradas nos nomes dos campos (um campo como
+ * `balanceCents` ou `personName` reprova) e em todo campo de conteúdo. Os
+ * identificadores (`id`, `workspaceId` e os da entidade do domínio) ficam
+ * fora da busca por trecho: são derivados de hash ou aleatórios e podem
+ * conter qualquer sequência de dígitos (um `occurrenceId` com "9990" reprovou
+ * a `verify-all-r32-8` sem dado nenhum no aviso). Eles são conferidos pela
+ * forma opaca aqui e pelo valor exato em `expectNotice`.
+ */
 const assertNoWords = (item: Doc, words: string[]) => {
-  // Todos os campos entram na busca; instantes viram texto ISO, porque os
-  // segundos e nanossegundos de um Timestamp não são dado do aviso e podem
-  // conter qualquer sequência de dígitos (ex.: 510000000 ns contém
-  // "1000000").
-  const text = JSON.stringify(Object.fromEntries(Object.entries(item)
-    .map(([key, value]) => [key, value instanceof Timestamp ?
-      value.toDate().toISOString() : value])));
+  const eventType = item.domainEventType as NotificationEventType;
+  assertOnlyContractFields(item, eventType);
+  const domain = item.domain as NotificationDomain;
+  assert.ok(Object.prototype.hasOwnProperty.call(
+    NOTIFICATION_ENTITY_FIELDS, domain), `domínio do aviso: ${domain}`);
+  const idFields = ["id", "workspaceId", ...NOTIFICATION_ENTITY_FIELDS[domain]];
+  assert.deepEqual(Object.keys(item).sort(),
+    [...NOTICE_CONTENT_FIELDS, ...idFields].sort(),
+    "cada campo do aviso é conteúdo ou identificador");
+  for (const field of idFields) {
+    assert.match(String(item[field]), OPAQUE_ID, `identificador ${field}`);
+  }
+  const content = JSON.stringify(NOTICE_CONTENT_FIELDS.map((field) => {
+    const value = item[field];
+    return value instanceof Timestamp ? value.toDate().toISOString() : value;
+  }));
   for (const word of words) {
-    assert.ok(!text.includes(word), `dado indevido no aviso: ${word}`);
+    assert.ok(!(word in item), `campo indevido no aviso: ${word}`);
+    assert.ok(!content.includes(word), `dado indevido no aviso: ${word}`);
   }
 };
+
+/**
+ * Nenhum dado do domínio num registro de log: todos os campos entram na
+ * busca, inclusive os identificadores. Por isso as palavras não podem ser
+ * sequências curtas de dígitos, que um identificador aleatório pode conter
+ * por acaso (RR-R32-12); essas só são procuradas nos campos de conteúdo do
+ * aviso, por `assertNoWords`.
+ */
+const assertLogWithoutWords = (entry: Doc, words: string[]) => {
+  const text = JSON.stringify(entry);
+  for (const word of words) {
+    assert.doesNotMatch(word, /^-?[0-9]{1,12}$/,
+      `palavra numérica curta na busca do log: ${word}`);
+    assert.ok(!text.includes(word), `dado indevido no log: ${word}`);
+  }
+};
+
+// O próprio auxiliar (P5-GATE-FINAL, RR-R32-12): dígitos dentro dos
+// identificadores não são dado do aviso; o dado no conteúdo, um campo a mais
+// ou texto num identificador continuam reprovando. Sem Emulator: o aviso vem
+// do builder real.
+test("RR-R32-12: a busca por dado indevido ignora os dígitos dos " +
+  "identificadores e continua pegando o dado no conteúdo do aviso", () => {
+  const notice = (overrides: Partial<Parameters<
+    typeof buildNotificationDocument>[0]> = {}): Doc => {
+    const data = buildNotificationDocument({
+      id: `ro_${"9990".repeat(4)}${"1000000".repeat(2)}00`,
+      workspaceId: "ws-10000-9990",
+      eventType: "recurring_awaiting_confirmation",
+      title: "Despesa recorrente aguardando confirmação",
+      message: "Em 14/11/2026, uma despesa recorrente com vencimento em " +
+        "10/03/2026 ficou aguardando confirmação.",
+      type: "warning",
+      link: "recurring",
+      createdAtMs: Date.UTC(2026, 10, 14, 13),
+      entity: {recurringExpenseId: "rexp-10000",
+        occurrenceId: `rocc_407244c625${"1999"}0`},
+      ...overrides,
+    });
+    return {id: data.id, ...data};
+  };
+  const words = ["Internet reservada", "plannedAmountCents", "9990",
+    "1000000", "-10000"];
+  // Os dígitos só aparecem nos identificadores: nada indevido.
+  assert.doesNotThrow(() => assertNoWords(notice(), words));
+  // O dado no conteúdo reprova, em qualquer campo de texto.
+  assert.throws(() => assertNoWords(notice({message: "Em 14/11/2026, uma " +
+    "despesa recorrente de R$ 99,90 (9990) ficou aguardando confirmação."}),
+  words), /dado indevido no aviso: 9990/);
+  assert.throws(() => assertNoWords(notice({title: "Internet reservada"}),
+    words), /dado indevido no aviso: Internet reservada/);
+  // Um campo fora do contrato, ou com o nome de uma palavra proibida, reprova.
+  assert.throws(() => assertNoWords({...notice(), plannedAmountCents: 9990},
+    words), /campos do evento|campo proibido/);
+  // Texto num identificador não tem a forma opaca do contrato.
+  const leaked = {...notice(), occurrenceId: "Internet reservada R$ 99,90"};
+  assert.throws(() => assertNoWords(leaked, words), /identificador occurrenceId/);
+  // No log, a busca cobre os identificadores; por isso não aceita palavras
+  // numéricas curtas, que um identificador aleatório pode conter.
+  assert.throws(() => assertLogWithoutWords({notificationId: "ro_1"}, ["9990"]),
+    /palavra numérica curta/);
+  assert.throws(() => assertLogWithoutWords({message: "Internet reservada"},
+    ["Internet reservada"]), /dado indevido no log/);
+});
 
 const commitMsOf = (snapshot: DocSnapshot): number => {
   assert.ok(snapshot.updateTime, "documento sem updateTime");
@@ -1703,7 +1805,7 @@ test("P5-D2 correlação: o gatilho registra a publicação com o ID do evento "
     assert.equal(entry.workspaceId, t.workspaceId);
     assert.equal(entry.loanId, loanId);
     assert.equal(entry.notificationId, item.id);
-    assertNoWords(entry, LOAN_PII);
+    assertLogWithoutWords(entry, LOAN_PII);
   }
 });
 
@@ -1735,7 +1837,7 @@ test("P5-D2 correlação: o corpo da rotina de recebíveis deriva a correlação
   assert.ok(published, "publicação registrada");
   for (const entry of [completed, published]) {
     assert.equal(entry.runId, `receivable-overdue-${scheduleTime}`);
-    assertNoWords(entry, RECEIVABLE_PII);
+    assertLogWithoutWords(entry, RECEIVABLE_PII);
   }
 });
 

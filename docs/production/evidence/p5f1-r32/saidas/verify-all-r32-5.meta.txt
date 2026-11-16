@@ -1,0 +1,1 @@
+inicio=2026-11-14T00:20:13Z script=verify:all head=1730a1df0d3870ff52496933f45cb73a8dacd29b arvore=698f96441df1fbcd63467792c43cdb57b3911d9e node=v22.23.4 java=version "21.0.12.1" firebase=15.32.1 E2E_SHARDS=padrão

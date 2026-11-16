@@ -12,6 +12,7 @@ import {
 } from '../persistence/readApi';
 import { callInvestment, investmentRequestIds } from '../persistence/callableApi';
 import { invalidateFinancialReports } from '../../reports/queryKeys';
+import { invalidateTransactionReads } from '../../transactions/incomeReads';
 import type { InvestmentAllocationDimension, InvestmentPosition } from '../types';
 import { toGoalLinkCandidates, type GoalLinkCandidate } from './goalLink';
 import {
@@ -140,7 +141,7 @@ export const useSimpleInvestmentMutation = (workspaceId: string) => {
       // sem isto.
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: SIMPLE_INVESTMENT_KEYS.root }),
-        queryClient.invalidateQueries({ queryKey: ['transactions', workspaceId] }),
+        invalidateTransactionReads(queryClient, workspaceId),
         queryClient.invalidateQueries({ queryKey: ['cash_accounts', workspaceId] }),
         queryClient.invalidateQueries({ queryKey: ['cash_account_movements', workspaceId] }),
         queryClient.invalidateQueries({ queryKey: ['goals', workspaceId] }),

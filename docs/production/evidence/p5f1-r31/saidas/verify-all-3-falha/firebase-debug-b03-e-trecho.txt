@@ -1,0 +1,311 @@
+[debug] [2026-11-10T23:16:42.145Z] <<< [apiv2][status] POST http://127.0.0.1:5001/functions/projects/minhas-financas-local/trigger_multicast 200
+[debug] [2026-11-10T23:16:42.145Z] <<< [apiv2][body] POST http://127.0.0.1:5001/functions/projects/minhas-financas-local/trigger_multicast {"status":"multicast_acknowledged"}
+[debug] [2026-11-10T23:16:42.145Z] <<< [apiv2][status] POST http://127.0.0.1:5001/functions/projects/minhas-financas-local/trigger_multicast 200
+[debug] [2026-11-10T23:16:42.145Z] <<< [apiv2][body] POST http://127.0.0.1:5001/functions/projects/minhas-financas-local/trigger_multicast {"status":"multicast_acknowledged"}
+[debug] [2026-11-10T23:16:42.148Z] Nov 10, 2026 11:16:42 PM com.google.cloud.datastore.emulator.impl.util.WrappedStreamObserver onError
+WARNING: Operation failed: entity already exists: EntityRef[partitionRef=dev~minhas-financas-local, path=/billing_accounts/e2e-b03-a]
+com.google.cloud.datastore.core.exception.DatastoreException: entity already exists: EntityRef[partitionRef=dev~minhas-financas-local, path=/billing_accounts/e2e-b03-a]
+	at com.google.cloud.datastore.core.exception.DatastoreException.withProblem(DatastoreException.java:352)
+	at com.google.cloud.datastore.emulator.impl.util.FirestoreEmulatorConverters.alreadyExists(FirestoreEmulatorConverters.java:757)
+	at com.google.cloud.datastore.emulator.impl.util.FirestoreEmulatorConverters.checkMutation(FirestoreEmulatorConverters.java:212)
+	at com.google.cloud.datastore.emulator.impl.firestore.FirestoreEmulatorHelper.commitHelper(FirestoreEmulatorHelper.java:412)
+	at com.google.cloud.datastore.emulator.impl.firestore.FirestoreEmulatorHelper.internalCommit(FirestoreEmulatorHelper.java:348)
+	at com.google.cloud.datastore.emulator.impl.firestore.CloudFirestoreV1.commit(CloudFirestoreV1.java:541)
+	at com.google.cloud.datastore.emulator.impl.firestore.CloudFirestoreV1Router.commit(CloudFirestoreV1Router.java:177)
+	at com.google.cloud.datastore.emulator.firestore.v1.FirestoreV1GrpcAdapter$1.lambda$commit$0(FirestoreV1GrpcAdapter.java:162)
+	at com.google.cloud.datastore.emulator.firestore.v1.FirestoreV1GrpcAdapter.unary(FirestoreV1GrpcAdapter.java:72)
+	at com.google.cloud.datastore.emulator.firestore.v1.FirestoreV1GrpcAdapter$1.commit(FirestoreV1GrpcAdapter.java:162)
+	at com.google.firestore.v1.FirestoreGrpc$MethodHandlers.invoke(FirestoreGrpc.java:1404)
+	at io.grpc.stub.ServerCalls$UnaryServerCallHandler$UnaryServerCallListener.onHalfClose(ServerCalls.java:182)
+	at io.grpc.PartialForwardingServerCallListener.onHalfClose(PartialForwardingServerCallListener.java:35)
+	at io.grpc.ForwardingServerCallListener.onHalfClose(ForwardingServerCallListener.java:23)
+	at io.grpc.ForwardingServerCallListener$SimpleForwardingServerCallListener.onHalfClose(ForwardingServerCallListener.java:40)
+	at io.grpc.Contexts$ContextualizedServerCallListener.onHalfClose(Contexts.java:86)
+	at io.grpc.PartialForwardingServerCallListener.onHalfClose(PartialForwardingServerCallListener.java:35)
+	at io.grpc.ForwardingServerCallListener.onHalfClose(ForwardingServerCallListener.java:23)
+	at io.grpc.ForwardingServerCallListener$SimpleForwardingServerCallListener.onHalfClose(ForwardingServerCallListener.java:40)
+	at io.grpc.Contexts$ContextualizedServerCallListener.onHalfClose(Contexts.java:86)
+	at io.grpc.internal.ServerCallImpl$ServerStreamListenerImpl.halfClosed(ServerCallImpl.java:356)
+	at io.grpc.internal.ServerImpl$JumpToApplicationThreadServerStreamListener$1HalfClosed.runInContext(ServerImpl.java:879)
+	at io.grpc.internal.ContextRunnable.run(ContextRunnable.java:37)
+	at io.grpc.internal.SerializingExecutor.run(SerializingExecutor.java:133)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+
+ 
+[info] >  {"severity":"INFO","message":"cash_projection.processed","event":"cash_projection.processed","operation":"onTransactionWrite","requestId":"82909eee1ebdec741c71833c7102cc144cc1376d","workspaceId":"e2e-b03-pf-mwbb7fyy","transactionId":"cash_c88894d6bb203c58c6e9291d4d1bea48c7e37020","action":"DELETE","outcome":"applied","periodCount":1,"ageSeconds":0} {"user":{"severity":"INFO","message":"cash_projection.processed","event":"cash_projection.processed","operation":"onTransactionWrite","requestId":"82909eee1ebdec741c71833c7102cc144cc1376d","workspaceId":"e2e-b03-pf-mwbb7fyy","transactionId":"cash_c88894d6bb203c58c6e9291d4d1bea48c7e37020","action":"DELETE","outcome":"applied","periodCount":1,"ageSeconds":0},"metadata":{"emulator":{"name":"functions"},"function":{"name":"southamerica-east1-onTransactionWrite"},"extension":{},"message":"\u001b[90m> \u001b[39m {\"severity\":\"INFO\",\"message\":\"cash_projection.processed\",\"event\":\"cash_projection.processed\",\"operation\":\"onTransactionWrite\",\"requestId\":\"82909eee1ebdec741c71833c7102cc144cc1376d\",\"workspaceId\":\"e2e-b03-pf-mwbb7fyy\",\"transactionId\":\"cash_c88894d6bb203c58c6e9291d4d1bea48c7e37020\",\"action\":\"DELETE\",\"outcome\":\"applied\",\"periodCount\":1,\"ageSeconds\":0}"}}
+[debug] [2026-11-10T23:16:42.150Z] Finishing up request with event=pause 
+[info] i  functions: Finished "southamerica-east1-onTransactionWrite" in 10.757826ms 
+[debug] [2026-11-10T23:16:42.150Z] [worker-southamerica-east1-onTransactionWrite-a9bffb44-8262-41b1-adaa-9cb56762e0c3]: IDLE 
+[debug] [2026-11-10T23:16:42.150Z] Finishing up request with event=finish 
+[debug] [2026-11-10T23:16:42.150Z] Finishing up request with event=close 
+[debug] [2026-11-10T23:16:42.150Z] [work-queue] {"queuedWork":[],"queueLength":0,"runningWork":["/minhas-financas-local/southamerica-east1/getFinancialReport-2026-11-10T23:16:40.056Z"],"workRunningCount":1}
+[debug] [2026-11-10T23:16:42.151Z] Nov 10, 2026 11:16:42 PM com.google.cloud.datastore.emulator.impl.util.WrappedStreamObserver onError
+WARNING: Operation failed: entity already exists: EntityRef[partitionRef=dev~minhas-financas-local, path=/billing_accounts/e2e-b03-a/quota_state/ownership]
+com.google.cloud.datastore.core.exception.DatastoreException: entity already exists: EntityRef[partitionRef=dev~minhas-financas-local, path=/billing_accounts/e2e-b03-a/quota_state/ownership]
+	at com.google.cloud.datastore.core.exception.DatastoreException.withProblem(DatastoreException.java:352)
+	at com.google.cloud.datastore.emulator.impl.util.FirestoreEmulatorConverters.alreadyExists(FirestoreEmulatorConverters.java:757)
+	at com.google.cloud.datastore.emulator.impl.util.FirestoreEmulatorConverters.checkMutation(FirestoreEmulatorConverters.java:212)
+	at com.google.cloud.datastore.emulator.impl.firestore.FirestoreEmulatorHelper.commitHelper(FirestoreEmulatorHelper.java:412)
+	at com.google.cloud.datastore.emulator.impl.firestore.FirestoreEmulatorHelper.internalCommit(FirestoreEmulatorHelper.java:348)
+	at com.google.cloud.datastore.emulator.impl.firestore.CloudFirestoreV1.commit(CloudFirestoreV1.java:541)
+	at com.google.cloud.datastore.emulator.impl.firestore.CloudFirestoreV1Router.commit(CloudFirestoreV1Router.java:177)
+	at com.google.cloud.datastore.emulator.firestore.v1.FirestoreV1GrpcAdapter$1.lambda$commit$0(FirestoreV1GrpcAdapter.java:162)
+	at com.google.cloud.datastore.emulator.firestore.v1.FirestoreV1GrpcAdapter.unary(FirestoreV1GrpcAdapter.java:72)
+	at com.google.cloud.datastore.emulator.firestore.v1.FirestoreV1GrpcAdapter$1.commit(FirestoreV1GrpcAdapter.java:162)
+	at com.google.firestore.v1.FirestoreGrpc$MethodHandlers.invoke(FirestoreGrpc.java:1404)
+	at io.grpc.stub.ServerCalls$UnaryServerCallHandler$UnaryServerCallListener.onHalfClose(ServerCalls.java:182)
+	at io.grpc.PartialForwardingServerCallListener.onHalfClose(PartialForwardingServerCallListener.java:35)
+	at io.grpc.ForwardingServerCallListener.onHalfClose(ForwardingServerCallListener.java:23)
+	at io.grpc.ForwardingServerCallListener$SimpleForwardingServerCallListener.onHalfClose(ForwardingServerCallListener.java:40)
+	at io.grpc.Contexts$ContextualizedServerCallListener.onHalfClose(Contexts.java:86)
+	at io.grpc.PartialForwardingServerCallListener.onHalfClose(PartialForwardingServerCallListener.java:35)
+	at io.grpc.ForwardingServerCallListener.onHalfClose(ForwardingServerCallListener.java:23)
+	at io.grpc.ForwardingServerCallListener$SimpleForwardingServerCallListener.onHalfClose(ForwardingServerCallListener.java:40)
+	at io.grpc.Contexts$ContextualizedServerCallListener.onHalfClose(Contexts.java:86)
+	at io.grpc.internal.ServerCallImpl$ServerStreamListenerImpl.halfClosed(ServerCallImpl.java:356)
+	at io.grpc.internal.ServerImpl$JumpToApplicationThreadServerStreamListener$1HalfClosed.runInContext(ServerImpl.java:879)
+	at io.grpc.internal.ContextRunnable.run(ContextRunnable.java:37)
+	at io.grpc.internal.SerializingExecutor.run(SerializingExecutor.java:133)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+
+ 
+[debug] [2026-11-10T23:16:42.152Z] [work-queue] {"queuedWork":["/functions/projects/minhas-financas-local/triggers/southamerica-east1-onTransactionWrite-0-2026-11-10T23:16:42.152Z"],"queueLength":1,"runningWork":["/minhas-financas-local/southamerica-east1/getFinancialReport-2026-11-10T23:16:40.056Z"],"workRunningCount":1}
+[debug] [2026-11-10T23:16:42.152Z] [work-queue] {"queuedWork":[],"queueLength":0,"runningWork":["/minhas-financas-local/southamerica-east1/getFinancialReport-2026-11-10T23:16:40.056Z","/functions/projects/minhas-financas-local/triggers/southamerica-east1-onTransactionWrite-0-2026-11-10T23:16:42.152Z"],"workRunningCount":2}
+[debug] [2026-11-10T23:16:42.152Z] Accepted request POST /functions/projects/minhas-financas-local/triggers/southamerica-east1-onTransactionWrite-0 --> southamerica-east1-onTransactionWrite-0
+[debug] [2026-11-10T23:16:42.152Z] [functions] Runtime ready! Sending request! 
+[debug] [2026-11-10T23:16:42.152Z] [functions] Got req.url=/functions/projects/minhas-financas-local/triggers/southamerica-east1-onTransactionWrite-0, mapping to path=/functions/projects/ 
+[debug] [2026-11-10T23:16:42.152Z] [worker-pool] submitRequest(triggerId=southamerica-east1-onTransactionWrite) 
+[info] i  functions: Beginning execution of "southamerica-east1-onTransactionWrite" 
+[debug] [2026-11-10T23:16:42.153Z] [worker-southamerica-east1-onTransactionWrite-a9bffb44-8262-41b1-adaa-9cb56762e0c3]: BUSY 
+[debug] [2026-11-10T23:16:42.153Z] [runtime-status] [18058] RunCloudEvent {"specversion":"1.0","type":"google.cloud.firestore.document.v1.written","source":"//firestore.googleapis.com/projects/projects/minhas-financas-local/databases/(default)","id":"651d403a-33b3-4de8-a269-eadf541683d4","subject":"documents/workspaces/e2e-b03-pf-mwbb7fyy/transactions/cash_fb9da80a0362fd5a79cb938d8e9c28271b008e88","time":"2026-11-10T23:16:42Z","datacontenttype":"application/protobuf","dataschema":"https://github.com/googleapis/google-cloudevents/blob/main/proto/google/events/cloud/firestore/v1/data.proto","location":"us-central1","project":"minhas-financas-local","database":"(default)","namespace":"(default)","document":"workspaces/e2e-b03-pf-mwbb7fyy/transactions/cash_fb9da80a0362fd5a79cb938d8e9c28271b008e88","data":{"type":"Buffer","data":[18,211,7,10,150,1,112,114,111,106,101,99,116,115,47,109,105,110,104,97,115,45,102,105,110,97,110,99,97,115,45,108,111,99,97,108,47,100,97,116,97,98,97,115,101,115,47,40,100,101,102,97,117,108,116,41,47,100,111,99,117,109,101,110,116,115,47,119,111,114,107,115,112,97,99,101,115,47,101,50,101,45,98,48,51,45,112,102,45,109,119,98,98,55,102,121,121,47,116,114,97,110,115,97,99,116,105,111,110,115,47,99,97,115,104,95,102,98,57,100,97,56,48,97,48,51,54,50,102,100,53,97,55,57,99,98,57,51,56,100,56,101,57,99,50,56,50,55,49,98,48,48,56,101,56,56,18,18,10,4,116,121,112,101,18,10,138,1,7,114,101,99,101,105,116,97,18,41,10,11,100,101,115,99,114,105,112,116,105,111,110,18,26,138,1,23,67,111,109,105,115,115,195,163,111,32,66,48,51,32,101,120,99,108,117,115,195,163,111,18,24,10,8,99,97,116,101,103,111,114,121,18,12,138,1,9,82,101,110,100,97,32,66,48,51,18,36,10,10,99,97,116,101,103,111,114,121,73,100,18,22,138,1,19,98,48,51,45,105,110,99,111,109,101,45,99,97,116,101,103,111,114,121,18,18,10,10,118,97,108,117,101,67,101,110,116,115,18,4,16,208,134,3,18,21,10,4,100,97,116,101,18,13,138,1,10,50,48,50,54,45,49,48,45,49,53,18,12,10,6,105,115,80,97,105,100,18,2,8,1,18,37,10,11,119,111,114,107,115,112,97,99,101,73,100,18,22,138,1,19,101,50,101,45,98,48,51,45,112,102,45,109,119,98,98,55,102,121,121,18,35,10,9,112,114,111,102,105,108,101,73,100,18,22,138,1,19,101,50,101,45,98,48,51,45,112,102,45,109,119,98,98,55,102,121,121,18,20,10,11,112,114,111,102,105,108,101,84,121,112,101,18,5,138,1,2,80,70,18,22,10,6,117,115,101,114,73,100,18,12,138,1,9,101,50,101,45,98,48,51,45,97,18,29,10,10,105,110,99,111,109,101,84,121,112,101,18,15,138,1,12,83,97,108,195,161,114,105,111,32,66,48,51,18,64,10,13,99,97,115,104,65,99,99,111,117,110,116,73,100,18,47,138,1,44,97,99,99,95,54,97,53,102,55,54,99,57,57,100,97,52,49,102,101,101,56,100,57,98,55,99,50,50,100,54,100,50,48,100,97,98,53,50,100,102,99,57,51,50,18,156,2,10,9,99,97,115,104,69,110,116,114,121,18,142,2,50,139,2,10,19,10,13,100,111,109,97,105,110,86,101,114,115,105,111,110,18,2,16,1,10,19,10,6,111,114,105,103,105,110,18,9,138,1,6,109,97,110,117,97,108,10,22,10,6,115,116,97,116,117,115,18,12,138,1,9,99,111,110,102,105,114,109,101,100,10,18,10,8,99,117,114,114,101,110,99,121,18,6,138,1,3,66,82,76,10,82,10,11,114,101,113,117,101,115,116,72,97,115,104,18,67,138,1,64,99,98,101,53,100,97,99,101,101,97,52,55,53,101,51,102,55,100,53,50,102,54,48,97,56,48,48,50,55,102,97,102,101,56,52,50,56,48,48,53,56,51,100,98,99,97,50,101,50,55,100,100,48,49,56,98,54,101,50,100,55,52,99,48,10,25,10,11,113,117,111,116,97,80,101,114,105,111,100,18,10,138,1,7,50,48,50,54,45,49,49,10,68,10,17,97,99,99,111,117,110,116,77,111,118,101,109,101,110,116,73,100,18,47,138,1,44,97,99,109,95,55,49,102,102,54,97,55,102,102,98,101,50,97,50,102,101,48,48,55,97,56,48,54,52,99,48,49,99,101,55,102,57,97,55,54,52,54,57,97,99,18,25,10,9,99,114,101,97,116,101,100,66,121,18,12,138,1,9,101,50,101,45,98,48,51,45,97,18,25,10,9,117,112,100,97,116,101,100,66,121,18,12,138,1,9,101,50,101,45,98,48,51,45,97,18,26,10,9,99,114,101,97,116,101,100,65,116,18,13,82,11,8,212,203,206,215,6,16,128,150,163,97,18,26,10,9,117,112,100,97,116,101,100,65,116,18,13,82,11,8,212,203,206,215,6,16,128,150,163,97,26,11,8,212,203,206,215,6,16,240,236,233,97,34,11,8,212,203,206,215,6,16,240,236,233,97,26,0]}} 
+[info] >  {"severity":"INFO","message":"cash_projection.processed","event":"cash_projection.processed","operation":"onTransactionWrite","requestId":"078c66fe6e237fe220fcb8084371ac236c8a2e97","workspaceId":"e2e-b03-pf-mwbb7fyy","transactionId":"cash_fb9da80a0362fd5a79cb938d8e9c28271b008e88","action":"DELETE","outcome":"applied","periodCount":1,"ageSeconds":0} {"user":{"severity":"INFO","message":"cash_projection.processed","event":"cash_projection.processed","operation":"onTransactionWrite","requestId":"078c66fe6e237fe220fcb8084371ac236c8a2e97","workspaceId":"e2e-b03-pf-mwbb7fyy","transactionId":"cash_fb9da80a0362fd5a79cb938d8e9c28271b008e88","action":"DELETE","outcome":"applied","periodCount":1,"ageSeconds":0},"metadata":{"emulator":{"name":"functions"},"function":{"name":"southamerica-east1-onTransactionWrite"},"extension":{},"message":"\u001b[90m> \u001b[39m {\"severity\":\"INFO\",\"message\":\"cash_projection.processed\",\"event\":\"cash_projection.processed\",\"operation\":\"onTransactionWrite\",\"requestId\":\"078c66fe6e237fe220fcb8084371ac236c8a2e97\",\"workspaceId\":\"e2e-b03-pf-mwbb7fyy\",\"transactionId\":\"cash_fb9da80a0362fd5a79cb938d8e9c28271b008e88\",\"action\":\"DELETE\",\"outcome\":\"applied\",\"periodCount\":1,\"ageSeconds\":0}"}}
+[debug] [2026-11-10T23:16:42.164Z] Finishing up request with event=pause 
+[info] i  functions: Finished "southamerica-east1-onTransactionWrite" in 11.883131ms 
+[debug] [2026-11-10T23:16:42.165Z] [worker-southamerica-east1-onTransactionWrite-a9bffb44-8262-41b1-adaa-9cb56762e0c3]: IDLE 
+[debug] [2026-11-10T23:16:42.165Z] Finishing up request with event=finish 
+[debug] [2026-11-10T23:16:42.165Z] Finishing up request with event=close 
+[debug] [2026-11-10T23:16:42.165Z] [work-queue] {"queuedWork":[],"queueLength":0,"runningWork":["/minhas-financas-local/southamerica-east1/getFinancialReport-2026-11-10T23:16:40.056Z"],"workRunningCount":1}
+[debug] [2026-11-10T23:16:42.166Z] [work-queue] {"queuedWork":["/functions/projects/minhas-financas-local/triggers/southamerica-east1-onCashAccountWriteNotification-0-2026-11-10T23:16:42.166Z"],"queueLength":1,"runningWork":["/minhas-financas-local/southamerica-east1/getFinancialReport-2026-11-10T23:16:40.056Z"],"workRunningCount":1}
+[debug] [2026-11-10T23:16:42.166Z] [work-queue] {"queuedWork":[],"queueLength":0,"runningWork":["/minhas-financas-local/southamerica-east1/getFinancialReport-2026-11-10T23:16:40.056Z","/functions/projects/minhas-financas-local/triggers/southamerica-east1-onCashAccountWriteNotification-0-2026-11-10T23:16:42.166Z"],"workRunningCount":2}
+[debug] [2026-11-10T23:16:42.166Z] Accepted request POST /functions/projects/minhas-financas-local/triggers/southamerica-east1-onCashAccountWriteNotification-0 --> southamerica-east1-onCashAccountWriteNotification-0
+[debug] [2026-11-10T23:16:42.167Z] [functions] Runtime ready! Sending request! 
+[debug] [2026-11-10T23:16:42.167Z] [functions] Got req.url=/functions/projects/minhas-financas-local/triggers/southamerica-east1-onCashAccountWriteNotification-0, mapping to path=/functions/projects/ 
+[debug] [2026-11-10T23:16:42.167Z] [worker-pool] submitRequest(triggerId=southamerica-east1-onCashAccountWriteNotification) 
+[info] i  functions: Beginning execution of "southamerica-east1-onCashAccountWriteNotification" 
+[debug] [2026-11-10T23:16:42.167Z] [worker-southamerica-east1-onCashAccountWriteNotification-0ad17a9a-f3fe-4aa9-8835-a7fc2d763ebb]: BUSY 
+[debug] [2026-11-10T23:16:42.168Z] [runtime-status] [17110] RunCloudEvent {"specversion":"1.0","type":"google.cloud.firestore.document.v1.written","source":"//firestore.googleapis.com/projects/projects/minhas-financas-local/databases/(default)","id":"e3970657-cae8-4a95-95b5-f5400a8d2861","subject":"documents/workspaces/e2e-b03-pf-mwbb7ksr/cash_accounts/acc_fffb6aaa3e397012433c7117e5ef3b6f8fa3cab0","time":"2026-11-10T23:16:42Z","datacontenttype":"application/protobuf","dataschema":"https://github.com/googleapis/google-cloudevents/blob/main/proto/google/events/cloud/firestore/v1/data.proto","location":"us-central1","project":"minhas-financas-local","database":"(default)","namespace":"(default)","document":"workspaces/e2e-b03-pf-mwbb7ksr/cash_accounts/acc_fffb6aaa3e397012433c7117e5ef3b6f8fa3cab0","data":{"type":"Buffer","data":[10,136,4,10,150,1,112,114,111,106,101,99,116,115,47,109,105,110,104,97,115,45,102,105,110,97,110,99,97,115,45,108,111,99,97,108,47,100,97,116,97,98,97,115,101,115,47,40,100,101,102,97,117,108,116,41,47,100,111,99,117,109,101,110,116,115,47,119,111,114,107,115,112,97,99,101,115,47,101,50,101,45,98,48,51,45,112,102,45,109,119,98,98,55,107,115,114,47,99,97,115,104,95,97,99,99,111,117,110,116,115,47,97,99,99,95,102,102,102,98,54,97,97,97,51,101,51,57,55,48,49,50,52,51,51,99,55,49,49,55,101,53,101,102,51,98,54,102,56,102,97,51,99,97,98,48,18,53,10,2,105,100,18,47,138,1,44,97,99,99,95,102,102,102,98,54,97,97,97,51,101,51,57,55,48,49,50,52,51,51,99,55,49,49,55,101,53,101,102,51,98,54,102,56,102,97,51,99,97,98,48,18,19,10,13,115,99,104,101,109,97,86,101,114,115,105,111,110,18,2,16,1,18,37,10,11,119,111,114,107,115,112,97,99,101,73,100,18,22,138,1,19,101,50,101,45,98,48,51,45,112,102,45,109,119,98,98,55,107,115,114,18,29,10,4,110,97,109,101,18,21,138,1,18,67,97,114,116,101,105,114,97,32,112,114,105,110,99,105,112,97,108,18,22,10,11,97,99,99,111,117,110,116,84,121,112,101,18,7,138,1,4,99,97,115,104,18,19,10,6,115,116,97,116,117,115,18,9,138,1,6,97,99,116,105,118,101,18,18,10,12,98,97,108,97,110,99,101,67,101,110,116,115,18,2,16,0,18,18,10,8,99,117,114,114,101,110,99,121,18,6,138,1,3,66,82,76,18,25,10,9,99,114,101,97,116,101,100,66,121,18,12,138,1,9,101,50,101,45,98,48,51,45,97,18,25,10,9,117,112,100,97,116,101,100,66,121,18,12,138,1,9,101,50,101,45,98,48,51,45,97,18,26,10,9,99,114,101,97,116,101,100,65,116,18,13,82,11,8,218,203,206,215,6,16,128,208,165,76,18,26,10,9,117,112,100,97,116,101,100,65,116,18,13,82,11,8,218,203,206,215,6,16,128,208,165,76,26,11,8,218,203,206,215,6,16,184,213,171,76,34,11,8,218,203,206,215,6,16,184,213,171,76,26,0]}} 
+[debug] [2026-11-10T23:16:42.169Z] Finishing up request with event=pause 
+[info] i  functions: Finished "southamerica-east1-onCashAccountWriteNotification" in 1.832863ms 
+[debug] [2026-11-10T23:16:42.169Z] [worker-southamerica-east1-onCashAccountWriteNotification-0ad17a9a-f3fe-4aa9-8835-a7fc2d763ebb]: IDLE 
+[debug] [2026-11-10T23:16:42.169Z] Finishing up request with event=finish 
+[debug] [2026-11-10T23:16:42.169Z] Finishing up request with event=close 
+[debug] [2026-11-10T23:16:42.169Z] [work-queue] {"queuedWork":[],"queueLength":0,"runningWork":["/minhas-financas-local/southamerica-east1/getFinancialReport-2026-11-10T23:16:40.056Z"],"workRunningCount":1}
+[debug] [2026-11-10T23:16:42.172Z] Nov 10, 2026 11:16:42 PM com.google.cloud.datastore.emulator.impl.util.WrappedStreamObserver onError
+WARNING: Operation failed: entity already exists: EntityRef[partitionRef=dev~minhas-financas-local, path=/billing_accounts/e2e-b03-a]
+com.google.cloud.datastore.core.exception.DatastoreException: entity already exists: EntityRef[partitionRef=dev~minhas-financas-local, path=/billing_accounts/e2e-b03-a]
+	at com.google.cloud.datastore.core.exception.DatastoreException.withProblem(DatastoreException.java:352)
+	at com.google.cloud.datastore.emulator.impl.util.FirestoreEmulatorConverters.alreadyExists(FirestoreEmulatorConverters.java:757)
+	at com.google.cloud.datastore.emulator.impl.util.FirestoreEmulatorConverters.checkMutation(FirestoreEmulatorConverters.java:212)
+	at com.google.cloud.datastore.emulator.impl.firestore.FirestoreEmulatorHelper.commitHelper(FirestoreEmulatorHelper.java:412)
+	at com.google.cloud.datastore.emulator.impl.firestore.FirestoreEmulatorHelper.internalCommit(FirestoreEmulatorHelper.java:348)
+	at com.google.cloud.datastore.emulator.impl.firestore.CloudFirestoreV1.commit(CloudFirestoreV1.java:541)
+	at com.google.cloud.datastore.emulator.impl.firestore.CloudFirestoreV1Router.commit(CloudFirestoreV1Router.java:177)
+	at com.google.cloud.datastore.emulator.firestore.v1.FirestoreV1GrpcAdapter$1.lambda$commit$0(FirestoreV1GrpcAdapter.java:162)
+	at com.google.cloud.datastore.emulator.firestore.v1.FirestoreV1GrpcAdapter.unary(FirestoreV1GrpcAdapter.java:72)
+	at com.google.cloud.datastore.emulator.firestore.v1.FirestoreV1GrpcAdapter$1.commit(FirestoreV1GrpcAdapter.java:162)
+	at com.google.firestore.v1.FirestoreGrpc$MethodHandlers.invoke(FirestoreGrpc.java:1404)
+	at io.grpc.stub.ServerCalls$UnaryServerCallHandler$UnaryServerCallListener.onHalfClose(ServerCalls.java:182)
+	at io.grpc.PartialForwardingServerCallListener.onHalfClose(PartialForwardingServerCallListener.java:35)
+	at io.grpc.ForwardingServerCallListener.onHalfClose(ForwardingServerCallListener.java:23)
+	at io.grpc.ForwardingServerCallListener$SimpleForwardingServerCallListener.onHalfClose(ForwardingServerCallListener.java:40)
+	at io.grpc.Contexts$ContextualizedServerCallListener.onHalfClose(Contexts.java:86)
+	at io.grpc.PartialForwardingServerCallListener.onHalfClose(PartialForwardingServerCallListener.java:35)
+	at io.grpc.ForwardingServerCallListener.onHalfClose(ForwardingServerCallListener.java:23)
+	at io.grpc.ForwardingServerCallListener$SimpleForwardingServerCallListener.onHalfClose(ForwardingServerCallListener.java:40)
+	at io.grpc.Contexts$ContextualizedServerCallListener.onHalfClose(Contexts.java:86)
+	at io.grpc.internal.ServerCallImpl$ServerStreamListenerImpl.halfClosed(ServerCallImpl.java:356)
+	at io.grpc.internal.ServerImpl$JumpToApplicationThreadServerStreamListener$1HalfClosed.runInContext(ServerImpl.java:879)
+	at io.grpc.internal.ContextRunnable.run(ContextRunnable.java:37)
+	at io.grpc.internal.SerializingExecutor.run(SerializingExecutor.java:133)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+
+ 
+[debug] [2026-11-10T23:16:42.175Z] Nov 10, 2026 11:16:42 PM com.google.cloud.datastore.emulator.impl.util.WrappedStreamObserver onError
+WARNING: Operation failed: entity already exists: EntityRef[partitionRef=dev~minhas-financas-local, path=/billing_accounts/e2e-b03-a/quota_state/ownership]
+com.google.cloud.datastore.core.exception.DatastoreException: entity already exists: EntityRef[partitionRef=dev~minhas-financas-local, path=/billing_accounts/e2e-b03-a/quota_state/ownership]
+	at com.google.cloud.datastore.core.exception.DatastoreException.withProblem(DatastoreException.java:352)
+	at com.google.cloud.datastore.emulator.impl.util.FirestoreEmulatorConverters.alreadyExists(FirestoreEmulatorConverters.java:757)
+	at com.google.cloud.datastore.emulator.impl.util.FirestoreEmulatorConverters.checkMutation(FirestoreEmulatorConverters.java:212)
+	at com.google.cloud.datastore.emulator.impl.firestore.FirestoreEmulatorHelper.commitHelper(FirestoreEmulatorHelper.java:412)
+	at com.google.cloud.datastore.emulator.impl.firestore.FirestoreEmulatorHelper.internalCommit(FirestoreEmulatorHelper.java:348)
+	at com.google.cloud.datastore.emulator.impl.firestore.CloudFirestoreV1.commit(CloudFirestoreV1.java:541)
+	at com.google.cloud.datastore.emulator.impl.firestore.CloudFirestoreV1Router.commit(CloudFirestoreV1Router.java:177)
+	at com.google.cloud.datastore.emulator.firestore.v1.FirestoreV1GrpcAdapter$1.lambda$commit$0(FirestoreV1GrpcAdapter.java:162)
+	at com.google.cloud.datastore.emulator.firestore.v1.FirestoreV1GrpcAdapter.unary(FirestoreV1GrpcAdapter.java:72)
+	at com.google.cloud.datastore.emulator.firestore.v1.FirestoreV1GrpcAdapter$1.commit(FirestoreV1GrpcAdapter.java:162)
+	at com.google.firestore.v1.FirestoreGrpc$MethodHandlers.invoke(FirestoreGrpc.java:1404)
+	at io.grpc.stub.ServerCalls$UnaryServerCallHandler$UnaryServerCallListener.onHalfClose(ServerCalls.java:182)
+	at io.grpc.PartialForwardingServerCallListener.onHalfClose(PartialForwardingServerCallListener.java:35)
+	at io.grpc.ForwardingServerCallListener.onHalfClose(ForwardingServerCallListener.java:23)
+	at io.grpc.ForwardingServerCallListener$SimpleForwardingServerCallListener.onHalfClose(ForwardingServerCallListener.java:40)
+	at io.grpc.Contexts$ContextualizedServerCallListener.onHalfClose(Contexts.java:86)
+	at io.grpc.PartialForwardingServerCallListener.onHalfClose(PartialForwardingServerCallListener.java:35)
+	at io.grpc.ForwardingServerCallListener.onHalfClose(ForwardingServerCallListener.java:23)
+	at io.grpc.ForwardingServerCallListener$SimpleForwardingServerCallListener.onHalfClose(ForwardingServerCallListener.java:40)
+	at io.grpc.Contexts$ContextualizedServerCallListener.onHalfClose(Contexts.java:86)
+	at io.grpc.internal.ServerCallImpl$ServerStreamListenerImpl.halfClosed(ServerCallImpl.java:356)
+	at io.grpc.internal.ServerImpl$JumpToApplicationThreadServerStreamListener$1HalfClosed.runInContext(ServerImpl.java:879)
+	at io.grpc.internal.ContextRunnable.run(ContextRunnable.java:37)
+	at io.grpc.internal.SerializingExecutor.run(SerializingExecutor.java:133)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+
+ 
+[info] >  {"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"getFinancialReport","requestId":"8bf8f5de-5f9b-4bd1-be13-05298a6cb8b5","actorId":"e2e-b03-a","workspaceId":"e2e-b03-pf-mwbb7fyy","actorRole":"owner","outcome":"error","errorCode":"workspace_membership_required","durationMs":3020} {"user":{"severity":"WARNING","message":"callable.end","event":"callable.end","operation":"getFinancialReport","requestId":"8bf8f5de-5f9b-4bd1-be13-05298a6cb8b5","actorId":"e2e-b03-a","workspaceId":"e2e-b03-pf-mwbb7fyy","actorRole":"owner","outcome":"error","errorCode":"workspace_membership_required","durationMs":3020},"metadata":{"emulator":{"name":"functions"},"function":{"name":"southamerica-east1-getFinancialReport"},"extension":{},"message":"\u001b[90m> \u001b[39m {\"severity\":\"WARNING\",\"message\":\"callable.end\",\"event\":\"callable.end\",\"operation\":\"getFinancialReport\",\"requestId\":\"8bf8f5de-5f9b-4bd1-be13-05298a6cb8b5\",\"actorId\":\"e2e-b03-a\",\"workspaceId\":\"e2e-b03-pf-mwbb7fyy\",\"actorRole\":\"owner\",\"outcome\":\"error\",\"errorCode\":\"workspace_membership_required\",\"durationMs\":3020}"}}
+[debug] [2026-11-10T23:16:43.079Z] Finishing up request with event=pause 
+[info] i  functions: Finished "southamerica-east1-getFinancialReport" in 3022.847922ms 
+[debug] [2026-11-10T23:16:43.079Z] [worker-southamerica-east1-getFinancialReport-871399b4-f424-45f5-b9d4-e648f6ab27f0]: IDLE 
+[debug] [2026-11-10T23:16:43.079Z] Finishing up request with event=close 
+[debug] [2026-11-10T23:16:43.079Z] [work-queue] {"queuedWork":[],"queueLength":0,"runningWork":[],"workRunningCount":0}
+[debug] [2026-11-10T23:16:43.119Z] >>> [apiv2][query] POST http://127.0.0.1:5001/functions/projects/minhas-financas-local/trigger_multicast [none]
+[debug] [2026-11-10T23:16:43.119Z] >>> [apiv2][body] POST http://127.0.0.1:5001/functions/projects/minhas-financas-local/trigger_multicast {"eventId":"abf4ded1-51e2-45a2-a01e-3593ee60973b","eventType":"providers/firebase.auth/eventTypes/user.delete","resource":{"name":"projects/minhas-financas-local","service":"firebaseauth.googleapis.com"},"params":{},"timestamp":"2026-11-10T23:16:43.119Z","data":{"uid":"e2e-b03-a","email":"e2e-b03-a@minhas-financas.local","emailVerified":true,"metadata":{"creationTime":"2026-11-10T23:16:42.126Z","lastSignInTime":"2026-11-10T23:16:42.202Z"},"customClaims":{},"providerData":[{"rawId":"e2e-b03-a@minhas-financas.local","providerId":"password","email":"e2e-b03-a@minhas-financas.local","federatedId":"e2e-b03-a@minhas-financas.local"}]}}
+[debug] [2026-11-10T23:16:43.120Z] >>> [apiv2][query] POST http://127.0.0.1:5001/functions/projects/minhas-financas-local/trigger_multicast [none]
+[debug] [2026-11-10T23:16:43.120Z] >>> [apiv2][body] POST http://127.0.0.1:5001/functions/projects/minhas-financas-local/trigger_multicast {"eventId":"2541d269-dcea-42d5-92a6-50403ce8c15f","eventType":"providers/firebase.auth/eventTypes/user.delete","resource":{"name":"projects/minhas-financas-local","service":"firebaseauth.googleapis.com"},"params":{},"timestamp":"2026-11-10T23:16:43.119Z","data":{"uid":"e2e-b03-m","email":"e2e-b03-m@minhas-financas.local","emailVerified":true,"metadata":{"creationTime":"2026-11-10T23:16:42.132Z","lastSignInTime":"2026-11-10T23:16:42.132Z"},"customClaims":{},"providerData":[{"rawId":"e2e-b03-m@minhas-financas.local","providerId":"password","email":"e2e-b03-m@minhas-financas.local","federatedId":"e2e-b03-m@minhas-financas.local"}]}}
+[debug] [2026-11-10T23:16:43.122Z] <<< [apiv2][status] POST http://127.0.0.1:5001/functions/projects/minhas-financas-local/trigger_multicast 200
+[debug] [2026-11-10T23:16:43.122Z] <<< [apiv2][body] POST http://127.0.0.1:5001/functions/projects/minhas-financas-local/trigger_multicast {"status":"multicast_acknowledged"}
+[debug] [2026-11-10T23:16:43.123Z] >>> [apiv2][query] POST http://127.0.0.1:5001/functions/projects/minhas-financas-local/trigger_multicast [none]
+[debug] [2026-11-10T23:16:43.123Z] >>> [apiv2][body] POST http://127.0.0.1:5001/functions/projects/minhas-financas-local/trigger_multicast {"specversion":"1.0","id":"e399c445-32c9-484e-9faa-40e143593b01","time":"2026-11-10T23:16:43.119Z","type":"google.firebase.auth.user.v2.deleted","source":"//identitytoolkit.googleapis.com/projects/minhas-financas-local","subject":"users/e2e-b03-a","data":{"oldValue":{"uid":"e2e-b03-a","email":"e2e-b03-a@minhas-financas.local","emailVerified":true,"metadata":{"creationTime":"2026-11-10T23:16:42.126Z","lastSignInTime":"2026-11-10T23:16:42.202Z"},"customClaims":{},"providerData":[{"rawId":"e2e-b03-a@minhas-financas.local","providerId":"password","email":"e2e-b03-a@minhas-financas.local","federatedId":"e2e-b03-a@minhas-financas.local"}]}}}
+[debug] [2026-11-10T23:16:43.123Z] <<< [apiv2][status] POST http://127.0.0.1:5001/functions/projects/minhas-financas-local/trigger_multicast 200
+[debug] [2026-11-10T23:16:43.123Z] <<< [apiv2][body] POST http://127.0.0.1:5001/functions/projects/minhas-financas-local/trigger_multicast {"status":"multicast_acknowledged"}
+[debug] [2026-11-10T23:16:43.123Z] >>> [apiv2][query] POST http://127.0.0.1:5001/functions/projects/minhas-financas-local/trigger_multicast [none]
+[debug] [2026-11-10T23:16:43.123Z] >>> [apiv2][body] POST http://127.0.0.1:5001/functions/projects/minhas-financas-local/trigger_multicast {"specversion":"1.0","id":"654319c0-0141-4ea7-987c-52270f91a898","time":"2026-11-10T23:16:43.119Z","type":"google.firebase.auth.user.v2.deleted","source":"//identitytoolkit.googleapis.com/projects/minhas-financas-local","subject":"users/e2e-b03-m","data":{"oldValue":{"uid":"e2e-b03-m","email":"e2e-b03-m@minhas-financas.local","emailVerified":true,"metadata":{"creationTime":"2026-11-10T23:16:42.132Z","lastSignInTime":"2026-11-10T23:16:42.132Z"},"customClaims":{},"providerData":[{"rawId":"e2e-b03-m@minhas-financas.local","providerId":"password","email":"e2e-b03-m@minhas-financas.local","federatedId":"e2e-b03-m@minhas-financas.local"}]}}}
+[debug] [2026-11-10T23:16:43.125Z] <<< [apiv2][status] POST http://127.0.0.1:5001/functions/projects/minhas-financas-local/trigger_multicast 200
+[debug] [2026-11-10T23:16:43.125Z] <<< [apiv2][body] POST http://127.0.0.1:5001/functions/projects/minhas-financas-local/trigger_multicast {"status":"multicast_acknowledged"}
+[debug] [2026-11-10T23:16:43.127Z] <<< [apiv2][status] POST http://127.0.0.1:5001/functions/projects/minhas-financas-local/trigger_multicast 200
+[debug] [2026-11-10T23:16:43.127Z] <<< [apiv2][body] POST http://127.0.0.1:5001/functions/projects/minhas-financas-local/trigger_multicast {"status":"multicast_acknowledged"}
+[debug] [2026-11-10T23:16:43.480Z] Nov 10, 2026 11:16:43 PM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
+INFO: Detected HTTP/2 connection.
+ 
+[debug] [2026-11-10T23:16:43.552Z] [work-queue] {"queuedWork":["/functions/projects/minhas-financas-local/triggers/southamerica-east1-onCashAccountWriteNotification-0-2026-11-10T23:16:43.552Z"],"queueLength":1,"runningWork":[],"workRunningCount":0}
+[debug] [2026-11-10T23:16:43.553Z] [work-queue] {"queuedWork":[],"queueLength":0,"runningWork":["/functions/projects/minhas-financas-local/triggers/southamerica-east1-onCashAccountWriteNotification-0-2026-11-10T23:16:43.552Z"],"workRunningCount":1}
+[debug] [2026-11-10T23:16:43.553Z] Accepted request POST /functions/projects/minhas-financas-local/triggers/southamerica-east1-onCashAccountWriteNotification-0 --> southamerica-east1-onCashAccountWriteNotification-0
+[debug] [2026-11-10T23:16:43.553Z] [functions] Runtime ready! Sending request! 
+[debug] [2026-11-10T23:16:43.553Z] [functions] Got req.url=/functions/projects/minhas-financas-local/triggers/southamerica-east1-onCashAccountWriteNotification-0, mapping to path=/functions/projects/ 
+[debug] [2026-11-10T23:16:43.553Z] [worker-pool] submitRequest(triggerId=southamerica-east1-onCashAccountWriteNotification) 
+[info] i  functions: Beginning execution of "southamerica-east1-onCashAccountWriteNotification" 
+[debug] [2026-11-10T23:16:43.553Z] [worker-southamerica-east1-onCashAccountWriteNotification-0ad17a9a-f3fe-4aa9-8835-a7fc2d763ebb]: BUSY 
+[debug] [2026-11-10T23:16:43.554Z] [runtime-status] [17110] RunCloudEvent {"specversion":"1.0","type":"google.cloud.firestore.document.v1.written","source":"//firestore.googleapis.com/projects/projects/minhas-financas-local/databases/(default)","id":"be887887-e4b3-43e4-a7e8-46e0a8ce2ada","subject":"documents/workspaces/e2e-b03-pf-mwbb7ksr/cash_accounts/acc_fffb6aaa3e397012433c7117e5ef3b6f8fa3cab0","time":"2026-11-10T23:16:43Z","datacontenttype":"application/protobuf","dataschema":"https://github.com/googleapis/google-cloudevents/blob/main/proto/google/events/cloud/firestore/v1/data.proto","location":"us-central1","project":"minhas-financas-local","database":"(default)","namespace":"(default)","document":"workspaces/e2e-b03-pf-mwbb7ksr/cash_accounts/acc_fffb6aaa3e397012433c7117e5ef3b6f8fa3cab0","data":{"type":"Buffer","data":[18,136,4,10,150,1,112,114,111,106,101,99,116,115,47,109,105,110,104,97,115,45,102,105,110,97,110,99,97,115,45,108,111,99,97,108,47,100,97,116,97,98,97,115,101,115,47,40,100,101,102,97,117,108,116,41,47,100,111,99,117,109,101,110,116,115,47,119,111,114,107,115,112,97,99,101,115,47,101,50,101,45,98,48,51,45,112,102,45,109,119,98,98,55,107,115,114,47,99,97,115,104,95,97,99,99,111,117,110,116,115,47,97,99,99,95,102,102,102,98,54,97,97,97,51,101,51,57,55,48,49,50,52,51,51,99,55,49,49,55,101,53,101,102,51,98,54,102,56,102,97,51,99,97,98,48,18,53,10,2,105,100,18,47,138,1,44,97,99,99,95,102,102,102,98,54,97,97,97,51,101,51,57,55,48,49,50,52,51,51,99,55,49,49,55,101,53,101,102,51,98,54,102,56,102,97,51,99,97,98,48,18,19,10,13,115,99,104,101,109,97,86,101,114,115,105,111,110,18,2,16,1,18,37,10,11,119,111,114,107,115,112,97,99,101,73,100,18,22,138,1,19,101,50,101,45,98,48,51,45,112,102,45,109,119,98,98,55,107,115,114,18,29,10,4,110,97,109,101,18,21,138,1,18,67,97,114,116,101,105,114,97,32,112,114,105,110,99,105,112,97,108,18,22,10,11,97,99,99,111,117,110,116,84,121,112,101,18,7,138,1,4,99,97,115,104,18,19,10,6,115,116,97,116,117,115,18,9,138,1,6,97,99,116,105,118,101,18,18,10,12,98,97,108,97,110,99,101,67,101,110,116,115,18,2,16,0,18,18,10,8,99,117,114,114,101,110,99,121,18,6,138,1,3,66,82,76,18,25,10,9,99,114,101,97,116,101,100,66,121,18,12,138,1,9,101,50,101,45,98,48,51,45,97,18,25,10,9,117,112,100,97,116,101,100,66,121,18,12,138,1,9,101,50,101,45,98,48,51,45,97,18,26,10,9,99,114,101,97,116,101,100,65,116,18,13,82,11,8,218,203,206,215,6,16,128,208,165,76,18,26,10,9,117,112,100,97,116,101,100,65,116,18,13,82,11,8,218,203,206,215,6,16,128,208,165,76,26,11,8,218,203,206,215,6,16,184,213,171,76,34,11,8,218,203,206,215,6,16,184,213,171,76,26,0]}} 
+[debug] [2026-11-10T23:16:43.556Z] Finishing up request with event=pause 
+[info] i  functions: Finished "southamerica-east1-onCashAccountWriteNotification" in 2.76349ms 
+[debug] [2026-11-10T23:16:43.556Z] [worker-southamerica-east1-onCashAccountWriteNotification-0ad17a9a-f3fe-4aa9-8835-a7fc2d763ebb]: IDLE 
+[debug] [2026-11-10T23:16:43.556Z] Finishing up request with event=finish 
+[debug] [2026-11-10T23:16:43.556Z] Finishing up request with event=close 
+[debug] [2026-11-10T23:16:43.556Z] [work-queue] {"queuedWork":[],"queueLength":0,"runningWork":[],"workRunningCount":0}
+[debug] [2026-11-10T23:16:43.674Z] >>> [apiv2][query] POST http://127.0.0.1:5001/functions/projects/minhas-financas-local/trigger_multicast [none]
+[debug] [2026-11-10T23:16:43.675Z] >>> [apiv2][body] POST http://127.0.0.1:5001/functions/projects/minhas-financas-local/trigger_multicast {"eventId":"88eda962-17ba-43d7-a8d4-7873a3aefbbd","eventType":"providers/firebase.auth/eventTypes/user.create","resource":{"name":"projects/minhas-financas-local","service":"firebaseauth.googleapis.com"},"params":{},"timestamp":"2026-11-10T23:16:43.674Z","data":{"uid":"e2e-b03-a","email":"e2e-b03-a@minhas-financas.local","emailVerified":true,"metadata":{"creationTime":"2026-11-10T23:16:43.674Z","lastSignInTime":"2026-11-10T23:16:43.674Z"},"customClaims":{},"providerData":[{"rawId":"e2e-b03-a@minhas-financas.local","providerId":"password","email":"e2e-b03-a@minhas-financas.local","federatedId":"e2e-b03-a@minhas-financas.local"}]}}
+[debug] [2026-11-10T23:16:43.677Z] <<< [apiv2][status] POST http://127.0.0.1:5001/functions/projects/minhas-financas-local/trigger_multicast 200
+[debug] [2026-11-10T23:16:43.678Z] <<< [apiv2][body] POST http://127.0.0.1:5001/functions/projects/minhas-financas-local/trigger_multicast {"status":"multicast_acknowledged"}
+[debug] [2026-11-10T23:16:43.678Z] >>> [apiv2][query] POST http://127.0.0.1:5001/functions/projects/minhas-financas-local/trigger_multicast [none]
+[debug] [2026-11-10T23:16:43.678Z] >>> [apiv2][body] POST http://127.0.0.1:5001/functions/projects/minhas-financas-local/trigger_multicast {"specversion":"1.0","id":"698f621d-05b2-4d9b-b19e-a0cb3a55cdf2","time":"2026-11-10T23:16:43.674Z","type":"google.firebase.auth.user.v2.created","source":"//identitytoolkit.googleapis.com/projects/minhas-financas-local","subject":"users/e2e-b03-a","data":{"value":{"uid":"e2e-b03-a","email":"e2e-b03-a@minhas-financas.local","emailVerified":true,"metadata":{"creationTime":"2026-11-10T23:16:43.674Z","lastSignInTime":"2026-11-10T23:16:43.674Z"},"customClaims":{},"providerData":[{"rawId":"e2e-b03-a@minhas-financas.local","providerId":"password","email":"e2e-b03-a@minhas-financas.local","federatedId":"e2e-b03-a@minhas-financas.local"}]}}}
+[debug] [2026-11-10T23:16:43.681Z] >>> [apiv2][query] POST http://127.0.0.1:5001/functions/projects/minhas-financas-local/trigger_multicast [none]
+[debug] [2026-11-10T23:16:43.681Z] >>> [apiv2][body] POST http://127.0.0.1:5001/functions/projects/minhas-financas-local/trigger_multicast {"eventId":"f9ca8409-f8e0-4505-a35a-1bad83f87ecb","eventType":"providers/firebase.auth/eventTypes/user.create","resource":{"name":"projects/minhas-financas-local","service":"firebaseauth.googleapis.com"},"params":{},"timestamp":"2026-11-10T23:16:43.681Z","data":{"uid":"e2e-b03-m","email":"e2e-b03-m@minhas-financas.local","emailVerified":true,"metadata":{"creationTime":"2026-11-10T23:16:43.681Z","lastSignInTime":"2026-11-10T23:16:43.681Z"},"customClaims":{},"providerData":[{"rawId":"e2e-b03-m@minhas-financas.local","providerId":"password","email":"e2e-b03-m@minhas-financas.local","federatedId":"e2e-b03-m@minhas-financas.local"}]}}
+[debug] [2026-11-10T23:16:43.684Z] <<< [apiv2][status] POST http://127.0.0.1:5001/functions/projects/minhas-financas-local/trigger_multicast 200
+[debug] [2026-11-10T23:16:43.684Z] <<< [apiv2][body] POST http://127.0.0.1:5001/functions/projects/minhas-financas-local/trigger_multicast {"status":"multicast_acknowledged"}
+[debug] [2026-11-10T23:16:43.685Z] <<< [apiv2][status] POST http://127.0.0.1:5001/functions/projects/minhas-financas-local/trigger_multicast 200
+[debug] [2026-11-10T23:16:43.685Z] <<< [apiv2][body] POST http://127.0.0.1:5001/functions/projects/minhas-financas-local/trigger_multicast {"status":"multicast_acknowledged"}
+[debug] [2026-11-10T23:16:43.686Z] >>> [apiv2][query] POST http://127.0.0.1:5001/functions/projects/minhas-financas-local/trigger_multicast [none]
+[debug] [2026-11-10T23:16:43.686Z] >>> [apiv2][body] POST http://127.0.0.1:5001/functions/projects/minhas-financas-local/trigger_multicast {"specversion":"1.0","id":"adc60743-1a91-4dad-a1b0-202bc8430080","time":"2026-11-10T23:16:43.681Z","type":"google.firebase.auth.user.v2.created","source":"//identitytoolkit.googleapis.com/projects/minhas-financas-local","subject":"users/e2e-b03-m","data":{"value":{"uid":"e2e-b03-m","email":"e2e-b03-m@minhas-financas.local","emailVerified":true,"metadata":{"creationTime":"2026-11-10T23:16:43.681Z","lastSignInTime":"2026-11-10T23:16:43.681Z"},"customClaims":{},"providerData":[{"rawId":"e2e-b03-m@minhas-financas.local","providerId":"password","email":"e2e-b03-m@minhas-financas.local","federatedId":"e2e-b03-m@minhas-financas.local"}]}}}
+[debug] [2026-11-10T23:16:43.689Z] <<< [apiv2][status] POST http://127.0.0.1:5001/functions/projects/minhas-financas-local/trigger_multicast 200
+[debug] [2026-11-10T23:16:43.689Z] <<< [apiv2][body] POST http://127.0.0.1:5001/functions/projects/minhas-financas-local/trigger_multicast {"status":"multicast_acknowledged"}
+[debug] [2026-11-10T23:16:43.715Z] Nov 10, 2026 11:16:43 PM com.google.cloud.datastore.emulator.impl.util.WrappedStreamObserver onError
+WARNING: Operation failed: entity already exists: EntityRef[partitionRef=dev~minhas-financas-local, path=/billing_accounts/e2e-b03-a]
+com.google.cloud.datastore.core.exception.DatastoreException: entity already exists: EntityRef[partitionRef=dev~minhas-financas-local, path=/billing_accounts/e2e-b03-a]
+	at com.google.cloud.datastore.core.exception.DatastoreException.withProblem(DatastoreException.java:352)
+	at com.google.cloud.datastore.emulator.impl.util.FirestoreEmulatorConverters.alreadyExists(FirestoreEmulatorConverters.java:757)
+	at com.google.cloud.datastore.emulator.impl.util.FirestoreEmulatorConverters.checkMutation(FirestoreEmulatorConverters.java:212)
+	at com.google.cloud.datastore.emulator.impl.firestore.FirestoreEmulatorHelper.commitHelper(FirestoreEmulatorHelper.java:412)
+	at com.google.cloud.datastore.emulator.impl.firestore.FirestoreEmulatorHelper.internalCommit(FirestoreEmulatorHelper.java:348)
+	at com.google.cloud.datastore.emulator.impl.firestore.CloudFirestoreV1.commit(CloudFirestoreV1.java:541)
+	at com.google.cloud.datastore.emulator.impl.firestore.CloudFirestoreV1Router.commit(CloudFirestoreV1Router.java:177)
+	at com.google.cloud.datastore.emulator.firestore.v1.FirestoreV1GrpcAdapter$1.lambda$commit$0(FirestoreV1GrpcAdapter.java:162)
+	at com.google.cloud.datastore.emulator.firestore.v1.FirestoreV1GrpcAdapter.unary(FirestoreV1GrpcAdapter.java:72)
+	at com.google.cloud.datastore.emulator.firestore.v1.FirestoreV1GrpcAdapter$1.commit(FirestoreV1GrpcAdapter.java:162)
+	at com.google.firestore.v1.FirestoreGrpc$MethodHandlers.invoke(FirestoreGrpc.java:1404)
+	at io.grpc.stub.ServerCalls$UnaryServerCallHandler$UnaryServerCallListener.onHalfClose(ServerCalls.java:182)
+	at io.grpc.PartialForwardingServerCallListener.onHalfClose(PartialForwardingServerCallListener.java:35)
+	at io.grpc.ForwardingServerCallListener.onHalfClose(ForwardingServerCallListener.java:23)
+	at io.grpc.ForwardingServerCallListener$SimpleForwardingServerCallListener.onHalfClose(ForwardingServerCallListener.java:40)
+	at io.grpc.Contexts$ContextualizedServerCallListener.onHalfClose(Contexts.java:86)
+	at io.grpc.PartialForwardingServerCallListener.onHalfClose(PartialForwardingServerCallListener.java:35)
+	at io.grpc.ForwardingServerCallListener.onHalfClose(ForwardingServerCallListener.java:23)
+	at io.grpc.ForwardingServerCallListener$SimpleForwardingServerCallListener.onHalfClose(ForwardingServerCallListener.java:40)
+	at io.grpc.Contexts$ContextualizedServerCallListener.onHalfClose(Contexts.java:86)
+	at io.grpc.internal.ServerCallImpl$ServerStreamListenerImpl.halfClosed(ServerCallImpl.java:356)
+	at io.grpc.internal.ServerImpl$JumpToApplicationThreadServerStreamListener$1HalfClosed.runInContext(ServerImpl.java:879)
+	at io.grpc.internal.ContextRunnable.run(ContextRunnable.java:37)
+	at io.grpc.internal.SerializingExecutor.run(SerializingExecutor.java:133)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+
+ 
+[debug] [2026-11-10T23:16:43.731Z] Nov 10, 2026 11:16:43 PM com.google.cloud.datastore.emulator.impl.util.WrappedStreamObserver onError
+WARNING: Operation failed: entity already exists: EntityRef[partitionRef=dev~minhas-financas-local, path=/billing_accounts/e2e-b03-a/quota_state/ownership]
+com.google.cloud.datastore.core.exception.DatastoreException: entity already exists: EntityRef[partitionRef=dev~minhas-financas-local, path=/billing_accounts/e2e-b03-a/quota_state/ownership]
+	at com.google.cloud.datastore.core.exception.DatastoreException.withProblem(DatastoreException.java:352)
+	at com.google.cloud.datastore.emulator.impl.util.FirestoreEmulatorConverters.alreadyExists(FirestoreEmulatorConverters.java:757)
+	at com.google.cloud.datastore.emulator.impl.util.FirestoreEmulatorConverters.checkMutation(FirestoreEmulatorConverters.java:212)
+	at com.google.cloud.datastore.emulator.impl.firestore.FirestoreEmulatorHelper.commitHelper(FirestoreEmulatorHelper.java:412)
+	at com.google.cloud.datastore.emulator.impl.firestore.FirestoreEmulatorHelper.internalCommit(FirestoreEmulatorHelper.java:348)
+	at com.google.cloud.datastore.emulator.impl.firestore.CloudFirestoreV1.commit(CloudFirestoreV1.java:541)
+	at com.google.cloud.datastore.emulator.impl.firestore.CloudFirestoreV1Router.commit(CloudFirestoreV1Router.java:177)
+	at com.google.cloud.datastore.emulator.firestore.v1.FirestoreV1GrpcAdapter$1.lambda$commit$0(FirestoreV1GrpcAdapter.java:162)
+	at com.google.cloud.datastore.emulator.firestore.v1.FirestoreV1GrpcAdapter.unary(FirestoreV1GrpcAdapter.java:72)
+	at com.google.cloud.datastore.emulator.firestore.v1.FirestoreV1GrpcAdapter$1.commit(FirestoreV1GrpcAdapter.java:162)
+	at com.google.firestore.v1.FirestoreGrpc$MethodHandlers.invoke(FirestoreGrpc.java:1404)
+	at io.grpc.stub.ServerCalls$UnaryServerCallHandler$UnaryServerCallListener.onHalfClose(ServerCalls.java:182)
+	at io.grpc.PartialForwardingServerCallListener.onHalfClose(PartialForwardingServerCallListener.java:35)
+	at io.grpc.ForwardingServerCallListener.onHalfClose(ForwardingServerCallListener.java:23)
+	at io.grpc.ForwardingServerCallListener$SimpleForwardingServerCallListener.onHalfClose(ForwardingServerCallListener.java:40)
+	at io.grpc.Contexts$ContextualizedServerCallListener.onHalfClose(Contexts.java:86)
+	at io.grpc.PartialForwardingServerCallListener.onHalfClose(PartialForwardingServerCallListener.java:35)
+	at io.grpc.ForwardingServerCallListener.onHalfClose(ForwardingServerCallListener.java:23)
+	at io.grpc.ForwardingServerCallListener$SimpleForwardingServerCallListener.onHalfClose(ForwardingServerCallListener.java:40)
+	at io.grpc.Contexts$ContextualizedServerCallListener.onHalfClose(Contexts.java:86)
+	at io.grpc.internal.ServerCallImpl$ServerStreamListenerImpl.halfClosed(ServerCallImpl.java:356)
+	at io.grpc.internal.ServerImpl$JumpToApplicationThreadServerStreamListener$1HalfClosed.runInContext(ServerImpl.java:879)
+	at io.grpc.internal.ContextRunnable.run(ContextRunnable.java:37)
+	at io.grpc.internal.SerializingExecutor.run(SerializingExecutor.java:133)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+
+ 
+[debug] [2026-11-10T23:16:43.763Z] [work-queue] {"queuedWork":["/functions/projects/minhas-financas-local/triggers/southamerica-east1-onCashAccountWriteNotification-0-2026-11-10T23:16:43.763Z"],"queueLength":1,"runningWork":[],"workRunningCount":0}
+[debug] [2026-11-10T23:16:43.763Z] [work-queue] {"queuedWork":[],"queueLength":0,"runningWork":["/functions/projects/minhas-financas-local/triggers/southamerica-east1-onCashAccountWriteNotification-0-2026-11-10T23:16:43.763Z"],"workRunningCount":1}
+[debug] [2026-11-10T23:16:43.763Z] Accepted request POST /functions/projects/minhas-financas-local/triggers/southamerica-east1-onCashAccountWriteNotification-0 --> southamerica-east1-onCashAccountWriteNotification-0
+[debug] [2026-11-10T23:16:43.763Z] [functions] Runtime ready! Sending request! 
+[debug] [2026-11-10T23:16:43.763Z] [functions] Got req.url=/functions/projects/minhas-financas-local/triggers/southamerica-east1-onCashAccountWriteNotification-0, mapping to path=/functions/projects/ 
+[debug] [2026-11-10T23:16:43.763Z] [worker-pool] submitRequest(triggerId=southamerica-east1-onCashAccountWriteNotification) 
+[info] i  functions: Beginning execution of "southamerica-east1-onCashAccountWriteNotification" 
+[debug] [2026-11-10T23:16:43.763Z] [worker-southamerica-east1-onCashAccountWriteNotification-0ad17a9a-f3fe-4aa9-8835-a7fc2d763ebb]: BUSY 
+[debug] [2026-11-10T23:16:43.764Z] [runtime-status] [17110] RunCloudEvent {"specversion":"1.0","type":"google.cloud.firestore.document.v1.written","source":"//firestore.googleapis.com/projects/projects/minhas-financas-local/databases/(default)","id":"94ce8218-4767-4828-a048-40f354abc57e","subject":"documents/workspaces/e2e-b03-pf-mwbb7lzs/cash_accounts/acc_8288030b0e90b8f5a80975ec9111f861ab34cbbc","time":"2026-11-10T23:16:43Z","datacontenttype":"application/protobuf","dataschema":"https://github.com/googleapis/google-cloudevents/blob/main/proto/google/events/cloud/firestore/v1/data.proto","location":"us-central1","project":"minhas-financas-local","database":"(default)","namespace":"(default)","document":"workspaces/e2e-b03-pf-mwbb7lzs/cash_accounts/acc_8288030b0e90b8f5a80975ec9111f861ab34cbbc","data":{"type":"Buffer","data":[10,140,4,10,150,1,112,114,111,106,101,99,116,115,47,109,105,110,104,97,115,45,102,105,110,97,110,99,97,115,45,108,111,99,97,108,47,100,97,116,97,98,97,115,101,115,47,40,100,101,102,97,117,108,116,41,47,100,111,99,117,109,101,110,116,115,47,119,111,114,107,115,112,97,99,101,115,47,101,50,101,45,98,48,51,45,112,102,45,109,119,98,98,55,108,122,115,47,99,97,115,104,95,97,99,99,111,117,110,116,115,47,97,99,99,95,56,50,56,56,48,51,48,98,48,101,57,48,98,56,102,53,97,56,48,57,55,53,101,99,57,49,49,49,102,56,54,49,97,98,51,52,99,98,98,99,18,53,10,2,105,100,18,47,138,1,44,97,99,99,95,56,50,56,56,48,51,48,98,48,101,57,48,98,56,102,53,97,56,48,57,55,53,101,99,57,49,49,49,102,56,54,49,97,98,51,52,99,98,98,99,18,19,10,13,115,99,104,101,109,97,86,101,114,115,105,111,110,18,2,16,1,18,37,10,11,119,111,114,107,115,112,97,99,101,73,100,18,22,138,1,19,101,50,101,45,98,48,51,45,112,102,45,109,119,98,98,55,108,122,115,18,29,10,4,110,97,109,101,18,21,138,1,18,67,97,114,116,101,105,114,97,32,112,114,105,110,99,105,112,97,108,18,22,10,11,97,99,99,111,117,110,116,84,121,112,101,18,7,138,1,4,99,97,115,104,18,19,10,6,115,116,97,116,117,115,18,9,138,1,6,97,99,116,105,118,101,18,18,10,12,98,97,108,97,110,99,101,67,101,110,116,115,18,2,16,0,18,18,10,8,99,117,114,114,101,110,99,121,18,6,138,1,3,66,82,76,18,25,10,9,99,114,101,97,116,101,100,66,121,18,12,138,1,9,101,50,101,45,98,48,51,45,97,18,25,10,9,117,112,100,97,116,101,100,66,121,18,12,138,1,9,101,50,101,45,98,48,51,45,97,18,27,10,9,99,114,101,97,116,101,100,65,116,18,14,82,12,8,219,203,206,215,6,16,192,224,239,234,2,18,27,10,9,117,112,100,97,116,101,100,65,116,18,14,82,12,8,219,203,206,215,6,16,192,224,239,234,2,26,12,8,219,203,206,215,6,16,144,195,254,234,2,34,12,8,219,203,206,215,6,16,144,195,254,234,2,26,0]}} 
+[debug] [2026-11-10T23:16:43.765Z] Finishing up request with event=pause 
+[info] i  functions: Finished "southamerica-east1-onCashAccountWriteNotification" in 1.742927ms 
+[debug] [2026-11-10T23:16:43.765Z] [worker-southamerica-east1-onCashAccountWriteNotification-0ad17a9a-f3fe-4aa9-8835-a7fc2d763ebb]: IDLE 
+[debug] [2026-11-10T23:16:43.765Z] Finishing up request with event=finish 
+[debug] [2026-11-10T23:16:43.765Z] Finishing up request with event=close 
+[debug] [2026-11-10T23:16:43.765Z] [work-queue] {"queuedWork":[],"queueLength":0,"runningWork":[],"workRunningCount":0}
+[debug] [2026-11-10T23:16:43.778Z] Nov 10, 2026 11:16:43 PM com.google.cloud.datastore.emulator.impl.util.WrappedStreamObserver onError
+WARNING: Operation failed: entity already exists: EntityRef[partitionRef=dev~minhas-financas-local, path=/billing_accounts/e2e-b03-a]
+com.google.cloud.datastore.core.exception.DatastoreException: entity already exists: EntityRef[partitionRef=dev~minhas-financas-local, path=/billing_accounts/e2e-b03-a]
+	at com.google.cloud.datastore.core.exception.DatastoreException.withProblem(DatastoreException.java:352)
+	at com.google.cloud.datastore.emulator.impl.util.FirestoreEmulatorConverters.alreadyExists(FirestoreEmulatorConverters.java:757)
+	at com.google.cloud.datastore.emulator.impl.util.FirestoreEmulatorConverters.checkMutation(FirestoreEmulatorConverters.java:212)

@@ -3,6 +3,7 @@ import React from 'react';
 import { ChartBarIcon, TrendingUpIcon } from '../../../../components/Icons';
 import type { InvestmentAllocationDimension } from '../../types';
 import { useInvestmentAllocation } from '../api';
+import { useMoneyDisplay } from '../../../work-time/display';
 import {
     buildAllocationView,
     hasExplicitPurpose,
@@ -39,6 +40,7 @@ const BUCKET_COLORS = [
 ];
 
 const BucketCards: React.FC<{ view: AllocationView; emptyLabel: string }> = ({ view, emptyLabel }) => {
+    const display = useMoneyDisplay();
     if (view.empty) {
         return (
             <p className="text-sm text-gray-500 dark:text-gray-400">{emptyLabel}</p>
@@ -64,7 +66,7 @@ const BucketCards: React.FC<{ view: AllocationView; emptyLabel: string }> = ({ v
                         {bucket.percentage.toFixed(1)}%
                     </p>
                     <p className="text-[11px] font-medium text-gray-500 dark:text-gray-400 truncate">
-                        {formatCurrency(bucket.currentValueCents)}
+                        {display.cents(bucket.currentValueCents, formatCurrency)}
                     </p>
                     <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-dark-300">
                         <div
@@ -82,6 +84,7 @@ const BucketCards: React.FC<{ view: AllocationView; emptyLabel: string }> = ({ v
 };
 
 const SecondaryStrip: React.FC<{ title: string; view: AllocationView }> = ({ title, view }) => {
+    const display = useMoneyDisplay();
     if (view.empty) return null;
     return (
         <div className="mt-5 border-t border-gray-100 dark:border-gray-800 pt-4">
@@ -96,7 +99,7 @@ const SecondaryStrip: React.FC<{ title: string; view: AllocationView }> = ({ tit
                     >
                         <span className="truncate text-gray-600 dark:text-gray-300">{bucket.label}</span>
                         <span className="whitespace-nowrap font-semibold text-gray-800 dark:text-gray-100">
-                            {formatCurrency(bucket.currentValueCents)} · {bucket.percentage.toFixed(1)}%
+                            {display.cents(bucket.currentValueCents, formatCurrency)} · {bucket.percentage.toFixed(1)}%
                         </span>
                     </li>
                 ))}
@@ -119,7 +122,9 @@ interface PanelShellProps {
 
 const PanelShell: React.FC<PanelShellProps> = ({
     heading, subtitle, icon, totalLabel, view, principalLabel, children, emptyLabel, truncatedLabel,
-}) => (
+}) => {
+    const display = useMoneyDisplay();
+    return (
     <section aria-labelledby="investment-allocation-title" className={cardClasses}>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between mb-5">
             <div className="flex items-start gap-3">
@@ -138,10 +143,10 @@ const PanelShell: React.FC<PanelShellProps> = ({
                     {totalLabel}
                 </span>
                 <span className="text-2xl font-bold text-gray-800 dark:text-white">
-                    {formatCurrency(view.totalCents)}
+                    {display.cents(view.totalCents, formatCurrency)}
                 </span>
                 <span className="block text-xs text-gray-500 dark:text-gray-400">
-                    {principalLabel} {formatCurrency(view.principalCents)}
+                    {principalLabel} {display.cents(view.principalCents, formatCurrency)}
                 </span>
             </div>
         </div>
@@ -152,7 +157,8 @@ const PanelShell: React.FC<PanelShellProps> = ({
             <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">{truncatedLabel}</p>
         )}
     </section>
-);
+    );
+};
 
 const LoadingPanel: React.FC = () => (
     <section aria-label="Alocação de investimentos" className={cardClasses}>

@@ -1,0 +1,2 @@
+{"momento":"mês sem etiqueta","prova":"recusada (generation)"}
+{"momento":"mês com etiqueta g0 (primeiro delta da R3)","geracao":"g0","receitaDoMes":100000,"prova":"recusada (content)","itemTirado":0,"receitaElegivel":100000,"correto":20000,"PROVA_VERDADEIRA_COM_VALOR_ERRADO":false}

@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# P5-F.1-R1 (revisão 4, Q02 e Q03): refaz as capturas e o "depois"; o "antes" é o mesmo.
+# P5-F.1-R1: evidência visual. (1) Capturas dos estados novos da R1 (1440 × 900 e 390 × 844, claro e escuro, cada
+# combinação num contexto próprio), com axe, transbordamento e teclado. (2) Antes × depois no mesmo estado e na mesma
+# viewport, na cópia da árvore da P5-F.1 e no worktree da R1, e a comparação pixel a pixel. Os roteiros são cópias
+# temporárias de e2e/work-time-p5f.spec.ts com os testes acrescentados; o SHA-256 de src/, tests/ e e2e/ e o
+# `git status` do worktree conferem que tudo voltou ao que era.
+set -u
+S=<scratchpad>
+R=$S/p5f1r1; WT=$S/wt-p5f1-r1; L=$R/logs; ANTES=$R/antes-visual/arvore-d9b33cd1
+cd "$WT" && find src tests e2e -type f -print0 | sort -z | xargs -0 sha256sum > "$L/visual-r1-rev4.sha-antes"; git status --short > "$L/visual-r1-rev4.status-antes"
+
+echo "== capturas da R1"
+rm -rf "$R/visual/capturas"; mkdir -p "$R/visual/capturas"
+cat "$WT/e2e/work-time-p5f.spec.ts" "$R/visual/capturas-r1.append.ts" > "$WT/e2e/p5f1r1-capturas.spec.ts"
+EVIDENCE_DIR=$R/visual/capturas bash "$R/run-pw.sh" visual-r1-capturas3 dejavu e2e/p5f1r1-capturas.spec.ts -g 'captura R1' --reporter=list --workers=1
+rm -f "$WT/e2e/p5f1r1-capturas.spec.ts"
+
+echo "== antes: mantido (a árvore da P5-F.1 não mudou; revisão 4, Q02 e Q03)"
+
+echo "== depois (R1)"
+rm -rf "$R/visual/depois"; mkdir -p "$R/visual/depois"
+cat "$WT/e2e/work-time-p5f.spec.ts" "$R/visual/antes-depois-r1.append.ts" > "$WT/e2e/p5f1r1-antes-depois.spec.ts"
+SKIP_BUILD=1 EVIDENCE_DIR=$R/visual/depois bash "$R/run-pw.sh" visual-r1-depois2 dejavu e2e/p5f1r1-antes-depois.spec.ts -g 'antes-depois R1' --reporter=list --workers=1
+rm -f "$WT/e2e/p5f1r1-antes-depois.spec.ts"
+
+cd "$WT" && find src tests e2e -type f -print0 | sort -z | xargs -0 sha256sum > "$L/visual-r1-rev4.sha-depois"; git status --short > "$L/visual-r1-rev4.status-depois"
+cmp -s "$L/visual-r1-rev4.sha-antes" "$L/visual-r1-rev4.sha-depois" && echo "sha: iguais" || echo "sha: DIFERENTES"
+cmp -s "$L/visual-r1-rev4.status-antes" "$L/visual-r1-rev4.status-depois" && echo "status: igual" || echo "status: DIFERENTE"
+python3 "$R/visual/comparar-antes-depois-r1.py" "$R/visual/antes" "$R/visual/depois" "$R/visual/comparacao-antes-depois.json" > "$L/visual-r1-comparacao2.log" 2>&1
+echo "comparação: saída $?"; cat "$L/visual-r1-comparacao2.log"

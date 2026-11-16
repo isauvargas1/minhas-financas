@@ -1,0 +1,5 @@
+B03-a: receita desconsiderada editada por outro usuário: o saldo nunca converte o valor novo com o total velho e volta a converter certo
+B03-b: marca quebrada: não converte, mostra reais e, depois do tempo de interface, "estimativa em atualização" acessível e legível no celular
+B03-c: depois da marca quebrada, a reconstrução do owner recupera a prova e a estimativa volta a converter com o valor certo
+B03-d: incluir e tirar uma receita da lista de exclusões pessoais refaz a prova e mantém o valor certo nas duas direções
+B03-e: a receita desconsiderada sai da janela da estimativa e volta: o mês antigo só deixa de descontar quando projeção e marca mudam juntas

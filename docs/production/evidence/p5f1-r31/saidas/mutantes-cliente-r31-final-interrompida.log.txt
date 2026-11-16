@@ -1,0 +1,1 @@
+base: saída 0, 0 falha(s)

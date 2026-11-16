@@ -1,0 +1,7 @@
+== modelo-aleatorio 20000 0 31: "violacoes": 0 "cenariosComViolacao": 0 "provas": 126993
+== modelo-aleatorio 20000 50 33 publicacao: "violacoes": 0 "cenariosComViolacao": 0 "provas": 127285
+== modelo-aleatorio 20000 50 35: "violacoes": 0 "cenariosComViolacao": 0 "provas": 124521
+== modelo-aleatorio-duas 20000 0 31: "violacoes": 0 "cenariosComViolacao": 0 "provas": 125072
+== modelo-aleatorio-duas 20000 50 33 publicacao: "violacoes": 0 "cenariosComViolacao": 0 "provas": 125007
+== modelo-aleatorio-duas 20000 50 35: "violacoes": 2 "cenariosComViolacao": 2 "provas": 123604
+FIM

@@ -1,0 +1,4 @@
+{"name":"comum (rotina semanal padrão)","ms":[1,0,0,0,1],"validateDraftMs":13,"validateOk":true,"verdict":null}
+{"name":"coberta, sem exceções","ms":[172,77,50,54,50],"validateDraftMs":84,"validateOk":true,"verdict":null}
+{"name":"pior caso: 3 rotinas cobertas + cíclica 27x26, 120 exceções de 366 dias, 40 feriados anuais","ms":[520,431,385,409,487],"validateDraftMs":416,"validateOk":true,"verdict":null}
+rascunho com data inválida: validateDraft lançou RangeError: Data civil inválida.

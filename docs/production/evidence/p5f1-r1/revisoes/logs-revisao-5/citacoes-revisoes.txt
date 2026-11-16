@@ -1,0 +1,15 @@
+logs-revisao-2/*.log.txt
+logs-revisao-3/*.log.txt
+logs-revisao-3/r3-espera-servidor.*.log
+logs-revisao-3/r3-espera-servidor.*.log.txt
+logs-revisao-3/r3-remonta-cache.log
+logs-revisao-3/r3-remonta-cache.log.txt
+logs-revisao-3/rev1-b03-gancho-r3.log
+logs-revisao-3/rev1-b03-gancho-r3.log.txt
+logs-revisao-4/integridade/
+sondas-revisao-1/2/3
+sondas-revisao-1/b03-gancho.mts.txt
+sondas-revisao-2/b02-custo.mts.txt
+sondas-revisao-2/b03-gancho-rev1.mts.txt
+sondas-revisao-3/rev2-b03-gancho-rev1.mts.txt
+sondas-revisao-4/alinhar.py.txt

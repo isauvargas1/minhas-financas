@@ -1,0 +1,10 @@
+{"label":"1 parecer: seg 20-06 red 8h, ter 00-08","days":["2026-10-05:480","2026-10-06:480?"],"verdict":"2026-10-06/reduced_eve"}
+{"label":"2 idem red 10h","days":["2026-10-05:600","2026-10-06:120"],"verdict":null}
+{"label":"3 seg 20-06 red 8h, ter plantão 24h","days":["2026-10-05:480","2026-10-06:1440?"],"verdict":"2026-10-06/reduced_eve"}
+{"label":"4 idem plantão 4h","days":["2026-10-05:480","2026-10-06:240"],"verdict":null}
+{"label":"5 noturno 22-06 seg-sex, qua red 6h","days":["2026-10-07:360","2026-10-08:480"],"verdict":null}
+{"label":"6 outubro inteiro red 6h noturno","days":[],"verdict":null,"month":7920}
+{"label":"7 24x48 red 12h + 4h extra","days":["2026-10-05:720","2026-10-06:240"],"verdict":null}
+{"label":"8 seg 22-08 cobre ter 05-09/30 (+ter 08-12), seg red 5h","days":["2026-10-05:300","2026-10-06:420?"],"verdict":"2026-10-06/reduced_eve"}
+{"label":"9 dom 22-06, seg 01-01 red 20h, ter 00-02","days":["2026-10-05:1140","2026-10-06:60"],"verdict":null}
+{"label":"10 seg 20-06 + 2h sem horário red 650, ter 00-08","days":["2026-10-05:650","2026-10-06:480?"],"verdict":"2026-10-06/reduced_eve"}

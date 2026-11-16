@@ -1,0 +1,74 @@
+[
+ {
+  "caso": "criação (g0)",
+  "R2A": "2L/3E",
+  "R3": "3L/4E",
+  "delta": "+1L/+1E",
+  "outcome": "applied",
+  "escritasR3": "set cash_projection_marks/t1; set cash_report_periods/2026-11; set cash_category_years/g0__2026__cat_salario; create cash_period_events/ek1"
+ },
+ {
+  "caso": "edição de valor no mesmo mês (g0)",
+  "R2A": "2L/3E",
+  "R3": "3L/4E",
+  "delta": "+1L/+1E",
+  "outcome": "applied",
+  "escritasR3": "set cash_projection_marks/t1; set cash_report_periods/2026-11; set cash_category_years/g0__2026__cat_salario; create cash_period_events/ek1"
+ },
+ {
+  "caso": "edição sem efeito no caixa (só descrição)",
+  "R2A": "2L/1E",
+  "R3": "3L/2E",
+  "delta": "+1L/+1E",
+  "outcome": "applied",
+  "escritasR3": "set cash_projection_marks/t1; create cash_period_events/ek1"
+ },
+ {
+  "caso": "mudança de mês e de ano (g0)",
+  "R2A": "2L/5E",
+  "R3": "3L/6E",
+  "delta": "+1L/+1E",
+  "outcome": "applied",
+  "escritasR3": "set cash_projection_marks/t1; set cash_report_periods/2025-12; set cash_report_periods/2026-01; set cash_category_years/g0__2025__cat_salario; set cash_category_years/g0__2026__cat_salario; create cash_period_events/ek1"
+ },
+ {
+  "caso": "evento depois do corte com reconstrução em preparação",
+  "R2A": "2L/4E",
+  "R3": "3L/5E",
+  "delta": "+1L/+1E",
+  "outcome": "applied",
+  "escritasR3": "set cash_projection_marks/t1; set cash_report_periods/2026-11; set cash_category_years/g0__2026__cat_salario; set cash_category_years/r1__2026__cat_salario; create cash_period_events/ek1"
+ },
+ {
+  "caso": "reentrega (marca de entrega já existe)",
+  "R2A": "2L/0E",
+  "R3": "3L/0E",
+  "delta": "+1L/+0E",
+  "outcome": "duplicate",
+  "escritasR3": ""
+ },
+ {
+  "caso": "coberto pela reconstrução (commit <= corte publicado)",
+  "R2A": "2L/1E",
+  "R3": "3L/1E",
+  "delta": "+1L/+0E",
+  "outcome": "covered_by_rebuild",
+  "escritasR3": "create cash_period_events/ek1"
+ },
+ {
+  "caso": "17º evento fora de ordem (cadeia vira broken)",
+  "R2A": "-",
+  "R3": "3L/5E",
+  "delta": "-",
+  "outcome": "applied",
+  "escritasR3": "set cash_projection_marks/t1; set cash_period_events/projection_state; set cash_report_periods/2026-11; set cash_category_years/g0__2026__cat_salario; create cash_period_events/ek1 | markBroken=pending_overflow"
+ },
+ {
+  "caso": "evento seguinte sobre cadeia já broken",
+  "R2A": "-",
+  "R3": "3L/4E",
+  "delta": "-",
+  "outcome": "applied",
+  "escritasR3": "set cash_projection_marks/t1; set cash_report_periods/2026-11; set cash_category_years/g0__2026__cat_salario; create cash_period_events/ek1 | markBroken=null"
+ }
+]

@@ -1,0 +1,22 @@
+  1) [chromium] › e2e/workspace-membership.spec.ts:169:1 › convite, aceite, troca de papel, remoção e perda de acesso entre duas contas 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: "removed"
+    Received: "active"
+
+    Call Log:
+    - Timeout 12000ms exceeded while waiting on the predicate
+
+      263 |   await expect.poll(async () =>
+      264 |     (await db.doc(`workspaces/${workspaceId}/members/${invitee.uid}`).get()).get('status'))
+    > 265 |     .toBe('removed');
+          |      ^
+      266 |   expect((await db.doc(`users/${invitee.uid}/workspaces/${workspaceId}`).get()).get('status'))
+      267 |     .toBe('removed');
+      268 |
+        at <scratchpad>/wt-p5f1-r31/e2e/workspace-membership.spec.ts:265:6
+
+    Error Context: test-results/workspace-membership-convi-84c36-de-acesso-entre-duas-contas-chromium/error-context.md
+
+  1 failed

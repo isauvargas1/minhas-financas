@@ -1,0 +1,10 @@
+build=0
+exit=1  duração=115s
+  ✘  1 [chromium] › e2e/work-time-p5f.spec.ts:1300:1 › B02 (P5-F.1-R1): acrescentar uma rotina válida não reduz as horas; rotinas que se cruzam com intervalo são recusadas com aviso acessível (32.1s)
+    Error: expect(locator).toContainText(expected) failed
+    Expected substring: "Prévia com as alterações"
+    Received string:    "Valor estimado da sua horaEstimativa indisponível. Em algum dia do período, rotinas se cruzam e há intervalo no trecho em comum: não dá para saber onde cai a pausa, e as horas não podem ser calculadas com segurança. Ajuste as rotinas, os feriados ou as exceções em Configurações.Fonte: Pessoal P5F (PF)Modo: Habitual: últimos 3 meses completosComo este valor foi calculado?"
+        at <scratchpad>/wt-p5f1-r2a/e2e/work-time-p5f.spec.ts:1401:25
+  1 failed
+limpeza=0 java=0
+RESULTADO: MORTO (o teste reprovou com o mutante)

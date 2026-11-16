@@ -1,0 +1,22 @@
+{
+  "name": "mobile-light-s01-previa",
+  "scope": "[data-testid=\"work-time-preview-unavailable\"]",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "scheme": "light",
+  "background": "rgb(249, 250, 251)",
+  "overflow": 0,
+  "occluded": false,
+  "violations": [],
+  "role": null,
+  "focusAfterAction": "input: Semanal",
+  "tabTrail": [
+    "input: Segunda-feira",
+    "input: Terça-feira",
+    "input: Quarta-feira",
+    "input: Quinta-feira"
+  ],
+  "text": "Estimativa indisponível. Em algum dia do período, o dia anterior tem jornada reduzida num horário que passa da meia-noite, e não dá para confirmar que parte dele foi trabalhada: as horas desse dia não podem ser calculadas com segurança. Ajuste as exceções ou as rotinas em Configurações."
+}

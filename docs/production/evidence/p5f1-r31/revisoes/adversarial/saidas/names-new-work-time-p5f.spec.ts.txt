@@ -1,0 +1,19 @@
+B01 (P5-F.1-R1): recebimento de cliente desconsiderado e estornado em outra sessão: a exclusão perde o efeito e a prévia nunca desconta duas vezes
+B02 (P5-F.1-R1): acrescentar uma rotina válida não reduz as horas; rotinas que se cruzam com intervalo são recusadas com aviso acessível
+B02 (revisão da R1, N07): a folga que deixa as rotinas sem cálculo seguro é recusada em Configurações, com aviso acessível junto do botão de salvar
+Configurações: a troca do modo pelo Header durante uma edição entra no rascunho e não é desfeita ao salvar
+Configurações: prévia antes de salvar, falha de gravação preserva a anterior, escala e exceções mudam a estimativa, refazer o assistente
+S01 (P5-F.1-R2A): a jornada reduzida que deixa o dia seguinte sem cálculo seguro é recusada em Configurações, e a gravada assim deixa a estimativa indisponível
+a IA não recebe a configuração e o modo tempo não grava nada fora do documento privado
+a preferência vale em PF e PJ; outra conta no mesmo navegador não vê configuração, estimativa nem valores convertidos
+atualização automática: receita retroativa no espaço da renda, com outro espaço ativo, muda a estimativa sem recarregar
+atualização automática: uma receita nova entra na estimativa do mês atual sem recarregar
+desativado por padrão; assistente na primeira ativação, cancelar não grava, alternância e persistência entre sessões e dispositivos
+escuta das projeções encerrada: abrir Configurações a reabre, a ressalva do topo some e a estimativa em uso volta a acompanhar outras sessões
+falha na leitura da preferência com a escuta já aberta: aviso fixo em pt-BR, valores em reais e "Tentar de novo"
+falha na leitura das receitas desconsideradas: mensagem fixa em pt-BR, nada do SDK, e "Tentar de novo"
+mutação nesta aba: anular em Receitas a receita desconsiderada não junta o item anulado com o total velho
+outra aba acompanha; desativar mantém os dados e excluir apaga toda a configuração
+receitas consideradas: regras automáticas, exclusão só na estimativa, PJ com confirmação, mês atual e memória de cálculo
+releitura que falha: sem confirmar a receita nova, nada convertido e erro com "Tentar de novo"; com a projeção de volta à última leitura, a estimativa volta com o aviso
+sem espaço PF próprio: nenhuma fonte pré-selecionada; contagem, prévia e painel esperam a escolha

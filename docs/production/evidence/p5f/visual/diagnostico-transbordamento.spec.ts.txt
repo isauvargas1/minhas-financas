@@ -1,0 +1,75 @@
+import { expect, test, type Page } from '@playwright/test';
+
+import { createAccountByApi } from './support/accounts';
+import { db, PASSWORD, resetEmulatorData, tokenOf } from './support/loans';
+import { adminSdk, seedOwnedWorkspace, seedPaidPlan } from './support/workspaceSeed';
+import { loginAs, navigate } from './p4d-evidence-common';
+
+/* P5-F — diagnóstico TEMPORÁRIO do transbordamento de Relatórios no modo tempo (não faz parte da suíte). */
+const A = { uid: 'e2e-p5f-ev', email: 'e2e-p5f-ev@minhas-financas.local' };
+const WORKSPACE = 'e2e-p5f-ev-ws';
+const PREFERENCE = `users/${A.uid}/private_preferences/work_time_equivalent`;
+const DIR = process.env.EVIDENCE_DIR ?? 'test-results/p5f-diag';
+
+const offenders = (page: Page) => page.evaluate(() => {
+  const limit = document.documentElement.clientWidth;
+  const sx = window.scrollX;
+  const all = Array.from(document.querySelectorAll('body *'));
+  const over = all.filter((el) => { const b = el.getBoundingClientRect(); return b.width > 0 && b.right + sx > limit + 1; });
+  const leaves = over.filter((el) => !over.some((o) => o !== el && el.contains(o)));
+  return {
+    scrollX: sx, clientWidth: limit, scrollWidth: document.documentElement.scrollWidth,
+    leaves: leaves.slice(0, 12).map((el) => {
+      const b = el.getBoundingClientRect();
+      const chain: string[] = [];
+      for (let n: Element | null = el; n && n !== document.body && chain.length < 6; n = n.parentElement) {
+        chain.push(`${n.tagName.toLowerCase()}.${String((n as HTMLElement).className ?? '').split(' ').slice(0, 4).join('.')}[ox=${getComputedStyle(n).overflowX}]`);
+      }
+      return { left: Math.round(b.left + sx), right: Math.round(b.right + sx), width: Math.round(b.width), text: (el.textContent ?? '').replace(/\s+/g, ' ').trim().slice(0, 60), chain };
+    }),
+  };
+});
+
+test.beforeAll(async ({ request }) => {
+  await resetEmulatorData();
+  await adminSdk().auth().createUser({ ...A, password: PASSWORD, emailVerified: true });
+  await seedOwnedWorkspace({ ...A, workspaceId: WORKSPACE, name: 'Pessoal P5F', type: 'PF' });
+  await seedPaidPlan(A.uid, 'business');
+  const token = await tokenOf(request, A.email);
+  await createAccountByApi(request, token, WORKSPACE, 'Conta P5F', { openingBalanceCents: 100_000 });
+  await createAccountByApi(request, token, WORKSPACE, 'Reserva P5F', { openingBalanceCents: 35_200 });
+});
+
+for (const mode of ['money', 'time'] as const) {
+  test(`diagnóstico Relatórios 360 px ${mode}`, async ({ browser }) => {
+    test.setTimeout(120_000);
+    await db().doc(PREFERENCE).set({
+      schemaVersion: 1, enabled: true, displayMode: mode, monthlyIncomeCents: 440_000, monthlyWorkMinutes: 176 * 60,
+      updatedAt: adminSdk().firestore.FieldValue.serverTimestamp(),
+    });
+    const page = await loginAs(browser, A.email, 'small', 'light');
+    await navigate(page, 'small', /^Relatórios( Empresariais)?$/);
+    await expect(page.getByRole('tab', { name: 'Visão Geral' })).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByText('Carregando…')).toHaveCount(0, { timeout: 30_000 });
+    await expect(page.getByText(/^Receita total$/i).first()).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByRole('columnheader', { name: 'Resultado' }).first()).toBeAttached({ timeout: 30_000 });
+    await page.waitForTimeout(1500);
+    const result = await offenders(page);
+    console.log(`DIAG ${mode} ${JSON.stringify(result)}`);
+    const tables = await page.evaluate(() => Array.from(document.querySelectorAll('.overflow-x-auto')).map((box) => {
+      const table = box.querySelector('table');
+      return {
+        box: { client: box.clientWidth, scroll: box.scrollWidth, position: getComputedStyle(box).position },
+        th: table ? Array.from(table.querySelectorAll('thead th')).map((th) => `${(th.textContent ?? '').trim()}=${Math.round(th.getBoundingClientRect().width)}`) : [],
+        firstRow: table ? Array.from(table.querySelectorAll('tbody tr:first-child td')).map((td) => ({
+          text: (td.textContent ?? '').replace(/\s+/g, ' ').trim().slice(0, 50), width: Math.round(td.getBoundingClientRect().width),
+          html: td.innerHTML.slice(0, 220),
+        })) : [],
+      };
+    }));
+    console.log(`TABLES ${mode} ${JSON.stringify(tables)}`);
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.screenshot({ path: `${DIR}/relatorios-360-${mode}-pagina.png`, fullPage: true });
+    await page.context().close();
+  });
+}

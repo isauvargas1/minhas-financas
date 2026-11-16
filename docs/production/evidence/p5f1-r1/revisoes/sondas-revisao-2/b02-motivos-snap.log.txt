@@ -1,0 +1,2 @@
+{"root":"arvore-d7dabb10","samples":60000,"checked":39599,"ambiguous":13578,"violations":0,"civilDaysChecked":3512079,"reducedCappedDays":8999,"civilOver24hAfterReducedEve":8408,"civilOver24hOther":0,"ms":136976}
+{"root":"arvore-d7dabb10","samples":60000,"checked":39597,"ambiguous":13583,"violations":0,"civilDaysChecked":0,"reducedCappedDays":0,"civilOver24hAfterReducedEve":0,"civilOver24hOther":0,"ms":35271}

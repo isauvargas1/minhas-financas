@@ -1,0 +1,3 @@
+{"name":"só 20:00–06:00","segunda":[480,false],"terca":[1440,false],"mes":3120}
+{"name":"com 23:00–08:00","segunda":[480,false],"terca":[1440,false],"mes":3360}
+{"name":"véspera sem redução","segunda":600,"terca":[1080,true]}

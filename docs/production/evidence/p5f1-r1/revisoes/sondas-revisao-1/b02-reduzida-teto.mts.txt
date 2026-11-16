@@ -1,0 +1,23 @@
+// Sonda B02 (revisão independente): jornada reduzida + hora extra no mesmo dia.
+// (1) Com a rotina abaixo do limite da redução, o teto de 24 h do dia civil não vale (o dia passa de 24 h
+//     sem nenhuma janela atravessar a meia-noite). (2) Acrescentar uma rotina válida que leva a rotina acima
+//     do limite tira horas do dia (o teto passa a cortar a hora extra).
+const root = process.argv[2];
+const cal = await import(`${root}/src/modules/work-time/calendar.ts`);
+const OFF = { kind: 'off' };
+const w = (s: string, e: string, b = 0) => ({ kind: 'window', start: Number(s.slice(0, 2)) * 60 + Number(s.slice(3)), end: Number(e.slice(0, 2)) * 60 + Number(e.slice(3)), breakMinutes: b });
+const mondays = (spec: unknown) => ({ kind: 'weekly', days: [spec, OFF, OFF, OFF, OFF, OFF, OFF] });
+const exceptions = [
+  { kind: 'reduced', start: '2026-10-05', end: '2026-10-05', minutes: 600 },
+  { kind: 'overtime', date: '2026-10-05', minutes: 1000 },
+];
+const c = (routines: unknown[]) => ({ routines, worksOnHolidays: true, localHolidays: [], exceptions });
+const day = (routines: unknown[]) => cal.monthPlan(c(routines), '2026-10', { periodStart: true }).days.find((d: { date: string }) => d.date === '2026-10-05');
+const one = [mondays(w('08:00', '17:00'))];
+const two = [mondays(w('08:00', '17:00')), mondays(w('18:00', '20:00'))];
+const fmt = (d: { minutes: number; capped: boolean; ambiguous?: boolean }) => `${d.minutes} min (${(d.minutes / 60).toFixed(2)} h), teto aplicado: ${d.capped}${d.ambiguous ? ', ambíguo' : ''}`;
+console.log('segunda 05/10 (reduzida a 10 h, hora extra 1.000 min), rotina 08:00–17:00:', fmt(day(one)));
+console.log('mesma segunda, acrescentada a rotina 18:00–20:00:', fmt(day(two)));
+const month = (routines: unknown[]) => cal.monthPlan(c(routines), '2026-10', { periodStart: true }).minutes;
+console.log('outubro/2026 (período):', month(one), '→', month(two));
+console.log('conferidor:', JSON.stringify(cal.routinesAmbiguity ? cal.routinesAmbiguity(two, '2026-10-01') : 'ausente'));

@@ -1,0 +1,12 @@
+== modelo-aleatorio 20000 0 11: "violacoes": 0 "cenariosComViolacao": 0
+== modelo-aleatorio 20000 8 12: "violacoes": 24 "cenariosComViolacao": 4
+== modelo-aleatorio 20000 50 13: "violacoes": 552 "cenariosComViolacao": 93
+== modelo-aleatorio 20000 50 13 publicacao: "violacoes": 0 "cenariosComViolacao": 0
+== modelo-aleatorio 20000 50 13 cliente: "violacoes": 0 "cenariosComViolacao": 0
+== modelo-aleatorio 20000 50 13 ambas: "violacoes": 0 "cenariosComViolacao": 0
+== modelo-aleatorio-duas 20000 0 11: "violacoes": 0 "cenariosComViolacao": 0
+== modelo-aleatorio-duas 20000 8 12: "violacoes": 6 "cenariosComViolacao": 1
+== modelo-aleatorio-duas 20000 50 13: "violacoes": 175 "cenariosComViolacao": 54
+== modelo-aleatorio-duas 20000 50 13 publicacao: "violacoes": 0 "cenariosComViolacao": 0
+== modelo-aleatorio-duas 20000 50 13 cliente: "violacoes": 2 "cenariosComViolacao": 2
+== modelo-aleatorio-duas 20000 50 13 ambas: "violacoes": 0 "cenariosComViolacao": 0

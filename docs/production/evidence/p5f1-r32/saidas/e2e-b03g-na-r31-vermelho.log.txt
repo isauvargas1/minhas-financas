@@ -1,0 +1,35 @@
+
+Running 1 test using 1 worker
+
+(node:6061) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 [chromium] › e2e/work-time-b03.spec.ts:729:1 › B03-g (R3.2, RR-R31-05): sem conexão, a conversão sai e a prévia aberta de novo com o cache aquecido não converte; com a conexão de volta, a conversão certa volta (1.2m)
+
+
+  1) [chromium] › e2e/work-time-b03.spec.ts:729:1 › B03-g (R3.2, RR-R31-05): sem conexão, a conversão sai e a prévia aberta de novo com o cache aquecido não converte; com a conexão de volta, a conversão certa volta 
+
+    Error: sem conexão, o saldo em reais
+
+    sem conexão, o saldo em reais
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+    Call Log:
+    - Timeout 60000ms exceeded while waiting on the predicate
+
+      748 |   await expect.poll(async () => lastBalance(await recorded(page)).startsWith('reais|'), {
+      749 |     timeout: 60_000, message: 'sem conexão, o saldo em reais',
+    > 750 |   }).toBe(true);
+          |      ^
+      751 |   await expect(page.locator('[data-work-time]')).toHaveCount(0);
+      752 |   await expect(notice(page)).toContainText(
+      753 |     /Calculando a estimativa de tempo de trabalho: enquanto isso, os valores ficam em reais\.|Estimativa de tempo de trabalho indisponível agora: os valores continuam em reais\./,
+        at <scratchpad>/p5f1r32/copia-r31-e2e/e2e/work-time-b03.spec.ts:750:6
+
+    Error Context: test-results/work-time-b03-B03-g-R3-2-R-02757-lta-a-conversão-certa-volta-chromium/error-context.md
+
+  1 failed
+    [chromium] › e2e/work-time-b03.spec.ts:729:1 › B03-g (R3.2, RR-R31-05): sem conexão, a conversão sai e a prévia aberta de novo com o cache aquecido não converte; com a conexão de volta, a conversão certa volta 

@@ -1,0 +1,6 @@
+inicio=2026-11-11T00:10:04Z arvore=4e1521a63c29813ca8b010733dde64ac761c359e
+build=0
+grupo 1: exit=0  duração=365s  68 passed (6.0m) 
+grupo 2: exit=0  duração=291s  70 passed (4.8m) 
+grupo 3: exit=0  duração=642s  78 passed (10.7m) 
+fim=2026-11-11T00:32:19Z exit=0 # fim=2026-11-11T00:32:19Z pico_mib=10777 pico_em=2026-11-11T00:32:09Z

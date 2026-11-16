@@ -1,0 +1,20 @@
+[Tue Nov 10 20:02:55 2026] idle-reclaim (77): drop_caches: 1
+[Tue Nov 10 20:05:05 2026] idle-reclaim (77): drop_caches: 1
+[Wed Nov 11 00:07:33 2026] AudioWorkerThre invoked oom-killer: gfp_mask=0x100cca(GFP_HIGHUSER_MOVABLE), order=0, oom_score_adj=0
+[Wed Nov 11 00:07:33 2026] CPU: 1 UID: 0 PID: 2414 Comm: AudioWorkerThre Not tainted 6.18.44-fc-v338 #1 NONE 
+[Wed Nov 11 00:07:33 2026] Call Trace:
+[Wed Nov 11 00:07:33 2026]  <TASK>
+[Wed Nov 11 00:07:33 2026]  dump_stack_lvl+0x57/0x80
+[Wed Nov 11 00:07:33 2026]  dump_header+0x43/0x1ae
+[Wed Nov 11 00:07:33 2026]  oom_kill_process.cold+0x8/0x78
+[Wed Nov 11 00:07:33 2026]  out_of_memory+0x214/0x500
+[Wed Nov 11 00:07:33 2026]  mem_cgroup_out_of_memory+0xc0/0x110
+[Wed Nov 11 00:07:33 2026]  try_charge_memcg+0x46b/0x750
+[Wed Nov 11 00:07:33 2026]  charge_memcg+0x2f/0x80
+[Wed Nov 11 00:07:33 2026]  __mem_cgroup_charge+0x2c/0x90
+[Wed Nov 11 00:07:33 2026]  filemap_add_folio+0x7a/0x220
+--
+[Wed Nov 11 00:07:33 2026] [  13481]     0 13481      687      402        0      402         0    49152        0             0 tail
+[Wed Nov 11 00:07:33 2026] [  13483]     0 13483     1119      269       56      213         0    57344        0             0 bash
+[Wed Nov 11 00:07:33 2026] oom-kill:constraint=CONSTRAINT_MEMCG,nodemask=(null),cpuset=/,mems_allowed=0,oom_memcg=/process_api/01a1c704-77d9-73a5-9f57-c5292c17012a/claude-code-bash,task_memcg=/process
+[Wed Nov 11 00:07:33 2026] Memory cgroup out of memory: Killed process 13368 (chrome-headless) total-vm:1518183608kB, anon-rss:99112kB, file-rss:2052kB, shmem-rss:0kB, UID:0 pgtables:1236kB oom_score_

@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# P5-F. Uso: run-pw.sh <rótulo> <dejavu|poppins> [args do playwright...]
+# Gera o build E2E da árvore atual (SKIP_BUILD=1 reaproveita o dist), roda o Playwright no worktree contra o
+# Emulator (minhas-financas-local) com o loopback-proxy seguro; "poppins" usa o fontconfig com a mesma fonte
+# que o CI baixa do Google Fonts. Depois encerra só a JVM órfã desta execução (identidade e cwd), com SIGTERM.
+set -u
+S=<scratchpad>
+WT=$S/wt-p5f; L=$S/p5f/logs; mkdir -p "$L"
+LABEL=$1; FONT=$2; shift 2
+START=$(date +%s)
+[ "$FONT" = poppins ] && export FONTCONFIG_FILE=$S/e2e-fix-01/fonts.conf
+if [ "${SKIP_BUILD:-0}" != 1 ]; then cd "$WT" && npm run build:e2e > "$L/$LABEL-build.log" 2>&1; echo "build=$?"; fi
+cd "$WT" && timeout 5400 bash $S/with-proxy-safe.sh 38831 npx playwright test "$@" > "$L/$LABEL.log" 2>&1
+echo "exit=$?  duração=$(( $(date +%s) - START ))s"
+sed -E 's/\x1b\[[0-9;]*[A-Za-z]//g' "$L/$LABEL.log" | grep -E "^\s+[0-9]+ (passed|failed|skipped|flaky|did not run)|✘|^\s+Expected|^\s+Received|Error: |at .*spec\.ts:[0-9]+" | head -30
+bash $S/p5e11/stop-own-emulator.sh 8080 "$START" "$L/emulator-cleanup.log" "$WT" >/dev/null 2>&1; echo "limpeza=$? java=$(pgrep -c java || true)"

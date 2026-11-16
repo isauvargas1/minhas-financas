@@ -14,6 +14,7 @@ import {
 import {
   FINANCIAL_REPORT_KEY,
   financialReportKey,
+  invalidateFinancialReportBases,
   invalidateFinancialReports,
 } from '../../src/modules/reports/queryKeys.ts';
 
@@ -72,15 +73,21 @@ test('P5-C1 — chaves de cache distinguem usuário, workspace, papel, faixa e b
   assert.notDeepEqual(key, financialReportKey('u2', 'ws1', 'viewer', 'preset:30d', 'all'));
 });
 
-test('P5-C1 — a invalidação usa o prefixo do relatório', async () => {
+test('P5-C1 — a invalidação usa o prefixo do relatório (e, P5-F.1, não toca as bases de longa duração)', async () => {
   const calls: unknown[] = [];
-  await invalidateFinancialReports({
+  const recorder = {
     invalidateQueries: (filters?: unknown) => {
       calls.push(filters);
       return Promise.resolve();
     },
-  } as never);
+  } as never;
+  await invalidateFinancialReports(recorder);
+  // As bases seguem a escuta das projeções (basisSync.ts): mutação e listener do App não as relêem.
   assert.deepEqual(calls, [{ queryKey: ['financialReport'] }]);
+  // Virada do mês: as bases ficam desatualizadas, sem releitura imediata (o agendador de cada uma relê).
+  calls.length = 0;
+  await invalidateFinancialReportBases(recorder);
+  assert.deepEqual(calls, [{ queryKey: ['financialReportBasis'], refetchType: 'none' }]);
 });
 
 test('P5-C1 — callable: payload estrito, sections só quando pedidas; erros em pt-BR', async () => {

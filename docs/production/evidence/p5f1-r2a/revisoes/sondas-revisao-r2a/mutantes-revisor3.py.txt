@@ -1,0 +1,82 @@
+#!/usr/bin/env python3
+"""Mutantes do revisor sobre a árvore indicada em ARVORE_DIR (padrão: final, cf9cb2a9), numa cópia própria em SAIDA/mut.
+
+Cada mutante troca um trecho exato (uma ocorrência só), roda os testes de unidade do tempo de trabalho e registra se
+algum teste reprova (mutante morto). A cópia é refeita do zero para cada mutante; a árvore final não é tocada.
+Uso: python3 -I mutantes-revisor.py <SAIDA>
+"""
+import json, os, shutil, subprocess, sys, time
+
+SAIDA = sys.argv[1]
+FINAL = os.path.join(SAIDA, os.environ.get('ARVORE_DIR', 'final'))
+WORK = os.path.join(SAIDA, 'mut', 'run-' + os.environ.get('ARVORE_DIR', 'final'))
+CAL = 'src/modules/work-time/calendar.ts'
+DRAFT = 'src/modules/work-time/draft.ts'
+EST = 'src/modules/work-time/estimate.ts'
+RM = 'src/modules/work-time/routineModels.ts'
+TESTS = ['tests/unit/work-time-calendar.test.ts', 'tests/unit/work-time-estimate.test.ts',
+         'tests/unit/work-time-preference.test.ts', 'tests/unit/work-time-guard.test.ts']
+
+M = [
+  ('M01 véspera incerta ignorada (motor da R1)', CAL, 'if (eve.certain) return plan(eve.windows);', 'if (true) return plan(certainWindows(eve));'),
+  ('M02 sempre desconta o turno inteiro', CAL, 'const none = plan([]);', 'const none = plan(eve.windows);'),
+  ('M03 aceita sem comparar os extremos', CAL, '!all.ambiguous && none.minutes === all.minutes) return none;', '!all.ambiguous) return none;'),
+  ('M04 ignora a ambiguidade do extremo "inteiro"', CAL, 'if (!none.ambiguous && !all.ambiguous && none.minutes', 'if (!none.ambiguous && none.minutes'),
+  ('M05 devolve o plano do extremo "inteiro"', CAL, 'none.minutes === all.minutes) return none;', 'none.minutes === all.minutes) return all;'),
+  ('M06 reducedEve sempre falso', CAL, 'reducedEve: !(none.ambiguous && all.ambiguous) };', 'reducedEve: false };'),
+  ('M07 véspera reduzida sempre certa', CAL, 'certain: !most.ambiguous && most.minutes + durations <= flags.reduced };', 'certain: true };'),
+  ('M08 véspera reduzida sempre incerta', CAL, 'certain: !most.ambiguous && most.minutes + durations <= flags.reduced };', 'certain: false };'),
+  ('M09 máximo sem as durações', CAL, 'most.minutes + durations <= flags.reduced', 'most.minutes <= flags.reduced'),
+  ('M10 < no lugar de <=', CAL, 'most.minutes + durations <= flags.reduced', 'most.minutes + durations < flags.reduced'),
+  ('M11a desconta a véspera também no dia 1 (a regra de cf9cb2a9)', CAL, '  const eveWindows = opensMonth(date) ? [] : followedWindowsOn(calendar, addDays(date, -1));', '  const eveWindows = followedWindowsOn(calendar, addDays(date, -1));'),
+  ('M11b nunca desconta a véspera (a regra estrita de 63e4c3c6)', CAL, '  const eveWindows = opensMonth(date) ? [] : followedWindowsOn(calendar, addDays(date, -1));', '  const eveWindows: Occurrence[] = [];'),
+  ('M12 dia que segue a rotina também incerto', CAL, 'if (flags.reduced === null || routineDay.windows.length === 0) return', 'if (routineDay.windows.length === 0) return'),
+  ('M13 dia seguinte incerto entra como vizinho', CAL, 'const nextWindows = certainWindows(neighborWindowsOn(calendar, addDays(date, 1)));', 'const nextWindows = neighborWindowsOn(calendar, addDays(date, 1)).windows;'),
+  ('M14 conferidor sem a passada nova', CAL, '  if (reducedEves) {', '  if (false) {'),
+  ('M15 conferidor com o atalho antigo', CAL, 'if (!scan.covered && !reducedEves) return null;', 'if (!scan.covered) return null;'),
+  ('M16 passada nova com o filtro invertido', CAL, 'if (plan.ambiguous && plan.reducedEve) consider(', 'if (plan.ambiguous && !plan.reducedEve) consider('),
+  ('M17 causa do vizinho no lugar da véspera', CAL, '        if (plan.reducedEve) return reducedEveAt(date);\n', ''),
+  ('M18 meia-noite medida no próprio dia', CAL, 'windows.filter((occurrence) => occurrence.end > (day + 1) * DAY_MINUTES);', 'windows.filter((occurrence) => occurrence.end > day * DAY_MINUTES);'),
+  ('M19 último dia reduzido fora da passada', CAL, 'day <= Math.min(dayNumber(entry.end), last - 1); day += 1) eves.add(day);', 'day < Math.min(dayNumber(entry.end), last - 1); day += 1) eves.add(day);'),
+  ('M20 seção da recusa nas rotinas', DRAFT, "  if (cause.kind === 'reduced_eve') return 'exceptions';\n", ''),
+  ('M21 datas trocadas na mensagem', DRAFT, 'Com a jornada reduzida de ${dayOfWeekAndDate(cause.date)}', 'Com a jornada reduzida de ${dayOfWeekAndDate(ambiguity.date)}'),
+  ('M22 motivo da estimativa sempre o das rotinas', EST, "byBreaks ? 'ambiguous_routines' : 'ambiguous_reduced_eve'", "'ambiguous_routines'"),
+  ('M23 mut-tpl: a chave inclui a jornada para aplicar', RM, "JSON.stringify(models.map((model) => (model.kind === 'weekly' ? { kind: model.kind, days: model.days } : model)))", 'JSON.stringify(models)'),
+  ('M24 edited falso na digitação inválida', RM, "if (failure) return { result: { ok: false, message: failure.message, edited }, ambiguity: null };", "if (failure) return { result: { ok: false, message: failure.message, edited: false }, ambiguity: null };"),
+  ('M25 aplicar em todos os dias', RM, "days: model.days.map((input) => (input.mode === 'off' ? input : { ...model.template })),", 'days: model.days.map(() => ({ ...model.template })),'),
+  ('M26 memória sem conferir o objeto', CAL, "  const memo = callMemo !== null && callMemo.calendar === calendar ? callMemo.flags : null;", "  const memo = callMemo !== null ? callMemo.flags : null;"),
+  ('M27 memória não desfeita na saída', CAL, '  } finally {\n    callMemo = outer;\n  }', '  } finally {\n    void outer;\n  }'),
+  ('M28 memória das janelas sem conferir o objeto', CAL, "  const memo = callMemo !== null && callMemo.calendar === calendar ? callMemo.neighbors : null;", "  const memo = callMemo !== null ? callMemo.neighbors : null;"),
+]
+only = os.environ.get('SO')
+results = []
+for index, (label, path, old, new) in enumerate(M, start=1):
+    if only and str(index) not in only.split(','):
+        continue
+    shutil.rmtree(WORK, ignore_errors=True)
+    os.makedirs(WORK)
+    for d in ('src', 'tests'):
+        shutil.copytree(os.path.join(FINAL, d), os.path.join(WORK, d), symlinks=True)
+    for linked in ('node_modules', 'functions', 'docs', 'firestore.rules', 'firestore.indexes.json', 'firebase.json'):
+        os.symlink(os.path.join(FINAL, linked), os.path.join(WORK, linked))
+    shutil.copy(os.path.join(FINAL, 'package.json'), os.path.join(WORK, 'package.json'))
+    target = os.path.join(WORK, path)
+    text = open(target, encoding='utf-8').read()
+    count = text.count(old)
+    if count != 1:
+        results.append({'mutante': label, 'erro': f'trecho com {count} ocorrências'})
+        print(json.dumps(results[-1], ensure_ascii=False), flush=True)
+        continue
+    open(target, 'w', encoding='utf-8').write(text.replace(old, new))
+    t0 = time.time()
+    failed = []
+    for test in TESTS:
+        proc = subprocess.run(['node', '--experimental-strip-types', '--disable-warning=MODULE_TYPELESS_PACKAGE_JSON', '--test', test],
+                              cwd=WORK, capture_output=True, text=True, timeout=900)
+        if proc.returncode != 0:
+            names = [line.strip()[len('not ok '):][:150] for line in proc.stdout.splitlines() if line.strip().startswith('not ok ')]
+            failed.append({'arquivo': os.path.basename(test), 'reprovados': names[:4]})
+    results.append({'mutante': label, 'morto': bool(failed), 'segundos': round(time.time() - t0), 'reprovacoes': failed})
+    print(json.dumps(results[-1], ensure_ascii=False), flush=True)
+shutil.rmtree(WORK, ignore_errors=True)
+print(json.dumps({'total': len(results), 'mortos': sum(1 for r in results if r.get('morto')), 'vivos': [r['mutante'] for r in results if r.get('morto') is False], 'erros': [r for r in results if 'erro' in r]}, ensure_ascii=False))

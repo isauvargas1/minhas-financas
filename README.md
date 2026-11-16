@@ -48,8 +48,8 @@ npm ci && npm ci --prefix functions
 | Comando | O que cobre |
 | ------- | ----------- |
 | `npm run verify:fast` | tipos, lint das Functions, build do frontend e das Functions, unitários dos dois lados |
-| `npm run test:integration:emulator` | integração das Functions, guarda da ferramenta de limpeza e as seis suítes de Firestore Rules no Emulator (projeto `minhas-financas-local`) |
-| `npm run test:e2e` | build E2E servido por `vite preview` mais a suíte Playwright, contra o Emulator |
+| `npm run test:integration:emulator` | integração das Functions, guardas das ferramentas de limpeza e de contas e as 20 suítes de Firestore Rules no Emulator (projeto `minhas-financas-local`); só passa com a cadeia inteira concluída (marco de fase completa, `tools/integracao/marco-da-fase.mjs`) |
+| `npm run test:e2e` | build E2E servido por `vite preview` mais a suíte Playwright, contra o Emulator, em grupos de arquivos com um Emulator por grupo (`tools/e2e/executar-em-grupos.mjs`); só passa com cada teste da lista rodando uma vez, numa tentativa, e passando |
 | `npm run verify:all` | os três acima, em sequência |
 
 O workflow `.github/workflows/quality-gate.yml` executa esses gates em todo push para `main` e em pull requests.

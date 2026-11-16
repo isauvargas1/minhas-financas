@@ -1,0 +1,120 @@
+"""P5-F: mutantes das Rules da preferência privada, executados no Emulator.
+
+Cada mutante roda numa pasta própria fora do worktree, com firebase.json,
+.firebaserc, firestore.indexes.json e package.json copiados, firestore.rules
+mutado, a suíte `work-time-p5f.rules.integration.test.mjs` copiada e as
+dependências por link simbólico. O Emulator sobe só com Auth e Firestore, no
+projeto minhas-financas-local, com o loopback-proxy seguro. A troca precisa casar
+exatamente uma vez. Um mutante está morto quando a suíte falha. Nada no worktree
+é alterado. Saída: texto e JSON em p5f/mutantes-rules/.
+"""
+import json
+import os
+import shutil
+import subprocess
+import sys
+import time
+
+S = '<scratchpad>'
+WT = f'{S}/wt-p5f'
+OUT = f'{S}/p5f/mutantes-rules'
+SUITE = 'tests/firestore/work-time-p5f.rules.integration.test.mjs'
+
+OWN = ("      return hasActiveAccount() &&\n        request.auth.uid == userId &&\n"
+       "        preferenceId == 'work_time_equivalent';")
+GET_DELETE = '        allow get, delete: if isOwnWorkTimePreference(userId, preferenceId);'
+LIST = '        allow list: if false;\n      }\n\n      // Índice de participação'
+HAS_ONLY = ("      return data.keys().hasOnly([\n          'schemaVersion', 'enabled', 'displayMode',\n"
+            "          'monthlyIncomeCents', 'monthlyWorkMinutes', 'updatedAt',\n        ]) &&\n"
+            "        data.keys().hasAll([")
+
+MUTANTS = [
+    ('R1', 'sem a checagem do titular (uid)', OWN,
+     "      return hasActiveAccount() &&\n        preferenceId == 'work_time_equivalent';"),
+    ('R2', 'listagem liberada ao titular', LIST,
+     '        allow list: if signedIn() && request.auth.uid == userId;\n      }\n\n      // Índice de participação'),
+    ('R3', 'sem hasOnly (campo extra aceito)', HAS_ONLY, '      return data.keys().hasAll(['),
+    ('R4', 'updatedAt do cliente aceito', '        data.updatedAt == request.time;\n    }',
+     '        data.updatedAt is timestamp;\n    }'),
+    ('R5', 'sem piso de R$ 0,01 por hora', '        data.monthlyIncomeCents * 60 >= data.monthlyWorkMinutes &&\n', ''),
+    ('R6', 'sem conta ativa (suspensa passa)', OWN,
+     "      return signedIn() &&\n        request.auth.uid == userId &&\n        preferenceId == 'work_time_equivalent';"),
+    ('R7', 'qualquer id na subcoleção', OWN,
+     '      return hasActiveAccount() &&\n        request.auth.uid == userId;'),
+    ('R8', 'displayMode livre', "        data.displayMode in ['money', 'time'] &&", '        data.displayMode is string &&'),
+    ('R9', 'qualquer conta apaga', GET_DELETE,
+     '        allow get: if isOwnWorkTimePreference(userId, preferenceId);\n        allow delete: if signedIn();'),
+    ('R10', 'qualquer conta lê a renda', GET_DELETE,
+     '        allow get: if signedIn();\n        allow delete: if isOwnWorkTimePreference(userId, preferenceId);'),
+    ('R11', 'renda abaixo do mínimo aceita', '        data.monthlyIncomeCents >= 100 &&', '        data.monthlyIncomeCents >= 0 &&'),
+    ('R12', 'schemaVersion acima de 1 aceito', '        data.schemaVersion == 1 &&', '        data.schemaVersion >= 1 &&'),
+    ('R13', 'carga acima de 744 h aceita', '        data.monthlyWorkMinutes <= 44640 &&', '        data.monthlyWorkMinutes <= 50000 &&'),
+    ('R14', 'renda sem exigência de inteiro', '        data.monthlyIncomeCents is int &&\n', ''),
+    ('R15', 'enabled sem exigência de booleano', '        data.enabled is bool &&\n', ''),
+]
+
+
+def prepare(name: str, old: str | None, new: str | None) -> str:
+    target = f'{OUT}/{name}'
+    shutil.rmtree(target, ignore_errors=True)
+    os.makedirs(f'{target}/tests/firestore')
+    os.makedirs(f'{target}/functions')
+    for path in ('firebase.json', '.firebaserc', 'firestore.indexes.json', 'package.json', SUITE):
+        shutil.copy2(f'{WT}/{path}', f'{target}/{path}')
+    with open(f'{WT}/firestore.rules', encoding='utf-8') as handle:
+        rules = handle.read()
+    if old is not None:
+        count = rules.count(old)
+        if count != 1:
+            sys.exit(f'mutante inválido {name}: o trecho aparece {count} vez(es): {old[:80]!r}')
+        rules = rules.replace(old, new)
+    with open(f'{target}/firestore.rules', 'w', encoding='utf-8') as handle:
+        handle.write(rules)
+    os.symlink(f'{WT}/node_modules', f'{target}/node_modules')
+    os.symlink(f'{WT}/functions/node_modules', f'{target}/functions/node_modules')
+    return target
+
+
+def run(target: str, label: str) -> tuple[int, list[str], str]:
+    start = int(time.time())
+    log = f'{OUT}/{label}.log'
+    with open(log, 'w', encoding='utf-8') as handle:
+        code = subprocess.run(
+            ['timeout', '900', 'bash', f'{S}/with-proxy-safe.sh', '38833', 'firebase', 'emulators:exec',
+             '--only', 'auth,firestore', '--project', 'minhas-financas-local', f'node --test {SUITE}'],
+            cwd=target, stdout=handle, stderr=subprocess.STDOUT).returncode
+    subprocess.run(['bash', f'{S}/p5e11/stop-own-emulator.sh', '8080', str(start), f'{OUT}/emulator-cleanup.log', target],
+                   capture_output=True)
+    with open(log, encoding='utf-8') as handle:
+        text = handle.read()
+    failed = [line.strip()[len('not ok '):] for line in text.splitlines() if line.strip().startswith('not ok ')]
+    summary = ' '.join(line.strip() for line in text.splitlines() if line.strip().startswith(('# pass', '# fail')))
+    return code, failed, summary
+
+
+def main() -> None:
+    os.makedirs(OUT, exist_ok=True)
+    only = set(sys.argv[1:])
+    rows = []
+    for mutant_id, description, old, new in [('ORIGINAL', 'Rules da árvore final', None, None), *MUTANTS]:
+        if only and mutant_id not in only:
+            continue
+        target = prepare(mutant_id, old, new)
+        code, failed, summary = run(target, mutant_id)
+        killed = code != 0
+        rows.append({'id': mutant_id, 'mutante': description, 'saida': code, 'morto': killed,
+                     'falhas': failed, 'resumo': summary})
+        state = ('FALHOU' if killed else 'PASSOU') if mutant_id == 'ORIGINAL' else ('MORTO ' if killed else 'VIVO  ')
+        print(f'{mutant_id:<9} {state} {description} [{summary}] -> {failed[:3]}', flush=True)
+        if mutant_id == 'ORIGINAL' and killed:
+            sys.exit('a suíte precisa passar com as Rules originais')
+        shutil.rmtree(target)
+    name = 'resultado.json' if not only else f"resultado-{'-'.join(sorted(only))}.json"
+    with open(f'{OUT}/{name}', 'w', encoding='utf-8') as handle:
+        json.dump(rows, handle, ensure_ascii=False, indent=2)
+    mutants = [row for row in rows if row['id'] != 'ORIGINAL']
+    print(f"mortos {sum(1 for row in mutants if row['morto'])}/{len(mutants)}")
+
+
+if __name__ == '__main__':
+    main()

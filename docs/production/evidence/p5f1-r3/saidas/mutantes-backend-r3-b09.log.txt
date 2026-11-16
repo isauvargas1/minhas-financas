@@ -1,0 +1,3 @@
+base: saída 0, 0 falha(s), ['# pass 14']
+MORTO B09 publicação desliga a recuperação sem conferir o corte: 1 falha(s): not ok 7 - incidente de marca depois do corte, durante a preparação: a publicação mantém o registro e a recons
+mortos 1/1 (lista 12); recompilação final: 0

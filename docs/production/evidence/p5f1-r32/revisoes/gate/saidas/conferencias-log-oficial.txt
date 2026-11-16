@@ -1,0 +1,13 @@
+socket hang up / ECONNRESET no log inteiro: 0
+Received SIG no log: 3
+projeto de produção no log: 0
+projeto de produção nos firebase-debug.log dos grupos: 0
+projeto local nos firebase-debug.log: 44035
+not ok / ✘ / flaky: 0 / 0
+picos por fase (memória):
+  grupo-1: 9558 MiB em 2026-11-14T17:39:38Z
+  grupo-2: 6753 MiB em 2026-11-14T17:44:39Z
+  grupo-3: 9578 MiB em 2026-11-14T17:56:41Z
+  integracao: 2300 MiB em 2026-11-14T17:31:36Z
+  verify:fast: 2363 MiB em 2026-11-14T17:09:43Z
+# fim=2026-11-14T17:56:51Z pico_mib=9578 pico_em=2026-11-14T17:56:41Z

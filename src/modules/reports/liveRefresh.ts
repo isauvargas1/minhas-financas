@@ -25,7 +25,8 @@ export interface LiveRefreshOptions {
     refillMs: number;
 }
 
-const systemClock: LiveRefreshClock = {
+/** Relógio do sistema (o padrão dos agendadores; os testes injetam outro). */
+export const SYSTEM_LIVE_REFRESH_CLOCK: LiveRefreshClock = {
     now: () => Date.now(),
     setTimer: (run, ms) => setTimeout(run, ms),
     clearTimer: (handle) => clearTimeout(handle as ReturnType<typeof setTimeout>),
@@ -33,7 +34,7 @@ const systemClock: LiveRefreshClock = {
 
 export const createLiveRefreshScheduler = (
     onRefresh: () => void,
-    clock: LiveRefreshClock = systemClock,
+    clock: LiveRefreshClock = SYSTEM_LIVE_REFRESH_CLOCK,
     options: LiveRefreshOptions = {
         coalesceMs: LIVE_REFRESH_COALESCE_MS,
         burst: LIVE_REFRESH_BURST,
@@ -73,5 +74,7 @@ export const createLiveRefreshScheduler = (
             if (pending !== null) clock.clearTimer(pending);
             pending = null;
         },
+        /** Há uma releitura pendente: agrupando mudanças ou esperando a reposição do orçamento. */
+        scheduled: () => pending !== null,
     };
 };

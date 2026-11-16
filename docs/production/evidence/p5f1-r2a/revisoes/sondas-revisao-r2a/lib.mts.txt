@@ -1,0 +1,176 @@
+// Biblioteca das sondas do revisor independente (P5-F.1-R2A). Só leitura dos módulos da árvore.
+// Carregue com: const lib = await import('./lib.mts'); const m = await lib.load(root);
+export const load = async (root: string) => {
+  const cal = await import(`${root}/src/modules/work-time/calendar.ts`);
+  const dates = await import(`${root}/src/modules/work-time/dates.ts`);
+  return { cal, dates };
+};
+
+export const rng = (seed: number) => {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+};
+
+export type Span = [number, number];
+export const unite = (spans: readonly Span[]): Span[] => {
+  const out: Span[] = [];
+  for (const [a, b] of spans.filter(([x, y]) => y > x).map(([x, y]): Span => [x, y]).sort((p, q) => p[0] - q[0] || p[1] - q[1])) {
+    const last = out[out.length - 1];
+    if (last && a <= last[1]) last[1] = Math.max(last[1], b);
+    else out.push([a, b]);
+  }
+  return out;
+};
+export const size = (spans: readonly Span[]) => unite(spans).reduce((s, [a, b]) => s + b - a, 0);
+export const meet = (a: readonly Span[], b: readonly Span[]): Span[] =>
+  unite(unite(a).flatMap(([a0, a1]) => unite(b).map(([b0, b1]): Span => [Math.max(a0, b0), Math.min(a1, b1)])));
+export const minus = (a: readonly Span[], b: readonly Span[]): Span[] => {
+  let rest = unite(a);
+  for (const [b0, b1] of unite(b)) rest = rest.flatMap(([a0, a1]): Span[] => [[a0, Math.min(a1, b0)], [Math.max(a0, b1), a1]]).filter(([x, y]) => y > x);
+  return rest;
+};
+
+export const OFF = { kind: 'off' } as const;
+export const winLen = (s: number, e: number) => (e > s ? e - s : 1440 - s + e);
+
+/** Gera um DaySpec segundo o perfil. Grade de 15 min, ou de 1 min com `fine`. */
+export const genSpec = (next: () => number, profile: 'mix' | 'night' | 'early' | 'shift' | 'break', fine = false): any => {
+  const g = (max: number) => (fine ? Math.floor(next() * (max + 1)) : Math.floor(next() * (Math.floor(max / 15) + 1)) * 15);
+  const roll = next();
+  const withBreak = (len: number) => {
+    if (profile === 'break' ? next() < 0.7 : next() < 0.3) return Math.min(len - 1, g(Math.min(len - 1, 600)));
+    return 0;
+  };
+  const window = (start: number, len: number) => {
+    len = Math.max(1, Math.min(1440, len));
+    return { kind: 'window', start: start % 1440, end: (start + len) % 1440, breakMinutes: withBreak(len) };
+  };
+  if (roll < 0.22) return OFF;
+  if (roll < 0.3) return { kind: 'duration', minutes: 30 + g(1410) };
+  if (profile === 'shift' && roll < 0.55) {
+    const start = g(1439);
+    return window(start, next() < 0.5 ? 1440 : 600 + g(840));
+  }
+  if (roll < 0.62) {
+    // turno que passa da meia-noite
+    const start = 960 + g(479);
+    const minLen = 1440 - start + 1;
+    return window(start, minLen + g(Math.max(0, 1440 - minLen)));
+  }
+  if (roll < 0.82 && (profile === 'early' || profile === 'night' || profile === 'break')) {
+    // começa na madrugada (dentro do trecho do turno da véspera)
+    const start = g(480);
+    return window(start, 30 + g(900));
+  }
+  const start = 300 + g(900);
+  return window(start, 30 + g(Math.min(1439, 1440 - start + 300)));
+};
+
+export const genRoutine = (next: () => number, profile: any, fine = false): any => {
+  if (next() < 0.2) {
+    const workDays = 1 + Math.floor(next() * 4);
+    const restDays = 1 + Math.floor(next() * 4);
+    const ref = `2026-09-${String(1 + Math.floor(next() * 28)).padStart(2, '0')}`;
+    let day = genSpec(next, profile, fine);
+    if (day.kind === 'off') day = { kind: 'window', start: 420, end: 420, breakMinutes: 0 };
+    return { kind: 'cyclic', reference: ref, workDays, restDays, day };
+  }
+  return { kind: 'weekly', days: Array.from({ length: 7 }, () => genSpec(next, profile, fine)) };
+};
+
+const dateAt = (dates: any, base: string, offset: number) => dates.addDays(base, offset) as string;
+
+/** Exceções em torno de `base` (`span` dias), focadas em jornadas reduzidas. Sem sobreposição do mesmo tipo. */
+export const genExceptions = (next: () => number, dates: any, base: string, span: number, opts: { reducedMax?: number } = {}): any[] => {
+  const out: any[] = [];
+  const taken = new Map<string, Array<[string, string]>>();
+  const push = (entry: any, start: string, end: string) => {
+    const list = taken.get(entry.kind) ?? [];
+    if (list.some(([a, b]) => start <= b && end >= a)) return;
+    list.push([start, end]);
+    taken.set(entry.kind, list);
+    out.push(entry);
+  };
+  const g = (max: number) => Math.floor(next() * (Math.floor(max / 15) + 1)) * 15;
+  const nReduced = 1 + Math.floor(next() * 4);
+  for (let i = 0; i < nReduced; i += 1) {
+    const start = dateAt(dates, base, Math.floor(next() * span));
+    const end = dateAt(dates, start, next() < 0.6 ? 0 : Math.floor(next() * 4));
+    const minutes = Math.max(1, Math.min(1440, next() < 0.5 ? 15 + g(opts.reducedMax ?? 900) : 1 + Math.floor(next() * 1440)));
+    push({ kind: 'reduced', start, end, minutes }, start, end);
+  }
+  const nAdd = Math.floor(next() * 4);
+  for (let i = 0; i < nAdd; i += 1) {
+    const date = dateAt(dates, base, Math.floor(next() * span));
+    const kind = next() < 0.5 ? 'on_call' : 'overtime';
+    const minutes = next() < 0.3 ? 1440 - g(240) : 15 + g(1425);
+    push({ kind, date, minutes: Math.max(1, Math.min(1440, minutes)) }, date, date);
+  }
+  if (next() < 0.25) { const date = dateAt(dates, base, Math.floor(next() * span)); push({ kind: 'schedule_change', date, minutes: g(1440) }, date, date); }
+  if (next() < 0.25) {
+    const start = dateAt(dates, base, Math.floor(next() * span));
+    const end = dateAt(dates, start, Math.floor(next() * 3));
+    const kind = ['vacation', 'day_off', 'absence'][Math.floor(next() * 3)];
+    push({ kind, start, end }, start, end);
+  }
+  if (next() < 0.15) { const date = dateAt(dates, base, Math.floor(next() * span)); push({ kind: 'holiday_worked', date }, date, date); }
+  return out;
+};
+
+/**
+ * Calendário em que a véspera `p` trabalhou exatamente os trechos `pieces` (eixo contínuo, sem intervalo) e segue a
+ * rotina; os dias p−2, p−1, d=p+1, d+1 e d+2 mantêm as especificações originais (escalas 1 × 27 com referência no
+ * dia). As exceções e os feriados são os mesmos, menos a jornada reduzida na própria `p`.
+ */
+export const calendarWithEvePieces = (m: any, calendar: any, p: string, pieces: readonly Span[]): any => {
+  const { cal, dates } = m;
+  const pDay = dates.dayNumber(p);
+  const routines: any[] = [];
+  for (const offset of [-2, -1, 1, 2, 3]) {
+    const date = dates.addDays(p, offset);
+    if (date === null) continue;
+    for (const routine of calendar.routines) {
+      const spec = cal.routineSpecOn(routine, date);
+      if (spec.kind !== 'off') routines.push({ kind: 'cyclic', reference: date, workDays: 1, restDays: 27, day: spec });
+    }
+  }
+  for (const [a, b] of unite(pieces)) {
+    const start = a - pDay * 1440;
+    const len = b - a;
+    if (start < 0 || start >= 1440 || len <= 0 || len > 1440) throw new Error(`trecho fora da véspera: ${a}-${b}`);
+    routines.push({ kind: 'cyclic', reference: p, workDays: 1, restDays: 27, day: { kind: 'window', start, end: (start + len) % 1440, breakMinutes: 0 } });
+  }
+  const exceptions: any[] = [];
+  for (const entry of calendar.exceptions) {
+    if (entry.kind === 'reduced' && entry.start <= p && entry.end >= p) {
+      if (entry.start < p) exceptions.push({ ...entry, end: dates.addDays(p, -1) });
+      if (entry.end > p) exceptions.push({ ...entry, start: dates.addDays(p, 1) });
+    } else exceptions.push(entry);
+  }
+  return { ...calendar, routines, exceptions };
+};
+
+/** Janelas (eixo contínuo) da rotina em `date`, com intervalo. */
+export const windowsOn = (m: any, calendar: any, date: string): Array<{ start: number; end: number; breakMinutes: number }> => {
+  const { cal, dates } = m;
+  const day = dates.dayNumber(date);
+  const out: Array<{ start: number; end: number; breakMinutes: number }> = [];
+  for (const routine of calendar.routines) {
+    const spec = cal.routineSpecOn(routine, date);
+    if (spec.kind !== 'window') continue;
+    const start = day * 1440 + spec.start;
+    const end = start + winLen(spec.start, spec.end);
+    if (out.some((o) => o.start === start && o.end === end && o.breakMinutes === spec.breakMinutes)) continue;
+    out.push({ start, end, breakMinutes: spec.breakMinutes });
+  }
+  return out;
+};
+
+export const durationsOn = (m: any, calendar: any, date: string): number =>
+  calendar.routines.reduce((s: number, r: any) => { const spec = m.cal.routineSpecOn(r, date); return s + (spec.kind === 'duration' ? spec.minutes : 0); }, 0);

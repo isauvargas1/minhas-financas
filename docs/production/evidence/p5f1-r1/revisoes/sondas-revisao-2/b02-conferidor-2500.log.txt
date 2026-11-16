@@ -1,0 +1,1 @@
+{"samples":2500,"routinesAmbiguousSkipped":701,"accepted":1229,"refused":570,"monthsChecked":76198,"unsound":0,"maxConferidorMs":113,"ms":68779}

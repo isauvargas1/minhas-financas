@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import type { RecurringExpense } from '../modules/recurring/types.ts';
 import { FREQUENCY_LABELS, RECURRING_STATUS_BADGE, RECURRING_STATUS_LABELS, RECURRING_TYPE_LABELS, formatDayShort } from '../modules/recurring/presentation.ts';
 import { formatCents } from '../modules/loans/money.ts';
+import { useMoneyDisplay } from '../modules/work-time/display.tsx';
 import { DynamicIcon, CreditCardIcon, WarningIcon } from './Icons.tsx';
 
 interface RecurringExpenseListProps {
@@ -16,6 +17,7 @@ const rowVariants = {
 };
 
 const RecurringExpenseList: React.FC<RecurringExpenseListProps> = ({ expenses, onSelect }) => {
+    const display = useMoneyDisplay();
     const MotionTr = motion.tr as any;
 
     // Próximo vencimento: o do backend; pausada, encerrada ou cancelada não tem.
@@ -72,7 +74,7 @@ const RecurringExpenseList: React.FC<RecurringExpenseListProps> = ({ expenses, o
                                 </td>
                                 <td className="px-4 py-3 text-right">
                                     <div className="font-bold text-on-surface">
-                                        {formatCents(expense.amountCents)}
+                                        {display.cents(expense.amountCents, formatCents)}
                                     </div>
                                     <div className="text-xs text-muted capitalize">
                                         {FREQUENCY_LABELS[expense.frequency].toLowerCase()}

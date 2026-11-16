@@ -1,0 +1,4 @@
+fp gravado pelo gatilho (Admin SDK):     65dff8c992314773c247b093b6ce799d732594af0b62a8a1a813dc6a29f5304e
+fp calculado pelo viewer (SDK web):      65dff8c992314773c247b093b6ce799d732594af0b62a8a1a813dc6a29f5304e
+iguais: true
+mesmo documento com updatedAt + 1 µs:    e2975ca215ee91f5438ee9b3af3c3cf6cc7d591291142017b41b4547c13d3fe2 (diferente: true)

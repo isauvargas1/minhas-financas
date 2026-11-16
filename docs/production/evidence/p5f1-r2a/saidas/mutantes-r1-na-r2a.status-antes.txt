@@ -1,0 +1,85 @@
+ M .github/workflows/quality-gate.yml
+ M docs/production/ARCHITECTURE.md
+ M docs/production/DATA_MODEL.md
+ M docs/production/DATA_RETENTION_LIFECYCLE.md
+ M docs/production/PRIVACY_LGPD.md
+ M docs/production/PRODUCTION_READINESS_PLAN.md
+ M docs/production/SECURITY_MODEL.md
+ M firestore.indexes.json
+ M firestore.rules
+ M functions/src/receivables/__tests__/receivableLifecycle.integration.test.ts
+ M package.json
+ M src/App.tsx
+ M src/components/ClientsReceivablesView.tsx
+ M src/components/CreditCardsView.tsx
+ M src/components/DistributionChart.tsx
+ M src/components/GoalCard.tsx
+ M src/components/GoalDetailsView.tsx
+ M src/components/Header.tsx
+ M src/components/LoanCard.tsx
+ M src/components/LoanDetailsView.tsx
+ M src/components/LoansView.tsx
+ M src/components/PJLoanCard.tsx
+ M src/components/PJLoanDetailsView.tsx
+ M src/components/PJLoansView.tsx
+ M src/components/PersonalizationView.tsx
+ M src/components/RecentTransactions.tsx
+ M src/components/RecurringDashboardWidget.tsx
+ M src/components/RecurringExpenseCard.tsx
+ M src/components/RecurringExpenseDetailsView.tsx
+ M src/components/RecurringExpenseList.tsx
+ M src/components/RecurringExpensesView.tsx
+ M src/components/ReportsChartsView.tsx
+ M src/components/ReportsOverview.tsx
+ M src/components/ReportsWidget.tsx
+ M src/components/SettingsView.tsx
+ M src/components/SplitBillDetailsModal.tsx
+ M src/components/SplitGroupCard.tsx
+ M src/components/SplitGroupCharts.tsx
+ M src/components/SplitGroupDetailsView.tsx
+ M src/components/SplitGroupList.tsx
+ M src/components/TransactionsView.tsx
+ M src/components/accounts/CashAccountsView.tsx
+ M src/components/cards/CardInvoiceDetailsDrawer.tsx
+ M src/modules/investments/simple/api.ts
+ M src/modules/investments/simple/components/AllocationPanels.tsx
+ M src/modules/investments/simple/components/SimpleInvestmentsView.tsx
+ M src/modules/reports/adapter.ts
+ M src/modules/reports/hooks.ts
+ M src/modules/reports/liveRefresh.ts
+ M src/modules/reports/queryKeys.ts
+ M src/modules/reports/types.ts
+ M src/modules/transactions/api.ts
+ M src/modules/transactions/hooks.ts
+ M src/types.ts
+ M tests/unit/report-live-refresh.test.ts
+ M tests/unit/report-range.test.ts
+?? docs/production/evidence/p5f/
+?? docs/production/evidence/p5f1-r1/
+?? docs/production/evidence/p5f1/
+?? e2e/work-time-p5f.spec.ts
+?? functions/src/cash/__tests__/incomeClassificationFixture.test.ts
+?? functions/src/receivables/__tests__/receivableReversalIdsFixture.test.ts
+?? src/components/WorkTimeSettingsView.tsx
+?? src/components/workTime/
+?? src/modules/reports/basisRefresh.ts
+?? src/modules/reports/basisRegistry.ts
+?? src/modules/reports/basisSync.ts
+?? src/modules/transactions/incomeReads.ts
+?? src/modules/transactions/paging.ts
+?? src/modules/work-time/
+?? tests/firestore/work-time-p5f.rules.integration.test.mjs
+?? tests/fixtures/cash-income-classification.json
+?? tests/fixtures/receivable-reversal-ids.json
+?? tests/fixtures/work-time-grammar-cases.json
+?? tests/unit/report-basis-refresh.test.ts
+?? tests/unit/report-basis-sync.test.ts
+?? tests/unit/transactions-paging.test.ts
+?? tests/unit/work-time-calculation.test.ts
+?? tests/unit/work-time-calendar.test.ts
+?? tests/unit/work-time-consistency.test.ts
+?? tests/unit/work-time-estimate.test.ts
+?? tests/unit/work-time-grammar.test.ts
+?? tests/unit/work-time-guard.test.ts
+?? tests/unit/work-time-income-estimate.test.ts
+?? tests/unit/work-time-preference.test.ts

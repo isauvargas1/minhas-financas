@@ -1,0 +1,121 @@
+// Revisão 2, B02: busca por motivos. Um bloco de 3 a 4 dias consecutivos (no começo, no meio ou no fim do período),
+// o resto do período em férias; janelas escolhidas de um menu pequeno que se cruza muito (turnos que passam da
+// meia-noite, 00:00 sem intervalo, intervalo que cai depois da meia-noite, 24 h), durações e exceções escolhidas de um
+// menu (jornada reduzida, alteração de escala, férias, feriado, feriado trabalhado, plantão e hora extra até 24 h).
+// Confere: (1) monotonia do total do período com periodStart; (2) nenhum dia passa de 24 h no dia civil, salvo depois de
+// uma jornada reduzida cuja janela passa da meia-noite (rotinas-matematica.md §3 e §6), usando a cópia instrumentada.
+// Uso: node ... b02-motivos.mts <raiz> [amostras] [semente] [<raiz instrumentada da mesma árvore>]
+const root = process.argv[2];
+const SAMPLES = Number(process.argv[3] ?? 20000);
+let seed = Number(process.argv[4] ?? 3);
+const instrRoot = process.argv[5];
+const cal = await import(`${root}/src/modules/work-time/calendar.ts`);
+const dates = await import(`${root}/src/modules/work-time/dates.ts`);
+const ic = instrRoot ? await import(`${instrRoot}/src/modules/work-time/calendar.ts`) : null;
+const rnd = () => { seed = (seed + 0x6d2b79f5) | 0; let v = Math.imul(seed ^ (seed >>> 15), 1 | seed); v = (v + Math.imul(v ^ (v >>> 7), 61 | v)) ^ v; return ((v ^ (v >>> 14)) >>> 0) / 4294967296; };
+const int = (a: number, b: number) => a + Math.floor(rnd() * (b - a + 1));
+const pick = <T,>(a: readonly T[]) => a[Math.floor(rnd() * a.length)];
+const OFF = { kind: 'off' };
+const W = (s: string, e: string, b = 0) => {
+  const m = (t: string) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3));
+  return { kind: 'window', start: m(s), end: m(e) % 1440, breakMinutes: b };
+};
+const MENU = [
+  OFF, OFF, OFF,
+  W('22:00', '06:00'), W('20:00', '00:00'), W('00:00', '06:00'), W('23:00', '04:00', 180), W('22:00', '04:00', 180),
+  W('08:00', '17:00', 60), W('08:00', '17:00'), W('09:00', '11:00', 90), W('00:00', '00:00'), W('12:00', '12:00'),
+  W('18:00', '08:00'), W('21:00', '03:00', 30), W('01:00', '05:00', 30), W('03:00', '06:00'), W('20:00', '04:00'),
+  W('06:00', '14:00'), W('14:00', '22:00'), W('22:00', '22:00', 60), W('00:00', '08:00'), W('23:30', '00:30', 45),
+  { kind: 'duration', minutes: 480 }, { kind: 'duration', minutes: 1320 }, { kind: 'duration', minutes: 1440 },
+];
+const EXC = ['none', 'none', 'none', 'reduced', 'reduced', 'reduced', 'schedule', 'vacation', 'holiday', 'holiday_worked', 'absence'] as const;
+const ADD = ['none', 'none', 'on_call', 'overtime', 'both'] as const;
+const routineWith = (days: Record<number, any>) => ({ kind: 'weekly', days: Array.from({ length: 7 }, (_, i) => days[i] ?? OFF) });
+const totalOf = (c: any, months: string[]) => {
+  let t = 0; let amb = false; const plans: any[] = [];
+  months.forEach((m, i) => { const p = cal.monthPlan(c, m, { periodStart: i === 0 }); t += p.minutes; if (p.ambiguousDays.length) amb = true; plans.push(p); });
+  return { t, amb, plans };
+};
+let checked = 0, ambiguous = 0, viol = 0, civilViol = 0, civilChecked = 0, reducedCapped = 0, exceptionCivil = 0;
+const examples: any[] = [], civilExamples: any[] = [];
+const t0 = performance.now();
+for (let s = 0; s < SAMPLES; s++) {
+  const months = pick([['2026-10'], ['2026-09', '2026-10'], ['2026-03']]);
+  const firstDay = `${months[0]}-01`;
+  const lastMonth = months[months.length - 1];
+  const lastDay = dates.addDays(`${lastMonth}-01`, dates.datesOfMonth(lastMonth).length - 1);
+  const where = pick(['start', 'middle', 'end']);
+  const n = int(3, 4);
+  const clusterStart = where === 'start' ? dates.addDays(firstDay, int(-1, 0)) : where === 'end' ? dates.addDays(lastDay, -(n - 1) + int(0, 1)) : dates.addDays(firstDay, int(5, 20));
+  const cluster = Array.from({ length: n }, (_, i) => dates.addDays(clusterStart, i));
+  const wd = cluster.map((d) => dates.weekdayIndex(d));
+  // Rotinas base: 1 a 2 semanais com janelas nos dias do bloco.
+  const baseCount = int(1, 2);
+  const base = Array.from({ length: baseCount }, () => routineWith(Object.fromEntries(wd.map((d) => [d, pick(MENU)]))));
+  // Rotina acrescentada: um ou mais dias do bloco (às vezes uma escala cíclica de 1 dia de trabalho por 1 de folga).
+  const added = rnd() < 0.85
+    ? routineWith(Object.fromEntries(wd.filter(() => rnd() < 0.5).map((d) => [d, pick(MENU)])))
+    : { kind: 'cyclic', reference: cluster[int(0, n - 1)], workDays: 1, restDays: int(1, 2), day: pick(MENU.filter((x) => x.kind !== 'off')) };
+  if (added.kind === 'weekly' && added.days.every((x: any) => x.kind === 'off')) continue;
+  const exceptions: any[] = [];
+  // Férias fora do bloco (no período e nas bordas).
+  const before = dates.addDays(clusterStart, -1);
+  if (before >= dates.addDays(firstDay, -3)) exceptions.push({ kind: 'vacation', start: dates.addDays(firstDay, -3), end: before });
+  const after = dates.addDays(cluster[n - 1], 1);
+  if (after <= dates.addDays(lastDay, 2)) exceptions.push({ kind: 'vacation', start: after, end: dates.addDays(lastDay, 2) });
+  const localHolidays: any[] = [];
+  for (const d of cluster) {
+    const e = pick(EXC);
+    if (e === 'reduced') exceptions.push({ kind: 'reduced', start: d, end: d, minutes: pick([60, 240, 360, 480, 600, 900, 1200, 1440]) });
+    if (e === 'schedule') exceptions.push({ kind: 'schedule_change', date: d, minutes: pick([0, 240, 480, 1080, 1440]) });
+    if (e === 'vacation') exceptions.push({ kind: 'vacation', start: d, end: d });
+    if (e === 'absence') exceptions.push({ kind: pick(['absence', 'day_off']), start: d, end: d });
+    if (e === 'holiday' || e === 'holiday_worked') localHolidays.push({ kind: 'date', date: d });
+    if (e === 'holiday_worked') exceptions.push({ kind: 'holiday_worked', date: d });
+    const a = pick(ADD);
+    if (a === 'on_call' || a === 'both') exceptions.push({ kind: 'on_call', date: d, minutes: pick([60, 480, 1080, 1440]) });
+    if (a === 'overtime' || a === 'both') exceptions.push({ kind: 'overtime', date: d, minutes: pick([120, 600, 1440]) });
+  }
+  const extra = { exceptions, localHolidays, worksOnHolidays: rnd() < 0.3 };
+  const b = totalOf({ ...extra, routines: base }, months);
+  const a = totalOf({ ...extra, routines: [...base, added] }, months);
+  for (const [label, cfg, res] of [['antes', base, b], ['depois', [...base, added], a]] as const) {
+    if (res.amb || !ic) continue;
+    // Dia civil: o que a véspera (que segue a rotina) ocupa + o que o dia conta fora do trecho depois da meia-noite
+    // (`windowPart`), com a véspera reduzida à parte (exceção registrada).
+    const c = { ...extra, routines: cfg };
+    months.forEach((m, mi) => {
+      const ds = dates.datesOfMonth(m);
+      ds.forEach((date: string, di: number) => {
+        const prevDate = mi === 0 && di === 0 ? null : dates.addDays(date, -1);
+        const p = ic.__planDay(c, date, prevDate).__debug;
+        const day = ic.__planDay(c, date, prevDate);
+        civilChecked++;
+        if (day.capped && day.applied.includes('reduced')) reducedCapped++;
+        const civil = day.minutes - Math.max(0, Math.min(p.windowPart, day.minutes)) + p.previousOccupancy;
+        // A véspera reduzida que passa da meia-noite: até `windowPart` dela pode cair aqui (§6).
+        let leak = 0;
+        if (prevDate !== null) {
+          const prevPrev = mi === 0 && di === 1 ? null : dates.addDays(prevDate, -1);
+          const pv = ic.__planDay(c, prevDate, prevPrev);
+          if (pv.applied.includes('reduced') || ic.__planDay(c, prevDate, prevPrev).__debug.happens && (c.exceptions as any[]).some((e: any) => e.kind === 'reduced' && e.start <= prevDate && e.end >= prevDate)) leak = Math.max(0, pv.__debug.windowPart);
+        }
+        if (civil > 1440) { civilViol++; if (civilExamples.length < 3) civilExamples.push({ sample: s, label, date, civil, minutes: day.minutes, debug: p, cfg, extra, months }); }
+        else if (civil + leak > 1440) exceptionCivil++;
+      });
+    });
+  }
+  if (b.amb || a.amb) { ambiguous++; continue; }
+  checked++;
+  if (a.t < b.t) {
+    viol++;
+    if (examples.length < 4) {
+      const per = (r: any) => Object.fromEntries(r.plans.flatMap((p: any) => p.days.map((d: any) => [d.date, d.minutes])));
+      const pb = per(b), pa = per(a);
+      examples.push({ sample: s, before: b.t, after: a.t, days: Object.keys(pb).filter((k) => pb[k] !== pa[k]).map((k) => `${k}:${pb[k]}→${pa[k]}`), base, added, extra, months });
+    }
+  }
+}
+console.log(JSON.stringify({ root: root.split('/').slice(-1)[0], samples: SAMPLES, checked, ambiguous, violations: viol, civilDaysChecked: civilChecked, reducedCappedDays: reducedCapped, civilOver24hAfterReducedEve: exceptionCivil, civilOver24hOther: civilViol, ms: Math.round(performance.now() - t0) }));
+for (const e of examples) console.log(JSON.stringify(e));
+for (const e of civilExamples) console.log('CIVIL', JSON.stringify(e));

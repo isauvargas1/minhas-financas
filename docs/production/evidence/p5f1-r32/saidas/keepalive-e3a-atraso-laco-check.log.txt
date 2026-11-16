@@ -1,0 +1,3 @@
+sem atraso, keep-alive: 0/80 falhas [] ociosidade das falhas []
+atraso 300 ms/1 s (check), keep-alive: 3/80 falhas ["apiRequestContext.post: read ECONNRESET"] ociosidade das falhas [5859,5907,5983]
+atraso 300 ms/1 s (check), Connection: close: 0/80 falhas [] ociosidade das falhas []

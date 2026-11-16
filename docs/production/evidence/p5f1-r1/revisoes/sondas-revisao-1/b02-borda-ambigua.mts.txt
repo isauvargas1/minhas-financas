@@ -1,0 +1,15 @@
+// Sonda B02: rotina aceita ao salvar (a cobertura sem intervalo vem do turno da véspera) que fica sem cálculo
+// seguro no primeiro dia do período da estimativa (periodStart), porque a véspera fica fora do período.
+const root = process.argv[2];
+const cal = await import(`${root}/src/modules/work-time/calendar.ts`);
+const OFF = { kind: 'off' };
+const w = (s: number, e: number, b = 0) => ({ kind: 'window', start: s, end: e, breakMinutes: b });
+const onDay = (i: number, spec: unknown) => ({ kind: 'weekly', days: Array.from({ length: 7 }, (_, d) => (d === i ? spec : OFF)) });
+// Domingo 20:00–04:00 sem intervalo; segunda 01:00–05:00 com 30 min e 03:00–06:00 sem intervalo.
+const routines = [onDay(6, w(1200, 240)), onDay(0, w(60, 300, 30)), onDay(0, w(180, 360))];
+const c = { routines, worksOnHolidays: true, localHolidays: [], exceptions: [] };
+console.log('conferidor (salvar):', JSON.stringify(cal.routinesAmbiguity(routines, '2026-05-01')));
+const june = cal.monthPlan(c, '2026-06', { periodStart: true });
+console.log('junho/2026 abrindo o período (01/06 é segunda): ambíguos', JSON.stringify(june.ambiguousDays));
+const juneView = cal.monthPlan(c, '2026-06');
+console.log('junho/2026 na vista do mês: ambíguos', JSON.stringify(juneView.ambiguousDays));

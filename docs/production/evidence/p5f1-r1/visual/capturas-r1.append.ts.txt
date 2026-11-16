@@ -1,0 +1,136 @@
+
+// ================================================================================================
+// P5-F.1-R1 — capturas TEMPORÁRIAS de evidência visual (não fazem parte da suíte). Este trecho é
+// acrescentado a uma CÓPIA de e2e/work-time-p5f.spec.ts só durante a execução, para reaproveitar os
+// mesmos ajudantes e dados sintéticos; a cópia é apagada depois. Estados novos da R1: o aviso do editor
+// (B02), o aviso junto do botão de salvar (N07), a configuração ambígua já gravada (prévia indisponível)
+// e o Dashboard no modo tempo com a estimativa indisponível (valores em reais). 1440 × 900 e 390 × 844,
+// claro e escuro, cada combinação num contexto próprio (o tema é lido ao carregar a página, como na
+// evidência da P5-F.1); axe (WCAG 2.0/2.1 A e AA) no escopo de cada aviso e transbordamento horizontal.
+// A navegação dos ajudantes do teste é a do desktop: a página é aberta em 1440 × 900, e a viewport móvel é
+// aplicada só para a captura (o layout responsivo segue a largura), voltando ao desktop depois. Antes de mudar a
+// largura, o mouse sai do menu lateral, que se expande no hover e cobriria o aviso no móvel (revisão 4, Q03); a
+// captura confere que o centro do aviso não está coberto por outro elemento.
+// ================================================================================================
+import * as r1fs from 'node:fs';
+
+const R1_DIR = process.env.EVIDENCE_DIR ?? 'test-results/p5f1r1-visual';
+const R1_VIEWPORTS = { desktop: { width: 1440, height: 900 }, mobile: { width: 390, height: 844 } } as const;
+
+const r1Capture = async (page: Page, combo: string, state: string, scope: string) => {
+  r1fs.mkdirSync(R1_DIR, { recursive: true });
+  const viewport = combo.split('-')[0] as keyof typeof R1_VIEWPORTS;
+  // A última coluna da página, no meio da altura: fora do menu lateral e dos cartões. O menu recolhe no
+  // `mouseleave` (transição de 300 ms).
+  await page.mouse.move(R1_VIEWPORTS.desktop.width - 1, Math.round(R1_VIEWPORTS.desktop.height / 2));
+  await expect(page.locator('#menu-principal')).not.toHaveClass(/w-\[var\(--sidebar-width\)\]/);
+  await page.waitForTimeout(400);
+  await page.setViewportSize(R1_VIEWPORTS[viewport]);
+  await page.evaluate(() => document.fonts?.ready);
+  await page.waitForTimeout(400);
+  const target = page.locator(scope).first();
+  await expect(target).toBeVisible();
+  await target.scrollIntoViewIfNeeded();
+  const occluded = await target.evaluate((element) => {
+    const box = element.getBoundingClientRect();
+    const hit = document.elementFromPoint(box.left + box.width / 2, box.top + Math.min(box.height / 2, 12));
+    return hit === null || !(element === hit || element.contains(hit));
+  });
+  const name = `${combo}-${state}`;
+  await page.screenshot({ path: `${R1_DIR}/${name}.png` });
+  await target.screenshot({ path: `${R1_DIR}/${name}-aviso.png` });
+  const violations = await axeViolations(page, scope);
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  const scheme = await page.evaluate(() => (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
+  const background = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+  // Teclado: o elemento com foco depois da ação (o aviso não toma o foco; `role="alert"` é anunciado) e a
+  // sequência de Tab a partir dele, com o nome acessível de cada parada.
+  const focused = () => page.evaluate(() => {
+    const el = document.activeElement as HTMLElement | null;
+    if (!el || el === document.body) return null;
+    const label = el.getAttribute('aria-label') || (el as HTMLInputElement).labels?.[0]?.textContent || el.textContent || '';
+    return `${el.tagName.toLowerCase()}${el.getAttribute('role') ? `[role=${el.getAttribute('role')}]` : ''}: ${label.trim().replace(/\s+/g, ' ').slice(0, 60)}${(el as HTMLButtonElement).disabled ? ' (desabilitado)' : ''}`;
+  });
+  const focusAfterAction = await focused();
+  const tabTrail: Array<string | null> = [];
+  for (let step = 0; step < 4; step += 1) {
+    await page.keyboard.press('Tab');
+    tabTrail.push(await focused());
+  }
+  const role = await target.getAttribute('role');
+  const viewportSize = page.viewportSize();
+  r1fs.writeFileSync(`${R1_DIR}/${name}.json`, JSON.stringify({ name, scope, viewport: viewportSize, scheme, background, overflow, occluded, violations, role, focusAfterAction, tabTrail, text: (await target.innerText()).trim() }, null, 2));
+  await page.setViewportSize(R1_VIEWPORTS.desktop);
+  expect(violations, `${name}: ${JSON.stringify(violations, null, 2)}`).toEqual([]);
+  expect(overflow, `${name}: transbordamento horizontal`).toBeLessThanOrEqual(0);
+  expect(occluded, `${name}: o aviso está coberto por outro elemento`).toBe(false);
+};
+
+const R1_HALVES = ['08:00-12:00/0', '13:00-17:00/0'].map((day) => `W:${Array(7).fill(day).join(',')}`).join(';');
+
+for (const [viewport, size] of Object.entries(R1_VIEWPORTS)) {
+  for (const scheme of ['light', 'dark'] as const) {
+    const combo = `${viewport}-${scheme}`;
+    test.describe(`captura R1 (${combo})`, () => {
+      test.use({ viewport: R1_VIEWPORTS.desktop, colorScheme: scheme });
+      void size;
+
+      test(`captura R1 (${combo}): B02, aviso no editor de rotinas`, async ({ page, request }) => {
+        test.setTimeout(240_000);
+        const tenant = await seedTenant(request);
+        await seedPreference(A.uid, tenant.pf.workspaceId, { displayMode: 'money', routines: R1_HALVES });
+        await startOn(page, A.uid, tenant.pf.workspaceId);
+        await login(page, A.email);
+        await openWorkTimeSettings(page);
+        await expect(previewHourly(page)).toHaveText(brl(2_500), { timeout: 30_000 });
+        await page.getByRole('button', { name: 'Adicionar outra rotina' }).click();
+        const third = page.getByTestId('routine-2');
+        const template = third.getByRole('group', { name: 'Jornada para aplicar a vários dias' });
+        await template.getByLabel('Início').fill('11:00');
+        await template.getByLabel('Fim').fill('14:00');
+        await template.getByLabel('Intervalo (min)').fill('60');
+        await third.getByRole('button', { name: 'Aplicar aos dias marcados' }).click();
+        await expect(page.getByTestId('routines-ambiguity')).toHaveAttribute('role', 'alert');
+        await expect(saveButton(page)).toBeDisabled();
+        await r1Capture(page, combo, 'b02-editor', '[data-testid="routines-ambiguity"]');
+      });
+
+      test(`captura R1 (${combo}): N07, aviso junto do botão de salvar`, async ({ page, request }) => {
+        test.setTimeout(240_000);
+        const tenant = await seedTenant(request);
+        const routines = ['W:20:00-00:00/0,-,-,-,-,-,-', 'W:22:00-02:00/30,-,-,-,-,-,-', 'W:-,00:00-08:00/0,-,-,-,-,-'].join(';');
+        await seedPreference(A.uid, tenant.pf.workspaceId, { displayMode: 'money', routines });
+        await startOn(page, A.uid, tenant.pf.workspaceId);
+        await login(page, A.email);
+        await openWorkTimeSettings(page);
+        const today = saoPauloToday();
+        const date = new Date(`${today}T12:00:00Z`);
+        date.setUTCDate(date.getUTCDate() + (((2 - date.getUTCDay() + 7) % 7) || 7));
+        await page.getByLabel('Tipo de exceção').selectOption({ label: 'Folga' });
+        await page.getByLabel('De', { exact: true }).fill(date.toISOString().slice(0, 10));
+        await page.getByRole('button', { name: 'Incluir exceção' }).click();
+        await expect(page.getByTestId('work-time-calendar-ambiguity')).toHaveAttribute('role', 'alert');
+        await expect(saveButton(page)).toBeDisabled();
+        await r1Capture(page, combo, 'n07-configuracoes', '[data-testid="work-time-calendar-ambiguity"]');
+      });
+
+      test(`captura R1 (${combo}): configuração ambígua já gravada (prévia indisponível e Dashboard em reais)`, async ({ page, request }) => {
+        test.setTimeout(240_000);
+        const tenant = await seedTenant(request);
+        const ambiguous = `${R1_HALVES};W:${[...Array(5).fill('11:00-14:00/60'), '-', '-'].join(',')}`;
+        await seedPreference(A.uid, tenant.pf.workspaceId, { displayMode: 'time', routines: ambiguous });
+        await startOn(page, A.uid, tenant.pf.workspaceId);
+        await login(page, A.email);
+        await openWorkTimeSettings(page);
+        await expect(page.getByTestId('work-time-preview-unavailable'))
+          .toContainText('rotinas se cruzam e há intervalo no trecho em comum', { timeout: 30_000 });
+        await r1Capture(page, combo, 'b02-gravada-previa', '[data-testid="work-time-preview-unavailable"]');
+        await openDashboard(page);
+        await expect(notice(page)).toBeVisible({ timeout: 30_000 });
+        await expect(converted(page)).toHaveCount(0);
+        await r1Capture(page, combo, 'b02-gravada-dashboard', '[data-testid="work-time-notice"]');
+      });
+
+    });
+  }
+}

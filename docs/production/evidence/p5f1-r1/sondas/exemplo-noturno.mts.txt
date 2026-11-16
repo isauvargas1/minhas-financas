@@ -1,0 +1,11 @@
+// P5-F.1-R1: o exemplo "noturno com manhã" de calendario-feriados.md, recalculado pelo motor (março/2026).
+const root = process.argv[2];
+const cal = await import(`${root}/src/modules/work-time/calendar.ts`);
+const w = (s: string, e: string, b = 0) => ({ kind: 'window', start: Number(s.slice(0,2))*60+Number(s.slice(3)), end: Number(e.slice(0,2))*60+Number(e.slice(3)), breakMinutes: b });
+const OFF = { kind: 'off' };
+const weekly = (spec: any, days: number) => ({ kind: 'weekly', days: Array.from({length: 7}, (_, i) => (i < days ? spec : OFF)) });
+const c = (routines: any[]) => ({ routines, worksOnHolidays: false, localHolidays: [], exceptions: [] });
+for (const [label, night] of [['noturno com 1 h de intervalo', w('22:00','06:00',60)], ['noturno sem intervalo', w('22:00','06:00',0)]] as const) {
+  const plan = cal.monthPlan(c([weekly(night, 5), weekly(w('05:00','09:00'), 6)]), '2026-03');
+  console.log(`${label}: ${plan.minutes} min; dias ambíguos: ${plan.ambiguousDays?.length ?? '-'}`);
+}

@@ -1,0 +1,4 @@
+[e3] laço ocupado 300 ms a cada 1000 ms, fase check (pid 6977)
+atraso, keep-alive (padrão): 0/60 falhas
+atraso, Connection: close: 0/60 falhas
+e3c=0 porta5001_livre=sim

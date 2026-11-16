@@ -1,0 +1,10 @@
+const root = process.argv[2];
+const cal = await import(`${root}/src/modules/work-time/calendar.ts`);
+const w = (s: string, e: string, b = 0) => ({ kind: 'window', start: Number(s.slice(0,2))*60+Number(s.slice(3)), end: Number(e.slice(0,2))*60+Number(e.slice(3)), breakMinutes: b });
+const OFF = { kind: 'off' };
+const mondays = (spec: any) => ({ kind: 'weekly', days: [spec, OFF, OFF, OFF, OFF, OFF, OFF] });
+const c = (routines: any[]) => ({ routines, worksOnHolidays: false, localHolidays: [], exceptions: [] });
+const day = (routines: any[]) => { const d = cal.monthPlan(c(routines), '2026-10').days.find((x: any) => x.date === '2026-10-05'); return `${d.minutes}${d.ambiguous ? ' (ambíguo)' : ''}`; };
+const r1 = mondays(w('08:00','12:00')), r2 = mondays(w('13:00','17:00')), r3 = mondays(w('09:00','11:00',90));
+console.log('duas rotinas:', day([r1, r2]), '| com a terceira contida:', day([r1, r2, r3]));
+console.log('conferidor:', typeof cal.routinesAmbiguity === 'function' ? JSON.stringify(cal.routinesAmbiguity([r1, r2, r3], '2026-10-01')) : 'ausente (P5-F.1)');

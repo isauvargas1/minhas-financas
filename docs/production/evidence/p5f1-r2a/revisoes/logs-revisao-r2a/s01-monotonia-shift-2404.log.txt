@@ -1,0 +1,16 @@
+{
+ "profile": "shift",
+ "fine": false,
+ "seed": 2404,
+ "ms": 451025,
+ "stats": {
+  "samples": 6000,
+  "pairsSafeWindow": 13079,
+  "pairsAccepted": 9855,
+  "violationsSafeWindow": 0,
+  "violationsAccepted": 0,
+  "withReducedNight": 6080,
+  "withUncertainEve": 4971,
+  "transitions": 2608
+ }
+}

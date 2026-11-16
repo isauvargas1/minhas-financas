@@ -1,0 +1,14 @@
+// Sonda do revisor: confere um exemplo de "violação" da sonda de solidez nas árvores dadas (veredito do conferidor,
+// dias ambíguos do mês e o plano do dia).
+// Uso: node --experimental-strip-types checa-exemplo.mts <arquivo.json> <raiz> [<raiz> ...]
+import { readFileSync } from 'node:fs';
+const [file, ...roots] = process.argv.slice(2);
+const ex = JSON.parse(readFileSync(file, 'utf8'));
+const c = JSON.parse(ex.c);
+for (const root of roots) {
+  const cal = await import(`${root}/src/modules/work-time/calendar.ts`);
+  const v = cal.calendarAmbiguity(c, '2026-11-06');
+  const eve = cal.dayPlan(c, '2026-10-01');
+  const d = cal.dayPlan(c, ex.d);
+  console.log(JSON.stringify({ root: root.split('/').pop(), verdict: v && { date: v.date, cause: v.cause.kind }, eve: [eve.minutes, eve.ambiguous], day: [d.minutes, d.ambiguous], routinesAlone: cal.routinesAmbiguity(c.routines, '2026-11-06') }));
+}

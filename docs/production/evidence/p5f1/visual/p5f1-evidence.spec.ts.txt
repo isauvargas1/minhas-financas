@@ -1,0 +1,193 @@
+import { mkdirSync, writeFileSync } from 'node:fs';
+
+import { expect, test, type Browser, type Page } from '@playwright/test';
+
+import { createAccountByApi } from './support/accounts';
+import { axeViolations } from './support/axe';
+import { callCallable } from './support/callables';
+import { db, intentKey, PASSWORD, resetEmulatorData, tokenOf } from './support/loans';
+import { adminSdk, seedOwnedWorkspace, seedPaidPlan } from './support/workspaceSeed';
+
+/*
+ * P5-F.1 — roteiro TEMPORÁRIO de evidência visual (não faz parte da suíte).
+ *
+ * Assistente (etapas A–E e resumo), Configurações (topo, rotina, feriados,
+ * exceções, renda), "Como este valor foi calculado?", "Receitas consideradas"
+ * e o Dashboard no modo tempo. 1440, 390 e 360 px, claro e escuro; axe
+ * (WCAG 2.0/2.1 A e AA) no escopo de cada tela, transbordamento horizontal,
+ * foco do título a cada etapa, foco preso e Escape nos diálogos, setas no
+ * calendário. Dados sintéticos: três salários fictícios que dão R$ 25,00 por
+ * hora numa rotina de 8 h todos os dias.
+ */
+
+// Navegador em pt-BR, como o do usuário: datas `dd/mm/aaaa` e horas de 24 h nos campos nativos.
+test.use({ launchOptions: { args: ['--lang=pt-BR'], env: { ...process.env, LANG: 'pt_BR.UTF-8', LANGUAGE: 'pt_BR:pt' } } });
+
+const DIR = process.env.EVIDENCE_DIR ?? 'test-results/p5f1-evidence';
+const A = { uid: 'e2e-p5f1-ev', email: 'e2e-p5f1-ev@minhas-financas.local' };
+const WORKSPACE = 'e2e-p5f1-ev-ws';
+const VIEWPORTS = { desktop: { width: 1440, height: 900 }, mobile: { width: 390, height: 844 }, small: { width: 360, height: 800 } } as const;
+type ViewportName = keyof typeof VIEWPORTS;
+type Scheme = 'light' | 'dark';
+
+const today = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+const shiftMonth = (month: string, offset: number) => {
+  const index = Number(month.slice(0, 4)) * 12 + Number(month.slice(5, 7)) - 1 + offset;
+  return `${Math.floor(index / 12)}-${String((index % 12) + 1).padStart(2, '0')}`;
+};
+const daysIn = (month: string) => new Date(Date.UTC(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 0)).getUTCDate();
+const normalize = (value: string) => value.normalize('NFD').replace(/[̀-ͯ]/g, '').trim().replace(/\s+/g, ' ').toLowerCase();
+
+type Entry = { name: string; overflow: number; violations: unknown[]; notes?: Record<string, unknown> };
+const results: Entry[] = [];
+
+const overflow = (page: Page) => page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+
+const settle = async (page: Page) => {
+  await page.evaluate(() => document.fonts?.ready);
+  await page.waitForTimeout(350);
+};
+
+const capture = async (page: Page, name: string, scope: string, notes?: Record<string, unknown>, fullPage = true) => {
+  await settle(page);
+  mkdirSync(DIR, { recursive: true });
+  // Diálogos: só a janela visível (numa página longa, a captura inteira deixaria o diálogo minúsculo).
+  await page.screenshot({ path: `${DIR}/${name}.png`, fullPage });
+  const violations = await axeViolations(page, scope);
+  results.push({ name, overflow: await overflow(page), violations, notes });
+};
+
+const seed = async (request: Parameters<typeof tokenOf>[0]) => {
+  await adminSdk().auth().createUser({ ...A, password: PASSWORD, emailVerified: true });
+  await seedOwnedWorkspace({ ...A, workspaceId: WORKSPACE, name: 'Pessoal (exemplo)', type: 'PF' });
+  await seedPaidPlan(A.uid, 'business');
+  const now = new Date();
+  for (const [id, group, name, subtype] of [
+    ['ev-income-type', 'income_type', 'Salário (exemplo)', undefined],
+    ['ev-income-category', 'category', 'Renda (exemplo)', 'receita'],
+  ] as const) {
+    await db().doc(`workspaces/${WORKSPACE}/settings_catalog/${id}`).set({
+      id, schemaVersion: 1, workspaceId: WORKSPACE, group, name, normalizedName: normalize(name),
+      ...(subtype ? { transactionSubtype: subtype } : {}),
+      dedupeKey: `${group}::${subtype ?? 'all'}::both::${normalize(name)}`,
+      workspaceScope: 'both', sortOrder: 1, status: 'active', createdBy: A.uid, updatedBy: A.uid, createdAt: now, updatedAt: now,
+    });
+  }
+  const token = await tokenOf(request, A.email);
+  const accountId = await createAccountByApi(request, token, WORKSPACE, 'Conta (exemplo)', { openingBalanceCents: 100_000 });
+  const month = today().slice(0, 7);
+  for (const offset of [3, 2, 1]) {
+    const target = shiftMonth(month, -offset);
+    const outcome = await callCallable(request, token, 'createCashTransaction', {
+      workspaceId: WORKSPACE, idempotencyKey: intentKey(`ev-${target}`), cashAccountId: accountId, type: 'receita',
+      description: `Salário fictício ${target}`, categoryId: 'ev-income-category', incomeType: 'Salário (exemplo)',
+      amountCents: daysIn(target) * 8 * 2_500, date: `${target}-05`,
+    });
+    expect(outcome.status, JSON.stringify(outcome)).toBe(200);
+    await expect.poll(async () => ((await db().doc(`workspaces/${WORKSPACE}/cash_report_periods/${target}`).get()).data()?.incomeCents as number | undefined) ?? 0,
+      { timeout: 45_000 }).toBe(daysIn(target) * 8 * 2_500);
+  }
+};
+
+const open = async (browser: Browser, viewport: ViewportName, scheme: Scheme) => {
+  const context = await browser.newContext({ viewport: VIEWPORTS[viewport], colorScheme: scheme, locale: 'pt-BR', timezoneId: 'America/Sao_Paulo', deviceScaleFactor: 1 });
+  // O tema segue `prefers-color-scheme` (sem `app-theme` salvo).
+  await context.addInitScript(([key, value]) => {
+    localStorage.setItem(key, value);
+  }, [`lastWorkspaceId_${A.uid}`, WORKSPACE]);
+  const page = await context.newPage();
+  page.setDefaultTimeout(30_000);
+  await page.goto(`/?e2eEmail=${encodeURIComponent(A.email)}&e2ePassword=${PASSWORD}`);
+  await page.getByTestId('e2e-login-button').click();
+  await expect(page.getByText('Saldo Atual').first()).toBeVisible({ timeout: 45_000 });
+  return { context, page };
+};
+
+const toSettings = async (page: Page, viewport: ViewportName) => {
+  if (viewport !== 'desktop') {
+    const menu = page.getByRole('button', { name: /Abrir menu|Menu/ }).first();
+    if (await menu.isVisible().catch(() => false)) await menu.click();
+  }
+  await page.getByText('Configurações', { exact: true }).first().click();
+  await page.getByRole('button', { name: /Tempo de trabalho equivalente/ }).click();
+  await expect(page.getByRole('heading', { name: 'Tempo de trabalho equivalente', level: 2 })).toBeVisible();
+};
+
+test('P5-F.1 evidência visual: assistente e Configurações', async ({ browser, request }) => {
+  test.setTimeout(1_800_000);
+  await resetEmulatorData();
+  await seed(request);
+  const preference = `users/${A.uid}/private_preferences/work_time_equivalent`;
+  for (const viewport of Object.keys(VIEWPORTS) as ViewportName[]) {
+    for (const scheme of ['light', 'dark'] as Scheme[]) {
+      await db().doc(preference).delete();
+      const { context, page } = await open(browser, viewport, scheme);
+      const tag = `${viewport}-${scheme}`;
+      await toSettings(page, viewport);
+      await capture(page, `${tag}-00-intro`, '[data-testid="work-time-settings"]');
+      await page.getByTestId('work-time-start').click();
+      await capture(page, `${tag}-01-etapa-a`, '[data-testid="work-time-wizard"]');
+      await page.getByRole('button', { name: 'Começar' }).click();
+      const headingFocused = await page.getByTestId('work-time-wizard-step').evaluate((node) => node === document.activeElement);
+      await page.getByRole('checkbox', { name: 'Sábado' }).check();
+      await page.getByRole('checkbox', { name: 'Domingo' }).check();
+      await capture(page, `${tag}-02-etapa-b-rotina`, '[data-testid="work-time-wizard"]', { headingFocused });
+      await page.getByRole('button', { name: 'Continuar' }).click();
+      await page.getByTestId('wizard-works-on-holidays').click();
+      await capture(page, `${tag}-03-etapa-c-feriados`, '[data-testid="work-time-wizard"]');
+      await page.getByRole('button', { name: 'Continuar' }).click();
+      // Setas no calendário: o foco anda um dia e uma semana.
+      const firstDay = page.getByTestId('wizard-exceptions-calendar').locator('button[tabindex="0"]');
+      await firstDay.focus();
+      const before = await firstDay.getAttribute('data-date');
+      await page.keyboard.press('ArrowRight');
+      await page.keyboard.press('ArrowDown');
+      const after = await page.evaluate(() => (document.activeElement as HTMLElement | null)?.dataset.date ?? null);
+      await capture(page, `${tag}-04-etapa-d-excecoes`, '[data-testid="work-time-wizard"]', { calendarFocus: { before, after } });
+      await page.getByRole('button', { name: 'Continuar' }).click();
+      await expect(page.getByTestId('work-time-wizard-estimate-hourly')).toBeVisible({ timeout: 30_000 });
+      await capture(page, `${tag}-05-etapa-e-receitas`, '[data-testid="work-time-wizard"]');
+      await page.getByRole('button', { name: 'Continuar' }).click();
+      await page.getByTestId('work-time-wizard-display').click();
+      await capture(page, `${tag}-06-resumo`, '[data-testid="work-time-wizard"]');
+      await page.getByTestId('work-time-wizard-save').click();
+      await expect(page.getByText('Tudo pronto: a configuração foi salva.')).toBeVisible();
+      await expect(page.getByTestId('work-time-preview-hourly')).toBeVisible({ timeout: 30_000 });
+      await page.evaluate(() => window.scrollTo(0, 0));
+      await capture(page, `${tag}-07-configuracoes`, '[data-testid="work-time-settings"]');
+      // Memória de cálculo: foco no título, Tab preso, Escape fecha e devolve o foco.
+      await page.getByTestId('work-time-preview-details').click();
+      const details = page.getByRole('dialog', { name: 'Como este valor foi calculado?' });
+      await expect(details).toBeVisible();
+      const detailsTitleFocused = await details.getByRole('heading', { name: 'Como este valor foi calculado?' }).evaluate((node) => node === document.activeElement);
+      for (let index = 0; index < 6; index += 1) await page.keyboard.press('Tab');
+      const focusInside = await details.evaluate((node) => node.contains(document.activeElement));
+      await capture(page, `${tag}-08-memoria-de-calculo`, '[data-testid="work-time-details"]', { detailsTitleFocused, focusInside }, false);
+      await page.keyboard.press('Escape');
+      await expect(details).toBeHidden();
+      await page.getByTestId('work-time-income-panel-open').click();
+      const panel = page.getByRole('dialog', { name: 'Receitas consideradas' });
+      await expect(panel.locator('[data-testid^="income-item-"]').first()).toBeVisible({ timeout: 30_000 });
+      await capture(page, `${tag}-09-receitas-consideradas`, '[data-testid="work-time-income-panel"]', undefined, false);
+      await page.keyboard.press('Escape');
+      await page.getByRole('heading', { name: 'Exceções da jornada' }).scrollIntoViewIfNeeded();
+      await capture(page, `${tag}-10-configuracoes-excecoes`, '[data-testid="work-time-settings"]');
+      await page.getByRole('link', { name: 'Dashboard' }).click().catch(async () => {
+        const menu = page.getByRole('button', { name: /Abrir menu|Menu/ }).first();
+        if (await menu.isVisible().catch(() => false)) await menu.click();
+        await page.getByRole('link', { name: 'Dashboard' }).click();
+      });
+      await expect(page.locator('[data-work-time]').first()).toBeVisible({ timeout: 30_000 });
+      await capture(page, `${tag}-11-dashboard-modo-tempo`, 'body');
+      // Mesmo Dashboard em reais: as violações de axe do corpo devem ser as mesmas (débitos preexistentes).
+      await page.getByRole('button', { name: 'Mostrar em R$' }).first().click();
+      await expect(page.locator('[data-work-time]')).toHaveCount(0, { timeout: 30_000 });
+      await capture(page, `${tag}-12-dashboard-modo-dinheiro`, 'body');
+      await context.close();
+    }
+  }
+  mkdirSync(DIR, { recursive: true });
+  writeFileSync(`${DIR}/resultados.json`, JSON.stringify(results, null, 2));
+  const summary = results.map((entry) => `${entry.name}: transbordamento=${entry.overflow} axe=${entry.violations.length}`).join('\n');
+  console.log(`P5-F.1 evidência\n${summary}`);
+});

@@ -1,0 +1,17 @@
+TAP version 13
+# [SONDA-C] {"leiturasAntes":[1,1,1],"leiturasDepoisDoClique":[2,2,2],"estadosDepoisDoClique":["error: ESTIMATE_UPDATING"],"leiturasDepoisDeTresCliques":[5,5,5],"estadosFinais":["error: ESTIMATE_UPDATING"]}
+# Subtest: SONDA C: marca quebrada, "estimativa em atualização" e o clique em "Tentar de novo" com a marca ainda quebrada
+ok 1 - SONDA C: marca quebrada, "estimativa em atualização" e o clique em "Tentar de novo" com a marca ainda quebrada
+  ---
+  duration_ms: 924.655955
+  type: 'test'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1332.427993

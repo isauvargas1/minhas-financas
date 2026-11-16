@@ -1,0 +1,9 @@
+sha: iguais (408 arquivos)
+TOTAL unit: 37/37 mortos; 0 não compilam
+saída 0; 689 s
+=== lista da R1
+sha: iguais (408 arquivos)
+TOTAL unit: 77/77 mortos; 0 não compilam
+saída 0; 1122 s
+
+[exited with code 0]

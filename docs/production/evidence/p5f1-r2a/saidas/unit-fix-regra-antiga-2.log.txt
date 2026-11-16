@@ -1,0 +1,36 @@
+TAP version 13
+# Subtest: B02 (propriedade, P5-F.1-R2A, R2A-01): com a jornada reduzida no dia que abre o período, o segundo dia aceito não depende da parte trabalhada, e acrescentar uma rotina nunca tira horas
+not ok 1 - B02 (propriedade, P5-F.1-R2A, R2A-01): com a jornada reduzida no dia que abre o período, o segundo dia aceito não depende da parte trabalhada, e acrescentar uma rotina nunca tira horas
+  ---
+  duration_ms: 35.733853
+  type: 'test'
+  location: '<scratchpad>/p5f1r2a/mutantes-arvore/cf9cb2a94a9ca270032dd25f2f00c4aad78b5d9d/tests/unit/tmp-r2a01.test.ts:1353:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    amostra 3, antes: {"routines":[{"kind":"weekly","days":[{"kind":"off"},{"kind":"off"},{"kind":"off"},{"kind":"off"},{"kind":"window","start":1215,"end":600,"breakMinutes":0},{"kind":"window","start":30,"end":930,"breakMinutes":0},{"kind":"window","start":225,"end":375,"breakMinutes":0}]},{"kind":"weekly","days":[{"kind":"off"},{"kind":"off"},{"kind":"off"},{"kind":"off"},{"kind":"off"},{"kind":"window","start":1215,"end":375,"breakMinutes":0},{"kind":"off"}]}],"worksOnHolidays":true,"localHolidays":[],"exceptions":[{"kind":"reduced","start":"2026-08-01","end":"2026-08-01","minutes":1440}]}: sem nada do sábado
+
+    0 !== 150
+
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 150
+  actual: 0
+  operator: 'strictEqual'
+  stack: |-
+    file://<scratchpad>/p5f1r2a/mutantes-arvore/cf9cb2a94a9ca270032dd25f2f00c4aad78b5d9d/tests/unit/tmp-r2a01.test.ts:1400:16
+    Array.forEach (<anonymous>)
+    TestContext.<anonymous> (file://<scratchpad>/p5f1r2a/mutantes-arvore/cf9cb2a94a9ca270032dd25f2f00c4aad78b5d9d/tests/unit/tmp-r2a01.test.ts:1389:12)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.start (node:internal/test_runner/test:944:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 226.312365

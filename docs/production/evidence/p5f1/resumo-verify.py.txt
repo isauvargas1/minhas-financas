@@ -1,0 +1,42 @@
+"""Resumo de um log de `npm run verify:all` (P5-F): etapas, contagens node --test por fase, lint e Playwright."""
+import json
+import re
+import sys
+
+log_path, meta_path = sys.argv[1], sys.argv[2]
+raw = open(log_path, encoding='utf-8', errors='replace').read()
+text = re.sub(r'\x1b\[[0-9;]*[A-Za-z]', '', raw)
+meta = dict(line.split('=', 1) for line in open(meta_path, encoding='utf-8').read().split() if '=' in line)
+
+lines = text.splitlines()
+phase = 'verify:fast'
+counts = {'verify:fast': {}, 'integracao': {}}
+fast_scripts = []
+current_script = None
+per_script = []
+for line in lines:
+    m = re.match(r'^> [^ ]+@[^ ]+ ([a-z0-9:-]+)$', line)
+    if m:
+        current_script = m.group(1)
+        if current_script == 'test:integration:emulator':
+            phase = 'integracao'
+        if current_script == 'test:e2e':
+            phase = 'e2e'
+    m = re.match(r'^# (tests|pass|fail|skipped|todo|cancelled) (\d+)$', line)
+    if m and phase in counts:
+        key, value = m.group(1), int(m.group(2))
+        counts[phase][key] = counts[phase].get(key, 0) + value
+        if key == 'tests':
+            per_script.append((phase, current_script, value))
+
+lint = re.search(r'✖ (\d+) problems \((\d+) errors?, (\d+) warnings?\)', text)
+pw_summary = [l.strip() for l in lines if re.match(r'^\s+\d+ (passed|failed|skipped|flaky|did not run|interrupted)', l)]
+built = re.findall(r'✓ built in ([0-9.]+s)', text)
+out = {
+    'inicio': meta.get('inicio'), 'fim': meta.get('fim'), 'exit': meta.get('exit'), 'duracao_s': meta.get('duracao_s'),
+    'arvore': meta.get('arvore'), 'node_verify_fast': counts['verify:fast'], 'node_integracao': counts['integracao'],
+    'lint': {'problemas': int(lint.group(1)), 'erros': int(lint.group(2)), 'avisos': int(lint.group(3))} if lint else None,
+    'builds_vite': built, 'playwright': pw_summary,
+    'por_script': [{'fase': p, 'script': s, 'testes': n} for p, s, n in per_script],
+}
+print(json.dumps(out, ensure_ascii=False, indent=2))

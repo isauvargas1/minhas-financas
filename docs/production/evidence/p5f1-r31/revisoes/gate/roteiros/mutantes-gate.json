@@ -1,0 +1,11 @@
+[
+ {"id": "G1", "desc": "o prazo aprova a conversão: depois do tempo de interface, mostra a estimativa atual sem prova",
+  "old": "if (waitingProof && waitedTooLong) return { status: 'error', message: ESTIMATE_UPDATING, retry };",
+  "new": "if (waitingProof && waitedTooLong) return current;"},
+ {"id": "G2", "desc": "retenção por variável de módulo (fora de hooks): a última pronta volta enquanto a atual não converte",
+  "old": "  if (waitingProof && waitedTooLong) return { status: 'error', message: ESTIMATE_UPDATING, retry };\n  return shown;\n};",
+  "new": "  if (shown.status === 'done') gateLast = shown;\n  else if (gateLast !== null && current.status === 'done') return gateLast;\n  if (waitingProof && waitedTooLong) return { status: 'error', message: ESTIMATE_UPDATING, retry };\n  return shown;\n};\nlet gateLast: IncomeEstimateState | null = null;"},
+ {"id": "G3", "desc": "retenção só no 'em atualização': depois do prazo, a última pronta da sessão no lugar do texto",
+  "old": "  if (waitingProof && waitedTooLong) return { status: 'error', message: ESTIMATE_UPDATING, retry };\n  return shown;\n};",
+  "new": "  if (shown.status === 'done') gateLast = shown;\n  if (waitingProof && waitedTooLong) return gateLast ?? { status: 'error', message: ESTIMATE_UPDATING, retry };\n  return shown;\n};\nlet gateLast: IncomeEstimateState | null = null;"}
+]

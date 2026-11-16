@@ -1,0 +1,22 @@
+{
+  "name": "desktop-light-s01-dashboard",
+  "scope": "[data-testid=\"work-time-notice\"]",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "scheme": "light",
+  "background": "rgb(249, 250, 251)",
+  "overflow": 0,
+  "occluded": false,
+  "violations": [],
+  "role": null,
+  "focusAfterAction": "a: Dashboard",
+  "tabTrail": [
+    "a: Empréstimos",
+    "a: Cartões de Crédito",
+    "a: Metas",
+    "a: Dividir Gastos"
+  ],
+  "text": "Estimativa de tempo de trabalho indisponível agora: os valores continuam em reais. Veja o motivo em Configurações.\nMostrar em R$"
+}

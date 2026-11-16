@@ -1,0 +1,314 @@
+// Sonda da revisão 3 (B02, Teorema 2 e dia civil), com geradores e um oráculo geométrico próprios.
+// Uso: node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON b02-r3.mts <raiz> [amostras] [semente] [modo] [conferidor]
+//   modo: mix | spine | copy | edge   ·   conferidor: 0 (janela sem dia ambíguo) | 1 (também calendarAmbiguity nas duas)
+// Confere, para pares C e C' = C + 1 rotina, ambos sem dia ambíguo nos meses da janela (o primeiro abrindo o período):
+//   (1) monotonia: H(C') >= H(C);
+//   (2) dia civil: A_d + (m_d - parte depois da meia-noite de d) <= 1.440, fora do dia seguinte a uma jornada reduzida,
+//       com A_d e T_d medidos pela geometria das janelas (convenção da ocupação só para o intervalo de janela isolada);
+//   (3) janelas nunca cortadas num dia que segue a rotina: m_d >= w_d (geométrico);
+//   (4) conferência do oráculo: routineMinutes − durações == w_d geométrico nos dias que seguem a rotina;
+//   (5) D = A − P >= 0 sempre e D = 0 quando o dia não segue a rotina (§3).
+import { pathToFileURL } from 'node:url';
+
+const root = process.argv[2];
+const SAMPLES = Number(process.argv[3] ?? 2000);
+let seed = Number(process.argv[4] ?? 1) >>> 0;
+const MODE = process.argv[5] ?? 'mix';
+const USE_CONF = process.argv[6] === '1';
+const cal = await import(pathToFileURL(`${root}/src/modules/work-time/calendar.ts`).href);
+const dt = await import(pathToFileURL(`${root}/src/modules/work-time/dates.ts`).href);
+const { monthPlan, routineSpecOn, holidayOn, calendarAmbiguity, windowLength } = cal;
+const { dayNumber, addDays, datesOfMonth, shiftMonthKey } = dt;
+const DAY = 1440;
+
+const rnd = () => { seed = (seed + 0x6D2B79F5) >>> 0; let t = seed; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+const int = (a: number, b: number) => a + Math.floor(rnd() * (b - a + 1));
+const pick = <T,>(xs: readonly T[]): T => xs[Math.floor(rnd() * xs.length)];
+const grid = () => pick([1, 5, 15, 30, 60, 60, 60]);
+const snap = (v: number, g: number) => Math.floor(v / g) * g;
+
+type Spec = { kind: 'off' } | { kind: 'duration'; minutes: number } | { kind: 'window'; start: number; end: number; breakMinutes: number };
+const OFF: Spec = { kind: 'off' };
+const win = (start: number, end: number, breakMinutes = 0): Spec => ({ kind: 'window', start: ((start % DAY) + DAY) % DAY, end: ((end % DAY) + DAY) % DAY, breakMinutes });
+const randWindow = (): Spec => {
+  const g = grid();
+  const special = [0, 1080, 1200, 1260, 1320, 1380, 1410, 1439, 360, 420, 480, 720, 780];
+  const start = rnd() < 0.4 ? pick(special) : snap(int(0, DAY - 1), g);
+  const len = rnd() < 0.15 ? DAY : Math.max(1, snap(int(1, DAY), g) || g);
+  const end = (start + len) % DAY;
+  const L = windowLength(start, end);
+  let b = 0;
+  if (rnd() < 0.55) {
+    const pre = Math.min(L, DAY - start);
+    // Intervalos que não cabem no trecho antes da meia-noite (a convenção põe o resto depois dela), ou quaisquer.
+    b = rnd() < 0.5 && pre < L ? int(pre + 1, L - 1) : int(1, L - 1);
+    if (b >= L) b = L - 1;
+    if (b < 0) b = 0;
+  }
+  return { kind: 'window', start, end, breakMinutes: b };
+};
+const randSpec = (): Spec => {
+  const r = rnd();
+  if (r < 0.35) return OFF;
+  if (r < 0.45) return { kind: 'duration', minutes: int(1, 12) * 60 };
+  return randWindow();
+};
+const randRoutine = (): any => {
+  if (rnd() < 0.75) {
+    const base = randSpec();
+    return { kind: 'weekly', days: Array.from({ length: 7 }, () => (rnd() < 0.5 ? base : randSpec())) };
+  }
+  let day = randSpec();
+  if (day.kind === 'off') day = randWindow();
+  return { kind: 'cyclic', reference: `2026-${String(int(1, 12)).padStart(2, '0')}-${String(int(1, 28)).padStart(2, '0')}`, workDays: int(1, 6), restDays: int(1, 6), day };
+};
+const withBreaks = (routine: any): any => {
+  const change = (spec: Spec): Spec => (spec.kind === 'window' ? { ...spec, breakMinutes: int(0, windowLength(spec.start, spec.end) - 1) } : spec);
+  return routine.kind === 'weekly' ? { ...routine, days: routine.days.map((d: Spec) => (rnd() < 0.6 ? change(d) : d)) } : { ...routine, day: change(routine.day) };
+};
+const only = (index: number, spec: Spec, rest: Spec = OFF): any => ({ kind: 'weekly', days: Array.from({ length: 7 }, (_, d) => (d === index ? spec : rest)) });
+
+const dateIn = (months: string[], spill = 2): string => {
+  const first = dayNumber(`${months[0]}-01`) - spill;
+  const lastDates = datesOfMonth(months[months.length - 1]);
+  const last = dayNumber(lastDates[lastDates.length - 1]) + spill;
+  const n = int(first, last);
+  return (dt.civilDateFromDayNumber(n) as string);
+};
+const randExceptions = (months: string[], focus: string[] = []): any[] => {
+  const out: any[] = [];
+  const used = new Map<string, Array<[string, string]>>();
+  const add = (e: any) => {
+    const s = e.date ?? e.start; const en = e.date ?? e.end;
+    const spans = used.get(e.kind) ?? [];
+    if (spans.some(([a, b]) => s <= b && a <= en)) return;
+    spans.push([s, en]); used.set(e.kind, spans); out.push(e);
+  };
+  const n = int(0, 10);
+  const anyDate = () => (focus.length > 0 && rnd() < 0.6 ? pick(focus) : dateIn(months));
+  for (let i = 0; i < n; i += 1) {
+    const k = pick(['vacation', 'day_off', 'absence', 'holiday_worked', 'on_call', 'overtime', 'overtime', 'reduced', 'reduced', 'schedule_change']);
+    const d = anyDate();
+    const minutes = rnd() < 0.3 ? DAY : int(1, 24) * 60 - (rnd() < 0.2 ? int(1, 59) : 0);
+    if (k === 'vacation' || k === 'day_off' || k === 'absence') add({ kind: k, start: d, end: addDays(d, rnd() < 0.6 ? 0 : int(1, 4)) });
+    else if (k === 'holiday_worked') add({ kind: k, date: d });
+    else if (k === 'on_call' || k === 'overtime') add({ kind: k, date: d, minutes: Math.max(1, minutes) });
+    else if (k === 'reduced') add({ kind: k, start: d, end: addDays(d, rnd() < 0.7 ? 0 : int(1, 3)), minutes: rnd() < 0.15 ? 0 : Math.max(0, minutes) });
+    else add({ kind: k, date: d, minutes: rnd() < 0.15 ? 0 : Math.max(0, minutes) });
+  }
+  return out;
+};
+const randHolidays = (months: string[]): any[] => {
+  const out: any[] = [];
+  for (let i = 0; i < int(0, 3); i += 1) {
+    const d = dateIn(months, 1);
+    out.push(rnd() < 0.5 ? { kind: 'date', date: d } : { kind: 'annual', month: Number(d.slice(5, 7)), day: Number(d.slice(8, 10)) });
+  }
+  return out;
+};
+
+// ---------------------------------------------------------------- oráculo geométrico
+type W = { s: number; e: number; b: number };
+type I = [number, number];
+const merge = (xs: I[]): I[] => {
+  const ys = xs.filter(([a, b]) => b > a).sort((p, q) => p[0] - q[0] || p[1] - q[1]);
+  const out: I[] = [];
+  for (const [a, b] of ys) { const l = out[out.length - 1]; if (l && a <= l[1]) l[1] = Math.max(l[1], b); else out.push([a, b]); }
+  return out;
+};
+const measure = (xs: I[]) => merge(xs).reduce((s, [a, b]) => s + b - a, 0);
+const clip = (xs: I[], a: number, b: number): I[] => xs.map(([x, y]): I => [Math.max(x, a), Math.min(y, b)]).filter(([x, y]) => y > x);
+const minus = (xs: I[], ys: I[]): I[] => {
+  let cur = merge(xs);
+  for (const [a, b] of merge(ys)) cur = cur.flatMap(([x, y]): I[] => (b <= x || a >= y ? [[x, y]] : [[x, Math.min(y, a)], [Math.max(x, b), y]].filter(([p, q]) => q > p) as I[]));
+  return cur;
+};
+const windowsOn = (c: any, date: string): W[] => {
+  const day = dayNumber(date);
+  const out: W[] = [];
+  for (const r of c.routines) {
+    const spec = routineSpecOn(r, date);
+    if (spec.kind !== 'window') continue;
+    const s = day * DAY + spec.start; const e = s + windowLength(spec.start, spec.end);
+    if (out.some((w) => w.s === s && w.e === e && w.b === spec.breakMinutes)) continue;
+    out.push({ s, e, b: spec.breakMinutes });
+  }
+  return out;
+};
+const durationsOn = (c: any, date: string): number => c.routines.reduce((sum: number, r: any) => { const s = routineSpecOn(r, date); return sum + (s.kind === 'duration' ? s.minutes : 0); }, 0);
+const flags = (c: any, date: string) => {
+  const holiday = holidayOn(c, date);
+  let holidayWorked = false; let schedule = false; let reduced: number | null = null; let absence = false;
+  for (const e of c.exceptions) {
+    if ((e.kind === 'vacation' || e.kind === 'day_off' || e.kind === 'absence') && date >= e.start && date <= e.end) absence = true;
+    if (e.kind === 'holiday_worked' && e.date === date) holidayWorked = true;
+    if (e.kind === 'schedule_change' && e.date === date) schedule = true;
+    if (e.kind === 'reduced' && date >= e.start && date <= e.end) reduced = e.minutes;
+  }
+  const holidayOff = holiday !== null && !c.worksOnHolidays && !holidayWorked;
+  return { holidayOff, schedule, reduced, absence, follows: !holidayOff && !schedule && reduced === null && !absence, happens: !holidayOff && !schedule && !absence };
+};
+const pieces = (w: W): I[] => {
+  if (w.b === 0) return [[w.s, w.e]];
+  const mid = (Math.floor(w.s / DAY) + 1) * DAY; const own = Math.min(w.e, mid);
+  if (w.b <= own - w.s) return [[w.s, own - w.b], [own, w.e]];
+  return [[w.s + w.b, w.e]];
+};
+const ov = (a: W, b: W) => Math.min(a.e, b.e) > Math.max(a.s, b.s);
+/** Conjunto trabalhado das janelas de `date` no contexto do próprio `planDay` (véspera e dia seguinte só quando seguem a rotina). */
+const workedOf = (c: any, date: string, first: string): { set: I[]; ambiguous: boolean } => {
+  const own = windowsOn(c, date);
+  const prev = date === first ? [] : (flags(c, addDays(date, -1)).follows ? windowsOn(c, addDays(date, -1)) : []);
+  const next = flags(c, addDays(date, 1)).follows ? windowsOn(c, addDays(date, 1)) : [];
+  const around = [...prev, ...own, ...next];
+  let ambiguous = false;
+  const set: I[] = [];
+  for (const w of own) {
+    const others = around.filter((o) => o !== w);
+    if (!others.some((o) => ov(w, o))) { set.push(...pieces(w)); continue; }
+    if (w.b > 0) {
+      const z = others.filter((o) => o.b === 0).map((o): I => [o.s, o.e]);
+      if (measure(clip(z, w.s, w.e)) !== w.e - w.s) ambiguous = true;
+    }
+    set.push([w.s, w.e]);
+  }
+  return { set: merge(set), ambiguous };
+};
+
+const evaluate = (c: any, months: string[]) => {
+  const plans = months.map((m, i) => monthPlan(c, m, { periodStart: i === 0 }));
+  const ambiguous = plans.some((p: any) => (p.ambiguousDays ?? []).length > 0);
+  const H = plans.reduce((s: number, p: any) => s + p.minutes, 0);
+  return { plans, ambiguous, H };
+};
+
+const steps = { days: 0, s1: 0, s2: 0, s2id: 0, s3: 0, s4: 0, s5: 0, deltaPos: 0, dTpos: 0 };
+const stats = { pairs: 0, tried: 0, mono: 0, civil: 0, cut: 0, oracle: 0, dneg: 0, dnonfollow: 0, dpos: 0, civilChecked: 0, reducedNext: 0, confRejected: 0, maxCivil: 0 };
+const examples: any[] = [];
+const note = (kind: string, data: any) => { if (examples.filter((e) => e.kind === kind).length < 2) examples.push({ kind, ...data }); };
+
+const checkDays = (c: any, months: string[], ev: any, tag: string) => {
+  const first = `${months[0]}-01`;
+  for (const plan of ev.plans) {
+    for (const day of plan.days) {
+      const d = day.date;
+      const f = flags(c, d);
+      const prevDate = addDays(d, -1);
+      const inPeriodPrev = d !== first;
+      const fp = flags(c, prevDate);
+      const me = workedOf(c, d, first);
+      if (me.ambiguous && f.happens) continue; // o código marca o dia (já excluído pelo par)
+      const prevWorked = inPeriodPrev && fp.follows ? workedOf(c, prevDate, first).set : [];
+      const civilStart = dayNumber(d) * DAY; const civilEnd = civilStart + DAY;
+      const A = measure(clip(prevWorked, civilStart, civilEnd));
+      const P = inPeriodPrev && fp.follows ? measure(clip(windowsOn(c, prevDate).flatMap(pieces), civilStart, civilEnd)) : 0;
+      const D = A - P;
+      if (D < 0) { stats.dneg += 1; note('D<0', { tag, d, A, P }); }
+      if (D > 0) stats.dpos += 1;
+      if (D !== 0 && !f.follows) { stats.dnonfollow += 1; note('D!=0 sem rotina', { tag, d, A, P, f }); }
+      const T = measure(clip(me.set, civilEnd, civilEnd + DAY));
+      const wGeo = measure(minus(me.set, prevWorked));
+      const x = durationsOn(c, d);
+      if (f.follows && day.routineMinutes !== wGeo + x) { stats.oracle += 1; note('oráculo', { tag, d, code: day.routineMinutes, geo: wGeo + x }); }
+      if (f.follows && day.minutes < wGeo) { stats.cut += 1; note('janela cortada', { tag, d, m: day.minutes, w: wGeo }); }
+      if (inPeriodPrev && fp.reduced !== null && fp.happens) { stats.reducedNext += 1; continue; } // limite registrado (§6)
+      let after = 0;
+      if (f.follows) after = T;
+      else if (f.happens) after = Math.min(Math.min(wGeo + x, f.reduced as number), T);
+      const L = A + (day.minutes - after);
+      stats.civilChecked += 1;
+      stats.maxCivil = Math.max(stats.maxCivil, L);
+      if (L > DAY) { stats.civil += 1; note('dia civil > 24 h', { tag, d, L, A, T, m: day.minutes, after, f }); }
+    }
+  }
+};
+
+
+const geoDay = (c: any, d: string, first: string) => {
+  const f = flags(c, d);
+  const me = workedOf(c, d, first);
+  const prevDate = addDays(d, -1);
+  const fp = flags(c, prevDate);
+  const prevWorked = d !== first && fp.follows ? workedOf(c, prevDate, first).set : [];
+  const cs = dayNumber(d) * DAY; const ce = cs + DAY;
+  const T = measure(clip(me.set, ce, ce + DAY));
+  const A = measure(clip(prevWorked, cs, ce));
+  const w = measure(minus(me.set, prevWorked));
+  return { f, T, A, w, wc: w - T, prevFollowsInPeriod: d !== first && fp.follows };
+};
+const checkSteps = (C: any, C2: any, months: string[], e1: any, e2: any) => {
+  const first = `${months[0]}-01`;
+  const days1 = e1.plans.flatMap((p: any) => p.days); const days2 = e2.plans.flatMap((p: any) => p.days);
+  let prevT1 = 0; let prevT2 = 0; let prevFollow = false;
+  for (let i = 0; i < days1.length; i += 1) {
+    const d = days1[i].date;
+    const g1 = geoDay(C, d, first); const g2 = geoDay(C2, d, first);
+    steps.days += 1;
+    const dT = g2.T - g1.T; const delta = g2.A - g1.A;
+    if (dT < 0) { steps.s1 += 1; note('passo 1', { d, T: g1.T, T2: g2.T }); }
+    if (delta < 0) { steps.s2 += 1; note('passo 2', { d, A: g1.A, A2: g2.A }); }
+    if (i > 0 && g1.prevFollowsInPeriod && delta !== prevT2 - prevT1) { steps.s2id += 1; note('passo 2 (δ = ΔT da véspera)', { d, delta, dTprev: prevT2 - prevT1 }); }
+    if (g2.wc < g1.wc - delta) { steps.s3 += 1; note('passo 3', { d, wc: g1.wc, wc2: g2.wc, delta }); }
+    const m1 = days1[i].minutes; const m2 = days2[i].minutes;
+    if (g1.f.follows) { if (m2 < m1 + dT - delta) { steps.s4 += 1; note('passo 4', { d, m1, m2, dT, delta }); } }
+    else if (m2 < m1 - delta) { steps.s5 += 1; note('passo 5', { d, m1, m2, delta, f: g1.f }); }
+    if (delta > 0) steps.deltaPos += 1;
+    if (dT > 0) steps.dTpos += 1;
+    prevT1 = g1.T; prevT2 = g2.T; prevFollow = g1.f.follows;
+  }
+};
+const startMonths = ['2026-01', '2026-02', '2026-03', '2026-05', '2026-08', '2026-10', '2026-12', '2027-02'];
+const t0 = Date.now();
+for (let sample = 0; sample < SAMPLES; sample += 1) {
+  const startMonth = pick(startMonths);
+  const months = Array.from({ length: int(1, 3) }, (_, i) => shiftMonthKey(startMonth, i) as string);
+  const firstDate = `${months[0]}-01`;
+  let routines: any[] = [];
+  let added: any;
+  let focus: string[] = [];
+  const mode = MODE === 'mix' ? pick(['spine', 'copy', 'edge', 'free', 'free']) : MODE;
+  if (mode === 'spine') {
+    // Véspera X: s1–24:00 sem intervalo; dia X+1: 00:00–e1 sem intervalo; acrescentada (ou já presente) X: s2–e2 com
+    // intervalo maior que o trecho antes da meia-noite, coberta pelas duas (D > 0 no dia X+1).
+    const X = int(0, 6);
+    const s1 = snap(int(1080, 1425), 15); const e1 = snap(int(60, 720), 15) || 60;
+    const s2 = s1 + snap(int(0, 1425 - s1), 15); const e2 = Math.max(15, snap(int(15, e1), 15));
+    const L2 = windowLength(s2, e2); const pre = DAY - s2;
+    const b2 = Math.min(L2 - 1, int(Math.min(pre + 1, L2 - 1), L2 - 1));
+    const base = [only(X, win(s1, 0)), only((X + 1) % 7, win(0, e1))];
+    const cov = only(X, win(s2, e2, b2));
+    if (rnd() < 0.5) { routines = base; added = cov; } else { routines = [base[0], cov]; added = base[1]; }
+    if (rnd() < 0.5) { routines = [...base, cov]; routines = [{ kind: 'weekly', days: Array.from({ length: 7 }, (_, d) => (d === X ? win(s1, 0) : d === (X + 1) % 7 ? win(0, e1) : OFF)) }, cov]; added = rnd() < 0.5 ? randRoutine() : only((X + 1) % 7, win(int(0, 1439), int(0, 1439), 0)); }
+    const dates = months.flatMap((m) => datesOfMonth(m));
+    focus = dates.filter((d) => [X, (X + 1) % 7, (X + 2) % 7].includes((new Date(`${d}T12:00:00Z`).getUTCDay() + 6) % 7));
+  } else if (mode === 'copy') {
+    routines = Array.from({ length: int(1, 2) }, randRoutine);
+    added = withBreaks(pick(routines));
+  } else if (mode === 'edge') {
+    // Janelas que terminam ou começam à meia-noite, turnos de 24 h às 00:00 e plantões/horas extras de 24 h.
+    const mk = () => only(int(0, 6), pick([win(0, 0), win(1200, 0), win(0, 360), win(1320, 120, int(0, 239)), win(1380, 300, int(0, 359)), win(720, 720, int(0, 1439))]));
+    routines = Array.from({ length: int(1, 2) }, mk);
+    added = mk();
+  } else {
+    routines = Array.from({ length: int(1, 2) }, randRoutine);
+    added = randRoutine();
+  }
+  const exceptions = randExceptions(months, focus);
+  const localHolidays = randHolidays(months);
+  const worksOnHolidays = rnd() < 0.4;
+  const C = { routines, exceptions, localHolidays, worksOnHolidays };
+  const C2 = { routines: [...routines, added], exceptions, localHolidays, worksOnHolidays };
+  stats.tried += 1;
+  const e1 = evaluate(C, months); if (e1.ambiguous) continue;
+  const e2 = evaluate(C2, months); if (e2.ambiguous) continue;
+  if (USE_CONF) {
+    const today = `${months[months.length - 1]}-15`;
+    if (calendarAmbiguity(C, today) !== null || calendarAmbiguity(C2, today) !== null) { stats.confRejected += 1; continue; }
+  }
+  stats.pairs += 1;
+  if (e2.H < e1.H) { stats.mono += 1; note('monotonia', { mode, months, before: e1.H, after: e2.H, C: JSON.stringify(C), added: JSON.stringify(added) }); }
+  checkSteps(C, C2, months, e1, e2);
+  checkDays(C, months, e1, 'C');
+  checkDays(C2, months, e2, "C'");
+}
+console.log(JSON.stringify({ root: root.split('/').pop(), MODE, SAMPLES, conferidor: USE_CONF, seconds: Math.round((Date.now() - t0) / 1000), ...stats, steps, examples }, null, 0));

@@ -4,6 +4,7 @@ import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis
 import type { SplitGroup, SplitParticipant } from '../modules/split-bills/types.ts';
 import { participantName, type WorkspaceMemberName } from '../modules/split-bills/presentation.ts';
 import { useTheme } from '../contexts/ThemeContext.tsx';
+import { useMoneyDisplay } from '../modules/work-time/display.tsx';
 
 interface SplitGroupChartsProps {
     group: SplitGroup;
@@ -19,6 +20,7 @@ interface SplitGroupChartsProps {
  */
 const SplitGroupCharts: React.FC<SplitGroupChartsProps> = ({ group, participants, members }) => {
     const { theme } = useTheme();
+    const display = useMoneyDisplay();
 
     // 1. Despesas por Categoria (Pie Chart)
     const categoryData = useMemo(() => Object.entries(group.totals.categoryTotals)
@@ -67,7 +69,7 @@ const SplitGroupCharts: React.FC<SplitGroupChartsProps> = ({ group, participants
                                     ))}
                                 </Pie>
                                 <Tooltip 
-                                    formatter={(value: number) => formatCurrency(value)}
+                                    formatter={(value: number) => display.reaisTooltip(Number(value), formatCurrency)}
                                     contentStyle={{ backgroundColor: theme.colors.surface, borderColor: theme.colors.border, color: theme.colors.text }}
                                 />
                                 <Legend />
@@ -92,7 +94,7 @@ const SplitGroupCharts: React.FC<SplitGroupChartsProps> = ({ group, participants
                                 <YAxis dataKey="name" type="category" width={80} tick={{ fill: theme.colors.textSecondary, fontSize: 12 }} />
                                 <Tooltip 
                                     cursor={{fill: 'transparent'}}
-                                    formatter={(value: number) => formatCurrency(value)}
+                                    formatter={(value: number) => display.reaisTooltip(Number(value), formatCurrency)}
                                     contentStyle={{ backgroundColor: theme.colors.surface, borderColor: theme.colors.border, color: theme.colors.text }}
                                 />
                                 <Legend />

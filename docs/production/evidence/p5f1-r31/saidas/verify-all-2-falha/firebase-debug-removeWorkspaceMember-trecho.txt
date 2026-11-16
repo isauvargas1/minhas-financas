@@ -1,0 +1,161 @@
+
+ 
+[debug] [2026-11-10T22:34:04.246Z] Nov 10, 2026 10:34:04 PM com.google.cloud.datastore.emulator.impl.util.WrappedStreamObserver onError
+WARNING: Operation failed: Transaction lock timeout.
+com.google.cloud.datastore.core.exception.DatastoreException: Transaction lock timeout.
+	at com.google.cloud.datastore.emulator.impl.transactions.ReactiveLockManager.acquireLocks(ReactiveLockManager.java:70)
+	at com.google.cloud.datastore.emulator.impl.storage.FlatLocalEntityStore.readWrite(FlatLocalEntityStore.java:85)
+	at com.google.cloud.datastore.emulator.impl.firestore.FirestoreEmulatorHelper.commitHelper(FirestoreEmulatorHelper.java:382)
+	at com.google.cloud.datastore.emulator.impl.firestore.FirestoreEmulatorHelper.internalCommit(FirestoreEmulatorHelper.java:348)
+	at com.google.cloud.datastore.emulator.impl.firestore.CloudFirestoreV1.commit(CloudFirestoreV1.java:541)
+	at com.google.cloud.datastore.emulator.impl.firestore.CloudFirestoreV1Router.commit(CloudFirestoreV1Router.java:177)
+	at com.google.cloud.datastore.emulator.firestore.v1.FirestoreV1GrpcAdapter$1.lambda$commit$0(FirestoreV1GrpcAdapter.java:162)
+	at com.google.cloud.datastore.emulator.firestore.v1.FirestoreV1GrpcAdapter.unary(FirestoreV1GrpcAdapter.java:72)
+	at com.google.cloud.datastore.emulator.firestore.v1.FirestoreV1GrpcAdapter$1.commit(FirestoreV1GrpcAdapter.java:162)
+	at com.google.firestore.v1.FirestoreGrpc$MethodHandlers.invoke(FirestoreGrpc.java:1404)
+	at io.grpc.stub.ServerCalls$UnaryServerCallHandler$UnaryServerCallListener.onHalfClose(ServerCalls.java:182)
+	at io.grpc.PartialForwardingServerCallListener.onHalfClose(PartialForwardingServerCallListener.java:35)
+	at io.grpc.ForwardingServerCallListener.onHalfClose(ForwardingServerCallListener.java:23)
+	at io.grpc.ForwardingServerCallListener$SimpleForwardingServerCallListener.onHalfClose(ForwardingServerCallListener.java:40)
+	at io.grpc.Contexts$ContextualizedServerCallListener.onHalfClose(Contexts.java:86)
+	at io.grpc.PartialForwardingServerCallListener.onHalfClose(PartialForwardingServerCallListener.java:35)
+	at io.grpc.ForwardingServerCallListener.onHalfClose(ForwardingServerCallListener.java:23)
+	at io.grpc.ForwardingServerCallListener$SimpleForwardingServerCallListener.onHalfClose(ForwardingServerCallListener.java:40)
+	at io.grpc.Contexts$ContextualizedServerCallListener.onHalfClose(Contexts.java:86)
+	at io.grpc.internal.ServerCallImpl$ServerStreamListenerImpl.halfClosed(ServerCallImpl.java:356)
+	at io.grpc.internal.ServerImpl$JumpToApplicationThreadServerStreamListener$1HalfClosed.runInContext(ServerImpl.java:879)
+	at io.grpc.internal.ContextRunnable.run(ContextRunnable.java:37)
+	at io.grpc.internal.SerializingExecutor.run(SerializingExecutor.java:133)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+
+ 
+[debug] [2026-11-10T22:34:04.279Z] [runtime-status] [10230] firebase-admin has been stubbed. {"adminResolution":{"declared":true,"installed":true,"version":"13.7.0","resolution":"<scratchpad>/wt-p5f1-r31/functions/node_modules/firebase-admin/lib/index.js"}} 
+[debug] [2026-11-10T22:34:04.283Z] [runtime-status] [10230] initializeApp(DEFAULT) {"storageBucket":"minhas-financas-local.appspot.com","databaseURL":"https://minhas-financas-local.firebaseio.com","projectId":"minhas-financas-local"} 
+[debug] [2026-11-10T22:34:04.836Z] [runtime-status] [10230] Functions runtime initialized. {"cwd":"<scratchpad>/wt-p5f1-r31/functions","node_version":"22.23.4"} 
+[debug] [2026-11-10T22:34:04.836Z] [runtime-status] [10230] Listening to port: /tmp/fire_emu_7d05c9b79b15684b.sock 
+[debug] [2026-11-10T22:34:04.860Z] [worker-southamerica-east1-changeWorkspaceMemberRole-cdae1f35-1b08-493b-8654-4d4ccd64ed80]: IDLE 
+[debug] [2026-11-10T22:34:04.860Z] [worker-pool] submitRequest(triggerId=southamerica-east1-changeWorkspaceMemberRole) 
+[info] i  functions: Beginning execution of "southamerica-east1-changeWorkspaceMemberRole" 
+[debug] [2026-11-10T22:34:04.861Z] [worker-southamerica-east1-changeWorkspaceMemberRole-cdae1f35-1b08-493b-8654-4d4ccd64ed80]: BUSY 
+[debug] [2026-11-10T22:34:04.863Z] Finishing up request with event=pause 
+[info] i  functions: Finished "southamerica-east1-changeWorkspaceMemberRole" in 2.816156ms 
+[debug] [2026-11-10T22:34:04.864Z] [worker-southamerica-east1-changeWorkspaceMemberRole-cdae1f35-1b08-493b-8654-4d4ccd64ed80]: IDLE 
+[debug] [2026-11-10T22:34:04.864Z] Finishing up request with event=finish 
+[debug] [2026-11-10T22:34:04.864Z] Finishing up request with event=close 
+[debug] [2026-11-10T22:34:04.864Z] [work-queue] {"queuedWork":[],"queueLength":0,"runningWork":["/minhas-financas-local/southamerica-east1/getFinancialReport-2026-11-10T22:34:02.192Z","/minhas-financas-local/southamerica-east1/getFinancialReport-2026-11-10T22:34:02.194Z"],"workRunningCount":2}
+[debug] [2026-11-10T22:34:04.932Z] [work-queue] {"queuedWork":["/minhas-financas-local/southamerica-east1/changeWorkspaceMemberRole-2026-11-10T22:34:04.931Z"],"queueLength":1,"runningWork":["/minhas-financas-local/southamerica-east1/getFinancialReport-2026-11-10T22:34:02.192Z","/minhas-financas-local/southamerica-east1/getFinancialReport-2026-11-10T22:34:02.194Z"],"workRunningCount":2}
+[debug] [2026-11-10T22:34:04.932Z] [work-queue] {"queuedWork":[],"queueLength":0,"runningWork":["/minhas-financas-local/southamerica-east1/getFinancialReport-2026-11-10T22:34:02.192Z","/minhas-financas-local/southamerica-east1/getFinancialReport-2026-11-10T22:34:02.194Z","/minhas-financas-local/southamerica-east1/changeWorkspaceMemberRole-2026-11-10T22:34:04.931Z"],"workRunningCount":3}
+[debug] [2026-11-10T22:34:04.932Z] Accepted request POST /minhas-financas-local/southamerica-east1/changeWorkspaceMemberRole --> southamerica-east1-changeWorkspaceMemberRole
+[debug] [2026-11-10T22:34:04.934Z] [functions] Runtime ready! Sending request! 
+[debug] [2026-11-10T22:34:04.936Z] [functions] Got req.url=/minhas-financas-local/southamerica-east1/changeWorkspaceMemberRole, mapping to path=/ 
+[debug] [2026-11-10T22:34:04.936Z] [worker-pool] submitRequest(triggerId=southamerica-east1-changeWorkspaceMemberRole) 
+[info] i  functions: Beginning execution of "southamerica-east1-changeWorkspaceMemberRole" 
+[debug] [2026-11-10T22:34:04.937Z] [worker-southamerica-east1-changeWorkspaceMemberRole-cdae1f35-1b08-493b-8654-4d4ccd64ed80]: BUSY 
+[info] >  {"verifications":{"app":"MISSING","auth":"VALID"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"} {"user":{"verifications":{"app":"MISSING","auth":"VALID"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"},"metadata":{"emulator":{"name":"functions"},"function":{"name":"southamerica-east1-changeWorkspaceMemberRole"},"extension":{},"message":"\u001b[90m> \u001b[39m {\"verifications\":{\"app\":\"MISSING\",\"auth\":\"VALID\"},\"logging.googleapis.com/labels\":{\"firebase-log-type\":\"callable-request-verification\"},\"severity\":\"DEBUG\",\"message\":\"Callable request verification passed\"}"}}
+[info] >  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"changeWorkspaceMemberRole","requestId":"bf2a0a35-dd12-4250-9672-3dbf7b8456a3","actorId":"e2e-p1-owner","workspaceId":null,"actorRole":null,"appCheck":"absent"} {"user":{"severity":"INFO","message":"callable.start","event":"callable.start","operation":"changeWorkspaceMemberRole","requestId":"bf2a0a35-dd12-4250-9672-3dbf7b8456a3","actorId":"e2e-p1-owner","workspaceId":null,"actorRole":null,"appCheck":"absent"},"metadata":{"emulator":{"name":"functions"},"function":{"name":"southamerica-east1-changeWorkspaceMemberRole"},"extension":{},"message":"\u001b[90m> \u001b[39m {\"severity\":\"INFO\",\"message\":\"callable.start\",\"event\":\"callable.start\",\"operation\":\"changeWorkspaceMemberRole\",\"requestId\":\"bf2a0a35-dd12-4250-9672-3dbf7b8456a3\",\"actorId\":\"e2e-p1-owner\",\"workspaceId\":null,\"actorRole\":null,\"appCheck\":\"absent\"}"}}
+[info] >  {"severity":"INFO","message":"callable.end","event":"callable.end","operation":"getFinancialReport","requestId":"1c27101b-f8ab-4f30-8124-aeb399077b1e","actorId":"e2e-p1-owner","workspaceId":"L4dOrfCL5Mx4DHGrAZQh","actorRole":"owner","outcome":"ok","durationMs":2809} {"user":{"severity":"INFO","message":"callable.end","event":"callable.end","operation":"getFinancialReport","requestId":"1c27101b-f8ab-4f30-8124-aeb399077b1e","actorId":"e2e-p1-owner","workspaceId":"L4dOrfCL5Mx4DHGrAZQh","actorRole":"owner","outcome":"ok","durationMs":2809},"metadata":{"emulator":{"name":"functions"},"function":{"name":"southamerica-east1-getFinancialReport"},"extension":{},"message":"\u001b[90m> \u001b[39m {\"severity\":\"INFO\",\"message\":\"callable.end\",\"event\":\"callable.end\",\"operation\":\"getFinancialReport\",\"requestId\":\"1c27101b-f8ab-4f30-8124-aeb399077b1e\",\"actorId\":\"e2e-p1-owner\",\"workspaceId\":\"L4dOrfCL5Mx4DHGrAZQh\",\"actorRole\":\"owner\",\"outcome\":\"ok\",\"durationMs\":2809}"}}
+[debug] [2026-11-10T22:34:05.008Z] Finishing up request with event=pause 
+[info] i  functions: Finished "southamerica-east1-getFinancialReport" in 2815.758617ms 
+[debug] [2026-11-10T22:34:05.008Z] [worker-southamerica-east1-getFinancialReport-49d1f90f-ec78-44a1-af2e-a32583469a16]: IDLE 
+[debug] [2026-11-10T22:34:05.008Z] Finishing up request with event=finish 
+[debug] [2026-11-10T22:34:05.008Z] Finishing up request with event=close 
+[debug] [2026-11-10T22:34:05.008Z] [work-queue] {"queuedWork":[],"queueLength":0,"runningWork":["/minhas-financas-local/southamerica-east1/getFinancialReport-2026-11-10T22:34:02.194Z","/minhas-financas-local/southamerica-east1/changeWorkspaceMemberRole-2026-11-10T22:34:04.931Z"],"workRunningCount":2}
+[info] >  {"severity":"INFO","message":"callable.end","event":"callable.end","operation":"getFinancialReport","requestId":"e4e99640-2a5d-4085-8193-ca73f0f50d77","actorId":"e2e-p1-owner","workspaceId":"L4dOrfCL5Mx4DHGrAZQh","actorRole":"owner","outcome":"ok","durationMs":3039} {"user":{"severity":"INFO","message":"callable.end","event":"callable.end","operation":"getFinancialReport","requestId":"e4e99640-2a5d-4085-8193-ca73f0f50d77","actorId":"e2e-p1-owner","workspaceId":"L4dOrfCL5Mx4DHGrAZQh","actorRole":"owner","outcome":"ok","durationMs":3039},"metadata":{"emulator":{"name":"functions"},"function":{"name":"southamerica-east1-getFinancialReport"},"extension":{},"message":"\u001b[90m> \u001b[39m {\"severity\":\"INFO\",\"message\":\"callable.end\",\"event\":\"callable.end\",\"operation\":\"getFinancialReport\",\"requestId\":\"e4e99640-2a5d-4085-8193-ca73f0f50d77\",\"actorId\":\"e2e-p1-owner\",\"workspaceId\":\"L4dOrfCL5Mx4DHGrAZQh\",\"actorRole\":\"owner\",\"outcome\":\"ok\",\"durationMs\":3039}"}}
+[debug] [2026-11-10T22:34:05.238Z] Finishing up request with event=pause 
+[info] i  functions: Finished "southamerica-east1-getFinancialReport" in 3043.660284ms 
+[debug] [2026-11-10T22:34:05.238Z] [worker-southamerica-east1-getFinancialReport-5710652b-f9d2-42c4-aa7f-7c3adcb3d4e4]: IDLE 
+[debug] [2026-11-10T22:34:05.238Z] Finishing up request with event=finish 
+[debug] [2026-11-10T22:34:05.238Z] Finishing up request with event=close 
+[debug] [2026-11-10T22:34:05.238Z] [work-queue] {"queuedWork":[],"queueLength":0,"runningWork":["/minhas-financas-local/southamerica-east1/changeWorkspaceMemberRole-2026-11-10T22:34:04.931Z"],"workRunningCount":1}
+[debug] [2026-11-10T22:34:05.481Z] Nov 10, 2026 10:34:05 PM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
+INFO: Detected HTTP/2 connection.
+ 
+[info] >  {"severity":"INFO","message":"callable.end","event":"callable.end","operation":"changeWorkspaceMemberRole","requestId":"bf2a0a35-dd12-4250-9672-3dbf7b8456a3","actorId":"e2e-p1-owner","workspaceId":"L4dOrfCL5Mx4DHGrAZQh","actorRole":"owner","outcome":"ok","durationMs":613} {"user":{"severity":"INFO","message":"callable.end","event":"callable.end","operation":"changeWorkspaceMemberRole","requestId":"bf2a0a35-dd12-4250-9672-3dbf7b8456a3","actorId":"e2e-p1-owner","workspaceId":"L4dOrfCL5Mx4DHGrAZQh","actorRole":"owner","outcome":"ok","durationMs":613},"metadata":{"emulator":{"name":"functions"},"function":{"name":"southamerica-east1-changeWorkspaceMemberRole"},"extension":{},"message":"\u001b[90m> \u001b[39m {\"severity\":\"INFO\",\"message\":\"callable.end\",\"event\":\"callable.end\",\"operation\":\"changeWorkspaceMemberRole\",\"requestId\":\"bf2a0a35-dd12-4250-9672-3dbf7b8456a3\",\"actorId\":\"e2e-p1-owner\",\"workspaceId\":\"L4dOrfCL5Mx4DHGrAZQh\",\"actorRole\":\"owner\",\"outcome\":\"ok\",\"durationMs\":613}"}}
+[debug] [2026-11-10T22:34:05.585Z] Finishing up request with event=pause 
+[info] i  functions: Finished "southamerica-east1-changeWorkspaceMemberRole" in 647.587494ms 
+[debug] [2026-11-10T22:34:05.585Z] [worker-southamerica-east1-changeWorkspaceMemberRole-cdae1f35-1b08-493b-8654-4d4ccd64ed80]: IDLE 
+[debug] [2026-11-10T22:34:05.585Z] Finishing up request with event=finish 
+[debug] [2026-11-10T22:34:05.585Z] Finishing up request with event=close 
+[debug] [2026-11-10T22:34:05.585Z] [work-queue] {"queuedWork":[],"queueLength":0,"runningWork":[],"workRunningCount":0}
+[debug] [2026-11-10T22:34:05.869Z] [work-queue] {"queuedWork":["/minhas-financas-local/southamerica-east1/updateWorkspaceSettings-2026-11-10T22:34:05.869Z"],"queueLength":1,"runningWork":[],"workRunningCount":0}
+[debug] [2026-11-10T22:34:05.870Z] [work-queue] {"queuedWork":[],"queueLength":0,"runningWork":["/minhas-financas-local/southamerica-east1/updateWorkspaceSettings-2026-11-10T22:34:05.869Z"],"workRunningCount":1}
+[debug] [2026-11-10T22:34:05.870Z] Accepted request POST /minhas-financas-local/southamerica-east1/updateWorkspaceSettings --> southamerica-east1-updateWorkspaceSettings
+[debug] [2026-11-10T22:34:05.874Z] [functions] Runtime ready! Sending request! 
+[debug] [2026-11-10T22:34:05.877Z] [functions] Got req.url=/minhas-financas-local/southamerica-east1/updateWorkspaceSettings, mapping to path=/ 
+[debug] [2026-11-10T22:34:05.878Z] [worker-pool] submitRequest(triggerId=southamerica-east1-updateWorkspaceSettings) 
+[info] i  functions: Beginning execution of "southamerica-east1-updateWorkspaceSettings" 
+[debug] [2026-11-10T22:34:05.878Z] [worker-southamerica-east1-updateWorkspaceSettings-1c748745-cbc0-4977-a990-6f49ab2d8970]: BUSY 
+[info] >  {"verifications":{"app":"MISSING","auth":"VALID"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"} {"user":{"verifications":{"app":"MISSING","auth":"VALID"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"},"metadata":{"emulator":{"name":"functions"},"function":{"name":"southamerica-east1-updateWorkspaceSettings"},"extension":{},"message":"\u001b[90m> \u001b[39m {\"verifications\":{\"app\":\"MISSING\",\"auth\":\"VALID\"},\"logging.googleapis.com/labels\":{\"firebase-log-type\":\"callable-request-verification\"},\"severity\":\"DEBUG\",\"message\":\"Callable request verification passed\"}"}}
+[info] >  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"updateWorkspaceSettings","requestId":"d1e99436-b27d-4385-96e5-a66c7b020094","actorId":"e2e-p1-invitee","workspaceId":null,"actorRole":null,"appCheck":"absent"} {"user":{"severity":"INFO","message":"callable.start","event":"callable.start","operation":"updateWorkspaceSettings","requestId":"d1e99436-b27d-4385-96e5-a66c7b020094","actorId":"e2e-p1-invitee","workspaceId":null,"actorRole":null,"appCheck":"absent"},"metadata":{"emulator":{"name":"functions"},"function":{"name":"southamerica-east1-updateWorkspaceSettings"},"extension":{},"message":"\u001b[90m> \u001b[39m {\"severity\":\"INFO\",\"message\":\"callable.start\",\"event\":\"callable.start\",\"operation\":\"updateWorkspaceSettings\",\"requestId\":\"d1e99436-b27d-4385-96e5-a66c7b020094\",\"actorId\":\"e2e-p1-invitee\",\"workspaceId\":null,\"actorRole\":null,\"appCheck\":\"absent\"}"}}
+[info] >  {"severity":"INFO","message":"callable.end","event":"callable.end","operation":"updateWorkspaceSettings","requestId":"d1e99436-b27d-4385-96e5-a66c7b020094","actorId":"e2e-p1-invitee","workspaceId":"L4dOrfCL5Mx4DHGrAZQh","actorRole":"admin","outcome":"ok","durationMs":41} {"user":{"severity":"INFO","message":"callable.end","event":"callable.end","operation":"updateWorkspaceSettings","requestId":"d1e99436-b27d-4385-96e5-a66c7b020094","actorId":"e2e-p1-invitee","workspaceId":"L4dOrfCL5Mx4DHGrAZQh","actorRole":"admin","outcome":"ok","durationMs":41},"metadata":{"emulator":{"name":"functions"},"function":{"name":"southamerica-east1-updateWorkspaceSettings"},"extension":{},"message":"\u001b[90m> \u001b[39m {\"severity\":\"INFO\",\"message\":\"callable.end\",\"event\":\"callable.end\",\"operation\":\"updateWorkspaceSettings\",\"requestId\":\"d1e99436-b27d-4385-96e5-a66c7b020094\",\"actorId\":\"e2e-p1-invitee\",\"workspaceId\":\"L4dOrfCL5Mx4DHGrAZQh\",\"actorRole\":\"admin\",\"outcome\":\"ok\",\"durationMs\":41}"}}
+[debug] [2026-11-10T22:34:05.940Z] Finishing up request with event=pause 
+[info] i  functions: Finished "southamerica-east1-updateWorkspaceSettings" in 61.357342ms 
+[debug] [2026-11-10T22:34:05.940Z] [worker-southamerica-east1-updateWorkspaceSettings-1c748745-cbc0-4977-a990-6f49ab2d8970]: IDLE 
+[debug] [2026-11-10T22:34:05.940Z] Finishing up request with event=finish 
+[debug] [2026-11-10T22:34:05.940Z] Finishing up request with event=close 
+[debug] [2026-11-10T22:34:05.940Z] [work-queue] {"queuedWork":[],"queueLength":0,"runningWork":[],"workRunningCount":0}
+[debug] [2026-11-10T22:34:06.049Z] Nov 10, 2026 10:34:06 PM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
+INFO: Detected non-HTTP/2 connection.
+ 
+[debug] [2026-11-10T22:34:06.357Z] Nov 10, 2026 10:34:06 PM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
+INFO: Detected non-HTTP/2 connection.
+ 
+[debug] [2026-11-10T22:34:06.971Z] [work-queue] {"queuedWork":["/minhas-financas-local/southamerica-east1/removeWorkspaceMember-2026-11-10T22:34:06.970Z"],"queueLength":1,"runningWork":[],"workRunningCount":0}
+[debug] [2026-11-10T22:34:06.973Z] [work-queue] {"queuedWork":[],"queueLength":0,"runningWork":["/minhas-financas-local/southamerica-east1/removeWorkspaceMember-2026-11-10T22:34:06.970Z"],"workRunningCount":1}
+[debug] [2026-11-10T22:34:06.973Z] Accepted request OPTIONS /minhas-financas-local/southamerica-east1/removeWorkspaceMember --> southamerica-east1-removeWorkspaceMember
+[debug] [2026-11-10T22:34:06.974Z] [functions] Runtime ready! Sending request! 
+[debug] [2026-11-10T22:34:06.981Z] [functions] Got req.url=/minhas-financas-local/southamerica-east1/removeWorkspaceMember, mapping to path=/ 
+[debug] [2026-11-10T22:34:06.993Z] [worker-pool] addWorker(southamerica-east1-removeWorkspaceMember) 
+[debug] [2026-11-10T22:34:06.993Z] [worker-pool] Adding worker with key southamerica-east1-removeWorkspaceMember, total=1 
+[debug] [2026-11-10T22:34:16.197Z] [runtime-status] [10239] Resolved module firebase-admin {"declared":true,"installed":true,"version":"13.7.0","resolution":"<scratchpad>/wt-p5f1-r31/functions/node_modules/firebase-admin/lib/index.js"} 
+[debug] [2026-11-10T22:34:16.199Z] [runtime-status] [10239] Resolved module firebase-functions {"declared":true,"installed":true,"version":"7.0.6","resolution":"<scratchpad>/wt-p5f1-r31/functions/node_modules/firebase-functions/lib/v2/index.js"} 
+[debug] [2026-11-10T22:34:16.200Z] [runtime-status] [10239] Outgoing network have been stubbed. [{"name":"http","status":"mocked"},{"name":"http","status":"mocked"},{"name":"https","status":"mocked"},{"name":"https","status":"mocked"},{"name":"net","status":"mocked"}] 
+[debug] [2026-11-10T22:34:16.201Z] [runtime-status] [10239] Resolved module firebase-functions {"declared":true,"installed":true,"version":"7.0.6","resolution":"<scratchpad>/wt-p5f1-r31/functions/node_modules/firebase-functions/lib/v2/index.js"} 
+[debug] [2026-11-10T22:34:16.201Z] [runtime-status] [10239] Detected firebase-functions v7+, skipping legacy stubs. 
+[debug] [2026-11-10T22:34:16.202Z] [runtime-status] [10239] Resolved module firebase-admin {"declared":true,"installed":true,"version":"13.7.0","resolution":"<scratchpad>/wt-p5f1-r31/functions/node_modules/firebase-admin/lib/index.js"} 
+[debug] [2026-11-10T22:34:16.257Z] [runtime-status] [10239] Resolved module firebase-functions {"declared":true,"installed":true,"version":"7.0.6","resolution":"<scratchpad>/wt-p5f1-r31/functions/node_modules/firebase-functions/lib/v2/index.js"} 
+[debug] [2026-11-10T22:34:17.799Z] [runtime-status] [10239] firebase-admin has been stubbed. {"adminResolution":{"declared":true,"installed":true,"version":"13.7.0","resolution":"<scratchpad>/wt-p5f1-r31/functions/node_modules/firebase-admin/lib/index.js"}} 
+[debug] [2026-11-10T22:34:17.804Z] [runtime-status] [10239] initializeApp(DEFAULT) {"storageBucket":"minhas-financas-local.appspot.com","databaseURL":"https://minhas-financas-local.firebaseio.com","projectId":"minhas-financas-local"} 
+[debug] [2026-11-10T22:34:18.819Z] [runtime-status] [10239] Functions runtime initialized. {"cwd":"<scratchpad>/wt-p5f1-r31/functions","node_version":"22.23.4"} 
+[debug] [2026-11-10T22:34:18.880Z] [runtime-status] [10239] Listening to port: /tmp/fire_emu_27a11834b0547e0c.sock 
+[debug] [2026-11-10T22:34:19.166Z] [worker-southamerica-east1-removeWorkspaceMember-0bc93fc9-571d-4e74-857a-a7c863018e81]: IDLE 
+[debug] [2026-11-10T22:34:19.176Z] [worker-pool] submitRequest(triggerId=southamerica-east1-removeWorkspaceMember) 
+[info] i  functions: Beginning execution of "southamerica-east1-removeWorkspaceMember" 
+[debug] [2026-11-10T22:34:19.179Z] [worker-southamerica-east1-removeWorkspaceMember-0bc93fc9-571d-4e74-857a-a7c863018e81]: BUSY 
+[debug] [2026-11-10T22:34:19.234Z] Finishing up request with event=pause 
+[info] i  functions: Finished "southamerica-east1-removeWorkspaceMember" in 68.71239ms 
+[debug] [2026-11-10T22:34:19.262Z] [worker-southamerica-east1-removeWorkspaceMember-0bc93fc9-571d-4e74-857a-a7c863018e81]: IDLE 
+[debug] [2026-11-10T22:34:19.267Z] Finishing up request with event=finish 
+[debug] [2026-11-10T22:34:19.268Z] Finishing up request with event=close 
+[debug] [2026-11-10T22:34:19.268Z] [work-queue] {"queuedWork":[],"queueLength":0,"runningWork":[],"workRunningCount":0}
+[debug] [2026-11-10T22:34:19.584Z] [work-queue] {"queuedWork":["/minhas-financas-local/southamerica-east1/removeWorkspaceMember-2026-11-10T22:34:19.581Z"],"queueLength":1,"runningWork":[],"workRunningCount":0}
+[debug] [2026-11-10T22:34:19.594Z] [work-queue] {"queuedWork":[],"queueLength":0,"runningWork":["/minhas-financas-local/southamerica-east1/removeWorkspaceMember-2026-11-10T22:34:19.581Z"],"workRunningCount":1}
+[debug] [2026-11-10T22:34:19.594Z] Accepted request POST /minhas-financas-local/southamerica-east1/removeWorkspaceMember --> southamerica-east1-removeWorkspaceMember
+[debug] [2026-11-10T22:34:19.596Z] [functions] Runtime ready! Sending request! 
+[debug] [2026-11-10T22:34:19.610Z] [functions] Got req.url=/minhas-financas-local/southamerica-east1/removeWorkspaceMember, mapping to path=/ 
+[debug] [2026-11-10T22:34:19.611Z] [worker-pool] submitRequest(triggerId=southamerica-east1-removeWorkspaceMember) 
+[info] i  functions: Beginning execution of "southamerica-east1-removeWorkspaceMember" 
+[debug] [2026-11-10T22:34:19.617Z] [worker-southamerica-east1-removeWorkspaceMember-0bc93fc9-571d-4e74-857a-a7c863018e81]: BUSY 
+[info] >  {"verifications":{"app":"MISSING","auth":"VALID"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"} {"user":{"verifications":{"app":"MISSING","auth":"VALID"},"logging.googleapis.com/labels":{"firebase-log-type":"callable-request-verification"},"severity":"DEBUG","message":"Callable request verification passed"},"metadata":{"emulator":{"name":"functions"},"function":{"name":"southamerica-east1-removeWorkspaceMember"},"extension":{},"message":"\u001b[90m> \u001b[39m {\"verifications\":{\"app\":\"MISSING\",\"auth\":\"VALID\"},\"logging.googleapis.com/labels\":{\"firebase-log-type\":\"callable-request-verification\"},\"severity\":\"DEBUG\",\"message\":\"Callable request verification passed\"}"}}
+[info] >  {"severity":"INFO","message":"callable.start","event":"callable.start","operation":"removeWorkspaceMember","requestId":"d6dea6ba-e335-4d05-8b9e-8d6e00551698","actorId":"e2e-p1-owner","workspaceId":null,"actorRole":null,"appCheck":"absent"} {"user":{"severity":"INFO","message":"callable.start","event":"callable.start","operation":"removeWorkspaceMember","requestId":"d6dea6ba-e335-4d05-8b9e-8d6e00551698","actorId":"e2e-p1-owner","workspaceId":null,"actorRole":null,"appCheck":"absent"},"metadata":{"emulator":{"name":"functions"},"function":{"name":"southamerica-east1-removeWorkspaceMember"},"extension":{},"message":"\u001b[90m> \u001b[39m {\"severity\":\"INFO\",\"message\":\"callable.start\",\"event\":\"callable.start\",\"operation\":\"removeWorkspaceMember\",\"requestId\":\"d6dea6ba-e335-4d05-8b9e-8d6e00551698\",\"actorId\":\"e2e-p1-owner\",\"workspaceId\":null,\"actorRole\":null,\"appCheck\":\"absent\"}"}}
+[debug] [2026-11-10T22:34:20.795Z] Nov 10, 2026 10:34:20 PM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
+INFO: Detected HTTP/2 connection.
+ 
+[info] >  {"severity":"INFO","message":"callable.end","event":"callable.end","operation":"removeWorkspaceMember","requestId":"d6dea6ba-e335-4d05-8b9e-8d6e00551698","actorId":"e2e-p1-owner","workspaceId":"L4dOrfCL5Mx4DHGrAZQh","actorRole":"owner","outcome":"ok","durationMs":645} {"user":{"severity":"INFO","message":"callable.end","event":"callable.end","operation":"removeWorkspaceMember","requestId":"d6dea6ba-e335-4d05-8b9e-8d6e00551698","actorId":"e2e-p1-owner","workspaceId":"L4dOrfCL5Mx4DHGrAZQh","actorRole":"owner","outcome":"ok","durationMs":645},"metadata":{"emulator":{"name":"functions"},"function":{"name":"southamerica-east1-removeWorkspaceMember"},"extension":{},"message":"\u001b[90m> \u001b[39m {\"severity\":\"INFO\",\"message\":\"callable.end\",\"event\":\"callable.end\",\"operation\":\"removeWorkspaceMember\",\"requestId\":\"d6dea6ba-e335-4d05-8b9e-8d6e00551698\",\"actorId\":\"e2e-p1-owner\",\"workspaceId\":\"L4dOrfCL5Mx4DHGrAZQh\",\"actorRole\":\"owner\",\"outcome\":\"ok\",\"durationMs\":645}"}}
+[debug] [2026-11-10T22:34:20.854Z] Finishing up request with event=pause 
+[info] i  functions: Finished "southamerica-east1-removeWorkspaceMember" in 1237.484349ms 
+[debug] [2026-11-10T22:34:20.854Z] [worker-southamerica-east1-removeWorkspaceMember-0bc93fc9-571d-4e74-857a-a7c863018e81]: IDLE 
+[debug] [2026-11-10T22:34:20.855Z] Finishing up request with event=close 
+[debug] [2026-11-10T22:34:20.855Z] [work-queue] {"queuedWork":[],"queueLength":0,"runningWork":[],"workRunningCount":0}
+[debug] [2026-11-10T22:34:21.572Z] >>> [apiv2][query] POST http://127.0.0.1:5001/functions/projects/minhas-financas-local/trigger_multicast [none]
+[debug] [2026-11-10T22:34:21.572Z] >>> [apiv2][body] POST http://127.0.0.1:5001/functions/projects/minhas-financas-local/trigger_multicast {"eventId":"109673ec-6442-401d-93db-63ebdf170c5d","eventType":"providers/firebase.auth/eventTypes/user.create","resource":{"name":"projects/minhas-financas-local","service":"firebaseauth.googleapis.com"},"params":{},"timestamp":"2026-11-10T22:34:21.572Z","data":{"uid":"e2e-p1-pager","email":"e2e-p1-pager@minhas-financas.local","emailVerified":true,"metadata":{"creationTime":"2026-11-10T22:34:21.572Z","lastSignInTime":"2026-11-10T22:34:21.572Z"},"customClaims":{},"providerData":[{"rawId":"e2e-p1-pager@minhas-financas.local","providerId":"password","email":"e2e-p1-pager@minhas-financas.local","federatedId":"e2e-p1-pager@minhas-financas.local"}]}}
+[debug] [2026-11-10T22:34:21.576Z] <<< [apiv2][status] POST http://127.0.0.1:5001/functions/projects/minhas-financas-local/trigger_multicast 200
+[debug] [2026-11-10T22:34:21.576Z] <<< [apiv2][body] POST http://127.0.0.1:5001/functions/projects/minhas-financas-local/trigger_multicast {"status":"multicast_acknowledged"}
+[debug] [2026-11-10T22:34:21.576Z] >>> [apiv2][query] POST http://127.0.0.1:5001/functions/projects/minhas-financas-local/trigger_multicast [none]
+[debug] [2026-11-10T22:34:21.576Z] >>> [apiv2][body] POST http://127.0.0.1:5001/functions/projects/minhas-financas-local/trigger_multicast {"specversion":"1.0","id":"400a2fd5-514b-4175-9d3e-5fc1a7886657","time":"2026-11-10T22:34:21.572Z","type":"google.firebase.auth.user.v2.created","source":"//identitytoolkit.googleapis.com/projects/minhas-financas-local","subject":"users/e2e-p1-pager","data":{"value":{"uid":"e2e-p1-pager","email":"e2e-p1-pager@minhas-financas.local","emailVerified":true,"metadata":{"creationTime":"2026-11-10T22:34:21.572Z","lastSignInTime":"2026-11-10T22:34:21.572Z"},"customClaims":{},"providerData":[{"rawId":"e2e-p1-pager@minhas-financas.local","providerId":"password","email":"e2e-p1-pager@minhas-financas.local","federatedId":"e2e-p1-pager@minhas-financas.local"}]}}}
+[debug] [2026-11-10T22:34:21.578Z] <<< [apiv2][status] POST http://127.0.0.1:5001/functions/projects/minhas-financas-local/trigger_multicast 200
+[debug] [2026-11-10T22:34:21.578Z] <<< [apiv2][body] POST http://127.0.0.1:5001/functions/projects/minhas-financas-local/trigger_multicast {"status":"multicast_acknowledged"}
+[debug] [2026-11-10T22:34:22.104Z] Nov 10, 2026 10:34:22 PM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
+INFO: Detected HTTP/2 connection.

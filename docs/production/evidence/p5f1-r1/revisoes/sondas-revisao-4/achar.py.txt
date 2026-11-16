@@ -1,0 +1,21 @@
+import sys
+from pathlib import Path
+raw = Path(sys.argv[1])
+def load(path, w, h):
+    d = path.read_bytes(); assert len(d) == w*h*4; return [d[y*w*4:(y+1)*w*4] for y in range(h)]
+for crop, cw, ch, side, page in [('s0-antes-faixa1', 700, 70, 'antes', 's0-configuracoes-validas'), ('s0-depois-faixa1', 700, 70, 'depois', 's0-configuracoes-validas'), ('s0-antes-ajuda', 760, 200, 'antes', 's0-configuracoes-validas'), ('s0-depois-ajuda', 760, 232, 'depois', 's0-configuracoes-validas')]:
+    c = load(raw / f'{crop}.rgba', cw, ch)
+    pw, ph = map(int, (raw / side / f'{page}.size').read_text().split('x'))
+    p = load(raw / side / f'{page}.rgba', pw, ph)
+    # use a distinctive crop row (with most distinct bytes)
+    k = max(range(ch), key=lambda i: len(set(c[i][j:j+4] for j in range(0, len(c[i]), 4))))
+    hits = []
+    for y in range(ph):
+        pos = p[y].find(c[k])
+        while pos != -1:
+            if pos % 4 == 0:
+                x = pos // 4; y0 = y - k
+                if 0 <= y0 and y0 + ch <= ph and all(p[y0+i][x*4:(x+cw)*4] == c[i] for i in range(ch)):
+                    hits.append((x, y0))
+            pos = p[y].find(c[k], pos + 1)
+    print(crop, 'linha-chave', k, 'posições exatas na página', hits[:5])

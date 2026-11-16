@@ -1,0 +1,4835 @@
+{
+  "config": {
+    "configFile": "<scratchpad>/wt-p5f1-r32/playwright.config.ts",
+    "rootDir": "<scratchpad>/wt-p5f1-r32/e2e",
+    "forbidOnly": true,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {},
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "<scratchpad>/wt-p5f1-r32/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "<scratchpad>/wt-p5f1-r32/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 45000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.60.0",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "ai-chat-isolation.spec.ts",
+      "file": "ai-chat-isolation.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "histórico do chat de IA isolado por usuário e workspace, com limpeza e respostas atrasadas",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "84948638c6d248ce3ac1-f3dec34027c171bf1937",
+          "file": "ai-chat-isolation.spec.ts",
+          "line": 118,
+          "column": 1
+        },
+        {
+          "title": "primeira carga de outra conta apaga os resíduos da sessão anterior antes de abrir",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "84948638c6d248ce3ac1-ae43bdbbd38250155d4a",
+          "file": "ai-chat-isolation.spec.ts",
+          "line": 268,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "ai-consent-extraction.spec.ts",
+      "file": "ai-consent-extraction.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "diálogo de análise: pergunta longa rola na citação, que fica alcançável pelo teclado",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "640327e17ee1c1639e28-f3376a8303ed56e16da9",
+          "file": "ai-consent-extraction.spec.ts",
+          "line": 269,
+          "column": 1
+        },
+        {
+          "title": "chat: cancelar e Escape não enviam; confirmar envia só o contrato, e o duplo clique vira um envio",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "640327e17ee1c1639e28-e66a4b907a42a1c13101",
+          "file": "ai-consent-extraction.spec.ts",
+          "line": 293,
+          "column": 1
+        },
+        {
+          "title": "chat: erro do provedor mostra a mensagem do backend como resposta",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "640327e17ee1c1639e28-90ca1697e11f393e8214",
+          "file": "ai-consent-extraction.spec.ts",
+          "line": 381,
+          "column": 1
+        },
+        {
+          "title": "chat: HTML ativo na resposta aparece como texto literal, sem elementos nem script",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "640327e17ee1c1639e28-90bd6ec51d27805380a2",
+          "file": "ai-consent-extraction.spec.ts",
+          "line": 400,
+          "column": 1
+        },
+        {
+          "title": "documento: arquivo inválido ou vazio não abre envio; PNG válido pede confirmação e preenche só o identificado",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "640327e17ee1c1639e28-94d45186a6547a207302",
+          "file": "ai-consent-extraction.spec.ts",
+          "line": 440,
+          "column": 1
+        },
+        {
+          "title": "documento: sugestão completa converte centavos sem ponto flutuante e avisa categoria sem correspondência",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "640327e17ee1c1639e28-53d9005b70555edb9d15",
+          "file": "ai-consent-extraction.spec.ts",
+          "line": 516,
+          "column": 1
+        },
+        {
+          "title": "documento: resposta recusada não preenche nada",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "640327e17ee1c1639e28-c7abe2c6cdabfa57266c",
+          "file": "ai-consent-extraction.spec.ts",
+          "line": 543,
+          "column": 1
+        },
+        {
+          "title": "documento: trocar de aba antes da resposta descarta a sugestão",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "640327e17ee1c1639e28-14e7b3fcb4af9e6ef8ce",
+          "file": "ai-consent-extraction.spec.ts",
+          "line": 563,
+          "column": 1
+        },
+        {
+          "title": "documento: fechar o formulário antes da resposta descarta a sugestão ao reabrir",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "640327e17ee1c1639e28-ca31602512fbcceaa9d2",
+          "file": "ai-consent-extraction.spec.ts",
+          "line": 593,
+          "column": 1
+        },
+        {
+          "title": "documento: falha depois da admissão mostra a mensagem do backend e não repete",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "640327e17ee1c1639e28-f70e29f01a3998a28e2e",
+          "file": "ai-consent-extraction.spec.ts",
+          "line": 621,
+          "column": 1
+        },
+        {
+          "title": "teclado: Tab preso no diálogo, Escape fecha sem enviar e o foco volta ao botão de origem",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "640327e17ee1c1639e28-21199996f3c64298d250",
+          "file": "ai-consent-extraction.spec.ts",
+          "line": 642,
+          "column": 1
+        },
+        {
+          "title": "voz: o microfone só abre depois da confirmação e o texto só é enviado depois da segunda",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "640327e17ee1c1639e28-de9860651ff4bdd4b97a",
+          "file": "ai-consent-extraction.spec.ts",
+          "line": 718,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "app-smoke.spec.ts",
+      "file": "app-smoke.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "aplicação deve carregar sem erro crítico",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "cff01a981c5535b36d03-13770325d743d0195599",
+          "file": "app-smoke.spec.ts",
+          "line": 3,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "authenticated-smoke.spec.ts",
+      "file": "authenticated-smoke.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "usuário E2E deve autenticar e carregar a aplicação logada usando emuladores",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "aab53df21c85f37451a0-cccaaac9fef95f5aca41",
+          "file": "authenticated-smoke.spec.ts",
+          "line": 3,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "billing-bootstrap.spec.ts",
+      "file": "billing-bootstrap.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "billing só é lido depois do bootstrap: primeiro login, conta existente e troca de conta",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "86d823e54be879837d78-ece311d894fb612ac469",
+          "file": "billing-bootstrap.spec.ts",
+          "line": 144,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "billing-checkout-portal.spec.ts",
+      "file": "billing-checkout-portal.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "conta Free: o upgrade envia só o planId, trata a falha e redireciona ao checkout simulado",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "f550e5f29f6731122ba9-00e59b689fb5cded704f",
+          "file": "billing-checkout-portal.spec.ts",
+          "line": 156,
+          "column": 1
+        },
+        {
+          "title": "assinante: \"Gerenciar assinatura\" abre o portal simulado e nunca inicia checkout",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "f550e5f29f6731122ba9-73ebde4289f15981a85b",
+          "file": "billing-checkout-portal.spec.ts",
+          "line": 236,
+          "column": 1
+        },
+        {
+          "title": "conta sem estado confiável: falha de leitura do documento canônico bloqueia contratação e gestão",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "f550e5f29f6731122ba9-edd8f51e225a458de5b0",
+          "file": "billing-checkout-portal.spec.ts",
+          "line": 293,
+          "column": 1
+        },
+        {
+          "title": "sem configuração do Stripe, a callable real falha fechada e a tela mostra a mensagem do backend",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "f550e5f29f6731122ba9-5865309e1b3459e0d750",
+          "file": "billing-checkout-portal.spec.ts",
+          "line": 336,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "cash-accounts.spec.ts",
+      "file": "cash-accounts.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "PF",
+          "file": "cash-accounts.spec.ts",
+          "line": 132,
+          "column": 6,
+          "specs": [
+            {
+              "title": "contas: saldo inicial fora de receita/despesa; transferência revisada; clique duplo e estorno sem duplicar",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "c785d1463444c824f7f4-c4405ca4702cbed0b793",
+              "file": "cash-accounts.spec.ts",
+              "line": 138,
+              "column": 3
+            },
+            {
+              "title": "lançamentos: conta escolhida no formulário; pendente só move na confirmação; troca de conta e anulação compensam",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "c785d1463444c824f7f4-d3ab5611d84e27ecffac",
+              "file": "cash-accounts.spec.ts",
+              "line": 275,
+              "column": 3
+            },
+            {
+              "title": "RBAC: member transfere e estorna só a própria; viewer só lê; perda de papel com o diálogo aberto",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "c785d1463444c824f7f4-000f40b6074551b1e8f1",
+              "file": "cash-accounts.spec.ts",
+              "line": 376,
+              "column": 3
+            },
+            {
+              "title": "troca de workspace: cada espaço mostra só as próprias contas e o próprio saldo geral",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "c785d1463444c824f7f4-cb6219416c8894562d96",
+              "file": "cash-accounts.spec.ts",
+              "line": 453,
+              "column": 3
+            },
+            {
+              "title": "conta arquivada: só com saldo zero; some das escolhas; recusa movimento; reativada volta a aceitar",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "c785d1463444c824f7f4-697f1a54f52b6963aff1",
+              "file": "cash-accounts.spec.ts",
+              "line": 484,
+              "column": 3
+            },
+            {
+              "title": "resposta perdida, sessão perdida e versão concorrente não duplicam a transferência nem o estorno",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "c785d1463444c824f7f4-102c7238cc00c24fdd20",
+              "file": "cash-accounts.spec.ts",
+              "line": 559,
+              "column": 3
+            }
+          ]
+        },
+        {
+          "title": "PJ",
+          "file": "cash-accounts.spec.ts",
+          "line": 629,
+          "column": 6,
+          "specs": [
+            {
+              "title": "empréstimo e recebível com conta: principal, liquidação em outra conta, estornos na conta original, desconto fora",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "c785d1463444c824f7f4-712faaca52abf6b18a28",
+              "file": "cash-accounts.spec.ts",
+              "line": 635,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "cash-manual-entries.spec.ts",
+      "file": "cash-manual-entries.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "criação confirmada passa pela callable: duplo envio e reenvio incerto não duplicam",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "28375ba44818ed5b4e7a-e898319959a231ef6013",
+          "file": "cash-manual-entries.spec.ts",
+          "line": 204,
+          "column": 1
+        },
+        {
+          "title": "correção leva motivo e versão completa; conflito orienta; anulação sai da tela",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "28375ba44818ed5b4e7a-5a8edd61c97c5d12b273",
+          "file": "cash-manual-entries.spec.ts",
+          "line": 297,
+          "column": 1
+        },
+        {
+          "title": "quota esgotada: titular orientado ao upgrade e backend recusa mesmo assim",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "28375ba44818ed5b4e7a-ca7fc2c552898f2a7a8d",
+          "file": "cash-manual-entries.spec.ts",
+          "line": 392,
+          "column": 1
+        },
+        {
+          "title": "quota esgotada para membro: orientação ao titular, sem o uso exato",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "28375ba44818ed5b4e7a-60d957aa7dc6bb5f79a6",
+          "file": "cash-manual-entries.spec.ts",
+          "line": 419,
+          "column": 1
+        },
+        {
+          "title": "espaço sem contador: tela não bloqueia, backend falha fechado e a troca não vaza lançamentos",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "28375ba44818ed5b4e7a-a48ba1eb0afb17a5ceca",
+          "file": "cash-manual-entries.spec.ts",
+          "line": 442,
+          "column": 1
+        },
+        {
+          "title": "perda de acesso entre abrir o formulário e salvar é recusada em pt-BR",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "28375ba44818ed5b4e7a-b32aa24382bd4bae629a",
+          "file": "cash-manual-entries.spec.ts",
+          "line": 469,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "cash-pending-entries.spec.ts",
+      "file": "cash-pending-entries.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "pendente e agendado não movem o caixa; confirmar grava data efetiva e preserva o vencimento",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "68c5ec664418477b0017-6c22289157d4e39fe7dc",
+          "file": "cash-pending-entries.spec.ts",
+          "line": 169,
+          "column": 1
+        },
+        {
+          "title": "recusas locais: confirmação com mudança descritiva e pago com data futura",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "68c5ec664418477b0017-4e63eaaa1b3651be1575",
+          "file": "cash-pending-entries.spec.ts",
+          "line": 240,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "clients-receivables.spec.ts",
+      "file": "clients-receivables.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "cliente: cadastro e edição pela tela; dados pessoais só no privado; arquivar bloqueado com recebível em aberto",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "7ff3e5e3159d7c673b56-a10f5524e0a4b05b3d33",
+          "file": "clients-receivables.spec.ts",
+          "line": 92,
+          "column": 1
+        },
+        {
+          "title": "recebível: criação e edição pela tela em centavos; valor travado depois de recebimento",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "7ff3e5e3159d7c673b56-6adde6ee9689252df02a",
+          "file": "clients-receivables.spec.ts",
+          "line": 175,
+          "column": 1
+        },
+        {
+          "title": "recebimentos: parcial com juros e multa, quitação com desconto; caixa = principal + juros + multa",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "7ff3e5e3159d7c673b56-a2dab3b6038b39d882e2",
+          "file": "clients-receivables.spec.ts",
+          "line": 226,
+          "column": 1
+        },
+        {
+          "title": "estorno e cancelamento: compensação no caixa; cancelar só sem recebimento ativo; sem efeito de caixa",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "7ff3e5e3159d7c673b56-1462b597be531d5b9cda",
+          "file": "clients-receivables.spec.ts",
+          "line": 307,
+          "column": 1
+        },
+        {
+          "title": "atraso derivado pela data civil de São Paulo; nunca gravado",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "7ff3e5e3159d7c673b56-b28b70c847c87cda5aa5",
+          "file": "clients-receivables.spec.ts",
+          "line": 367,
+          "column": 1
+        },
+        {
+          "title": "RBAC: member só administra o que criou; viewer só lê; dados pessoais nunca pedidos por member/viewer",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "7ff3e5e3159d7c673b56-8917ba04efdece576016",
+          "file": "clients-receivables.spec.ts",
+          "line": 386,
+          "column": 1
+        },
+        {
+          "title": "versão concorrente, reenvio após resposta perdida e perda de sessão não duplicam",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "7ff3e5e3159d7c673b56-3afae47370d2c40473b7",
+          "file": "clients-receivables.spec.ts",
+          "line": 458,
+          "column": 1
+        },
+        {
+          "title": "troca de workspace: cada espaço mostra só os próprios clientes e recebíveis",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "7ff3e5e3159d7c673b56-6b01275748195102b264",
+          "file": "clients-receivables.spec.ts",
+          "line": 512,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "credit-card-flow.spec.ts",
+      "file": "credit-card-flow.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "PF",
+          "file": "credit-card-flow.spec.ts",
+          "line": 152,
+          "column": 6,
+          "specs": [
+            {
+              "title": "cartão: criado e editado pela tela em centavos; envio duplo cria um só",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "5847bec707a9b1d5fe41-7d4d8f9ff144dbe2c4be",
+              "file": "credit-card-flow.spec.ts",
+              "line": 159,
+              "column": 3
+            },
+            {
+              "title": "compra manual só pela callable: à vista, parcelada e retroativa; nada de parcelado; clique duplo e resposta perdida",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "5847bec707a9b1d5fe41-0f982b09975d1d1cc8b0",
+              "file": "credit-card-flow.spec.ts",
+              "line": 205,
+              "column": 3
+            },
+            {
+              "title": "fatura fechada pela rotina: pagamento parcial e antecipado pela conta escolhida, estorno na mesma conta, total",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "5847bec707a9b1d5fe41-99801bbcd7eb2e05cfbd",
+              "file": "credit-card-flow.spec.ts",
+              "line": 283,
+              "column": 3
+            },
+            {
+              "title": "cancelamento, estorno de compra faturada, ajuste manual e arquivamento",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "5847bec707a9b1d5fe41-1f2de18d56fd0d9c0cd0",
+              "file": "credit-card-flow.spec.ts",
+              "line": 377,
+              "column": 3
+            },
+            {
+              "title": "member compra pela tela e não administra; o servidor recusa o que a tela esconde",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "5847bec707a9b1d5fe41-5a4a3a77b3c555495e22",
+              "file": "credit-card-flow.spec.ts",
+              "line": 475,
+              "column": 3
+            },
+            {
+              "title": "perda de papel com o diálogo aberto; viewer só lê",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "5847bec707a9b1d5fe41-57daafabaaf68e5c2bca",
+              "file": "credit-card-flow.spec.ts",
+              "line": 519,
+              "column": 3
+            },
+            {
+              "title": "troca de workspace: cada espaço mostra só os próprios cartões",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "5847bec707a9b1d5fe41-1a8986e626d3ce209905",
+              "file": "credit-card-flow.spec.ts",
+              "line": 549,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "financial-reports.spec.ts",
+      "file": "financial-reports.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "PF: Dashboard e Relatórios mostram o mesmo caixa; Saldo Atual é a soma das contas",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "83ff453ef79a18b63b4a-e3d1af4c703053242929",
+          "file": "financial-reports.spec.ts",
+          "line": 290,
+          "column": 1
+        },
+        {
+          "title": "PJ: rótulos operacionais, margem em percentual pt-BR e sem Faturamento/Lucro",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "83ff453ef79a18b63b4a-02e8bb9346b2e60f9d2f",
+          "file": "financial-reports.spec.ts",
+          "line": 336,
+          "column": 1
+        },
+        {
+          "title": "Relatórios: cada filtro de período reflete a janela civil correta",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "83ff453ef79a18b63b4a-bc67e9878aa56c9ec96f",
+          "file": "financial-reports.spec.ts",
+          "line": 376,
+          "column": 1
+        },
+        {
+          "title": "troca de workspace e de usuário não deixa números do contexto anterior na tela",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "83ff453ef79a18b63b4a-04cf75445c3835749802",
+          "file": "financial-reports.spec.ts",
+          "line": 471,
+          "column": 1
+        },
+        {
+          "title": "cartões: atraso, próxima fatura a pagar e futuro separados e reconciliáveis; sem fatura a vencer não vira R$ 0,00; arquivado com saldo aparece marcado",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "83ff453ef79a18b63b4a-2cdfada8718ec9399a3d",
+          "file": "financial-reports.spec.ts",
+          "line": 571,
+          "column": 1
+        },
+        {
+          "title": "lançamento criado pela UI atualiza Dashboard e Relatórios sem recarregar a página",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "83ff453ef79a18b63b4a-397350c48fb8eaba81f8",
+          "file": "financial-reports.spec.ts",
+          "line": 804,
+          "column": 1
+        }
+      ],
+      "suites": [
+        {
+          "title": "estados do relatório",
+          "file": "financial-reports.spec.ts",
+          "line": 664,
+          "column": 6,
+          "specs": [
+            {
+              "title": "zero verdadeiro: sem movimento mostra R$ 0,00 e \"Sem movimentação no período.\"",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "83ff453ef79a18b63b4a-be5b7d55f9eeee9f2719",
+              "file": "financial-reports.spec.ts",
+              "line": 665,
+              "column": 3
+            },
+            {
+              "title": "aguardando reconstrução: projeção em versão antiga não mostra número de caixa",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "83ff453ef79a18b63b4a-333a9a96a2690ffa68f1",
+              "file": "financial-reports.spec.ts",
+              "line": 681,
+              "column": 3
+            },
+            {
+              "title": "viewer: lê caixa e aportes, mas não o patrimônio investido",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "83ff453ef79a18b63b4a-e67e8d28c01e77fcbd18",
+              "file": "financial-reports.spec.ts",
+              "line": 708,
+              "column": 3
+            },
+            {
+              "title": "falha técnica: erro na callable mostra a mensagem em pt-BR, sem números",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "83ff453ef79a18b63b4a-21eee894eef797ae8b0a",
+              "file": "financial-reports.spec.ts",
+              "line": 768,
+              "column": 3
+            }
+          ]
+        },
+        {
+          "title": "mobile",
+          "file": "financial-reports.spec.ts",
+          "line": 840,
+          "column": 6,
+          "specs": [
+            {
+              "title": "Relatórios em 390x844: números corretos e sem rolagem horizontal",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "83ff453ef79a18b63b4a-6b6dc3d678320e5043f6",
+              "file": "financial-reports.spec.ts",
+              "line": 843,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "goal-contributions.spec.ts",
+      "file": "goal-contributions.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "aporte nascido na meta publica progresso e projeta caixa uma vez",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "8a77db99d1a4f39d1383-0a932d4bde72e8c405b6",
+          "file": "goal-contributions.spec.ts",
+          "line": 108,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "goal-investments.spec.ts",
+      "file": "goal-investments.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "Novo Aporte pela meta abre o formulário com a meta travada",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "263cfb8a69ef5233fb3e-6060e0e0e42fca4823f4",
+          "file": "goal-investments.spec.ts",
+          "line": 171,
+          "column": 1
+        },
+        {
+          "title": "Vincular Existente liga e Remover da meta desfaz, sem apagar movimento",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "263cfb8a69ef5233fb3e-9852739f3000f83e5eed",
+          "file": "goal-investments.spec.ts",
+          "line": 221,
+          "column": 1
+        },
+        {
+          "title": "retirada reduz a meta pelo capital e nunca vira receita operacional",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "263cfb8a69ef5233fb3e-fc4728b6f33307d23a45",
+          "file": "goal-investments.spec.ts",
+          "line": 256,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "goals-investment-options.spec.ts",
+      "file": "goals-investment-options.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "P5-B.1 — metas de investimento além da centésima",
+          "file": "goals-investment-options.spec.ts",
+          "line": 157,
+          "column": 6,
+          "specs": [
+            {
+              "title": "o seletor pagina sem teto: aportes vinculados à 101ª, à 125ª e à 201ª meta",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "a07699535114aab355d3-488e7d1165e5b6cbb964",
+              "file": "goals-investment-options.spec.ts",
+              "line": 160,
+              "column": 3
+            },
+            {
+              "title": "posição de meta fora da 1ª página é nomeada por ID no card e no filtro",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "a07699535114aab355d3-ff8757801000e85a632b",
+              "file": "goals-investment-options.spec.ts",
+              "line": 192,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "goals-p5b.spec.ts",
+      "file": "goals-p5b.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Metas P5-B",
+          "file": "goals-p5b.spec.ts",
+          "line": 214,
+          "column": 6,
+          "specs": [
+            {
+              "title": "meta manual: cria, mostra valores exatos e atualiza o valor acumulado sem lançamento",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "a2032671b653e3560bd7-665d3fac76bdb881d1fa",
+              "file": "goals-p5b.spec.ts",
+              "line": 215,
+              "column": 3
+            },
+            {
+              "title": "editar a meta renomeia, incrementa a revisão e preserva o valor manual",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "a2032671b653e3560bd7-d523e0cc6b0c409cb743",
+              "file": "goals-p5b.spec.ts",
+              "line": 282,
+              "column": 3
+            },
+            {
+              "title": "status: pausar persiste (inclusive após recarregar), retomar e concluir",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "a2032671b653e3560bd7-ae8ecd33e2ce8a4750b8",
+              "file": "goals-p5b.spec.ts",
+              "line": 311,
+              "column": 3
+            },
+            {
+              "title": "alvo atingido pelo progresso não vira status concluída",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "a2032671b653e3560bd7-5e49371b0ad5d5e49237",
+              "file": "goals-p5b.spec.ts",
+              "line": 346,
+              "column": 3
+            },
+            {
+              "title": "arquivar meta sem vínculos: sai da lista, o documento permanece e o status é preservado",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "a2032671b653e3560bd7-7f0135c2efe534b12ca5",
+              "file": "goals-p5b.spec.ts",
+              "line": 364,
+              "column": 3
+            },
+            {
+              "title": "meta com investimento vinculado recusa arquivar; ao desvincular, arquiva",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "a2032671b653e3560bd7-4734af7a30d6d18776e9",
+              "file": "goals-p5b.spec.ts",
+              "line": 387,
+              "column": 3
+            },
+            {
+              "title": "lista paginada: 25 por página, \"Carregar mais metas\" sem duplicar, contador do servidor",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "a2032671b653e3560bd7-645d4e762121e1652a02",
+              "file": "goals-p5b.spec.ts",
+              "line": 444,
+              "column": 3
+            },
+            {
+              "title": "PJ: \"Valor informado\" cria meta manual, atualiza o valor, edita e arquiva sem lançamento",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "a2032671b653e3560bd7-5d34a9ada6e2de38d09d",
+              "file": "goals-p5b.spec.ts",
+              "line": 481,
+              "column": 3
+            },
+            {
+              "title": "PJ: centro de custo de um indicador é informativo (valores gerais da empresa)",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "a2032671b653e3560bd7-25341624760d7df38ff2",
+              "file": "goals-p5b.spec.ts",
+              "line": 566,
+              "column": 3
+            },
+            {
+              "title": "PJ: faturamento usa só os recebimentos operacionais realizados do servidor",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "a2032671b653e3560bd7-2c50e1d159323ac24c02",
+              "file": "goals-p5b.spec.ts",
+              "line": 584,
+              "column": 3
+            },
+            {
+              "title": "PJ: margem sem recebimentos mostra a mensagem de indisponível do servidor",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "a2032671b653e3560bd7-e43a542d590b3f15288b",
+              "file": "goals-p5b.spec.ts",
+              "line": 645,
+              "column": 3
+            },
+            {
+              "title": "trocar entre PF e PJ mostra só as metas do workspace ativo",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "a2032671b653e3560bd7-6b53bb6870a5844a4d09",
+              "file": "goals-p5b.spec.ts",
+              "line": 671,
+              "column": 3
+            },
+            {
+              "title": "viewer vê lista e detalhe, mas não altera status nem atualiza o valor acumulado",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "a2032671b653e3560bd7-90b0b0e0f51c1db50f47",
+              "file": "goals-p5b.spec.ts",
+              "line": 697,
+              "column": 3
+            },
+            {
+              "title": "workspace sem metas mostra o estado vazio",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "a2032671b653e3560bd7-53828ead30c6675a9ce4",
+              "file": "goals-p5b.spec.ts",
+              "line": 719,
+              "column": 3
+            },
+            {
+              "title": "formulário desatualizado: outra sessão alterou a meta e o salvamento pede para recarregar",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "a2032671b653e3560bd7-b91f0e68f2e09965c115",
+              "file": "goals-p5b.spec.ts",
+              "line": 731,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "investment-operations.spec.ts",
+      "file": "investment-operations.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "a faixa de alocação PJ aparece na tela de Investimentos",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "71f3c0fba567acf7c3d4-8797038fe66b73cecaf7",
+          "file": "investment-operations.spec.ts",
+          "line": 75,
+          "column": 1
+        },
+        {
+          "title": "a administração técnica não aparece em Configurações para nenhum papel",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "71f3c0fba567acf7c3d4-b42c312d31c99b92aa63",
+          "file": "investment-operations.spec.ts",
+          "line": 132,
+          "column": 1
+        },
+        {
+          "title": "a reconstrução do caixa conclui pelo runtime das Functions",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "71f3c0fba567acf7c3d4-a162a3ef8da91f8ec40a",
+          "file": "investment-operations.spec.ts",
+          "line": 166,
+          "column": 1
+        },
+        {
+          "title": "as callables da experiência profissional não existem no runtime",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "71f3c0fba567acf7c3d4-11941845d754d11ae133",
+          "file": "investment-operations.spec.ts",
+          "line": 210,
+          "column": 1
+        },
+        {
+          "title": "papel sem autoridade recebe recusa do servidor, não botão escondido",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "71f3c0fba567acf7c3d4-20a40245763e46230aea",
+          "file": "investment-operations.spec.ts",
+          "line": 224,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "investments-accounts.spec.ts",
+      "file": "investments-accounts.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "com duas contas, o aporte depositado exige a conta de origem e move só ela",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "2248896a279b3d6c4bad-7f713a195e5d75c99a5a",
+          "file": "investments-accounts.spec.ts",
+          "line": 134,
+          "column": 1
+        },
+        {
+          "title": "pendente não move conta; confirmar, retirar, desfazer e cancelar movem a conta certa",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "2248896a279b3d6c4bad-241dfeb23a39bb2d1f78",
+          "file": "investments-accounts.spec.ts",
+          "line": 170,
+          "column": 1
+        },
+        {
+          "title": "duplo clique em \"Confirmar depósito\" liquida uma vez e move a conta uma vez",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "2248896a279b3d6c4bad-b9231c55ce4e55978594",
+          "file": "investments-accounts.spec.ts",
+          "line": 245,
+          "column": 1
+        },
+        {
+          "title": "servidor decide papel, workspace e conta: member, viewer, outro tenant e conta arquivada",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "2248896a279b3d6c4bad-8730ebbe1d2ef091e853",
+          "file": "investments-accounts.spec.ts",
+          "line": 269,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "investments-simple.spec.ts",
+      "file": "investments-simple.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "o formulário simples pede exatamente os campos do fluxo comum",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "6c2c7e43c52892f98518-acf43550e2298eeedd96",
+          "file": "investments-simple.spec.ts",
+          "line": 134,
+          "column": 1
+        },
+        {
+          "title": "pendente aparece na lista, é confirmado e vira depositado",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "6c2c7e43c52892f98518-25af05b4c299a3badc36",
+          "file": "investments-simple.spec.ts",
+          "line": 162,
+          "column": 1
+        },
+        {
+          "title": "investimento depositado é retirado e o recebimento é confirmado",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "6c2c7e43c52892f98518-133340d79bef030162bb",
+          "file": "investments-simple.spec.ts",
+          "line": 194,
+          "column": 1
+        },
+        {
+          "title": "cancelar um pendente preserva o histórico e não vira investimento ativo",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "6c2c7e43c52892f98518-bf058a895e228e025e8b",
+          "file": "investments-simple.spec.ts",
+          "line": 242,
+          "column": 1
+        },
+        {
+          "title": "editar um pendente cancela a intenção anterior e abre outra",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "6c2c7e43c52892f98518-1dbc4b6573d902e51d68",
+          "file": "investments-simple.spec.ts",
+          "line": 264,
+          "column": 1
+        },
+        {
+          "title": "owner desfaz um lançamento depositado sem hard delete",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "6c2c7e43c52892f98518-8fdd2c6668e0ec21a836",
+          "file": "investments-simple.spec.ts",
+          "line": 295,
+          "column": 1
+        },
+        {
+          "title": "a tela responde em viewport de celular",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "6c2c7e43c52892f98518-a6ab1969e924b901d247",
+          "file": "investments-simple.spec.ts",
+          "line": 322,
+          "column": 1
+        },
+        {
+          "title": "\"Nova Transação\" registra o aporte pelo ledger simples, e não por transações",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "6c2c7e43c52892f98518-da37229b19510da22128",
+          "file": "investments-simple.spec.ts",
+          "line": 343,
+          "column": 1
+        },
+        {
+          "title": "a categoria cadastrada uma vez alimenta os dois pontos de entrada",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "6c2c7e43c52892f98518-49f2516408fe63094593",
+          "file": "investments-simple.spec.ts",
+          "line": 432,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "investments-v2.spec.ts",
+      "file": "investments-v2.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "workspace novo abre Investimentos sem flag e sem migração",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "26523548756c2ef62294-1d06aaa82c6cdf495589",
+          "file": "investments-v2.spec.ts",
+          "line": 149,
+          "column": 1
+        },
+        {
+          "title": "a tela de investimentos é responsiva e não expõe cadastro técnico",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "26523548756c2ef62294-e69589b944fcf1e73ff0",
+          "file": "investments-v2.spec.ts",
+          "line": 160,
+          "column": 1
+        },
+        {
+          "title": "o dashboard mostra o mês e o relatório separa aporte de retirada",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "26523548756c2ef62294-c41787580e2fba8f0250",
+          "file": "investments-v2.spec.ts",
+          "line": 173,
+          "column": 1
+        },
+        {
+          "title": "retirada pendente pode ser cancelada sem tocar caixa nem posição",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "26523548756c2ef62294-7f75c232075158d1b3c8",
+          "file": "investments-v2.spec.ts",
+          "line": 217,
+          "column": 1
+        },
+        {
+          "title": "a aba Investimento de \"Nova Transação\" abre o formulário simples",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "26523548756c2ef62294-e02f423e2d840c797451",
+          "file": "investments-v2.spec.ts",
+          "line": 279,
+          "column": 1
+        },
+        {
+          "title": "valoração a mercado não tem superfície na experiência comum",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "26523548756c2ef62294-64904056cc2e26d978f5",
+          "file": "investments-v2.spec.ts",
+          "line": 340,
+          "column": 1
+        },
+        {
+          "title": "duplo clique em Salvar cria um único investimento",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "26523548756c2ef62294-e8729c6a36847af81214",
+          "file": "investments-v2.spec.ts",
+          "line": 362,
+          "column": 1
+        },
+        {
+          "title": "a faixa de alocação PF aparece na tela e distribui pelas carteiras",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "26523548756c2ef62294-26835b7ddf795f75b3bf",
+          "file": "investments-v2.spec.ts",
+          "line": 403,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "loans-pf.spec.ts",
+      "file": "loans-pf.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "PF: criação sem juros e com juros fixos pela tela; principal fora de receita/despesa",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "d3a687441194064afa8e-059a744e1728e8bf0c7f",
+          "file": "loans-pf.spec.ts",
+          "line": 120,
+          "column": 1
+        },
+        {
+          "title": "PF: percentual com Price, SAC e juros simples; cronograma do backend na tela",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "d3a687441194064afa8e-6db2812b6497a62e8ef2",
+          "file": "loans-pf.spec.ts",
+          "line": 170,
+          "column": 1
+        },
+        {
+          "title": "PF: pagamento com juros e estorno; saldo cai só pelo principal; juros como resultado financeiro",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "d3a687441194064afa8e-ab71f19df231a708dbca",
+          "file": "loans-pf.spec.ts",
+          "line": 218,
+          "column": 1
+        },
+        {
+          "title": "PF: quitação, metadados e cancelamento; cancelado fora dos totais",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "d3a687441194064afa8e-fcf898c82ca7003c3f2b",
+          "file": "loans-pf.spec.ts",
+          "line": 278,
+          "column": 1
+        },
+        {
+          "title": "PF: versão concorrente e reenvio após resposta perdida não duplicam",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "d3a687441194064afa8e-0ac12351de90b6f94621",
+          "file": "loans-pf.spec.ts",
+          "line": 359,
+          "column": 1
+        },
+        {
+          "title": "PF: member administra só o que criou; viewer só lê; perda de papel com a tela aberta",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "d3a687441194064afa8e-eb91c5bc6d5e969a6554",
+          "file": "loans-pf.spec.ts",
+          "line": 411,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "loans-pj.spec.ts",
+      "file": "loans-pj.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "PJ: CNPJ e CPF válidos, classificação e centro de custo; Price, SAC e simples",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "0cdeb2ac90966b4a7b50-97ca412c06279987513a",
+          "file": "loans-pj.spec.ts",
+          "line": 83,
+          "column": 1
+        },
+        {
+          "title": "PJ: pagamento com principal e juros da parcela, estorno, metadados e cancelamento",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "0cdeb2ac90966b4a7b50-2a62363d572090930720",
+          "file": "loans-pj.spec.ts",
+          "line": 146,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "notifications-exit-race.spec.ts",
+      "file": "notifications-exit-race.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "P5-E1.1 — aviso que começa a sair logo depois de outro terminar",
+          "file": "notifications-exit-race.spec.ts",
+          "line": 65,
+          "column": 6,
+          "specs": [
+            {
+              "title": "sai do DOM: o NotificationsPanel re-renderiza a cada onExitComplete (framer-motion 10.16)",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "2c1a95d80fc487acc60b-baaa8ab6a4fcc10ffed2",
+              "file": "notifications-exit-race.spec.ts",
+              "line": 72,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "notifications-mobile-p5e11.spec.ts",
+      "file": "notifications-mobile-p5e11.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "P5-E1.1 01 — um arquivamento: sai da lista, o sino cai em 1 e só o estado dele é gravado",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "077104334da00b91bb04-010016b84aa0528f709d",
+          "file": "notifications-mobile-p5e11.spec.ts",
+          "line": 302,
+          "column": 1
+        },
+        {
+          "title": "P5-E1.1 02 — dois arquivamentos rápidos: os dois persistem, o painel continua aberto e nenhum outro aviso é tocado",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "077104334da00b91bb04-2ced7710ed63fcba5b16",
+          "file": "notifications-mobile-p5e11.spec.ts",
+          "line": 333,
+          "column": 1
+        },
+        {
+          "title": "P5-E1.1 03 — arquivar depois de marcar como lido: guarda as duas marcas e o sino não muda no arquivamento",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "077104334da00b91bb04-e4d9485839678c10a76d",
+          "file": "notifications-mobile-p5e11.spec.ts",
+          "line": 359,
+          "column": 1
+        },
+        {
+          "title": "P5-E1.1 04 — aviso no fim da lista: arquivar o último (depois de rolar) mexe só nele e o painel fica aberto",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "077104334da00b91bb04-62756b9c77673efde27a",
+          "file": "notifications-mobile-p5e11.spec.ts",
+          "line": 395,
+          "column": 1
+        },
+        {
+          "title": "P5-E1.1 05 — arquivar enquanto a contagem atualiza: contagem final exata, os dois persistidos e a lista certa",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "077104334da00b91bb04-ccd830e1121455551ddf",
+          "file": "notifications-mobile-p5e11.spec.ts",
+          "line": 424,
+          "column": 1
+        },
+        {
+          "title": "P5-E1.1 06 — arquivar e trocar de workspace: o outro fica intacto e, na volta, o arquivado continua fora",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "077104334da00b91bb04-685664259684ebb03f11",
+          "file": "notifications-mobile-p5e11.spec.ts",
+          "line": 453,
+          "column": 1
+        },
+        {
+          "title": "P5-E1.1 07 — arquivar e trocar de usuário: o outro membro ainda vê o aviso e o estado é só de quem arquivou",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "077104334da00b91bb04-e115e02e3180c0ba423d",
+          "file": "notifications-mobile-p5e11.spec.ts",
+          "line": 505,
+          "column": 1
+        },
+        {
+          "title": "P5-E1.1 08 — arquivar e recarregar a página: o arquivado continua fora e o estado persiste",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "077104334da00b91bb04-a745173693a852437f0e",
+          "file": "notifications-mobile-p5e11.spec.ts",
+          "line": 546,
+          "column": 1
+        },
+        {
+          "title": "P5-E1.1 09 — falha do Firestore: erro em pt-BR, o aviso continua na lista, nada é gravado e, restabelecida a permissão, arquiva",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "077104334da00b91bb04-63bdd49c26ccfd47bf90",
+          "file": "notifications-mobile-p5e11.spec.ts",
+          "line": 582,
+          "column": 1
+        },
+        {
+          "title": "P5-E1.1 10 — viewer arquivando: persiste, o sino cai em 1 e não existe nenhum botão de excluir",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "077104334da00b91bb04-3f8b211f35df6c0c8813",
+          "file": "notifications-mobile-p5e11.spec.ts",
+          "line": 625,
+          "column": 1
+        },
+        {
+          "title": "P5-E1.1 11 — viewer tentando excluir direto pela API: arquivar passa (200); excluir é recusado (403) e nenhum deleted é gravado",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "077104334da00b91bb04-4226bb8c34a64c9cd1f3",
+          "file": "notifications-mobile-p5e11.spec.ts",
+          "line": 694,
+          "column": 1
+        },
+        {
+          "title": "P5-E1.1 12 — toque perto do limite do painel: arquivar o aviso cujo botão está colado à borda inferior da lista mexe só nele",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "077104334da00b91bb04-1adc4434f97cabba6126",
+          "file": "notifications-mobile-p5e11.spec.ts",
+          "line": 752,
+          "column": 1
+        },
+        {
+          "title": "P5-E1.1 13 — painel perto da borda: o painel e todos os botões ficam dentro dos 390 px e arquivar o primeiro funciona",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "077104334da00b91bb04-268d62cc47d5f9dad6f7",
+          "file": "notifications-mobile-p5e11.spec.ts",
+          "line": 793,
+          "column": 1
+        },
+        {
+          "title": "P5-E1.1 14 — sem rolagem horizontal: o excesso é 0 ao abrir o painel e depois de cada um de 3 arquivamentos",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "077104334da00b91bb04-0f9306f5e8be0c78c25d",
+          "file": "notifications-mobile-p5e11.spec.ts",
+          "line": 829,
+          "column": 1
+        },
+        {
+          "title": "P5-E1.1 15 — tocar dentro do painel nunca o fecha pelo fundo, nem com o clique redirecionado; o fundo só fecha com gesto iniciado nele",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "077104334da00b91bb04-c35f42f4b3124c3468e5",
+          "file": "notifications-mobile-p5e11.spec.ts",
+          "line": 859,
+          "column": 1
+        },
+        {
+          "title": "P5-E1.1 16 — fechamento legítimo fora: tocar no fundo longe do painel fecha o painel e não grava nada",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "077104334da00b91bb04-8da78ce114312935e614",
+          "file": "notifications-mobile-p5e11.spec.ts",
+          "line": 906,
+          "column": 1
+        },
+        {
+          "title": "P5-E1.1 17 — teclado e foco (desktop): Enter e Espaço arquivam, o painel continua aberto e nenhum aviso é aberto por engano",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "077104334da00b91bb04-27af6f8643dc98cf4856",
+          "file": "notifications-mobile-p5e11.spec.ts",
+          "line": 937,
+          "column": 1
+        },
+        {
+          "title": "P5-E1.1 18 — leitura e arquivamento persistidos entre dispositivos: o aviso lido no celular aparece lido no desktop, e arquivado lá sai do celular",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "077104334da00b91bb04-ef888363a0ba1a551f62",
+          "file": "notifications-mobile-p5e11.spec.ts",
+          "line": 993,
+          "column": 1
+        },
+        {
+          "title": "P5-E1.1 19 — clique redirecionado age no aviso em que o toque começou, nunca no aviso onde caiu",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "077104334da00b91bb04-2ee180bfe4fb23487f1e",
+          "file": "notifications-mobile-p5e11.spec.ts",
+          "line": 1063,
+          "column": 1
+        },
+        {
+          "title": "P5-E1.1 20 — toque iniciado em área sem dono do painel não aciona \"Arquivar\" nem \"Excluir\" onde o clique caiu",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "077104334da00b91bb04-8ac2dce8b748b0788680",
+          "file": "notifications-mobile-p5e11.spec.ts",
+          "line": 1093,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "notifications-p5d2.spec.ts",
+      "file": "notifications-p5d2.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "A — dois usuários: o mesmo evento, contagem exata por pessoa (acima de 25) e exclusão só para quem excluiu",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "d4e18c8027e9ab12e449-044b0603287cf3b5a706",
+          "file": "notifications-p5d2.spec.ts",
+          "line": 343,
+          "column": 1
+        },
+        {
+          "title": "B — viewer: vê, arquiva (contagem cai) e não exclui; eventos reais sem valor nem nome",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "d4e18c8027e9ab12e449-696698fd1c476762a90a",
+          "file": "notifications-p5d2.spec.ts",
+          "line": 435,
+          "column": 1
+        },
+        {
+          "title": "C — meta concluída pela interface gera exatamente uma notificação; painel e contagem refletem sem recarregar",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "d4e18c8027e9ab12e449-eaea6e31a229c1c235b9",
+          "file": "notifications-p5d2.spec.ts",
+          "line": 509,
+          "column": 1
+        },
+        {
+          "title": "D — Relatórios: condição do período sem botão de leitura; o aviso persistente grava o estado privado oficial",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "d4e18c8027e9ab12e449-3dd1b0b628bb93dea6e8",
+          "file": "notifications-p5d2.spec.ts",
+          "line": 594,
+          "column": 1
+        },
+        {
+          "title": "E — escopo: outro workspace e outra conta nunca herdam contagem nem lista",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "d4e18c8027e9ab12e449-468a294f985c79fce565",
+          "file": "notifications-p5d2.spec.ts",
+          "line": 667,
+          "column": 1
+        },
+        {
+          "title": "F — desktop 1440×900, tema claro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "d4e18c8027e9ab12e449-1e2c4d902df53892a120",
+          "file": "notifications-p5d2.spec.ts",
+          "line": 832,
+          "column": 3
+        },
+        {
+          "title": "F — desktop 1440×900, tema escuro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "d4e18c8027e9ab12e449-880bf044fc80f3acec2e",
+          "file": "notifications-p5d2.spec.ts",
+          "line": 832,
+          "column": 3
+        },
+        {
+          "title": "F — celular 390×844 (toque), tema claro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "d4e18c8027e9ab12e449-94f4a1b3a25f87873e80",
+          "file": "notifications-p5d2.spec.ts",
+          "line": 832,
+          "column": 3
+        },
+        {
+          "title": "F — celular 390×844 (toque), tema escuro: sino, badge (número, 9+ e ?), painel, link, relatório, teclado, axe e sem rolagem horizontal",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "d4e18c8027e9ab12e449-f25e4f608f8564b4be99",
+          "file": "notifications-p5d2.spec.ts",
+          "line": 832,
+          "column": 3
+        }
+      ]
+    },
+    {
+      "title": "notifications-private-state.spec.ts",
+      "file": "notifications-private-state.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "estado privado por usuário, arquivar só para mim, paginação acima de 50 e contagem honesta",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "1c74640bf9fabce3e3cc-c2fcaa9edd1f671b0e69",
+          "file": "notifications-private-state.spec.ts",
+          "line": 135,
+          "column": 1
+        },
+        {
+          "title": "troca de workspace com marcação em curso e nenhuma releitura automática",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "1c74640bf9fabce3e3cc-85e62c383e3423fd430d",
+          "file": "notifications-private-state.spec.ts",
+          "line": 235,
+          "column": 1
+        },
+        {
+          "title": "painel operado só pelo teclado: abrir, arquivar, carregar mais e marcar exibidas",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "1c74640bf9fabce3e3cc-77b97c92e5a69ecd53e1",
+          "file": "notifications-private-state.spec.ts",
+          "line": 322,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "notifications-retention-d18.spec.ts",
+      "file": "notifications-retention-d18.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "A — excluir para mim é individual: some para quem excluiu, fica para os demais e o evento não muda",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "11017547dedb4cc239ea-000e29d634e8f9e44282",
+          "file": "notifications-retention-d18.spec.ts",
+          "line": 329,
+          "column": 1
+        },
+        {
+          "title": "B — viewer não vê \"Excluir para mim\", arquiva e marca como lida; o servidor nega `deleted`",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "11017547dedb4cc239ea-9ed293d8f59fab69c1a4",
+          "file": "notifications-retention-d18.spec.ts",
+          "line": 423,
+          "column": 1
+        },
+        {
+          "title": "C — expiração e cursores: Carregar mais percorre tudo sem pular nem repetir, e só mostra o que vale",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "11017547dedb4cc239ea-dfba082b481087b6ee14",
+          "file": "notifications-retention-d18.spec.ts",
+          "line": 504,
+          "column": 1
+        },
+        {
+          "title": "C — página inteira sem nada visível: o painel avisa e \"Carregar mais\" procura as anteriores",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "11017547dedb4cc239ea-78e9626d348424a29f73",
+          "file": "notifications-retention-d18.spec.ts",
+          "line": 591,
+          "column": 1
+        },
+        {
+          "title": "C — o item expira sozinho com o painel aberto: sem reload e sem nova leitura do Firestore",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "11017547dedb4cc239ea-262574880d9542a6c14f",
+          "file": "notifications-retention-d18.spec.ts",
+          "line": 631,
+          "column": 1
+        },
+        {
+          "title": "C — excluir um evento que expirou ou não existe mais: o diálogo avisa em pt-BR, nada é gravado",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "11017547dedb4cc239ea-0af23c24dd0a0024c9e2",
+          "file": "notifications-retention-d18.spec.ts",
+          "line": 694,
+          "column": 1
+        },
+        {
+          "title": "D — troca de workspace no meio da exclusão: a gravação fica no workspace da ação",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "11017547dedb4cc239ea-4cbb30e45d9fe01495e8",
+          "file": "notifications-retention-d18.spec.ts",
+          "line": 749,
+          "column": 1
+        },
+        {
+          "title": "D — com a gravação em curso o diálogo não fecha; depois da resposta ele fecha e o foco volta ao sino",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "11017547dedb4cc239ea-91ea992b9696767c392d",
+          "file": "notifications-retention-d18.spec.ts",
+          "line": 839,
+          "column": 1
+        },
+        {
+          "title": "E — desktop e celular, claro e escuro: sem rolagem horizontal, ações certas por dispositivo e diálogo dentro da tela",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "11017547dedb4cc239ea-47ca3af37a1eb7231b67",
+          "file": "notifications-retention-d18.spec.ts",
+          "line": 928,
+          "column": 1
+        },
+        {
+          "title": "E — teclado e isolamento do clique (desktop): Tab, Enter, foco preso, Escape e foco de volta",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "11017547dedb4cc239ea-08d0a9b31296f27c149e",
+          "file": "notifications-retention-d18.spec.ts",
+          "line": 1008,
+          "column": 1
+        },
+        {
+          "title": "E — falha do servidor em pt-BR sem falso sucesso, e duplo clique em confirmar sem gravação dupla (desktop escuro)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "11017547dedb4cc239ea-4238386e8a6cfaca59fa",
+          "file": "notifications-retention-d18.spec.ts",
+          "line": 1104,
+          "column": 1
+        },
+        {
+          "title": "E — celular (toque): excluir pelo painel, tocar no diálogo e conferir o resultado",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "11017547dedb4cc239ea-1d458e5a7b2da916b76d",
+          "file": "notifications-retention-d18.spec.ts",
+          "line": 1205,
+          "column": 1
+        },
+        {
+          "title": "E — celular: o painel e as ações cabem na tela, sem corte nas bordas",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "11017547dedb4cc239ea-3be376bcfa0f8cb8a82a",
+          "file": "notifications-retention-d18.spec.ts",
+          "line": 1235,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "recurring-flow.spec.ts",
+      "file": "recurring-flow.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "PF",
+          "file": "recurring-flow.spec.ts",
+          "line": 92,
+          "column": 6,
+          "specs": [
+            {
+              "title": "criar e editar pela tela em centavos, modo explícito; envio duplo cria um só",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "ce2db995309ad339a4a9-b2e060963cb8cad75a08",
+              "file": "recurring-flow.spec.ts",
+              "line": 99,
+              "column": 3
+            },
+            {
+              "title": "semanal e quinzenal: dia de cobrança só nas mensais; projeção pela agenda",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "ce2db995309ad339a4a9-645d9b0b17ac46687d8f",
+              "file": "recurring-flow.spec.ts",
+              "line": 161,
+              "column": 3
+            },
+            {
+              "title": "pausar, retomar e cancelar pela tela; cancelada não gera mais",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "ce2db995309ad339a4a9-34b622d6c928c70097b5",
+              "file": "recurring-flow.spec.ts",
+              "line": 192,
+              "column": 3
+            },
+            {
+              "title": "automático no Caixa: despesa pendente sem mover conta; pagar pela ocorrência",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "ce2db995309ad339a4a9-c9e391019d5bdd4241ea",
+              "file": "recurring-flow.spec.ts",
+              "line": 220,
+              "column": 3
+            },
+            {
+              "title": "cartão: automático gera compra `recurring`; confirmar antes usa o valor real",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "ce2db995309ad339a4a9-d444290441e5e2f0e95a",
+              "file": "recurring-flow.spec.ts",
+              "line": 263,
+              "column": 3
+            },
+            {
+              "title": "atenção: cartão arquivado, nova tentativa depois de reativar; ignorar",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "ce2db995309ad339a4a9-696270b8015a0046ff36",
+              "file": "recurring-flow.spec.ts",
+              "line": 294,
+              "column": 3
+            },
+            {
+              "title": "member administra só as próprias; viewer só lê; perda de permissão recusada",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "ce2db995309ad339a4a9-4cf02491dd1e25f1cff8",
+              "file": "recurring-flow.spec.ts",
+              "line": 344,
+              "column": 3
+            },
+            {
+              "title": "troca de workspace: cada espaço mostra só as próprias recorrências",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "ce2db995309ad339a4a9-41941014a70f832ccd66",
+              "file": "recurring-flow.spec.ts",
+              "line": 385,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "regression-smoke.spec.ts",
+      "file": "regression-smoke.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "smoke PF",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "ee2ffd8c7bd04ff01c89-cbd4198684a1d8e0986d",
+          "file": "regression-smoke.spec.ts",
+          "line": 346,
+          "column": 3
+        },
+        {
+          "title": "smoke PJ",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "ee2ffd8c7bd04ff01c89-b2f05537ded0cee79083",
+          "file": "regression-smoke.spec.ts",
+          "line": 346,
+          "column": 3
+        },
+        {
+          "title": "troca de workspace mantém o produto funcional",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "ee2ffd8c7bd04ff01c89-4efb74630ebbc49f61e3",
+          "file": "regression-smoke.spec.ts",
+          "line": 353,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "settings-catalog.spec.ts",
+      "file": "settings-catalog.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "PJ",
+          "file": "settings-catalog.spec.ts",
+          "line": 79,
+          "column": 6,
+          "specs": [
+            {
+              "title": "owner: cria, recusa nome repetido, renomeia, inativa e reativa só pelas callables; aba Parcelado usa despesa",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1d977562c8394c5b92c6-1a5c216e988a55f783f1",
+              "file": "settings-catalog.spec.ts",
+              "line": 85,
+              "column": 3
+            }
+          ]
+        },
+        {
+          "title": "PF",
+          "file": "settings-catalog.spec.ts",
+          "line": 201,
+          "column": 6,
+          "specs": [
+            {
+              "title": "admin administra; member e viewer só leem; perda de papel com o diálogo aberto; backend recusa member e outro tenant",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "1d977562c8394c5b92c6-7c6253ec992bd7d97502",
+              "file": "settings-catalog.spec.ts",
+              "line": 207,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "split-flow.spec.ts",
+      "file": "split-flow.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "PF",
+          "file": "split-flow.spec.ts",
+          "line": 81,
+          "column": 6,
+          "specs": [
+            {
+              "title": "criar grupo, incluir externo e membro; despesa igual exata no Caixa; envio duplo cria um só",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "a9ecddc326d2b28c1ba0-a54934efcbe120f1e155",
+              "file": "split-flow.spec.ts",
+              "line": 87,
+              "column": 3
+            },
+            {
+              "title": "Registrar recebimento: pagador registra, devedor não; não move o Caixa; estorno",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "a9ecddc326d2b28c1ba0-b6e367be8f4668c04b5e",
+              "file": "split-flow.spec.ts",
+              "line": 172,
+              "column": 3
+            },
+            {
+              "title": "anular despesa lançada no Caixa: compensação na mesma conta; histórico preservado",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "a9ecddc326d2b28c1ba0-dd1db280a49bdf7ed67c",
+              "file": "split-flow.spec.ts",
+              "line": 220,
+              "column": 3
+            },
+            {
+              "title": "viewer do espaço só lê: não cria grupo, não lança, não administra",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "a9ecddc326d2b28c1ba0-e728ba43e01b7bbbcbb4",
+              "file": "split-flow.spec.ts",
+              "line": 264,
+              "column": 3
+            }
+          ]
+        },
+        {
+          "title": "PJ",
+          "file": "split-flow.spec.ts",
+          "line": 289,
+          "column": 6,
+          "specs": [
+            {
+              "title": "reembolso: membro solicita; owner aprova, paga pelo Caixa e estorna",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "a9ecddc326d2b28c1ba0-3d2fb39e877e158d5afb",
+              "file": "split-flow.spec.ts",
+              "line": 295,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "ux-navigation-a11y.spec.ts",
+      "file": "ux-navigation-a11y.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "V-01 — ícones pintados nos três pacotes",
+          "file": "ux-navigation-a11y.spec.ts",
+          "line": 100,
+          "column": 6,
+          "specs": [
+            {
+              "title": "Lucide (padrão): menu, Header e controles principais",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "5ec124baf4094b2f9cf6-7194498e9375162b68b6",
+              "file": "ux-navigation-a11y.spec.ts",
+              "line": 101,
+              "column": 3
+            },
+            {
+              "title": "Tabler escolhido no tema: ícones com traço visível",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "5ec124baf4094b2f9cf6-eacf8e8876ad301f190e",
+              "file": "ux-navigation-a11y.spec.ts",
+              "line": 117,
+              "column": 3
+            },
+            {
+              "title": "Phosphor escolhido no tema: ícones preenchidos visíveis",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "5ec124baf4094b2f9cf6-12d3404a3e64a1958876",
+              "file": "ux-navigation-a11y.spec.ts",
+              "line": 129,
+              "column": 3
+            }
+          ]
+        },
+        {
+          "title": "V-02/V-03 — navegação no mobile",
+          "file": "ux-navigation-a11y.spec.ts",
+          "line": 143,
+          "column": 6,
+          "specs": [
+            {
+              "title": "menu abre acima do Header, Dashboard recebe o clique real e o menu fecha ao navegar",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "5ec124baf4094b2f9cf6-c07acfbf8a459bb7923a",
+              "file": "ux-navigation-a11y.spec.ts",
+              "line": 146,
+              "column": 3
+            },
+            {
+              "title": "tocar fora e Esc fecham o menu sem trocar a tela atual",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "5ec124baf4094b2f9cf6-9dfd2808bc756d817ccf",
+              "file": "ux-navigation-a11y.spec.ts",
+              "line": 190,
+              "column": 3
+            }
+          ]
+        },
+        {
+          "title": "menu no desktop",
+          "file": "ux-navigation-a11y.spec.ts",
+          "line": 219,
+          "column": 6,
+          "specs": [
+            {
+              "title": "compacto por padrão, expande no hover e não fecha ao navegar",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "5ec124baf4094b2f9cf6-9f3151072f7a0dc727cd",
+              "file": "ux-navigation-a11y.spec.ts",
+              "line": 220,
+              "column": 3
+            }
+          ]
+        },
+        {
+          "title": "V-05 — controles do Header com nome acessível",
+          "file": "ux-navigation-a11y.spec.ts",
+          "line": 243,
+          "column": 6,
+          "specs": [
+            {
+              "title": "notificações, tema e menu da conta, com estado; sem o botão de Mensagens (D-09)",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "5ec124baf4094b2f9cf6-44a155e22302c548379e",
+              "file": "ux-navigation-a11y.spec.ts",
+              "line": 244,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "work-time-b03.spec.ts",
+      "file": "work-time-b03.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "B03-a: receita desconsiderada editada por outro usuário: o saldo nunca converte o valor novo com o total velho e volta a converter certo",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "ed9d044995c13f61f4e9-558f9e2a1237f2d85fca",
+          "file": "work-time-b03.spec.ts",
+          "line": 328,
+          "column": 1
+        },
+        {
+          "title": "B03-b: marca quebrada: não converte, mostra reais e, depois do tempo de interface, \"estimativa em atualização\" acessível e legível no celular",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "ed9d044995c13f61f4e9-7d1da1d1e876cbb54f54",
+          "file": "work-time-b03.spec.ts",
+          "line": 421,
+          "column": 1
+        },
+        {
+          "title": "B03-c: depois da marca quebrada, a reconstrução do owner recupera a prova e a estimativa volta a converter com o valor certo",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "ed9d044995c13f61f4e9-ee307a308586dca7f762",
+          "file": "work-time-b03.spec.ts",
+          "line": 479,
+          "column": 1
+        },
+        {
+          "title": "B03-d: incluir e tirar uma receita da lista de exclusões pessoais refaz a prova e mantém o valor certo nas duas direções",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "ed9d044995c13f61f4e9-10c67439037111facaa2",
+          "file": "work-time-b03.spec.ts",
+          "line": 526,
+          "column": 1
+        },
+        {
+          "title": "B03-e: a receita desconsiderada sai da janela da estimativa e volta: o mês antigo só deixa de descontar quando projeção e marca mudam juntas",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "ed9d044995c13f61f4e9-280a2bacafc765761ea3",
+          "file": "work-time-b03.spec.ts",
+          "line": 580,
+          "column": 1
+        },
+        {
+          "title": "B03-f (R3.1): leitura nova sem prova: o saldo novo fica em reais e nunca é convertido pela estimativa anterior; a reconstrução traz a conversão certa",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "ed9d044995c13f61f4e9-74835f402a770eee687f",
+          "file": "work-time-b03.spec.ts",
+          "line": 635,
+          "column": 1
+        },
+        {
+          "title": "B03-g (R3.2, RR-R31-05): sem conexão, a conversão sai e a prévia aberta de novo com o cache aquecido não converte; com a conexão de volta, a conversão certa volta",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "ed9d044995c13f61f4e9-3ab80fee7e5175e3b7d5",
+          "file": "work-time-b03.spec.ts",
+          "line": 729,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "work-time-p5f.spec.ts",
+      "file": "work-time-p5f.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "desativado por padrão; assistente na primeira ativação, cancelar não grava, alternância e persistência entre sessões e dispositivos",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "c5c7e810b68e30f97e96-c98beaedfe694d898857",
+          "file": "work-time-p5f.spec.ts",
+          "line": 265,
+          "column": 1
+        },
+        {
+          "title": "a preferência vale em PF e PJ; outra conta no mesmo navegador não vê configuração, estimativa nem valores convertidos",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "c5c7e810b68e30f97e96-9ecaa4ecb924bfe2098d",
+          "file": "work-time-p5f.spec.ts",
+          "line": 374,
+          "column": 1
+        },
+        {
+          "title": "outra aba acompanha; desativar mantém os dados e excluir apaga toda a configuração",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "c5c7e810b68e30f97e96-8637d8ea8d942743a40e",
+          "file": "work-time-p5f.spec.ts",
+          "line": 484,
+          "column": 1
+        },
+        {
+          "title": "a IA não recebe a configuração e o modo tempo não grava nada fora do documento privado",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "c5c7e810b68e30f97e96-78ee0904baec14608865",
+          "file": "work-time-p5f.spec.ts",
+          "line": 560,
+          "column": 1
+        },
+        {
+          "title": "receitas consideradas: regras automáticas, exclusão só na estimativa, PJ com confirmação, mês atual e memória de cálculo",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "c5c7e810b68e30f97e96-66e3fcfbc040e0d9d49d",
+          "file": "work-time-p5f.spec.ts",
+          "line": 650,
+          "column": 1
+        },
+        {
+          "title": "Configurações: prévia antes de salvar, falha de gravação preserva a anterior, escala e exceções mudam a estimativa, refazer o assistente",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "c5c7e810b68e30f97e96-1153bdd516f98d64a91c",
+          "file": "work-time-p5f.spec.ts",
+          "line": 745,
+          "column": 1
+        },
+        {
+          "title": "atualização automática: uma receita nova entra na estimativa do mês atual sem recarregar",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "c5c7e810b68e30f97e96-74e8ec06693b00d94335",
+          "file": "work-time-p5f.spec.ts",
+          "line": 848,
+          "column": 1
+        },
+        {
+          "title": "atualização automática: receita retroativa no espaço da renda, com outro espaço ativo, muda a estimativa sem recarregar",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "c5c7e810b68e30f97e96-f7465e97da959173c37d",
+          "file": "work-time-p5f.spec.ts",
+          "line": 869,
+          "column": 1
+        },
+        {
+          "title": "sem espaço PF próprio: nenhuma fonte pré-selecionada; contagem, prévia e painel esperam a escolha",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "c5c7e810b68e30f97e96-8b1ac9da52548b5c9f0e",
+          "file": "work-time-p5f.spec.ts",
+          "line": 934,
+          "column": 1
+        },
+        {
+          "title": "Configurações: a troca do modo pelo Header durante uma edição entra no rascunho e não é desfeita ao salvar",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "c5c7e810b68e30f97e96-d96e4aefbdb9171c9997",
+          "file": "work-time-p5f.spec.ts",
+          "line": 966,
+          "column": 1
+        },
+        {
+          "title": "falha na leitura das receitas desconsideradas: mensagem fixa em pt-BR, nada do SDK, e \"Tentar de novo\"",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "c5c7e810b68e30f97e96-dd1452b53bc2772719ad",
+          "file": "work-time-p5f.spec.ts",
+          "line": 999,
+          "column": 1
+        },
+        {
+          "title": "releitura que falha: sem confirmar a receita nova, nada convertido e erro com \"Tentar de novo\", que a traz com o relatório de volta; com a projeção de volta à última leitura, a estimativa volta com o aviso",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "c5c7e810b68e30f97e96-02b0fc040a9621a993af",
+          "file": "work-time-p5f.spec.ts",
+          "line": 1038,
+          "column": 1
+        },
+        {
+          "title": "mutação nesta aba: anular em Receitas a receita desconsiderada não junta o item anulado com o total velho",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "c5c7e810b68e30f97e96-f308744e360cea558c4b",
+          "file": "work-time-p5f.spec.ts",
+          "line": 1152,
+          "column": 1
+        },
+        {
+          "title": "falha na leitura da preferência com a escuta já aberta: aviso fixo em pt-BR, valores em reais e \"Tentar de novo\"",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "c5c7e810b68e30f97e96-91e20c18f128500fb666",
+          "file": "work-time-p5f.spec.ts",
+          "line": 1204,
+          "column": 1
+        },
+        {
+          "title": "escuta das projeções encerrada: abrir Configurações a reabre, a ressalva do topo some e a estimativa em uso volta a acompanhar outras sessões",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "c5c7e810b68e30f97e96-94df7220ca8a683bd79c",
+          "file": "work-time-p5f.spec.ts",
+          "line": 1230,
+          "column": 1
+        },
+        {
+          "title": "B01 (P5-F.1-R1): recebimento de cliente desconsiderado e estornado em outra sessão: a exclusão perde o efeito e a prévia nunca desconta duas vezes",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "c5c7e810b68e30f97e96-e49969c8d415434bde62",
+          "file": "work-time-p5f.spec.ts",
+          "line": 1324,
+          "column": 1
+        },
+        {
+          "title": "B02 (P5-F.1-R1): acrescentar uma rotina válida não reduz as horas; rotinas que se cruzam com intervalo são recusadas com aviso acessível",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "c5c7e810b68e30f97e96-1febfdcb63f369d4e534",
+          "file": "work-time-p5f.spec.ts",
+          "line": 1389,
+          "column": 1
+        },
+        {
+          "title": "B02 (revisão da R1, N07): a folga que deixa as rotinas sem cálculo seguro é recusada em Configurações, com aviso acessível junto do botão de salvar",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "c5c7e810b68e30f97e96-7c05c9604dd9d35e1add",
+          "file": "work-time-p5f.spec.ts",
+          "line": 1507,
+          "column": 1
+        },
+        {
+          "title": "S01 (P5-F.1-R2A): a jornada reduzida que deixa o dia seguinte sem cálculo seguro é recusada em Configurações, e a gravada assim deixa a estimativa indisponível",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "c5c7e810b68e30f97e96-dfa20a84559091a67048",
+          "file": "work-time-p5f.spec.ts",
+          "line": 1549,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "workspace-membership.spec.ts",
+      "file": "workspace-membership.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "primeiro login prepara a conta no backend e o logout não vaza dados para a próxima conta",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "157259a3b9ffdfaa0e10-e8921b4a4950aa62d9cb",
+          "file": "workspace-membership.spec.ts",
+          "line": 54,
+          "column": 1
+        },
+        {
+          "title": "convite, aceite, troca de papel, remoção e perda de acesso entre duas contas",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "157259a3b9ffdfaa0e10-28258d8351b4b98bcca3",
+          "file": "workspace-membership.spec.ts",
+          "line": 169,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "workspace-pagination.spec.ts",
+      "file": "workspace-pagination.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "seletor e membros oferecem a próxima página e não escondem ninguém",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "f9052a886f03b0a9c93d-0ddc5a333eca2e0bc644",
+          "file": "workspace-pagination.spec.ts",
+          "line": 63,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-11T12:35:38.100Z",
+    "duration": 1445.5700000000002,
+    "expected": 0,
+    "skipped": 217,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

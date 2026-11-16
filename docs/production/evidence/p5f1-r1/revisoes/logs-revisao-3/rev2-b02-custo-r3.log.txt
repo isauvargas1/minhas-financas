@@ -1,0 +1,4 @@
+{"name":"comum (rotina semanal padrão)","ms":[1,0,0,0,1],"validateDraftMs":5,"validateOk":true,"verdict":null}
+{"name":"coberta, sem exceções","ms":[131,57,33,33,31],"validateDraftMs":69,"validateOk":true,"verdict":null}
+{"name":"pior caso: 3 rotinas cobertas + cíclica 27x26, 120 exceções de 366 dias, 40 feriados anuais","ms":[299,270,238,233,223],"validateDraftMs":222,"validateOk":true,"verdict":null}
+rascunho com data inválida: {"ok":false,"section":"exceptions","message":"Há exceções sobrepostas ou fora do formato. Revise a lista."}

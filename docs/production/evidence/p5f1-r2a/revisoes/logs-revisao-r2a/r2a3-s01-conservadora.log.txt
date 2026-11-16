@@ -1,0 +1,6 @@
+{"label":"A: noturno reduzido a 6 h, terça 16 h + 2 h extra","eve":["2026-10-05",360,["reduced"]],"day":["2026-10-06",1080,true,true],"verdict":{"date":"2026-10-06","cause":{"kind":"reduced_eve","date":"2026-10-05"}},"physical":["1080"]}
+{"label":"A': idem com 1 h extra","eve":["2026-10-05",360,["reduced"]],"day":["2026-10-06",1020,false,false],"verdict":null,"physical":["1020"]}
+{"label":"B: segunda com redução que não corta (domingo reduzido sem cortar)","eve":["2026-10-05",1080,[]],"day":["2026-10-06",240,true,true],"verdict":{"date":"2026-10-06","cause":{"kind":"reduced_eve","date":"2026-10-05"}},"physical":["240","225","210","195","180","165","150","135","120"]}
+{"label":"B0: o mesmo sem a redução de domingo","eve":["2026-10-05",1080,[]],"day":["2026-10-06",120,false,false],"verdict":null,"physical":["240","225","210","195","180","165","150","135","120"]}
+{"label":"C: duas reduções seguidas, véspera de 1 h","eve":["2026-10-05",60,["reduced"]],"day":["2026-10-06",650,true,true],"verdict":{"date":"2026-10-06","cause":{"kind":"reduced_eve","date":"2026-10-05"}},"physical":["650"]}
+{"label":"D: exemplo do documento §5","eve":["2026-10-05",240,["reduced"]],"day":["2026-10-06",1140,true,true],"verdict":{"date":"2026-10-06","cause":{"kind":"reduced_eve","date":"2026-10-05"}},"physical":["1140"]}

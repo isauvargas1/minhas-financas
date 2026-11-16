@@ -1,0 +1,4 @@
+arvore_dir=<scratchpad>/p5f1r32/copia-n15-final arvore=copia inicio=2026-11-14T17:03:19Z args=e2e/work-time-b03.spec.ts -g B03-g
+build=0
+fim=2026-11-14T17:06:09Z exit=1 duracao_s=170 portas_ocupadas_no_fim=[] java_no_fim=0
+limpeza_externa=nenhuma (o Emulator desligou sozinho)

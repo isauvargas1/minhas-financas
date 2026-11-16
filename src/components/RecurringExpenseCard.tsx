@@ -4,6 +4,7 @@ import type { RecurringExpense } from '../modules/recurring/types.ts';
 import { civilDaysBetween } from '../modules/recurring/schedule.ts';
 import { FREQUENCY_SUFFIX, RECURRING_STATUS_BADGE, RECURRING_STATUS_LABELS, RECURRING_TYPE_LABELS, formatDayShort } from '../modules/recurring/presentation.ts';
 import { formatCents, saoPauloToday } from '../modules/loans/money.ts';
+import { useMoneyDisplay } from '../modules/work-time/display.tsx';
 import { DynamicIcon, CalendarIcon, CreditCardIcon, WarningIcon } from './Icons.tsx';
 import { useTheme } from '../contexts/ThemeContext.tsx';
 
@@ -14,6 +15,7 @@ interface RecurringExpenseCardProps {
 
 const RecurringExpenseCard: React.FC<RecurringExpenseCardProps> = ({ expense, onClick }) => {
     const { playSound } = useTheme();
+    const display = useMoneyDisplay();
     const MotionDiv = motion.div as any;
 
     // Próximo vencimento: o do backend (o agendador avança o contrato).
@@ -110,7 +112,7 @@ const RecurringExpenseCard: React.FC<RecurringExpenseCardProps> = ({ expense, on
                     </div>
                     <div className="text-right">
                         <span className="block text-xl font-bold text-on-surface">
-                            {formatCents(expense.amountCents)}
+                            {display.cents(expense.amountCents, formatCents)}
                         </span>
                         <span className="text-xs text-muted">
                             {FREQUENCY_SUFFIX[expense.frequency]}

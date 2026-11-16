@@ -1,0 +1,10 @@
+build=0
+exit=1  duração=108s
+  ✘  1 [chromium] › e2e/work-time-p5f.spec.ts:1460:1 › S01 (P5-F.1-R2A): a jornada reduzida que deixa o dia seguinte sem cálculo seguro é recusada em Configurações, e a gravada assim deixa a estimativa indisponível (41.3s)
+    Error: expect(locator).toHaveText(expected) failed
+    Expected: "Estimativa indisponível. Em algum dia do período, o dia anterior tem jornada reduzida num horário que passa da meia-noite, e não dá para confirmar que parte dele foi trabalhada: as horas desse dia não podem ser calculadas com segurança. Ajuste as exceções ou as rotinas em Configurações."
+    Received: "Estimativa indisponível. Em algum dia do período, rotinas se cruzam e há intervalo no trecho em comum: não dá para saber onde cai a pausa, e as horas não podem ser calculadas com segurança. Ajuste as rotinas, os feriados ou as exceções em Configurações."
+        at <scratchpad>/wt-p5f1-r2a/e2e/work-time-p5f.spec.ts:1483:67
+  1 failed
+limpeza=0 java=0
+RESULTADO: MORTO (o teste reprovou com o mutante)

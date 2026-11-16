@@ -1,0 +1,43 @@
+#!/usr/bin/env python3
+"""P5-F.1-R2A: compara as capturas "antes" (árvore da R1, 08d8c5a2) e "depois" (R2A), pixel a pixel, e os fatos registrados
+em cada estado (avisos, botão de salvar, prévia, valores convertidos). Como na P5-F.1, usa o ImageMagick:
+dimensões (`identify`), pixels diferentes sem tolerância (`compare -metric AE`) e a caixa que contém as diferenças.
+Uso: comparar-antes-depois-r2a.py <antes> <depois> <saída.json>"""
+import json, subprocess, sys
+from pathlib import Path
+
+antes, depois, out = Path(sys.argv[1]), Path(sys.argv[2]), Path(sys.argv[3])
+
+def size(path):
+    return subprocess.run(['identify', '-format', '%wx%h', str(path)], capture_output=True, text=True, check=True).stdout.strip()
+
+def diff_pixels(a, b):
+    run = subprocess.run(['compare', '-metric', 'AE', str(a), str(b), 'null:'], capture_output=True, text=True)
+    return int(float(run.stderr.split()[0]))
+
+def bbox(a, b):
+    run = subprocess.run(['convert', str(a), str(b), '-compose', 'difference', '-composite', '-colorspace', 'gray',
+                          '-threshold', '0', '-trim', '-format', '%wx%h+%X+%Y', 'info:'], capture_output=True, text=True)
+    return run.stdout.strip()
+
+rows, facts = [], {}
+for a in sorted(antes.glob('*.png')):
+    b = depois / a.name
+    if not b.exists():
+        rows.append({'imagem': a.name, 'so_antes': True}); continue
+    row = {'imagem': a.name, 'antes': size(a), 'depois': size(b)}
+    if row['antes'] == row['depois']:
+        row['pixels_diferentes'] = diff_pixels(a, b)
+        row['caixa'] = bbox(a, b) if row['pixels_diferentes'] else None
+    else:
+        row['pixels_diferentes'] = None
+    rows.append(row)
+for b in sorted(depois.glob('*.png')):
+    if not (antes / b.name).exists():
+        rows.append({'imagem': b.name, 'so_depois': True})
+for name in sorted({p.name for p in antes.glob('*.json')} | {p.name for p in depois.glob('*.json')}):
+    load = lambda p: json.loads(p.read_text(encoding='utf-8')) if p.exists() else None
+    facts[name[:-5]] = {'antes': load(antes / name), 'depois': load(depois / name)}
+out.write_text(json.dumps({'imagens': rows, 'fatos': facts}, ensure_ascii=False, indent=2), encoding='utf-8')
+for r in rows:
+    print(r['imagem'], {k: v for k, v in r.items() if k != 'imagem'})

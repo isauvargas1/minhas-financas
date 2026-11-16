@@ -4,7 +4,7 @@ import {FieldPath, FieldValue, Timestamp} from "firebase-admin/firestore";
 import {z} from "zod";
 
 import {defineCallable} from "../shared/callable";
-import {ApplicationError} from "../shared/errors";
+import {ApplicationError, errorCodeOf} from "../shared/errors";
 import {reserveRateLimit} from "../shared/rateLimit";
 import {HEAVY_CALLABLE_OPTIONS} from "../shared/runtimeOptions";
 import {
@@ -40,8 +40,17 @@ import {
   type CashPeriodDelta,
   type CashProjectionState,
 } from "./periods";
+import {
+  FingerprintTypeError,
+  cashProjectionMarkRef,
+  isMarkSlot,
+  markAnchorPatch,
+  otherMarkSlot,
+  transactionFingerprint,
+  type MarkSlot,
+} from "./projectionMarks";
 import {saoPauloMonthStart} from "../shared/dateKeys";
-import * as functionsLogger from "firebase-functions/logger";
+import {createOperationLogger, type OperationLogger} from "../shared/logger";
 import {RETENTION_DAYS} from "../shared/retention";
 
 /**
@@ -215,7 +224,8 @@ export const MAX_CATEGORY_GARBAGE = 8;
 export const CLEANUP_BATCH_SIZE = 400;
 
 /** Formato do checkpoint: 2 = corte com geração de categoria (P5-C1). */
-const CHECKPOINT_SCHEMA_VERSION = 2;
+/** 3: o checkpoint guarda a posição das marcas da geração preparada. */
+const CHECKPOINT_SCHEMA_VERSION = 3;
 
 export const CATEGORY_GARBAGE_FULL_MESSAGE =
   "A limpeza de reconstruções anteriores ainda está em andamento. " +
@@ -226,7 +236,9 @@ export type RebuildRestartReason =
   | "delete_during_rebuild"
   | "too_many_concurrent_changes"
   | "stale_checkpoint"
-  | "category_staging_changed";
+  | "category_staging_changed"
+  // P5-F.1-R3: entrega aplicada depois do corte sem a geração preparada.
+  | "post_cutoff_event_missed_staging";
 
 interface Checkpoint {
   rebuildId: string;
@@ -237,6 +249,11 @@ interface Checkpoint {
   restarts: number;
   /** A varredura terminou; falta publicar (ou concluir a simulação). */
   scanComplete: boolean;
+  /**
+   * P5-F.1-R3: posição das marcas onde esta reconstrução grava as âncoras da
+   * base (a que a geração vigente não usa).
+   */
+  markSlot: MarkSlot;
 }
 
 const readCheckpoint = (
@@ -247,7 +264,8 @@ const readCheckpoint = (
     !data ||
     data.schemaVersion !== CHECKPOINT_SCHEMA_VERSION ||
     typeof data.rebuildId !== "string" ||
-    !(data.cutoff instanceof Timestamp)
+    !(data.cutoff instanceof Timestamp) ||
+    !isMarkSlot(data.markSlot)
   ) {
     return null;
   }
@@ -263,6 +281,7 @@ const readCheckpoint = (
       (data.restarts as number) :
       0,
     scanComplete: data.scanComplete === true,
+    markSlot: data.markSlot,
   };
 };
 
@@ -277,6 +296,7 @@ const newCheckpointData = (
   rebuildId: string,
   restarts: number,
   reason: RebuildRestartReason | null,
+  markSlot: MarkSlot,
 ): admin.firestore.DocumentData => ({
   id: dryRun ? DRY_RUN_STATE_ID : REBUILD_STATE_ID,
   workspaceId,
@@ -292,6 +312,7 @@ const newCheckpointData = (
   scanComplete: false,
   restarts,
   lastRestartReason: reason,
+  markSlot,
   updatedAt: FieldValue.serverTimestamp(),
   updatedBy: actorId,
 });
@@ -359,6 +380,7 @@ const writeNewCheckpoint = (
   }
   transaction.set(ref, newCheckpointData(
     workspaceId, actorId, dryRun, rebuildId, restarts, reason,
+    otherMarkSlot(state.markSlot),
   ));
 };
 
@@ -646,21 +668,22 @@ const cleanupShards = async (
 /**
  * Limpeza é manutenção, não parte da publicação: falhar aqui não desfaz nem
  * bloqueia nada já publicado; o que sobrar fica para a próxima invocação
- * (gerações) ou para a TTL (shards). A falha é registrada.
+ * (gerações) ou para a TTL (shards). A falha é registrada pelo logger do
+ * kernel (OBS-01, P5-GATE-FINAL): passo e código do erro, nunca a mensagem,
+ * que pode trazer o que o SDK interpolou.
  */
 const bestEffort = async (
   label: string,
-  workspaceId: string,
+  context: RebuildContext,
   run: () => Promise<unknown>,
 ): Promise<void> => {
   try {
+    await context.options.faults?.cleanupStep?.(label);
     await run();
   } catch (error) {
-    functionsLogger.warn("cash_rebuild_cleanup_failed", {
-      operation: "rebuildCashPeriods",
+    context.log.warn("cash_rebuild_cleanup_failed", {
       step: label,
-      workspaceId,
-      errorMessage: error instanceof Error ? error.message : String(error),
+      errorCode: errorCodeOf(error),
     });
   }
 };
@@ -676,6 +699,11 @@ interface PageWork {
   months: Record<string, CashPeriodDelta>;
   days: Record<string, CashDayDeltas>;
   categories: Record<string, CashCategoryWrite>;
+  /**
+   * P5-F.1-R3: impressão digital de cada documento da base desta página, para
+   * a âncora da marca (gravada na mesma transação que avança o cursor).
+   */
+  anchors: Array<{id: string; fp: string}>;
 }
 
 /** Caminhos de campo distintos por documento tocado (orçamento). */
@@ -724,6 +752,7 @@ const processPage = (
     months: {},
     days: {},
     categories: {},
+    anchors: [],
   };
   const touched: TouchedFields = new Map();
   for (const entry of docs) {
@@ -740,11 +769,16 @@ const processPage = (
       return work;
     }
     let plan: ReturnType<typeof cashWritePlanFor>;
+    let fp: string;
     try {
       plan = cashWritePlanFor(undefined, entry.data());
+      fp = transactionFingerprint(entry.data());
     } catch (error) {
       if (error instanceof CashContractViolationError) {
         throw new RebuildContractViolation(entry.id, error.field);
+      }
+      if (error instanceof FingerprintTypeError) {
+        throw new RebuildContractViolation(entry.id, "content");
       }
       throw error;
     }
@@ -766,7 +800,11 @@ const processPage = (
       ...touched.keys(),
       ...proposed.map(([doc]) => doc),
     ]).size;
+    // Escritas do commit da página: meses e categorias tocados, uma âncora
+    // de marca por documento da base (P5-F.1-R3) e o checkpoint.
+    const writes = docCount + work.anchors.length + 1 + 1;
     const overBudget = docCount > MAX_PAGE_TOUCHED_DOCS ||
+      writes > FIRESTORE_MAX_WRITES_PER_COMMIT ||
       proposed.some(([, paths]) => paths.size > MAX_TRANSFORMS_PER_DOC);
     if (overBudget && work.consumed > 0) {
       work.cut = true;
@@ -803,6 +841,7 @@ const processPage = (
         }
       }
     }
+    work.anchors.push({id: entry.id, fp});
     work.consumed += 1;
     work.lastId = entry.id;
   }
@@ -1029,10 +1068,18 @@ interface PostCutoffSummary {
  * - Exclusão de documento que existia no corte: recomeça (ambígua).
  * - Só as marcas `applied` somam; as demais não moveram a projeção.
  * - P5-C1: soma também o detalhe diário (`dayDeltas`) da mesma marca.
+ * - P5-F.1-R3: marca `applied` que não alimentou a geração preparada
+ *   (`stagingGeneration`, fora da simulação): recomeça. O commit do evento é
+ *   posterior ao corte, mas a entrega leu o estado antes do commit do
+ *   checkpoint (no Emulator, o `serverTimestamp` do corte fica alguns
+ *   milissegundos antes do commit): o mês soma o delta por esta marca, mas as
+ *   categorias e as marcas de aplicação da geração nova não o têm. O corte do
+ *   recomeço é posterior ao commit do evento; a varredura nova o cobre.
  */
 const summarizePostCutoffEvents = (
   docs: admin.firestore.QueryDocumentSnapshot[],
   cutoff: Timestamp,
+  stagingGeneration: string | null,
 ): PostCutoffSummary => {
   const summary: PostCutoffSummary = {
     count: docs.length,
@@ -1057,6 +1104,13 @@ const summarizePostCutoffEvents = (
       return summary;
     }
     if (data.outcome !== "applied") continue;
+    const fed = Array.isArray(data.categoryGenerations) ?
+      data.categoryGenerations as unknown[] :
+      [];
+    if (stagingGeneration !== null && !fed.includes(stagingGeneration)) {
+      summary.restartReason = "post_cutoff_event_missed_staging";
+      return summary;
+    }
     const deltas = (data.deltas ?? {}) as Record<string, CashPeriodDelta>;
     for (const [period, delta] of Object.entries(deltas)) {
       addInto(summary.deltas, period, delta);
@@ -1072,8 +1126,17 @@ const summarizePostCutoffEvents = (
   return summary;
 };
 
-/** Pontos de injeção de falha e limites reduzidos, só para os testes. */
+/**
+ * Opções da execução: o logger da chamada e, só para os testes, pontos de
+ * injeção de falha e limites reduzidos.
+ */
 export interface RebuildOptions {
+  /**
+   * Logger do kernel (OBS-01 e OBS-02, P5-GATE-FINAL). A callable passa o da
+   * requisição, com `requestId`, ator e workspace autorizado. Sem ele (chamada
+   * direta dos testes), um logger da operação com o workspace.
+   */
+  log?: OperationLogger;
   /** Teto de escritas da publicação; padrão: o limite do Firestore. */
   publishWriteBudget?: number;
   faults?: {
@@ -1081,7 +1144,15 @@ export interface RebuildOptions {
     afterPageRead?: () => Promise<void> | void;
     /** Com as escritas da publicação enfileiradas, antes do commit. */
     beforePublishCommit?: () => void | Promise<void>;
+    /** No início de cada passo de limpeza, com o nome do passo. */
+    cleanupStep?: (step: string) => void | Promise<void>;
   };
+}
+
+/** O que os passos de limpeza e o log de contrato recebem da execução. */
+interface RebuildContext {
+  log: OperationLogger;
+  options: RebuildOptions;
 }
 
 const restartedResult = (
@@ -1120,9 +1191,14 @@ export const executeRebuildCashPeriods = async (
   options: RebuildOptions = {},
 ): Promise<Record<string, unknown>> => {
   const db = admin.firestore();
+  const context: RebuildContext = {
+    log: options.log ??
+      createOperationLogger({operation: "rebuildCashPeriods", workspaceId}),
+    options,
+  };
   if (!payload.dryRun) {
     // Abre espaço na lista de descarte antes de qualquer troca de geração.
-    await bestEffort("category_garbage_before", workspaceId,
+    await bestEffort("category_garbage_before", context,
       () => cleanupCategoryGarbage(workspaceId));
   }
   const ref = rebuildStateRef(workspaceId, payload.dryRun);
@@ -1149,10 +1225,10 @@ export const executeRebuildCashPeriods = async (
     } catch (error) {
       // Documento fora do contrato único (P5-C2): a reconstrução para sem
       // publicar nada, em vez de contar o lançamento como zero. O log leva o
-      // ID e o campo, para localizar o documento (restore, escrita antiga).
+      // ID e o campo, para localizar o documento (restore, escrita antiga),
+      // pelo logger do kernel, com a correlação da chamada (OBS-02).
       if (error instanceof RebuildContractViolation) {
-        functionsLogger.error("cash_rebuild_contract_violation", {
-          workspaceId,
+        context.log.error("cash_rebuild_contract_violation", error, {
           transactionId: error.transactionId,
           field: error.field,
         });
@@ -1206,6 +1282,22 @@ export const executeRebuildCashPeriods = async (
             entry);
         }
       }
+      if (!payload.dryRun) {
+        // P5-F.1-R3 (B03): âncora de cada documento da base na posição da
+        // geração preparada, sem ler a marca (merge só da posição). A cadeia
+        // que o gatilho já tenha começado nessa geração confere a âncora.
+        for (const anchor of work.anchors) {
+          transaction.set(
+            cashProjectionMarkRef(workspaceId, anchor.id),
+            markAnchorPatch(workspaceId, anchor.id, current.markSlot, {
+              g: current.rebuildId,
+              cut: current.cutoff,
+              fp: anchor.fp,
+            }),
+            {merge: true},
+          );
+        }
+      }
       transaction.update(ref, {
         cursor,
         processed,
@@ -1250,10 +1342,10 @@ export const executeRebuildCashPeriods = async (
    * estado da projeção.
    */
   if (payload.dryRun) {
-    return finishDryRun(workspaceId, actorId, ref, checkpoint);
+    return finishDryRun(workspaceId, actorId, ref, checkpoint, context);
   }
 
-  return publishRebuild(workspaceId, actorId, checkpoint, options);
+  return publishRebuild(workspaceId, actorId, checkpoint, context);
 };
 
 const finishDryRun = async (
@@ -1261,12 +1353,15 @@ const finishDryRun = async (
   actorId: string,
   ref: admin.firestore.DocumentReference,
   checkpoint: Checkpoint,
+  context: RebuildContext,
 ): Promise<Record<string, unknown>> => {
   const db = admin.firestore();
   const {cutoff} = checkpoint;
+  // A simulação não alimenta geração preparada nenhuma (sem `stagingPatch`).
   const events = summarizePostCutoffEvents(
     (await postCutoffEventsQuery(workspaceId, cutoff).get()).docs,
     cutoff,
+    null,
   );
   if (events.restartReason) {
     const restarted = await restartCheckpoint(
@@ -1311,7 +1406,7 @@ const finishDryRun = async (
   if (!finished) {
     return {success: true, completed: false, dryRun: true, concurrent: true};
   }
-  await bestEffort("dry_run_shards", workspaceId,
+  await bestEffort("dry_run_shards", context,
     () => cleanupShards(workspaceId, checkpoint.rebuildId));
   return {
     success: true,
@@ -1351,8 +1446,9 @@ const publishRebuild = async (
   workspaceId: string,
   actorId: string,
   checkpoint: Checkpoint,
-  options: RebuildOptions,
+  context: RebuildContext,
 ): Promise<Record<string, unknown>> => {
+  const {options} = context;
   const db = admin.firestore();
   const ref = rebuildStateRef(workspaceId);
   const stateRef = cashProjectionStateRef(workspaceId);
@@ -1403,6 +1499,7 @@ const publishRebuild = async (
     const events = summarizePostCutoffEvents(
       (await transaction.get(postCutoffEventsQuery(workspaceId, cutoff))).docs,
       cutoff,
+      current.rebuildId,
     );
     if (events.restartReason) {
       writeNewCheckpoint(transaction, ref, state, workspaceId, actorId, false,
@@ -1510,11 +1607,16 @@ const publishRebuild = async (
       );
     }
 
+    // P5-F.1-R3: todo mês publicado (e todo órfão zerado) leva a etiqueta da
+    // geração nova; quem confere as marcas escolhe por ela a cadeia de cada
+    // uma.
+    const projectionGeneration = {id: current.rebuildId, cutoff};
     for (const {period, data} of monthDocs) {
       transaction.set(cashPeriodRef(workspaceId, period), {
         ...data,
         periodStart: Timestamp.fromDate(saoPauloMonthStart(period)),
         schemaVersion: CASH_PERIOD_SCHEMA_VERSION,
+        projectionGeneration,
         rebuildId: current.rebuildId,
         rebuiltAt: FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp(),
@@ -1528,6 +1630,7 @@ const publishRebuild = async (
         ...emptyTotals(),
         days: FieldValue.delete(),
         schemaVersion: CASH_PERIOD_SCHEMA_VERSION,
+        projectionGeneration,
         rebuildId: current.rebuildId,
         rebuiltAt: FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp(),
@@ -1549,6 +1652,11 @@ const publishRebuild = async (
       categoryGeneration: current.rebuildId,
       categoryStaging: FieldValue.delete(),
       categoryGarbage: garbage,
+      // P5-F.1-R3: as marcas da geração nova estão na posição da preparação;
+      // a cadeia quebrada de antes do corte fica na outra e não vale mais.
+      markSlot: current.markSlot,
+      markRecoveryNeeded: state.markIssueMaxEventTime !== null &&
+        compareCommitTimes(state.markIssueMaxEventTime, cutoff) > 0,
       updatedAt: FieldValue.serverTimestamp(),
     }, {merge: true});
     transaction.delete(ref);
@@ -1570,11 +1678,11 @@ const publishRebuild = async (
   if (outcome.kind === "restarted") {
     return restartedResult(false, true, outcome.reason);
   }
-  await bestEffort("published_shards", workspaceId,
+  await bestEffort("published_shards", context,
     () => cleanupShards(workspaceId, checkpoint.rebuildId));
   // Sem TTL nas gerações descartadas: a limpeza continua aqui, em lotes,
   // até esvaziar ou atingir o teto da invocação (o resto sai nas próximas).
-  await bestEffort("category_garbage_after", workspaceId, async () => {
+  await bestEffort("category_garbage_after", context, async () => {
     for (let batch = 0; batch < POST_PUBLISH_CLEANUP_BATCHES; batch += 1) {
       const {deleted, pending} = await cleanupCategoryGarbage(workspaceId);
       if (pending === 0 || deleted === 0) break;
@@ -1607,25 +1715,37 @@ const requireActor = (actor: WorkspaceActor | null): WorkspaceActor => {
   return actor;
 };
 
+/**
+ * Corpo da callable depois da pré-checagem do kernel. Exportado para o teste
+ * da janela entre a pré-checagem e a transação (MT-01, P5-GATE-FINAL).
+ */
+export const executeAuthorizedRebuild = async (
+  actor: WorkspaceActor,
+  payload: Payload,
+  log?: OperationLogger,
+): Promise<Record<string, unknown>> => {
+  await admin.firestore().runTransaction(async (transaction) => {
+    // Autorização relida na fase de leitura, antes de consumir o limite:
+    // quem foi removido ou rebaixado depois da pré-checagem não reconstrói.
+    await reassertWorkspaceActor(transaction, actor);
+    const reservation = await reserveRateLimit(
+      transaction,
+      actor.workspaceId,
+      actor.uid,
+      RATE_LIMIT,
+    );
+    reservation.commit();
+  });
+  return executeRebuildCashPeriods(actor.workspaceId, actor.uid, payload, {
+    log,
+  });
+};
+
 export const rebuildCashPeriods = defineCallable({
   operation: RATE_LIMIT.operation,
   schema: payloadSchema,
   runtime: HEAVY_CALLABLE_OPTIONS,
   workspaceRoles: CASH_REBUILD_ROLES,
-  handler: async ({actor: resolved, payload}) => {
-    const actor = requireActor(resolved);
-    await admin.firestore().runTransaction(async (transaction) => {
-      // Autorização relida na fase de leitura, antes de consumir o limite:
-      // quem foi removido ou rebaixado depois da pré-checagem não reconstrói.
-      await reassertWorkspaceActor(transaction, actor);
-      const reservation = await reserveRateLimit(
-        transaction,
-        actor.workspaceId,
-        actor.uid,
-        RATE_LIMIT,
-      );
-      reservation.commit();
-    });
-    return executeRebuildCashPeriods(actor.workspaceId, actor.uid, payload);
-  },
+  handler: async ({actor: resolved, payload, log}) =>
+    executeAuthorizedRebuild(requireActor(resolved), payload, log),
 });

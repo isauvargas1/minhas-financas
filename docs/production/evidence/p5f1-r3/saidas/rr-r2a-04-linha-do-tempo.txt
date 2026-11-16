@@ -1,0 +1,78 @@
+# RR-R2A-04: chamadas das Functions do workspace do teste que falhou (verify:all 2 da R2A, árvore cd95e1cb), na ordem do log, entre a primeira linha do workspace (38667) e a falha (38789). BEGIN/FINISH: linhas do Emulator; END: callable.end com durationMs; TRIGGER: cash_projection.processed (ação, resultado, meses gravados). As chamadas rápidas sem END são o preflight CORS da callable.
+1: [WebServer] >  {"severity":"INFO","message":"notification_unread_count","event":"notification_unread_count","operation":"getNotificationUnreadCount","requestId":"9077f5da-f0ac-4a02-938a-35d899f489ef","actorId":"e2e-p3f-owner","workspaceId":"e2e-p3f-main-mw57clom","actorRole":"owner","events":0,"states":0,"unread":0}
+2: END getNotificationUnreadCount req=9077f5da 57ms
+3: FINISH getNotificationUnreadCount 65.843327ms
+4: END getWorkspaceEntitlement req=4518ef71 47ms
+5: FINISH getWorkspaceEntitlement 50.985308ms
+6: END getFinancialReport req=f60e86b6 85ms
+7: FINISH getFinancialReport 87.451324ms
+8: END getFinancialReport req=221157fd 135ms
+9: FINISH getFinancialReport 140.893714ms
+10: BEGIN createCashTransaction
+11: FINISH createCashTransaction 2.10421ms
+12: BEGIN createCashTransaction
+13: END createCashTransaction req=ecb47de6 52ms
+14: FINISH createCashTransaction 55.743681ms
+15: BEGIN getFinancialReport
+16: TRIGGER CREATE applied periods=0 req=0c3a1233
+17: BEGIN getFinancialReport
+18: BEGIN getWorkspaceEntitlement
+19: END getWorkspaceEntitlement req=3e2bd8e6 31ms
+20: FINISH getWorkspaceEntitlement 35.960392ms
+21: END getFinancialReport req=3113e2ee 68ms
+22: FINISH getFinancialReport 73.308567ms
+23: END getFinancialReport req=bf4f48a4 91ms
+24: FINISH getFinancialReport 117.654989ms
+25: BEGIN createCashTransaction
+26: END createCashTransaction req=c6073b46 46ms
+27: FINISH createCashTransaction 49.395223ms
+28: BEGIN getFinancialReport
+29: BEGIN getFinancialReport
+30: BEGIN getWorkspaceEntitlement
+31: TRIGGER CREATE applied periods=0 req=36090e7c
+32: END getWorkspaceEntitlement req=7fd21591 37ms
+33: FINISH getWorkspaceEntitlement 41.380017ms
+34: END getFinancialReport req=f749871e 2076ms
+35: FINISH getFinancialReport 2078.149868ms
+36: END getFinancialReport req=42c5c3db 2925ms
+37: FINISH getFinancialReport 2927.791202ms
+38: BEGIN createCashTransaction
+39: FINISH createCashTransaction 2.618753ms
+40: BEGIN createCashTransaction
+41: END createCashTransaction req=0356492a 49ms
+42: FINISH createCashTransaction 52.259578ms
+43: BEGIN getFinancialReport
+44: BEGIN getFinancialReport
+45: BEGIN getWorkspaceEntitlement
+46: FINISH getFinancialReport 9.748215ms
+47: FINISH getFinancialReport 4.888789ms
+48: FINISH getWorkspaceEntitlement 7.136057ms
+49: BEGIN getFinancialReport
+50: TRIGGER CREATE applied periods=0 req=7e126343
+51: BEGIN getFinancialReport
+52: BEGIN getWorkspaceEntitlement
+53: END getWorkspaceEntitlement req=54242425 31ms
+54: FINISH getWorkspaceEntitlement 35.230236ms
+55: END getFinancialReport req=f73468a3 57ms
+56: FINISH getFinancialReport 64.280148ms
+57: END getFinancialReport req=5ca15655 103ms
+58: FINISH getFinancialReport 107.415932ms
+59: BEGIN confirmCashTransaction
+60: FINISH confirmCashTransaction 8.345717ms
+61: BEGIN confirmCashTransaction
+62: END confirmCashTransaction req=cb0ee42b 71ms
+63: FINISH confirmCashTransaction 78.429393ms
+64: BEGIN onCashAccountWriteNotification
+65: FINISH onCashAccountWriteNotification 9.524157ms
+66: BEGIN getWorkspaceEntitlement
+67: END getWorkspaceEntitlement req=36650de4 33ms
+68: FINISH getWorkspaceEntitlement 38.802662ms
+69: TRIGGER UPDATE applied periods=1 req=8986d363
+70: BEGIN getFinancialReport
+71: BEGIN getFinancialReport
+72: BEGIN getFinancialReport
+73: BEGIN getFinancialReport
+74: END getFinancialReport req=0b22f5a2 10275ms
+75: FINISH getFinancialReport 10278.741446ms
+76: END getFinancialReport req=55e41b8a 10650ms
+77: FINISH getFinancialReport 10653.521546ms

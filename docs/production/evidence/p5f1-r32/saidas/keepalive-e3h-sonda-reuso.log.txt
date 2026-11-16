@@ -1,0 +1,6 @@
+ocupado de 5950 a 6100 ms {"ok":true,"reused":false,"status":200}
+  pedido em +6100 ms: {"ok":true,"reused":false,"status":200}
+sem ocupar, pede em 6100 ms {"ok":true,"reused":true,"status":200}
+  pedido em +6100 ms: {"ok":true,"reused":false,"status":200}
+ocupado de 5950 a 6300 ms {"ok":true,"reused":true,"status":200}
+  pedido em +6300 ms: {"ok":true,"reused":false,"status":200}

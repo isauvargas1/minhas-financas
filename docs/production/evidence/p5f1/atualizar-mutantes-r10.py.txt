@@ -1,0 +1,64 @@
+#!/usr/bin/env python3
+"""P5-F.1, revisão 10: atualiza mutantes.py. As bases fora de passo passaram à regra "à frente" (a leitura em uso e os
+pedidos que ela não cobre); a busca pausada conta como leitura; a base que sai de uso com releitura pendente fica
+marcada e é relida na volta. Cada troca exige exatamente uma ocorrência do trecho antigo; os novos entram depois do
+último (U174), sem renumerar ninguém."""
+import sys
+from pathlib import Path
+
+P = Path(sys.argv[1])
+s = P.read_text(encoding='utf-8')
+
+
+def rep(old, new):
+    global s
+    count = s.count(old)
+    assert count == 1, (count, old[:100])
+    s = s.replace(old, new)
+
+
+FETCH_OLD = "'      fetching: series.isFetching || (needsExtra && extra.isFetching),'"
+FETCH_NEW = '''"      fetching: series.fetchStatus !== 'idle' || (needsExtra && extra.fetchStatus !== 'idle'),"'''
+# alvos que mudaram (mesma intenção)
+rep(f"  ('estimativa', 'src/modules/work-time/useIncomeEstimateWith.ts', {FETCH_OLD}, '      fetching: false,', T('work-time-guard', 'work-time-income-estimate')),",
+    f"  ('estimativa', 'src/modules/work-time/useIncomeEstimateWith.ts', {FETCH_NEW}, '      fetching: false,', T('work-time-guard', 'work-time-income-estimate')),")
+rep("  ('agendada', 'src/modules/reports/basisSync.ts', '    (basis.fetching || basis.keys.some(basisRereadScheduled));', '    basis.fetching;', T('report-basis-sync')),",
+    "  ('agendada', 'src/modules/reports/basisSync.ts', '    (basis.fetching || basesOutOfStep(basis.keys));', '    basis.fetching;', T('report-basis-sync')),")
+rep("  ('agendada', 'src/modules/reports/basisRegistry.ts', '  if (entry === undefined || !(entry.scheduler.scheduled() || entry.mutationScheduler.scheduled())) return false;', '  if (entry === undefined || !entry.scheduler.scheduled()) return false;', T('report-basis-sync')),",
+    "  ('agendada', 'src/modules/reports/basisRegistry.ts', '  return entry !== undefined && (entry.scheduler.scheduled() || entry.mutationScheduler.scheduled());', '  return entry !== undefined && entry.scheduler.scheduled();', T('report-basis-sync')),")
+rep("  ('agendada', 'src/modules/reports/basisRegistry.ts', '  if (entry === undefined || !(entry.scheduler.scheduled() || entry.mutationScheduler.scheduled())) return false;', '  if (entry === undefined || !entry.mutationScheduler.scheduled()) return false;', T('report-basis-sync')),",
+    "  ('agendada', 'src/modules/reports/basisRegistry.ts', '  return entry !== undefined && (entry.scheduler.scheduled() || entry.mutationScheduler.scheduled());', '  return entry !== undefined && entry.mutationScheduler.scheduled();', T('report-basis-sync')),")
+rep("  ('estimativa', 'src/modules/work-time/useIncomeEstimateWith.ts', '  }, [series.data, series.dataUpdatedAt, series.isFetching, extra.data, extra.dataUpdatedAt, extra.isFetching, needsExtra, extraMonth, extraRange, uid, workspaceId]);', '  }, [series.data, series.dataUpdatedAt, extra.data, extra.dataUpdatedAt, needsExtra, extraMonth, extraRange, uid, workspaceId]);', T('work-time-income-estimate')),",
+    "  ('estimativa', 'src/modules/work-time/useIncomeEstimateWith.ts', '  }, [series.data, series.dataUpdatedAt, series.fetchStatus, extra.data, extra.dataUpdatedAt, extra.fetchStatus, needsExtra, extraMonth, extraRange, uid, workspaceId]);', '  }, [series.data, series.dataUpdatedAt, extra.data, extra.dataUpdatedAt, needsExtra, extraMonth, extraRange, uid, workspaceId]);', T('work-time-income-estimate')),")
+rep(f"  ('estimativa', 'src/modules/work-time/useIncomeEstimateWith.ts', {FETCH_OLD}, '      fetching: series.isFetching,', T('work-time-income-estimate')),",
+    f"  ('estimativa', 'src/modules/work-time/useIncomeEstimateWith.ts', {FETCH_NEW}, \"      fetching: series.fetchStatus !== 'idle',\", T('work-time-income-estimate')),")
+rep(f"  ('estimativa', 'src/modules/work-time/useIncomeEstimateWith.ts', {FETCH_OLD}, '      fetching: false,', T('work-time-income-estimate')),",
+    f"  ('estimativa', 'src/modules/work-time/useIncomeEstimateWith.ts', {FETCH_NEW}, '      fetching: false,', T('work-time-income-estimate')),")
+rep("  ('agendada', 'src/modules/reports/basisRegistry.ts', '  return (rereadRequestedAt.get(key) ?? 0) > (readStartedAt.get(key) ?? 0);', '  return true;', T('report-basis-sync')),",
+    "  ('agendada', 'src/modules/reports/basisRegistry.ts', '  return open !== undefined && open[open.length - 1] > (readStartedAt.get(key) ?? 0);', '  return true;', T('report-basis-sync')),")
+rep("  ('agendada', 'src/modules/reports/basisSync.ts', '      noteBasisReadStart(refreshKey);\\n', '', T('report-basis-sync')),",
+    "  ('agendada', 'src/modules/reports/basisSync.ts', '      const started = noteBasisReadStart(refreshKey);', '      const started = 0;', T('report-basis-sync')),")
+rep("  ('agendada', 'src/modules/reports/basisRegistry.ts', '  rereadRequestedAt.set(key, basisOrder);\\n', '', T('report-basis-sync')),",
+    "  ('agendada', 'src/modules/reports/basisRegistry.ts', '  open.push(basisOrder);\\n', '', T('report-basis-sync')),")
+rep("  ('fora de passo', 'src/modules/reports/basisSync.ts', '    (basis.fetching || basis.keys.some(basisRereadScheduled));', '    basis.keys.some(basisRereadScheduled);', T('report-basis-sync')),",
+    "  ('fora de passo', 'src/modules/reports/basisSync.ts', '    (basis.fetching || basesOutOfStep(basis.keys));', '    basesOutOfStep(basis.keys);', T('report-basis-sync')),")
+rep("""  ('fora de passo', 'src/modules/reports/basisSync.ts', "        if (basisRereadScheduled(refreshKey)) {\\n          void queryClient.invalidateQueries({ queryKey: JSON.parse(refreshKey) as unknown[], exact: true, refetchType: 'none' });\\n        }\\n", '', T('report-basis-sync')),""",
+    """  ('fora de passo', 'src/modules/reports/basisSync.ts', "        if (basisRereadScheduled(refreshKey)) {\\n          void queryClient.invalidateQueries({ queryKey: JSON.parse(refreshKey) as unknown[], exact: true, refetchType: 'none' });\\n          markRereadOnReturn(refreshKey);\\n        }\\n", '', T('report-basis-sync')),""")
+# novos, depois do U174 (o último da lista)
+rep("""  ('mesmo milissegundo', 'src/modules/work-time/useIncomeEstimateWith.ts', 'needsExcluded ? excluded.data : null', 'needsExcluded ? excluded.dataUpdatedAt : null', T('work-time-income-estimate')),
+]""",
+"""  ('mesmo milissegundo', 'src/modules/work-time/useIncomeEstimateWith.ts', 'needsExcluded ? excluded.data : null', 'needsExcluded ? excluded.dataUpdatedAt : null', T('work-time-income-estimate')),
+  # revisão 10: as bases fora de passo pela regra "à frente"; a busca pausada; a base relida na volta
+  ('em passo', 'src/modules/reports/basisRegistry.ts', '    if (firstOpen === undefined || !rereadPending(behind)) return false;', '    if (firstOpen === undefined) return false;', T('report-basis-sync')),
+  ('em passo', 'src/modules/reports/basisRegistry.ts', '(servedReadStartedAt.get(other) ?? 0) > firstOpen', '(readStartedAt.get(other) ?? 0) > firstOpen', T('report-basis-sync')),
+  ('em passo', 'src/modules/reports/basisRegistry.ts', '  if (readStartedAt.get(key) !== started) return;\\n', '', T('report-basis-sync')),
+  ('em passo', 'src/modules/reports/basisRegistry.ts', '  const open = (openRequests.get(key) ?? []).filter((request) => request > started);', '  const open = openRequests.get(key) ?? [];', T('report-basis-sync')),
+  ('em passo', 'src/modules/reports/basisSync.ts', '      noteBasisReadServed(refreshKey, started);\\n', '', T('report-basis-sync')),
+  ('em passo', 'src/modules/reports/basisRegistry.ts', '  return open !== undefined && open[open.length - 1] > (readStartedAt.get(key) ?? 0);', '  return open !== undefined && open[0] > (readStartedAt.get(key) ?? 0);', T('report-basis-sync')),
+  ('na volta', 'src/modules/reports/basisSync.ts', '          markRereadOnReturn(refreshKey);\\n', '', T('report-basis-sync')),
+  ('na volta', 'src/modules/reports/basisSync.ts', "      if (takeRereadOnReturn(refreshKey) && entry.loaded() && (queryClient.getQueryState(exactKey)?.fetchStatus ?? 'idle') === 'idle') {\\n        void queryClient.invalidateQueries({ queryKey: exactKey, exact: true, refetchType: 'none' });\\n        scheduleBasisReread(refreshKey, entry.scheduler);\\n      }\\n", '', T('report-basis-sync')),
+  ('na volta', 'src/modules/reports/basisSync.ts', " && (queryClient.getQueryState(exactKey)?.fetchStatus ?? 'idle') === 'idle'", '', T('report-basis-sync')),
+  ('pausada', 'src/modules/work-time/useIncomeEstimateWith.ts', \"      fetching: series.fetchStatus !== 'idle' || (needsExtra && extra.fetchStatus !== 'idle'),\", '      fetching: series.isFetching || (needsExtra && extra.isFetching),', T('work-time-income-estimate')),
+]""")
+P.write_text(s, encoding='utf-8')
+print('ok')

@@ -110,6 +110,24 @@ jobs:
       - name: Testes unitários do relatório oficial (adaptador, faixas, fuso)
         run: npm run test:unit:reports
 
+      - name: Testes unitários do tempo de trabalho equivalente (cálculo, contrato e guardas de privacidade)
+        run: npm run test:unit:work-time
+
+      - name: Testes unitários do catálogo de configurações (P4-E) e guardas
+        run: npm run test:unit:settings-catalog
+
+      - name: Testes unitários do histórico do chat de IA (P5-A, isolamento por usuário e espaço)
+        run: npm run test:unit:ai-chat
+
+      - name: Testes do E2E oficial em grupos (executor e fiação)
+        run: npm run test:tools:e2e
+
+      - name: Testes do marco de fase completa da integração
+        run: npm run test:tools:integracao
+
+      - name: Varredura de segredos do bundle (testes da ferramenta)
+        run: npm run test:tools:bundle
+
   integration-and-rules:
     name: Integração e Firestore Rules
     runs-on: ubuntu-latest
@@ -136,8 +154,10 @@ jobs:
       - name: Instalar dependências das Functions
         run: npm ci --prefix functions
 
+      # A versão do Emulator é a validada no gate (P5-F.1-R3.2); trocar de versão é uma mudança explícita, não a mais
+      # nova do dia.
       - name: Instalar Firebase CLI
-        run: npm install -g firebase-tools@latest
+        run: npm install -g firebase-tools@15.32.1
 
       - name: Cache dos emuladores
         uses: actions/cache@v4
@@ -174,8 +194,10 @@ jobs:
       - name: Instalar dependências das Functions
         run: npm ci --prefix functions
 
+      # A versão do Emulator é a validada no gate (P5-F.1-R3.2); trocar de versão é uma mudança explícita, não a mais
+      # nova do dia.
       - name: Instalar Firebase CLI
-        run: npm install -g firebase-tools@latest
+        run: npm install -g firebase-tools@15.32.1
 
       - name: Cache dos emuladores
         uses: actions/cache@v4
@@ -190,6 +212,14 @@ jobs:
       # contra o servidor de desenvolvimento: o grafo de módulos não empacotado
       # derrubava o renderer do Chromium por memória antes de qualquer
       # asserção. `test:e2e` já constrói antes de invocar o Playwright.
+      #
+      # `test:e2e` roda a suíte em grupos de arquivos, um depois do outro, cada
+      # um com o próprio Emulator (`tools/e2e/executar-em-grupos.mjs`, P5-F.1-R3.2):
+      # numa sessão só, o emulador de Functions acumulava um processo por função
+      # e a memória passava de 14 GB. Os mesmos testes e asserções, sem nova
+      # tentativa automática; a execução só passa com cada teste da lista
+      # rodando uma vez e passando. Os relatórios e os logs do Emulator ficam
+      # por grupo em `playwright-report/grupo-<n>/` e `test-results/grupo-<n>/`.
       - name: Suíte E2E
         run: npm run test:e2e
 
