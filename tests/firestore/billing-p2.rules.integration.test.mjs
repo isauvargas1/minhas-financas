@@ -85,7 +85,7 @@ const seed = async () => {
     await firebaseAdmin.auth().createUser({...entry, password, emailVerified: true});
     await db.doc(`users/${entry.uid}`).set({
       uid: entry.uid,
-      status: entry === users.suspended ? 'suspended' : 'active',
+      accessStatus: 'granted', status: entry === users.suspended ? 'suspended' : 'active',
     });
     await db.recursiveDelete(db.doc(`billing_accounts/${entry.uid}`));
     await db.recursiveDelete(db.collection(`users/${entry.uid}/ai_usage_receipts`));

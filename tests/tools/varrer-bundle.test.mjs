@@ -122,3 +122,144 @@ test('roda de qualquer caminho: com espaço e acento e por link simbólico (nunc
     rmSync(base, { recursive: true, force: true });
   }
 });
+
+// P6-A (PR-AUTH-04, PR-PLAT-01): perfil do build pelo marcador `fenix-build.json`, `--perfil` e `--publicacao`.
+const runWith = (files, args = []) => {
+  const dir = mkdtempSync(join(tmpdir(), 'p6a-bundle-'));
+  try {
+    for (const [name, content] of Object.entries(files)) {
+      mkdirSync(join(dir, name, '..'), { recursive: true });
+      writeFileSync(join(dir, name), content);
+    }
+    const result = spawnSync(process.execPath, [SCRIPT, dir, ...args], { encoding: 'utf8' });
+    return { code: result.status, output: `${result.stdout}${result.stderr}` };
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+};
+
+const withMarker = (marker, files = {}) => ({
+  'index.html': '<!doctype html>',
+  ...files,
+  'fenix-build.json': JSON.stringify(marker),
+});
+const markerOf = (perfil) => ({ perfil, emuladores: perfil === 'e2e', loginE2E: perfil === 'e2e', publicavel: false, ambiente: null });
+const RELEASE_MARKER = { perfil: 'release', publicavel: true, ambiente: 'prod', emuladores: false, loginE2E: false };
+
+const TEST_TRACES = [
+  ['módulo de login E2E', 'const m="fenixgran:login-e2e";'],
+  ['botão do login E2E', 'const b="e2e-login-button";'],
+  ['domínio das contas de teste', 'const e="usuario@minhas-financas.local";'],
+  ['projeto do Emulator', 'const p="minhas-financas-local";'],
+  ['chave fictícia do E2E', 'const k="e2e-api-key";'],
+];
+
+for (const [label, content] of TEST_TRACES) {
+  test(`P6-A: sem marcador, o vestígio de teste (${label}) reprova`, () => {
+    const result = runWith({ 'index.html': '<!doctype html>', 'assets/index.js': content });
+    assert.equal(result.code, 1, result.output);
+    assert.match(result.output, /vestígio de teste fora do Emulator/);
+  });
+
+  test(`P6-A: com marcador e2e, o vestígio de teste (${label}) passa`, () => {
+    const result = runWith(withMarker(markerOf('e2e'), { 'assets/index.js': content }));
+    assert.equal(result.code, 0, result.output);
+    assert.match(result.output, /perfil e2e/);
+  });
+
+  test(`P6-A: com marcador verificacao, o vestígio de teste (${label}) reprova`, () => {
+    const result = runWith(withMarker(markerOf('verificacao'), { 'assets/index.js': content }));
+    assert.equal(result.code, 1, result.output);
+    assert.match(result.output, /vestígio de teste fora do Emulator/);
+  });
+
+  test(`P6-A: com marcador release, o vestígio de teste (${label}) reprova`, () => {
+    const result = runWith(withMarker(RELEASE_MARKER, { 'assets/index.js': content }));
+    assert.equal(result.code, 1, result.output);
+  });
+}
+
+test('P6-A: o marcador não é varrido como vestígio (o projeto do Emulator no marcador e2e é permitido)', () => {
+  const result = runWith(withMarker({ ...markerOf('e2e'), projectId: 'minhas-financas-local' }, { 'assets/index.js': 'const a=1;' }), ['--perfil', 'e2e']);
+  assert.equal(result.code, 0, result.output);
+  const verificacao = runWith(withMarker({ ...markerOf('verificacao'), projectId: 'minhas-financas-local' }, { 'assets/index.js': 'const a=1;' }));
+  assert.equal(verificacao.code, 0, verificacao.output);
+});
+
+test('P6-A: --perfil e2e com marcador verificacao reprova', () => {
+  const result = runWith(withMarker(markerOf('verificacao'), { 'assets/index.js': 'const a=1;' }), ['--perfil', 'e2e']);
+  assert.equal(result.code, 1, result.output);
+  assert.match(result.output, /perfil do build diferente do esperado/);
+});
+
+test('P6-A: --perfil com o marcador do mesmo perfil e conteúdo limpo passa', () => {
+  assert.equal(runWith(withMarker(markerOf('verificacao'), { 'assets/index.js': 'const a=1;' }), ['--perfil', 'verificacao']).code, 0);
+  assert.equal(runWith(withMarker(RELEASE_MARKER, { 'assets/index.js': 'const a=1;' }), ['--perfil', 'release']).code, 0);
+});
+
+test('P6-A: --perfil release sem marcador reprova', () => {
+  const result = runWith({ 'index.html': '<!doctype html>', 'assets/index.js': 'const a=1;' }, ['--perfil', 'release']);
+  assert.equal(result.code, 1, result.output);
+  assert.match(result.output, /build sem marcador de perfil/);
+});
+
+test('P6-A: build sem Emulator marcado com Emulator ou login E2E reprova', () => {
+  const result = runWith(withMarker({ ...markerOf('verificacao'), emuladores: true }, { 'assets/index.js': 'const a=1;' }));
+  assert.equal(result.code, 1, result.output);
+  assert.match(result.output, /sem Emulator marcado com Emulator ou login E2E/);
+  const login = runWith(withMarker({ ...RELEASE_MARKER, loginE2E: true }, { 'assets/index.js': 'const a=1;' }));
+  assert.equal(login.code, 1, login.output);
+});
+
+test('P6-A: --publicacao com marcador e2e reprova, mesmo sem vestígio no conteúdo', () => {
+  const result = runWith(withMarker(markerOf('e2e'), { 'assets/index.js': 'const a=1;' }), ['--publicacao']);
+  assert.equal(result.code, 1, result.output);
+  assert.match(result.output, /não é publicável/);
+});
+
+test('P6-A: --publicacao com marcador e2e reprova também os vestígios de teste no conteúdo', () => {
+  const result = runWith(withMarker(markerOf('e2e'), { 'assets/index.js': 'const m="fenixgran:login-e2e";' }), ['--publicacao']);
+  assert.equal(result.code, 1, result.output);
+  assert.match(result.output, /vestígio de teste fora do Emulator/);
+});
+
+test('P6-A: --publicacao com marcador verificacao reprova', () => {
+  const result = runWith(withMarker(markerOf('verificacao'), { 'assets/index.js': 'const a=1;' }), ['--publicacao']);
+  assert.equal(result.code, 1, result.output);
+  assert.match(result.output, /não é publicável/);
+});
+
+test('P6-A: --publicacao sem marcador reprova', () => {
+  const result = runWith({ 'index.html': '<!doctype html>', 'assets/index.js': 'const a=1;' }, ['--publicacao']);
+  assert.equal(result.code, 1, result.output);
+  assert.match(result.output, /build sem marcador de perfil/);
+});
+
+test('P6-A: --publicacao com release incompleto (publicavel false, ambiente nulo) reprova', () => {
+  for (const marker of [{ ...RELEASE_MARKER, publicavel: false }, { ...RELEASE_MARKER, ambiente: null }, { ...RELEASE_MARKER, emuladores: undefined }]) {
+    const result = runWith(withMarker(marker, { 'assets/index.js': 'const a=1;' }), ['--publicacao']);
+    assert.equal(result.code, 1, `${JSON.stringify(marker)}: ${result.output}`);
+  }
+});
+
+test('P6-A: --publicacao com o marcador de release correto e conteúdo limpo passa', () => {
+  const result = runWith(withMarker(RELEASE_MARKER, { 'assets/index.js': `${firebaseConfig(googleKey(21))}const a=1;` }), ['--publicacao', '--perfil', 'release']);
+  assert.equal(result.code, 0, result.output);
+  assert.match(result.output, /perfil release/);
+  assert.equal(runWith(withMarker(RELEASE_MARKER, { 'assets/index.js': 'const a=1;' }), ['--publicacao']).code, 0);
+});
+
+test('P6-A: --publicacao com release correto mas vestígio de teste no conteúdo reprova', () => {
+  const result = runWith(withMarker(RELEASE_MARKER, { 'assets/index.js': 'const p="minhas-financas-local";' }), ['--publicacao']);
+  assert.equal(result.code, 1, result.output);
+});
+
+test('P6-A: marcador ilegível sai com 2 e argumentos desconhecidos ou repetidos saem com 2', () => {
+  assert.equal(runWith({ 'index.html': '<!doctype html>', 'fenix-build.json': '{não é json' }).code, 2);
+  const limpo = { 'index.html': '<!doctype html>', 'assets/index.js': 'const a=1;' };
+  assert.equal(runWith(limpo, ['--x']).code, 2);
+  assert.equal(runWith(limpo, ['--perfil']).code, 2);
+  assert.equal(runWith(limpo, ['--perfil', 'e2e', '--perfil', 'e2e']).code, 2);
+  assert.equal(runWith(limpo, ['--publicacao', '--publicacao']).code, 2);
+  assert.equal(runWith(limpo, ['extra']).code, 2);
+});

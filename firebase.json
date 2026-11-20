@@ -3,7 +3,10 @@
     "database": "(default)",
     "location": "southamerica-east1",
     "rules": "firestore.rules",
-    "indexes": "firestore.indexes.json"
+    "indexes": "firestore.indexes.json",
+    "predeploy": [
+      "node \"$PROJECT_DIR/tools/deploy/guarda-predeploy.mjs\" firestore"
+    ]
   },
   "functions": [
     {
@@ -25,19 +28,22 @@
         "lib/**/*.test.js.map"
       ],
       "predeploy": [
+        "node \"$PROJECT_DIR/tools/deploy/guarda-predeploy.mjs\" functions",
         "npm --prefix \"$RESOURCE_DIR\" run build"
       ]
     }
-    ],
+  ],
   "hosting": {
     "public": "dist",
     "predeploy": [
-      "node tools/seguranca/varrer-bundle.mjs dist"
+      "node \"$PROJECT_DIR/tools/deploy/guarda-predeploy.mjs\" hosting",
+      "node \"$PROJECT_DIR/tools/seguranca/varrer-bundle.mjs\" \"$PROJECT_DIR/dist\" --perfil release --publicacao"
     ],
     "ignore": [
       "firebase.json",
       "**/.*",
-      "**/node_modules/**"
+      "**/node_modules/**",
+      "fenix-build.json"
     ],
     "rewrites": [
       {
@@ -66,6 +72,12 @@
       }
     ]
   },
+  "storage": {
+    "rules": "storage.rules",
+    "predeploy": [
+      "node \"$PROJECT_DIR/tools/deploy/guarda-predeploy.mjs\" storage"
+    ]
+  },
   "emulators": {
     "auth": {
       "host": "127.0.0.1",
@@ -74,6 +86,10 @@
     "firestore": {
       "host": "127.0.0.1",
       "port": 8080
+    },
+    "storage": {
+      "host": "127.0.0.1",
+      "port": 9199
     },
     "functions": {
       "host": "127.0.0.1",

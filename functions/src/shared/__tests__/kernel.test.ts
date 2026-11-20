@@ -157,6 +157,7 @@ const HTTPS_CODE: Record<ApplicationErrorCode, string> = {
   recent_login_required: "failed-precondition",
   account_suspended: "permission-denied",
   account_not_initialized: "failed-precondition",
+  pilot_access_required: "permission-denied",
   workspace_not_found: "not-found",
   workspace_archived: "failed-precondition",
   workspace_membership_required: "permission-denied",
@@ -176,6 +177,7 @@ const PUBLIC_REASON_CODES = new Set<ApplicationErrorCode>([
   "recent_login_required",
   "account_suspended",
   "account_not_initialized",
+  "pilot_access_required",
   "workspace_archived",
 ]);
 

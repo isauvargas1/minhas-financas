@@ -147,6 +147,6 @@ export const checkGroupRuns = (listed, runs) => {
 
 /** Portas do Emulator (`firebase.json` e as auxiliares que o firebase-tools sobe) e a do servidor do frontend. */
 export const e2ePorts = ({ startEmulators, previewPort }) => [
-  ...(startEmulators ? [4000, 4400, 4500, 5001, 8080, 9099, 9150, 9299, 9499] : []),
+  ...(startEmulators ? [4000, 4400, 4500, 5001, 8080, 9099, 9150, 9199, 9299, 9499] : []),
   previewPort,
 ];

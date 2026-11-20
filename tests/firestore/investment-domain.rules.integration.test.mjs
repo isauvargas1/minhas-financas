@@ -63,7 +63,7 @@ const seed = async () => {
     // P1: a autorização exige perfil de conta ativo (gravado pelo backend).
     // Viewer e membro removido também têm perfil ativo: quem os nega é o papel
     // ou o membership, não a conta.
-    await db.doc(`users/${user.uid}`).set({uid: user.uid, status: 'active'});
+    await db.doc(`users/${user.uid}`).set({uid: user.uid, accessStatus: 'granted', status: 'active'});
   }
   await Promise.all([
     db.recursiveDelete(db.doc(`workspaces/${workspaceA}`)),

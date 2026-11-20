@@ -1,0 +1,45 @@
+{
+  "formato": 2,
+  "descricao": "Contrato único de ambientes do FênixGran (P6-A, produção-piloto; D-19 decidida em 2026-11-17). Uma produção online e o Emulator local; não há DEV nem STAGING online. Só valores públicos por desenho. Lido por tools/ambiente/contrato.mjs: nenhum script escolhe projeto fora daqui.",
+  "emulador": {
+    "projectId": "minhas-financas-local",
+    "regiaoFunctions": "southamerica-east1",
+    "web": {
+      "apiKey": "e2e-api-key",
+      "authDomain": "localhost",
+      "projectId": "minhas-financas-local",
+      "storageBucket": "minhas-financas-local.appspot.com",
+      "messagingSenderId": "000000000000",
+      "appId": "1:000000000000:web:e2e"
+    }
+  },
+  "verificacao": {
+    "observacao": "Build de produção sem destino, para o verify:fast e o CI. Projeto demo-* (prefixo reservado pelo Firebase: não existe projeto real assim). Nunca publicável.",
+    "web": {
+      "apiKey": "demo-fenixgran-sem-chave",
+      "authDomain": "demo-fenixgran-verificacao.firebaseapp.com",
+      "projectId": "demo-fenixgran-verificacao",
+      "storageBucket": "demo-fenixgran-verificacao.appspot.com",
+      "messagingSenderId": "000000000000",
+      "appId": "1:000000000000:web:verificacao"
+    }
+  },
+  "producao": {
+    "projectId": "sistema-financeiro-pesso-20698",
+    "natureza": "projeto real existente, com histórico e Hosting anterior; não descartável",
+    "decisao": "D-19 (2026-11-17): produção online única, testes locais no Emulator, liberação progressiva (proprietário, depois convidados) e dados permanentes",
+    "regiaoFunctions": "southamerica-east1",
+    "origens": [
+      "https://sistema-financeiro-pesso-20698.web.app",
+      "https://sistema-financeiro-pesso-20698.firebaseapp.com"
+    ],
+    "web": null,
+    "pendenteWeb": "O proprietário copia a configuração web pública do app (Console do Firebase → Configurações do projeto → Seus apps → SDK) para este campo, numa mudança revisada. Sem ela, o build de release recusa.",
+    "liberacao": null,
+    "pendenteLiberacao": "Registro da autorização expressa de publicação (gate G0 do LAUNCH_CHECKLIST.md): {\"gate\":\"G0\",\"autorizadoPor\":\"…\",\"autorizadoEm\":\"AAAA-MM-DD\",\"referencia\":\"…\"}. Sem ele, tools/deploy/publicar.mjs e o predeploy do firebase.json recusam toda publicação.",
+    "segredos": [],
+    "pendenteSegredos": "Nomes dos segredos que já existem no Secret Manager da produção, nunca valores. Vazio no primeiro deploy: as Functions que declaram GOOGLE_AI_API_KEY (IA) ou os segredos do Stripe (checkout, portal e webhook) ficam de fora da publicação. Ficar de fora não remove versão antiga já implantada: conferir com o pré-voo somente leitura (RUNBOOKS RB-17). Incluir um nome aqui só depois de criar o segredo (E-05, E-06) e registrar a evidência no FIREBASE_PRODUCTION.md.",
+    "appCheck": null,
+    "pendenteAppCheck": "{\"provedor\":\"recaptcha-enterprise\",\"siteKey\":\"<chave de site pública, 40 caracteres>\"}, depois de registrar o app web no App Check (E-02). O release passa a enviar tokens; o enforcement só depois do período de monitoramento (D-33)."
+  }
+}

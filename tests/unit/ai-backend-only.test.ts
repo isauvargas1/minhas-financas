@@ -117,11 +117,12 @@ test('vite não injeta a chave do Gemini no bundle', () => {
  * desenho) e as chaves de modo; nenhum acesso ao objeto. Uma variável nova no cliente exige mudar esta lista,
  * com a justificativa de que o valor pode ser público.
  */
-const CLIENT_ENV_ALLOWED = new Set([
-  'VITE_FIREBASE_API_KEY', 'VITE_FIREBASE_AUTH_DOMAIN', 'VITE_FIREBASE_PROJECT_ID', 'VITE_FIREBASE_STORAGE_BUCKET',
-  'VITE_FIREBASE_MESSAGING_SENDER_ID', 'VITE_FIREBASE_APP_ID', 'VITE_USE_FIREBASE_EMULATORS', 'VITE_E2E_MODE',
-  'MODE', 'DEV', 'PROD', 'BASE_URL', 'SSR',
-]);
+/*
+ * P6-A: o cliente não lê mais nenhuma `VITE_*`. A configuração web vem do perfil de build (`__FENIX_CONFIG_WEB__`,
+ * de `config/ambientes.json`), e o Emulator e o login E2E entram só por alias nos perfis de Emulator. Sobram as chaves
+ * de modo do próprio Vite.
+ */
+const CLIENT_ENV_ALLOWED = new Set(['MODE', 'DEV', 'PROD', 'BASE_URL', 'SSR']);
 
 /** Código sem comentários de bloco e de linha inteira (um comentário que explica a regra não a viola). */
 const withoutComments = (content: string) =>
@@ -145,38 +146,111 @@ test('E-00: o cliente só lê variáveis de ambiente da lista fechada, por nome,
     ['VITE_X', null, 'MODE']);
 });
 
-test('E-00: o vite.config não injeta valor de ambiente pelo define nem muda o prefixo das variáveis públicas', async () => {
+const PERFIS_DO_VITE = [
+  {perfil: 'verificacao', command: 'build' as const, projeto: 'demo-fenixgran-verificacao'},
+  {perfil: 'e2e', command: 'build' as const, projeto: 'minhas-financas-local'},
+  {perfil: 'local', command: 'serve' as const, projeto: 'minhas-financas-local'},
+];
+
+/** Carrega o vite.config com o perfil e as variáveis pedidas, restaurando o ambiente depois. */
+const carregarVite = async (env: Record<string, string | undefined>, command: 'build' | 'serve') => {
+  const anterior = {...process.env};
+  for (const nome of Object.keys(process.env)) if (nome.startsWith('VITE_') || nome.startsWith('FENIX_')) delete process.env[nome];
+  Object.assign(process.env, env);
+  try {
+    return await loadConfigFromFile({command, mode: 'production'}, 'vite.config.ts', process.cwd(), 'silent');
+  } finally {
+    for (const nome of Object.keys(process.env)) if (!(nome in anterior)) delete process.env[nome];
+    Object.assign(process.env, anterior);
+  }
+};
+
+test('E-00/P6-A: o define efetivo de cada perfil só traz as neutralizações, o perfil, a configuração web pública dele e o App Check (nulo fora do release)', async () => {
   const config = repoFile('vite.config.ts');
   assert.doesNotMatch(config, /envPrefix/, 'envPrefix mudaria quais variáveis vão para o bundle');
   assert.doesNotMatch(withoutComments(config), /\bloadEnv\b/, 'a configuração não carrega o ambiente');
-  // PLAT-10 (2ª revisão): a configuração efetiva, carregada pelo próprio Vite, nos modos de build: só as duas
-  // neutralizações, com texto vazio, e nenhum prefixo de variável pública além do padrão (VITE_).
-  for (const mode of ['production', 'development']) {
-    const loaded = await loadConfigFromFile({command: 'build', mode}, 'vite.config.ts', process.cwd(), 'silent');
-    assert.ok(loaded, `configuração carregada (${mode})`);
-    assert.deepEqual(loaded.config.define, {'process.env.API_KEY': '""', 'process.env.GEMINI_API_KEY': '""'}, mode);
-    assert.equal(loaded.config.envPrefix, undefined, mode);
+  const contrato = JSON.parse(repoFile('config/ambientes.json'));
+  const portas = JSON.parse(repoFile('firebase.json')).emulators;
+  // Só os perfis de Emulator conectam: `local` pela mesma origem (proxy do Vite), `e2e` direto nas portas do Emulator.
+  const conexaoEsperada: Record<string, unknown> = {
+    verificacao: null,
+    local: {modo: 'mesma-origem'},
+    e2e: {modo: 'direta', host: '127.0.0.1', auth: portas.auth.port, firestore: portas.firestore.port, functions: portas.functions.port},
+  };
+  for (const {perfil, command, projeto} of PERFIS_DO_VITE) {
+    const loaded = await carregarVite({FENIX_PERFIL: perfil}, command);
+    assert.ok(loaded, `configuração carregada (${perfil})`);
+    const web = perfil === 'verificacao' ? contrato.verificacao.web : contrato.emulador.web;
+    assert.deepEqual(loaded.config.define, {
+      'process.env.API_KEY': '""',
+      'process.env.GEMINI_API_KEY': '""',
+      __FENIX_PERFIL__: JSON.stringify(perfil),
+      __FENIX_CONFIG_WEB__: JSON.stringify(web),
+      __FENIX_APP_CHECK__: 'null',
+      __FENIX_CONEXAO_EMULADOR__: JSON.stringify(conexaoEsperada[perfil]),
+    }, perfil);
+    assert.equal(web.projectId, projeto, perfil);
+    assert.equal(loaded.config.envPrefix, undefined, perfil);
+    assert.match(String(loaded.config.envDir), /config[\\/]vite-sem-env$/, `${perfil}: envDir sem .env*`);
   }
   // O Vite também substitui `%NOME%` no index.html pelas variáveis do ambiente: nenhum marcador no HTML.
   assert.doesNotMatch(repoFile('index.html'), /%[A-Z_][A-Z0-9_]*%/, 'marcador de variável de ambiente no index.html');
   const define = /define:\s*\{([\s\S]*?)\n\s*\},/.exec(config)?.[1] ?? '';
-  assert.ok(define.length > 0, 'bloco define encontrado');
-  const entries = [...withoutComments(define).matchAll(/^\s*'([^']+)':\s*(.+?),?\s*$/gm)].map((match) => [match[1], match[2]]);
-  // Só as duas neutralizações da chave antiga, com texto vazio: nenhum valor vindo do ambiente.
-  assert.deepEqual(entries, [['process.env.API_KEY', "JSON.stringify('')"], ['process.env.GEMINI_API_KEY', "JSON.stringify('')"]]);
+  const entries = [...withoutComments(define).matchAll(/^\s*'?([A-Za-z_.$]+)'?:\s*(.+?),?\s*$/gm)].map((match) => [match[1], match[2]]);
+  assert.deepEqual(entries, [
+    ['process.env.API_KEY', "JSON.stringify('')"],
+    ['process.env.GEMINI_API_KEY', "JSON.stringify('')"],
+    ['__FENIX_PERFIL__', 'JSON.stringify(plano.perfil)'],
+    ['__FENIX_CONFIG_WEB__', 'JSON.stringify(plano.web)'],
+    ['__FENIX_APP_CHECK__', 'JSON.stringify(plano.appCheck)'],
+    ['__FENIX_CONEXAO_EMULADOR__', 'JSON.stringify(conexaoDoEmulador(plano, portasEmulador))'],
+  ]);
 });
 
-test('E-00: todo build do frontend termina com a varredura de segredos do bundle público', () => {
+test('P6-A: o vite.config falha fechado sem perfil, com VITE_* no shell e no release sem configuração da produção', async () => {
+  await assert.rejects(carregarVite({}, 'build'), /perfil/);
+  await assert.rejects(carregarVite({FENIX_PERFIL: 'producao'}, 'build'), /perfil/);
+  await assert.rejects(carregarVite({FENIX_PERFIL: 'verificacao', VITE_FIREBASE_PROJECT_ID: 'x'}, 'build'), /VITE_FIREBASE_PROJECT_ID/);
+  await assert.rejects(carregarVite({FENIX_PERFIL: 'verificacao', VITE_E2E_MODE: 'true'}, 'build'), /VITE_E2E_MODE/);
+  await assert.rejects(carregarVite({FENIX_PERFIL: 'local'}, 'build'), /não aceita o comando build/);
+  // O release depende de producao.web, que o proprietário preenche antes do G0: o teste vale nos dois estados.
+  const producao = JSON.parse(repoFile('config/ambientes.json')).producao;
+  if (producao.web === null) {
+    await assert.rejects(carregarVite({FENIX_PERFIL: 'release'}, 'build'), /producao\.web/);
+  } else {
+    const release = await carregarVite({FENIX_PERFIL: 'release'}, 'build');
+    assert.equal(release?.config.build?.outDir, 'dist');
+    assert.equal(release?.config.define?.__FENIX_CONFIG_WEB__, JSON.stringify(producao.web));
+  }
+});
+
+test('E-00/P6-A: todo build do frontend passa pelo perfil e termina com a varredura; o Hosting só publica release', () => {
   const pkg = JSON.parse(repoFile('package.json')) as {scripts: Record<string, string>};
-  assert.match(pkg.scripts.build, /vite build && node tools\/seguranca\/varrer-bundle\.mjs dist$/);
-  assert.match(pkg.scripts['build:e2e'], / npm run build$/);
-  assert.match(pkg.scripts['deploy:hosting'], /^npm run build && /, 'o deploy do Hosting passa pela varredura');
-  // PLAT-11 (2ª revisão): também o `firebase deploy --only hosting` direto, pelo predeploy do Hosting.
-  const firebase = JSON.parse(repoFile('firebase.json')) as {hosting: {public: string; predeploy?: string[]}};
+  assert.equal(pkg.scripts.build, 'node tools/ambiente/construir.mjs --perfil verificacao');
+  assert.equal(pkg.scripts['build:e2e'], 'node tools/ambiente/construir.mjs --perfil e2e');
+  assert.equal(pkg.scripts['build:release'], 'node tools/ambiente/construir.mjs --perfil release');
+  const vite = Object.entries(pkg.scripts).filter(([, command]) => /\bvite\b(?!\.mjs)/.test(command.replace(/tools\/ambiente\/vite\.mjs/g, ''))).map(([name]) => name);
+  assert.deepEqual(vite, [], 'nenhum script chama o Vite sem o perfil');
+  const construir = withoutComments(repoFile('tools/ambiente/construir.mjs'));
+  assert.ok(construir.indexOf("'vite.js'") > 0 && construir.indexOf("'varrer-bundle.mjs'") > construir.indexOf("'vite.js'"),
+    'construir.mjs roda a varredura depois do Vite');
+  assert.match(construir, /'--perfil', plano\.perfil/);
+  for (const [nome, comando] of Object.entries(pkg.scripts).filter(([name]) => name.startsWith('deploy:'))) {
+    assert.match(comando, /^node tools\/deploy\/publicar\.mjs --alvo [a-z-]+$/, `${nome} passa pelo guard`);
+  }
+  // PLAT-11 e P6-A: também o `firebase deploy` direto, pelo predeploy.
+  const firebase = JSON.parse(repoFile('firebase.json')) as {
+    hosting: {public: string; predeploy?: string[]};
+    firestore: {predeploy?: string[]};
+    functions: Array<{predeploy?: string[]}>;
+  };
   assert.equal(firebase.hosting.public, 'dist');
-  assert.deepEqual(firebase.hosting.predeploy, ['node tools/seguranca/varrer-bundle.mjs dist']);
-  const vite = Object.entries(pkg.scripts).filter(([, command]) => /\bvite build\b/.test(command)).map(([name]) => name);
-  assert.deepEqual(vite, ['build'], 'nenhum outro script gera o bundle sem a varredura');
+  assert.deepEqual(firebase.hosting.predeploy, [
+    'node "$PROJECT_DIR/tools/deploy/guarda-predeploy.mjs" hosting',
+    'node "$PROJECT_DIR/tools/seguranca/varrer-bundle.mjs" "$PROJECT_DIR/dist" --perfil release --publicacao',
+  ]);
+  assert.deepEqual(firebase.firestore.predeploy, ['node "$PROJECT_DIR/tools/deploy/guarda-predeploy.mjs" firestore']);
+  assert.equal(firebase.functions[0].predeploy?.[0], 'node "$PROJECT_DIR/tools/deploy/guarda-predeploy.mjs" functions');
 });
 
 test('o backend recusa operar sem chave, em vez de cair num default', () => {

@@ -10,6 +10,11 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+# P6-A: builds por perfil (só dist/ é publicado) e dados sintéticos do Emulator do npm run dev
+dist-e2e
+dist-verificacao
+dist-sem-perfil
+.fenix-emulador/
 *.local
 
 # Editor directories and files

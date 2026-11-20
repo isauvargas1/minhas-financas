@@ -23,17 +23,11 @@ const shouldStartFirebaseEmulators = process.env.E2E_START_EMULATORS !== 'false'
  */
 const usePreviewServer = process.env.E2E_SERVER !== 'dev';
 
-const webServerEnv = {
-  ...process.env,
-  VITE_E2E_MODE: 'true',
-  VITE_USE_FIREBASE_EMULATORS: 'true',
-  VITE_FIREBASE_API_KEY: 'e2e-api-key',
-  VITE_FIREBASE_AUTH_DOMAIN: 'localhost',
-  VITE_FIREBASE_PROJECT_ID: 'minhas-financas-local',
-  VITE_FIREBASE_STORAGE_BUCKET: 'minhas-financas-local.appspot.com',
-  VITE_FIREBASE_MESSAGING_SENDER_ID: '000000000000',
-  VITE_FIREBASE_APP_ID: '1:000000000000:web:e2e',
-};
+/*
+ * P6-A (PR-AUTH-04): o servidor do E2E roda no perfil `e2e` do contrato de ambientes (`config/ambientes.json`), que
+ * define o projeto do Emulator e o login automatizado. Nenhuma `VITE_*` no ambiente: o Vite as recusa.
+ */
+const webServerEnv = Object.fromEntries(Object.entries(process.env).filter(([nome]) => !nome.startsWith('VITE_')));
 
 /*
  * Relatório JSON de um grupo do E2E oficial (`tools/e2e/executar-em-grupos.mjs`, P5-F.1-R3.2): o executor confere, por ele, que
@@ -125,8 +119,8 @@ export default defineConfig({
        * Firestore. `npm run test:e2e` constrói antes de invocar o Playwright.
        */
       command: usePreviewServer
-        ? `npx vite preview --host ${e2eHost} --port ${e2ePort} --strictPort`
-        : `npm run dev -- --host ${e2eHost} --port ${e2ePort} --strictPort`,
+        ? `node tools/ambiente/vite.mjs preview --perfil e2e --host ${e2eHost} --port ${e2ePort} --strictPort`
+        : `node tools/ambiente/vite.mjs dev --perfil e2e --host ${e2eHost} --port ${e2ePort} --strictPort`,
       env: webServerEnv,
       url: baseURL,
       reuseExistingServer: false,

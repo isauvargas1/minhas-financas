@@ -127,6 +127,11 @@ export const seedAccountProfile = async ({ uid, email, displayName }: SeedAccoun
     displayName: displayName ?? email,
     photoURL: null,
     status: 'active',
+    // P6-B: perfil autorizado, como o bootstrap o deixa (no Emulator, sem convite).
+    accessStatus: 'granted',
+    accessSource: 'emulator',
+    accessInviteId: null,
+    accessGrantedAt: now(),
     createdAt: now(),
     updatedAt: now(),
   });

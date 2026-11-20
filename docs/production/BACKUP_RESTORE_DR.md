@@ -25,6 +25,7 @@ Rótulos: **CURRENT**, **TARGET**, **GAP**, **DECISION**, **EXTERNAL CONFIGURATI
 
 | Fato | Evidência | Classificação |
 | --- | --- | --- |
+| **P6-A (2026-11-17, D-19):** produção única; mecanismo preparado e não ativado: PITR de 7 dias, agendamentos diário (7 dias) e semanal (14 semanas) do `(default)`, conferência diária só de leitura (falha sem backup `READY` de até 36 h) e restauração só em banco novo `restauracao-ensaio-AAAAMMDD`. A ativação é do proprietário antes do primeiro dado real (G0.10). Substitui o "restore ensaiado em STAGING" deste documento: o ensaio local usa o Emulator, e o ensaio com backup real usa um banco novo do mesmo projeto, nunca o `(default)` (G1.2) | `tools/operacao/backup.mjs`, `backup-firestore.mjs`; `tests/tools/backup-firestore.test.mjs`; RUNBOOKS RB-14 | CURRENT (código); EXTERNAL (ativação) |
 | Nenhuma configuração ou documentação de PITR, backup agendado, export, delete protection, RPO/RTO ou restore. `firebase.json` declara só banco, local, Rules e índices | `firebase.json:2-7`; a busca por `backup`/`pitr` no repositório só encontra `docs/production/`, as skills e as instruções de agente | CURRENT |
 | A ordem canônica do checklist antigo não tem passo de backup | `docs/investments/PRODUCTION_DEPLOYMENT_CHECKLIST.md:20-25` | CURRENT |
 | O checklist antigo reconhece que o dado removido por TTL "não volta" | `docs/investments/PRODUCTION_DEPLOYMENT_CHECKLIST.md:205-206` | CURRENT |
@@ -172,11 +173,11 @@ Sem esses registros, os gates `firebase-production-readiness` e `observability-i
 
 ## 10. Registro de exercícios de restore e DR
 
-**TARGET:** ensaio de restore em STAGING em P7 (cenários 1 e 2, no mínimo), repetido no ensaio completo de P10 e depois em periodicidade a definir (DECISION em P7). Nenhum exercício foi realizado.
+**TARGET:** ensaio de restore em STAGING em P7 (cenários 1 e 2, no mínimo), repetido no ensaio completo de P10 e depois em periodicidade a definir (DECISION em P7). **Substituído em parte (D-ORD-09, 2026-11-17):** sem STAGING; o ensaio local é no Emulator, e o ensaio com backup real da produção é num banco novo (G1.2). Nenhum exercício com backup real foi realizado.
 
 | Data | Ambiente | Cenário | Origem (backup ou T0 de PITR) | Duração | RPO medido | RTO medido | Reconciliação | Falhas encontradas | Ações | Responsável |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| — | — | — | — | — | — | — | — | — | — | — |
+| 2026-11-17 | Emulator (`minhas-financas-local`), amostra sintética | Exportação e importação completas do Firestore (`npm run test:operacao:restauracao`) | Exportação do Emulator ao fim da sessão A | Uma execução local (duas sessões do Emulator) | Não se aplica (cópia integral no instante da exportação) | Não medido (ensaio local) | 35 documentos em dois workspaces sintéticos (lançamentos em centavos, Timestamp, referências, mapas, listas, nulos, subcoleções, trilha): SHA-256 canônico idêntico antes e depois; controle com um centavo alterado detectado | Nenhuma | Repetir com backup real da produção em banco `restauracao-ensaio-*` antes do G1 (G1.2) | Agente da P6-A (ensaio local, sem produção) |
 
 ---
 

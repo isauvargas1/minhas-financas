@@ -108,7 +108,7 @@ const seed = async () => {
     }
     await firebaseAdmin.auth().createUser({...user, password, emailVerified: true});
     await db.doc(`users/${user.uid}`).set({
-      uid: user.uid, status: user === users.suspendedA ? 'suspended' : 'active',
+      uid: user.uid, accessStatus: 'granted', status: user === users.suspendedA ? 'suspended' : 'active',
     });
   }
   const workspaces = [wsA, wsSimilar, wsPrefix, wsB, wsArchived];

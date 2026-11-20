@@ -161,7 +161,7 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children 
             if (!bootstrapped) setAccountReadyUid(null);
             clearSelection();
             setLoadError(
-                callableErrorReason(error) === 'account_suspended'
+                ['account_suspended', 'pilot_access_required'].includes(callableErrorReason(error) ?? '')
                     ? workspaceErrorMessage(error, LOAD_FAILURE_MESSAGE)
                     : LOAD_FAILURE_MESSAGE,
             );

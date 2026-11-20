@@ -118,7 +118,7 @@ const seed = async () => {
     await db.recursiveDelete(db.doc(`users/${entry.uid}`));
     await db.doc(`users/${entry.uid}`).set({
       uid: entry.uid,
-      status: entry === users.suspended ? 'suspended' : 'active',
+      accessStatus: 'granted', status: entry === users.suspended ? 'suspended' : 'active',
     });
   }
   // O titular é membro do workspace de outra pessoa, junto com todos os papéis.

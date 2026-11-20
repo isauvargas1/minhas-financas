@@ -134,9 +134,9 @@ const seedAccountBillingState = async (uid: string): Promise<void> => {
 };
 
 /**
- * Perfil server-owned ativo, como `bootstrapAccount` o deixaria, com billing
- * Free e quota de ownership ainda sem workspace (os workspaces semeados por
- * `seedWorkspace` somam ao contador).
+ * Perfil server-owned ativo e autorizado (P6-B), como `bootstrapAccount` o
+ * deixaria, com billing Free e quota de ownership ainda sem workspace (os
+ * workspaces semeados por `seedWorkspace` somam ao contador).
  */
 export const seedActiveAccount = async (
   uid: string,
@@ -149,6 +149,11 @@ export const seedActiveAccount = async (
     displayName: uid,
     photoURL: null,
     status: "active",
+    // P6-B: perfil autorizado, como o bootstrap o deixa no Emulator.
+    accessStatus: "granted",
+    accessSource: "emulator",
+    accessInviteId: null,
+    accessGrantedAt: admin.firestore.FieldValue.serverTimestamp(),
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     ...overrides,

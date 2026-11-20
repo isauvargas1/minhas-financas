@@ -25,9 +25,19 @@
  * comparava `import.meta.url` com `file://` + o caminho e era falsa com espaço ou acento no caminho, por link
  * simbólico e no Windows; aí o processo saía com 0 sem varrer nada (PLAT-09, P5-GATE-FINAL, 2ª revisão).
  *
- * Uso: `node tools/seguranca/varrer-bundle.mjs <pasta do build>`
+ * P6-A (PR-AUTH-04, PR-PLAT-01): também confere o perfil do build pelo marcador `fenix-build.json` que o Vite grava na
+ * raiz (`vite.config.ts`):
+ * - fora dos perfis de Emulator (`verificacao`, `release` ou sem marcador), reprova qualquer vestígio de teste: o
+ *   marcador dos módulos de Emulator e de login E2E, o botão e os parâmetros do login E2E, o domínio das contas de teste,
+ *   o projeto do Emulator e a chave fictícia do E2E;
+ * - `--perfil <p>` exige o marcador desse perfil;
+ * - `--publicacao` exige um build de release da produção (`publicavel: true`), nunca E2E, Emulator ou verificação. É o
+ *   modo do predeploy do Hosting.
+ * Continua sem importar nada do repositório: roda de qualquer caminho (PLAT-09).
+ *
+ * Uso: `node tools/seguranca/varrer-bundle.mjs <pasta do build> [--perfil <perfil>] [--publicacao]`
  */
-import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
 const RULES = [
@@ -43,6 +53,18 @@ const RULES = [
   { kind: 'segredo de cliente OAuth do Google', pattern: /\bGOCSPX-[0-9A-Za-z_-]{10,}/g },
   { kind: 'nome de variável da chave de IA do backend', pattern: /\b(?:GOOGLE_AI_API_KEY|GEMINI_API_KEY)\b/g },
 ];
+
+/** Vestígios de teste que só podem existir num build de Emulator (perfis `local` e `e2e`). */
+const TEST_MARKERS = [
+  { kind: 'módulo de conexão com o Emulator', pattern: /fenixgran:conexao-emuladores/g },
+  { kind: 'módulo de login E2E', pattern: /fenixgran:login-e2e/g },
+  { kind: 'botão ou parâmetro do login E2E', pattern: /e2e-login-button|e2ePassword|e2eEmail/g },
+  { kind: 'domínio das contas de teste', pattern: /@minhas-financas\.local/g },
+  { kind: 'projeto do Emulator', pattern: /minhas-financas-local/g },
+  { kind: 'chave fictícia do E2E', pattern: /e2e-api-key/g },
+];
+const EMULATOR_PROFILES = new Set(['local', 'e2e']);
+const BUILD_MARKER = 'fenix-build.json';
 
 const GOOGLE_KEY = /AIza[0-9A-Za-z_-]{35}/g;
 /** A configuração web do Firebase no bundle minificado: `apiKey:"AIza…"` (ou com aspas na chave). */
@@ -80,7 +102,26 @@ const scanText = (text) => {
   return { findings, googleKeys: keys };
 };
 
-const scanDirectory = (root) => {
+const readMarker = (root) => {
+  const path = join(root, BUILD_MARKER);
+  if (!existsSync(path)) return { marker: null };
+  try {
+    return { marker: JSON.parse(readFileSync(path, 'utf8')) };
+  } catch {
+    return { error: `${BUILD_MARKER} ilegível` };
+  }
+};
+
+/** Vestígios de teste de um texto (só o tipo e um trecho mascarado). */
+const scanTestMarkers = (text) => {
+  const findings = [];
+  for (const rule of TEST_MARKERS) {
+    for (const match of text.matchAll(rule.pattern)) findings.push({ kind: `vestígio de teste fora do Emulator: ${rule.kind}`, sample: mask(match[0]) });
+  }
+  return findings;
+};
+
+const scanDirectory = (root, { allowTestMarkers = false } = {}) => {
   let stats;
   try {
     stats = statSync(root);
@@ -93,8 +134,12 @@ const scanDirectory = (root) => {
   const findings = [];
   const googleKeys = new Set();
   for (const file of files) {
-    const result = scanText(readFileSync(file).toString('latin1'));
+    const text = readFileSync(file).toString('latin1');
+    const result = scanText(text);
     for (const finding of result.findings) findings.push({ file: relative(root, file), ...finding });
+    if (!allowTestMarkers && relative(root, file) !== BUILD_MARKER) {
+      for (const finding of scanTestMarkers(text)) findings.push({ file: relative(root, file), ...finding });
+    }
     for (const key of result.googleKeys) googleKeys.add(key);
   }
   if (googleKeys.size > 1) {
@@ -103,24 +148,62 @@ const scanDirectory = (root) => {
   return { files: files.length, findings };
 };
 
+const parseArgs = (argv) => {
+  const [root, ...rest] = argv;
+  const options = { root, profile: null, publication: false, error: null };
+  for (let i = 0; i < rest.length; i += 1) {
+    if (rest[i] === '--perfil' && options.profile === null && rest[i + 1] && !rest[i + 1].startsWith('--')) {
+      options.profile = rest[i + 1];
+      i += 1;
+    } else if (rest[i] === '--publicacao' && !options.publication) {
+      options.publication = true;
+    } else {
+      options.error = `argumento não aceito: ${rest[i]}`;
+    }
+  }
+  return options;
+};
+
 const main = () => {
-  const root = process.argv[2];
-  if (!root) {
-    console.error('Uso: node tools/seguranca/varrer-bundle.mjs <pasta do build>');
+  const options = parseArgs(process.argv.slice(2));
+  if (!options.root || options.root.startsWith('--') || options.error) {
+    console.error(`Uso: node tools/seguranca/varrer-bundle.mjs <pasta do build> [--perfil <perfil>] [--publicacao]${options.error ? ` (${options.error})` : ''}`);
     process.exit(2);
   }
-  const result = scanDirectory(root);
+  const root = options.root;
+  const { marker, error: markerError } = existsSync(root) ? readMarker(root) : { marker: null };
+  if (markerError) {
+    console.error(`[varredura do bundle] ${markerError}`);
+    process.exit(2);
+  }
+  const profileFindings = [];
+  if ((options.profile || options.publication) && !marker) {
+    profileFindings.push({ file: BUILD_MARKER, kind: 'build sem marcador de perfil (o build oficial passa por tools/ambiente/construir.mjs)', sample: '—' });
+  }
+  if (marker && options.profile && marker.perfil !== options.profile) {
+    profileFindings.push({ file: BUILD_MARKER, kind: `perfil do build diferente do esperado (${marker.perfil} × ${options.profile})`, sample: '—' });
+  }
+  const emulatorBuild = Boolean(marker && EMULATOR_PROFILES.has(marker.perfil));
+  if (marker && !emulatorBuild && (marker.emuladores || marker.loginE2E)) {
+    profileFindings.push({ file: BUILD_MARKER, kind: 'build sem Emulator marcado com Emulator ou login E2E', sample: '—' });
+  }
+  if (options.publication && marker && !(marker.perfil === 'release' && marker.publicavel === true && marker.ambiente === 'prod' &&
+      marker.emuladores === false && marker.loginE2E === false)) {
+    profileFindings.push({ file: BUILD_MARKER, kind: `build do perfil ${marker.perfil} não é publicável (só o release da produção)`, sample: '—' });
+  }
+  const result = scanDirectory(root, { allowTestMarkers: emulatorBuild && !options.publication });
   if (result.error) {
     console.error(`[varredura do bundle] ${result.error}`);
     process.exit(2);
   }
-  if (result.findings.length > 0) {
-    console.error(`[varredura do bundle] ${result.findings.length} possível(is) segredo(s) no bundle público; o build falha:`);
-    for (const finding of result.findings) console.error(`  - ${finding.file}: ${finding.kind} [${finding.sample}]`);
-    console.error('Tire o segredo do cliente: credencial de servidor fica nas Functions (Secret Manager), nunca em VITE_* nem em define.');
+  const findings = [...profileFindings, ...result.findings];
+  if (findings.length > 0) {
+    console.error(`[varredura do bundle] ${findings.length} problema(s) no bundle público; o build falha:`);
+    for (const finding of findings) console.error(`  - ${finding.file}: ${finding.kind} [${finding.sample}]`);
+    console.error('Tire o segredo do cliente: credencial de servidor fica nas Functions (Secret Manager), nunca em VITE_* nem em define. Vestígio de teste só existe no build de Emulator (dist-e2e).');
     process.exit(1);
   }
-  console.log(`[varredura do bundle] ${result.files} arquivo(s) de ${root} sem segredo.`);
+  console.log(`[varredura do bundle] ${result.files} arquivo(s) de ${root} sem segredo${marker ? ` (perfil ${marker.perfil})` : ''}.`);
 };
 
 main();

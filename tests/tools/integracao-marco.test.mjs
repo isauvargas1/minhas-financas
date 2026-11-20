@@ -67,17 +67,18 @@ test('marco: só a cadeia iniciada e concluída aprova; sem marco, aberto ou já
 });
 
 test('marco: a fiação de npm run test:integration:emulator começa e termina no marco, e a cadeia fecha com todas as suítes de Rules', () => {
-  assert.match(SCRIPT, /^node tools\/integracao\/marco-da-fase\.mjs iniciar && firebase emulators:exec --only auth,firestore --project minhas-financas-local "/);
+  assert.match(SCRIPT, /^node tools\/integracao\/marco-da-fase\.mjs iniciar && firebase emulators:exec --only auth,firestore,storage --project minhas-financas-local "/);
   assert.match(SCRIPT, / && node tools\/integracao\/marco-da-fase\.mjs concluir" && node tools\/integracao\/marco-da-fase\.mjs conferir$/);
   const chain = /"(.*)"/.exec(SCRIPT)[1].split(' && ');
   assert.equal(chain.at(-1), 'node tools/integracao/marco-da-fase.mjs concluir', 'concluir é o último passo da cadeia');
   assert.ok(chain.slice(0, -1).every((step) => /^npm run [\w:-]+$/.test(step)), 'antes dele, só suítes');
   const suites = chain.slice(0, -1).map((step) => step.slice('npm run '.length));
-  assert.deepEqual(suites.slice(0, 3), ['functions:test:integration:emulator', 'test:tools:limpeza', 'test:tools:contas']);
+  assert.deepEqual(suites.slice(0, 4), ['functions:test:integration:emulator', 'test:tools:limpeza', 'test:tools:contas', 'test:tools:piloto']);
   const rules = Object.keys(pkg.scripts).filter((name) => name.startsWith('test:rules:'));
-  assert.deepEqual(suites.slice(3).sort(), rules.sort(), 'todas as suítes de Rules do package.json, nenhuma a mais');
-  // 20 desde o P5-GATE-FINAL: `test:rules:transactions-reads` (FIRESTORE-01).
-  assert.equal(rules.length, 20);
+  assert.deepEqual(suites.slice(4).sort(), rules.sort(), 'todas as suítes de Rules do package.json, nenhuma a mais');
+  // 20 desde o P5-GATE-FINAL (`test:rules:transactions-reads`, FIRESTORE-01); 22 na P6-A: `test:rules:pilot-access`
+  // (lista do piloto) e `test:rules:storage` (bucket fechado, no emulador de Storage).
+  assert.equal(rules.length, 22);
   assert.doesNotMatch(SCRIPT, /sistema-financeiro-pesso-20698/);
   assert.match(pkg.scripts['verify:all'], /npm run test:integration:emulator && npm run test:e2e$/);
   assert.match(pkg.scripts['verify:fast'], /npm run test:tools:integracao/, 'estes testes rodam no verify:fast');
@@ -150,7 +151,7 @@ test('marco (EST-10): o Emulator que sai com 0 no meio da cadeia reprova a fase;
   assert.equal(complete.code, 0, complete.output);
   assert.match(complete.output, /\[integração\] fase completa: todas as suítes rodaram até o fim/);
   const ran = complete.calls.filter((call) => call.tool === 'npm').map((call) => call.args[1]);
-  assert.equal(ran.length, 23, 'a integração das Functions, as duas ferramentas e as 20 suítes de Rules');
+  assert.equal(ran.length, 26, 'a integração das Functions, as três ferramentas e as 22 suítes de Rules');
   assert.equal(ran.at(-1), 'test:rules:projection-marks');
   assert.equal(complete.markLeft, false);
 

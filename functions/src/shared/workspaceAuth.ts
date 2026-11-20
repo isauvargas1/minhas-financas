@@ -1,5 +1,9 @@
 import * as admin from "firebase-admin";
 
+import {
+  PILOT_ACCESS_DENIED_MESSAGE,
+  isAccountAccessGranted,
+} from "../workspaces/pilotAccess";
 import {ApplicationError} from "./errors";
 import {memberIdSchema, workspaceIdSchema} from "./ids";
 
@@ -13,6 +17,9 @@ import {memberIdSchema, workspaceIdSchema} from "./ids";
  *
  * Toda autorização exige, além do membership ativo:
  * - perfil `users/{uid}` existente com `status == "active"` (suspensão);
+ * - autorização de acesso no mesmo perfil, `accessStatus == "granted"`
+ *   (P6-B, piloto fechado): gravada só pelo backend, no bootstrap com convite
+ *   válido; ausente (conta anterior à P6-B) ou `revoked` recusa;
  * - workspace existente e não arquivado.
  *
  * Existem duas leituras e as duas usam a mesma avaliação:
@@ -92,7 +99,15 @@ export const WORKSPACE_ROLE_CHANGED_MESSAGE =
   "Suas permissões neste espaço de trabalho mudaram. " +
   "Atualize a página e tente novamente.";
 
-/** Avalia o perfil: existe e está ativo. */
+/**
+ * Avalia o perfil: existe, está ativo e tem a autorização de acesso do piloto.
+ *
+ * P6-B: a autorização é negativa por padrão. Um perfil ativo sem
+ * `accessStatus == "granted"` (conta criada antes da P6-B, ou revogada) não
+ * opera nenhuma callable do kernel, mesmo com membership ativo e ID token
+ * vigente; o mesmo campo é exigido pelas Rules (`hasActiveAccount`). Só o
+ * `bootstrapAccount` o grava, com convite válido (`pilotAccess.ts`).
+ */
 export const assertActiveAccountSnapshot = (profile: Snapshot): void => {
   if (!profile.exists) {
     throw new ApplicationError(
@@ -102,6 +117,12 @@ export const assertActiveAccountSnapshot = (profile: Snapshot): void => {
   }
   if (profile.get("status") !== "active") {
     throw new ApplicationError("account_suspended", ACCOUNT_SUSPENDED_MESSAGE);
+  }
+  if (!isAccountAccessGranted(profile)) {
+    throw new ApplicationError(
+      "pilot_access_required",
+      PILOT_ACCESS_DENIED_MESSAGE,
+    );
   }
 };
 

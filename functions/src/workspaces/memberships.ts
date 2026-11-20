@@ -64,6 +64,7 @@ import {
   MANAGEABLE_ROLES,
   type ManageableRole,
 } from "./rbac";
+import {isAccountAccessGranted} from "./pilotAccess";
 
 const isManageableRole = (value: unknown): value is ManageableRole =>
   typeof value === "string" &&
@@ -727,7 +728,10 @@ export const executeTransferWorkspaceOwnership = async (
       !target.exists ||
       target.get("status") !== "active" ||
       !isWorkspaceRole(target.get("role")) ||
-      targetProfile.get("status") !== "active"
+      targetProfile.get("status") !== "active" ||
+      // P6-B: o novo titular precisa operar (autorização do piloto), senão
+      // o workspace, o billing e a quota ficariam com uma conta bloqueada.
+      !isAccountAccessGranted(targetProfile)
     ) {
       throw new ApplicationError(
         "domain_precondition_failed",

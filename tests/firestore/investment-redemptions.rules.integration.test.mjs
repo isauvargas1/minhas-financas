@@ -51,7 +51,7 @@ const seed = async () => {
     await firebaseAdmin.auth().createUser({...user, password, emailVerified: true});
     // P1: a autorização exige perfil de conta ativo (gravado pelo backend).
     // O membro removido também tem perfil ativo: quem o nega é o membership.
-    await db.doc(`users/${user.uid}`).set({uid: user.uid, status: 'active'});
+    await db.doc(`users/${user.uid}`).set({uid: user.uid, accessStatus: 'granted', status: 'active'});
   }
   await Promise.all([
     db.recursiveDelete(db.doc(`workspaces/${workspaceA}`)),

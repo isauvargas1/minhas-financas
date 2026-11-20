@@ -128,6 +128,9 @@ jobs:
       - name: Varredura de segredos do bundle (testes da ferramenta)
         run: npm run test:tools:bundle
 
+      - name: Contrato de ambientes, guard de publicação, piloto e Storage (testes das ferramentas)
+        run: npm run test:tools:ambiente
+
   integration-and-rules:
     name: Integração e Firestore Rules
     runs-on: ubuntu-latest
@@ -164,6 +167,9 @@ jobs:
         with:
           path: ~/.cache/firebase/emulators
           key: firebase-emulators-${{ runner.os }}
+
+      - name: Ensaio de restauração com amostra sintética (exportação e importação do Emulator)
+        run: npm run test:operacao:restauracao
 
       - name: Suíte de integração e Rules no Emulator
         run: npm run test:integration:emulator

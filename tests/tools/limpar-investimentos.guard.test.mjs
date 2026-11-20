@@ -1,309 +1,231 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {spawnSync} from 'node:child_process';
-import {readFileSync} from 'node:fs';
-import {createRequire} from 'node:module';
+import {existsSync, mkdtempSync, readFileSync, rmSync} from 'node:fs';
+import {tmpdir} from 'node:os';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 
 /**
- * Guardas do utilitário de limpeza, com atenção ao override extraordinário.
+ * Guardas do utilitário de limpeza de investimentos (PR-PLAT-02).
  *
- * `--allow-development-reset-on-project` destrava o único Project ID real do
- * produto, porque ele ainda é o ambiente de desenvolvimento. Uma porta dessas
- * só é aceitável enquanto cada fechadura for verificada — e a forma de
- * verificar é executar o utilitário como o operador o executa, conferindo a
- * recusa e a mensagem.
- *
- * Tudo aqui roda contra o Emulator. O `projectId` usado nos casos de override é
- * o real de propósito: é exatamente esse valor que aciona o caminho protegido,
- * e sob `FIRESTORE_EMULATOR_HOST` o Admin SDK fala com o emulador local, nunca
- * com o Firestore do projeto.
+ * Este arquivo NÃO usa o Emulator: cada caso executa o utilitário como o
+ * operador o executa, com um ambiente controlado (nada herdado do Google) e com
+ * o hook `sem-firebase-admin.cjs`, que grava uma marca e encerra com 97 se o
+ * `firebase-admin` for carregado. Em todo caso negativo a prova é tripla:
+ * saída 1, motivo em pt-BR no stderr e nenhuma marca, ou seja, a recusa veio
+ * antes de o SDK ser carregado.
  */
-
-if (!process.env.FIRESTORE_EMULATOR_HOST) {
-  throw new Error('FIRESTORE_EMULATOR_HOST é obrigatório.');
-}
 
 const AQUI = path.dirname(fileURLToPath(import.meta.url));
 const RAIZ = path.resolve(AQUI, '..', '..');
 const SCRIPT = path.join(RAIZ, 'tools', 'investments', 'limpar-investimentos.mjs');
-const PROJETO_REAL = 'sistema-financeiro-pesso-20698';
-const WORKSPACE = 'guard-limpeza-workspace';
+const HOOK = path.join(AQUI, 'support', 'sem-firebase-admin.cjs');
+const PROJETO_EMULADOR = 'minhas-financas-local';
+const PROJETO_HISTORICO = 'sistema-financeiro-pesso-20698';
+const WORKSPACE = 'guard-ws';
+const HOST_OK = '127.0.0.1:8080';
 
-const require = createRequire(import.meta.url);
-const admin = require(path.join(RAIZ, 'functions', 'node_modules', 'firebase-admin'));
+const diretorio = mkdtempSync(path.join(tmpdir(), 'limpar-guard-'));
+test.after(() => rmSync(diretorio, {recursive: true, force: true}));
 
-const db = () => {
-  if (!admin.apps.length) admin.initializeApp({projectId: PROJETO_REAL});
-  return admin.firestore();
-};
-
+let contador = 0;
+/** Executa o utilitário com ambiente mínimo: só PATH mais o que o caso pedir. */
 const executar = (argumentos, ambiente = {}) => {
-  const resultado = spawnSync(process.execPath, [SCRIPT, ...argumentos], {
-    cwd: RAIZ,
-    encoding: 'utf8',
-    env: {...process.env, PROJETO: '', ...ambiente},
-  });
+  const marca = path.join(diretorio, `marca-${contador += 1}`);
+  const resultado = spawnSync(
+    process.execPath,
+    ['--require', HOOK, SCRIPT, ...argumentos],
+    {
+      cwd: RAIZ,
+      encoding: 'utf8',
+      env: {PATH: process.env.PATH, TESTE_MARCA_FIREBASE_ADMIN: marca, ...ambiente},
+    },
+  );
   return {
     codigo: resultado.status,
     saida: `${resultado.stdout ?? ''}${resultado.stderr ?? ''}`,
+    stderr: resultado.stderr ?? '',
+    carregouAdmin: existsSync(marca),
   };
 };
 
-const semOverride = [`--projeto=${PROJETO_REAL}`, `--workspace=${WORKSPACE}`];
-const comOverride = [
-  `--projeto=${PROJETO_REAL}`,
-  `--allow-development-reset-on-project=${PROJETO_REAL}`,
-  `--workspace=${WORKSPACE}`,
-];
+const basicos = [`--projeto=${PROJETO_EMULADOR}`, `--workspace=${WORKSPACE}`];
+const emulador = {FIRESTORE_EMULATOR_HOST: HOST_OK};
 
-const raiz = `workspaces/${WORKSPACE}`;
-
-/** Massa que cobre o domínio e tudo o que o utilitário promete não tocar. */
-const semear = async () => {
-  const agora = admin.firestore.Timestamp.now();
-  await db().recursiveDelete(db().doc(raiz));
-  await db().doc(raiz).set({ownerId: 'u1', type: 'PF', currency: 'BRL', name: 'Guarda'});
-  await db().doc(`${raiz}/members/u1`).set({uid: 'u1', role: 'owner', status: 'active'});
-  await Promise.all([
-    db().doc(`${raiz}/transactions/tx-receita`).set({type: 'receita', value: 100, workspaceId: WORKSPACE, date: '2026-08-01'}),
-    db().doc(`${raiz}/transactions/tx-despesa`).set({type: 'despesa', value: 50, workspaceId: WORKSPACE, date: '2026-08-02'}),
-    db().doc(`${raiz}/transactions/tx-parcelado`).set({type: 'parcelado', value: 30, workspaceId: WORKSPACE, date: '2026-08-03'}),
-    db().doc(`${raiz}/transactions/investment_mov-1`).set({
-      type: 'investimento', value: 200, workspaceId: WORKSPACE, date: '2026-08-04',
-      investmentMetadata: {domainVersion: 2, domainMovementId: 'mov-1'},
-    }),
-    db().doc(`${raiz}/transactions/tx-legado-1`).set({type: 'investimento', value: 300, workspaceId: WORKSPACE, date: '2026-07-04'}),
-    db().doc(`${raiz}/investment_positions/pos-1`).set({id: 'pos-1', workspaceId: WORKSPACE, updatedAt: agora}),
-    db().doc(`${raiz}/investment_movements/mov-1`).set({id: 'mov-1', workspaceId: WORKSPACE, updatedAt: agora}),
-    db().doc(`${raiz}/credit_cards/card-1`).set({id: 'card-1', workspaceId: WORKSPACE}),
-    db().doc(`${raiz}/credit_card_invoices/inv-1`).set({id: 'inv-1', workspaceId: WORKSPACE}),
-    db().doc(`${raiz}/loans/loan-1`).set({id: 'loan-1', workspaceId: WORKSPACE}),
-    db().doc(`${raiz}/loan_movements/lm-1`).set({id: 'lm-1', workspaceId: WORKSPACE}),
-    db().doc(`${raiz}/split_groups/sg-1`).set({id: 'sg-1', workspaceId: WORKSPACE}),
-    db().doc(`${raiz}/split_shares/ss-1`).set({id: 'ss-1', workspaceId: WORKSPACE}),
-    db().doc(`${raiz}/recurring_expenses/re-1`).set({id: 're-1', workspaceId: WORKSPACE}),
-    db().doc(`${raiz}/goals/goal-1`).set({
-      id: 'goal-1', workspaceId: WORKSPACE, name: 'Meta',
-      investmentProgressCents: 5_000,
-    }),
-  ]);
+/** Caso negativo: saída 1, motivo esperado e SDK nunca carregado. */
+const recusa = (argumentos, ambiente, motivo) => {
+  const r = executar(argumentos, ambiente);
+  assert.equal(r.codigo, 1, r.saida);
+  assert.match(r.stderr, motivo);
+  assert.equal(r.carregouAdmin, false, 'o firebase-admin não pode ser carregado');
 };
 
-const ids = async (colecao) => {
-  const pagina = await db().collection(`${raiz}/${colecao}`).get();
-  return pagina.docs.map((documento) => documento.id).sort();
-};
+// ------------------------------------------------------------------- projeto
 
-// -------------------------------------------------------------------- guardas
-
-test('o Project ID real continua recusado sem o override', async () => {
-  const {codigo, saida} = executar(semOverride);
-  assert.equal(codigo, 1);
-  assert.match(saida, /recusado por padrão/);
-  assert.match(saida, /allow-development-reset-on-project/);
+test('o Project ID histórico é recusado, com e sem o Emulator', () => {
+  const args = [`--projeto=${PROJETO_HISTORICO}`, `--workspace=${WORKSPACE}`];
+  recusa(args, {}, /Projeto recusado/);
+  recusa(args, emulador, /Projeto recusado/);
 });
 
-test('o Emulator não atenua a recusa do Project ID real', async () => {
-  // Sem o override, nem sob Emulator: o caminho protegido é o mesmo nos dois
-  // ambientes, e é por isso que este arquivo consegue exercitá-lo.
-  const {codigo, saida} = executar(semOverride, {
-    FIRESTORE_EMULATOR_HOST: process.env.FIRESTORE_EMULATOR_HOST,
-  });
-  assert.equal(codigo, 1);
-  assert.match(saida, /recusado por padrão/);
+test('qualquer projeto diferente do Emulator é recusado', () => {
+  for (const id of [
+    'meu-app-prod', 'meu-app-staging', 'meu-app-dev', 'meu-app-test',
+    'demo-minhas-financas', 'minhas-financas-local-2', 'Minhas-Financas-Local',
+  ]) {
+    recusa([`--projeto=${id}`, `--workspace=${WORKSPACE}`], emulador, /Projeto recusado/);
+  }
 });
 
-test('o override precisa coincidir exatamente com --projeto', async () => {
-  const {codigo, saida} = executar([
-    `--projeto=${PROJETO_REAL}`,
-    '--allow-development-reset-on-project=sistema-financeiro-pesso-00000',
-    `--workspace=${WORKSPACE}`,
-  ]);
-  assert.equal(codigo, 1);
-  assert.match(saida, /não coincide com --projeto/);
+test('PROJETO no ambiente não substitui --projeto', () => {
+  recusa([`--workspace=${WORKSPACE}`], {...emulador, PROJETO: PROJETO_EMULADOR},
+    /Informe --projeto=minhas-financas-local/);
 });
 
-test('o override exige o Project ID por extenso', async () => {
-  const {codigo, saida} = executar([
-    `--projeto=${PROJETO_REAL}`,
+test('--projeto ausente é recusado', () => {
+  recusa([`--workspace=${WORKSPACE}`], emulador, /Informe --projeto/);
+});
+
+// ------------------------------------------------------------------ ambiente
+
+test('FIRESTORE_EMULATOR_HOST ausente, vazio ou fora do loopback é recusado', () => {
+  for (const host of [
+    undefined, '', '10.0.0.5:8080', 'firestore.googleapis.com:443',
+    'localhost.evil.com:8080', '127.0.0.1', 'localhost', '127.0.0.1:0',
+    '127.0.0.1:65536', '127.0.0.1:abc', '127.0.0.2:8080', 'evil.com:8080',
+    'http://127.0.0.1:8080', '127.0.0.1:8080/x', ' 127.0.0.1:8080',
+  ]) {
+    const ambiente = host === undefined ? {} : {FIRESTORE_EMULATOR_HOST: host};
+    recusa(basicos, ambiente, /FIRESTORE_EMULATOR_HOST/);
+  }
+});
+
+test('conflito de variável de projeto no ambiente é recusado', () => {
+  for (const variavel of ['GCLOUD_PROJECT', 'GOOGLE_CLOUD_PROJECT', 'PROJETO']) {
+    recusa(basicos, {...emulador, [variavel]: PROJETO_HISTORICO}, /Conflito de ambiente/);
+    recusa(basicos, {...emulador, [variavel]: ''}, /Conflito de ambiente/);
+  }
+});
+
+test('credenciais no ambiente são recusadas', () => {
+  recusa(basicos, {...emulador, GOOGLE_APPLICATION_CREDENTIALS: '/tmp/inexistente.json'},
+    /GOOGLE_APPLICATION_CREDENTIALS/);
+  // FIREBASE_CONFIG só passa nomeando o projeto do Emulator (é o que `firebase emulators:exec` define).
+  recusa(basicos, {...emulador, FIREBASE_CONFIG: '{"projectId":"x"}'}, /FIREBASE_CONFIG/);
+  recusa(basicos, {...emulador, FIREBASE_CONFIG: JSON.stringify({projectId: PROJETO_HISTORICO})}, /FIREBASE_CONFIG/);
+  recusa(basicos, {...emulador, FIREBASE_CONFIG: 'nao-e-json'}, /FIREBASE_CONFIG/);
+  recusa(basicos, {...emulador, FIREBASE_CONFIG: '""'}, /FIREBASE_CONFIG/);
+  const doEmulador = executar(basicos, {...emulador, FIREBASE_CONFIG: JSON.stringify({projectId: PROJETO_EMULADOR})});
+  assert.equal(doEmulador.codigo, 97, doEmulador.saida);
+});
+
+// ---------------------------------------------------------- opções removidas
+
+test('as opções de override removidas são recusadas com mensagem própria', () => {
+  const removida = /foi removida \(PR-PLAT-02\)/;
+  for (const flag of [
     '--allow-development-reset-on-project',
-    `--workspace=${WORKSPACE}`,
-  ]);
-  assert.equal(codigo, 1);
-  assert.match(saida, /exige o Project ID por extenso/);
+    `--allow-development-reset-on-project=${PROJETO_HISTORICO}`,
+    `--allow-development-reset-on-project=${PROJETO_EMULADOR}`,
+    '--confirmar-projeto',
+    `--confirmar-projeto=${PROJETO_HISTORICO}`,
+    `--confirmar-projeto=${PROJETO_EMULADOR}`,
+  ]) {
+    recusa([...basicos, flag], emulador, removida);
+  }
 });
 
-test('nenhum outro Project ID é liberado pelo override', async () => {
-  const {codigo, saida} = executar([
-    '--projeto=projeto-qualquer',
-    '--allow-development-reset-on-project=projeto-qualquer',
-    `--workspace=${WORKSPACE}`,
-  ]);
-  assert.equal(codigo, 1);
-  assert.match(saida, /existe apenas para 'sistema-financeiro-pesso-20698'/);
+// -------------------------------------------------------- argumentos malformados
+
+test('argumentos malformados são recusados', () => {
+  recusa([...basicos, '--workspace=outro'], emulador, /Opção repetida: --workspace/);
+  recusa([...basicos, '--apply', '--apply'], emulador, /Opção repetida: --apply/);
+  recusa([...basicos, 'posicional'], emulador, /posicional inesperado/);
+  recusa([`--projeto=${PROJETO_EMULADOR}`, '--projeto', `--workspace=${WORKSPACE}`], emulador,
+    /Opção repetida: --projeto/);
+  recusa([`--projeto=`, `--workspace=${WORKSPACE}`], emulador, /--projeto exige um valor/);
+  recusa([`--projeto`, `--workspace=${WORKSPACE}`], emulador, /--projeto exige um valor/);
+  recusa([`--projeto=${PROJETO_EMULADOR}`, '--workspace='], emulador, /--workspace exige um valor/);
+  recusa([`--projeto=${PROJETO_EMULADOR}`, '--workspace'], emulador, /--workspace exige um valor/);
+  recusa([...basicos, '--apply=true'], emulador, /--apply não aceita valor/);
+  recusa([...basicos, '--='], emulador, /Opção malformada/);
+  recusa([...basicos, '--force'], emulador, /Opção desconhecida: --force/);
 });
 
-test('a variável de ambiente PROJETO não habilita o override', async () => {
-  const {codigo, saida} = executar([
-    `--allow-development-reset-on-project=${PROJETO_REAL}`,
-    `--workspace=${WORKSPACE}`,
-  ], {PROJETO: PROJETO_REAL});
-  assert.equal(codigo, 1);
-  assert.match(saida, /variável de ambiente PROJETO não habilita/);
+test('--workspace com espaço ou "/" é recusado', () => {
+  for (const id of ['a/b', 'a b', 'workspaces/x', '../x', '..', '.', 'a\tb']) {
+    recusa([`--projeto=${PROJETO_EMULADOR}`, `--workspace=${id}`], emulador,
+      /não pode conter espaço nem "\/"/);
+  }
 });
 
-test('o override não dispensa --workspace', async () => {
-  const {codigo, saida} = executar([
-    `--projeto=${PROJETO_REAL}`,
-    `--allow-development-reset-on-project=${PROJETO_REAL}`,
-  ]);
-  assert.equal(codigo, 1);
-  assert.match(saida, /Não existe modo "todos"/);
+test('--workspace é obrigatório e --pagina precisa estar entre 1 e 500', () => {
+  recusa([`--projeto=${PROJETO_EMULADOR}`], emulador, /Informe --workspace/);
+  for (const valor of ['0', '501', '-1', '1.5', 'abc', '3e2', '1 0']) {
+    recusa([...basicos, `--pagina=${valor}`], emulador, /--pagina precisa ser/);
+  }
 });
 
-test('escrever sob override exige --confirmar e --confirmar-projeto', async () => {
-  const semNada = executar([...comOverride, '--apply']);
-  assert.equal(semNada.codigo, 1);
-  assert.match(semNada.saida, /repita o alvo em --confirmar/);
+// ------------------------------------------------------------- confirmações
 
-  const semProjeto = executar([...comOverride, '--apply', `--confirmar=${WORKSPACE}`]);
-  assert.equal(semProjeto.codigo, 1);
-  assert.match(semProjeto.saida, /--confirmar-projeto=sistema-financeiro-pesso-20698/);
-
-  const projetoErrado = executar([
-    ...comOverride, '--apply', `--confirmar=${WORKSPACE}`,
-    '--confirmar-projeto=outro',
-  ]);
-  assert.equal(projetoErrado.codigo, 1);
-  assert.match(projetoErrado.saida, /repita o Project ID/);
+test('--apply exige --confirmar com o próprio workspace', () => {
+  recusa([...basicos, '--apply'], emulador, /--confirmar=<workspaceId>/);
+  recusa([...basicos, '--apply', '--confirmar=outro'], emulador, /--confirmar=<workspaceId>/);
 });
 
-test('--confirmar-projeto sozinho é recusado', async () => {
-  const {codigo, saida} = executar([
-    '--projeto=projeto-dev-teste', `--workspace=${WORKSPACE}`,
-    `--confirmar-projeto=${PROJETO_REAL}`,
-  ]);
-  assert.equal(codigo, 1);
-  assert.match(saida, /só faz sentido junto com/);
+test('o legado exige --confirmar-legado próprio', () => {
+  for (const flag of [
+    '--include-legacy-investment-transactions', '--incluir-transacoes-legadas',
+  ]) {
+    recusa([...basicos, flag, '--apply', `--confirmar=${WORKSPACE}`], emulador,
+      /--confirmar-legado=<workspaceId>/);
+    recusa([...basicos, flag, '--apply', `--confirmar=${WORKSPACE}`, '--confirmar-legado=x'],
+      emulador, /--confirmar-legado=<workspaceId>/);
+  }
 });
 
-test('opção desconhecida é recusada, e não ignorada', async () => {
-  const {codigo, saida} = executar([...comOverride, '--force']);
-  assert.equal(codigo, 1);
-  assert.match(saida, /Opção desconhecida: --force/);
+// -------------------------------------------------------------- caso positivo
+
+test('com o Emulator em loopback, as guardas passam e o SDK é carregado', () => {
+  for (const host of ['127.0.0.1:8080', 'localhost:9000', '[::1]:8080', '::1:8080', '127.0.0.1:65535']) {
+    const r = executar(basicos, {FIRESTORE_EMULATOR_HOST: host});
+    // O hook encerra com 97 no primeiro carregamento do SDK: as guardas passaram.
+    assert.equal(r.codigo, 97, `${host}: ${r.saida}`);
+    assert.equal(r.carregouAdmin, true, host);
+  }
+  const completo = executar([
+    ...basicos, '--apply', `--confirmar=${WORKSPACE}`, '--incluir-ledger', '--pagina=500',
+    '--include-legacy-investment-transactions', `--confirmar-legado=${WORKSPACE}`,
+  ], {...emulador, GCLOUD_PROJECT: PROJETO_EMULADOR, GOOGLE_CLOUD_PROJECT: PROJETO_EMULADOR});
+  assert.equal(completo.codigo, 97, completo.saida);
+  assert.equal(completo.carregouAdmin, true);
 });
 
-test('o utilitário não fala com o Firebase Auth', async () => {
-  // "Nunca apaga usuário do Auth" é verificável no código: o utilitário só
-  // instancia o Firestore.
+// ----------------------------------------------------------- análise estática
+
+test('não resta caminho de hard delete remoto no código', () => {
+  const fonte = readFileSync(SCRIPT, 'utf8');
+  assert.equal(/sistema-financeiro/.test(fonte), false);
+  assert.equal(/process\.env\.PROJETO/.test(fonte), false);
+  assert.equal(/OVERRIDE|PRODUCAO/.test(fonte), false);
+  assert.equal(/\/stag\|/.test(fonte), false);
+});
+
+test('o utilitário não fala com o Firebase Auth', () => {
   const fonte = readFileSync(SCRIPT, 'utf8');
   assert.equal(/admin\.auth\(|getAuth|deleteUser/.test(fonte), false);
 });
 
-// ------------------------------------------------------- override em execução
-
-test('a simulação sob override avisa em destaque e não escreve nada', async () => {
-  await semear();
-  const antes = {
-    transactions: await ids('transactions'),
-    investment_positions: await ids('investment_positions'),
-    goals: await ids('goals'),
-  };
-
-  const {codigo, saida} = executar(comOverride);
-  assert.equal(codigo, 0);
-  assert.match(saida, /SAFETY OVERRIDE ATIVO/);
-  assert.match(saida, /Este é o Project ID REAL do produto/);
-  assert.match(saida, /SIMULAÇÃO — nada será escrito/);
-  assert.match(saida, /Nada foi escrito/);
-  // O comando sugerido carrega as fechaduras do override.
-  assert.match(saida, /--allow-development-reset-on-project=sistema-financeiro-pesso-20698/);
-
-  assert.deepEqual(await ids('transactions'), antes.transactions);
-  assert.deepEqual(await ids('investment_positions'), antes.investment_positions);
-  assert.deepEqual(await ids('goals'), antes.goals);
-});
-
-test('a aplicação sob override remove só o domínio e preserva o resto', async () => {
-  await semear();
-  const {codigo, saida} = executar([
-    ...comOverride, '--apply', `--confirmar=${WORKSPACE}`,
-    `--confirmar-projeto=${PROJETO_REAL}`,
-  ]);
-  assert.equal(codigo, 0);
-  assert.match(saida, /SAFETY OVERRIDE ATIVO/);
-  assert.match(saida, /APLICAR — ESTA EXECUÇÃO EXCLUI DADOS/);
-
-  // O workspace continua existindo.
-  assert.equal((await db().doc(raiz).get()).exists, true);
-  assert.deepEqual(await ids('members'), ['u1']);
-
-  // Receita, despesa e parcelado intocadas; o espelho de caixa saiu; a
-  // transação de investimento legada continua, porque não foi pedida.
-  assert.deepEqual(await ids('transactions'), [
-    'tx-despesa', 'tx-legado-1', 'tx-parcelado', 'tx-receita',
-  ]);
-
-  // Nada dos módulos adjacentes é tocado.
-  assert.deepEqual(await ids('credit_cards'), ['card-1']);
-  assert.deepEqual(await ids('credit_card_invoices'), ['inv-1']);
-  assert.deepEqual(await ids('loans'), ['loan-1']);
-  assert.deepEqual(await ids('loan_movements'), ['lm-1']);
-  assert.deepEqual(await ids('split_groups'), ['sg-1']);
-  assert.deepEqual(await ids('split_shares'), ['ss-1']);
-  assert.deepEqual(await ids('recurring_expenses'), ['re-1']);
-
-  // A meta permanece; só o progresso derivado sai.
-  assert.deepEqual(await ids('goals'), ['goal-1']);
-  const meta = (await db().doc(`${raiz}/goals/goal-1`).get()).data();
-  assert.equal(meta?.name, 'Meta');
-  assert.equal(meta?.investmentProgressCents, undefined);
-
-  // Projeções derivadas saíram; o ledger ficou, porque --incluir-ledger não
-  // foi pedido.
-  assert.deepEqual(await ids('investment_positions'), []);
-  assert.deepEqual(await ids('investment_movements'), ['mov-1']);
-});
-
-test('sob override, o legado continua exigindo confirmação própria', async () => {
-  await semear();
-  const recusa = executar([
-    ...comOverride, '--include-legacy-investment-transactions',
-    '--apply', `--confirmar=${WORKSPACE}`,
-    `--confirmar-projeto=${PROJETO_REAL}`,
-  ]);
-  assert.equal(recusa.codigo, 1);
-  assert.match(recusa.saida, /--confirmar-legado/);
-  // A recusa é anterior a qualquer escrita.
-  assert.ok((await ids('transactions')).includes('tx-legado-1'));
-
-  const aceita = executar([
-    ...comOverride, '--include-legacy-investment-transactions',
-    '--apply', `--confirmar=${WORKSPACE}`,
-    `--confirmar-projeto=${PROJETO_REAL}`,
-    `--confirmar-legado=${WORKSPACE}`,
-  ]);
-  assert.equal(aceita.codigo, 0);
-  assert.deepEqual(await ids('transactions'), [
-    'tx-despesa', 'tx-parcelado', 'tx-receita',
-  ]);
-  assert.equal((await db().doc(raiz).get()).exists, true);
-});
-
-test('repetir a aplicação sob override não muda nada', async () => {
-  const primeira = executar([
-    ...comOverride, '--apply', `--confirmar=${WORKSPACE}`,
-    `--confirmar-projeto=${PROJETO_REAL}`,
-  ]);
-  assert.equal(primeira.codigo, 0);
-  const depois = await ids('transactions');
-  const segunda = executar([
-    ...comOverride, '--apply', `--confirmar=${WORKSPACE}`,
-    `--confirmar-projeto=${PROJETO_REAL}`,
-  ]);
-  assert.equal(segunda.codigo, 0);
-  assert.match(segunda.saida, /total afetado: 0/);
-  assert.deepEqual(await ids('transactions'), depois);
+test('o firebase-admin é carregado só depois das guardas', () => {
+  const fonte = readFileSync(SCRIPT, 'utf8');
+  const carga = fonte.indexOf("require('../../functions/node_modules/firebase-admin')");
+  assert.ok(carga > 0);
+  assert.equal(fonte.indexOf("require('../../functions/node_modules/firebase-admin')", carga + 1), -1);
+  for (const marcador of [
+    'Opção desconhecida', 'Projeto recusado', 'FIRESTORE_EMULATOR_HOST é obrigatório',
+    'Conflito de ambiente', '--confirmar-legado=<workspaceId>',
+  ]) {
+    assert.ok(fonte.indexOf(marcador) < carga, marcador);
+  }
 });

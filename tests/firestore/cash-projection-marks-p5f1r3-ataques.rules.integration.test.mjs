@@ -85,7 +85,7 @@ const seed = async () => {
       await db.doc(`users/${user.uid}`).delete();
       continue;
     }
-    await db.doc(`users/${user.uid}`).set({uid: user.uid, status: name === 'suspendedA' ? 'suspended' : 'active'});
+    await db.doc(`users/${user.uid}`).set({uid: user.uid, accessStatus: 'granted', status: name === 'suspendedA' ? 'suspended' : 'active'});
   }
   await Promise.all([wsA, wsB, wsArc].map((ws) => db.recursiveDelete(db.doc(`workspaces/${ws}`))));
   await Promise.all([

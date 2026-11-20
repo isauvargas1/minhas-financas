@@ -25,14 +25,28 @@ service cloud.firestore {
     // de acesso a documentos numa regra de escrita é perfil + membership +
     // workspace (status de arquivamento) + o documento do próprio domínio,
     // abaixo do teto de 10 por requisição avulsa e 20 por lote/transação.
+    //
+    // P6-B — piloto fechado: além de ativo, o perfil precisa ter a
+    // autorização de acesso `accessStatus == 'granted'`, gravada só pelo
+    // backend (bootstrap com convite válido vinculado ao mesmo uid). Ausente
+    // (conta anterior à P6-B) ou `revoked` nega toda leitura, listagem e
+    // escrita que passa por aqui, mesmo com membership ativo e ID token
+    // vigente. O campo vem do MESMO documento de perfil já lido acima: nenhum
+    // acesso a documento a mais por requisição. O cliente não grava o perfil
+    // (`match /users/{userId}`: create, update e delete negados).
+    function accountProfile() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
     function accountStatus() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('status', '');
+      return accountProfile().get('status', '');
     }
 
     function hasActiveAccount() {
       return signedIn() &&
         exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-        accountStatus() == 'active';
+        accountStatus() == 'active' &&
+        accountProfile().get('accessStatus', '') == 'granted';
     }
 
     function membershipPath(workspaceId) {
@@ -1375,6 +1389,13 @@ match /split_events/{eventId} {
     // Vínculo customer do Stripe → titular e recibos idempotentes do
     // webhook: coleções internas, backend-only nos dois sentidos.
     match /billing_customers/{stripeCustomerId} {
+      allow read, write: if false;
+    }
+
+    // P6-A: lista do piloto fechado (convites por e-mail verificado). Só o
+    // backend lê (`bootstrapAccount`) e só o Admin SDK escreve
+    // (`tools/piloto/acesso-piloto.mjs`); o cliente não lê nem enumera.
+    match /pilot_access/{entryId} {
       allow read, write: if false;
     }
 

@@ -20,7 +20,10 @@
     "allowJs": true,
     "jsx": "react-jsx",
     "paths": {
-  "@/*": ["./src/*"]
+  "@/*": ["./src/*"],
+  "@fenix/app-check": ["./src/lib/ambiente/appCheck.ts"],
+  "@fenix/emuladores": ["./src/lib/ambiente/emuladores.ts"],
+  "@fenix/login-e2e": ["./src/lib/ambiente/loginE2E.tsx"]
 }
 ,
     "allowImportingTsExtensions": true,

@@ -8,11 +8,10 @@
     "test:unit": "npm run build && node --test $(find lib -name '*.test.js' ! -name '*.integration.test.js' | sort)",
     "test:integration": "npm run build && node --test --test-concurrency=1 \"lib/**/*.integration.test.js\"",
     "build:watch": "tsc --watch",
-    "serve": "npm run build && firebase emulators:start --only functions",
-    "shell": "npm run build && firebase functions:shell",
+    "serve": "npm run build && firebase emulators:start --only functions --project minhas-financas-local",
+    "shell": "npm run build && firebase functions:shell --project minhas-financas-local",
     "start": "npm run shell",
-    "deploy": "firebase deploy --only functions",
-    "logs": "firebase functions:log"
+    "deploy": "node ../tools/deploy/publicar.mjs --alvo functions"
   },
   "engines": {
     "node": "24"
@@ -23,7 +22,7 @@
     "firebase-admin": "^13.6.0",
     "firebase-functions": "^7.0.0",
     "stripe": "^20.4.0",
-    "zod": "^4.3.6"
+    "zod": "^4.6.6"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^5.12.0",

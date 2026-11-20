@@ -1,71 +1,54 @@
 import { initializeApp } from 'firebase/app';
-import { connectAuthEmulator, getAuth } from 'firebase/auth';
-import { connectFirestoreEmulator, getFirestore } from 'firebase/firestore';
-import { getStorage } from 'firebase/storage';
-import { connectFunctionsEmulator, getFunctions } from 'firebase/functions';
-
-const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID
-};
+import { getAuth } from 'firebase/auth';
+import { getFirestore } from 'firebase/firestore';
+import { getFunctions } from 'firebase/functions';
+import { ativarAppCheck } from '@fenix/app-check';
+import { conectarEmuladores } from '@fenix/emuladores';
 
 /*
- * P5-GATE-FINAL (E-00, causa da exposição de chave): cada variável é lida por nome fixo (acima). Ler
- * `import.meta.env` como objeto (`import.meta.env[nome]`) fazia o Vite embutir no bundle público o objeto
- * inteiro com TODAS as variáveis `VITE_*` do ambiente de build, inclusive uma que nenhum código usasse.
- * A guarda `tests/unit/ai-backend-only.test.ts` e a varredura do bundle no build
- * (`tools/seguranca/varrer-bundle.mjs`) falham se isso voltar.
+ * P6-A (PR-PLAT-01, PR-AUTH-04): a configuração web vem do perfil de build (`config/ambientes.json`, pelo `define`
+ * `__FENIX_CONFIG_WEB__` do `vite.config.ts`), nunca do ambiente da estação. O cliente não lê nenhuma `VITE_*`.
+ *
+ * P5-GATE-FINAL (E-00, causa da exposição de chave), mantido: nada aqui lê `import.meta.env` como objeto. Isso faria o
+ * Vite embutir no bundle público todas as variáveis `VITE_*` do ambiente de build. A guarda
+ * `tests/unit/ai-backend-only.test.ts` e a varredura do bundle (`tools/seguranca/varrer-bundle.mjs`) falham se voltar.
  */
-const requiredFirebaseEnv: ReadonlyArray<readonly [string, string | undefined]> = [
-  ['VITE_FIREBASE_API_KEY', firebaseConfig.apiKey],
-  ['VITE_FIREBASE_AUTH_DOMAIN', firebaseConfig.authDomain],
-  ['VITE_FIREBASE_PROJECT_ID', firebaseConfig.projectId],
-  ['VITE_FIREBASE_STORAGE_BUCKET', firebaseConfig.storageBucket],
-  ['VITE_FIREBASE_MESSAGING_SENDER_ID', firebaseConfig.messagingSenderId],
-  ['VITE_FIREBASE_APP_ID', firebaseConfig.appId],
-];
+const firebaseConfig = __FENIX_CONFIG_WEB__;
 
-const missingFirebaseEnv = requiredFirebaseEnv
-  .filter(([, value]) => !value)
-  .map(([name]) => name);
+const requiredFirebaseConfig = ['apiKey', 'authDomain', 'projectId', 'storageBucket', 'messagingSenderId', 'appId'] as const;
 
-if (missingFirebaseEnv.length > 0) {
+const missingFirebaseConfig = requiredFirebaseConfig.filter((field) => !firebaseConfig?.[field]);
+
+if (missingFirebaseConfig.length > 0) {
   throw new Error(
-    `Firebase não configurado. Variáveis ausentes: ${missingFirebaseEnv.join(', ')}`
+    `Firebase não configurado para o perfil ${__FENIX_PERFIL__}. Campos ausentes: ${missingFirebaseConfig.join(', ')}`
   );
 }
 
 const app = initializeApp(firebaseConfig);
 
-export const auth = getAuth(app);
-export const db = getFirestore(app);
-export const storage = getStorage(app);
 // Mesma região declarada em `functions/src/shared/runtimeOptions.ts`. O SDK
 // Web resolve `us-central1` por padrão; sem isto o cliente chamaria um
 // endpoint que não existe mais depois da migração de região (INV-P2-042).
 export const FUNCTIONS_REGION = 'southamerica-east1';
 
-export const functions = getFunctions(app, FUNCTIONS_REGION);
+/*
+ * Só nos perfis `local` e `e2e` o módulo real entra no bundle e conecta ao Emulator antes de qualquer uso dos serviços
+ * abaixo. Nos perfis `verificacao` e `release`, o alias aponta para um módulo que devolve `null`.
+ */
+const emuladores = conectarEmuladores(app, FUNCTIONS_REGION);
 
-const shouldUseFirebaseEmulators =
-  import.meta.env.VITE_USE_FIREBASE_EMULATORS === 'true';
+/*
+ * P6-A (PR-APPCHK-01, preparação): o App Check entra no bundle só no release com `producao.appCheck` registrado
+ * (E-02); nos demais casos o alias aponta para um módulo vazio. Ele precisa vir antes de Auth, Firestore e Functions.
+ * O enforcement é do servidor e do console, e continua desligado até a decisão D-33.
+ */
+ativarAppCheck(app, __FENIX_APP_CHECK__);
 
-const emulatorState = globalThis as typeof globalThis & {
-  __MINHAS_FINANCAS_FIREBASE_EMULATORS_CONNECTED__?: boolean;
-};
+// P6-A: o Cloud Storage não é usado pelo app (storage.rules nega tudo); o SDK não é inicializado no cliente.
 
-if (shouldUseFirebaseEmulators && !emulatorState.__MINHAS_FINANCAS_FIREBASE_EMULATORS_CONNECTED__) {
-  connectAuthEmulator(auth, 'http://127.0.0.1:9099', {
-    disableWarnings: true,
-  });
-  connectFirestoreEmulator(db, '127.0.0.1', 8080);
-  connectFunctionsEmulator(functions, '127.0.0.1', 5001);
-
-  emulatorState.__MINHAS_FINANCAS_FIREBASE_EMULATORS_CONNECTED__ = true;
-}
+export const auth = getAuth(app);
+export const db = getFirestore(app);
+export const functions = emuladores?.functions ?? getFunctions(app, FUNCTIONS_REGION);
 
 export default app;

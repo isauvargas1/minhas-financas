@@ -117,7 +117,7 @@ const seed = async () => {
     }
     await firebaseAdmin.auth().createUser({...user, password, emailVerified: true});
     await db.doc(`users/${user.uid}`).set({
-      uid: user.uid, status: user === users.suspendedA ? 'suspended' : 'active',
+      uid: user.uid, accessStatus: 'granted', status: user === users.suspendedA ? 'suspended' : 'active',
     });
   }
   await Promise.all([wsA, wsB, wsArchived].map((ws) => db.recursiveDelete(db.doc(`workspaces/${ws}`))));

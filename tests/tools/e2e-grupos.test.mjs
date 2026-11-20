@@ -136,7 +136,7 @@ test('grupos: a execução vale só com cada teste da lista uma vez, numa tentat
 });
 
 test('grupos: as portas conferidas entre os grupos são as do Emulator e a do frontend', () => {
-  assert.deepEqual(e2ePorts({ startEmulators: true, previewPort: 5173 }), [4000, 4400, 4500, 5001, 8080, 9099, 9150, 9299, 9499, 5173]);
+  assert.deepEqual(e2ePorts({ startEmulators: true, previewPort: 5173 }), [4000, 4400, 4500, 5001, 8080, 9099, 9150, 9199, 9299, 9499, 5173]);
   assert.deepEqual(e2ePorts({ startEmulators: false, previewPort: 5174 }), [5174], 'com o Emulator de fora, só a do frontend');
   const firebase = JSON.parse(readFileSync(new URL('../../firebase.json', import.meta.url), 'utf8'));
   const configured = Object.values(firebase.emulators).flatMap((entry) => (typeof entry === 'object' && entry.port ? [entry.port] : []));

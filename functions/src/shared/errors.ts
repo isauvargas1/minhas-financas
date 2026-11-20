@@ -18,6 +18,7 @@ export type ApplicationErrorCode =
   | "recent_login_required"
   | "account_suspended"
   | "account_not_initialized"
+  | "pilot_access_required"
   | "workspace_not_found"
   | "workspace_archived"
   | "workspace_membership_required"
@@ -42,6 +43,8 @@ const HTTPS_CODE_BY_APPLICATION_CODE: Record<
   recent_login_required: "failed-precondition",
   account_suspended: "permission-denied",
   account_not_initialized: "failed-precondition",
+  // P6-A: conta nova fora da lista do piloto fechado (`workspaces/pilotAccess.ts`).
+  pilot_access_required: "permission-denied",
   workspace_not_found: "not-found",
   workspace_archived: "failed-precondition",
   workspace_membership_required: "permission-denied",
@@ -70,6 +73,7 @@ const PUBLIC_REASON_BY_CODE: Partial<Record<ApplicationErrorCode, string>> = {
   recent_login_required: "recent_login_required",
   account_suspended: "account_suspended",
   account_not_initialized: "account_not_initialized",
+  pilot_access_required: "pilot_access_required",
   workspace_archived: "workspace_archived",
 };
 

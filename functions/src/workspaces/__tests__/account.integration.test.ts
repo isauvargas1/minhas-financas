@@ -66,12 +66,19 @@ test("bootstrapAccount cria perfil, workspace pessoal, owner, " +
   const profile = (await db().doc(`users/${uid}`).get()).data();
   assert.ok(profile);
   assert.deepEqual(Object.keys(profile).sort(), [
+    "accessGrantedAt", "accessInviteId", "accessSource", "accessStatus",
     "createdAt", "displayName", "email", "photoURL", "status", "uid",
     "updatedAt",
   ]);
   assert.equal(profile.uid, uid);
   assert.equal(profile.email, testEmailFor(uid));
   assert.equal(profile.status, "active");
+  // P6-B: autorização do piloto gravada no mesmo commit (no Emulator, sem
+  // convite).
+  assert.equal(profile.accessStatus, "granted");
+  assert.equal(profile.accessSource, "emulator");
+  assert.equal(profile.accessInviteId, null);
+  assert.ok(profile.accessGrantedAt);
 
   const workspace = (await db().doc(`workspaces/${workspaceId}`).get()).data();
   assert.equal(workspace?.type, "PF");
@@ -256,8 +263,11 @@ test("suspensão: status, Auth desativado, sessões revogadas e auditoria", asyn
   );
   const audits = await db().collection(PLATFORM_AUDIT_COLLECTION)
     .where("targetId", "==", uid).get();
-  assert.equal(audits.size, 1);
-  assert.equal(audits.docs[0].get("operation"), "account.suspended");
+  // P6-B: o bootstrap registrou a autorização; a suspensão, um evento próprio.
+  assert.deepEqual(
+    audits.docs.map((doc) => doc.get("operation")).sort(),
+    ["account.access_granted", "account.suspended"],
+  );
 
   // Toda callable recusa a conta suspensa, mesmo com ID token ainda válido.
   await expectHttpsError(
@@ -286,5 +296,5 @@ test("suspensão: status, Auth desativado, sessões revogadas e auditoria", asyn
   assert.equal(second.changed, false);
   const auditsAfter = await db().collection(PLATFORM_AUDIT_COLLECTION)
     .where("targetId", "==", uid).get();
-  assert.equal(auditsAfter.size, 1);
+  assert.equal(auditsAfter.size, 2);
 });

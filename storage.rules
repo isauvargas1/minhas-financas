@@ -1,0 +1,11 @@
+rules_version = '2';
+
+// P6-A (gate G0): o app não usa o Cloud Storage. Nenhum cliente lê nem grava arquivos no bucket do projeto.
+// Se um dia houver upload (comprovantes, por exemplo), as regras serão escritas e testadas com o recurso.
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

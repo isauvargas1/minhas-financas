@@ -136,7 +136,7 @@ const seed = async () => {
     // não a conta, o que o nega.
     await db.recursiveDelete(db.doc(`users/${user.uid}`));
     if (!USERS_WITHOUT_PROFILE.has(user.uid)) {
-      await db.doc(`users/${user.uid}`).set({uid: user.uid, status: 'active'});
+      await db.doc(`users/${user.uid}`).set({uid: user.uid, accessStatus: 'granted', status: 'active'});
     }
   }
   await Promise.all([
@@ -897,6 +897,7 @@ test('INV-P1-013 / P1 — usuário não escreve no próprio perfil, nem para con
   const seeded = {
     uid: users.ownerA.uid,
     status: 'active',
+    accessStatus: 'granted',
     email: users.ownerA.email,
     displayName: 'Owner A',
   };
@@ -921,6 +922,9 @@ test('INV-P1-013 / P1 — usuário não escreve no próprio perfil, nem para con
       {entitlements: {pro: true}},
       {status: 'active'},
       {status: 'suspended'},
+      // P6-B: a autorização do piloto também é só do backend.
+      {accessStatus: 'revoked'},
+      {accessStatus: 'granted', accessSource: 'pilot_invite'},
       {email: 'outro@example.test'},
       {displayName: 'Owner Atualizado'},
       {photoURL: 'https://example.test/avatar.png'},
@@ -1276,7 +1280,7 @@ test('P1 — conta suspensa com membership de owner ativo perde leitura e escrit
     assert.equal((await getDoc(txRef)).exists(), true);
 
     // O backend suspende a conta. O token da sessão continua válido.
-    await db.doc(`users/${uid}`).set({uid, status: 'suspended'});
+    await db.doc(`users/${uid}`).set({uid, accessStatus: 'granted', status: 'suspended'});
 
     await assert.rejects(() => getDoc(txRef), 'conta suspensa não lê transação');
     await assert.rejects(
@@ -1318,7 +1322,7 @@ test('P1 — conta suspensa com membership de owner ativo perde leitura e escrit
     assert.equal((await getDoc(doc(ownerC.db, `users/${uid}`))).data().status, 'suspended');
 
     // Controle: reativada pelo backend, a mesma sessão volta a ler.
-    await db.doc(`users/${uid}`).set({uid, status: 'active'});
+    await db.doc(`users/${uid}`).set({uid, accessStatus: 'granted', status: 'active'});
     assert.equal((await getDoc(txRef)).exists(), true);
   });
   const persisted = await db.doc(`workspaces/${wsC}/transactions/tx-1`).get();
@@ -1360,7 +1364,7 @@ test('P1 — membership ativo sem documento de perfil não concede acesso', asyn
 
     // Controle: com o perfil ativo criado pelo backend, o mesmo membership
     // passa a valer.
-    await db.doc(`users/${uid}`).set({uid, status: 'active'});
+    await db.doc(`users/${uid}`).set({uid, accessStatus: 'granted', status: 'active'});
     assert.equal((await getDoc(txRef)).exists(), true);
   });
   assert.equal((await db.doc(`workspaces/${wsC}/transactions/sem-perfil`).get()).exists, false);

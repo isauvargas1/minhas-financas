@@ -17,6 +17,7 @@ import {createTransactionQuotaAnchor} from "../billing/transactionQuota";
 import {appendMembershipEvent, type AuditSnapshot} from "../shared/audit";
 import type {CallerIdentity} from "../shared/callable";
 import {ApplicationError} from "../shared/errors";
+import {sha256} from "../shared/hashing";
 import {
   completeActorIdempotency,
   reserveActorIdempotency,
@@ -47,6 +48,16 @@ import {
   writeActiveMembership,
 } from "./model";
 import {provisionWorkspaceDefaults} from "./provisioning";
+import {
+  accountAccessGrantFields,
+  assertPilotAccess,
+  isAccountAccessGranted,
+  recordPilotAccessUse,
+  resolvePilotAccessMode,
+  type PilotAccessGrant,
+  type PilotAccessMode,
+} from "./pilotAccess";
+import {PLATFORM_AUDIT_COLLECTION} from "./suspension";
 
 const db = () => admin.firestore();
 
@@ -94,6 +105,45 @@ const newWorkspaceDocument = (input: {
   archivedBy: null,
 });
 
+/**
+ * Auditoria da plataforma (append-only, só backend) da autorização de acesso
+ * dada pelo bootstrap. O alvo é o `uid`; o convite aparece só pelo id (hash
+ * do e-mail), nunca pelo endereço. Id determinístico por requisição: a
+ * repetição da transação pelo Firestore não duplica o evento.
+ */
+const appendAccessGrantedEvent = (
+  transaction: admin.firestore.Transaction,
+  input: {
+    caller: CallerIdentity;
+    grant: PilotAccessGrant | null;
+    before: unknown;
+    requestId: string;
+  },
+): void => {
+  const eventRef = db().collection(PLATFORM_AUDIT_COLLECTION).doc(
+    `account_access_granted_${
+      sha256(`${input.requestId}:${input.caller.uid}`).slice(0, 32)
+    }`,
+  );
+  transaction.create(eventRef, {
+    id: eventRef.id,
+    operation: "account.access_granted",
+    actorId: input.caller.uid,
+    targetId: input.caller.uid,
+    before: {
+      accessStatus: typeof input.before === "string" ? input.before : null,
+    },
+    after: {
+      accessStatus: "granted",
+      accessSource: input.grant === null ? "emulator" : "pilot_invite",
+      accessInviteId: input.grant === null ? null : input.grant.ref.id,
+    },
+    reason: null,
+    requestId: input.requestId,
+    createdAt: FieldValue.serverTimestamp(),
+  });
+};
+
 export interface BootstrapAccountResult extends Record<string, unknown> {
   created: boolean;
   workspaceId: string | null;
@@ -117,6 +167,15 @@ export interface BootstrapAccountResult extends Record<string, unknown> {
  * criado e devolve `created: false`. Não há estado parcial: ou tudo foi
  * gravado, ou nada.
  *
+ * Autorização do piloto (P6-A, P6-B): enquanto o perfil não tiver
+ * `accessStatus == "granted"` — conta nova, ou conta pré-existente com perfil
+ * e membership ativos anteriores à P6-B —, o bootstrap exige o convite do
+ * e-mail verificado (`assertPilotAccess`) e, na mesma transação, grava a
+ * autorização no perfil, vincula o convite ao `uid` (uso único) e registra
+ * `account.access_granted` na auditoria da plataforma. Sem convite, recusa
+ * sem escrever nada. Uma conta já autorizada não relê o convite: a revogação
+ * marca o próprio perfil (`tools/piloto/acesso-piloto.mjs`).
+ *
  * Se a conta existe mas ficou sem nenhum workspace ativo (saiu de todos,
  * arquivou o pessoal), um novo workspace pessoal é criado pelo mesmo caminho,
  * que consome um slot de workspace próprio: o contador é relido na transação,
@@ -127,6 +186,9 @@ export interface BootstrapAccountResult extends Record<string, unknown> {
 export const executeBootstrapAccount = async (
   caller: CallerIdentity,
   requestId: string,
+  // P6-A: o modo vem do projeto em execução; os testes o informam
+  // explicitamente.
+  pilotAccessMode: PilotAccessMode = resolvePilotAccessMode(),
 ): Promise<BootstrapAccountResult> =>
   db().runTransaction(async (transaction) => {
     const profileRef = userProfileRef(caller.uid);
@@ -145,6 +207,30 @@ export const executeBootstrapAccount = async (
     );
     const identity = memberIdentityFrom(caller);
     const initialized = profile.exists && status === "active";
+    // P6-B: a autorização é do perfil, não da inicialização. Conta nova ou
+    // pré-existente sem `accessStatus == "granted"` só segue com convite;
+    // lido antes de qualquer escrita (regra de transação do Firestore).
+    const granted = initialized && isAccountAccessGranted(profile);
+    const pilotGrant = granted ?
+      null :
+      await assertPilotAccess(
+        transaction,
+        caller,
+        pilotAccessMode,
+        profile.get("accessStatus"),
+      );
+    // Campos gravados no perfil quando a autorização nasce nesta chamada.
+    const grantFields = granted ? {} : accountAccessGrantFields(pilotGrant);
+    const recordGrant = (): void => {
+      if (granted) return;
+      recordPilotAccessUse(transaction, pilotGrant, caller);
+      appendAccessGrantedEvent(transaction, {
+        caller,
+        grant: pilotGrant,
+        before: profile.get("accessStatus") ?? null,
+        requestId,
+      });
+    };
     if (initialized) {
       const active = await transaction.get(
         profileRef.collection("workspaces")
@@ -157,12 +243,14 @@ export const executeBootstrapAccount = async (
           profile.get("email") !== identity.email ||
           profile.get("displayName") !== identity.displayName ||
           profile.get("photoURL") !== identity.photoURL;
-        if (changed) {
+        if (changed || !granted) {
           transaction.update(profileRef, {
             ...identity,
+            ...grantFields,
             updatedAt: FieldValue.serverTimestamp(),
           });
         }
+        recordGrant();
         ensureBillingAccount(transaction, caller.uid, billing);
         return {created: false, workspaceId: null};
       }
@@ -206,6 +294,7 @@ export const executeBootstrapAccount = async (
         uid: caller.uid,
         ...identity,
         status: "active",
+        ...grantFields,
         updatedAt: FieldValue.serverTimestamp(),
         ...(initialized ? {} : {createdAt: FieldValue.serverTimestamp()}),
       }, {merge: true});
@@ -214,11 +303,15 @@ export const executeBootstrapAccount = async (
         uid: caller.uid,
         ...identity,
         status: "active",
+        ...grantFields,
         createdAt: FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp(),
       });
     }
     transaction.create(workspaceDoc, workspace);
+    // P6-A/P6-B: autorização, vínculo do convite (uso único) e auditoria no
+    // mesmo commit do perfil.
+    recordGrant();
     createMembershipQuota(transaction, workspaceDoc.id);
     // P3-D (D-40): o contador mensal de lançamentos nasce com o workspace.
     createTransactionQuotaAnchor(transaction, workspaceDoc.id);

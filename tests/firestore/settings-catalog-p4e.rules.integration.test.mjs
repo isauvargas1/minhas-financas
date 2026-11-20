@@ -91,7 +91,7 @@ const seed = async () => {
       if (error?.code !== 'auth/user-not-found') throw error;
     }
     await firebaseAdmin.auth().createUser({...user, password, emailVerified: true});
-    await db.doc(`users/${user.uid}`).set({uid: user.uid, status: 'active'});
+    await db.doc(`users/${user.uid}`).set({uid: user.uid, accessStatus: 'granted', status: 'active'});
   }
   await Promise.all([wsA, wsB].map((ws) => db.recursiveDelete(db.doc(`workspaces/${ws}`))));
   await Promise.all([

@@ -2,8 +2,6 @@ import React, { createContext, useContext, useEffect, useRef, useState, ReactNod
 import { useQueryClient } from '@tanstack/react-query';
 import { 
     GoogleAuthProvider, 
-    createUserWithEmailAndPassword,
-    signInWithEmailAndPassword,
     signInWithPopup, 
     signOut, 
     onAuthStateChanged 
@@ -35,25 +33,14 @@ interface AuthContextType {
     user: AppUser | null;
     loading: boolean;
     signInWithGoogle: () => Promise<void>;
-    signInForE2E?: (email?: string, password?: string) => Promise<void>;
     logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const isE2EMode = import.meta.env.VITE_E2E_MODE === 'true';
-
 /** Dados locais que pertencem à conta: último workspace e histórico do chat de IA. */
 const ownsLocalKey: LocalKeyOwnership = (key, uid) =>
     ownsLastWorkspaceKey(key, uid) || isAiChatHistoryKeyOf(key, uid);
-
-const getFirebaseAuthErrorCode = (error: unknown): string => {
-    if (typeof error === 'object' && error !== null && 'code' in error) {
-        return String((error as { code?: unknown }).code);
-    }
-
-    return '';
-};
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     // 3. O estado agora armazena o AppUser
@@ -158,28 +145,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
 
 
-        const signInForE2E = async (
-        email = 'e2e-owner@minhas-financas.local',
-        password = 'e2e-password-123456',
-    ) => {
-        if (!isE2EMode) {
-            throw new Error('Login E2E indisponível fora do modo de teste.');
-        }
-
-        try {
-            await signInWithEmailAndPassword(auth, email, password);
-        } catch (error) {
-            const code = getFirebaseAuthErrorCode(error);
-
-            if (code === 'auth/user-not-found' || code === 'auth/invalid-credential') {
-                await createUserWithEmailAndPassword(auth, email, password);
-                return;
-            }
-
-            throw error;
-        }
-    };
-
     const logout = async () => {
         try {
             await signOut(auth);
@@ -195,7 +160,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             user,
             loading,
             signInWithGoogle,
-            signInForE2E: isE2EMode ? signInForE2E : undefined,
             logout,
         }}>
             {children}

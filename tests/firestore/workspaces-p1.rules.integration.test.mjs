@@ -74,7 +74,7 @@ const seed = async () => {
     if (entry !== users.noProfileA) {
       await db.doc(`users/${entry.uid}`).set({
         uid: entry.uid,
-        status: entry === users.suspendedA ? 'suspended' : 'active',
+        accessStatus: 'granted', status: entry === users.suspendedA ? 'suspended' : 'active',
       });
     }
   }

@@ -106,3 +106,23 @@ test('campo ausente não vai no payload estrito; chave de idempotência sempre v
   assert.equal(typeof payload.idempotencyKey, 'string');
   assert.ok(String(payload.idempotencyKey).length >= 8);
 });
+
+/*
+ * P6-A (gate G0): a recusa do piloto fechado chega ao usuário com a mensagem em pt-BR do backend, igual à da conta
+ * suspensa. No Emulator o acesso é aberto (E2E), então a tela não é exercitada pelo E2E: este teste amarra o caminho
+ * (código do SDK, motivo público, mensagem do backend) e a lista de motivos que o WorkspaceContext exibe.
+ */
+test('P6-A: pilot_access_required mostra a mensagem do backend em pt-BR, sem código nem sufixo do SDK', async () => {
+  const { callableErrorReason, workspaceErrorMessage } = await import('../../src/modules/workspaces/errorMessages.ts');
+  const backend = readFileSync(new URL('../../functions/src/workspaces/pilotAccess.ts', import.meta.url), 'utf8');
+  const frase = /PILOT_ACCESS_DENIED_MESSAGE =\s*"([^"]+)" \+\s*"([^"]+)";/.exec(backend);
+  assert.ok(frase, 'mensagem do piloto declarada no backend');
+  const mensagem = `${frase[1]}${frase[2]}`;
+  assert.match(mensagem, /^O FênixGran está em piloto fechado .*Peça um convite ao responsável pelo piloto\.$/);
+  assert.doesNotMatch(mensagem, /Firebase|Firestore|callable|pilot_access|\[\d+\]/);
+  const erro = { code: 'functions/permission-denied', message: mensagem, details: { reason: 'pilot_access_required' } };
+  assert.equal(callableErrorReason(erro), 'pilot_access_required');
+  assert.equal(workspaceErrorMessage(erro, 'genérica'), mensagem);
+  const contexto = readFileSync(new URL('../../src/contexts/WorkspaceContext.tsx', import.meta.url), 'utf8');
+  assert.match(contexto, /\['account_suspended', 'pilot_access_required'\]\.includes\(callableErrorReason\(error\) \?\? ''\)/);
+});

@@ -28,7 +28,7 @@
 - Não acessar Firebase de produção (`sistema-financeiro-pesso-20698`) nem seus dados, usuários, logs ou configuração — por CLI, SDK, script, console ou ferramenta MCP.
 - Firebase durante desenvolvimento: somente Emulator (projeto `minhas-financas-local`) ou ambiente DEV/STAGING autorizado explicitamente pelo usuário na conversa corrente, com o projeto nomeado.
 - Ferramentas MCP do Firebase: apenas as de documentação (`developerknowledge_*`), salvo autorização explícita para um projeto não produtivo.
-- Não executar `npm run dev` nem `npm run preview` com a configuração local: o app conecta ao projeto de produção (PR-PLAT-01). Para inspecionar a UI, use o build E2E contra o Emulator (`npm run test:e2e`, `npm run test:e2e:ui`).
+- Desde a P6-A, `npm run dev` (perfil `local`, `tools/ambiente/dev.mjs`) e `npm run preview` (perfil `e2e`) usam somente o Emulator (`minhas-financas-local`), com a configuração web do perfil em `config/ambientes.json` e nenhum `.env*` (RUNBOOKS RB-11); não conectam à produção. Agentes continuam sem executá-los (servidores de longa duração, negados em `.claude/settings.json`): para inspecionar a UI, use o build E2E contra o Emulator (`npm run test:e2e`, `npm run test:e2e:ui`).
 - Não ler, imprimir ou copiar segredos (`.env*`, chaves, service accounts, tokens).
 - Não enfraquecer testes, asserções, Rules, tipos, validações, cobertura ou gates para obter PASS. Não usar `skip`/`only`, mocks excessivos, timeouts maiores ou fallbacks permissivos para contornar falhas.
 

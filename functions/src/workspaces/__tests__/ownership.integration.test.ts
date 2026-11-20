@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import {FieldValue} from "firebase-admin/firestore";
+
 import {
   requireFirestoreEmulator,
   seedActiveAccount,
@@ -124,6 +126,21 @@ test("transferência: destino precisa ser membro ativo com conta ativa", async (
   await db().doc(`users/${member}`).update({status: "suspended"});
   await expectHttpsError(
     transfer(owner, workspaceId, member),
+    "failed-precondition",
+  );
+  // P6-B: membro ativo sem autorização do piloto (perfil anterior à P6-B ou
+  // revogado) não recebe a titularidade.
+  const legacy = await account("legacy");
+  await seedPaidPlan(legacy, "pro");
+  await seedMember(workspaceId, legacy, "member");
+  await db().doc(`users/${legacy}`).update({accessStatus: FieldValue.delete()});
+  await expectHttpsError(
+    transfer(owner, workspaceId, legacy),
+    "failed-precondition",
+  );
+  await db().doc(`users/${legacy}`).update({accessStatus: "revoked"});
+  await expectHttpsError(
+    transfer(owner, workspaceId, legacy),
     "failed-precondition",
   );
   await expectHttpsError(

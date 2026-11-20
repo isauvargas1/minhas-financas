@@ -30,7 +30,21 @@ Rótulos: **CURRENT** (existe no HEAD, com evidência), **TARGET** (alvo exigido
 
 ## 2. Ambientes
 
-### 2.1 CURRENT
+### 2.0 Atualização P6-A (2026-11-17, D-19, D-ORD-09): produção única, working tree não publicado
+
+A estratégia DEV/STAGING/PROD das §2.2 e §2.3 foi **substituída**: existe um único projeto remoto, a produção `sistema-financeiro-pesso-20698`, permanente; os testes rodam no Emulator (`minhas-financas-local`) e no build de verificação (`demo-fenixgran-verificacao`, só build). As tabelas abaixo descrevem o estado anterior e ficam como registro. No working tree da P6-A:
+
+| Fato | Evidência |
+| --- | --- |
+| Contrato único dos ambientes (formato 2): `emulador`, `verificacao` e `producao`, com `web`, `liberacao`, `segredos` e `appCheck` da produção pendentes (`null`/`[]`) até a ação do proprietário | `config/ambientes.json`; `tools/ambiente/contrato.mjs` (`validarConfiguracao`) |
+| `.firebaserc` só com o alias `local` (Emulator), sem `default` nem alias de produção | `.firebaserc`; `validarFirebaserc` |
+| Builds por perfil (`local`, `e2e`, `verificacao`, `release`), cada um numa saída própria, sem `.env*` (`envDir` vazio) e recusando `VITE_*` no shell; login E2E e conexão ao Emulator só nos perfis de Emulator (aliases para módulos vazios nos demais); marcador `fenix-build.json` | `vite.config.ts`; `tools/ambiente/construir.mjs`; `src/lib/ambiente/*`; `tools/seguranca/varrer-bundle.mjs` |
+| `deploy:*` passam pelo guard (`tools/deploy/publicar.mjs`): liberação G0/G1 registrada, `--project` e `--confirmar` iguais, tag de versão, worktree limpo, `predeploy:check`, build de release do mesmo commit, sem publicação aninhada; o `firebase.json` roda o gancho `guarda-predeploy.mjs` como primeiro `predeploy` de Firestore, Functions, Hosting e Storage | `tools/deploy/*.mjs`; `firebase.json`; `tests/tools/publicacao-guarda.test.mjs` |
+| Scripts das Functions (`serve`, `shell`) com `--project minhas-financas-local`; `logs` removido; `deploy` pelo guard | `functions/package.json` |
+| `npm run dev` roda o app contra o Emulator, com proxy de mesma origem (Codespaces com a porta 3000 privada); o E2E conecta direto às portas do Emulator (`conexaoDoEmulador`) | `tools/ambiente/dev.mjs`, `tools/ambiente/contrato.mjs`; RUNBOOKS RB-11 |
+| Limite do guard: protege os caminhos oficiais do repositório; quem tem permissão no projeto pode publicar por outro meio. Esse controle é do IAM (E-04, G0.13) | `tools/deploy/publicacao.mjs` (cabeçalho) |
+
+### 2.1 CURRENT (estado anterior à P6-A)
 
 | Fato | Evidência | Classificação |
 | --- | --- | --- |
@@ -176,6 +190,8 @@ Rótulos: **CURRENT** (existe no HEAD, com evidência), **TARGET** (alvo exigido
 
 ## 4. App Check
 
+- **P6-A (2026-11-17), preparado e desligado:** `config/ambientes.json` ganhou `producao.appCheck` (`null` até a E-02; depois `{provedor: "recaptcha-enterprise", siteKey}`, chave de site pública). Só o build de release com o registro preenchido inclui o SDK (`src/lib/ambiente/appCheck.ts` pelo alias `@fenix/app-check`; nos demais perfis, módulo vazio) e o inicializa antes de Auth, Firestore e Functions (`src/lib/firebase.ts`), com renovação automática do token. O enforcement continua desligado no servidor (`APP_CHECK_CALLABLE_OPTIONS` vazio) até a D-33, e o período de monitoramento usa o log `appCheck` do kernel. Testes: `tests/unit/ai-backend-only.test.ts` (o `define` de cada perfil leva `__FENIX_APP_CHECK__` nulo) e `tests/tools/ambiente-contrato.test.mjs` (só o release leva a chave; formato validado). Quando ligado, o reCAPTCHA Enterprise entra no aviso de privacidade (G1.4, G1.6) e pode mostrar o selo do reCAPTCHA na tela.
+
 - **CURRENT:** não há `initializeAppCheck` no cliente (`src/lib/firebase.ts:1-64`), nem `enforceAppCheck` ou `consumeAppCheckToken` nas Functions (`functions/src/shared/runtimeOptions.ts:41-119`; nenhuma ocorrência em `functions/src` e `src`). O único controle anti-abuso é o rate limit por ator: IA com 20/h (análise) e 60/h (extração) por workspace+ator (`functions/src/ai/callables.ts:44-48,167-171`) e checkout com 10/h por usuário (`functions/src/billing/checkout.ts:73-77`).
 - **TARGET (P6):**
   1. `initializeAppCheck` com `ReCaptchaEnterpriseProvider` e `isTokenAutoRefreshEnabled` em `src/lib/firebase.ts`, antes de `getFirestore`/`getFunctions`. O debug token vem por variável de ambiente, só no Emulator/E2E, e nunca é versionado.
@@ -264,6 +280,7 @@ A semântica das Rules está em [SECURITY_MODEL.md](SECURITY_MODEL.md); o invent
 - **CURRENT:** o Vite neutraliza `process.env.GEMINI_API_KEY`/`API_KEY` no bundle (`vite.config.ts:13-19`). Nenhuma variável `VITE_*` de IA (P5-E1). A chave esteve embutida no bundle no passado, e a contenção e a revogação não estão comprovadas (PR-AI-02; E-00, parte A da §9.4 do [SECURITY_MODEL.md](SECURITY_MODEL.md)). A chave nova por ambiente é o E-05 (parte B, P6).
 - **CURRENT:** o checklist antigo usa como evidência `firebase functions:secrets:access <NOME>` (`docs/investments/PRODUCTION_DEPLOYMENT_CHECKLIST.md:61`), comando que **imprime o valor** do segredo. Não usar. A verificação é feita só por metadados (§16).
 - **TARGET:** `defineSecret` sem fallback para `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` e `GOOGLE_AI_API_KEY`. Segredo ausente responde erro genérico, com log estruturado e alerta. O cliente Stripe é instanciado dentro do handler. `APP_ALLOWED_ORIGINS` e os Prices `STRIPE_PRICE_PRO_MONTHLY`/`STRIPE_PRICE_BUSINESS_MONTHLY` viram parâmetros por ambiente (`defineList`/`defineString`). Desses itens, o Stripe já atende sem fallback, com erro genérico e log estruturado e com o cliente instanciado dentro do handler (P2A, ver acima); restam `defineSecret`, o alerta e os parâmetros por ambiente. Cada projeto tem seus segredos e uma política de rotação com dono. O procedimento está em [RUNBOOKS.md](RUNBOOKS.md).
+- **P6-A (2026-11-17): composição da publicação por segredo registrado.** O `firebase deploy` não interativo falha se uma função declara segredo inexistente no Secret Manager. O contrato tem `producao.segredos` (só nomes, vazio no primeiro deploy) e o guard lê o `__endpoint` do build (`tools/deploy/funcoes.mjs`): toda função com segredo fora da lista fica de fora da publicação e é listada. Hoje são cinco: `analyzeFinancialQuestion` e `extractTransactionFromContent` (`GOOGLE_AI_API_KEY`), `createCheckoutSession`, `createBillingPortalSession` e `stripeWebhook` (Stripe e `APP_ALLOWED_ORIGINS`); as outras 114 são publicáveis (`tests/tools/funcoes-inventario.test.mjs`). Assim a nova publicação não leva a IA nem o Stripe, sem reaproveitar a chave excluída nem criar chave nova. **P6-B: ficar fora da lista de deploy não remove uma versão antiga já implantada** (o `--only functions:a,b` nunca apaga): se uma das cinco existir de publicação anterior, continua no ar com o código antigo, sem a autorização do piloto da P6-B, até ser removida. A conferência é o pré-voo somente leitura (`tools/operacao/preflight-producao.mjs --parte funcoes`, RUNBOOKS RB-17) e o saneamento é manual, autorizado pelo proprietário, um comando por vez e reconferido pelo mesmo pré-voo. Só com o pré-voo sem `excluidaDaPublicacao` nem `foraDoCodigo` a IA e o Stripe estão de fato indisponíveis na produção: o cliente mostra o erro genérico em pt-BR e não há débito de crédito. Registrar um nome em `producao.segredos` só depois de criar o segredo (E-05, E-06) e registrar aqui.
 - **GAP:** PR-AI-02 (P0, externa imediata); FIRE-10 (configuração não secreta guardada como segredo, P6). PR-BILL-05 (origem BILL-06, ENTRY-04, FIRE-10) fechado em P2A (PLAN §17.3). **EXTERNAL CONFIGURATION REQUIRED:** E-05 (§16).
 
 ---
@@ -297,6 +314,8 @@ A semântica de identidade, sessão e RBAC está em [AUTH_RBAC_WORKSPACES.md](AU
 
 ## 11. Cloud Storage
 
+- **P6-A (2026-11-17):** o app não usa o Storage. `getStorage` saiu de `src/lib/firebase.ts` e do `manualChunks`; `storage.rules` nega leitura e escrita em todo caminho; o `firebase.json` publica as regras só pelo guard (`deploy:storage`); o emulador de Storage (porta 9199) roda a suíte `tests/storage/storage-fechado-p6a.rules.integration.test.mjs` (envio, leitura, URL, metadados, exclusão e listagem negados a anônimo, conta ativa e dono de workspace, com um objeto existente), e um mutante com `allow read, write: if true` a reprova. As linhas abaixo descrevem o estado anterior.
+
 - **CURRENT:** `getStorage` é inicializado e exportado sem uso (`src/lib/firebase.ts:4,39`). O `firebase.json` não tem seção `storage` e não existe `storage.rules` (FIRE-12, LOW).
 - **TARGET (P6):** remover a inicialização e o chunk, ou versionar `storage.rules` com deny-all e publicá-las junto com as Rules. `N/A` no gate só com prova de não uso.
 
@@ -317,6 +336,8 @@ A semântica de identidade, sessão e RBAC está em [AUTH_RBAC_WORKSPACES.md](AU
 ---
 
 ## 14. Backup, PITR e restore
+
+- **P6-A (2026-11-17), preparado e não ativado:** `tools/operacao/backup-firestore.mjs` (`plano`, `ativar`, `conferir`, `ensaiar-restauracao`, `remover-ensaio`; regras puras em `backup.mjs`, testadas em `tests/tools/backup-firestore.test.mjs`) liga o PITR de 7 dias e os agendamentos diário (7 dias) e semanal (14 semanas) do banco `(default)`, confere o estado (sai 1 sem backup `READY` de até 36 h) e restaura só em banco novo `restauracao-ensaio-AAAAMMDD`. O ensaio com amostra sintética no Emulator (`npm run test:operacao:restauracao`) roda no `verify:all`, no `predeploy:check` e no CI. A ativação é ação do proprietário antes do primeiro dado real (G0.10); roteiro no RUNBOOKS RB-14.
 
 Estado, alvo, RPO/RTO (DECISION D-27) e runbook de restore estão em [BACKUP_RESTORE_DR.md](BACKUP_RESTORE_DR.md). Resumo: **CURRENT** nada configurado nem documentado (`firebase.json:2-7`); **GAP** PR-BKP-01 (P7); **EXTERNAL CONFIGURATION REQUIRED** E-07.
 
