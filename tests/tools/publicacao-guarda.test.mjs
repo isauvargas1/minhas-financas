@@ -295,12 +295,30 @@ test('executarPublicacao: cada alvo de ALVOS usa o --only esperado e só hosting
     hosting: 'hosting',
     safe: 'firestore:rules,firestore:indexes,functions',
     storage: 'storage',
+    release: 'firestore:rules,firestore:indexes,storage,functions,hosting',
   };
   assert.deepEqual(Object.keys(ALVOS).sort(), Object.keys(esperado).sort());
   for (const [alvo, only] of Object.entries(esperado)) {
     const {chamadas, executar} = executorFalso();
     const resultado = publicar({fatos: fatosValidos(alvo), executar, lerMarcador: () => marcadorRelease()});
     assert.equal(resultado.publicado, true, alvo);
+
+    if (alvo === 'release') {
+      assert.deepEqual(
+        chamadas.filter(c => c.comando === 'firebase')
+          .map(c => c.argumentos[2]),
+        ['firestore:rules,firestore:indexes', 'storage', 'functions', 'hosting']
+      );
+      assert.equal(
+        chamadas.filter(c => textoDe(c) === 'npm run predeploy:check').length,
+        1
+      );
+      assert.equal(
+        chamadas.filter(c => textoDe(c) === 'npm run build:release').length,
+        1
+      );
+      continue;
+    }
     const firebase = chamadas.find((c) => c.comando === 'firebase');
     assert.deepEqual(firebase.argumentos, ['deploy', '--only', only, '--project', PRODUCAO, '--non-interactive'], alvo);
     assert.equal(chamadas.some((c) => textoDe(c) === 'npm run build:release'), alvo === 'hosting', alvo);
@@ -489,4 +507,55 @@ test('guarda-predeploy.mjs com liberação, mas sem FENIX_PUBLICACAO (deploy dir
   const resultado = rodarNaCopia(comLiberacao, 'guarda-predeploy.mjs', ['functions'], {GCLOUD_PROJECT: PRODUCAO});
   assert.equal(resultado.code, 3, resultado.err);
   assert.match(resultado.err, /fora do guard/);
+});
+
+
+test('release: falha do gate impede qualquer publicacao', () => {
+  const {chamadas, executar} = executorFalso({'npm run predeploy:check': 1});
+  const resultado = publicar({
+    fatos: fatosValidos('release'),
+    executar,
+    lerMarcador: () => marcadorRelease(),
+  });
+  assert.equal(resultado.publicado, false);
+  assert.equal(resultado.etapa, 'verificacoes');
+  assert.ok(!chamadas.some(c => c.comando === 'firebase'));
+});
+
+test('release: preserva exclusao de Functions sem segredos registrados', () => {
+  const {chamadas, executar} = executorFalso();
+  const fatos = fatosValidos('release');
+  fatos.cfg.producao.segredos = ['GOOGLE_AI_API_KEY'];
+  const resultado = publicar({
+    fatos,
+    executar,
+    lerMarcador: () => marcadorRelease(),
+    inventariarFuncoes: () => INVENTARIO_COM_SEGREDOS,
+  });
+  assert.equal(resultado.publicado, true);
+  const calls = chamadas.filter(c => c.comando === 'firebase');
+  assert.equal(calls.length, 4);
+  assert.equal(
+    calls[2].argumentos[2],
+    'functions:analyzeFinancialQuestion,functions:bootstrapAccount,functions:getFinancialReport'
+  );
+  assert.ok(calls.every(c => !c.argumentos[2].includes('stripeWebhook')));
+});
+
+test('release: primeira falha remota interrompe demais alvos', () => {
+  const {chamadas} = executorFalso();
+  const executar = (comando, argumentos, opcoes) => {
+    chamadas.push({comando, argumentos, opcoes});
+    return comando === 'firebase' && argumentos[2] === 'storage' ? 1 : 0;
+  };
+  const resultado = publicar({
+    fatos: fatosValidos('release'),
+    executar,
+    lerMarcador: () => marcadorRelease(),
+  });
+  assert.equal(resultado.publicado, false);
+  assert.deepEqual(
+    chamadas.filter(c => c.comando === 'firebase').map(c => c.argumentos[2]),
+    ['firestore:rules,firestore:indexes', 'storage']
+  );
 });

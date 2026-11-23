@@ -37,6 +37,12 @@ export const ALVOS = Object.freeze({
   hosting: {only: 'hosting', exigeBuild: true},
   safe: {only: 'firestore:rules,firestore:indexes,functions', funcoes: 'todas'},
   storage: {only: 'storage'},
+  release: {
+    only: 'firestore:rules,firestore:indexes,storage,functions,hosting',
+    funcoes: 'todas',
+    exigeBuild: true,
+    sequencial: true,
+  },
 });
 
 /** Alvos do firebase-tools (no gancho de predeploy) → alvo do guard que precisa de build. */
@@ -192,6 +198,64 @@ export const executarPublicacao = ({fatos, executar, lerMarcador, inventariarFun
   }
   const argumentos = ['deploy', '--only', only, '--project', project, '--non-interactive'];
   const ambiente = {...emCurso, FENIX_PUBLICACAO: JSON.stringify({project, commit: git.commit, alvo})};
+
+  if (ALVOS[alvo].sequencial) {
+    const partes = only.split(',');
+    const etapas = [
+      ['Firestore', partes.filter(p => p.startsWith('firestore:'))],
+      ['Storage', partes.filter(p => p === 'storage')],
+      ['Functions', partes.filter(p => p === 'functions' || p.startsWith('functions:'))],
+      ['Hosting', partes.filter(p => p === 'hosting')],
+    ];
+
+    let concluidas = 0;
+
+    const progresso = () => {
+      const percentual = concluidas * 25;
+      registrar(
+        '[' + '#'.repeat(concluidas * 5) +
+        '-'.repeat(20 - concluidas * 5) +
+        '] ' + percentual + '% (' + concluidas + '/4)'
+      );
+    };
+
+    progresso();
+
+    for (const [nome, seletores] of etapas) {
+      if (seletores.length === 0) {
+        return {
+          publicado: false,
+          etapa: 'firebase',
+          motivos: ['Composicao vazia: ' + nome],
+        };
+      }
+
+      const args = [
+        'deploy', '--only', seletores.join(','),
+        '--project', project, '--non-interactive',
+      ];
+
+      registrar('Iniciando: ' + nome);
+
+      if (executar('firebase', args, {env: ambiente}) !== 0) {
+        return {
+          publicado: false,
+          etapa: 'firebase',
+          motivos: [
+            'Falha em ' + nome +
+            '; etapas concluidas: ' + concluidas + '/4',
+          ],
+        };
+      }
+
+      concluidas += 1;
+      registrar('Concluido: ' + nome);
+      progresso();
+    }
+
+    return {publicado: true, etapa: 'concluida', motivos: []};
+  }
+
   registrar(`firebase ${argumentos.join(' ')}`);
   if (executar('firebase', argumentos, {env: ambiente}) !== 0) {
     return {publicado: false, etapa: 'firebase', motivos: ['o firebase-tools recusou ou falhou: confira a saída acima.']};

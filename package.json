@@ -44,6 +44,7 @@
     "deploy:hosting": "node tools/deploy/publicar.mjs --alvo hosting",
     "deploy:webhook": "node tools/deploy/publicar.mjs --alvo webhook",
     "deploy:storage": "node tools/deploy/publicar.mjs --alvo storage",
+    "deploy:release": "node tools/deploy/publicar.mjs --alvo release",
     "build:e2e": "node tools/ambiente/construir.mjs --perfil e2e",
     "test:e2e": "npm run build:e2e && node tools/e2e/executar-em-grupos.mjs",
     "test:e2e:ui": "npm run build:e2e && playwright test --ui",
