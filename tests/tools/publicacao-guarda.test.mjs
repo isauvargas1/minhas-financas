@@ -209,12 +209,12 @@ test('executarPublicacao: fatos inválidos não executam nada', () => {
   assert.equal(chamadas.length, 0);
 });
 
-test('executarPublicacao: predeploy:check com saída 1 para ali, sem chamar o firebase', () => {
-  const {chamadas, executar} = executorFalso({'npm run predeploy:check': 1});
-  const resultado = publicar({fatos: fatosValidos(), executar, lerMarcador: () => marcadorRelease()});
+test('executarPublicacao: compilação das Functions falhando impede deploy', () => {
+  const {chamadas, executar} = executorFalso({'npm run functions:build': 1});
+  const resultado = publicar({fatos: fatosValidos('functions'), executar, lerMarcador: () => marcadorRelease()});
   assert.equal(resultado.publicado, false);
-  assert.equal(resultado.etapa, 'verificacoes');
-  assert.deepEqual(chamadas.map(textoDe), ['npm run predeploy:check']);
+  assert.equal(resultado.etapa, 'build-functions');
+  assert.deepEqual(chamadas.map(textoDe), ['npm run functions:build']);
 });
 
 test('executarPublicacao: hosting com build:release falhando não chama o firebase', () => {
@@ -222,7 +222,7 @@ test('executarPublicacao: hosting com build:release falhando não chama o fireba
   const resultado = publicar({fatos: fatosValidos('hosting'), executar, lerMarcador: () => marcadorRelease()});
   assert.equal(resultado.publicado, false);
   assert.equal(resultado.etapa, 'build');
-  assert.deepEqual(chamadas.map(textoDe), ['npm run predeploy:check', 'npm run build:release']);
+  assert.deepEqual(chamadas.map(textoDe), ['npm run build:release']);
   assert.ok(!chamadas.some((c) => c.comando === 'firebase'));
 });
 
@@ -250,7 +250,7 @@ test('executarPublicacao: caminho feliz de functions', () => {
   const resultado = publicar({fatos: fatosValidos('functions'), executar, lerMarcador: () => null});
   assert.equal(resultado.publicado, true);
   assert.deepEqual(chamadas.map(textoDe), [
-    'npm run predeploy:check',
+    'npm run functions:build',
     `firebase deploy --only functions --project ${PRODUCAO} --non-interactive`,
   ]);
   const publicacao = JSON.parse(chamadas[1].opcoes.env.FENIX_PUBLICACAO);
@@ -261,7 +261,7 @@ test('executarPublicacao: caminho feliz de functions', () => {
 test('executarPublicacao: todo processo filho recebe a marca de publicação em curso', () => {
   const {chamadas, executar} = executorFalso();
   publicar({fatos: fatosValidos('hosting'), executar, lerMarcador: () => marcadorRelease()});
-  assert.equal(chamadas.length, 3);
+  assert.equal(chamadas.length, 2);
   for (const chamada of chamadas) assert.equal(chamada.opcoes?.env?.[MARCA_PUBLICACAO_EM_CURSO], '1', textoDe(chamada));
 });
 
@@ -280,7 +280,6 @@ test('executarPublicacao: caminho feliz de hosting inclui build:release antes do
   const resultado = publicar({fatos: fatosValidos('hosting'), executar, lerMarcador: () => marcadorRelease()});
   assert.equal(resultado.publicado, true);
   assert.deepEqual(chamadas.map(textoDe), [
-    'npm run predeploy:check',
     'npm run build:release',
     `firebase deploy --only hosting --project ${PRODUCAO} --non-interactive`,
   ]);
@@ -310,7 +309,7 @@ test('executarPublicacao: cada alvo de ALVOS usa o --only esperado e só hosting
         ['firestore:rules,firestore:indexes', 'storage', 'functions', 'hosting']
       );
       assert.equal(
-        chamadas.filter(c => textoDe(c) === 'npm run predeploy:check').length,
+        chamadas.filter(c => textoDe(c) === 'npm run functions:build').length,
         1
       );
       assert.equal(
@@ -510,15 +509,15 @@ test('guarda-predeploy.mjs com liberação, mas sem FENIX_PUBLICACAO (deploy dir
 });
 
 
-test('release: falha do gate impede qualquer publicacao', () => {
-  const {chamadas, executar} = executorFalso({'npm run predeploy:check': 1});
+test('release: falha de compilacao impede qualquer publicacao', () => {
+  const {chamadas, executar} = executorFalso({'npm run functions:build': 1});
   const resultado = publicar({
     fatos: fatosValidos('release'),
     executar,
     lerMarcador: () => marcadorRelease(),
   });
   assert.equal(resultado.publicado, false);
-  assert.equal(resultado.etapa, 'verificacoes');
+  assert.equal(resultado.etapa, 'build-functions');
   assert.ok(!chamadas.some(c => c.comando === 'firebase'));
 });
 
@@ -558,4 +557,27 @@ test('release: primeira falha remota interrompe demais alvos', () => {
     chamadas.filter(c => c.comando === 'firebase').map(c => c.argumentos[2]),
     ['firestore:rules,firestore:indexes', 'storage']
   );
+});
+
+
+test('nenhum alvo de deploy executa suites de homologacao', () => {
+  for (const alvo of Object.keys(ALVOS)) {
+    const {chamadas, executar} = executorFalso();
+    const resultado = publicar({
+      fatos: fatosValidos(alvo),
+      executar,
+      lerMarcador: () => marcadorRelease(),
+    });
+
+    assert.equal(resultado.publicado, true, alvo);
+
+    for (const chamada of chamadas) {
+      if (chamada.comando === 'npm') {
+        assert.ok(
+          ['functions:build', 'build:release'].includes(chamada.argumentos[1]),
+          `Comando indevido em ${alvo}: ${textoDe(chamada)}`
+        );
+      }
+    }
+  }
 });

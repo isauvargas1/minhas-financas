@@ -12,7 +12,7 @@
  * - nenhum conflito no ambiente do processo (`GCLOUD_PROJECT` e afins apontando para outro projeto, `FIREBASE_TOKEN`);
  * - o `.firebaserc` sem `default` e sem alias de produção;
  * - o worktree limpo e o HEAD marcado com uma versão (`vAAAA.MM.DD` ou semver `vX.Y.Z`);
- * - as verificações (`npm run predeploy:check`) aprovadas na mesma execução;
+ * - homologação independente, executada manualmente; o publicador não executa suítes de testes;
  * - para o Hosting: o build de release da produção, do mesmo commit, sem alterações locais, nunca um build E2E ou de
  *   verificação, e a varredura de publicação do bundle;
  * - para as Functions: só as funções cujos segredos declarados constam de `producao.segredos` (funcoes.mjs); as demais
@@ -153,7 +153,7 @@ export const avaliarBuild = ({marcador, project, git}) => {
 /**
  * Pipeline completo. `executar(comando, argumentos, opcoes)` devolve o código de saída; os testes injetam um falso.
  * `inventariarFuncoes()` devolve as funções do build com os segredos de cada uma (funcoes.mjs).
- * Ordem: itens estáticos → verificações (que compilam as Functions) → (Functions) composição pelo inventário →
+ * Ordem: itens estáticos → compilação das Functions quando necessária → composição pelo inventário →
  * (Hosting) build de release e itens do build → firebase deploy. Uma recusa em qualquer etapa interrompe antes da
  * seguinte; o firebase-tools só é chamado com tudo aprovado.
  */
@@ -162,9 +162,12 @@ export const executarPublicacao = ({fatos, executar, lerMarcador, inventariarFun
   if (motivos.length > 0) return {publicado: false, etapa: 'itens', motivos};
   const {alvo, project, git} = fatos;
   const emCurso = {[MARCA_PUBLICACAO_EM_CURSO]: '1'};
-  registrar(`verificações antes da publicação (${alvo})…`);
-  if (executar('npm', ['run', 'predeploy:check'], {env: emCurso}) !== 0) {
-    return {publicado: false, etapa: 'verificacoes', motivos: ['as verificações (npm run predeploy:check) falharam: nada foi publicado.']};
+  registrar(`publicação (${alvo}): homologação independente; nenhuma suíte de testes será executada.`);
+  if (ALVOS[alvo].funcoes) {
+    registrar('Compilando Functions para publicação...');
+    if (executar('npm', ['run', 'functions:build'], {env: emCurso}) !== 0) {
+      return {publicado: false, etapa: 'build-functions', motivos: ['a compilação das Functions falhou: nada foi publicado.']};
+    }
   }
   let only = ALVOS[alvo].only;
   if (ALVOS[alvo].funcoes) {
@@ -190,6 +193,7 @@ export const executarPublicacao = ({fatos, executar, lerMarcador, inventariarFun
     only = composicao.only;
   }
   if (ALVOS[alvo].exigeBuild) {
+    registrar('Compilando frontend de produção...');
     if (executar('npm', ['run', 'build:release'], {env: emCurso}) !== 0) {
       return {publicado: false, etapa: 'build', motivos: ['o build de release falhou: nada foi publicado.']};
     }
@@ -279,7 +283,7 @@ export const avaliarGancho = ({fatos, alvoFirebase, publicacao, marcador}) => {
     origem = null;
   }
   if (!origem) {
-    motivos.push('publicação fora do guard: use npm run deploy:* (tools/deploy/publicar.mjs), que roda as verificações antes.');
+    motivos.push('publicação fora do guard: use npm run deploy:* (tools/deploy/publicar.mjs), que valida os requisitos operacionais.');
   } else {
     if (origem.project !== fatos.project) motivos.push('o projeto do deploy não é o autorizado pelo guard.');
     if (origem.commit !== fatos.git?.commit) motivos.push('o commit mudou depois da autorização do guard.');

@@ -126,7 +126,7 @@ Executada **só pelo proprietário**, numa estação com login de pessoa (`fireb
 2. **Contrato:** preencher em `config/ambientes.json` o `producao.web` (configuração web pública do app, do console do Firebase) e o `producao.liberacao` (`{"gate":"G0","autorizadoPor":"…","autorizadoEm":"AAAA-MM-DD","referencia":"…"}`). `producao.segredos` fica `["GOOGLE_AI_API_KEY"]` (IA incluida por decisao de 2026-11-23; Stripe fora da publicacao); `producao.appCheck` fica `null` até a E-02.
 3. **Versão:** commit dessas mudanças e tag `vAAAA.MM.DD` (ou `vX.Y.Z`) no próprio commit, com o worktree limpo. Exige autorização expressa do proprietário para commit e tag.
 4. **Gate local:** `npm run verify:all` com saída 0 nesse commit e `regression-release-gate` `PASS` (G0.14).
-5. **Publicação, nesta ordem** (cada comando roda o `predeploy:check` antes e recusa sem ele):
+5. **Publicação, nesta ordem** (homologação independente; os deploys não executam testes automaticamente):
    1. `npm run deploy:firestore -- --project sistema-financeiro-pesso-20698 --confirmar sistema-financeiro-pesso-20698` (Rules e índices);
    2. `npm run deploy:storage -- --project … --confirmar …` (bucket fechado). Se o projeto não tiver o bucket padrão do Storage, o comando falha sem efeito: o app não usa o Storage, então registre e siga para o 5.3 (não é caso de rollback);
    3. `npm run deploy:functions -- --project … --confirmar …` (o guard lista as funções deixadas de fora por segredo não registrado);
@@ -402,3 +402,20 @@ Registro canônico de E-12 (resumido em [FIREBASE_PRODUCTION.md](FIREBASE_PRODUC
 | E-12 | Environments de deploy | `staging` e `production` com revisores obrigatórios e restrição de branch/tag | NÃO VERIFICADO | `gh api repos/{owner}/{repo}/environments` | — | a designar |
 | E-12 | Segredos do repositório | nenhuma credencial de PROD; deploy por Workload Identity Federation | NÃO VERIFICADO | `gh secret list`; `gh secret list --env production` (só nomes) | — | a designar |
 | E-12 | Secret scanning e Dependabot | ativos | NÃO VERIFICADO | `gh api repos/{owner}/{repo}` (`security_and_analysis`) | — | a designar |
+
+
+## Política de homologação independente — 2026-11-23
+
+Decisão expressa do proprietário: separar a homologação da publicação.
+
+- `verify:fast`, `verify:all` e `predeploy:check` são executados
+  separadamente, por decisão do operador.
+- Nenhum comando `deploy:*` dispara suítes de testes.
+- `deploy:release` publica Firestore, Storage, Functions e Hosting
+  sequencialmente, interrompendo na primeira falha.
+- As proteções operacionais, a compilação necessária, a validação
+  dos artefatos e a composição segura das Functions permanecem.
+- O operador responde pela homologação da versão publicada.
+- O sucesso do deploy não equivale a aprovação dos gates.
+- Esta decisão não dispensa requisitos legais, de privacidade,
+  de segurança nem de liberação de usuários reais.
