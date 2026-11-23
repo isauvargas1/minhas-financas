@@ -24,6 +24,7 @@ const alfabeto = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789
 
 const cfgValida = () => {
   const cfg = structuredClone(cfgReal);
+  cfg.producao.segredos = [];
   cfg.producao.web = {
     apiKey: ['AI', 'za', alfabeto.slice(0, 35)].join(''),
     authDomain: `${PRODUCAO}.firebaseapp.com`,

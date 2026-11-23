@@ -346,7 +346,14 @@ test('estática: nenhuma escrita no Firestore e functions:delete só no gerador 
 // ---------------------------------------------------------------------------------------------------------------
 
 const FICTICIO = 'fenix-ficticio-nao-existe';
-const copia = criarRaizTemporaria({ajustarContrato: (contrato) => { contrato.producao.projectId = FICTICIO; }});
+const copia = criarRaizTemporaria({
+  ajustarContrato: (contrato) => {
+    contrato.producao.projectId = FICTICIO;
+    contrato.producao.web = null;
+    contrato.producao.liberacao = null;
+    contrato.producao.segredos = [];
+  },
+});
 const pasta = mkdtempSync(join(tmpdir(), 'preflight-cli-'));
 test.after(() => {
   copia.remover();
