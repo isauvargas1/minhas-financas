@@ -11,14 +11,12 @@ import type {WorkspaceRole} from "../shared/workspaceAuth";
  */
 
 /**
- * Modelo atual (D-11.2, verificação documental na P5-E1). É um modelo
- * *preview* do Gemini: sem data de desligamento anunciada, mas com aviso
- * mínimo de duas semanas e fora das garantias de produto GA. A troca para um
- * modelo GA (candidatos e comparação em `docs/production/evidence/p5e1/`)
- * depende de conferência ao vivo da documentação e de avaliação em STAGING;
- * até lá o identificador fica num único lugar.
+ * Modelo GA selecionado para o piloto G0 em 2026-11-23.
+ * Gemini 3.5 Flash-Lite: multimodal, respostas estruturadas
+ * e raciocinio, com foco em custo e latencia.
+ * A validacao real do provedor precede a liberacao.
  */
-export const AI_MODEL = "gemini-3-flash-preview";
+export const AI_MODEL = "gemini-3.5-flash-lite";
 
 /**
  * Tempo limite por tentativa na chamada ao provedor, abaixo dos 120 s da

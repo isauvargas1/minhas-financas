@@ -123,7 +123,7 @@ Executada **só pelo proprietário**, numa estação com login de pessoa (`fireb
 
 1. **Pré-requisitos externos do G0** ([LAUNCH_CHECKLIST.md](LAUNCH_CHECKLIST.md) §0): G0.11 (parte A do E-00), G0.12 (chave web restrita e Authentication só com Google), G0.13 (alertas mínimos de custo e de erro e IAM mínimo), G0.10 (backup ativo, RB-14) e G0.7 (decisão sobre as 9 vulnerabilidades moderadas das Functions). Registrar cada um no [FIREBASE_PRODUCTION.md](FIREBASE_PRODUCTION.md) §16.
    - **Pré-voo somente leitura (P6-B, RB-17), antes de publicar:** `--parte funcoes` e `--parte contas`, com o resultado anotado no §4. Função antiga fora da composição (`excluidaDaPublicacao` ou `foraDoCodigo`) é saneada pelo RB-17 antes do primeiro dado real; contas ativas sem autorização ficam registradas (só contagem e referências mascaradas) para a conferência do passo 6.
-2. **Contrato:** preencher em `config/ambientes.json` o `producao.web` (configuração web pública do app, do console do Firebase) e o `producao.liberacao` (`{"gate":"G0","autorizadoPor":"…","autorizadoEm":"AAAA-MM-DD","referencia":"…"}`). `producao.segredos` fica `[]` (IA e Stripe fora da publicação); `producao.appCheck` fica `null` até a E-02.
+2. **Contrato:** preencher em `config/ambientes.json` o `producao.web` (configuração web pública do app, do console do Firebase) e o `producao.liberacao` (`{"gate":"G0","autorizadoPor":"…","autorizadoEm":"AAAA-MM-DD","referencia":"…"}`). `producao.segredos` fica `["GOOGLE_AI_API_KEY"]` (IA incluida por decisao de 2026-11-23; Stripe fora da publicacao); `producao.appCheck` fica `null` até a E-02.
 3. **Versão:** commit dessas mudanças e tag `vAAAA.MM.DD` (ou `vX.Y.Z`) no próprio commit, com o worktree limpo. Exige autorização expressa do proprietário para commit e tag.
 4. **Gate local:** `npm run verify:all` com saída 0 nesse commit e `regression-release-gate` `PASS` (G0.14).
 5. **Publicação, nesta ordem** (cada comando roda o `predeploy:check` antes e recusa sem ele):
@@ -357,6 +357,38 @@ Toda execução de RB-T01…RB-T10 em DEV, STAGING ou PROD e todo exercício (dr
 | — | — | — | — | — | — | — |
 
 ---
+
+
+### AUTORIZACAO-PILOTO-20261123
+
+Em 23/11/2026, o proprietario autorizou expressamente a inclusao da IA no G0, o adiamento do Stripe e a remocao controlada das seguintes 22 Functions antigas:
+
+- `archiveInvestmentAsset`
+- `createInvestmentContribution`
+- `rebuildInvestmentProjections`
+- `recordInvestmentValuation`
+- `seedLegacySettingsCatalog`
+- `settleInvestmentRedemption`
+- `registerCreditCardInvoicePayment`
+- `recalculateInvestmentPosition`
+- `closeCreditCardInvoice`
+- `reopenCreditCardInvoice`
+- `archiveInvestmentAccount`
+- `backfillInvestmentWorkspace`
+- `registerInvestmentImportBatch`
+- `saveInvestmentAsset`
+- `onboardInvestmentWorkspace`
+- `processCreditCardInvoiceOperationalAlerts`
+- `saveInvestmentAccount`
+- `reverseCreditCardInvoicePayment`
+- `createInvestmentRedemption`
+- `recalculateGoalInvestmentProgress`
+- `stripeWebhook`
+- `createCheckoutSession`
+
+Preservar e atualizar no deploy: `extractTransactionFromContent` e `analyzeFinancialQuestion`.
+
+A autorizacao nao inclui exclusao de dados, contas, bancos, segredos ou outros recursos. Nao constitui liberacao antecipada do G0.
 
 ## 5. Registro E-12 — GitHub
 

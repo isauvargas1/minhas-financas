@@ -551,7 +551,7 @@ test("gateway real: modelo, regras separadas, teto, raciocínio e JSON",
       maxOutputTokens: AI_MAX_OUTPUT_TOKENS.extraction,
       responseJsonSchema: schema,
     });
-    assert.equal(AI_MODEL, "gemini-3-flash-preview");
+    assert.equal(AI_MODEL, "gemini-3.5-flash-lite");
     // Uma construção por chamada, só com chave e tempo limite: sem
     // `retryOptions`, o SDK não repete a chamada sozinho.
     assert.deepEqual(sdk.constructed, [
