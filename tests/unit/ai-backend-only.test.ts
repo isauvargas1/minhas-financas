@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
 import test from 'node:test';
 import {existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, unlinkSync, writeFileSync} from 'node:fs';
 import {execFileSync} from 'node:child_process';
@@ -265,18 +266,112 @@ test('o backend recusa operar sem chave, em vez de cair num default', () => {
   );
 });
 
+// Excecao restrita a chave web publica verificada no GCP.
+// Uma rotacao da chave exige revisar esta impressao digital.
+const PUBLIC_FIREBASE_KEY_SHA256 = '76275025227ef9e71075851639a8628382c7e1efc199a65e2a522980ae31156d';
+const GOOGLE_KEY_PATTERN = /AIza[0-9A-Za-z_-]{35}/;
+
+const hasUnexpectedGoogleKey = (
+  file: string,
+  content: string,
+  fingerprint = PUBLIC_FIREBASE_KEY_SHA256,
+): boolean => {
+  if (file !== 'config/ambientes.json') {
+    return GOOGLE_KEY_PATTERN.test(content);
+  }
+
+  const cfg = JSON.parse(content);
+  const key = cfg?.producao?.web?.apiKey;
+
+  if (key === undefined || key === null) {
+    return GOOGLE_KEY_PATTERN.test(content);
+  }
+
+  if (
+    typeof key !== 'string' ||
+    !/^AIza[0-9A-Za-z_-]{35}$/.test(key) ||
+    createHash('sha256').update(key).digest('hex') !== fingerprint
+  ) {
+    return true;
+  }
+
+  const literal = JSON.stringify(key);
+
+  if (!content.includes(literal)) {
+    return true;
+  }
+
+  // Remove somente uma ocorrencia da chave autorizada.
+  // Qualquer segunda chave ou copia continua sendo detectada.
+  return GOOGLE_KEY_PATTERN.test(
+    content.replace(literal, '""'),
+  );
+};
+
+test('chave web publica: excecao estrita e sem esconder outros segredos', () => {
+  const publicKey = 'AIza' + 'A'.repeat(35);
+  const otherKey = 'AIza' + 'B'.repeat(35);
+
+  const fingerprint = createHash('sha256')
+    .update(publicKey)
+    .digest('hex');
+
+  const config = JSON.stringify({
+    producao: {web: {apiKey: publicKey}},
+  });
+
+  assert.equal(
+    hasUnexpectedGoogleKey('config/ambientes.json', config, fingerprint),
+    false,
+  );
+
+  assert.equal(
+    hasUnexpectedGoogleKey('tests/fixture.json', config, fingerprint),
+    true,
+  );
+
+  const extraKey = JSON.stringify({
+    producao: {web: {apiKey: publicKey}},
+    segredo: otherKey,
+  });
+
+  assert.equal(
+    hasUnexpectedGoogleKey('config/ambientes.json', extraKey, fingerprint),
+    true,
+  );
+
+  const replacedKey = JSON.stringify({
+    producao: {web: {apiKey: otherKey}},
+  });
+
+  assert.equal(
+    hasUnexpectedGoogleKey('config/ambientes.json', replacedKey, fingerprint),
+    true,
+  );
+
+  const duplicateKey = JSON.stringify({
+    producao: {web: {apiKey: publicKey}},
+    copia: publicKey,
+  });
+
+  assert.equal(
+    hasUnexpectedGoogleKey('config/ambientes.json', duplicateKey, fingerprint),
+    true,
+  );
+});
+
 test('nenhum segredo real aparece em teste, fixture ou ambiente versionado', () => {
   const tracked = gitFiles(
     'tests/**', 'e2e/**', 'functions/src/**', '*.json', '*.ts',
   );
-  // Formato de chave do Google: AIza seguido de 35 caracteres.
-  const googleKey = /AIza[0-9A-Za-z_-]{35}/;
-  const offenders = tracked.filter((file) => {
-    try {
-      return googleKey.test(repoFile(file));
-    } catch {
-      return false;
-    }
-  });
-  assert.deepEqual(offenders, [], 'Segredo real encontrado em arquivo versionado.');
+
+  const offenders = tracked.filter((file) =>
+    hasUnexpectedGoogleKey(file, repoFile(file)),
+  );
+
+  assert.deepEqual(
+    offenders,
+    [],
+    'Segredo real encontrado em arquivo versionado.',
+  );
 });
