@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {FieldValue, Timestamp} from "firebase-admin/firestore";
 
 import {CASH_ENTRY_MAX_CENTS} from "../cash/contracts";
@@ -414,7 +414,7 @@ export const isCardLimitUsed = (value: unknown): value is number =>
 
 export const readAuthoritativeCard = (
   id: string,
-  data: admin.firestore.DocumentData | undefined,
+  data: firebaseAdminFirestore.DocumentData | undefined,
   workspaceId: string,
 ): AuthoritativeCard | null => {
   if (!data || data.schemaVersion !== CARD_SCHEMA_VERSION) return null;
@@ -473,7 +473,7 @@ export const cardDocument = (input: {
   actorUid: string;
   intentId: string;
   requestHash: string;
-}): admin.firestore.DocumentData => ({
+}): firebaseAdminFirestore.DocumentData => ({
   id: input.id,
   schemaVersion: CARD_SCHEMA_VERSION,
   workspaceId: input.workspaceId,
@@ -496,7 +496,7 @@ export const cardDocument = (input: {
 export const cardLimitPatch = (
   card: Pick<AuthoritativeCard, "limitTotalCents">,
   limitUsedCents: number,
-): admin.firestore.UpdateData<admin.firestore.DocumentData> => ({
+): firebaseAdminFirestore.UpdateData<firebaseAdminFirestore.DocumentData> => ({
   limitUsedCents,
   limitAvailableCents: card.limitTotalCents - limitUsedCents,
   limitUpdatedAt: FieldValue.serverTimestamp(),
@@ -541,7 +541,7 @@ export interface AuthoritativePurchase extends PurchaseDetails {
 
 export const readAuthoritativePurchase = (
   id: string,
-  data: admin.firestore.DocumentData | undefined,
+  data: firebaseAdminFirestore.DocumentData | undefined,
   workspaceId: string,
 ): AuthoritativePurchase | null => {
   if (!data || data.schemaVersion !== CARD_SCHEMA_VERSION) return null;
@@ -650,7 +650,7 @@ export const isConsistentInvoiceState = (state: {
 
 export const readAuthoritativeInvoice = (
   id: string,
-  data: admin.firestore.DocumentData | undefined,
+  data: firebaseAdminFirestore.DocumentData | undefined,
   workspaceId: string,
 ): AuthoritativeInvoice | null => {
   if (!data || data.schemaVersion !== CARD_SCHEMA_VERSION) return null;
@@ -731,7 +731,7 @@ export interface InvoiceFinancialState {
 export const invoiceStatePatch = (
   state: InvoiceFinancialState,
   revision: number,
-): admin.firestore.UpdateData<admin.firestore.DocumentData> => ({
+): firebaseAdminFirestore.UpdateData<firebaseAdminFirestore.DocumentData> => ({
   cycleStatus: state.cycleStatus,
   totalCents: state.totalCents,
   paidCents: state.paidCents,
@@ -745,7 +745,7 @@ export const invoiceStatePatch = (
 export const invoiceCreateDocument = (
   base: ReturnType<typeof newInvoiceState>,
   state: InvoiceFinancialState,
-): admin.firestore.DocumentData => ({
+): firebaseAdminFirestore.DocumentData => ({
   id: base.id,
   schemaVersion: CARD_SCHEMA_VERSION,
   workspaceId: base.workspaceId,
@@ -805,7 +805,7 @@ export const isEntryAmountValid = (
 
 export const readAuthoritativeEntry = (
   id: string,
-  data: admin.firestore.DocumentData | undefined,
+  data: firebaseAdminFirestore.DocumentData | undefined,
   workspaceId: string,
 ): AuthoritativeEntry | null => {
   if (!data || data.schemaVersion !== CARD_SCHEMA_VERSION) return null;
@@ -858,7 +858,7 @@ export const entryDocument = (input: {
   actorUid: string;
   operation: string;
   requestId: string;
-}): admin.firestore.DocumentData => ({
+}): firebaseAdminFirestore.DocumentData => ({
   id: input.id,
   schemaVersion: CARD_SCHEMA_VERSION,
   workspaceId: input.workspaceId,
@@ -886,7 +886,7 @@ export const entryDocument = (input: {
 /** Cancelamento lógico de lançamento de fatura aberta (nunca apagado). */
 export const entryCancelPatch = (
   actorUid: string,
-): admin.firestore.UpdateData<admin.firestore.DocumentData> => ({
+): firebaseAdminFirestore.UpdateData<firebaseAdminFirestore.DocumentData> => ({
   status: "cancelled",
   cancelledAt: FieldValue.serverTimestamp(),
   cancelledBy: actorUid,
@@ -915,7 +915,7 @@ export interface AuthoritativePayment {
 
 export const readAuthoritativePayment = (
   id: string,
-  data: admin.firestore.DocumentData | undefined,
+  data: firebaseAdminFirestore.DocumentData | undefined,
   workspaceId: string,
 ): AuthoritativePayment | null => {
   if (!data || data.schemaVersion !== CARD_SCHEMA_VERSION) return null;
@@ -974,7 +974,7 @@ export const paymentDocument = (input: {
   intentId: string;
   requestHash: string;
   requestId: string;
-}): admin.firestore.DocumentData => ({
+}): firebaseAdminFirestore.DocumentData => ({
   id: input.id,
   schemaVersion: CARD_SCHEMA_VERSION,
   workspaceId: input.workspaceId,
@@ -1022,7 +1022,7 @@ export const limitLedgerDocument = (input: {
   actorUid: string;
   operation: string;
   requestId: string;
-}): admin.firestore.DocumentData => ({
+}): firebaseAdminFirestore.DocumentData => ({
   id: input.id,
   schemaVersion: CARD_SCHEMA_VERSION,
   workspaceId: input.workspaceId,
@@ -1087,7 +1087,7 @@ export interface CardEventInput {
 }
 
 export const appendCardEvent = (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   input: CardEventInput,
 ): string => {
   const ref = cardEventsRef(input.workspaceId)

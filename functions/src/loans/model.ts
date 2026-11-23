@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {FieldValue, Timestamp} from "firebase-admin/firestore";
 
 import {sha256} from "../shared/hashing";
@@ -152,7 +152,7 @@ const LOAN_STATUSES = new Set(["active", "overdue", "paid", "cancelled"]);
 
 export const readAuthoritativeLoan = (
   id: string,
-  data: admin.firestore.DocumentData | undefined,
+  data: firebaseAdminFirestore.DocumentData | undefined,
   workspaceId: string,
 ): AuthoritativeLoan | null => {
   if (!data || data.schemaVersion !== LOAN_SCHEMA_VERSION) return null;
@@ -196,7 +196,7 @@ export interface AuthoritativeMovement {
 
 export const readAuthoritativeMovement = (
   id: string,
-  data: admin.firestore.DocumentData | undefined,
+  data: firebaseAdminFirestore.DocumentData | undefined,
   workspaceId: string,
   loanId: string,
 ): AuthoritativeMovement | null => {
@@ -282,7 +282,7 @@ export const loanMovementAccountCents = (input: {
 /** Fato do domínio: imutável, exceto o vínculo `reversedBy` do estorno. */
 export const loanMovementDocument = (
   input: MovementDocumentInput,
-): admin.firestore.DocumentData => {
+): firebaseAdminFirestore.DocumentData => {
   const cash = loanCashEntryFor({
     loanId: input.loanId,
     movementId: input.id,
@@ -379,7 +379,7 @@ export const loanCashMirrorDocument = (input: {
   entry: LoanCashEntry;
   /** Conta/carteira movida pelo fato (D-30), para exibição. */
   cashAccountId: string;
-}): admin.firestore.DocumentData => {
+}): firebaseAdminFirestore.DocumentData => {
   const net = loanCashEffect(input.entry).netCents;
   const valueCents = Math.abs(net);
   return {
@@ -427,9 +427,9 @@ export interface LoanEventInput {
 
 /** Auditoria append-only, no mesmo commit; `create` impede duplicidade. */
 export const appendLoanEvent = (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   input: LoanEventInput,
-): admin.firestore.DocumentReference => {
+): firebaseAdminFirestore.DocumentReference => {
   const ref = loanEventsRef(input.workspaceId)
     .doc(loanEventIdFor(input.operation, input.targetKey));
   transaction.create(ref, {

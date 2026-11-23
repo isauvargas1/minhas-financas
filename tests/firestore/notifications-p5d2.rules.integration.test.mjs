@@ -54,7 +54,10 @@ import {
  */
 
 const require = createRequire(import.meta.url);
-const admin = require('../../functions/node_modules/firebase-admin');
+const requireAdmin = createRequire(new URL('../../functions/package.json', import.meta.url));
+const adminAppModule = requireAdmin('firebase-admin/app');
+const adminFirestoreModule = requireAdmin('firebase-admin/firestore');
+const adminAuthModule = requireAdmin('firebase-admin/auth');
 const {buildNotificationDocument} = require('../../functions/lib/notifications/builder.js');
 const {notificationIdFor} = require('../../functions/lib/notifications/ids.js');
 if (!process.env.FIRESTORE_EMULATOR_HOST) {
@@ -87,8 +90,8 @@ const statePath = (ws, uid, id) => `workspaces/${ws}/notification_user_states/${
 const getAdmin = () => {
   process.env.FIRESTORE_EMULATOR_HOST ||= '127.0.0.1:8080';
   process.env.FIREBASE_AUTH_EMULATOR_HOST ||= '127.0.0.1:9099';
-  if (!admin.apps.length) admin.initializeApp({projectId});
-  return admin;
+  if (!adminAppModule.getApps().length) adminAppModule.initializeApp({projectId});
+  return adminAppModule.getApp();
 };
 
 const sha = (text) => createHash('sha256').update(text).digest('hex');
@@ -182,14 +185,14 @@ const ARCHIVED_GOAL_ID = eventsIn(wsArchived)[TYPES.indexOf('goal_achieved')].id
 
 const seed = async () => {
   const firebaseAdmin = getAdmin();
-  const db = firebaseAdmin.firestore();
+  const db = adminFirestoreModule.getFirestore(firebaseAdmin);
   for (const user of Object.values(users)) {
     try {
-      await firebaseAdmin.auth().deleteUser(user.uid);
+      await adminAuthModule.getAuth(firebaseAdmin).deleteUser(user.uid);
     } catch (error) {
       if (error?.code !== 'auth/user-not-found') throw error;
     }
-    await firebaseAdmin.auth().createUser({...user, password, emailVerified: true});
+    await adminAuthModule.getAuth(firebaseAdmin).createUser({...user, password, emailVerified: true});
     await db.doc(`users/${user.uid}`).set({
       uid: user.uid, accessStatus: 'granted', status: user === users.suspendedA ? 'suspended' : 'active',
     });
@@ -217,11 +220,11 @@ const seed = async () => {
   // de outro usuário no archived para a atualização negada.
   for (const user of [users.ownerA, users.memberA, users.viewerA]) {
     batch.set(db.doc(`workspaces/${wsA}/rate_limits/getNotificationUnreadCount_${user.uid}`), {
-      count: 3, windowStart: admin.firestore.Timestamp.now(),
+      count: 3, windowStart: adminFirestoreModule.Timestamp.now(),
     });
   }
   batch.set(db.doc(statePath(wsArchived, users.memberA.uid, ARCHIVED_LOAN_ID)), {
-    read: true, readAt: admin.firestore.Timestamp.now(), expiresAt: eventsIn(wsArchived)[TYPES.indexOf('loan_overdue')].expiresAt,
+    read: true, readAt: adminFirestoreModule.Timestamp.now(), expiresAt: eventsIn(wsArchived)[TYPES.indexOf('loan_overdue')].expiresAt,
   });
   await batch.commit();
 };
@@ -258,7 +261,7 @@ const denied = async (promise, label) => {
 
 const eventRef = (db, ws, id) => doc(db, `workspaces/${ws}/notifications/${id}`);
 const stateRef = (db, ws, uid, id) => doc(db, statePath(ws, uid, id));
-const adminState = (ws, uid, id) => getAdmin().firestore().doc(statePath(ws, uid, id)).get();
+const adminState = (ws, uid, id) => adminFirestoreModule.getFirestore(getAdmin()).doc(statePath(ws, uid, id)).get();
 const pageQuery = (db, ws, max) => query(
   collection(db, 'workspaces', ws, 'notifications'), orderBy('createdAt', 'desc'), limit(max));
 const mark = (kind, id) => ({[kind]: true, [`${kind}At`]: serverTimestamp(), expiresAt: clientExpires(id)});
@@ -291,7 +294,7 @@ const freshEvent = async (type, ws = wsA) => {
     id, workspaceId: ws, eventType: type, title: template.title, message: template.message, type: template.type,
     link: template.link, createdAtMs: BASE_MS - freshCounter * 1000, entity,
   });
-  await getAdmin().firestore().doc(`workspaces/${ws}/notifications/${id}`).set(event);
+  await adminFirestoreModule.getFirestore(getAdmin()).doc(`workspaces/${ws}/notifications/${id}`).set(event);
   return {id, expiresAt: Timestamp.fromMillis(event.expiresAt.toMillis())};
 };
 const markOn = (kind, event) => ({[kind]: true, [`${kind}At`]: serverTimestamp(), expiresAt: event.expiresAt});
@@ -301,7 +304,7 @@ test.before(seed);
 // ----------------------------------------------------------------- contrato
 
 test('P5-D2 Rules — os eventos semeados de cada tipo só têm os campos do contrato, sem dado pessoal', async () => {
-  const db = getAdmin().firestore();
+  const db = adminFirestoreModule.getFirestore(getAdmin());
   const CONTRACT = ['id', 'workspaceId', 'title', 'message', 'type', 'link', 'actionLabel', 'createdAt', 'expiresAt',
     'source', 'domain', 'domainEventType'];
   const ENTITY = {
@@ -433,13 +436,13 @@ test('P5-D2 Rules — nenhum papel cria evento, nem com forma válida de cada ti
         `${name} sobrescreve o evento de empréstimo`);
     }
   });
-  const stored = await getAdmin().firestore().collection(`workspaces/${wsA}/notifications`).get();
+  const stored = await adminFirestoreModule.getFirestore(getAdmin()).collection(`workspaces/${wsA}/notifications`).get();
   assert.equal(stored.size, EVENT_COUNT, 'nenhum evento novo');
   assert.ok(stored.docs.every((entry) => entry.get('audienceUid') === undefined));
 });
 
 test('P5-D2 Rules — nenhum papel altera ou apaga evento de qualquer tipo (nem para dirigir, nem para marcar, nem para prorrogar)', async () => {
-  const before = await getAdmin().firestore().collection(`workspaces/${wsA}/notifications`).get();
+  const before = await adminFirestoreModule.getFirestore(getAdmin()).collection(`workspaces/${wsA}/notifications`).get();
   await withClients([...ACTIVE_A, 'ownerB'], async (clients) => {
     for (const [name, {db}] of Object.entries(clients)) {
       for (const type of TYPES) {
@@ -457,7 +460,7 @@ test('P5-D2 Rules — nenhum papel altera ou apaga evento de qualquer tipo (nem 
       await denied(batch.commit(), `${name} apaga em lote`);
     }
   });
-  const after = await getAdmin().firestore().collection(`workspaces/${wsA}/notifications`).get();
+  const after = await adminFirestoreModule.getFirestore(getAdmin()).collection(`workspaces/${wsA}/notifications`).get();
   assert.deepEqual(after.docs.map((entry) => [entry.id, entry.data()]), before.docs.map((entry) => [entry.id, entry.data()]),
     'eventos intactos');
 });
@@ -621,7 +624,7 @@ test('P5-D2 Rules — o contador de frequência da contagem não é lido nem esc
     }
   });
   for (const user of [users.ownerA, users.memberA, users.viewerA]) {
-    const stored = await getAdmin().firestore().doc(`workspaces/${wsA}/rate_limits/${COUNTER(user.uid)}`).get();
+    const stored = await adminFirestoreModule.getFirestore(getAdmin()).doc(`workspaces/${wsA}/rate_limits/${COUNTER(user.uid)}`).get();
     assert.equal(stored.get('count'), 3, 'contador intacto');
   }
 });
@@ -668,10 +671,10 @@ const overdueControlAttempts = (db, ws) => [
 test('P5-D2.1 Rules — fila e confirmação dos avisos de recebível vencido: nenhum papel (owner, admin, member, ' +
   'viewer), removido, suspenso, outro workspace ou cliente sem autenticação lê ou escreve, nem em workspace ' +
   'arquivado; consulta de grupo negada', async () => {
-  const db = getAdmin().firestore();
+  const db = adminFirestoreModule.getFirestore(getAdmin());
   for (const ws of [wsA, wsB, wsArchived]) {
-    await db.doc(overdueQueuePath(ws)).set({...overdueQueueData(ws), updatedAt: admin.firestore.Timestamp.now()});
-    await db.doc(overdueDeliveryPath(ws)).set({...overdueDeliveryData(ws), deliveredAt: admin.firestore.Timestamp.now()});
+    await db.doc(overdueQueuePath(ws)).set({...overdueQueueData(ws), updatedAt: adminFirestoreModule.Timestamp.now()});
+    await db.doc(overdueDeliveryPath(ws)).set({...overdueDeliveryData(ws), deliveredAt: adminFirestoreModule.Timestamp.now()});
   }
   assert.equal(EVENT_SPECS(wsA)[4].eventType, 'receivable_overdue');
   const names = [...ACTIVE_A, 'removedA', 'suspendedA', 'ownerB', 'memberB'];
@@ -748,7 +751,7 @@ test('P5-D2 Rules — caminhos inventados para guardar contagem (catch-all) nega
       await denied(updateDoc(doc(db, `users/${uid}`), {unreadCount: 0}), `${name} grava contagem no perfil`);
     }
   });
-  const db = getAdmin().firestore();
+  const db = adminFirestoreModule.getFirestore(getAdmin());
   for (const name of ['notification_counts', 'unread_counts', 'notification_unread_counts', 'unread_count',
     'notifications_meta', 'notification_stats']) {
     assert.equal((await db.collection(`workspaces/${wsA}/${name}`).limit(1).get()).size, 0, `${name} vazio`);

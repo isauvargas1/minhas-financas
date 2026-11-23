@@ -17,7 +17,10 @@ import {
 } from 'firebase/firestore';
 
 const require = createRequire(import.meta.url);
-const admin = require('../../functions/node_modules/firebase-admin');
+const requireAdmin = createRequire(new URL('../../functions/package.json', import.meta.url));
+const adminAppModule = requireAdmin('firebase-admin/app');
+const adminFirestoreModule = requireAdmin('firebase-admin/firestore');
+const adminAuthModule = requireAdmin('firebase-admin/auth');
 const enabled = Boolean(process.env.FIRESTORE_EMULATOR_HOST);
 if (!enabled) {
   throw new Error('FIRESTORE_EMULATOR_HOST é obrigatório para os testes de Rules de metas.');
@@ -33,20 +36,20 @@ const workspaceB = 'rules-workspace-b';
 const getAdmin = () => {
   process.env.FIRESTORE_EMULATOR_HOST ||= '127.0.0.1:8080';
   process.env.FIREBASE_AUTH_EMULATOR_HOST ||= '127.0.0.1:9099';
-  if (!admin.apps.length) admin.initializeApp({projectId});
-  return admin;
+  if (!adminAppModule.getApps().length) adminAppModule.initializeApp({projectId});
+  return adminAppModule.getApp();
 };
 
 const seed = async () => {
   const firebaseAdmin = getAdmin();
-  const db = firebaseAdmin.firestore();
+  const db = adminFirestoreModule.getFirestore(firebaseAdmin);
   for (const user of [ownerA, ownerB]) {
     try {
-      await firebaseAdmin.auth().deleteUser(user.uid);
+      await adminAuthModule.getAuth(firebaseAdmin).deleteUser(user.uid);
     } catch (error) {
       if (error?.code !== 'auth/user-not-found') throw error;
     }
-    await firebaseAdmin.auth().createUser({...user, password, emailVerified: true});
+    await adminAuthModule.getAuth(firebaseAdmin).createUser({...user, password, emailVerified: true});
     // P1: a autorização exige perfil de conta ativo (gravado pelo backend).
     await db.doc(`users/${user.uid}`).set({uid: user.uid, accessStatus: 'granted', status: 'active'});
   }

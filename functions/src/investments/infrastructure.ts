@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {FieldValue, Timestamp} from "firebase-admin/firestore";
 
 import {ApplicationError} from "../shared/errors";
@@ -22,7 +22,7 @@ export type InvestmentBackendOperation =
   | "unlinkInvestmentFromGoal";
 
 export interface InvestmentIdempotencyReservation {
-  ref: admin.firestore.DocumentReference;
+  ref: firebaseAdminFirestore.DocumentReference;
   requestHash: string;
   keyHash: string;
   replay?: Record<string, unknown>;
@@ -106,7 +106,7 @@ export const parseTimestamp = (value: string): Timestamp => {
 };
 
 export const profileTypeFromWorkspace = (
-  workspace: admin.firestore.DocumentData,
+  workspace: firebaseAdminFirestore.DocumentData,
 ): InvestmentProfileType => {
   if (workspace.type === "PF" || workspace.type === "PJ") {
     return workspace.type;
@@ -135,7 +135,7 @@ export const idempotencyIdentityPayload = (payload: unknown): unknown => {
 };
 
 export const reserveInvestmentIdempotency = async (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   auth: WorkspaceActor,
   operation: InvestmentBackendOperation,
   idempotencyKey: string,
@@ -206,7 +206,7 @@ export const reserveInvestmentIdempotency = async (
 };
 
 export const completeInvestmentIdempotency = (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   auth: WorkspaceActor,
   operation: InvestmentBackendOperation,
   correlationId: string,
@@ -234,7 +234,7 @@ export const completeInvestmentIdempotency = (
 };
 
 export const recordInvestmentEvent = (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   auth: WorkspaceActor,
   role: WorkspaceRole,
   profileType: InvestmentProfileType,
@@ -267,10 +267,10 @@ export const recordInvestmentEvent = (
 };
 
 export const assertWorkspaceDocument = (
-  snapshot: admin.firestore.DocumentSnapshot,
+  snapshot: firebaseAdminFirestore.DocumentSnapshot,
   workspaceId: string,
   label: string,
-): admin.firestore.DocumentData => {
+): firebaseAdminFirestore.DocumentData => {
   if (!snapshot.exists) {
     throw new ApplicationError(
       "not_found",

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import * as admin from "firebase-admin";
+import * as firebaseAdminAuth from "firebase-admin/auth";
 import {Transaction} from "firebase-admin/firestore";
 
 import {
@@ -239,10 +239,10 @@ test("suspensão: status, Auth desativado, sessões revogadas e auditoria", asyn
     throw new Error("FIREBASE_AUTH_EMULATOR_HOST é obrigatório.");
   }
   const uid = uniqueId("suspend");
-  await admin.auth().createUser({uid, email: testEmailFor(uid)});
+  await firebaseAdminAuth.getAuth().createUser({uid, email: testEmailFor(uid)});
   const {workspaceId} = await call<BootstrapResult>(bootstrapAccount, uid, {});
 
-  const before = await admin.auth().getUser(uid);
+  const before = await firebaseAdminAuth.getAuth().getUser(uid);
   const first = await suspendAccount({
     uid,
     actorId: "platform-operator",
@@ -254,7 +254,7 @@ test("suspensão: status, Auth desativado, sessões revogadas e auditoria", asyn
   const profile = (await db().doc(`users/${uid}`).get()).data();
   assert.equal(profile?.status, "suspended");
   assert.equal(profile?.suspendedBy, "platform-operator");
-  const user = await admin.auth().getUser(uid);
+  const user = await firebaseAdminAuth.getAuth().getUser(uid);
   assert.equal(user.disabled, true);
   assert.ok(user.tokensValidAfterTime);
   assert.ok(

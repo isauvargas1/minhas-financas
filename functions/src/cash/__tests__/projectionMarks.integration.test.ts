@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {FieldValue, Timestamp} from "firebase-admin/firestore";
 
 import {
@@ -41,7 +41,7 @@ const ACTOR = "operador-sintetico";
 
 interface Book {
   workspaceId: string;
-  ref: (id: string) => admin.firestore.DocumentReference;
+  ref: (id: string) => firebaseAdminFirestore.DocumentReference;
 }
 
 const book = (): Book => {

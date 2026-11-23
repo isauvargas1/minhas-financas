@@ -1,3 +1,4 @@
+import { adminAuth, adminFirestore } from './support/adminModules';
 import { createRequire } from 'node:module';
 
 import {
@@ -51,8 +52,8 @@ const { buildNotificationDocument } = nodeRequire('../functions/lib/notification
 
 // ------------------------------------------------------------------ Emulator
 
-const db = () => adminSdk().firestore();
-const timestamp = () => adminSdk().firestore.Timestamp;
+const db = () => adminFirestore.getFirestore(adminSdk());
+const timestamp = () => (adminSdk(), adminFirestore.Timestamp);
 type Stamp = InstanceType<ReturnType<typeof timestamp>>;
 
 const pad = (index: number) => String(index).padStart(2, '0');
@@ -60,7 +61,7 @@ const unique = () => Date.now().toString(36);
 
 const createAuthUsers = async (users: Array<{ uid: string; email: string }>) => {
   for (const user of users) {
-    await adminSdk().auth().createUser({ uid: user.uid, email: user.email, password: PASSWORD, emailVerified: true });
+    await adminAuth.getAuth(adminSdk()).createUser({ uid: user.uid, email: user.email, password: PASSWORD, emailVerified: true });
   }
 };
 

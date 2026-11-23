@@ -219,13 +219,17 @@ test('o utilitário não fala com o Firebase Auth', () => {
 
 test('o firebase-admin é carregado só depois das guardas', () => {
   const fonte = readFileSync(SCRIPT, 'utf8');
-  const carga = fonte.indexOf("require('../../functions/node_modules/firebase-admin')");
-  assert.ok(carga > 0);
-  assert.equal(fonte.indexOf("require('../../functions/node_modules/firebase-admin')", carga + 1), -1);
-  for (const marcador of [
-    'Opção desconhecida', 'Projeto recusado', 'FIRESTORE_EMULATOR_HOST é obrigatório',
-    'Conflito de ambiente', '--confirmar-legado=<workspaceId>',
-  ]) {
-    assert.ok(fonte.indexOf(marcador) < carga, marcador);
+  for (const modulo of ['app', 'firestore']) {
+    const chamada = `requireAdmin('firebase-admin/${modulo}')`;
+    const carga = fonte.indexOf(chamada);
+    assert.ok(carga > 0, chamada);
+    assert.equal(fonte.indexOf(chamada, carga + 1), -1);
+    for (const marcador of [
+      'Opção desconhecida', 'Projeto recusado', 'FIRESTORE_EMULATOR_HOST é obrigatório',
+      'Conflito de ambiente', '--confirmar-legado=<workspaceId>',
+    ]) {
+      const guarda = fonte.indexOf(marcador);
+      assert.ok(guarda >= 0 && guarda < carga, marcador);
+    }
   }
 });

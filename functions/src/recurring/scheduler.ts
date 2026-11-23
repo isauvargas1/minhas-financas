@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {FieldPath} from "firebase-admin/firestore";
 
 import {saoPauloDayKey} from "../shared/dateKeys";
@@ -107,9 +107,9 @@ export const runRecurringGeneration = async (options: {
   // adiante na mesma varredura (o `nextDueDate` dele avançou): é atendido
   // uma vez por execução.
   const visited = new Set<string>();
-  let cursor: admin.firestore.QueryDocumentSnapshot | undefined;
+  let cursor: firebaseAdminFirestore.QueryDocumentSnapshot | undefined;
   for (let page = 0; page < maxPages; page += 1) {
-    let query = admin.firestore()
+    let query = firebaseAdminFirestore.getFirestore()
       .collectionGroup(RECURRING_EXPENSES_COLLECTION)
       .where("schemaVersion", "==", RECURRING_SCHEMA_VERSION)
       .where("status", "==", "active")

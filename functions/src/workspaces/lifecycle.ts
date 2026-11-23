@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {FieldValue} from "firebase-admin/firestore";
 
 import {billingAccountRef, ensureBillingAccount} from "../billing/model";
@@ -59,7 +59,7 @@ import {
 } from "./pilotAccess";
 import {PLATFORM_AUDIT_COLLECTION} from "./suspension";
 
-const db = () => admin.firestore();
+const db = () => firebaseAdminFirestore.getFirestore();
 
 /**
  * CNPJ do payload → valor persistido. Vazio vira `null`; em PF só `null` é
@@ -112,7 +112,7 @@ const newWorkspaceDocument = (input: {
  * repetição da transação pelo Firestore não duplica o evento.
  */
 const appendAccessGrantedEvent = (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   input: {
     caller: CallerIdentity;
     grant: PilotAccessGrant | null;

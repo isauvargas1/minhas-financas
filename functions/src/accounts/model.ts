@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {FieldValue, Timestamp} from "firebase-admin/firestore";
 
 import {sha256} from "../shared/hashing";
@@ -233,7 +233,7 @@ export interface AuthoritativeCashAccount {
 
 export const readAuthoritativeCashAccount = (
   id: string,
-  data: admin.firestore.DocumentData | undefined,
+  data: firebaseAdminFirestore.DocumentData | undefined,
   workspaceId: string,
 ): AuthoritativeCashAccount | null => {
   if (
@@ -270,7 +270,7 @@ export const cashAccountDocument = (input: {
   name: string;
   accountType: CashAccountType;
   actorUid: string;
-}): admin.firestore.DocumentData => ({
+}): firebaseAdminFirestore.DocumentData => ({
   id: input.id,
   schemaVersion: CASH_ACCOUNT_SCHEMA_VERSION,
   workspaceId: input.workspaceId,
@@ -317,7 +317,7 @@ export interface AuthoritativeCashAccountMovement {
 
 export const readAuthoritativeCashAccountMovement = (
   id: string,
-  data: admin.firestore.DocumentData | undefined,
+  data: firebaseAdminFirestore.DocumentData | undefined,
   workspaceId: string,
 ): AuthoritativeCashAccountMovement | null => {
   if (
@@ -358,7 +358,7 @@ export const cashAccountMovementDocument = (input: {
   actorUid: string;
   operation: string;
   requestId: string;
-}): admin.firestore.DocumentData => ({
+}): firebaseAdminFirestore.DocumentData => ({
   id: input.movement.id,
   schemaVersion: CASH_ACCOUNT_SCHEMA_VERSION,
   workspaceId: input.workspaceId,
@@ -395,7 +395,7 @@ export interface AuthoritativeCashTransfer {
 
 export const readAuthoritativeCashTransfer = (
   id: string,
-  data: admin.firestore.DocumentData | undefined,
+  data: firebaseAdminFirestore.DocumentData | undefined,
   workspaceId: string,
 ): AuthoritativeCashTransfer | null => {
   if (
@@ -455,7 +455,7 @@ export interface CashAccountEventInput {
 
 /** Auditoria append-only: IDs, centavos e nomes de campos; sem PII. */
 export const appendCashAccountEvent = (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   input: CashAccountEventInput,
 ): string => {
   const ref = cashAccountEventsRef(input.workspaceId)

@@ -1,4 +1,4 @@
-import type * as admin from "firebase-admin";
+import type * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {FieldValue} from "firebase-admin/firestore";
 
 import {billingAccountRef} from "../billing/model";
@@ -38,7 +38,7 @@ const isCount = (value: unknown): value is number =>
  * fechada.
  */
 export const readActiveSplitGroups = (
-  snapshot: admin.firestore.DocumentSnapshot,
+  snapshot: firebaseAdminFirestore.DocumentSnapshot,
   workspaceId: string,
 ): number => {
   if (!snapshot.exists) return 0;
@@ -54,7 +54,7 @@ export const readActiveSplitGroups = (
 };
 
 const writeActiveCount = (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   workspaceId: string,
   activeCount: number,
 ): void => {
@@ -77,11 +77,11 @@ export interface SplitGroupSlotReservation {
 
 /** Criação e reativação: uma vaga, dentro do limite do plano do titular. */
 export const reserveSplitGroupSlot = async (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   input: {
     actorUid: string;
     workspaceId: string;
-    workspace: admin.firestore.DocumentData;
+    workspace: firebaseAdminFirestore.DocumentData;
     nowMs: number;
   },
 ): Promise<SplitGroupSlotReservation> => {
@@ -108,7 +108,7 @@ export const reserveSplitGroupSlot = async (
 
 /** Arquivamento: libera uma vaga (o contador nunca fica negativo). */
 export const releaseSplitGroupSlot = async (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   workspaceId: string,
 ): Promise<{commit(): void}> => {
   const used = readActiveSplitGroups(

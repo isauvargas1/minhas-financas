@@ -1,4 +1,4 @@
-import type * as admin from "firebase-admin";
+import type * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {FieldValue, type Timestamp} from "firebase-admin/firestore";
 
 import {
@@ -58,7 +58,7 @@ export const investmentCashDate = (movement: {
 
 /** Fase de leitura do fato novo: a conta existe no workspace e está ativa. */
 export const prepareInvestmentCashAccount = async (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   workspaceId: string,
   cashAccountId: string,
 ): Promise<PostingAccounts> => {
@@ -79,7 +79,7 @@ export const prepareInvestmentCashAccount = async (
  * do movimento de conta — um por movimento de investimento.
  */
 export const postInvestmentAccountMovement = (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   accounts: PostingAccounts,
   input: {
     workspaceId: string;
@@ -125,9 +125,9 @@ export interface PreparedInvestmentReversalAccount {
  * exatamente o efeito de caixa dele — senão a compensação não seria exata.
  */
 export const prepareInvestmentReversalAccount = async (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   workspaceId: string,
-  original: admin.firestore.DocumentData,
+  original: firebaseAdminFirestore.DocumentData,
 ): Promise<PreparedInvestmentReversalAccount> => {
   const cashAccountId = original.cashAccountId;
   const accountMovementId = original.accountMovementId;
@@ -158,7 +158,7 @@ export const prepareInvestmentReversalAccount = async (
  * em que o estorno é reconhecido.
  */
 export const postInvestmentReversalAccountMovement = (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   prepared: PreparedInvestmentReversalAccount,
   input: {
     workspaceId: string;
@@ -186,7 +186,7 @@ export const postInvestmentReversalAccountMovement = (
 
 /** Marca do espelho a partir do movimento do domínio. */
 export const investmentCashEntryFor = (
-  movement: admin.firestore.DocumentData,
+  movement: firebaseAdminFirestore.DocumentData,
   input: {
     operation: InvestmentCashOperation;
     status: InvestmentCashStatus;
@@ -219,10 +219,10 @@ export const investmentCashEntryFor = (
  * `cashDeltaCents` do movimento, igual ao movimento de conta.
  */
 export const writeInvestmentCashMirror = (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   auth: WorkspaceActor,
   profileType: "PF" | "PJ",
-  movement: admin.firestore.DocumentData,
+  movement: firebaseAdminFirestore.DocumentData,
   entry: InvestmentCashEntry,
   account: {cashAccountId: string; accountMovementId: string} | null,
 ): void => {

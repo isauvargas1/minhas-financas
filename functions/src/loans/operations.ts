@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {FieldValue, Timestamp} from "firebase-admin/firestore";
 
 import {
@@ -153,7 +153,7 @@ export const PJ_ONLY_LOAN_FIELDS_MESSAGE =
 const LOAN_INTERNAL_MESSAGE =
   "Não foi possível concluir a operação do empréstimo. Tente novamente.";
 
-const db = () => admin.firestore();
+const db = () => firebaseAdminFirestore.getFirestore();
 
 /** Relógio e ponto de falha injetáveis, só para os testes. */
 export interface LoanOperationOptions {
@@ -165,7 +165,7 @@ export interface LoanOperationOptions {
 const todayOf = (options: LoanOperationOptions): string =>
   saoPauloDayKey(new Date((options.now ?? Date.now)()));
 
-const profileTypeOf = (workspace: admin.firestore.DocumentData): "PF" | "PJ" =>
+const profileTypeOf = (workspace: firebaseAdminFirestore.DocumentData): "PF" | "PJ" =>
   workspace.type === "PJ" ? "PJ" : "PF";
 
 const replayResult = <T extends object>(
@@ -428,8 +428,8 @@ interface LoadedLoan {
   profileType: "PF" | "PJ";
   reservation: ActorIdempotencyReservation;
   intentId: string;
-  loanRef: admin.firestore.DocumentReference;
-  data: admin.firestore.DocumentData;
+  loanRef: firebaseAdminFirestore.DocumentReference;
+  data: firebaseAdminFirestore.DocumentData;
   loan: AuthoritativeLoan;
 }
 
@@ -442,7 +442,7 @@ const assertLoanVersion = (current: Timestamp, expected: string): void => {
 };
 
 const loadLoanForMutation = async (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   actor: WorkspaceActor,
   payload: MutationPayload,
   operation: string,
@@ -559,7 +559,7 @@ const loanStatePatch = (
   overdueFrom: string | null,
   actorUid: string,
   revision: number,
-): admin.firestore.DocumentData => ({
+): firebaseAdminFirestore.DocumentData => ({
   balanceCents: state.balanceCents,
   totalPrincipalSettledCents: state.totalPrincipalSettledCents,
   totalInterestSettledCents: state.totalInterestSettledCents,
@@ -572,7 +572,7 @@ const loanStatePatch = (
 });
 
 const reserveLoanRateLimit = (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   actor: WorkspaceActor,
 ) => reserveRateLimit(
   transaction,
@@ -590,7 +590,7 @@ const reserveLoanRateLimit = (
  * errado.
  */
 const readOriginalAccountMovement = async (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   workspaceId: string,
   loan: AuthoritativeLoan,
   movement: AuthoritativeMovement,
@@ -1126,7 +1126,7 @@ export const executeUpdateLoanMetadata = async (
         PJ_ONLY_LOAN_FIELDS_MESSAGE);
     }
 
-    const patch: admin.firestore.DocumentData = {};
+    const patch: firebaseAdminFirestore.DocumentData = {};
     const changedFields: string[] = [];
     for (const [field, value] of Object.entries(changes)) {
       if (value === undefined) continue;

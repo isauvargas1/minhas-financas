@@ -3,7 +3,8 @@ import {readFileSync, readdirSync, statSync} from "node:fs";
 import path from "node:path";
 import test from "node:test";
 
-import * as admin from "firebase-admin";
+import * as firebaseAdminApp from "firebase-admin/app";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {FieldValue} from "firebase-admin/firestore";
 
 import {
@@ -16,8 +17,8 @@ import {
  * recebe a transação da operação de domínio e só enfileira escritas (nenhuma
  * leitura). Aqui a transação é um gravador das chamadas.
  */
-if (!admin.apps.length) {
-  admin.initializeApp({projectId: "minhas-financas-local"});
+if (!firebaseAdminApp.getApps().length) {
+  firebaseAdminApp.initializeApp({projectId: "minhas-financas-local"});
 }
 
 type Call = {
@@ -29,12 +30,12 @@ type Call = {
 const recorder = () => {
   const calls: Call[] = [];
   const transaction = {
-    set: (ref: admin.firestore.DocumentReference,
+    set: (ref: firebaseAdminFirestore.DocumentReference,
       data: Record<string, unknown>) => {
       calls.push({op: "set", path: ref.path, data});
       return transaction;
     },
-    delete: (ref: admin.firestore.DocumentReference) => {
+    delete: (ref: firebaseAdminFirestore.DocumentReference) => {
       calls.push({op: "delete", path: ref.path});
       return transaction;
     },
@@ -49,7 +50,7 @@ const recorder = () => {
     },
   };
   return {calls, transaction: transaction as unknown as
-    admin.firestore.Transaction};
+    firebaseAdminFirestore.Transaction};
 };
 
 const WS = "ws-queue-unit";

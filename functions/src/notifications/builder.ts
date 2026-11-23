@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 
 import {hasControlCharacter, workspaceIdSchema} from "../shared/ids";
 import {RETENTION_DAYS, expiresAfterDays} from "../shared/retention";
@@ -57,7 +57,7 @@ const assertText = (
 
 export const buildNotificationDocument = (
   input: NotificationInput,
-): admin.firestore.DocumentData => {
+): firebaseAdminFirestore.DocumentData => {
   if (!isPlainObject(input)) {
     throw new NotificationContractError("invalid_input");
   }

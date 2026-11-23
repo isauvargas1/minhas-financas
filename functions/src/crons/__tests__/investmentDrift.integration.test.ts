@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import * as admin from "firebase-admin";
+import * as firebaseAdminApp from "firebase-admin/app";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {Timestamp} from "firebase-admin/firestore";
 
 import {
@@ -24,9 +25,9 @@ const PROJECT = process.env.GCLOUD_PROJECT ?? "minhas-financas-local";
 const WORKSPACE = "drift-scan-workspace";
 const OWNER = "drift-scan-owner";
 
-const db = (): admin.firestore.Firestore => {
-  if (!admin.apps.length) admin.initializeApp({projectId: PROJECT});
-  return admin.firestore();
+const db = (): firebaseAdminFirestore.Firestore => {
+  if (!firebaseAdminApp.getApps().length) firebaseAdminApp.initializeApp({projectId: PROJECT});
+  return firebaseAdminFirestore.getFirestore();
 };
 
 const now = () => Timestamp.now();

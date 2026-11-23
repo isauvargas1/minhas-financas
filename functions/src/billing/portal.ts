@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 
 import type {CallerIdentity} from "../shared/callable";
 import {ApplicationError} from "../shared/errors";
@@ -54,7 +54,7 @@ export const executeCreateBillingPortalSession = async (
     throw invalidReturnUrlError();
   }
   const uid = caller.uid;
-  const customerId = await admin.firestore().runTransaction(
+  const customerId = await firebaseAdminFirestore.getFirestore().runTransaction(
     async (transaction) => {
       assertActiveAccountSnapshot(await transaction.get(userProfileRef(uid)));
       const account = await transaction.get(billingAccountRef(uid));

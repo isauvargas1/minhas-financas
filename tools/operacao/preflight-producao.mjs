@@ -23,8 +23,6 @@ import {
   comandosDeSaneamento, consultarFuncoes, montarResumo, textoDeOrientacao,
 } from './preflight.mjs';
 
-const require = createRequire(import.meta.url);
-
 const sair = (mensagem, codigo) => {
   process.stderr.write(`[pre-voo] ${mensagem}\n`);
   process.exit(codigo);
@@ -69,19 +67,22 @@ const consultarFuncoesRemotas = () => {
 
 /** Leitor real: só leitura, só os campos `accessStatus` e `createdAt` de perfis ativos, paginado por cursor. */
 const consultarContas = async () => {
-  let admin;
+  let appModule;
+  let firestoreModule;
   try {
-    admin = require('../../functions/node_modules/firebase-admin');
+    const requireAdmin = createRequire(new URL('../../functions/package.json', import.meta.url));
+    appModule = requireAdmin('firebase-admin/app');
+    firestoreModule = requireAdmin('firebase-admin/firestore');
   } catch {
     return {status: 'inconclusivo', motivos: ['o firebase-admin não está instalado em functions/node_modules (npm --prefix functions ci)']};
   }
-  if (!admin.apps.length) admin.initializeApp({projectId});
-  const db = admin.firestore();
+  if (!appModule.getApps().length) appModule.initializeApp({projectId});
+  const db = firestoreModule.getFirestore();
   const lerPagina = async ({depoisDe, limite}) => {
     let consulta = db.collection('users')
       .where('status', '==', 'active')
       .select('accessStatus', 'createdAt')
-      .orderBy(admin.firestore.FieldPath.documentId())
+      .orderBy(firestoreModule.FieldPath.documentId())
       .limit(limite);
     if (depoisDe) consulta = consulta.startAfter(depoisDe);
     const resposta = await consulta.get();

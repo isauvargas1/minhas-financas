@@ -22,9 +22,12 @@ const SCRIPT = path.join(RAIZ, 'tools', 'piloto', 'acesso-piloto.mjs');
 const PROJETO = 'minhas-financas-local';
 
 const require = createRequire(import.meta.url);
-const admin = require(path.join(RAIZ, 'functions', 'node_modules', 'firebase-admin'));
-if (!admin.apps.length) admin.initializeApp({projectId: PROJETO});
-const db = admin.firestore();
+const requireAdmin = createRequire(new URL('../../functions/package.json', import.meta.url));
+const {getApps, initializeApp} = requireAdmin('firebase-admin/app');
+const {getFirestore} = requireAdmin('firebase-admin/firestore');
+const {getAuth} = requireAdmin('firebase-admin/auth');
+if (!getApps().length) initializeApp({projectId: PROJETO});
+const db = getFirestore();
 
 const executar = (comando, extras = []) => {
   const r = spawnSync(process.execPath, [SCRIPT, comando, '--project', PROJETO, ...extras], {
@@ -84,7 +87,7 @@ test('listar mostra o e-mail e o status', async () => {
 
 /** Conta autorizada pelo convite, como o bootstrap a deixa (P6-B): perfil com `accessStatus` e convite vinculado. */
 const contaAutorizada = async (email, senha) => {
-  const usuario = await admin.auth().createUser({email, emailVerified: true, password: senha});
+  const usuario = await getAuth().createUser({email, emailVerified: true, password: senha});
   await db.collection('users').doc(usuario.uid).set({
     uid: usuario.uid, email, status: 'active', accessStatus: 'granted', accessSource: 'pilot_invite', accessInviteId: idEsperado(email),
   });
@@ -110,7 +113,7 @@ test('revogar a conta autorizada revoga o acesso no perfil e suspende a conta, s
   assert.equal(doc.get('status'), 'revoked');
   assert.equal(doc.get('motivoRevogacao'), 'fim-do-piloto');
   assert.ok(doc.get('revogadoEm'));
-  assert.equal((await admin.auth().getUser(usuario.uid)).disabled, true);
+  assert.equal((await getAuth().getUser(usuario.uid)).disabled, true);
   const perfil = await db.collection('users').doc(usuario.uid).get();
   assert.equal(perfil.get('status'), 'suspended');
   assert.equal(perfil.get('accessStatus'), 'revoked');
@@ -143,7 +146,7 @@ test('revogar convite nunca usado não toca conta alheia com o mesmo e-mail, que
   const email = `alheia.${sufixo}@example.com`;
   assert.equal(executar('adicionar', ['--email', email]).codigo, 0);
   // Conta anterior à P6-B que hoje usa esse e-mail: perfil ativo, sem autorização e sem vínculo com o convite.
-  const usuario = await admin.auth().createUser({email, emailVerified: true, password: `Senha-${sufixo}-x4`});
+  const usuario = await getAuth().createUser({email, emailVerified: true, password: `Senha-${sufixo}-x4`});
   await db.collection('users').doc(usuario.uid).set({uid: usuario.uid, email, status: 'active'});
   const r = executar('revogar', ['--email', email, '--motivo', 'convite-errado']);
   assert.equal(r.codigo, 0, r.saida);
@@ -151,7 +154,7 @@ test('revogar convite nunca usado não toca conta alheia com o mesmo e-mail, que
   const perfil = await db.collection('users').doc(usuario.uid).get();
   assert.equal(perfil.get('status'), 'active');
   assert.equal(perfil.get('accessStatus'), undefined, 'sem autorização: Rules e callables já a recusam');
-  assert.equal((await admin.auth().getUser(usuario.uid)).disabled, false);
+  assert.equal((await getAuth().getUser(usuario.uid)).disabled, false);
   assert.deepEqual(await operacoesDaConta(usuario.uid), []);
 });
 
@@ -198,7 +201,7 @@ test('remover recusa convite ativo ou inexistente e elimina só o convite revoga
   assert.equal((await convite(email).get()).exists, false);
   assert.equal((await db.collection('users').doc(usuario.uid).get()).get('status'), 'suspended');
   assert.equal((await db.collection('users').doc(usuario.uid).get()).get('accessStatus'), 'revoked');
-  assert.equal((await admin.auth().getUser(usuario.uid)).disabled, true);
+  assert.equal((await getAuth().getUser(usuario.uid)).disabled, true);
   assert.equal((await db.doc(`workspaces/ws-remover-${sufixo}`).get()).get('name'), 'Intacto');
 
   const inexistente = executar('remover', ['--email', email]);
@@ -211,12 +214,12 @@ test('revogar alcança a conta pelo uid vinculado no bootstrap, mesmo depois de 
   assert.equal(executar('adicionar', ['--email', email]).codigo, 0);
   // O bootstrap grava o vínculo no convite (functions/src/workspaces/pilotAccess.ts, recordPilotAccessUse).
   const usuario = await contaAutorizada(email, `Senha-${sufixo}-x3`);
-  await admin.auth().updateUser(usuario.uid, {email: `novo.${sufixo}@example.com`});
+  await getAuth().updateUser(usuario.uid, {email: `novo.${sufixo}@example.com`});
 
   const r = executar('revogar', ['--email', email, '--motivo', 'uso-indevido']);
   assert.equal(r.codigo, 0, r.saida);
   assert.match(r.saida, /Conta suspensa/);
-  assert.equal((await admin.auth().getUser(usuario.uid)).disabled, true);
+  assert.equal((await getAuth().getUser(usuario.uid)).disabled, true);
   assert.equal((await db.collection('users').doc(usuario.uid).get()).get('status'), 'suspended');
   assert.equal((await db.collection('users').doc(usuario.uid).get()).get('accessStatus'), 'revoked');
 });

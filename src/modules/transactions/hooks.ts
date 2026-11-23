@@ -10,6 +10,7 @@ import {
   voidCashTransaction,
 } from "./cashApi";
 import { cashRefreshScope } from "./cashEntry";
+import { runCashRefreshAfterCommit } from "./confirmedRefresh";
 import { incomeReadsKey, invalidateTransactionReads } from "./incomeReads";
 
 /*
@@ -123,7 +124,7 @@ interface CashMutationInput {
 }
 
 /*
- * As três operações de caixa invalidam a lista, os dependentes e a quota no
+ * As quatro operações de caixa invalidam a lista, os dependentes e a quota no
  * sucesso e, na falha, conforme `cashRefreshScope`: um conflito, um "já
  * anulado" ou um resultado incerto significam que o servidor pode ter um
  * estado diferente do exibido; a quota esgotada atualiza só o indicador. O
@@ -138,6 +139,24 @@ const invalidateCashDependents = async (
     invalidateTransactionDependents(queryClient, workspaceId),
     queryClient.invalidateQueries({ queryKey: billingKeys.workspaceEntitlementPrefix }),
   ]);
+};
+
+/**
+ * O resultado da callable é a confirmação autoritativa. Revalidar leituras é
+ * necessário, mas não pode prolongar a mutação nem prender o modal depois de
+ * o backend confirmar. Falhas de leitura continuam no estado das queries.
+ */
+const refreshAfterConfirmedCashMutation = (
+  queryClient: ReturnType<typeof useQueryClient>,
+  workspaceId: string,
+): void => {
+  runCashRefreshAfterCommit(
+    () => invalidateCashDependents(queryClient, workspaceId),
+    () => {
+      // Não registrar dados do lançamento nem detalhes sensíveis do erro.
+      console.warn('[caixa] Revalidação após confirmação não concluída; consultas permanecem sujeitas a nova leitura.');
+    },
+  );
 };
 
 const refreshAfterCashFailure = async (
@@ -157,8 +176,8 @@ export const useCreateCashTransaction = (workspaceId: string) => {
   return useMutation({
     mutationFn: ({ payload, idempotencyKey }: CashMutationInput) =>
       createCashTransaction(payload, idempotencyKey),
-    onSuccess: async () => {
-      await invalidateCashDependents(queryClient, workspaceId);
+    onSuccess: () => {
+      refreshAfterConfirmedCashMutation(queryClient, workspaceId);
     },
     onError: async (error) => {
       await refreshAfterCashFailure(queryClient, workspaceId, error);
@@ -171,8 +190,8 @@ export const useUpdateCashTransaction = (workspaceId: string) => {
   return useMutation({
     mutationFn: ({ payload, idempotencyKey }: CashMutationInput) =>
       updateCashTransaction(payload, idempotencyKey),
-    onSuccess: async () => {
-      await invalidateCashDependents(queryClient, workspaceId);
+    onSuccess: () => {
+      refreshAfterConfirmedCashMutation(queryClient, workspaceId);
     },
     onError: async (error) => {
       await refreshAfterCashFailure(queryClient, workspaceId, error);
@@ -186,8 +205,8 @@ export const useConfirmCashTransaction = (workspaceId: string) => {
   return useMutation({
     mutationFn: ({ payload, idempotencyKey }: CashMutationInput) =>
       confirmCashTransaction(payload, idempotencyKey),
-    onSuccess: async () => {
-      await invalidateCashDependents(queryClient, workspaceId);
+    onSuccess: () => {
+      refreshAfterConfirmedCashMutation(queryClient, workspaceId);
     },
     onError: async (error) => {
       await refreshAfterCashFailure(queryClient, workspaceId, error);
@@ -200,8 +219,8 @@ export const useVoidCashTransaction = (workspaceId: string) => {
   return useMutation({
     mutationFn: ({ payload, idempotencyKey }: CashMutationInput) =>
       voidCashTransaction(payload, idempotencyKey),
-    onSuccess: async () => {
-      await invalidateCashDependents(queryClient, workspaceId);
+    onSuccess: () => {
+      refreshAfterConfirmedCashMutation(queryClient, workspaceId);
     },
     onError: async (error) => {
       await refreshAfterCashFailure(queryClient, workspaceId, error);

@@ -1,3 +1,4 @@
+import { adminAuth } from './support/adminModules';
 import { expect, test, type APIRequestContext, type Locator, type Page } from '@playwright/test';
 
 import { axeViolations } from './support/axe';
@@ -56,7 +57,7 @@ const seed = async (request: APIRequestContext): Promise<Seeded> => {
   await resetEmulatorData();
   // ID único: a limpeza do Emulator apaga os lançamentos do teste anterior e o gatilho processa as exclusões depois.
   const workspaceId = `e2e-p5g-reads-${Date.now().toString(36)}`;
-  await adminSdk().auth().createUser({ ...OWNER, password: PASSWORD, emailVerified: true });
+  await adminAuth.getAuth(adminSdk()).createUser({ ...OWNER, password: PASSWORD, emailVerified: true });
   await seedOwnedWorkspace({ ...OWNER, workspaceId, name: 'Leituras P5G', type: 'PF' });
   await seedPaidPlan(OWNER.uid, 'business');
   await seedCatalog(workspaceId);

@@ -1,3 +1,4 @@
+import { adminAuth, adminFirestore } from './support/adminModules';
 import { expect, test, type Page } from '@playwright/test';
 
 import {
@@ -36,17 +37,17 @@ const PJ_NAME = 'Empresa Metas P5B';
 
 const resetEmulatorData = async () => {
   const sdk = adminSdk();
-  const users = await sdk.auth().listUsers(1000);
+  const users = await adminAuth.getAuth(sdk).listUsers(1000);
   if (users.users.length > 0) {
-    await sdk.auth().deleteUsers(users.users.map((user) => user.uid));
+    await adminAuth.getAuth(sdk).deleteUsers(users.users.map((user) => user.uid));
   }
-  const db = sdk.firestore();
+  const db = adminFirestore.getFirestore(sdk);
   const collections = await db.listCollections();
   await Promise.all(collections.map((collection) => db.recursiveDelete(collection)));
 };
 
 const createUser = async (user: { uid: string; email: string }) => {
-  await adminSdk().auth().createUser({
+  await adminAuth.getAuth(adminSdk()).createUser({
     uid: user.uid, email: user.email, password: PASSWORD, emailVerified: true,
   });
 };
@@ -85,8 +86,8 @@ const seedTenant = async (options: SeedOptions = {}) => {
     });
   }
   if (options.investmentCatalog) {
-    const db = adminSdk().firestore();
-    const stamp = adminSdk().firestore.FieldValue.serverTimestamp();
+    const db = adminFirestore.getFirestore(adminSdk());
+    const stamp = (adminSdk(), adminFirestore.FieldValue).serverTimestamp();
     await Promise.all([
       ['p5b-class', 'investment_class', 'Reserva de emergência', 'reserva de emergencia', ''],
       ['p5b-institution', 'investment_institution', 'BTG', 'btg', ''],
@@ -102,8 +103,8 @@ const seedTenant = async (options: SeedOptions = {}) => {
   }
 };
 
-const firestore = () => adminSdk().firestore();
-const Timestamp = () => adminSdk().firestore.Timestamp;
+const firestore = () => adminFirestore.getFirestore(adminSdk());
+const Timestamp = () => (adminSdk(), adminFirestore.Timestamp);
 const goalRef = (workspaceId: string, goalId: string) =>
   firestore().doc(`workspaces/${workspaceId}/goals/${goalId}`);
 const goalData = async (workspaceId: string, goalId: string) =>

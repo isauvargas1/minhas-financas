@@ -42,7 +42,10 @@ import {
  */
 
 const require = createRequire(import.meta.url);
-const admin = require('../../functions/node_modules/firebase-admin');
+const requireAdmin = createRequire(new URL('../../functions/package.json', import.meta.url));
+const adminAppModule = requireAdmin('firebase-admin/app');
+const adminFirestoreModule = requireAdmin('firebase-admin/firestore');
+const adminAuthModule = requireAdmin('firebase-admin/auth');
 if (!process.env.FIRESTORE_EMULATOR_HOST) {
   throw new Error('FIRESTORE_EMULATOR_HOST é obrigatório para os testes de Rules da P3-I.');
 }
@@ -73,11 +76,11 @@ const SHARED = ['clients', 'receivables', 'receivable_movements'];
 const getAdmin = () => {
   process.env.FIRESTORE_EMULATOR_HOST ||= '127.0.0.1:8080';
   process.env.FIREBASE_AUTH_EMULATOR_HOST ||= '127.0.0.1:9099';
-  if (!admin.apps.length) admin.initializeApp({projectId});
-  return admin;
+  if (!adminAppModule.getApps().length) adminAppModule.initializeApp({projectId});
+  return adminAppModule.getApp();
 };
 
-const ts = () => getAdmin().firestore.Timestamp.fromDate(new Date('2026-10-05T12:00:00.000Z'));
+const ts = () => (getAdmin(), adminFirestoreModule.Timestamp).fromDate(new Date('2026-10-05T12:00:00.000Z'));
 
 const receivableDoc = (workspaceId, id, overrides = {}) => ({
   id, schemaVersion: 1, workspaceId, clientId: 'cli_1', description: 'Consultoria', currency: 'BRL',
@@ -88,14 +91,14 @@ const receivableDoc = (workspaceId, id, overrides = {}) => ({
 
 const seed = async () => {
   const firebaseAdmin = getAdmin();
-  const db = firebaseAdmin.firestore();
+  const db = adminFirestoreModule.getFirestore(firebaseAdmin);
   for (const user of Object.values(users)) {
     try {
-      await firebaseAdmin.auth().deleteUser(user.uid);
+      await adminAuthModule.getAuth(firebaseAdmin).deleteUser(user.uid);
     } catch (error) {
       if (error?.code !== 'auth/user-not-found') throw error;
     }
-    await firebaseAdmin.auth().createUser({...user, password, emailVerified: true});
+    await adminAuthModule.getAuth(firebaseAdmin).createUser({...user, password, emailVerified: true});
     await db.doc(`users/${user.uid}`).set({uid: user.uid, accessStatus: 'granted', status: 'active'});
   }
   await Promise.all([wsA, wsB].map((ws) => db.recursiveDelete(db.doc(`workspaces/${ws}`))));
@@ -214,7 +217,7 @@ test('P3-I Rules — nenhum papel cria, altera ou apaga nas seis coleções', as
     }
   });
   // Nada mudou.
-  const db = getAdmin().firestore();
+  const db = adminFirestoreModule.getFirestore(getAdmin());
   assert.equal((await db.doc(`workspaces/${wsA}/receivables/rcv_late`).get()).get('status'), 'open');
   assert.equal((await db.doc(`workspaces/${wsA}/clients/cli_1`).get()).exists, true);
 });
@@ -329,7 +332,7 @@ test('P3-I Rules — isolamento nos dois sentidos (A → B) e sem autenticação
     await deleteApp(anonymous.app);
   }
   // Nada mudou em B.
-  const db = getAdmin().firestore();
+  const db = adminFirestoreModule.getFirestore(getAdmin());
   assert.equal((await db.doc(`workspaces/${wsB}/client_private/cli_1`).get()).get('email'), 'financeiro@cliente.example');
   assert.equal((await db.collection(`workspaces/${wsB}/receivables`).count().get()).data().count, 4);
 });
@@ -358,7 +361,7 @@ test('P3-I Rules — agregados dos cartões e do relatório: permitidos, exatos 
 });
 
 test('P3-I Rules — lançamento do cliente não forja nem altera espelho de recebimento', async () => {
-  const db = getAdmin().firestore();
+  const db = adminFirestoreModule.getFirestore(getAdmin());
   await db.doc(`workspaces/${wsA}/transactions/recvcash_1`).set({
     type: 'receita', description: 'Recebimento de recebível', category: 'Recebíveis', value: 400,
     valueCents: 40_000, date: '2026-09-15', isPaid: true, workspaceId: wsA, profileId: wsA,

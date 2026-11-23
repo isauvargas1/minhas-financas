@@ -1,3 +1,4 @@
+import { adminAuth, adminFirestore } from './support/adminModules';
 import { expect, test, type Page } from '@playwright/test';
 
 import { adminSdk } from './support/workspaceSeed';
@@ -30,16 +31,16 @@ const persona = (suffix: string): Persona => ({
 const resetPersona = async ({ uid, email }: Persona) => {
   const sdk = adminSdk();
   try {
-    await sdk.auth().deleteUser(uid);
+    await adminAuth.getAuth(sdk).deleteUser(uid);
   } catch (error) {
     if ((error as { code?: string }).code !== 'auth/user-not-found') throw error;
   }
-  const db = sdk.firestore();
+  const db = adminFirestore.getFirestore(sdk);
   await Promise.all([
     db.recursiveDelete(db.doc(`users/${uid}`)),
     db.recursiveDelete(db.doc(`billing_accounts/${uid}`)),
   ]);
-  await sdk.auth().createUser({ uid, email, password: PASSWORD, emailVerified: true });
+  await adminAuth.getAuth(sdk).createUser({ uid, email, password: PASSWORD, emailVerified: true });
 };
 
 const login = async (page: Page, { email }: Persona) => {
@@ -54,7 +55,7 @@ const openPlans = async (page: Page) => {
 
 /** Workspace pessoal criado pelo bootstrap, pelo índice do usuário (só leitura administrativa do Emulator). */
 const personalWorkspaceId = async (uid: string): Promise<string> => {
-  const index = await adminSdk().firestore().collection(`users/${uid}/workspaces`).limit(2).get();
+  const index = await adminFirestore.getFirestore(adminSdk()).collection(`users/${uid}/workspaces`).limit(2).get();
   expect(index.size).toBe(1);
   return index.docs[0].id;
 };
@@ -63,7 +64,7 @@ test('revogação no perfil: a sessão aberta perde a leitura na mudança seguin
   test.setTimeout(120_000);
   const user = persona('revogada');
   await resetPersona(user);
-  const db = adminSdk().firestore();
+  const db = adminFirestore.getFirestore(adminSdk());
 
   await login(page, user);
   await expect(page.getByText(/Transações Recentes|Saldo Atual/i).first()).toBeVisible({ timeout: 45_000 });

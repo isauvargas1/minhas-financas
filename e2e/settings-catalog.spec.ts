@@ -1,3 +1,4 @@
+import { adminAuth } from './support/adminModules';
 import { expect, test, type Page } from '@playwright/test';
 
 import { callCallable } from './support/callables';
@@ -69,7 +70,7 @@ const fillAndSubmit = async (page: Page, name: string, submit: 'Criar cadastro' 
 /** Admin do workspace (o tenant semeado tem owner, member e viewer). */
 const seedAdmin = async (t: LoanTenant) => {
   const adminUser = { uid: `${t.owner.uid}-admin`, email: t.owner.email.replace('-owner@', '-admin@') };
-  await adminSdk().auth().createUser({ ...adminUser, password: PASSWORD, emailVerified: true });
+  await adminAuth.getAuth(adminSdk()).createUser({ ...adminUser, password: PASSWORD, emailVerified: true });
   await seedAccountProfile(adminUser);
   await seedMembership({ workspaceId: t.workspaceId, uid: adminUser.uid, email: adminUser.email,
     role: 'admin', name: t.name, type: t.type });

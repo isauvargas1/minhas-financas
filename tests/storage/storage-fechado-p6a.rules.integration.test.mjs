@@ -13,7 +13,11 @@ import {
  * lista, consulta metadados ou apaga, nem um objeto que existe (gravado pelo Admin SDK, que ignora as regras).
  */
 const require = createRequire(import.meta.url);
-const admin = require('../../functions/node_modules/firebase-admin');
+const requireAdmin = createRequire(new URL('../../functions/package.json', import.meta.url));
+const adminAppModule = requireAdmin('firebase-admin/app');
+const adminFirestoreModule = requireAdmin('firebase-admin/firestore');
+const adminAuthModule = requireAdmin('firebase-admin/auth');
+const adminStorageModule = requireAdmin('firebase-admin/storage');
 for (const variavel of ['FIREBASE_STORAGE_EMULATOR_HOST', 'FIREBASE_AUTH_EMULATOR_HOST']) {
   if (!process.env[variavel]) throw new Error(`${variavel} é obrigatório: rode dentro do firebase emulators:exec.`);
 }
@@ -29,8 +33,8 @@ const WORKSPACE = 'p6a-storage-ws';
 const OBJETO = `workspaces/${WORKSPACE}/anexos/comprovante.txt`;
 
 const adminApp = () => {
-  if (!admin.apps.length) admin.initializeApp({projectId, storageBucket: bucket});
-  return admin;
+  if (!adminAppModule.getApps().length) adminAppModule.initializeApp({projectId, storageBucket: bucket});
+  return adminAppModule.getApp();
 };
 
 const clientes = [];
@@ -57,19 +61,19 @@ const negado = async (promessa, rotulo) => {
 let storages;
 test.before(async () => {
   const sdk = adminApp();
-  const firestore = sdk.firestore();
+  const firestore = adminFirestoreModule.getFirestore(sdk);
   for (const pessoa of Object.values(pessoas)) {
     try {
-      await sdk.auth().deleteUser(pessoa.uid);
+      await adminAuthModule.getAuth(sdk).deleteUser(pessoa.uid);
     } catch (erro) {
       if (erro?.code !== 'auth/user-not-found') throw erro;
     }
-    await sdk.auth().createUser({...pessoa, password: senha, emailVerified: true});
+    await adminAuthModule.getAuth(sdk).createUser({...pessoa, password: senha, emailVerified: true});
     await firestore.doc(`users/${pessoa.uid}`).set({uid: pessoa.uid, accessStatus: 'granted', status: 'active'});
   }
   await firestore.doc(`workspaces/${WORKSPACE}`).set({ownerId: pessoas.dona.uid, status: 'active'});
   await firestore.doc(`workspaces/${WORKSPACE}/members/${pessoas.dona.uid}`).set({uid: pessoas.dona.uid, role: 'owner', status: 'active'});
-  await sdk.storage().bucket(bucket).file(OBJETO).save('conteudo-sintetico', {contentType: 'text/plain'});
+  await adminStorageModule.getStorage(sdk).bucket(bucket).file(OBJETO).save('conteudo-sintetico', {contentType: 'text/plain'});
   storages = {anonimo: await conectar(null), ativa: await conectar(pessoas.ativa), dona: await conectar(pessoas.dona)};
 });
 
@@ -103,6 +107,6 @@ test('nenhum cliente lista o bucket nem a pasta do workspace', async () => {
 });
 
 test('controle: o objeto continua no bucket (só o Admin SDK o alcança)', async () => {
-  const [existe] = await adminApp().storage().bucket(bucket).file(OBJETO).exists();
+  const [existe] = await adminStorageModule.getStorage(adminApp()).bucket(bucket).file(OBJETO).exists();
   assert.equal(existe, true);
 });

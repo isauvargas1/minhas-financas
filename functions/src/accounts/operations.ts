@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {FieldValue, Timestamp} from "firebase-admin/firestore";
 
 import {compareCommitTimes} from "../cash/periods";
@@ -97,7 +97,7 @@ export interface CashAccountOperationOptions {
   beforeCommit?: () => void;
 }
 
-const db = () => admin.firestore();
+const db = () => firebaseAdminFirestore.getFirestore();
 
 const replayResult = (
   stored: Record<string, unknown>,
@@ -109,7 +109,7 @@ const replayResult = (
 };
 
 const reserveAccountRateLimit = (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   actor: WorkspaceActor,
 ) => reserveRateLimit(
   transaction,
@@ -267,7 +267,7 @@ interface LoadedAccount {
   reservation: ActorIdempotencyReservation;
   intentId: string;
   account: AuthoritativeCashAccount;
-  accountRef: admin.firestore.DocumentReference;
+  accountRef: firebaseAdminFirestore.DocumentReference;
 }
 
 type AccountLoadOutcome =
@@ -275,7 +275,7 @@ type AccountLoadOutcome =
   | {loaded: LoadedAccount};
 
 const loadAccountForMutation = async (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   actor: WorkspaceActor,
   payload: AccountMutationPayload,
   operation: string,

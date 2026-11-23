@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {FieldValue, Timestamp} from "firebase-admin/firestore";
 
 import {ApplicationError} from "./errors";
@@ -53,7 +53,7 @@ export const rateLimitDocumentId = (
  * atingido — antes de qualquer escrita, portanto sem efeito colateral.
  */
 export const reserveRateLimit = async (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   workspaceId: string,
   actorId: string,
   policy: RateLimitPolicy,
@@ -69,9 +69,8 @@ export const workspaceRateLimitRef = (
   workspaceId: string,
   actorId: string,
   policy: RateLimitPolicy,
-): admin.firestore.DocumentReference =>
-  admin
-    .firestore()
+): firebaseAdminFirestore.DocumentReference =>
+  firebaseAdminFirestore.getFirestore()
     .doc(
       `workspaces/${workspaceId}/rate_limits/` +
         rateLimitDocumentId(policy, actorId),
@@ -83,8 +82,8 @@ export const workspaceRateLimitRef = (
  * banco com o lock aberto).
  */
 export const reserveRateLimitFromSnapshot = (
-  transaction: admin.firestore.Transaction,
-  snapshot: admin.firestore.DocumentSnapshot,
+  transaction: firebaseAdminFirestore.Transaction,
+  snapshot: firebaseAdminFirestore.DocumentSnapshot,
   context: {workspaceId: string; actorId: string; policy: RateLimitPolicy},
 ): RateLimitReservation =>
   rateLimitReservation(transaction, snapshot, context);
@@ -98,14 +97,13 @@ export const reserveRateLimitFromSnapshot = (
  * que não existe, poluindo a listagem do tenant.
  */
 export const reserveUserRateLimit = async (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   userId: string,
   policy: RateLimitPolicy,
 ): Promise<RateLimitReservation> =>
   reserveRateLimitAt(
     transaction,
-    admin
-      .firestore()
+    firebaseAdminFirestore.getFirestore()
       .doc(`users/${userId}/rate_limits/${rateLimitDocumentId(policy, userId)}`),
     {workspaceId: null, actorId: userId, policy},
   );
@@ -124,15 +122,15 @@ interface RateLimitContext {
 }
 
 const reserveRateLimitAt = async (
-  transaction: admin.firestore.Transaction,
-  ref: admin.firestore.DocumentReference,
+  transaction: firebaseAdminFirestore.Transaction,
+  ref: firebaseAdminFirestore.DocumentReference,
   context: RateLimitContext,
 ): Promise<RateLimitReservation> =>
   rateLimitReservation(transaction, await transaction.get(ref), context);
 
 const rateLimitReservation = (
-  transaction: admin.firestore.Transaction,
-  snapshot: admin.firestore.DocumentSnapshot,
+  transaction: firebaseAdminFirestore.Transaction,
+  snapshot: firebaseAdminFirestore.DocumentSnapshot,
   context: RateLimitContext,
 ): RateLimitReservation => {
   const {workspaceId, actorId, policy} = context;
@@ -196,7 +194,7 @@ export const consumeUserRateLimit = async (
   userId: string,
   policy: RateLimitPolicy,
 ): Promise<void> => {
-  await admin.firestore().runTransaction(async (transaction) => {
+  await firebaseAdminFirestore.getFirestore().runTransaction(async (transaction) => {
     const reservation = await reserveUserRateLimit(transaction, userId, policy);
     reservation.commit();
   });
@@ -208,7 +206,7 @@ export const consumeWorkspaceRateLimit = async (
   actorId: string,
   policy: RateLimitPolicy,
 ): Promise<void> => {
-  await admin.firestore().runTransaction(async (transaction) => {
+  await firebaseAdminFirestore.getFirestore().runTransaction(async (transaction) => {
     const reservation = await reserveRateLimit(
       transaction,
       workspaceId,

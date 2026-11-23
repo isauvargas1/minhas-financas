@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {FieldValue} from "firebase-admin/firestore";
 
 import {compareCommitTimes} from "../cash/periods";
@@ -118,7 +118,7 @@ export interface SettingsCatalogOperationOptions {
   beforeCommit?: () => void;
 }
 
-const db = () => admin.firestore();
+const db = () => firebaseAdminFirestore.getFirestore();
 
 const replayResult = (
   stored: Record<string, unknown>,
@@ -136,7 +136,7 @@ const replayResult = (
 };
 
 const workspaceTypeOf = (
-  workspace: admin.firestore.DocumentData,
+  workspace: firebaseAdminFirestore.DocumentData,
 ): WorkspaceType => {
   if (workspace.type === "PF" || workspace.type === "PJ") {
     return workspace.type;
@@ -146,7 +146,7 @@ const workspaceTypeOf = (
 };
 
 const reserveCatalogRateLimit = (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   actor: WorkspaceActor,
 ) => reserveRateLimit(
   transaction,
@@ -160,9 +160,9 @@ const reserveCatalogRateLimit = (
  * item inativo — nesse caso, o caminho é reativá-lo, não criar outro.
  */
 const duplicateError = async (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   workspaceId: string,
-  lock: admin.firestore.DocumentSnapshot,
+  lock: firebaseAdminFirestore.DocumentSnapshot,
 ): Promise<ApplicationError> => {
   const owner = settingsCatalogItemIdSchema.safeParse(
     lock.get("catalogItemId"));
@@ -331,8 +331,8 @@ interface LoadedItem {
   reservation: ActorIdempotencyReservation;
   intentId: string;
   item: AuthoritativeSettingsCatalogItem;
-  itemRef: admin.firestore.DocumentReference;
-  lockRef: admin.firestore.DocumentReference;
+  itemRef: firebaseAdminFirestore.DocumentReference;
+  lockRef: firebaseAdminFirestore.DocumentReference;
 }
 
 type ItemLoadOutcome =
@@ -348,7 +348,7 @@ type ItemLoadOutcome =
  * **outro** item: a reserva só é removida quando é comprovadamente deste.
  */
 const loadItemForMutation = async (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   actor: WorkspaceActor,
   payload: ItemMutationPayload,
   operation: string,

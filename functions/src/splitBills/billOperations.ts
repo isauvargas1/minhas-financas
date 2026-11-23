@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {FieldValue} from "firebase-admin/firestore";
 
 import type {PostingAccounts} from "../accounts/ledger";
@@ -155,15 +155,15 @@ export const BILL_HAS_SETTLEMENTS_MESSAGE =
 export const BILL_HAS_FORGIVEN_MESSAGE =
   "Este título tem rateio perdoado e não pode mais ser anulado.";
 
-const db = () => admin.firestore();
+const db = () => firebaseAdminFirestore.getFirestore();
 
 // ------------------------------------------------------------ leituras
 
 const readBill = async (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   workspaceId: string,
   billId: string,
-): Promise<{billRef: admin.firestore.DocumentReference;
+): Promise<{billRef: firebaseAdminFirestore.DocumentReference;
   bill: AuthoritativeSplitBill}> => {
   const billRef = splitBillsRef(workspaceId).doc(billId);
   const snapshot = await transaction.get(billRef);
@@ -181,7 +181,7 @@ const readBill = async (
 
 /** Participantes do grupo, relidos de uma vez (ausente ou de outro: 404). */
 export const readGroupParticipants = async (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   workspaceId: string,
   groupId: string,
   ids: Iterable<string>,
@@ -206,7 +206,7 @@ export const readGroupParticipants = async (
 
 /** Rateios do título por participante (`null`: ainda não existe). */
 export const readBillShares = async (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   bill: Pick<AuthoritativeSplitBill, "id" | "workspaceId" | "groupId">,
   participantIds: Iterable<string>,
 ): Promise<Map<string, AuthoritativeSplitShare | null>> => {
@@ -368,7 +368,7 @@ const shareTermsFields = (
 
 /** Grava os rateios planejados (cria ou atualiza no lugar). */
 const writePlannedShares = (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   input: {
     workspaceId: string;
     groupId: string;
@@ -419,7 +419,7 @@ type PreparedFact =
  * workspace, e o pagador precisa seguir membro ativo.
  */
 const prepareBillFact = async (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   input: {
     actor: WorkspaceActor;
     role: WorkspaceRole;
@@ -491,7 +491,7 @@ const factLinks = (fact: PreparedFact) => ({
 
 /** Fase de escrita do fato, no commit do título. */
 const commitBillFact = (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   fact: PreparedFact,
   input: {
     actor: WorkspaceActor;

@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {FieldValue} from "firebase-admin/firestore";
 
 import {compareCommitTimes} from "../cash/periods";
@@ -86,7 +86,7 @@ export interface CashTransferOptions {
   beforeCommit?: () => void;
 }
 
-const db = () => admin.firestore();
+const db = () => firebaseAdminFirestore.getFirestore();
 
 const replayResult = (stored: Record<string, unknown>): CashTransferResult => {
   if (typeof stored.transferId !== "string") {
@@ -96,7 +96,7 @@ const replayResult = (stored: Record<string, unknown>): CashTransferResult => {
 };
 
 const reserveTransferRateLimit = (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   actor: WorkspaceActor,
 ) => reserveRateLimit(transaction, actor.workspaceId, actor.uid,
   CASH_TRANSFER_RATE_LIMIT);

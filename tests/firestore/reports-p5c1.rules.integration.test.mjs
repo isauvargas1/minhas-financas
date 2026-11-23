@@ -35,7 +35,10 @@ import {
  */
 
 const require = createRequire(import.meta.url);
-const admin = require('../../functions/node_modules/firebase-admin');
+const requireAdmin = createRequire(new URL('../../functions/package.json', import.meta.url));
+const adminAppModule = requireAdmin('firebase-admin/app');
+const adminFirestoreModule = requireAdmin('firebase-admin/firestore');
+const adminAuthModule = requireAdmin('firebase-admin/auth');
 if (!process.env.FIRESTORE_EMULATOR_HOST) {
   throw new Error('FIRESTORE_EMULATOR_HOST é obrigatório para os testes de Rules da P5-C1.');
 }
@@ -68,8 +71,8 @@ const BACKEND_ONLY = [
 const getAdmin = () => {
   process.env.FIRESTORE_EMULATOR_HOST ||= '127.0.0.1:8080';
   process.env.FIREBASE_AUTH_EMULATOR_HOST ||= '127.0.0.1:9099';
-  if (!admin.apps.length) admin.initializeApp({projectId});
-  return admin;
+  if (!adminAppModule.getApps().length) adminAppModule.initializeApp({projectId});
+  return adminAppModule.getApp();
 };
 
 /** Forma gravada pelo gatilho de caixa v5 (totais do mês + `days`). */
@@ -99,15 +102,15 @@ const shardDoc = (ws, Timestamp) => ({
 
 const seed = async () => {
   const firebaseAdmin = getAdmin();
-  const db = firebaseAdmin.firestore();
-  const {Timestamp} = firebaseAdmin.firestore;
+  const db = adminFirestoreModule.getFirestore(firebaseAdmin);
+  const {Timestamp} = adminFirestoreModule;
   for (const user of Object.values(users)) {
     try {
-      await firebaseAdmin.auth().deleteUser(user.uid);
+      await adminAuthModule.getAuth(firebaseAdmin).deleteUser(user.uid);
     } catch (error) {
       if (error?.code !== 'auth/user-not-found') throw error;
     }
-    await firebaseAdmin.auth().createUser({...user, password, emailVerified: true});
+    await adminAuthModule.getAuth(firebaseAdmin).createUser({...user, password, emailVerified: true});
     await db.doc(`users/${user.uid}`).set({
       uid: user.uid, accessStatus: 'granted', status: user === users.suspendedA ? 'suspended' : 'active',
     });
@@ -298,7 +301,7 @@ test('P5-C1 Rules — consulta de grupo em categorias e shards é negada a todos
 
 // 12. Os documentos semeados continuam intactos depois de todas as tentativas.
 test('P5-C1 Rules — tentativas negadas não alteram as projeções', async () => {
-  const db = getAdmin().firestore();
+  const db = adminFirestoreModule.getFirestore(getAdmin());
   for (const ws of [wsA, wsB, wsArchived]) {
     const period = await db.doc(`workspaces/${ws}/cash_report_periods/${MONTH}`).get();
     assert.equal(period.get('netCents'), 40_000, `${ws}: mês intacto`);

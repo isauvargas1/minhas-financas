@@ -1,4 +1,4 @@
-import type * as admin from "firebase-admin";
+import type * as firebaseAdminFirestore from "firebase-admin/firestore";
 
 import {isDayKey} from "../shared/dateKeys";
 import {CASH_ENTRY_MAX_CENTS} from "./contracts";
@@ -123,7 +123,7 @@ const isSafeAmount = (cents: unknown): cents is number =>
   cents <= CASH_ENTRY_MAX_CENTS;
 
 const cashEntryEligibility = (
-  data: admin.firestore.DocumentData,
+  data: firebaseAdminFirestore.DocumentData,
   type: "receita" | "despesa",
 ): CashEntryEligibility => {
   const entry = data.cashEntry as Record<string, unknown>;
@@ -191,7 +191,7 @@ const cashEntryEligibility = (
 };
 
 export const classifyCashEntryEligibility = (
-  data: admin.firestore.DocumentData,
+  data: firebaseAdminFirestore.DocumentData,
   workspaceId: string,
 ): CashEntryEligibility => {
   if (

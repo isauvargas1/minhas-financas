@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import * as admin from "firebase-admin";
+import * as firebaseAdminApp from "firebase-admin/app";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {Timestamp} from "firebase-admin/firestore";
 
 import {ApplicationError} from "../errors";
@@ -18,9 +19,9 @@ const OTHER_WORKSPACE = "rate-limit-workspace-b";
 const ACTOR = "rate-limit-actor";
 const OTHER_ACTOR = "rate-limit-actor-b";
 
-const db = (): admin.firestore.Firestore => {
-  if (!admin.apps.length) admin.initializeApp({projectId: PROJECT});
-  return admin.firestore();
+const db = (): firebaseAdminFirestore.Firestore => {
+  if (!firebaseAdminApp.getApps().length) firebaseAdminApp.initializeApp({projectId: PROJECT});
+  return firebaseAdminFirestore.getFirestore();
 };
 
 const policy = {operation: "testOperation", limit: 3, windowSeconds: 60};

@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {z} from "zod";
 
 import type {FinancialReport} from "../reports/contract";
@@ -325,7 +325,7 @@ export const productionAiDependencies = (): AiDependencies => ({
  */
 const reserveAnalysisContext = async (
   actor: WorkspaceActor,
-): Promise<WorkspaceRole> => admin.firestore().runTransaction(
+): Promise<WorkspaceRole> => firebaseAdminFirestore.getFirestore().runTransaction(
   async (transaction) => {
     const access = await reassertWorkspaceActor(
       transaction, actor, AI_OPERATION_ROLES);

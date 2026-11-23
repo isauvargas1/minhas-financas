@@ -1,4 +1,4 @@
-import type * as admin from "firebase-admin";
+import type * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {FieldValue} from "firebase-admin/firestore";
 
 import {
@@ -57,7 +57,7 @@ export const splitCashMirrorDocument = (input: {
   entry: SplitCashEntry;
   cashAccountId: string;
   accountMovementId: string;
-}): admin.firestore.DocumentData => ({
+}): firebaseAdminFirestore.DocumentData => ({
   type: input.entry.reversal ? "receita" : "despesa",
   description: input.description,
   category: input.category,
@@ -80,7 +80,7 @@ export const splitCashMirrorDocument = (input: {
 
 /** Fase de leitura do fato novo: a conta precisa existir e estar ativa. */
 export const prepareSplitCashFact = async (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   workspaceId: string,
   cashAccountId: string,
 ): Promise<PostingAccounts> => {
@@ -115,7 +115,7 @@ export interface SplitCashFactInput {
 
 /** Fase de escrita: movimento de saída na conta + espelho da despesa. */
 export const commitSplitCashFact = (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   accounts: PostingAccounts,
   input: SplitCashFactInput,
 ): {accountMovementId: string} => {
@@ -179,7 +179,7 @@ export interface PreparedSplitCashReversal {
  * que ele aplicou. A conta precisa estar ativa (o estorno volta para ela).
  */
 export const prepareSplitCashReversal = async (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   input: {
     workspaceId: string;
     originalTransactionId: string;
@@ -226,7 +226,7 @@ export const prepareSplitCashReversal = async (
 
 /** Fase de escrita da compensação: estorno do movimento + espelho oposto. */
 export const commitSplitCashReversal = (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   prepared: PreparedSplitCashReversal,
   input: {
     reversalTransactionId: string;

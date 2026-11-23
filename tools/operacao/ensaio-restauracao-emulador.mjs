@@ -38,40 +38,41 @@ const sdk = () => {
     falhar('FIRESTORE_EMULATOR_HOST em loopback é obrigatório: este passo só roda dentro do firebase emulators:exec.');
   }
   if ((process.env.GCLOUD_PROJECT ?? PROJETO) !== PROJETO) falhar(`só o projeto ${PROJETO} é aceito.`);
-  const admin = createRequire(import.meta.url)(join(RAIZ, 'functions', 'node_modules', 'firebase-admin'));
-  if (!admin.apps.length) admin.initializeApp({projectId: PROJETO});
-  return admin;
+  const requireAdmin = createRequire(new URL('../../functions/package.json', import.meta.url));
+  const {getApps, initializeApp} = requireAdmin('firebase-admin/app');
+  if (!getApps().length) initializeApp({projectId: PROJETO});
+  return requireAdmin('firebase-admin/firestore');
 };
 
-const canonico = (valor, admin) => {
+const canonico = (valor, firestoreModule) => {
   if (valor === null || typeof valor !== 'object') return valor;
-  if (valor instanceof admin.firestore.Timestamp) return {__ts: `${valor.seconds}.${String(valor.nanoseconds).padStart(9, '0')}`};
-  if (valor instanceof admin.firestore.DocumentReference) return {__ref: valor.path};
-  if (valor instanceof admin.firestore.GeoPoint) return {__geo: [valor.latitude, valor.longitude]};
-  if (Array.isArray(valor)) return valor.map((item) => canonico(item, admin));
-  return Object.fromEntries(Object.keys(valor).sort().map((chave) => [chave, canonico(valor[chave], admin)]));
+  if (valor instanceof firestoreModule.Timestamp) return {__ts: `${valor.seconds}.${String(valor.nanoseconds).padStart(9, '0')}`};
+  if (valor instanceof firestoreModule.DocumentReference) return {__ref: valor.path};
+  if (valor instanceof firestoreModule.GeoPoint) return {__geo: [valor.latitude, valor.longitude]};
+  if (Array.isArray(valor)) return valor.map((item) => canonico(item, firestoreModule));
+  return Object.fromEntries(Object.keys(valor).sort().map((chave) => [chave, canonico(valor[chave], firestoreModule)]));
 };
 
-const percorrer = async (colecoes, linhas, contagem, admin) => {
+const percorrer = async (colecoes, linhas, contagem, firestoreModule) => {
   for (const colecao of colecoes) {
     const docs = await colecao.listDocuments();
     for (const ref of docs) {
       const doc = await ref.get();
       if (doc.exists) {
-        linhas.push(`${ref.path}\t${JSON.stringify(canonico(doc.data(), admin))}`);
+        linhas.push(`${ref.path}\t${JSON.stringify(canonico(doc.data(), firestoreModule))}`);
         const nome = colecao.id;
         contagem[nome] = (contagem[nome] ?? 0) + 1;
       }
-      await percorrer(await ref.listCollections(), linhas, contagem, admin);
+      await percorrer(await ref.listCollections(), linhas, contagem, firestoreModule);
     }
   }
 };
 
 const resumir = async (destino) => {
-  const admin = sdk();
+  const firestoreModule = sdk();
   const linhas = [];
   const contagem = {};
-  await percorrer(await admin.firestore().listCollections(), linhas, contagem, admin);
+  await percorrer(await firestoreModule.getFirestore().listCollections(), linhas, contagem, firestoreModule);
   linhas.sort();
   const resumo = {
     documentos: linhas.length,
@@ -83,9 +84,9 @@ const resumir = async (destino) => {
 };
 
 const semear = async () => {
-  const admin = sdk();
-  const db = admin.firestore();
-  const {Timestamp, FieldValue} = admin.firestore;
+  const firestoreModule = sdk();
+  const db = firestoreModule.getFirestore();
+  const {Timestamp, FieldValue} = firestoreModule;
   const lote = db.batch();
   for (const [ws, dono] of [['ws-ensaio-a', 'usuario-ensaio-a'], ['ws-ensaio-b', 'usuario-ensaio-b']]) {
     lote.set(db.doc(`users/${dono}`), {uid: dono, status: 'active', criadoEm: Timestamp.fromMillis(1_763_000_000_000)});
@@ -110,8 +111,8 @@ const semear = async () => {
 };
 
 const adulterar = async () => {
-  const admin = sdk();
-  await admin.firestore().doc('workspaces/ws-ensaio-a/transactions/lanc-001').update({amountCents: 1_008});
+  const firestoreModule = sdk();
+  await firestoreModule.getFirestore().doc('workspaces/ws-ensaio-a/transactions/lanc-001').update({amountCents: 1_008});
 };
 
 // ------------------------------------------------------------------ orquestração

@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {FieldValue, Timestamp} from "firebase-admin/firestore";
 
 import {CASH_ENTRY_MAX_CENTS} from "../cash/contracts";
@@ -236,7 +236,7 @@ const readBusiness = (
  */
 export const readAuthoritativeRecurringExpense = (
   id: string,
-  data: admin.firestore.DocumentData | undefined,
+  data: firebaseAdminFirestore.DocumentData | undefined,
   workspaceId: string,
 ): AuthoritativeRecurringExpense | null => {
   if (!data || data.schemaVersion !== RECURRING_SCHEMA_VERSION) return null;
@@ -349,7 +349,7 @@ export interface AuthoritativeOccurrence {
  */
 export const readAuthoritativeOccurrence = (
   id: string,
-  data: admin.firestore.DocumentData | undefined,
+  data: firebaseAdminFirestore.DocumentData | undefined,
   workspaceId: string,
 ): AuthoritativeOccurrence | null => {
   if (!data || data.schemaVersion !== RECURRING_SCHEMA_VERSION) return null;
@@ -424,7 +424,7 @@ export const occurrenceDocument = (input: {
   settlement: "pending" | "paid" | null;
   actorId: string;
   requestId: string;
-}): admin.firestore.DocumentData => ({
+}): firebaseAdminFirestore.DocumentData => ({
   id: input.id,
   schemaVersion: RECURRING_SCHEMA_VERSION,
   workspaceId: input.workspaceId,
@@ -512,7 +512,7 @@ export const recurringEventRef = (
  * histórico de valores do contrato (criação e cada alteração de valor).
  */
 export const appendRecurringEvent = (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   input: RecurringEventInput,
 ): string => {
   const ref = recurringEventRef(input.workspaceId, input.operation,

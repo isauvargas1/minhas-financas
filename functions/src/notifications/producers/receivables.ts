@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {FieldPath, FieldValue} from "firebase-admin/firestore";
 import {onSchedule} from "firebase-functions/v2/scheduler";
 
@@ -279,7 +279,7 @@ export interface ReceivableOverdueItemRef {
 }
 
 type ItemResult =
-  | {kind: "published"; document: admin.firestore.DocumentData}
+  | {kind: "published"; document: firebaseAdminFirestore.DocumentData}
   | {kind: "alreadyDelivered" | "reconciled" | "closed" | "rescheduled" |
       "gone"}
   | {kind: "invalid"; attempts: number};
@@ -289,7 +289,7 @@ const isCount = (value: unknown): value is number =>
 
 /** Workspace do caminho `workspaces/{ws}/receivable_overdue_queue/{id}`. */
 const workspaceIdOfItem = (
-  ref: admin.firestore.DocumentReference,
+  ref: firebaseAdminFirestore.DocumentReference,
 ): string | null => {
   const workspace = ref.parent.parent;
   return workspace && workspace.parent.id === "workspaces" &&
@@ -301,7 +301,7 @@ const workspaceIdOfItem = (
  * para saltar o resto dele. O ID do item é o do recebível, `rcv_` + 40
  * hexadecimais (`receivables/model.ts`), sempre abaixo de U+F8FF.
  */
-const afterWorkspaceItems = (workspaceId: string) => admin.firestore().doc(
+const afterWorkspaceItems = (workspaceId: string) => firebaseAdminFirestore.getFirestore().doc(
   `workspaces/${workspaceId}/${RECEIVABLE_OVERDUE_QUEUE_COLLECTION}/\uf8ff`);
 
 /**
@@ -326,7 +326,7 @@ const retryFields = (
 
 const processItem = (input: {
   item: ReceivableOverdueItemRef;
-  queueRef: admin.firestore.DocumentReference;
+  queueRef: firebaseAdminFirestore.DocumentReference;
   today: string;
   createdAtMs: number;
   runId: string | null;
@@ -334,7 +334,7 @@ const processItem = (input: {
 }): Promise<ItemResult> => {
   const {item, queueRef, today} = input;
   const receivableRef = receivablesRef(item.workspaceId).doc(item.receivableId);
-  return admin.firestore().runTransaction(async (transaction) => {
+  return firebaseAdminFirestore.getFirestore().runTransaction(async (transaction) => {
     const [queueSnap, receivableSnap] =
       await transaction.getAll(queueRef, receivableRef);
     if (!queueSnap.exists) return {kind: "gone"} as const;
@@ -470,7 +470,7 @@ export const runReceivableOverdueNotifications = async (options: {
     deferred: 0, throttled: 0, budgetExhausted: false, pendingDueAtEnd: null,
     backlog: false, durationMs: 0, outcome: "idle",
   };
-  const due = admin.firestore()
+  const due = firebaseAdminFirestore.getFirestore()
     .collectionGroup(RECEIVABLE_OVERDUE_QUEUE_COLLECTION)
     .where("runAfterDay", "<=", today);
   const ordered = due
@@ -478,7 +478,7 @@ export const runReceivableOverdueNotifications = async (options: {
     .orderBy(FieldPath.documentId(), "asc");
 
   const recordFailure = async (
-    doc: admin.firestore.QueryDocumentSnapshot,
+    doc: firebaseAdminFirestore.QueryDocumentSnapshot,
     item: ReceivableOverdueItemRef,
     error: unknown,
   ) => {
@@ -513,7 +513,7 @@ export const runReceivableOverdueNotifications = async (options: {
     }
   };
 
-  const handle = async (doc: admin.firestore.QueryDocumentSnapshot) => {
+  const handle = async (doc: firebaseAdminFirestore.QueryDocumentSnapshot) => {
     if (handled.has(doc.ref.path)) return;
     summary.scanned += 1;
     const workspaceId = workspaceIdOfItem(doc.ref);
@@ -591,7 +591,7 @@ export const runReceivableOverdueNotifications = async (options: {
    */
   const sweep = async (): Promise<boolean> => {
     // Posição na ordem (`runAfterDay`, caminho) depois da qual continuar.
-    let after: [unknown, admin.firestore.DocumentReference] | null = null;
+    let after: [unknown, firebaseAdminFirestore.DocumentReference] | null = null;
     while (summary.pages < maxPages) {
       // A primeira página da execução sempre começa.
       const elapsed = Date.now() - startedAt;

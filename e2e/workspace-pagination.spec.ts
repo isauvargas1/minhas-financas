@@ -1,3 +1,4 @@
+import { adminAuth, adminFirestore } from './support/adminModules';
 import { expect, test } from '@playwright/test';
 
 import { adminSdk, seedAccountProfile } from './support/workspaceSeed';
@@ -19,17 +20,17 @@ const wsName = (index: number) => `Empresa Paginada ${String(index).padStart(3, 
 
 test.beforeAll(async () => {
   const sdk = adminSdk();
-  const db = sdk.firestore();
+  const db = adminFirestore.getFirestore(sdk);
   try {
-    await sdk.auth().deleteUser(UID);
+    await adminAuth.getAuth(sdk).deleteUser(UID);
   } catch (error) {
     if ((error as { code?: string }).code !== 'auth/user-not-found') throw error;
   }
-  await sdk.auth().createUser({ uid: UID, email: EMAIL, password: PASSWORD, emailVerified: true });
+  await adminAuth.getAuth(sdk).createUser({ uid: UID, email: EMAIL, password: PASSWORD, emailVerified: true });
   await db.recursiveDelete(db.collection(`users/${UID}/workspaces`));
   await seedAccountProfile({ uid: UID, email: EMAIL });
 
-  const at = (index: number) => sdk.firestore.Timestamp.fromMillis(Date.UTC(2026, 0, 1) + index * 1000);
+  const at = (index: number) => adminFirestore.Timestamp.fromMillis(Date.UTC(2026, 0, 1) + index * 1000);
   const writer = db.bulkWriter();
   for (let index = 0; index < WORKSPACES; index += 1) {
     const workspaceId = wsId(index);

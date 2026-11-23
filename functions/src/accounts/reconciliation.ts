@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {FieldPath, FieldValue} from "firebase-admin/firestore";
 
 import {
@@ -123,10 +123,10 @@ const PAGE_SIZE = 300;
 
 /** Lê uma coleção inteira em páginas por `__name__` (só Emulator). */
 const readAll = async (
-  query: admin.firestore.Query,
-): Promise<admin.firestore.QueryDocumentSnapshot[]> => {
-  const docs: admin.firestore.QueryDocumentSnapshot[] = [];
-  let cursor: admin.firestore.QueryDocumentSnapshot | undefined;
+  query: firebaseAdminFirestore.Query,
+): Promise<firebaseAdminFirestore.QueryDocumentSnapshot[]> => {
+  const docs: firebaseAdminFirestore.QueryDocumentSnapshot[] = [];
+  let cursor: firebaseAdminFirestore.QueryDocumentSnapshot | undefined;
   for (;;) {
     let page = query.orderBy(FieldPath.documentId()).limit(PAGE_SIZE);
     if (cursor) page = page.startAfter(cursor);
@@ -160,7 +160,7 @@ export const runCashAccountReconciliation = async (
   if (options.repair) {
     for (const row of divergent) {
       if (row.invalidMovementCount > 0) continue;
-      await admin.firestore().runTransaction(async (transaction) => {
+      await firebaseAdminFirestore.getFirestore().runTransaction(async (transaction) => {
         const accountRef = cashAccountsRef(workspaceId).doc(row.accountId);
         const [account, movements] = await Promise.all([
           transaction.get(accountRef),

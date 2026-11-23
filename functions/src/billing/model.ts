@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {FieldValue, Timestamp} from "firebase-admin/firestore";
 
 import {BILLING_CATALOG_VERSION, type PlanId} from "./catalog";
@@ -143,26 +143,26 @@ export interface ReconciliationLeaseDocument {
 /** `processing` nunca vale como processado: só `processed` encerra o evento. */
 export type WebhookReceiptStatus = "processing" | "processed";
 
-const db = () => admin.firestore();
+const db = () => firebaseAdminFirestore.getFirestore();
 
 export const billingAccountRef = (
   uid: string,
-): admin.firestore.DocumentReference =>
+): firebaseAdminFirestore.DocumentReference =>
   db().collection(BILLING_ACCOUNTS_COLLECTION).doc(uid);
 
 export const billingCustomerRef = (
   stripeCustomerId: string,
-): admin.firestore.DocumentReference =>
+): firebaseAdminFirestore.DocumentReference =>
   db().collection(BILLING_CUSTOMERS_COLLECTION).doc(stripeCustomerId);
 
 export const billingWebhookEventRef = (
   stripeEventId: string,
-): admin.firestore.DocumentReference =>
+): firebaseAdminFirestore.DocumentReference =>
   db().collection(BILLING_WEBHOOK_EVENTS_COLLECTION).doc(stripeEventId);
 
 export const billingReconciliationLeaseRef = (
   uid: string,
-): admin.firestore.DocumentReference =>
+): firebaseAdminFirestore.DocumentReference =>
   billingAccountRef(uid)
     .collection(BILLING_SYNC_COLLECTION)
     .doc(RECONCILIATION_LEASE_ID);
@@ -199,9 +199,9 @@ export const freeBillingAccountDocument = (uid: string) => ({
  * leituras antes da primeira escrita). Nunca sobrescreve um estado existente.
  */
 export const ensureBillingAccount = (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   uid: string,
-  snapshot: admin.firestore.DocumentSnapshot,
+  snapshot: firebaseAdminFirestore.DocumentSnapshot,
 ): boolean => {
   if (snapshot.exists) return false;
   transaction.create(billingAccountRef(uid), freeBillingAccountDocument(uid));

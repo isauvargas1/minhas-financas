@@ -1,5 +1,5 @@
+import { adminApp, adminAuth, adminFirestore } from './support/adminModules';
 import { expect, test, type Page } from '@playwright/test';
-import { createRequire } from 'node:module';
 
 import { seedOwnedWorkspace } from './support/workspaceSeed';
 
@@ -15,8 +15,6 @@ import { seedOwnedWorkspace } from './support/workspaceSeed';
  * "Depositado" sem movimento liquidado seria pior que uma que não mostra nada.
  */
 
-const require = createRequire(import.meta.url);
-const admin = require('../functions/node_modules/firebase-admin') as typeof import('../functions/node_modules/firebase-admin');
 
 const PROJECT = 'minhas-financas-local';
 const UID = 'e2e-investments-simple-owner';
@@ -37,8 +35,8 @@ const sdk = () => {
   process.env.GCLOUD_PROJECT = PROJECT;
   process.env.FIRESTORE_EMULATOR_HOST = '127.0.0.1:8080';
   process.env.FIREBASE_AUTH_EMULATOR_HOST = '127.0.0.1:9099';
-  if (!admin.apps.length) admin.initializeApp({ projectId: PROJECT });
-  return admin;
+  if (!adminApp.getApps().length) adminApp.initializeApp({ projectId: PROJECT });
+  return adminApp.getApp();
 };
 
 const catalogo = (
@@ -65,17 +63,17 @@ const catalogo = (
 
 test.beforeEach(async () => {
   const firebaseAdmin = sdk();
-  const db = firebaseAdmin.firestore();
+  const db = adminFirestore.getFirestore(firebaseAdmin);
   await db.recursiveDelete(db.doc(`workspaces/${WORKSPACE}`));
   try {
-    await firebaseAdmin.auth().deleteUser(UID);
+    await adminAuth.getAuth(firebaseAdmin).deleteUser(UID);
   } catch (error) {
     if ((error as { code?: string }).code !== 'auth/user-not-found') throw error;
   }
-  await firebaseAdmin.auth().createUser({
+  await adminAuth.getAuth(firebaseAdmin).createUser({
     uid: UID, email: EMAIL, password: PASSWORD, emailVerified: true,
   });
-  const now = firebaseAdmin.firestore.Timestamp.now();
+  const now = adminFirestore.Timestamp.now();
   const stamps = { createdAt: now, updatedAt: now };
   await seedOwnedWorkspace({
     uid: UID, email: EMAIL, workspaceId: WORKSPACE, name: 'Patrimônio Simples', type: 'PF',
@@ -109,7 +107,7 @@ const abrirInvestimentos = async (page: Page) => {
 };
 
 const movimentos = async () => {
-  const snapshot = await sdk().firestore()
+  const snapshot = await adminFirestore.getFirestore(sdk())
     .collection(`workspaces/${WORKSPACE}/investment_movements`).get();
   return snapshot.docs.map((entry) => entry.data());
 };
@@ -174,7 +172,7 @@ test('pendente aparece na lista, é confirmado e vira depositado', async ({ page
   await expect.poll(async () => (await movimentos()).length).toBe(1);
   expect((await movimentos())[0].status).toBe('pending');
   expect((await movimentos())[0].cashDeltaCents).toBe(0);
-  expect((await sdk().firestore()
+  expect((await adminFirestore.getFirestore(sdk())
     .collection(`workspaces/${WORKSPACE}/investment_positions`).get()).size).toBe(0);
 
   await linha.getByRole('button', { name: /Confirmar depósito/ }).click();
@@ -187,7 +185,7 @@ test('pendente aparece na lista, é confirmado e vira depositado', async ({ page
   // Uma contribuição só: liquidar não cria um segundo fato financeiro.
   await expect.poll(async () => (await movimentos()).length).toBe(1);
   expect((await movimentos())[0].status).toBe('settled');
-  await expect.poll(async () => (await sdk().firestore()
+  await expect.poll(async () => (await adminFirestore.getFirestore(sdk())
     .collection(`workspaces/${WORKSPACE}/investment_positions`).get()).size).toBe(1);
 });
 
@@ -233,7 +231,7 @@ test('investimento depositado é retirado e o recebimento é confirmado', async 
     .find((movimento) => movimento.operation === 'redemption')?.status).toBe('settled');
   // O capital aplicado caiu de R$ 2.000,00 para R$ 1.500,00.
   await expect.poll(async () => {
-    const posicoes = await sdk().firestore()
+    const posicoes = await adminFirestore.getFirestore(sdk())
       .collection(`workspaces/${WORKSPACE}/investment_positions`).get();
     return posicoes.docs[0]?.get('principalCents');
   }).toBe(150_000);
@@ -255,7 +253,7 @@ test('cancelar um pendente preserva o histórico e não vira investimento ativo'
   // Nada foi apagado, e nada virou posição.
   await expect.poll(async () => (await movimentos()).length).toBe(1);
   expect((await movimentos())[0].status).toBe('cancelled');
-  expect((await sdk().firestore()
+  expect((await adminFirestore.getFirestore(sdk())
     .collection(`workspaces/${WORKSPACE}/investment_positions`).get()).size).toBe(0);
   // E o lançamento cancelado não oferece mais ação nenhuma.
   await expect(linha.getByRole('button', { name: /Confirmar depósito/ })).toHaveCount(0);
@@ -368,7 +366,7 @@ test('"Nova Transação" registra o aporte pelo ledger simples, e não por trans
   expect(movimento.operation).toBe('contribution');
   expect(movimento.status).toBe('pending');
   expect(movimento.cashDeltaCents).toBe(0);
-  expect((await sdk().firestore()
+  expect((await adminFirestore.getFirestore(sdk())
     .collection(`workspaces/${WORKSPACE}/investment_positions`).get()).size).toBe(0);
 
   // E o mesmo lançamento aparece na tela de Investimentos: um domínio só.

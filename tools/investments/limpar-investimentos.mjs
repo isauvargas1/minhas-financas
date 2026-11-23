@@ -53,7 +53,6 @@
 
 import {createRequire} from 'node:module';
 
-const require = createRequire(import.meta.url);
 
 /** O único projeto em que este utilitário opera. */
 const PROJETO_EMULADOR = 'minhas-financas-local';
@@ -296,9 +295,11 @@ if (aplicar && incluirLegado && confirmacaoLegado !== workspaceId) {
 }
 
 // Carregamento tardio: nenhuma guarda acima toca o SDK.
-const admin = require('../../functions/node_modules/firebase-admin');
-if (!admin.apps.length) admin.initializeApp({projectId: PROJETO_EMULADOR});
-const db = admin.firestore();
+const requireAdmin = createRequire(new URL('../../functions/package.json', import.meta.url));
+const {getApps, initializeApp} = requireAdmin('firebase-admin/app');
+const {getFirestore, FieldPath, FieldValue} = requireAdmin('firebase-admin/firestore');
+if (!getApps().length) initializeApp({projectId: PROJETO_EMULADOR});
+const db = getFirestore();
 const raiz = `workspaces/${workspaceId}`;
 
 /** É espelho de caixa do domínio? Só o backend grava estes campos. */
@@ -337,7 +338,7 @@ const apagarColecao = async (nome, relatorio) => {
   let removidos = 0;
   for (;;) {
     let consulta = db.collection(`${raiz}/${nome}`)
-      .orderBy(admin.firestore.FieldPath.documentId())
+      .orderBy(FieldPath.documentId())
       .limit(pagina);
     if (ultimo) consulta = consulta.startAfter(ultimo);
     const página = await consulta.get();
@@ -370,7 +371,7 @@ const tratarTransacoesDeInvestimento = async (relatorio) => {
   for (;;) {
     let consulta = db.collection(`${raiz}/transactions`)
       .where('type', '==', 'investimento')
-      .orderBy(admin.firestore.FieldPath.documentId())
+      .orderBy(FieldPath.documentId())
       .limit(pagina);
     if (ultimo) consulta = consulta.startAfter(ultimo);
     const página = await consulta.get();
@@ -432,7 +433,7 @@ const limparProgressoDeMetas = async (relatorio) => {
   // sem que o relatório diga.
   for (;;) {
     let consulta = db.collection(`${raiz}/goals`)
-      .orderBy(admin.firestore.FieldPath.documentId())
+      .orderBy(FieldPath.documentId())
       .limit(pagina);
     if (ultimo) consulta = consulta.startAfter(ultimo);
     const página = await consulta.get();
@@ -448,7 +449,7 @@ const limparProgressoDeMetas = async (relatorio) => {
       if (aplicar) {
         // A meta não é apagada: só o progresso derivado das posições sai.
         await meta.ref.update(
-          Object.fromEntries(campos.map((campo) => [campo, admin.firestore.FieldValue.delete()])),
+          Object.fromEntries(campos.map((campo) => [campo, FieldValue.delete()])),
         );
       }
     }

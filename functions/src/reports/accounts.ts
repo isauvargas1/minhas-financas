@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {AggregateField} from "firebase-admin/firestore";
 
 import {CASH_ACCOUNTS_COLLECTION} from "../accounts/model";
@@ -15,7 +15,7 @@ import type {AccountsReport, ReportSectionResult} from "./contract";
 export const readAccountsSection = async (
   workspaceId: string,
 ): Promise<ReportSectionResult<AccountsReport>> => {
-  const accounts = admin.firestore()
+  const accounts = firebaseAdminFirestore.getFirestore()
     .collection(`workspaces/${workspaceId}/${CASH_ACCOUNTS_COLLECTION}`);
   const [all, negative] = await Promise.all([
     accounts.aggregate({

@@ -172,10 +172,12 @@ if (subcomando === 'revogar') {
 }
 
 // Carregamento tardio: nenhuma guarda acima toca o SDK.
-const admin = require('../../functions/node_modules/firebase-admin');
-if (!admin.apps.length) admin.initializeApp({projectId: projeto});
-const db = admin.firestore();
-const {FieldValue} = admin.firestore;
+const requireAdmin = createRequire(new URL('../../functions/package.json', import.meta.url));
+const {getApps, initializeApp} = requireAdmin('firebase-admin/app');
+const {getFirestore, FieldValue} = requireAdmin('firebase-admin/firestore');
+const {getAuth} = requireAdmin('firebase-admin/auth');
+if (!getApps().length) initializeApp({projectId: projeto});
+const db = getFirestore();
 
 if (producao) {
   const faixa = '!'.repeat(72);
@@ -316,7 +318,7 @@ const revogar = async () => {
   }
   let usuario = null;
   try {
-    usuario = await admin.auth().getUser(uidVinculado);
+    usuario = await getAuth().getUser(uidVinculado);
   } catch (erro) {
     if (erro?.code !== 'auth/user-not-found') throw erro;
   }

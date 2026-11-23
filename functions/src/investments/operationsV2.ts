@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {FieldValue, Timestamp} from "firebase-admin/firestore";
 
 import {ApplicationError} from "../shared/errors";
@@ -127,7 +127,7 @@ export const isExposedPosition = (state: {
   state.currentValueCents !== 0;
 
 export const positionState = (
-  snapshot: admin.firestore.DocumentSnapshot,
+  snapshot: firebaseAdminFirestore.DocumentSnapshot,
 ): PositionState => {
   if (!snapshot.exists) return emptyPosition();
   const data = snapshot.data() ?? {};
@@ -214,8 +214,8 @@ const applyPositionDeltas = (
 };
 
 const ensureAccountAndAsset = (
-  accountSnapshot: admin.firestore.DocumentSnapshot,
-  assetSnapshot: admin.firestore.DocumentSnapshot,
+  accountSnapshot: firebaseAdminFirestore.DocumentSnapshot,
+  assetSnapshot: firebaseAdminFirestore.DocumentSnapshot,
   workspaceId: string,
   profileType: "PF" | "PJ",
   requireActive: boolean,
@@ -274,7 +274,7 @@ export const GOAL_NOT_INVESTMENT_MESSAGE =
  * liberar o arquivamento.
  */
 export const assertGoalAcceptsInvestmentLink = (
-  goalSnapshot: admin.firestore.DocumentSnapshot,
+  goalSnapshot: firebaseAdminFirestore.DocumentSnapshot,
   workspaceId: string,
 ): void => {
   if (!goalSnapshot.exists) {
@@ -307,8 +307,8 @@ export const assertGoalAcceptsInvestmentLink = (
  * poderiam ambos confirmar.
  */
 export const updateGoalProjection = (
-  transaction: admin.firestore.Transaction,
-  goalSnapshot: admin.firestore.DocumentSnapshot | undefined,
+  transaction: firebaseAdminFirestore.Transaction,
+  goalSnapshot: firebaseAdminFirestore.DocumentSnapshot | undefined,
   netContributionDeltaCents: number,
   currentValueDeltaCents: number,
   actorId: string,
@@ -361,8 +361,8 @@ export const updateGoalProjection = (
 };
 
 export const writePosition = (
-  transaction: admin.firestore.Transaction,
-  snapshot: admin.firestore.DocumentSnapshot,
+  transaction: firebaseAdminFirestore.Transaction,
+  snapshot: firebaseAdminFirestore.DocumentSnapshot,
   workspaceId: string,
   profileType: "PF" | "PJ",
   accountId: string,
@@ -1789,8 +1789,8 @@ export const executeSettleInvestmentContribution = async (
  * catálogo.
  */
 interface ReplacedPendingContribution {
-  ref: admin.firestore.DocumentReference;
-  data: admin.firestore.DocumentData;
+  ref: firebaseAdminFirestore.DocumentReference;
+  data: firebaseAdminFirestore.DocumentData;
   /** `typeId` fotografado no movimento. Ausente em movimento sem fotografia. */
   typeId?: string;
 }
@@ -1808,7 +1808,7 @@ interface ReplacedPendingContribution {
  * compensatório, que é operação própria e mexe em posição, meta e caixa.
  */
 const readReplacedPendingContribution = async (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   auth: WorkspaceActor,
   profileType: "PF" | "PJ",
   movementId: string,

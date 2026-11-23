@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 
 import {
   assertActiveAccount,
@@ -93,7 +93,7 @@ export const IMPORT_LINE_CONFLICT_MESSAGE =
 const INTERNAL_MESSAGE =
   "Não foi possível importar os lançamentos. Tente novamente.";
 
-const db = () => admin.firestore();
+const db = () => firebaseAdminFirestore.getFirestore();
 
 /** ID da linha: o ator entra no hash, como na criação unitária. */
 export const cashImportTransactionId = (
@@ -152,7 +152,7 @@ const toEntryInput = (
  * catálogo; linha sem ID fica "Sem categoria". Erro aponta a linha.
  */
 const resolveLineCategories = async (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   workspaceId: string,
   lines: Array<{transactionId: string; item: CashImportItem}>,
 ): Promise<Map<string, ResolvedEntryCategory>> => {

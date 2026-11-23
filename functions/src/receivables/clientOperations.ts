@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {FieldValue} from "firebase-admin/firestore";
 
 import {ApplicationError} from "../shared/errors";
@@ -78,7 +78,7 @@ export const CLIENT_HAS_OPEN_RECEIVABLES_MESSAGE =
   "Este cliente tem recebíveis em aberto. Receba ou cancele esses " +
   "recebíveis antes de arquivar o cliente.";
 
-const db = () => admin.firestore();
+const db = () => firebaseAdminFirestore.getFirestore();
 
 const replayResult = (
   stored: Record<string, unknown>,
@@ -90,7 +90,7 @@ const replayResult = (
 };
 
 const reserveClientRateLimit = (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   actor: WorkspaceActor,
 ) => reserveRateLimit(
   transaction,
@@ -209,9 +209,9 @@ interface LoadedClient {
   reservation: ActorIdempotencyReservation;
   intentId: string;
   client: AuthoritativeClient;
-  clientRef: admin.firestore.DocumentReference;
-  privateRef: admin.firestore.DocumentReference;
-  privateData: admin.firestore.DocumentData;
+  clientRef: firebaseAdminFirestore.DocumentReference;
+  privateRef: firebaseAdminFirestore.DocumentReference;
+  privateData: firebaseAdminFirestore.DocumentData;
 }
 
 type ClientLoadOutcome =
@@ -219,7 +219,7 @@ type ClientLoadOutcome =
   | {loaded: LoadedClient};
 
 const loadClientForMutation = async (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   actor: WorkspaceActor,
   payload: ClientMutationPayload,
   operation: string,

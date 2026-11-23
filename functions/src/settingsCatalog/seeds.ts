@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 
 import {
   catalogDedupeKey,
@@ -120,7 +120,7 @@ export const catalogSeedItemIdFor = (
 
 /** Grava os cadastros padrão (só `create`) e devolve quantos itens. */
 export const writeCatalogDefaults = (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   input: {workspaceId: string; type: WorkspaceType; uid: string},
 ): number => {
   const seeds = catalogSeedsFor(input.type);

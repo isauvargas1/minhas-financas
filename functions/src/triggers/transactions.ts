@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {FieldValue, Timestamp} from "firebase-admin/firestore";
 import {onDocumentWritten} from "firebase-functions/v2/firestore";
 
@@ -16,7 +16,7 @@ import {isContentionAbortedError} from "../shared/errors";
 import {createOperationLogger} from "../shared/logger";
 import {TRANSACTION_WRITE_TRIGGER_OPTIONS} from "../shared/runtimeOptions";
 
-const db = () => admin.firestore();
+const db = () => firebaseAdminFirestore.getFirestore();
 
 /**
  * Retenção da trilha de atividade (INV-P2-041).
@@ -114,7 +114,7 @@ export const parseCloudEventTime = (value: string): Timestamp =>
  * (`investmentEntry`, `creditCardPaymentEntry`, `splitEntry`...), baixa
  * lógica e pendentes. A trilha não tem regra própria de sinal.
  */
-const cashNetCentsOf = (data?: admin.firestore.DocumentData): number =>
+const cashNetCentsOf = (data?: firebaseAdminFirestore.DocumentData): number =>
   cashPeriodDeltaFor(data).netCents;
 
 export type TransactionWriteAction = "CREATE" | "UPDATE" | "DELETE";
@@ -126,8 +126,8 @@ export interface TransactionWriteEvent {
   transactionId: string;
   /** Instante de commit da escrita de origem. */
   eventTime: Timestamp;
-  before?: admin.firestore.DocumentData;
-  after?: admin.firestore.DocumentData;
+  before?: firebaseAdminFirestore.DocumentData;
+  after?: firebaseAdminFirestore.DocumentData;
   /** `createTime` do documento antes da escrita (UPDATE e DELETE). */
   beforeCreateTime?: Timestamp;
   /**

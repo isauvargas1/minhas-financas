@@ -1,3 +1,4 @@
+import { adminAuth, adminFirestore } from './support/adminModules';
 import { createRequire } from 'node:module';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -448,14 +449,14 @@ const OWNER = { uid: 'e2e-p5g-a11y-owner', email: 'e2e-p5g-a11y-owner@minhas-fin
 const seedApp = async () => {
   await clearEmulatorData();
   const workspaceId = `e2e-p5g-a11y-${Date.now().toString(36)}`;
-  await adminSdk().auth().createUser({ ...OWNER, password: PASSWORD, emailVerified: true });
+  await adminAuth.getAuth(adminSdk()).createUser({ ...OWNER, password: PASSWORD, emailVerified: true });
   await seedOwnedWorkspace({ ...OWNER, workspaceId, name: 'Acessibilidade P5G', type: 'PF' });
-  const batch = adminSdk().firestore().batch();
+  const batch = adminFirestore.getFirestore(adminSdk()).batch();
   [
     { id: 'p5g_goal', eventType: 'goal_achieved', type: 'success', link: 'goals', title: 'Meta concluída P5G', entity: { goalId: 'goal-p5g' }, age: 2 },
     { id: 'p5g_loan', eventType: 'loan_overdue', type: 'warning', link: 'loans', title: 'Empréstimo vencido P5G', entity: { loanId: 'loan-p5g' }, age: 5 },
   ].forEach((event) => {
-    batch.create(adminSdk().firestore().doc(`workspaces/${workspaceId}/notifications/${event.id}`), buildNotificationDocument({
+    batch.create(adminFirestore.getFirestore(adminSdk()).doc(`workspaces/${workspaceId}/notifications/${event.id}`), buildNotificationDocument({
       id: event.id, workspaceId, eventType: event.eventType, title: event.title,
       message: `Evento ${event.id} registrado no workspace.`, type: event.type, link: event.link,
       createdAtMs: Date.now() - event.age * 60_000, entity: event.entity,
@@ -524,7 +525,7 @@ test('PTBR-04: Escape fecha o painel e o foco volta ao sino; o X também; com o 
   await expect(panelHeading(page)).toHaveCount(0);
   await expect(page.getByRole('heading', { name: /Metas/ }).first()).toBeVisible({ timeout: 30_000 });
   expect(await isFocused(bell(page))).toBe(true);
-  await expect.poll(async () => (await adminSdk().firestore()
+  await expect.poll(async () => (await adminFirestore.getFirestore(adminSdk())
     .doc(`workspaces/${workspaceId}/notification_user_states/${OWNER.uid}/notification_entries/p5g_goal`).get()).get('read'),
   { timeout: 30_000 }).toBe(true);
 });

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {Timestamp} from "firebase-admin/firestore";
 import {HttpsError} from "firebase-functions/v2/https";
 
@@ -93,7 +93,7 @@ import {
  */
 
 const firestore = requireFirestoreEmulator();
-const db = (): admin.firestore.Firestore => firestore;
+const db = (): firebaseAdminFirestore.Firestore => firestore;
 
 const WS = "goals-p5b-pf";
 const WS_OTHER = "goals-p5b-other";
@@ -224,7 +224,7 @@ const countOf = async (workspaceId: string, collection: string) =>
 const auditOf = async (
   goalId: string, operation?: string, workspaceId = WS,
 ) => {
-  let query: admin.firestore.Query = db()
+  let query: firebaseAdminFirestore.Query = db()
     .collection(`workspaces/${workspaceId}/goal_audit_logs`)
     .where("targetId", "==", goalId);
   if (operation) query = query.where("operation", "==", operation);
@@ -1154,12 +1154,12 @@ test("mais de 100 metas: páginas por cursor sem repetição e contagem exata",
     await archive(ids[0]);
     const goals = db().collection(`workspaces/${WS}/goals`);
     const seen: string[] = [];
-    let cursor: admin.firestore.QueryDocumentSnapshot | undefined;
+    let cursor: firebaseAdminFirestore.QueryDocumentSnapshot | undefined;
     let pages = 0;
     for (;;) {
       let query = goals.where("archived", "==", false)
         .orderBy("priorityRank", "desc").orderBy("createdAt", "desc")
-        .orderBy(admin.firestore.FieldPath.documentId(), "desc");
+        .orderBy(firebaseAdminFirestore.FieldPath.documentId(), "desc");
       if (cursor) query = query.startAfter(cursor);
       const page = await query.limit(26).get();
       pages += 1;

@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 
 import {
   aiRequestHash,
@@ -113,7 +113,7 @@ export const admitAiCall = (
     payload: request.payload,
   });
 
-  return admin.firestore().runTransaction(async (transaction) => {
+  return firebaseAdminFirestore.getFirestore().runTransaction(async (transaction) => {
     const nowMs = request.now();
     const periodKey = saoPauloMonthKey(new Date(nowMs));
 

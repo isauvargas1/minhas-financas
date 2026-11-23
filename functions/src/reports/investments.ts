@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 
 import {INVESTMENT_COLLECTIONS} from "../investments/paths";
 import {MAX_CASH_PERIODS} from "../cash/rebuild";
@@ -73,7 +73,7 @@ interface StoredInvestmentMonth {
 
 const readInvestmentMonth = (
   month: string,
-  data: admin.firestore.DocumentData,
+  data: firebaseAdminFirestore.DocumentData,
 ): StoredInvestmentMonth => {
   const totals = flowsOf(data);
   const daily: Record<string, Flows> = {};
@@ -95,7 +95,7 @@ const readInvestmentMonth = (
 };
 
 const periodsRef = (workspaceId: string) =>
-  admin.firestore().collection(
+  firebaseAdminFirestore.getFirestore().collection(
     `workspaces/${workspaceId}/${INVESTMENT_COLLECTIONS.reportPeriods}`);
 
 export const readInvestmentsSection = async (input: {
@@ -107,11 +107,11 @@ export const readInvestmentsSection = async (input: {
   includePatrimony: boolean;
 }): Promise<ReportSectionResult<InvestmentsReport>> => {
   const {workspaceId, months} = input;
-  const summaryRef = admin.firestore().doc(
+  const summaryRef = firebaseAdminFirestore.getFirestore().doc(
     `workspaces/${workspaceId}/${INVESTMENT_COLLECTIONS.summaries}/current`);
 
   const stored = new Map<string, StoredInvestmentMonth>();
-  let summary: admin.firestore.DocumentData | null = null;
+  let summary: firebaseAdminFirestore.DocumentData | null = null;
   if (input.allTime) {
     const [summarySnapshot, snapshot] = await Promise.all([
       input.includePatrimony ? summaryRef.get() : Promise.resolve(null),
@@ -132,7 +132,7 @@ export const readInvestmentsSection = async (input: {
       ...months.map((slice) => periodsRef(workspaceId).doc(slice.month)),
     ];
     const snapshots = refs.length > 0 ?
-      await admin.firestore().getAll(...refs) : [];
+      await firebaseAdminFirestore.getFirestore().getAll(...refs) : [];
     if (input.includePatrimony) summary = snapshots[0].data() ?? {};
     snapshots.slice(offset).forEach((snapshot, index) => {
       if (snapshot.exists) {

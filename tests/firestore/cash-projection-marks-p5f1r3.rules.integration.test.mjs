@@ -39,7 +39,10 @@ import {transactionFingerprint as clientFingerprint} from '../../src/modules/wor
  */
 
 const require = createRequire(import.meta.url);
-const admin = require('../../functions/node_modules/firebase-admin');
+const requireAdmin = createRequire(new URL('../../functions/package.json', import.meta.url));
+const adminAppModule = requireAdmin('firebase-admin/app');
+const adminFirestoreModule = requireAdmin('firebase-admin/firestore');
+const adminAuthModule = requireAdmin('firebase-admin/auth');
 if (!process.env.FIRESTORE_EMULATOR_HOST) {
   throw new Error('FIRESTORE_EMULATOR_HOST é obrigatório para os testes de Rules da P5-F.1-R3.');
 }
@@ -68,8 +71,8 @@ const FP2 = 'b'.repeat(64);
 const getAdmin = () => {
   process.env.FIRESTORE_EMULATOR_HOST ||= '127.0.0.1:8080';
   process.env.FIREBASE_AUTH_EMULATOR_HOST ||= '127.0.0.1:9099';
-  if (!admin.apps.length) admin.initializeApp({projectId});
-  return admin;
+  if (!adminAppModule.getApps().length) adminAppModule.initializeApp({projectId});
+  return adminAppModule.getApp();
 };
 
 /** Forma real da marca gravada pelo gatilho de caixa (`MarkDoc`). */
@@ -107,15 +110,15 @@ const fingerprintTransaction = (ws, Timestamp, microNanos = 123_456_000) => ({
 
 const seed = async () => {
   const firebaseAdmin = getAdmin();
-  const db = firebaseAdmin.firestore();
-  const {Timestamp} = firebaseAdmin.firestore;
+  const db = adminFirestoreModule.getFirestore(firebaseAdmin);
+  const {Timestamp} = adminFirestoreModule;
   for (const user of Object.values(users)) {
     try {
-      await firebaseAdmin.auth().deleteUser(user.uid);
+      await adminAuthModule.getAuth(firebaseAdmin).deleteUser(user.uid);
     } catch (error) {
       if (error?.code !== 'auth/user-not-found') throw error;
     }
-    await firebaseAdmin.auth().createUser({...user, password, emailVerified: true});
+    await adminAuthModule.getAuth(firebaseAdmin).createUser({...user, password, emailVerified: true});
     await db.doc(`users/${user.uid}`).set({
       uid: user.uid, accessStatus: 'granted', status: user === users.suspendedA ? 'suspended' : 'active',
     });
@@ -246,7 +249,7 @@ test('escrita direta na marca: criar, sobrescrever, atualizar e apagar negados a
     }
   });
   // Nada mudou no servidor: marca intacta e nenhuma marca forjada.
-  const db = getAdmin().firestore();
+  const db = adminFirestoreModule.getFirestore(getAdmin());
   const kept = await db.doc(`workspaces/${wsA}/cash_projection_marks/t1`).get();
   assert.equal(kept.exists, true);
   assert.equal(kept.data().chains.a.node.fp, FP1);
@@ -291,7 +294,7 @@ test('transação só de leitura: viewer lê meses e marcas; escrita na transaç
       await transaction.get(markRef(viewerA.db, wsA, 't1'));
       transaction.update(markRef(viewerA.db, wsA, 't1'), {'chains.a.node': {k: 'alive', fp: FP2}});
     }), 'transação do viewer não escreve na marca');
-    const intact = await getAdmin().firestore().doc(`workspaces/${wsA}/cash_projection_marks/t1`).get();
+    const intact = await adminFirestoreModule.getFirestore(getAdmin()).doc(`workspaces/${wsA}/cash_projection_marks/t1`).get();
     assert.equal(intact.data().chains.a.node.fp, FP1, 'marca segue intacta');
 
     await denied(readSnapshot(ownerB.db, wsA), 'owner de B não lê a projeção de A');
@@ -300,8 +303,8 @@ test('transação só de leitura: viewer lê meses e marcas; escrita na transaç
 
 test('paridade da impressão digital entre o SDK web e o Admin SDK, e sensibilidade a 1 microssegundo', async () => {
   const firebaseAdmin = getAdmin();
-  const adminDb = firebaseAdmin.firestore();
-  const {Timestamp} = firebaseAdmin.firestore;
+  const adminDb = adminFirestoreModule.getFirestore(firebaseAdmin);
+  const {Timestamp} = adminFirestoreModule;
   const backend = require('../../functions/lib/cash/projectionMarks.js');
   const ref = `workspaces/${wsA}/transactions/${FP_TX}`;
 

@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {FieldPath, FieldValue} from "firebase-admin/firestore";
 import {onSchedule} from "firebase-functions/v2/scheduler";
 
@@ -48,13 +48,13 @@ export interface LoanStatusRefreshSummary {
 }
 
 const refreshOne = async (
-  ref: admin.firestore.DocumentReference,
+  ref: firebaseAdminFirestore.DocumentReference,
   today: string,
   requestId: string,
 ): Promise<boolean> => {
   const workspaceId = ref.parent.parent?.id;
   if (!workspaceId) return false;
-  return admin.firestore().runTransaction(async (transaction) => {
+  return firebaseAdminFirestore.getFirestore().runTransaction(async (transaction) => {
     const snapshot = await transaction.get(ref);
     const loan = readAuthoritativeLoan(ref.id, snapshot.data(), workspaceId);
     if (!loan || loan.status !== "active") return false;
@@ -123,9 +123,9 @@ export const runLoanStatusRefresh = async (options: {
   const summary: LoanStatusRefreshSummary = {
     today, scanned: 0, updated: 0, unchanged: 0, failed: 0, truncated: true,
   };
-  let cursor: admin.firestore.QueryDocumentSnapshot | undefined;
+  let cursor: firebaseAdminFirestore.QueryDocumentSnapshot | undefined;
   for (let page = 0; page < maxPages; page += 1) {
-    let query = admin.firestore()
+    let query = firebaseAdminFirestore.getFirestore()
       .collectionGroup(LOANS_COLLECTION)
       .where("schemaVersion", "==", LOAN_SCHEMA_VERSION)
       .where("status", "==", "active")

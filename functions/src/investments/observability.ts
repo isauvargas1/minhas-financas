@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {FieldValue} from "firebase-admin/firestore";
 import type {CallableRequest} from "firebase-functions/v2/https";
 
@@ -81,7 +81,7 @@ export const METRIC_SHARDS = 10;
 const metricShard = (): number => Math.floor(Math.random() * METRIC_SHARDS);
 
 export const recordInvestmentOperationMetric = (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   input: RecordInvestmentOperationMetricInput,
 ): void => {
   const status = input.status ?? "success";

@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {FieldValue, Timestamp} from "firebase-admin/firestore";
 
 import type {CallerIdentity} from "../shared/callable";
@@ -50,7 +50,7 @@ export const DEFAULT_THEME_COLOR: Record<"PF" | "PJ", string> = {
 
 export const PERSONAL_WORKSPACE_NAME = "Meu Espaço Pessoal";
 
-const db = () => admin.firestore();
+const db = () => firebaseAdminFirestore.getFirestore();
 
 export const inviteRef = (workspaceId: string, inviteId: string) =>
   workspaceRef(workspaceId).collection(INVITES_COLLECTION).doc(inviteId);
@@ -77,7 +77,7 @@ export interface WorkspaceDisplay {
 }
 
 export const workspaceDisplayOf = (
-  data: admin.firestore.DocumentData,
+  data: firebaseAdminFirestore.DocumentData,
 ): WorkspaceDisplay => ({
   name: typeof data.name === "string" ? data.name : "",
   type: data.type === "PJ" ? "PJ" : "PF",
@@ -86,7 +86,7 @@ export const workspaceDisplayOf = (
 
 /** Grava (ou reativa) o membership ativo e a entrada do índice. */
 export const writeActiveMembership = (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   input: {
     workspaceId: string;
     uid: string;
@@ -131,7 +131,7 @@ export const writeActiveMembership = (
 
 /** Remoção lógica: membership e índice passam a `removed`. */
 export const writeRemovedMembership = (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   input: {workspaceId: string; uid: string; removedBy: string},
 ): void => {
   transaction.update(workspaceMemberRef(input.workspaceId, input.uid), {

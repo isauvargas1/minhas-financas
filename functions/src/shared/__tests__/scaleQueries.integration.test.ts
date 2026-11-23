@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test, {after} from "node:test";
-import * as admin from "firebase-admin";
+import * as firebaseAdminApp from "firebase-admin/app";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {AggregateField, FieldPath} from "firebase-admin/firestore";
 
 /**
@@ -33,15 +34,15 @@ const VOLUME = 2_000;
 const BILLS = 120;
 const SHARES_PER_BILL = 5;
 
-const db = (): admin.firestore.Firestore => {
-  if (!admin.apps.length) admin.initializeApp({projectId: PROJECT});
-  return admin.firestore();
+const db = (): firebaseAdminFirestore.Firestore => {
+  if (!firebaseAdminApp.getApps().length) firebaseAdminApp.initializeApp({projectId: PROJECT});
+  return firebaseAdminFirestore.getFirestore();
 };
 
 const padded = (index: number): string => String(index).padStart(6, "0");
 
 const commitInChunks = async (
-  writes: Array<[admin.firestore.DocumentReference, admin.firestore.DocumentData]>,
+  writes: Array<[firebaseAdminFirestore.DocumentReference, firebaseAdminFirestore.DocumentData]>,
 ): Promise<void> => {
   for (let start = 0; start < writes.length; start += 450) {
     const batch = db().batch();
@@ -71,7 +72,7 @@ const seedVolume = async (): Promise<void> => {
   await db().recursiveDelete(db().doc(`workspaces/${WORKSPACE}`));
   await db().recursiveDelete(db().doc(`workspaces/${OTHER_WORKSPACE}`));
 
-  const writes: Array<[admin.firestore.DocumentReference, admin.firestore.DocumentData]> = [];
+  const writes: Array<[firebaseAdminFirestore.DocumentReference, firebaseAdminFirestore.DocumentData]> = [];
 
   // Empréstimos no schema autoritativo: metade a receber, metade a pagar; um
   // décimo em atraso, um sétimo quitado e um décimo terceiro cancelado (com
@@ -202,7 +203,7 @@ test("os totais de empréstimo são exatos sem ler documento nenhum", async () =
 
   // Conferência independente: a mesma conta feita documento a documento.
   const everything = await ref.get();
-  const isOpen = (d: admin.firestore.QueryDocumentSnapshot): boolean =>
+  const isOpen = (d: firebaseAdminFirestore.QueryDocumentSnapshot): boolean =>
     d.get("status") === "active" || d.get("status") === "overdue";
   const sumOpen = (type: string): number => everything.docs
     .filter((d) => d.get("type") === type && isOpen(d))
@@ -285,7 +286,7 @@ test("títulos de um grupo saem paginados e rateios só por título", async () =
   // A mesma forma de `listSplitBills` (índice declarado): página de 20 + 1
   // de sondagem, ordem estável por data e ID, cursor composto.
   const PAGE = 20;
-  const pageOf = (cursor?: admin.firestore.QueryDocumentSnapshot) => {
+  const pageOf = (cursor?: firebaseAdminFirestore.QueryDocumentSnapshot) => {
     let query = billsRef
       .where("groupId", "==", "grupo-alvo")
       .orderBy("expenseDate", "desc")

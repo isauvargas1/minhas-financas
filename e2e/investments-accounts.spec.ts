@@ -1,3 +1,4 @@
+import { adminAuth } from './support/adminModules';
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
 
 import {
@@ -53,7 +54,7 @@ const catalogItem = (workspaceId: string, id: string, group: string, name: strin
 };
 
 const resetUser = async (user: { uid: string; email: string }) => {
-  const auth = (await import('./support/workspaceSeed')).adminSdk().auth();
+  const auth = adminAuth.getAuth((await import('./support/workspaceSeed')).adminSdk());
   try {
     await auth.deleteUser(user.uid);
   } catch (error) {

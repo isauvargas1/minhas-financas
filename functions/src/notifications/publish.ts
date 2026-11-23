@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 
 import {isAlreadyExistsError} from "../shared/errors";
 import {workspaceRef} from "../shared/workspaceAuth";
@@ -24,7 +24,7 @@ export const notificationsRef = (workspaceId: string) =>
   workspaceRef(workspaceId).collection("notifications");
 
 export const publishNotification = async (
-  document: admin.firestore.DocumentData,
+  document: firebaseAdminFirestore.DocumentData,
 ): Promise<NotificationPublishOutcome> => {
   try {
     await notificationsRef(document.workspaceId).doc(document.id)
@@ -41,7 +41,7 @@ export const publishNotification = async (
  * título, mensagem ou entidade.
  */
 export const notificationPublishLogFields = (
-  document: admin.firestore.DocumentData,
+  document: firebaseAdminFirestore.DocumentData,
   outcome: NotificationPublishOutcome,
 ) => ({
   workspaceId: document.workspaceId,

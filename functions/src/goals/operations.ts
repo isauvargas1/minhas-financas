@@ -1,5 +1,5 @@
 import {createHash} from "node:crypto";
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {FieldValue} from "firebase-admin/firestore";
 
 import {INVESTMENT_COLLECTIONS} from "../investments/paths";
@@ -26,7 +26,7 @@ type GoalOperation =
   | "archiveGoal";
 
 interface IdempotencyReservation {
-  ref: admin.firestore.DocumentReference;
+  ref: firebaseAdminFirestore.DocumentReference;
   replay?: Record<string, unknown>;
   record?: Record<string, unknown>;
 }
@@ -45,7 +45,7 @@ export const GOAL_NOT_MANUAL_MESSAGE =
   "O progresso desta meta é calculado automaticamente e não pode ser " +
   "informado à mão.";
 
-const db = () => admin.firestore();
+const db = () => firebaseAdminFirestore.getFirestore();
 const workspacePath = (workspaceId: string) => `workspaces/${workspaceId}`;
 const goalRef = (workspaceId: string, goalId: string) =>
   db().doc(`${workspacePath(workspaceId)}/goals/${goalId}`);
@@ -78,7 +78,7 @@ const intentContent = (payload: unknown): unknown => {
 };
 
 const reserveIdempotency = async (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   actor: WorkspaceActor,
   operation: GoalOperation,
   idempotencyKey: string,
@@ -122,7 +122,7 @@ const reserveIdempotency = async (
 };
 
 const completeIdempotency = (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   reservation: IdempotencyReservation,
   result: Record<string, unknown>,
 ) => {
@@ -145,10 +145,10 @@ const completeIdempotency = (
  * depois em centavos), sem copiar o documento inteiro.
  */
 const writeAudit = (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   actor: WorkspaceActor,
   operation: GoalOperation,
-  idempotencyRef: admin.firestore.DocumentReference,
+  idempotencyRef: firebaseAdminFirestore.DocumentReference,
   targetId: string,
   details: Record<string, unknown>,
 ) => {
@@ -226,7 +226,7 @@ const definitionFields = (
 /** Indicador empresarial, tipo de meta PJ e centro de custo: só em PJ. */
 const assertWorkspaceFit = (
   goal: GoalDefinition,
-  workspace: admin.firestore.DocumentData,
+  workspace: firebaseAdminFirestore.DocumentData,
 ) => {
   const isPJ = workspace.type === "PJ";
   if (isPJ) return;
@@ -248,7 +248,7 @@ const integerOrZero = (value: unknown): number =>
 
 const investmentProgressFor = (
   basis: unknown,
-  data: admin.firestore.DocumentData,
+  data: firebaseAdminFirestore.DocumentData,
 ): number => basis === "current_value" ?
   integerOrZero(data.investmentCurrentValueCents) :
   integerOrZero(data.investmentNetContributionCents);
@@ -263,7 +263,7 @@ const investmentProgressFor = (
  * arquivada e vínculo aceito.
  */
 const hasLinkedPositions = async (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   workspaceId: string,
   goalId: string,
 ): Promise<boolean> => {
@@ -288,8 +288,8 @@ const hasLinkedPositions = async (
 const runGoalTransaction = <T>(
   actor: WorkspaceActor,
   body: (
-    transaction: admin.firestore.Transaction,
-    workspace: admin.firestore.DocumentData,
+    transaction: firebaseAdminFirestore.Transaction,
+    workspace: firebaseAdminFirestore.DocumentData,
   ) => Promise<T>,
 ): Promise<T> => {
   return db().runTransaction(async (transaction) => {
@@ -300,12 +300,12 @@ const runGoalTransaction = <T>(
 
 /** Lê a meta para mutação: existe, não está arquivada. */
 const readMutableGoal = async (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   workspaceId: string,
   goalId: string,
 ): Promise<{
-  ref: admin.firestore.DocumentReference;
-  data: admin.firestore.DocumentData;
+  ref: firebaseAdminFirestore.DocumentReference;
+  data: firebaseAdminFirestore.DocumentData;
 }> => {
   const ref = goalRef(workspaceId, goalId);
   const snapshot = await transaction.get(ref);
@@ -325,7 +325,7 @@ const readMutableGoal = async (
 };
 
 const assertRevision = (
-  data: admin.firestore.DocumentData,
+  data: firebaseAdminFirestore.DocumentData,
   expected: number,
 ) => {
   if (integerOrZero(data.revision) !== expected) {

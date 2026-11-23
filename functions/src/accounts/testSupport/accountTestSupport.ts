@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import type * as admin from "firebase-admin";
+import type * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {Timestamp} from "firebase-admin/firestore";
 
 import {formatIsoInstant} from "../../shared/commitTime";
@@ -40,7 +40,7 @@ export const balanceOf = async (workspaceId: string, accountId: string) =>
   Number((await readAccount(workspaceId, accountId)).balanceCents);
 
 export const movementsOf = async (workspaceId: string, accountId?: string) => {
-  let query: admin.firestore.Query =
+  let query: firebaseAdminFirestore.Query =
     db().collection(`workspaces/${workspaceId}/cash_account_movements`);
   if (accountId) query = query.where("accountId", "==", accountId);
   return (await query.get()).docs.map((doc) => doc.data());
@@ -54,7 +54,7 @@ export const accountEvents = async (workspaceId: string) =>
   (await db().collection(`workspaces/${workspaceId}/cash_account_events`)
     .get()).docs.map((doc) => doc.data());
 
-const versionOf = async (ref: admin.firestore.DocumentReference) =>
+const versionOf = async (ref: firebaseAdminFirestore.DocumentReference) =>
   formatIsoInstant((await ref.get()).get("updatedAt") as Timestamp);
 
 export const accountVersion = (workspaceId: string, accountId: string) =>

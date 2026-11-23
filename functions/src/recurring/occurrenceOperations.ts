@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {FieldValue} from "firebase-admin/firestore";
 
 import {ApplicationError} from "../shared/errors";
@@ -94,7 +94,7 @@ export const CARD_ON_CASH_MESSAGE =
 export const ACCOUNT_ON_CARD_MESSAGE =
   "Esta ocorrência é de cartão: informe um cartão, não uma conta.";
 
-const db = () => admin.firestore();
+const db = () => firebaseAdminFirestore.getFirestore();
 
 export interface OccurrenceMutationResult {
   occurrenceId: string;
@@ -114,17 +114,17 @@ const replayResult = (
 
 interface LoadedOccurrence {
   role: WorkspaceRole;
-  workspace: admin.firestore.DocumentData;
+  workspace: firebaseAdminFirestore.DocumentData;
   reservation: ActorIdempotencyReservation;
   intentId: string;
-  occurrenceRef: admin.firestore.DocumentReference;
+  occurrenceRef: firebaseAdminFirestore.DocumentReference;
   occurrence: AuthoritativeOccurrence;
-  contractRef: admin.firestore.DocumentReference;
+  contractRef: firebaseAdminFirestore.DocumentReference;
   contract: AuthoritativeRecurringExpense;
 }
 
 const loadOccurrenceForAction = async (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   actor: WorkspaceActor,
   payload: {occurrenceId: string; idempotencyKey: string},
   operation: string,
@@ -188,7 +188,7 @@ const assertStatus = (
 
 /** Escritas comuns: ocorrência, contador, evento, chave e limite. */
 const finishAction = (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   actor: WorkspaceActor,
   loaded: LoadedOccurrence,
   input: {
@@ -239,7 +239,7 @@ const finishAction = (
   rateLimit.commit();
 };
 
-const profileTypeOf = (workspace: admin.firestore.DocumentData) =>
+const profileTypeOf = (workspace: firebaseAdminFirestore.DocumentData) =>
   workspace.type === "PJ" ? "PJ" as const : "PF" as const;
 
 // --------------------------------------------------------------- confirmar

@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 
 import {
   DEFAULT_CASH_ACCOUNT_NAME,
@@ -48,7 +48,7 @@ export interface WorkspaceProvisioningSummary {
  * carteiras. Auditada como criação pelo dono do workspace.
  */
 export const writeDefaultCashAccount = (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   input: {workspaceId: string; uid: string},
 ): string => {
   const accountId = defaultCashAccountIdFor(input.workspaceId);
@@ -84,7 +84,7 @@ export const writeDefaultCashAccount = (
 
 /** Grava os padrões obrigatórios de um workspace recém-criado. */
 export const provisionWorkspaceDefaults = (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   input: {workspaceId: string; type: WorkspaceType; uid: string},
 ): WorkspaceProvisioningSummary => {
   const catalogItemCount = writeCatalogDefaults(transaction, input);

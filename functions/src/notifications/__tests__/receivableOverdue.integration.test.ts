@@ -7,7 +7,7 @@ import test, {mock} from "node:test";
 // substituir `write` onde o logger estruturado o procura.
 import functionsLogger = require("firebase-functions/logger");
 
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {Query, Timestamp} from "firebase-admin/firestore";
 
 import {assertLedgerConsistent} from
@@ -1514,7 +1514,7 @@ async () => {
 /** Backlog semeado no formato do domínio (instrumentação de volume). */
 const seedBacklog = async (
   t: Tenant,
-  template: admin.firestore.DocumentData,
+  template: firebaseAdminFirestore.DocumentData,
   count: number,
   dueDateOf: (index: number) => string,
 ) => {
@@ -1637,7 +1637,7 @@ test("P5-D2.1 §11 custo instrumentado por item e execução sem " +
     await openReceivable(t, clientId, day(-3))];
   const failing = await openReceivable(t, clientId, day(-7));
 
-  const tx = admin.firestore.Transaction.prototype;
+  const tx = firebaseAdminFirestore.Transaction.prototype;
   const spies = {
     getAll: mock.method(tx, "getAll"),
     create: mock.method(tx, "create"),

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {FieldValue} from "firebase-admin/firestore";
 
 import {
@@ -151,7 +151,7 @@ const transactionCount = async (workspaceId: string) =>
 /** Estado do tenant e da conta, para provar que uma recusa não alterou nada. */
 const stateOf = async (uid: string, workspaceId: string): Promise<string> => {
   const documents: Array<[string, unknown]> = [];
-  const collect = async (ref: admin.firestore.DocumentReference) => {
+  const collect = async (ref: firebaseAdminFirestore.DocumentReference) => {
     const snapshot = await ref.get();
     documents.push([ref.path, snapshot.exists ? snapshot.data() : null]);
     for (const subcollection of await ref.listCollections()) {
@@ -272,8 +272,8 @@ test("repetir o bootstrap é idempotente: sem evento, sem workspace, sem mudar a
 
   const after = await profileOf(uid);
   assert.equal(after.get("accessStatus"), GRANTED);
-  assert.ok((after.get("accessGrantedAt") as admin.firestore.Timestamp)
-    .isEqual(profile.get("accessGrantedAt") as admin.firestore.Timestamp), "accessGrantedAt não muda");
+  assert.ok((after.get("accessGrantedAt") as firebaseAdminFirestore.Timestamp)
+    .isEqual(profile.get("accessGrantedAt") as firebaseAdminFirestore.Timestamp), "accessGrantedAt não muda");
   assert.ok((await inviteOf(email)).get("usadoEm").isEqual(entry.get("usadoEm")), "usadoEm não muda");
   assert.equal((await grantedEvents(uid)).length, 1, "nenhum evento novo");
   assert.equal((await ownedWorkspaces(uid)).length, 1);

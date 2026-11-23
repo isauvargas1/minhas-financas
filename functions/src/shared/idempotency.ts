@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {FieldValue} from "firebase-admin/firestore";
 
 import {ApplicationError} from "./errors";
@@ -19,7 +19,7 @@ import {userProfileRef} from "./workspaceAuth";
  * mantêm a própria idempotência transacional; este helper não a substitui.
  */
 export interface ActorIdempotencyReservation {
-  ref: admin.firestore.DocumentReference;
+  ref: firebaseAdminFirestore.DocumentReference;
   requestHash: string;
   replay?: Record<string, unknown>;
 }
@@ -35,7 +35,7 @@ export const idempotencyIdentity = (
 };
 
 export const reserveActorIdempotency = async (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   input: {
     uid: string;
     operation: string;
@@ -72,7 +72,7 @@ export const reserveActorIdempotency = async (
 };
 
 export const completeActorIdempotency = (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   reservation: ActorIdempotencyReservation,
   input: {
     uid: string;

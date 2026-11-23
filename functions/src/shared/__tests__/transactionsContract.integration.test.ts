@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test, {after} from "node:test";
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {
   Timestamp,
   type DocumentData,
@@ -1206,7 +1206,7 @@ test("listagem por cursor: percorre todas as páginas sem repetir nem " +
   for (let guard = 0; guard < 10; guard += 1) {
     let query = transactionsCollection(t.workspaceId)
       .orderBy("date", "desc")
-      .orderBy(admin.firestore.FieldPath.documentId(), "desc")
+      .orderBy(firebaseAdminFirestore.FieldPath.documentId(), "desc")
       .limit(pageSize);
     if (cursor) query = query.startAfter(cursor);
     const page = (await query.get()).docs;

@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import type {Timestamp} from "firebase-admin/firestore";
 
 import {compareCommitTimes} from "../cash/periods";
@@ -56,7 +56,7 @@ export const todayOf = (options: OperationOptions): string =>
   saoPauloDayKey(new Date((options.now ?? Date.now)()));
 
 export const assertPjWorkspace = (
-  workspace: admin.firestore.DocumentData,
+  workspace: firebaseAdminFirestore.DocumentData,
 ): void => {
   if (workspace.type !== "PJ") {
     throw new ApplicationError("domain_precondition_failed", PJ_ONLY_MESSAGE);
@@ -80,13 +80,13 @@ export const assertVersion = (
  * replay — ou em conflito, quando a mesma chave aparece com outro conteúdo.
  */
 export const findIntentAnchor = async (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   collection: string,
   intentId: string,
   operation: string,
-): Promise<admin.firestore.QueryDocumentSnapshot | undefined> => {
+): Promise<firebaseAdminFirestore.QueryDocumentSnapshot | undefined> => {
   const anchors = await transaction.get(
-    admin.firestore().collectionGroup(collection)
+    firebaseAdminFirestore.getFirestore().collectionGroup(collection)
       .where("intentId", "==", intentId)
       .where("operation", "==", operation)
       .limit(1),

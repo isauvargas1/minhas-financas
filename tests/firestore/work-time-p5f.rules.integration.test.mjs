@@ -47,7 +47,10 @@ import {
  */
 
 const require = createRequire(import.meta.url);
-const admin = require('../../functions/node_modules/firebase-admin');
+const requireAdmin = createRequire(new URL('../../functions/package.json', import.meta.url));
+const adminAppModule = requireAdmin('firebase-admin/app');
+const adminFirestoreModule = requireAdmin('firebase-admin/firestore');
+const adminAuthModule = requireAdmin('firebase-admin/auth');
 if (!process.env.FIRESTORE_EMULATOR_HOST) {
   throw new Error('FIRESTORE_EMULATOR_HOST é obrigatório para os testes de Rules da P5-F.');
 }
@@ -73,8 +76,8 @@ const preferencePath = (uid, id = PREFERENCE_ID) => `users/${uid}/private_prefer
 
 const getAdmin = () => {
   process.env.FIREBASE_AUTH_EMULATOR_HOST ||= '127.0.0.1:9099';
-  if (!admin.apps.length) admin.initializeApp({projectId});
-  return admin;
+  if (!adminAppModule.getApps().length) adminAppModule.initializeApp({projectId});
+  return adminAppModule.getApp();
 };
 
 const ROUTINES = 'W:08:00-17:00/60,08:00-17:00/60,08:00-17:00/60,08:00-17:00/60,08:00-17:00/60,-,-';
@@ -107,14 +110,14 @@ const validFields = (overrides = {}) => ({
 
 const seed = async () => {
   const firebaseAdmin = getAdmin();
-  const db = firebaseAdmin.firestore();
+  const db = adminFirestoreModule.getFirestore(firebaseAdmin);
   for (const entry of Object.values(users)) {
     try {
-      await firebaseAdmin.auth().deleteUser(entry.uid);
+      await adminAuthModule.getAuth(firebaseAdmin).deleteUser(entry.uid);
     } catch (error) {
       if (error?.code !== 'auth/user-not-found') throw error;
     }
-    await firebaseAdmin.auth().createUser({...entry, password, emailVerified: true});
+    await adminAuthModule.getAuth(firebaseAdmin).createUser({...entry, password, emailVerified: true});
     await db.recursiveDelete(db.doc(`users/${entry.uid}`));
     await db.doc(`users/${entry.uid}`).set({
       uid: entry.uid,
@@ -140,7 +143,7 @@ const seed = async () => {
   }
   const stored = {
     ...v2Fields(),
-    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    updatedAt: adminFirestoreModule.FieldValue.serverTimestamp(),
   };
   for (const entry of [users.holder, users.workspaceOwner, users.suspended, users.switcher]) {
     await db.doc(preferencePath(entry.uid)).set(stored);
@@ -414,12 +417,12 @@ test('exclusão pelo titular apaga toda a configuração; depois disso nenhuma l
   const target = doc(db.holder, preferencePath(users.holder.uid));
   await deleteDoc(target);
   assert.equal((await getDoc(target)).exists(), false);
-  const adminSnapshot = await getAdmin().firestore().doc(preferencePath(users.holder.uid)).get();
+  const adminSnapshot = await adminFirestoreModule.getFirestore(getAdmin()).doc(preferencePath(users.holder.uid)).get();
   assert.equal(adminSnapshot.exists, false, 'apagado no servidor, sem cópia');
 });
 
 test('P5-F.1: as consultas da renda (janela de receitas, estornos de recebimento, leitura por id, projeções da janela) só servem a membros ativos do workspace', async () => {
-  const adminDb = getAdmin().firestore();
+  const adminDb = adminFirestoreModule.getFirestore(getAdmin());
   for (const workspaceId of [WORKSPACE, OTHER_WORKSPACE]) {
     await adminDb.doc(`workspaces/${workspaceId}/transactions/p5f1-income`).set({type: 'receita', date: '2026-10-05', valueCents: 100000, isPaid: true});
     await adminDb.doc(`workspaces/${workspaceId}/transactions/p5f1-reversal`)
@@ -466,7 +469,7 @@ test('P5-F.1: as consultas da renda (janela de receitas, estornos de recebimento
 });
 
 test('P5-F.1-R1: a leitura por id traz o recebimento e o espelho do estorno juntos (IDs determinísticos, estorno ainda inexistente incluído), sempre do servidor, e a versão das projeções, só a membros ativos', async () => {
-  const adminDb = getAdmin().firestore();
+  const adminDb = adminFirestoreModule.getFirestore(getAdmin());
   const reversalIds = JSON.parse(readFileSync(new URL('../fixtures/receivable-reversal-ids.json', import.meta.url), 'utf8'));
   const [first, second] = reversalIds.cases;
   const receipt = (item) => ({
@@ -482,7 +485,7 @@ test('P5-F.1-R1: a leitura por id traz o recebimento e o espelho do estorno junt
       receivableEntry: {receivableMovementId: first.reversalMovementId, reversal: true, reversalOf: first.movementId, principalCents: 100000},
     });
     await adminDb.doc(`workspaces/${workspaceId}/cash_report_periods/2026-10`).set({
-      incomeCents: 0, expenseCents: 0, updatedAt: getAdmin().firestore.FieldValue.serverTimestamp(),
+      incomeCents: 0, expenseCents: 0, updatedAt: (getAdmin(), adminFirestoreModule.FieldValue).serverTimestamp(),
     });
   }
   await adminDb.doc(`workspaces/${WORKSPACE}/members/${users.suspended.uid}`).set({uid: users.suspended.uid, role: 'member', status: 'active'});
@@ -535,7 +538,7 @@ test('P5-F.1-R1: a leitura por id traz o recebimento e o espelho do estorno junt
 });
 
 test('P5-F.1: a janela de receitas pagina por cursor (data desc, id desc), sem repetir nem pular, só no próprio workspace', async () => {
-  const adminDb = getAdmin().firestore();
+  const adminDb = adminFirestoreModule.getFirestore(getAdmin());
   const PAGE = 500; // TRANSACTION_PAGE_SIZE de src/modules/transactions/api.ts
   const dateOf = (index) => `2026-09-0${1 + (index % 3)}`; // três datas: muitos empates, decididos pelo id
   const ids = [];

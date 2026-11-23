@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {FieldValue, Timestamp} from "firebase-admin/firestore";
 import Stripe from "stripe";
 
@@ -299,7 +299,7 @@ export const routeStripeEvent = (event: Stripe.Event): EventRoute => {
   }
 };
 
-const db = () => admin.firestore();
+const db = () => firebaseAdminFirestore.getFirestore();
 
 const millis = (value: Timestamp | null | undefined): number | null =>
   value ? value.toMillis() : null;
@@ -355,7 +355,7 @@ const PROCESSING: WebhookReceiptStatus = "processing";
 const PROCESSED: WebhookReceiptStatus = "processed";
 
 const isProcessedReceipt = (
-  receipt: admin.firestore.DocumentSnapshot,
+  receipt: firebaseAdminFirestore.DocumentSnapshot,
 ): boolean => receipt.exists && receipt.get("status") === PROCESSED;
 
 const receiptIdentity = (event: Stripe.Event) => ({
@@ -368,7 +368,7 @@ const receiptIdentity = (event: Stripe.Event) => ({
 
 /** Recibo final, sem payload; substitui o `processing`, se houver. */
 const writeProcessedReceipt = (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   event: Stripe.Event,
   fields: {
     billingOwnerUid: string | null;
@@ -445,7 +445,7 @@ export const deferTransactionLogs = (base: OperationLogger) => {
 const transactWithLogs = async <T>(
   base: OperationLogger,
   body: (
-    transaction: admin.firestore.Transaction,
+    transaction: firebaseAdminFirestore.Transaction,
     log: OperationLogger,
   ) => Promise<T>,
 ): Promise<T> => {

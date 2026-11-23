@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {FieldValue} from "firebase-admin/firestore";
 
 import {
@@ -110,7 +110,7 @@ export const PJ_ONLY_FIELDS_MESSAGE =
 const INTERNAL_MESSAGE =
   "Não foi possível registrar o lançamento. Tente novamente.";
 
-const db = () => admin.firestore();
+const db = () => firebaseAdminFirestore.getFirestore();
 
 /**
  * ID do lançamento: hash de `(workspace, ator, chave)`.
@@ -176,7 +176,7 @@ const typeSpecificFields = (
  */
 export const settlementFields = (
   settlement: CashEntrySettlement,
-): admin.firestore.DocumentData => settlement.status === "pending" ?
+): firebaseAdminFirestore.DocumentData => settlement.status === "pending" ?
   {
     date: settlement.dueDate,
     dueDate: settlement.dueDate,
@@ -223,7 +223,7 @@ export const cashEntryDocument = (input: {
   accountMovementId: string | null;
   /** Linha de importação: canal e referência (hash) da importação. */
   importRef?: string;
-}): admin.firestore.DocumentData => {
+}): firebaseAdminFirestore.DocumentData => {
   const {entry, origin} = input;
   const valueCents = entry.amountCents;
   const settlement = settlementOf(entry);

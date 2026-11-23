@@ -1,6 +1,6 @@
 import {randomInt} from "node:crypto";
 
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {FieldValue, Timestamp} from "firebase-admin/firestore";
 
 import {ApplicationError} from "../shared/errors";
@@ -121,7 +121,7 @@ export const DEACTIVATE_DENIED_MESSAGE =
   "Só o dono do grupo, um administrador do espaço ou o próprio participante " +
   "pode fazer isso.";
 
-const db = () => admin.firestore();
+const db = () => firebaseAdminFirestore.getFirestore();
 
 /** Papéis do workspace que podem participar de grupos. */
 const PARTICIPATING_ROLES: readonly WorkspaceRole[] = SPLIT_ACTOR_ROLES;
@@ -141,7 +141,7 @@ export const generateInviteCode = (): string => {
 
 /** Convites pendentes e ainda válidos do grupo (consulta limitada). */
 const countPendingInvites = async (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   workspaceId: string,
   groupId: string,
   nowMs: number,
@@ -177,7 +177,7 @@ const assertRoomForParticipant = (
  * `uid`) ou reativa o registro inativo com o papel novo. Só escritas.
  */
 const writeMemberAdmission = (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   input: {
     actor: WorkspaceActor;
     access: GroupAccess;

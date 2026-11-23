@@ -24,7 +24,10 @@ import {
 } from 'firebase/firestore';
 
 const require = createRequire(import.meta.url);
-const admin = require('../../functions/node_modules/firebase-admin');
+const requireAdmin = createRequire(new URL('../../functions/package.json', import.meta.url));
+const adminAppModule = requireAdmin('firebase-admin/app');
+const adminFirestoreModule = requireAdmin('firebase-admin/firestore');
+const adminAuthModule = requireAdmin('firebase-admin/auth');
 if (!process.env.FIRESTORE_EMULATOR_HOST) {
   throw new Error('FIRESTORE_EMULATOR_HOST é obrigatório para os testes de Rules do domínio M3.');
 }
@@ -46,20 +49,20 @@ const workspaceWithoutMembership = 'investment-domain-owner-without-membership';
 const getAdmin = () => {
   process.env.FIRESTORE_EMULATOR_HOST ||= '127.0.0.1:8080';
   process.env.FIREBASE_AUTH_EMULATOR_HOST ||= '127.0.0.1:9099';
-  if (!admin.apps.length) admin.initializeApp({projectId});
-  return admin;
+  if (!adminAppModule.getApps().length) adminAppModule.initializeApp({projectId});
+  return adminAppModule.getApp();
 };
 
 const seed = async () => {
   const firebaseAdmin = getAdmin();
-  const db = firebaseAdmin.firestore();
+  const db = adminFirestoreModule.getFirestore(firebaseAdmin);
   for (const user of Object.values(users)) {
     try {
-      await firebaseAdmin.auth().deleteUser(user.uid);
+      await adminAuthModule.getAuth(firebaseAdmin).deleteUser(user.uid);
     } catch (error) {
       if (error?.code !== 'auth/user-not-found') throw error;
     }
-    await firebaseAdmin.auth().createUser({...user, password, emailVerified: true});
+    await adminAuthModule.getAuth(firebaseAdmin).createUser({...user, password, emailVerified: true});
     // P1: a autorização exige perfil de conta ativo (gravado pelo backend).
     // Viewer e membro removido também têm perfil ativo: quem os nega é o papel
     // ou o membership, não a conta.
@@ -83,7 +86,7 @@ const seed = async () => {
     db.doc(`workspaces/${workspaceA}/members/${users.removedA.uid}`).set({uid: users.removedA.uid, role: 'member', status: 'removed'}),
     db.doc(`workspaces/${workspaceB}/members/${users.ownerB.uid}`).set({uid: users.ownerB.uid, role: 'owner', status: 'active'}),
   ]);
-  const now = firebaseAdmin.firestore.Timestamp.fromDate(new Date('2026-08-18T12:00:00.000Z'));
+  const now = adminFirestoreModule.Timestamp.fromDate(new Date('2026-08-18T12:00:00.000Z'));
   const auditFields = {
     createdBy: users.ownerA.uid,
     createdAt: now,
@@ -170,7 +173,7 @@ const seed = async () => {
       workspaceA,
       'PF',
       users.ownerA.uid,
-      firebaseAdmin.firestore.Timestamp.fromMillis(now.toMillis() + index),
+      adminFirestoreModule.Timestamp.fromMillis(now.toMillis() + index),
     ))));
   await db.doc(`workspaces/${workspaceB}/investment_movements/movement-z`).set(
     movement('movement-z', workspaceB, 'PJ', users.ownerB.uid),
@@ -233,7 +236,7 @@ const malformedMovementIds = [
   'invalid-cents',
 ];
 
-const deleteMalformedMovements = () => Promise.all(malformedMovementIds.map(id => getAdmin().firestore()
+const deleteMalformedMovements = () => Promise.all(malformedMovementIds.map(id => adminFirestoreModule.getFirestore(getAdmin())
   .doc(`workspaces/${workspaceA}/investment_movements/${id}`).delete()));
 
 const withClients = async (names, run) => {
@@ -289,7 +292,7 @@ test('P1 — ownerId sem membership ativo não concede acesso ao domínio', asyn
   // regime anterior (M4), em que o ownerId sem documento de membership lia o
   // próprio domínio, deixou de existir: a única fonte de papel é
   // `members/{uid}` com `status == 'active'`.
-  const db = getAdmin().firestore();
+  const db = adminFirestoreModule.getFirestore(getAdmin());
   const path = `workspaces/${workspaceWithoutMembership}/investment_accounts/document-orphan`;
   const ownerMembership = db.doc(`workspaces/${workspaceWithoutMembership}/members/${users.ownerA.uid}`);
   await withClients(['ownerA', 'ownerB', 'memberA'], async ({ownerA, ownerB, memberA}) => {
@@ -374,7 +377,7 @@ test('Rules permitem consultar resumo ainda inexistente sem abrir acesso entre w
   const summaryPath =
     `workspaces/${workspaceA}/investment_summaries/current`;
 
-  await getAdmin().firestore().doc(summaryPath).delete();
+  await adminFirestoreModule.getFirestore(getAdmin()).doc(summaryPath).delete();
 
   await withClients(
     ['ownerA', 'memberA', 'ownerB', 'viewerA'],
@@ -630,9 +633,9 @@ test('Rules do catálogo (D-23): carteira de investimentos só pelo backend; cli
     updatedBy: users.ownerA.uid,
     ...overrides,
   });
-  await getAdmin().firestore().doc(customCatalogPath).set(catalogItem({
-    createdAt: getAdmin().firestore.FieldValue.serverTimestamp(),
-    updatedAt: getAdmin().firestore.FieldValue.serverTimestamp(),
+  await adminFirestoreModule.getFirestore(getAdmin()).doc(customCatalogPath).set(catalogItem({
+    createdAt: (getAdmin(), adminFirestoreModule.FieldValue).serverTimestamp(),
+    updatedAt: (getAdmin(), adminFirestoreModule.FieldValue).serverTimestamp(),
   }));
   await withClients(['ownerA', 'ownerB', 'memberA'], async ({ownerA, ownerB, memberA}) => {
     // P4-D (D-15): risco e estratégia saíram do catálogo — e nenhum grupo é
@@ -691,8 +694,8 @@ test('Rules do catálogo (D-23): instituição lida por membros, gravada só pel
     updatedAt: stamp,
   });
   // Como a callable grava (Admin SDK).
-  await getAdmin().firestore().doc(institutionPath).set(institution('BTG', users.ownerA.uid,
-    getAdmin().firestore.FieldValue.serverTimestamp()));
+  await adminFirestoreModule.getFirestore(getAdmin()).doc(institutionPath).set(institution('BTG', users.ownerA.uid,
+    (getAdmin(), adminFirestoreModule.FieldValue).serverTimestamp()));
   await withClients(
     ['ownerA', 'adminA', 'memberA', 'ownerB'],
     async ({ownerA, adminA, memberA, ownerB}) => {
@@ -728,8 +731,8 @@ test('Rules do catálogo (D-23): instituição lida por membros, gravada só pel
 
 test('Rules validam categoria e regime de acompanhamento do ativo', async () => {
   await seed();
-  const db = getAdmin().firestore();
-  const now = getAdmin().firestore.Timestamp.fromDate(
+  const db = adminFirestoreModule.getFirestore(getAdmin());
+  const now = (getAdmin(), adminFirestoreModule.Timestamp).fromDate(
     new Date('2026-08-18T12:00:00.000Z'),
   );
   const base = {
@@ -773,8 +776,8 @@ test('Rules validam categoria e regime de acompanhamento do ativo', async () => 
 
 test('Rules aceitam aporte pendente com deltas zero e recusam pendente com efeito', async () => {
   await seed();
-  const db = getAdmin().firestore();
-  const now = getAdmin().firestore.Timestamp.fromDate(
+  const db = adminFirestoreModule.getFirestore(getAdmin());
+  const now = (getAdmin(), adminFirestoreModule.Timestamp).fromDate(
     new Date('2026-08-18T12:00:00.000Z'),
   );
   const pendingContribution = (id, overrides = {}) => ({
@@ -849,7 +852,7 @@ test('P4-D — o cliente não ocupa o ID do espelho, e o espelho do backend fica
   await seed();
   const espelhoId = 'investment_inv_pre_empcao_espelho';
   const caminho = `workspaces/${workspaceA}/transactions/${espelhoId}`;
-  await getAdmin().firestore().doc(caminho).delete();
+  await adminFirestoreModule.getFirestore(getAdmin()).doc(caminho).delete();
 
   await withClients(['memberA', 'ownerA'], async ({memberA, ownerA}) => {
     for (const client of [memberA, ownerA]) {
@@ -868,10 +871,10 @@ test('P4-D — o cliente não ocupa o ID do espelho, e o espelho do backend fica
       }));
     }
   });
-  assert.equal((await getAdmin().firestore().doc(caminho).get()).exists, false);
+  assert.equal((await adminFirestoreModule.getFirestore(getAdmin()).doc(caminho).get()).exists, false);
 
   // O backend grava o espelho com a marca do domínio.
-  await getAdmin().firestore().doc(caminho).set({
+  await adminFirestoreModule.getFirestore(getAdmin()).doc(caminho).set({
     type: 'investimento',
     description: 'Tesouro Selic 2029',
     category: 'Investimentos',
@@ -911,5 +914,5 @@ test('P4-D — o cliente não ocupa o ID do espelho, e o espelho do backend fica
     await assert.rejects(() => deleteDoc(doc(ownerA.db, caminho)));
   });
 
-  await getAdmin().firestore().doc(caminho).delete();
+  await adminFirestoreModule.getFirestore(getAdmin()).doc(caminho).delete();
 });

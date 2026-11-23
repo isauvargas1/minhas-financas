@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {Timestamp} from "firebase-admin/firestore";
 
 import type {WorkspaceActor} from "../../shared/workspaceAuth";
@@ -102,7 +102,7 @@ const INSTITUTION_B = "cat-institution-workspace-b";
 
 // Sem o Emulator a suíte falha ao carregar, em vez de pular.
 const firestore = requireFirestoreEmulator();
-const db = (): admin.firestore.Firestore => firestore;
+const db = (): firebaseAdminFirestore.Firestore => firestore;
 
 const auth = (
   workspaceId = WS_A,
@@ -238,7 +238,7 @@ const espelho = async (workspaceId: string, transactionId: string) =>
  * Efeito de caixa do espelho pela marca `investmentEntry` (P4-D): saída,
  * entrada ou nenhum — a mesma classificação da projeção do backend.
  */
-const efeitoCaixa = (projecao: admin.firestore.DocumentData | undefined) => {
+const efeitoCaixa = (projecao: firebaseAdminFirestore.DocumentData | undefined) => {
   const entry = readInvestmentCashEntry(projecao?.investmentEntry);
   if (!entry) return "fora-do-contrato";
   const net = investmentCashEffect(entry).netCents;
@@ -257,8 +257,8 @@ const periodoCaixa = async (chave: string) =>
 const entregarGatilho = async (
   eventId: string,
   transactionId: string,
-  before: admin.firestore.DocumentData | undefined,
-  after: admin.firestore.DocumentData | undefined,
+  before: firebaseAdminFirestore.DocumentData | undefined,
+  after: firebaseAdminFirestore.DocumentData | undefined,
 ) => db().runTransaction((tx) =>
   applyCashPeriodWriteOnce(
     tx, WS_A, cashPeriodEventKey(eventId), before, after,
@@ -830,7 +830,7 @@ test("ativo fora do regime por valor está fora do contrato e é recusado", asyn
    */
   await db().doc(
     `workspaces/${WS_A}/investment_assets/${criado.assetId}`,
-  ).update({trackingMode: admin.firestore.FieldValue.delete()});
+  ).update({trackingMode: firebaseAdminFirestore.FieldValue.delete()});
   assert.match(
     await erro(() => executeWithdrawSimpleInvestment(auth(), {
       workspaceId: WS_A,
@@ -1954,7 +1954,7 @@ const ocuparEspelho = async (transactionId: string): Promise<void> => {
 };
 
 const assertEspelhoAutoritativo = (
-  projecao: admin.firestore.DocumentData | undefined,
+  projecao: firebaseAdminFirestore.DocumentData | undefined,
 ): void => {
   assert.equal(projecao?.type, "investimento");
   assert.equal(projecao?.category, "Investimentos");
@@ -2106,7 +2106,7 @@ const DELTAS = [
 ] as const;
 
 const assertSemEfeito = (
-  documento: admin.firestore.DocumentData | undefined,
+  documento: firebaseAdminFirestore.DocumentData | undefined,
   rotulo: string,
 ): void => {
   for (const campo of DELTAS) {

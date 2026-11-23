@@ -1,3 +1,4 @@
+import { adminAuth, adminFirestore } from './support/adminModules';
 import { expect, test, type Page, type Route } from '@playwright/test';
 
 import { resolveAiChatScope } from '../src/modules/reports/aiChatStorage';
@@ -26,11 +27,11 @@ const SECRET_B = 'SEGREDO-B';
 
 const resetEmulatorData = async () => {
   const sdk = adminSdk();
-  const users = await sdk.auth().listUsers(1000);
+  const users = await adminAuth.getAuth(sdk).listUsers(1000);
   if (users.users.length > 0) {
-    await sdk.auth().deleteUsers(users.users.map((user) => user.uid));
+    await adminAuth.getAuth(sdk).deleteUsers(users.users.map((user) => user.uid));
   }
-  const db = sdk.firestore();
+  const db = adminFirestore.getFirestore(sdk);
   const collections = await db.listCollections();
   await Promise.all(collections.map((collection) => db.recursiveDelete(collection)));
 };
@@ -117,9 +118,9 @@ test.beforeEach(async () => {
 
 test('histórico do chat de IA isolado por usuário e workspace, com limpeza e respostas atrasadas', async ({ page, request }) => {
   test.setTimeout(240_000);
-  const db = adminSdk().firestore();
+  const db = adminFirestore.getFirestore(adminSdk());
   for (const user of [A, B]) {
-    await adminSdk().auth().createUser({ uid: user.uid, email: user.email, password: PASSWORD, emailVerified: true });
+    await adminAuth.getAuth(adminSdk()).createUser({ uid: user.uid, email: user.email, password: PASSWORD, emailVerified: true });
   }
 
   // A: conta pelo backend, plano Pro (pessoal + empresa) e uma empresa.
@@ -267,7 +268,7 @@ test('histórico do chat de IA isolado por usuário e workspace, com limpeza e r
 
 test('primeira carga de outra conta apaga os resíduos da sessão anterior antes de abrir', async ({ page, request }) => {
   test.setTimeout(120_000);
-  await adminSdk().auth().createUser({ uid: B.uid, email: B.email, password: PASSWORD, emailVerified: true });
+  await adminAuth.getAuth(adminSdk()).createUser({ uid: B.uid, email: B.email, password: PASSWORD, emailVerified: true });
   const tokenB = await emulatorIdToken(request, B.email, PASSWORD);
   expect((await callCallable(request, tokenB, 'bootstrapAccount', {})).status).toBe(200);
 

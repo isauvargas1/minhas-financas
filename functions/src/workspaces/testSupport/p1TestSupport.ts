@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import {randomUUID} from "node:crypto";
 
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {HttpsError} from "firebase-functions/v2/https";
 
 import {
@@ -16,7 +16,7 @@ import {
  * As suítes rodam em processos paralelos contra o mesmo Emulator, então
  * nenhuma limpa o banco: cada teste usa IDs únicos.
  */
-export const db = (): admin.firestore.Firestore => requireFirestoreEmulator();
+export const db = (): firebaseAdminFirestore.Firestore => requireFirestoreEmulator();
 
 export const uniqueId = (prefix: string): string =>
   `${prefix}-${randomUUID().slice(0, 8)}`;
@@ -66,7 +66,7 @@ export const expectHttpsError = async (
 export const membershipEvents = async (
   workspaceId: string,
   operation?: string,
-): Promise<admin.firestore.DocumentData[]> => {
+): Promise<firebaseAdminFirestore.DocumentData[]> => {
   const snapshot = await db()
     .collection(`workspaces/${workspaceId}/membership_events`).get();
   return snapshot.docs

@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 
 export const INVESTMENT_COLLECTIONS = {
   accounts: "investment_accounts",
@@ -20,31 +20,31 @@ export const INVESTMENT_COLLECTIONS = {
 export type InvestmentCollectionName =
   (typeof INVESTMENT_COLLECTIONS)[keyof typeof INVESTMENT_COLLECTIONS];
 
-export const investmentFirestore = (): admin.firestore.Firestore =>
-  admin.firestore();
+export const investmentFirestore = (): firebaseAdminFirestore.Firestore =>
+  firebaseAdminFirestore.getFirestore();
 
 export const investmentWorkspaceRef = (
   workspaceId: string,
-): admin.firestore.DocumentReference =>
+): firebaseAdminFirestore.DocumentReference =>
   investmentFirestore().doc(`workspaces/${workspaceId}`);
 
 export const investmentCollection = (
   workspaceId: string,
   collectionName: InvestmentCollectionName,
-): admin.firestore.CollectionReference =>
+): firebaseAdminFirestore.CollectionReference =>
   investmentWorkspaceRef(workspaceId).collection(collectionName);
 
 export const investmentDoc = (
   workspaceId: string,
   collectionName: InvestmentCollectionName,
   documentId: string,
-): admin.firestore.DocumentReference =>
+): firebaseAdminFirestore.DocumentReference =>
   investmentCollection(workspaceId, collectionName).doc(documentId);
 
 export const investmentTransactionDoc = (
   workspaceId: string,
   transactionId: string,
-): admin.firestore.DocumentReference =>
+): firebaseAdminFirestore.DocumentReference =>
   investmentWorkspaceRef(workspaceId)
     .collection("transactions")
     .doc(transactionId);
@@ -52,5 +52,5 @@ export const investmentTransactionDoc = (
 export const investmentGoalDoc = (
   workspaceId: string,
   goalId: string,
-): admin.firestore.DocumentReference =>
+): firebaseAdminFirestore.DocumentReference =>
   investmentWorkspaceRef(workspaceId).collection("goals").doc(goalId);

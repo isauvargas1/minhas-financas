@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {Timestamp} from "firebase-admin/firestore";
 
 import {
@@ -36,7 +36,7 @@ export const DAY_MS = 86_400_000;
  */
 export const APPROVED_RETENTION_MS = 180 * DAY_MS;
 
-export type DocSnapshot = admin.firestore.DocumentSnapshot;
+export type DocSnapshot = firebaseAdminFirestore.DocumentSnapshot;
 
 export const workspacePath = (workspaceId: string) =>
   `workspaces/${workspaceId}`;
@@ -98,7 +98,7 @@ export const sleep = (ms: number) =>
 
 /** Leitura do documento exatamente como o gatilho a recebe. */
 export const capture = (
-  ref: admin.firestore.DocumentReference,
+  ref: firebaseAdminFirestore.DocumentReference,
 ): Promise<DocSnapshot> => ref.get();
 
 interface Runnable {
@@ -161,7 +161,7 @@ export const deliverOccurrenceCreated = (
  * par ao gatilho. Devolve as duas leituras para as asserções do teste.
  */
 export const writeAndDeliver = async (
-  ref: admin.firestore.DocumentReference,
+  ref: firebaseAdminFirestore.DocumentReference,
   operation: () => Promise<unknown>,
   deliver: (before: DocSnapshot, after: DocSnapshot) => Promise<void>,
 ): Promise<{before: DocSnapshot; after: DocSnapshot}> => {

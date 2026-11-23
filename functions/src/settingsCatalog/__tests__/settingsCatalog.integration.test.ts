@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import type * as admin from "firebase-admin";
+import type * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {Timestamp} from "firebase-admin/firestore";
 
 import {seedLoanTenant} from "../../loans/testSupport/loanTestSupport";
@@ -64,7 +64,7 @@ const versionOf = async (workspaceId: string, itemId: string) =>
   formatIsoInstant((await itemsRef(workspaceId).doc(itemId).get())
     .get("updatedAt") as Timestamp);
 
-const countOf = async (ref: admin.firestore.Query) =>
+const countOf = async (ref: firebaseAdminFirestore.Query) =>
   (await ref.count().get()).data().count;
 
 const eventsOf = async (workspaceId: string) =>

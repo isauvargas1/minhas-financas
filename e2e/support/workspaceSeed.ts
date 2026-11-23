@@ -1,8 +1,6 @@
+import { adminApp, adminFirestore } from './adminModules';
 import { createHash, randomBytes } from 'node:crypto';
-import { createRequire } from 'node:module';
 
-const require = createRequire(import.meta.url);
-const admin = require('../../functions/node_modules/firebase-admin') as typeof import('../../functions/node_modules/firebase-admin');
 
 /**
  * Seeds do E2E no modelo de P1 (somente Emulator, projeto local).
@@ -42,8 +40,8 @@ export const configureEmulatorEnvironment = (): void => {
 
 export const adminSdk = () => {
   configureEmulatorEnvironment();
-  if (!admin.apps.length) admin.initializeApp({ projectId: PROJECT_ID });
-  return admin;
+  if (!adminApp.getApps().length) adminApp.initializeApp({ projectId: PROJECT_ID });
+  return adminApp.getApp();
 };
 
 /**
@@ -74,7 +72,7 @@ export const clearEmulatorData = async (): Promise<void> => {
   if (!auth.ok) throw new Error(`Falha ao limpar o Emulator do Auth (${auth.status}).`);
 };
 
-const now = () => admin.firestore.FieldValue.serverTimestamp();
+const now = () => adminFirestore.FieldValue.serverTimestamp();
 
 export interface SeedAccountInput {
   uid: string;
@@ -91,7 +89,7 @@ const ignoreAlreadyExists = (error: unknown): void => {
 
 /** Billing Free e quota de ownership, só se ainda não existirem. */
 const seedAccountBillingState = async (uid: string) => {
-  const db = adminSdk().firestore();
+  const db = adminFirestore.getFirestore(adminSdk());
   await db.doc(`billing_accounts/${uid}`).create({
     billingOwnerUid: uid,
     catalogVersion: 1,
@@ -121,7 +119,7 @@ const seedAccountBillingState = async (uid: string) => {
 };
 
 export const seedAccountProfile = async ({ uid, email, displayName }: SeedAccountInput) => {
-  await adminSdk().firestore().doc(`users/${uid}`).set({
+  await adminFirestore.getFirestore(adminSdk()).doc(`users/${uid}`).set({
     uid,
     email: email.toLowerCase(),
     displayName: displayName ?? email,
@@ -146,7 +144,7 @@ export const seedAccountProfile = async ({ uid, email, displayName }: SeedAccoun
  */
 export const seedPaidPlan = async (uid: string, planId: 'pro' | 'business') => {
   await seedAccountBillingState(uid);
-  await adminSdk().firestore().doc(`billing_accounts/${uid}`).update({
+  await adminFirestore.getFirestore(adminSdk()).doc(`billing_accounts/${uid}`).update({
     planId,
     entitlementStatus: 'active',
     subscriptionStatus: 'active',
@@ -178,7 +176,7 @@ export const transactionsQuotaMonthPath = (workspaceId: string, monthKey = saoPa
 /** Fixa o uso do mês corrente (ex.: quota esgotada), na forma do backend. */
 export const seedTransactionsQuotaUsage = async (workspaceId: string, used: number) => {
   const monthKey = saoPauloMonthKey();
-  await adminSdk().firestore().doc(transactionsQuotaMonthPath(workspaceId, monthKey)).set({
+  await adminFirestore.getFirestore(adminSdk()).doc(transactionsQuotaMonthPath(workspaceId, monthKey)).set({
     workspaceId,
     monthKey,
     used,
@@ -189,7 +187,7 @@ export const seedTransactionsQuotaUsage = async (workspaceId: string, used: numb
 
 /** Workspace sem contador inicializado (anterior a P3-D, sem backfill). */
 export const removeTransactionsQuotaAnchor = async (workspaceId: string) => {
-  await adminSdk().firestore().doc(transactionsQuotaAnchorPath(workspaceId)).delete();
+  await adminFirestore.getFirestore(adminSdk()).doc(transactionsQuotaAnchorPath(workspaceId)).delete();
 };
 
 export interface SeedWorkspaceInput {
@@ -201,12 +199,12 @@ export interface SeedWorkspaceInput {
 }
 
 export const seedWorkspaceDocument = async (input: SeedWorkspaceInput) => {
-  const db = adminSdk().firestore();
+  const db = adminFirestore.getFirestore(adminSdk());
   const previous = (await db.doc(`workspaces/${input.workspaceId}`).get()).data();
   const adjustOwned = async (uid: string, delta: number) => {
     await seedAccountBillingState(uid);
     await db.doc(`billing_accounts/${uid}/quota_state/ownership`).update({
-      activeOwnedWorkspaces: admin.firestore.FieldValue.increment(delta),
+      activeOwnedWorkspaces: adminFirestore.FieldValue.increment(delta),
       updatedAt: now(),
     });
   };
@@ -272,14 +270,14 @@ export const seedMembership = async (input: {
    */
   joinedAt?: Date;
 }) => {
-  const db = adminSdk().firestore();
-  const joinedAt = input.joinedAt ? admin.firestore.Timestamp.fromDate(input.joinedAt) : now();
+  const db = adminFirestore.getFirestore(adminSdk());
+  const joinedAt = input.joinedAt ? adminFirestore.Timestamp.fromDate(input.joinedAt) : now();
   const wasActive = (await db.doc(`workspaces/${input.workspaceId}/members/${input.uid}`).get())
     .get('status') === 'active';
   if (!wasActive) {
     await db.doc(`workspaces/${input.workspaceId}/quota_state/membership`).set({
       workspaceId: input.workspaceId,
-      activeMembers: admin.firestore.FieldValue.increment(1),
+      activeMembers: adminFirestore.FieldValue.increment(1),
       schemaVersion: QUOTA_SCHEMA_VERSION,
       updatedAt: now(),
     }, { merge: true });
@@ -341,7 +339,7 @@ export const issueInviteTokenForE2E = async (
   workspaceId: string,
   inviteId: string,
 ): Promise<string> => {
-  const db = adminSdk().firestore();
+  const db = adminFirestore.getFirestore(adminSdk());
   const invite = await db.doc(`workspaces/${workspaceId}/invites/${inviteId}`).get();
   if (!invite.exists) throw new Error('Convite inexistente no Emulator.');
   const token = randomBytes(32).toString('base64url');

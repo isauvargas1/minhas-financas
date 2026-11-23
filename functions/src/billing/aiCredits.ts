@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {FieldValue} from "firebase-admin/firestore";
 
 import {sha256, stableStringify} from "../shared/hashing";
@@ -35,19 +35,19 @@ export const AI_USAGE_COLLECTION = "ai_usage";
 export const AI_USAGE_RECEIPTS_COLLECTION = "ai_usage_receipts";
 export const AI_USAGE_SCHEMA_VERSION = 1;
 
-type Snapshot = admin.firestore.DocumentSnapshot;
+type Snapshot = firebaseAdminFirestore.DocumentSnapshot;
 
 export const aiUsageRef = (
   ownerUid: string,
   monthKey: string,
-): admin.firestore.DocumentReference =>
+): firebaseAdminFirestore.DocumentReference =>
   billingAccountRef(ownerUid).collection(AI_USAGE_COLLECTION).doc(monthKey);
 
 /** Recibo sob o ator: independe do owner vigente do workspace. */
 export const aiUsageReceiptRef = (
   actorUid: string,
   receiptId: string,
-): admin.firestore.DocumentReference =>
+): firebaseAdminFirestore.DocumentReference =>
   userProfileRef(actorUid)
     .collection(AI_USAGE_RECEIPTS_COLLECTION)
     .doc(receiptId);
@@ -102,7 +102,7 @@ export const readAiUsedCredits = (
 
 /** Regrava o contador do mês inteiro (lido na mesma transação). */
 export const writeAiUsage = (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   input: {ownerUid: string; monthKey: string; usedCredits: number},
 ): void => {
   if (!isCount(input.usedCredits)) throw quotaStateUnavailable();
@@ -128,8 +128,8 @@ export interface AiUsageReceipt {
 
 /** Cria o recibo: exatamente estes campos, com retenção de 90 dias. */
 export const createAiUsageReceipt = (
-  transaction: admin.firestore.Transaction,
-  ref: admin.firestore.DocumentReference,
+  transaction: firebaseAdminFirestore.Transaction,
+  ref: firebaseAdminFirestore.DocumentReference,
   receipt: AiUsageReceipt,
 ): void => {
   transaction.create(ref, {

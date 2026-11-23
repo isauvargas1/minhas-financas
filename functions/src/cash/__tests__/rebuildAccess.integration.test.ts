@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test, {mock} from "node:test";
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 
 // Módulo cru (sem a namespace de getters do `import * as`), para o mock
 // substituir `write` onde o logger do kernel o procura.
@@ -40,7 +40,7 @@ import {
  * do kernel, com a correlação da chamada, e nunca com a mensagem do erro.
  */
 
-const db = (): admin.firestore.Firestore => requireFirestoreEmulator();
+const db = (): firebaseAdminFirestore.Firestore => requireFirestoreEmulator();
 
 type Entry = Record<string, unknown>;
 
@@ -102,10 +102,10 @@ const payload = (workspaceId: string, dryRun = false) => ({
 
 /** Cada documento da árvore (inclusive os de pai ausente), com os dados. */
 const treeOf = async (
-  root: admin.firestore.DocumentReference,
+  root: firebaseAdminFirestore.DocumentReference,
 ): Promise<Record<string, string>> => {
   const out: Record<string, string> = {};
-  const visit = async (ref: admin.firestore.DocumentReference) => {
+  const visit = async (ref: firebaseAdminFirestore.DocumentReference) => {
     const snapshot = await ref.get();
     out[ref.path] = snapshot.exists ? JSON.stringify(snapshot.data()) : "∅";
     for (const collection of await ref.listCollections()) {

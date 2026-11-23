@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import type * as admin from "firebase-admin";
+import type * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {Timestamp} from "firebase-admin/firestore";
 
 import {
@@ -121,7 +121,7 @@ export const invoiceRef = (workspaceId: string, invoiceId: string) =>
 export const paymentRef = (workspaceId: string, paymentId: string) =>
   ws(workspaceId).collection("credit_card_invoice_payments").doc(paymentId);
 
-export const readDoc = async (ref: admin.firestore.DocumentReference) =>
+export const readDoc = async (ref: firebaseAdminFirestore.DocumentReference) =>
   (await ref.get()).data() ?? {};
 
 export const readCard = (workspaceId: string, cardId: string) =>
@@ -134,7 +134,7 @@ export const readInvoice = (
   competence: string,
 ) => readDoc(invoiceRef(workspaceId, invoiceIdFor(cardId, competence)));
 
-const versionOf = async (ref: admin.firestore.DocumentReference) =>
+const versionOf = async (ref: firebaseAdminFirestore.DocumentReference) =>
   formatIsoInstant((await ref.get()).get("updatedAt") as Timestamp);
 
 export const cardVersion = (workspaceId: string, cardId: string) =>
@@ -153,7 +153,7 @@ const listOf = async (
   field?: string,
   value?: string,
 ) => {
-  let query: admin.firestore.Query = ws(workspaceId).collection(collection);
+  let query: firebaseAdminFirestore.Query = ws(workspaceId).collection(collection);
   if (field) query = query.where(field, "==", value);
   return (await query.get()).docs.map((doc) => ({id: doc.id, ...doc.data()}));
 };

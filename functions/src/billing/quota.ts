@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {FieldValue, Timestamp} from "firebase-admin/firestore";
 
 import {ApplicationError} from "../shared/errors";
@@ -153,9 +153,9 @@ export const MAX_PENDING_RESERVATIONS = Math.max(
   ...PLAN_IDS.map((planId) => planLimits(planId).membersPerWorkspace),
 );
 
-const db = () => admin.firestore();
+const db = () => firebaseAdminFirestore.getFirestore();
 
-type Snapshot = admin.firestore.DocumentSnapshot;
+type Snapshot = firebaseAdminFirestore.DocumentSnapshot;
 
 /** Estado de quota ou de owner canônico incoerente: falha fechada. */
 export const quotaStateUnavailable = (): ApplicationError =>
@@ -223,7 +223,7 @@ const millisOf = (value: unknown): number | null =>
   value instanceof Timestamp ? value.toMillis() : null;
 
 export const storedEntitlementOf = (
-  data: admin.firestore.DocumentData,
+  data: firebaseAdminFirestore.DocumentData,
 ): StoredEntitlement => ({
   planId: data.planId,
   entitlementStatus: data.entitlementStatus,
@@ -288,9 +288,9 @@ export const assertWithinQuota = (input: {
  * autorização do ator continua sendo o resolvedor de `workspaceAuth.ts`.
  */
 export const readCanonicalOwner = async (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   workspaceId: string,
-  workspace: admin.firestore.DocumentData,
+  workspace: firebaseAdminFirestore.DocumentData,
 ): Promise<string> => {
   const ownerUid = canonicalOwnerCandidate(workspace);
   assertCanonicalOwnerMembership(await transaction.get(
@@ -306,7 +306,7 @@ export const readCanonicalOwner = async (
  * `assertCanonicalOwnerMembership` sobre esse membership.
  */
 export const canonicalOwnerCandidate = (
-  workspace: admin.firestore.DocumentData,
+  workspace: firebaseAdminFirestore.DocumentData,
 ): string => {
   const parsed = memberIdSchema.safeParse(workspace.ownerId);
   if (!parsed.success) throw quotaStateUnavailable();
@@ -333,7 +333,7 @@ export interface OwnershipQuota {
 
 export const ownershipQuotaRef = (
   uid: string,
-): admin.firestore.DocumentReference =>
+): firebaseAdminFirestore.DocumentReference =>
   billingAccountRef(uid)
     .collection(QUOTA_STATE_COLLECTION)
     .doc(OWNERSHIP_QUOTA_ID);
@@ -354,7 +354,7 @@ export const readOwnershipQuota = (snapshot: Snapshot): OwnershipQuota => {
 };
 
 export const writeOwnershipQuota = (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   uid: string,
   activeOwnedWorkspaces: number,
   mode: "create" | "set" = "set",
@@ -391,7 +391,7 @@ export interface MembershipQuota {
 
 export const membershipQuotaRef = (
   workspaceId: string,
-): admin.firestore.DocumentReference =>
+): firebaseAdminFirestore.DocumentReference =>
   workspaceRef(workspaceId)
     .collection(QUOTA_STATE_COLLECTION)
     .doc(MEMBERSHIP_QUOTA_ID);
@@ -464,7 +464,7 @@ const membershipQuotaDocument = (
 
 /** Estado inicial de todo workspace novo: só o owner, nenhuma reserva. */
 export const createMembershipQuota = (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   workspaceId: string,
 ): void => {
   transaction.create(
@@ -475,7 +475,7 @@ export const createMembershipQuota = (
 
 /** Regrava o documento inteiro (o mapa já sai sem as reservas encerradas). */
 export const writeMembershipQuota = (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   workspaceId: string,
   activeMembers: number,
   reservations: Map<string, number>,
@@ -494,5 +494,5 @@ export const releasedMember = (quota: MembershipQuota): number => {
 
 /** Leitura fora de mutação (callables de consulta). */
 export const readOnlyTransaction = <T>(
-  run: (transaction: admin.firestore.Transaction) => Promise<T>,
+  run: (transaction: firebaseAdminFirestore.Transaction) => Promise<T>,
 ): Promise<T> => db().runTransaction(run, {readOnly: true});

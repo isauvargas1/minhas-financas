@@ -1,3 +1,4 @@
+import { adminAuth, adminFirestore } from './support/adminModules';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 
 import { adminSdk, seedOwnedWorkspace } from './support/workspaceSeed';
@@ -44,18 +45,18 @@ const catalogEntry = (
 
 const seed = async () => {
   const sdk = adminSdk();
-  const db = sdk.firestore();
+  const db = adminFirestore.getFirestore(sdk);
   await db.recursiveDelete(db.doc(`workspaces/${WORKSPACE}`));
   try {
-    await sdk.auth().deleteUser(OWNER.uid);
+    await adminAuth.getAuth(sdk).deleteUser(OWNER.uid);
   } catch (error) {
     if ((error as { code?: string }).code !== 'auth/user-not-found') throw error;
   }
-  await sdk.auth().createUser({ uid: OWNER.uid, email: OWNER.email, password: PASSWORD, emailVerified: true });
+  await adminAuth.getAuth(sdk).createUser({ uid: OWNER.uid, email: OWNER.email, password: PASSWORD, emailVerified: true });
   await seedOwnedWorkspace({
     uid: OWNER.uid, email: OWNER.email, workspaceId: WORKSPACE, name: 'Metas em Escala', type: 'PF',
   });
-  const now = sdk.firestore.Timestamp.now();
+  const now = adminFirestore.Timestamp.now();
   const stamps = { createdAt: now, updatedAt: now };
   await Promise.all([
     db.doc(`workspaces/${WORKSPACE}/settings_catalog/opt-class`).set({
@@ -147,7 +148,7 @@ const contributeTo = async (page: Page, index: number, description: string) => {
 };
 
 const movementsOf = async (goal: string) => {
-  const snapshot = await adminSdk().firestore()
+  const snapshot = await adminFirestore.getFirestore(adminSdk())
     .collection(`workspaces/${WORKSPACE}/investment_movements`)
     .where('goalId', '==', goal).get();
   return snapshot.docs.map((entry) => entry.data())

@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {FieldValue, Timestamp} from "firebase-admin/firestore";
 
 import {billingAccountRef} from "../billing/model";
@@ -70,7 +70,7 @@ const isManageableRole = (value: unknown): value is ManageableRole =>
   typeof value === "string" &&
   (MANAGEABLE_ROLES as readonly string[]).includes(value);
 
-const db = () => admin.firestore();
+const db = () => firebaseAdminFirestore.getFirestore();
 
 /**
  * Resposta única para qualquer falha de aceite (D-05): token inexistente,
@@ -474,9 +474,9 @@ export const executeRevokeWorkspaceInvite = async (
 
 /** Vaga liberada por um membro ativo que sai; reservas vencidas também. */
 const releaseMemberSeat = (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   workspaceId: string,
-  snapshot: admin.firestore.DocumentSnapshot,
+  snapshot: firebaseAdminFirestore.DocumentSnapshot,
 ): void => {
   const quota = readMembershipQuota(snapshot);
   writeMembershipQuota(
@@ -488,7 +488,7 @@ const releaseMemberSeat = (
 };
 
 const readTargetMember = async (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   workspaceId: string,
   memberId: string,
 ) => {

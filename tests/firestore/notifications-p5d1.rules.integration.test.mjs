@@ -46,7 +46,10 @@ import {
  */
 
 const require = createRequire(import.meta.url);
-const admin = require('../../functions/node_modules/firebase-admin');
+const requireAdmin = createRequire(new URL('../../functions/package.json', import.meta.url));
+const adminAppModule = requireAdmin('firebase-admin/app');
+const adminFirestoreModule = requireAdmin('firebase-admin/firestore');
+const adminAuthModule = requireAdmin('firebase-admin/auth');
 if (!process.env.FIRESTORE_EMULATOR_HOST) {
   throw new Error('FIRESTORE_EMULATOR_HOST é obrigatório para os testes de Rules da P5-D1.');
 }
@@ -75,8 +78,8 @@ const clientExpiresAt = () => Timestamp.fromMillis(EXPIRES_MS);
 const getAdmin = () => {
   process.env.FIRESTORE_EMULATOR_HOST ||= '127.0.0.1:8080';
   process.env.FIREBASE_AUTH_EMULATOR_HOST ||= '127.0.0.1:9099';
-  if (!admin.apps.length) admin.initializeApp({projectId});
-  return admin;
+  if (!adminAppModule.getApps().length) adminAppModule.initializeApp({projectId});
+  return adminAppModule.getApp();
 };
 
 /** Forma do evento gravado pelo produtor de cartões (sem `read`). */
@@ -84,7 +87,7 @@ const notificationDoc = (ws, id, createdAt) => ({
   workspaceId: ws, title: `Aviso ${id}`, message: 'Fatura fechada.', type: 'credit_card',
   link: 'cards', actionLabel: 'Ver cartões', createdAt, source: 'cards', domain: 'credit_card',
   domainEventType: 'invoice.closed', cardId: 'card-1', invoiceId: `inv-${id}`,
-  expiresAt: getAdmin().firestore.Timestamp.fromMillis(EXPIRES_MS),
+  expiresAt: (getAdmin(), adminFirestoreModule.Timestamp).fromMillis(EXPIRES_MS),
 });
 
 // Três eventos no mesmo instante (empate de `createdAt`) e um anterior.
@@ -100,14 +103,14 @@ const CLIENT_CHUNK = BATCH_IDS.slice(0, 10);
 
 const seed = async () => {
   const firebaseAdmin = getAdmin();
-  const db = firebaseAdmin.firestore();
+  const db = adminFirestoreModule.getFirestore(firebaseAdmin);
   for (const user of Object.values(users)) {
     try {
-      await firebaseAdmin.auth().deleteUser(user.uid);
+      await adminAuthModule.getAuth(firebaseAdmin).deleteUser(user.uid);
     } catch (error) {
       if (error?.code !== 'auth/user-not-found') throw error;
     }
-    await firebaseAdmin.auth().createUser({...user, password, emailVerified: true});
+    await adminAuthModule.getAuth(firebaseAdmin).createUser({...user, password, emailVerified: true});
     await db.doc(`users/${user.uid}`).set({
       uid: user.uid, accessStatus: 'granted', status: user === users.suspendedA ? 'suspended' : 'active',
     });
@@ -137,8 +140,8 @@ const seed = async () => {
   }
   // Estado do removido gravado antes da remoção (pelo backend, para o teste).
   batch.set(db.doc(`workspaces/${wsA}/notification_user_states/${users.removedA.uid}/notification_entries/n-a`), {
-    read: true, readAt: firebaseAdmin.firestore.Timestamp.now(),
-    expiresAt: firebaseAdmin.firestore.Timestamp.fromMillis(EXPIRES_MS),
+    read: true, readAt: adminFirestoreModule.Timestamp.now(),
+    expiresAt: adminFirestoreModule.Timestamp.fromMillis(EXPIRES_MS),
   });
   await batch.commit();
 };
@@ -177,7 +180,7 @@ const notificationRef = (db, ws, id) => doc(db, `workspaces/${ws}/notifications/
 const stateRef = (db, ws, uid, id) => doc(db, `workspaces/${ws}/notification_user_states/${uid}/notification_entries/${id}`);
 const statesCollection = (db, ws, uid) => collection(db, `workspaces/${ws}/notification_user_states/${uid}/notification_entries`);
 const adminState = (ws, uid, id) =>
-  getAdmin().firestore().doc(`workspaces/${ws}/notification_user_states/${uid}/notification_entries/${id}`).get();
+  adminFirestoreModule.getFirestore(getAdmin()).doc(`workspaces/${ws}/notification_user_states/${uid}/notification_entries/${id}`).get();
 
 /** Página do painel: mais recentes primeiro, desempate por ID (`listNotificationPage`). */
 const pageQuery = (db, ws, max, cursor) => query(
@@ -282,7 +285,7 @@ test('P5-D1 Rules — nenhum papel cria nem altera a notificação compartilhada
       await denied(setDoc(notificationRef(db, wsA, 'n-a'), {dismissed: true}, {merge: true}), `${name} arquiva no evento`);
     }
   });
-  const persisted = await getAdmin().firestore().doc(`workspaces/${wsA}/notifications/n-a`).get();
+  const persisted = await adminFirestoreModule.getFirestore(getAdmin()).doc(`workspaces/${wsA}/notifications/n-a`).get();
   assert.equal(persisted.get('title'), 'Aviso n-a');
   assert.equal(persisted.get('read'), undefined);
   assert.equal(persisted.get('dismissed'), undefined);
@@ -295,7 +298,7 @@ test('P5-D1 Rules — nenhum papel apaga a notificação compartilhada', async (
       await denied(deleteDoc(notificationRef(db, wsA, 'n-b')), `${name} apaga o evento`);
     }
   });
-  assert.equal((await getAdmin().firestore().doc(`workspaces/${wsA}/notifications/n-b`).get()).exists, true);
+  assert.equal((await adminFirestoreModule.getFirestore(getAdmin()).doc(`workspaces/${wsA}/notifications/n-b`).get()).exists, true);
 });
 
 // 12. Viewer marca o próprio estado; o dos outros fica intacto.

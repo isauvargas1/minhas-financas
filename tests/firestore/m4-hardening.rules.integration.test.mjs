@@ -22,7 +22,10 @@ import {
 } from 'firebase/firestore';
 
 const require = createRequire(import.meta.url);
-const admin = require('../../functions/node_modules/firebase-admin');
+const requireAdmin = createRequire(new URL('../../functions/package.json', import.meta.url));
+const adminAppModule = requireAdmin('firebase-admin/app');
+const adminFirestoreModule = requireAdmin('firebase-admin/firestore');
+const adminAuthModule = requireAdmin('firebase-admin/auth');
 if (!process.env.FIRESTORE_EMULATOR_HOST) {
   throw new Error('FIRESTORE_EMULATOR_HOST é obrigatório para os testes de Rules do M4.');
 }
@@ -56,12 +59,12 @@ const USERS_WITHOUT_PROFILE = new Set([users.noProfileC.uid]);
 const getAdmin = () => {
   process.env.FIRESTORE_EMULATOR_HOST ||= '127.0.0.1:8080';
   process.env.FIREBASE_AUTH_EMULATOR_HOST ||= '127.0.0.1:9099';
-  if (!admin.apps.length) admin.initializeApp({projectId});
-  return admin;
+  if (!adminAppModule.getApps().length) adminAppModule.initializeApp({projectId});
+  return adminAppModule.getApp();
 };
 
 /** Timestamp do Admin SDK, para semear documentos. */
-const ts = (iso) => getAdmin().firestore.Timestamp.fromDate(new Date(iso));
+const ts = (iso) => (getAdmin(), adminFirestoreModule.Timestamp).fromDate(new Date(iso));
 /** Timestamp do SDK cliente, para payloads enviados como cliente. */
 const clientTs = (iso) => ClientTimestamp.fromDate(new Date(iso));
 const NOW = '2026-08-20T15:00:00.000Z';
@@ -123,14 +126,14 @@ const deniedByRules = (promise, label) => assert.rejects(promise, (error) => {
 
 const seed = async () => {
   const firebaseAdmin = getAdmin();
-  const db = firebaseAdmin.firestore();
+  const db = adminFirestoreModule.getFirestore(firebaseAdmin);
   for (const user of Object.values(users)) {
     try {
-      await firebaseAdmin.auth().deleteUser(user.uid);
+      await adminAuthModule.getAuth(firebaseAdmin).deleteUser(user.uid);
     } catch (error) {
       if (error?.code !== 'auth/user-not-found') throw error;
     }
-    await firebaseAdmin.auth().createUser({...user, password, emailVerified: true});
+    await adminAuthModule.getAuth(firebaseAdmin).createUser({...user, password, emailVerified: true});
     // P1: perfil server-owned. A autorização exige `status == 'active'`; o
     // membro removido também tem perfil ativo, para que seja o membership, e
     // não a conta, o que o nega.
@@ -188,7 +191,7 @@ const seed = async () => {
     }),
     db.doc(`workspaces/${wsArchived}/notifications/notif-1`).set({
       title: 'Aviso', createdAt: ts(NOW),
-      expiresAt: getAdmin().firestore.Timestamp.fromMillis(NOTIFICATION_EXPIRES_MS),
+      expiresAt: (getAdmin(), adminFirestoreModule.Timestamp).fromMillis(NOTIFICATION_EXPIRES_MS),
     }),
   ]);
 
@@ -333,7 +336,7 @@ test('M4 — admin não se promove a owner', async () => {
       'Admin não pode reescrever o próprio documento de membership como owner.',
     );
   });
-  const stored = await getAdmin().firestore().doc(`workspaces/${wsA}/members/${users.adminA.uid}`).get();
+  const stored = await adminFirestoreModule.getFirestore(getAdmin()).doc(`workspaces/${wsA}/members/${users.adminA.uid}`).get();
   assert.equal(stored.data().role, 'admin', 'O papel persistido não pode ter mudado.');
 });
 
@@ -382,7 +385,7 @@ test('P1 — nenhum papel altera o documento do workspace pelo cliente', async (
       }
     }
   });
-  const stored = await getAdmin().firestore().doc(`workspaces/${wsA}`).get();
+  const stored = await adminFirestoreModule.getFirestore(getAdmin()).doc(`workspaces/${wsA}`).get();
   assert.equal(stored.data().ownerId, users.ownerA.uid);
   assert.equal(stored.data().type, 'PF');
   assert.equal(stored.data().name, 'A');
@@ -478,7 +481,7 @@ test('M4 — transação exige workspaceId igual ao path e userId do autor', asy
 
 test('P4-D — nenhum campo de transação muda pelo cliente, nem os antes mutáveis', async () => {
   await seed();
-  const db = getAdmin().firestore();
+  const db = adminFirestoreModule.getFirestore(getAdmin());
   await db.doc(`workspaces/${wsA}/transactions/mutable-tx`).set({
     ...clientTransaction(wsA, users.ownerA.uid), transactionDate: ts(NOW), createdAt: ts(NOW), updatedAt: ts(NOW),
   });
@@ -593,7 +596,7 @@ test('P4-D — o antigo fluxo direto do frontend não cria nem edita transação
       assert.equal((await getDoc(doc(client.db, `workspaces/${wsA}/transactions/tx-1`))).exists(), true);
     }
   });
-  assert.equal((await getAdmin().firestore().doc(`workspaces/${wsA}/transactions/tx-1`).get()).data().value, 10);
+  assert.equal((await adminFirestoreModule.getFirestore(getAdmin()).doc(`workspaces/${wsA}/transactions/tx-1`).get()).data().value, 10);
 });
 
 test('M4 — catálogo somente leitura no cliente (D-23) e metas inalteradas', async () => {
@@ -658,7 +661,7 @@ test('P1 — nem o owner gerencia membros pelo cliente; membership é server-own
       'owner não altera o próprio membership',
     );
   });
-  const db = getAdmin().firestore();
+  const db = adminFirestoreModule.getFirestore(getAdmin());
   assert.equal((await db.doc(`workspaces/${wsA}/members/${users.viewerA.uid}`).get()).data().role, 'viewer');
   assert.equal((await db.doc(`workspaces/${wsA}/members/${users.memberA.uid}`).get()).data().role, 'member');
   assert.equal((await db.doc(`workspaces/${wsA}/members/${users.memberB.uid}`).get()).exists, false);
@@ -670,7 +673,7 @@ test('P1 — nem o owner gerencia membros pelo cliente; membership é server-own
 
 test('P1 — cliente não cria nem apaga workspace e não grava o índice de participação', async () => {
   await seed();
-  const db = getAdmin().firestore();
+  const db = adminFirestoreModule.getFirestore(getAdmin());
   await withClients(['ownerA', 'adminA', 'memberA'], async (clients) => {
     for (const [name, client] of Object.entries(clients)) {
       const uid = users[name].uid;
@@ -762,14 +765,14 @@ test('M4 — escrita direta de transação de investimento é sempre negada', as
 // aceita em `transactions`, e a troca de tipo continua negada.
 
 const seedClientShapedTransaction = async (docId, userId) => {
-  await getAdmin().firestore().doc(`workspaces/${wsA}/transactions/${docId}`).set({
+  await adminFirestoreModule.getFirestore(getAdmin()).doc(`workspaces/${wsA}/transactions/${docId}`).set({
     ...clientTransaction(wsA, userId), transactionDate: ts(NOW), createdAt: ts(NOW), updatedAt: ts(NOW),
   });
 };
 
 test('INV-P1-002 — update de type para investimento é negado em todos os papéis', async () => {
   await seed();
-  const db = getAdmin().firestore();
+  const db = adminFirestoreModule.getFirestore(getAdmin());
 
   await withClients(['ownerA', 'adminA', 'memberA'], async (c) => {
     for (const [name, user] of [
@@ -866,7 +869,7 @@ test('INV-P2-032 — delete de transação é negado; a baixa lógica também n�
         voidReason: 'Excluída pelo usuário',
         updatedAt: serverTimestamp(),
       }), `${name} não baixa direto`);
-      const persisted = await getAdmin().firestore().doc(`workspaces/${wsA}/transactions/${docId}`).get();
+      const persisted = await adminFirestoreModule.getFirestore(getAdmin()).doc(`workspaces/${wsA}/transactions/${docId}`).get();
       assert.ok(persisted.exists);
       assert.equal(persisted.data().voidedAt, undefined);
     }
@@ -893,7 +896,7 @@ test('INV-P2-032 — baixa lógica não aceita forjar o autor da baixa', async (
 
 test('INV-P1-013 / P1 — usuário não escreve no próprio perfil, nem para conceder plano ou admin', async () => {
   await seed();
-  const db = getAdmin().firestore();
+  const db = adminFirestoreModule.getFirestore(getAdmin());
   const seeded = {
     uid: users.ownerA.uid,
     status: 'active',
@@ -971,7 +974,7 @@ test('INV-P1-013 / P1 — usuário não escreve no próprio perfil, nem para con
 
 test('P1 — usuário sem perfil não cria o próprio documento de perfil', async () => {
   await seed();
-  const db = getAdmin().firestore();
+  const db = adminFirestoreModule.getFirestore(getAdmin());
   await withClients(['noProfileC'], async ({noProfileC}) => {
     // A criação do perfil é do `bootstrapAccount`, a partir do token.
     await assert.rejects(
@@ -986,7 +989,7 @@ test('P1 — usuário sem perfil não cria o próprio documento de perfil', asyn
 
 test('INV-P1-013 / P2A — backend continua sendo a fonte de entitlement', async () => {
   await seed();
-  const db = getAdmin().firestore();
+  const db = adminFirestoreModule.getFirestore(getAdmin());
 
   // O Admin SDK — usado pelo webhook do Stripe — ignora as Rules. O estado
   // canônico é `billing_accounts/{uid}` (P2A), não o perfil.
@@ -1062,7 +1065,7 @@ test('INV-P3-053 — workspace, membro e transação rejeitam campos arbitrário
       'configurações do workspace não são gravadas pelo cliente',
     );
   });
-  const stored = await getAdmin().firestore().doc(`workspaces/${wsA}`).get();
+  const stored = await adminFirestoreModule.getFirestore(getAdmin()).doc(`workspaces/${wsA}`).get();
   assert.equal(stored.data().name, 'A');
   assert.equal(stored.data().themeColor, undefined);
   assert.equal(stored.data().campoArbitrario, undefined);
@@ -1078,7 +1081,7 @@ test('INV-P3-053 — workspace, membro e transação rejeitam campos arbitrário
 
 test('coleções novas são server-only e invisíveis entre tenants', async () => {
   await seed();
-  const db = getAdmin().firestore();
+  const db = adminFirestoreModule.getFirestore(getAdmin());
   const now = ts(NOW);
 
   await Promise.all([
@@ -1186,7 +1189,7 @@ test('coleções novas são server-only e invisíveis entre tenants', async () =
  */
 test('a marca de entrega do caixa é invisível e inescrevível pelo cliente', async () => {
   await seed();
-  const db = getAdmin().firestore();
+  const db = adminFirestoreModule.getFirestore(getAdmin());
   const now = ts(NOW);
   const chave = 'a'.repeat(40);
 
@@ -1270,7 +1273,7 @@ test('listagem da projeção de caixa respeita o teto declarado', async () => {
 
 test('P1 — conta suspensa com membership de owner ativo perde leitura e escrita na mesma sessão', async () => {
   await seed();
-  const db = getAdmin().firestore();
+  const db = adminFirestoreModule.getFirestore(getAdmin());
   const uid = users.ownerC.uid;
   await withClients(['ownerC'], async ({ownerC}) => {
     const txRef = doc(ownerC.db, `workspaces/${wsC}/transactions/tx-1`);
@@ -1333,7 +1336,7 @@ test('P1 — conta suspensa com membership de owner ativo perde leitura e escrit
 
 test('P1 — membership ativo sem documento de perfil não concede acesso', async () => {
   await seed();
-  const db = getAdmin().firestore();
+  const db = adminFirestoreModule.getFirestore(getAdmin());
   const uid = users.noProfileC.uid;
   await withClients(['noProfileC'], async ({noProfileC}) => {
     const txRef = doc(noProfileC.db, `workspaces/${wsC}/transactions/tx-1`);
@@ -1373,7 +1376,7 @@ test('P1 — membership ativo sem documento de perfil não concede acesso', asyn
 
 test('P1 — workspace arquivado é legível pelos membros e não aceita escrita do cliente', async () => {
   await seed();
-  const db = getAdmin().firestore();
+  const db = adminFirestoreModule.getFirestore(getAdmin());
   await withClients(['ownerA', 'memberA'], async ({ownerA, memberA}) => {
     const ownerTx = doc(ownerA.db, `workspaces/${wsArchived}/transactions/tx-owner`);
     const memberTx = doc(memberA.db, `workspaces/${wsArchived}/transactions/tx-member`);
@@ -1487,7 +1490,7 @@ test('P1 — workspace arquivado é legível pelos membros e não aceita escrita
  */
 test('P3-A — auditoria do caixa: leitura de owner e admin, escrita de ninguém', async () => {
   await seed();
-  const db = getAdmin().firestore();
+  const db = adminFirestoreModule.getFirestore(getAdmin());
   const event = (workspaceId) => ({
     id: 'cash_entry_created_evt', workspaceId, operation: 'cash_entry.created',
     actorId: 'backend', actorRole: 'member', profileType: 'PF', transactionId: 'cash_tx',
@@ -1554,7 +1557,7 @@ test('P3-A — auditoria do caixa: leitura de owner e admin, escrita de ninguém
  */
 test('P3-A — lançamento com cashEntry não é criado, editado nem anulado pelo cliente', async () => {
   await seed();
-  const db = getAdmin().firestore();
+  const db = adminFirestoreModule.getFirestore(getAdmin());
   const backendEntry = (userId, overrides = {}) => ({
     type: 'receita', description: 'Salário', category: 'Salário',
     valueCents: 620_000, date: '2026-08-20',
@@ -1626,7 +1629,7 @@ test('P3-A — lançamento com cashEntry não é criado, editado nem anulado pel
  */
 test('P3-C — lançamento corrigido e anulado pelo backend ficam fora do cliente', async () => {
   await seed();
-  const db = getAdmin().firestore();
+  const db = adminFirestoreModule.getFirestore(getAdmin());
   const corrected = (userId, overrides = {}) => ({
     type: 'despesa', description: 'Compra', category: 'Mercado',
     valueCents: 16_000, date: '2026-08-20',
@@ -1697,7 +1700,7 @@ test('P4-D — estado de quota é server-only; nenhum papel escreve em transacti
   // `quota_state` não é lido nem escrito pelo cliente, e nenhum papel cria
   // ou altera lançamento — inclusive em lote.
   await seed();
-  const db = getAdmin().firestore();
+  const db = adminFirestoreModule.getFirestore(getAdmin());
   const existing = `workspaces/${wsA}/transactions/tx-1`;
   await db.doc(`workspaces/${wsA}/quota_state/transactions`).set({
     workspaceId: wsA, trackingSince: '2026-08', origin: 'workspace_created', initialUsed: 0,
@@ -1732,8 +1735,8 @@ test('P4-D — estado de quota é server-only; nenhum papel escreve em transacti
 
 test('P3-H — empréstimos só pelo backend: nenhum papel cria, altera nem apaga; leituras autorizadas seguem; auditoria e espelho server-only', async () => {
   await seed();
-  const db = getAdmin().firestore();
-  const now = admin.firestore.Timestamp.now();
+  const db = adminFirestoreModule.getFirestore(getAdmin());
+  const now = adminFirestoreModule.Timestamp.now();
   const loanPath = `workspaces/${wsA}/loans/loan_autoritativo`;
   const movementPath = `workspaces/${wsA}/loan_movements/lmv_autoritativo`;
   const eventPath = `workspaces/${wsA}/loan_events/loan_created_autoritativo`;

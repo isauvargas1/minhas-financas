@@ -1,5 +1,5 @@
 import {randomUUID} from "node:crypto";
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {FieldPath, FieldValue, Timestamp} from "firebase-admin/firestore";
 import {z} from "zod";
 
@@ -149,8 +149,8 @@ const DRY_RUN_STATE_ID = "cash_periods_rebuild_dry_run";
 const rebuildStateRef = (
   workspaceId: string,
   dryRun = false,
-): admin.firestore.DocumentReference =>
-  admin.firestore().doc(
+): firebaseAdminFirestore.DocumentReference =>
+  firebaseAdminFirestore.getFirestore().doc(
     `workspaces/${workspaceId}/${CASH_PERIODS_COLLECTION}/` +
       `${dryRun ? DRY_RUN_STATE_ID : REBUILD_STATE_ID}`,
   );
@@ -257,7 +257,7 @@ interface Checkpoint {
 }
 
 const readCheckpoint = (
-  snapshot: admin.firestore.DocumentSnapshot,
+  snapshot: firebaseAdminFirestore.DocumentSnapshot,
 ): Checkpoint | null => {
   const data = snapshot.data();
   if (
@@ -297,7 +297,7 @@ const newCheckpointData = (
   restarts: number,
   reason: RebuildRestartReason | null,
   markSlot: MarkSlot,
-): admin.firestore.DocumentData => ({
+): firebaseAdminFirestore.DocumentData => ({
   id: dryRun ? DRY_RUN_STATE_ID : REBUILD_STATE_ID,
   workspaceId,
   kind: "cash_periods_rebuild",
@@ -326,7 +326,7 @@ const stagingPatch = (
   workspaceId: string,
   state: CashProjectionState,
   rebuildId: string,
-): admin.firestore.DocumentData => {
+): firebaseAdminFirestore.DocumentData => {
   const garbage = [...state.categoryGarbage];
   const previous = state.categoryStaging?.generation;
   if (
@@ -361,8 +361,8 @@ const stagingPatch = (
  * são o mesmo instante.
  */
 const writeNewCheckpoint = (
-  transaction: admin.firestore.Transaction,
-  ref: admin.firestore.DocumentReference,
+  transaction: firebaseAdminFirestore.Transaction,
+  ref: firebaseAdminFirestore.DocumentReference,
   state: CashProjectionState,
   workspaceId: string,
   actorId: string,
@@ -390,12 +390,12 @@ const writeNewCheckpoint = (
  * recomeçar é seguro, porque nada é publicado antes da última página.
  */
 const ensureCheckpoint = async (
-  ref: admin.firestore.DocumentReference,
+  ref: firebaseAdminFirestore.DocumentReference,
   workspaceId: string,
   actorId: string,
   dryRun: boolean,
 ): Promise<Checkpoint> => {
-  await admin.firestore().runTransaction(async (transaction) => {
+  await firebaseAdminFirestore.getFirestore().runTransaction(async (transaction) => {
     const [checkpointSnapshot, stateSnapshot] = await transaction.getAll(
       ref,
       cashProjectionStateRef(workspaceId),
@@ -439,14 +439,14 @@ const sameCheckpoint = (
  * escreve nada.
  */
 const restartCheckpoint = async (
-  ref: admin.firestore.DocumentReference,
+  ref: firebaseAdminFirestore.DocumentReference,
   expected: Checkpoint,
   workspaceId: string,
   actorId: string,
   dryRun: boolean,
   reason: RebuildRestartReason,
 ): Promise<boolean> =>
-  admin.firestore().runTransaction(async (transaction) => {
+  firebaseAdminFirestore.getFirestore().runTransaction(async (transaction) => {
     const [checkpointSnapshot, stateSnapshot] = await transaction.getAll(
       ref,
       cashProjectionStateRef(workspaceId),
@@ -514,7 +514,7 @@ const categoryShardId = (
 ): string => `${rebuildId}__c__${year}__${categoryKey}`;
 
 const shardsRef = (workspaceId: string) =>
-  admin.firestore().collection(
+  firebaseAdminFirestore.getFirestore().collection(
     `workspaces/${workspaceId}/${CASH_REBUILD_SHARDS_COLLECTION}`,
   );
 
@@ -527,7 +527,7 @@ const incrementsOf = (
 
 /** Detalhe diário de um mês acumulado pela varredura (incremento). */
 const writeMonthShard = (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   workspaceId: string,
   checkpoint: Checkpoint,
   period: string,
@@ -551,7 +551,7 @@ const writeMonthShard = (
 
 /** Categoria-ano da simulação (nunca publicada). */
 const writeCategoryShard = (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   workspaceId: string,
   checkpoint: Checkpoint,
   entry: CashCategoryWrite,
@@ -580,30 +580,30 @@ const writeCategoryShard = (
 
 /** Documentos de uma coleção cujo ID começa com `prefix`, em ordem de ID. */
 const prefixQuery = (
-  collection: admin.firestore.CollectionReference,
+  collection: firebaseAdminFirestore.CollectionReference,
   prefix: string,
   limit: number,
-): admin.firestore.Query => collection
+): firebaseAdminFirestore.Query => collection
   .orderBy(FieldPath.documentId())
   .startAt(prefix)
   .endAt(`${prefix}`)
   .limit(limit);
 
 const deleteByPrefix = async (
-  collection: admin.firestore.CollectionReference,
+  collection: firebaseAdminFirestore.CollectionReference,
   prefix: string,
   limit: number,
 ): Promise<number> => {
   const snapshot = await prefixQuery(collection, prefix, limit).get();
   if (snapshot.empty) return 0;
-  const batch = admin.firestore().batch();
+  const batch = firebaseAdminFirestore.getFirestore().batch();
   for (const doc of snapshot.docs) batch.delete(doc.ref);
   await batch.commit();
   return snapshot.size;
 };
 
 const categoryYearsRef = (workspaceId: string) =>
-  admin.firestore().collection(
+  firebaseAdminFirestore.getFirestore().collection(
     `workspaces/${workspaceId}/${CASH_CATEGORY_YEARS_COLLECTION}`,
   );
 
@@ -740,7 +740,7 @@ class RebuildContractViolation extends Error {
 }
 
 const processPage = (
-  docs: admin.firestore.QueryDocumentSnapshot[],
+  docs: firebaseAdminFirestore.QueryDocumentSnapshot[],
   cutoff: Timestamp,
 ): PageWork => {
   const work: PageWork = {
@@ -855,7 +855,7 @@ const DIVERGENCE_SAMPLE_LIMIT = 24;
 const DELTA_FIELDS = CASH_DELTA_FIELDS;
 
 const storedTotalsOf = (
-  data: admin.firestore.DocumentData,
+  data: firebaseAdminFirestore.DocumentData,
 ): CashPeriodDelta => normalizeCashPeriodDelta(data);
 
 const sameDays = (left: CashDayDeltas, right: CashDayDeltas): boolean => {
@@ -886,7 +886,7 @@ const divergenceOf = async (
   rebuiltDays: Record<string, CashDayDeltas>,
 ) => {
   const maxDocs = MAX_CASH_PERIODS + CASH_REBUILD_STATE_IDS.length;
-  const stored = await admin.firestore()
+  const stored = await firebaseAdminFirestore.getFirestore()
     .collection(`workspaces/${workspaceId}/${CASH_PERIODS_COLLECTION}`)
     .limit(maxDocs + 1)
     .get();
@@ -951,7 +951,7 @@ interface CategoryYearSnapshot {
 }
 
 const categorySnapshotOf = (
-  data: admin.firestore.DocumentData,
+  data: firebaseAdminFirestore.DocumentData,
 ): CategoryYearSnapshot => ({
   totals: normalizeCashCategoryDelta(data),
   days: readCashCategoryDays(data.days),
@@ -1045,8 +1045,8 @@ const reconciliationOf = (
 const postCutoffEventsQuery = (
   workspaceId: string,
   cutoff: Timestamp,
-): admin.firestore.Query =>
-  admin.firestore()
+): firebaseAdminFirestore.Query =>
+  firebaseAdminFirestore.getFirestore()
     .collection(
       `workspaces/${workspaceId}/${CASH_PERIOD_EVENTS_COLLECTION}`,
     )
@@ -1077,7 +1077,7 @@ interface PostCutoffSummary {
  *   recomeço é posterior ao commit do evento; a varredura nova o cobre.
  */
 const summarizePostCutoffEvents = (
-  docs: admin.firestore.QueryDocumentSnapshot[],
+  docs: firebaseAdminFirestore.QueryDocumentSnapshot[],
   cutoff: Timestamp,
   stagingGeneration: string | null,
 ): PostCutoffSummary => {
@@ -1166,8 +1166,8 @@ const restartedResult = (
 /** Detalhe diário acumulado nos shards dos meses informados. */
 const readMonthShards = async (
   read: (
-    ...refs: admin.firestore.DocumentReference[]
-  ) => Promise<admin.firestore.DocumentSnapshot[]>,
+    ...refs: firebaseAdminFirestore.DocumentReference[]
+  ) => Promise<firebaseAdminFirestore.DocumentSnapshot[]>,
   workspaceId: string,
   rebuildId: string,
   periods: string[],
@@ -1190,7 +1190,7 @@ export const executeRebuildCashPeriods = async (
   payload: Payload,
   options: RebuildOptions = {},
 ): Promise<Record<string, unknown>> => {
-  const db = admin.firestore();
+  const db = firebaseAdminFirestore.getFirestore();
   const context: RebuildContext = {
     log: options.log ??
       createOperationLogger({operation: "rebuildCashPeriods", workspaceId}),
@@ -1351,11 +1351,11 @@ export const executeRebuildCashPeriods = async (
 const finishDryRun = async (
   workspaceId: string,
   actorId: string,
-  ref: admin.firestore.DocumentReference,
+  ref: firebaseAdminFirestore.DocumentReference,
   checkpoint: Checkpoint,
   context: RebuildContext,
 ): Promise<Record<string, unknown>> => {
-  const db = admin.firestore();
+  const db = firebaseAdminFirestore.getFirestore();
   const {cutoff} = checkpoint;
   // A simulação não alimenta geração preparada nenhuma (sem `stagingPatch`).
   const events = summarizePostCutoffEvents(
@@ -1449,7 +1449,7 @@ const publishRebuild = async (
   context: RebuildContext,
 ): Promise<Record<string, unknown>> => {
   const {options} = context;
-  const db = admin.firestore();
+  const db = firebaseAdminFirestore.getFirestore();
   const ref = rebuildStateRef(workspaceId);
   const stateRef = cashProjectionStateRef(workspaceId);
   const budget = options.publishWriteBudget ?? FIRESTORE_MAX_WRITES_PER_COMMIT;
@@ -1724,7 +1724,7 @@ export const executeAuthorizedRebuild = async (
   payload: Payload,
   log?: OperationLogger,
 ): Promise<Record<string, unknown>> => {
-  await admin.firestore().runTransaction(async (transaction) => {
+  await firebaseAdminFirestore.getFirestore().runTransaction(async (transaction) => {
     // Autorização relida na fase de leitura, antes de consumir o limite:
     // quem foi removido ou rebaixado depois da pré-checagem não reconstrói.
     await reassertWorkspaceActor(transaction, actor);

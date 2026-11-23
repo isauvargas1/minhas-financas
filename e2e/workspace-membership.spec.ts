@@ -1,3 +1,4 @@
+import { adminAuth, adminFirestore } from './support/adminModules';
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
 
 import { resolveAiChatScope } from '../src/modules/reports/aiChatStorage';
@@ -20,17 +21,17 @@ const PASSWORD = 'e2e-password-123456';
 
 const resetEmulatorData = async () => {
   const sdk = adminSdk();
-  const users = await sdk.auth().listUsers(1000);
+  const users = await adminAuth.getAuth(sdk).listUsers(1000);
   if (users.users.length > 0) {
-    await sdk.auth().deleteUsers(users.users.map((user) => user.uid));
+    await adminAuth.getAuth(sdk).deleteUsers(users.users.map((user) => user.uid));
   }
-  const db = sdk.firestore();
+  const db = adminFirestore.getFirestore(sdk);
   const collections = await db.listCollections();
   await Promise.all(collections.map((collection) => db.recursiveDelete(collection)));
 };
 
 const createUser = async (uid: string, email: string, emailVerified = true) => {
-  await adminSdk().auth().createUser({ uid, email, password: PASSWORD, emailVerified });
+  await adminAuth.getAuth(adminSdk()).createUser({ uid, email, password: PASSWORD, emailVerified });
 };
 
 const login = async (page: Page, email: string) => {
@@ -42,7 +43,7 @@ const login = async (page: Page, email: string) => {
 };
 
 const workspaceIndex = async (uid: string) =>
-  (await adminSdk().firestore().collection(`users/${uid}/workspaces`).get()).docs;
+  (await adminFirestore.getFirestore(adminSdk()).collection(`users/${uid}/workspaces`).get()).docs;
 
 const tokenFor = (request: APIRequestContext, email: string) =>
   emulatorIdToken(request, email, PASSWORD);
@@ -60,7 +61,7 @@ test('primeiro login prepara a conta no backend e o logout não vaza dados para 
 
   await login(page, a.email);
 
-  const db = adminSdk().firestore();
+  const db = adminFirestore.getFirestore(adminSdk());
   const profileA = await db.doc(`users/${a.uid}`).get();
   expect(profileA.get('status')).toBe('active');
   const indexA = await workspaceIndex(a.uid);
@@ -171,7 +172,7 @@ test('convite, aceite, troca de papel, remoção e perda de acesso entre duas co
   const invitee = { uid: 'e2e-p1-invitee', email: 'e2e-p1-invitee@minhas-financas.local' };
   await createUser(owner.uid, owner.email);
   await createUser(invitee.uid, invitee.email);
-  const db = adminSdk().firestore();
+  const db = adminFirestore.getFirestore(adminSdk());
 
   // Conta do owner e uma empresa, pelas callables reais.
   const ownerToken = await tokenFor(request, owner.email);

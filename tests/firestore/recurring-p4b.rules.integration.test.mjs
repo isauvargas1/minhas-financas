@@ -41,7 +41,10 @@ import {
  */
 
 const require = createRequire(import.meta.url);
-const admin = require('../../functions/node_modules/firebase-admin');
+const requireAdmin = createRequire(new URL('../../functions/package.json', import.meta.url));
+const adminAppModule = requireAdmin('firebase-admin/app');
+const adminFirestoreModule = requireAdmin('firebase-admin/firestore');
+const adminAuthModule = requireAdmin('firebase-admin/auth');
 if (!process.env.FIRESTORE_EMULATOR_HOST) {
   throw new Error('FIRESTORE_EMULATOR_HOST é obrigatório para os testes de Rules da P4-B.');
 }
@@ -76,22 +79,22 @@ const existingId = {
 const getAdmin = () => {
   process.env.FIRESTORE_EMULATOR_HOST ||= '127.0.0.1:8080';
   process.env.FIREBASE_AUTH_EMULATOR_HOST ||= '127.0.0.1:9099';
-  if (!admin.apps.length) admin.initializeApp({projectId});
-  return admin;
+  if (!adminAppModule.getApps().length) adminAppModule.initializeApp({projectId});
+  return adminAppModule.getApp();
 };
 
-const ts = (iso = '2026-10-05T12:00:00.000Z') => getAdmin().firestore.Timestamp.fromDate(new Date(iso));
+const ts = (iso = '2026-10-05T12:00:00.000Z') => (getAdmin(), adminFirestoreModule.Timestamp).fromDate(new Date(iso));
 
 const seed = async () => {
   const firebaseAdmin = getAdmin();
-  const db = firebaseAdmin.firestore();
+  const db = adminFirestoreModule.getFirestore(firebaseAdmin);
   for (const user of Object.values(users)) {
     try {
-      await firebaseAdmin.auth().deleteUser(user.uid);
+      await adminAuthModule.getAuth(firebaseAdmin).deleteUser(user.uid);
     } catch (error) {
       if (error?.code !== 'auth/user-not-found') throw error;
     }
-    await firebaseAdmin.auth().createUser({...user, password, emailVerified: true});
+    await adminAuthModule.getAuth(firebaseAdmin).createUser({...user, password, emailVerified: true});
     await db.doc(`users/${user.uid}`).set({uid: user.uid, accessStatus: 'granted', status: 'active'});
   }
   await Promise.all([wsA, wsB].map((ws) => db.recursiveDelete(db.doc(`workspaces/${ws}`))));
@@ -219,7 +222,7 @@ test('P4-B Rules — nenhum papel cria, altera ou apaga contratos, ocorrências 
       await denied(batch.commit(), `${name} grava em lote`);
     }
   });
-  const db = getAdmin().firestore();
+  const db = adminFirestoreModule.getFirestore(getAdmin());
   const contract = await db.doc(`workspaces/${wsA}/recurring_expenses/${REC}`).get();
   assert.equal(contract.get('amountCents'), 9_990);
   assert.equal(contract.get('nextDueDate'), '2026-11-10');
@@ -298,14 +301,14 @@ test('P4-B Rules — o cliente não forja o vínculo recorrente nem altera o lan
       await denied(deleteDoc(entry), `${name} apaga o lançamento gerado`);
     }
   });
-  const stored = await getAdmin().firestore().doc(`workspaces/${wsA}/transactions/${ENTRY}`).get();
+  const stored = await adminFirestoreModule.getFirestore(getAdmin()).doc(`workspaces/${wsA}/transactions/${ENTRY}`).get();
   assert.equal(stored.get('isPaid'), false);
   assert.equal(stored.get('recurringEntry.occurrenceId'), OCC_1);
 });
 
 test('P4-B Rules — paginação nas consultas do frontend: fronteira, cursor e sonda de corte', async () => {
   // Massa própria no workspace B (o A tem asserções exatas nos testes acima).
-  const db = getAdmin().firestore();
+  const db = adminFirestoreModule.getFirestore(getAdmin());
   const base = `workspaces/${wsB}`;
   const MANY = 'rec_many';
   const batch = db.batch();

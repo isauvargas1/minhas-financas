@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import type {Timestamp} from "firebase-admin/firestore";
 
 import {compareCommitTimes} from "../cash/periods";
@@ -97,12 +97,12 @@ export const assertVersion = (
  * replay — ou em conflito, quando a mesma chave aparece com outro conteúdo.
  */
 export const findCardIntentAnchor = async (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   intentId: string,
   operation: CardEventOperation,
-): Promise<admin.firestore.QueryDocumentSnapshot | undefined> => {
+): Promise<firebaseAdminFirestore.QueryDocumentSnapshot | undefined> => {
   const anchors = await transaction.get(
-    admin.firestore().collectionGroup(CARD_EVENTS_COLLECTION)
+    firebaseAdminFirestore.getFirestore().collectionGroup(CARD_EVENTS_COLLECTION)
       .where("intentId", "==", intentId)
       .where("operation", "==", operation)
       .limit(1),
@@ -111,14 +111,14 @@ export const findCardIntentAnchor = async (
 };
 
 export const reserveCardRateLimit = (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   actor: WorkspaceActor,
   policy: RateLimitPolicy = CARD_MUTATION_RATE_LIMIT,
 ) => reserveRateLimit(transaction, actor.workspaceId, actor.uid, policy);
 
 /** Profile do workspace para o espelho de caixa. */
 export const profileTypeOf = (
-  workspace: admin.firestore.DocumentData,
+  workspace: firebaseAdminFirestore.DocumentData,
 ): "PF" | "PJ" => (workspace.type === "PJ" ? "PJ" : "PF");
 
 const BRL = new Intl.NumberFormat("pt-BR", {

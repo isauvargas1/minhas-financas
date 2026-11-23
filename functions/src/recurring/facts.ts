@@ -1,4 +1,4 @@
-import type * as admin from "firebase-admin";
+import type * as firebaseAdminFirestore from "firebase-admin/firestore";
 
 import {
   assertActiveAccount,
@@ -96,7 +96,7 @@ const accountAttentionCode = (error: unknown): AttentionCode | null => {
 };
 
 export const prepareFact = async (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   input: {
     workspaceId: string;
     target: FactTarget;
@@ -179,7 +179,7 @@ export interface CommittedFact {
 
 /** Escritas do fato planejado (sem escrita no plano de atenção). */
 export const commitFact = (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   plan: Exclude<FactPlan, {kind: "attention"}>,
   context: FactContext,
 ): CommittedFact => {

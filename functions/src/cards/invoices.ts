@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {AggregateField, FieldValue} from "firebase-admin/firestore";
 
 import {ApplicationError} from "../shared/errors";
@@ -40,7 +40,7 @@ export interface InvoiceCardContext {
 export interface InvoiceSlot {
   id: string;
   competenceMonth: string;
-  ref: admin.firestore.DocumentReference;
+  ref: firebaseAdminFirestore.DocumentReference;
   closingDate: string;
   dueDate: string;
   /** Estado relido (ou o da fatura nova, vazia). */
@@ -50,7 +50,7 @@ export interface InvoiceSlot {
   exists: boolean;
   revision: number;
   /** Campos extras do fechamento. */
-  closePatch: admin.firestore.UpdateData<admin.firestore.DocumentData> | null;
+  closePatch: firebaseAdminFirestore.UpdateData<firebaseAdminFirestore.DocumentData> | null;
   touched: boolean;
 }
 
@@ -65,7 +65,7 @@ export class InvoiceBook {
   private readonly slots = new Map<string, InvoiceSlot>();
 
   constructor(
-    private readonly transaction: admin.firestore.Transaction,
+    private readonly transaction: firebaseAdminFirestore.Transaction,
     readonly card: InvoiceCardContext,
     readonly today: string,
   ) {}
@@ -235,7 +235,7 @@ export interface InvoiceClosePlan {
  * da transação (sem ler os documentos um a um).
  */
 export const readInvoiceEntryTotals = async (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   workspaceId: string,
   invoiceId: string,
 ): Promise<{totalCents: number; count: number}> => {
@@ -264,7 +264,7 @@ export const readInvoiceEntryTotals = async (
  * Devolve `null` se a fatura não é elegível (já fechada ou antes da data).
  */
 export const prepareInvoiceClose = async (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   book: InvoiceBook,
   competence: string,
 ): Promise<InvoiceClosePlan | null> => {
@@ -301,7 +301,7 @@ export const prepareInvoiceClose = async (
  * do pagamento é o derivado; uma fatura de total zero fecha paga.
  */
 export const applyInvoiceClose = (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   book: InvoiceBook,
   plan: InvoiceClosePlan,
   context: {actorUid: string; operation: string; requestId: string},

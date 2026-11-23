@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 
 import {
   PILOT_ACCESS_DENIED_MESSAGE,
@@ -50,7 +50,7 @@ export interface WorkspaceActor {
 
 export type AccountStatus = "active" | "suspended";
 
-const db = () => admin.firestore();
+const db = () => firebaseAdminFirestore.getFirestore();
 
 const assertPathId = (
   schema: typeof workspaceIdSchema,
@@ -78,7 +78,7 @@ export const userWorkspaceIndexRef = (uid: string, workspaceId: string) =>
   userProfileRef(uid).collection("workspaces")
     .doc(assertPathId(workspaceIdSchema, workspaceId));
 
-type Snapshot = admin.firestore.DocumentSnapshot;
+type Snapshot = firebaseAdminFirestore.DocumentSnapshot;
 
 export const ACCOUNT_SUSPENDED_MESSAGE =
   "Sua conta está suspensa. Entre em contato com o suporte.";
@@ -142,7 +142,7 @@ export const requireActiveAccount = async (uid: string): Promise<void> => {
 export const evaluateWorkspaceAccess = (
   snapshots: {profile: Snapshot; workspace: Snapshot; member: Snapshot},
   allowedRoles: readonly WorkspaceRole[],
-): {workspace: admin.firestore.DocumentData; role: WorkspaceRole} => {
+): {workspace: firebaseAdminFirestore.DocumentData; role: WorkspaceRole} => {
   assertActiveAccountSnapshot(snapshots.profile);
   const member = snapshots.member;
   const role = member.get("role");
@@ -196,7 +196,7 @@ export const resolveWorkspaceActor = async (
 };
 
 export interface ReassertedWorkspaceAccess {
-  workspace: admin.firestore.DocumentData;
+  workspace: firebaseAdminFirestore.DocumentData;
   role: WorkspaceRole;
 }
 
@@ -209,7 +209,7 @@ export interface ReassertedWorkspaceAccess {
  * operação em vez de deixá-la terminar com o poder antigo.
  */
 export const reassertWorkspaceActor = async (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   actor: Pick<WorkspaceActor, "uid" | "workspaceId"> & {role?: WorkspaceRole},
   allowedRoles?: readonly WorkspaceRole[],
 ): Promise<ReassertedWorkspaceAccess> => {

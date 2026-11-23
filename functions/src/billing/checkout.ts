@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {FieldValue, Timestamp} from "firebase-admin/firestore";
 
 import type {CallerIdentity} from "../shared/callable";
@@ -85,7 +85,7 @@ const MIN_REUSABLE_SESSION_TTL_MS = 31 * 60_000;
 
 const OPERATION = "createCheckoutSession";
 
-const db = () => admin.firestore();
+const db = () => firebaseAdminFirestore.getFirestore();
 
 export const subscriptionExistsError = (): ApplicationError =>
   new ApplicationError(

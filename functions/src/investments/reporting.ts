@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {FieldValue, Timestamp} from "firebase-admin/firestore";
 
 import type {PositionState} from "./operationsV2";
@@ -106,7 +106,7 @@ const periodId = (value: Timestamp): string =>
 const dayId = (value: Timestamp): string => saoPauloDayKey(value.toDate());
 
 export const writeInvestmentReportPeriod = (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   workspaceId: string,
   profileType: "PF" | "PJ",
   actorId: string,
@@ -145,7 +145,7 @@ export const MAX_RETROACTIVE_PERIODS = 24;
 export interface InvestmentPeriodContext {
   period: string;
   openingCents: number;
-  laterPeriodRefs: admin.firestore.DocumentReference[];
+  laterPeriodRefs: firebaseAdminFirestore.DocumentReference[];
 }
 
 /**
@@ -155,7 +155,7 @@ export interface InvestmentPeriodContext {
  * deslocaria.
  */
 export const readInvestmentPeriodContext = async (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   workspaceId: string,
   occurredAt: Timestamp,
 ): Promise<InvestmentPeriodContext> => {
@@ -207,7 +207,7 @@ export const readInvestmentPeriodContext = async (
 };
 
 const writeInvestmentReportDeltas = (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   workspaceId: string,
   profileType: "PF" | "PJ",
   actorId: string,
@@ -316,7 +316,7 @@ const purposeLabel = (value: InvestmentAllocationPurpose): string => ({
 
 const metadataDescriptor = (
   dimension: "risk" | "liquidity" | "indexer",
-  asset: admin.firestore.DocumentData,
+  asset: firebaseAdminFirestore.DocumentData,
 ): AllocationDescriptor => {
   const idField = `${dimension}Id`;
   const labelField = `${dimension}Name`;
@@ -328,8 +328,8 @@ const metadataDescriptor = (
 };
 
 export const allocationDescriptors = (
-  account: admin.firestore.DocumentData,
-  asset: admin.firestore.DocumentData,
+  account: firebaseAdminFirestore.DocumentData,
+  asset: firebaseAdminFirestore.DocumentData,
   goalId: string | undefined,
   goalName?: string,
 ): AllocationDescriptor[] => {
@@ -368,7 +368,7 @@ export const allocationHasExposure = (state: PositionState): boolean =>
   state.currentValueCents !== 0;
 
 const writeAllocationDelta = (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   workspaceId: string,
   profileType: "PF" | "PJ",
   actorId: string,
@@ -409,12 +409,12 @@ const writeAllocationDelta = (
 };
 
 export const writeInvestmentAllocationProjections = (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   workspaceId: string,
   profileType: "PF" | "PJ",
   actorId: string,
-  account: admin.firestore.DocumentData,
-  asset: admin.firestore.DocumentData,
+  account: firebaseAdminFirestore.DocumentData,
+  asset: firebaseAdminFirestore.DocumentData,
   previous: PositionState,
   next: PositionState,
   goalNames: {previous?: string; next?: string} = {},

@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {FieldValue} from "firebase-admin/firestore";
 
 import {ApplicationError} from "../shared/errors";
@@ -83,14 +83,14 @@ export const SHARE_FORGIVE_DENIED_MESSAGE =
   "Só o dono do grupo ou um administrador do espaço pode perdoar um rateio.";
 export const SHARE_BILL_VOIDED_MESSAGE = "Este título foi anulado.";
 
-const db = () => admin.firestore();
+const db = () => firebaseAdminFirestore.getFirestore();
 
 interface LoadedShare {
   start: SplitMutationStart;
   access: GroupAccess;
-  shareRef: admin.firestore.DocumentReference;
+  shareRef: firebaseAdminFirestore.DocumentReference;
   share: AuthoritativeSplitShare;
-  billRef: admin.firestore.DocumentReference;
+  billRef: firebaseAdminFirestore.DocumentReference;
   bill: AuthoritativeSplitBill;
   participants: Map<string, AuthoritativeSplitParticipant>;
   debtor: AuthoritativeSplitParticipant;
@@ -101,7 +101,7 @@ interface LoadedShare {
  * papel do ator relido, recusa ao devedor e versão do rateio.
  */
 const loadShare = async (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   actor: WorkspaceActor,
   payload: ShareActionPayload,
   operation: string,
@@ -196,7 +196,7 @@ interface ShareTransition {
  * pela diferença e anexa o evento.
  */
 const applyTransition = (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   actor: WorkspaceActor,
   loaded: LoadedShare,
   transition: ShareTransition,

@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {FieldValue} from "firebase-admin/firestore";
 
 import {sha256} from "../shared/hashing";
@@ -73,7 +73,7 @@ export interface RecurringGenerationFaults {
 }
 
 export const processDueOccurrence = async (
-  contractRef: admin.firestore.DocumentReference,
+  contractRef: firebaseAdminFirestore.DocumentReference,
   expectedDueDate: string,
   today: string,
   requestId: string,
@@ -81,7 +81,7 @@ export const processDueOccurrence = async (
 ): Promise<DueOutcome> => {
   const workspaceId = contractRef.parent.parent?.id;
   if (!workspaceId) return {status: "skipped"};
-  return admin.firestore().runTransaction(async (transaction) => {
+  return firebaseAdminFirestore.getFirestore().runTransaction(async (transaction) => {
     const contractSnapshotDoc = await transaction.get(contractRef);
     const contract = readAuthoritativeRecurringExpense(
       contractSnapshotDoc.id, contractSnapshotDoc.data(), workspaceId);

@@ -25,12 +25,13 @@ const SCRIPT = path.join(RAIZ, 'tools', 'investments', 'limpar-investimentos.mjs
 const PROJETO_EMULADOR = 'minhas-financas-local';
 const WORKSPACE = 'guard-limpeza-workspace';
 
-const require = createRequire(import.meta.url);
-const admin = require(path.join(RAIZ, 'functions', 'node_modules', 'firebase-admin'));
+const requireAdmin = createRequire(new URL('../../functions/package.json', import.meta.url));
+const {getApps, initializeApp} = requireAdmin('firebase-admin/app');
+const {getFirestore, Timestamp} = requireAdmin('firebase-admin/firestore');
 
 const db = () => {
-  if (!admin.apps.length) admin.initializeApp({projectId: PROJETO_EMULADOR});
-  return admin.firestore();
+  if (!getApps().length) initializeApp({projectId: PROJETO_EMULADOR});
+  return getFirestore();
 };
 
 const executar = (argumentos, ambiente = {}) => {
@@ -55,7 +56,7 @@ const raiz = `workspaces/${WORKSPACE}`;
 
 /** Massa que cobre o domínio e tudo o que o utilitário promete não tocar. */
 const semear = async () => {
-  const agora = admin.firestore.Timestamp.now();
+  const agora = Timestamp.now();
   await db().recursiveDelete(db().doc(raiz));
   await db().doc(raiz).set({ownerId: 'u1', type: 'PF', currency: 'BRL', name: 'Guarda'});
   await db().doc(`${raiz}/members/u1`).set({uid: 'u1', role: 'owner', status: 'active'});

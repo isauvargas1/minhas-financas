@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {FieldPath} from "firebase-admin/firestore";
 import {onSchedule} from "firebase-functions/v2/scheduler";
 
@@ -101,7 +101,7 @@ const notificationDocument = (input: {
   kind: "invoice_closed" | "invoice_due_soon" | "invoice_overdue";
   /** Instante de criação, capturado uma única vez por documento. */
   createdAtMs: number;
-}): admin.firestore.DocumentData => buildNotificationDocument({
+}): firebaseAdminFirestore.DocumentData => buildNotificationDocument({
   id: input.id,
   workspaceId: input.workspaceId,
   eventType: input.kind,
@@ -119,7 +119,7 @@ const notificationDocument = (input: {
  */
 const safeNotificationDocument = (
   input: Parameters<typeof notificationDocument>[0],
-): admin.firestore.DocumentData | null => {
+): firebaseAdminFirestore.DocumentData | null => {
   try {
     return notificationDocument(input);
   } catch (error) {
@@ -137,13 +137,13 @@ const safeNotificationDocument = (
 };
 
 const closeOne = async (
-  ref: admin.firestore.DocumentReference,
+  ref: firebaseAdminFirestore.DocumentReference,
   today: string,
   requestId: string,
 ): Promise<CloseOutcome> => {
   const workspaceId = ref.parent.parent?.id;
   if (!workspaceId) return {status: "skipped"};
-  return admin.firestore().runTransaction(async (transaction) => {
+  return firebaseAdminFirestore.getFirestore().runTransaction(async (transaction) => {
     const snapshot = await transaction.get(ref);
     const invoice = readAuthoritativeInvoice(
       snapshot.id, snapshot.data(), workspaceId);
@@ -216,7 +216,7 @@ const closeOne = async (
 };
 
 const invoiceGroup = () =>
-  admin.firestore().collectionGroup(CARD_INVOICES_COLLECTION);
+  firebaseAdminFirestore.getFirestore().collectionGroup(CARD_INVOICES_COLLECTION);
 
 /** Faturas fechadas com saldo e vencimento na janela, por página. */
 const notifyDueWindow = async (input: {
@@ -229,7 +229,7 @@ const notifyDueWindow = async (input: {
   summary: CardClosingSummary;
   cardNames: Map<string, string | null>;
 }): Promise<void> => {
-  let cursor: admin.firestore.QueryDocumentSnapshot | undefined;
+  let cursor: firebaseAdminFirestore.QueryDocumentSnapshot | undefined;
   for (let page = 0; page < input.maxPages; page += 1) {
     let query = invoiceGroup()
       .where("schemaVersion", "==", CARD_SCHEMA_VERSION)
@@ -315,7 +315,7 @@ export const runCreditCardInvoiceClosing = async (options: {
     alertsScanned: 0,
     alertsTruncated: false,
   };
-  let cursor: admin.firestore.QueryDocumentSnapshot | undefined;
+  let cursor: firebaseAdminFirestore.QueryDocumentSnapshot | undefined;
   for (let page = 0; page < maxPages; page += 1) {
     let query = invoiceGroup()
       .where("schemaVersion", "==", CARD_SCHEMA_VERSION)

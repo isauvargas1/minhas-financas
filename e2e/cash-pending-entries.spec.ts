@@ -1,3 +1,4 @@
+import { adminAuth, adminFirestore } from './support/adminModules';
 import { expect, test, type Page, type Request } from '@playwright/test';
 
 import { callCallable, emulatorIdToken } from './support/callables';
@@ -42,7 +43,7 @@ const CATALOG = {
   product: 'Condomínio E2E',
 };
 
-const db = () => adminSdk().firestore();
+const db = () => adminFirestore.getFirestore(adminSdk());
 
 const dayKey = (offsetDays = 0): string => {
   const now = new Date(Date.now() + offsetDays * 86_400_000);
@@ -55,12 +56,12 @@ const brDate = (key: string) => key.split('-').reverse().join('/');
 
 const resetEmulatorData = async () => {
   const sdk = adminSdk();
-  const users = await sdk.auth().listUsers(1000);
+  const users = await adminAuth.getAuth(sdk).listUsers(1000);
   if (users.users.length > 0) {
-    await sdk.auth().deleteUsers(users.users.map((user) => user.uid));
+    await adminAuth.getAuth(sdk).deleteUsers(users.users.map((user) => user.uid));
   }
-  const collections = await sdk.firestore().listCollections();
-  await Promise.all(collections.map((collection) => sdk.firestore().recursiveDelete(collection)));
+  const collections = await adminFirestore.getFirestore(sdk).listCollections();
+  await Promise.all(collections.map((collection) => adminFirestore.getFirestore(sdk).recursiveDelete(collection)));
 };
 
 const normalize = (value: string) =>
@@ -71,7 +72,7 @@ const seed = async () => {
   // P5-C1: o Dashboard lê a projeção do caixa; as exclusões da limpeza anterior
   // são processadas depois e, com o mesmo ID, cairiam no teste seguinte.
   WS.id = `e2e-p3f-main-${Date.now().toString(36)}`;
-  await adminSdk().auth().createUser({
+  await adminAuth.getAuth(adminSdk()).createUser({
     uid: OWNER.uid, email: OWNER.email, password: PASSWORD, emailVerified: true,
   });
   await seedOwnedWorkspace({ ...OWNER, workspaceId: WS.id, name: WS.name, type: 'PF' });

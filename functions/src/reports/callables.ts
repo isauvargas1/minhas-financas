@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 
 import {defineCallable} from "../shared/callable";
 import {reserveRateLimit, type RateLimitPolicy} from "../shared/rateLimit";
@@ -47,7 +47,7 @@ export const getFinancialReport = defineCallable({
     trustWorkspace,
   }): Promise<FinancialReport> => {
     const actor = requireActor(resolved);
-    const current = await admin.firestore().runTransaction(
+    const current = await firebaseAdminFirestore.getFirestore().runTransaction(
       async (transaction) => {
         const reassert = await reassertWorkspaceActor(
           transaction, actor, REPORT_READER_ROLES);

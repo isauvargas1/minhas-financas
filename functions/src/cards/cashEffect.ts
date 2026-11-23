@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {FieldValue} from "firebase-admin/firestore";
 
 import {isMoneyCents} from "../shared/money";
@@ -94,7 +94,7 @@ export const cardPaymentCashMirrorDocument = (input: {
   date: string;
   cashAccountId: string;
   entry: CardPaymentCashEntry;
-}): admin.firestore.DocumentData => ({
+}): firebaseAdminFirestore.DocumentData => ({
   type: input.entry.reversal ? "receita" : "despesa",
   description: input.entry.reversal ?
     "Estorno: pagamento de fatura de cartão" :

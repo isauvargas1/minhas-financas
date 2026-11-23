@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {FieldValue} from "firebase-admin/firestore";
 
 import {addDaysToDayKey, isDayKey} from "../../shared/dateKeys";
@@ -31,14 +31,14 @@ export const RECEIVABLE_OVERDUE_WORK_SCHEMA_VERSION = 1;
 export const receivableOverdueQueueRef = (
   workspaceId: string,
   receivableId: string,
-) => admin.firestore().doc(
+) => firebaseAdminFirestore.getFirestore().doc(
   `workspaces/${workspaceId}/${RECEIVABLE_OVERDUE_QUEUE_COLLECTION}/` +
   receivableId);
 
 export const receivableOverdueDeliveryRef = (
   workspaceId: string,
   notificationId: string,
-) => admin.firestore().doc(
+) => firebaseAdminFirestore.getFirestore().doc(
   `workspaces/${workspaceId}/${RECEIVABLE_OVERDUE_DELIVERIES_COLLECTION}/` +
   notificationId);
 
@@ -79,7 +79,7 @@ export const dueQueueDay = (dueDate: string, enqueuedOn: string): string => {
  * estado anterior já foi lido pela operação.
  */
 export const syncReceivableOverdueWork = (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   input: {
     workspaceId: string;
     receivableId: string;

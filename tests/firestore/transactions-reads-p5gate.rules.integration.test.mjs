@@ -33,7 +33,10 @@ import {
  */
 
 const require = createRequire(import.meta.url);
-const admin = require('../../functions/node_modules/firebase-admin');
+const requireAdmin = createRequire(new URL('../../functions/package.json', import.meta.url));
+const adminAppModule = requireAdmin('firebase-admin/app');
+const adminFirestoreModule = requireAdmin('firebase-admin/firestore');
+const adminAuthModule = requireAdmin('firebase-admin/auth');
 const indexes = require('../../firestore.indexes.json');
 if (!process.env.FIRESTORE_EMULATOR_HOST) {
   throw new Error('FIRESTORE_EMULATOR_HOST é obrigatório para os testes de Rules do P5-GATE-FINAL.');
@@ -58,8 +61,8 @@ const TYPES = ['receita', 'despesa', 'investimento'];
 
 const getAdmin = () => {
   process.env.FIREBASE_AUTH_EMULATOR_HOST ||= '127.0.0.1:9099';
-  if (!admin.apps.length) admin.initializeApp({projectId});
-  return admin;
+  if (!adminAppModule.getApps().length) adminAppModule.initializeApp({projectId});
+  return adminAppModule.getApp();
 };
 
 const months = () => {
@@ -107,19 +110,19 @@ const documentOf = (ws, owner, row) => ({
   type: row.type, description: `Lançamento ${row.id}`, category: 'Casa', date: row.date, isPaid: true,
   workspaceId: ws, userId: owner,
   ...(row.valid ? {valueCents: 1_000 + (Number(row.id.slice(2, 7)) % 9_000)} : {value: 10}),
-  ...(row.voided ? {voidedAt: getAdmin().firestore.Timestamp.fromDate(new Date('2026-11-01T12:00:00Z'))} : {}),
+  ...(row.voided ? {voidedAt: (getAdmin(), adminFirestoreModule.Timestamp).fromDate(new Date('2026-11-01T12:00:00Z'))} : {}),
 });
 
 const seed = async () => {
   const firebaseAdmin = getAdmin();
-  const db = firebaseAdmin.firestore();
+  const db = adminFirestoreModule.getFirestore(firebaseAdmin);
   for (const user of Object.values(users)) {
     try {
-      await firebaseAdmin.auth().deleteUser(user.uid);
+      await adminAuthModule.getAuth(firebaseAdmin).deleteUser(user.uid);
     } catch (error) {
       if (error?.code !== 'auth/user-not-found') throw error;
     }
-    await firebaseAdmin.auth().createUser({...user, password, emailVerified: true});
+    await adminAuthModule.getAuth(firebaseAdmin).createUser({...user, password, emailVerified: true});
     await db.doc(`users/${user.uid}`).set({uid: user.uid, accessStatus: 'granted', status: 'active'});
   }
   await Promise.all([wsA, wsB].map((ws) => db.recursiveDelete(db.doc(`workspaces/${ws}`))));

@@ -1,3 +1,4 @@
+import { adminAuth } from './support/adminModules';
 import { expect, test, type Page } from '@playwright/test';
 
 import {
@@ -515,7 +516,7 @@ test('troca de workspace: cada espaço mostra só os próprios clientes e receb�
   await createReceivableByApi(request, token, ws(), clientA, { description: 'Recebível do Espaço A' });
   // Segundo espaço PJ, de outro titular, onde o owner do primeiro é admin.
   const otherOwner = { uid: 'e2e-p3i-owner-b', email: 'e2e-p3i-owner-b@minhas-financas.local' };
-  await adminSdk().auth().createUser({ ...otherOwner, password: PASSWORD, emailVerified: true });
+  await adminAuth.getAuth(adminSdk()).createUser({ ...otherOwner, password: PASSWORD, emailVerified: true });
   const otherWs = `e2e-p3i-ws-b-${Date.now().toString(36)}`;
   await seedOwnedWorkspace({ ...otherOwner, workspaceId: otherWs, name: 'Empresa Beta E2E', type: 'PJ' });
   await seedAccountProfile(tenant.owner);

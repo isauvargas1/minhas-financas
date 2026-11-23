@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {FieldValue} from "firebase-admin/firestore";
 
 import {
@@ -120,7 +120,7 @@ export const PAYMENT_REVERSAL_LIMIT_MESSAGE =
 export const ADJUSTMENT_COMPETENCE_TOO_FAR_MESSAGE =
   "Competência do ajuste: muito distante da fatura atual.";
 
-const db = () => admin.firestore();
+const db = () => firebaseAdminFirestore.getFirestore();
 
 export interface InvoiceMutationResult {
   cardId: string;
@@ -140,7 +140,7 @@ const replayResult = (
 };
 
 const readCardOrFail = (
-  snapshot: admin.firestore.DocumentSnapshot,
+  snapshot: firebaseAdminFirestore.DocumentSnapshot,
   workspaceId: string,
 ): AuthoritativeCard => {
   if (!snapshot.exists) {
@@ -155,7 +155,7 @@ const readCardOrFail = (
 };
 
 const readInvoiceOrFail = (
-  snapshot: admin.firestore.DocumentSnapshot,
+  snapshot: firebaseAdminFirestore.DocumentSnapshot,
   workspaceId: string,
   cardId: string,
 ): AuthoritativeInvoice => {
@@ -178,7 +178,7 @@ const formatDayKey = (dayKey: string): string =>
   `${dayKey.slice(8, 10)}/${dayKey.slice(5, 7)}/${dayKey.slice(0, 4)}`;
 
 const bookFor = (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   card: AuthoritativeCard,
   today: string,
 ) => new InvoiceBook(transaction, {
@@ -190,7 +190,7 @@ const bookFor = (
 
 /** Evento do fechamento feito dentro de uma operação (ou pela rotina). */
 export const appendInvoiceClosedEvent = (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   input: {
     book: InvoiceBook;
     plan: InvoiceClosePlan;

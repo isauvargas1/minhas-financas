@@ -40,7 +40,10 @@ import {
  */
 
 const require = createRequire(import.meta.url);
-const admin = require('../../functions/node_modules/firebase-admin');
+const requireAdmin = createRequire(new URL('../../functions/package.json', import.meta.url));
+const adminAppModule = requireAdmin('firebase-admin/app');
+const adminFirestoreModule = requireAdmin('firebase-admin/firestore');
+const adminAuthModule = requireAdmin('firebase-admin/auth');
 if (!process.env.FIRESTORE_EMULATOR_HOST) {
   throw new Error('FIRESTORE_EMULATOR_HOST é obrigatório para os testes de Rules de billing.');
 }
@@ -56,8 +59,8 @@ const users = {
 
 const getAdmin = () => {
   process.env.FIREBASE_AUTH_EMULATOR_HOST ||= '127.0.0.1:9099';
-  if (!admin.apps.length) admin.initializeApp({projectId});
-  return admin;
+  if (!adminAppModule.getApps().length) adminAppModule.initializeApp({projectId});
+  return adminAppModule.getApp();
 };
 
 const QUOTA_WORKSPACE = 'p2b-quota-rules-ws';
@@ -75,14 +78,14 @@ const billingOf = (uid, planId) => ({
 
 const seed = async () => {
   const firebaseAdmin = getAdmin();
-  const db = firebaseAdmin.firestore();
+  const db = adminFirestoreModule.getFirestore(firebaseAdmin);
   for (const entry of Object.values(users)) {
     try {
-      await firebaseAdmin.auth().deleteUser(entry.uid);
+      await adminAuthModule.getAuth(firebaseAdmin).deleteUser(entry.uid);
     } catch (error) {
       if (error?.code !== 'auth/user-not-found') throw error;
     }
-    await firebaseAdmin.auth().createUser({...entry, password, emailVerified: true});
+    await adminAuthModule.getAuth(firebaseAdmin).createUser({...entry, password, emailVerified: true});
     await db.doc(`users/${entry.uid}`).set({
       uid: entry.uid,
       accessStatus: 'granted', status: entry === users.suspended ? 'suspended' : 'active',
@@ -221,7 +224,7 @@ test('cliente nunca cria, altera ou apaga billing', async () => {
     setDoc(doc(db.anon, 'billing_accounts/p2-bill-novo'), billingOf('p2-bill-novo', 'pro')),
     'criação anônima',
   );
-  const persisted = await getAdmin().firestore().doc(`billing_accounts/${users.ownerB.uid}`).get();
+  const persisted = await adminFirestoreModule.getFirestore(getAdmin()).doc(`billing_accounts/${users.ownerB.uid}`).get();
   assert.deepEqual(persisted.data(), billingOf(users.ownerB.uid, 'free'));
 });
 
@@ -234,7 +237,7 @@ test('trilha, vínculo de customer e recibos do webhook são backend-only', asyn
   // está na trilha.
   await denied(updateDoc(doc(db.ownerA, `${eventsPath}/evt-1`), {type: 'x'}), 'titular altera a trilha');
   await denied(deleteDoc(doc(db.ownerA, `${eventsPath}/evt-1`)), 'titular apaga a trilha');
-  const kept = await getAdmin().firestore().doc(`${eventsPath}/evt-1`).get();
+  const kept = await adminFirestoreModule.getFirestore(getAdmin()).doc(`${eventsPath}/evt-1`).get();
   assert.equal(kept.get('type'), 'checkout.created');
   const customer = `billing_customers/cus_${users.ownerA.uid}`;
   await denied(getDoc(doc(db.ownerA, customer)), 'titular lê o vínculo');
@@ -268,7 +271,7 @@ test('P2B.1: quota do workspace é backend-only, mesmo para owner e membro', asy
     await denied(deleteDoc(doc(client, `${base}/quota_state/membership`)), `${name} apaga a quota`);
     await denied(setDoc(doc(client, `${base}/quota_state/novo`), {x: 1}), `${name} cria documento de quota`);
   }
-  const persisted = await getAdmin().firestore().doc(`${base}/quota_state/membership`).get();
+  const persisted = await adminFirestoreModule.getFirestore(getAdmin()).doc(`${base}/quota_state/membership`).get();
   assert.equal(persisted.data().activeMembers, 2);
 });
 
@@ -292,7 +295,7 @@ test('P3-D: âncora e contador mensal de lançamentos são backend-only', async 
       `${name} altera a âncora`,
     );
   }
-  const admin = getAdmin().firestore();
+  const admin = adminFirestoreModule.getFirestore(getAdmin());
   assert.equal((await admin.doc(`${base}/transactions_2026-09`).get()).data().used, 50);
   assert.equal((await admin.doc(`${base}/transactions`).get()).data().trackingSince, '2026-09');
   assert.equal((await admin.doc(`${base}/transactions_2026-10`).get()).exists, false);
@@ -309,7 +312,7 @@ test('P2B.1: quota de ownership do titular é backend-only', async () => {
   await denied(setDoc(doc(db.ownerA, path), {activeOwnedWorkspaces: 0}), 'titular zera o contador');
   await denied(updateDoc(doc(db.ownerA, path), {activeOwnedWorkspaces: 0}), 'titular altera o contador');
   await denied(deleteDoc(doc(db.ownerA, path)), 'titular apaga o contador');
-  const persisted = await getAdmin().firestore().doc(path).get();
+  const persisted = await adminFirestoreModule.getFirestore(getAdmin()).doc(path).get();
   assert.equal(persisted.data().activeOwnedWorkspaces, 1);
 });
 
@@ -335,7 +338,7 @@ test('P2B.2: uso mensal de IA do titular é backend-only, inclusive para o titul
       `${name} cria o mês seguinte`,
     );
   }
-  const firestore = getAdmin().firestore();
+  const firestore = adminFirestoreModule.getFirestore(getAdmin());
   assert.equal((await firestore.doc(usage).get()).data().usedCredits, 3);
   assert.equal((await firestore.doc(`${base}/ai_usage/2026-10`).get()).exists, false);
 });
@@ -376,7 +379,7 @@ test('P2B.2: recibos de IA do ator são backend-only, inclusive para o próprio 
       `${name} cria recibo no próprio caminho`,
     );
   }
-  const firestore = getAdmin().firestore();
+  const firestore = adminFirestoreModule.getFirestore(getAdmin());
   const persisted = (await firestore.doc(receipt).get()).data();
   assert.equal(persisted.requestHash, 'a'.repeat(64));
   assert.equal(persisted.billingOwnerUid, users.ownerA.uid);

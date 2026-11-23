@@ -1,3 +1,4 @@
+import { adminAuth, adminFirestore } from './support/adminModules';
 import { expect, test, type Page, type Request, type Route } from '@playwright/test';
 
 import { adminSdk } from './support/workspaceSeed';
@@ -39,16 +40,16 @@ const persona = (suffix: string): Persona => ({
 const resetPersona = async ({ uid, email }: Persona) => {
   const sdk = adminSdk();
   try {
-    await sdk.auth().deleteUser(uid);
+    await adminAuth.getAuth(sdk).deleteUser(uid);
   } catch (error) {
     if ((error as { code?: string }).code !== 'auth/user-not-found') throw error;
   }
-  const db = sdk.firestore();
+  const db = adminFirestore.getFirestore(sdk);
   await Promise.all([
     db.recursiveDelete(db.doc(`users/${uid}`)),
     db.recursiveDelete(db.doc(`billing_accounts/${uid}`)),
   ]);
-  await sdk.auth().createUser({ uid, email, password: PASSWORD, emailVerified: true });
+  await adminAuth.getAuth(sdk).createUser({ uid, email, password: PASSWORD, emailVerified: true });
 };
 
 const login = async (page: Page, { email }: Persona) => {
@@ -77,7 +78,7 @@ const plansView = (page: Page) =>
 
 /** Assinatura gerenciável, como o webhook a deixaria (dados sintéticos). */
 const seedActiveSubscription = async (uid: string) => {
-  await adminSdk().firestore().doc(`billing_accounts/${uid}`).update({
+  await adminFirestore.getFirestore(adminSdk()).doc(`billing_accounts/${uid}`).update({
     planId: 'pro',
     entitlementStatus: 'active',
     subscriptionStatus: 'active',
@@ -313,7 +314,7 @@ test('conta sem estado confiável: falha de leitura do documento canônico bloqu
 
   // Conta suspensa no meio da sessão (dado sintético): as Rules negam a
   // leitura de `billing_accounts/{uid}` e o listener falha na próxima mudança.
-  const db = adminSdk().firestore();
+  const db = adminFirestore.getFirestore(adminSdk());
   await db.doc(`users/${user.uid}`).update({ status: 'suspended' });
   await db.doc(`billing_accounts/${user.uid}`).update({ updatedAt: new Date() });
   await expect(plansView(page).getByRole('alert')).toHaveText(
@@ -355,7 +356,7 @@ test('sem configuração do Stripe, a callable real falha fechada e a tela mostr
   );
   // Nada de redirecionamento: a página continua na aplicação.
   expect(navigations.every((url) => url.startsWith(ORIGIN))).toBe(true);
-  const billing = await adminSdk().firestore().doc(`billing_accounts/${user.uid}`).get();
+  const billing = await adminFirestore.getFirestore(adminSdk()).doc(`billing_accounts/${user.uid}`).get();
   expect(billing.get('planId')).toBe('free');
   expect(billing.get('stripeCustomerId') ?? null).toBeNull();
 });

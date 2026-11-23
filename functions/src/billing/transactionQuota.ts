@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {FieldValue} from "firebase-admin/firestore";
 
 import {saoPauloMonthKey} from "../shared/dateKeys";
@@ -57,7 +57,7 @@ export const TRANSACTION_QUOTA_SCHEMA_VERSION = 1;
 
 export type TransactionQuotaOrigin = "workspace_created";
 
-type Snapshot = admin.firestore.DocumentSnapshot;
+type Snapshot = firebaseAdminFirestore.DocumentSnapshot;
 
 const MONTH_KEY = /^\d{4}-(0[1-9]|1[0-2])$/;
 
@@ -71,7 +71,7 @@ export const transactionQuotaMonthId = (monthKey: string): string => {
 
 export const transactionQuotaAnchorRef = (
   workspaceId: string,
-): admin.firestore.DocumentReference =>
+): firebaseAdminFirestore.DocumentReference =>
   workspaceRef(workspaceId)
     .collection(QUOTA_STATE_COLLECTION)
     .doc(TRANSACTION_QUOTA_ANCHOR_ID);
@@ -79,7 +79,7 @@ export const transactionQuotaAnchorRef = (
 export const transactionQuotaMonthRef = (
   workspaceId: string,
   monthKey: string,
-): admin.firestore.DocumentReference =>
+): firebaseAdminFirestore.DocumentReference =>
   workspaceRef(workspaceId)
     .collection(QUOTA_STATE_COLLECTION)
     .doc(transactionQuotaMonthId(monthKey));
@@ -131,7 +131,7 @@ export const transactionQuotaMonthDocument = (input: {
  * corrente do servidor.
  */
 export const createTransactionQuotaAnchor = (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   workspaceId: string,
   nowMs: number = Date.now(),
 ): void => {
@@ -236,11 +236,11 @@ export interface TransactionQuotaReservation {
  * no mesmo commit do lançamento.
  */
 export const reserveTransactionQuota = async (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   input: {
     actorUid: string;
     workspaceId: string;
-    workspace: admin.firestore.DocumentData;
+    workspace: firebaseAdminFirestore.DocumentData;
     units: number;
     nowMs: number;
   },

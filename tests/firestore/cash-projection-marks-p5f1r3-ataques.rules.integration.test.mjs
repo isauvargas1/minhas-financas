@@ -18,7 +18,9 @@ const requireAdmin = createRequire(new URL('../../functions/package.json', impor
 const {initializeApp, deleteApp} = requireWeb('firebase/app');
 const {connectAuthEmulator, getAuth, signInWithEmailAndPassword, signInWithCustomToken} = requireWeb('firebase/auth');
 const fs = requireWeb('firebase/firestore');
-const admin = requireAdmin('firebase-admin');
+const adminAppModule = requireAdmin('firebase-admin/app');
+const adminFirestoreModule = requireAdmin('firebase-admin/firestore');
+const adminAuthModule = requireAdmin('firebase-admin/auth');
 const {
   collection, collectionGroup, connectFirestoreEmulator, deleteDoc, doc, documentId, getCountFromServer, getDoc,
   getDocs, getFirestore, limit, query, runTransaction, setDoc, setLogLevel, updateDoc, where, writeBatch,
@@ -55,8 +57,8 @@ const ROLES_B = ['ownerB', 'adminB', 'memberB', 'viewerB'];
 const NON_MEMBERS_A = ['removedA', 'suspendedA', 'noProfileA', 'noStatusA', 'outsider', 'forged'];
 
 const getAdmin = () => {
-  if (!admin.apps.length) admin.initializeApp({projectId});
-  return admin;
+  if (!adminAppModule.getApps().length) adminAppModule.initializeApp({projectId});
+  return adminAppModule.getApp();
 };
 
 const mark = (ws, id, fp, Timestamp, extra = {}) => ({
@@ -72,15 +74,15 @@ const month = (ws, period, Timestamp) => ({
 
 const seed = async () => {
   const firebaseAdmin = getAdmin();
-  const db = firebaseAdmin.firestore();
-  const {Timestamp} = firebaseAdmin.firestore;
+  const db = adminFirestoreModule.getFirestore(firebaseAdmin);
+  const {Timestamp} = adminFirestoreModule;
   for (const [name, user] of Object.entries(users)) {
     try {
-      await firebaseAdmin.auth().deleteUser(user.uid);
+      await adminAuthModule.getAuth(firebaseAdmin).deleteUser(user.uid);
     } catch (error) {
       if (error?.code !== 'auth/user-not-found') throw error;
     }
-    await firebaseAdmin.auth().createUser({...user, password, emailVerified: true});
+    await adminAuthModule.getAuth(firebaseAdmin).createUser({...user, password, emailVerified: true});
     if (name === 'noProfileA') {
       await db.doc(`users/${user.uid}`).delete();
       continue;
@@ -141,7 +143,7 @@ const signedClient = async (name) => {
   connectAuthEmulator(auth, `http://${authHost}`, {disableWarnings: true});
   if (name === 'forged') {
     // Papel e workspace afirmados pelo token (claims), sem membership: as Rules não podem aceitar.
-    const token = await getAdmin().auth().createCustomToken(users.forged.uid, {role: 'owner', workspaceId: wsA, admin: true});
+    const token = await adminAuthModule.getAuth(getAdmin()).createCustomToken(users.forged.uid, {role: 'owner', workspaceId: wsA, admin: true});
     await signInWithCustomToken(auth, token);
   } else {
     await signInWithEmailAndPassword(auth, users[name].email, password);
@@ -206,7 +208,7 @@ const writeAttempts = (db, ws, tag) => ({
 });
 
 const snapshotMarks = async (ws) => {
-  const all = await getAdmin().firestore().collection(`workspaces/${ws}/cash_projection_marks`).get();
+  const all = await adminFirestoreModule.getFirestore(getAdmin()).collection(`workspaces/${ws}/cash_projection_marks`).get();
   return Object.fromEntries(all.docs.map((item) => [item.id, `${item.updateTime.toMillis()}:${item.updateTime.nanoseconds}:${JSON.stringify(item.data().chains)}:${item.data().workspaceId}`]));
 };
 
@@ -322,7 +324,7 @@ test('tetos do cliente: viewer de A lê 13 meses e 100 marcas numa transação s
 });
 
 test('revogação no meio da transação: membro removido entre dois get não recebe a segunda leitura e a transação falha', async () => {
-  const db0 = getAdmin().firestore();
+  const db0 = adminFirestoreModule.getFirestore(getAdmin());
   await withClients(['revokeMid'], async ({revokeMid}) => {
     let attempts = 0;
     await denied(runTransaction(revokeMid.db, async (transaction) => {
@@ -387,7 +389,7 @@ test('estado backend-only da R3 e etiqueta de geração: projection_state negado
       }), `${name}: escrita no mês dentro da transação de leitura`);
     }
   });
-  const kept = await getAdmin().firestore().doc(`workspaces/${wsA}/cash_report_periods/${MONTHS[0]}`).get();
+  const kept = await adminFirestoreModule.getFirestore(getAdmin()).doc(`workspaces/${wsA}/cash_report_periods/${MONTHS[0]}`).get();
   assert.deepEqual(kept.data().projectionGeneration, {id: 'g0', cutoff: null});
   assert.equal(kept.data().incomeCents, 1000);
 });

@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 
 import {ApplicationError} from "../shared/errors";
 import {
@@ -54,7 +54,7 @@ export const UNCATEGORIZED: ResolvedEntryCategory = Object.freeze({
  * de outro workspace ou fora do formato autoritativo vale `null`.
  */
 export const readEntryCategories = async (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   workspaceId: string,
   categoryIds: readonly string[],
 ): Promise<Map<string, AuthoritativeSettingsCatalogItem | null>> => {

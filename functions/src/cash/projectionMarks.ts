@@ -1,5 +1,5 @@
 import {createHash} from "node:crypto";
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {FieldValue, Timestamp} from "firebase-admin/firestore";
 
 /**
@@ -140,7 +140,7 @@ export const canonicalFirestoreValue = (
 
 /** SHA-256 (hex) da serialização canônica do documento inteiro. */
 export const transactionFingerprint = (
-  data: admin.firestore.DocumentData,
+  data: firebaseAdminFirestore.DocumentData,
 ): string => createHash("sha256")
   .update(JSON.stringify(canonicalFirestoreValue(data)))
   .digest("hex");
@@ -450,7 +450,7 @@ const readAnchor = (value: unknown): MarkAnchor | null => {
 };
 
 export const readMarkDoc = (
-  data: admin.firestore.DocumentData | undefined,
+  data: firebaseAdminFirestore.DocumentData | undefined,
 ): MarkDoc => {
   const doc: MarkDoc = {anchors: {}, chains: {}};
   const anchors = (data?.anchors ?? {}) as Record<string, unknown>;
@@ -469,8 +469,8 @@ export const readMarkDoc = (
 export const cashProjectionMarkRef = (
   workspaceId: string,
   transactionId: string,
-): admin.firestore.DocumentReference =>
-  admin.firestore().doc(
+): firebaseAdminFirestore.DocumentReference =>
+  firebaseAdminFirestore.getFirestore().doc(
     `workspaces/${workspaceId}/${CASH_PROJECTION_MARKS_COLLECTION}/` +
       transactionId,
   );
@@ -484,7 +484,7 @@ export const markDocumentData = (
   workspaceId: string,
   transactionId: string,
   doc: MarkDoc,
-): admin.firestore.DocumentData => ({
+): firebaseAdminFirestore.DocumentData => ({
   schemaVersion: CASH_PROJECTION_MARK_SCHEMA_VERSION,
   workspaceId,
   transactionId,
@@ -526,7 +526,7 @@ export const markAnchorPatch = (
   transactionId: string,
   slot: MarkSlot,
   anchor: MarkAnchor,
-): admin.firestore.DocumentData => ({
+): firebaseAdminFirestore.DocumentData => ({
   schemaVersion: CASH_PROJECTION_MARK_SCHEMA_VERSION,
   workspaceId,
   transactionId,
@@ -536,8 +536,8 @@ export const markAnchorPatch = (
 
 /** Evento da cadeia a partir do par antes/depois da entrega. */
 export const markEventOf = (
-  before: admin.firestore.DocumentData | undefined,
-  after: admin.firestore.DocumentData | undefined,
+  before: firebaseAdminFirestore.DocumentData | undefined,
+  after: firebaseAdminFirestore.DocumentData | undefined,
   beforeUpdateTime: Timestamp | null,
 ): MarkEvent => ({
   before: before ? {k: "alive", fp: transactionFingerprint(before)} :

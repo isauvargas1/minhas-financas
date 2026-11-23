@@ -1,5 +1,5 @@
+import { adminApp, adminAuth, adminFirestore } from './support/adminModules';
 import { expect, test, type Page } from '@playwright/test';
-import { createRequire } from 'node:module';
 
 import { seedOwnedWorkspace } from './support/workspaceSeed';
 
@@ -17,8 +17,6 @@ import { seedOwnedWorkspace } from './support/workspaceSeed';
  * despesa, resgate não vira receita operacional, pendente não move nada.
  */
 
-const require = createRequire(import.meta.url);
-const admin = require('../functions/node_modules/firebase-admin') as typeof import('../functions/node_modules/firebase-admin');
 
 const PROJECT = 'minhas-financas-local';
 const UID = 'e2e-goal-investments-owner';
@@ -35,8 +33,8 @@ const sdk = () => {
   process.env.GCLOUD_PROJECT = PROJECT;
   process.env.FIRESTORE_EMULATOR_HOST = '127.0.0.1:8080';
   process.env.FIREBASE_AUTH_EMULATOR_HOST = '127.0.0.1:9099';
-  if (!admin.apps.length) admin.initializeApp({ projectId: PROJECT });
-  return admin;
+  if (!adminApp.getApps().length) adminApp.initializeApp({ projectId: PROJECT });
+  return adminApp.getApp();
 };
 
 const catalogo = (
@@ -59,17 +57,17 @@ const catalogo = (
 
 test.beforeEach(async () => {
   const firebaseAdmin = sdk();
-  const db = firebaseAdmin.firestore();
+  const db = adminFirestore.getFirestore(firebaseAdmin);
   await db.recursiveDelete(db.doc(`workspaces/${WORKSPACE}`));
   try {
-    await firebaseAdmin.auth().deleteUser(UID);
+    await adminAuth.getAuth(firebaseAdmin).deleteUser(UID);
   } catch (error) {
     if ((error as { code?: string }).code !== 'auth/user-not-found') throw error;
   }
-  await firebaseAdmin.auth().createUser({
+  await adminAuth.getAuth(firebaseAdmin).createUser({
     uid: UID, email: EMAIL, password: PASSWORD, emailVerified: true,
   });
-  const now = firebaseAdmin.firestore.Timestamp.now();
+  const now = adminFirestore.Timestamp.now();
   const stamps = { createdAt: now, updatedAt: now };
 
   await seedOwnedWorkspace({
@@ -157,13 +155,13 @@ const preencher = async (
 };
 
 const progresso = async (): Promise<number> => {
-  const goal = await sdk().firestore().doc(`workspaces/${WORKSPACE}/goals/${GOAL}`).get();
+  const goal = await adminFirestore.getFirestore(sdk()).doc(`workspaces/${WORKSPACE}/goals/${GOAL}`).get();
   const value = goal.data()?.investmentProgressCents;
   return typeof value === 'number' ? value : 0;
 };
 
 const transacoes = async () => {
-  const snapshot = await sdk().firestore()
+  const snapshot = await adminFirestore.getFirestore(sdk())
     .collection(`workspaces/${WORKSPACE}/transactions`).get();
   return snapshot.docs.map((entry) => entry.data());
 };
@@ -245,7 +243,7 @@ test('Vincular Existente liga e Remover da meta desfaz, sem apagar movimento', a
   await expect.poll(progresso, { timeout: 20_000 }).toBe(0);
 
   // Nada foi apagado: vínculo e desvínculo são movimentos próprios no ledger.
-  const movimentos = await sdk().firestore()
+  const movimentos = await adminFirestore.getFirestore(sdk())
     .collection(`workspaces/${WORKSPACE}/investment_movements`).get();
   const operacoes = movimentos.docs.map((entry) => entry.get('operation'));
   expect(operacoes).toContain('goal_link');

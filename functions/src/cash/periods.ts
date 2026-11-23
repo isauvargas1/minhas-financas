@@ -1,5 +1,5 @@
 import {createHash} from "node:crypto";
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {FieldValue, Timestamp} from "firebase-admin/firestore";
 
 import {
@@ -202,7 +202,7 @@ export class CashContractViolationError extends Error {
  * contra a marca em `cashPeriodDeltaFor`.
  */
 export const transactionValueCents = (
-  data: admin.firestore.DocumentData,
+  data: firebaseAdminFirestore.DocumentData,
   maxCents: number = CASH_ENTRY_MAX_CENTS,
 ): number => {
   const cents = data.valueCents;
@@ -214,7 +214,7 @@ export const transactionValueCents = (
 };
 
 /** Receita ou despesa: o tipo de todo documento sem `investmentEntry`. */
-const assertOperationalType = (data: admin.firestore.DocumentData): void => {
+const assertOperationalType = (data: firebaseAdminFirestore.DocumentData): void => {
   if (data.type !== "receita" && data.type !== "despesa") {
     // `investimento` sem a marca, `parcelado` legado ou tipo desconhecido.
     throw new CashContractViolationError("type");
@@ -223,7 +223,7 @@ const assertOperationalType = (data: admin.firestore.DocumentData): void => {
 
 /** Baixa lógica (INV-P2-032): o documento permanece, o fato não conta. */
 export const isVoidedTransaction = (
-  data: admin.firestore.DocumentData,
+  data: firebaseAdminFirestore.DocumentData,
 ): boolean => data.voidedAt !== undefined && data.voidedAt !== null;
 
 /**
@@ -235,7 +235,7 @@ export const isVoidedTransaction = (
  * (`FINANCIAL_DOMAIN_MODEL.md`).
  */
 export const isUnsettledCashEntry = (
-  data: admin.firestore.DocumentData,
+  data: firebaseAdminFirestore.DocumentData,
 ): boolean => {
   if (data.isPaid === false) return true;
   const entry = data.cashEntry as Record<string, unknown> | undefined;
@@ -268,7 +268,7 @@ export const isUnsettledCashEntry = (
  * pendente e o investimento pendente/cancelado valem zero por regra.
  */
 export const cashPeriodDeltaFor = (
-  data: admin.firestore.DocumentData | undefined,
+  data: firebaseAdminFirestore.DocumentData | undefined,
 ): CashPeriodDelta => {
   if (!data) return ZERO_DELTA;
   if (isVoidedTransaction(data)) return ZERO_DELTA;
@@ -367,7 +367,7 @@ export const cashPeriodDeltaFor = (
  * dia e mês nunca discordam (P5-C1).
  */
 export const cashDayKeyFor = (
-  data: admin.firestore.DocumentData,
+  data: firebaseAdminFirestore.DocumentData,
 ): string => {
   if (!isDayKey(data.date)) throw new CashContractViolationError("date");
   return data.date;
@@ -375,7 +375,7 @@ export const cashDayKeyFor = (
 
 /** Chave mensal da transação (prefixo do dia civil). */
 export const cashPeriodKeyFor = (
-  data: admin.firestore.DocumentData,
+  data: firebaseAdminFirestore.DocumentData,
 ): string => cashDayKeyFor(data).slice(0, 7);
 
 // ------------------------------------------------------------- categorias
@@ -441,7 +441,7 @@ export interface CashCategoryRef {
  * categoria não muda a chave; nenhum texto vira chave.
  */
 export const cashCategoryRefFor = (
-  data: admin.firestore.DocumentData,
+  data: firebaseAdminFirestore.DocumentData,
 ): CashCategoryRef => {
   if (data.receivableEntry !== undefined) {
     return {
@@ -519,8 +519,8 @@ export const cashCategoryYearRef = (
   generation: string,
   year: string,
   categoryKey: string,
-): admin.firestore.DocumentReference =>
-  admin.firestore().doc(
+): firebaseAdminFirestore.DocumentReference =>
+  firebaseAdminFirestore.getFirestore().doc(
     `workspaces/${workspaceId}/${CASH_CATEGORY_YEARS_COLLECTION}/` +
       cashCategoryYearDocId(generation, year, categoryKey),
   );
@@ -538,8 +538,8 @@ const isZero = (delta: CashPeriodDelta): boolean =>
 export const cashPeriodRef = (
   workspaceId: string,
   period: string,
-): admin.firestore.DocumentReference =>
-  admin.firestore().doc(
+): firebaseAdminFirestore.DocumentReference =>
+  firebaseAdminFirestore.getFirestore().doc(
     `workspaces/${workspaceId}/${CASH_PERIODS_COLLECTION}/${period}`,
   );
 
@@ -552,9 +552,9 @@ export const cashPeriodRef = (
  */
 export interface CashPeriodWriter {
   set(
-    ref: admin.firestore.DocumentReference,
-    data: admin.firestore.DocumentData,
-    options: admin.firestore.SetOptions,
+    ref: firebaseAdminFirestore.DocumentReference,
+    data: firebaseAdminFirestore.DocumentData,
+    options: firebaseAdminFirestore.SetOptions,
   ): unknown;
 }
 
@@ -583,8 +583,8 @@ export const addCashPeriodDelta = (
  * corte, sem reler o ledger.
  */
 export const cashPeriodDeltasFor = (
-  before: admin.firestore.DocumentData | undefined,
-  after: admin.firestore.DocumentData | undefined,
+  before: firebaseAdminFirestore.DocumentData | undefined,
+  after: firebaseAdminFirestore.DocumentData | undefined,
 ): Record<string, CashPeriodDelta> => {
   const deltas: Record<string, CashPeriodDelta> = {};
   // Todo documento não anulado tem `date` válido, com ou sem efeito (o
@@ -668,7 +668,7 @@ const isZeroCategory = (delta: CashCategoryDelta): boolean =>
 
 const addToPlan = (
   plan: CashWritePlan,
-  data: admin.firestore.DocumentData | undefined,
+  data: firebaseAdminFirestore.DocumentData | undefined,
   sign: 1 | -1,
 ): void => {
   if (!data) return;
@@ -713,8 +713,8 @@ const addToPlan = (
  * entradas que se anulam somem do plano.
  */
 export const cashWritePlanFor = (
-  before: admin.firestore.DocumentData | undefined,
-  after: admin.firestore.DocumentData | undefined,
+  before: firebaseAdminFirestore.DocumentData | undefined,
+  after: firebaseAdminFirestore.DocumentData | undefined,
 ): CashWritePlan => {
   const plan: CashWritePlan = {months: {}, days: {}, categories: {}};
   addToPlan(plan, before, -1);
@@ -931,8 +931,8 @@ export const writeCashPlan = (
 export const applyCashPeriodWrite = (
   writer: CashPeriodWriter,
   workspaceId: string,
-  before: admin.firestore.DocumentData | undefined,
-  after: admin.firestore.DocumentData | undefined,
+  before: firebaseAdminFirestore.DocumentData | undefined,
+  after: firebaseAdminFirestore.DocumentData | undefined,
   categoryGenerations: readonly string[] = [INITIAL_CATEGORY_GENERATION],
 ): string[] => {
   const plan = cashWritePlanFor(before, after);
@@ -955,8 +955,8 @@ export const cashPeriodEventKey = (eventId: string): string =>
 export const cashPeriodEventRef = (
   workspaceId: string,
   eventKey: string,
-): admin.firestore.DocumentReference =>
-  admin.firestore().doc(
+): firebaseAdminFirestore.DocumentReference =>
+  firebaseAdminFirestore.getFirestore().doc(
     `workspaces/${workspaceId}/${CASH_PERIOD_EVENTS_COLLECTION}/${eventKey}`,
   );
 
@@ -984,8 +984,8 @@ export const CASH_PROJECTION_STATE_ID = "projection_state";
 
 export const cashProjectionStateRef = (
   workspaceId: string,
-): admin.firestore.DocumentReference =>
-  admin.firestore().doc(
+): firebaseAdminFirestore.DocumentReference =>
+  firebaseAdminFirestore.getFirestore().doc(
     `workspaces/${workspaceId}/${CASH_PERIOD_EVENTS_COLLECTION}/` +
       CASH_PROJECTION_STATE_ID,
   );
@@ -1048,7 +1048,7 @@ const readStaging = (value: unknown): CashCategoryStaging | null => {
 };
 
 export const readCashProjectionState = (
-  snapshot: admin.firestore.DocumentSnapshot,
+  snapshot: firebaseAdminFirestore.DocumentSnapshot,
 ): CashProjectionState => {
   const data = snapshot.data() ?? {};
   return {
@@ -1168,7 +1168,7 @@ const issuePatch = (
   workspaceId: string,
   state: CashProjectionState,
   issue: CashProjectionIssue,
-): admin.firestore.DocumentData => ({
+): firebaseAdminFirestore.DocumentData => ({
   id: CASH_PROJECTION_STATE_ID,
   workspaceId,
   kind: "cash_projection_state",
@@ -1195,7 +1195,7 @@ const markIssuePatch = (
   workspaceId: string,
   state: CashProjectionState,
   issue: {code: string; eventTime: Timestamp; transactionId: string},
-): admin.firestore.DocumentData => ({
+): firebaseAdminFirestore.DocumentData => ({
   id: CASH_PROJECTION_STATE_ID,
   workspaceId,
   kind: "cash_projection_state",
@@ -1225,7 +1225,7 @@ export const recordCashProjectionIssue = async (
   issue: CashProjectionIssue,
 ): Promise<void> => {
   const ref = cashProjectionStateRef(workspaceId);
-  await admin.firestore().runTransaction(async (transaction) => {
+  await firebaseAdminFirestore.getFirestore().runTransaction(async (transaction) => {
     const state = readCashProjectionState(await transaction.get(ref));
     transaction.set(ref, issuePatch(workspaceId, state, issue), {merge: true});
   });
@@ -1300,11 +1300,11 @@ const readPeriods = (value: unknown): string[] =>
  * de aplicação). Nenhuma consulta, nenhum índice, nenhuma varredura.
  */
 export const applyCashPeriodWriteOnce = async (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   workspaceId: string,
   eventKey: string,
-  before: admin.firestore.DocumentData | undefined,
-  after: admin.firestore.DocumentData | undefined,
+  before: firebaseAdminFirestore.DocumentData | undefined,
+  after: firebaseAdminFirestore.DocumentData | undefined,
   context: CashPeriodEventContext,
 ): Promise<CashPeriodEventOutcome> => {
   const markerRef = cashPeriodEventRef(workspaceId, eventKey);

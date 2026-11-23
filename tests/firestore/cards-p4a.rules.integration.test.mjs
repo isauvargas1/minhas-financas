@@ -43,7 +43,10 @@ import {
  */
 
 const require = createRequire(import.meta.url);
-const admin = require('../../functions/node_modules/firebase-admin');
+const requireAdmin = createRequire(new URL('../../functions/package.json', import.meta.url));
+const adminAppModule = requireAdmin('firebase-admin/app');
+const adminFirestoreModule = requireAdmin('firebase-admin/firestore');
+const adminAuthModule = requireAdmin('firebase-admin/auth');
 if (!process.env.FIRESTORE_EMULATOR_HOST) {
   throw new Error('FIRESTORE_EMULATOR_HOST é obrigatório para os testes de Rules da P4-A.');
 }
@@ -84,11 +87,11 @@ const existingId = {
 const getAdmin = () => {
   process.env.FIRESTORE_EMULATOR_HOST ||= '127.0.0.1:8080';
   process.env.FIREBASE_AUTH_EMULATOR_HOST ||= '127.0.0.1:9099';
-  if (!admin.apps.length) admin.initializeApp({projectId});
-  return admin;
+  if (!adminAppModule.getApps().length) adminAppModule.initializeApp({projectId});
+  return adminAppModule.getApp();
 };
 
-const ts = (iso = '2026-10-05T12:00:00.000Z') => getAdmin().firestore.Timestamp.fromDate(new Date(iso));
+const ts = (iso = '2026-10-05T12:00:00.000Z') => (getAdmin(), adminFirestoreModule.Timestamp).fromDate(new Date(iso));
 
 const invoiceDoc = (ws, id, competenceMonth, cycleStatus, paymentStatus, totalCents, paidCents) => ({
   id, schemaVersion: 1, workspaceId: ws, cardId: CARD, competenceMonth, cycleStatus, paymentStatus,
@@ -98,14 +101,14 @@ const invoiceDoc = (ws, id, competenceMonth, cycleStatus, paymentStatus, totalCe
 
 const seed = async () => {
   const firebaseAdmin = getAdmin();
-  const db = firebaseAdmin.firestore();
+  const db = adminFirestoreModule.getFirestore(firebaseAdmin);
   for (const user of Object.values(users)) {
     try {
-      await firebaseAdmin.auth().deleteUser(user.uid);
+      await adminAuthModule.getAuth(firebaseAdmin).deleteUser(user.uid);
     } catch (error) {
       if (error?.code !== 'auth/user-not-found') throw error;
     }
-    await firebaseAdmin.auth().createUser({...user, password, emailVerified: true});
+    await adminAuthModule.getAuth(firebaseAdmin).createUser({...user, password, emailVerified: true});
     await db.doc(`users/${user.uid}`).set({uid: user.uid, accessStatus: 'granted', status: 'active'});
   }
   await Promise.all([wsA, wsB].map((ws) => db.recursiveDelete(db.doc(`workspaces/${ws}`))));
@@ -259,7 +262,7 @@ test('P4-A Rules — nenhum papel cria, altera ou apaga cartões, compras, fatur
       await denied(batch.commit(), `${name} grava em lote`);
     }
   });
-  const db = getAdmin().firestore();
+  const db = adminFirestoreModule.getFirestore(getAdmin());
   const card = await db.doc(`workspaces/${wsA}/credit_cards/${CARD}`).get();
   assert.equal(card.get('limitTotalCents'), 500_000);
   assert.equal(card.get('limitUsedCents'), 30_000);
@@ -372,9 +375,9 @@ test('P4-A Rules — o cliente não forja nem edita o espelho de pagamento de fa
     await denied(updateDoc(doc(db, `workspaces/${wsA}/transactions/cccash_marker`), {description: 'Editado'}),
       'edição do espelho marcado');
   });
-  const mirror = await getAdmin().firestore().doc(`workspaces/${wsA}/transactions/cccash_1`).get();
+  const mirror = await adminFirestoreModule.getFirestore(getAdmin()).doc(`workspaces/${wsA}/transactions/cccash_1`).get();
   assert.equal(mirror.get('valueCents'), 5_000);
-  const marker = await getAdmin().firestore().doc(`workspaces/${wsA}/transactions/cccash_marker`).get();
+  const marker = await adminFirestoreModule.getFirestore(getAdmin()).doc(`workspaces/${wsA}/transactions/cccash_marker`).get();
   assert.equal(marker.get('voidedAt'), undefined);
   assert.equal(marker.get('description'), 'Pagamento de fatura');
 });
@@ -415,7 +418,7 @@ test('P4-A Rules — isolamento nos dois sentidos, membro removido e sem autenti
   } finally {
     await deleteApp(app);
   }
-  const adminDb = getAdmin().firestore();
+  const adminDb = adminFirestoreModule.getFirestore(getAdmin());
   assert.equal((await adminDb.doc(`workspaces/${wsB}/credit_cards/${CARD}`).get()).get('limitUsedCents'), 30_000);
   assert.equal((await adminDb.collection(`workspaces/${wsB}/credit_card_invoice_entries`).get()).size, 4);
 });

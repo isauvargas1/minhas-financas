@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 
 import {CARD_PURCHASES_COLLECTION} from "../cards/model";
 import {
@@ -62,7 +62,7 @@ export const INVESTMENT_READER_ROLES: readonly WorkspaceRole[] =
 /** Acima disto, a série de "tudo" traz só os meses com movimento. */
 export const MAX_DENSE_SERIES_MONTHS = 120;
 
-const db = () => admin.firestore();
+const db = () => firebaseAdminFirestore.getFirestore();
 
 const notRequested = <T>(): ReportSectionResult<T> =>
   ({status: "not_requested", data: null});

@@ -1,3 +1,4 @@
+import { adminAuth } from './support/adminModules';
 import { expect, test, type Page } from '@playwright/test';
 
 import {
@@ -454,7 +455,7 @@ test.describe('PF', () => {
     const token = await tokenOf(request, tenant.owner.email);
     await createAccountByApi(request, token, ws(), 'Conta do Espaço A', { openingBalanceCents: 12_345 });
     const otherOwner = { uid: 'e2e-p3j-owner-b', email: 'e2e-p3j-owner-b@minhas-financas.local' };
-    await adminSdk().auth().createUser({ ...otherOwner, password: PASSWORD, emailVerified: true });
+    await adminAuth.getAuth(adminSdk()).createUser({ ...otherOwner, password: PASSWORD, emailVerified: true });
     const otherWs = `e2e-p3j-ws-b-${Date.now().toString(36)}`;
     await seedOwnedWorkspace({ ...otherOwner, workspaceId: otherWs, name: 'Empresa Beta E2E', type: 'PJ' });
     await seedAccountProfile(tenant.owner);

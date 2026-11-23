@@ -1,3 +1,4 @@
+import { adminAuth } from './support/adminModules';
 import { expect, test, type Page, type Locator } from '@playwright/test';
 
 import { balanceOf, expectLedgerConsistent } from './support/accounts';
@@ -385,7 +386,7 @@ test.describe('PF', () => {
   test('troca de workspace: cada espaço mostra só as próprias recorrências', async ({ page }) => {
     await createRecurringFor(owner(), { name: 'Recorrência do Espaço A' });
     const otherOwner = { uid: 'e2e-p4b-owner-b', email: 'e2e-p4b-owner-b@minhas-financas.local' };
-    await adminSdk().auth().createUser({ ...otherOwner, password: PASSWORD, emailVerified: true });
+    await adminAuth.getAuth(adminSdk()).createUser({ ...otherOwner, password: PASSWORD, emailVerified: true });
     const otherWs = `e2e-p4b-ws-b-${Date.now().toString(36)}`;
     await seedOwnedWorkspace({ ...otherOwner, workspaceId: otherWs, name: 'Empresa Beta E2E', type: 'PJ' });
     await seedAccountProfile(tenant.owner);

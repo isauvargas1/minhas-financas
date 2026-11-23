@@ -1,5 +1,5 @@
 import {createHash} from "node:crypto";
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {
   FieldValue,
   type DocumentReference,
@@ -135,7 +135,7 @@ export const assertPilotAccess = async (
       PILOT_ACCESS_DENIED_MESSAGE,
     );
   }
-  const ref = admin.firestore()
+  const ref = firebaseAdminFirestore.getFirestore()
     .collection(PILOT_ACCESS_COLLECTION)
     .doc(pilotAccessDocId(caller.email));
   const entry = await transaction.get(ref);

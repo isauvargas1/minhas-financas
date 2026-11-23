@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {AggregateField} from "firebase-admin/firestore";
 
 import {ApplicationError} from "../shared/errors";
@@ -56,11 +56,11 @@ export const RECALCULATE_CARD_LIMIT_OPERATION = "recalculateCardLimit";
 export const REBUILD_CARD_INVOICES_OPERATION = "rebuildCardInvoicesForCard";
 export const REBUILD_INVOICES_DEFAULT_PAGE_SIZE = 25;
 
-const db = () => admin.firestore();
+const db = () => firebaseAdminFirestore.getFirestore();
 
 const sumOf = async (
-  transaction: admin.firestore.Transaction,
-  query: admin.firestore.Query,
+  transaction: firebaseAdminFirestore.Transaction,
+  query: firebaseAdminFirestore.Query,
 ): Promise<number> => {
   const snapshot = await transaction.get(
     query.aggregate({total: AggregateField.sum("amountCents")}));
@@ -72,7 +72,7 @@ const sumOf = async (
 };
 
 const readCardOrFail = (
-  snapshot: admin.firestore.DocumentSnapshot,
+  snapshot: firebaseAdminFirestore.DocumentSnapshot,
   workspaceId: string,
 ): AuthoritativeCard => {
   if (!snapshot.exists) {
@@ -214,7 +214,7 @@ export interface InvoiceRebuildReport {
 
 const rebuildOne = async (
   actor: WorkspaceActor,
-  ref: admin.firestore.DocumentReference,
+  ref: firebaseAdminFirestore.DocumentReference,
   cardId: string,
   requestId: string,
   correlationId: string | null,

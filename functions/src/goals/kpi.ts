@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {AggregateField} from "firebase-admin/firestore";
 
 import {CASH_ACCOUNTS_COLLECTION} from "../accounts/model";
@@ -205,7 +205,7 @@ const KPI_TYPES = new Set<string>([
  */
 export const evaluateGoalKpi = (
   goalId: string,
-  goal: admin.firestore.DocumentData | undefined,
+  goal: firebaseAdminFirestore.DocumentData | undefined,
   context: {
     todayKey: string;
     periods: ReadonlyMap<string, PeriodTotals>;
@@ -295,10 +295,10 @@ export const evaluateGoalKpi = (
   }
 };
 
-const db = () => admin.firestore();
+const db = () => firebaseAdminFirestore.getFirestore();
 
 const readPeriodTotals = (
-  data: admin.firestore.DocumentData | undefined,
+  data: firebaseAdminFirestore.DocumentData | undefined,
 ): PeriodTotals => {
   const incomeCents = data?.incomeCents ?? 0;
   const expenseCents = data?.expenseCents ?? 0;

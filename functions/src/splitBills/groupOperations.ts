@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {FieldValue} from "firebase-admin/firestore";
 
 import {ApplicationError} from "../shared/errors";
@@ -67,7 +67,7 @@ export const GROUP_HAS_OPEN_ITEMS_MESSAGE =
 export const GROUP_ALREADY_ARCHIVED_MESSAGE = "Este grupo já está arquivado.";
 export const GROUP_NOT_ARCHIVED_MESSAGE = "Este grupo não está arquivado.";
 
-const db = () => admin.firestore();
+const db = () => firebaseAdminFirestore.getFirestore();
 
 // ------------------------------------------------------------------ criação
 

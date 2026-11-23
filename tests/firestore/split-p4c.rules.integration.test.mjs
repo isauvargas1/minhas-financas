@@ -44,7 +44,10 @@ import {
  */
 
 const require = createRequire(import.meta.url);
-const admin = require('../../functions/node_modules/firebase-admin');
+const requireAdmin = createRequire(new URL('../../functions/package.json', import.meta.url));
+const adminAppModule = requireAdmin('firebase-admin/app');
+const adminFirestoreModule = requireAdmin('firebase-admin/firestore');
+const adminAuthModule = requireAdmin('firebase-admin/auth');
 if (!process.env.FIRESTORE_EMULATOR_HOST) {
   throw new Error('FIRESTORE_EMULATOR_HOST é obrigatório para os testes de Rules da P4-C.');
 }
@@ -90,23 +93,23 @@ const existingId = {
 const getAdmin = () => {
   process.env.FIRESTORE_EMULATOR_HOST ||= '127.0.0.1:8080';
   process.env.FIREBASE_AUTH_EMULATOR_HOST ||= '127.0.0.1:9099';
-  if (!admin.apps.length) admin.initializeApp({projectId});
-  return admin;
+  if (!adminAppModule.getApps().length) adminAppModule.initializeApp({projectId});
+  return adminAppModule.getApp();
 };
 
-const ts = (iso = '2026-10-05T12:00:00.000Z') => getAdmin().firestore.Timestamp.fromDate(new Date(iso));
+const ts = (iso = '2026-10-05T12:00:00.000Z') => (getAdmin(), adminFirestoreModule.Timestamp).fromDate(new Date(iso));
 const FUTURE = '2099-01-01T00:00:00.000Z';
 
 const seed = async () => {
   const firebaseAdmin = getAdmin();
-  const db = firebaseAdmin.firestore();
+  const db = adminFirestoreModule.getFirestore(firebaseAdmin);
   for (const user of Object.values(users)) {
     try {
-      await firebaseAdmin.auth().deleteUser(user.uid);
+      await adminAuthModule.getAuth(firebaseAdmin).deleteUser(user.uid);
     } catch (error) {
       if (error?.code !== 'auth/user-not-found') throw error;
     }
-    await firebaseAdmin.auth().createUser({...user, password, emailVerified: true});
+    await adminAuthModule.getAuth(firebaseAdmin).createUser({...user, password, emailVerified: true});
     await db.doc(`users/${user.uid}`).set({uid: user.uid, accessStatus: 'granted', status: 'active'});
   }
   await Promise.all([wsA, wsB].map((ws) => db.recursiveDelete(db.doc(`workspaces/${ws}`))));
@@ -303,7 +306,7 @@ test('P4-C Rules — nenhum papel cria, altera ou apaga grupos, participantes, c
       await denied(updateDoc(counter, {activeCount: 0}), `${name} altera o contador de grupos`);
     }
   });
-  const db = getAdmin().firestore();
+  const db = adminFirestoreModule.getFirestore(getAdmin());
   const counter = await db.doc(`workspaces/${wsA}/quota_state/split_groups`).get();
   assert.equal(counter.get('activeCount'), 1);
   const share = await db.doc(`workspaces/${wsA}/split_shares/${SHARE_MEMBER}`).get();
@@ -450,7 +453,7 @@ test('P4-C Rules — o cliente não forja splitEntry, não grava parcelado/cart�
       await denied(deleteDoc(mirror), `${name} apaga o espelho`);
     }
   });
-  const stored = await getAdmin().firestore().doc(`workspaces/${wsA}/transactions/${MIRROR}`).get();
+  const stored = await adminFirestoreModule.getFirestore(getAdmin()).doc(`workspaces/${wsA}/transactions/${MIRROR}`).get();
   assert.equal(stored.get('valueCents'), 9_000);
   assert.equal(stored.get('splitEntry.billId'), BILL);
   assert.equal(stored.get('voidedAt'), undefined);
@@ -458,7 +461,7 @@ test('P4-C Rules — o cliente não forja splitEntry, não grava parcelado/cart�
 
 test('P4-C Rules — paginação de títulos: cursor composto e sonda de corte', async () => {
   // Massa própria no workspace B (o A tem asserções exatas nos testes acima).
-  const db = getAdmin().firestore();
+  const db = adminFirestoreModule.getFirestore(getAdmin());
   const base = `workspaces/${wsB}`;
   const batch = db.batch();
   const expected = [];

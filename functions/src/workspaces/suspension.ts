@@ -1,4 +1,5 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminAuth from "firebase-admin/auth";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {FieldValue} from "firebase-admin/firestore";
 
 import {ApplicationError} from "../shared/errors";
@@ -40,7 +41,7 @@ export const suspendAccount = async (
   if (!reason) {
     throw new ApplicationError("invalid_payload", "Informe o motivo.");
   }
-  const db = admin.firestore();
+  const db = firebaseAdminFirestore.getFirestore();
   const changed = await db.runTransaction(async (transaction) => {
     const profileRef = userProfileRef(input.uid);
     const profile = await transaction.get(profileRef);
@@ -73,7 +74,7 @@ export const suspendAccount = async (
     });
     return true;
   });
-  await admin.auth().updateUser(input.uid, {disabled: true});
-  await admin.auth().revokeRefreshTokens(input.uid);
+  await firebaseAdminAuth.getAuth().updateUser(input.uid, {disabled: true});
+  await firebaseAdminAuth.getAuth().revokeRefreshTokens(input.uid);
   return {changed};
 };

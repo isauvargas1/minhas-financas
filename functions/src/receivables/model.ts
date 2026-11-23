@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {FieldValue, Timestamp} from "firebase-admin/firestore";
 
 import {sha256} from "../shared/hashing";
@@ -126,7 +126,7 @@ export interface AuthoritativeClient {
 
 export const readAuthoritativeClient = (
   id: string,
-  data: admin.firestore.DocumentData | undefined,
+  data: firebaseAdminFirestore.DocumentData | undefined,
   workspaceId: string,
 ): AuthoritativeClient | null => {
   if (!data || data.schemaVersion !== CLIENT_SCHEMA_VERSION) return null;
@@ -219,7 +219,7 @@ export const isConsistentReceivableState = (
 
 export const readAuthoritativeReceivable = (
   id: string,
-  data: admin.firestore.DocumentData | undefined,
+  data: firebaseAdminFirestore.DocumentData | undefined,
   workspaceId: string,
 ): AuthoritativeReceivable | null => {
   if (!data || data.schemaVersion !== RECEIVABLE_SCHEMA_VERSION) return null;
@@ -276,7 +276,7 @@ export const receivableStatePatch = (
   state: ReceivableFinancialState,
   actorUid: string,
   revision: number,
-): admin.firestore.DocumentData => ({
+): firebaseAdminFirestore.DocumentData => ({
   amountCents: state.amountCents,
   principalReceivedCents: state.principalReceivedCents,
   discountGrantedCents: state.discountGrantedCents,
@@ -310,7 +310,7 @@ export interface AuthoritativeReceivableMovement {
 
 export const readAuthoritativeReceivableMovement = (
   id: string,
-  data: admin.firestore.DocumentData | undefined,
+  data: firebaseAdminFirestore.DocumentData | undefined,
   workspaceId: string,
   receivableId: string,
 ): AuthoritativeReceivableMovement | null => {
@@ -375,7 +375,7 @@ export interface ReceivableMovementInput {
 /** Fato do domínio: imutável, exceto o vínculo `reversedBy` do estorno. */
 export const receivableMovementDocument = (
   input: ReceivableMovementInput,
-): admin.firestore.DocumentData => ({
+): firebaseAdminFirestore.DocumentData => ({
   id: input.id,
   schemaVersion: RECEIVABLE_SCHEMA_VERSION,
   workspaceId: input.workspaceId,
@@ -446,7 +446,7 @@ export const receivableCashMirrorDocument = (input: {
   entry: ReceivableCashEntry;
   /** Conta movida pelo recebimento (D-30), para exibição. */
   cashAccountId: string;
-}): admin.firestore.DocumentData => {
+}): firebaseAdminFirestore.DocumentData => {
   const valueCents = receiptCashCents(input.entry);
   return {
     type: input.entry.reversal ? "despesa" : "receita",
@@ -498,7 +498,7 @@ export const receivableEventIdFor = (
 
 /** Auditoria do cadastro: sem nome, documento, contato ou observações. */
 export const appendClientEvent = (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   input: EventBase & {
     clientId: string;
     operation: ClientEventOperation;
@@ -529,7 +529,7 @@ export const appendClientEvent = (
 
 /** Auditoria financeira: IDs e centavos; nunca PII do cliente. */
 export const appendReceivableEvent = (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   input: EventBase & {
     receivableId: string;
     clientId: string;

@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {FieldValue} from "firebase-admin/firestore";
 
 import type {AuditSnapshot} from "../shared/audit";
@@ -62,9 +62,9 @@ export const billingEventId = (
   sha256(`${anchor}:${type}:${discriminator}`).slice(0, 32);
 
 export const appendBillingEvent = (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   input: BillingEventInput,
-): admin.firestore.DocumentReference => {
+): firebaseAdminFirestore.DocumentReference => {
   const anchor = input.stripeEventId ?? input.requestId;
   if (!anchor) {
     throw new Error("Evento de billing sem âncora idempotente.");

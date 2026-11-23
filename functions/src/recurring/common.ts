@@ -1,4 +1,4 @@
-import type * as admin from "firebase-admin";
+import type * as firebaseAdminFirestore from "firebase-admin/firestore";
 import type {Timestamp} from "firebase-admin/firestore";
 
 import {compareCommitTimes} from "../cash/periods";
@@ -87,7 +87,7 @@ export const assertCanManage = (
 };
 
 export const reserveRecurringRateLimit = (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   actor: WorkspaceActor,
 ) => reserveRateLimit(transaction, actor.workspaceId, actor.uid,
   RECURRING_MUTATION_RATE_LIMIT);
@@ -99,7 +99,7 @@ export const reserveRecurringRateLimit = (
  * repetição em replay (mesmo conteúdo) ou em conflito (outro conteúdo).
  */
 export const readIntentAnchor = async (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   workspaceId: string,
   operation: RecurringEventOperation,
   intentId: string,

@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {FieldValue, Timestamp} from "firebase-admin/firestore";
 
 import {sha256} from "../shared/hashing";
@@ -257,7 +257,7 @@ export const isCatalogSortOrder = (value: unknown): value is number =>
  */
 export const readAuthoritativeCatalogItem = (
   id: string,
-  data: admin.firestore.DocumentData | undefined,
+  data: firebaseAdminFirestore.DocumentData | undefined,
   workspaceId: string,
 ): AuthoritativeSettingsCatalogItem | null => {
   if (
@@ -343,7 +343,7 @@ export const catalogItemDocument = (input: {
   sortOrder: number;
   status: SettingsCatalogStatus;
   actorUid: string;
-}): admin.firestore.DocumentData => ({
+}): firebaseAdminFirestore.DocumentData => ({
   schemaVersion: SETTINGS_CATALOG_SCHEMA_VERSION,
   workspaceId: input.workspaceId,
   group: input.group,
@@ -381,7 +381,7 @@ export const catalogLockDocument = (input: {
   catalogItemId: string;
   group: SettingsCatalogGroup;
   actorUid: string;
-}): admin.firestore.DocumentData => ({
+}): firebaseAdminFirestore.DocumentData => ({
   schemaVersion: SETTINGS_CATALOG_SCHEMA_VERSION,
   workspaceId: input.workspaceId,
   dedupeKey: input.dedupeKey,
@@ -421,7 +421,7 @@ export interface SettingsCatalogEventInput {
  * operacional.
  */
 export const appendSettingsCatalogEvent = (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   input: SettingsCatalogEventInput,
 ): string => {
   const ref = settingsCatalogEventsRef(input.workspaceId)

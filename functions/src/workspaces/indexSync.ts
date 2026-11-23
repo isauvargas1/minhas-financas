@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {FieldPath, FieldValue} from "firebase-admin/firestore";
 import {onDocumentUpdated} from "firebase-functions/v2/firestore";
 
@@ -31,7 +31,7 @@ export const INDEX_SYNC_PAGE_SIZE = 200;
 export const syncWorkspaceIndexEntries = async (
   workspaceId: string,
 ): Promise<{updated: number; pages: number}> => {
-  const db = admin.firestore();
+  const db = firebaseAdminFirestore.getFirestore();
   const snapshot = await workspaceRef(workspaceId).get();
   if (!snapshot.exists) return {updated: 0, pages: 0};
   const display = workspaceDisplayOf(snapshot.data() ?? {});
@@ -66,8 +66,8 @@ export const syncWorkspaceIndexEntries = async (
 
 /** Só nome, tipo e status afetam o índice; outras edições não disparam nada. */
 export const indexDisplayChanged = (
-  before: admin.firestore.DocumentData | undefined,
-  after: admin.firestore.DocumentData | undefined,
+  before: firebaseAdminFirestore.DocumentData | undefined,
+  after: firebaseAdminFirestore.DocumentData | undefined,
 ): boolean => {
   if (!before || !after) return false;
   const previous = workspaceDisplayOf(before);

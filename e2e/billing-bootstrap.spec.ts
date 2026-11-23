@@ -1,3 +1,4 @@
+import { adminAuth, adminFirestore } from './support/adminModules';
 import { expect, test, type Page } from '@playwright/test';
 
 import { adminSdk } from './support/workspaceSeed';
@@ -20,11 +21,11 @@ const BILLING_READ_ERROR = 'Falha ao ler a conta de cobrança';
 
 const resetEmulatorData = async () => {
   const sdk = adminSdk();
-  const users = await sdk.auth().listUsers(1000);
+  const users = await adminAuth.getAuth(sdk).listUsers(1000);
   if (users.users.length > 0) {
-    await sdk.auth().deleteUsers(users.users.map((user) => user.uid));
+    await adminAuth.getAuth(sdk).deleteUsers(users.users.map((user) => user.uid));
   }
-  const db = sdk.firestore();
+  const db = adminFirestore.getFirestore(sdk);
   const collections = await db.listCollections();
   await Promise.all(collections.map((collection) => db.recursiveDelete(collection)));
 };
@@ -146,11 +147,11 @@ test('billing só é lido depois do bootstrap: primeiro login, conta existente e
   const a = { uid: 'e2e-p2a1-account-a', email: 'e2e-p2a1-account-a@minhas-financas.local' };
   const b = { uid: 'e2e-p2a1-account-b', email: 'e2e-p2a1-account-b@minhas-financas.local' };
   for (const user of [a, b]) {
-    await adminSdk().auth().createUser({
+    await adminAuth.getAuth(adminSdk()).createUser({
       uid: user.uid, email: user.email, password: PASSWORD, emailVerified: true,
     });
   }
-  const db = adminSdk().firestore();
+  const db = adminFirestore.getFirestore(adminSdk());
   expect((await db.doc(`users/${a.uid}`).get()).exists).toBe(false);
   const traffic = await watchBillingTraffic(page);
 

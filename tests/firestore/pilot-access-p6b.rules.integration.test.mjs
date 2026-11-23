@@ -33,7 +33,10 @@ import {
  * grava) provam que a negação vem da autorização e não de outra regra.
  */
 const require = createRequire(import.meta.url);
-const admin = require('../../functions/node_modules/firebase-admin');
+const requireAdmin = createRequire(new URL('../../functions/package.json', import.meta.url));
+const adminAppModule = requireAdmin('firebase-admin/app');
+const adminFirestoreModule = requireAdmin('firebase-admin/firestore');
+const adminAuthModule = requireAdmin('firebase-admin/auth');
 if (!process.env.FIRESTORE_EMULATOR_HOST) {
   throw new Error('FIRESTORE_EMULATOR_HOST é obrigatório para os testes de Rules do piloto.');
 }
@@ -72,8 +75,8 @@ const users = Object.fromEntries(Object.keys(profiles).map((nome) => [nome, user
 
 const getAdmin = () => {
   process.env.FIREBASE_AUTH_EMULATOR_HOST ||= '127.0.0.1:9099';
-  if (!admin.apps.length) admin.initializeApp({projectId});
-  return admin;
+  if (!adminAppModule.getApps().length) adminAppModule.initializeApp({projectId});
+  return adminAppModule.getApp();
 };
 
 const validPreference = () => ({
@@ -93,7 +96,7 @@ const validPreference = () => ({
   exceptions: '',
   updatedAt: serverTimestamp(),
 });
-const storedPreference = () => ({...validPreference(), updatedAt: getAdmin().firestore.FieldValue.serverTimestamp()});
+const storedPreference = () => ({...validPreference(), updatedAt: (getAdmin(), adminFirestoreModule.FieldValue).serverTimestamp()});
 
 const seedProfile = async (firestore, nome) => {
   const entry = users[nome];
@@ -108,15 +111,15 @@ const seedProfile = async (firestore, nome) => {
 
 const seed = async () => {
   const firebaseAdmin = getAdmin();
-  const firestore = firebaseAdmin.firestore();
+  const firestore = adminFirestoreModule.getFirestore(firebaseAdmin);
   for (const nome of Object.keys(profiles)) {
     const entry = users[nome];
     try {
-      await firebaseAdmin.auth().deleteUser(entry.uid);
+      await adminAuthModule.getAuth(firebaseAdmin).deleteUser(entry.uid);
     } catch (error) {
       if (error?.code !== 'auth/user-not-found') throw error;
     }
-    await firebaseAdmin.auth().createUser({...entry, password, emailVerified: true});
+    await adminAuthModule.getAuth(firebaseAdmin).createUser({...entry, password, emailVerified: true});
     await seedProfile(firestore, nome);
   }
   await Promise.all([WS_A, WS_B].map((ws) => firestore.recursiveDelete(firestore.doc(`workspaces/${ws}`))));
@@ -308,7 +311,7 @@ test('R3: a conta autorizada de A não lê nem lista o workspace de B', async ()
 });
 
 test('R4: o cliente não grava o próprio perfil para se autorizar, em nenhum estado', async () => {
-  const firestore = getAdmin().firestore();
+  const firestore = adminFirestoreModule.getFirestore(getAdmin());
   const tentativas = ['antiga', 'revogada', 'donoA', 'semPerfil'];
   const before = {};
   for (const nome of tentativas) {
@@ -340,7 +343,7 @@ test('R5: ID token vigente — a conta lê antes e é negada depois que o backen
   await allowed(getDocs(query(col(firestore, `users/${uid}/workspaces`), limit(10))), 'índice antes');
   await allowed(getDoc(doc(firestore, `billing_accounts/${uid}`)), 'billing antes');
 
-  await getAdmin().firestore().doc(`users/${uid}`).update({accessStatus: 'revoked'});
+  await adminFirestoreModule.getFirestore(getAdmin()).doc(`users/${uid}`).update({accessStatus: 'revoked'});
 
   await assertAllDenied(nome);
 });
@@ -352,8 +355,8 @@ test('R5: ID token vigente — a conta lê antes e é negada depois de suspensa,
   await allowed(getDoc(doc(firestore, `workspaces/${WS_A}/transactions/t1`)), 'get antes');
   await allowed(getDocs(query(col(firestore, `users/${uid}/workspaces`), limit(10))), 'índice antes');
 
-  await getAdmin().firestore().doc(`users/${uid}`).update({status: 'suspended'});
-  assert.equal((await getAdmin().firestore().doc(`users/${uid}`).get()).get('accessStatus'), 'granted');
+  await adminFirestoreModule.getFirestore(getAdmin()).doc(`users/${uid}`).update({status: 'suspended'});
+  assert.equal((await adminFirestoreModule.getFirestore(getAdmin()).doc(`users/${uid}`).get()).get('accessStatus'), 'granted');
 
   await assertAllDenied(nome);
 });
@@ -362,6 +365,6 @@ test('R5: reautorizar o perfil devolve o acesso na requisição seguinte, sem no
   const nome = 'vigenteRevogada';
   const uid = users[nome].uid;
   await denied(getDoc(doc(db[nome], `workspaces/${WS_A}/transactions/t1`)), 'antes de reautorizar');
-  await getAdmin().firestore().doc(`users/${uid}`).update({accessStatus: 'granted'});
+  await adminFirestoreModule.getFirestore(getAdmin()).doc(`users/${uid}`).update({accessStatus: 'granted'});
   await allowed(getDoc(doc(db[nome], `workspaces/${WS_A}/transactions/t1`)), 'depois de reautorizar');
 });

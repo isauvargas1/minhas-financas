@@ -1,3 +1,4 @@
+import { adminAuth, adminFirestore } from './support/adminModules';
 import { expect, test, type APIRequestContext, type Locator, type Page } from '@playwright/test';
 
 import { createAccountByApi } from './support/accounts';
@@ -158,7 +159,7 @@ const seedTenant = async (request: APIRequestContext): Promise<Tenant> => {
   const suffix = Date.now().toString(36);
   const pfId = `e2e-b03-pf-${suffix}`;
   for (const user of [A, M]) {
-    await adminSdk().auth().createUser({ ...user, password: PASSWORD, emailVerified: true });
+    await adminAuth.getAuth(adminSdk()).createUser({ ...user, password: PASSWORD, emailVerified: true });
   }
   await seedOwnedWorkspace({ ...A, workspaceId: pfId, name: 'Pessoal B03', type: 'PF' });
   await seedPaidPlan(A.uid, 'business');
@@ -195,7 +196,7 @@ const seedPreference = async (uid: string, incomeWorkspaceId: string, overrides:
     municipality: '',
     localHolidays: '',
     exceptions: '',
-    updatedAt: adminSdk().firestore.FieldValue.serverTimestamp(),
+    updatedAt: (adminSdk(), adminFirestore.FieldValue).serverTimestamp(),
     ...overrides,
   });
 };

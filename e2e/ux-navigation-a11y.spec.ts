@@ -1,3 +1,4 @@
+import { adminAuth, adminFirestore } from './support/adminModules';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 
 import { adminSdk } from './support/workspaceSeed';
@@ -30,16 +31,16 @@ const persona = (suffix: string): Persona => ({
 const resetPersona = async ({ uid, email }: Persona) => {
   const sdk = adminSdk();
   try {
-    await sdk.auth().deleteUser(uid);
+    await adminAuth.getAuth(sdk).deleteUser(uid);
   } catch (error) {
     if ((error as { code?: string }).code !== 'auth/user-not-found') throw error;
   }
-  const db = sdk.firestore();
+  const db = adminFirestore.getFirestore(sdk);
   await Promise.all([
     db.recursiveDelete(db.doc(`users/${uid}`)),
     db.recursiveDelete(db.doc(`billing_accounts/${uid}`)),
   ]);
-  await sdk.auth().createUser({ uid, email, password: PASSWORD, emailVerified: true });
+  await adminAuth.getAuth(sdk).createUser({ uid, email, password: PASSWORD, emailVerified: true });
 };
 
 const login = async (page: Page, { email }: Persona) => {

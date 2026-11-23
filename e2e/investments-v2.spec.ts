@@ -1,10 +1,8 @@
+import { adminApp, adminAuth, adminFirestore } from './support/adminModules';
 import { expect, test } from '@playwright/test';
 import assert from 'node:assert/strict';
-import { createRequire } from 'node:module';
 import { seedOwnedWorkspace } from './support/workspaceSeed';
 
-const require = createRequire(import.meta.url);
-const admin = require('../functions/node_modules/firebase-admin') as typeof import('../functions/node_modules/firebase-admin');
 const PROJECT = 'minhas-financas-local';
 const UID = 'e2e-investments-v2-owner';
 const EMAIL = 'e2e-investments-v2@minhas-financas.local';
@@ -24,19 +22,19 @@ const firebaseAdmin = () => {
   process.env.GCLOUD_PROJECT = PROJECT;
   process.env.FIRESTORE_EMULATOR_HOST = '127.0.0.1:8080';
   process.env.FIREBASE_AUTH_EMULATOR_HOST = '127.0.0.1:9099';
-  if (!admin.apps.length) admin.initializeApp({ projectId: PROJECT });
-  return admin;
+  if (!adminApp.getApps().length) adminApp.initializeApp({ projectId: PROJECT });
+  return adminApp.getApp();
 };
 
 const seed = async (comProjecoes: boolean) => {
   const sdk = firebaseAdmin();
-  const db = sdk.firestore();
+  const db = adminFirestore.getFirestore(sdk);
   await db.recursiveDelete(db.doc(`workspaces/${WORKSPACE}`));
-  try { await sdk.auth().deleteUser(UID); } catch (error) {
+  try { await adminAuth.getAuth(sdk).deleteUser(UID); } catch (error) {
     if ((error as { code?: string }).code !== 'auth/user-not-found') throw error;
   }
-  await sdk.auth().createUser({ uid: UID, email: EMAIL, password: PASSWORD, emailVerified: true });
-  const now = sdk.firestore.Timestamp.now();
+  await adminAuth.getAuth(sdk).createUser({ uid: UID, email: EMAIL, password: PASSWORD, emailVerified: true });
+  const now = adminFirestore.Timestamp.now();
   // Workspace novo, sem campo `features`: Investimentos abre assim mesmo.
   await seedOwnedWorkspace({
     uid: UID, email: EMAIL, workspaceId: WORKSPACE, name: 'Patrimônio E2E', type: 'PF',
@@ -93,8 +91,8 @@ const SIMPLE_TYPE = 'e2e-category-renda-fixa';
 
 const seedSimpleCatalog = async () => {
   const sdk = firebaseAdmin();
-  const db = sdk.firestore();
-  const now = sdk.firestore.Timestamp.now();
+  const db = adminFirestore.getFirestore(sdk);
+  const now = adminFirestore.Timestamp.now();
   const item = (
     id: string, group: string, name: string, normalizedName: string,
     transactionSubtype?: string,
@@ -228,7 +226,7 @@ test('retirada pendente pode ser cancelada sem tocar caixa nem posição', async
   await dialogo.getByRole('button', { name: 'Salvar' }).click();
   await expect(dialogo).toHaveCount(0);
 
-  const db = firebaseAdmin().firestore();
+  const db = adminFirestore.getFirestore(firebaseAdmin());
   const readPosition = async () => (
     await db.collection(`workspaces/${WORKSPACE}/investment_positions`).get()
   ).docs[0]?.data();
@@ -387,7 +385,7 @@ test('duplo clique em Salvar cria um único investimento', async ({ page }) => {
   });
   await expect(dialogo).toHaveCount(0);
 
-  const db = firebaseAdmin().firestore();
+  const db = adminFirestore.getFirestore(firebaseAdmin());
   await expect.poll(async () => (
     await db.collection(`workspaces/${WORKSPACE}/investment_movements`)
       .where('operation', '==', 'contribution').get()
@@ -403,8 +401,8 @@ test('duplo clique em Salvar cria um único investimento', async ({ page }) => {
 test('a faixa de alocação PF aparece na tela e distribui pelas carteiras', async ({ page }) => {
   await seed(true);
   const sdk = firebaseAdmin();
-  const db = sdk.firestore();
-  const now = sdk.firestore.Timestamp.now();
+  const db = adminFirestore.getFirestore(sdk);
+  const now = adminFirestore.Timestamp.now();
   const corte = (
     id: string, dimension: string, key: string, label: string, cents: number,
   ) => db.doc(`workspaces/${WORKSPACE}/investment_allocation_summaries/${id}`).set({

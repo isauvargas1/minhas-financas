@@ -1,10 +1,8 @@
+import { adminApp, adminAuth, adminFirestore } from './support/adminModules';
 import {expect, test} from '@playwright/test';
-import {createRequire} from 'node:module';
 
 import {seedOwnedWorkspace} from './support/workspaceSeed';
 
-const require = createRequire(import.meta.url);
-const admin = require('../functions/node_modules/firebase-admin') as typeof import('../functions/node_modules/firebase-admin');
 
 const PROJECT_ID = 'minhas-financas-local';
 const PASSWORD = 'e2e-password-123456';
@@ -17,27 +15,27 @@ const getAdmin = () => {
   process.env.GCLOUD_PROJECT = PROJECT_ID;
   process.env.FIRESTORE_EMULATOR_HOST = '127.0.0.1:8080';
   process.env.FIREBASE_AUTH_EMULATOR_HOST = '127.0.0.1:9099';
-  if (!admin.apps.length) admin.initializeApp({projectId: PROJECT_ID});
-  return admin;
+  if (!adminApp.getApps().length) adminApp.initializeApp({projectId: PROJECT_ID});
+  return adminApp.getApp();
 };
 
 const seed = async () => {
   const firebaseAdmin = getAdmin();
-  const db = firebaseAdmin.firestore();
+  const db = adminFirestore.getFirestore(firebaseAdmin);
   const workspaceRef = db.doc(`workspaces/${WORKSPACE_ID}`);
   await db.recursiveDelete(workspaceRef);
   try {
-    await firebaseAdmin.auth().deleteUser(OWNER_UID);
+    await adminAuth.getAuth(firebaseAdmin).deleteUser(OWNER_UID);
   } catch (error) {
     if ((error as {code?: string}).code !== 'auth/user-not-found') throw error;
   }
-  await firebaseAdmin.auth().createUser({
+  await adminAuth.getAuth(firebaseAdmin).createUser({
     uid: OWNER_UID,
     email: OWNER_EMAIL,
     password: PASSWORD,
     emailVerified: true,
   });
-  const now = admin.firestore.FieldValue.serverTimestamp();
+  const now = adminFirestore.FieldValue.serverTimestamp();
   await seedOwnedWorkspace({
     uid: OWNER_UID,
     email: OWNER_EMAIL,
@@ -106,7 +104,7 @@ test.beforeEach(async () => {
  * retroativo deixou de ser um botão morto.
  */
 test('aporte nascido na meta publica progresso e projeta caixa uma vez', async ({page}) => {
-  const db = getAdmin().firestore();
+  const db = adminFirestore.getFirestore(getAdmin());
   await page.goto(`/?e2eEmail=${encodeURIComponent(OWNER_EMAIL)}&e2ePassword=${PASSWORD}`);
   await page.getByTestId('e2e-login-button').click();
   await expect(page.getByText('Saldo Atual')).toBeVisible({timeout: 30_000});

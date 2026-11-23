@@ -1,3 +1,4 @@
+import { adminAuth, adminFirestore } from './support/adminModules';
 import { expect, test, type Page, type Route } from '@playwright/test';
 
 import { adminSdk, clearEmulatorData, seedAccountProfile, seedMembership, seedOwnedWorkspace, seedPaidPlan } from './support/workspaceSeed';
@@ -50,13 +51,13 @@ const seedNotifications = async (
   items: Array<{ id: string; title: string; createdAt: string }>,
 ) => {
   const sdk = adminSdk();
-  const db = sdk.firestore();
+  const db = adminFirestore.getFirestore(sdk);
   const batch = db.batch();
   for (const item of items) {
     batch.set(db.doc(`workspaces/${workspaceId}/notifications/${item.id}`), {
       id: item.id, workspaceId, title: item.title, message: `Mensagem de ${item.title}.`,
       type: 'credit_card', link: 'cards', actionLabel: 'Ver cartões', createdAt: item.createdAt,
-      expiresAt: sdk.firestore.Timestamp.fromMillis(Date.parse(item.createdAt) + RETENTION_MS),
+      expiresAt: adminFirestore.Timestamp.fromMillis(Date.parse(item.createdAt) + RETENTION_MS),
       source: 'credit_card_invoice', domain: 'credit_card', domainEventType: 'invoice_closed',
       cardId: 'card-e2e', invoiceId: `inv-${item.id}`,
     });
@@ -100,7 +101,7 @@ const closePanel = async (page: Page) => {
 };
 
 const statesOf = async (workspaceId: string, uid: string) => {
-  const snapshot = await adminSdk().firestore()
+  const snapshot = await adminFirestore.getFirestore(adminSdk())
     .collection(`workspaces/${workspaceId}/notification_user_states/${uid}/notification_entries`).get();
   return new Map(snapshot.docs.map((doc) => [doc.id, doc.data()]));
 };
@@ -112,21 +113,21 @@ const STATE_KEYS = new Set(['read', 'readAt', 'dismissed', 'dismissedAt', 'delet
  * `expiresAt` (Timestamp) igual ao do evento compartilhado.
  */
 const expectStatesKeepEventExpiry = async (workspaceId: string, uid: string) => {
-  const db = adminSdk().firestore();
+  const db = adminFirestore.getFirestore(adminSdk());
   const states = await statesOf(workspaceId, uid);
   expect(states.size, 'há estado para conferir').toBeGreaterThan(0);
   for (const [id, state] of states) {
     expect(Object.keys(state).filter((key) => !STATE_KEYS.has(key)), `campos fora do contrato em ${id}`).toEqual([]);
     const event = await db.doc(`workspaces/${workspaceId}/notifications/${id}`).get();
     const eventExpiry = event.get('expiresAt');
-    expect(eventExpiry, `evento ${id} com expiresAt Timestamp`).toBeInstanceOf(adminSdk().firestore.Timestamp);
-    expect(state.expiresAt, `estado ${id} com expiresAt Timestamp`).toBeInstanceOf(adminSdk().firestore.Timestamp);
+    expect(eventExpiry, `evento ${id} com expiresAt Timestamp`).toBeInstanceOf((adminSdk(), adminFirestore.Timestamp));
+    expect(state.expiresAt, `estado ${id} com expiresAt Timestamp`).toBeInstanceOf((adminSdk(), adminFirestore.Timestamp));
     expect(state.expiresAt.isEqual(eventExpiry), `expiresAt do estado ${id} igual ao do evento`).toBe(true);
   }
 };
 
 const sharedEvents = async (workspaceId: string) =>
-  (await adminSdk().firestore().collection(`workspaces/${workspaceId}/notifications`).get()).docs;
+  (await adminFirestore.getFirestore(adminSdk()).collection(`workspaces/${workspaceId}/notifications`).get()).docs;
 
 test.beforeEach(async () => {
   await resetEmulatorData();
@@ -135,7 +136,7 @@ test.beforeEach(async () => {
 test('estado privado por usuário, arquivar só para mim, paginação acima de 50 e contagem honesta', async ({ page }) => {
   test.setTimeout(240_000);
   for (const user of [A, B]) {
-    await adminSdk().auth().createUser({ uid: user.uid, email: user.email, password: PASSWORD, emailVerified: true });
+    await adminAuth.getAuth(adminSdk()).createUser({ uid: user.uid, email: user.email, password: PASSWORD, emailVerified: true });
   }
   await seedOwnedWorkspace({ uid: A.uid, email: A.email, workspaceId: PF.id, name: PF.name, type: 'PF' });
   await seedAccountProfile({ uid: B.uid, email: B.email });
@@ -234,7 +235,7 @@ test('estado privado por usuário, arquivar só para mim, paginação acima de 5
 
 test('troca de workspace com marcação em curso e nenhuma releitura automática', async ({ page }) => {
   test.setTimeout(180_000);
-  await adminSdk().auth().createUser({ uid: A.uid, email: A.email, password: PASSWORD, emailVerified: true });
+  await adminAuth.getAuth(adminSdk()).createUser({ uid: A.uid, email: A.email, password: PASSWORD, emailVerified: true });
   await seedOwnedWorkspace({
     uid: A.uid, email: A.email, workspaceId: PF.id, name: PF.name, type: 'PF',
     joinedAt: new Date('2026-01-01T00:00:00.000Z'),
@@ -321,7 +322,7 @@ test('troca de workspace com marcação em curso e nenhuma releitura automática
 
 test('painel operado só pelo teclado: abrir, arquivar, carregar mais e marcar exibidas', async ({ page }) => {
   test.setTimeout(180_000);
-  await adminSdk().auth().createUser({ uid: A.uid, email: A.email, password: PASSWORD, emailVerified: true });
+  await adminAuth.getAuth(adminSdk()).createUser({ uid: A.uid, email: A.email, password: PASSWORD, emailVerified: true });
   await seedOwnedWorkspace({ uid: A.uid, email: A.email, workspaceId: PF.id, name: PF.name, type: 'PF' });
   await seedNotifications(PF.id, Array.from({ length: 30 }, (_, index) => ({
     id: `kb_${pad(index)}`, title: `Aviso PF ${pad(index)}`, createdAt: minutesAgo(index + 1),

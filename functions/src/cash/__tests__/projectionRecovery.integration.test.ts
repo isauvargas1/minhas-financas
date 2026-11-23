@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {Timestamp} from "firebase-admin/firestore";
 
 import {
@@ -30,7 +30,7 @@ const transient = (code = 14) =>
 
 interface Ledger {
   workspaceId: string;
-  ref: (id: string) => admin.firestore.DocumentReference;
+  ref: (id: string) => firebaseAdminFirestore.DocumentReference;
 }
 
 const ledger = (): Ledger => {
@@ -102,7 +102,7 @@ const activityLog = async (book: Ledger, eventId: string) =>
 const projectionState = async (book: Ledger) =>
   (await cashProjectionStateRef(book.workspaceId).get()).data();
 
-const totals = (data: admin.firestore.DocumentData | undefined) => ({
+const totals = (data: firebaseAdminFirestore.DocumentData | undefined) => ({
   incomeCents: data?.incomeCents ?? 0,
   expenseCents: data?.expenseCents ?? 0,
   netCents: data?.netCents ?? 0,

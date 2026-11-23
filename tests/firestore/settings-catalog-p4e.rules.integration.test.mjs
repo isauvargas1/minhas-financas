@@ -39,7 +39,10 @@ import {
  */
 
 const require = createRequire(import.meta.url);
-const admin = require('../../functions/node_modules/firebase-admin');
+const requireAdmin = createRequire(new URL('../../functions/package.json', import.meta.url));
+const adminAppModule = requireAdmin('firebase-admin/app');
+const adminFirestoreModule = requireAdmin('firebase-admin/firestore');
+const adminAuthModule = requireAdmin('firebase-admin/auth');
 if (!process.env.FIRESTORE_EMULATOR_HOST) {
   throw new Error('FIRESTORE_EMULATOR_HOST é obrigatório para os testes de Rules da P4-E.');
 }
@@ -62,11 +65,11 @@ const LIST_CAP = 2001;
 const getAdmin = () => {
   process.env.FIRESTORE_EMULATOR_HOST ||= '127.0.0.1:8080';
   process.env.FIREBASE_AUTH_EMULATOR_HOST ||= '127.0.0.1:9099';
-  if (!admin.apps.length) admin.initializeApp({projectId});
-  return admin;
+  if (!adminAppModule.getApps().length) adminAppModule.initializeApp({projectId});
+  return adminAppModule.getApp();
 };
 
-const ts = () => getAdmin().firestore.Timestamp.fromDate(new Date('2026-10-07T12:00:00.000Z'));
+const ts = () => (getAdmin(), adminFirestoreModule.Timestamp).fromDate(new Date('2026-10-07T12:00:00.000Z'));
 
 const itemDoc = (ws, overrides = {}) => ({
   schemaVersion: 1, workspaceId: ws, group: 'category', name: 'Alimentação',
@@ -83,14 +86,14 @@ const EVENT_ID = 'settings_catalog_created_0001';
 
 const seed = async () => {
   const firebaseAdmin = getAdmin();
-  const db = firebaseAdmin.firestore();
+  const db = adminFirestoreModule.getFirestore(firebaseAdmin);
   for (const user of Object.values(users)) {
     try {
-      await firebaseAdmin.auth().deleteUser(user.uid);
+      await adminAuthModule.getAuth(firebaseAdmin).deleteUser(user.uid);
     } catch (error) {
       if (error?.code !== 'auth/user-not-found') throw error;
     }
-    await firebaseAdmin.auth().createUser({...user, password, emailVerified: true});
+    await adminAuthModule.getAuth(firebaseAdmin).createUser({...user, password, emailVerified: true});
     await db.doc(`users/${user.uid}`).set({uid: user.uid, accessStatus: 'granted', status: 'active'});
   }
   await Promise.all([wsA, wsB].map((ws) => db.recursiveDelete(db.doc(`workspaces/${ws}`))));
@@ -218,7 +221,7 @@ test('P4-E Rules — nenhum papel cria, altera, inativa, reativa ou apaga item d
       await denied(batch.commit(), `${name} grava em lote`);
     }
   });
-  const db = getAdmin().firestore();
+  const db = adminFirestoreModule.getFirestore(getAdmin());
   const item = (await db.doc(`workspaces/${wsA}/settings_catalog/seed_despesa`).get()).data();
   assert.equal(item.name, 'Alimentação');
   assert.equal(item.status, 'active');
@@ -241,7 +244,7 @@ test('P4-E Rules — reservas de nome e auditoria do catálogo: ninguém lê nem
       }
     }
   });
-  const db = getAdmin().firestore();
+  const db = adminFirestoreModule.getFirestore(getAdmin());
   const lock = (await db.doc(`workspaces/${wsA}/settings_catalog_uniques/${LOCK_ID}`).get()).data();
   assert.equal(lock.catalogItemId, 'seed_despesa');
   assert.equal((await db.collection(`workspaces/${wsA}/settings_catalog_uniques`).get()).size, 1);

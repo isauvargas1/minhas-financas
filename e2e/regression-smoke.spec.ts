@@ -1,12 +1,10 @@
+import { adminApp, adminAuth, adminFirestore } from './support/adminModules';
 import { expect, test } from '@playwright/test';
-import { createRequire } from 'node:module';
 
 import { createCardFor } from './support/cards';
 import { createRecurringFor } from './support/recurring';
 import { seedMembership, seedOwnedWorkspace, seedWorkspaceDocument } from './support/workspaceSeed';
 
-const require = createRequire(import.meta.url);
-const admin = require('../functions/node_modules/firebase-admin') as typeof import('../functions/node_modules/firebase-admin');
 
 /**
  * Smoke de regressão do produto inteiro.
@@ -49,8 +47,8 @@ const firebaseAdmin = () => {
   process.env.GCLOUD_PROJECT = PROJECT;
   process.env.FIRESTORE_EMULATOR_HOST = '127.0.0.1:8080';
   process.env.FIREBASE_AUTH_EMULATOR_HOST = '127.0.0.1:9099';
-  if (!admin.apps.length) admin.initializeApp({ projectId: PROJECT });
-  return admin;
+  if (!adminApp.getApps().length) adminApp.initializeApp({ projectId: PROJECT });
+  return adminApp.getApp();
 };
 
 /**
@@ -59,7 +57,7 @@ const firebaseAdmin = () => {
  */
 const seed = async (persona: Persona) => {
   const sdk = firebaseAdmin();
-  const db = sdk.firestore();
+  const db = adminFirestore.getFirestore(sdk);
   const secondWorkspace = `${persona.workspace}-secundario`;
   const isPJ = persona.type === 'PJ';
 
@@ -67,15 +65,15 @@ const seed = async (persona: Persona) => {
     db.recursiveDelete(db.doc(`workspaces/${persona.workspace}`)),
     db.recursiveDelete(db.doc(`workspaces/${secondWorkspace}`)),
   ]);
-  try { await sdk.auth().deleteUser(persona.uid); } catch (error) {
+  try { await adminAuth.getAuth(sdk).deleteUser(persona.uid); } catch (error) {
     if ((error as { code?: string }).code !== 'auth/user-not-found') throw error;
   }
-  await sdk.auth().createUser({
+  await adminAuth.getAuth(sdk).createUser({
     uid: persona.uid, email: persona.email, password: PASSWORD, emailVerified: true,
   });
 
-  const now = sdk.firestore.Timestamp.now();
-  const at = (iso: string) => sdk.firestore.Timestamp.fromDate(new Date(iso));
+  const now = adminFirestore.Timestamp.now();
+  const at = (iso: string) => adminFirestore.Timestamp.fromDate(new Date(iso));
   const today = new Date().toISOString().slice(0, 10);
 
   const base = {

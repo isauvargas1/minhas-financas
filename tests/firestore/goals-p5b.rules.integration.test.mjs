@@ -35,7 +35,10 @@ import {
  */
 
 const require = createRequire(import.meta.url);
-const admin = require('../../functions/node_modules/firebase-admin');
+const requireAdmin = createRequire(new URL('../../functions/package.json', import.meta.url));
+const adminAppModule = requireAdmin('firebase-admin/app');
+const adminFirestoreModule = requireAdmin('firebase-admin/firestore');
+const adminAuthModule = requireAdmin('firebase-admin/auth');
 if (!process.env.FIRESTORE_EMULATOR_HOST) {
   throw new Error('FIRESTORE_EMULATOR_HOST é obrigatório para os testes de Rules da P5-B.');
 }
@@ -66,13 +69,13 @@ const GOAL_COUNT = 30;
 const getAdmin = () => {
   process.env.FIRESTORE_EMULATOR_HOST ||= '127.0.0.1:8080';
   process.env.FIREBASE_AUTH_EMULATOR_HOST ||= '127.0.0.1:9099';
-  if (!admin.apps.length) admin.initializeApp({projectId});
-  return admin;
+  if (!adminAppModule.getApps().length) adminAppModule.initializeApp({projectId});
+  return adminAppModule.getApp();
 };
 
 /** Documento como o backend grava (`executeCreateGoal`). */
 const goalDoc = (ws, index, extra = {}) => {
-  const createdAt = admin.firestore.Timestamp.fromMillis(Date.UTC(2026, 8, 1) + index * 60_000);
+  const createdAt = adminFirestoreModule.Timestamp.fromMillis(Date.UTC(2026, 8, 1) + index * 60_000);
   return {
     workspaceId: ws, profileId: ws, name: `Meta ${String(index).padStart(2, '0')}`,
     category: 'reserva_emergencia', priority: 'media', priorityRank: 2,
@@ -94,19 +97,19 @@ const auditDoc = (ws, goalId, index) => ({
   workspaceId: ws, actorId: users.ownerA.uid, actorRole: 'owner',
   operation: 'updateGoalManualProgress', targetId: goalId,
   correlationId: `audit-${index}`, details: {beforeCents: index, afterCents: index + 1},
-  timestamp: admin.firestore.Timestamp.fromMillis(Date.UTC(2026, 8, 2) + index * 1_000),
+  timestamp: adminFirestoreModule.Timestamp.fromMillis(Date.UTC(2026, 8, 2) + index * 1_000),
 });
 
 const seed = async () => {
   const firebaseAdmin = getAdmin();
-  const db = firebaseAdmin.firestore();
+  const db = adminFirestoreModule.getFirestore(firebaseAdmin);
   for (const user of Object.values(users)) {
     try {
-      await firebaseAdmin.auth().deleteUser(user.uid);
+      await adminAuthModule.getAuth(firebaseAdmin).deleteUser(user.uid);
     } catch (error) {
       if (error?.code !== 'auth/user-not-found') throw error;
     }
-    await firebaseAdmin.auth().createUser({...user, password, emailVerified: true});
+    await adminAuthModule.getAuth(firebaseAdmin).createUser({...user, password, emailVerified: true});
     await db.doc(`users/${user.uid}`).set({
       uid: user.uid, accessStatus: 'granted', status: user === users.suspendedA ? 'suspended' : 'active',
     });
@@ -148,7 +151,7 @@ const seed = async () => {
 
 /** Cópia sem `Timestamp` do Admin SDK (o SDK cliente recusa o objeto). */
 const clientSafe = (data) => Object.fromEntries(Object.entries(data)
-  .filter(([, value]) => !(value instanceof admin.firestore.Timestamp)));
+  .filter(([, value]) => !(value instanceof adminFirestoreModule.Timestamp)));
 
 const signedClient = async (user, suffix) => {
   const app = initializeApp(
@@ -316,7 +319,7 @@ test('P5-B Rules — nenhum papel cria, altera ou apaga meta diretamente', async
       await denied(deleteDoc(goalRef(db, wsA, 'goal-00')), `${name} apaga`);
     }
   });
-  const stored = (await getAdmin().firestore().doc(`workspaces/${wsA}/goals/goal-00`).get()).data();
+  const stored = (await adminFirestoreModule.getFirestore(getAdmin()).doc(`workspaces/${wsA}/goals/goal-00`).get()).data();
   assert.equal(stored.status, 'em_andamento');
   assert.equal(stored.archived, false);
   assert.equal(stored.revision, 1);
@@ -375,12 +378,12 @@ test('P5-B Rules — workspace arquivado: metas somente leitura e trilha fechada
 test('P5-B Rules — rebaixamento de admin para viewer fecha a trilha na hora', async () => {
   await withClients(['demotedA'], async ({demotedA}) => {
     assert.equal((await getDocs(historyQuery(demotedA.db, wsA))).size, AUDIT_CAP);
-    await getAdmin().firestore().doc(`workspaces/${wsA}/members/${users.demotedA.uid}`)
+    await adminFirestoreModule.getFirestore(getAdmin()).doc(`workspaces/${wsA}/members/${users.demotedA.uid}`)
       .update({role: 'viewer'});
     await denied(getDocs(historyQuery(demotedA.db, wsA)), 'viewer rebaixado lê trilha');
     assert.equal((await getDoc(goalRef(demotedA.db, wsA, 'goal-00'))).exists(), true,
       'viewer continua lendo metas');
-    await getAdmin().firestore().doc(`workspaces/${wsA}/members/${users.demotedA.uid}`)
+    await adminFirestoreModule.getFirestore(getAdmin()).doc(`workspaces/${wsA}/members/${users.demotedA.uid}`)
       .update({status: 'removed'});
     await denied(getDoc(goalRef(demotedA.db, wsA, 'goal-00')), 'removido lê meta');
   });

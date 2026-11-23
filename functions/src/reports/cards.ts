@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {AggregateField, FieldPath} from "firebase-admin/firestore";
 
 import {
@@ -50,7 +50,7 @@ import type {WindowMonth} from "./window";
  * (a P4-A aceita estornar pagamento de cartão arquivado).
  */
 
-const db = () => admin.firestore();
+const db = () => firebaseAdminFirestore.getFirestore();
 
 const OPEN_STATUSES = ["unpaid", "partial"];
 
@@ -86,15 +86,15 @@ const safeSum = (
 };
 
 const sumOf = async (
-  query: admin.firestore.Query,
+  query: firebaseAdminFirestore.Query,
   field: string,
 ): Promise<{sum: number; count: number}> =>
   safeSum((await query.aggregate(sumAndCount(field)).get()).data(), field);
 
 /** Mesma agregação, lida dentro da transação (instantâneo do bloco). */
 const sumIn = async (
-  transaction: admin.firestore.Transaction,
-  query: admin.firestore.Query,
+  transaction: firebaseAdminFirestore.Transaction,
+  query: firebaseAdminFirestore.Query,
   field: string,
 ): Promise<{sum: number; count: number}> => safeSum(
   (await transaction.get(query.aggregate(sumAndCount(field)))).data(), field);
@@ -106,7 +106,7 @@ const sumIn = async (
  * Uma agregação (soma + contagem) sobre o índice `(filtros…, totalCents)`.
  */
 const purchaseNet = async (
-  query: admin.firestore.Query,
+  query: firebaseAdminFirestore.Query,
 ): Promise<{netCents: number; count: number}> => {
   const total = await sumOf(query, "totalCents");
   return {netCents: total.sum, count: total.count};
@@ -150,7 +150,7 @@ const isEarlier = (
  * schema ou os componentes não fecham com o pendente.
  */
 const classifyCard = async (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   workspaceId: string,
   cardId: string,
   today: string,
@@ -158,9 +158,9 @@ const classifyCard = async (
   const pending = collection(workspaceId, CARD_INVOICES_COLLECTION)
     .where("cardId", "==", cardId)
     .where("paymentStatus", "in", OPEN_STATUSES);
-  const remainingOf = async (query: admin.firestore.Query) =>
+  const remainingOf = async (query: firebaseAdminFirestore.Query) =>
     (await sumIn(transaction, query, "remainingCents")).sum;
-  const nextOf = (query: admin.firestore.Query) => transaction.get(
+  const nextOf = (query: firebaseAdminFirestore.Query) => transaction.get(
     query.orderBy("dueDate").orderBy("competenceMonth").limit(1));
   const [outstandingCents, overdueCents, nextClosed, nextOpen, credit] =
     await Promise.all([

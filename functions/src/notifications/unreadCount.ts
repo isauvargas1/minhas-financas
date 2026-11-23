@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import type {Timestamp} from "firebase-admin/firestore";
 import {z} from "zod";
 
@@ -128,7 +128,7 @@ export interface UnreadCountSnapshot {
 export const readUnreadCount = async (
   actor: WorkspaceActor,
 ): Promise<UnreadCountSnapshot> =>
-  admin.firestore().runTransaction(async (transaction) => {
+  firebaseAdminFirestore.getFirestore().runTransaction(async (transaction) => {
     const [profile, workspace, member] = await transaction.getAll(
       userProfileRef(actor.uid),
       workspaceRef(actor.workspaceId),
@@ -169,7 +169,7 @@ export const getNotificationUnreadCount = defineCallable({
   internalMessage: UNREAD_COUNT_UNAVAILABLE_MESSAGE,
   handler: async ({actor: resolved, log}): Promise<NotificationUnreadCount> => {
     const actor = requireActor(resolved);
-    await admin.firestore().runTransaction(async (transaction) => {
+    await firebaseAdminFirestore.getFirestore().runTransaction(async (transaction) => {
       const reservation = await reserveRateLimit(transaction,
         actor.workspaceId, actor.uid, NOTIFICATION_UNREAD_COUNT_RATE_LIMIT);
       reservation.commit();

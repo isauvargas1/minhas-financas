@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {FieldValue} from "firebase-admin/firestore";
 
 import {ApplicationError} from "../shared/errors";
@@ -118,7 +118,7 @@ export const REIMBURSEMENT_NOT_APPROVED_MESSAGE =
 export const REIMBURSEMENT_NOT_PAID_MESSAGE =
   "Só um reembolso pago pode ter o pagamento estornado.";
 
-const db = () => admin.firestore();
+const db = () => firebaseAdminFirestore.getFirestore();
 
 const reimbursementState = (status: SplitReimbursementStatus) =>
   isOpenReimbursement(status) ? "open" as const :
@@ -251,13 +251,13 @@ export const executeCreateSplitReimbursement = async (
 interface LoadedReimbursement {
   start: SplitMutationStart;
   access: GroupAccess;
-  ref: admin.firestore.DocumentReference;
+  ref: firebaseAdminFirestore.DocumentReference;
   reimbursement: AuthoritativeSplitReimbursement;
   participants: Map<string, AuthoritativeSplitParticipant>;
 }
 
 const loadReimbursement = async (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   actor: WorkspaceActor,
   payload: ReimbursementActionPayload,
   operation: string,
@@ -307,7 +307,7 @@ const assertAdmin = (loaded: LoadedReimbursement): void => {
  * evento e recibo.
  */
 const applyTransition = (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   actor: WorkspaceActor,
   loaded: LoadedReimbursement,
   next: {status: SplitReimbursementStatus; paymentSequence: number;

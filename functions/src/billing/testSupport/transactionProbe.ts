@@ -1,6 +1,6 @@
 import {AsyncLocalStorage} from "node:async_hooks";
 
-import type * as admin from "firebase-admin";
+import type * as firebaseAdminFirestore from "firebase-admin/firestore";
 
 /**
  * Sonda de transação (somente testes; fora dos exports e do deploy).
@@ -17,18 +17,18 @@ export const insideTransaction = (): boolean =>
   transactionScope.getStore() === true;
 
 type TransactionCallback = (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
 ) => Promise<unknown>;
 
 type RunTransaction = (
-  this: admin.firestore.Firestore,
+  this: firebaseAdminFirestore.Firestore,
   updateFunction: TransactionCallback,
   options?: unknown,
 ) => Promise<unknown>;
 
 /** Instala a sonda uma vez por processo de teste. */
 export const installTransactionProbe = (
-  firestore: admin.firestore.Firestore,
+  firestore: firebaseAdminFirestore.Firestore,
 ): void => {
   if (installed) return;
   installed = true;

@@ -1,4 +1,4 @@
-import type * as admin from "firebase-admin";
+import type * as firebaseAdminFirestore from "firebase-admin/firestore";
 import type {Timestamp} from "firebase-admin/firestore";
 
 import {compareCommitTimes} from "../cash/periods";
@@ -151,7 +151,7 @@ export const assertVersion = (
 };
 
 export const reserveSplitRateLimit = (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   actor: WorkspaceActor,
   policy: RateLimitPolicy,
 ) => reserveRateLimit(transaction, actor.workspaceId, actor.uid, policy);
@@ -205,7 +205,7 @@ export type SplitAnchorReplay = SplitMutationIds;
  * replay; outro conteúdo é conflito.
  */
 export const readIntentAnchor = async (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   workspaceId: string,
   operation: SplitEventOperation,
   intentId: string,
@@ -239,7 +239,7 @@ export const readIntentAnchor = async (
 
 /** Fase inicial comum: papel relido, recibo da chave e âncora durável. */
 export const beginSplitMutation = async (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   actor: WorkspaceActor,
   input: {
     operation: string;
@@ -251,7 +251,7 @@ export const beginSplitMutation = async (
   | {replay: SplitMutationResult}
   | {
       role: WorkspaceRole;
-      workspace: admin.firestore.DocumentData;
+      workspace: firebaseAdminFirestore.DocumentData;
       reservation: ActorIdempotencyReservation;
       intentId: string;
     }
@@ -280,7 +280,7 @@ export type SplitMutationStart = Exclude<
  * dados não sensíveis), consumo do rate limit e ponto de falha dos testes.
  */
 export const finishSplitMutation = (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   actor: WorkspaceActor,
   input: {
     start: SplitMutationStart;
@@ -308,7 +308,7 @@ export const finishSplitMutation = (
 
 export interface GroupAccess {
   group: AuthoritativeSplitGroup;
-  groupRef: admin.firestore.DocumentReference;
+  groupRef: firebaseAdminFirestore.DocumentReference;
   /** ID do registro do ator neste grupo (exista ou não). */
   actorParticipantId: string;
   /** Participante ativo ou inativo do próprio ator, se houver. */
@@ -319,7 +319,7 @@ export interface GroupAccess {
 
 /** Relê o grupo e o participante do ator (ID derivado do `uid`). */
 export const loadGroupAccess = async (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   actor: WorkspaceActor,
   groupId: string,
 ): Promise<GroupAccess> => {

@@ -37,7 +37,10 @@ import {
  */
 
 const require = createRequire(import.meta.url);
-const admin = require('../../functions/node_modules/firebase-admin');
+const requireAdmin = createRequire(new URL('../../functions/package.json', import.meta.url));
+const adminAppModule = requireAdmin('firebase-admin/app');
+const adminFirestoreModule = requireAdmin('firebase-admin/firestore');
+const adminAuthModule = requireAdmin('firebase-admin/auth');
 if (!process.env.FIRESTORE_EMULATOR_HOST) {
   throw new Error('FIRESTORE_EMULATOR_HOST é obrigatório para os testes de Rules da D-18-NOTIF.');
 }
@@ -67,10 +70,10 @@ const PAST_MS = Math.floor(Date.now() / 1000) * 1000 - 2 * DAY_MS;
 const getAdmin = () => {
   process.env.FIRESTORE_EMULATOR_HOST ||= '127.0.0.1:8080';
   process.env.FIREBASE_AUTH_EMULATOR_HOST ||= '127.0.0.1:9099';
-  if (!admin.apps.length) admin.initializeApp({projectId});
-  return admin;
+  if (!adminAppModule.getApps().length) adminAppModule.initializeApp({projectId});
+  return adminAppModule.getApp();
 };
-const adminTs = (ms) => getAdmin().firestore.Timestamp.fromMillis(ms);
+const adminTs = (ms) => (getAdmin(), adminFirestoreModule.Timestamp).fromMillis(ms);
 const exp = () => Timestamp.fromMillis(EXPIRES_MS);
 
 const eventDoc = (ws, id, expiresAt) => ({
@@ -85,7 +88,7 @@ let counter = 0;
 const freshEvent = async (ws = wsA, expiresAtMs = EXPIRES_MS) => {
   counter += 1;
   const id = `ev-${Date.now().toString(36)}-${counter}`;
-  await getAdmin().firestore().doc(`workspaces/${ws}/notifications/${id}`)
+  await adminFirestoreModule.getFirestore(getAdmin()).doc(`workspaces/${ws}/notifications/${id}`)
     .set(eventDoc(ws, id, adminTs(expiresAtMs)));
   return id;
 };
@@ -94,14 +97,14 @@ const READ_IDS = ['ev-read-1', 'ev-read-2', 'ev-read-3'];
 
 const seed = async () => {
   const firebaseAdmin = getAdmin();
-  const db = firebaseAdmin.firestore();
+  const db = adminFirestoreModule.getFirestore(firebaseAdmin);
   for (const user of Object.values(users)) {
     try {
-      await firebaseAdmin.auth().deleteUser(user.uid);
+      await adminAuthModule.getAuth(firebaseAdmin).deleteUser(user.uid);
     } catch (error) {
       if (error?.code !== 'auth/user-not-found') throw error;
     }
-    await firebaseAdmin.auth().createUser({...user, password, emailVerified: true});
+    await adminAuthModule.getAuth(firebaseAdmin).createUser({...user, password, emailVerified: true});
     await db.doc(`users/${user.uid}`).set({
       uid: user.uid, accessStatus: 'granted', status: user === users.suspendedA ? 'suspended' : 'active',
     });
@@ -165,9 +168,9 @@ const statePath = (ws, uid, id) => `workspaces/${ws}/notification_user_states/${
 const stateRef = (db, ws, uid, id) => doc(db, statePath(ws, uid, id));
 const statesCollection = (db, ws, uid) =>
   collection(db, `workspaces/${ws}/notification_user_states/${uid}/notification_entries`);
-const adminState = (ws, uid, id) => getAdmin().firestore().doc(statePath(ws, uid, id)).get();
+const adminState = (ws, uid, id) => adminFirestoreModule.getFirestore(getAdmin()).doc(statePath(ws, uid, id)).get();
 /** Estado semeado pelo backend (ignora as Rules). */
-const seedState = (ws, uid, id, data) => getAdmin().firestore().doc(statePath(ws, uid, id)).set(data);
+const seedState = (ws, uid, id, data) => adminFirestoreModule.getFirestore(getAdmin()).doc(statePath(ws, uid, id)).set(data);
 
 const read = () => ({read: true, readAt: serverTimestamp(), expiresAt: exp()});
 const dismissed = () => ({dismissed: true, dismissedAt: serverTimestamp(), expiresAt: exp()});
@@ -262,7 +265,7 @@ for (const name of ACTIVE_A) {
       await denied(setDoc(eventRef(db, wsA, id), eventDoc(wsA, id, exp())), `${name} setDoc no evento`);
       await denied(setDoc(eventRef(db, wsA, id), {expiresAt: exp()}, {merge: true}), `${name} merge no evento`);
     });
-    const persisted = await getAdmin().firestore().doc(`workspaces/${wsA}/notifications/${id}`).get();
+    const persisted = await adminFirestoreModule.getFirestore(getAdmin()).doc(`workspaces/${wsA}/notifications/${id}`).get();
     assert.equal(persisted.exists, true);
     assert.equal(persisted.get('title'), `Aviso ${id}`);
     assert.equal(persisted.get('deleted'), undefined);
@@ -515,7 +518,7 @@ test('D-18-NOTIF Rules — a subcoleção antiga items está fechada para leitur
     await denied(getDocs(query(collectionGroup(ownerA.db, 'items'), limit(10))), 'collection group items');
   });
   assert.equal(
-    (await getAdmin().firestore().doc(`workspaces/${wsA}/notification_user_states/${users.memberA.uid}/items/${id}`).get()).exists,
+    (await adminFirestoreModule.getFirestore(getAdmin()).doc(`workspaces/${wsA}/notification_user_states/${users.memberA.uid}/items/${id}`).get()).exists,
     false,
   );
 });

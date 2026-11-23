@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import type * as admin from "firebase-admin";
+import type * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {Timestamp} from "firebase-admin/firestore";
 
 import {
@@ -115,7 +115,7 @@ export const transactionRef = (workspaceId: string, id: string) =>
 export const accountRef = (workspaceId: string, id: string) =>
   ws(workspaceId).collection("cash_accounts").doc(id);
 
-export const readDoc = async (ref: admin.firestore.DocumentReference) =>
+export const readDoc = async (ref: firebaseAdminFirestore.DocumentReference) =>
   (await ref.get()).data() ?? {};
 export const readContract = (workspaceId: string, id: string) =>
   readDoc(contractRef(workspaceId, id));
@@ -136,10 +136,10 @@ const listOf = async (
   field?: string,
   value?: string,
 ) => {
-  let query: admin.firestore.Query = ws(workspaceId).collection(collection);
+  let query: firebaseAdminFirestore.Query = ws(workspaceId).collection(collection);
   if (field) query = query.where(field, "==", value);
   return (await query.get()).docs.map((doc) =>
-    ({id: doc.id, ...doc.data()}) as admin.firestore.DocumentData);
+    ({id: doc.id, ...doc.data()}) as firebaseAdminFirestore.DocumentData);
 };
 
 export const occurrencesOf = async (workspaceId: string, contractId: string) =>

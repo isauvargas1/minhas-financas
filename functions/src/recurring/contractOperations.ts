@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {FieldValue} from "firebase-admin/firestore";
 
 import {
@@ -113,7 +113,7 @@ export const ALREADY_CANCELLED_MESSAGE = "Esta recorrência já foi cancelada.";
 export const ALREADY_ENDED_MESSAGE =
   "Esta recorrência já foi encerrada pela data de término.";
 
-const db = () => admin.firestore();
+const db = () => firebaseAdminFirestore.getFirestore();
 
 export interface RecurringMutationResult {
   recurringExpenseId: string;
@@ -132,7 +132,7 @@ const replayResult = (
 
 /** Cartão do contrato: existe no workspace, no schema e ativo. */
 const assertActiveCard = async (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   workspaceId: string,
   cardId: string,
 ): Promise<void> => {
@@ -153,7 +153,7 @@ const assertActiveCard = async (
 
 /** Destino padrão do contrato: cartão ativo ou conta ativa do workspace. */
 const assertActiveTarget = async (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   workspaceId: string,
   target: {cardId: string | null; cashAccountId: string | null},
 ): Promise<void> => {
@@ -169,7 +169,7 @@ const assertActiveTarget = async (
 };
 
 const assertBusinessAllowed = (
-  workspace: admin.firestore.DocumentData,
+  workspace: firebaseAdminFirestore.DocumentData,
   business: RecurringBusinessDetails | null,
 ): void => {
   if (business !== null && workspace.type !== "PJ") {
@@ -328,10 +328,10 @@ export const executeCreateRecurringExpense = async (
 
 interface LoadedContract {
   role: WorkspaceRole;
-  workspace: admin.firestore.DocumentData;
+  workspace: firebaseAdminFirestore.DocumentData;
   reservation: ActorIdempotencyReservation;
   intentId: string;
-  contractRef: admin.firestore.DocumentReference;
+  contractRef: firebaseAdminFirestore.DocumentReference;
   contract: AuthoritativeRecurringExpense;
 }
 
@@ -341,7 +341,7 @@ interface LoadedContract {
  * e versão lida.
  */
 const loadContractForMutation = async (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   actor: WorkspaceActor,
   payload: {
     recurringExpenseId: string;
@@ -389,7 +389,7 @@ const loadContractForMutation = async (
 
 /** Escritas comuns: evento, conclusão da chave e limite. */
 const finishMutation = (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   actor: WorkspaceActor,
   loaded: LoadedContract,
   input: {

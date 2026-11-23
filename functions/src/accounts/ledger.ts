@@ -1,4 +1,4 @@
-import type * as admin from "firebase-admin";
+import type * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {FieldValue} from "firebase-admin/firestore";
 
 import {ApplicationError} from "../shared/errors";
@@ -47,7 +47,7 @@ export const ACCOUNT_MOVEMENT_INCONSISTENT_MESSAGE =
   "compensado.";
 
 export interface PostingAccount extends AuthoritativeCashAccount {
-  ref: admin.firestore.DocumentReference;
+  ref: firebaseAdminFirestore.DocumentReference;
 }
 
 export type PostingAccounts = Map<string, PostingAccount>;
@@ -59,7 +59,7 @@ export type PostingAccounts = Map<string, PostingAccount>;
  * também a quem só exibe a conta.
  */
 export const readPostingAccounts = async (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   workspaceId: string,
   accountIds: readonly string[],
 ): Promise<PostingAccounts> => {
@@ -98,7 +98,7 @@ export const assertActiveAccount = (account: PostingAccount): void => {
  * estorno.
  */
 export const readPostedMovement = async (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   workspaceId: string,
   movementId: string,
   expected: {accountId: string; sourceId: string},
@@ -167,7 +167,7 @@ export interface PostingContext {
  * novo por conta.
  */
 export const postAccountMovements = (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   accounts: PostingAccounts,
   movements: readonly CashAccountMovementInput[],
   context: PostingContext,

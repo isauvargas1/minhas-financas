@@ -44,11 +44,12 @@ if (!workspaceId || workspaceId === 'true') {
 }
 
 const require = createRequire(import.meta.url);
-const admin = require('../../functions/node_modules/firebase-admin');
+const requireAdmin = createRequire(new URL('../../functions/package.json', import.meta.url));
+const {initializeApp} = requireAdmin('firebase-admin/app');
 const {runCashAccountReconciliation} =
   require('../../functions/lib/accounts/reconciliation.js');
 
-admin.initializeApp({projectId: PROJETO_EMULADOR});
+initializeApp({projectId: PROJETO_EMULADOR});
 
 const repair = args.get('reparar') === 'true';
 const first = await runCashAccountReconciliation(workspaceId, {repair});

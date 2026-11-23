@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 
 import {
   catalogSeedDocumentId,
@@ -38,7 +38,7 @@ export const VALUE_MODE_MICROS_PER_CENT = 10_000;
 
 /** Ativo no regime por valor — o único do contrato. */
 export const isValueModeAsset = (
-  asset: admin.firestore.DocumentData | undefined,
+  asset: firebaseAdminFirestore.DocumentData | undefined,
 ): boolean => asset?.trackingMode === "value";
 
 export const valueModeQuantityMicros = (principalCents: number): number => {
@@ -138,7 +138,7 @@ export interface InvestmentCatalogResolutionOptions {
  * também seja recusado.
  */
 export const resolveInvestmentCatalogItem = async (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   workspaceId: string,
   selector: InvestmentCatalogSelector,
   itemId: string,
@@ -287,8 +287,8 @@ export interface MovementPresentationSnapshot {
  * operação já carregou.
  */
 export const movementPresentationSnapshot = (
-  account: admin.firestore.DocumentData | undefined,
-  asset: admin.firestore.DocumentData | undefined,
+  account: firebaseAdminFirestore.DocumentData | undefined,
+  asset: firebaseAdminFirestore.DocumentData | undefined,
 ): MovementPresentationSnapshot => {
   const snapshot: MovementPresentationSnapshot = {};
   const copy = <K extends keyof MovementPresentationSnapshot>(

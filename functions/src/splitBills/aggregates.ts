@@ -1,4 +1,4 @@
-import type * as admin from "firebase-admin";
+import type * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {FieldValue} from "firebase-admin/firestore";
 
 import {ApplicationError} from "../shared/errors";
@@ -238,8 +238,8 @@ export const applyGroupDelta = (
 
 /** Grava o grupo com os agregados novos (e mais campos da operação). */
 export const writeGroup = (
-  transaction: admin.firestore.Transaction,
-  groupRef: admin.firestore.DocumentReference,
+  transaction: firebaseAdminFirestore.Transaction,
+  groupRef: firebaseAdminFirestore.DocumentReference,
   group: AuthoritativeSplitGroup,
   delta: GroupDelta,
   actorUid: string,
@@ -259,8 +259,8 @@ export const writeGroup = (
 
 /** Grava os saldos dos participantes tocados (todos precisam estar relidos). */
 export const writeParticipantBalances = (
-  transaction: admin.firestore.Transaction,
-  participantRefOf: (id: string) => admin.firestore.DocumentReference,
+  transaction: firebaseAdminFirestore.Transaction,
+  participantRefOf: (id: string) => firebaseAdminFirestore.DocumentReference,
   loaded: ReadonlyMap<string, AuthoritativeSplitParticipant>,
   book: AggregateBook,
   actorUid: string,

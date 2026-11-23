@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import * as admin from "firebase-admin";
+import * as firebaseAdminApp from "firebase-admin/app";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {Timestamp} from "firebase-admin/firestore";
 
 import {processCreditCardInvoiceClosing} from "../../cards/closing";
@@ -48,9 +49,9 @@ const PROJECT = process.env.GCLOUD_PROJECT || "minhas-financas-local";
 const DRIFT_CURSOR_START = "zz-p2c-drift-000";
 const DRIFT_WORKSPACE = "zz-p2c-drift-001";
 
-const db = (): admin.firestore.Firestore => {
-  if (!admin.apps.length) admin.initializeApp({projectId: PROJECT});
-  return admin.firestore();
+const db = (): firebaseAdminFirestore.Firestore => {
+  if (!firebaseAdminApp.getApps().length) firebaseAdminApp.initializeApp({projectId: PROJECT});
+  return firebaseAdminFirestore.getFirestore();
 };
 
 /** Evento de agendamento, no formato que o runtime v2 entrega. */

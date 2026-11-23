@@ -1,3 +1,4 @@
+import { adminAuth, adminFirestore } from './support/adminModules';
 import {
   expect, test,
   type APIRequestContext, type Browser, type BrowserContext, type Locator, type Page, type Request, type Route,
@@ -41,7 +42,7 @@ const PHONE = { width: 390, height: 844 };
 
 // ---------------------------------------------------------------- Emulator
 
-const timestamp = () => adminSdk().firestore.Timestamp;
+const timestamp = () => (adminSdk(), adminFirestore.Timestamp);
 type Stamp = InstanceType<ReturnType<typeof timestamp>>;
 
 // Limpeza pelo endpoint do Emulator (sem disputa com o teste anterior).
@@ -49,7 +50,7 @@ const resetEmulatorData = clearEmulatorData;
 
 const createAuthUsers = async (users: Array<{ uid: string; email: string }>) => {
   for (const user of users) {
-    await adminSdk().auth().createUser({ uid: user.uid, email: user.email, password: PASSWORD, emailVerified: true });
+    await adminAuth.getAuth(adminSdk()).createUser({ uid: user.uid, email: user.email, password: PASSWORD, emailVerified: true });
   }
 };
 
@@ -66,7 +67,7 @@ interface EventSeed {
 
 /** Eventos na forma do produtor de cartões, com `expiresAt` Timestamp nativo. */
 const seedEvents = async (workspaceId: string, items: EventSeed[]) => {
-  const db = adminSdk().firestore();
+  const db = adminFirestore.getFirestore(adminSdk());
   for (let from = 0; from < items.length; from += 400) {
     const batch = db.batch();
     for (const item of items.slice(from, from + 400)) {
@@ -94,7 +95,7 @@ const seedStates = async (
   uid: string,
   states: Array<{ id: string; mark: Mark; expiresAt: Stamp }>,
 ) => {
-  const db = adminSdk().firestore();
+  const db = adminFirestore.getFirestore(adminSdk());
   const batch = db.batch();
   for (const state of states) {
     batch.set(db.doc(`workspaces/${workspaceId}/notification_user_states/${uid}/notification_entries/${state.id}`), {
@@ -105,17 +106,17 @@ const seedStates = async (
 };
 
 const statesOf = async (workspaceId: string, uid: string) => {
-  const snapshot = await adminSdk().firestore()
+  const snapshot = await adminFirestore.getFirestore(adminSdk())
     .collection(`workspaces/${workspaceId}/notification_user_states/${uid}/notification_entries`).get();
   return new Map(snapshot.docs.map((doc) => [doc.id, doc.data()]));
 };
 
 const stateDoc = (workspaceId: string, uid: string, id: string) =>
-  adminSdk().firestore()
+  adminFirestore.getFirestore(adminSdk())
     .doc(`workspaces/${workspaceId}/notification_user_states/${uid}/notification_entries/${id}`).get();
 
 const eventDoc = (workspaceId: string, id: string) =>
-  adminSdk().firestore().doc(`workspaces/${workspaceId}/notifications/${id}`).get();
+  adminFirestore.getFirestore(adminSdk()).doc(`workspaces/${workspaceId}/notifications/${id}`).get();
 
 const eventExpiry = async (workspaceId: string, id: string): Promise<Stamp> => {
   const value = (await eventDoc(workspaceId, id)).get('expiresAt');
@@ -404,7 +405,7 @@ test('A — excluir para mim é individual: some para quem excluiu, fica para os
   await closePanel(b);
 
   // --- O evento compartilhado está intacto: mesmos dados, mesma versão, e B sem estado.
-  expect((await adminSdk().firestore().collection(`workspaces/${PF.id}/notifications`).get()).size).toBe(3);
+  expect((await adminFirestore.getFirestore(adminSdk()).collection(`workspaces/${PF.id}/notifications`).get()).size).toBe(3);
   for (const before of seeded) {
     const after = await eventDoc(PF.id, before.id);
     expect(after.exists, `evento ${before.id} existe`).toBe(true);
@@ -715,7 +716,7 @@ test('C — excluir um evento que expirou ou não existe mais: o diálogo avisa 
 
   // --- Evento apagado no servidor depois de o painel carregar: nada é gravado.
   await askDeletion(page, 'Aviso D18 02');
-  await adminSdk().firestore().doc(`workspaces/${PF.id}/notifications/d18_x_2`).delete();
+  await adminFirestore.getFirestore(adminSdk()).doc(`workspaces/${PF.id}/notifications/d18_x_2`).delete();
   await confirmButton(page).click();
   await expect(confirmDialog(page).getByRole('alert')).toHaveText(EXPIRED);
   await expect(confirmDialog(page)).toBeVisible();

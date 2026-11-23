@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 
 import {
   CASH_PERIODS_COLLECTION,
@@ -34,7 +34,7 @@ export interface StoredMonth {
   consistent: boolean;
 }
 
-const db = () => admin.firestore();
+const db = () => firebaseAdminFirestore.getFirestore();
 
 const periodsRef = (workspaceId: string) =>
   db().collection(`workspaces/${workspaceId}/${CASH_PERIODS_COLLECTION}`);
@@ -43,7 +43,7 @@ const MONTH_ID = /^\d{4}-(0[1-9]|1[0-2])$/;
 
 export const readStoredMonth = (
   month: string,
-  data: admin.firestore.DocumentData,
+  data: firebaseAdminFirestore.DocumentData,
 ): StoredMonth => {
   const totals = normalizeCashPeriodDelta(data);
   const days = readCashDayDeltas(data.days);

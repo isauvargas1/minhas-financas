@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {FieldPath} from "firebase-admin/firestore";
 
 import {
@@ -41,7 +41,7 @@ import type {WindowMonth} from "./window";
 /** Teto de documentos categoria-ano lidos por relatório. */
 export const MAX_CATEGORY_YEAR_DOCS = 2000;
 
-const db = () => admin.firestore();
+const db = () => firebaseAdminFirestore.getFirestore();
 
 const CLASSIFICATIONS: readonly CashCategoryClassification[] = [
   "catalog", "uncategorized", "receivables", "split",
@@ -59,7 +59,7 @@ interface ParsedCategoryYear {
 
 const parseCategoryYear = (
   id: string,
-  data: admin.firestore.DocumentData,
+  data: firebaseAdminFirestore.DocumentData,
   generation: string,
   year: string,
 ): ParsedCategoryYear | null => {
@@ -102,7 +102,7 @@ const yearPrefixQuery = (
   generation: string,
   year: string,
   limit: number,
-): admin.firestore.Query => {
+): firebaseAdminFirestore.Query => {
   const prefix = `${generation}__${year}__`;
   return db()
     .collection(`workspaces/${workspaceId}/${CASH_CATEGORY_YEARS_COLLECTION}`)

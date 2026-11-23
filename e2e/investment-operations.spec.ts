@@ -1,10 +1,8 @@
+import { adminApp, adminAuth, adminFirestore } from './support/adminModules';
 import { expect, test } from '@playwright/test';
 import { callCallable, emulatorIdToken, runPagedCallable } from './support/callables';
-import { createRequire } from 'node:module';
 import { seedOwnedWorkspace } from './support/workspaceSeed';
 
-const require = createRequire(import.meta.url);
-const admin = require('../functions/node_modules/firebase-admin') as typeof import('../functions/node_modules/firebase-admin');
 
 /**
  * Superfície operacional e alocação PJ (INV-P1-006, INV-P1-008; D-15, P4-D).
@@ -25,20 +23,20 @@ const firebaseAdmin = () => {
   process.env.GCLOUD_PROJECT = PROJECT;
   process.env.FIRESTORE_EMULATOR_HOST = '127.0.0.1:8080';
   process.env.FIREBASE_AUTH_EMULATOR_HOST = '127.0.0.1:9099';
-  if (!admin.apps.length) admin.initializeApp({ projectId: PROJECT });
-  return admin;
+  if (!adminApp.getApps().length) adminApp.initializeApp({ projectId: PROJECT });
+  return adminApp.getApp();
 };
 
 /** Workspace PJ novo, sem campo `features` e sem preparo nenhum. */
 const seedWorkspace = async () => {
   const sdk = firebaseAdmin();
-  const db = sdk.firestore();
+  const db = adminFirestore.getFirestore(sdk);
   await db.recursiveDelete(db.doc(`workspaces/${WORKSPACE}`));
-  try { await sdk.auth().deleteUser(UID); } catch (error) {
+  try { await adminAuth.getAuth(sdk).deleteUser(UID); } catch (error) {
     if ((error as { code?: string }).code !== 'auth/user-not-found') throw error;
   }
-  await sdk.auth().createUser({ uid: UID, email: EMAIL, password: PASSWORD, emailVerified: true });
-  const now = sdk.firestore.Timestamp.now();
+  await adminAuth.getAuth(sdk).createUser({ uid: UID, email: EMAIL, password: PASSWORD, emailVerified: true });
+  const now = adminFirestore.Timestamp.now();
 
   await seedOwnedWorkspace({
     uid: UID, email: EMAIL, workspaceId: WORKSPACE, name: 'Empresa E2E', type: 'PJ',
@@ -75,8 +73,8 @@ const login = async (page: import('@playwright/test').Page) => {
 test('a faixa de alocação PJ aparece na tela de Investimentos', async ({ page }) => {
   await seedWorkspace();
   const sdk = firebaseAdmin();
-  const db = sdk.firestore();
-  const now = sdk.firestore.Timestamp.now();
+  const db = adminFirestore.getFirestore(sdk);
+  const now = adminFirestore.Timestamp.now();
 
   await db.doc(`workspaces/${WORKSPACE}/investment_summaries/current`).set({
     id: 'current', workspaceId: WORKSPACE, profileType: 'PJ', currency: 'BRL',
@@ -170,7 +168,7 @@ test('a reconstrução do caixa conclui pelo runtime das Functions', async ({ re
    * `undefined` no emulador —, por isso a cobertura continua sendo por HTTP.
    */
   await seedWorkspace();
-  const db = firebaseAdmin().firestore();
+  const db = adminFirestore.getFirestore(firebaseAdmin());
   const token = await emulatorIdToken(request, EMAIL, PASSWORD);
 
   const caixa = await runPagedCallable(
@@ -227,7 +225,7 @@ test('papel sem autoridade recebe recusa do servidor, não botão escondido', as
    * lançamento é de owner/admin: o member recebe recusa mesmo chamando direto.
    */
   await seedWorkspace();
-  const db = firebaseAdmin().firestore();
+  const db = adminFirestore.getFirestore(firebaseAdmin());
   await db.doc(`workspaces/${WORKSPACE}/members/${UID}`).set(
     { uid: UID, role: 'member', status: 'active' }, { merge: true },
   );

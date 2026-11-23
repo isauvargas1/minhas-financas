@@ -1,4 +1,5 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminApp from "firebase-admin/app";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import type {CallableRequest} from "firebase-functions/v2/https";
 
 import {
@@ -23,7 +24,7 @@ export const TEST_PROJECT_ID = "minhas-financas-local";
  * verificação do projeto impede que um `GCLOUD_PROJECT` herdado aponte o
  * Admin SDK para um projeto real.
  */
-export const requireFirestoreEmulator = (): admin.firestore.Firestore => {
+export const requireFirestoreEmulator = (): firebaseAdminFirestore.Firestore => {
   if (!process.env.FIRESTORE_EMULATOR_HOST) {
     throw new Error(
       "FIRESTORE_EMULATOR_HOST é obrigatório para os testes de integração.",
@@ -33,8 +34,8 @@ export const requireFirestoreEmulator = (): admin.firestore.Firestore => {
   if (project !== TEST_PROJECT_ID) {
     throw new Error(`Projeto de teste inesperado: ${project}.`);
   }
-  if (!admin.apps.length) admin.initializeApp({projectId: TEST_PROJECT_ID});
-  return admin.firestore();
+  if (!firebaseAdminApp.getApps().length) firebaseAdminApp.initializeApp({projectId: TEST_PROJECT_ID});
+  return firebaseAdminFirestore.getFirestore();
 };
 
 export interface TestTokenOverrides {
@@ -104,7 +105,7 @@ const ignoreAlreadyExists = (error: unknown): void => {
  */
 const seedAccountBillingState = async (uid: string): Promise<void> => {
   const db = requireFirestoreEmulator();
-  const now = admin.firestore.FieldValue.serverTimestamp();
+  const now = firebaseAdminFirestore.FieldValue.serverTimestamp();
   await db.doc(`billing_accounts/${uid}`).create({
     billingOwnerUid: uid,
     catalogVersion: 1,
@@ -153,9 +154,9 @@ export const seedActiveAccount = async (
     accessStatus: "granted",
     accessSource: "emulator",
     accessInviteId: null,
-    accessGrantedAt: admin.firestore.FieldValue.serverTimestamp(),
-    createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    accessGrantedAt: firebaseAdminFirestore.FieldValue.serverTimestamp(),
+    createdAt: firebaseAdminFirestore.FieldValue.serverTimestamp(),
+    updatedAt: firebaseAdminFirestore.FieldValue.serverTimestamp(),
     ...overrides,
   });
   await seedAccountBillingState(uid);
@@ -175,7 +176,7 @@ export const seedPaidPlan = async (
     planId,
     entitlementStatus: "active",
     subscriptionStatus: "active",
-    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    updatedAt: firebaseAdminFirestore.FieldValue.serverTimestamp(),
   });
 };
 
@@ -186,8 +187,8 @@ const adjustOwnedWorkspaces = async (uid: string, delta: number) => {
   await requireFirestoreEmulator()
     .doc(`billing_accounts/${uid}/quota_state/ownership`)
     .update({
-      activeOwnedWorkspaces: admin.firestore.FieldValue.increment(delta),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      activeOwnedWorkspaces: firebaseAdminFirestore.FieldValue.increment(delta),
+      updatedAt: firebaseAdminFirestore.FieldValue.serverTimestamp(),
     });
 };
 
@@ -221,7 +222,7 @@ export const seedWorkspace = async (input: SeedWorkspaceInput) => {
       activeMembers: 0,
       pendingReservations: {},
       schemaVersion: QUOTA_SCHEMA_VERSION,
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: firebaseAdminFirestore.FieldValue.serverTimestamp(),
     })
     .catch(ignoreAlreadyExists);
   // P3-D (D-40): âncora do contador mensal de lançamentos, como a criação
@@ -233,7 +234,7 @@ export const seedWorkspace = async (input: SeedWorkspaceInput) => {
       origin: "workspace_created",
       initialUsed: 0,
       schemaVersion: TRANSACTION_QUOTA_SCHEMA_VERSION,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      createdAt: firebaseAdminFirestore.FieldValue.serverTimestamp(),
     })
     .catch(ignoreAlreadyExists);
   await db.doc(`workspaces/${input.workspaceId}`).set({
@@ -243,8 +244,8 @@ export const seedWorkspace = async (input: SeedWorkspaceInput) => {
     status: input.status ?? "active",
     currency: "BRL",
     cnpj: null,
-    createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    createdAt: firebaseAdminFirestore.FieldValue.serverTimestamp(),
+    updatedAt: firebaseAdminFirestore.FieldValue.serverTimestamp(),
     ...(input.extra ?? {}),
   });
   await seedMember(input.workspaceId, input.ownerId, "owner");
@@ -280,9 +281,9 @@ export const seedMember = async (
   if (delta !== 0) {
     await db.doc(`workspaces/${workspaceId}/quota_state/membership`).set({
       workspaceId,
-      activeMembers: admin.firestore.FieldValue.increment(delta),
+      activeMembers: firebaseAdminFirestore.FieldValue.increment(delta),
       schemaVersion: QUOTA_SCHEMA_VERSION,
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: firebaseAdminFirestore.FieldValue.serverTimestamp(),
     }, {merge: true});
   }
   await db.doc(`workspaces/${workspaceId}/members/${uid}`).set({
@@ -292,8 +293,8 @@ export const seedMember = async (
     email: testEmailFor(uid),
     displayName: uid,
     photoURL: null,
-    joinedAt: admin.firestore.FieldValue.serverTimestamp(),
-    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    joinedAt: firebaseAdminFirestore.FieldValue.serverTimestamp(),
+    updatedAt: firebaseAdminFirestore.FieldValue.serverTimestamp(),
   });
   await db.doc(`users/${uid}/workspaces/${workspaceId}`).set({
     workspaceId,
@@ -301,7 +302,7 @@ export const seedMember = async (
     name: workspace?.name ?? workspaceId,
     type: workspace?.type ?? "PF",
     workspaceStatus: workspace?.status ?? "active",
-    joinedAt: admin.firestore.FieldValue.serverTimestamp(),
-    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    joinedAt: firebaseAdminFirestore.FieldValue.serverTimestamp(),
+    updatedAt: firebaseAdminFirestore.FieldValue.serverTimestamp(),
   });
 };

@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {FieldValue} from "firebase-admin/firestore";
 
 import {sha256} from "./hashing";
@@ -63,9 +63,9 @@ export const membershipEventId = (
 ): string => auditEventId(requestId, operation, targetId);
 
 export const appendMembershipEvent = (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   input: MembershipEventInput,
-): admin.firestore.DocumentReference => {
+): firebaseAdminFirestore.DocumentReference => {
   const ref = workspaceRef(input.workspaceId)
     .collection(MEMBERSHIP_EVENTS_COLLECTION)
     .doc(membershipEventId(input.requestId, input.operation, input.targetId));
@@ -131,9 +131,9 @@ export const cashEventId = (
 ): string => auditEventId(requestId, operation, transactionId);
 
 export const appendCashEvent = (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   input: CashEventInput,
-): admin.firestore.DocumentReference => {
+): firebaseAdminFirestore.DocumentReference => {
   const ref = workspaceRef(input.workspaceId)
     .collection(CASH_EVENTS_COLLECTION)
     .doc(cashEventId(input.requestId, input.operation, input.transactionId));
@@ -229,15 +229,15 @@ export const cashMutationEventRef = (
   intentId: string,
   operation: CashMutationOperation,
   transactionId: string,
-): admin.firestore.DocumentReference =>
+): firebaseAdminFirestore.DocumentReference =>
   workspaceRef(workspaceId)
     .collection(CASH_EVENTS_COLLECTION)
     .doc(cashIntentEventId(intentId, operation, transactionId));
 
 export const appendCashMutationEvent = (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   input: CashMutationEventInput,
-): admin.firestore.DocumentReference => {
+): firebaseAdminFirestore.DocumentReference => {
   const ref = cashMutationEventRef(
     input.workspaceId,
     input.intentId,

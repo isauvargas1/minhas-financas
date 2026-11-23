@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import type * as admin from "firebase-admin";
+import type * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {Timestamp} from "firebase-admin/firestore";
 
 import {
@@ -146,13 +146,13 @@ export const accountRef = (workspaceId: string, id: string) =>
 export const splitQuotaRef = (workspaceId: string) =>
   ws(workspaceId).collection("quota_state").doc("split_groups");
 
-export const readDoc = async (ref: admin.firestore.DocumentReference) =>
+export const readDoc = async (ref: firebaseAdminFirestore.DocumentReference) =>
   (await ref.get()).data() ?? {};
-export const exists = async (ref: admin.firestore.DocumentReference) =>
+export const exists = async (ref: firebaseAdminFirestore.DocumentReference) =>
   (await ref.get()).exists;
 
 export const versionOf = async (
-  ref: admin.firestore.DocumentReference,
+  ref: firebaseAdminFirestore.DocumentReference,
 ): Promise<string> => {
   const updatedAt = (await ref.get()).get("updatedAt");
   assert.ok(updatedAt instanceof Timestamp, `${ref.path} sem updatedAt`);
@@ -182,8 +182,8 @@ const listWhere = async (
   collection: string,
   field?: string,
   value?: string,
-): Promise<admin.firestore.QueryDocumentSnapshot[]> => {
-  let query: admin.firestore.Query = collectionOf(workspaceId, collection);
+): Promise<firebaseAdminFirestore.QueryDocumentSnapshot[]> => {
+  let query: firebaseAdminFirestore.Query = collectionOf(workspaceId, collection);
   if (field) query = query.where(field, "==", value);
   return (await query.get()).docs;
 };
@@ -201,7 +201,7 @@ export const countOf = async (workspaceId: string, collection: string) =>
 export const transactionsOf = async (workspaceId: string) =>
   (await ws(workspaceId).collection("transactions").get()).docs
     .map((doc) =>
-      ({id: doc.id, ...doc.data()}) as admin.firestore.DocumentData);
+      ({id: doc.id, ...doc.data()}) as firebaseAdminFirestore.DocumentData);
 
 // --------------------------------------------------------------- operações
 
@@ -537,7 +537,7 @@ export const assertSplitReconciles = async (
 ): Promise<void> => {
   const read = async <T>(
     collection: string,
-    reader: (id: string, data: admin.firestore.DocumentData,
+    reader: (id: string, data: firebaseAdminFirestore.DocumentData,
       workspaceId: string) => T | null,
   ): Promise<T[]> => (await listWhere(workspaceId, collection, "groupId",
     groupId)).map((doc) => {

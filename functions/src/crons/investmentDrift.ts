@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {FieldPath, FieldValue, Timestamp} from "firebase-admin/firestore";
 import {onSchedule} from "firebase-functions/v2/scheduler";
 
@@ -52,7 +52,7 @@ import {
  * conteúdo financeiro.
  */
 
-const db = () => admin.firestore();
+const db = () => firebaseAdminFirestore.getFirestore();
 
 /** Workspaces conferidos por execução. */
 export const DRIFT_WORKSPACES_PER_RUN = 50;
@@ -103,7 +103,7 @@ const emptyTotals = (): PositionTotals => ({
  */
 export const compareInvestmentProjections = (
   totals: PositionTotals,
-  summary: admin.firestore.DocumentData | undefined,
+  summary: firebaseAdminFirestore.DocumentData | undefined,
   latestClosingCents: number | undefined,
 ): DriftFinding[] => {
   if (!summary) return [];

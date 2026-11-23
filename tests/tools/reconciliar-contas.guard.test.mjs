@@ -28,11 +28,12 @@ const SCRIPT = path.join(RAIZ, 'tools', 'accounts', 'reconciliar-contas.mjs');
 const PROJETO_EMULADOR = 'minhas-financas-local';
 const WORKSPACE = 'guard-reconciliacao-workspace';
 
-const require = createRequire(import.meta.url);
-const admin = require(path.join(RAIZ, 'functions', 'node_modules', 'firebase-admin'));
+const requireAdmin = createRequire(new URL('../../functions/package.json', import.meta.url));
+const {getApps, initializeApp} = requireAdmin('firebase-admin/app');
+const {getFirestore, Timestamp} = requireAdmin('firebase-admin/firestore');
 const db = () => {
-  if (!admin.apps.length) admin.initializeApp({projectId: PROJETO_EMULADOR});
-  return admin.firestore();
+  if (!getApps().length) initializeApp({projectId: PROJETO_EMULADOR});
+  return getFirestore();
 };
 
 const run = (args, env) => spawnSync(process.execPath, [SCRIPT, ...args], {
@@ -65,7 +66,7 @@ test('P3-J — simulação aponta divergência sem escrever; reparo fecha', asyn
   const firestore = db();
   const base = `workspaces/${WORKSPACE}`;
   await firestore.recursiveDelete(firestore.doc(base));
-  const ts = admin.firestore.Timestamp.now();
+  const ts = Timestamp.now();
   await firestore.doc(`${base}/cash_accounts/acc_1`).set({
     id: 'acc_1', schemaVersion: 1, workspaceId: WORKSPACE, name: 'Caixa', accountType: 'cash',
     status: 'active', balanceCents: 1_500, currency: 'BRL', createdBy: 'u', updatedAt: ts,

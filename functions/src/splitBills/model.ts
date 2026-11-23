@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {FieldValue, Timestamp} from "firebase-admin/firestore";
 
 import {CASH_ENTRY_MAX_CENTS} from "../cash/contracts";
@@ -358,7 +358,7 @@ const readTotals = (value: unknown): SplitGroupTotals | null => {
 
 export const readAuthoritativeGroup = (
   id: string,
-  data: admin.firestore.DocumentData | undefined,
+  data: firebaseAdminFirestore.DocumentData | undefined,
   workspaceId: string,
 ): AuthoritativeSplitGroup | null => {
   if (!data) return null;
@@ -468,7 +468,7 @@ const readBalances = (value: unknown): SplitParticipantBalances | null => {
 
 export const readAuthoritativeParticipant = (
   id: string,
-  data: admin.firestore.DocumentData | undefined,
+  data: firebaseAdminFirestore.DocumentData | undefined,
   workspaceId: string,
 ): AuthoritativeSplitParticipant | null => {
   if (!data) return null;
@@ -538,7 +538,7 @@ export const participantDocument = (input: {
   color: string;
   addedVia: "creation" | "invite" | "direct";
   actorUid: string;
-}): admin.firestore.DocumentData => ({
+}): firebaseAdminFirestore.DocumentData => ({
   id: input.id,
   schemaVersion: SPLIT_SCHEMA_VERSION,
   workspaceId: input.workspaceId,
@@ -577,7 +577,7 @@ export interface AuthoritativeSplitInvite {
 
 export const readAuthoritativeInvite = (
   id: string,
-  data: admin.firestore.DocumentData | undefined,
+  data: firebaseAdminFirestore.DocumentData | undefined,
   workspaceId: string,
 ): AuthoritativeSplitInvite | null => {
   if (!data) return null;
@@ -651,7 +651,7 @@ export const areTermsLocked = (bill: Pick<AuthoritativeSplitBill,
 
 export const readAuthoritativeBill = (
   id: string,
-  data: admin.firestore.DocumentData | undefined,
+  data: firebaseAdminFirestore.DocumentData | undefined,
   workspaceId: string,
 ): AuthoritativeSplitBill | null => {
   if (!data) return null;
@@ -784,7 +784,7 @@ export const remainingOf = (share: Pick<AuthoritativeSplitShare,
 
 export const readAuthoritativeShare = (
   id: string,
-  data: admin.firestore.DocumentData | undefined,
+  data: firebaseAdminFirestore.DocumentData | undefined,
   workspaceId: string,
 ): AuthoritativeSplitShare | null => {
   if (!data) return null;
@@ -863,7 +863,7 @@ export interface AuthoritativeSplitReimbursement {
 
 export const readAuthoritativeReimbursement = (
   id: string,
-  data: admin.firestore.DocumentData | undefined,
+  data: firebaseAdminFirestore.DocumentData | undefined,
   workspaceId: string,
 ): AuthoritativeSplitReimbursement | null => {
   if (!data) return null;
@@ -991,7 +991,7 @@ export interface SplitEventInput {
 
 /** Evento append-only (`transaction.create`): a âncora durável da intenção. */
 export const appendSplitEvent = (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   input: SplitEventInput,
 ): string => {
   const ref = splitEventRef(input.workspaceId, input.operation,

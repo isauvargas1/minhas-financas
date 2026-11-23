@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {FieldValue} from "firebase-admin/firestore";
 
 import {
@@ -138,7 +138,7 @@ export const CANCEL_WITH_RECEIPTS_MESSAGE =
   "Este recebível tem recebimentos registrados. Estorne-os antes de " +
   "cancelar.";
 
-const db = () => admin.firestore();
+const db = () => firebaseAdminFirestore.getFirestore();
 
 const replayResult = (
   stored: Record<string, unknown>,
@@ -150,7 +150,7 @@ const replayResult = (
 };
 
 const reserveReceivableRateLimit = (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   actor: WorkspaceActor,
 ) => reserveRateLimit(
   transaction,
@@ -314,7 +314,7 @@ interface LoadedReceivable {
   role: WorkspaceRole;
   reservation: ActorIdempotencyReservation;
   intentId: string;
-  receivableRef: admin.firestore.DocumentReference;
+  receivableRef: firebaseAdminFirestore.DocumentReference;
   receivable: AuthoritativeReceivable;
 }
 
@@ -323,7 +323,7 @@ type LoadOutcome =
   | {loaded: LoadedReceivable};
 
 const loadReceivableForMutation = async (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   actor: WorkspaceActor,
   payload: MutationPayload,
   operation: string,
@@ -410,7 +410,7 @@ export const executeUpdateReceivable = async (
     }
 
     const changedFields: string[] = [];
-    const patch: admin.firestore.DocumentData = {};
+    const patch: firebaseAdminFirestore.DocumentData = {};
     if (
       changes.description !== undefined &&
       changes.description !== receivable.description

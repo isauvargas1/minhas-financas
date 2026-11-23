@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {FieldValue} from "firebase-admin/firestore";
 
 import {ApplicationError} from "../shared/errors";
@@ -85,7 +85,7 @@ export const CARD_ARCHIVE_UNPAID_MESSAGE =
 /** Faturas abertas lidas para as checagens de ciclo (teto por cartão). */
 const OPEN_INVOICE_SCAN_LIMIT = 100;
 
-const db = () => admin.firestore();
+const db = () => firebaseAdminFirestore.getFirestore();
 
 const replayResult = (stored: Record<string, unknown>): CardMutationResult => {
   if (typeof stored.cardId !== "string") {
@@ -222,12 +222,12 @@ interface LoadedCard {
   role: WorkspaceActor["role"];
   reservation: Awaited<ReturnType<typeof reserveActorIdempotency>>;
   intentId: string;
-  ref: admin.firestore.DocumentReference;
+  ref: firebaseAdminFirestore.DocumentReference;
   card: AuthoritativeCard;
 }
 
 const loadCardForMutation = async (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   actor: WorkspaceActor,
   payload: {
     cardId: string;
@@ -279,7 +279,7 @@ const loadCardForMutation = async (
 
 /** Faturas abertas do cartão (para as checagens de ciclo e arquivamento). */
 const readOpenInvoices = async (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   card: AuthoritativeCard,
 ) => {
   const snapshot = await transaction.get(

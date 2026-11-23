@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {FieldValue, Timestamp} from "firebase-admin/firestore";
 
 import {
@@ -188,7 +188,7 @@ export interface CashMutationFaults {
   beforeCommit?: () => void;
 }
 
-const db = () => admin.firestore();
+const db = () => firebaseAdminFirestore.getFirestore();
 
 const intentIdOf = (uid: string, idempotencyKey: string): string =>
   sha256(`${uid}:${idempotencyKey}`).slice(0, 32);
@@ -197,7 +197,7 @@ const textOrUndefined = (value: unknown): string | undefined =>
   typeof value === "string" ? value : undefined;
 
 const currentValues = (
-  data: admin.firestore.DocumentData,
+  data: firebaseAdminFirestore.DocumentData,
   eligibility: Extract<CashEntryEligibility, {eligible: true}>,
 ): StateValues => ({
   status: eligibility.status,
@@ -287,8 +287,8 @@ interface LoadedEntry {
   profileType: "PF" | "PJ";
   reservation: ActorIdempotencyReservation;
   intentId: string;
-  entryRef: admin.firestore.DocumentReference;
-  data: admin.firestore.DocumentData;
+  entryRef: firebaseAdminFirestore.DocumentReference;
+  data: firebaseAdminFirestore.DocumentData;
   eligibility: Extract<CashEntryEligibility, {eligible: true}>;
 }
 
@@ -301,7 +301,7 @@ type LoadOutcome =
  * de qualquer escrita.
  */
 const loadForMutation = async (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   actor: WorkspaceActor,
   payload:
     | UpdateCashTransactionPayload
@@ -408,8 +408,8 @@ const cashEntryPatch = (
   status: "pending" | "confirmed" | "voided",
   accountMovementId: string | null | undefined,
   confirmation = false,
-): admin.firestore.UpdateData<admin.firestore.DocumentData> => {
-  const patch: admin.firestore.UpdateData<admin.firestore.DocumentData> = {
+): firebaseAdminFirestore.UpdateData<firebaseAdminFirestore.DocumentData> => {
+  const patch: firebaseAdminFirestore.UpdateData<firebaseAdminFirestore.DocumentData> = {
     "cashEntry.revision": revision,
     "cashEntry.status": status,
   };
@@ -447,7 +447,7 @@ const NO_ACCOUNT_EFFECT: AccountPlan = {
  * deixaria o saldo errado.
  */
 const readActiveEntryMovement = async (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   workspaceId: string,
   transactionId: string,
   eligibility: Extract<CashEntryEligibility, {eligible: true}>,
@@ -494,7 +494,7 @@ const applyMovementFor = (
  * quando conta, valor com sinal ou data efetiva mudam.
  */
 const planUpdateAccountEffect = async (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   workspaceId: string,
   loaded: LoadedEntry,
   transactionId: string,
@@ -532,7 +532,7 @@ const planUpdateAccountEffect = async (
 };
 
 const postPlan = (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   plan: AccountPlan,
   context: {workspaceId: string; actorUid: string; operation: string;
     requestId: string},
@@ -644,7 +644,7 @@ export const executeUpdateCashTransaction = async (
     const amountCents = next.amountCents as number;
     const date = next.date as string;
     const pending = next.status === "pending";
-    const patch: admin.firestore.UpdateData<admin.firestore.DocumentData> = {
+    const patch: firebaseAdminFirestore.UpdateData<firebaseAdminFirestore.DocumentData> = {
       type: next.type,
       description: next.description,
       category: category.name,
@@ -813,7 +813,7 @@ export const executeConfirmCashTransaction = async (
       operation: CONFIRM_CASH_TRANSACTION_OPERATION,
       requestId,
     });
-    const patch: admin.firestore.UpdateData<admin.firestore.DocumentData> = {
+    const patch: firebaseAdminFirestore.UpdateData<firebaseAdminFirestore.DocumentData> = {
       isPaid: true,
       date: payload.date,
       dueDate,

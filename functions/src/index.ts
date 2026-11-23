@@ -1,9 +1,9 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminApp from "firebase-admin/app";
 import {setGlobalOptions} from "firebase-functions/v2/options";
 
 import {GLOBAL_FUNCTION_OPTIONS} from "./shared/runtimeOptions";
 
-admin.initializeApp();
+firebaseAdminApp.initializeApp();
 
 // Região junto do Firestore (`southamerica-east1`) e teto global de
 // instâncias. Sem isso todo o deploy subia em `us-central1`, a um continente

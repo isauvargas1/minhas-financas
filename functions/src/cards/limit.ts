@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 
 import {
   cardLimitPatch,
@@ -19,7 +19,7 @@ import {
  * usado depois do lançamento.
  */
 export const postCardLimit = (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   card: AuthoritativeCard,
   input: {
     kind: LimitLedgerKind;

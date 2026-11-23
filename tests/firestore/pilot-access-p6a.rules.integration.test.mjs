@@ -22,7 +22,10 @@ import {
  * convidada; se fosse gravável, qualquer pessoa se convidaria.
  */
 const require = createRequire(import.meta.url);
-const admin = require('../../functions/node_modules/firebase-admin');
+const requireAdmin = createRequire(new URL('../../functions/package.json', import.meta.url));
+const adminAppModule = requireAdmin('firebase-admin/app');
+const adminFirestoreModule = requireAdmin('firebase-admin/firestore');
+const adminAuthModule = requireAdmin('firebase-admin/auth');
 if (!process.env.FIRESTORE_EMULATOR_HOST) {
   throw new Error('FIRESTORE_EMULATOR_HOST é obrigatório para os testes de Rules do piloto.');
 }
@@ -34,20 +37,20 @@ const ENTRADA = 'b'.repeat(64);
 
 const getAdmin = () => {
   process.env.FIREBASE_AUTH_EMULATOR_HOST ||= '127.0.0.1:9099';
-  if (!admin.apps.length) admin.initializeApp({projectId});
-  return admin;
+  if (!adminAppModule.getApps().length) adminAppModule.initializeApp({projectId});
+  return adminAppModule.getApp();
 };
 
 const seed = async () => {
   const firebaseAdmin = getAdmin();
-  const firestore = firebaseAdmin.firestore();
+  const firestore = adminFirestoreModule.getFirestore(firebaseAdmin);
   for (const entry of Object.values(users)) {
     try {
-      await firebaseAdmin.auth().deleteUser(entry.uid);
+      await adminAuthModule.getAuth(firebaseAdmin).deleteUser(entry.uid);
     } catch (error) {
       if (error?.code !== 'auth/user-not-found') throw error;
     }
-    await firebaseAdmin.auth().createUser({...entry, password, emailVerified: true});
+    await adminAuthModule.getAuth(firebaseAdmin).createUser({...entry, password, emailVerified: true});
   }
   await firestore.doc(`users/${users.ativo.uid}`).set({uid: users.ativo.uid, accessStatus: 'granted', status: 'active'});
   await firestore.doc(`pilot_access/${ENTRADA}`).set({email: users.ativo.email, status: 'active'});
@@ -101,6 +104,6 @@ test('ninguém se convida, altera ou apaga convite pelo cliente', async () => {
 });
 
 test('controle: o convite continua intacto (o backend o lê)', async () => {
-  const entrada = await getAdmin().firestore().doc(`pilot_access/${ENTRADA}`).get();
+  const entrada = await adminFirestoreModule.getFirestore(getAdmin()).doc(`pilot_access/${ENTRADA}`).get();
   assert.equal(entrada.get('status'), 'active');
 });

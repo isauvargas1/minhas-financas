@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {FieldValue} from "firebase-admin/firestore";
 
 import {ApplicationError} from "../shared/errors";
@@ -122,7 +122,7 @@ export const MEMBER_PURCHASE_OWNERSHIP_MESSAGE =
 export const INSTALLMENT_FLOOR_MESSAGE =
   "Valor da compra: cada parcela precisa ter ao menos R$ 0,01.";
 
-const db = () => admin.firestore();
+const db = () => firebaseAdminFirestore.getFirestore();
 
 export interface PurchaseMutationResult {
   purchaseId: string;
@@ -141,7 +141,7 @@ const replayResult = (
 };
 
 const readCardOrFail = (
-  snapshot: admin.firestore.DocumentSnapshot,
+  snapshot: firebaseAdminFirestore.DocumentSnapshot,
   workspaceId: string,
 ): AuthoritativeCard => {
   if (!snapshot.exists) {
@@ -157,7 +157,7 @@ const readCardOrFail = (
 
 /** Escreve as parcelas de uma revisão financeira e as soma nas faturas. */
 const writeInstallments = (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   book: InvoiceBook,
   input: {
     purchaseId: string;
@@ -250,10 +250,10 @@ export interface PreparedCardPurchase {
 }
 
 export const prepareCardPurchase = async (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   input: {
     workspaceId: string;
-    cardSnapshot: admin.firestore.DocumentSnapshot;
+    cardSnapshot: firebaseAdminFirestore.DocumentSnapshot;
     totalCents: number;
     installmentsCount: number;
     purchaseDate: string;
@@ -312,7 +312,7 @@ export type CardPurchaseOrigin =
  * responsável pelo contrato na recorrente); `actorId` é quem executou.
  */
 export const commitCardPurchase = (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   prepared: PreparedCardPurchase,
   input: {
     purchaseId: string;
@@ -508,13 +508,13 @@ interface LoadedPurchase {
   role: WorkspaceRole;
   reservation: ActorIdempotencyReservation;
   intentId: string;
-  purchaseRef: admin.firestore.DocumentReference;
+  purchaseRef: firebaseAdminFirestore.DocumentReference;
   purchase: AuthoritativePurchase;
   card: AuthoritativeCard;
 }
 
 const loadPurchaseForMutation = async (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   actor: WorkspaceActor,
   payload: {
     purchaseId: string;
@@ -580,12 +580,12 @@ const loadPurchaseForMutation = async (
 };
 
 type LoadedEntry = AuthoritativeEntry & {
-  ref: admin.firestore.DocumentReference;
+  ref: firebaseAdminFirestore.DocumentReference;
 };
 
 /** Parcelas vigentes da compra (revisão financeira atual), relidas. */
 const readActiveInstallments = async (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   purchase: AuthoritativePurchase,
 ): Promise<LoadedEntry[]> => {
   const refs = Array.from({length: purchase.installmentsCount}, (_, index) =>
@@ -621,7 +621,7 @@ const assertActivePurchase = (purchase: AuthoritativePurchase): void => {
 };
 
 const bookFor = (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   card: AuthoritativeCard,
   today: string,
 ) => new InvoiceBook(transaction, {
@@ -635,7 +635,7 @@ const bookFor = (
 
 /** Contexto de escrita comum ao cancelamento e ao estorno. */
 interface ReversalWriteContext {
-  purchaseRef: admin.firestore.DocumentReference;
+  purchaseRef: firebaseAdminFirestore.DocumentReference;
   purchase: AuthoritativePurchase;
   card: AuthoritativeCard;
   book: InvoiceBook;
@@ -653,7 +653,7 @@ interface ReversalWriteContext {
  * faturas recalculadas, compra `cancelled`, limite restituído e evento.
  */
 const writeCancellation = (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   context: ReversalWriteContext,
   installments: readonly LoadedEntry[],
 ): number => {
@@ -714,7 +714,7 @@ const writeCancellation = (
  * compra `refunded`, limite restituído e evento.
  */
 const writeRefund = (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   context: ReversalWriteContext,
   split: {open: readonly LoadedEntry[]; billedCents: number;
     target: string},
@@ -795,7 +795,7 @@ const writeRefund = (
 
 /** Separa as parcelas vigentes em faturadas e abertas (fase de leitura). */
 const loadRefundSplit = async (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   purchase: AuthoritativePurchase,
   card: AuthoritativeCard,
   installments: readonly LoadedEntry[],
@@ -949,7 +949,7 @@ export const executeRefundCreditCardPurchase = async (
 
 export interface PreparedCardPurchaseReversal {
   mode: "cancel" | "refund";
-  purchaseRef: admin.firestore.DocumentReference;
+  purchaseRef: firebaseAdminFirestore.DocumentReference;
   purchase: AuthoritativePurchase;
   card: AuthoritativeCard;
   book: InvoiceBook;
@@ -967,7 +967,7 @@ export interface PreparedCardPurchaseReversal {
  * na primeira fatura aberta (fatura fechada nunca é alterada).
  */
 export const prepareCardPurchaseReversal = async (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   input: {
     workspaceId: string;
     purchaseId: string;
@@ -1012,7 +1012,7 @@ export const prepareCardPurchaseReversal = async (
 
 /** Fase de escrita da reversão preparada, no commit de quem chamou. */
 export const commitCardPurchaseReversal = (
-  transaction: admin.firestore.Transaction,
+  transaction: firebaseAdminFirestore.Transaction,
   prepared: PreparedCardPurchaseReversal,
   input: {
     actorUid: string;

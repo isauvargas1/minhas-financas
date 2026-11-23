@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {Timestamp} from "firebase-admin/firestore";
 import {HttpsError} from "firebase-functions/v2/https";
 
@@ -63,7 +63,7 @@ import {
  */
 
 const firestore = requireFirestoreEmulator();
-const db = (): admin.firestore.Firestore => firestore;
+const db = (): firebaseAdminFirestore.Firestore => firestore;
 
 const WS_A = "inv-cash-workspace-a";
 const WS_B = "inv-cash-workspace-b";
@@ -228,8 +228,8 @@ const periodoPatrimonial = (chave: string) =>
 const entregar = async (
   eventId: string,
   transactionId: string,
-  before: admin.firestore.DocumentData | undefined,
-  after: admin.firestore.DocumentData | undefined,
+  before: firebaseAdminFirestore.DocumentData | undefined,
+  after: firebaseAdminFirestore.DocumentData | undefined,
 ) => db().runTransaction((tx) => applyCashPeriodWriteOnce(
   tx, WS_A, cashPeriodEventKey(eventId), before, after,
   {
@@ -861,7 +861,7 @@ test("projeções, contas e espelhos se reconstroem do ledger", async () => {
     .collection(`workspaces/${WS_A}/investment_movements`).get())
     .docs.map((entry) => entry.data());
   const liquidados = movimentos.filter((entry) => entry.status === "settled");
-  const soma = (lista: admin.firestore.DocumentData[], campo: string) =>
+  const soma = (lista: firebaseAdminFirestore.DocumentData[], campo: string) =>
     lista.reduce((total, entry) => total + Number(entry[campo] ?? 0), 0);
 
   // Posições: capital = Σ principalDelta dos liquidados; regime por valor.

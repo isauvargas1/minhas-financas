@@ -1,3 +1,4 @@
+import { adminAuth, adminFirestore } from './adminModules';
 import { expect, type APIRequestContext, type Browser, type Page, type Request } from '@playwright/test';
 
 import { callCallable, emulatorIdToken } from './callables';
@@ -30,7 +31,7 @@ export interface LoanTenant {
   viewer: { uid: string; email: string };
 }
 
-export const db = () => adminSdk().firestore();
+export const db = () => adminFirestore.getFirestore(adminSdk());
 
 export const dayKey = (offsetDays = 0): string => new Intl.DateTimeFormat('en-CA', {
   timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit',
@@ -46,10 +47,10 @@ export const addMonths = (key: string, months: number): string => {
 
 export const resetEmulatorData = async () => {
   const sdk = adminSdk();
-  const users = await sdk.auth().listUsers(1000);
-  if (users.users.length > 0) await sdk.auth().deleteUsers(users.users.map((user) => user.uid));
-  const collections = await sdk.firestore().listCollections();
-  await Promise.all(collections.map((collection) => sdk.firestore().recursiveDelete(collection)));
+  const users = await adminAuth.getAuth(sdk).listUsers(1000);
+  if (users.users.length > 0) await adminAuth.getAuth(sdk).deleteUsers(users.users.map((user) => user.uid));
+  const collections = await adminFirestore.getFirestore(sdk).listCollections();
+  await Promise.all(collections.map((collection) => adminFirestore.getFirestore(sdk).recursiveDelete(collection)));
 };
 
 export const seedLoanTenant = async (type: 'PF' | 'PJ', prefix: string): Promise<LoanTenant> => {
@@ -70,7 +71,7 @@ export const seedLoanTenant = async (type: 'PF' | 'PJ', prefix: string): Promise
     viewer: person('viewer'),
   };
   for (const account of [tenant.owner, tenant.member, tenant.otherMember, tenant.viewer]) {
-    await adminSdk().auth().createUser({ ...account, password: PASSWORD, emailVerified: true });
+    await adminAuth.getAuth(adminSdk()).createUser({ ...account, password: PASSWORD, emailVerified: true });
   }
   await seedOwnedWorkspace({ ...tenant.owner, workspaceId: tenant.workspaceId, name: tenant.name, type });
   await seedPaidPlan(tenant.owner.uid, 'business');

@@ -1,3 +1,4 @@
+import { adminAuth, adminFirestore } from './support/adminModules';
 import { expect, test, type APIRequestContext, type Page, type Route } from '@playwright/test';
 
 import { createAccountByApi, openCashAccounts } from './support/accounts';
@@ -130,7 +131,7 @@ const seedTenant = async (request: APIRequestContext, options: { withM?: boolean
   const pfId = `e2e-p5f-pf-${suffix}`;
   const pjId = `e2e-p5f-pj-${suffix}`;
   for (const user of [A, M]) {
-    await adminSdk().auth().createUser({ ...user, password: PASSWORD, emailVerified: true });
+    await adminAuth.getAuth(adminSdk()).createUser({ ...user, password: PASSWORD, emailVerified: true });
   }
   await seedOwnedWorkspace({ ...A, workspaceId: pfId, name: 'Pessoal P5F', type: 'PF' });
   await seedOwnedWorkspace({ ...A, workspaceId: pjId, name: COMPANY, type: 'PJ' });
@@ -183,7 +184,7 @@ const seedPreference = async (uid: string, incomeWorkspaceId: string, overrides:
     municipality: '',
     localHolidays: '',
     exceptions: '',
-    updatedAt: adminSdk().firestore.FieldValue.serverTimestamp(),
+    updatedAt: (adminSdk(), adminFirestore.FieldValue).serverTimestamp(),
     ...overrides,
   });
 };
@@ -1213,7 +1214,7 @@ test('falha na leitura da preferência com a escuta já aberta: aviso fixo em pt
   await expect(previewHourly(page)).toHaveText(brl(2_500), { timeout: 30_000 });
   // A conta fica suspensa e o documento muda (outro dispositivo grava): a escuta aberta recebe a recusa das Rules.
   await db().doc(`users/${A.uid}`).update({ status: 'suspended' });
-  await db().doc(preferencePath(A.uid)).update({ worksOnHolidays: false, updatedAt: adminSdk().firestore.FieldValue.serverTimestamp() });
+  await db().doc(preferencePath(A.uid)).update({ worksOnHolidays: false, updatedAt: (adminSdk(), adminFirestore.FieldValue).serverTimestamp() });
   const failure = page.getByRole('alert').filter({ hasText: 'Não foi possível carregar sua preferência agora.' });
   await expect(failure).toHaveText(/^Não foi possível carregar sua preferência agora\. Enquanto isso, os valores continuam em reais\.\s*Tentar de novo$/, { timeout: 30_000 });
   await expect(failure).not.toContainText(/permission|insufficient|firestore|firebase/i);
@@ -1249,7 +1250,7 @@ test('escuta das projeções encerrada: os valores voltam a reais, sem a ressalv
   const [firstMonth, , lastMonth] = habitualMonths();
   await db().doc(`users/${A.uid}`).update({ status: 'suspended' });
   await db().doc(`workspaces/${tenant.pf.workspaceId}/cash_report_periods/${firstMonth}`)
-    .update({ updatedAt: adminSdk().firestore.FieldValue.serverTimestamp() });
+    .update({ updatedAt: (adminSdk(), adminFirestore.FieldValue).serverTimestamp() });
   await expect(notice(page)).toContainText(unavailable, { timeout: 30_000 });
   await expect(page.locator('[data-work-time]')).toHaveCount(0);
   await expect(balanceCard(page)).toContainText(brl(pjBalance));

@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as firebaseAdminFirestore from "firebase-admin/firestore";
 import {AggregateField} from "firebase-admin/firestore";
 
 import {LOANS_COLLECTION} from "../loans/model";
@@ -29,7 +29,7 @@ import type {
  * todos os recebíveis.
  */
 
-const db = () => admin.firestore();
+const db = () => firebaseAdminFirestore.getFirestore();
 
 const ACTIVE_LOAN_STATUSES = ["active", "overdue"];
 
@@ -38,7 +38,7 @@ export const TOP_CLIENTS_SAMPLE_LIMIT = 500;
 const TOP_CLIENTS = 5;
 
 const aggregate = async (
-  query: admin.firestore.Query,
+  query: firebaseAdminFirestore.Query,
   field: string,
 ): Promise<{sum: number; count: number}> => {
   const snapshot = await query.aggregate({

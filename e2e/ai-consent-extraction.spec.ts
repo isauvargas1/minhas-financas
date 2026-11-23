@@ -1,3 +1,4 @@
+import { adminAuth, adminFirestore } from './support/adminModules';
 import { mkdirSync } from 'node:fs';
 
 import { expect, test, type Locator, type Page, type Request } from '@playwright/test';
@@ -48,19 +49,19 @@ const TINY_PNG = Buffer.from(
   'base64',
 );
 
-const db = () => adminSdk().firestore();
+const db = () => adminFirestore.getFirestore(adminSdk());
 
 const normalize = (value: string) =>
   value.normalize('NFD').replace(/[̀-ͯ]/g, '').trim().replace(/\s+/g, ' ').toLowerCase();
 
 const resetEmulatorData = async () => {
   const sdk = adminSdk();
-  const users = await sdk.auth().listUsers(1000);
+  const users = await adminAuth.getAuth(sdk).listUsers(1000);
   if (users.users.length > 0) {
-    await sdk.auth().deleteUsers(users.users.map((user) => user.uid));
+    await adminAuth.getAuth(sdk).deleteUsers(users.users.map((user) => user.uid));
   }
-  const collections = await sdk.firestore().listCollections();
-  await Promise.all(collections.map((collection) => sdk.firestore().recursiveDelete(collection)));
+  const collections = await adminFirestore.getFirestore(sdk).listCollections();
+  await Promise.all(collections.map((collection) => adminFirestore.getFirestore(sdk).recursiveDelete(collection)));
 };
 
 const seedCatalog = async (workspaceId: string) => {
@@ -83,7 +84,7 @@ const seedCatalog = async (workspaceId: string) => {
 
 test.beforeEach(async () => {
   await resetEmulatorData();
-  await adminSdk().auth().createUser({
+  await adminAuth.getAuth(adminSdk()).createUser({
     uid: OWNER.uid, email: OWNER.email, password: PASSWORD, emailVerified: true,
   });
   await seedOwnedWorkspace({

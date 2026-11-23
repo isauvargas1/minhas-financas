@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import {resolve} from "node:path";
 import test from "node:test";
-import type * as admin from "firebase-admin";
+import type * as firebaseAdminFirestore from "firebase-admin/firestore";
 
 import {quotaExceeded} from "../../billing/quota";
 import {
@@ -129,7 +129,7 @@ test("P3-D — identidade da linha e resumo em pt-BR", () => {
 const snapshot = (data?: Record<string, unknown>) => ({
   exists: data !== undefined,
   get: (field: string) => data?.[field],
-}) as unknown as admin.firestore.DocumentSnapshot;
+}) as unknown as firebaseAdminFirestore.DocumentSnapshot;
 
 const anchor = (overrides = {}) => snapshot({
   workspaceId: WS, trackingSince: "2026-10", origin: "workspace_created",
