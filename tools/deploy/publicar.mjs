@@ -36,8 +36,17 @@ try {
 } catch (erro) {
   recusar(erro.motivos ?? [String(erro.message)]);
 }
+// O comando curto das Functions seleciona a produção
+// registrada no contrato. Argumentos explícitos continuam aceitos.
+const projetoPadrao =
+  args.get('alvo') === 'functions' &&
+  !args.has('project') &&
+  !args.has('confirmar')
+    ? cfg.producao.projectId
+    : undefined;
+
 const resultado = executarPublicacao({
-  fatos: {cfg, selecao: args.get('funcoes'), alvo: args.get('alvo'), project: args.get('project'), confirmar: args.get('confirmar'), env: process.env, ...fatosLocais()},
+  fatos: {cfg, selecao: args.get('funcoes'), alvo: args.get('alvo'), project: args.get('project') ?? projetoPadrao, confirmar: args.get('confirmar') ?? projetoPadrao, env: process.env, ...fatosLocais()},
   executar: (comando, argumentos, opcoes) =>
     spawnSync(comando, argumentos, {cwd: RAIZ, stdio: 'inherit', env: {...process.env, ...(opcoes.env ?? {})}}).status ?? 1,
   lerMarcador: () => lerMarcadorDoRelease(),
@@ -45,6 +54,7 @@ const resultado = executarPublicacao({
   pausar: ms => Atomics.wait(
     new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms
   ),
+  tamanhoLote: 2,
   interativo: Boolean(process.stdin.isTTY && process.stdout.isTTY),
   registrar: (mensagem) => console.log(`[publicação] ${mensagem}`),
 });

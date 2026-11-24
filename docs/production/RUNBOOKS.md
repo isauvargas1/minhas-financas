@@ -433,3 +433,49 @@ Registrar LOTE_CONFIRMADO para cada lote concluido.
 Interromper na primeira falha e reconciliar o estado remoto.
 Nao repetir suites de homologacao durante a publicacao.
 Nao utilizar --force.
+
+
+### Atualizacao operacional - deploy simplificado
+
+Esta orientacao substitui as instrucoes anteriores
+quanto aos comandos de publicacao e exigencia de tags.
+
+Selecionar explicitamente o projeto de producao:
+
+    firebase use sistema-financeiro-pesso-20698
+
+Comandos nativos:
+
+    firebase deploy --only hosting
+    firebase deploy --only firestore:rules
+    firebase deploy --only firestore:indexes
+    firebase deploy --only firestore
+    firebase deploy --only storage
+
+Functions:
+
+    npm run deploy:functions
+    npm run deploy:functions -- --funcoes createGoal
+    npm run deploy:functions -- --funcoes createGoal,updateGoal
+
+O publicador das Functions utiliza lotes de ate duas
+funcoes e preserva o filtro de segredos registrados.
+Os argumentos explicitos anteriores continuam aceitos.
+
+O deploy nativo integral de Functions permanece
+bloqueado enquanto for necessario controlar a composicao
+e as quotas por meio do publicador.
+
+Tags de versao sao opcionais para publicacao.
+O commit identificavel e o worktree limpo sao mantidos.
+
+Nenhum comando de publicacao executa suites de testes.
+A compilacao e as protecoes contra segredos permanecem.
+A homologacao funcional continua independente.
+
+Esta alteracao nao modifica a autorizacao do piloto,
+as restricoes de privacidade, o Stripe ou o Gemini.
+
+Nao utilizar --force nem autorizar exclusoes inesperadas.
+O deploy integral sem --only nao e o fluxo recomendado.
+

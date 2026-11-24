@@ -11,7 +11,7 @@
  * - um alvo conhecido (`--alvo`);
  * - nenhum conflito no ambiente do processo (`GCLOUD_PROJECT` e afins apontando para outro projeto, `FIREBASE_TOKEN`);
  * - o `.firebaserc` sem `default` e sem alias de produção;
- * - o worktree limpo e o HEAD marcado com uma versão (`vAAAA.MM.DD` ou semver `vX.Y.Z`);
+ * - o worktree limpo e o HEAD identificável; tags são opcionais;
  * - homologação independente, executada manualmente; o publicador não executa suítes de testes;
  * - para o Hosting: o build de release da produção, do mesmo commit, sem alterações locais, nunca um build E2E ou de
  *   verificação, e a varredura de publicação do bundle;
@@ -128,9 +128,6 @@ export const avaliarItensEstaticos = (fatos) => {
   motivos.push(...conflitosDeAmbiente(env ?? {}, project, {gancho}));
   if (!git?.commit) motivos.push('não foi possível identificar o commit (HEAD).');
   if (git?.sujo) motivos.push('o worktree tem alterações não commitadas: só um commit exato é publicado.');
-  if (!(git?.tags ?? []).some((tag) => VERSAO_DE_RELEASE.test(tag))) {
-    motivos.push('o HEAD não tem tag de versão (vX.Y.Z ou vAAAA.MM.DD): toda publicação corresponde a uma versão recuperável.');
-  }
   return motivos;
 };
 
@@ -157,7 +154,7 @@ export const avaliarBuild = ({marcador, project, git}) => {
  * (Hosting) build de release e itens do build → firebase deploy. Uma recusa em qualquer etapa interrompe antes da
  * seguinte; o firebase-tools só é chamado com tudo aprovado.
  */
-export const executarPublicacao = ({fatos, executar, lerMarcador, inventariarFuncoes, interativo = false, pausar = () => {}, registrar = () => {}}) => {
+export const executarPublicacao = ({fatos, executar, lerMarcador, inventariarFuncoes, interativo = false, tamanhoLote = 5, pausar = () => {}, registrar = () => {}}) => {
   const motivos = avaliarItensEstaticos(fatos);
   if (motivos.length > 0) return {publicado: false, etapa: 'itens', motivos};
   const {alvo, project, git} = fatos;
@@ -242,7 +239,7 @@ export const executarPublicacao = ({fatos, executar, lerMarcador, inventariarFun
   }
   const ambiente = {...emCurso, FENIX_PUBLICACAO: JSON.stringify({project, commit: git.commit, alvo})};
 
-  const dividir = funcoesPublicaveis.length > 5 ||
+  const dividir = funcoesPublicaveis.length > tamanhoLote ||
     selecao !== undefined;
 
   if (ALVOS[alvo].sequencial || dividir) {
@@ -254,10 +251,10 @@ export const executarPublicacao = ({fatos, executar, lerMarcador, inventariarFun
     if (partes.includes('storage')) etapas.push(['Storage', ['storage']]);
 
     if (dividir) {
-      for (let i = 0; i < funcoesPublicaveis.length; i += 5) {
+      for (let i = 0; i < funcoesPublicaveis.length; i += tamanhoLote) {
         etapas.push([
           'Functions',
-          funcoesPublicaveis.slice(i, i + 5).map(n => 'functions:' + n),
+          funcoesPublicaveis.slice(i, i + tamanhoLote).map(n => 'functions:' + n),
         ]);
       }
     } else {
@@ -345,7 +342,7 @@ export const executarPublicacao = ({fatos, executar, lerMarcador, inventariarFun
  * direto, fora dos scripts. Exige que a publicação tenha vindo do guard (`FENIX_PUBLICACAO`, com o mesmo projeto e o
  * mesmo commit) e reavalia os itens estáticos e, no Hosting, o build.
  */
-export const avaliarGancho = ({fatos, alvoFirebase, publicacao, marcador}) => {
+export const avaliarGancho = ({fatos, alvoFirebase, publicacao, marcador, conferirBuild = true}) => {
   const motivos = [];
   if (!ALVOS_DO_FIREBASE.includes(alvoFirebase)) motivos.push(`alvo do firebase-tools desconhecido no gancho (${alvoFirebase ?? 'nenhum'}).`);
   motivos.push(...avaliarItensEstaticos({...fatos, gancho: true}));
@@ -356,11 +353,13 @@ export const avaliarGancho = ({fatos, alvoFirebase, publicacao, marcador}) => {
     origem = null;
   }
   if (!origem) {
-    motivos.push('publicação fora do guard: use npm run deploy:* (tools/deploy/publicar.mjs), que valida os requisitos operacionais.');
+    if (publicacao !== undefined || alvoFirebase === 'functions') {
+      motivos.push('publicação fora do guard: para Functions use npm run deploy:functions, que controla segredos e lotes.');
+    }
   } else {
     if (origem.project !== fatos.project) motivos.push('o projeto do deploy não é o autorizado pelo guard.');
     if (origem.commit !== fatos.git?.commit) motivos.push('o commit mudou depois da autorização do guard.');
   }
-  if (alvoFirebase === 'hosting') motivos.push(...avaliarBuild({marcador, project: fatos.project, git: fatos.git}));
+  if (alvoFirebase === 'hosting' && conferirBuild) motivos.push(...avaliarBuild({marcador, project: fatos.project, git: fatos.git}));
   return motivos;
 };

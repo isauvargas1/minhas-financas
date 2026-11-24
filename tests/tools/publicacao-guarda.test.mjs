@@ -105,11 +105,11 @@ test('itens estáticos: FIREBASE_TOKEN presente é recusado sem expor o valor', 
   assert.ok(!motivos.join('\n').includes(segredo));
 });
 
-test('itens estáticos: worktree sujo, sem commit, sem tag de versão e tag latest', () => {
+test('itens estáticos: worktree sujo, sem commit e tags opcionais', () => {
   temMotivo(avaliarItensEstaticos(com({git: {commit: COMMIT, sujo: true, tags: ['v2026.11.17']}})), /alterações não commitadas/);
   temMotivo(avaliarItensEstaticos(com({git: {commit: null, sujo: true, tags: []}})), /identificar o commit/);
-  temMotivo(avaliarItensEstaticos(com({git: {commit: COMMIT, sujo: false, tags: []}})), /não tem tag de versão/);
-  temMotivo(avaliarItensEstaticos(com({git: {commit: COMMIT, sujo: false, tags: ['latest']}})), /não tem tag de versão/);
+  assert.deepEqual(avaliarItensEstaticos(com({git: {commit: COMMIT, sujo: false, tags: []}})), []);
+  assert.deepEqual(avaliarItensEstaticos(com({git: {commit: COMMIT, sujo: false, tags: ['latest']}})), []);
   for (const tag of ['v1.2.3', 'v2026.11.17', 'v2026.11.17.2']) {
     assert.deepEqual(avaliarItensEstaticos(com({git: {commit: COMMIT, sujo: false, tags: [tag]}})), [], tag);
   }
@@ -461,7 +461,7 @@ test('publicar.mjs sem liberação sai 3 e cita a liberação; nada é executado
   assert.ok(!resultado.out.includes('firebase deploy'));
 });
 
-test('publicar.mjs com liberação, mas fora de um commit com tag, sai 3 sem executar nada', () => {
+test('publicar.mjs com liberação, mas sem commit identificável, sai 3 sem executar nada', () => {
   const resultado = rodarNaCopia(comLiberacao, 'publicar.mjs', ['--alvo', 'functions', '--project', PRODUCAO, '--confirmar', PRODUCAO]);
   assert.equal(resultado.code, 3, resultado.err);
   assert.doesNotMatch(resultado.err, /liberação de publicação não registrada/);
@@ -641,4 +641,73 @@ test('functions: selecao nao autorizada impede deploy', () => {
 
   assert.equal(resultado.publicado, false);
   assert.ok(!chamadas.some(c => c.comando === 'firebase'));
+});
+
+
+test('deploy nativo: firestore e storage autorizados sem tag', () => {
+  for (const alvoFirebase of ['firestore', 'storage']) {
+    const fatos = fatosGancho({
+      git: {commit: COMMIT, sujo: false, tags: []},
+    });
+
+    assert.deepEqual(avaliarGancho({
+      fatos,
+      alvoFirebase,
+      publicacao: undefined,
+      marcador: null,
+    }), []);
+  }
+});
+
+test('hosting nativo: valida antes e depois do build', () => {
+  const fatos = fatosGancho({
+    git: {commit: COMMIT, sujo: false, tags: []},
+  });
+
+  const entrada = {
+    fatos,
+    alvoFirebase: 'hosting',
+    publicacao: undefined,
+  };
+
+  assert.deepEqual(avaliarGancho({
+    ...entrada,
+    marcador: null,
+    conferirBuild: false,
+  }), []);
+
+  assert.ok(avaliarGancho({
+    ...entrada,
+    marcador: null,
+  }).length > 0);
+
+  assert.deepEqual(avaliarGancho({
+    ...entrada,
+    marcador: marcadorRelease(),
+  }), []);
+});
+
+test('functions: publicacao operacional em duplas', () => {
+  const inventario = Array.from({length: 7}, (_, i) => ({
+    nome: 'funcao' + i,
+    segredos: [],
+  }));
+
+  const {chamadas, executar} = executorFalso();
+
+  const resultado = publicar({
+    fatos: fatosValidos('functions'),
+    executar,
+    lerMarcador: () => marcadorRelease(),
+    inventariarFuncoes: () => inventario,
+    tamanhoLote: 2,
+  });
+
+  assert.equal(resultado.publicado, true);
+
+  assert.deepEqual(
+    chamadas.filter(c => c.comando === 'firebase')
+      .map(c => c.argumentos[2].split(',').length),
+    [2, 2, 2, 1]
+  );
 });
