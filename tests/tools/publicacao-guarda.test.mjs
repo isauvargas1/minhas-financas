@@ -581,3 +581,64 @@ test('nenhum alvo de deploy executa suites de homologacao', () => {
     }
   }
 });
+
+
+test('functions: publica lotes de ate cinco com intervalo', () => {
+  const inventario = Array.from({length: 12}, (_, i) => ({
+    nome: 'funcao' + String(i + 1).padStart(2, '0'),
+    segredos: [],
+  }));
+
+  const {chamadas, executar} = executorFalso();
+  const pausas = [];
+
+  const resultado = publicar({
+    fatos: fatosValidos('functions'),
+    executar,
+    lerMarcador: () => marcadorRelease(),
+    inventariarFuncoes: () => inventario,
+    pausar: ms => pausas.push(ms),
+  });
+
+  assert.equal(resultado.publicado, true);
+  const lotes = chamadas.filter(c => c.comando === 'firebase');
+  assert.deepEqual(
+    lotes.map(c => c.argumentos[2].split(',').length),
+    [5, 5, 2]
+  );
+  assert.deepEqual(pausas, [65000, 65000]);
+});
+
+test('functions: retomada aceita apenas funcoes autorizadas', () => {
+  const {chamadas, executar} = executorFalso();
+  const resultado = publicar({
+    fatos: {
+      ...fatosValidos('functions'),
+      selecao: 'bootstrapAccount',
+    },
+    executar,
+    lerMarcador: () => marcadorRelease(),
+  });
+
+  assert.equal(resultado.publicado, true);
+  assert.equal(
+    chamadas.find(c => c.comando === 'firebase').argumentos[2],
+    'functions:bootstrapAccount'
+  );
+});
+
+test('functions: selecao nao autorizada impede deploy', () => {
+  const {chamadas, executar} = executorFalso();
+  const resultado = publicar({
+    fatos: {
+      ...fatosValidos('functions'),
+      selecao: 'stripeWebhook',
+    },
+    executar,
+    lerMarcador: () => marcadorRelease(),
+    inventariarFuncoes: () => INVENTARIO_COM_SEGREDOS,
+  });
+
+  assert.equal(resultado.publicado, false);
+  assert.ok(!chamadas.some(c => c.comando === 'firebase'));
+});

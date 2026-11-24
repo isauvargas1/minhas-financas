@@ -157,7 +157,7 @@ export const avaliarBuild = ({marcador, project, git}) => {
  * (Hosting) build de release e itens do build → firebase deploy. Uma recusa em qualquer etapa interrompe antes da
  * seguinte; o firebase-tools só é chamado com tudo aprovado.
  */
-export const executarPublicacao = ({fatos, executar, lerMarcador, inventariarFuncoes, interativo = false, registrar = () => {}}) => {
+export const executarPublicacao = ({fatos, executar, lerMarcador, inventariarFuncoes, interativo = false, pausar = () => {}, registrar = () => {}}) => {
   const motivos = avaliarItensEstaticos(fatos);
   if (motivos.length > 0) return {publicado: false, etapa: 'itens', motivos};
   const {alvo, project, git} = fatos;
@@ -169,6 +169,20 @@ export const executarPublicacao = ({fatos, executar, lerMarcador, inventariarFun
       return {publicado: false, etapa: 'build-functions', motivos: ['a compilação das Functions falhou: nada foi publicado.']};
     }
   }
+  const selecao = fatos.selecao?.split(',');
+  if (selecao !== undefined && (
+    alvo !== 'functions' ||
+    selecao.some(n => !/^[A-Za-z][A-Za-z0-9_]*$/.test(n)) ||
+    new Set(selecao).size !== selecao.length
+  )) {
+    return {
+      publicado: false,
+      etapa: 'itens',
+      motivos: ['Selecao de Functions invalida.'],
+    };
+  }
+
+  let funcoesPublicaveis = [];
   let only = ALVOS[alvo].only;
   if (ALVOS[alvo].funcoes) {
     let inventario;
@@ -191,6 +205,27 @@ export const executarPublicacao = ({fatos, executar, lerMarcador, inventariarFun
       );
     }
     only = composicao.only;
+    funcoesPublicaveis = ALVOS[alvo].funcoes === 'todas'
+      ? plano.incluidas
+      : ALVOS[alvo].funcoes;
+
+    if (selecao !== undefined) {
+      const invalidas = selecao.filter(
+        n => !funcoesPublicaveis.includes(n)
+      );
+      if (invalidas.length > 0) {
+        return {
+          publicado: false,
+          etapa: 'funcoes',
+          motivos: [
+            'Functions nao autorizadas: ' + invalidas.join(',')
+          ],
+        };
+      }
+
+      funcoesPublicaveis = selecao;
+      only = selecao.map(n => 'functions:' + n).join(',');
+    }
   }
   if (ALVOS[alvo].exigeBuild) {
     registrar('Compilando frontend de produção...');
@@ -207,37 +242,48 @@ export const executarPublicacao = ({fatos, executar, lerMarcador, inventariarFun
   }
   const ambiente = {...emCurso, FENIX_PUBLICACAO: JSON.stringify({project, commit: git.commit, alvo})};
 
-  if (ALVOS[alvo].sequencial) {
+  const dividir = funcoesPublicaveis.length > 5 ||
+    selecao !== undefined;
+
+  if (ALVOS[alvo].sequencial || dividir) {
     const partes = only.split(',');
-    const etapas = [
-      ['Firestore', partes.filter(p => p.startsWith('firestore:'))],
-      ['Storage', partes.filter(p => p === 'storage')],
-      ['Functions', partes.filter(p => p === 'functions' || p.startsWith('functions:'))],
-      ['Hosting', partes.filter(p => p === 'hosting')],
-    ];
+    const etapas = [];
+    const firestore = partes.filter(p => p.startsWith('firestore:'));
+
+    if (firestore.length) etapas.push(['Firestore', firestore]);
+    if (partes.includes('storage')) etapas.push(['Storage', ['storage']]);
+
+    if (dividir) {
+      for (let i = 0; i < funcoesPublicaveis.length; i += 5) {
+        etapas.push([
+          'Functions',
+          funcoesPublicaveis.slice(i, i + 5).map(n => 'functions:' + n),
+        ]);
+      }
+    } else {
+      const funcoes = partes.filter(
+        p => p === 'functions' || p.startsWith('functions:')
+      );
+      if (funcoes.length) etapas.push(['Functions', funcoes]);
+    }
+
+    if (partes.includes('hosting')) etapas.push(['Hosting', ['hosting']]);
 
     let concluidas = 0;
+    let funcoesConcluidas = 0;
 
     const progresso = () => {
-      const percentual = concluidas * 25;
+      const percentual = Math.floor(concluidas * 100 / etapas.length);
+      const blocos = Math.floor(percentual / 5);
       registrar(
-        '[' + '#'.repeat(concluidas * 5) +
-        '-'.repeat(20 - concluidas * 5) +
-        '] ' + percentual + '% (' + concluidas + '/4)'
+        '[' + '#'.repeat(blocos) + '-'.repeat(20 - blocos) +
+        '] ' + percentual + '% (' + concluidas + '/' + etapas.length + ')'
       );
     };
 
     progresso();
 
     for (const [nome, seletores] of etapas) {
-      if (seletores.length === 0) {
-        return {
-          publicado: false,
-          etapa: 'firebase',
-          motivos: ['Composicao vazia: ' + nome],
-        };
-      }
-
       const args = [
         'deploy', '--only', seletores.join(','),
         '--project', project,
@@ -247,22 +293,41 @@ export const executarPublicacao = ({fatos, executar, lerMarcador, inventariarFun
         args.push('--non-interactive');
       }
 
-      registrar('Iniciando: ' + nome);
+      registrar('Iniciando: ' + nome + ' ' + seletores.join(','));
 
       if (executar('firebase', args, {env: ambiente}) !== 0) {
         return {
           publicado: false,
           etapa: 'firebase',
           motivos: [
-            'Falha em ' + nome +
-            '; etapas concluidas: ' + concluidas + '/4',
+            'Falha em ' + nome + '; seletores: ' + seletores.join(','),
           ],
         };
       }
 
+      if (nome === 'Functions') {
+        const nomes = seletores.includes('functions')
+          ? funcoesPublicaveis
+          : seletores.map(n => n.slice('functions:'.length));
+
+        funcoesConcluidas += nomes.length;
+        registrar('LOTE_CONFIRMADO=' + nomes.join(','));
+        registrar(
+          'Functions concluidas: ' +
+          funcoesConcluidas + '/' + funcoesPublicaveis.length
+        );
+      }
+
       concluidas += 1;
-      registrar('Concluido: ' + nome);
       progresso();
+
+      if (
+        nome === 'Functions' &&
+        etapas[concluidas]?.[0] === 'Functions'
+      ) {
+        registrar('Intervalo de quota: 65 segundos.');
+        pausar(65000);
+      }
     }
 
     return {publicado: true, etapa: 'concluida', motivos: []};

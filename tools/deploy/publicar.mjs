@@ -14,15 +14,18 @@ import {fatosLocais, lerMarcadorDoRelease} from './fatos.mjs';
 import {inventarioDasFuncoes} from './funcoes.mjs';
 import {executarPublicacao} from './publicacao.mjs';
 
-const recusar = (motivos, codigo = 3) => {
-  process.stderr.write(`\n[publicação] interrompida; confira as etapas ja concluidas:\n${motivos.map((motivo) => `  - ${motivo}`).join('\n')}\n`);
+const recusar = (motivos, codigo = 3, remota = false) => {
+  const titulo = remota
+    ? 'interrompida; confira as etapas ja concluidas'
+    : 'recusada; nada foi publicado';
+  process.stderr.write(`\n[publicação] ${titulo}:\n${motivos.map((motivo) => `  - ${motivo}`).join('\n')}\n`);
   process.exit(codigo);
 };
 
 const {project: _project, projeto: _projeto, ...proibidas} = OPCOES_DE_PROJETO_PROIBIDAS;
 let args;
 try {
-  args = lerArgumentos(process.argv.slice(2), {valores: ['alvo', 'project', 'confirmar'], proibidas: {...proibidas, projeto: 'use --project'}});
+  args = lerArgumentos(process.argv.slice(2), {valores: ['alvo', 'project', 'confirmar', 'funcoes'], proibidas: {...proibidas, projeto: 'use --project'}});
 } catch (erro) {
   if (erro instanceof ErroArgumentos) recusar([erro.message], 2);
   throw erro;
@@ -34,13 +37,18 @@ try {
   recusar(erro.motivos ?? [String(erro.message)]);
 }
 const resultado = executarPublicacao({
-  fatos: {cfg, alvo: args.get('alvo'), project: args.get('project'), confirmar: args.get('confirmar'), env: process.env, ...fatosLocais()},
+  fatos: {cfg, selecao: args.get('funcoes'), alvo: args.get('alvo'), project: args.get('project'), confirmar: args.get('confirmar'), env: process.env, ...fatosLocais()},
   executar: (comando, argumentos, opcoes) =>
     spawnSync(comando, argumentos, {cwd: RAIZ, stdio: 'inherit', env: {...process.env, ...(opcoes.env ?? {})}}).status ?? 1,
   lerMarcador: () => lerMarcadorDoRelease(),
   inventariarFuncoes: () => inventarioDasFuncoes(),
+  pausar: ms => Atomics.wait(
+    new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms
+  ),
   interativo: Boolean(process.stdin.isTTY && process.stdout.isTTY),
   registrar: (mensagem) => console.log(`[publicação] ${mensagem}`),
 });
-if (!resultado.publicado) recusar(resultado.motivos);
+if (!resultado.publicado) {
+  recusar(resultado.motivos, 3, resultado.etapa === 'firebase');
+}
 console.log('[publicação] concluída.');

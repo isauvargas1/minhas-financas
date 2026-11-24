@@ -419,3 +419,17 @@ Decisão expressa do proprietário: separar a homologação da publicação.
 - O sucesso do deploy não equivale a aprovação dos gates.
 - Esta decisão não dispensa requisitos legais, de privacidade,
   de segurança nem de liberação de usuários reais.
+
+
+### Publicacao em lotes de Functions
+
+Publicacoes de mais de cinco Functions sao divididas em lotes
+sequenciais, com intervalo de 65 segundos entre lotes.
+
+O parametro --funcoes permite selecionar nomes exatos para
+retomada, respeitando o inventario e os segredos autorizados.
+
+Registrar LOTE_CONFIRMADO para cada lote concluido.
+Interromper na primeira falha e reconciliar o estado remoto.
+Nao repetir suites de homologacao durante a publicacao.
+Nao utilizar --force.
