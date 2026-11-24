@@ -157,7 +157,7 @@ export const avaliarBuild = ({marcador, project, git}) => {
  * (Hosting) build de release e itens do build → firebase deploy. Uma recusa em qualquer etapa interrompe antes da
  * seguinte; o firebase-tools só é chamado com tudo aprovado.
  */
-export const executarPublicacao = ({fatos, executar, lerMarcador, inventariarFuncoes, registrar = () => {}}) => {
+export const executarPublicacao = ({fatos, executar, lerMarcador, inventariarFuncoes, interativo = false, registrar = () => {}}) => {
   const motivos = avaliarItensEstaticos(fatos);
   if (motivos.length > 0) return {publicado: false, etapa: 'itens', motivos};
   const {alvo, project, git} = fatos;
@@ -200,7 +200,11 @@ export const executarPublicacao = ({fatos, executar, lerMarcador, inventariarFun
     const doBuild = avaliarBuild({marcador: lerMarcador(), project, git});
     if (doBuild.length > 0) return {publicado: false, etapa: 'build', motivos: doBuild};
   }
-  const argumentos = ['deploy', '--only', only, '--project', project, '--non-interactive'];
+  const argumentos = ['deploy', '--only', only, '--project', project];
+
+  if (!interativo || !ALVOS[alvo].funcoes) {
+    argumentos.push('--non-interactive');
+  }
   const ambiente = {...emCurso, FENIX_PUBLICACAO: JSON.stringify({project, commit: git.commit, alvo})};
 
   if (ALVOS[alvo].sequencial) {
@@ -236,8 +240,12 @@ export const executarPublicacao = ({fatos, executar, lerMarcador, inventariarFun
 
       const args = [
         'deploy', '--only', seletores.join(','),
-        '--project', project, '--non-interactive',
+        '--project', project,
       ];
+
+      if (!interativo || nome !== 'Functions') {
+        args.push('--non-interactive');
+      }
 
       registrar('Iniciando: ' + nome);
 

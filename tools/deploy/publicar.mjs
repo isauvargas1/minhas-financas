@@ -15,7 +15,7 @@ import {inventarioDasFuncoes} from './funcoes.mjs';
 import {executarPublicacao} from './publicacao.mjs';
 
 const recusar = (motivos, codigo = 3) => {
-  process.stderr.write(`\n[publicação] recusada; nada foi publicado:\n${motivos.map((motivo) => `  - ${motivo}`).join('\n')}\n`);
+  process.stderr.write(`\n[publicação] interrompida; confira as etapas ja concluidas:\n${motivos.map((motivo) => `  - ${motivo}`).join('\n')}\n`);
   process.exit(codigo);
 };
 
@@ -39,6 +39,7 @@ const resultado = executarPublicacao({
     spawnSync(comando, argumentos, {cwd: RAIZ, stdio: 'inherit', env: {...process.env, ...(opcoes.env ?? {})}}).status ?? 1,
   lerMarcador: () => lerMarcadorDoRelease(),
   inventariarFuncoes: () => inventarioDasFuncoes(),
+  interativo: Boolean(process.stdin.isTTY && process.stdout.isTTY),
   registrar: (mensagem) => console.log(`[publicação] ${mensagem}`),
 });
 if (!resultado.publicado) recusar(resultado.motivos);
